@@ -12307,6 +12307,9 @@ unsigned ASTContext::getIntWidth(QualType T) const {
   if (Target->SupportsCapabilities()) {
     if (T->isPointerType() && T->getAs<PointerType>()->isCHERICapability())
       return Target->getPointerRangeForCHERICapability();
+    if (T->isReferenceType() && T->getAs<ReferenceType>()->isCHERICapability()) {
+      return Target->getPointerRangeForCHERICapability();
+    }
     if (T->isIntCapType())
       return Target->getPointerRangeForCHERICapability();
     // This assertion is correct but breaks some static analyser code paths

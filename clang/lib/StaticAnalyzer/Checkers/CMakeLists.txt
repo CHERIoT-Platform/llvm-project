@@ -25,6 +25,7 @@ add_clang_library(clangStaticAnalyzerCheckers
   CheckPlacementNew.cpp
   CheckSecuritySyntaxOnly.cpp
   CheckerDocumentation.cpp
+  CHERI/ProvenanceSourceChecker.cpp
   ChrootChecker.cpp
   CloneChecker.cpp
   ContainerModeling.cpp

@@ -636,11 +636,13 @@ private:
   SValBuilder &VB;
   ASTContext &Context;
   QualType CastTy, OriginalTy;
+  bool SrcHasProvenance;
 
 public:
-  EvalCastVisitor(SValBuilder &VB, QualType CastTy, QualType OriginalTy)
+  EvalCastVisitor(SValBuilder &VB, QualType CastTy, QualType OriginalTy,
+                  bool SrcProv)
       : VB(VB), Context(VB.getContext()), CastTy(CastTy),
-        OriginalTy(OriginalTy) {}
+        OriginalTy(OriginalTy), SrcHasProvenance(SrcProv) {}
 
   SVal Visit(SVal V) {
     if (CastTy.isNull())
@@ -698,7 +700,7 @@ public:
     // Pointer to integer.
     if (CastTy->isIntegralOrEnumerationType()) {
       const unsigned BitWidth = Context.getIntWidth(CastTy);
-      return VB.makeLocAsInteger(V, BitWidth);
+      return VB.makeLocAsInteger(V, BitWidth, CastTy->isIntCapType());
     }
 
     const bool IsUnknownOriginalType = OriginalTy.isNull();
@@ -765,7 +767,8 @@ public:
         //    QualType pointerTy = C.getPointerType(elemTy);
       }
       const unsigned BitWidth = Context.getIntWidth(CastTy);
-      return VB.makeLocAsInteger(Val.castAs<Loc>(), BitWidth);
+      bool HasProvenance = this->SrcHasProvenance && CastTy->isIntCapType();
+      return VB.makeLocAsInteger(Val.castAs<Loc>(), BitWidth, HasProvenance);
     }
 
     // Pointer to pointer.
@@ -945,7 +948,7 @@ public:
         if (CastSize == V.getNumBits())
           return V;
 
-        return VB.makeLocAsInteger(L, CastSize);
+        return VB.makeLocAsInteger(L, CastSize, this->SrcHasProvenance);
       }
     }
 
@@ -1103,6 +1106,13 @@ public:
 /// FIXME: If `OriginalTy.isNull()` is true, then cast performs based on CastTy
 /// only. This behavior is uncertain and should be improved.
 SVal SValBuilder::evalCast(SVal V, QualType CastTy, QualType OriginalTy) {
-  EvalCastVisitor TRV{*this, CastTy, OriginalTy};
+  bool SrcHasProvenance = false;
+  if (V.getAs<Loc>())
+    SrcHasProvenance = true;
+  if (auto LaI = V.getAs<nonloc::LocAsInteger>()) {
+    SrcHasProvenance = LaI->hasProvenance();
+  }
+
+  EvalCastVisitor TRV{*this, CastTy, OriginalTy, SrcHasProvenance};
   return TRV.Visit(V);
 }

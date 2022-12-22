@@ -326,7 +326,13 @@ public:
   }
 
   unsigned getNumBits() const {
-    return castDataAs<std::pair<SVal, uintptr_t>>()->second;
+    return castDataAs<std::pair<SVal, uintptr_t>>()->second & 255;
+  }
+
+  bool hasProvenance() const {
+    const std::pair<SVal, uintptr_t> *D =
+        castDataAs<std::pair<SVal, uintptr_t>>();
+    return D->second & 256;
   }
 
   static bool classof(SVal V) { return V.getKind() == LocAsIntegerKind; }

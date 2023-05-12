@@ -6366,9 +6366,10 @@ stripAndAccumulateGEPsAndPointerCastsSameRepr(Value *V, const DataLayout &DL,
   return Result;
 }
 
-template <Intrinsic::ID Intrin, Intrinsic::ID SetIntrin>
+template <Intrinsic::ID Intrin>
 static Value *inferCapabilityOffsetOrAddr(Value *V, Type *ResultTy,
                                           const DataLayout &DL) {
+  constexpr Intrinsic::ID SetIntrin = cheri::correspondingSetIntrinsic(Intrin);
   // Try to infer the offset/address from a prior setoffset/setaddr value
   Value *IntrinArg = nullptr;
   // getaddr(setaddr(A, B)) -> B and getoffset(setoffset(A, B)) -> B
@@ -6425,20 +6426,6 @@ static Value *inferCapabilityOffsetOrAddr(Value *V, Type *ResultTy,
 
   // TODO: is there anything else we can infer?
   return nullptr;
-}
-
-Value *simplifyCapabilityGetOffset(Value *V, Type *ResultTy,
-                                   const DataLayout &DL) {
-  return inferCapabilityOffsetOrAddr<Intrinsic::cheri_cap_offset_get,
-                                     Intrinsic::cheri_cap_offset_set>(
-      V, ResultTy, DL);
-}
-
-Value *simplifyCapabilityGetAddress(Value *V, Type *ResultTy,
-                                    const DataLayout &DL) {
-  return inferCapabilityOffsetOrAddr<Intrinsic::cheri_cap_address_get,
-                                     Intrinsic::cheri_cap_address_set>(
-      V, ResultTy, DL);
 }
 
 static Value *simplifyUnaryIntrinsic(Function *F, Value *Op0,
@@ -6519,11 +6506,13 @@ static Value *simplifyUnaryIntrinsic(Function *F, Value *Op0,
   case Intrinsic::cheri_cap_length_get:
     break;
   case Intrinsic::cheri_cap_address_get:
-    if (Value *V = simplifyCapabilityGetAddress(Op0, F->getReturnType(), Q.DL))
+    if (auto *V = inferCapabilityOffsetOrAddr<Intrinsic::cheri_cap_address_get>(
+            Op0, F->getReturnType(), Q.DL))
       return V;
     break;
   case Intrinsic::cheri_cap_offset_get:
-    if (Value *V = simplifyCapabilityGetOffset(Op0, F->getReturnType(), Q.DL))
+    if (auto *V = inferCapabilityOffsetOrAddr<Intrinsic::cheri_cap_offset_get>(
+            Op0, F->getReturnType(), Q.DL))
       return V;
     break;
 

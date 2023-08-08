@@ -239,6 +239,18 @@ void CapabilityAlignmentChecker::checkPostStmt(const CastExpr *CE,
   }
 }
 
+bool valueIsLTPow2(const Expr *E, unsigned P, CheckerContext &C) {
+  if (P >= sizeof(uint64_t) * 8)
+    return true;
+  SValBuilder &SVB = C.getSValBuilder();
+  const NonLoc &B = SVB.makeIntVal((uint64_t)1 << P, true);
+
+  ProgramStateRef State = C.getState();
+  const SVal &V = C.getSVal(E);
+  auto LT = SVB.evalBinOp(State, BO_LT, V, B, E->getType());
+  return !State->assume(LT.castAs<DefinedOrUnknownSVal>(), false);
+}
+
 void CapabilityAlignmentChecker::checkPostStmt(const BinaryOperator *BO,
                                                CheckerContext &C) const {
   int LeftTZ = getTrailingZerosCount(BO->getLHS(), C);
@@ -250,15 +262,7 @@ void CapabilityAlignmentChecker::checkPostStmt(const BinaryOperator *BO,
 
   ProgramStateRef State = C.getState();
   SVal ResVal = C.getSVal(BO);
-  if (ResVal.isUnknown()) {
-    const LocationContext *LCtx = C.getLocationContext();
-    ResVal = C.getSValBuilder().conjureSymbolVal(nullptr, BO, LCtx,
-                                                 BO->getType(), C.blockCount());
-    State = State->BindExpr(BO, LCtx, ResVal);
-  }
-
-  SymbolRef ResSymb = ResVal.getAsSymbol();
-  if (!ResSymb)
+  if (!ResVal.isUnknown() && !ResVal.getAsSymbol())
     return;
 
   const SVal &RHSVal = C.getSVal(BO->getRHS());
@@ -269,7 +273,19 @@ void CapabilityAlignmentChecker::checkPostStmt(const BinaryOperator *BO,
   switch (OpCode) {
   case clang::BO_And:
   case clang::BO_AndAssign:
-    Res = std::max(LeftTZ, RightTZ);
+    if (valueIsLTPow2(BO->getLHS(), RightTZ, C) ||
+        valueIsLTPow2(BO->getRHS(), LeftTZ, C)) {
+      /* Align check: p & (ALIGN - 1)*/
+      if (ResVal.isUnknown()) {
+        ResVal = C.getSValBuilder().makeIntVal(0, true);
+        State = State->BindExpr(BO, C.getLocationContext(), ResVal);
+        C.addTransition(State);
+        return;
+      } else {
+        Res = BitWidth;
+      }
+    } else
+      Res = std::max(LeftTZ, RightTZ);
     break;
   case clang::BO_Or:
   case clang::BO_OrAssign:
@@ -317,7 +333,13 @@ void CapabilityAlignmentChecker::checkPostStmt(const BinaryOperator *BO,
   if (Res > BitWidth)
     Res = BitWidth;
 
-  State = State->set<TrailingZerosMap>(ResSymb, Res);
+  if (ResVal.isUnknown()) {
+    const LocationContext *LCtx = C.getLocationContext();
+    ResVal = C.getSValBuilder().conjureSymbolVal(nullptr, BO, LCtx,
+                                                 BO->getType(), C.blockCount());
+    State = State->BindExpr(BO, LCtx, ResVal);
+  }
+  State = State->set<TrailingZerosMap>(ResVal.getAsSymbol(), Res);
   const NoteTag *Tag =
       C.getNoteTag([LeftTZ, RightTZ, Res,
                     OpCode](PathSensitiveBugReport &BR) -> std::string {

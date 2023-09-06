@@ -1800,16 +1800,14 @@ def RetainPtrCtorAdoptChecker : Checker<"RetainPtrCtorAdoptChecker">,
 // CHERI checkers.
 //===----------------------------------------------------------------------===//
 
-let ParentPackage = CHERI in {} // end cheri
-
-let ParentPackage = CHERIAlpha in {
+let ParentPackage = CHERI in {
 
   def ProvenanceSourceChecker
-      : Checker<"ProvenanceSourceChecker">,
+      : Checker<"ProvenanceSource">,
         HelpText<"Check expressions with ambiguous provenance source.">,
         Documentation<NotDocumented>;
 
-  def CapabilityCopyChecker : Checker<"CapabilityCopyChecker">,
+  def CapabilityCopyChecker : Checker<"CapabilityCopy">,
                               HelpText<"Check tag-stripping memory copy.">,
                               Documentation<NotDocumented>;
 
@@ -1817,4 +1815,6 @@ let ParentPackage = CHERIAlpha in {
                                    HelpText<"Check underaligned pointers.">,
                                    Documentation<NotDocumented>;
 
-} // end alpha.cheri
+} // end cheri
+
+let ParentPackage = CHERIAlpha in {} // end alpha.cheri

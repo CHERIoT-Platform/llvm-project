@@ -1,0 +1,24 @@
+
+
+task:
+  name: Build and test PR
+  skip: CIRRUS_PR != ""
+  container: ubuntu:22.04
+  cpu: 8
+  memory: 16G
+  env:
+    NINJA_STATUS: '%p [%f:%s/%t] %o/s, %es'
+  dependencies_script:
+    - set -eo pipefail
+    - sudo apt-get update
+    - sudo apt-get install -y clang ninja-build lld
+    - sudo snap install cmake --classic
+  configure_script:
+    - mkdir Build
+    - cd Build
+    - cmake ../llvm -DCMAKE_BUILD_TYPE=Debug  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" -DLLVM_ENABLE_UNWIND_TABLES=NO -DLLVM_ENABLE_LLD=ON -DLLVM_TARGETS_TO_BUILD=RISCV -G Ninja
+  build_script:
+    - cd Build
+    - ninja
+  test_script:
+    - ninja check-all

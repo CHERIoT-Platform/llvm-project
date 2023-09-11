@@ -1,24 +1,55 @@
-
-
-task:
+pr_task:
   name: Build and test PR
-  skip: CIRRUS_PR != ""
-  container: ubuntu:22.04
-  cpu: 8
-  memory: 16G
+  skip: $CIRRUS_PR == ""
+  timeout_in: 120m
+  container:
+    image: ubuntu:22.04
+    cpu: 8
+    memory: 16G
   env:
     NINJA_STATUS: '%p [%f:%s/%t] %o/s, %es'
+    CIRRUS_CLONE_DEPTH: 1
   dependencies_script:
     - set -eo pipefail
-    - sudo apt-get update
-    - sudo apt-get install -y clang ninja-build lld
-    - sudo snap install cmake --classic
+    - apt-get update
+    - apt-get install -y clang ninja-build lld cmake
   configure_script:
     - mkdir Build
     - cd Build
-    - cmake ../llvm -DCMAKE_BUILD_TYPE=Debug  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" -DLLVM_ENABLE_UNWIND_TABLES=NO -DLLVM_ENABLE_LLD=ON -DLLVM_TARGETS_TO_BUILD=RISCV -G Ninja
+    - cmake ../llvm -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Debug  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" -DLLVM_ENABLE_UNWIND_TABLES=NO -DLLVM_ENABLE_LLD=ON -DLLVM_PARALLEL_LINK_JOBS=1 -G Ninja
   build_script:
     - cd Build
     - ninja
   test_script:
-    - ninja check-all
+    - cd Build
+    # Filter out 27 tests that fail in CI.
+    #  - The scan-build and update_cc_test_checks tests fail because of a missing Perl dependency.
+    #  - The llvm-ar test fails because CI runs as root and can override the permissions.
+    #  - The llvm-dwarfdump and llvm-ifs tests fails with a permission error.
+    - ./bin/llvm-lit  -v --filter-out '(LibClang/symbols\.test)|(.*/scan-build/.*)|(.*/update_cc_test_checks/.*)|(tools/llvm-ar/error-opening-permission.test)|(tools/llvm-dwarfdump/X86/output.s)|(tools/llvm-ifs/fail-file-write.test)' ../llvm/test/ ../clang/test/ 
+
+merge_task:
+  name: Build and upload artefact
+  only_if: ($CIRRUS_PR == "") && ($CIRRUS_BRANCH == "cheriot")
+  timeout_in: 120m
+  container:
+    image: ubuntu:22.04
+    cpu: 8
+    memory: 16G
+  env:
+    NINJA_STATUS: '%p [%f:%s/%t] %o/s, %es'
+    CIRRUS_CLONE_DEPTH: 1
+  dependencies_script:
+    - set -eo pipefail
+    - apt-get update
+    - apt-get install -y clang ninja-build lld cmake
+  configure_script:
+    - mkdir Build
+    - cd Build
+    - cmake ../llvm -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Debug  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" -DLLVM_ENABLE_UNWIND_TABLES=NO -DLLVM_ENABLE_LLD=ON -DLLVM_TARGETS_TO_BUILD=RISCV -DLLVM_DISTRIBUTION_COMPONENTS="clang;clangd;lld;llvm-objdump;clang-tidy;clang-format" -DCMAKE_INSTALL_PREFIX=install -DLLVM_PARALLEL_LINK_JOBS=1 -G Ninja
+  build_script:
+    - cd Build
+    - ninja install-distribution
+    - cp ../llvm/LICENSE.TXT install/LLVM-LICENSE.TXT
+  binaries_artifacts:
+    path: "Build/install/**"

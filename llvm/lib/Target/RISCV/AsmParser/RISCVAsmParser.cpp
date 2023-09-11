@@ -834,7 +834,9 @@ public:
       IsValid = RISCVAsmParser::classifySymbolRef(getImm(), VK);
       return IsValid && VK == RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_CGPREL_HI;
     } else {
-      return isUInt<20>(Imm) && VK == RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_CGPREL_HI;
+      return isUInt<20>(Imm) &&
+             (VK == RISCVMCExpr::VK_RISCV_None ||
+              VK == RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_CGPREL_HI);
     }
   }
 

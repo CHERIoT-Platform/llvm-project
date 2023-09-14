@@ -1802,9 +1802,16 @@ let ParentPackage = CHERI in {
                                       "false", InAlpha>]>,
         Documentation<NotDocumented>;
 
-  def CapabilityCopyChecker : Checker<"CapabilityCopy">,
-                              HelpText<"Check tag-stripping memory copy.">,
-                              Documentation<NotDocumented>;
+  def CapabilityCopyChecker
+      : Checker<"CapabilityCopy">,
+        HelpText<"Check tag-stripping memory copy.">,
+        CheckerOptions<[CmdLineOption<
+            Boolean, "ReportForCharPtr",
+            "Report tag-stripping copy for char* function parameters. "
+            "Suppression of warnings for C-strings is used to reduce "
+            "the number of false alarms, but it's not very reliable.",
+            "true", Released>]>,
+        Documentation<NotDocumented>;
 
 } // end cheri
 

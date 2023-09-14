@@ -77,6 +77,8 @@ public:
   void checkBranchCondition(const Stmt *Cond, CheckerContext &C) const;
   void checkPreCall(const CallEvent &Call, CheckerContext &C) const;
 
+  bool ReportForCharPtr = false;
+
 private:
   ExplodedNode *checkBinaryOpArg(CheckerContext &C, const Expr *E) const;
 };
@@ -116,7 +118,7 @@ const MemRegion *stripNonCapShift(const MemRegion *R, ASTContext &ASTCtx) {
   return ER->getSuperRegion();
 }
 
-bool isVoidOrCharPtrArgRegion(const MemRegion *Reg, CheckerContext &C) {
+bool isVoidOrCharPtrArgRegion(const MemRegion *Reg, bool AcceptCharPtr, CheckerContext &C) {
   if (!Reg)
     return false;
 
@@ -126,7 +128,7 @@ bool isVoidOrCharPtrArgRegion(const MemRegion *Reg, CheckerContext &C) {
     return false;
 
   SymbolRef Sym = SymReg->getSymbol();
-  if (!isGenericPointerType(Sym->getType()))
+  if (!isGenericPointerType(Sym->getType(), AcceptCharPtr))
     return false;
 
   // 2. void* symbol is function argument
@@ -136,7 +138,7 @@ bool isVoidOrCharPtrArgRegion(const MemRegion *Reg, CheckerContext &C) {
              ->hasMemorySpace<StackArgumentsSpaceRegion>(C.getState());
 }
 
-CHERITagState getTagState(SVal Val, CheckerContext &C,
+CHERITagState getTagState(SVal Val, CheckerContext &C, bool AcceptCharPtr,
                           bool AcceptUnaligned = true) {
   if (Val.isUnknownOrUndef())
     return CHERITagState::getUnknown();
@@ -153,14 +155,14 @@ CHERITagState getTagState(SVal Val, CheckerContext &C,
       const MemRegion *SuperReg = stripNonCapShift(MR, C.getASTContext());
       if (isa<FieldRegion>(SuperReg))
         return CHERITagState::getUnknown(); // not a part of capability
-      if (isVoidOrCharPtrArgRegion(SuperReg, C) &&
+      if (isVoidOrCharPtrArgRegion(SuperReg, AcceptCharPtr, C) &&
           (AcceptUnaligned || !S->contains<UnalignedPtr>(SuperReg)) &&
           !S->contains<CString>(SuperReg))
         return CHERITagState::getMayBeTagged();
       if (MR != SuperReg && isa<TypedValueRegion>(SuperReg)) {
         const SVal &SuperVal = C.getState()->getSVal(SuperReg);
         if (Val != SuperVal)
-          return getTagState(SuperVal, C);
+          return getTagState(SuperVal, C, AcceptCharPtr);
       }
     }
   }
@@ -169,7 +171,7 @@ CHERITagState getTagState(SVal Val, CheckerContext &C,
 }
 
 bool isCapabilityStorage(CheckerContext &C, const MemRegion *R,
-                         bool AcceptUnaligned = true) {
+                         bool AcceptCharPtr, bool AcceptUnaligned = true) {
   const MemRegion *BaseReg = stripNonCapShift(R, C.getASTContext());
   if (!AcceptUnaligned && C.getState()->contains<UnalignedPtr>(BaseReg))
     return false;
@@ -177,7 +179,7 @@ bool isCapabilityStorage(CheckerContext &C, const MemRegion *R,
     return false;
   if (const auto *SymR = dyn_cast<SymbolicRegion>(BaseReg)) {
     QualType const Ty = SymR->getSymbol()->getType();
-    if (isGenericPointerType(Ty))
+    if (isGenericPointerType(Ty, AcceptCharPtr))
       return true;
     return isPointerToCapTy(Ty, C.getASTContext());
   }
@@ -202,7 +204,7 @@ void CapabilityCopyChecker::checkLocation(SVal l, bool isLoad, const Stmt *S,
   ProgramStateRef State = C.getState();
   QualType const Ty = l.getType(ASTCtx);
   QualType const ArgValTy = Ty->getPointeeType();
-  if (!isGenericPointerType(ArgValTy))
+  if (!isGenericPointerType(ArgValTy, ReportForCharPtr))
     return;
 
   /* Loading VoidPtr function argument */
@@ -342,12 +344,12 @@ const MemRegion *isCapAlignCheck(const BinaryOperator *BO, CheckerContext &C) {
 }
 
 bool handleAlignmentCheck(const BinaryOperator *BO, ProgramStateRef State,
-                          CheckerContext &C) {
+                          CheckerContext &C, bool AcceptCharPtr) {
   auto ExprPtrReg = isCapAlignCheck(BO, C);
   if (!ExprPtrReg)
     return false;
 
-  if (!isVoidOrCharPtrArgRegion(ExprPtrReg, C))
+  if (!isVoidOrCharPtrArgRegion(ExprPtrReg, AcceptCharPtr, C))
     return false;
 
   SVal AndVal = C.getSVal(BO);
@@ -393,11 +395,11 @@ void CapabilityCopyChecker::checkBind(SVal L, SVal V, const Stmt *S,
     return;
   /* Non-capability scalar store */
 
-  const CHERITagState &ValTag = getTagState(V, C);
+  const CHERITagState &ValTag = getTagState(V, C, ReportForCharPtr);
   if (!ValTag.isTagged() && !ValTag.mayBeTagged())
     return;
 
-  if (!isCapabilityStorage(C, MR))
+  if (!isCapabilityStorage(C, MR, ReportForCharPtr))
     return;
 
   if (ValTag.mayBeTagged() && !isPartOfCopyingSequence(PointeeTy, V, S, C))
@@ -421,7 +423,8 @@ using namespace clang::ast_matchers;
 using namespace clang::ast_matchers::internal;
 
 ProgramStateRef markOriginAsCStringForMatch(const Stmt *E, Matcher<Stmt> D,
-                                            CheckerContext &C) {
+                                            CheckerContext &C,
+                                            bool AcceptCharPtr) {
   auto M = match(D, *E, C.getASTContext());
 
   bool Updated = false;
@@ -439,7 +442,7 @@ ProgramStateRef markOriginAsCStringForMatch(const Stmt *E, Matcher<Stmt> D,
 
     const MemRegion *BaseReg = stripNonCapShift(R, C.getASTContext());
 
-    if (isVoidOrCharPtrArgRegion(BaseReg, C)) {
+    if (isVoidOrCharPtrArgRegion(BaseReg, AcceptCharPtr, C)) {
       /* It's probably a string, so it's not to be regarded as a potential
        * pointer to capability */
       State = State->add<CString>(BaseReg);
@@ -498,7 +501,8 @@ void CapabilityCopyChecker::checkBranchCondition(const Stmt *Cond,
 
   auto CharMatcher = expr(hasType(isAnyCharacter())).bind("c");
   auto CondMatcher = stmt(expr(ignoringParenCasts(CharMatcher)));
-  const ProgramStateRef N = markOriginAsCStringForMatch(Cond, CondMatcher, C);
+  const ProgramStateRef N =
+      markOriginAsCStringForMatch(Cond, CondMatcher, C, ReportForCharPtr);
   bool updated = checkForWhileBoundVar(Cond, C, N ? N : C.getState());
   if (!updated && N)
     C.addTransition(N);
@@ -513,7 +517,8 @@ void CapabilityCopyChecker::checkPostStmt(const ArraySubscriptExpr *E,
   auto CharMatcher = expr(hasType(isAnyCharacter())).bind("c");
   auto IndexMatcher = stmt(expr(ignoringParenCasts(CharMatcher)));
 
-  const ProgramStateRef N = markOriginAsCStringForMatch(Index, IndexMatcher, C);
+  const ProgramStateRef N =
+      markOriginAsCStringForMatch(Index, IndexMatcher, C, ReportForCharPtr);
   if (N)
     C.addTransition(N);
 }
@@ -587,11 +592,12 @@ void CapabilityCopyChecker::checkPostStmt(const BinaryOperator *BO,
   auto Arithm = binaryOperation(BitOps, has(CharMatcher));
 
   auto BOM = anyOf(Cmp, Arithm);
-  const ProgramStateRef NewState = markOriginAsCStringForMatch(BO, BOM, C);
+  const ProgramStateRef NewState =
+      markOriginAsCStringForMatch(BO, BOM, C, ReportForCharPtr);
   if (NewState)
     State = NewState;
 
-  bool updated = handleAlignmentCheck(BO, State, C);
+  bool updated = handleAlignmentCheck(BO, State, C, ReportForCharPtr);
   if (!updated && NewState)
     C.addTransition(NewState);
 }
@@ -619,7 +625,9 @@ void CapabilityCopyChecker::checkPreCall(const CallEvent &Call,
 }
 
 void ento::registerCapabilityCopyChecker(CheckerManager &mgr) {
-  mgr.registerChecker<CapabilityCopyChecker>();
+  auto *Checker = mgr.registerChecker<CapabilityCopyChecker>();
+  Checker->ReportForCharPtr = mgr.getAnalyzerOptions().getCheckerBooleanOption(
+      Checker, "ReportForCharPtr");
 }
 
 bool ento::shouldRegisterCapabilityCopyChecker(const CheckerManager &Mgr) {

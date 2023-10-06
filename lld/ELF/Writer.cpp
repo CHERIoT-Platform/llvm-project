@@ -3151,8 +3151,10 @@ class CompartmentReportWriter {
   std::map<std::string, json::Object> compartments;
   /// The section that holds sealed objects.
   OutputSection *sealedObjects;
-  /// The section that holds export tables.
-  OutputSection *exportTables;
+  /// The section that holds export tables for compartments.
+  OutputSection *compartmentExportTables;
+  /// The section that holds export tables for libraries.
+  OutputSection *libraryExportTables;
 
   /**
    * Map from file names to the metadata about their exports.  This is a bit
@@ -3239,7 +3241,8 @@ class CompartmentReportWriter {
                   " but requests an import of length " + utostr(entry.length) +
                   ".");
           uint32_t sealingType = read<uint32_t>(sealedObjects->offset + start);
-          auto *sealingSec = findInputSection(exportTables, sealingType);
+          auto *sealingSec =
+              findInputSection(compartmentExportTables, sealingType);
           if (!sealingSec) {
             error("Sealed object '" + sym->getName() + "' for compartment '" +
                   compartmentName + "' has a sealing type address 0x" +
@@ -3248,7 +3251,8 @@ class CompartmentReportWriter {
             continue;
           }
           auto *exportType = sealingSec->getEnclosingObject<ELF32LE>(
-              sealingType - exportTables->getLMA() - sealingSec->outSecOff);
+              sealingType - compartmentExportTables->getLMA() -
+              sealingSec->outSecOff);
           if (!exportType) {
             error("Sealed object '" + sym->getName() + "' for compartment '" +
                   compartmentName + "' has a sealing type address 0x" +
@@ -3288,45 +3292,59 @@ class CompartmentReportWriter {
       // compartments, the loader will not provide any capabilities in these.
       if (entry.start == 0)
         continue;
-      uint32_t base = exportTables->getLMA();
       uint32_t target = entry.start;
       bool isLibcall = target & 1;
       target &= ~uint32_t(1);
-      if (auto *inSec = findInputSection(exportTables, target)) {
-        auto inputBase = base + inSec->outSecOff;
-        if (auto *sym =
-                inSec->getEnclosingObject<ELF32LE>(target - inputBase)) {
-          auto name = sym->getName();
-          json::Object importEntry{
-              {"kind", isLibcall ? "LibraryFunction" : "CompartmentExport"},
-              {"provided_by", inSec->file->getName()},
-              {"export_symbol", name}};
-          if (name.consume_front("__library_export_")) {
-            if (!isLibcall)
-              error("Compartment '" + compartmentName +
-                    "' imports library function '" + sym->getName() +
-                    "' as cross-compartment call");
-            size_t functionNameStart = name.find("__Z");
-            if (functionNameStart != StringRef::npos)
-              importEntry.insert({"function", demangleItanium(name.substr(
-                                                  functionNameStart + 1))});
-          } else if (name.consume_front("__export_")) {
-            size_t functionNameStart = name.find("__Z");
-            if (functionNameStart != StringRef::npos) {
-              importEntry.insert(
-                  {"compartment_name", name.take_front(functionNameStart)});
-              importEntry.insert({"function", demangleItanium(name.substr(
-                                                  functionNameStart + 1))});
+      auto handleExport = [&](OutputSection *exportTables, bool isLibrary) {
+        if (!exportTables)
+          return false;
+        if (auto *inSec = findInputSection(exportTables, target)) {
+          uint32_t base = exportTables->getLMA();
+          auto inputBase = base + inSec->outSecOff;
+          if (auto *sym =
+                  inSec->getEnclosingObject<ELF32LE>(target - inputBase)) {
+            auto name = sym->getName();
+            json::Object importEntry{
+                {"kind", isLibcall ? "LibraryFunction" : "CompartmentExport"},
+                {"provided_by", inSec->file->getName()},
+                {"export_symbol", name}};
+            // We allow compartments to expose library exports.  This may be
+            // useful for fast paths, but it's also necessary for the older
+            // linker script, which put all exports in the same place.
+            // no useful way that a library can expose a compartment call.
+            if (isLibrary && !isLibcall)
+              error(
+                  "Import table for compartment '" + compartmentName +
+                  "' imports '" + name +
+                  "', as a compartment call but it is exported from a library");
+            if (name.consume_front("__library_export_")) {
+              if (!isLibcall)
+                error("Compartment '" + compartmentName +
+                      "' imports library function '" + sym->getName() +
+                      "' as cross-compartment call");
+              size_t functionNameStart = name.find("__Z");
+              if (functionNameStart != StringRef::npos)
+                importEntry.insert({"function", demangleItanium(name.substr(
+                                                    functionNameStart + 1))});
+            } else if (name.consume_front("__export_")) {
+              size_t functionNameStart = name.find("__Z");
+              if (functionNameStart != StringRef::npos) {
+                importEntry.insert(
+                    {"compartment_name", name.take_front(functionNameStart)});
+                importEntry.insert({"function", demangleItanium(name.substr(
+                                                    functionNameStart + 1))});
+              }
             }
+            imports.push_back(std::move(importEntry));
+            // FIXME: Error if sym->isLocal() and the export table is not
+            // the one corresponding to the import table.
+            return true;
           }
-          imports.push_back(std::move(importEntry));
-          // FIXME: Error if sym->isLocal() and the export table is not
-          // the one corresponding to the import table.
-        } else
-          error("Import table for compartment '" + compartmentName +
-                "' refers to address 0x" + utohexstr(target) +
-                ", which is not a valid export");
-      } else
+        }
+        return false;
+      };
+      if (!handleExport(compartmentExportTables, false) &&
+          !handleExport(libraryExportTables, true))
         error("Import table for compartment '" + compartmentName +
               "' refers to address 0x" + utohexstr(target) +
               ", which is not a valid export");
@@ -3358,17 +3376,22 @@ class CompartmentReportWriter {
   }
 
   /**
-   * Process the exports output section.  This is made by concatenating all of
-   * the
+   * Process the exports output section.
+   *
+   * The old ABI had one of these, concatenating all compartment and library
+   * export tables.  The newer ABI separates library export tables, which are
+   * not needed after loading and can be erased.
    */
-  void processExports(OutputSection *sec) {
+  void processExports(OutputSection *sec, bool isLibrary) {
+    OutputSection *&exportTables =
+        isLibrary ? libraryExportTables : compartmentExportTables;
     exportTables = sec;
     // Look at all of the export tables in turn
     for (auto *inSec : getInputSections(sec)) {
       // Skip pcc, ddc, and the error handler.
       constexpr uint64_t firstEntryOffset = 20;
       uint64_t offset = firstEntryOffset;
-      // Skip ones that don't actually import anything.
+      // Skip ones that don't actually export anything.
       if (inSec->getSize() <= offset)
         continue;
       uint8_t *sectionStartInOutput = buffer + sec->offset + inSec->outSecOff;
@@ -3464,8 +3487,8 @@ class CompartmentReportWriter {
       json::Object entryPointDescription;
       bool foundExport = false;
 
-      if (auto *inSec = findInputSection(exportTables, entryPoint)) {
-        auto inputBase = exportTables->getLMA() + inSec->outSecOff;
+      if (auto *inSec = findInputSection(compartmentExportTables, entryPoint)) {
+        auto inputBase = compartmentExportTables->getLMA() + inSec->outSecOff;
         if (auto *sym =
                 inSec->getEnclosingObject<ELF32LE>(entryPoint - inputBase)) {
           entryPointDescription.insert({"provided_by", inSec->file->getName()});
@@ -3606,7 +3629,9 @@ public:
     if (config->shouldEmitCompartmentReport()) {
       for (OutputSection *sec : outputSections)
         if (sec->name == ".compartment_export_tables") {
-          processExports(sec);
+          processExports(sec, false);
+        } else if (sec->name == ".library_export_tables") {
+          processExports(sec, true);
         } else if (sec->name == ".sealed_objects")
           sealedObjects = sec;
       for (OutputSection *sec : outputSections)

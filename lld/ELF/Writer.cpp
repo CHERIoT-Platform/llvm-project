@@ -3525,7 +3525,6 @@ class CompartmentReportWriter {
     // Special case the things that are not compartments.
     if (StringSwitch<bool>(sec->name)
             .Case(".loader_start", true)
-            .Case("compartment_switcher_code", true)
             .Case(".loader_code", true)
             .Case(".loader_data", true)
             .Default(false)) {

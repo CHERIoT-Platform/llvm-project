@@ -1813,6 +1813,11 @@ let ParentPackage = CHERI in {
             "true", Released>]>,
         Documentation<NotDocumented>;
 
+  def PointerSizeAssumptionsChecker
+      : Checker<"PointerSizeAssumptions">,
+        HelpText<"Detect hardcoded expectations on pointer sizes">,
+        Documentation<NotDocumented>;
+
 } // end cheri
 
 let ParentPackage = CHERIAlpha in {} // end alpha.cheri

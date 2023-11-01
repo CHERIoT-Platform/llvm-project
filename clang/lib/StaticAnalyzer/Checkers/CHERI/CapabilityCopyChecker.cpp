@@ -115,7 +115,7 @@ const MemRegion *stripNonCapShift(const MemRegion *R, ASTContext &ASTCtx) {
   if (!isNonCapScalarType(ER->getValueType(), ASTCtx))
     return R;
 
-  return ER->getSuperRegion();
+  return stripNonCapShift(ER->getSuperRegion(), ASTCtx);
 }
 
 bool isVoidOrCharPtrArgRegion(const MemRegion *Reg, bool AcceptCharPtr) {

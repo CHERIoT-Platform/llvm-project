@@ -56,6 +56,7 @@
 #include "llvm/TargetParser/RISCVISAInfo.h"
 #include "llvm/TargetParser/RISCVTargetParser.h"
 #include <cctype>
+#include <clang/Basic/DiagnosticSema.h>
 
 using namespace clang::driver;
 using namespace clang::driver::tools;
@@ -3463,7 +3464,8 @@ static void RenderFloatingPointOptions(const ToolChain &TC, const Driver &D,
 
 static void RenderAnalyzerOptions(const ArgList &Args, ArgStringList &CmdArgs,
                                   const llvm::Triple &Triple,
-                                  const InputInfo &Input) {
+                                  const InputInfo &Input,
+                                  DiagnosticsEngine &Diags) {
   // Add default argument set.
   if (!Args.hasArg(options::OPT__analyzer_no_default_checks)) {
     CmdArgs.push_back("-analyzer-checker=core");
@@ -3515,6 +3517,16 @@ static void RenderAnalyzerOptions(const ArgList &Args, ArgStringList &CmdArgs,
         (Triple.isMIPS() && tools::mips::hasMipsAbiArg(Args, "purecap")) ||
         (Triple.isRISCV() && tools::riscv::isCheriPurecap(Args, Triple))) {
       CmdArgs.push_back("-analyzer-checker=cheri");
+
+      // disable AmbiguousProvenance war if [-Wcheri-provenance] is disabled
+      if (Diags.getDiagnosticLevel(
+              diag::warn_ambiguous_provenance_capability_binop,
+              SourceLocation()) < DiagnosticsEngine::Warning) {
+        CmdArgs.push_back("-analyzer-config");
+        CmdArgs.push_back(
+            "cheri.ProvenanceSource:ReportForAmbiguousProvenance=false");
+      }
+
       CmdArgs.push_back("-analyzer-checker=optin.portability.PointerAlignment");
       CmdArgs.push_back("-analyzer-checker=alpha.core.PointerSub");
     }
@@ -5553,7 +5565,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("-DUNICODE");
 
   if (isa<AnalyzeJobAction>(JA))
-    RenderAnalyzerOptions(Args, CmdArgs, Triple, Input);
+    RenderAnalyzerOptions(Args, CmdArgs, Triple, Input, D.getDiags());
 
   if (isa<AnalyzeJobAction>(JA) ||
       (isa<PreprocessJobAction>(JA) && Args.hasArg(options::OPT__analyze)))

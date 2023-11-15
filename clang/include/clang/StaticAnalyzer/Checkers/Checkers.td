@@ -1797,9 +1797,17 @@ let ParentPackage = CHERI in {
   def ProvenanceSourceChecker
       : Checker<"ProvenanceSource">,
         HelpText<"Check expressions with ambiguous provenance source.">,
-        CheckerOptions<[CmdLineOption<Boolean, "ShowFixIts",
-                                      "Enable fix-it hints for this checker",
-                                      "false", InAlpha>]>,
+        CheckerOptions<
+            [CmdLineOption<Boolean, "ShowFixIts",
+                           "Enable fix-it hints for this checker", "false",
+                           InAlpha>,
+             CmdLineOption<
+                 Boolean, "ReportForAmbiguousProvenance",
+                 "Report for binary operations with ambiguous provenance "
+                 "for which the default capability derivation from LHS is "
+                 "fine. "
+                 "Disabled if [-Wcheri-provenance] is disabled.",
+                 "true", Released>]>,
         Documentation<NotDocumented>;
 
   def CapabilityCopyChecker

@@ -94,6 +94,8 @@ enum NodeType : unsigned {
   CAP_CALL,
   /// Cross-compartment call.
   CAP_COMPARTMENT_CALL,
+  /// CHERIoT cross-library call.
+  CAP_LIB_CALL,
   CAP_TAIL,
   /// Legalised int_cheri_cap_tag_get
   CAP_TAG_GET,

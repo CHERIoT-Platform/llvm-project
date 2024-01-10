@@ -28,6 +28,9 @@ def riscv_cap_call        : SDNode<"RISCVISD::CAP_CALL", SDT_RISCVCapCall,
 def riscv_cap_compartment_call : SDNode<"RISCVISD::CAP_COMPARTMENT_CALL", SDT_RISCVCapCall,
                                    [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
                                     SDNPVariadic]>;
+def riscv_cap_library_call : SDNode<"RISCVISD::CAP_LIB_CALL", SDT_RISCVCapCall,
+                                   [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
+                                    SDNPVariadic]>;
 def riscv_cap_tail        : SDNode<"RISCVISD::CAP_TAIL", SDT_RISCVCapCall,
                                    [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
                                     SDNPVariadic]>;
@@ -1716,6 +1719,10 @@ let Predicates = [HasCheri, IsCapMode],
     isCall = 1, Defs = [C1], isCodeGenOnly = 1 in
 def PseudoCompartmentCall : Pseudo<(outs), (ins cap_call_symbol:$func), []>;
 
+let Predicates = [HasCheri, IsCapMode],
+    isCall = 1, Defs = [C1], isCodeGenOnly = 1 in
+def PseudoLibraryCall : Pseudo<(outs), (ins cap_call_symbol:$func), []>;
+
 let Predicates = [HasCheri, IsCapMode, IsPureCapABI] in {
 def : Pat<(riscv_cap_call tglobaladdr:$func),
           (PseudoCCALL tglobaladdr:$func)>;
@@ -1727,6 +1734,12 @@ def : Pat<(riscv_cap_compartment_call texternalsym:$func),
           (PseudoCompartmentCall texternalsym:$func)>;
 def : Pat<(riscv_cap_compartment_call GPCR:$func),
           (PseudoCompartmentCall GPCR:$func)>;
+def : Pat<(riscv_cap_library_call tglobaladdr:$func),
+          (PseudoLibraryCall tglobaladdr:$func)>;
+def : Pat<(riscv_cap_library_call texternalsym:$func),
+          (PseudoLibraryCall texternalsym:$func)>;
+def : Pat<(riscv_cap_library_call GPCR:$func),
+          (PseudoLibraryCall GPCR:$func)>;
 } // Predicates = [HasCheri, IsCapMode, IsPureCapABI]
 
 let Predicates = [HasCheri, IsCapMode, IsPureCapABI],

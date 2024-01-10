@@ -187,7 +187,6 @@ TargetPassConfig *RISCVTargetMachine::createPassConfig(PassManagerBase &PM) {
 void RISCVPassConfig::addIRPasses() {
   addPass(createAtomicExpandPass());
   addPass(createCheriBoundAllocasPass());
-  addPass(createRISCVCheriExpandCCallPass());
   TargetPassConfig::addIRPasses();
 }
 
@@ -222,7 +221,8 @@ void RISCVPassConfig::addPreSched2() {}
 void RISCVPassConfig::addPreEmitPass() { addPass(&BranchRelaxationPassID); }
 
 void RISCVPassConfig::addPreEmitPass2() {
-  addPass(createRISCVExpandPseudoPass());
+  addPass(createRISCVExpandPseudoPass(
+      getTM<RISCVTargetMachine>().ImportedFunctions));
   // Schedule the expansion of AMOs at the last possible moment, avoiding the
   // possibility for other passes to break the requirements for forward
   // progress in the LR/SC block.

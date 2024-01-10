@@ -286,6 +286,48 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
       OutStreamer->emitELFSize(Sym, MCConstantExpr::create(4, C));
     }
   }
+  // Generate CHERIoT imports if there are any.
+  auto &CHERIoTCompartmentImports =
+      static_cast<RISCVTargetMachine &>(TM).ImportedFunctions;
+  if (!CHERIoTCompartmentImports.empty()) {
+    auto &C = OutStreamer->getContext();
+
+    for (auto &Entry : CHERIoTCompartmentImports) {
+      // Import entries are capability-sized entries.  The second word is
+      // zero, the first is the address of the corresponding export table
+      // entry.
+
+      // Public symbols must be COMDATs so that they can be merged across
+      // compilation units.  Private ones must not be.
+      auto *Section =
+          Entry.IsPublic
+              ? C.getELFSection(".compartment_imports", ELF::SHT_PROGBITS,
+                                ELF::SHF_ALLOC | ELF::SHF_GROUP, 0,
+                                Entry.ImportName, true)
+              : C.getELFSection(".compartment_imports", ELF::SHT_PROGBITS,
+                                ELF::SHF_ALLOC);
+      OutStreamer->SwitchSection(Section);
+      auto Sym = C.getOrCreateSymbol(Entry.ImportName);
+      auto ExportSym = C.getOrCreateSymbol(Entry.ExportName);
+      OutStreamer->emitSymbolAttribute(Sym, MCSA_ELF_TypeObject);
+      if (Entry.IsPublic) {
+        OutStreamer->emitSymbolAttribute(Sym, MCSA_Weak);
+        OutStreamer->emitSymbolAttribute(Sym, MCSA_Global);
+      }
+      OutStreamer->emitValueToAlignment(8);
+      OutStreamer->emitLabel(Sym);
+      // Library imports have their low bit set.
+      if (Entry.IsLibrary)
+        OutStreamer->emitValue(
+            MCBinaryExpr::createAdd(MCSymbolRefExpr::create(ExportSym, C),
+                                    MCConstantExpr::create(1, C), C),
+            4);
+      else
+        OutStreamer->emitValue(MCSymbolRefExpr::create(ExportSym, C), 4);
+      OutStreamer->emitIntValue(0, 4);
+      OutStreamer->emitELFSize(Sym, MCConstantExpr::create(8, C));
+    }
+  }
 
   if (TM.getTargetTriple().isOSBinFormatELF())
     RTS.finishAttributeSection();

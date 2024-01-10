@@ -11,11 +11,12 @@ define dso_local void @call_callback(i32 (i8 addrspace(200)*) addrspace(200)* no
 entry:
 ; Make sure that calling the callback has a sensible call sequence:
 ; CHECK-LABEL: call_callback:
-; Move the argument register to the compartment switcher target
-; CHECK: cmove   ct1, ca0
 ; Allocate 42 bytes of stack storage and store it in ca0
 ; CHECK: cincoffset      ca0, csp,
 ; CHECK: csetbounds      ca0, ca0, 42
+; Move the argument register to the compartment switcher target
+; TODO: We should be able to avoid the double move here.
+; CHECK: cmove   ct1
 ; Load the compartment switcher into $ct2 and jump there
 ; CHECK: auipcc  ct2, %cheri_compartment_pccrel_hi(.compartment_switcher)
 ; CHECK: clc     ct2, %cheri_compartment_pccrel_lo(.LBB0_1)(ct2)
@@ -39,11 +40,13 @@ entry:
 ; Check that this call is loading the import table entry, not the function
 ; address
 ; CHECK:         auipcc  ca0, %cheri_compartment_pccrel_hi(__import_comp_cb)
-; CHECK:         cincoffset      ca0, ca0, %cheri_compartment_pccrel_lo(.LBB1_1)
-; CHECK:         clc     ca0, 0(ca0)
+; CHECK:         clc     ca0, %cheri_compartment_pccrel_lo(.LBB1_1)(ca0)
 ; And make sure that it's really jumping to the right function.
 ; CHECK: ccall   take_callback
   call void @take_callback(i32 (i8 addrspace(200)*) addrspace(200)* nonnull @cb) #4
+; CHECK:         auipcc  ca0, %cheri_compartment_pccrel_hi(__import_comp_ecb)
+; CHECK:         clc     ca0, %cheri_compartment_pccrel_lo
+; CHECK: ccall   take_callback
   call void @take_callback(i32 (i8 addrspace(200)*) addrspace(200)* nonnull @ecb) #4
   ret void
 }
@@ -62,26 +65,23 @@ entry:
   ret i32 %0
 }
 
+; Make sure that the import and export table entries are local for the internal function.
+; CHECK: .section        .compartment_imports,"a",@progbits
+; CHECK-NOT: comdat
+; CHECK-NOT: .globl __import_comp_cb
+; CHECK: __import_comp_cb:
+; CHECK-NOT: comdat
+; CHECK-NOT: .globl __export_comp_cb
+; CHECK-NOT: .globl __export_comp_ecb
 ; Make sure that the import table entry a COMDAT for the external function
-; CHECK:        .type   __import_comp_ecb,@object       # @__import_comp_ecb
 ; CHECK:        .section        .compartment_imports,"aG",@progbits,__import_comp_ecb,comdat
+; CHECK:        .type   __import_comp_ecb,@object
 ; CHECK:        .weak   __import_comp_ecb
 ; CHECK:        .p2align        3
 ; CHECK:__import_comp_ecb:
 ; CHECK:        .word   __export_comp_ecb
 ; CHECK:        .word   0
 ; CHECK:        .size   __import_comp_ecb, 8
-; Make sure that the import and export table entries are local for the internal function.
-; CHECK: .section        .compartment_imports,"a",@progbits
-; CHECK-NOT: comdat
-; CHECK-NOT: .globl __import_comp_cb
-; CHECK: __import_comp_cb:
-; CHECK: .section        .compartment_exports,"a",@progbits
-; CHECK-NOT: comdat
-; CHECK-NOT: .globl __export_comp_cb
-; CHECK-NOT: .globl __export_comp_ecb
-; CHECK: __export_comp_cb:
-; CHECK-NOT: __export_comp_ecb:
 
 attributes #0 = { nounwind "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+relax,+xcheri,+xcheri-rvc,-64bit,-save-restore" "cheri-compartment"="comp" }
 attributes #1 = { argmemonly mustprogress nofree nosync nounwind willreturn }

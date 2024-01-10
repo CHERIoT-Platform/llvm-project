@@ -15,10 +15,9 @@ entry:
 ; indirectly to use the correct sentries, that we call it with an import that
 ; doesn't conflict with the normal import.
 ; CHECK: _Z15internal_callerv:
-; CHECK:         auipcc  ca0, %cheri_compartment_pccrel_hi(__library_import_example__Z5emptyv)
-; CHECK:         cincoffset      ca0, ca0, %cheri_compartment_pccrel_lo(
-; CHECK:         clc
-; CHECK:         cjr
+; CHECK:         auipcc ct2, %cheri_compartment_pccrel_hi(__library_import_example__Z5emptyv)
+; CHECK:         clc ct2, %cheri_compartment_pccrel_lo(
+; CHECK:         cjalr ct2
 ; CHECK: __library_import_example__Z5emptyv:
 ; Although the import is in the library call namespace, the export should not be.
 ; CHECK:         .word   __export_example__Z5emptyv+1

@@ -15,6 +15,8 @@
 
 #include "MCTargetDesc/RISCVMCTargetDesc.h"
 #include "RISCVSubtarget.h"
+#include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/CodeGen/SelectionDAGTargetInfo.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/Target/TargetMachine.h"
@@ -50,6 +52,9 @@ public:
 
   virtual bool isNoopAddrSpaceCast(unsigned SrcAS,
                                    unsigned DstAS) const override;
+
+  /// The set of functions imported from this compilation unit.
+  CHERIoTImportedFunctionSet ImportedFunctions;
 };
 } // namespace llvm
 

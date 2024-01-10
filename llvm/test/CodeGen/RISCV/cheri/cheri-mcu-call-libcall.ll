@@ -8,17 +8,15 @@ define dso_local i32 @callFromNotLibcall() local_unnamed_addr addrspace(200) #0 
 entry:
 ; Check that these are direct calls via the import table, not going via the
 ; compartment switcher.
-; CHECK: auipcc  ca0, %cheri_compartment_pccrel_hi(__library_import_libcalls_add)
-; CHECK: cincoffset      ca0, ca0, %cheri_compartment_pccrel_lo(.LBB0_1)
-; CHECK: clc     ca2, 0(ca0)
 ; CHECK: addi    a0, zero, 1
 ; CHECK: addi    a1, zero, 2
-; CHECK: cjalr   ca2
+; CHECK: auipcc  ct2, %cheri_compartment_pccrel_hi(__library_import_libcalls_add)
+; CHECK: clc     ct2, %cheri_compartment_pccrel_lo(.LBB0_1)(ct2)
+; CHECK: cjalr   ct2
   %call = tail call cherilibcallcc i32 @add(i32 1, i32 2) #2
-; CHECK: auipcc  ca0, %cheri_compartment_pccrel_hi(__library_import_libcalls_foo)
-; CHECK: cincoffset      ca0, ca0, %cheri_compartment_pccrel_lo(.LBB0_2)
-; CHECK: clc     ca0, 0(ca0)
-; CHECK: cjalr   ca0
+; CHECK: auipcc  ct2, %cheri_compartment_pccrel_hi(__library_import_libcalls_foo)
+; CHECK: clc     ct2, %cheri_compartment_pccrel_lo(.LBB0_2)(ct2)
+; CHECK: cjalr   ct2
   %call1 = tail call cherilibcallcc i32 @foo() #2
   %add = add nsw i32 %call1, %call
   ret i32 %add

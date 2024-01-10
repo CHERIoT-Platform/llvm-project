@@ -81,14 +81,14 @@ define dso_local i32 @testcall8() local_unnamed_addr addrspace(200) #2 {
 entry:
   ; Check that we have the right relocations and stack layout.
   ; BOTH-LABEL: testcall8:
-  ; BOTH:  auicgp  ct1, %cheri_compartment_cgprel_hi(testcall8.stack_arg)
-  ; BOTH:  cincoffset      ct1, ct1, %cheri_compartment_cgprel_lo_i(testcall8.stack_arg)
-  ; BOTH:  csetbounds      ct1, ct1, %cheri_compartment_size(testcall8.stack_arg)
-  ; BOTH:  csc     ct1, 8(csp)
-  ; BOTH:  auipcc  ct0, %cheri_compartment_pccrel_hi(__import_other_test8callee)
-  ; BOTH:  cincoffset      ct0, ct0, %cheri_compartment_pccrel_lo(.LBB3_1)
+  ; BOTH:  auicgp  ct0, %cheri_compartment_cgprel_hi(testcall8.stack_arg)
+  ; BOTH:  cincoffset      ct0, ct0, %cheri_compartment_cgprel_lo_i(testcall8.stack_arg)
+  ; BOTH:  csetbounds      ct0, ct0, %cheri_compartment_size(testcall8.stack_arg)
+  ; BOTH:  csc     ct0, 8(csp)
+  ; BOTH:  auipcc  ct1, %cheri_compartment_pccrel_hi(__import_other_test8callee)
+  ; BOTH:  clc     ct1, %cheri_compartment_pccrel_lo(.LBB3_2)(ct1)
   ; BOTH:  auipcc  ct2, %cheri_compartment_pccrel_hi(.compartment_switcher)
-  ; BOTH:  clc     ct2, %cheri_compartment_pccrel_lo(.LBB3_2)(ct2)
+  ; BOTH:  clc     ct2, %cheri_compartment_pccrel_lo(.LBB3_1)(ct2)
   ; BOTH:  c.cjalr ct2
   %args = alloca [8 x i32], align 4, addrspace(200)
   %0 = bitcast [8 x i32] addrspace(200)* %args to i8 addrspace(200)*
@@ -131,17 +131,6 @@ attributes #6 = { minsize nounwind optsize }
 
 ; Check that we have the right import and export tables.
 
-; BOTH:        .type   __import_other_test8callee,@object # @__import_other_test8callee
-; BOTH:        .section        .compartment_imports,"aG",@progbits,__import_other_test8callee,comdat
-; BOTH:        .weak  __import_other_test8callee
-; BOTH:        .p2align        3
-; BOTH:__import_other_test8callee:
-; BOTH:        .word   __export_other_test8callee
-; This is not a libcall, so it shouldn't have any add to set low bits in this
-; pointer.
-; BOTH-NOT: +
-; BOTH:        .word   0
-; BOTH:        .size   __import_other_test8callee, 8
 ; BOTH:        .section        .compartment_exports,"a",@progbits
 ; BOTH:        .type   __export_example_test2,@object
 ; BOTH:        .globl  __export_example_test2
@@ -167,3 +156,14 @@ attributes #6 = { minsize nounwind optsize }
 ; BOTH:        .byte   0
 ; BOTH:        .byte   7
 ; BOTH:        .size   __export_example_test8, 4
+; BOTH:        .section        .compartment_imports,"aG",@progbits,__import_other_test8callee,comdat
+; BOTH:        .type   __import_other_test8callee,@object
+; BOTH:        .weak  __import_other_test8callee
+; BOTH:        .p2align        3
+; BOTH:__import_other_test8callee:
+; BOTH:        .word   __export_other_test8callee
+; This is not a libcall, so it shouldn't have any add to set low bits in this
+; pointer.
+; BOTH-NOT: +
+; BOTH:        .word   0
+; BOTH:        .size   __import_other_test8callee, 8

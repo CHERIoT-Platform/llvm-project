@@ -310,10 +310,8 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
       auto Sym = C.getOrCreateSymbol(Entry.ImportName);
       auto ExportSym = C.getOrCreateSymbol(Entry.ExportName);
       OutStreamer->emitSymbolAttribute(Sym, MCSA_ELF_TypeObject);
-      if (Entry.IsPublic) {
+      if (Entry.IsPublic)
         OutStreamer->emitSymbolAttribute(Sym, MCSA_Weak);
-        OutStreamer->emitSymbolAttribute(Sym, MCSA_Global);
-      }
       OutStreamer->emitValueToAlignment(8);
       OutStreamer->emitLabel(Sym);
       // Library imports have their low bit set.

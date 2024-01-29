@@ -41,7 +41,7 @@ attributes #3 = { minsize nounwind optsize }
 !3 = !{i32 1, !"SmallDataLimit", i32 0}
 
 ; Both functions should be exported
-; CHECK:        .section        .compartment_exports,"a",@progbits
+; CHECK:        .section        .compartment_exports,"aR",@progbits
 ; CHECK:        .type   __library_export_libcalls_add,@object
 ; CHECK:        .globl  __library_export_libcalls_add
 ; CHECK:        .p2align        2

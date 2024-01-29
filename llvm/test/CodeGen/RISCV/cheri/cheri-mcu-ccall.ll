@@ -131,7 +131,7 @@ attributes #6 = { minsize nounwind optsize }
 
 ; Check that we have the right import and export tables.
 
-; BOTH:        .section        .compartment_exports,"a",@progbits
+; BOTH:        .section        .compartment_exports,"aR",@progbits
 ; BOTH:        .type   __export_example_test2,@object
 ; BOTH:        .globl  __export_example_test2
 ; BOTH:        .p2align        2

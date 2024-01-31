@@ -9,9 +9,11 @@
 #include "Cheri.h"
 #include "InputFiles.h"
 #include "OutputSections.h"
+#include "Relocations.h"
 #include "Symbols.h"
 #include "SyntheticSections.h"
 #include "Target.h"
+#include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/TimeProfiler.h"
 
 using namespace llvm;
@@ -313,7 +315,6 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
   case R_RISCV_JAL:
   case R_RISCV_CHERI_CJAL:
   case R_RISCV_BRANCH:
-  case R_RISCV_CHERI_COMPARTMENT_PCCREL_HI:
   case R_RISCV_PCREL_HI20:
   case R_RISCV_RVC_BRANCH:
   case R_RISCV_RVC_JUMP:
@@ -326,7 +327,6 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
     return R_PLT_PC;
   case R_RISCV_GOT_HI20:
     return R_GOT_PC;
-  case R_RISCV_CHERI_COMPARTMENT_PCCREL_LO:
   case R_RISCV_PCREL_LO12_I:
   case R_RISCV_PCREL_LO12_S:
     return R_RISCV_PC_INDIRECT;
@@ -353,9 +353,12 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
   case R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20:
     return R_CHERI_CAPABILITY_TABLE_TLSGD_ENTRY_PC;
   case R_RISCV_CHERI_COMPARTMENT_CGPREL_HI:
-    return R_CHERI_COMPARTMENT_CGPREL_HI;
+  case R_RISCV_CHERI_COMPARTMENT_PCCREL_HI:
+    return isPCCRelative(loc, &s) ? R_PC : R_CHERI_COMPARTMENT_CGPREL_HI;
   case R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_I:
-    return R_CHERI_COMPARTMENT_CGPREL_LO_I;
+  case R_RISCV_CHERI_COMPARTMENT_PCCREL_LO:
+    return isPCCRelative(loc, &s) ? R_RISCV_PC_INDIRECT
+                                  : R_CHERI_COMPARTMENT_CGPREL_LO_I;
   case R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_S:
     return R_CHERI_COMPARTMENT_CGPREL_LO_S;
   case R_RISCV_CHERI_COMPARTMENT_SIZE:
@@ -568,19 +571,21 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
   case R_RISCV_RELAX:
     return; // Ignored (for now)
 
-  case R_RISCV_CHERI_COMPARTMENT_PCCREL_LO:
-    // Attach a negative sign bit to LO12 if the offset is negative.
-    // However, if HI20 alone is enough to reach the target, then this should
-    // not be done and LO14 should just be 0 regardless.
-    if (int64_t(val) >= 0 || (val & 0x7ff) == 0)
-        val &= 0x7ff;
-    else
-        val = (uint64_t(-1) & ~0x7ff) | (val & 0x7ff);
-    LLVM_FALLTHROUGH;
   case R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_I:
+  case R_RISCV_CHERI_COMPARTMENT_PCCREL_LO: {
+    if (isPCCRelative(loc, rel.sym)) {
+      // Attach a negative sign bit to LO12 if the offset is negative.
+      // However, if HI20 alone is enough to reach the target, then this should
+      // not be done and LO14 should just be 0 regardless.
+      if (int64_t(val) >= 0 || (val & 0x7ff) == 0)
+        val &= 0x7ff;
+      else
+        val = (uint64_t(-1) & ~0x7ff) | (val & 0x7ff);
+    }
     checkInt(loc, val, 12, rel);
     write32le(loc, (read32le(loc) & 0x000fffff) | (val << 20));
     break;
+  }
   case R_RISCV_CHERI_COMPARTMENT_SIZE:
     checkUInt(loc, val, 12, rel);
     write32le(loc, (read32le(loc) & 0x000fffff) | (val << 20));
@@ -595,14 +600,24 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     break;
   }
   case R_RISCV_CHERI_COMPARTMENT_PCCREL_HI:
-    if (int64_t(val) < 0)
-       val = (val + 0x7ff) & ~0x7ff;
-    val = int64_t(val) >> 11;
-    LLVM_FALLTHROUGH;
   case R_RISCV_CHERI_COMPARTMENT_CGPREL_HI: {
+    // AUICGP
+    uint32_t opcode = 0x7b;
+    if (isPCCRelative(loc, rel.sym)) {
+      // AUIPCC
+      opcode = 0x17;
+      if (int64_t(val) < 0)
+        val = (val + 0x7ff) & ~0x7ff;
+      val = int64_t(val) >> 11;
+    }
     checkInt(loc, val, 20, rel);
-    uint32_t insn = read32le(loc) & 0x00000fff;
-    write32le(loc, insn | (val << 12));
+    // Preserve the target register.  We will rewrite the opcode (source
+    // register) to either AUICGP or AUIPCC and set the immediate field.
+    uint32_t insn = read32le(loc) & 0x00000fc0;
+    llvm::errs() << "Setting opcode " << utohexstr(opcode) << " for "
+                 << rel.sym->getName() << " final encoding is: "
+                 << utohexstr(insn | (val << 12) | opcode) << "\n";
+    write32le(loc, insn | (val << 12) | opcode);
     break;
   }
 

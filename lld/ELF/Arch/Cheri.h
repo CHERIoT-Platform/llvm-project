@@ -319,7 +319,7 @@ inline void readOnlyCapRelocsError(Symbol &sym, const Twine &sourceMsg) {
         sourceMsg);
 }
 
-// For CHERI MCU compartments, the $cgp register points to the middle of the
+// For CHERIoT compartments, the $cgp register points to the middle of the
 // globals section for a given compartment, with bounds set to include all of
 // that compartment's globals.  Calculate the address of the symbol relative
 // to the middle of $cgp.
@@ -332,6 +332,23 @@ inline uint64_t getBiasedCGPOffset(const Symbol &sym)
           " which does not appear in any section");
   uint64_t CGP = OutputSection->addr + OutputSection->size / 2;
   return sym.getVA() - CGP;
+}
+
+/// CHERIoT relocations apply differently depending on whether the target is
+/// accessed via PCC or CGP.  This returns true if the target is PCC-relative,
+/// false otherwise.  The relocation must be against a defined symbol in a
+/// known section.
+inline bool isPCCRelative(const uint8_t *loc, const Symbol *sym) {
+  auto *def = dyn_cast<Defined>(sym);
+  if (!def)
+    fatal(getErrorLocation(loc) + "relocation against symbol " +
+          toString(*sym) + " which is not defined");
+  auto *outputSection =
+      def->section ? def->section->getOutputSection() : nullptr;
+  if (outputSection == nullptr)
+    fatal(getErrorLocation(loc) + "relocation against symbol " +
+          toString(*sym) + " which is not in any output section");
+  return outputSection->flags & llvm::ELF::SHF_EXECINSTR;
 }
 
 // Same with getBiasedCGPOffset(), but we only care about the bottom 12 bits

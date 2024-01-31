@@ -6,6 +6,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "InputSection.h"
+#include "Arch/Cheri.h"
 #include "Config.h"
 #include "EhFrame.h"
 #include "InputFiles.h"
@@ -17,9 +18,9 @@
 #include "SyntheticSections.h"
 #include "Target.h"
 #include "Thunks.h"
-#include "Arch/Cheri.h"
 #include "lld/Common/ErrorHandler.h"
 #include "lld/Common/Memory.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Compression.h"
 #include "llvm/Support/Endian.h"
@@ -639,7 +640,7 @@ static Relocation *getRISCVPCRelHi20(const Symbol *sym, uint64_t addend) {
   for (auto it = range.first; it != range.second; ++it)
     if (it->type == R_RISCV_PCREL_HI20 || it->type == R_RISCV_GOT_HI20 ||
         it->type == R_RISCV_TLS_GD_HI20 || it->type == R_RISCV_TLS_GOT_HI20 ||
-        it->type == R_RISCV_CHERI_COMPARTMENT_PCCREL_HI ||
+        it->type == R_RISCV_CHERIOT_COMPARTMENT_HI ||
         it->type == R_RISCV_CHERI_CAPTAB_PCREL_HI20 ||
         it->type == R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20 ||
         it->type == R_RISCV_CHERI_TLS_IE_CAPTAB_PCREL_HI20)
@@ -927,12 +928,14 @@ uint64_t InputSectionBase::getRelocTargetVA(const InputFile *file, RelType type,
   case R_MIPS_CHERI_CAPTAB_TPREL:
     assert(a == 0 && "capability table index relocs should not have addends");
     return in.cheriCapTable->getTlsOffset(sym);
-  case R_CHERI_COMPARTMENT_CGPREL_LO_I:
-  case R_CHERI_COMPARTMENT_CGPREL_LO_S:
+  // These are reached only for CGP-relative relocations.  PCC-relative
+  // addresses are calulated with the R_PC and R_PC_INDIRECT cases.
+  case R_CHERIOT_COMPARTMENT_CGPREL_LO_I:
+  case R_CHERIOT_COMPARTMENT_CGPREL_LO_S:
     return getBiasedCGPOffsetLo12(sym);
-  case R_CHERI_COMPARTMENT_CGPREL_HI:
+  case R_CHERIOT_COMPARTMENT_CGPREL_HI:
     return (getBiasedCGPOffset(sym) - getBiasedCGPOffsetLo12(sym)) >> 11;
-  case R_CHERI_COMPARTMENT_SIZE:
+  case R_CHERIOT_COMPARTMENT_SIZE:
     return sym.getSize();
   default:
     llvm_unreachable("invalid expression");

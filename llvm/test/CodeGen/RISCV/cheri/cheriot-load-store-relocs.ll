@@ -13,10 +13,10 @@ entry:
   ; cllc.  Keep the test around to check for the new sequence.  If the
   ; optimisation is reintroduced, delete the X from the XCHECK lines.
   ; CHECK: auicgp
-  ; CHECK-SAME: %cheri_compartment_cgprel_hi(temp)
+  ; CHECK-SAME: %cheriot_compartment_hi(temp)
   ; XCHECK: clw
   ; CHECK: cincoffset
-  ; CHECK-SAME: %cheri_compartment_cgprel_lo_i(temp)
+  ; CHECK-SAME: %cheriot_compartment_lo_i(temp)
   %0 = load i32, i32 addrspace(200)* @temp, align 4, !tbaa !5
   %inc = add nsw i32 %0, 1
   store i32 %inc, i32 addrspace(200)* @temp, align 4, !tbaa !5

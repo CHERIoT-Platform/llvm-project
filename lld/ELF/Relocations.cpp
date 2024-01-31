@@ -457,26 +457,21 @@ static bool isRelExpr(RelExpr expr) {
 static bool isStaticLinkTimeConstant(RelExpr e, RelType type, const Symbol &sym,
                                      InputSectionBase &s, uint64_t relOff) {
   // These expressions always compute a constant
-  if (oneof<R_DTPREL, R_GOTPLT, R_GOT_OFF, R_TLSLD_GOT_OFF,
-            R_RELAX_HINT,
+  if (oneof<R_DTPREL, R_GOTPLT, R_GOT_OFF, R_TLSLD_GOT_OFF, R_RELAX_HINT,
             R_CHERI_CAPABILITY_TABLE_INDEX,
             R_CHERI_CAPABILITY_TABLE_INDEX_SMALL_IMMEDIATE,
             R_CHERI_CAPABILITY_TABLE_INDEX_CALL,
             R_CHERI_CAPABILITY_TABLE_INDEX_CALL_SMALL_IMMEDIATE,
-            R_CHERI_CAPABILITY_TABLE_ENTRY_PC,
-            R_CHERI_CAPABILITY_TABLE_REL,
-            R_CHERI_COMPARTMENT_CGPREL_HI,
-            R_CHERI_COMPARTMENT_CGPREL_LO_I,
-            R_CHERI_COMPARTMENT_CGPREL_LO_S,
-            R_CHERI_COMPARTMENT_SIZE,
+            R_CHERI_CAPABILITY_TABLE_ENTRY_PC, R_CHERI_CAPABILITY_TABLE_REL,
+            R_CHERIOT_COMPARTMENT_CGPREL_HI, R_CHERIOT_COMPARTMENT_CGPREL_LO_I,
+            R_CHERIOT_COMPARTMENT_CGPREL_LO_S, R_CHERIOT_COMPARTMENT_SIZE,
             R_MIPS_GOT_LOCAL_PAGE, R_MIPS_GOTREL, R_MIPS_GOT_OFF,
             R_MIPS_GOT_OFF32, R_MIPS_GOT_GP_PC, R_MIPS_TLSGD,
             R_AARCH64_GOT_PAGE_PC, R_GOT_PC, R_GOTONLY_PC, R_GOTPLTONLY_PC,
             R_PLT_PC, R_TLSGD_GOT, R_TLSGD_GOTPLT, R_TLSGD_PC, R_PPC32_PLTREL,
             R_PPC64_CALL_PLT, R_PPC64_RELAX_TOC, R_RISCV_ADD, R_TLSDESC_CALL,
             R_TLSDESC_PC, R_AARCH64_TLSDESC_PAGE, R_TLSLD_HINT, R_TLSIE_HINT,
-            R_AARCH64_GOT_PAGE>(
-          e))
+            R_AARCH64_GOT_PAGE>(e))
     return true;
 
   // Cheri capability relocations are never static link time constants since

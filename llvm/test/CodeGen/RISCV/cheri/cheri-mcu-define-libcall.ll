@@ -16,7 +16,7 @@ define dso_local cherilibcallcc i32 @callFromLibcall() local_unnamed_addr addrsp
 entry:
 ; CHECK-LABEL: callFromLibcall:
 ; Calls to libcalls from the same compilation unit should be direct calls
-; CHECK: auipcc  ct2, %cheri_compartment_pccrel_hi(__library_import_libcalls_foo)
+; CHECK: auipcc  ct2, %cheriot_compartment_hi(__library_import_libcalls_foo)
 ; CHECK-NOT: ccall   foo
 ; CHECK: ccall   add
   %call1 = tail call cherilibcallcc i32 @foo() #3

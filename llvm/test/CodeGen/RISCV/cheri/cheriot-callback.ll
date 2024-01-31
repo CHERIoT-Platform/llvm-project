@@ -14,9 +14,9 @@ entry:
 define dso_local void @_Z4testv() local_unnamed_addr addrspace(200) #1 {
 entry:
   ; Make sure that we *do* look up an import table relocation for this, but we don't look up a relocation for the direct call.
-  ; CHECK-NOT: cheri_compartment_pccrel_hi(_Z8callbackv)
-  ; CHECK: cheri_compartment_pccrel_hi(__import_me__Z8callbackv)
-  ; CHECK-NOT: cheri_compartment_pccrel_hi(_Z8callbackv)
+  ; CHECK-NOT: cheriot_compartment_hi(_Z8callbackv)
+  ; CHECK: cheriot_compartment_hi(__import_me__Z8callbackv)
+  ; CHECK-NOT: cheriot_compartment_hi(_Z8callbackv)
   notail call chericcallcc void @_Z22cross_compartment_callPU10chericcallFvvE(void () addrspace(200)* nonnull @_Z8callbackv) #3
   notail call chericcallcc void @_Z22cross_compartment_callPU10chericcallFvvE(void () addrspace(200)* nonnull @_Z8callbackv) #3
   ret void

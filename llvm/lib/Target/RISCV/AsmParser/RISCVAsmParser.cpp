@@ -738,7 +738,8 @@ public:
       IsValid = RISCVAsmParser::classifySymbolRef(getImm(), VK);
     else
       IsValid = isUInt<12>(Imm);
-    return IsValid && ((VK == RISCVMCExpr::VK_RISCV_None) || (VK == RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_SIZE));
+    return IsValid && ((VK == RISCVMCExpr::VK_RISCV_None) ||
+                       (VK == RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_SIZE));
   }
 
   bool isSImm12() const {
@@ -753,9 +754,8 @@ public:
     else
       IsValid = isInt<12>(Imm);
     return IsValid && ((IsConstantImm && VK == RISCVMCExpr::VK_RISCV_None) ||
-                       VK == RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_CGPREL_LO_I ||
-                       VK == RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_CGPREL_LO_S ||
-                       VK == RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_PCCREL_LO ||
+                       VK == RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_LO_I ||
+                       VK == RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_LO_S ||
                        VK == RISCVMCExpr::VK_RISCV_LO ||
                        VK == RISCVMCExpr::VK_RISCV_PCREL_LO ||
                        VK == RISCVMCExpr::VK_RISCV_TPREL_LO);
@@ -803,7 +803,7 @@ public:
     if (!IsConstantImm) {
       IsValid = RISCVAsmParser::classifySymbolRef(getImm(), VK);
       return IsValid && (VK == RISCVMCExpr::VK_RISCV_PCREL_HI ||
-                         VK == RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_PCCREL_HI ||
+                         VK == RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_HI ||
                          VK == RISCVMCExpr::VK_RISCV_GOT_HI ||
                          VK == RISCVMCExpr::VK_RISCV_TLS_GOT_HI ||
                          VK == RISCVMCExpr::VK_RISCV_TLS_GD_HI ||
@@ -811,15 +811,16 @@ public:
                          VK == RISCVMCExpr::VK_RISCV_TLS_IE_CAPTAB_PCREL_HI ||
                          VK == RISCVMCExpr::VK_RISCV_TLS_GD_CAPTAB_PCREL_HI);
     } else {
-      return isUInt<20>(Imm) && (VK == RISCVMCExpr::VK_RISCV_None ||
-                                 VK == RISCVMCExpr::VK_RISCV_PCREL_HI ||
-                                 VK == RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_PCCREL_HI ||
-                                 VK == RISCVMCExpr::VK_RISCV_GOT_HI ||
-                                 VK == RISCVMCExpr::VK_RISCV_TLS_GOT_HI ||
-                                 VK == RISCVMCExpr::VK_RISCV_TLS_GD_HI ||
-                                 VK == RISCVMCExpr::VK_RISCV_CAPTAB_PCREL_HI ||
-                                 VK == RISCVMCExpr::VK_RISCV_TLS_IE_CAPTAB_PCREL_HI ||
-                                 VK == RISCVMCExpr::VK_RISCV_TLS_GD_CAPTAB_PCREL_HI);
+      return isUInt<20>(Imm) &&
+             (VK == RISCVMCExpr::VK_RISCV_None ||
+              VK == RISCVMCExpr::VK_RISCV_PCREL_HI ||
+              VK == RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_HI ||
+              VK == RISCVMCExpr::VK_RISCV_GOT_HI ||
+              VK == RISCVMCExpr::VK_RISCV_TLS_GOT_HI ||
+              VK == RISCVMCExpr::VK_RISCV_TLS_GD_HI ||
+              VK == RISCVMCExpr::VK_RISCV_CAPTAB_PCREL_HI ||
+              VK == RISCVMCExpr::VK_RISCV_TLS_IE_CAPTAB_PCREL_HI ||
+              VK == RISCVMCExpr::VK_RISCV_TLS_GD_CAPTAB_PCREL_HI);
     }
   }
 
@@ -832,11 +833,11 @@ public:
     bool IsConstantImm = evaluateConstantImm(getImm(), Imm, VK);
     if (!IsConstantImm) {
       IsValid = RISCVAsmParser::classifySymbolRef(getImm(), VK);
-      return IsValid && VK == RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_CGPREL_HI;
+      return IsValid && VK == RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_HI;
     } else {
       return isUInt<20>(Imm) &&
              (VK == RISCVMCExpr::VK_RISCV_None ||
-              VK == RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_CGPREL_HI);
+              VK == RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_HI);
     }
   }
 

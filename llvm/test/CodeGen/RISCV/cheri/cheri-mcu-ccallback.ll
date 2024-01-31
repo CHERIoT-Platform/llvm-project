@@ -18,8 +18,8 @@ entry:
 ; TODO: We should be able to avoid the double move here.
 ; CHECK: cmove   ct1
 ; Load the compartment switcher into $ct2 and jump there
-; CHECK: auipcc  ct2, %cheri_compartment_pccrel_hi(.compartment_switcher)
-; CHECK: clc     ct2, %cheri_compartment_pccrel_lo(.LBB0_1)(ct2)
+; CHECK: auipcc  ct2, %cheriot_compartment_hi(.compartment_switcher)
+; CHECK: clc     ct2, %cheriot_compartment_lo_i(.LBB0_1)(ct2)
 ; CHECK: cjalr   ct2
   %buf = alloca [42 x i8], align 1, addrspace(200)
   %0 = getelementptr inbounds [42 x i8], [42 x i8] addrspace(200)* %buf, i32 0, i32 0
@@ -39,13 +39,13 @@ entry:
 ; CHECK-LABEL: pass_callback:
 ; Check that this call is loading the import table entry, not the function
 ; address
-; CHECK:         auipcc  ca0, %cheri_compartment_pccrel_hi(__import_comp_cb)
-; CHECK:         clc     ca0, %cheri_compartment_pccrel_lo(.LBB1_1)(ca0)
+; CHECK:         auipcc  ca0, %cheriot_compartment_hi(__import_comp_cb)
+; CHECK:         clc     ca0, %cheriot_compartment_lo_i(.LBB1_1)(ca0)
 ; And make sure that it's really jumping to the right function.
 ; CHECK: ccall   take_callback
   call void @take_callback(i32 (i8 addrspace(200)*) addrspace(200)* nonnull @cb) #4
-; CHECK:         auipcc  ca0, %cheri_compartment_pccrel_hi(__import_comp_ecb)
-; CHECK:         clc     ca0, %cheri_compartment_pccrel_lo
+; CHECK:         auipcc  ca0, %cheriot_compartment_hi(__import_comp_ecb)
+; CHECK:         clc     ca0, %cheriot_compartment_lo_i
 ; CHECK: ccall   take_callback
   call void @take_callback(i32 (i8 addrspace(200)*) addrspace(200)* nonnull @ecb) #4
   ret void

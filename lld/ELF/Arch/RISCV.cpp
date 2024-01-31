@@ -14,6 +14,7 @@
 #include "SyntheticSections.h"
 #include "Target.h"
 #include "llvm/ADT/StringExtras.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/TimeProfiler.h"
 
 using namespace llvm;
@@ -352,17 +353,15 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
     return R_CHERI_CAPABILITY_TABLE_TLSIE_ENTRY_PC;
   case R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20:
     return R_CHERI_CAPABILITY_TABLE_TLSGD_ENTRY_PC;
-  case R_RISCV_CHERI_COMPARTMENT_CGPREL_HI:
-  case R_RISCV_CHERI_COMPARTMENT_PCCREL_HI:
-    return isPCCRelative(loc, &s) ? R_PC : R_CHERI_COMPARTMENT_CGPREL_HI;
-  case R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_I:
-  case R_RISCV_CHERI_COMPARTMENT_PCCREL_LO:
+  case R_RISCV_CHERIOT_COMPARTMENT_HI:
+    return isPCCRelative(loc, &s) ? R_PC : R_CHERIOT_COMPARTMENT_CGPREL_HI;
+  case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
     return isPCCRelative(loc, &s) ? R_RISCV_PC_INDIRECT
-                                  : R_CHERI_COMPARTMENT_CGPREL_LO_I;
-  case R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_S:
-    return R_CHERI_COMPARTMENT_CGPREL_LO_S;
-  case R_RISCV_CHERI_COMPARTMENT_SIZE:
-    return R_CHERI_COMPARTMENT_SIZE;
+                                  : R_CHERIOT_COMPARTMENT_CGPREL_LO_I;
+  case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
+    return R_CHERIOT_COMPARTMENT_CGPREL_LO_S;
+  case R_RISCV_CHERIOT_COMPARTMENT_SIZE:
+    return R_CHERIOT_COMPARTMENT_SIZE;
   case R_RISCV_RELAX:
     return config->relax ? R_RELAX_HINT : R_NONE;
   default:
@@ -571,8 +570,7 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
   case R_RISCV_RELAX:
     return; // Ignored (for now)
 
-  case R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_I:
-  case R_RISCV_CHERI_COMPARTMENT_PCCREL_LO: {
+  case R_RISCV_CHERIOT_COMPARTMENT_LO_I: {
     if (isPCCRelative(loc, rel.sym)) {
       // Attach a negative sign bit to LO12 if the offset is negative.
       // However, if HI20 alone is enough to reach the target, then this should
@@ -586,11 +584,11 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     write32le(loc, (read32le(loc) & 0x000fffff) | (val << 20));
     break;
   }
-  case R_RISCV_CHERI_COMPARTMENT_SIZE:
+  case R_RISCV_CHERIOT_COMPARTMENT_SIZE:
     checkUInt(loc, val, 12, rel);
     write32le(loc, (read32le(loc) & 0x000fffff) | (val << 20));
     break;
-  case R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_S: {
+  case R_RISCV_CHERIOT_COMPARTMENT_LO_S: {
     // Stores have their immediate fields split because RISC-V prematurely
     // optimises for small pipelines with no FPU.
     uint32_t insn = read32le(loc) & 0x1fff07f;
@@ -599,8 +597,7 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     write32le(loc, insn | (val_high << 20) | (val_low << 7));
     break;
   }
-  case R_RISCV_CHERI_COMPARTMENT_PCCREL_HI:
-  case R_RISCV_CHERI_COMPARTMENT_CGPREL_HI: {
+  case R_RISCV_CHERIOT_COMPARTMENT_HI: {
     // AUICGP
     uint32_t opcode = 0x7b;
     if (isPCCRelative(loc, rel.sym)) {
@@ -614,9 +611,6 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     // Preserve the target register.  We will rewrite the opcode (source
     // register) to either AUICGP or AUIPCC and set the immediate field.
     uint32_t insn = read32le(loc) & 0x00000fc0;
-    llvm::errs() << "Setting opcode " << utohexstr(opcode) << " for "
-                 << rel.sym->getName() << " final encoding is: "
-                 << utohexstr(insn | (val << 12) | opcode) << "\n";
     write32le(loc, insn | (val << 12) | opcode);
     break;
   }
@@ -741,26 +735,28 @@ static void relaxCall(const InputSection &sec, size_t i, uint64_t loc,
 // Relax auicgp + cincoffset/memop to cincoffset/memop cgp
 static void relaxCGP(const InputSection &sec, size_t i, uint64_t loc,
                      Relocation &r, uint32_t &remove) {
+  if (isPCCRelative(nullptr, r.sym))
+    return;
   uint64_t hival = getBiasedCGPOffset(*r.sym) - getBiasedCGPOffsetLo12(*r.sym);
   // We can only relax when imm == 0 in auicgp rd, imm.
   if (hival != 0)
     return;
   uint32_t insn = read32le(sec.rawData.data() + r.offset);
   switch (r.type) {
-  case R_RISCV_CHERI_COMPARTMENT_CGPREL_HI:
+  case R_RISCV_CHERIOT_COMPARTMENT_HI:
     // Remove auicgp rd, 0.
     sec.relaxAux->relocTypes[i] = R_RISCV_RELAX;
     remove = 4;
     break;
-  case R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_I:
+  case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
     // cincoffset/load rd, cs1, %lo(x) => cincoffset/load rd, cgp, %lo(x)
-    sec.relaxAux->relocTypes[i] = R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_I;
+    sec.relaxAux->relocTypes[i] = R_RISCV_CHERIOT_COMPARTMENT_LO_I;
     insn = (insn & ~(31 << 15)) | (3 << 15);
     sec.relaxAux->writes.push_back(insn);
     break;
-  case R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_S:
+  case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
     // store cs2, cs1, %lo(x) => store cs2, cgp, %lo(x)
-    sec.relaxAux->relocTypes[i] = R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_S;
+    sec.relaxAux->relocTypes[i] = R_RISCV_CHERIOT_COMPARTMENT_LO_I;
     insn = (insn & ~(31 << 15)) | (3 << 15);
     sec.relaxAux->writes.push_back(insn);
     break;
@@ -813,9 +809,9 @@ static bool relax(InputSection &sec) {
           sec.relocations[i + 1].type == R_RISCV_RELAX)
         relaxCall(sec, i, loc, r, remove);
       break;
-    case R_RISCV_CHERI_COMPARTMENT_CGPREL_HI:
-    case R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_I:
-    case R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_S:
+    case R_RISCV_CHERIOT_COMPARTMENT_HI:
+    case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
+    case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
       if (i + 1 != sec.relocations.size() &&
           sec.relocations[i + 1].type == R_RISCV_RELAX)
         relaxCGP(sec, i, loc, r, remove);
@@ -944,8 +940,8 @@ void elf::riscvFinalizeRelax(int passes) {
             skip = 4;
             write32le(p, aux.writes[writesIdx++]);
             break;
-          case R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_I:
-          case R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_S:
+          case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
+          case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
             skip = 4;
             write32le(p, aux.writes[writesIdx++]);
             break;

@@ -14,10 +14,10 @@ entry:
   ; CHECK-LABEL: a:
   ; If we're generating a $cgp-relative offset and a size for address-taken accesses to globals
   ; CHECK: auicgp
-  ; CHECK-SAME: %cheri_compartment_cgprel_hi(x)
+  ; CHECK-SAME: %cheriot_compartment_hi(x)
   ; CHECK: cincoffset
-  ; CHECK-SAME: %cheri_compartment_cgprel_lo_i(x)
-  ; CHECK: csetbounds ca0, ca0, %cheri_compartment_size(x)
+  ; CHECK-SAME: %cheriot_compartment_lo_i(x)
+  ; CHECK: csetbounds ca0, ca0, %cheriot_compartment_size(x)
   ret i32 addrspace(200)* @x
 }
 
@@ -27,9 +27,9 @@ entry:
   ; Check that we're not setting bounds on direct accesses to globals
   ; CHECK-LABEL: v:
   ; XCHECK: auicgp
-  ; XCHECK-SAME: %cheri_compartment_cgprel_hi(x)
+  ; XCHECK-SAME: %cheriot_compartment_hi(x)
   ; XCHECK: clw 
-  ; XCHECK-SAME: %cheri_compartment_cgprel_lo_i(x)
+  ; XCHECK-SAME: %cheriot_compartment_lo_i(x)
   ; XCHECK-NEXT: cret
   %0 = load i32, i32 addrspace(200)* @x, align 4, !tbaa !5
   ret i32 %0

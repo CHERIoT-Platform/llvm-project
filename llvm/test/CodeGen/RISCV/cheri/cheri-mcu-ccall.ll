@@ -81,14 +81,14 @@ define dso_local i32 @testcall8() local_unnamed_addr addrspace(200) #2 {
 entry:
   ; Check that we have the right relocations and stack layout.
   ; BOTH-LABEL: testcall8:
-  ; BOTH:  auicgp  ct0, %cheri_compartment_cgprel_hi(testcall8.stack_arg)
-  ; BOTH:  cincoffset      ct0, ct0, %cheri_compartment_cgprel_lo_i(testcall8.stack_arg)
-  ; BOTH:  csetbounds      ct0, ct0, %cheri_compartment_size(testcall8.stack_arg)
+  ; BOTH:  auicgp  ct0, %cheriot_compartment_hi(testcall8.stack_arg)
+  ; BOTH:  cincoffset      ct0, ct0, %cheriot_compartment_lo_i(testcall8.stack_arg)
+  ; BOTH:  csetbounds      ct0, ct0, %cheriot_compartment_size(testcall8.stack_arg)
   ; BOTH:  csc     ct0, 8(csp)
-  ; BOTH:  auipcc  ct1, %cheri_compartment_pccrel_hi(__import_other_test8callee)
-  ; BOTH:  clc     ct1, %cheri_compartment_pccrel_lo(.LBB3_2)(ct1)
-  ; BOTH:  auipcc  ct2, %cheri_compartment_pccrel_hi(.compartment_switcher)
-  ; BOTH:  clc     ct2, %cheri_compartment_pccrel_lo(.LBB3_1)(ct2)
+  ; BOTH:  auipcc  ct1, %cheriot_compartment_hi(__import_other_test8callee)
+  ; BOTH:  clc     ct1, %cheriot_compartment_lo_i(.LBB3_2)(ct1)
+  ; BOTH:  auipcc  ct2, %cheriot_compartment_hi(.compartment_switcher)
+  ; BOTH:  clc     ct2, %cheriot_compartment_lo_i(.LBB3_1)(ct2)
   ; BOTH:  c.cjalr ct2
   %args = alloca [8 x i32], align 4, addrspace(200)
   %0 = bitcast [8 x i32] addrspace(200)* %args to i8 addrspace(200)*

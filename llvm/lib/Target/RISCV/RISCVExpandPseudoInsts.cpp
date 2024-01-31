@@ -12,6 +12,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "MCTargetDesc/RISCVBaseInfo.h"
 #include "MCTargetDesc/RISCVMCTargetDesc.h"
 #include "RISCV.h"
 #include "RISCVInstrInfo.h"
@@ -237,7 +238,6 @@ MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
     const Function *Fn, Register DestReg, bool TreatAsLibrary,
     bool CallImportTarget) {
   auto *MF = MBB.getParent();
-  auto &Caller = MF->getFunction();
   const StringRef ImportName = Fn->getName();
   // We can hit this code path if we need to do a library-style import
   // for a local exported function.
@@ -283,10 +283,10 @@ MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
 
   BuildMI(NewMBB, DL, TII->get(RISCV::AUIPCC), DestReg)
       .addExternalSymbol(ImportSymbol->getName().data(),
-                         RISCVII::MO_CHERI_COMPARTMENT_PCCREL_HI);
+                         RISCVII::MO_CHERIOT_COMPARTMENT_HI);
   BuildMI(NewMBB, DL, TII->get(RISCV::CLC_64), DestReg)
       .addReg(DestReg, RegState::Kill)
-      .addMBB(NewMBB, RISCVII::MO_CHERI_COMPARTMENT_PCCREL_LO);
+      .addMBB(NewMBB, RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
 
   if (CallImportTarget)
     BuildMI(NewMBB, DL, TII->get(RISCV::C_CJALR))
@@ -349,10 +349,10 @@ bool RISCVExpandPseudo::expandCompartmentCall(MachineBasicBlock &MBB,
   MF->insert(++MBB.getIterator(), NewMBB);
 
   BuildMI(NewMBB, DL, TII->get(RISCV::AUIPCC), RISCV::C7)
-      .addDisp(Switcher, 0, RISCVII::MO_CHERI_COMPARTMENT_PCCREL_HI);
+      .addDisp(Switcher, 0, RISCVII::MO_CHERIOT_COMPARTMENT_HI);
   BuildMI(NewMBB, DL, TII->get(RISCV::CLC_64), RISCV::C7)
       .addReg(RISCV::C7, RegState::Kill)
-      .addMBB(NewMBB, RISCVII::MO_CHERI_COMPARTMENT_PCCREL_LO);
+      .addMBB(NewMBB, RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
   BuildMI(NewMBB, DL, TII->get(RISCV::C_CJALR))
       .addReg(RISCV::C7, RegState::Kill);
 
@@ -447,14 +447,14 @@ bool RISCVExpandPseudo::expandAuicgpInstPair(MachineBasicBlock &MBB,
   const MachineOperand &Symbol = MI.getOperand(HasTmpReg ? 2 : 1);
 
   BuildMI(MBB, MBBI, DL, TII->get(RISCV::AUICGP), DestReg)
-      .addDisp(Symbol, 0, RISCVII::MO_CHERI_COMPARTMENT_CGPREL_HI);
+      .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_HI);
   BuildMI(MBB, MBBI, DL, TII->get(SecondOpcode), DestReg)
       .addReg(TmpReg)
-      .addDisp(Symbol, 0, RISCVII::MO_CHERI_COMPARTMENT_CGPREL_LO_I);
+      .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
   if (!InBounds)
     BuildMI(MBB, MBBI, DL, TII->get(RISCV::CSetBoundsImm), DestReg)
         .addReg(DestReg)
-        .addDisp(Symbol, 0, RISCVII::MO_CHERI_COMPARTMENT_SIZE);
+        .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_SIZE);
   MI.eraseFromParent();
   return true;
 }
@@ -571,7 +571,7 @@ bool RISCVExpandPseudo::expandAuipccInstPair(
       .addDisp(Symbol, 0, FlagsHi);
   BuildMI(NewMBB, DL, TII->get(SecondOpcode), DestReg)
       .addReg(TmpReg)
-      .addMBB(NewMBB, IsCheriot ? RISCVII::MO_CHERI_COMPARTMENT_PCCREL_LO
+      .addMBB(NewMBB, IsCheriot ? RISCVII::MO_CHERIOT_COMPARTMENT_LO_I
                                 : RISCVII::MO_PCREL_LO);
   if (!InBounds && MF->getSubtarget<RISCVSubtarget>().isRV32E() &&
       Symbol.isGlobal() && isa<GlobalVariable>(Symbol.getGlobal()) &&
@@ -579,7 +579,7 @@ bool RISCVExpandPseudo::expandAuipccInstPair(
        ".compartment_imports"))
     BuildMI(NewMBB, DL, TII->get(RISCV::CSetBoundsImm), DestReg)
         .addReg(DestReg)
-        .addDisp(Symbol, 0, RISCVII::MO_CHERI_COMPARTMENT_SIZE);
+        .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_SIZE);
 
   // Move all the rest of the instructions to NewMBB.
   NewMBB->splice(NewMBB->end(), &MBB, std::next(MBBI), MBB.end());
@@ -618,7 +618,7 @@ bool RISCVExpandPseudo::expandCapLoadLocalCap(
         }
       }
       return expandAuipccInstPair(MBB, MBBI, NextMBBI,
-                                  RISCVII::MO_CHERI_COMPARTMENT_PCCREL_HI,
+                                  RISCVII::MO_CHERIOT_COMPARTMENT_HI,
                                   RISCV::CIncOffsetImm, InBounds);
     }
     return expandAuicgpInstPair(MBB, MBBI, RISCV::CIncOffsetImm, InBounds);

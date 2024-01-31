@@ -454,26 +454,20 @@ unsigned RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
       FixupKind = RISCV::fixup_riscv_ccall;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_CGPREL_HI:
-      FixupKind = RISCV::fixup_riscv_cheri_compartment_cgprel_hi;
+    case RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_HI:
+      FixupKind = RISCV::fixup_riscv_cheriot_compartment_hi;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_CGPREL_LO_I:
-      FixupKind = RISCV::fixup_riscv_cheri_compartment_cgprel_lo_i;
+    case RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_LO_I:
+      FixupKind = RISCV::fixup_riscv_cheriot_compartment_lo_i;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_CGPREL_LO_S:
-      FixupKind = RISCV::fixup_riscv_cheri_compartment_cgprel_lo_s;
+    case RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_LO_S:
+      FixupKind = RISCV::fixup_riscv_cheriot_compartment_lo_s;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_PCCREL_HI:
-      FixupKind = RISCV::fixup_riscv_cheri_compartment_pccrel_hi;
-      break;
-    case RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_PCCREL_LO:
-      FixupKind = RISCV::fixup_riscv_cheri_compartment_pccrel_lo;
-      break;
-    case RISCVMCExpr::VK_RISCV_CHERI_COMPARTMENT_SIZE:
-      FixupKind = RISCV::fixup_riscv_cheri_compartment_size;
+    case RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_SIZE:
+      FixupKind = RISCV::fixup_riscv_cheriot_compartment_size;
       break;
     }
   } else if (Kind == MCExpr::SymbolRef &&

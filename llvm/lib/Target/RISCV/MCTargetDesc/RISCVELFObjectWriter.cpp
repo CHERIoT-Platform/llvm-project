@@ -114,10 +114,10 @@ unsigned RISCVELFObjectWriter::getRelocType(MCContext &Ctx,
       return ELF::R_RISCV_ADD64;
     case RISCV::fixup_riscv_sub_64:
       return ELF::R_RISCV_SUB64;
-    case RISCV::fixup_riscv_cheri_compartment_pccrel_hi:
-      return ELF::R_RISCV_CHERI_COMPARTMENT_PCCREL_HI;
-    case RISCV::fixup_riscv_cheri_compartment_pccrel_lo:
-      return ELF::R_RISCV_CHERI_COMPARTMENT_PCCREL_LO;
+    case RISCV::fixup_riscv_cheriot_compartment_hi:
+      return ELF::R_RISCV_CHERIOT_COMPARTMENT_HI;
+    case RISCV::fixup_riscv_cheriot_compartment_lo_i:
+      return ELF::R_RISCV_CHERIOT_COMPARTMENT_LO_I;
     }
   }
 
@@ -186,14 +186,13 @@ unsigned RISCVELFObjectWriter::getRelocType(MCContext &Ctx,
     return ELF::R_RISCV_ADD64;
   case RISCV::fixup_riscv_sub_64:
     return ELF::R_RISCV_SUB64;
-  case RISCV::fixup_riscv_cheri_compartment_cgprel_hi:
-    return ELF::R_RISCV_CHERI_COMPARTMENT_CGPREL_HI;
-  case RISCV::fixup_riscv_cheri_compartment_cgprel_lo_i:
-    return ELF::R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_I;
-  case RISCV::fixup_riscv_cheri_compartment_cgprel_lo_s:
-    return ELF::R_RISCV_CHERI_COMPARTMENT_CGPREL_LO_S;
-  case RISCV::fixup_riscv_cheri_compartment_size:
-    return ELF::R_RISCV_CHERI_COMPARTMENT_SIZE;
+  case RISCV::fixup_riscv_cheriot_compartment_hi:
+    return ELF::R_RISCV_CHERIOT_COMPARTMENT_HI;
+  case RISCV::fixup_riscv_cheriot_compartment_lo_i:
+    return ELF::R_RISCV_CHERIOT_COMPARTMENT_LO_I;
+  case RISCV::fixup_riscv_cheriot_compartment_lo_s:
+  case RISCV::fixup_riscv_cheriot_compartment_size:
+    return ELF::R_RISCV_CHERIOT_COMPARTMENT_SIZE;
   }
 }
 

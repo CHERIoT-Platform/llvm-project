@@ -47,7 +47,7 @@ define dso_local i32 @outer_disabled_e() local_unnamed_addr addrspace(200) #4 {
 entry:
   ; Different state, should call via import table
   ; CHECK-LABEL: outer_disabled_e
-  ; CHECK: %cheri_compartment_pccrel_hi(__library_import__inner_enabled)
+  ; CHECK: %cheriot_compartment_hi(__library_import__inner_enabled)
   ; CHECK: cjalr
   %call = call i32 @inner_enabled()
   %add = add nsw i32 %call, 12
@@ -70,7 +70,7 @@ define dso_local i32 @outer_enabled_d() local_unnamed_addr addrspace(200) #5 {
 entry:
   ; Different state, should call via import table
   ; CHECK-LABEL: outer_enabled_d
-  ; CHECK: %cheri_compartment_pccrel_hi(__library_import__inner_disabled)
+  ; CHECK: %cheriot_compartment_hi(__library_import__inner_disabled)
   ; CHECK: cjalr
   %call = call i32 @inner_disabled()
   %add = add nsw i32 %call, 12
@@ -104,7 +104,7 @@ define dso_local i32 @outer_inherit_d() local_unnamed_addr addrspace(200) #6 {
 entry:
   ; Different state, should call via import table
   ; CHECK-LABEL: outer_inherit_d
-  ; CHECK: %cheri_compartment_pccrel_hi(__library_import__inner_disabled)
+  ; CHECK: %cheriot_compartment_hi(__library_import__inner_disabled)
   ; CHECK: cjalr
   %call = call i32 @inner_disabled()
   %add = add nsw i32 %call, 12
@@ -116,7 +116,7 @@ define dso_local i32 @outer_inherit_e() local_unnamed_addr addrspace(200) #6 {
 entry:
   ; Different state, should call via import table
   ; CHECK-LABEL: outer_inherit_e
-  ; CHECK: %cheri_compartment_pccrel_hi(__library_import__inner_enabled)
+  ; CHECK: %cheriot_compartment_hi(__library_import__inner_enabled)
   ; CHECK: cjalr
   %call = call i32 @inner_enabled()
   %add = add nsw i32 %call, 12

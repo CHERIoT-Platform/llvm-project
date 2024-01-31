@@ -1216,12 +1216,10 @@ RISCVInstrInfo::getSerializableDirectMachineOperandTargetFlags() const {
       {MO_TLS_IE_CAPTAB_PCREL_HI, "riscv-tls-ie-captab-pcrel-hi"},
       {MO_TLS_GD_CAPTAB_PCREL_HI, "riscv-tls-gd-captab-pcrel-hi"},
       {MO_CCALL, "riscv-ccall"},
-      {MO_CHERI_COMPARTMENT_CGPREL_HI, "riscv-compartment-cgprel-hi"},
-      {MO_CHERI_COMPARTMENT_CGPREL_LO_I, "riscv-compartment-cgprel-lo-i"},
-      {MO_CHERI_COMPARTMENT_CGPREL_LO_S, "riscv-compartment-cgprel-lo-s"},
-      {MO_CHERI_COMPARTMENT_PCCREL_HI, "riscv-compartment-pccrel-hi"},
-      {MO_CHERI_COMPARTMENT_PCCREL_LO, "riscv-compartment-pccrel-lo"},
-      {MO_CHERI_COMPARTMENT_SIZE, "riscv-compartment-size"},
+      {MO_CHERIOT_COMPARTMENT_HI, "riscv-cheriot-compartment-hi"},
+      {MO_CHERIOT_COMPARTMENT_LO_I, "riscv-cheriot-compartment-lo-i"},
+      {MO_CHERIOT_COMPARTMENT_LO_S, "riscv-cheriot-compartment-lo-s"},
+      {MO_CHERIOT_COMPARTMENT_SIZE, "riscv-cheriot-compartment-size"},
   };
   return makeArrayRef(TargetFlags);
 }

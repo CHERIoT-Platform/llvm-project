@@ -10,12 +10,12 @@ entry:
 ; compartment switcher.
 ; CHECK: addi    a0, zero, 1
 ; CHECK: addi    a1, zero, 2
-; CHECK: auipcc  ct2, %cheri_compartment_pccrel_hi(__library_import_libcalls_add)
-; CHECK: clc     ct2, %cheri_compartment_pccrel_lo(.LBB0_1)(ct2)
+; CHECK: auipcc  ct2, %cheriot_compartment_hi(__library_import_libcalls_add)
+; CHECK: clc     ct2, %cheriot_compartment_lo_i(.LBB0_1)(ct2)
 ; CHECK: cjalr   ct2
   %call = tail call cherilibcallcc i32 @add(i32 1, i32 2) #2
-; CHECK: auipcc  ct2, %cheri_compartment_pccrel_hi(__library_import_libcalls_foo)
-; CHECK: clc     ct2, %cheri_compartment_pccrel_lo(.LBB0_2)(ct2)
+; CHECK: auipcc  ct2, %cheriot_compartment_hi(__library_import_libcalls_foo)
+; CHECK: clc     ct2, %cheriot_compartment_lo_i(.LBB0_2)(ct2)
 ; CHECK: cjalr   ct2
   %call1 = tail call cherilibcallcc i32 @foo() #2
   %add = add nsw i32 %call1, %call

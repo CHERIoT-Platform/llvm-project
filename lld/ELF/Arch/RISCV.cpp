@@ -15,6 +15,7 @@
 #include "Target.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/Object/ELF.h"
 #include "llvm/Support/TimeProfiler.h"
 
 using namespace llvm;
@@ -65,6 +66,9 @@ enum Op {
   CLC_64 = 0x3003,
   CLC_128 = 0x200f,
   CSub = 0x2800005b,
+
+  AUIPCC = 0x17,
+  AUICGP = 0x7b,
 };
 
 enum Reg {
@@ -356,8 +360,7 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
   case R_RISCV_CHERIOT_COMPARTMENT_HI:
     return isPCCRelative(loc, &s) ? R_PC : R_CHERIOT_COMPARTMENT_CGPREL_HI;
   case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
-    return isPCCRelative(loc, &s) ? R_RISCV_PC_INDIRECT
-                                  : R_CHERIOT_COMPARTMENT_CGPREL_LO_I;
+    return R_CHERIOT_COMPARTMENT_CGPREL_LO_I;
   case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
     return R_CHERIOT_COMPARTMENT_CGPREL_LO_S;
   case R_RISCV_CHERIOT_COMPARTMENT_SIZE:
@@ -599,18 +602,22 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
   }
   case R_RISCV_CHERIOT_COMPARTMENT_HI: {
     // AUICGP
-    uint32_t opcode = 0x7b;
+    uint32_t opcode = AUICGP;
     if (isPCCRelative(loc, rel.sym)) {
-      // AUIPCC
-      opcode = 0x17;
+      opcode = AUIPCC;
       if (int64_t(val) < 0)
         val = (val + 0x7ff) & ~0x7ff;
       val = int64_t(val) >> 11;
     }
+    uint32_t existingOpcode = read32le(loc) & 0x7f;
+    if ((existingOpcode != AUIPCC) && (existingOpcode != AUICGP))
+      warn("R_RISCV_CHERIOT_COMPARTMENT_HI relocation applied to instruction "
+           "with unexpected opcode " +
+           Twine(existingOpcode));
     checkInt(loc, val, 20, rel);
     // Preserve the target register.  We will rewrite the opcode (source
     // register) to either AUICGP or AUIPCC and set the immediate field.
-    uint32_t insn = read32le(loc) & 0x00000fc0;
+    uint32_t insn = read32le(loc) & 0x00000f80;
     write32le(loc, insn | (val << 12) | opcode);
     break;
   }
@@ -743,17 +750,19 @@ static void relaxCGP(const InputSection &sec, size_t i, uint64_t loc,
     return;
   uint32_t insn = read32le(sec.rawData.data() + r.offset);
   switch (r.type) {
-  case R_RISCV_CHERIOT_COMPARTMENT_HI:
+  case R_RISCV_CHERIOT_COMPARTMENT_HI: {
     // Remove auicgp rd, 0.
     sec.relaxAux->relocTypes[i] = R_RISCV_RELAX;
     remove = 4;
     break;
-  case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
+  }
+  case R_RISCV_CHERIOT_COMPARTMENT_LO_I: {
     // cincoffset/load rd, cs1, %lo(x) => cincoffset/load rd, cgp, %lo(x)
     sec.relaxAux->relocTypes[i] = R_RISCV_CHERIOT_COMPARTMENT_LO_I;
     insn = (insn & ~(31 << 15)) | (3 << 15);
     sec.relaxAux->writes.push_back(insn);
     break;
+  }
   case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
     // store cs2, cs1, %lo(x) => store cs2, cgp, %lo(x)
     sec.relaxAux->relocTypes[i] = R_RISCV_CHERIOT_COMPARTMENT_LO_I;
@@ -763,10 +772,83 @@ static void relaxCGP(const InputSection &sec, size_t i, uint64_t loc,
   }
 }
 
-static bool relax(InputSection &sec) {
+/**
+ * Find all R_RISCV_CHERIOT_COMPARTMENT_LO_I relocations that are CGP-relative
+ * and rewrite them to be relative to the target of the current relocation.
+ * These relocations mirror the HI20/LO12 PC-relative relocations and are
+ * written as pairs where the first has the real relocation target as its
+ * symbol and the second has the location of the first as its target.  This is
+ * necessary for PC-relative relocations because the final address depends on
+ * the location of the first instruction.  For CHERIoT, both PCC and
+ * CGP-relative relocations use the same relocation types and we don't know
+ * whether it is relative to PCC or CGP until we know the target.  That would
+ * be fine, except that relaxation can delete the AUICGP, which means that we
+ * then can't find the target.  We void this by doing a pass to find these
+ * relocation targets and attaching them to the
+ * R_RISCV_CHERIOT_COMPARTMENT_LO_I relocations for the cases where the target
+ * is CGP-relative.
+ *
+ * Note: If we ever get direct PC[C]-relative loads in RISC-V then other
+ * relocations will want to reuse this path.
+ */
+static bool rewriteCheriotLowRelocs(InputSection &sec) {
+  bool modified = false;
+  for (auto it : llvm::enumerate(sec.relocations)) {
+    Relocation &r = it.value();
+    if (r.type == R_RISCV_CHERIOT_COMPARTMENT_LO_I) {
+      // If this is PCC-relative, then the relocation points to the auicgp /
+      // auipcc instruction and we need to look there to find the real target.
+      if (isPCCRelative(nullptr, r.sym)) {
+        const Defined *d = cast<Defined>(r.sym);
+        if (!d->section)
+          error("R_RISCV_CHERIOT_COMPARTMENT_LO_I relocation points to an "
+                "absolute symbol: " +
+                r.sym->getName());
+        InputSection *isec = cast<InputSection>(d->section);
+
+        // Relocations are sorted by offset, so we can use std::equal_range to
+        // do binary search.
+        Relocation targetReloc;
+        targetReloc.offset = d->value;
+        auto range = std::equal_range(
+            isec->relocations.begin(), isec->relocations.end(), targetReloc,
+            [](const Relocation &lhs, const Relocation &rhs) {
+              return lhs.offset < rhs.offset;
+            });
+
+        const Relocation *target = nullptr;
+        for (auto it = range.first; it != range.second; ++it)
+          if (it->type == R_RISCV_CHERIOT_COMPARTMENT_HI) {
+            target = &*it;
+            break;
+          }
+        if (!target) {
+          error(
+              "Could not find R_RISCV_CHERIOT_COMPARTMENT_HI relocation for " +
+              toString(*r.sym));
+        }
+        // If the target is PCC-relative then the auipcc can't be erased and so
+        // skip the rewriting.
+        if (isPCCRelative(nullptr, target->sym))
+          continue;
+        // Update our relocation to point to the target thing.
+        r.sym = target->sym;
+        r.addend = target->addend;
+        modified = true;
+      }
+    }
+  }
+  return modified;
+}
+
+static bool relax(InputSection &sec, int pass) {
   const uint64_t secAddr = sec.getVA();
   auto &aux = *sec.relaxAux;
   bool changed = false;
+
+  // On the first pass, do a scan of LO_I CHERIoT relocations
+  if (pass == 0)
+    changed |= rewriteCheriotLowRelocs(sec);
 
   // Get st_value delta for symbols relative to this section from the previous
   // iteration.
@@ -867,7 +949,7 @@ bool RISCV::relaxOnce(int pass) const {
     if (!(osec->flags & SHF_EXECINSTR))
       continue;
     for (InputSection *sec : getInputSections(osec))
-      changed |= relax(*sec);
+      changed |= relax(*sec, pass);
   }
   return changed;
 }

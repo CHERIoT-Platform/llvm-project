@@ -76,6 +76,7 @@ private:
                             bool InBounds = false);
   bool expandAuicgpInstPair(MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator MBBI,
+                            MachineBasicBlock::iterator &NextMBBI,
                             unsigned SecondOpcode, bool InBounds = false);
   bool expandCapLoadLocalCap(MachineBasicBlock &MBB,
                              MachineBasicBlock::iterator MBBI,
@@ -434,27 +435,50 @@ bool RISCVExpandPseudo::expandLibraryCall(
   return true;
 }
 
-bool RISCVExpandPseudo::expandAuicgpInstPair(MachineBasicBlock &MBB,
-                                             MachineBasicBlock::iterator MBBI,
-                                             unsigned SecondOpcode,
-                                             bool InBounds) {
+bool RISCVExpandPseudo::expandAuicgpInstPair(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+    MachineBasicBlock::iterator &NextMBBI, unsigned SecondOpcode,
+    bool InBounds) {
   MachineInstr &MI = *MBBI;
   DebugLoc DL = MI.getDebugLoc();
+  auto *MF = MBB.getParent();
 
   bool HasTmpReg = MI.getNumOperands() > 2;
   Register DestReg = MI.getOperand(0).getReg();
   Register TmpReg = MI.getOperand(HasTmpReg ? 1 : 0).getReg();
   const MachineOperand &Symbol = MI.getOperand(HasTmpReg ? 2 : 1);
 
-  BuildMI(MBB, MBBI, DL, TII->get(RISCV::AUICGP), DestReg)
+  auto *NewMBB = MBB.getParent()->CreateMachineBasicBlock(MBB.getBasicBlock());
+
+  // Tell AsmPrinter that we unconditionally want the symbol of this label to be
+  // emitted.
+  NewMBB->setLabelMustBeEmitted();
+
+  MF->insert(++MBB.getIterator(), NewMBB);
+
+  BuildMI(NewMBB, DL, TII->get(RISCV::AUICGP), DestReg)
       .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_HI);
-  BuildMI(MBB, MBBI, DL, TII->get(SecondOpcode), DestReg)
-      .addReg(TmpReg)
-      .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
+  BuildMI(NewMBB, DL, TII->get(SecondOpcode), DestReg)
+      .addReg(DestReg, RegState::Kill)
+      .addMBB(NewMBB, RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
+
   if (!InBounds)
-    BuildMI(MBB, MBBI, DL, TII->get(RISCV::CSetBoundsImm), DestReg)
-        .addReg(DestReg)
+    BuildMI(NewMBB, DL, TII->get(RISCV::CSetBoundsImm), DestReg)
+        .addReg(DestReg, RegState::Kill)
         .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_SIZE);
+
+  // Move all the rest of the instructions to NewMBB.
+  NewMBB->splice(NewMBB->end(), &MBB, std::next(MBBI), MBB.end());
+  // Update machine-CFG edges.
+  NewMBB->transferSuccessorsAndUpdatePHIs(&MBB);
+  // Make the original basic block fall-through to the new.
+  MBB.addSuccessor(NewMBB);
+
+  // Make sure live-ins are correctly attached to this new basic block.
+  LivePhysRegs LiveRegs;
+  computeAndAddLiveIns(LiveRegs, *NewMBB);
+
+  NextMBBI = MBB.end();
   MI.eraseFromParent();
   return true;
 }
@@ -621,7 +645,8 @@ bool RISCVExpandPseudo::expandCapLoadLocalCap(
                                   RISCVII::MO_CHERIOT_COMPARTMENT_HI,
                                   RISCV::CIncOffsetImm, InBounds);
     }
-    return expandAuicgpInstPair(MBB, MBBI, RISCV::CIncOffsetImm, InBounds);
+    return expandAuicgpInstPair(MBB, MBBI, NextMBBI, RISCV::CIncOffsetImm,
+                                InBounds);
   }
   return expandAuipccInstPair(MBB, MBBI, NextMBBI, RISCVII::MO_PCREL_HI, RISCV::CIncOffsetImm);
 }

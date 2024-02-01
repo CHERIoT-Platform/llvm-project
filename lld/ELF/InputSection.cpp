@@ -928,9 +928,25 @@ uint64_t InputSectionBase::getRelocTargetVA(const InputFile *file, RelType type,
   case R_MIPS_CHERI_CAPTAB_TPREL:
     assert(a == 0 && "capability table index relocs should not have addends");
     return in.cheriCapTable->getTlsOffset(sym);
-  // These are reached only for CGP-relative relocations.  PCC-relative
-  // addresses are calulated with the R_PC and R_PC_INDIRECT cases.
-  case R_CHERIOT_COMPARTMENT_CGPREL_LO_I:
+  // LO_I is used for both PCC and CGP-relative addresses.  For backwards
+  // compatibility, the symbol may be a CGP-relative symbol.  In newer code, it
+  // will always be the symbol containing the accompanying HI relocation.
+  case R_CHERIOT_COMPARTMENT_CGPREL_LO_I: {
+    if (isPCCRelative(nullptr, &sym)) {
+      if (const Relocation *hiRel = getRISCVPCRelHi20(&sym, a)) {
+        if (isPCCRelative(nullptr, hiRel->sym))
+          return getRelocTargetVA(file, hiRel->type, hiRel->addend, sym.getVA(),
+                                  *hiRel->sym, hiRel->expr, isec, offset);
+        return getBiasedCGPOffsetLo12(*hiRel->sym);
+      }
+      fatal("R_CHERIOT_COMPARTMENT_CGPREL_LO_I relocation points to " +
+            sym.getName() +
+            " without an associated R_RISCV_PCREL_HI20 relocation");
+    }
+    return getBiasedCGPOffsetLo12(sym);
+  }
+  // Reached only for CGP-relative relocations.  PCC-relative addresses are
+  // calculated with the R_PC and R_PC_INDIRECT cases.
   case R_CHERIOT_COMPARTMENT_CGPREL_LO_S:
     return getBiasedCGPOffsetLo12(sym);
   case R_CHERIOT_COMPARTMENT_CGPREL_HI:

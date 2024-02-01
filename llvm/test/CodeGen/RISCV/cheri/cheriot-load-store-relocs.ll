@@ -16,7 +16,7 @@ entry:
   ; CHECK-SAME: %cheriot_compartment_hi(temp)
   ; XCHECK: clw
   ; CHECK: cincoffset
-  ; CHECK-SAME: %cheriot_compartment_lo_i(temp)
+  ; CHECK-SAME: %cheriot_compartment_lo_i
   %0 = load i32, i32 addrspace(200)* @temp, align 4, !tbaa !5
   %inc = add nsw i32 %0, 1
   store i32 %inc, i32 addrspace(200)* @temp, align 4, !tbaa !5

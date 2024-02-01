@@ -16,7 +16,7 @@ entry:
   ; CHECK: auicgp
   ; CHECK-SAME: %cheriot_compartment_hi(x)
   ; CHECK: cincoffset
-  ; CHECK-SAME: %cheriot_compartment_lo_i(x)
+  ; CHECK-SAME: %cheriot_compartment_lo_i
   ; CHECK: csetbounds ca0, ca0, %cheriot_compartment_size(x)
   ret i32 addrspace(200)* @x
 }
@@ -29,7 +29,7 @@ entry:
   ; XCHECK: auicgp
   ; XCHECK-SAME: %cheriot_compartment_hi(x)
   ; XCHECK: clw 
-  ; XCHECK-SAME: %cheriot_compartment_lo_i(x)
+  ; XCHECK-SAME: %cheriot_compartment_lo_i
   ; XCHECK-NEXT: cret
   %0 = load i32, i32 addrspace(200)* @x, align 4, !tbaa !5
   ret i32 %0

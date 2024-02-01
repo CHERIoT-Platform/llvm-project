@@ -82,13 +82,13 @@ entry:
   ; Check that we have the right relocations and stack layout.
   ; BOTH-LABEL: testcall8:
   ; BOTH:  auicgp  ct0, %cheriot_compartment_hi(testcall8.stack_arg)
-  ; BOTH:  cincoffset      ct0, ct0, %cheriot_compartment_lo_i(testcall8.stack_arg)
+  ; BOTH:  cincoffset      ct0, ct0, %cheriot_compartment_lo_i
   ; BOTH:  csetbounds      ct0, ct0, %cheriot_compartment_size(testcall8.stack_arg)
   ; BOTH:  csc     ct0, 8(csp)
   ; BOTH:  auipcc  ct1, %cheriot_compartment_hi(__import_other_test8callee)
-  ; BOTH:  clc     ct1, %cheriot_compartment_lo_i(.LBB3_2)(ct1)
+  ; BOTH:  clc     ct1, %cheriot_compartment_lo_i
   ; BOTH:  auipcc  ct2, %cheriot_compartment_hi(.compartment_switcher)
-  ; BOTH:  clc     ct2, %cheriot_compartment_lo_i(.LBB3_1)(ct2)
+  ; BOTH:  clc     ct2, %cheriot_compartment_lo_i
   ; BOTH:  c.cjalr ct2
   %args = alloca [8 x i32], align 4, addrspace(200)
   %0 = bitcast [8 x i32] addrspace(200)* %args to i8 addrspace(200)*

@@ -68,10 +68,11 @@ public:
   void checkDeadSymbols(SymbolReaper &SymReaper, CheckerContext &C) const;
 
 private:
-  ExplodedNode *
-  emitAlignmentWarning(CheckerContext &C, const SVal &UnderalignedPtrVal,
-                       const BugType &BT, StringRef ErrorMessage,
-                       const ValueDecl *CapSrcDecl = nullptr) const;
+  ExplodedNode *emitAlignmentWarning(CheckerContext &C,
+                                     const SVal &UnderalignedPtrVal,
+                                     const BugType &BT, StringRef ErrorMessage,
+                                     const ValueDecl *CapStorageDecl = nullptr,
+                                     StringRef CapSrcMsg = StringRef()) const;
 
   class AlignmentBugVisitor : public BugReporterVisitor {
   public:
@@ -416,6 +417,7 @@ void PointerAlignmentChecker::checkBind(SVal L, SVal V, const Stmt *S,
   if (DstTy->isPointerType() && hasCapability(DstTy->getPointeeType(), ASTCtx))
     DstIsPtr2CapStorage = true;
 
+  const ValueDecl *CapDstDecl = nullptr;
   if (const MemRegion *MR = L.getAsRegion()) {
     if (const TypedValueRegion *TR = MR->getAs<TypedValueRegion>()) {
       const QualType &Ty = TR->getValueType();
@@ -425,6 +427,8 @@ void PointerAlignmentChecker::checkBind(SVal L, SVal V, const Stmt *S,
                              (isa<GlobalsSpaceRegion>(TR->getMemorySpace(C.getState())) ||
                               isa<FieldRegion>(TR->StripCasts()));
     }
+    if (const DeclRegion *D = getOriginalAllocation(MR))
+      CapDstDecl = D->getDecl();
   }
 
   if (SymbolRef Sym = L.getAsSymbol()) {
@@ -479,13 +483,20 @@ void PointerAlignmentChecker::checkBind(SVal L, SVal V, const Stmt *S,
   OS << " hold capabilities, for which " << CapAlign
      << "-byte capability alignment will be required";
 
-  const ValueDecl *CapDstDecl = nullptr;
-  if (const MemRegion *SR = L.getAsRegion()) {
-    if (const DeclRegion *D = getOriginalAllocation(SR))
-      CapDstDecl = D->getDecl();
-  }
-
-  emitAlignmentWarning(C, V, *GenPtrEscapeAlignBug, ErrorMessage, CapDstDecl);
+  if (CapDstDecl) {
+    SmallString<350> Note;
+    llvm::raw_svector_ostream OS2(Note);
+    OS2 << "Memory pointed by";
+    if (DstIsPtr2CapStorage) {
+      const QualType &AllocType = CapDstDecl->getType().getCanonicalType();
+      OS2 << " '" << AllocType.getAsString() << "'"
+          << " value is supposed to hold capabilities";
+    } else
+      OS2 << " this value may be used to hold capabilities";
+    emitAlignmentWarning(C, V, *GenPtrEscapeAlignBug, ErrorMessage, CapDstDecl,
+                         Note);
+  } else
+    emitAlignmentWarning(C, V, *GenPtrEscapeAlignBug, ErrorMessage);
 }
 
 void PointerAlignmentChecker::checkPreCall(const CallEvent &Call,
@@ -541,7 +552,15 @@ void PointerAlignmentChecker::checkPreCall(const CallEvent &Call,
         CapSrcDecl = D->getDecl();
     }
 
-    emitAlignmentWarning(C, DstVal, *MemcpyAlignBug, ErrorMessage, CapSrcDecl);
+    if (CapSrcDecl) {
+      SmallString<350> Note;
+      llvm::raw_svector_ostream OS2(Note);
+      const QualType &AllocType = CapSrcDecl->getType().getCanonicalType();
+      OS2 << "Capabilities stored in " << "'" << AllocType.getAsString() << "'";
+      emitAlignmentWarning(C, DstVal, *MemcpyAlignBug, ErrorMessage, CapSrcDecl,
+                           Note);
+    } else
+      emitAlignmentWarning(C, DstVal, *MemcpyAlignBug, ErrorMessage);
     return;
   }
 
@@ -562,13 +581,21 @@ void PointerAlignmentChecker::checkPreCall(const CallEvent &Call,
           " that copied object may have its capabilities tags"
           " stripped earlier due to underaligned storage.";
 
-    const ValueDecl *CapSrcDecl = nullptr;
+    const ValueDecl *CapDstDecl = nullptr;
     if (const MemRegion *SR = DstVal.getAsRegion()) {
       if (const DeclRegion *D = getOriginalAllocation(SR))
-        CapSrcDecl = D->getDecl();
+        CapDstDecl = D->getDecl();
     }
 
-    emitAlignmentWarning(C, SrcVal, *MemcpyAlignBug, ErrorMessage, CapSrcDecl);
+    if (CapDstDecl) {
+      SmallString<350> Note;
+      llvm::raw_svector_ostream OS2(Note);
+      const QualType &AllocType = CapDstDecl->getType().getCanonicalType();
+      OS2 << "Capabilities stored in " << "'" << AllocType.getAsString() << "'";
+      emitAlignmentWarning(C, SrcVal, *MemcpyAlignBug, ErrorMessage, CapDstDecl,
+                           Note);
+    } else
+      emitAlignmentWarning(C, SrcVal, *MemcpyAlignBug, ErrorMessage);
     return;
   }
 
@@ -818,20 +845,17 @@ void describeOriginalAllocation(const ValueDecl *SrcDecl,
 
 void describeCapabilityStorage(const ValueDecl *CapDecl,
                                PathDiagnosticLocation SrcLoc,
-                               PathSensitiveBugReport &W, ASTContext &ASTCtx) {
-  SmallString<350> Note;
-  llvm::raw_svector_ostream OS2(Note);
-  const QualType &AllocType = CapDecl->getType().getCanonicalType();
-  OS2 << "Capabilities stored in ";
-  OS2 << "'" << AllocType.getAsString() << "'";
-  W.addNote(Note, SrcLoc);
+                               PathSensitiveBugReport &W,
+                               StringRef CapStorageMsg) {
+  W.addNote(CapStorageMsg, SrcLoc);
 }
 
 } // namespace
 
 ExplodedNode *PointerAlignmentChecker::emitAlignmentWarning(
     CheckerContext &C, const SVal &UnderalignedPtrVal, const BugType &BT,
-    StringRef ErrorMessage, const ValueDecl *CapSrcDecl) const {
+    StringRef ErrorMessage, const ValueDecl *CapStorageDecl,
+    StringRef CapStorageMsg) const {
   ExplodedNode *ErrNode = C.generateNonFatalErrorNode();
   if (!ErrNode)
     return nullptr;
@@ -856,10 +880,10 @@ ExplodedNode *PointerAlignmentChecker::emitAlignmentWarning(
     describeOriginalAllocation(MRDecl, MRDeclLoc, *W, C.getASTContext());
   }
 
-  if (CapSrcDecl) {
+  if (CapStorageDecl) {
     auto CapSrcDeclLoc =
-        PathDiagnosticLocation::create(CapSrcDecl, C.getSourceManager());
-    describeCapabilityStorage(CapSrcDecl, CapSrcDeclLoc, *W, C.getASTContext());
+        PathDiagnosticLocation::create(CapStorageDecl, C.getSourceManager());
+    describeCapabilityStorage(CapStorageDecl, CapSrcDeclLoc, *W, CapStorageMsg);
   }
 
   C.emitReport(std::move(W));

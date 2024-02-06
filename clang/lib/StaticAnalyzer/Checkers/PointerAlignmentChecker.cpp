@@ -350,6 +350,11 @@ const DeclRegion *getOriginalAllocation(const MemRegion *MR) {
   return nullptr;
 }
 
+bool hasCapStorageType(const Expr *E, ASTContext &ASTCtx) {
+  const QualType &Ty = E->IgnoreCasts()->getType();
+  return Ty->isPointerType() && hasCapability(Ty->getPointeeType(), ASTCtx);
+}
+
 } // namespace
 
 void PointerAlignmentChecker::checkPreStmt(const CastExpr *CE,
@@ -361,6 +366,12 @@ void PointerAlignmentChecker::checkPreStmt(const CastExpr *CE,
     return;
 
   ASTContext &ASTCtx = C.getASTContext();
+
+  if (hasCapStorageType(CE->getSubExpr(), ASTCtx)) {
+    /* Src value must have been already checked for capability alignment by this
+     * time */
+    return;
+  }
 
   /* Calculate required alignment */
   const std::optional<unsigned int> &DstReqAlign =
@@ -408,6 +419,12 @@ void PointerAlignmentChecker::checkBind(SVal L, SVal V, const Stmt *S,
   if (!DstTy->isCHERICapabilityType(ASTCtx, true))
     return;
 
+  if (hasCapStorageType(BO->getRHS(), ASTCtx)) {
+    /* Src value must have been already checked for capability alignment by this
+     * time */
+    return;
+  }
+
   /* Check if dst pointee type contains capabilities or is a generic storage
    * type (can contain arbitrary data) */
   bool DstIsPtr2CapStorage = false, DstIsPtr2GenStorage = false;
@@ -448,8 +465,9 @@ void PointerAlignmentChecker::checkBind(SVal L, SVal V, const Stmt *S,
   if (!SrcAlign || *SrcAlign >= CapAlign)
     return;
 
-  if (DstIsPtr2GenStorage) {
-    /* Skip if src pointee value is known and contains no capabilities  */
+  if (!DstIsPtr2CapStorage) {
+    /* Dst is generic pointer;
+     * Skip if src pointee value is known and contains no capabilities  */
     if (const MemRegion *SrcMR = V.getAsRegion()) {
       if (const TypedValueRegion *SrcTR =
               SrcMR->StripCasts()->getAs<TypedValueRegion>()) {
@@ -459,10 +477,8 @@ void PointerAlignmentChecker::checkBind(SVal L, SVal V, const Stmt *S,
 
         // Emit if SrcDeref is undef/unknown or represents initial value of this
         // region
-        if (!DerefSym)
-          return;
-        auto OriginRegion = DerefSym->getOriginRegion();
-        if (OriginRegion && OriginRegion->StripCasts() != SrcTR)
+        if (!DerefSym || (DerefSym->getOriginRegion() &&
+                          DerefSym->getOriginRegion()->StripCasts() != SrcTR))
           return;
       }
     }

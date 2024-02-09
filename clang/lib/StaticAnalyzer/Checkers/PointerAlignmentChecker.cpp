@@ -133,16 +133,21 @@ PointerAlignmentChecker::PointerAlignmentChecker() {
 
 namespace {
 
+bool isGlobalOrTopLevelArg(const MemSpaceRegion *MS) {
+  if (isa<GlobalsSpaceRegion>(MS))
+    return true; // global variable
+  if (const auto *SR = dyn_cast<StackArgumentsSpaceRegion>(MS))
+    return SR->getStackFrame()->inTopFrame(); // top-level argument
+  return false;
+}
+
 std::optional<QualType> globalOrParamPointeeType(SymbolRef Sym,
                                                  ProgramStateRef State) {
   const MemRegion *BaseRegOrigin = Sym->getOriginRegion();
   if (!BaseRegOrigin)
     return std::nullopt;
 
-  bool HasGlobalsOrParametersStorage =
-      isa<StackArgumentsSpaceRegion, GlobalsSpaceRegion>(
-          BaseRegOrigin->getMemorySpace(State));
-  if (!HasGlobalsOrParametersStorage)
+  if (!isGlobalOrTopLevelArg(BaseRegOrigin->getMemorySpace(State)))
     return std::nullopt;
 
   const QualType &SymTy = Sym->getType();
@@ -250,10 +255,14 @@ int getTrailingZerosCount(const Expr *E, CheckerContext &C) {
 }
 
 bool isCapabilityStorage(SymbolRef Sym, ProgramStateRef State, ASTContext &ASTCtx) {
-  const std::optional<QualType> GlobalPointeeTy =
-      globalOrParamPointeeType(Sym, State);
-  if (GlobalPointeeTy)
-    return hasCapability(*GlobalPointeeTy, ASTCtx);
+  const QualType &SymTy = Sym->getType();
+  if (SymTy->isPointerType()) {
+    const QualType &PT =
+      SymTy->getPointeeType();
+    if (!PT->isIncompleteType()) {
+      return hasCapability(PT, ASTCtx);
+    }
+  }
   return false;
 }
 
@@ -329,11 +338,8 @@ bool isGenericStorage(CheckerContext &C, SymbolRef Sym, QualType CopyTy) {
   if (!isGenericPointerType(CopyTy, false))
     return false;
   if (const MemRegion *R = Sym->getOriginRegion()) {
-    const MemSpaceRegion *MS = R->getMemorySpace(C.getState());
-    if (isa<GlobalsSpaceRegion>(MS))
-      return true; // global variable
-    if (const auto *SR = dyn_cast<StackArgumentsSpaceRegion>(MS))
-      return SR->getStackFrame()->inTopFrame(); // top-level argument
+    if (isGlobalOrTopLevelArg(R->getMemorySpace(C.getState())))
+      return true; // global variable or top-level function argument
 
     if (isa<FieldRegion>(R))
       return true; // struct field

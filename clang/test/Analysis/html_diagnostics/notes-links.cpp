@@ -18,5 +18,5 @@ void f() {
 
 //CHECK:      <tr><td class="rowname">Note:</td>
 //CHECK-NOT:  <a href="#Note0">
-//CHECK-SAME: <a href="#Note1">line 9, column 7</a>
-//CHECK-SAME: <a href="#Note2">line 10, column 7</a>
+//CHECK-SAME: <a href="#Note2">line 9, column 7</a>
+//CHECK-SAME: <a href="#Note3">line 10, column 7</a>

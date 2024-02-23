@@ -3104,7 +3104,7 @@ class CompartmentReportWriter {
   struct ImportTableEntry {
     /// Start address (target endian)
     uint32_t start;
-    /// Length address (target endian)
+    /// Length and permissions (target endian)
     uint32_t length;
   };
   /**
@@ -3281,10 +3281,24 @@ class CompartmentReportWriter {
                                           sizeof(uint64_t),
                                       entry.length - sizeof(uint64_t)},
                                      4)}});
-        } else
-          imports.push_back(json::Object{{"kind", "MMIO"},
-                                         {"start", entry.start},
-                                         {"length", entry.length}});
+        } else {
+          static constexpr uint32_t ImportPermitsLoad = (1UL << 31);
+          static constexpr uint32_t ImportPermitsStore = (1UL << 30);
+          static constexpr uint32_t ImportPermitsLoadStoreCapabilities =
+              (1UL << 29);
+          static constexpr uint32_t ImportPermitsLoadMutable = (1UL << 28);
+
+          imports.push_back(json::Object{
+              {"kind", "MMIO"},
+              {"start", entry.start},
+              {"length", entry.length & 0xfffffff},
+              {"permits_load", (entry.length & ImportPermitsLoad) != 0},
+              {"permits_store", (entry.length & ImportPermitsStore) != 0},
+              {"permits_load_store_capabilities",
+               (entry.length & ImportPermitsLoadStoreCapabilities) != 0},
+              {"permits_load_mutable",
+               (entry.length & ImportPermitsLoadMutable) != 0}});
+        }
         continue;
       }
       // A few compartments have empty entries that the loader fills in with

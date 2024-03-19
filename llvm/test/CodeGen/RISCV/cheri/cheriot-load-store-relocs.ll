@@ -4,6 +4,8 @@ target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G
 target triple = "riscv32-unknown-unknown"
 
 @temp = dso_local local_unnamed_addr addrspace(200) global i32 0, align 4
+@bigArray = internal addrspace(200) global [1025 x i32] zeroinitializer, align 4
+
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize willreturn
 define dso_local i32 @example_entry(i32 addrspace(200)* nocapture readnone %input) local_unnamed_addr addrspace(200) #0 {
@@ -22,6 +24,26 @@ entry:
   store i32 %inc, i32 addrspace(200)* @temp, align 4, !tbaa !5
   ret i32 %0
 }
+
+; Function Attrs: mustprogress nofree norecurse nosync nounwind readnone willreturn
+define dso_local i32 addrspace(200)* @getBigArray() local_unnamed_addr addrspace(200) #0 {
+entry:
+  ; CHECK-LABEL: getBigArray:
+  ; Check that we're materialising the constant with two instructions
+  ; CHECK: lui [[BOUNDS_HI:[a-z]+[0-9]+]], 1
+  ; CHECK: addi [[BOUNDS:[a-z]+[0-9]+]], [[BOUNDS_HI]], 4
+  ; Check that we're using the correct relocation for the global
+  ; CHECK: auicgp
+  ; CHECK-SAME: %cheriot_compartment_hi(bigArray)
+  ; CHECK: cincoffset
+  ; CHECK-SAME: %cheriot_compartment_lo_i
+  ; Slightly hacky pattern to make sure that we're emitting the using the value
+  ; that we calculated, rather than an immediate or relocation.
+  ; CHECK: csetbounds	c{{.[0-9]+}}, c{{.[0-9]+}}, [[BOUNDS]]
+
+  ret i32 addrspace(200)* getelementptr inbounds ([1025 x i32], [1025 x i32] addrspace(200)* @bigArray, i32 0, i32 0)
+}
+
 
 attributes #0 = { minsize mustprogress nofree norecurse nosync nounwind optsize willreturn "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+xcheri,-64bit,-relax,-save-restore,-xcheri-rvc" }
 

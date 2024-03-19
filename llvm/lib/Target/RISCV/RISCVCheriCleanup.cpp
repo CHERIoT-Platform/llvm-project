@@ -15,6 +15,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "MCTargetDesc/RISCVMCTargetDesc.h"
+#include "MCTargetDesc/RISCVMatInt.h"
 #include "RISCV.h"
 #include "RISCVInstrInfo.h"
 #include "RISCVSubtarget.h"
@@ -53,6 +54,7 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
   auto &MRI = MF.getRegInfo();
   TII = static_cast<const RISCVInstrInfo *>(MF.getSubtarget().getInstrInfo());
   bool Modified = false;
+  SmallVector<std::pair<MachineInstr *, size_t>> largeCLLCs;
   for (auto &MBB : MF)
     for (auto &MI : MBB)
       if (MI.getOpcode() == RISCV::PseudoCLLC) {
@@ -103,8 +105,48 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
         if (!UnsafeUse) {
           MI.setDesc(TII->get(RISCV::PseudoCLLCInbounds));
           Modified = true;
+        } else if (SafeSize >= 4096) {
+          // If we know the size now and we know that it doesn't fit in a
+          // relocation, fill it in with a longer instruction sequence.  We
+          // don't always know the size.
+          largeCLLCs.push_back({&MI, SafeSize});
+          Modified = true;
         }
       }
+  for (auto I : largeCLLCs) {
+    auto &MI = *I.first;
+    const uint32_t SafeSize = I.second;
+    // If the size is known and can't be represented with a single
+    // CSetBounds instruction, emit the sequence of instructions to generate
+    // the size now and then pass the size along with a variant of the CLLC
+    // pseudo for later expansion.  This is necessary because CLLC is expanded
+    // *after* register allocation and so can't introduce a new virtual
+    // register.
+    Register SizeReg;
+    const RISCVMatInt::InstSeq Seq = RISCVMatInt::generateInstSeq(
+        SafeSize, MF.getSubtarget().getFeatureBits());
+    for (auto &SeqMI : Seq) {
+      const Register Out = MRI.createVirtualRegister(&RISCV::GPRRegClass);
+      auto &MID = TII->get(SeqMI.Opc);
+      auto MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), MID, Out);
+      if (MID.getNumOperands() == 3)
+        MIB.addReg(SizeReg);
+      else
+        assert(MID.getNumOperands() == 2);
+      MIB.addImm(SeqMI.Imm);
+      SizeReg = Out;
+    }
+    const Register DstReg = MI.getOperand(0).getReg();
+    const Register Unbounded = MRI.createVirtualRegister(&RISCV::GPCRRegClass);
+    MI.getOperand(0).setReg(Unbounded);
+    // Replace the pseudo with the version that doesn't need CSetBounds applied.
+    MI.setDesc(TII->get(RISCV::PseudoCLLCInbounds));
+    // Insert the CSetBounds ourself afterwards.
+    BuildMI(*MI.getParent(), ++MachineBasicBlock::iterator{MI},
+            MI.getDebugLoc(), TII->get(RISCV::CSetBounds), DstReg)
+        .addReg(Unbounded)
+        .addReg(SizeReg);
+  }
   return Modified;
 }
 

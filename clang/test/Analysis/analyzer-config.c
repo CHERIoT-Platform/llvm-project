@@ -27,7 +27,7 @@
 // CHECK-NEXT: cfg-rich-constructors = true
 // CHECK-NEXT: cfg-scopes = false
 // CHECK-NEXT: cfg-temporary-dtors = true
-// CHECK-NEXT: cheri.CapabilityCopy:ReportForCharPtr = true
+// CHECK-NEXT: cheri.CapabilityCopy:ReportForCharPtr = false
 // CHECK-NEXT: cheri.ProvenanceSource:ReportForAmbiguousProvenance = true
 // CHECK-NEXT: cheri.ProvenanceSource:ShowFixIts = false
 // CHECK-NEXT: core.BitwiseShift:Pedantic = false

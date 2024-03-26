@@ -65,6 +65,7 @@ class PointerAlignmentChecker
       {{CDM::SimpleFunc, {"memcpy"}, 3}, {0, 1}},
       {{CDM::SimpleFunc, {"mempcpy"}, 3}, {0, 1}},
       {{CDM::SimpleFunc, {"memmove"}, 3}, {0, 1}},
+      {{CDM::SimpleFunc, {"bcopy"}, 3}, {1, 0}},
   };
 
 public:

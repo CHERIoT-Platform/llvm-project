@@ -43,8 +43,6 @@ class ProvenanceSourceChecker
   BugType NoProvPtrBugType{this,
                            "cheri_no_provenance capability used as pointer",
                            "CHERI portability"};
-  BugType PtrdiffAsIntCapBugType{this, "Pointer difference as capability",
-                                 "CHERI portability"};
 
 private:
   class InvalidCapBugVisitor : public BugReporterVisitor {
@@ -106,9 +104,6 @@ private:
                                             bool RHSIsAddr,
                                             bool RHSIsNullDerived) const;
 
-  ExplodedNode *emitPtrdiffAsIntCapWarn(const BinaryOperator *BO,
-                                        CheckerContext &C) const;
-
   static void propagateProvenanceInfo(ExplodedNode *N, const Expr *E,
                                       CheckerContext &C, bool IsInvalidCap,
                                       const NoteTag *Tag);
@@ -120,7 +115,8 @@ REGISTER_SET_WITH_PROGRAMSTATE(AmbiguousProvenanceSym, SymbolRef)
 REGISTER_SET_WITH_PROGRAMSTATE(AmbiguousProvenanceReg, const MemRegion *)
 REGISTER_TRAIT_WITH_PROGRAMSTATE(Ptr2IntCapId, unsigned)
 
-static bool isIntegerToIntCapCast(const CastExpr *CE) {
+namespace {
+bool isIntegerToIntCapCast(const CastExpr *CE) {
   if (CE->getCastKind() != CK_IntegralCast)
     return false;
   if (!CE->getType()->isIntCapType() ||
@@ -129,13 +125,15 @@ static bool isIntegerToIntCapCast(const CastExpr *CE) {
   return true;
 }
 
-static bool isPointerToIntCapCast(const CastExpr *CE) {
+bool isPointerToIntCapCast(const CastExpr *CE) {
   if (CE->getCastKind() != clang::CK_PointerToIntegral)
     return false;
   if (!CE->getType()->isIntCapType())
     return false;
   return true;
 }
+
+} // namespace
 
 void ProvenanceSourceChecker::checkPostStmt(const CastExpr *CE,
                                             CheckerContext &C) const {
@@ -162,7 +160,9 @@ void ProvenanceSourceChecker::checkPostStmt(const CastExpr *CE,
   }
 }
 
-static bool hasAmbiguousProvenance(ProgramStateRef State, const SVal &Val) {
+namespace {
+
+bool hasAmbiguousProvenance(ProgramStateRef State, const SVal &Val) {
   if (SymbolRef Sym = Val.getAsSymbol())
     return State->contains<AmbiguousProvenanceSym>(Sym);
 
@@ -172,7 +172,7 @@ static bool hasAmbiguousProvenance(ProgramStateRef State, const SVal &Val) {
   return false;
 }
 
-static bool hasNoProvenance(ProgramStateRef State, const SVal &Val) {
+bool hasNoProvenance(ProgramStateRef State, const SVal &Val) {
   if (Val.isConstant())
     return true;
 
@@ -185,7 +185,7 @@ static bool hasNoProvenance(ProgramStateRef State, const SVal &Val) {
   return false;
 }
 
-static bool isAddress(const SVal &Val) {
+bool isAddress(const SVal &Val) {
   if (!Val.getAsLocSymbol(true))
     return false;
 
@@ -195,29 +195,15 @@ static bool isAddress(const SVal &Val) {
   return true;
 }
 
-static bool isIntToVoidPtrCast(const CastExpr *CE) {
-  if (!CE->getType()->isVoidPointerType())
-    return false;
-
-  const Expr *Src = CE->getSubExpr();
-  if (!Src->getType()->isIntCapType())
-    return false;
-
-  if (auto *CE2 = dyn_cast<CastExpr>(Src)) {
-    const QualType &T = CE2->getSubExpr()->getType();
-    return T->isIntegerType() && !T->isIntCapType();
-  }
-
-  return false;
-}
-
-static bool isNoProvToPtrCast(const CastExpr *CE) {
+bool isNoProvToPtrCast(const CastExpr *CE) {
   if (!CE->getType()->isPointerType())
     return false;
 
   const Expr *Src = CE->getSubExpr();
   return Src->getType()->hasAttr(attr::CHERINoProvenance);
 }
+
+} // namespace
 
 // Report intcap with ambiguous or NULL-derived provenance cast to pointer
 void ProvenanceSourceChecker::checkPreStmt(const CastExpr *CE,
@@ -261,7 +247,9 @@ void ProvenanceSourceChecker::checkPreStmt(const CastExpr *CE,
   C.emitReport(std::move(R));
 }
 
-static bool justConverted2IntCap(Expr *E, const ASTContext &Ctx) {
+namespace {
+
+bool justConverted2IntCap(Expr *E, const ASTContext &Ctx) {
   assert(E->getType()->isCHERICapabilityType(Ctx, true));
   if (auto *CE = dyn_cast<CastExpr>(E)) {
     const QualType OrigType = CE->getSubExpr()->getType();
@@ -270,33 +258,6 @@ static bool justConverted2IntCap(Expr *E, const ASTContext &Ctx) {
   }
   return false;
 }
-
-ExplodedNode *
-ProvenanceSourceChecker::emitPtrdiffAsIntCapWarn(const BinaryOperator *BO,
-                                                 CheckerContext &C) const {
-  // Generate the report.
-  ExplodedNode *ErrNode = C.generateNonFatalErrorNode();
-  if (!ErrNode)
-    return nullptr;
-  auto R = std::make_unique<PathSensitiveBugReport>(
-      PtrdiffAsIntCapBugType, "Pointer difference as capability", ErrNode);
-  R->addRange(BO->getSourceRange());
-
-  const SVal &LHSVal = C.getSVal(BO->getLHS());
-  R->markInteresting(LHSVal);
-  if (const MemRegion *Reg = LHSVal.getAsRegion())
-    R->addVisitor(std::make_unique<Ptr2IntBugVisitor>(Reg));
-
-  const SVal &RHSVal = C.getSVal(BO->getRHS());
-  R->markInteresting(RHSVal);
-  if (const MemRegion *Reg = RHSVal.getAsRegion())
-    R->addVisitor(std::make_unique<Ptr2IntBugVisitor>(Reg));
-
-  C.emitReport(std::move(R));
-  return ErrNode;
-}
-
-namespace {
 
 FixItHint addFixIt(const Expr *NDOp, CheckerContext &C, bool IsUnsigned) {
   const SourceRange &SrcRange = NDOp->getSourceRange();
@@ -494,9 +455,7 @@ void ProvenanceSourceChecker::checkPostStmt(const BinaryOperator *BO,
       N = C.getPredecessor();
     InvalidCap = false;
   } else if (IsSub && LHSIsAddr && RHSIsAddr) {
-    N = emitPtrdiffAsIntCapWarn(BO, C);
-    if (!N)
-      N = C.getPredecessor();
+    N = C.getPredecessor();
     InvalidCap = true;
   } else if (LHSIsNullDerived && (RHSIsNullDerived || IsSub)) {
     N = C.getPredecessor();
@@ -558,6 +517,8 @@ void ProvenanceSourceChecker::checkDeadSymbols(SymbolReaper &SymReaper,
     C.addTransition(State);
 }
 
+namespace {
+
 static void describeCast(raw_ostream &OS, const CastExpr *CE,
                          const LangOptions &LangOpts) {
   OS << (dyn_cast<ImplicitCastExpr>(CE) ? "implicit" : "explicit");
@@ -567,6 +528,8 @@ static void describeCast(raw_ostream &OS, const CastExpr *CE,
   CE->getType().print(OS, PrintingPolicy(LangOpts));
   OS << "'";
 }
+
+} // namespace
 
 PathDiagnosticPieceRef ProvenanceSourceChecker::InvalidCapBugVisitor::VisitNode(
     const ExplodedNode *N, BugReporterContext &BRC,

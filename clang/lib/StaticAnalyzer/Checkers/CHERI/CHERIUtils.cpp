@@ -52,6 +52,16 @@ bool hasCapability(const QualType OrigTy, ASTContext &Ctx) {
   return false;
 }
 
+void describeCast(raw_ostream &OS, const CastExpr *CE,
+                  const LangOptions &LangOpts) {
+  OS << (dyn_cast<ImplicitCastExpr>(CE) ? "implicit" : "explicit");
+  OS << " cast from '";
+  CE->getSubExpr()->getType().print(OS, PrintingPolicy(LangOpts));
+  OS << "' to '";
+  CE->getType().print(OS, PrintingPolicy(LangOpts));
+  OS << "'";
+}
+
 } // namespace cheri
 } // namespace ento
 } // namespace clang

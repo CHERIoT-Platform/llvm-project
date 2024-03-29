@@ -25,10 +25,11 @@ add_clang_library(clangStaticAnalyzerCheckers
   CheckPlacementNew.cpp
   CheckSecuritySyntaxOnly.cpp
   CheckerDocumentation.cpp
+  CHERI/AllocationChecker.cpp
+  CHERI/CapabilityCopyChecker.cpp
   CHERI/CHERIUtils.cpp
   CHERI/PointerSizeAssumptionsChecker.cpp
   CHERI/ProvenanceSourceChecker.cpp
-  CHERI/CapabilityCopyChecker.cpp
   CHERI/SubObjectRepresentabilityChecker.cpp
   ChrootChecker.cpp
   CloneChecker.cpp

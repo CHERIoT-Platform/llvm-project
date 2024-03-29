@@ -1836,4 +1836,10 @@ let ParentPackage = CHERI in {
 
 let ParentPackage = CHERIAlpha in {
 
+  def AllocationChecker
+      : Checker<"Allocation">,
+        HelpText<
+            "Suggest narrowing bounds for escaping suballocation capabilities">,
+        Documentation<NotDocumented>;
+
 } // end alpha.cheri

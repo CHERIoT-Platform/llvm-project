@@ -27,6 +27,9 @@ bool isGenericPointerType(const QualType T, bool AcceptCharPtr = true);
 
 bool hasCapability(const QualType OrigTy, ASTContext &Ctx);
 
+void describeCast(raw_ostream &OS, const CastExpr *CE,
+                  const LangOptions &LangOpts);
+
 } // namespace cheri
 } // namespace ento
 } // namespace clang

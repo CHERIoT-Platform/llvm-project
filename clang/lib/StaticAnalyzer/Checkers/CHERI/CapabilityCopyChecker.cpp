@@ -54,8 +54,11 @@ class CapabilityCopyChecker
                      check::PostStmt<ArraySubscriptExpr>,
                      check::BranchCondition, check::PreCall> {
 
-  std::unique_ptr<BugType> UseCapAsNonCap;
-  std::unique_ptr<BugType> StoreCapAsNonCap;
+  BugType UseCapAsNonCap{this,
+                         "Part of capability value used in binary operator",
+                         "CHERI portability"};
+  BugType StoreCapAsNonCap{this, "Tag-stripping copy of capability",
+                           "CHERI portability"};
 
   using CheckFn = std::function<void(const CapabilityCopyChecker *,
                                      const CallEvent &Call, CheckerContext &C)>;
@@ -66,12 +69,9 @@ class CapabilityCopyChecker
       {{CDM::SimpleFunc, {"strcat"}, 2}, 3}};
 
 public:
-  CapabilityCopyChecker();
-
   void checkLocation(SVal l, bool isLoad, const Stmt *S,
                      CheckerContext &C) const;
   void checkBind(SVal L, SVal V, const Stmt *S, CheckerContext &C) const;
-
   void checkPostStmt(const BinaryOperator *BO, CheckerContext &C) const;
   void checkPostStmt(const ArraySubscriptExpr *E, CheckerContext &C) const;
   void checkBranchCondition(const Stmt *Cond, CheckerContext &C) const;
@@ -88,14 +88,6 @@ REGISTER_SET_WITH_PROGRAMSTATE(VoidPtrArgDeref, const MemRegion *)
 REGISTER_SET_WITH_PROGRAMSTATE(UnalignedPtr, const MemRegion *)
 REGISTER_SET_WITH_PROGRAMSTATE(CString, const MemRegion *)
 REGISTER_LIST_WITH_PROGRAMSTATE(WhileBoundVar, SymbolRef)
-
-CapabilityCopyChecker::CapabilityCopyChecker() {
-  UseCapAsNonCap.reset(
-      new BugType(this, "Part of capability value used in binary operator",
-                  "CHERI portability"));
-  StoreCapAsNonCap.reset(new BugType(this, "Tag-stripping copy of capability",
-                                     "CHERI portability"));
-}
 
 namespace {
 
@@ -412,7 +404,7 @@ void CapabilityCopyChecker::checkBind(SVal L, SVal V, const Stmt *S,
   /* Storing capability to capability storage as non-cap*/
   if (ExplodedNode *ErrNode = C.generateNonFatalErrorNode()) {
     auto W = std::make_unique<PathSensitiveBugReport>(
-        *StoreCapAsNonCap, "Tag-stripping store of a capability", ErrNode);
+        StoreCapAsNonCap, "Tag-stripping store of a capability", ErrNode);
     W->addRange(S->getSourceRange());
     C.emitReport(std::move(W));
   }
@@ -552,7 +544,7 @@ ExplodedNode *CapabilityCopyChecker::checkBinaryOpArg(CheckerContext &C,
     /* Pointer to capability passed as void* argument */
     if (ExplodedNode *ErrNode = C.generateNonFatalErrorNode()) {
       auto W = std::make_unique<PathSensitiveBugReport>(
-          *UseCapAsNonCap,
+          UseCapAsNonCap,
           "Part of capability representation used as argument in binary "
           "operator",
           ErrNode);

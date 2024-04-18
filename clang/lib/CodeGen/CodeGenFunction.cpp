@@ -911,6 +911,11 @@ void CodeGenFunction::StartFunction(GlobalDecl GD, QualType RetTy,
             ->addFnAttr("interrupt-state",
                         InterruptStateAttr::ConvertInterruptStateToStr(
                             FD->getAttr<InterruptStateAttr>()->getState()));
+      if (FD->hasAttr<MinimumStackAttr>())
+        cast<llvm::Function>(Fn->stripPointerCasts())
+            ->addFnAttr(
+                "minimum-stack-size",
+                std::to_string(FD->getAttr<MinimumStackAttr>()->getSize()));
     }
   }
   // Add no-jump-tables value.

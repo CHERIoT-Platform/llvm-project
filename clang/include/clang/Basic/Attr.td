@@ -787,6 +787,15 @@ def Annotate : InheritableParamAttr {
   let Documentation = [Undocumented];
 }
 
+def MinimumStack : InheritableAttr, TargetSpecificAttr<TargetRISCV> {
+  let Spellings = [CXX11<"cheriot", "minimum_stack">,
+                   C2x<"cheriot", "minimum_stack">,
+                   GNU<"cheriot_minimum_stack">];
+  let Args = [IntArgument<"Size">];
+  let Subjects = SubjectList<[Function]>;
+  let Documentation = [Undocumented];
+}
+
 def InterruptState : InheritableAttr, TargetSpecificAttr<TargetRISCV> {
   let Spellings = [CXX11<"cheri", "interrupt_state">,
                    C2x<"cheri", "interrupt_state">,

@@ -86,6 +86,7 @@
 // CHECK-NEXT: MicroMips (SubjectMatchRule_function)
 // CHECK-NEXT: MinSize (SubjectMatchRule_function, SubjectMatchRule_objc_method)
 // CHECK-NEXT: MinVectorWidth (SubjectMatchRule_function)
+// CHECK-NEXT: MinimumStack (SubjectMatchRule_function)
 // CHECK-NEXT: Mips16 (SubjectMatchRule_function)
 // CHECK-NEXT: MipsLongCall (SubjectMatchRule_function)
 // CHECK-NEXT: MipsShortCall (SubjectMatchRule_function)

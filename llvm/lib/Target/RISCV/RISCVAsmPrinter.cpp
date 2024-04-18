@@ -227,14 +227,23 @@ bool RISCVAsmPrinter::runOnMachineFunction(MachineFunction &MF) {
     return NumArgRegs;
   };
 
-  if (Fn.getCallingConv() == CallingConv::CHERI_CCallee)
+  if (Fn.getCallingConv() == CallingConv::CHERI_CCallee) {
+    Function &Fn = MF.getFunction();
+    uint32_t stackSize;
+    if (Fn.hasFnAttribute("minimum-stack-size")) {
+      bool converted =
+          to_integer(Fn.getFnAttribute("minimum-stack-size").getValueAsString(),
+                     stackSize);
+      assert(converted && "minimum-stack-size attribute must be an integer");
+      (void)converted;
+    } else
+      stackSize = MF.getFrameInfo().getStackSize();
     // FIXME: Get stack size as function attribute if specified
     CompartmentEntries.push_back(
         {std::string(Fn.getFnAttribute("cheri-compartment").getValueAsString()),
          Fn, OutStreamer->getContext().getOrCreateSymbol(MF.getName()),
-         countUsedArgRegisters(MF) + interruptFlag, false,
-         static_cast<uint32_t>(MF.getFrameInfo().getStackSize())});
-  else if (Fn.getCallingConv() == CallingConv::CHERI_LibCall)
+         countUsedArgRegisters(MF) + interruptFlag, false, stackSize});
+  } else if (Fn.getCallingConv() == CallingConv::CHERI_LibCall)
     CompartmentEntries.push_back(
         {"libcalls", Fn,
          OutStreamer->getContext().getOrCreateSymbol(MF.getName()),

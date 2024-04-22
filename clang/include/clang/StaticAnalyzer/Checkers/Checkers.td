@@ -1828,4 +1828,10 @@ let ParentPackage = CHERI in {
 
 } // end cheri
 
-let ParentPackage = CHERIAlpha in {} // end alpha.cheri
+let ParentPackage = CHERIAlpha in {
+
+  def SubObjectRepresentabilityChecker : Checker<"SubObjectRepresentability">,
+                                         HelpText<"TODO: help">,
+                                         Documentation<NotDocumented>;
+
+} // end alpha.cheri

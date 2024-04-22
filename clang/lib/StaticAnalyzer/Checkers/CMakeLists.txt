@@ -29,6 +29,7 @@ add_clang_library(clangStaticAnalyzerCheckers
   CHERI/PointerSizeAssumptionsChecker.cpp
   CHERI/ProvenanceSourceChecker.cpp
   CHERI/CapabilityCopyChecker.cpp
+  CHERI/SubObjectRepresentabilityChecker.cpp
   ChrootChecker.cpp
   CloneChecker.cpp
   ContainerModeling.cpp

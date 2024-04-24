@@ -14,6 +14,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "CHERIUtils.h"
 #include "clang/AST/StmtVisitor.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/StaticAnalyzer/Checkers/BuiltinCheckerRegistration.h"
@@ -31,6 +32,9 @@ using namespace ento;
 namespace {
 class SubObjectRepresentabilityChecker
     : public Checker<check::ASTDecl<RecordDecl>> {
+  BugType BT_1{this, "Field with imprecise subobject bounds",
+               "CHERI portability"};
+
 public:
   void checkASTDecl(const RecordDecl *R, AnalysisManager &mgr,
                     BugReporter &BR) const;
@@ -65,7 +69,8 @@ void SubObjectRepresentabilityChecker::checkASTDecl(const RecordDecl *R,
       uint64_t ReqAlign = llvm::CompressedCapability::GetRequiredAlignment(
                               Size, llvm::CompressedCapability::Cheri128)
                               .value();
-      if (1 << llvm::countr_zero(Offset) < ReqAlign) {
+      uint64_t CurAlign = 1 << llvm::countr_zero(Offset);
+      if (CurAlign < ReqAlign) {
         /* Emit warning */
         SmallString<1024> Err;
         llvm::raw_svector_ostream OS(Err);
@@ -76,14 +81,64 @@ void SubObjectRepresentabilityChecker::checkASTDecl(const RecordDecl *R,
         OS << " (size " << Size << ")";
         OS << " requires " << ReqAlign << " byte alignment for precise bounds;";
         OS << " field offset is " << Offset;
+        OS << " (aligned to " << CurAlign << ");";
+
+#if 0
+        // CHERIOT FIXME: Get rid of dependency on compressed-cap-lib
+        using Handler = CompressedCap128;
+        uint64_t ParentSize = ASTCtx.getTypeSize(R->getTypeForDecl())/8;
+        Handler::addr_t InitLength = Handler ::representable_length(ParentSize);
+        Handler::cap_t MockCap = Handler::make_max_perms_cap(0, 0, InitLength);
+        bool exact = Handler::setbounds(&MockCap, Offset, Offset + Size);
+        assert(!exact);
+        auto Base = MockCap.base();
+        Handler::addr_t Top = MockCap.top();
+        OS << " Current bounds: " << Base << "-" << Top;
+#endif
+
+        PathDiagnosticLocation L =
+            PathDiagnosticLocation::createBegin(D, BR.getSourceManager());
+        auto Report = std::make_unique<BasicBugReport>(BT_1, OS.str(), L);
+        Report->setDeclWithIssue(D);
+        Report->addRange(D->getSourceRange());
+
+#if 0
+        // CHERIOT FIXME: Get rid of dependency on compressed-cap-lib
+        auto FI = R->field_begin();
+        while (FI != R->field_end() &&
+               ASTCtx.getFieldOffset(*FI)/8
+                + ASTCtx.getTypeSize(FI->getType())/8 <= Base)
+          FI++;
+
+        bool Before = true;
+        while (FI != R->field_end() && ASTCtx.getFieldOffset(*FI)/8 < Top) {
+          if (*FI != D) {
+            SmallString<1024> Note;
+            llvm::raw_svector_ostream OS2(Note);
+
+            uint64_t CurFieldOffset = ASTCtx.getFieldOffset(*FI)/8;
+            uint64_t CurFieldSize = ASTCtx.getTypeSize(FI->getType())/8;
+            uint64_t BytesExposed =
+                Before ? std::min(CurFieldSize,
+                                  CurFieldOffset + CurFieldSize - Base)
+                       : std::min(CurFieldSize, Top - CurFieldOffset);
+            OS2 << BytesExposed << "/" << CurFieldSize << " bytes exposed";
+            if (cheri::hasCapability(FI->getType(), ASTCtx))
+              OS2 << " (may expose capability!)";
+
+            PathDiagnosticLocation LN =
+                PathDiagnosticLocation::createBegin(*FI, BR.getSourceManager());
+            Report->addNote(OS2.str(), LN);
+          } else
+            Before = false;
+          FI++;
+        }
+#endif
 
         // Note that this will fire for every translation unit that uses this
         // class.  This is suboptimal, but at least scan-build will merge
         // duplicate HTML reports.
-        PathDiagnosticLocation L =
-            PathDiagnosticLocation::createBegin(D, BR.getSourceManager());
-        BR.EmitBasicReport(R, this, "Field with imprecise subobject bounds",
-                           "CHERI portability", OS.str(), L);
+        BR.emitReport(std::move(Report));
       }
     }
   }

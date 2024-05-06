@@ -107,8 +107,14 @@ bool relatedTypes(const Type *Ty1, const Type *Ty2) {
 bool reportForType(QualType Ty) {
   if (Ty->isVoidPointerType())
     return false;
-  if (Ty->isPointerType() || Ty->isArrayType())
-    return !Ty->getPointeeOrArrayElementType()->isCharType();
+  if (Ty->isPointerType() || Ty->isArrayType()) {
+    const Type *PTy = Ty->getPointeeOrArrayElementType();
+    if (PTy->isCharType())
+      return false;
+    if (PTy->isStructureTypeWithFlexibleArrayMember())
+      return false;
+    return true;
+  }
   return false;
 }
 

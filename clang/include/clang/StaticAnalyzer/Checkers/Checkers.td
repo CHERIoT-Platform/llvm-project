@@ -1838,12 +1838,14 @@ let ParentPackage = CHERI in {
         HelpText<"Detect hardcoded expectations on pointer sizes">,
         Documentation<NotDocumented>;
 
+  def SubObjectRepresentabilityChecker
+      : Checker<"SubObjectRepresentability">,
+        HelpText<
+            "Check for record fields with unrepresentable subobject bounds">,
+        Documentation<NotDocumented>;
+
 } // end cheri
 
 let ParentPackage = CHERIAlpha in {
-
-  def SubObjectRepresentabilityChecker : Checker<"SubObjectRepresentability">,
-                                         HelpText<"TODO: help">,
-                                         Documentation<NotDocumented>;
 
 } // end alpha.cheri

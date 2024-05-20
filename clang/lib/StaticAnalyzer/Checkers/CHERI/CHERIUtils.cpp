@@ -53,17 +53,16 @@ bool hasCapability(const QualType OrigTy, ASTContext &Ctx) {
 }
 
 namespace {
+
 void printType(raw_ostream &OS, const QualType &Ty, const PrintingPolicy &PP) {
-  OS << "'";
-  Ty.print(OS, PP);
-  OS << "'";
-  const QualType &CanTy = Ty.getCanonicalType();
-  if (CanTy != Ty) {
-    OS << " (aka '";
-    CanTy.print(OS, PP);
-    OS << "')";
+  std::string TyStr = Ty.getAsString(PP);
+  OS << "'" << TyStr << "'";
+  std::string CanTyStr = Ty.getCanonicalType().getAsString(PP);
+  if (CanTyStr != TyStr) {
+    OS << " (aka '" << CanTyStr << "')";
   }
 }
+
 } // namespace
 
 void describeCast(raw_ostream &OS, const CastExpr *CE,
@@ -74,6 +73,14 @@ void describeCast(raw_ostream &OS, const CastExpr *CE,
   printType(OS, CE->getSubExpr()->getType(), PP);
   OS << " to ";
   printType(OS, CE->getType(), PP);
+}
+
+const DeclRegion *getAllocationDecl(const MemRegion *MR) {
+  if (const DeclRegion *DR = MR->getAs<DeclRegion>())
+    return DR;
+  if (const ElementRegion *ER = MR->getAs<ElementRegion>())
+    return getAllocationDecl(ER->getSuperRegion());
+  return nullptr;
 }
 
 } // namespace cheri

@@ -387,14 +387,6 @@ static void describeObjectType(raw_ostream &OS, const QualType &Ty,
   }
 }
 
-const DeclRegion *getOriginalAllocation(const MemRegion *MR) {
-  if (const DeclRegion *DR = MR->getAs<DeclRegion>())
-    return DR;
-  if (const ElementRegion *ER = MR->getAs<ElementRegion>())
-    return getOriginalAllocation(ER->getSuperRegion());
-  return nullptr;
-}
-
 unsigned int getFragileAlignment(const MemRegion *MR,
                                  const ProgramStateRef State,
                                  ASTContext &ASTCtx) {
@@ -512,7 +504,7 @@ void PointerAlignmentChecker::checkBind(SVal L, SVal V, const Stmt *S,
                              (isa<GlobalsSpaceRegion>(TR->getMemorySpace(C.getState())) ||
                               isa<FieldRegion>(TR->StripCasts()));
     }
-    if (const DeclRegion *D = getOriginalAllocation(CapStorageReg))
+    if (const DeclRegion *D = getAllocationDecl(CapStorageReg))
       CapDstDecl = D->getDecl();
   }
 
@@ -652,7 +644,7 @@ void PointerAlignmentChecker::checkPreCall(const CallEvent &Call,
     const MemRegion *CapStorageReg = SrcVal.getAsRegion();
     const ValueDecl *CapSrcDecl = nullptr;
     if (CapStorageReg) {
-      if (const DeclRegion *D = getOriginalAllocation(CapStorageReg))
+      if (const DeclRegion *D = getAllocationDecl(CapStorageReg))
         CapSrcDecl = D->getDecl();
     }
 
@@ -689,7 +681,7 @@ void PointerAlignmentChecker::checkPreCall(const CallEvent &Call,
     const MemRegion *CapStorageReg = DstVal.getAsRegion();
     const ValueDecl *CapDstDecl = nullptr;
     if (CapStorageReg) {
-      if (const DeclRegion *D = getOriginalAllocation(CapStorageReg))
+      if (const DeclRegion *D = getAllocationDecl(CapStorageReg))
         CapDstDecl = D->getDecl();
     }
 
@@ -988,7 +980,7 @@ ExplodedNode *PointerAlignmentChecker::emitAlignmentWarning(
   unsigned FragileAlignment = 0;
   if (const MemRegion *MR = UnderalignedPtrVal.getAsRegion()) {
     FragileAlignment = getFragileAlignment(MR, C.getState(), C.getASTContext());
-    if (const DeclRegion *OriginalAlloc = getOriginalAllocation(MR)) {
+    if (const DeclRegion *OriginalAlloc = getAllocationDecl(MR)) {
       MRDecl = OriginalAlloc->getDecl();
       MRDeclLoc = PathDiagnosticLocation::create(MRDecl, C.getSourceManager());
     }

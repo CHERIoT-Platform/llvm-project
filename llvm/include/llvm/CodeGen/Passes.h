@@ -508,6 +508,9 @@ namespace llvm {
   /// Create CHERI pass to bound alloca.s
   ModulePass *createCheriBoundAllocasPass();
 
+  /// Create CHERIoT pass to zero on-stack returns in cross-compartment calls.
+  FunctionPass *createCheriotZeroSRetPass();
+
   /// This pass inserts pseudo probe annotation for callsite profiling.
   FunctionPass *createPseudoProbeInserter();
 

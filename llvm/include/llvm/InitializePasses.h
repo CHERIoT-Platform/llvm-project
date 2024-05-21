@@ -114,6 +114,7 @@ void initializeCallSiteSplittingLegacyPassPass(PassRegistry&);
 void initializeCalledValuePropagationLegacyPassPass(PassRegistry &);
 void initializeCheckDebugMachineModulePass(PassRegistry &);
 void initializeCheriBoundAllocasPass(PassRegistry &);
+void initializeCheriotZeroSRetPass(PassRegistry &);
 void initializeCodeGenPreparePass(PassRegistry&);
 void initializeConstantHoistingLegacyPassPass(PassRegistry&);
 void initializeConstantMergeLegacyPassPass(PassRegistry&);

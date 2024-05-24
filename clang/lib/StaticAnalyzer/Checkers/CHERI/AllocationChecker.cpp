@@ -37,14 +37,19 @@ using EscapePair = std::pair<const MemRegion *, EscapeInfo>;
 
 namespace {
 class AllocationChecker
-    : public Checker<check::PostStmt<CastExpr>, check::PreCall, check::Bind,
-                     check::EndFunction> {
+    : public Checker<check::PostStmt<CastExpr>, check::PreCall, check::PostCall,
+                     check::Bind, check::EndFunction> {
   BugType BT_Default{this, "Allocation partitioning", "CHERI portability"};
   BugType BT_KnownReg{this, "Heap or static allocation partitioning",
                       "CHERI portability"};
 
   const CallDescriptionSet IgnoreFnSet = {
-      {{CDM::SimpleFunc, {"free"}, 1}},
+      {CDM::SimpleFunc, {"free"}, 1},
+  };
+
+  const CallDescriptionSet CheriBoundsFnSet = {
+      {CDM::SimpleFunc, {"cheri_bounds_set"}, 2},
+      {CDM::SimpleFunc, {"cheri_bounds_set_exact"}, 2},
   };
 
   class AllocPartitionBugVisitor : public BugReporterVisitor {
@@ -72,6 +77,7 @@ class AllocationChecker
 public:
   void checkPostStmt(const CastExpr *CE, CheckerContext &C) const;
   void checkPreCall(const CallEvent &Call, CheckerContext &C) const;
+  void checkPostCall(const CallEvent &Call, CheckerContext &C) const;
   void checkBind(SVal L, SVal V, const Stmt *S, CheckerContext &C) const;
   void checkEndFunction(const ReturnStmt *RS, CheckerContext &Ctx) const;
 
@@ -87,6 +93,7 @@ private:
 REGISTER_MAP_WITH_PROGRAMSTATE(AllocMap, const MemRegion *, QualType)
 REGISTER_MAP_WITH_PROGRAMSTATE(ShiftMap, const MemRegion *, const MemRegion *)
 REGISTER_SET_WITH_PROGRAMSTATE(SuballocationSet, const MemRegion *)
+REGISTER_SET_WITH_PROGRAMSTATE(BoundedSet, const MemRegion *)
 
 namespace {
 std::pair<const MemRegion *, bool> getAllocationStart(const ASTContext &ASTCtx,
@@ -198,20 +205,24 @@ void AllocationChecker::checkPostStmt(const CastExpr *CE,
   const MemRegion *MR = SrcVal.getAsRegion();
   if (!MR)
     return;
-  const MemSpaceRegion *MemSpace = MR->getMemorySpace(C.getState());
-  if (!isa<HeapSpaceRegion, GlobalsSpaceRegion, StackSpaceRegion>(MemSpace))
+
+  ProgramStateRef State = C.getState();
+  if (State->contains<BoundedSet>(MR))
     return;
 
   const ASTContext &ASTCtx = C.getASTContext();
-  ProgramStateRef State = C.getState();
   bool Updated = false;
-
   std::pair<const MemRegion *, bool> StartPair =
       getAllocationStart(ASTCtx, MR, State);
+
   const MemRegion *SR = StartPair.first;
   if (!isAllocation(SR))
     return;
   bool ZeroShift = StartPair.second;
+
+  const MemSpaceRegion *MemSpace = SR->getMemorySpace(State);
+  if (!isa<HeapSpaceRegion, GlobalsSpaceRegion, StackSpaceRegion>(MemSpace))
+    return;
 
   SVal DstVal = C.getSVal(CE);
   const MemRegion *DMR = DstVal.getAsRegion();
@@ -258,7 +269,7 @@ void AllocationChecker::checkPostStmt(const CastExpr *CE,
 
 void AllocationChecker::checkPreCall(const CallEvent &Call,
                                      CheckerContext &C) const {
-  if (IgnoreFnSet.contains(Call))
+  if (IgnoreFnSet.contains(Call) || CheriBoundsFnSet.contains(Call))
     return;
 
   ProgramStateRef State = C.getState();
@@ -301,6 +312,25 @@ void AllocationChecker::checkPreCall(const CallEvent &Call,
   }
   if (Updated)
     C.addTransition(State, N ? N : C.getPredecessor());
+}
+
+void AllocationChecker::checkPostCall(const CallEvent &Call,
+                                      CheckerContext &C) const {
+  if (!CheriBoundsFnSet.contains(Call))
+    return;
+  const MemRegion *MR = C.getSVal(Call.getArgExpr(0)).getAsRegion();
+  const MemRegion *ResMR = C.getSVal(Call.getOriginExpr()).getAsRegion();
+  if (!MR || !ResMR)
+    return;
+
+  ProgramStateRef State = C.getState();
+  if (!State->contains<SuballocationSet>(MR) ||
+      !State->contains<SuballocationSet>(ResMR))
+    return;
+
+  State = State->remove<SuballocationSet>(ResMR);
+  State = State->add<BoundedSet>(ResMR);
+  C.addTransition(State);
 }
 
 void AllocationChecker::checkBind(SVal L, SVal V, const Stmt *S,

@@ -1794,6 +1794,10 @@ def UncheckedLocalVarsChecker : Checker<"UncheckedLocalVarsChecker">,
 
 let ParentPackage = CHERI in {
 
+  def CheriAPIModelling : Checker<"CheriAPIModelling">,
+                          HelpText<"Model CheriAPI">,
+                          Documentation<NotDocumented>;
+
   def ProvenanceSourceChecker
       : Checker<"ProvenanceSource">,
         HelpText<"Check expressions with ambiguous provenance source.">,

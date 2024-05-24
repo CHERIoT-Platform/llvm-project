@@ -1856,6 +1856,9 @@ let ParentPackage = CHERIAlpha in {
       : Checker<"Allocation">,
         HelpText<
             "Suggest narrowing bounds for escaping suballocation capabilities">,
+        CheckerOptions<[CmdLineOption<
+            Boolean, "ReportForUnknownAllocations",
+            "Report for pointers with untracked origin", "true", Released>]>,
         Documentation<NotDocumented>;
 
 } // end alpha.cheri

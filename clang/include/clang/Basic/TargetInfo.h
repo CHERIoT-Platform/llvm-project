@@ -198,6 +198,9 @@ protected:
   bool VLASupported;
   bool NoAsmVariants;  // True if {|} are normal characters.
   bool CapabilityABI = false;
+  /// True if empty parameter lists should be treated as no-argument functions
+  /// in all language dialects (not just C++ and C23).
+  bool EmptyParameterListIsVoid = false;
   bool HasLegalHalfType; // True if the backend supports operations on the half
                          // LLVM IR type.
   bool HasFloat128;
@@ -1463,6 +1466,7 @@ public:
   bool isLittleEndian() const { return !BigEndian; }
 
   bool areAllPointersCapabilities() const { return CapabilityABI; }
+  bool areEmptyParameterListsVoid() const { return EmptyParameterListIsVoid; }
 
   /// Whether the option -fextend-arguments={32,64} is supported on the target.
   virtual bool supportsExtendIntArgs() const { return false; }

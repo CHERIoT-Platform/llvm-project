@@ -5266,7 +5266,15 @@ static TypeSourceInfo *GetFullTypeForDeclarator(TypeProcessingState &state,
       FunctionType::ExtInfo EI(
           getCCForDeclaratorChunk(S, D, DeclType.getAttrs(), FTI, chunkIndex));
 
+      // In some ABIs (currently, just cheriot), treat functions with no
+      // parameters as void (as C23 and C++ do).
+      // FIXME: Clang 16 defaults to this behaviour, this special case can be
+      // removed on the next upstream merge.
+      bool TargetC23Prototypes =
+        S.getASTContext().getTargetInfo().areEmptyParameterListsVoid();
+
       if (!FTI.NumParams && !FTI.isVariadic && !LangOpts.CPlusPlus
+                                            && !TargetC23Prototypes
                                             && !LangOpts.OpenCL) {
         // Simple void foo(), where the incoming T is the result type.
         T = Context.getFunctionNoProtoType(T, EI);

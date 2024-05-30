@@ -34,6 +34,8 @@ class RISCVTargetInfo : public TargetInfo {
         Layout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128";
       else
         Layout = "e-m:e-p:32:32-i64:64-n32-S128";
+      if (ABI == "cheriot")
+        EmptyParameterListIsVoid = true;
     } else if (ABI == "lp64" || ABI == "lp64f" || ABI == "lp64d" ||
                ABI == "l64pc128" || ABI == "l64pc128f" || ABI == "l64pc128d") {
       if (HasCheri)

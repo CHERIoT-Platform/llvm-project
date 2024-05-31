@@ -726,9 +726,9 @@ static void markUsedLocalSymbolsImpl(ObjFile<ELFT> *file,
 // The function ensures that the "used" field of local symbols reflects the fact
 // that the symbol is used in a relocation from a live section.
 template <class ELFT> static void markUsedLocalSymbols() {
-  // With --gc-sections, the field is already filled.
+  // With --gc-sections, the field is already filled, unless -r is specified.
   // See MarkLive<ELFT>::resolveReloc().
-  if (config->gcSections)
+  if (config->gcSections && !config->relocatable)
     return;
   // Without --gc-sections, the field is initialized with "true".
   // Drop the flag first and then rise for symbols referenced in relocations.

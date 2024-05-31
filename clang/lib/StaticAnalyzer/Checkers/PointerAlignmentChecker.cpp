@@ -918,17 +918,11 @@ void PointerAlignmentChecker::checkPostStmt(const BinaryOperator *BO,
 
 void PointerAlignmentChecker::checkDeadSymbols(SymbolReaper &SymReaper,
                                                CheckerContext &C) const {
-  bool Updated = false;
   ProgramStateRef State = C.getState();
+  bool Updated = false;
 
-  TrailingZerosMapTy TZMap = State->get<TrailingZerosMap>();
-  for (TrailingZerosMapTy::iterator I = TZMap.begin(), E = TZMap.end(); I != E;
-       ++I) {
-    if (SymReaper.isDead(I->first)) {
-      State = State->remove<TrailingZerosMap>(I->first);
-      Updated = true;
-    }
-  }
+  State = cleanDead<TrailingZerosMap>(State, SymReaper, Updated);
+  State = cleanDead<CapStorageSet>(State, SymReaper, Updated);
 
   if (Updated)
     C.addTransition(State);

@@ -49,10 +49,10 @@ public:
 };
 
 class CapabilityCopyChecker
-    : public Checker<check::Location, check::Bind,
-                     check::PostStmt<BinaryOperator>,
-                     check::PostStmt<ArraySubscriptExpr>,
-                     check::BranchCondition, check::PreCall> {
+    : public Checker<
+          check::Location, check::Bind, check::PostStmt<BinaryOperator>,
+          check::PostStmt<ArraySubscriptExpr>, check::BranchCondition,
+          check::PreCall, check::DeadSymbols> {
 
   BugType UseCapAsNonCap{this,
                          "Part of capability value used in binary operator",
@@ -76,6 +76,7 @@ public:
   void checkPostStmt(const ArraySubscriptExpr *E, CheckerContext &C) const;
   void checkBranchCondition(const Stmt *Cond, CheckerContext &C) const;
   void checkPreCall(const CallEvent &Call, CheckerContext &C) const;
+  void checkDeadSymbols(SymbolReaper &SymReaper, CheckerContext &C) const;
 
   bool ReportForCharPtr = false;
 
@@ -87,7 +88,7 @@ private:
 REGISTER_SET_WITH_PROGRAMSTATE(VoidPtrArgDeref, const MemRegion *)
 REGISTER_SET_WITH_PROGRAMSTATE(UnalignedPtr, const MemRegion *)
 REGISTER_SET_WITH_PROGRAMSTATE(CString, const MemRegion *)
-REGISTER_LIST_WITH_PROGRAMSTATE(WhileBoundVar, SymbolRef)
+REGISTER_SET_WITH_PROGRAMSTATE(WhileBoundVar, SymbolRef)
 
 namespace {
 
@@ -251,8 +252,8 @@ bool isInsideSmallConstantBoundLoop(const Stmt *S, CheckerContext &C, long N) {
   SValBuilder &SVB = C.getSValBuilder();
   const NonLoc &ItVal = SVB.makeIntVal(N, true);
 
-  auto BoundVarList = C.getState()->get<WhileBoundVar>();
-  for (auto &&V : BoundVarList) {
+  auto BoundVarSet = C.getState()->get<WhileBoundVar>();
+  for (auto &&V : BoundVarSet) {
     auto SmallLoop =
         SVB.evalBinOpNN(C.getState(), clang::BO_GE, nonloc::SymbolVal(V), ItVal,
                         SVB.getConditionType());
@@ -473,8 +474,6 @@ bool checkForWhileBoundVar(const Stmt *Condition, CheckerContext &C,
     if (SymbolRef ISym = C.getSVal(L).getAsSymbol()) {
       if (ThenSt)
         ThenSt = ThenSt->add<WhileBoundVar>(ISym);
-      if (ElseSt)
-        ElseSt = ElseSt->set<WhileBoundVar>(llvm::ImmutableList<SymbolRef>());
     } else
       return false;
   }
@@ -614,6 +613,23 @@ void CapabilityCopyChecker::checkPreCall(const CallEvent &Call,
   }
 
   C.addTransition(State);
+}
+
+void CapabilityCopyChecker::checkDeadSymbols(SymbolReaper &SymReaper,
+                                             CheckerContext &C) const {
+  if (!isPureCapMode(C.getASTContext()))
+    return;
+
+  ProgramStateRef State = C.getState();
+  bool Removed = false;
+
+  State = cleanDead<VoidPtrArgDeref>(State, SymReaper, Removed);
+  State = cleanDead<UnalignedPtr>(State, SymReaper, Removed);
+  State = cleanDead<CString>(State, SymReaper, Removed);
+  State = cleanDead<WhileBoundVar>(State, SymReaper, Removed);
+
+  if (Removed)
+    C.addTransition(State);
 }
 
 void ento::registerCapabilityCopyChecker(CheckerManager &mgr) {

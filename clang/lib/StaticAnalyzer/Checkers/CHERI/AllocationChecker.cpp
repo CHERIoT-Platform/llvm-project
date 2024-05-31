@@ -38,7 +38,7 @@ using EscapePair = std::pair<const MemRegion *, EscapeInfo>;
 namespace {
 class AllocationChecker
     : public Checker<check::PostStmt<CastExpr>, check::PreCall, check::PostCall,
-                     check::Bind, check::EndFunction> {
+                     check::Bind, check::EndFunction, check::DeadSymbols> {
   BugType BT_Default{this, "Allocation partitioning", "CHERI portability"};
   BugType BT_UnknownReg{this, "Unknown allocation partitioning",
                         "CHERI portability"};
@@ -80,6 +80,7 @@ public:
   void checkPostCall(const CallEvent &Call, CheckerContext &C) const;
   void checkBind(SVal L, SVal V, const Stmt *S, CheckerContext &C) const;
   void checkEndFunction(const ReturnStmt *RS, CheckerContext &Ctx) const;
+  void checkDeadSymbols(SymbolReaper &SymReaper, CheckerContext &C) const;
 
   bool ReportForUnknownAllocations;
 
@@ -406,6 +407,22 @@ void AllocationChecker::checkEndFunction(const ReturnStmt *RS,
       return;
     }
   }
+}
+
+void AllocationChecker::checkDeadSymbols(SymbolReaper &SymReaper,
+                                         CheckerContext &C) const {
+  if (!isPureCapMode(C.getASTContext()))
+    return;
+
+  ProgramStateRef State = C.getState();
+  bool Removed = false;
+  State = cleanDead<AllocMap>(State, SymReaper, Removed);
+  State = cleanDead<ShiftMap>(State, SymReaper, Removed);
+  State = cleanDead<SuballocationSet>(State, SymReaper, Removed);
+  State = cleanDead<BoundedSet>(State, SymReaper, Removed);
+
+  if (Removed)
+    C.addTransition(State);
 }
 
 PathDiagnosticPieceRef AllocationChecker::AllocPartitionBugVisitor::VisitNode(

@@ -215,6 +215,9 @@ ExplodedNode *AllocationChecker::emitAllocationPartitionWarning(
 
 void AllocationChecker::checkPostStmt(const CastExpr *CE,
                                       CheckerContext &C) const {
+  if (!isPureCapMode(C.getASTContext()))
+    return;
+
   if (CE->getCastKind() != CK_BitCast)
     return;
   SVal SrcVal = C.getSVal(CE->getSubExpr());
@@ -285,6 +288,9 @@ void AllocationChecker::checkPostStmt(const CastExpr *CE,
 
 void AllocationChecker::checkPreCall(const CallEvent &Call,
                                      CheckerContext &C) const {
+  if (!isPureCapMode(C.getASTContext()))
+    return;
+
   if (IgnoreFnSet.contains(Call) || CheriBoundsFnSet.contains(Call))
     return;
 
@@ -332,6 +338,9 @@ void AllocationChecker::checkPreCall(const CallEvent &Call,
 
 void AllocationChecker::checkPostCall(const CallEvent &Call,
                                       CheckerContext &C) const {
+  if (!isPureCapMode(C.getASTContext()))
+    return;
+
   if (!CheriBoundsFnSet.contains(Call))
     return;
   const MemRegion *MR = C.getSVal(Call.getArgExpr(0)).getAsRegion();
@@ -351,6 +360,9 @@ void AllocationChecker::checkPostCall(const CallEvent &Call,
 
 void AllocationChecker::checkBind(SVal L, SVal V, const Stmt *S,
                                   CheckerContext &C) const {
+  if (!isPureCapMode(C.getASTContext()))
+    return;
+
   const MemRegion *Dst = L.getAsRegion();
   if (!Dst || !isa<FieldRegion>(Dst))
     return;
@@ -372,6 +384,9 @@ void AllocationChecker::checkBind(SVal L, SVal V, const Stmt *S,
 
 void AllocationChecker::checkEndFunction(const ReturnStmt *RS,
                                          CheckerContext &C) const {
+  if (!isPureCapMode(C.getASTContext()))
+    return;
+
   if (!RS)
     return;
   const Expr *RV = RS->getRetValue();

@@ -7,6 +7,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "CHERIUtils.h"
+#include <clang/StaticAnalyzer/Core/PathSensitive/ProgramState.h>
+
+#include "clang/StaticAnalyzer/Core/PathSensitive/ProgramStateTrait.h"
 
 namespace clang {
 namespace ento {

@@ -30,6 +30,11 @@ using namespace clang;
 using namespace ento;
 
 namespace {
+
+template <llvm::CompressedCapability::CapabilityFormat>
+std::unique_ptr<BugReport> checkFieldImpl(const FieldDecl *D, BugReporter &BR,
+                                          const BugType &BT);
+
 class SubObjectRepresentabilityChecker
     : public Checker<check::ASTDecl<RecordDecl>, check::ASTCodeBody> {
   BugType BT_1{this, "Field with imprecise subobject bounds",
@@ -42,6 +47,23 @@ public:
                     BugReporter &BR) const;
   void checkASTCodeBody(const Decl *D, AnalysisManager &mgr,
                         BugReporter &BR) const;
+
+private:
+  using CheckFieldFn = std::function<std::unique_ptr<BugReport>(
+      const FieldDecl *D, BugReporter &BR, const BugType &BT)>;
+
+  const std::map<llvm::Triple::ArchType, CheckFieldFn> CheckFieldFnMap = {
+      //{llvm::Triple::aarch64, &checkFieldImpl<CompressedCap128m>},
+      {llvm::Triple::mips,
+       &checkFieldImpl<llvm::CompressedCapability::Cheri64>},
+      {llvm::Triple::mips64,
+       &checkFieldImpl<llvm::CompressedCapability::Cheri128>},
+      {llvm::Triple::riscv32,
+       &checkFieldImpl<llvm::CompressedCapability::Cheri64>},
+      {llvm::Triple::riscv64,
+       &checkFieldImpl<llvm::CompressedCapability::Cheri128>}};
+
+  CheckFieldFn getCheckFieldFn(ASTContext &ASTCtx) const;
 };
 
 } // namespace
@@ -112,9 +134,8 @@ std::unique_ptr<BugReport> checkFieldImpl(const FieldDecl *D, BugReporter &BR,
   uint64_t Offset = ASTCtx.getFieldOffset(D) / 8;
   if (Offset > 0) {
     uint64_t Size = ASTCtx.getTypeSize(T) / 8;
-    uint64_t ReqAlign = llvm::CompressedCapability::GetRequiredAlignment(
-                            Size, llvm::CompressedCapability::Cheri128)
-                            .value();
+    uint64_t ReqAlign =
+        llvm::CompressedCapability::GetRequiredAlignment(Size, Handler).value();
     uint64_t CurAlign = 1 << llvm::countr_zero(Offset);
     if (CurAlign < ReqAlign) {
       /* Emit warning */
@@ -129,15 +150,14 @@ std::unique_ptr<BugReport> checkFieldImpl(const FieldDecl *D, BugReporter &BR,
       OS << " field offset is " << Offset;
       OS << " (aligned to " << CurAlign << ");";
 
-#if 0
-      const RecordDecl *Parent = D->getParent();
-      uint64_t ParentSize = ASTCtx.getTypeSize(Parent->getTypeForDecl()) / 8;
-      typename Handler::cap_t MockCap =
-          getBoundedCap<Handler>(ParentSize, Offset, Size);
-      uint64_t Base = MockCap.base();
-      uint64_t Top = MockCap.top();
+      uint64_t OffsetToAlign = Offset % ReqAlign;
+      uint64_t Base = Offset - OffsetToAlign;
+      uint64_t AlignedSize = Size + OffsetToAlign;
+      uint64_t TailPadding = static_cast<uint64_t>(
+          llvm::CompressedCapability::GetRequiredTailPadding(AlignedSize,
+                                                             Handler));
+      uint64_t Top = Base + AlignedSize + TailPadding;
       OS << " Current bounds: " << Base << "-" << Top;
-#endif
 
       // Note that this will fire for every translation unit that uses this
       // class.  This is suboptimal, but at least scan-build will merge
@@ -148,10 +168,7 @@ std::unique_ptr<BugReport> checkFieldImpl(const FieldDecl *D, BugReporter &BR,
       Report->setDeclWithIssue(D);
       Report->addRange(D->getSourceRange());
 
-#if 0
       Report = reportExposedFields(D, ASTCtx, BR, Base, Top, std::move(Report));
-#endif
-
       return Report;
     }
   }
@@ -159,39 +176,32 @@ std::unique_ptr<BugReport> checkFieldImpl(const FieldDecl *D, BugReporter &BR,
   return nullptr;
 }
 
-std::unique_ptr<BugReport> checkField(const FieldDecl *D, BugReporter &BR,
-                                      const BugType &BT) {
-  // TODO: other targets
-  return checkFieldImpl<llvm::CompressedCapability::Cheri128>(D, BR, BT);
-}
-
-bool supportedTarget(const ASTContext &C) {
-  const TargetInfo &TI = C.getTargetInfo();
-  return TI.areAllPointersCapabilities() &&
-         TI.getTriple().isAArch64(); // morello
-}
-
 } // namespace
+
+SubObjectRepresentabilityChecker::CheckFieldFn
+SubObjectRepresentabilityChecker::getCheckFieldFn(ASTContext &ASTCtx) const {
+  const TargetInfo &TI = ASTCtx.getTargetInfo();
+  if (!TI.areAllPointersCapabilities())
+    return nullptr;
+
+  auto It = CheckFieldFnMap.find(TI.getTriple().getArch());
+  if (It == CheckFieldFnMap.end())
+    return nullptr;
+  return It->second;
+}
 
 void SubObjectRepresentabilityChecker::checkASTDecl(const RecordDecl *R,
                                                     AnalysisManager &mgr,
                                                     BugReporter &BR) const {
-  if (!supportedTarget(mgr.getASTContext()))
-    return;
+  CheckFieldFn checkField = getCheckFieldFn(mgr.getASTContext());
+  if (!checkField)
+    return; // skip this target
 
   if (!R->isCompleteDefinition() || R->isDependentType())
     return;
 
   if (!R->getLocation().isValid())
     return;
-
-  /*
-  SrcMgr::CharacteristicKind Kind =
-      BR.getSourceManager().getFileCharacteristic(Location);
-  // Ignore records in system headers
-  if (Kind != SrcMgr::C_User)
-    return;
-  */
 
   for (FieldDecl *D : R->fields()) {
     auto Report = checkField(D, BR, BT_1);
@@ -203,8 +213,9 @@ void SubObjectRepresentabilityChecker::checkASTDecl(const RecordDecl *R,
 void SubObjectRepresentabilityChecker::checkASTCodeBody(const Decl *D,
                                                         AnalysisManager &mgr,
                                                         BugReporter &BR) const {
-  if (!supportedTarget(mgr.getASTContext()))
-    return;
+  CheckFieldFn checkField = getCheckFieldFn(mgr.getASTContext());
+  if (!checkField)
+    return; // skip this target
 
   using namespace ast_matchers;
   auto Member = memberExpr().bind("member");

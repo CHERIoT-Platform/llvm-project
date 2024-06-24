@@ -2612,9 +2612,9 @@ public:
   getCanonicalNestedNameSpecifier(NestedNameSpecifier *NNS) const;
 
   /// Retrieves the default calling convention for the current target.
-  CallingConv getDefaultCallingConvention(bool IsVariadic,
-                                          bool IsCXXMethod,
-                                          bool IsBuiltin = false) const;
+  CallingConv getDefaultCallingConvention(bool IsVariadic, bool IsCXXMethod,
+                                          bool IsBuiltin = false,
+                                          bool IsLibCall = false) const;
 
   /// Retrieves the "canonical" template name that refers to a
   /// given template.

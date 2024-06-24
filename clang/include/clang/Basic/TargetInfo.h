@@ -1483,6 +1483,12 @@ public:
     return CC_C;
   }
 
+  /// Gets the default calling convention for the given target for library
+  /// calls.
+  virtual CallingConv getLibcallCallingConv() const {
+    return getDefaultCallingConv();
+  }
+
   enum CallingConvCheckResult {
     CCCR_OK,
     CCCR_Warning,

@@ -25,6 +25,7 @@ namespace targets {
 class RISCVTargetInfo : public TargetInfo {
   void setDataLayout() {
     StringRef Layout;
+    IsABICHERIoT = false;
 
     if (ABI == "ilp32" || ABI == "ilp32f" || ABI == "ilp32d" ||
         ABI == "ilp32e" || ABI == "cheriot" ||
@@ -34,8 +35,10 @@ class RISCVTargetInfo : public TargetInfo {
         Layout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128";
       else
         Layout = "e-m:e-p:32:32-i64:64-n32-S128";
-      if (ABI == "cheriot")
+      if (ABI == "cheriot") {
+        IsABICHERIoT = true;
         EmptyParameterListIsVoid = true;
+      }
     } else if (ABI == "lp64" || ABI == "lp64f" || ABI == "lp64d" ||
                ABI == "l64pc128" || ABI == "l64pc128f" || ABI == "l64pc128d") {
       if (HasCheri)
@@ -83,6 +86,7 @@ protected:
   bool HasZfh = false;
   bool HasZvamo = false;
   bool HasZvlsseg = false;
+  bool IsABICHERIoT = false;
 
   static const Builtin::Info BuiltinInfo[];
 
@@ -153,6 +157,10 @@ public:
   uint64_t getCHERICapabilityWidth() const override { return CapSize; }
 
   uint64_t getCHERICapabilityAlign() const override { return CapSize; }
+
+  CallingConv getLibcallCallingConv() const override {
+    return IsABICHERIoT ? CallingConv::CC_CHERILibCall : CallingConv::CC_C;
+  }
 
   uint64_t getPointerWidthV(unsigned AddrSpace) const override {
     return (AddrSpace == 200) ? CapSize : PointerWidth;

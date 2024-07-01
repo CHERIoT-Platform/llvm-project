@@ -3,7 +3,7 @@ pr_task:
   skip: $CIRRUS_PR == ""
   timeout_in: 120m
   container:
-    image: ubuntu:22.04
+    image: ubuntu:24.04
     cpu: 8
     memory: 16G
   env:
@@ -33,7 +33,7 @@ x86_release_task:
   only_if: ($CIRRUS_PR == "") && ($CIRRUS_BRANCH == "cheriot")
   timeout_in: 120m
   container:
-    image: ubuntu:22.04
+    image: ubuntu:24.04
     cpu: 8
     memory: 16G
   env:
@@ -68,7 +68,7 @@ arm_release_task:
   only_if: ($CIRRUS_PR == "") && ($CIRRUS_BRANCH == "cheriot")
   timeout_in: 120m
   arm_container:
-    image: ubuntu:22.04
+    image: ubuntu:24.04
     cpu: 8
     memory: 16G
   env:

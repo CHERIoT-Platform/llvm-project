@@ -73,6 +73,7 @@ InputSectionBase::InputSectionBase(InputFile *file, uint64_t flags,
 
   numRelocations = 0;
   areRelocsRela = false;
+  relaxAux = nullptr;
 
   // The ELF spec states that a value of 0 means the section has
   // no alignment constraints.

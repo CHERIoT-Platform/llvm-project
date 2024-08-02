@@ -2178,6 +2178,9 @@ public:
   bool CheckCHERIAssignCompatible(QualType LHS, QualType RHS, Expr *&RHSExpr,
                                   bool InsertBitCast = true);
 
+  void DiagnoseAmbiguousProvenance(Expr *LHS, Expr *RHS, SourceLocation Loc,
+                                   bool IsCompAssign);
+
   /// ActOnPragmaClangSection - Called on well formed \#pragma clang section
   void ActOnPragmaClangSection(SourceLocation PragmaLoc,
                                PragmaClangSectionAction Action,

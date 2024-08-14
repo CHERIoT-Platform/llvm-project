@@ -3155,6 +3155,13 @@ class CompartmentReportWriter {
   OutputSection *compartmentExportTables;
   /// The section that holds export tables for libraries.
   OutputSection *libraryExportTables;
+  /// Sections used for pre-shared globals
+  std::vector<OutputSection *> sharedGlobalSections;
+
+  /// Start of the pre-shared object region.
+  uint32_t preSharedObjectStart = 0;
+  /// End of the pre-shared object region.
+  uint32_t preSharedObjectEnd = 0;
 
   /**
    * Map from file names to the metadata about their exports.  This is a bit
@@ -3443,6 +3450,38 @@ class CompartmentReportWriter {
     }
   }
 
+  void crossReferenceImports() {
+    for (auto &[compartmentName, compartment] : compartments)
+      if (auto *imports = compartment.getArray("imports"))
+        for (auto &importValue : *imports)
+          if (auto *importEntry = importValue.getAsObject()) {
+            if (*importEntry->getString("kind") == "MMIO") {
+              const uint32_t start = *importEntry->getInteger("start");
+              const uint32_t end = start + *importEntry->getInteger("length");
+              // Skip any entries that aren't in the shared object range.
+              if ((start < preSharedObjectStart) ||
+                  (start >= preSharedObjectEnd))
+                continue;
+              for (auto *sec : sharedGlobalSections) {
+                if ((start < sec->getLMA()) ||
+                    (start >= (sec->getLMA() + sec->size)))
+                  continue;
+                StringRef name = sec->name;
+                name.consume_front("__cheriot_shared_object_section_");
+                if (end > (sec->getLMA() + sec->size)) {
+                  error("Shared object import from compartment '" +
+                        compartmentName + "' refers to address range 0x" +
+                        utohexstr(start) + " to 0x" + utohexstr(end) +
+                        " which overlaps shared object " + name);
+                }
+                (*importEntry)["kind"] = "SharedObject";
+                (*importEntry)["shared_object"] = name.str();
+                break;
+              }
+            }
+          }
+  }
+
   /**
    * Process a thread info section.  This section starts with the number of
    * threads, followed by an array of thread descriptions that include their
@@ -3558,6 +3597,16 @@ class CompartmentReportWriter {
       stackSections.insert(sec);
     } else if (sec->name == ".thread_config") {
       processThreads(sec);
+    } else if (sec->getVA() >= preSharedObjectStart &&
+               sec->getVA() < preSharedObjectEnd) {
+      auto name = sec->name;
+      name.consume_front("__cheriot_shared_object_section_");
+      Json.getArray("sharedObjects")
+          ->emplace_back(
+              json::Object{{"name", name.str()},
+                           {"start", uint32_t(sec->getVA())},
+                           {"end", uint32_t(sec->getVA() + sec->size)}});
+      sharedGlobalSections.push_back(sec);
     } else if (sec->name.endswith("_code")) {
       auto compartmentName = sec->name.drop_back(5);
       if (compartmentName.startswith("."))
@@ -3637,7 +3686,8 @@ public:
                           size_t bufferSize)
       : Json({{"file", fileName},
               {"core", json::Object()},
-              {"compartments", json::Object()}}),
+              {"compartments", json::Object()},
+              {"sharedObjects", json::Array()}}),
         buffer(buffer), bufferSize(bufferSize) {
     if (config->shouldEmitCompartmentReport()) {
       for (OutputSection *sec : outputSections)
@@ -3647,8 +3697,14 @@ public:
           processExports(sec, true);
         } else if (sec->name == ".sealed_objects")
           sealedObjects = sec;
+
+      if (Symbol *sym = symtab->find("__shared_objects_start"))
+        preSharedObjectStart = sym->getVA();
+      if (Symbol *sym = symtab->find("__shared_objects_end"))
+        preSharedObjectEnd = sym->getVA();
       for (OutputSection *sec : outputSections)
         addOutputSection(sec);
+      crossReferenceImports();
       auto *compartmentJson = Json.getObject("compartments");
       for (auto &c : compartments)
         compartmentJson->insert({c.first, std::move(c.second)});

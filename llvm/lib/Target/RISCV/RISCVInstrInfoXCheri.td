@@ -326,6 +326,7 @@ def CGetSealed : Cheri_r<0x5, "cgetsealed">;
 def CGetOffset : Cheri_r<0x6, "cgetoffset">;
 def CGetFlags  : Cheri_r<0x7, "cgetflags">;
 def CGetAddr   : Cheri_r<0xf, "cgetaddr">;
+def CGetTop    : Cheri_r<0x18, "cgettop">;
 }
 
 //===----------------------------------------------------------------------===//
@@ -1166,6 +1167,7 @@ def : PatGpcr<riscv_cap_sealed_get, CGetSealed>;
 def : PatGpcr<int_cheri_cap_offset_get, CGetOffset>;
 def : PatGpcr<int_cheri_cap_flags_get, CGetFlags>;
 def : PatGpcr<int_cheri_cap_address_get, CGetAddr>;
+def : PatGpcr<int_cheri_cap_top_get, CGetTop>;
 
 /// Capability-Modification Instructions
 

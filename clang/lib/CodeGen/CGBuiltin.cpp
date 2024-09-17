@@ -4762,6 +4762,10 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
     return RValue::get(Builder.CreateIntrinsic(
         llvm::Intrinsic::cheri_cap_base_get, {SizeTy},
         {EmitCastToVoidPtr(EmitScalarExpr(E->getArg(0)))}));
+  case Builtin::BI__builtin_cheri_top_get:
+    return RValue::get(Builder.CreateIntrinsic(
+        llvm::Intrinsic::cheri_cap_top_get, {SizeTy},
+        {EmitCastToVoidPtr(EmitScalarExpr(E->getArg(0)))}));
   case Builtin::BI__builtin_cheri_bounds_set: {
     Value *Cap = EmitScalarExpr(E->getArg(0));
     Value *Length = EmitScalarExpr(E->getArg(1));

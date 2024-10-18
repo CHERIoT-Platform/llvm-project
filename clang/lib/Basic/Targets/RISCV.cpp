@@ -227,6 +227,12 @@ void RISCVTargetInfo::getTargetDefines(const LangOptions &Opts,
     Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_UNSEAL__", Twine(1<<9));
     Builder.defineMacro("__CHERI_CAP_PERMISSION_ACCESS_SYSTEM_REGISTERS__", Twine(1<<10));
 
+    // Macros for CHERIoT in the default and bare-metal ABIs.
+    if (ABI == "cheriot" || ABI == "cheriot-baremetal")
+      Builder.defineMacro("__CHERIOT__", "20241018");
+    if (ABI == "cheriot-baremetal")
+      Builder.defineMacro("__CHERIOT_BAREMETAL__", "20241018");
+
     Builder.defineMacro("__riscv_clen", Twine(getCHERICapabilityWidth()));
     // TODO: _MIPS_CAP_ALIGN_MASK equivalent?
     // XXX: Temporary to allow software to keep supporting old ISAv8 toolchains

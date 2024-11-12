@@ -1213,6 +1213,21 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
     }
   }
 
+  if (ctx.arg.isCheriAbi && sym.isDefined() && (sec->flags & SHF_EXECINSTR) &&
+      oneof<R_PC, RE_AARCH64_PAGE_PC>(expr)) {
+    OutputSection *osec = sym.getOutputSection();
+    if (osec == nullptr)
+      llvm_unreachable(
+          "PCC-accessed symbol defined in unsupported section type");
+    // TODO: Make this an error in future? Would need special relocation to
+    // allow bypassing for specific use cases (e.g. kernel startup code).
+    if ((osec->flags & SHF_WRITE) && !isRelroSection(ctx, osec))
+      warn("relocation " + toStr(ctx, type) + " against symbol '" +
+           toStr(ctx, sym) + "' in non-PCC section" + sec->getLocation(offset));
+    else
+      osec->cheriPcc.store(true, std::memory_order_relaxed);
+  }
+
   // We were asked not to generate PLT entries for ifuncs. Instead, pass the
   // direct relocation on through.
   if (LLVM_UNLIKELY(isIfunc) && ctx.arg.zIfuncNoplt) {

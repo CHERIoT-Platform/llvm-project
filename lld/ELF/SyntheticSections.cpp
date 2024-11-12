@@ -5197,6 +5197,11 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
   ctx.in.iplt = std::make_unique<IpltSection>(ctx);
   add(*ctx.in.iplt);
 
+  if (ctx.arg.isCheriAbi && needsCheriPccSegment(ctx)) {
+    ctx.in.pccPadding = std::make_unique<CheriPccPaddingSection>(ctx);
+    add(*ctx.in.pccPadding);
+  }
+
   if (ctx.arg.andFeatures || ctx.aarch64PauthAbiCoreInfo) {
     ctx.in.gnuProperty = std::make_unique<GnuPropertySection>(ctx);
     add(*ctx.in.gnuProperty);

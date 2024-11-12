@@ -1585,6 +1585,7 @@ enum {
   PT_OPENBSD_SYSCALLS = 0x65a3dbe9,  // System call sites.
   PT_OPENBSD_BOOTDATA = 0x65a41be6,  // Section for boot arguments.
 
+  PT_CHERI_PCC = 0x64348450,
   PT_CHERI_TGOT = 0x64348451,
 
   // ARM program header types.

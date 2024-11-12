@@ -82,6 +82,7 @@ class SyntheticSection;
 class MipsCheriCapTableSection;
 class CheriCapRelocsSection;
 class MipsCheriCapTableMappingSection;
+class CheriPccPaddingSection;
 
 enum ELFKind : uint8_t {
   ELFNoneKind,
@@ -622,6 +623,7 @@ struct InStruct {
   std::unique_ptr<RelroPaddingSection> relroPadding;
   std::unique_ptr<TgotSection> tgot;
   std::unique_ptr<MipsCheriCapTableSection> mipsCheriCapTable;
+  std::unique_ptr<CheriPccPaddingSection> pccPadding;
   std::unique_ptr<CheriCapRelocsSection> capRelocs;
   std::unique_ptr<CheriCapRelocsSection> tgotCapRelocs;
   std::unique_ptr<MipsCheriCapTableMappingSection> mipsCheriCapTableMapping;
@@ -647,6 +649,8 @@ struct InStruct {
   std::unique_ptr<StringTableSection> strTab;
   std::unique_ptr<SymbolTableBaseSection> symTab;
   std::unique_ptr<SymtabShndxSection> symTabShndx;
+
+  PhdrEntry *cheriBounds = nullptr;
 };
 
 struct Ctx : CommonLinkerContext {

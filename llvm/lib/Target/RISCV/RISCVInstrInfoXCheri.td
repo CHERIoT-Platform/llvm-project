@@ -414,6 +414,7 @@ let mayTrap = 1 in {
 def CSetBounds      : Cheri_rr<0x8, "csetbounds">;
 def CSetBoundsExact : Cheri_rr<0x9, "csetboundsexact">;
 def CSetBoundsImm   : Cheri_ri<0x2, "csetbounds", 0>;
+def CSetBoundsRoundDown : Cheri_rr<0xA, "csetboundsrounddown">;
 } // mayTrap = 1
 } // let Constraints = "@traps_if_sealed $rs1"
 def CClearTag       : Cheri_r<0xb, "ccleartag", GPCR>;
@@ -1306,6 +1307,7 @@ def : PatGpcrGpr<cptradd, CIncOffset>;
 def : PatGpcrSimm12<cptradd, CIncOffsetImm>;
 def : PatGpcrGpr<int_cheri_cap_bounds_set, CSetBounds>;
 def : PatGpcrGpr<int_cheri_cap_bounds_set_exact, CSetBoundsExact>;
+def : PatGpcrGpr<int_cheri_cap_bounds_set_round_down, CSetBoundsRoundDown>;
 def : PatGpcrGpr<riscv_cap_bounds_set, CSetBounds>;
 def : PatGpcrUimm12<riscv_cap_bounds_set, CSetBoundsImm>;
 def : PatGpcrUimm12<int_cheri_cap_bounds_set, CSetBoundsImm>;

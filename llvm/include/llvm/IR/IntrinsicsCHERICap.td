@@ -57,6 +57,10 @@ def int_cheri_cap_bounds_set_exact :
   Intrinsic<[llvm_cap_ty],
             [llvm_cap_ty, llvm_anyint_ty],
             [IntrNoMem, IntrWillReturn]>;
+def int_cheri_cap_bounds_set_round_down :
+  Intrinsic<[llvm_cap_ty],
+            [llvm_cap_ty, llvm_anyint_ty],
+            [IntrNoMem, IntrWillReturn]>;
 def int_cheri_cap_type_get :
   Intrinsic<[llvm_anyint_ty],
             [llvm_cap_ty],

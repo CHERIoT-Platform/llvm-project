@@ -5032,6 +5032,15 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
                                 {SizeTy}, {Cap, Length}),
         Cap->getType()));
   }
+  case Builtin::BI__builtin_cheri_bounds_set_round_down: {
+    Value *Cap = EmitScalarExpr(E->getArg(0));
+    Value *Length = EmitScalarExpr(E->getArg(1));
+    return RValue::get(Builder.CreateBitCast(
+        Builder.CreateIntrinsic(
+            llvm::Intrinsic::cheri_cap_bounds_set_round_down, {SizeTy},
+            {Cap, Length}),
+        Cap->getType()));
+  }
   case Builtin::BI__builtin_cheri_flags_get:
     return RValue::get(
         Builder.CreateIntrinsic(llvm::Intrinsic::cheri_cap_flags_get, {SizeTy},

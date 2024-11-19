@@ -1494,6 +1494,7 @@ bool RISCVInstrInfo::isSetBoundsInstr(const MachineInstr &I,
   case RISCV::CSetBounds:
   case RISCV::CSetBoundsExact:
   case RISCV::CSetBoundsImm:
+  case RISCV::CSetBoundsRoundDown:
     Base = &I.getOperand(1);
     Size = &I.getOperand(2);
     return true;

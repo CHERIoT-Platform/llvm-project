@@ -37,6 +37,7 @@ public:
   RISCV(Ctx &);
   uint32_t calcEFlags() const override;
   int getCapabilitySize() const override;
+  uint64_t getCheriRequiredAlignment(uint64_t len) const override;
   int64_t getImplicitAddend(const uint8_t *buf, RelType type) const override;
   void writeGotHeader(uint8_t *buf) const override;
   void writeGotPlt(uint8_t *buf, const Symbol &s) const override;
@@ -184,6 +185,16 @@ static uint32_t getEFlags(Ctx &ctx, InputFile *f) {
 
 int RISCV::getCapabilitySize() const {
   return ctx.arg.is64 ? 16 : 8;
+}
+
+uint64_t RISCV::getCheriRequiredAlignment(uint64_t len) const {
+  auto CapFormat = llvm::CHERICapabilityFormat::Cheri128;
+  if (ctx.arg.isCheriot)
+    CapFormat = llvm::CHERICapabilityFormat::Cheriot64;
+  else if (!ctx.arg.is64)
+    CapFormat = llvm::CHERICapabilityFormat::Cheri64;
+
+  return CapFormat.getRequiredAlignment(len).value();
 }
 
 uint32_t RISCV::calcEFlags() const {

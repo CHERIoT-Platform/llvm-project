@@ -117,6 +117,10 @@ ErrorPlace elf::getErrorPlace(Ctx &ctx, const uint8_t *loc) {
 
 TargetInfo::~TargetInfo() {}
 
+uint64_t TargetInfo::getCheriRequiredAlignment(uint64_t len) const {
+  llvm_unreachable("Target does not provide required Cheri alignment");
+}
+
 int64_t TargetInfo::getImplicitAddend(const uint8_t *buf, RelType type) const {
   InternalErr(ctx, buf) << "cannot read addend for relocation " << type;
   return 0;

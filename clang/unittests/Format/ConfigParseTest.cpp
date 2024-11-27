@@ -780,8 +780,9 @@ TEST(ConfigParseTest, ParsesConfiguration) {
   CHECK_PARSE("IfMacros: [MYIF]", IfMacros, CustomIfs);
 
   Style.AttributeMacros.clear();
-  CHECK_PARSE("BasedOnStyle: LLVM", AttributeMacros,
-              std::vector<std::string>{"__capability"});
+  CHECK_PARSE(
+      "BasedOnStyle: LLVM", AttributeMacros,
+      std::vector<std::string>({"__capability", "__sealed_capability"}));
   CHECK_PARSE("AttributeMacros: [attr1, attr2]", AttributeMacros,
               std::vector<std::string>({"attr1", "attr2"}));
 

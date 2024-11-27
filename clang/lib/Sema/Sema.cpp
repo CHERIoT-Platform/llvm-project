@@ -753,10 +753,29 @@ ExprResult Sema::ImpCastExprToType(Expr *E, QualType Ty,
         ExprTy->isCHERICapabilityType(Context, /*IncludeIntCap=*/false);
     const bool ResultIsCap =
         TypeTy->isCHERICapabilityType(Context, /*IncludeIntCap=*/false);
+
+    if (FromIsCap && ResultIsCap) {
+      // T* __sealed_capability -> T* and T* -> T* __sealed_capability are not
+      // allowed.
+      auto FromInterp =
+          ExprTy->getAs<PointerType>()->getPointerInterpretation();
+      auto ToInterp = TypeTy->getAs<PointerType>()->getPointerInterpretation();
+      if (FromInterp != ToInterp) {
+        return ExprError(Diag(E->getBeginLoc(),
+                              (FromInterp == PIK_SealedCapability)
+                                  ? diag::err_typecheck_convert_sealed_to_ptr
+                                  : diag::err_typecheck_convert_ptr_to_sealed)
+                         << E->getType() << TypeTy << false);
+      }
+    }
+
     std::optional<unsigned> DiagID;
     if (FromIsCap && !ResultIsCap && ExprTy->isPointerType()) {
       // T* __capability -> T* is never allowed implicitly.
-      DiagID = diag::err_typecheck_convert_cap_to_ptr;
+      if (ExprTy->isCHERISealedCapabilityType(Context))
+        DiagID = diag::err_typecheck_convert_sealed_to_ptr;
+      else
+        DiagID = diag::err_typecheck_convert_cap_to_ptr;
     } else if (ResultIsCap && !FromIsCap) {
       // ImpCastPointerToCHERICapability can create new implicit
       // CK_FunctionToPointerDecay/CK_ArrayToPointerDecay so we need to avoid
@@ -814,10 +833,16 @@ bool Sema::ImpCastPointerToCHERICapability(QualType FromTy, QualType ToTy,
       // Converting to void* should always print the compatible types warning.
       if (ToTy->isVoidPointerType())
         CompatTypes = true;
-      Diag(From->getExprLoc(),
-           CompatTypes ? diag::err_typecheck_convert_ptr_to_cap
-                       : diag::err_typecheck_convert_ptr_to_cap_unrelated_type)
-          << From->getType() << ToTy << false;
+      if (ToTy->isCHERISealedCapabilityType(Context)) {
+        Diag(From->getExprLoc(), diag::err_typecheck_convert_ptr_to_sealed)
+            << From->getType() << ToTy << false;
+      } else {
+        Diag(From->getExprLoc(),
+             CompatTypes
+                 ? diag::err_typecheck_convert_ptr_to_cap
+                 : diag::err_typecheck_convert_ptr_to_cap_unrelated_type)
+            << From->getType() << ToTy << false;
+      }
     }
     return false;
   };
@@ -860,12 +885,17 @@ bool Sema::ImpCastPointerToCHERICapability(QualType FromTy, QualType ToTy,
     QualType TPointee = ToTy->getAs<PointerType>()->getPointeeType();
     QualType EPointee = FromTy->getAs<PointerType>()->getPointeeType();
     if (CheckCHERIAssignCompatible(TPointee, EPointee, From, false)) {
-      if (Diagnose)
-        Diag(From->getExprLoc(), diag::warn_typecheck_convert_ptr_to_cap)
-            << From->getType() << ToTy
-            << FixItHint::CreateInsertion(From->getExprLoc(),
-                                          "(__cheri_tocap " +
-                                              ToTy.getAsString() + ")");
+      if (Diagnose) {
+        if (ToTy->isCHERISealedCapabilityType(Context))
+          Diag(From->getExprLoc(), diag::err_typecheck_convert_ptr_to_sealed)
+              << From->getType() << ToTy << false;
+        else
+          Diag(From->getExprLoc(), diag::warn_typecheck_convert_ptr_to_cap)
+              << From->getType() << ToTy
+              << FixItHint::CreateInsertion(From->getExprLoc(),
+                                            "(__cheri_tocap " +
+                                                ToTy.getAsString() + ")");
+      }
       CompatTypes = true;
     } else {
       // Check for integer pointee types with differences only in sign

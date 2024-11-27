@@ -260,6 +260,43 @@ static bool checkCapArg(Sema &S, CallExpr *TheCall, unsigned ArgIndex,
         << SrcTy;
     return true;
   }
+  if (SrcTy->isCHERISealedCapabilityType(Ctx)) {
+    S.Diag(Source->getExprLoc(), diag::err_typecheck_expect_unsealed_operand)
+        << SrcTy;
+    return true;
+  }
+  ExprResult SrcArg = S.PerformCopyInitialization(
+      InitializedEntity::InitializeParameter(Ctx, SrcTy, false),
+      SourceLocation(), Source);
+  if (SrcArg.isInvalid())
+    return true;
+  TheCall->setArg(ArgIndex, SrcArg.get());
+  return false;
+}
+
+/// Check that argument \p ArgIndex is a sealed capability type (or an
+/// array/function that decays to a capability type.
+static bool checkSealedCapArg(Sema &S, CallExpr *TheCall, unsigned ArgIndex,
+                              QualType *ResultingSrcTy = nullptr) {
+  clang::Expr *Source = TheCall->getArg(ArgIndex);
+  ASTContext &Ctx = S.Context;
+  QualType SrcTy = Source->getType();
+  // We should also be able to use it with arrays/functions
+  if (SrcTy->canDecayToPointerType())
+    SrcTy = Ctx.getDecayedType(SrcTy);
+
+  if (ResultingSrcTy)
+    *ResultingSrcTy = SrcTy;
+  if (!SrcTy->isCapabilityPointerType() && !SrcTy->isIntCapType()) {
+    S.Diag(Source->getExprLoc(), diag::err_typecheck_expect_sealed_operand)
+        << SrcTy;
+    return true;
+  }
+  if (!SrcTy->isCHERISealedCapabilityType(Ctx)) {
+    S.Diag(Source->getExprLoc(), diag::err_typecheck_expect_sealed_operand)
+        << SrcTy;
+    return true;
+  }
   ExprResult SrcArg = S.PerformCopyInitialization(
       InitializedEntity::InitializeParameter(Ctx, SrcTy, false),
       SourceLocation(), Source);
@@ -2639,13 +2676,34 @@ Sema::CheckBuiltinFunctionCall(FunctionDecl *FDecl, unsigned BuiltinID,
     }
     break;
   }
+  // Seal works in almost same way as the setters: value to be
+  // unsealed/sealed comes first and should therefore be the result type,
+  // second argument is overloaded to be any capability type.
   case Builtin::BI__builtin_cheri_seal:
-  case Builtin::BI__builtin_cheri_unseal:
-  case Builtin::BI__builtin_cheri_conditional_seal:
+  case Builtin::BI__builtin_cheri_conditional_seal: {
+    QualType SrcTy;
+    if (checkArgCount(*this, TheCall, 2) ||
+        checkCapArg(*this, TheCall, 0, &SrcTy) ||
+        checkCapArg(*this, TheCall, 1))
+      return ExprError();
+    if (SrcTy->isIntCapType())
+      TheCall->setType(SrcTy);
+    else
+      TheCall->setType(Context.getPointerType(SrcTy->getPointeeType(),
+                                              PIK_SealedCapability));
+    break;
+  }
+  case Builtin::BI__builtin_cheri_unseal: {
+    QualType SrcTy;
+    if (checkArgCount(*this, TheCall, 2) ||
+        checkSealedCapArg(*this, TheCall, 0, &SrcTy) ||
+        checkCapArg(*this, TheCall, 1))
+      return ExprError();
+    TheCall->setType(
+        Context.getPointerType(SrcTy->getPointeeType(), PIK_Capability));
+    break;
+  }
   case Builtin::BI__builtin_cheri_cap_type_copy: {
-    // Seal/unseal work in almost same way as the setters: value to be
-    // unsealed/sealed comes first and should therefore be the result type,
-    // second argument is overloaded to be any capability type.
     QualType SrcTy;
     if (checkArgCount(*this, TheCall, 2) ||
         checkCapArg(*this, TheCall, 0, &SrcTy) ||

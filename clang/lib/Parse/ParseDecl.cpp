@@ -990,6 +990,16 @@ void Parser::ParseCapabilityQualifier(ParsedAttributes &Attrs) {
                  Tok.getKind());
 }
 
+void Parser::ParseCheriotSealedQualifier(ParsedAttributes &Attrs) {
+  IdentifierInfo *AttrName = Tok.getIdentifierInfo();
+  SourceLocation AttrNameLoc = Tok.getLocation();
+  if (!getTargetInfo().SupportsCapabilities())
+    Diag(AttrNameLoc, diag::err_cheri_sealed_qualifier_not_supported);
+  else
+    Attrs.addNew(AttrName, AttrNameLoc, nullptr, AttrNameLoc, nullptr, 0,
+                 Tok.getKind());
+}
+
 static bool VersionNumberSeparator(const char Separator) {
   return (Separator == '.' || Separator == '_');
 }
@@ -4374,6 +4384,9 @@ void Parser::ParseDeclarationSpecifiers(
     case tok::kw___cheri_output:
       isInvalid = DS.SetOutput(PrevSpec, DiagID);
       break;
+    case tok::kw___sealed_capability:
+      ParseCheriotSealedQualifier(DS.getAttributes());
+      break;
 
     // C++ typename-specifier:
     case tok::kw_typename:
@@ -5462,6 +5475,7 @@ bool Parser::isTypeSpecifierQualifier() {
   case tok::kw___capability:
   case tok::kw___cheri_output:
   case tok::kw__Sat:
+  case tok::kw___sealed_capability:
 
     // Debugger support.
   case tok::kw___unknown_anytype:
@@ -5671,6 +5685,7 @@ bool Parser::isDeclarationSpecifier(
   case tok::kw___capability:
   case tok::kw___cheri_output:
   case tok::kw__Sat:
+  case tok::kw___sealed_capability:
 
     // function-specifier
   case tok::kw_inline:
@@ -6005,6 +6020,9 @@ void Parser::ParseTypeQualifierListOpt(
       break;
     case tok::kw___cheri_output:
       isInvalid = DS.SetOutput(PrevSpec, DiagID);
+      break;
+    case tok::kw___sealed_capability:
+      ParseCheriotSealedQualifier(DS.getAttributes());
       break;
 
     // OpenCL qualifiers:

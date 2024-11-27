@@ -55,14 +55,8 @@ void test(void *__capability cap, char *__capability cap2, __SIZE_TYPE__ i);
 // CHECK-NEXT:    tail call void @use_bool(i1 noundef zeroext [[CMP]]) #[[ATTR5]]
 // CHECK-NEXT:    [[TMP16:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.seal.entry(ptr addrspace(200) [[CAP]])
 // CHECK-NEXT:    tail call void @use_cap(ptr addrspace(200) noundef [[TMP16]]) #[[ATTR5]]
-// CHECK-NEXT:    [[TMP17:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.seal(ptr addrspace(200) [[CAP]], ptr addrspace(200) [[CAP2]])
-// CHECK-NEXT:    tail call void @use_cap(ptr addrspace(200) noundef [[TMP17]]) #[[ATTR5]]
-// CHECK-NEXT:    [[TMP18:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.unseal(ptr addrspace(200) [[CAP]], ptr addrspace(200) [[CAP2]])
-// CHECK-NEXT:    tail call void @use_cap(ptr addrspace(200) noundef [[TMP18]]) #[[ATTR5]]
 // CHECK-NEXT:    [[TMP19:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.build(ptr addrspace(200) [[CAP]], ptr addrspace(200) [[CAP2]])
 // CHECK-NEXT:    tail call void @use_cap(ptr addrspace(200) noundef [[TMP19]]) #[[ATTR5]]
-// CHECK-NEXT:    [[TMP20:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.conditional.seal(ptr addrspace(200) [[CAP]], ptr addrspace(200) [[CAP2]])
-// CHECK-NEXT:    tail call void @use_cap(ptr addrspace(200) noundef [[TMP20]]) #[[ATTR5]]
 // CHECK-NEXT:    [[TMP21:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.type.copy(ptr addrspace(200) [[CAP]], ptr addrspace(200) [[CAP2]])
 // CHECK-NEXT:    tail call void @use_cap(ptr addrspace(200) noundef [[TMP21]]) #[[ATTR5]]
 // CHECK-NEXT:    [[TMP22:%.*]] = tail call i64 @llvm.cheri.cap.perms.get.i64(ptr addrspace(200) [[CAP]])
@@ -123,11 +117,8 @@ void test(void *__capability cap, char *__capability cap2, __SIZE_TYPE__ i) {
   use_bool(cheri_is_unsealed(cap));
   use_bool(cheri_is_sentry(cap));
   use_cap(cheri_sentry_create(cap));
-  use_cap(cheri_seal(cap, cap2));
-  use_cap(cheri_unseal(cap, cap2));
 
   use_cap(cheri_cap_build(cap, (__intcap_t)cap2));
-  use_cap(cheri_seal_conditionally(cap, cap2));
   use_cap(cheri_type_copy(cap, cap2));
 
   _Static_assert(CHERI_PERM_GLOBAL != 0, "must be defined");

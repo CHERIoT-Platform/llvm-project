@@ -650,6 +650,17 @@ bool Type::isCHERICapabilityType(const ASTContext &Context,
   return false;
 }
 
+bool Type::isCHERISealedCapabilityType(const ASTContext &Context) const {
+  if (!isCHERICapabilityType(Context, false))
+    return false;
+
+  const PointerType *PT = getAs<PointerType>();
+  if (!PT)
+    return false;
+
+  return PT->getPointerInterpretation() == PIK_SealedCapability;
+}
+
 bool Type::isIntCapType() const {
   if (const BuiltinType *BT = dyn_cast<BuiltinType>(CanonicalType))
     return BT->getKind() == BuiltinType::IntCap ||

@@ -1,7 +1,7 @@
 // RUN: %riscv32_cheri_cc1 -o - -emit-llvm %s | FileCheck %s --check-prefixes=RV32IXCHERI
 // RUN: %riscv64_cheri_cc1 -o - -emit-llvm %s | FileCheck %s --check-prefixes=RV64IXCHERI
 
-void standard(void * __capability cap) {
+void standard(void * __capability cap, void * __sealed_capability cap_sealed) {
   // RV32IXCHERI-LABEL: @standard(
   // RV64IXCHERI-LABEL: @standard(
   volatile __SIZE_TYPE__ x;
@@ -36,16 +36,17 @@ void standard(void * __capability cap) {
   // RV64IXCHERI: call i64 @llvm.cheri.cap.to.pointer.i64
 
   void * __capability volatile z;
+  void * __sealed_capability volatile z_sealed;
   z = __builtin_cheri_cap_from_pointer(cap, y);
   // RV32IXCHERI: call ptr addrspace(200) @llvm.cheri.cap.from.pointer.i32
   // RV64IXCHERI: call ptr addrspace(200) @llvm.cheri.cap.from.pointer.i64
   z = __builtin_cheri_perms_and(cap, 12);
   // RV32IXCHERI: call ptr addrspace(200) @llvm.cheri.cap.perms.and.i32
   // RV64IXCHERI: call ptr addrspace(200) @llvm.cheri.cap.perms.and.i64
-  z = __builtin_cheri_seal(cap, cap);
+  z_sealed = __builtin_cheri_seal(cap, cap);
   // RV32IXCHERI: call ptr addrspace(200) @llvm.cheri.cap.seal
   // RV64IXCHERI: call ptr addrspace(200) @llvm.cheri.cap.seal
-  z = __builtin_cheri_unseal(cap, cap);
+  z = __builtin_cheri_unseal(cap_sealed, cap);
   // RV32IXCHERI: call ptr addrspace(200) @llvm.cheri.cap.unseal
   // RV64IXCHERI: call ptr addrspace(200) @llvm.cheri.cap.unseal
   z = __builtin_cheri_bounds_set(cap, 42);
@@ -72,7 +73,7 @@ void buildcap(void * __capability auth, void * __capability bits) {
   void * __capability volatile unseal_auth = __builtin_cheri_cap_type_copy(auth, bits);
   // RV32IXCHERI: call ptr addrspace(200) @llvm.cheri.cap.type.copy
   // RV64IXCHERI: call ptr addrspace(200) @llvm.cheri.cap.type.copy
-  void * __capability volatile condseal = __builtin_cheri_conditional_seal(tagged, unseal_auth);
+  void * __sealed_capability volatile condseal = __builtin_cheri_conditional_seal(tagged, unseal_auth);
   // RV32IXCHERI: call ptr addrspace(200) @llvm.cheri.cap.conditional.seal
   // RV64IXCHERI: call ptr addrspace(200) @llvm.cheri.cap.conditional.seal
 }

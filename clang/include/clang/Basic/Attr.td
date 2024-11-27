@@ -873,6 +873,11 @@ def MinimumStack : InheritableAttr, TargetSpecificAttr<TargetRISCV> {
   let Documentation = [Undocumented];
 }
 
+def CHERISealedCapability : TypeAttr {
+  let Spellings = [CustomKeyword<"__sealed_capability">];
+  let Documentation = [Undocumented];
+}
+
 def InterruptState : InheritableAttr, TargetSpecificAttr<TargetRISCV> {
   let Spellings = [CXX11<"cheriot", "interrupt_state">,
                    C2x<"cheriot", "interrupt_state">,

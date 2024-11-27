@@ -3594,7 +3594,10 @@ void CXXNameMangler::mangleType(const SubstTemplateTypeParmPackType *T) {
 
 // <type> ::= P <type>   # pointer-to
 void CXXNameMangler::mangleType(const PointerType *T) {
-  if (Context.shouldMangleCapabilityQualifier() && T->isCHERICapability())
+  if (T->getPointerInterpretation() == PIK_SealedCapability)
+    Out << "U19__sealed_capability";
+  else if (Context.shouldMangleCapabilityQualifier() &&
+           T->getPointerInterpretation() == PIK_Capability)
     Out << "U12__capability";
   Out << 'P';
   mangleType(T->getPointeeType());
@@ -3606,7 +3609,10 @@ void CXXNameMangler::mangleType(const ObjCObjectPointerType *T) {
 
 // <type> ::= R <type>   # reference-to
 void CXXNameMangler::mangleType(const LValueReferenceType *T) {
-  if (Context.shouldMangleCapabilityQualifier() && T->isCHERICapability())
+  if (T->getPointerInterpretation() == PIK_SealedCapability)
+    Out << "U19__sealed_capability";
+  else if (Context.shouldMangleCapabilityQualifier() &&
+           T->getPointerInterpretation() == PIK_Capability)
     Out << "U12__capability";
   Out << 'R';
   mangleType(T->getPointeeType());
@@ -3614,8 +3620,10 @@ void CXXNameMangler::mangleType(const LValueReferenceType *T) {
 
 // <type> ::= O <type>   # rvalue reference-to (C++0x)
 void CXXNameMangler::mangleType(const RValueReferenceType *T) {
-  if (Context.shouldMangleCapabilityQualifier() && T->isCHERICapability())
+  if (Context.shouldMangleCapabilityQualifier() && T->isCHERICapability()) {
+    assert(T->getPointerInterpretation() != PIK_SealedCapability);
     Out << "U12__capability";
+  }
   Out << 'O';
   mangleType(T->getPointeeType());
 }
@@ -4057,7 +4065,10 @@ void CXXNameMangler::mangleType(const DependentAddressSpaceType *T) {
 }
 
 void CXXNameMangler::mangleType(const DependentPointerType *T) {
-  if (Context.shouldMangleCapabilityQualifier() && T->isCHERICapability())
+  if (T->getPointerInterpretation() == PIK_SealedCapability)
+    Out << "U19__sealed_capability";
+  else if (Context.shouldMangleCapabilityQualifier() &&
+           T->getPointerInterpretation() == PIK_Capability)
     Out << "U12__capability";
   mangleType(T->getPointerType());
 }

@@ -721,12 +721,22 @@ bool ItaniumMangleContextImpl::shouldMangleCXXName(const NamedDecl *D) {
     if (FD->hasAttr<CHERICompartmentNameAttr>() ||
         FD->hasAttr<CHERILibCallAttr>()) {
       assert(getASTContext().getTargetInfo().getTargetOpts().ABI != "cheriot-baremetal");
-      return true;
+      return llvm::StringSwitch<bool>(FD->getName())
+        .Case("memcpy", false)
+        .Case("memmove", false)
+        .Case("memset", false)
+        .Case("memcmp", false)
+        .Default(true);
     }
 
     if (FD->getType()->castAs<FunctionType>()->getCallConv() == CC_CHERILibCall) {
       assert(getASTContext().getTargetInfo().getTargetOpts().ABI != "cheriot-baremetal");
-      return true;
+      return llvm::StringSwitch<bool>(FD->getName())
+        .Case("memcpy", false)
+        .Case("memmove", false)
+        .Case("memset", false)
+        .Case("memcmp", false)
+        .Default(true);
     }
 
     // "main" is not mangled.

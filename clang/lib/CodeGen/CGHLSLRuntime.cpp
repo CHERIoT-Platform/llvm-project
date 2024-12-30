@@ -98,7 +98,7 @@ GlobalVariable *replaceBuffer(CGHLSLRuntime::Buffer &Buf) {
       Buf.LayoutStruct, /*isConstant*/ true,
       GlobalValue::LinkageTypes::ExternalLinkage, nullptr,
       llvm::formatv("{0}{1}", Buf.Name, Buf.IsCBuffer ? ".cb." : ".tb."),
-      GlobalValue::NotThreadLocal);
+      GlobalValue::NotThreadLocal, 0);
 
   return CBGV;
 }

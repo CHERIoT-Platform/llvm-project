@@ -292,7 +292,7 @@ void CGHLSLRuntime::addBuffer(const HLSLBufferDecl *BufDecl) {
       GlobalValue::LinkageTypes::ExternalLinkage, PoisonValue::get(TargetTy),
       llvm::formatv("{0}{1}", BufDecl->getName(),
                     BufDecl->isCBuffer() ? ".cb" : ".tb"),
-      GlobalValue::NotThreadLocal);
+      GlobalValue::NotThreadLocal, 0);
   CGM.getModule().insertGlobalVariable(BufGV);
 
   // Add globals for constant buffer elements and create metadata nodes

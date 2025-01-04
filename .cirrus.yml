@@ -12,8 +12,10 @@ pr_task:
     disk: 60
     preemptible: true
   env:
-    NINJA_STATUS: '%p [%f:%s/%t] %o/s, %es'
-    CIRRUS_CLONE_DEPTH: 1
+    NINJA_STATUS: '%p [%f:%s/%t] %o/s, %es: '
+    CIRRUS_CLONE_DEPTH: '1'
+    CCACHE_REMOTE_STORAGE: http://${CIRRUS_HTTP_CACHE_HOST}/${CIRRUS_OS}/
+    CCACHE_REMOTE_ONLY: '1'
   dependencies_script:
     - set -eo pipefail
     - apt-get update
@@ -24,9 +26,7 @@ pr_task:
     - cmake ../llvm -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ASSERTIONS=ON -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" -DLLVM_ENABLE_UNWIND_TABLES=NO -DLLVM_ENABLE_LLD=ON -DLLVM_PARALLEL_LINK_JOBS=1 -DLLVM_CCACHE_BUILD=ON -G Ninja
   build_script:
     - cd Build
-    - export CCACHE_REMOTE_STORAGE="http://${CIRRUS_HTTP_CACHE_HOST}/${CIRRUS_OS}/"
-    - export CCACHE_REMOTE_ONLY=1
-    - ninja -v test-depends
+    - ninja test-depends
   test_script:
     - cd Build
     - ./bin/llvm-lit -v ../llvm/test/Unit ../clang/test/Unit
@@ -43,8 +43,10 @@ x86_release_task:
     zone: us-central1-a
     type: t2d-standard-8
   env:
-    NINJA_STATUS: '%p [%f:%s/%t] %o/s, %es'
-    CIRRUS_CLONE_DEPTH: 1
+    NINJA_STATUS: '%p [%f:%s/%t] %o/s, %es: '
+    CIRRUS_CLONE_DEPTH: '1'
+    CCACHE_REMOTE_STORAGE: http://${CIRRUS_HTTP_CACHE_HOST}/release-amd64/${CIRRUS_OS}/
+    CCACHE_REMOTE_ONLY: '1'
   dependencies_script:
     - set -eo pipefail
     - apt-get update
@@ -55,8 +57,6 @@ x86_release_task:
     - cmake ../llvm -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" -DLLVM_ENABLE_UNWIND_TABLES=NO -DLLVM_ENABLE_LLD=ON -DLLVM_TARGETS_TO_BUILD=RISCV -DLLVM_DISTRIBUTION_COMPONENTS="clang;clangd;lld;llvm-objdump;llvm-objcopy;llvm-strip;clang-tidy;clang-format" -DCMAKE_INSTALL_PREFIX=install -DLLVM_PARALLEL_LINK_JOBS=1 -DLLVM_CCACHE_BUILD=ON -G Ninja
   build_script:
     - cd Build
-    - export CCACHE_REMOTE_STORAGE="http://${CIRRUS_HTTP_CACHE_HOST}/release-amd64/${CIRRUS_OS}/"
-    - export CCACHE_REMOTE_ONLY=1
     - ninja install-distribution
     - cp ../llvm/LICENSE.TXT install/LLVM-LICENSE.TXT
     # Artefact upload uploads symlinks as copies, so delete all of the clang symlinks
@@ -77,8 +77,10 @@ arm_release_task:
   timeout_in: 120m
   gce_instance: *arm_vm
   env:
-    NINJA_STATUS: '%p [%f:%s/%t] %o/s, %es'
-    CIRRUS_CLONE_DEPTH: 1
+    NINJA_STATUS: '%p [%f:%s/%t] %o/s, %es: '
+    CIRRUS_CLONE_DEPTH: '1'
+    CCACHE_REMOTE_STORAGE: http://${CIRRUS_HTTP_CACHE_HOST}/release-arm64/${CIRRUS_OS}/
+    CCACHE_REMOTE_ONLY: '1'
   dependencies_script:
     - set -eo pipefail
     - apt-get update
@@ -89,8 +91,6 @@ arm_release_task:
     - cmake ../llvm -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" -DLLVM_ENABLE_UNWIND_TABLES=NO -DLLVM_ENABLE_LLD=ON -DLLVM_TARGETS_TO_BUILD=RISCV -DLLVM_DISTRIBUTION_COMPONENTS="clang;clangd;lld;llvm-objdump;llvm-objcopy;llvm-strip;clang-tidy;clang-format" -DCMAKE_INSTALL_PREFIX=install -DLLVM_PARALLEL_LINK_JOBS=1 -DLLVM_CCACHE_BUILD=ON -G Ninja
   build_script:
     - cd Build
-    - export CCACHE_REMOTE_STORAGE="http://${CIRRUS_HTTP_CACHE_HOST}/release/${CIRRUS_OS}/arm64/"
-    - export CCACHE_REMOTE_ONLY=1
     - ninja install-distribution
     - cp ../llvm/LICENSE.TXT install/LLVM-LICENSE.TXT
     # Artefact upload uploads symlinks as copies, so delete all of the clang symlinks

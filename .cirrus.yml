@@ -26,8 +26,7 @@ pr_task:
     - cd Build
     - export CCACHE_REMOTE_STORAGE="http://${CIRRUS_HTTP_CACHE_HOST}/${CIRRUS_OS}/"
     - export CCACHE_REMOTE_ONLY=1
-    - echo $CCACHE_REMOTE_STORAGE
-    - time ninja -v test-depends
+    - ninja -v test-depends
   test_script:
     - cd Build
     - ./bin/llvm-lit -v ../llvm/test/Unit ../clang/test/Unit
@@ -53,9 +52,11 @@ x86_release_task:
   configure_script:
     - mkdir Build
     - cd Build
-    - cmake ../llvm -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" -DLLVM_ENABLE_UNWIND_TABLES=NO -DLLVM_ENABLE_LLD=ON -DLLVM_TARGETS_TO_BUILD=RISCV -DLLVM_DISTRIBUTION_COMPONENTS="clang;clangd;lld;llvm-objdump;llvm-objcopy;llvm-strip;clang-tidy;clang-format" -DCMAKE_INSTALL_PREFIX=install -DLLVM_PARALLEL_LINK_JOBS=1 -G Ninja
+    - cmake ../llvm -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" -DLLVM_ENABLE_UNWIND_TABLES=NO -DLLVM_ENABLE_LLD=ON -DLLVM_TARGETS_TO_BUILD=RISCV -DLLVM_DISTRIBUTION_COMPONENTS="clang;clangd;lld;llvm-objdump;llvm-objcopy;llvm-strip;clang-tidy;clang-format" -DCMAKE_INSTALL_PREFIX=install -DLLVM_PARALLEL_LINK_JOBS=1 -DLLVM_CCACHE_BUILD=ON -G Ninja
   build_script:
     - cd Build
+    - export CCACHE_REMOTE_STORAGE="http://${CIRRUS_HTTP_CACHE_HOST}/release-amd64/${CIRRUS_OS}/"
+    - export CCACHE_REMOTE_ONLY=1
     - ninja install-distribution
     - cp ../llvm/LICENSE.TXT install/LLVM-LICENSE.TXT
     # Artefact upload uploads symlinks as copies, so delete all of the clang symlinks
@@ -85,9 +86,11 @@ arm_release_task:
   configure_script:
     - mkdir Build
     - cd Build
-    - cmake ../llvm -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" -DLLVM_ENABLE_UNWIND_TABLES=NO -DLLVM_ENABLE_LLD=ON -DLLVM_TARGETS_TO_BUILD=RISCV -DLLVM_DISTRIBUTION_COMPONENTS="clang;clangd;lld;llvm-objdump;llvm-objcopy;llvm-strip;clang-tidy;clang-format" -DCMAKE_INSTALL_PREFIX=install -DLLVM_PARALLEL_LINK_JOBS=1 -G Ninja
+    - cmake ../llvm -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" -DLLVM_ENABLE_UNWIND_TABLES=NO -DLLVM_ENABLE_LLD=ON -DLLVM_TARGETS_TO_BUILD=RISCV -DLLVM_DISTRIBUTION_COMPONENTS="clang;clangd;lld;llvm-objdump;llvm-objcopy;llvm-strip;clang-tidy;clang-format" -DCMAKE_INSTALL_PREFIX=install -DLLVM_PARALLEL_LINK_JOBS=1 -DLLVM_CCACHE_BUILD=ON -G Ninja
   build_script:
     - cd Build
+    - export CCACHE_REMOTE_STORAGE="http://${CIRRUS_HTTP_CACHE_HOST}/release/${CIRRUS_OS}/arm64/"
+    - export CCACHE_REMOTE_ONLY=1
     - ninja install-distribution
     - cp ../llvm/LICENSE.TXT install/LLVM-LICENSE.TXT
     # Artefact upload uploads symlinks as copies, so delete all of the clang symlinks

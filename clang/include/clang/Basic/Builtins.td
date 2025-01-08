@@ -839,12 +839,6 @@ def BuiltinAssumeAligned : Builtin {
   let Prototype = "void*(void const*, size_t, ...)";
 }
 
-def BuiltinAssumeAlignedCap : Builtin {
-  let Spellings = ["__builtin_assume_aligned_cap"];
-  let Attributes = [NoThrow, Const, CustomTypeChecking];
-  let Prototype = "void* __capability(void const* __capability, size_t, ...)";
-}
-
 def BuiltinFree : Builtin {
   let Spellings = ["__builtin_free"];
   let Attributes = [FunctionWithBuiltinPrefix, NoThrow];

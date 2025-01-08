@@ -2198,7 +2198,8 @@ bool Sema::CheckTSBuiltinFunctionCall(const TargetInfo &TI, unsigned BuiltinID,
   }
 }
 
-static bool checkBuiltinArgument(Sema &S, CallExpr *E, unsigned ArgIndex);
+static bool checkBuiltinArgument(Sema &S, CallExpr *E, unsigned ArgIndex,
+                                 bool OverloadForHybrid = false);
 
 // Check if \p Ty is a valid type for the elementwise math builtins. If it is
 // not a valid type, emit an error message and return true. Otherwise return
@@ -2533,7 +2534,6 @@ Sema::CheckBuiltinFunctionCall(FunctionDecl *FDecl, unsigned BuiltinID,
       return ExprError();
     break;
   case Builtin::BI__builtin_assume_aligned:
-  case Builtin::BI__builtin_assume_aligned_cap:
     if (BuiltinAssumeAligned(TheCall))
       return ExprError();
     break;
@@ -4741,7 +4741,8 @@ ExprResult Sema::BuildAtomicExpr(SourceRange CallRange, SourceRange ExprRange,
 /// them.
 ///
 /// Returns true on error.
-static bool checkBuiltinArgument(Sema &S, CallExpr *E, unsigned ArgIndex) {
+static bool checkBuiltinArgument(Sema &S, CallExpr *E, unsigned ArgIndex,
+                                 bool OverloadForHybrid) {
   FunctionDecl *Fn = E->getDirectCallee();
   assert(Fn && "builtin call without direct callee!");
 
@@ -4750,6 +4751,18 @@ static bool checkBuiltinArgument(Sema &S, CallExpr *E, unsigned ArgIndex) {
     InitializedEntity::InitializeParameter(S.Context, Param);
 
   ExprResult Arg = E->getArg(ArgIndex);
+  if (OverloadForHybrid) {
+    assert(Param->getType()->isPointerType());
+    // In CHERI hybrid mode we have to update the argument to a
+    // capability-qualified type ensure that we don't get an initialization
+    // error.
+    if (Arg.get()->getType()->isCapabilityPointerType() &&
+        !Param->getType()->isCapabilityPointerType()) {
+      QualType PtrTy = S.Context.getPointerType(
+          Param->getType()->getPointeeType(), PIK_Capability);
+      Entity = InitializedEntity::InitializeParameter(S.Context, PtrTy, false);
+    }
+  }
   Arg = S.PerformCopyInitialization(Entity, SourceLocation(), Arg);
   if (Arg.isInvalid())
     return true;
@@ -5890,7 +5903,16 @@ bool Sema::BuiltinAssumeAligned(CallExpr *TheCall) {
           << TheCall->getSourceRange();
       return true;
     }
+    if (checkBuiltinArgument(*this, TheCall, 0, /*OverloadForHybrid=*/true))
+      return true;
     TheCall->setArg(0, FirstArgResult.get());
+    // We may also have to update the return type since this intrinsic is
+    // overloaded for hybrid mode.
+    if (const auto *PtrTy =
+            FirstArgResult.get()->getType()->getAs<PointerType>())
+      TheCall->setType(
+          Context.getPointerType(TheCall->getType()->getPointeeType(),
+                                 PtrTy->getPointerInterpretation()));
   }
 
   // The alignment must be a constant integer.

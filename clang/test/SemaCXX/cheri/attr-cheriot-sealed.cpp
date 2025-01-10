@@ -39,3 +39,10 @@ int test6(int * __sealed_capability b) {
     test_struct3 c{b}; // expected-error{{converting sealed type 'int * __sealed_capability' to non-sealed type 'int *' without an explicit unsealing}}
     return *(c.a);
 }
+
+int test11(int * __sealed_capability a) {
+    int b = 42;
+    decltype(*a) c = b;
+    c = 43;
+    return b;
+}

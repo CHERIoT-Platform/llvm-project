@@ -5192,7 +5192,8 @@ ExprResult Sema::ActOnArraySubscriptExpr(Scope *S, Expr *base,
   }
 
   // No subscripting allowed on sealed pointers.
-  if (base->getType()->isCHERISealedCapabilityType(Context))
+  if (base->getType()->isCHERISealedCapabilityType(Context) &&
+      !isUnevaluatedContext())
     Diag(lbLoc, diag::err_sealed_bad_operator) << base->getType();
 
   // Handle any non-overload placeholder types in the base and index
@@ -7370,7 +7371,8 @@ ExprResult Sema::BuildCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
     Fn = result.get();
   }
 
-  if (Fn->getType()->isCHERISealedCapabilityType(Context))
+  if (Fn->getType()->isCHERISealedCapabilityType(Context) &&
+      !isUnevaluatedContext())
     return ExprError(Diag(Fn->getBeginLoc(), diag::err_sealed_func_pointer)
                      << Fn->getType());
 
@@ -12113,7 +12115,8 @@ QualType Sema::CheckAdditionOperands(ExprResult &LHS, ExprResult &RHS,
   Expr *PExp = LHS.get(), *IExp = RHS.get();
 
   // Addition is not allowed on sealed pointers.
-  if (PExp->getType()->isCHERISealedCapabilityType(Context))
+  if (PExp->getType()->isCHERISealedCapabilityType(Context) &&
+      !isUnevaluatedContext())
     return InvalidOperands(Loc, LHS, RHS);
 
   bool isObjCPointer;
@@ -12228,10 +12231,12 @@ QualType Sema::CheckSubtractionOperands(ExprResult &LHS, ExprResult &RHS,
     QualType lpointee = LHS.get()->getType()->getPointeeType();
 
     // Subtraction is not allowed on sealed pointers.
-    if (LHS.get()->getType()->isCHERISealedCapabilityType(Context))
-      return InvalidOperands(Loc, LHS, RHS);
-    if (RHS.get()->getType()->isCHERISealedCapabilityType(Context))
-      return InvalidOperands(Loc, LHS, RHS);
+    if (!isUnevaluatedContext()) {
+      if (LHS.get()->getType()->isCHERISealedCapabilityType(Context))
+        return InvalidOperands(Loc, LHS, RHS);
+      if (RHS.get()->getType()->isCHERISealedCapabilityType(Context))
+        return InvalidOperands(Loc, LHS, RHS);
+    }
 
     // Diagnose bad cases where we step over interface counts.
     if (LHS.get()->getType()->isObjCObjectPointerType() &&
@@ -16608,7 +16613,8 @@ ExprResult Sema::CreateBuiltinUnaryOp(SourceLocation OpLoc,
   // The only unary operator that can apply to a sealed capability is AddrOf.
   auto *PtrInput = InputExpr->getType()->getAs<PointerType>();
   if (Opc != UO_AddrOf && PtrInput &&
-      InputExpr->getType()->isCHERISealedCapabilityType(Context))
+      InputExpr->getType()->isCHERISealedCapabilityType(Context) &&
+      !isUnevaluatedContext())
     Diag(OpLoc, diag::err_sealed_bad_operator) << InputExpr->getType();
 
   switch (Opc) {

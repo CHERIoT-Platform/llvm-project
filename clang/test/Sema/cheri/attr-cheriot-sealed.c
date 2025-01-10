@@ -52,3 +52,6 @@ void test11(int * __sealed_capability x) {
 	opaque(x); // No error (cast to void permitted)
 }
 
+int test12(int * __sealed_capability a) {
+    return sizeof(*a);
+}

@@ -26,12 +26,16 @@ def main():
         default=None,
         help='The "llc" binary to use to generate the test case',
     )
+    parser.add_argument('--opt-binary', default='opt',
+                        help='The "opt" binary to use to generate the test case (if used for pre-processing)')
     parser.add_argument("--function", help="The function in the test file to update")
     parser.add_argument(
         "--extra_scrub",
         action="store_true",
         help="Always use additional regex to further reduce diffs between various subtargets",
     )
+    parser.add_argument('--scrub-stack-indices', action='store_true',
+        help='Use additional regex to further reduce diffs between 32/64-bit targets')
     parser.add_argument(
         "--x86_scrub_sp",
         action="store_true",
@@ -75,14 +79,41 @@ def main():
                 common.warn("Skipping unparsable RUN line: " + l)
                 continue
 
-            commands = [cmd.strip() for cmd in l.split("|")]
+            commands = [cmd.strip() for cmd in l.split('|')]
             assert len(commands) >= 2
             preprocess_cmd = None
             if len(commands) > 2:
                 preprocess_cmd = " | ".join(commands[:-2])
+                if "%" in preprocess_cmd:
+                    preprocess_cmd = preprocess_cmd.replace("%cheri_purecap_opt", "opt -mtriple=mips64-unknown-freebsd -target-abi purecap -relocation-model pic -mcpu=cheri128 -mattr=+cheri128")
+                    preprocess_cmd = preprocess_cmd.replace("%cheri128_purecap_opt", "opt -mtriple=mips64-unknown-freebsd -target-abi purecap -relocation-model pic -mcpu=cheri128 -mattr=+cheri128")
+                    preprocess_cmd = preprocess_cmd.replace("%cheri_opt", "opt -mtriple=mips64-unknown-freebsd -mcpu=cheri128 -mattr=+cheri128")
+                    preprocess_cmd = preprocess_cmd.replace("%cheri128_opt", "opt -mtriple=mips64-unknown-freebsd -mcpu=cheri128 -mattr=+cheri128")
+                    preprocess_cmd = preprocess_cmd.replace("%riscv32_cheri_purecap_opt", "opt -mtriple=riscv32-unknown-freebsd -target-abi il32pc64d -mattr=+xcheri,+cap-mode")
+                    preprocess_cmd = preprocess_cmd.replace("%riscv64_cheri_purecap_opt", "opt -mtriple=riscv64-unknown-freebsd -target-abi l64pc128d -mattr=+xcheri,+cap-mode")
+                    preprocess_cmd = preprocess_cmd.replace("%riscv32_cheri_opt", "opt -mtriple=riscv32-unknown-freebsd -mattr=+xcheri")
+                    preprocess_cmd = preprocess_cmd.replace("%riscv64_cheri_opt", "opt -mtriple=riscv64-unknown-freebsd -mattr=+xcheri")
+                preprocess_cmd_list = preprocess_cmd.split()
+                preprocess_cmd_list = [ti.args.opt_binary if x == "opt" else x for x in preprocess_cmd_list]
+                preprocess_cmd = " ".join(preprocess_cmd_list)
             llc_cmd = commands[-2]
+            if llc_cmd.startswith("%"):
+              llc_cmd = llc_cmd.replace("%cheri_purecap_llc", "llc -mtriple=mips64-unknown-freebsd -target-abi purecap -relocation-model pic -mcpu=cheri128 -mattr=+cheri128")
+              llc_cmd = llc_cmd.replace("%cheri128_purecap_llc", "llc -mtriple=mips64-unknown-freebsd -target-abi purecap -relocation-model pic -mcpu=cheri128 -mattr=+cheri128")
+              llc_cmd = llc_cmd.replace("%cheri_llc", "llc -mtriple=mips64-unknown-freebsd -mcpu=cheri128 -mattr=+cheri128")
+              llc_cmd = llc_cmd.replace("%cheri128_llc", "llc -mtriple=mips64-unknown-freebsd -mcpu=cheri128 -mattr=+cheri128")
+              llc_cmd = llc_cmd.replace("%riscv32_cheri_purecap_llc", "llc -mtriple=riscv32-unknown-freebsd -target-abi il32pc64d -mattr=+xcheri,+cap-mode")
+              llc_cmd = llc_cmd.replace("%riscv64_cheri_purecap_llc", "llc -mtriple=riscv64-unknown-freebsd -target-abi l64pc128d -mattr=+xcheri,+cap-mode")
+              llc_cmd = llc_cmd.replace("%riscv32_cheri_llc", "llc -mtriple=riscv32-unknown-freebsd -mattr=+xcheri")
+              llc_cmd = llc_cmd.replace("%riscv64_cheri_llc", "llc -mtriple=riscv64-unknown-freebsd -mattr=+xcheri")
             filecheck_cmd = commands[-1]
-            llc_tool = llc_cmd.split(" ")[0]
+            if filecheck_cmd.startswith("%cheri64_FileCheck"):
+                filecheck_cmd = filecheck_cmd.replace("%cheri64_FileCheck", "FileCheck '-D#CAP_SIZE=8'")
+            elif filecheck_cmd.startswith("%cheri128_FileCheck"):
+                filecheck_cmd = filecheck_cmd.replace("%cheri128_FileCheck", "FileCheck '-D#CAP_SIZE=16'")
+            elif filecheck_cmd.startswith("%cheri_FileCheck"):
+                filecheck_cmd = filecheck_cmd.replace("%cheri_FileCheck", "FileCheck '-D#CAP_SIZE=16'")
+            llc_tool = llc_cmd.split(' ')[0]
 
             triple_in_cmd = None
             m = common.TRIPLE_ARG_RE.search(llc_cmd)
@@ -160,6 +191,8 @@ def main():
         ) in run_list:
             common.debug("Extracted LLC cmd:", llc_tool, llc_args)
             common.debug("Extracted FileCheck prefixes:", str(prefixes))
+            if preprocess_cmd:
+                common.debug('Extracted pre-processing command: ' + str(preprocess_cmd))
 
             raw_tool_output = common.invoke_tool(
                 ti.args.llc_binary or llc_tool,

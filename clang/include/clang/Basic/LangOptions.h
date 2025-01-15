@@ -278,6 +278,58 @@ public:
     FPM_FastHonorPragmas
   };
 
+  enum CheriUIntCapMode {
+    UIntCap_Offset, /// Use the capability the offset for operations on
+                    /// uintcap_t (GC-friendlier than vaddr)
+    UIntCap_Addr, /// Use the capability the offset for operations on uintcap_t
+                  /// (More C compatible than offset)
+  };
+
+  enum CheriCapIntConversion {
+    CapInt_Strict, /// All conversions (including (u)intcap<->int need explicit
+                   /// casts). Unlikely to be useful very often but could
+                   /// detect some cases of accidental tag-stripping.
+    CapInt_Explicit, /// Require explicit casts for pointer -> capability and
+                     /// integer -> capability pointer
+    CapInt_Address,  /// Conversions return the address or create an untagged
+                     /// capability with the address
+    CapInt_Relative, /// Perform conversions relative to DDC (previous
+                     /// default)
+  };
+
+  // TODO: this should probably be flags
+#if 0
+    CBM_ReferencesAggressive, /// (unused for now, might set more bounds)
+    CBM_NestedStructs
+    CBM_NonArrayObjectMembers, /// also set bounds on non-array object members
+    CBM_AllObjectMembers,     /// also set bounds on non-array object members
+    CBM_NonzeroArrayIndexes, /// also set bounds &array[n] if n != 0
+    CBM_AllArrayIndexes,     /// also set bounds on all non-annoated array index
+#endif
+  enum CheriBoundsMode {
+    CBM_Conservative, /// Only set bounds for stack allocations (safe)
+    CBM_References,   /// Also set bounds for C++ references to scalar types and
+                      /// references to final without vtables or flexible arrays
+    CBM_SubObjectsSafe, /// in addition to references also set bounds for
+                        /// pointers to subobjects (but only for those where we
+                        /// assume that it is safe to do so)
+    CBM_Aggressive, /// Set bounds for anything that is not definitively unsafe
+                    /// or annotated as not wanting bounds
+    CBM_VeryAggressive,   /// Same as aggressive but also set bounds on array
+                          /// indexing operations such as foo(&array[0]) -> set
+                          /// bounds to first member
+    CBM_EverywhereUnsafe, /// Unsafe: Set bounds everywhere where there isn't an
+                          /// explicit opt-out (also sets bounds on object
+                          /// pointers with vtables)
+  };
+
+  // TODO: merge FEnvAccessModeKind and FPContractModeKind
+  enum FEnvAccessModeKind {
+    FEA_Off,
+
+    FEA_On
+  };
+
   /// Possible floating point exception behavior.
   enum FPExceptionModeKind {
     /// Assume that floating-point exceptions are masked.
@@ -532,6 +584,9 @@ public:
   // implementation on real-world examples.
   std::string OpenACCMacroOverride;
 
+  /// The name of the CHERI compartment for this compilation unit.
+  std::string CheriCompartmentName;
+
   LangOptions();
 
   /// Set language defaults for the given input language and
@@ -586,6 +641,24 @@ public:
 
   bool isCompatibleWithMSVC(MSVCMajorVersion MajorVersion) const {
     return MSCompatibilityVersion >= MajorVersion * 100000U;
+  }
+
+  bool cheriUIntCapUsesAddr() const {
+    return getCheriUIntCap() == UIntCap_Addr;
+  }
+
+  bool cheriUIntCapUsesOffset() const {
+    return getCheriUIntCap() == UIntCap_Offset;
+  }
+
+  bool explicitConversionsFromCap() const {
+    return getCheriCapToInt() == CapInt_Explicit ||
+           getCheriCapToInt() == CapInt_Strict;
+  }
+
+  bool explicitConversionsToCap() const {
+    return getCheriIntToCap() == CapInt_Explicit ||
+           getCheriIntToCap() == CapInt_Strict;
   }
 
   /// Reset all of the options that are not considered when building a

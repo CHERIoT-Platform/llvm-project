@@ -127,13 +127,14 @@ int Disassembler::disassemble(const Target &T, const std::string &TripleName,
                               MCSubtargetInfo &STI, MCStreamer &Streamer,
                               MemoryBuffer &Buffer, SourceMgr &SM,
                               raw_ostream &Out) {
-  std::unique_ptr<const MCRegisterInfo> MRI(T.createMCRegInfo(TripleName));
+  MCTargetOptions MCOptions;
+  std::unique_ptr<const MCRegisterInfo> MRI(
+      T.createMCRegInfo(TripleName, MCOptions));
   if (!MRI) {
     errs() << "error: no register info for target " << TripleName << "\n";
     return -1;
   }
 
-  MCTargetOptions MCOptions;
   std::unique_ptr<const MCAsmInfo> MAI(
       T.createMCAsmInfo(*MRI, TripleName, MCOptions));
   if (!MAI) {

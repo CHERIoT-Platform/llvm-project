@@ -83,6 +83,7 @@ def HasMips3D        : Predicate<"Subtarget->has3D()">,
 class FGR_32 { list<Predicate> FGRPredicates = [NotFP64bit]; }
 class FGR_64 { list<Predicate> FGRPredicates = [IsFP64bit]; }
 class HARDFLOAT { list<Predicate> HardFloatPredicate = [IsNotSoftFloat]; }
+class HARDFLOATNOTCHERI { list<Predicate> HardFloatPredicate = [IsNotSoftFloat,NotCHERI]; }
 
 //===----------------------------------------------------------------------===//
 
@@ -204,14 +205,14 @@ class MADDS_FT<string opstr, RegisterOperand RC, InstrItinClass Itin,
   InstSE<(outs RC:$fd), (ins RC:$fr, RC:$fs, RC:$ft),
          !strconcat(opstr, "\t$fd, $fr, $fs, $ft"),
          [(set RC:$fd, (OpNode (fmul RC:$fs, RC:$ft), RC:$fr))], Itin,
-         FrmFR, opstr>, HARDFLOAT;
+         FrmFR, opstr>, HARDFLOATNOTCHERI;
 
 class NMADDS_FT<string opstr, RegisterOperand RC, InstrItinClass Itin,
                 SDPatternOperator OpNode = null_frag> :
   InstSE<(outs RC:$fd), (ins RC:$fr, RC:$fs, RC:$ft),
          !strconcat(opstr, "\t$fd, $fr, $fs, $ft"),
          [(set RC:$fd, (fsub fpimm0, (OpNode (fmul RC:$fs, RC:$ft), RC:$fr)))],
-         Itin, FrmFR, opstr>, HARDFLOAT;
+         Itin, FrmFR, opstr>, HARDFLOATNOTCHERI;
 
 class LWXC1_FT<string opstr, RegisterOperand DRC,
                InstrItinClass Itin, SDPatternOperator OpNode = null_frag> :
@@ -623,14 +624,14 @@ let AdditionalPredicates = [NotInMicroMips] in {
 // Indexed loads and stores.
 // Base register + offset register addressing mode (indicated by "x" in the
 // instruction mnemonic) is disallowed under NaCl.
-let AdditionalPredicates = [IsNotNaCl] in {
+let AdditionalPredicates = [IsNotNaCl,NotCHERI] in {
   def LWXC1 : MMRel, LWXC1_FT<"lwxc1", FGR32Opnd, II_LWXC1, load>, LWXC1_FM<0>,
               INSN_MIPS4_32R2_NOT_32R6_64R6;
   def SWXC1 : MMRel, SWXC1_FT<"swxc1", FGR32Opnd, II_SWXC1, store>, SWXC1_FM<8>,
               INSN_MIPS4_32R2_NOT_32R6_64R6;
 }
 
-let AdditionalPredicates = [NotInMicroMips, IsNotNaCl] in {
+let AdditionalPredicates = [NotInMicroMips, IsNotNaCl,NotCHERI] in {
   def LDXC1 : LWXC1_FT<"ldxc1", AFGR64Opnd, II_LDXC1, load>, LWXC1_FM<1>,
               INSN_MIPS4_32R2_NOT_32R6_64R6, FGR_32;
   def SDXC1 : SWXC1_FT<"sdxc1", AFGR64Opnd, II_SDXC1, store>, SWXC1_FM<9>,

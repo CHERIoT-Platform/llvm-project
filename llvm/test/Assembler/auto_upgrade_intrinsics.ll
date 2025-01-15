@@ -216,9 +216,25 @@ define void @test.prefetch.unnamed(ptr %ptr) {
   ret void
 }
 
+declare ptr addrspace(200) @llvm.stacksave()
+declare void @llvm.stackrestore(ptr addrspace(200))
+
+define void @tests.stacksave.stackrestore() {
+  ; CHECK-LABEL: @tests.stacksave.stackrestore(
+  %save1 = call ptr addrspace(200) @llvm.stacksave()
+  ; CHECK: %save1 = call ptr addrspace(200) @llvm.stacksave.p200()
+  call void @llvm.stackrestore(ptr addrspace(200) %save1)
+  ; CHECK:   call void @llvm.stackrestore.p200(ptr addrspace(200) %save1)
+
+  ret void
+}
+
 ; This is part of @test.objectsize(), since llvm.objectsize declaration gets
 ; emitted at the end.
 ; CHECK: declare i32 @llvm.objectsize.i32.p0
 
 ; CHECK: declare void @llvm.lifetime.start.p0(i64 immarg, ptr nocapture)
 ; CHECK: declare void @llvm.lifetime.end.p0(i64 immarg, ptr nocapture)
+
+; CHECK: declare ptr addrspace(200) @llvm.stacksave.p200()
+; CHECK: declare void @llvm.stackrestore.p200(ptr addrspace(200))

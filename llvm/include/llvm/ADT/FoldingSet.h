@@ -333,9 +333,11 @@ public:
     // depend on the host. It doesn't matter, however, because hashing on
     // pointer values is inherently unstable. Nothing should depend on the
     // ordering of nodes in the folding set.
+#ifndef __CHERI_PURE_CAPABILITY__
     static_assert(sizeof(uintptr_t) <= sizeof(unsigned long long),
                   "unexpected pointer size");
-    AddInteger(reinterpret_cast<uintptr_t>(Ptr));
+#endif
+    AddInteger(reinterpret_cast<ptrdiff_t>(Ptr));
   }
   void AddInteger(signed I) { Bits.push_back(I); }
   void AddInteger(unsigned I) { Bits.push_back(I); }

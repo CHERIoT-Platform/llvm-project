@@ -30,6 +30,13 @@
 #include "AddressSpace.hpp"
 #include "UnwindCursor.hpp"
 
+
+template<size_t A, size_t B>
+constexpr bool check_less_eq_than() {
+  static_assert(A <= B, "Constants need to be updated!");
+  return A <= B;
+}
+
 using namespace libunwind;
 
 /// internal object to represent this processes address space
@@ -38,10 +45,22 @@ LocalAddressSpace LocalAddressSpace::sThisAddressSpace;
 _LIBUNWIND_EXPORT unw_addr_space_t unw_local_addr_space =
     (unw_addr_space_t)&LocalAddressSpace::sThisAddressSpace;
 
+_LIBUNWIND_HIDDEN size_t __unw_context_size(void) {
+  return sizeof(unw_context_t);
+}
+_LIBUNWIND_WEAK_ALIAS(__unw_context_size, unw_context_size)
+
+_LIBUNWIND_HIDDEN size_t __unw_cursor_size(void) {
+  return sizeof(unw_cursor_t);
+}
+_LIBUNWIND_WEAK_ALIAS(__unw_cursor_size, unw_cursor_size)
+
 /// Create a cursor of a thread in this process given 'context' recorded by
 /// __unw_getcontext().
 _LIBUNWIND_HIDDEN int __unw_init_local(unw_cursor_t *cursor,
                                        unw_context_t *context) {
+  check_less_eq_than<_LIBUNWIND_CONTEXT_SIZE, _LIBUNWIND_MAX_CONTEXT_SIZE>();
+  check_less_eq_than<_LIBUNWIND_CURSOR_SIZE, _LIBUNWIND_MAX_CURSOR_SIZE>();
   _LIBUNWIND_TRACE_API("__unw_init_local(cursor=%p, context=%p)",
                        static_cast<void *>(cursor),
                        static_cast<void *>(context));
@@ -61,6 +80,8 @@ _LIBUNWIND_HIDDEN int __unw_init_local(unw_cursor_t *cursor,
 # define REGISTER_KIND Registers_or1k
 #elif defined(__hexagon__)
 # define REGISTER_KIND Registers_hexagon
+#elif defined(__mips__) && defined(__CHERI_PURE_CAPABILITY__)
+# define REGISTER_KIND Registers_mips_cheri
 #elif defined(__mips__) && defined(_ABIO32) && _MIPS_SIM == _ABIO32
 # define REGISTER_KIND Registers_mips_o32
 #elif defined(__mips64)
@@ -133,7 +154,7 @@ _LIBUNWIND_HIDDEN int __unw_set_reg(unw_cursor_t *cursor, unw_regnum_t regNum,
       // this should actually be - info.gp. LLVM doesn't currently support
       // any such platforms and Clang doesn't export a macro for them.
       if (info.gp)
-        co->setReg(UNW_REG_SP, co->getReg(UNW_REG_SP) + info.gp);
+        co->setReg(UNW_REG_SP, co->getReg(UNW_REG_SP) + _pint_to_addr(info.gp));
     }
     return UNW_ESUCCESS;
   }
@@ -467,6 +488,18 @@ bool logDWARF() {
   static bool log = false;
   if (!checked) {
     log = (getenv("LIBUNWIND_PRINT_DWARF") != NULL);
+    checked = true;
+  }
+  return log;
+}
+
+_LIBUNWIND_HIDDEN
+bool logCHERI() {
+  // do manual lock to avoid use of _cxa_guard_acquire or initializers
+  static bool checked = false;
+  static bool log = false;
+  if (!checked) {
+    log = (getenv("LIBUNWIND_PRINT_CHERI") != NULL);
     checked = true;
   }
   return log;

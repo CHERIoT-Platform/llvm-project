@@ -38,8 +38,8 @@ struct Context {
     if (!TheTarget)
       return;
 
-    MRI.reset(TheTarget->createMCRegInfo(TripleName));
     MCTargetOptions MCOptions;
+    MRI.reset(TheTarget->createMCRegInfo(TripleName, MCOptions));
     MAI.reset(TheTarget->createMCAsmInfo(*MRI, TripleName, MCOptions));
     Ctx = std::make_unique<MCContext>(Triple(TripleName), MAI.get(), MRI.get(),
                                       /*MSTI=*/nullptr);

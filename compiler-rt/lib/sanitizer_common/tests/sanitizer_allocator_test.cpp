@@ -55,12 +55,12 @@ using namespace __sanitizer;
 // On Windows 64-bit there is no easy way to find a large enough fixed address
 // space that is always available. Thus, a dynamically allocated address space
 // is used instead (i.e. ~(uptr)0).
-static const uptr kAllocatorSpace = ~(uptr)0;
+static const vaddr kAllocatorSpace = ~(uptr)0;
 static const uptr kAllocatorSize  =  0x8000000000ULL;  // 500G
 static const u64 kAddressSpaceSize = 1ULL << 47;
 typedef DefaultSizeClassMap SizeClassMap;
 #elif SANITIZER_ANDROID && defined(__aarch64__)
-static const uptr kAllocatorSpace = 0x3000000000ULL;
+static const vaddr kAllocatorSpace = 0x3000000000ULL;
 static const uptr kAllocatorSize  = 0x2000000000ULL;
 static const u64 kAddressSpaceSize = 1ULL << 39;
 typedef VeryCompactSizeClassMap SizeClassMap;
@@ -70,7 +70,7 @@ const uptr kAllocatorSize = 0x2000000000ULL;  // 128G.
 static const u64 kAddressSpaceSize = 1ULL << 38;
 typedef VeryDenseSizeClassMap SizeClassMap;
 #else
-static const uptr kAllocatorSpace = 0x700000000000ULL;
+static const vaddr kAllocatorSpace = 0x700000000000ULL;
 static const uptr kAllocatorSize  = 0x010000000000ULL;  // 1T.
 static const u64 kAddressSpaceSize = 1ULL << 47;
 typedef DefaultSizeClassMap SizeClassMap;
@@ -78,56 +78,56 @@ typedef DefaultSizeClassMap SizeClassMap;
 
 template <typename AddressSpaceViewTy>
 struct AP64 {  // Allocator Params. Short name for shorter demangled names..
-  static const uptr kSpaceBeg = kAllocatorSpace;
-  static const uptr kSpaceSize = kAllocatorSize;
-  static const uptr kMetadataSize = 16;
+  static const vaddr kSpaceBeg = kAllocatorSpace;
+  static const usize kSpaceSize = kAllocatorSize;
+  static const usize kMetadataSize = 16;
   typedef ::SizeClassMap SizeClassMap;
   typedef NoOpMapUnmapCallback MapUnmapCallback;
-  static const uptr kFlags = 0;
+  static const usize kFlags = 0;
   using AddressSpaceView = AddressSpaceViewTy;
 };
 
 template <typename AddressSpaceViewTy>
 struct AP64Dyn {
-  static const uptr kSpaceBeg = ~(uptr)0;
-  static const uptr kSpaceSize = kAllocatorSize;
-  static const uptr kMetadataSize = 16;
+  static const vaddr kSpaceBeg = ~(uptr)0;
+  static const usize kSpaceSize = kAllocatorSize;
+  static const usize kMetadataSize = 16;
   typedef ::SizeClassMap SizeClassMap;
   typedef NoOpMapUnmapCallback MapUnmapCallback;
-  static const uptr kFlags = 0;
+  static const usize kFlags = 0;
   using AddressSpaceView = AddressSpaceViewTy;
 };
 
 template <typename AddressSpaceViewTy>
 struct AP64Compact {
-  static const uptr kSpaceBeg = ~(uptr)0;
-  static const uptr kSpaceSize = kAllocatorSize;
-  static const uptr kMetadataSize = 16;
+  static const vaddr kSpaceBeg = ~(uptr)0;
+  static const usize kSpaceSize = kAllocatorSize;
+  static const usize kMetadataSize = 16;
   typedef CompactSizeClassMap SizeClassMap;
   typedef NoOpMapUnmapCallback MapUnmapCallback;
-  static const uptr kFlags = 0;
+  static const usize kFlags = 0;
   using AddressSpaceView = AddressSpaceViewTy;
 };
 
 template <typename AddressSpaceViewTy>
 struct AP64VeryCompact {
-  static const uptr kSpaceBeg = ~(uptr)0;
-  static const uptr kSpaceSize = 1ULL << 37;
-  static const uptr kMetadataSize = 16;
+  static const vaddr kSpaceBeg = ~(uptr)0;
+  static const usize kSpaceSize = 1ULL << 37;
+  static const usize kMetadataSize = 16;
   typedef VeryCompactSizeClassMap SizeClassMap;
   typedef NoOpMapUnmapCallback MapUnmapCallback;
-  static const uptr kFlags = 0;
+  static const usize kFlags = 0;
   using AddressSpaceView = AddressSpaceViewTy;
 };
 
 template <typename AddressSpaceViewTy>
 struct AP64Dense {
-  static const uptr kSpaceBeg = kAllocatorSpace;
-  static const uptr kSpaceSize = kAllocatorSize;
-  static const uptr kMetadataSize = 16;
+  static const vaddr kSpaceBeg = kAllocatorSpace;
+  static const usize kSpaceSize = kAllocatorSize;
+  static const usize kMetadataSize = 16;
   typedef DenseSizeClassMap SizeClassMap;
   typedef NoOpMapUnmapCallback MapUnmapCallback;
-  static const uptr kFlags = 0;
+  static const usize kFlags = 0;
   using AddressSpaceView = AddressSpaceViewTy;
 };
 
@@ -166,18 +166,18 @@ static const u64 kAddressSpaceSize = 1ULL << 31;
 static const u64 kAddressSpaceSize = 1ULL << 32;
 #endif
 
-static const uptr kRegionSizeLog = FIRST_32_SECOND_64(20, 24);
+static const usize kRegionSizeLog = FIRST_32_SECOND_64(20, 24);
 
 template <typename AddressSpaceViewTy>
 struct AP32Compact {
-  static const uptr kSpaceBeg = 0;
+  static const vaddr kSpaceBeg = 0;
   static const u64 kSpaceSize = kAddressSpaceSize;
-  static const uptr kMetadataSize = 16;
+  static const usize kMetadataSize = 16;
   typedef CompactSizeClassMap SizeClassMap;
-  static const uptr kRegionSizeLog = ::kRegionSizeLog;
+  static const usize kRegionSizeLog = ::kRegionSizeLog;
   using AddressSpaceView = AddressSpaceViewTy;
   typedef NoOpMapUnmapCallback MapUnmapCallback;
-  static const uptr kFlags = 0;
+  static const usize kFlags = 0;
 };
 template <typename AddressSpaceView>
 using Allocator32CompactASVT =
@@ -340,14 +340,14 @@ TEST(SanitizerCommon, SizeClassAllocator32Compact) {
 
 template <typename AddressSpaceViewTy>
 struct AP32SeparateBatches {
-  static const uptr kSpaceBeg = 0;
+  static const vaddr kSpaceBeg = 0;
   static const u64 kSpaceSize = kAddressSpaceSize;
-  static const uptr kMetadataSize = 16;
+  static const usize kMetadataSize = 16;
   typedef DefaultSizeClassMap SizeClassMap;
-  static const uptr kRegionSizeLog = ::kRegionSizeLog;
+  static const usize kRegionSizeLog = ::kRegionSizeLog;
   using AddressSpaceView = AddressSpaceViewTy;
   typedef NoOpMapUnmapCallback MapUnmapCallback;
-  static const uptr kFlags =
+  static const usize kFlags =
       SizeClassAllocator32FlagMasks::kUseSeparateSizeClassForBatch;
 };
 template <typename AddressSpaceView>
@@ -477,12 +477,12 @@ TEST(SanitizerCommon, SizeClassAllocator32CompactGetBlockBegin) {
 
 struct TestMapUnmapCallback {
   static int map_count, map_secondary_count, unmap_count;
-  void OnMap(uptr p, uptr size) const { map_count++; }
-  void OnMapSecondary(uptr p, uptr size, uptr user_begin,
-                      uptr user_size) const {
+  void OnMap(uptr p, usize size) const { map_count++; }
+  void OnMapSecondary(uptr p, usize size, uptr user_begin,
+                      usize user_size) const {
     map_secondary_count++;
   }
-  void OnUnmap(uptr p, uptr size) const { unmap_count++; }
+  void OnUnmap(uptr p, usize size) const { unmap_count++; }
 
   static void Reset() { map_count = map_secondary_count = unmap_count = 0; }
 };
@@ -497,12 +497,12 @@ int TestMapUnmapCallback::unmap_count;
 
 template <typename AddressSpaceViewTy = LocalAddressSpaceView>
 struct AP64WithCallback {
-  static const uptr kSpaceBeg = kAllocatorSpace;
-  static const uptr kSpaceSize = kAllocatorSize;
-  static const uptr kMetadataSize = 16;
+  static const vaddr kSpaceBeg = kAllocatorSpace;
+  static const usize kSpaceSize = kAllocatorSize;
+  static const usize kMetadataSize = 16;
   typedef ::SizeClassMap SizeClassMap;
   typedef TestMapUnmapCallback MapUnmapCallback;
-  static const uptr kFlags = 0;
+  static const usize kFlags = 0;
   using AddressSpaceView = AddressSpaceViewTy;
 };
 
@@ -533,14 +533,14 @@ TEST(SanitizerCommon, SizeClassAllocator64MapUnmapCallback) {
 
 template <typename AddressSpaceViewTy = LocalAddressSpaceView>
 struct AP32WithCallback {
-  static const uptr kSpaceBeg = 0;
+  static const vaddr kSpaceBeg = 0;
   static const u64 kSpaceSize = kAddressSpaceSize;
-  static const uptr kMetadataSize = 16;
+  static const usize kMetadataSize = 16;
   typedef CompactSizeClassMap SizeClassMap;
-  static const uptr kRegionSizeLog = ::kRegionSizeLog;
+  static const usize kRegionSizeLog = ::kRegionSizeLog;
   using AddressSpaceView = AddressSpaceViewTy;
   typedef TestMapUnmapCallback MapUnmapCallback;
-  static const uptr kFlags = 0;
+  static const usize kFlags = 0;
 };
 
 TEST(SanitizerCommon, SizeClassAllocator32MapUnmapCallback) {
@@ -1098,12 +1098,12 @@ TEST(SanitizerCommon, LargeMmapAllocatorBlockBegin) {
 typedef __sanitizer::SizeClassMap<2, 22, 22, 34, 128, 16> SpecialSizeClassMap;
 template <typename AddressSpaceViewTy = LocalAddressSpaceView>
 struct AP64_SpecialSizeClassMap {
-  static const uptr kSpaceBeg = kAllocatorSpace;
-  static const uptr kSpaceSize = kAllocatorSize;
-  static const uptr kMetadataSize = 0;
+  static const vaddr kSpaceBeg = kAllocatorSpace;
+  static const usize kSpaceSize = kAllocatorSize;
+  static const usize kMetadataSize = 0;
   typedef SpecialSizeClassMap SizeClassMap;
   typedef NoOpMapUnmapCallback MapUnmapCallback;
-  static const uptr kFlags = 0;
+  static const usize kFlags = 0;
   using AddressSpaceView = AddressSpaceViewTy;
 };
 

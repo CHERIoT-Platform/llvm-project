@@ -701,7 +701,7 @@ static bool constantIsDead(const Constant *C, bool RemoveDeadUsers) {
     ReplaceableMetadataImpl::SalvageDebugInfo(*C);
     const_cast<Constant *>(C)->destroyConstant();
   }
-  
+
   return true;
 }
 
@@ -1954,6 +1954,22 @@ static Constant *getFoldedCast(Instruction::CastOps opc, Constant *C, Type *Ty,
   return pImpl->ExprConstants.getOrCreate(Ty, Key);
 }
 
+#if !defined(NDEBUG)
+#define assertCastIsValid(op, S, Ty, msg)                                      \
+  do {                                                                         \
+    if (LLVM_UNLIKELY(!CastInst::castIsValid((op), (S), (Ty)))) {              \
+      errs() << msg << ": op=" << ((int)op) << " S = ";                        \
+      (S)->getType()->dump();                                                  \
+      errs() << "Ty = ";                                                       \
+      (Ty)->dump();                                                            \
+      assert(false && msg);                                                    \
+    }                                                                          \
+  } while (false)
+#else
+#define assertCastIsValid(op, S, Ty, msg)                                      \
+  assert(CastInst::castIsValid((op), (S), (Ty)) && msg)
+#endif
+
 Constant *ConstantExpr::getCast(unsigned oc, Constant *C, Type *Ty,
                                 bool OnlyIfReduced) {
   Instruction::CastOps opc = Instruction::CastOps(oc);
@@ -1961,7 +1977,7 @@ Constant *ConstantExpr::getCast(unsigned oc, Constant *C, Type *Ty,
   assert(isSupportedCastOp(opc) &&
          "Cast opcode not supported as constant expression");
   assert(C && Ty && "Null arguments to getCast");
-  assert(CastInst::castIsValid(opc, C, Ty) && "Invalid constantexpr cast!");
+  assertCastIsValid(opc, C, Ty, "Invalid constantexpr cast!");
 
   switch (opc) {
   default:
@@ -2012,6 +2028,8 @@ Constant *ConstantExpr::getPointerBitCastOrAddrSpaceCast(Constant *S,
 }
 
 Constant *ConstantExpr::getTrunc(Constant *C, Type *Ty, bool OnlyIfReduced) {
+  if (C->getType() == Ty)
+    return C;
 #ifndef NDEBUG
   bool fromVec = isa<VectorType>(C->getType());
   bool toVec = isa<VectorType>(Ty);
@@ -2036,6 +2054,9 @@ Constant *ConstantExpr::getPtrToInt(Constant *C, Type *DstTy,
     assert(cast<VectorType>(C->getType())->getElementCount() ==
                cast<VectorType>(DstTy)->getElementCount() &&
            "Invalid cast between a different number of vector elements");
+  if (C->getType()->getPointerAddressSpace() == 200) {  // FIXME: hardcoded AS200
+    assert(DstTy->getIntegerBitWidth() <= 64);
+  }
   return getFoldedCast(Instruction::PtrToInt, C, DstTy, OnlyIfReduced);
 }
 
@@ -2050,13 +2071,16 @@ Constant *ConstantExpr::getIntToPtr(Constant *C, Type *DstTy,
     assert(cast<VectorType>(C->getType())->getElementCount() ==
                cast<VectorType>(DstTy)->getElementCount() &&
            "Invalid cast between a different number of vector elements");
+  if (DstTy->getPointerAddressSpace() == 200) {  // FIXME: hardcoded AS200
+    assert(C->getType()->getIntegerBitWidth() <= 64);
+  }
   return getFoldedCast(Instruction::IntToPtr, C, DstTy, OnlyIfReduced);
 }
 
 Constant *ConstantExpr::getBitCast(Constant *C, Type *DstTy,
                                    bool OnlyIfReduced) {
-  assert(CastInst::castIsValid(Instruction::BitCast, C, DstTy) &&
-         "Invalid constantexpr bitcast!");
+  assertCastIsValid(Instruction::BitCast, C, DstTy,
+                    "Invalid constantexpr bitcast!");
 
   // It is common to ask for a bitcast of a value to its own type, handle this
   // speedily.
@@ -2067,8 +2091,9 @@ Constant *ConstantExpr::getBitCast(Constant *C, Type *DstTy,
 
 Constant *ConstantExpr::getAddrSpaceCast(Constant *C, Type *DstTy,
                                          bool OnlyIfReduced) {
-  assert(CastInst::castIsValid(Instruction::AddrSpaceCast, C, DstTy) &&
-         "Invalid constantexpr addrspacecast!");
+  assertCastIsValid(Instruction::AddrSpaceCast, C, DstTy,
+                    "Invalid constantexpr addrspacecast!");
+
   return getFoldedCast(Instruction::AddrSpaceCast, C, DstTy, OnlyIfReduced);
 }
 

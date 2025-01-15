@@ -37,6 +37,7 @@ MCOperand MipsMCInstLower::LowerSymbolOperand(const MachineOperand &MO,
   MCSymbolRefExpr::VariantKind Kind = MCSymbolRefExpr::VK_None;
   MipsMCExpr::MipsExprKind TargetKind = MipsMCExpr::MEK_None;
   bool IsGpOff = false;
+  bool IsCapTableOff = false;
   const MCSymbol *Symbol;
 
   switch(MO.getTargetFlags()) {
@@ -117,6 +118,62 @@ MCOperand MipsMCInstLower::LowerSymbolOperand(const MachineOperand &MO,
     break;
   case MipsII::MO_JALR:
     return MCOperand();
+  case MipsII::MO_PCREL_HI:
+    TargetKind = MipsMCExpr::MEK_PCREL_HI16;
+    break;
+  case MipsII::MO_PCREL_LO:
+    TargetKind = MipsMCExpr::MEK_PCREL_LO16;
+    break;
+  case MipsII::MO_CAPTAB11:
+    TargetKind = MipsMCExpr::MEK_CAPTABLE11;
+    break;
+  case MipsII::MO_CAPTAB20:
+    TargetKind = MipsMCExpr::MEK_CAPTABLE20;
+    break;
+  case MipsII::MO_CAPTAB_HI16:
+    TargetKind = MipsMCExpr::MEK_CAPTABLE_HI16;
+    break;
+  case MipsII::MO_CAPTAB_LO16:
+    TargetKind = MipsMCExpr::MEK_CAPTABLE_LO16;
+    break;
+  case MipsII::MO_CAPTAB_CALL11:
+    TargetKind = MipsMCExpr::MEK_CAPCALL11;
+    break;
+  case MipsII::MO_CAPTAB_CALL20:
+    TargetKind = MipsMCExpr::MEK_CAPCALL20;
+    break;
+  case MipsII::MO_CAPTAB_CALL_HI16:
+    TargetKind = MipsMCExpr::MEK_CAPCALL_HI16;
+    break;
+  case MipsII::MO_CAPTAB_CALL_LO16:
+    TargetKind = MipsMCExpr::MEK_CAPCALL_LO16;
+    break;
+  case MipsII::MO_CAPTABLE_OFF_HI:
+    TargetKind = MipsMCExpr::MEK_HI;
+    IsCapTableOff = true;
+    break;
+  case MipsII::MO_CAPTABLE_OFF_LO:
+    TargetKind = MipsMCExpr::MEK_LO;
+    IsCapTableOff = true;
+    break;
+  case MipsII::MO_CAPTAB_TLSGD_HI16:
+    TargetKind = MipsMCExpr::MEK_CAPTAB_TLSGD_HI16;
+    break;
+  case MipsII::MO_CAPTAB_TLSGD_LO16:
+    TargetKind = MipsMCExpr::MEK_CAPTAB_TLSGD_LO16;
+    break;
+  case MipsII::MO_CAPTAB_TLSLDM_HI16:
+    TargetKind = MipsMCExpr::MEK_CAPTAB_TLSLDM_HI16;
+    break;
+  case MipsII::MO_CAPTAB_TLSLDM_LO16:
+    TargetKind = MipsMCExpr::MEK_CAPTAB_TLSLDM_LO16;
+    break;
+  case MipsII::MO_CAPTAB_TPREL_HI16:
+    TargetKind = MipsMCExpr::MEK_CAPTAB_TPREL_HI16;
+    break;
+  case MipsII::MO_CAPTAB_TPREL_LO16:
+    TargetKind = MipsMCExpr::MEK_CAPTAB_TPREL_LO16;
+    break;
   }
 
   switch (MOTy) {
@@ -167,6 +224,8 @@ MCOperand MipsMCInstLower::LowerSymbolOperand(const MachineOperand &MO,
 
   if (IsGpOff)
     Expr = MipsMCExpr::createGpOff(TargetKind, Expr, *Ctx);
+  else if (IsCapTableOff)
+    Expr = MipsMCExpr::createCaptableOff(TargetKind, Expr, *Ctx);
   else if (TargetKind != MipsMCExpr::MEK_None)
     Expr = MipsMCExpr::create(TargetKind, Expr, *Ctx);
 

@@ -370,6 +370,7 @@ static bool addExceptionArgs(const ArgList &Args, types::ID InputType,
     Arg *ExceptionArg = Args.getLastArg(
         options::OPT_fcxx_exceptions, options::OPT_fno_cxx_exceptions,
         options::OPT_fexceptions, options::OPT_fno_exceptions);
+
     if (ExceptionArg)
       CXXExceptionsEnabled =
           ExceptionArg->getOption().matches(options::OPT_fcxx_exceptions) ||
@@ -1611,7 +1612,9 @@ void Clang::AddARMTargetArgs(const llvm::Triple &Triple, const ArgList &Args,
 
 void Clang::RenderTargetOptions(const llvm::Triple &EffectiveTriple,
                                 const ArgList &Args, bool KernelOrKext,
-                                ArgStringList &CmdArgs) const {
+                                ArgStringList &CmdArgs,
+                                llvm::Reloc::Model RelocationModel,
+                                const JobAction &JA) const {
   const ToolChain &TC = getToolChain();
 
   // Add the target features
@@ -1645,7 +1648,7 @@ void Clang::RenderTargetOptions(const llvm::Triple &EffectiveTriple,
   case llvm::Triple::mipsel:
   case llvm::Triple::mips64:
   case llvm::Triple::mips64el:
-    AddMIPSTargetArgs(Args, CmdArgs);
+    AddMIPSTargetArgs(Args, CmdArgs, RelocationModel == llvm::Reloc::Static, JA);
     break;
 
   case llvm::Triple::ppc:
@@ -1780,6 +1783,36 @@ void Clang::AddAArch64TargetArgs(const ArgList &Args,
   AddUnalignedAccessWarning(CmdArgs);
 }
 
+static void addCheriFlags(const ArgList &Args, ArgStringList &CmdArgs,
+                          StringRef ABIName) {
+  if (Arg *A = Args.getLastArg(options::OPT_cheri, options::OPT_cheri_EQ)) {
+    CmdArgs.push_back("-cheri-size");
+    if (A->getOption().matches(options::OPT_cheri))
+      CmdArgs.push_back("128");
+    else {
+      CmdArgs.push_back(Args.MakeArgString(A->getValue()));
+    }
+  }
+
+  // Add the -cap-table-abi flags (ignore for non-purecap ABIs)
+  if (ABIName == "purecap") {
+    StringRef DefaultCapTableABI = "pcrel";
+    StringRef ChosenCapTableABI = DefaultCapTableABI;
+    if (Arg *A = Args.getLastArg(options::OPT_cheri_cap_table_abi)) {
+      ChosenCapTableABI = A->getValue();
+      A->claim();
+    }
+    CmdArgs.push_back("-mllvm");
+    CmdArgs.push_back(
+        Args.MakeArgString("-cheri-cap-table-abi=" + ChosenCapTableABI));
+    bool MxCapTable =
+        Args.hasFlag(options::OPT_cheri_large_cap_table,
+                     options::OPT_no_cheri_large_cap_table, false);
+    CmdArgs.push_back("-mllvm");
+    CmdArgs.push_back(MxCapTable ? "-mxcaptable=true" : "-mxcaptable=false");
+  }
+}
+
 void Clang::AddLoongArchTargetArgs(const ArgList &Args,
                                    ArgStringList &CmdArgs) const {
   const llvm::Triple &Triple = getToolChain().getTriple();
@@ -1799,12 +1832,16 @@ void Clang::AddLoongArchTargetArgs(const ArgList &Args,
 }
 
 void Clang::AddMIPSTargetArgs(const ArgList &Args,
-                              ArgStringList &CmdArgs) const {
+                              ArgStringList &CmdArgs,
+                              bool IsNonPic, const JobAction &JA) const {
   const Driver &D = getToolChain().getDriver();
   StringRef CPUName;
   StringRef ABIName;
   const llvm::Triple &Triple = getToolChain().getTriple();
   mips::getMipsCPUAndABI(Args, Triple, CPUName, ABIName);
+  if (IsNonPic && ABIName == "purecap" && !isa<PreprocessJobAction>(JA)) {
+    D.Diag(diag::warn_cheri_purecap_nopic_broken);
+  }
 
   CmdArgs.push_back("-target-abi");
   CmdArgs.push_back(ABIName.data());
@@ -1944,6 +1981,8 @@ void Clang::AddMIPSTargetArgs(const ArgList &Args,
       CmdArgs.push_back("-mips-jalr-reloc=0");
     }
   }
+
+  addCheriFlags(Args, CmdArgs, ABIName);
 }
 
 void Clang::AddPPCTargetArgs(const ArgList &Args,
@@ -3354,17 +3393,22 @@ static void RenderSSPOptions(const Driver &D, const ToolChain &TC,
       StackProtectorLevel = LangOptions::SSPStrong;
     else if (A->getOption().matches(options::OPT_fstack_protector_all))
       StackProtectorLevel = LangOptions::SSPReq;
-
     if (EffectiveTriple.isBPF() && StackProtectorLevel != LangOptions::SSPOff) {
       D.Diag(diag::warn_drv_unsupported_option_for_target)
           << A->getSpelling() << EffectiveTriple.getTriple();
       StackProtectorLevel = DefaultStackProtectorLevel;
+    }
+    if (StackProtectorLevel && TC.isCheriPurecap()) {
+      TC.getDriver().Diag(diag::warn_drv_ignored_ssp_purecap)
+          << A->getOption().getName();
+      StackProtectorLevel = LangOptions::SSPOff;
     }
   } else {
     StackProtectorLevel = DefaultStackProtectorLevel;
   }
 
   if (StackProtectorLevel) {
+    assert(!TC.isCheriPurecap() && "Should not enable SSP for purecap");
     CmdArgs.push_back("-stack-protector");
     CmdArgs.push_back(Args.MakeArgString(Twine(StackProtectorLevel)));
   }
@@ -5844,7 +5888,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back(Args.MakeArgString(CPU));
   }
 
-  RenderTargetOptions(Triple, Args, KernelOrKext, CmdArgs);
+  RenderTargetOptions(Triple, Args, KernelOrKext, CmdArgs, RelocationModel, JA);
 
   // Add clang-cl arguments.
   types::ID InputType = Input.getType();
@@ -6043,6 +6087,10 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
 
   Args.AddLastArg(CmdArgs, options::OPT_working_directory);
 
+  Args.AddLastArg(CmdArgs, options::OPT_cheri_bounds_EQ);
+  Args.AddLastArg(CmdArgs, options::OPT_cheri_uintcap_EQ);
+  Args.AddLastArg(CmdArgs, options::OPT_cheri_exact_equality,
+                  options::OPT_no_cheri_exact_equality);
   RenderARCMigrateToolOptions(D, Args, CmdArgs);
 
   // Add preprocessing options like -I, -D, etc. if we are using the
@@ -6492,6 +6540,8 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     Args.addOptOutFlag(CmdArgs, options::OPT_fopenmp_extensions,
                        options::OPT_fno_openmp_extensions);
   }
+
+  Args.AddLastArg(CmdArgs, options::OPT_cheri_compartment_EQ);
 
   // Forward the new driver to change offloading code generation.
   if (Args.hasFlag(options::OPT_offload_new_driver,
@@ -7354,6 +7404,19 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   }
   for (const Arg *A : Args.filtered(options::OPT_mllvm)) {
     A->claim();
+    if (StringRef(A->getValue(0)).starts_with("-cheri-cap-table")) {
+      D.Diag(diag::err_drv_unsupported_opt_with_suggestion)
+          << A->getAsString(Args) << StringRef(A->getValue(0));
+    }
+    if (StringRef(A->getValue(0)).starts_with("-mxcaptable")) {
+      StringRef Replacement = StringRef(A->getValue(0)) == "-mxcaptable=false" ? "-no-mxcaptable" : "-mxcaptable";
+      D.Diag(diag::err_drv_unsupported_opt_with_suggestion)
+          << A->getAsString(Args) << Replacement;
+    }
+    if (StringRef(A->getValue(0)).starts_with("-cheri-cap-tls-abi")) {
+      D.Diag(diag::err_drv_unsupported_opt_with_suggestion)
+          << A->getAsString(Args) << StringRef(A->getValue(0));
+    }
 
     // We translate this by hand to the -cc1 argument, since nightly test uses
     // it and developers have been trained to spell it with -mllvm. Both
@@ -8218,6 +8281,8 @@ void ClangAs::AddMIPSTargetArgs(const ArgList &Args,
 
   CmdArgs.push_back("-target-abi");
   CmdArgs.push_back(ABIName.data());
+
+  addCheriFlags(Args, CmdArgs, ABIName);
 }
 
 void ClangAs::AddX86TargetArgs(const ArgList &Args,

@@ -74,7 +74,7 @@ static const uptr kAllocatorSpace = 0x600000000000ULL;
 static const uptr kMaxAllowedMallocSize = 8UL << 30;
 
 struct AP64 {  // Allocator64 parameters. Deliberately using a short name.
-  static const uptr kSpaceBeg = kAllocatorSpace;
+  static const vaddr kSpaceBeg = kAllocatorSpace;
   static const uptr kSpaceSize = 0x40000000000;  // 4T.
   static const uptr kMetadataSize = sizeof(Metadata);
   typedef DefaultSizeClassMap SizeClassMap;
@@ -105,7 +105,7 @@ typedef SizeClassAllocator64<AP64> PrimaryAllocator;
 static const uptr kMaxAllowedMallocSize = 2UL << 30;  // 2G
 
 struct AP64 {  // Allocator64 parameters. Deliberately using a short name.
-  static const uptr kSpaceBeg = 0x300000000000;
+  static const vaddr kSpaceBeg = 0x300000000000;
   static const uptr kSpaceSize = 0x020000000000;  // 2T.
   static const uptr kMetadataSize = sizeof(Metadata);
   typedef DefaultSizeClassMap SizeClassMap;

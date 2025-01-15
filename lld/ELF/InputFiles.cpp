@@ -528,6 +528,7 @@ template <class ELFT> void ELFFileBase::init(InputFile::Kind k) {
 
   // Initialize trivial attributes.
   const ELFFile<ELFT> &obj = getObj<ELFT>();
+  eflags = obj.getHeader().e_flags; // TODO: remove this
   emachine = obj.getHeader().e_machine;
   osabi = obj.getHeader().e_ident[llvm::ELF::EI_OSABI];
   abiVersion = obj.getHeader().e_ident[llvm::ELF::EI_ABIVERSION];
@@ -652,7 +653,7 @@ template <class ELFT> void ObjFile<ELFT>::parse(bool ignoreComdats) {
         symtab.comdatGroups.try_emplace(CachedHashStringRef(signature), this)
             .second;
     if (keepGroup) {
-      if (config->relocatable)
+      if (config->relocatable && !config->compartment)
         this->sections[i] = createInputSection(
             i, sec, check(obj.getSectionName(sec, shstrtab)));
       continue;
@@ -1305,6 +1306,7 @@ SharedFile::SharedFile(MemoryBufferRef m, StringRef defaultSoName)
     : ELFFileBase(SharedKind, getELFKind(m, ""), m), soName(defaultSoName),
       isNeeded(!config->asNeeded) {}
 
+
 // Parse the version definitions in the object file if present, and return a
 // vector whose nth element contains a pointer to the Elf_Verdef for version
 // identifier n. Version identifiers that are not definitions map to nullptr.
@@ -1446,6 +1448,8 @@ template <class ELFT> void SharedFile::parse() {
       if (val >= this->stringTable.size())
         fatal(toString(this) + ": invalid DT_SONAME entry");
       soName = this->stringTable.data() + val;
+    } else if (dyn.d_tag == DT_MIPS_CHERI_FLAGS) {
+      cheriFlags = dyn.getVal();
     }
   }
 

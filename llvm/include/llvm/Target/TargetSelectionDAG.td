@@ -321,6 +321,19 @@ def SDTAtomicLoad : SDTypeProfile<1, 1, [
   SDTCisInt<0>, SDTCisPtrTy<1>
 ]>;
 
+def SDTAtomicCapLoad : SDTypeProfile<1, 1, [
+  SDTCisPtrTy<0>, SDTCisPtrTy<1>
+]>;
+def SDTAtomicCapStore : SDTypeProfile<0, 2, [
+  SDTCisPtrTy<0>, SDTCisPtrTy<1>
+]>;
+def SDTAtomicCap3 : SDTypeProfile<1, 3, [
+  SDTCisSameAs<0,2>,  SDTCisSameAs<0,3>, SDTCisPtrTy<0>, SDTCisPtrTy<1>
+]>;
+def SDTAtomicCap2 : SDTypeProfile<1, 2, [
+  SDTCisSameAs<0,2>, SDTCisPtrTy<0>, SDTCisPtrTy<1>
+]>;
+
 class SDCallSeqStart<list<SDTypeConstraint> constraints> :
         SDTypeProfile<0, 2, constraints>;
 class SDCallSeqEnd<list<SDTypeConstraint> constraints> :
@@ -467,6 +480,9 @@ def zext       : SDNode<"ISD::ZERO_EXTEND", SDTIntExtendOp>;
 def anyext     : SDNode<"ISD::ANY_EXTEND" , SDTIntExtendOp>;
 def trunc      : SDNode<"ISD::TRUNCATE"   , SDTIntTruncOp>;
 def bitconvert : SDNode<"ISD::BITCAST"    , SDTUnaryOp>;
+def inttoptr   : SDNode<"ISD::INTTOPTR"   , SDTUnaryOp>;
+def ptrtoint   : SDNode<"ISD::PTRTOINT"   , SDTUnaryOp>;
+def cptradd    : SDNode<"ISD::PTRADD"     , SDTPtrAddOp>;
 def addrspacecast : SDNode<"ISD::ADDRSPACECAST", SDTUnaryOp>;
 def freeze     : SDNode<"ISD::FREEZE"     , SDTFreeze>;
 def extractelt : SDNode<"ISD::EXTRACT_VECTOR_ELT", SDTVecExtract>;
@@ -708,6 +724,38 @@ def atomic_load_udec_wrap : SDNode<"ISD::ATOMIC_LOAD_UDEC_WRAP", SDTAtomic2,
 def atomic_load      : SDNode<"ISD::ATOMIC_LOAD", SDTAtomicLoad,
                     [SDNPHasChain, SDNPMayLoad, SDNPMemOperand]>;
 def atomic_store     : SDNode<"ISD::ATOMIC_STORE", SDTAtomicStore,
+                    [SDNPHasChain, SDNPMayStore, SDNPMemOperand]>;
+
+def atomic_cmp_swap_cap_node : SDNode<"ISD::ATOMIC_CMP_SWAP" , SDTAtomicCap3,
+                    [SDNPHasChain, SDNPMayStore, SDNPMayLoad, SDNPMemOperand]>;
+def atomic_load_add_cap_node : SDNode<"ISD::ATOMIC_LOAD_ADD" , SDTAtomicCap2,
+                    [SDNPHasChain, SDNPMayStore, SDNPMayLoad, SDNPMemOperand]>;
+def atomic_swap_cap_node     : SDNode<"ISD::ATOMIC_SWAP", SDTAtomicCap2,
+                    [SDNPHasChain, SDNPMayStore, SDNPMayLoad, SDNPMemOperand]>;
+def atomic_load_sub_cap_node : SDNode<"ISD::ATOMIC_LOAD_SUB" , SDTAtomicCap2,
+                    [SDNPHasChain, SDNPMayStore, SDNPMayLoad, SDNPMemOperand]>;
+def atomic_load_and_cap_node : SDNode<"ISD::ATOMIC_LOAD_AND" , SDTAtomicCap2,
+                    [SDNPHasChain, SDNPMayStore, SDNPMayLoad, SDNPMemOperand]>;
+def atomic_load_clr_cap_node : SDNode<"ISD::ATOMIC_LOAD_CLR" , SDTAtomicCap2,
+                    [SDNPHasChain, SDNPMayStore, SDNPMayLoad, SDNPMemOperand]>;
+def atomic_load_or_cap_node  : SDNode<"ISD::ATOMIC_LOAD_OR" , SDTAtomicCap2,
+                    [SDNPHasChain, SDNPMayStore, SDNPMayLoad, SDNPMemOperand]>;
+def atomic_load_xor_cap_node : SDNode<"ISD::ATOMIC_LOAD_XOR" , SDTAtomicCap2,
+                    [SDNPHasChain, SDNPMayStore, SDNPMayLoad, SDNPMemOperand]>;
+def atomic_load_nand_cap_node: SDNode<"ISD::ATOMIC_LOAD_NAND", SDTAtomicCap2,
+                    [SDNPHasChain, SDNPMayStore, SDNPMayLoad, SDNPMemOperand]>;
+def atomic_load_min_cap_node : SDNode<"ISD::ATOMIC_LOAD_MIN", SDTAtomicCap2,
+                    [SDNPHasChain, SDNPMayStore, SDNPMayLoad, SDNPMemOperand]>;
+def atomic_load_max_cap_node : SDNode<"ISD::ATOMIC_LOAD_MAX", SDTAtomicCap2,
+                    [SDNPHasChain, SDNPMayStore, SDNPMayLoad, SDNPMemOperand]>;
+def atomic_load_umin_cap_node : SDNode<"ISD::ATOMIC_LOAD_UMIN", SDTAtomicCap2,
+                    [SDNPHasChain, SDNPMayStore, SDNPMayLoad, SDNPMemOperand]>;
+def atomic_load_umax_cap_node : SDNode<"ISD::ATOMIC_LOAD_UMAX", SDTAtomicCap2,
+                    [SDNPHasChain, SDNPMayStore, SDNPMayLoad, SDNPMemOperand]>;
+
+def atomic_load_cap_node     : SDNode<"ISD::ATOMIC_LOAD", SDTAtomicCapLoad,
+                    [SDNPHasChain, SDNPMayLoad, SDNPMemOperand]>;
+def atomic_store_cap_node    : SDNode<"ISD::ATOMIC_STORE", SDTAtomicCapStore,
                     [SDNPHasChain, SDNPMayStore, SDNPMemOperand]>;
 
 def masked_st    : SDNode<"ISD::MSTORE",  SDTMaskedStore,
@@ -1936,6 +1984,49 @@ def atomic_store_64 :
   let IsAtomic = true;
   let MemoryVT = i64;
 }
+
+// We can't use let MemoryVT = cPTR here since by the time it runs we have
+// turned it into a c128, etc -> use the C++ predicate below. We also can't
+// set IsAtomic, since that requires MemoryVT, but that only influences the
+// auto-generated code predicate, and ours should suffice.
+multiclass binary_atomic_op_cap<SDNode atomic_op> {
+  def "" : PatFrag<(ops node:$ptr, node:$val),
+                (atomic_op node:$ptr, node:$val), [{
+    return cast<AtomicSDNode>(N)->getMemoryVT().isCapability();
+  }]>;
+
+  defm NAME : binary_atomic_op_ord;
+}
+
+multiclass ternary_atomic_op_cap<SDNode atomic_op> {
+  def "" : PatFrag<(ops node:$ptr, node:$cmp, node:$val),
+                (atomic_op node:$ptr, node:$cmp, node:$val), [{
+    return cast<AtomicSDNode>(N)->getMemoryVT().isCapability();
+  }]>;
+
+  defm NAME : ternary_atomic_op_ord;
+}
+
+defm atomic_load_add_cap  : binary_atomic_op_cap<atomic_load_add_cap_node>;
+defm atomic_swap_cap      : binary_atomic_op_cap<atomic_swap_cap_node>;
+defm atomic_load_sub_cap  : binary_atomic_op_cap<atomic_load_sub_cap_node>;
+defm atomic_load_and_cap  : binary_atomic_op_cap<atomic_load_and_cap_node>;
+defm atomic_load_clr_cap  : binary_atomic_op_cap<atomic_load_clr_cap_node>;
+defm atomic_load_or_cap   : binary_atomic_op_cap<atomic_load_or_cap_node>;
+defm atomic_load_xor_cap  : binary_atomic_op_cap<atomic_load_xor_cap_node>;
+defm atomic_load_nand_cap : binary_atomic_op_cap<atomic_load_nand_cap_node>;
+defm atomic_load_min_cap  : binary_atomic_op_cap<atomic_load_min_cap_node>;
+defm atomic_load_max_cap  : binary_atomic_op_cap<atomic_load_max_cap_node>;
+defm atomic_load_umin_cap : binary_atomic_op_cap<atomic_load_umin_cap_node>;
+defm atomic_load_umax_cap : binary_atomic_op_cap<atomic_load_umax_cap_node>;
+defm atomic_store_cap     : binary_atomic_op_cap<atomic_store_cap_node>;
+defm atomic_cmp_swap_cap  : ternary_atomic_op_cap<atomic_cmp_swap_cap_node>;
+
+def atomic_load_cap :
+  PatFrag<(ops node:$ptr),
+          (atomic_load_cap_node node:$ptr), [{
+  return cast<AtomicSDNode>(N)->getMemoryVT().isCapability();
+}]>;
 
 //===----------------------------------------------------------------------===//
 // Selection DAG Pattern Support.

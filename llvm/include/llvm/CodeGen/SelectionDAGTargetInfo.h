@@ -22,6 +22,7 @@
 
 namespace llvm {
 
+enum class PreserveCheriTags;
 class SelectionDAG;
 
 //===----------------------------------------------------------------------===//
@@ -48,13 +49,11 @@ public:
   /// expanded in a place where calls are not feasible (e.g. within the prologue
   /// for another call). If the target chooses to decline an AlwaysInline
   /// request here, legalize will resort to using simple loads and stores.
-  virtual SDValue EmitTargetCodeForMemcpy(SelectionDAG &DAG, const SDLoc &dl,
-                                          SDValue Chain, SDValue Op1,
-                                          SDValue Op2, SDValue Op3,
-                                          Align Alignment, bool isVolatile,
-                                          bool AlwaysInline,
-                                          MachinePointerInfo DstPtrInfo,
-                                          MachinePointerInfo SrcPtrInfo) const {
+  virtual SDValue EmitTargetCodeForMemcpy(
+      SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Op1,
+      SDValue Op2, SDValue Op3, Align Alignment, bool isVolatile,
+      bool AlwaysInline, PreserveCheriTags PreserveTags,
+      MachinePointerInfo DstPtrInfo, MachinePointerInfo SrcPtrInfo) const {
     return SDValue();
   }
 
@@ -67,7 +66,8 @@ public:
   virtual SDValue EmitTargetCodeForMemmove(
       SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Op1,
       SDValue Op2, SDValue Op3, Align Alignment, bool isVolatile,
-      MachinePointerInfo DstPtrInfo, MachinePointerInfo SrcPtrInfo) const {
+      PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
+      MachinePointerInfo SrcPtrInfo) const {
     return SDValue();
   }
 

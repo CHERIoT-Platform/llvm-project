@@ -6,13 +6,13 @@ entry:
 ; CHECK: t1
 ; CHECK: fcvt
   %argp = alloca ptr, align 8
-  call void @llvm.va_start(ptr %argp)
+  call void @llvm.va_start.p0(ptr %argp)
   %0 = va_arg ptr %argp, i32
   %1 = va_arg ptr %argp, float
-  call void @llvm.va_end(ptr %argp)
+  call void @llvm.va_end.p0(ptr %argp)
   ret float %1
 }
 
-declare void @llvm.va_start(ptr) nounwind
+declare void @llvm.va_start.p0(ptr) nounwind
 
-declare void @llvm.va_end(ptr) nounwind
+declare void @llvm.va_end.p0(ptr) nounwind

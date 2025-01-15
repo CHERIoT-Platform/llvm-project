@@ -19,7 +19,7 @@ def MipsP5600Model : SchedMachineModel {
                                          HasMips64r2, HasMips64r5, HasMips64r6,
                                          IsGP64bit, IsPTR64bit,
                                          InMicroMips, InMips16Mode,
-                                         HasCnMips, HasCnMipsP,
+                                         HasCnMips, HasCnMipsP, IsCHERI,
                                          HasDSP, HasDSPR2, HasMips3D, HasMT,
                                          HasCRC];
 }

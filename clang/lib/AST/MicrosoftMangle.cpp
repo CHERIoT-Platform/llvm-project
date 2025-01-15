@@ -2577,6 +2577,8 @@ void MicrosoftCXXNameMangler::mangleType(const BuiltinType *T, Qualifiers,
     Out << "$$T";
     break;
 
+  case BuiltinType::IntCap:
+  case BuiltinType::UIntCap:
   case BuiltinType::Float16:
     mangleArtificialTagType(TagTypeKind::Struct, "_Float16", {"__clang"});
     break;
@@ -3303,6 +3305,15 @@ void MicrosoftCXXNameMangler::mangleType(const DependentAddressSpaceType *T,
   unsigned DiagID = Diags.getCustomDiagID(
       DiagnosticsEngine::Error,
       "cannot mangle this dependent address space type yet");
+  Diags.Report(Range.getBegin(), DiagID) << Range;
+}
+
+void MicrosoftCXXNameMangler::mangleType(const DependentPointerType *T,
+                                         Qualifiers, SourceRange Range) {
+  DiagnosticsEngine &Diags = Context.getDiags();
+  unsigned DiagID = Diags.getCustomDiagID(
+      DiagnosticsEngine::Error,
+      "cannot mangle this dependent pointer type yet");
   Diags.Report(Range.getBegin(), DiagID) << Range;
 }
 

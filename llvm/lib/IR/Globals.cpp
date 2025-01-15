@@ -442,6 +442,8 @@ GlobalVariable::GlobalVariable(Module &M, Type *Ty, bool constant,
                          ? *AddressSpace
                          : M.getDataLayout().getDefaultGlobalsAddressSpace(),
                      isExternallyInitialized) {
+  // XXXAR: uncomment this to find cap-table errors
+  // assert(AddressSpace == 200);
   if (Before)
     Before->getParent()->insertGlobalVariable(Before->getIterator(), this);
   else

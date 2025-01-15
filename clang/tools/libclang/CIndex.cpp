@@ -1914,6 +1914,7 @@ DEFAULT_TYPELOC_IMPL(IncompleteArray, ArrayType)
 DEFAULT_TYPELOC_IMPL(VariableArray, ArrayType)
 DEFAULT_TYPELOC_IMPL(DependentSizedArray, ArrayType)
 DEFAULT_TYPELOC_IMPL(DependentAddressSpace, Type)
+DEFAULT_TYPELOC_IMPL(DependentPointer, Type)
 DEFAULT_TYPELOC_IMPL(DependentVector, Type)
 DEFAULT_TYPELOC_IMPL(DependentSizedExtVector, Type)
 DEFAULT_TYPELOC_IMPL(Vector, Type)
@@ -4720,7 +4721,7 @@ int clang_TargetInfo_getPointerWidth(CXTargetInfo TargetInfo) {
          "Unexpected unusable translation unit in TargetInfo");
 
   ASTUnit *CXXUnit = cxtu::getASTUnit(CTUnit);
-  return CXXUnit->getASTContext().getTargetInfo().getMaxPointerWidth();
+  return CXXUnit->getASTContext().getTargetInfo().getMaxPointerRange();
 }
 
 void clang_TargetInfo_dispose(CXTargetInfo TargetInfo) {

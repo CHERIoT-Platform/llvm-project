@@ -48,6 +48,10 @@ int main(int, char**)
 {
     typedef std::chrono::high_resolution_clock Clock;
     typedef std::chrono::duration<double, std::milli> ms;
+    ms Tolerance = ms(5);
+#if defined(TEST_HAS_SANITIZERS) || TEST_SLOW_HOST()
+    Tolerance *= 4;
+#endif
     {
         typedef int T;
         std::promise<T> p;
@@ -60,7 +64,7 @@ int main(int, char**)
         f.wait();
         Clock::time_point t1 = Clock::now();
         assert(f.valid());
-        assert(t1-t0 < ms(5));
+        assert(t1-t0 < Tolerance);
     }
     {
         typedef int& T;
@@ -74,7 +78,7 @@ int main(int, char**)
         f.wait();
         Clock::time_point t1 = Clock::now();
         assert(f.valid());
-        assert(t1-t0 < ms(5));
+        assert(t1-t0 < Tolerance);
     }
     {
         typedef void T;
@@ -88,7 +92,7 @@ int main(int, char**)
         f.wait();
         Clock::time_point t1 = Clock::now();
         assert(f.valid());
-        assert(t1-t0 < ms(5));
+        assert(t1-t0 < Tolerance);
     }
 
   return 0;

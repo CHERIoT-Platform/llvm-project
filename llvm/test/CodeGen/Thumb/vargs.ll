@@ -11,7 +11,7 @@ entry:
 ; CHECK: sub sp, #[[IMM:[0-9]+]]
 ; CHECK: push
         %va = alloca ptr, align 4               ; <ptr> [#uses=4]
-        call void @llvm.va_start( ptr %va )
+        call void @llvm.va_start.p0( ptr %va )
         br label %bb
 
 bb:             ; preds = %bb, %entry
@@ -26,7 +26,7 @@ bb:             ; preds = %bb, %entry
 bb7:            ; preds = %bb
         %tmp.upgrd.3 = load i32, ptr %tmp          ; <i32> [#uses=1]
         %tmp10 = call i32 (ptr, ...) @printf( ptr @str, i32 %tmp.upgrd.3 )                ; <i32> [#uses=0]
-        call void @llvm.va_end( ptr %va )
+        call void @llvm.va_end.p0( ptr %va )
         ret void
 
 ; The return sequence should pop the lr to r0-3, recover the stack space used to
@@ -37,8 +37,8 @@ bb7:            ; preds = %bb
 ; CHECK: bx [[POP_REG]]
 }
 
-declare void @llvm.va_start(ptr)
+declare void @llvm.va_start.p0(ptr)
 
 declare i32 @printf(ptr, ...)
 
-declare void @llvm.va_end(ptr)
+declare void @llvm.va_end.p0(ptr)

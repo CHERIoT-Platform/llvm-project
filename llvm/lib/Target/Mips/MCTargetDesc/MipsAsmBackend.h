@@ -72,6 +72,7 @@ public:
                              const MCSubtargetInfo *STI) override;
 
   bool isMicroMips(const MCSymbol *Sym) const override;
+
 }; // class MipsAsmBackend
 
 } // namespace

@@ -737,12 +737,31 @@ MCSymbol *EHStreamer::emitExceptionTable() {
             Asm->OutStreamer->AddComment("    has no landing pad");
           Asm->emitCallSiteValue(0, CallSiteEncoding);
         } else {
+          const bool IsPurecap =
+              Asm->OutContext.getAsmInfo()->isCheriPurecapABI();
+          if (IsPurecap) {
+            // In order to avoid having to pad to capability alignment and use
+            // a full capability for the no landing pad case, we emit a 0xc
+            // value (encoding-dependent) here to indicate that there is a valid
+            // capability at the next capability-aligned location.
+            Asm->OutStreamer->AddComment("(landing pad is a capability)");
+            Asm->emitCallSiteValue(0xc, CallSiteEncoding);
+          }
+
           if (VerboseAsm)
             Asm->OutStreamer->AddComment(Twine("    jumps to ") +
                                          S.LPad->LandingPadLabel->getName());
-          Asm->emitCallSiteOffset(S.LPad->LandingPadLabel,
-                                  LandingPadRange->FragmentBeginLabel,
-                                  CallSiteEncoding);
+          if (IsPurecap) {
+            // For purecap we currently emit a capability relocation for the
+            // landing pad target since the saved PC value will be an immutable
+            // sentry capability which does not allow adding an offset.
+            Asm->emitCallSiteCheriCapability(
+                S.LPad->LandingPadLabel, LandingPadRange->FragmentBeginLabel);
+          } else {
+            Asm->emitCallSiteOffset(S.LPad->LandingPadLabel,
+                                    LandingPadRange->FragmentBeginLabel,
+                                    CallSiteEncoding);
+          }
         }
 
         // Offset of the first associated action record, relative to the start

@@ -127,9 +127,10 @@ void GetThreadStackTopAndBottom(bool at_initialization, uptr *stack_top,
 
     // Get stacksize from rlimit, but clip it so that it does not overlap
     // with other mappings.
-    uptr stacksize = rl.rlim_cur;
-    if (stacksize > segment.end - prev_end)
-      stacksize = segment.end - prev_end;
+    usize stacksize = rl.rlim_cur;
+    if (stacksize > (char *)segment.end - (char *)prev_end)
+     
+      stacksize = (char *)segment.end - (char *)prev_end;
     // When running with unlimited stack size, we still want to set some limit.
     // The unlimited stack size is caused by 'ulimit -s unlimited'.
     // Also, for some reason, GNU make spawns subprocesses with unlimited stack.
@@ -139,7 +140,7 @@ void GetThreadStackTopAndBottom(bool at_initialization, uptr *stack_top,
     *stack_bottom = segment.end - stacksize;
     return;
   }
-  uptr stacksize = 0;
+  usize stacksize = 0;
   void *stackaddr = nullptr;
 #  if SANITIZER_SOLARIS
   stack_t ss;
@@ -175,7 +176,7 @@ __attribute__((unused)) static bool GetLibcVersion(int *major, int *minor,
                                                    int *patch) {
 #  ifdef _CS_GNU_LIBC_VERSION
   char buf[64];
-  uptr len = confstr(_CS_GNU_LIBC_VERSION, buf, sizeof(buf));
+  usize len = confstr(_CS_GNU_LIBC_VERSION, buf, sizeof(buf));
   if (len >= sizeof(buf))
     return false;
   buf[len] = 0;
@@ -224,10 +225,10 @@ void InitTlsSize() {}
 #  if (SANITIZER_FREEBSD || SANITIZER_LINUX || SANITIZER_SOLARIS) && \
       !SANITIZER_ANDROID && !SANITIZER_GO
 // sizeof(struct pthread) from glibc.
-static atomic_uintptr_t thread_descriptor_size;
+static atomic_size_t thread_descriptor_size;
 
-static uptr ThreadDescriptorSizeFallback() {
-  uptr val = 0;
+static usize ThreadDescriptorSizeFallback() {
+  usize val = 0;
 #    if defined(__x86_64__) || defined(__i386__) || defined(__arm__)
   int major;
   int minor;
@@ -294,8 +295,8 @@ static uptr ThreadDescriptorSizeFallback() {
   return val;
 }
 
-uptr ThreadDescriptorSize() {
-  uptr val = atomic_load_relaxed(&thread_descriptor_size);
+usize ThreadDescriptorSize() {
+  usize val = atomic_load_relaxed(&thread_descriptor_size);
   if (val)
     return val;
   // _thread_db_sizeof_pthread is a GLIBC_PRIVATE symbol that is exported in
@@ -315,16 +316,16 @@ uptr ThreadDescriptorSize() {
 // head structure. It lies before the static tls blocks.
 static uptr TlsPreTcbSize() {
 #      if defined(__mips__)
-  const uptr kTcbHead = 16;  // sizeof (tcbhead_t)
+  const usize kTcbHead = 16;  // sizeof (tcbhead_t)
 #      elif defined(__powerpc64__)
-  const uptr kTcbHead = 88;  // sizeof (tcbhead_t)
+  const usize kTcbHead = 88;  // sizeof (tcbhead_t)
 #      elif SANITIZER_RISCV64
-  const uptr kTcbHead = 16;  // sizeof (tcbhead_t)
+  const usize kTcbHead = 16;  // sizeof (tcbhead_t)
 #      elif SANITIZER_LOONGARCH64
-  const uptr kTcbHead = 16;  // sizeof (tcbhead_t)
+  const usize kTcbHead = 16;  // sizeof (tcbhead_t)
 #      endif
-  const uptr kTlsAlign = 16;
-  const uptr kTlsPreTcbSize =
+  const usize kTlsAlign = 16;
+  const usize kTlsPreTcbSize =
       RoundUpTo(ThreadDescriptorSize() + kTcbHead, kTlsAlign);
   return kTlsPreTcbSize;
 }
@@ -332,7 +333,8 @@ static uptr TlsPreTcbSize() {
 
 namespace {
 struct TlsBlock {
-  uptr begin, end, align;
+  uptr begin, end;
+  size_t align;
   size_t tls_modid;
   bool operator<(const TlsBlock &rhs) const { return begin < rhs.begin; }
 };
@@ -409,16 +411,16 @@ static int CollectStaticTlsBlocks(struct dl_phdr_info *info, size_t size,
   return 0;
 }
 
-__attribute__((unused)) static void GetStaticTlsBoundary(uptr *addr, uptr *size,
-                                                         uptr *align) {
+__attribute__((unused)) static void GetStaticTlsBoundary(uptr *addr, usize *size,
+                                                         usize *align) {
   InternalMmapVector<TlsBlock> ranges;
   dl_iterate_phdr(CollectStaticTlsBlocks, &ranges);
-  uptr len = ranges.size();
+  usize len = ranges.size();
   Sort(ranges.begin(), len);
   // Find the range with tls_modid == main_tls_modid. For glibc, because
   // libc.so uses PT_TLS, this module is guaranteed to exist and is one of
   // the initially loaded modules.
-  uptr one = 0;
+  usize one = 0;
   while (one != len && ranges[one].tls_modid != main_tls_modid) ++one;
   if (one == len) {
     // This may happen with musl if no module uses PT_TLS.
@@ -430,11 +432,11 @@ __attribute__((unused)) static void GetStaticTlsBoundary(uptr *addr, uptr *size,
   // Find the maximum consecutive ranges. We consider two modules consecutive if
   // the gap is smaller than the alignment of the latter range. The dynamic
   // loader places static TLS blocks this way not to waste space.
-  uptr l = one;
+  usize l = one;
   *align = ranges[l].align;
   while (l != 0 && ranges[l].begin < ranges[l - 1].end + ranges[l].align)
     *align = Max(*align, ranges[--l].align);
-  uptr r = one + 1;
+  usize r = one + 1;
   while (r != len && ranges[r].begin < ranges[r - 1].end + ranges[r].align)
     *align = Max(*align, ranges[r++].align);
   *addr = ranges[l].begin;
@@ -456,6 +458,7 @@ static struct tls_tcb *ThreadSelfTlsTcb() {
 
 uptr ThreadSelf() { return (uptr)ThreadSelfTlsTcb()->tcb_pthread; }
 
+#if SANITIZER_NETBSD || (SANITIZER_FREEBSD && defined(__mips__))
 int GetSizeFromHdr(struct dl_phdr_info *info, size_t size, void *data) {
   const Elf_Phdr *hdr = info->dlpi_phdr;
   const Elf_Phdr *last_hdr = hdr + info->dlpi_phnum;
@@ -477,15 +480,14 @@ extern "C" SANITIZER_WEAK_ATTRIBUTE void __libc_get_static_tls_bounds(void **,
 #  endif
 
 #  if !SANITIZER_GO
-static void GetTls(uptr *addr, uptr *size) {
+static void GetTls(uptr *addr, usize *size) {
 #    if SANITIZER_ANDROID
   if (&__libc_get_static_tls_bounds) {
     void *start_addr;
     void *end_addr;
     __libc_get_static_tls_bounds(&start_addr, &end_addr);
     *addr = reinterpret_cast<uptr>(start_addr);
-    *size =
-        reinterpret_cast<uptr>(end_addr) - reinterpret_cast<uptr>(start_addr);
+    *size = static_cast<char *>(end_addr) - static_cast<char *>(start_addr);
   } else {
     *addr = 0;
     *size = 0;
@@ -522,7 +524,7 @@ static void GetTls(uptr *addr, uptr *size) {
   *addr = tp - pre_tcb_size;
   *size = g_tls_size + pre_tcb_size;
 #    elif SANITIZER_FREEBSD || SANITIZER_LINUX || SANITIZER_SOLARIS
-  uptr align;
+  usize align;
   GetStaticTlsBoundary(addr, size, &align);
 #      if defined(__x86_64__) || defined(__i386__) || defined(__s390__) || \
           defined(__sparc__)
@@ -589,10 +591,11 @@ static void GetTls(uptr *addr, uptr *size) {
 #  endif
 
 #  if !SANITIZER_GO
-uptr GetTlsSize() {
+usize GetTlsSize() {
 #    if SANITIZER_FREEBSD || SANITIZER_LINUX || SANITIZER_NETBSD || \
         SANITIZER_SOLARIS
-  uptr addr, size;
+  uptr addr;
+  usize size;
   GetTls(&addr, &size);
   return size;
 #    else
@@ -601,8 +604,8 @@ uptr GetTlsSize() {
 }
 #  endif
 
-void GetThreadStackAndTls(bool main, uptr *stk_addr, uptr *stk_size,
-                          uptr *tls_addr, uptr *tls_size) {
+void GetThreadStackAndTls(bool main, uptr *stk_addr, usize *stk_size,
+                          uptr *tls_addr, usize *tls_size) {
 #  if SANITIZER_GO
   // Stub implementation for Go.
   *stk_addr = *stk_size = *tls_addr = *tls_size = 0;
@@ -612,7 +615,7 @@ void GetThreadStackAndTls(bool main, uptr *stk_addr, uptr *stk_size,
   uptr stack_top, stack_bottom;
   GetThreadStackTopAndBottom(main, &stack_top, &stack_bottom);
   *stk_addr = stack_bottom;
-  *stk_size = stack_top - stack_bottom;
+  *stk_size = (char *)stack_top - (char *)stack_bottom;
 
   if (!main) {
     // If stack and tls intersect, make them non-intersecting.
@@ -743,14 +746,14 @@ void ListOfModules::fallbackInit() {
 // getrusage does not give us the current RSS, only the max RSS.
 // Still, this is better than nothing if /proc/self/statm is not available
 // for some reason, e.g. due to a sandbox.
-static uptr GetRSSFromGetrusage() {
+static usize GetRSSFromGetrusage() {
   struct rusage usage;
   if (getrusage(RUSAGE_SELF, &usage))  // Failed, probably due to a sandbox.
     return 0;
   return usage.ru_maxrss << 10;  // ru_maxrss is in Kb.
 }
 
-uptr GetRSS() {
+usize GetRSS() {
   if (!common_flags()->can_use_proc_maps_statm)
     return GetRSSFromGetrusage();
   fd_t fd = OpenFile("/proc/self/statm", RdOnly);
@@ -782,7 +785,7 @@ u32 GetNumberOfCPUs() {
 #  if SANITIZER_FREEBSD || SANITIZER_NETBSD
   u32 ncpu;
   int req[2];
-  uptr len = sizeof(ncpu);
+  usize len = sizeof(ncpu);
   req[0] = CTL_HW;
   req[1] = HW_NCPU;
   CHECK_EQ(internal_sysctl(req, 2, &ncpu, &len, NULL, 0), 0);
@@ -793,12 +796,12 @@ u32 GetNumberOfCPUs() {
   // NDKs.
   // This code doesn't work on AArch64 because internal_getdents makes use of
   // the 64bit getdents syscall, but cpu_set_t seems to always exist on AArch64.
-  uptr fd = internal_open("/sys/devices/system/cpu", O_RDONLY | O_DIRECTORY);
+  fd_t fd = internal_open("/sys/devices/system/cpu", O_RDONLY | O_DIRECTORY);
   if (internal_iserror(fd))
     return 0;
   InternalMmapVector<u8> buffer(4096);
-  uptr bytes_read = buffer.size();
-  uptr n_cpus = 0;
+  usize bytes_read = buffer.size();
+  usize n_cpus = 0;
   u8 *d_type;
   struct linux_dirent *entry = (struct linux_dirent *)&buffer[bytes_read];
   while (true) {
@@ -949,7 +952,7 @@ void ReExec() {
       KERN_PROC_PATHNAME,
   };
   char path[400];
-  uptr len;
+  usize len;
 
   len = sizeof(path);
   if (internal_sysctl(name, ARRAY_SIZE(name), path, &len, NULL, 0) != -1)

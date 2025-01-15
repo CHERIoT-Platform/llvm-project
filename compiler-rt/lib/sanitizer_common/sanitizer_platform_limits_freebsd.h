@@ -151,7 +151,7 @@ extern unsigned struct_statvfs_sz;
 
 struct __sanitizer_iovec {
   void *iov_base;
-  uptr iov_len;
+  usize iov_len;
 };
 
 struct __sanitizer_ifaddrs {
@@ -370,9 +370,9 @@ struct __sanitizer_pollfd {
 typedef unsigned __sanitizer_nfds_t;
 
 struct __sanitizer_glob_t {
-  uptr gl_pathc;
-  uptr gl_matchc;
-  uptr gl_offs;
+  usize gl_pathc;
+  usize gl_matchc;
+  usize gl_offs;
   int gl_flags;
   char **gl_pathv;
   int (*gl_errfunc)(const char *, int);
@@ -392,11 +392,11 @@ extern unsigned path_max;
 extern int struct_ttyent_sz;
 
 struct __sanitizer_wordexp_t {
-  uptr we_wordc;
+  usize we_wordc;
   char **we_wordv;
-  uptr we_offs;
+  usize we_offs;
   char *we_strings;
-  uptr we_nbytes;
+  usize we_nbytes;
 };
 
 typedef void __sanitizer_FILE;

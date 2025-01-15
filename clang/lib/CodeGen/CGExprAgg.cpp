@@ -929,6 +929,10 @@ void AggExprEmitter::VisitCastExpr(CastExpr *E) {
   case CK_CopyAndAutoreleaseBlockObject:
   case CK_BuiltinFnToFnPtr:
   case CK_ZeroToOCLOpaqueType:
+  case CK_CHERICapabilityToPointer:
+  case CK_PointerToCHERICapability:
+  case CK_CHERICapabilityToOffset:
+  case CK_CHERICapabilityToAddress:
   case CK_MatrixCast:
 
   case CK_IntToOCLSampler:
@@ -1449,6 +1453,11 @@ static bool castPreservesZero(const CastExpr *CE) {
     // Reinterpreting integers as pointers and vice versa.
   case CK_IntegralToPointer:
   case CK_PointerToIntegral:
+    // Converting between CHERI capabilities and integers
+  case CK_CHERICapabilityToAddress:
+  case CK_CHERICapabilityToOffset:
+  case CK_CHERICapabilityToPointer:
+  case CK_PointerToCHERICapability:
     // Language extensions.
   case CK_VectorSplat:
   case CK_MatrixCast:
@@ -2210,7 +2219,8 @@ void CodeGenFunction::EmitAggregateCopy(LValue Dest, LValue Src, QualType Ty,
     }
   }
 
-  auto Inst = Builder.CreateMemCpy(DestPtr, SrcPtr, SizeVal, isVolatile);
+  auto Inst = Builder.CreateMemCpy(DestPtr, SrcPtr, SizeVal,
+                                   llvm::PreserveCheriTags::TODO, isVolatile);
 
   // Determine the metadata to describe the position of any padding in this
   // memcpy, as well as the TBAA tags for the members of the struct, in case

@@ -45,6 +45,8 @@ class TargetRegisterClass;
         MachineMemOperand::Flags Flags = MachineMemOperand::MONone,
         unsigned *Fast = nullptr) const override;
 
+    uint32_t getExceptionPointerAS() const override;
+
     SDValue LowerOperation(SDValue Op, SelectionDAG &DAG) const override;
 
     SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;
@@ -122,6 +124,30 @@ class TargetRegisterClass;
     /// Emit the FEXP2_D_1 pseudo instructions.
     MachineBasicBlock *emitFEXP2_D_1(MachineInstr &MI,
                                      MachineBasicBlock *BB) const;
+    /// Emit the clwc1 pseudo instructions.
+    MachineBasicBlock *emitCapFloat32Load(MachineInstr &MI,
+                                     MachineBasicBlock *BB) const;
+    /// Emit the cldc1 pseudo instructions.
+    MachineBasicBlock *emitCapFloat64Load(MachineInstr &MI,
+                                     MachineBasicBlock *BB) const;
+    /// Emit the cswc1 pseudo instructions.
+    MachineBasicBlock *emitCapFloat32Store(MachineInstr &MI,
+                                     MachineBasicBlock *BB) const;
+    /// Emit the csdc1 pseudo instructions.
+    MachineBasicBlock *emitCapFloat64Store(MachineInstr &MI,
+                                     MachineBasicBlock *BB) const;
+    /// Expand a capability-select into a compare and branch
+    MachineBasicBlock *emitCapSelect(MachineInstr &MI,
+                                     MachineBasicBlock *BB) const;
+    /// Expand a capability equality into exact or inexact comparison
+    /// depending on the current mode.
+    MachineBasicBlock *emitCapEqual(MachineInstr &MI,
+                                    MachineBasicBlock *BB) const;
+    /// Expand a capability non-equality into exact or inexact
+    /// comparison depending on the current mode.
+    MachineBasicBlock *emitCapNotEqual(MachineInstr &MI,
+                                       MachineBasicBlock *BB) const;
+
     /// Emit the FILL_FW pseudo instruction
     MachineBasicBlock *emitLD_F16_PSEUDO(MachineInstr &MI,
                                    MachineBasicBlock *BB) const;

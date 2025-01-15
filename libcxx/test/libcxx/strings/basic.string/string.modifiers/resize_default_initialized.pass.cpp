@@ -29,7 +29,7 @@ TEST_CONSTEXPR_CXX20 void test_buffer_usage() {
     unsigned used_size = buff_size - 16;
     S s;
     s.__resize_default_init(buff_size);
-    write_c_str(&s[0], used_size);
+    write_c_str(s.data(), used_size);
     assert(s.size() == buff_size);
     assert(std::char_traits<char>().length(s.data()) == used_size);
     s.__resize_default_init(used_size);

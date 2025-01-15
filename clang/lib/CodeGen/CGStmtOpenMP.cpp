@@ -6105,7 +6105,8 @@ static std::pair<bool, RValue> emitOMPAtomicRMW(CodeGenFunction &CGF, LValue X,
        (Update.getScalarVal()->getType() !=
         X.getAddress(CGF).getElementType())) ||
       !Context.getTargetInfo().hasBuiltinAtomic(
-          Context.getTypeSize(X.getType()), Context.toBits(X.getAlignment())))
+          Context.getTypeSize(X.getType()), Context.toBits(X.getAlignment()),
+          /*IsCheriCapability=*/false))
     return std::make_pair(false, RValue::get(nullptr));
 
   auto &&CheckAtomicSupport = [&CGF](llvm::Type *T, BinaryOperatorKind BO) {

@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "assembly.h"
+#include "__libunwind_config.h"
 
 #define FROM_0_TO_15 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
 #define FROM_16_TO_31 16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
@@ -136,6 +137,103 @@ DEFINE_LIBUNWIND_FUNCTION(__libunwind_Registers_x86_64_jumpto)
   pop    %rcx
   jmpq   *%rcx
 
+#elif defined(__mips64) && defined(__CHERI_PURE_CAPABILITY__)
+.set noreorder
+
+DEFINE_LIBUNWIND_FUNCTION(_ZN9libunwind20Registers_mips_cheri6jumptoEv)
+#
+# void libunwind::Registers_mips_cheri::jumpto()
+#
+# On entry:
+#  thread_state pointer is in $c3
+#
+#define RESTORE_GPR(x) cld $x, $zero, (x*8)($c3)
+
+  cld	$t0, $zero, (64*8)($c3)
+  mthi	$t0
+  cld	$t0, $zero, (65*8)($c3)
+  mtlo	$t0
+
+  RESTORE_GPR(1)
+  RESTORE_GPR(2)
+  RESTORE_GPR(3)
+  RESTORE_GPR(4)
+  RESTORE_GPR(5)
+  RESTORE_GPR(6)
+  RESTORE_GPR(7)
+  RESTORE_GPR(8)
+  RESTORE_GPR(9)
+  RESTORE_GPR(10)
+  RESTORE_GPR(11)
+  RESTORE_GPR(12)
+  RESTORE_GPR(13)
+  RESTORE_GPR(14)
+  RESTORE_GPR(15)
+  RESTORE_GPR(16)
+  RESTORE_GPR(17)
+  RESTORE_GPR(18)
+  RESTORE_GPR(19)
+  RESTORE_GPR(20)
+  RESTORE_GPR(21)
+  RESTORE_GPR(22)
+  RESTORE_GPR(23)
+  RESTORE_GPR(24)
+  RESTORE_GPR(25)
+  RESTORE_GPR(26)
+  RESTORE_GPR(27)
+  RESTORE_GPR(28)
+  RESTORE_GPR(29)
+  RESTORE_GPR(30)
+  RESTORE_GPR(31)
+
+#ifndef __SIZEOF_UINTCAP__
+#error __SIZEOF_UINTCAP__ must be defined!
+#endif
+  CIncOffset $c3, $c3, _LIBUNWIND_CAPREG_START*8
+
+#define RESTORE_CAP_REG(reg, idx) clc $c ## reg, $zero, ((idx)*(__SIZEOF_UINTCAP__))($c3)
+#define RESTORE_CAP(x) RESTORE_CAP_REG(x, x)
+  // Use $c17 as the temporary when restoring $ddc since it is loaded last
+  RESTORE_CAP_REG(17, 0)
+  csetdefault $c17
+  RESTORE_CAP(1)
+  RESTORE_CAP(2)
+  RESTORE_CAP(4)
+  RESTORE_CAP(5)
+  RESTORE_CAP(6)
+  RESTORE_CAP(7)
+  RESTORE_CAP(8)
+  RESTORE_CAP(9)
+  RESTORE_CAP(10)
+  RESTORE_CAP(11)
+  RESTORE_CAP(12)
+  RESTORE_CAP(13)
+  RESTORE_CAP(14)
+  RESTORE_CAP(15)
+  RESTORE_CAP(16)
+  RESTORE_CAP(18)
+  RESTORE_CAP(19)
+  RESTORE_CAP(20)
+  RESTORE_CAP(21)
+  RESTORE_CAP(22)
+  RESTORE_CAP(23)
+  RESTORE_CAP(24)
+  RESTORE_CAP(25)
+  RESTORE_CAP(26)
+  // Also restore 27-31 even though they should be null
+  .set cheri_sysregs_accessible
+  RESTORE_CAP(27)
+  RESTORE_CAP(28)
+  RESTORE_CAP(29)
+  RESTORE_CAP(30)
+  RESTORE_CAP(31)
+
+  // Load the new PC into $cra
+  RESTORE_CAP_REG(17, 32)
+  // Jump to $ca, load $c3 in the delay slot
+  cjr $c17
+  RESTORE_CAP(3)
+END_LIBUNWIND_FUNCTION(_ZN9libunwind20Registers_mips_cheri6jumptoEv)
 
 #elif defined(__powerpc64__)
 
@@ -637,6 +735,68 @@ Lnovec:
 //
   .p2align 2
 DEFINE_LIBUNWIND_FUNCTION(__libunwind_Registers_arm64_jumpto)
+#ifdef __CHERI_PURE_CAPABILITY__
+#ifdef _LIBUNWIND_HAS_CHERI_LIB_C18N
+  // Preserve the argument in a callee-saved register instead of pushing it onto
+  // the stack because stack unwinding will switch the stack.
+  mov    c19, c0
+  ldr    c0,      [c19, #0x1f0]  // Pass the target untrusted stack pointer
+  ldr    c1,      [c19, #0x210]  // Pass the target trusted stack pointer
+  bl     dl_c18n_unwind_trusted_stack
+  mov    c0, c19
+#endif
+
+  // skip restore of c0,c1 for now
+  ldp    c2, c3,  [c0, #0x020]
+  ldp    c4, c5,  [c0, #0x040]
+  ldp    c6, c7,  [c0, #0x060]
+  ldp    c8, c9,  [c0, #0x080]
+  ldp    c10,c11, [c0, #0x0a0]
+  ldp    c12,c13, [c0, #0x0c0]
+  ldp    c14,c15, [c0, #0x0e0]
+  // c16 and c17 were clobbered by the call into the unwinder, so no point in
+  // restoring them.
+  ldp    c18,c19, [c0, #0x120]
+  ldp    c20,c21, [c0, #0x140]
+  ldp    c22,c23, [c0, #0x160]
+  ldp    c24,c25, [c0, #0x180]
+  ldp    c26,c27, [c0, #0x1a0]
+  ldp    c28,c29, [c0, #0x1c0]
+  ldr    c30,     [c0, #0x200]  // restore pcc into clr
+
+  add    c16,c0,  #0x230
+  ldp    d0, d1,  [c16, #0x000]
+  ldp    d2, d3,  [c16, #0x010]
+  ldp    d4, d5,  [c16, #0x020]
+  ldp    d6, d7,  [c16, #0x030]
+  ldp    d8, d9,  [c16, #0x040]
+  ldp    d10,d11, [c16, #0x050]
+  ldp    d12,d13, [c16, #0x060]
+  ldp    d14,d15, [c16, #0x070]
+  ldp    d16,d17, [c16, #0x080]
+  ldp    d18,d19, [c16, #0x090]
+  ldp    d20,d21, [c16, #0x0a0]
+  ldp    d22,d23, [c16, #0x0b0]
+  ldp    d24,d25, [c16, #0x0c0]
+  ldp    d26,d27, [c16, #0x0d0]
+  ldp    d28,d29, [c16, #0x0e0]
+  ldr    d30,     [c16, #0x0f0]
+  ldr    d31,     [c16, #0x0f8]
+
+  // Finally, restore csp. This must be done after the the last read from the
+  // context struct, because it is allocated on the stack, and an exception
+  // could clobber the de-allocated portion of the stack after csp has been
+  // restored.
+  ldr    c16,     [c0, #0x1f0]
+  ldp    c0, c1,  [c0, #0x000]  // restore c0,c1
+  mov    csp,c16                // restore csp
+#ifdef __ARM_MORELLO_PURECAP_BENCHMARK_ABI
+  and    x30, x30, #~1
+  ret    x30                    // jump to pc
+#else
+  ret                           // jump to pcc
+#endif
+#else
   // skip restore of x0,x1 for now
   ldp    x2, x3,  [x0, #0x010]
   ldp    x4, x5,  [x0, #0x020]
@@ -681,6 +841,7 @@ DEFINE_LIBUNWIND_FUNCTION(__libunwind_Registers_arm64_jumpto)
   ldp    x0, x1,  [x0, #0x000]  // restore x0,x1
   mov    sp,x16                 // restore sp
   ret    x30                    // jump to pc
+#endif
 
 #elif defined(__arm__) && !defined(__APPLE__)
 
@@ -1149,6 +1310,22 @@ DEFINE_LIBUNWIND_FUNCTION(_ZN9libunwind15Registers_sparc6jumptoEv)
 
 #elif defined(__riscv)
 
+.macro restore_fpr num, ctxreg
+#ifdef __CHERI_PURE_CAPABILITY__
+  cfld   f\num, (RISCV_FOFFSET + RISCV_FSIZE * \num)(c\ctxreg)
+#else
+  FLOAD  f\num, (RISCV_FOFFSET + RISCV_FSIZE * \num)(\ctxreg)
+#endif
+.endm
+
+.macro restore_gpr num, ctxreg
+#ifdef __CHERI_PURE_CAPABILITY__
+  clc   c\num, (__SIZEOF_CHERI_CAPABILITY__ * \num)(c\ctxreg)
+#else
+  ILOAD x\num, (RISCV_ISIZE * \num)(\ctxreg)
+#endif
+.endm
+
 //
 // void libunwind::Registers_riscv::jumpto()
 //
@@ -1159,22 +1336,31 @@ DEFINE_LIBUNWIND_FUNCTION(_ZN9libunwind15Registers_sparc6jumptoEv)
 DEFINE_LIBUNWIND_FUNCTION(_ZN9libunwind15Registers_riscv6jumptoEv)
 # if defined(__riscv_flen)
   .irp i,FROM_0_TO_31
-    FLOAD f\i, (RISCV_FOFFSET + RISCV_FSIZE * \i)(a0)
+    restore_fpr \i, a0
   .endr
 # endif
 
   // x0 is zero
+#ifdef __CHERI_PURE_CAPABILITY__
+  clc   c1, (__SIZEOF_CHERI_CAPABILITY__ * 0)(ca0) // restore pc into ra
+#else
   ILOAD    x1, (RISCV_ISIZE * 0)(a0) // restore pc into ra
+#endif
   .irp i,2,3,4,5,6,7,8,9
-    ILOAD x\i, (RISCV_ISIZE * \i)(a0)
+    restore_gpr \i, a0
   .endr
   // skip a0 for now
   .irp i,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
-    ILOAD x\i, (RISCV_ISIZE * \i)(a0)
+    restore_gpr \i, a0
   .endr
-  ILOAD    x10, (RISCV_ISIZE * 10)(a0)   // restore a0
+  restore_gpr 10, a0  // restore a0
 
-  ret                       // jump to ra
+#ifdef __CHERI_PURE_CAPABILITY__
+  cret          // jump to cra
+#else
+  ret           // jump to ra
+#endif
+END_LIBUNWIND_FUNCTION(_ZN9libunwind15Registers_riscv6jumptoEv)
 
 #elif defined(__s390x__)
 

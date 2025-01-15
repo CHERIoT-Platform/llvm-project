@@ -8,14 +8,14 @@ entry:
 	%pi = alloca %struct.point		; <ptr> [#uses=0]
 	%args = alloca ptr		; <ptr> [#uses=2]
 	%"alloca point" = bitcast i32 0 to i32		; <i32> [#uses=0]
-	call void @llvm.va_start( ptr %args )
-	call void @llvm.va_end( ptr %args )
+	call void @llvm.va_start.p0( ptr %args )
+	call void @llvm.va_end.p0( ptr %args )
 	ret i32 undef
 }
 
-declare void @llvm.va_start(ptr) nounwind
+declare void @llvm.va_start.p0(ptr) nounwind
 
-declare void @llvm.va_end(ptr) nounwind
+declare void @llvm.va_end.p0(ptr) nounwind
 
 define i32 @main() {
 entry:

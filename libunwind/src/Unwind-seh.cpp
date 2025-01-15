@@ -261,7 +261,7 @@ unwind_phase2_forced(unw_context_t *uc,
       unw_word_t offset;
       if ((__unw_get_proc_name(&cursor2, functionBuf, sizeof(functionBuf),
                                &offset) != UNW_ESUCCESS) ||
-          (frameInfo.start_ip + offset > frameInfo.end_ip))
+          (frameInfo.start_ip + (size_t)offset > frameInfo.end_ip))
         functionName = ".anonymous.";
       _LIBUNWIND_TRACE_UNWINDING(
           "unwind_phase2_forced(ex_ojb=%p): start_ip=0x%" PRIxPTR

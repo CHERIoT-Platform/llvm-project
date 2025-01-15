@@ -107,7 +107,7 @@ extern unsigned struct_statvfs64_sz;
 
 struct __sanitizer_iovec {
   void *iov_base;
-  uptr iov_len;
+  usize iov_len;
 };
 
 struct __sanitizer_ifaddrs {
@@ -346,9 +346,9 @@ extern const int wordexp_wrde_dooffs;
 extern unsigned path_max;
 
 struct __sanitizer_wordexp_t {
-  uptr we_wordc;
+  usize we_wordc;
   char **we_wordv;
-  uptr we_offs;
+  usize we_offs;
   char **we_wordp;
   int we_wordn;
 };

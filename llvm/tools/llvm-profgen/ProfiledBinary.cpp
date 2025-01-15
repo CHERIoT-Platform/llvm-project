@@ -23,6 +23,7 @@
 
 #define DEBUG_TYPE "load-binary"
 
+
 using namespace llvm;
 using namespace sampleprof;
 
@@ -598,11 +599,11 @@ void ProfiledBinary::setUpDisassembler(const ELFObjectFileBase *Obj) {
   std::string TripleName = TheTriple.getTriple();
   StringRef FileName = Obj->getFileName();
 
-  MRI.reset(TheTarget->createMCRegInfo(TripleName));
+  MCTargetOptions MCOptions;
+  MRI.reset(TheTarget->createMCRegInfo(TripleName, MCOptions));
   if (!MRI)
     exitWithError("no register info for target " + TripleName, FileName);
 
-  MCTargetOptions MCOptions;
   AsmInfo.reset(TheTarget->createMCAsmInfo(*MRI, TripleName, MCOptions));
   if (!AsmInfo)
     exitWithError("no assembly info for target " + TripleName, FileName);

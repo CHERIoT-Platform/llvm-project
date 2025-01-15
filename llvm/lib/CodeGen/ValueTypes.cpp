@@ -9,6 +9,7 @@
 #include "llvm/CodeGen/ValueTypes.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Cheri.h"
 #include "llvm/IR/Type.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -167,6 +168,8 @@ std::string EVT::getEVTString() const {
              getVectorElementType().getEVTString();
     if (isInteger())
       return "i" + utostr(getSizeInBits());
+    if (isCapability())
+      return "c" + utostr(getSizeInBits());
     if (isFloatingPoint())
       return "f" + utostr(getSizeInBits());
     llvm_unreachable("Invalid EVT!");
@@ -571,6 +574,12 @@ Type *EVT::getTypeForEVT(LLVMContext &Context) const {
   case MVT::nxv8f64:
     return ScalableVectorType::get(Type::getDoubleTy(Context), 8);
   case MVT::Metadata: return Type::getMetadataTy(Context);
+  case MVT::c64:
+    return SizedCapabilityType::get(Context, 64);
+  case MVT::c128:
+    return SizedCapabilityType::get(Context, 128);
+  case MVT::c256:
+    return SizedCapabilityType::get(Context, 256);
   }
   // clang-format on
 }
@@ -588,6 +597,8 @@ MVT MVT::getVT(Type *Ty, bool HandleUnknown){
     return MVT::isVoid;
   case Type::IntegerTyID:
     return getIntegerVT(cast<IntegerType>(Ty)->getBitWidth());
+  case Type::SizedCapabilityTyID:
+    return getCapabilityVT(cast<SizedCapabilityType>(Ty)->getBitWidth());
   case Type::HalfTyID:      return MVT(MVT::f16);
   case Type::BFloatTyID:    return MVT(MVT::bf16);
   case Type::FloatTyID:     return MVT(MVT::f32);
@@ -607,7 +618,11 @@ MVT MVT::getVT(Type *Ty, bool HandleUnknown){
   case Type::X86_AMXTyID:   return MVT(MVT::x86amx);
   case Type::FP128TyID:     return MVT(MVT::f128);
   case Type::PPC_FP128TyID: return MVT(MVT::ppcf128);
-  case Type::PointerTyID:   return MVT(MVT::iPTR);
+  case Type::PointerTyID: {
+    // NB: Removing this upstream, so ensure we haven't made it worse
+    assert(!isCheriPointer(Ty, nullptr));
+    return MVT(MVT::iPTR);
+  }
   case Type::FixedVectorTyID:
   case Type::ScalableVectorTyID: {
     VectorType *VTy = cast<VectorType>(Ty);

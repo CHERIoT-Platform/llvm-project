@@ -20,7 +20,7 @@ template <class Container>
 TEST_CONSTEXPR_CXX14 void assert_contiguous(Container const& c)
 {
     for (std::size_t i = 0; i < c.size(); ++i)
-        assert(*(c.begin() + i) == *(std::addressof(*c.begin()) + i));
+        assert(*(c.begin() + i) == *(c.data() + i));
 }
 
 TEST_CONSTEXPR_CXX17 bool tests()

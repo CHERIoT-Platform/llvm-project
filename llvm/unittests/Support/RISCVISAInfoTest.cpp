@@ -762,6 +762,7 @@ R"(All available -march extensions for RISC-V
     svinval             1.0
     svnapot             1.0
     svpbmt              1.0
+    xcheri              0.0
     xcvalu              1.0
     xcvbi               1.0
     xcvbitmanip         1.0

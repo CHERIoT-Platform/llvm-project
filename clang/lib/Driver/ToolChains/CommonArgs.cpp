@@ -1835,6 +1835,15 @@ tools::ParsePICArgs(const ToolChain &ToolChain, const ArgList &Args) {
     }
   }
 
+  // Pure-capability code defaults to PIC
+  // XXX: this will only work with the explicit triple, not if the ABI name
+  if (Triple.getEnvironment() == llvm::Triple::CheriPurecap)
+    PIC = true;
+  if (Triple.isMIPS())
+    if (Arg *A = Args.getLastArg(options::OPT_mabi_EQ))
+      if (StringRef(A->getValue()) == "purecap")
+        PIC = true;
+
   // The last argument relating to either PIC or PIE wins, and no
   // other argument is used. If the last argument is any flavor of the
   // '-fno-...' arguments, both PIC and PIE are disabled. Any PIE

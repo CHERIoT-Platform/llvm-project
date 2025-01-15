@@ -446,7 +446,7 @@ void SANITIZER_CDECL __sanitizer_finish_switch_fiber(void *fake_stack_save,
 // Get full module name and calculate pc offset within it.
 // Returns 1 if pc belongs to some module, 0 if module was not found.
 int SANITIZER_CDECL __sanitizer_get_module_and_offset_for_pc(
-    void *pc, char *module_path, size_t module_path_len, void **pc_offset);
+    uintptr_t pc, char *module_path, size_t module_path_len, size_t *pc_offset);
 
 #ifdef __cplusplus
 } // extern "C"

@@ -660,6 +660,9 @@ static bool FixupInvocation(CompilerInvocation &Invocation,
           << A->getSpelling() << T.getTriple();
   }
 
+  if (Arg *A = Args.getLastArg(OPT_cheri_compartment_EQ))
+    LangOpts.CheriCompartmentName = A->getValue();
+
   return Diags.getNumErrors() == NumErrorsBefore;
 }
 
@@ -2264,11 +2267,18 @@ static bool parseShowColorsArgs(const ArgList &Args, bool DefaultColor) {
   // but default to off in cc1, needing an explicit OPT_fdiagnostics_color.
   // Support both clang's -f[no-]color-diagnostics and gcc's
   // -f[no-]diagnostics-colors[=never|always|auto].
-  enum {
+  enum ShowColorsEnum {
     Colors_On,
     Colors_Off,
     Colors_Auto
   } ShowColors = DefaultColor ? Colors_Auto : Colors_Off;
+  if (ShowColors == Colors_Auto) {
+    const char* ShowColorsEnv = std::getenv("CLANG_FORCE_COLOR_DIAGNOSTICS");
+    ShowColors = llvm::StringSwitch<ShowColorsEnum>(ShowColorsEnv)
+            .Cases("no", "0", Colors_Off)
+            .Cases("yes", "always", "1", Colors_On)
+            .Default(Colors_Auto);
+  }
   for (auto *A : Args) {
     const Option &O = A->getOption();
     if (O.matches(options::OPT_fcolor_diagnostics)) {
@@ -3651,6 +3661,9 @@ void CompilerInvocationBase::GenerateLangArgs(const LangOptions &Opts,
 
   if (!Opts.RandstructSeed.empty())
     GenerateArg(Consumer, OPT_frandomize_layout_seed_EQ, Opts.RandstructSeed);
+
+  if (Opts.CheriCompartmentName != std::string())
+    GenerateArg(Consumer, OPT_cheri_compartment_EQ, Opts.CheriCompartmentName);
 }
 
 bool CompilerInvocation::ParseLangArgs(LangOptions &Opts, ArgList &Args,
@@ -4542,6 +4555,44 @@ static bool ParseTargetArgs(TargetOptions &Opts, ArgList &Args,
 #include "clang/Driver/Options.inc"
 #undef TARGET_OPTION_WITH_MARSHALLING
 
+  llvm::Triple T(Opts.Triple);
+  if (T.isMIPS()) {
+    if (Opts.ABI != "purecap" && T.getEnvironment() == llvm::Triple::CheriPurecap) {
+      // Can't use -mabi=64 with -purecap triple
+      if (Opts.ABI.empty())
+        Opts.ABI = "purecap";
+      else
+        Diags.Report(diag::err_drv_abi_incompatible_with_triple) << Opts.ABI << T.str();
+    } else if (Opts.ABI == "purecap") {
+      if (T.getEnvironment() == llvm::Triple::UnknownEnvironment) {
+        T.setEnvironment(llvm::Triple::CheriPurecap);
+      } else if (T.getEnvironment() != llvm::Triple::CheriPurecap) {
+        // e.g. explicit gnuabin32 triple with -mabi=purecap
+        Diags.Report(diag::err_drv_abi_incompatible_with_triple) << Opts.ABI << T.str();
+      }
+    }
+  }
+
+  if (const Arg *A = Args.getLastArg(OPT_cheri_size)) {
+    // NOTE: Opts.Features is cleared after this so we need to add it to FeaturesAsWritten!
+    StringRef CheriCPUName = llvm::StringSwitch<StringRef>(A->getValue())
+        .Case("64", "+cheri64")
+        .Case("128", "+cheri128")
+        .Case("256", "+cheri256")
+        .Default("");
+    if (CheriCPUName.empty())
+      Diags.Report(diag::err_drv_invalid_value) << A->getAsString(Args) << A->getValue();
+    Opts.FeaturesAsWritten.push_back(CheriCPUName.str());
+    A->claim();
+  }
+  // TODO: If we decide to keep this flag, it should probably be done in
+  //  the frontend instead of the backend.
+  if (Args.hasFlag(options::OPT_cheri_exact_equality,
+                   options::OPT_no_cheri_exact_equality, false)) {
+    if (!llvm::is_contained(Opts.FeaturesAsWritten, "+cheri-exact-equals"))
+      Opts.FeaturesAsWritten.push_back("+cheri-exact-equals");
+  }
+
   if (Arg *A = Args.getLastArg(options::OPT_target_sdk_version_EQ)) {
     llvm::VersionTuple Version;
     if (Version.tryParse(A->getValue()))
@@ -4631,6 +4682,14 @@ bool CompilerInvocation::CreateFromArgsImpl(
 
   ParseCodeGenArgs(Res.getCodeGenOpts(), Args, DashX, Diags, T,
                    Res.getFrontendOpts().OutputFile, LangOpts);
+
+  // TODO: this diagnostic can probably be removed...
+  const bool IsPurecapFreeBSD =
+      T.isOSFreeBSD() && Res.getTargetOpts().ABI == "purecap";
+  // CheriBSD purecap RTLD does not support .ctors for shared libraries/pie
+  // binaries so we report a warning when not using .init_array
+  if (!Res.getCodeGenOpts().UseInitArray && IsPurecapFreeBSD)
+    Diags.Report(diag::warn_cheri_purecap_init_array_required);
 
   // FIXME: Override value name discarding when asan or msan is used because the
   // backend passes depend on the name of the alloca in order to print out

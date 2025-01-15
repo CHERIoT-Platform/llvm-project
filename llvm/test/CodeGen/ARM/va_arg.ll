@@ -21,9 +21,9 @@ define i64 @test1(i32 %i, ...) nounwind optsize {
 ; CHECK-NEXT:    bx lr
 entry:
   %g = alloca ptr, align 4
-  call void @llvm.va_start(ptr %g)
+  call void @llvm.va_start.p0(ptr %g)
   %0 = va_arg ptr %g, i64
-  call void @llvm.va_end(ptr %g)
+  call void @llvm.va_end.p0(ptr %g)
   ret i64 %0
 }
 
@@ -45,15 +45,15 @@ define double @test2(i32 %a, ptr %b, ...) nounwind optsize {
 ; CHECK-NEXT:    bx lr
 entry:
   %ap = alloca ptr, align 4                       ; <ptr> [#uses=3]
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %0 = va_arg ptr %ap, i32                       ; <i32> [#uses=0]
   store i32 %0, ptr %b
   %1 = va_arg ptr %ap, double                    ; <double> [#uses=1]
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
   ret double %1
 }
 
 
-declare void @llvm.va_start(ptr) nounwind
+declare void @llvm.va_start.p0(ptr) nounwind
 
-declare void @llvm.va_end(ptr) nounwind
+declare void @llvm.va_end.p0(ptr) nounwind

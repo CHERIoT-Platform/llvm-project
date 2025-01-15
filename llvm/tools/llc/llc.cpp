@@ -52,6 +52,7 @@
 #include "llvm/Support/WithColor.h"
 #include "llvm/Target/TargetLoweringObjectFile.h"
 #include "llvm/Target/TargetMachine.h"
+#include "llvm/Transforms/Utils/CheriSetBounds.h"
 #include "llvm/TargetParser/Host.h"
 #include "llvm/TargetParser/SubtargetFeature.h"
 #include "llvm/TargetParser/Triple.h"
@@ -710,11 +711,16 @@ static int compileModule(char **argv, LLVMContext &Context) {
       }
       TPC.setInitialized();
       PM.add(createPrintMIRPass(*OS));
+      if (cheri::ShouldCollectCSetBoundsStats) {
+        PM.add(createLogCheriSetBoundsPass());
+      }
       PM.add(createFreeMachineFunctionPass());
     } else if (Target->addPassesToEmitFile(
                    PM, *OS, DwoOut ? &DwoOut->os() : nullptr,
                    codegen::getFileType(), NoVerify, MMIWP)) {
       reportError("target does not support generation of this file type");
+    } else if (cheri::ShouldCollectCSetBoundsStats) {
+      PM.add(createLogCheriSetBoundsPass());
     }
 
     const_cast<TargetLoweringObjectFile *>(LLVMTM.getObjFileLowering())
@@ -770,6 +776,19 @@ static int compileModule(char **argv, LLVMContext &Context) {
   Out->keep();
   if (DwoOut)
     DwoOut->keep();
+
+  if (cheri::ShouldCollectCSetBoundsStats) {
+    auto StatsFile = llvm::cheri::StatsOutputFile::open(
+        cheri::CSetBoundsStatistics::outputFile(),
+        [](StringRef StatsFile, const std::error_code &EC) {
+          errs() << "Couldn't open CSetBounds stats file " << StatsFile << ": " << EC.message();
+        },
+        [](StringRef StatsFile, const std::error_code &EC) {
+          errs() << "Couldn't lock CSetBounds stats file " << StatsFile << ": " << EC.message();
+        });
+    if (StatsFile)
+      llvm::cheri::CSetBoundsStats->print(*StatsFile, InputFilename);
+  }
 
   return 0;
 }

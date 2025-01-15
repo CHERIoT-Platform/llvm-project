@@ -5,13 +5,13 @@ target triple = "powerpc64-unknown-linux-gnu"
 define i32 @intvaarg(i32 %a, ...) nounwind {
 entry:
   %va = alloca ptr, align 8
-  call void @llvm.va_start(ptr %va)
+  call void @llvm.va_start.p0(ptr %va)
   %0 = va_arg ptr %va, i32
   %sub = sub nsw i32 %a, %0
   ret i32 %sub
 }
 
-declare void @llvm.va_start(ptr) nounwind
+declare void @llvm.va_start.p0(ptr) nounwind
 
 ; CHECK: @intvaarg
 ; Make sure that the va pointer is incremented by 8 (not 4).

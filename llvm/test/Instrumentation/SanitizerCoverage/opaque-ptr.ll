@@ -7,6 +7,7 @@
 ; CHECK: @[[__START___SANCOV_GUARDS:[a-zA-Z0-9_$"\\.-]+]] = extern_weak hidden global i32
 ; CHECK: @[[__STOP___SANCOV_GUARDS:[a-zA-Z0-9_$"\\.-]+]] = extern_weak hidden global i32
 ; CHECK: @[[LLVM_GLOBAL_CTORS:[a-zA-Z0-9_$"\\.-]+]] = appending global [1 x { i32, ptr, ptr }] [{ i32, ptr, ptr } { i32 2, ptr @sancov.module_ctor_trace_pc_guard, ptr @sancov.module_ctor_trace_pc_guard }]
+; CHECK: @[[LLVM_USED:[a-zA-Z0-9_$"\\.-]+]] = appending global [1 x ptr] [ptr @sancov.module_ctor_trace_pc_guard], section "llvm.metadata"
 ; CHECK: @[[LLVM_COMPILER_USED:[a-zA-Z0-9_$"\\.-]+]] = appending global [1 x ptr] [ptr @__sancov_gen_], section "llvm.metadata"
 ;.
 define void @foo(ptr %a) {
@@ -18,5 +19,5 @@ define void @foo(ptr %a) {
 }
 ;.
 ; CHECK: attributes #[[ATTR0:[0-9]+]] = { nounwind }
-; CHECK: attributes #[[ATTR1]] = { nomerge }
+; CHECK: attributes #[[ATTR1:[0-9]+]] = { nomerge }
 ;.

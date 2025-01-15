@@ -223,7 +223,7 @@ class Addr2LineProcess final : public SymbolizerProcess {
     CHECK_LE(i, kArgVMax);
   }
 
-  bool ReachedEndOfOutput(const char *buffer, uptr length) const override;
+  bool ReachedEndOfOutput(const char *buffer, usize length) const override;
 
   bool ReadFromSymbolizer() override {
     if (!SymbolizerProcess::ReadFromSymbolizer())
@@ -253,7 +253,7 @@ class Addr2LineProcess final : public SymbolizerProcess {
 const char Addr2LineProcess::output_terminator_[] = "??\n??:0\n";
 
 bool Addr2LineProcess::ReachedEndOfOutput(const char *buffer,
-                                          uptr length) const {
+                                          usize length) const {
   const size_t kTerminatorLen = sizeof(output_terminator_) - 1;
   // Skip, if we read just kTerminatorLen bytes, because Addr2Line output
   // should consist at least of two pairs of lines:
@@ -274,7 +274,7 @@ class Addr2LinePool final : public SymbolizerTool {
     addr2line_pool_.reserve(16);
   }
 
-  bool SymbolizePC(uptr addr, SymbolizedStack *stack) override {
+  bool SymbolizePC(vaddr addr, SymbolizedStack *stack) override {
     if (const char *buf =
             SendCommand(stack->info.module, stack->info.module_offset)) {
       ParseSymbolizePCOutput(buf, stack);
@@ -283,7 +283,7 @@ class Addr2LinePool final : public SymbolizerTool {
     return false;
   }
 
-  bool SymbolizeData(uptr addr, DataInfo *info) override {
+  bool SymbolizeData(vaddr addr, DataInfo *info) override {
     return false;
   }
 

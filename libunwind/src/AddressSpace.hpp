@@ -23,6 +23,9 @@
 #include "EHHeaderParser.hpp"
 #include "Registers.hpp"
 
+// We can no longer include C++ headers so duplicate std::min() here
+template<typename T> T uw_min(T a, T b) { return a < b ? a : b; }
+
 #ifndef _LIBUNWIND_USE_DLADDR
   #if !(defined(_LIBUNWIND_IS_BAREMETAL) || defined(_WIN32) || defined(_AIX))
     #define _LIBUNWIND_USE_DLADDR 1
@@ -135,11 +138,23 @@ struct UnwindInfoSections {
   size_t          text_segment_length;
 #endif
 #if defined(_LIBUNWIND_SUPPORT_DWARF_UNWIND)
-  uintptr_t       dwarf_section;
+private:
+  uintptr_t       __dwarf_section;
+public:
+  void set_dwarf_section(uintptr_t value) {
+      __dwarf_section = assert_pointer_in_bounds(value);
+  }
+  uintptr_t dwarf_section() const { return __dwarf_section; }
   size_t          dwarf_section_length;
 #endif
 #if defined(_LIBUNWIND_SUPPORT_DWARF_INDEX)
-  uintptr_t       dwarf_index_section;
+private:
+  uintptr_t       __dwarf_index_section;
+public:
+  void set_dwarf_index_section(uintptr_t value) {
+      __dwarf_index_section = assert_pointer_in_bounds(value);
+  }
+  uintptr_t dwarf_index_section() const { return __dwarf_index_section; }
   size_t          dwarf_index_section_length;
 #endif
 #if defined(_LIBUNWIND_SUPPORT_COMPACT_UNWIND)
@@ -152,7 +167,6 @@ struct UnwindInfoSections {
 #endif
 };
 
-
 /// LocalAddressSpace is used as a template parameter to UnwindCursor when
 /// unwinding a thread in the same process.  The wrappers compile away,
 /// making local unwinds fast.
@@ -160,36 +174,158 @@ class _LIBUNWIND_HIDDEN LocalAddressSpace {
 public:
   typedef uintptr_t pint_t;
   typedef intptr_t  sint_t;
-  uint8_t         get8(pint_t addr) {
-    uint8_t val;
-    memcpy(&val, (void *)addr, sizeof(val));
+#ifndef __CHERI__
+  typedef libunwind::fake_capability_t capability_t;
+#else
+  typedef ::uintcap_t capability_t;
+#endif
+#ifdef __CHERI_PURE_CAPABILITY__
+  typedef uint64_t addr_t;
+#elif defined(__LP64__)
+  typedef uint64_t addr_t;
+#else
+  typedef uint32_t addr_t;
+#endif
+  // A thin wrapper around uintptr_t.
+  // This is used to ensure that return addresses are used correctly for CHERI
+  // where they might be sealed entry ("sentry") capabilities that cannot be
+  // modified.
+  class LocalProgramCounter {
+    void *value;
+#ifdef __CHERI_PURE_CAPABILITY__
+    // the actual pc might be a sentry but libunwind needs to modify it
+    // sometimes
+    uint64_t addend = 0;
+    LocalProgramCounter(void *v, uint64_t a) : value(v), addend(a) {}
+#endif
+
+  public:
+    explicit LocalProgramCounter() : value(nullptr) {}
+    explicit LocalProgramCounter(uintptr_t v) : value((void *)v) {
+#ifdef __CHERI_PURE_CAPABILITY__
+      if (!isNull() && !isValid())
+        _LIBUNWIND_ABORT_FMT("Untagged non-null value " _LIBUNWIND_FMT_PTR
+                             " used as program counter",
+                             value);
+#endif
+    }
+#ifdef __CHERI_PURE_CAPABILITY__
+    // Ensure that we don't accidentally create untagged values from integers
+    LocalProgramCounter(uint64_t) = delete;
+    LocalProgramCounter(int64_t) = delete;
+#endif
+    bool isImmutable() const {
+#ifdef __CHERI_PURE_CAPABILITY__
+      return __builtin_cheri_sealed_get(value);
+#else
+      return false;
+#endif
+    }
+    LocalProgramCounter assertInBounds(addr_t addr) const {
+#ifdef __CHERI_PURE_CAPABILITY__
+      if (!__builtin_cheri_tag_get(value)) {
+        _LIBUNWIND_ABORT_FMT("Untagged value " _LIBUNWIND_FMT_PTR
+                             " used as program counter",
+                             value);
+      }
+      // We might not be able to modify value -> inspect values instead of
+      // adding and the checking if it is in bounds
+      addr_t base = __builtin_cheri_base_get(value);
+      size_t length = __builtin_cheri_length_get(value);
+      if (addr < base || addr >= base + length) {
+        _LIBUNWIND_ABORT_FMT("Address 0x%jx is outside program counter "
+                             "value " _LIBUNWIND_FMT_PTR,
+                             (uintmax_t)addr, value);
+      }
+      if (isImmutable()) {
+        // For sentries we have to modify the addend instead of creating a new
+        // capability from value.
+        return LocalProgramCounter(value,
+                                   addr - __builtin_cheri_address_get(value));
+      } else {
+        return LocalProgramCounter(__builtin_cheri_address_set(value, addr), 0);
+      }
+#else
+      return LocalProgramCounter(addr);
+#endif
+    }
+    bool isNull() const { return value == nullptr; }
+    bool isValid() const {
+#if defined(__CHERI_PURE_CAPABILITY__) &&                                      \
+    !defined(__ARM_MORELLO_PURECAP_BENCHMARK_ABI)
+      return __builtin_cheri_tag_get(value);
+#else
+      return !isNull();
+#endif
+    }
+    // explicit operator void*() { return value; }
+    // explicit operator char*() { return (char*)value; }
+    // explicit operator pint_t() { return (pint_t)value; }
+    // Note: this ignores the added so should only be used for printf
+    struct ImmutablePointer {};
+    ImmutablePointer *get() const { return (ImmutablePointer *)value; }
+    addr_t address() const {
+#ifdef __CHERI_PURE_CAPABILITY__
+      return __builtin_cheri_address_get(value) + addend;
+#else
+      return (addr_t)(uintptr_t)value;
+#endif
+    }
+    LocalProgramCounter &operator--() {
+#ifdef __CHERI_PURE_CAPABILITY__
+      if (isImmutable()) {
+        addend--;
+        return *this;
+      }
+#else
+      value = (void *)((uintptr_t)value - 1);
+#endif
+      return *this;
+    }
+    LocalProgramCounter &operator&=(addr_t a) {
+#ifdef __CHERI_PURE_CAPABILITY__
+      if (isImmutable()) {
+        addr_t new_addr = address() & a;
+        addend = new_addr - address();
+        return *this;
+      }
+#else
+      value = (void *)((uintptr_t)value & a);
+#endif
+      return *this;
+    }
+  };
+  typedef LocalProgramCounter pc_t;
+
+  template<typename T>
+  inline T get(pint_t addr) {
+    T val;
+#ifdef __CHERI_PURE_CAPABILITY__
+    assert(__builtin_cheri_tag_get((void*)addr) && "Value should be tagged!");
+#endif
+    memcpy(&val, (T*)(void *)addr, sizeof(val));
     return val;
+  }
+  uint8_t         get8(pint_t addr) {
+    return get<uint8_t>(addr);
   }
   uint16_t         get16(pint_t addr) {
-    uint16_t val;
-    memcpy(&val, (void *)addr, sizeof(val));
-    return val;
+    return get<uint16_t>(addr);
   }
   uint32_t         get32(pint_t addr) {
-    uint32_t val;
-    memcpy(&val, (void *)addr, sizeof(val));
-    return val;
+    return get<uint32_t>(addr);
   }
   uint64_t         get64(pint_t addr) {
-    uint64_t val;
-    memcpy(&val, (void *)addr, sizeof(val));
-    return val;
+    return get<uint64_t>(addr);
   }
   double           getDouble(pint_t addr) {
-    double val;
-    memcpy(&val, (void *)addr, sizeof(val));
-    return val;
+    return get<double>(addr);
   }
   v128             getVector(pint_t addr) {
-    v128 val;
-    memcpy(&val, (void *)addr, sizeof(val));
-    return val;
+    return get<v128>(addr);
   }
+  capability_t     getCapability(pint_t addr) { return get<capability_t>(addr); }
+  __attribute__((always_inline))
   uintptr_t       getP(pint_t addr);
   uint64_t        getRegister(pint_t addr);
   static uint64_t getULEB128(pint_t &addr, pint_t end);
@@ -197,20 +333,76 @@ public:
 
   pint_t getEncodedP(pint_t &addr, pint_t end, uint8_t encoding,
                      pint_t datarelBase = 0);
-  bool findFunctionName(pint_t addr, char *buf, size_t bufLen,
-                        unw_word_t *offset);
-  bool findUnwindSections(pint_t targetAddr, UnwindInfoSections &info);
-  bool findOtherFDE(pint_t targetAddr, pint_t &fde);
+  bool findFunctionName(pc_t ip, char *buf, size_t bufLen, unw_word_t *offset);
+  bool findUnwindSections(pc_t targetAddr, UnwindInfoSections &info);
+  bool findOtherFDE(addr_t targetAddr, pint_t &fde);
 
   static LocalAddressSpace sThisAddressSpace;
+
+  static pint_t to_pint_t(capability_t cap) {
+#ifdef __CHERI_PURE_CAPABILITY__
+    return (uintcap_t)cap;
+#elif defined(__CHERI__)
+    return (__cheri_addr pint_t)cap;
+#else
+    pint_t result;
+    memcpy(&result, &cap, uw_min(sizeof(result), sizeof(cap)));
+    return result;
+#endif
+  }
+  static capability_t to_capability_t(pint_t pint) {
+#ifdef __CHERI__
+    return (uintcap_t)pint;
+#else
+    capability_t result;
+    memcpy(&result, &pint, uw_min(sizeof(result), sizeof(pint)));
+    return result;
+#endif
+  }
 };
 
-inline uintptr_t LocalAddressSpace::getP(pint_t addr) {
-#if __SIZEOF_POINTER__ == 8
-  return get64(addr);
+#ifdef __CHERI_PURE_CAPABILITY__
+#define _pint_to_addr(val) (__builtin_cheri_address_get((void*)val))
+#define PC_T_PINT_T_COMPARATORS(op)                                            \
+  inline bool operator op(LocalAddressSpace::pint_t lhs,                       \
+                          const LocalAddressSpace::pc_t &rhs) {                \
+    return _pint_to_addr(lhs) op rhs.address();                                \
+  }                                                                            \
+  inline bool operator op(const LocalAddressSpace::pc_t &lhs,                  \
+                          LocalAddressSpace::pint_t rhs) {                     \
+    return lhs.address() op _pint_to_addr(rhs);                                \
+  }
 #else
-  return get32(addr);
+#define PC_T_PINT_T_COMPARATORS(op) /* nothing */
+#define _pint_to_addr(val) ((LocalAddressSpace::addr_t)val)
 #endif
+
+// Comparison operators for pc_t:
+// Note: we ignore the tag in these comparisons
+#define PC_T_COMPARATOR(op)                                                    \
+  PC_T_PINT_T_COMPARATORS(op)                                                  \
+  inline bool operator op(LocalAddressSpace::addr_t lhs,                       \
+                          const LocalAddressSpace::pc_t &rhs) {                \
+    return lhs op rhs.address();                                               \
+  }                                                                            \
+  inline bool operator op(const LocalAddressSpace::pc_t &lhs,                  \
+                          LocalAddressSpace::addr_t rhs) {                     \
+    return lhs.address() op rhs;                                               \
+  }                                                                            \
+  inline bool operator op(const LocalAddressSpace::pc_t &lhs,                  \
+                          const LocalAddressSpace::pc_t &rhs) {                \
+    return lhs.address() op rhs.address();                                     \
+  }
+
+PC_T_COMPARATOR(<)
+PC_T_COMPARATOR(<=)
+PC_T_COMPARATOR(>=)
+PC_T_COMPARATOR(>)
+PC_T_COMPARATOR(==)
+PC_T_COMPARATOR(!=)
+
+inline uintptr_t LocalAddressSpace::getP(pint_t addr) {
+  return get<uintptr_t>(addr);
 }
 
 inline uint64_t LocalAddressSpace::getRegister(pint_t addr) {
@@ -267,6 +459,12 @@ inline int64_t LocalAddressSpace::getSLEB128(pint_t &addr, pint_t end) {
   return (int64_t)result;
 }
 
+template<typename T1, typename T2>
+constexpr int check_same_type() {
+  static_assert(__is_same(T1, T2), "Should be same type! Update CheriBSD!");
+  return 0;
+}
+
 inline LocalAddressSpace::pint_t
 LocalAddressSpace::getEncodedP(pint_t &addr, pint_t end, uint8_t encoding,
                                pint_t datarelBase) {
@@ -277,7 +475,7 @@ LocalAddressSpace::getEncodedP(pint_t &addr, pint_t end, uint8_t encoding,
   // first get value
   switch (encoding & 0x0F) {
   case DW_EH_PE_ptr:
-    result = getP(addr);
+    result = assert_pointer_in_bounds(getP(addr));
     p += sizeof(pint_t);
     addr = (pint_t) p;
     break;
@@ -329,7 +527,9 @@ LocalAddressSpace::getEncodedP(pint_t &addr, pint_t end, uint8_t encoding,
     // do nothing
     break;
   case DW_EH_PE_pcrel:
-    result += startAddr;
+    // Note: for CHERI we must add the result (untagged offset) to startAddr
+    // to get a value with valid tag since uintptr_t addition is not commutative
+    result = assert_pointer_in_bounds(startAddr + _pint_to_addr(result));
     break;
   case DW_EH_PE_textrel:
     _LIBUNWIND_ABORT("DW_EH_PE_textrel pointer encoding not supported");
@@ -340,7 +540,10 @@ LocalAddressSpace::getEncodedP(pint_t &addr, pint_t end, uint8_t encoding,
     // function with a datarelBase of 0 and DW_EH_PE_datarel encoding.
     if (datarelBase == 0)
       _LIBUNWIND_ABORT("DW_EH_PE_datarel is invalid with a datarelBase of 0");
-    result += datarelBase;
+    // Note: for CHERI we must add the result (untagged offset) to startAddr
+    // to get a value with valid tag since uintptr_t addition is not commutative
+    assert_pointer_in_bounds(datarelBase);
+    result = assert_pointer_in_bounds(datarelBase + _pint_to_addr(result));
     break;
   case DW_EH_PE_funcrel:
     _LIBUNWIND_ABORT("DW_EH_PE_funcrel pointer encoding not supported");
@@ -353,8 +556,16 @@ LocalAddressSpace::getEncodedP(pint_t &addr, pint_t end, uint8_t encoding,
     break;
   }
 
-  if (encoding & DW_EH_PE_indirect)
-    result = getP(result);
+  if (encoding & DW_EH_PE_indirect) {
+    // Always read a pointer sized value for DW_EH_PE_indirect
+    // This seems to be the way that GNU tools interpret this but it will almost
+    // certainly cause some issues for CHERI since we might want non-capability
+    // values to be indirect to avoid RODATA relocations.
+    result = getP(assert_pointer_in_bounds(result));
+#ifdef __CHERI_PURE_CAPABILITY__
+    assert_pointer_in_bounds(result);
+#endif
+  }
 
   return result;
 }
@@ -368,20 +579,68 @@ LocalAddressSpace::getEncodedP(pint_t &addr, pint_t end, uint8_t encoding,
   #define ElfW(type) Elf_##type
 #endif
 #if !defined(Elf_Half)
-  typedef ElfW(Half) Elf_Half;
+typedef ElfW(Half) Elf_Half;
 #endif
 #if !defined(Elf_Phdr)
-  typedef ElfW(Phdr) Elf_Phdr;
+typedef ElfW(Phdr) Elf_Phdr;
 #endif
 #if !defined(Elf_Addr)
-  typedef ElfW(Addr) Elf_Addr;
+typedef ElfW(Addr) Elf_Addr;
 #endif
 
+#ifdef __CHERI_PURE_CAPABILITY__
+#if !defined(Elf_Dyn)
+typedef ElfW(Dyn) Elf_Dyn;
+#endif
+__attribute__((weak)) extern "C" Elf_Dyn _DYNAMIC[];
+#endif
+
+static uintptr_t calculateImageBase(struct dl_phdr_info *pinfo) {
+  uintptr_t image_base = static_cast<uintptr_t>(pinfo->dlpi_addr);
+#ifdef __CHERI_PURE_CAPABILITY__
+  // For statically linked pure-capability programs, it is generally not
+  // possible to have a dlpi_addr capabibility with address zero but the bounds
+  // of the executable mapping because capability compression prevents
+  // creation of such a massively out-of-bounds capability.
+  // Therefore, the kernel and libc ensure that dlpi_addr is (untagged) zero
+  // and dpli_phdr spans the executable mapping.
+  if (image_base == 0 && !__builtin_cheri_tag_get((void *)image_base)) {
+    image_base = (uintptr_t)pinfo->dlpi_phdr;
+  }
+#endif
+  return image_base;
+}
 struct _LIBUNWIND_HIDDEN dl_iterate_cb_data {
   LocalAddressSpace *addressSpace;
   UnwindInfoSections *sects;
-  uintptr_t targetAddr;
+  LocalAddressSpace::pc_t targetAddr;
 };
+
+static LocalAddressSpace::pint_t getPhdrCapability(uintptr_t image_base,
+                                                   const Elf_Phdr *phdr) {
+#ifdef __CHERI_PURE_CAPABILITY__
+  // We have to work around the position dependent linking case where
+  // dlpi_addr will contain just the binary range (and can't a be massively
+  // out of bounds cap with a zero vaddr due to Cheri128 constaints). In that
+  // case phdr->p_vaddr will be within the bounds of image_base so we
+  // just set the address to match the vaddr
+  if (&_DYNAMIC == NULL) {
+    // static linking / position dependent workaround:
+    LocalAddressSpace::addr_t base =
+        __builtin_cheri_base_get((void *)image_base);
+    LocalAddressSpace::addr_t end =
+        base + __builtin_cheri_length_get((void *)image_base);
+    if (phdr->p_vaddr >= base && phdr->p_vaddr < end) {
+      return (uintptr_t)__builtin_cheri_address_set((void *)image_base,
+                                                    phdr->p_vaddr);
+    }
+  }
+  // Otherwise just fall back to the default behaviour
+  if (!__builtin_cheri_tag_get((void *)(image_base + phdr->p_vaddr)))
+    _LIBUNWIND_ABORT("phdr cap became unpresentable?");
+#endif
+  return image_base + phdr->p_vaddr;
+}
 
 #if defined(_LIBUNWIND_USE_FRAME_HEADER_CACHE)
 #include "FrameHeaderCache.hpp"
@@ -391,10 +650,10 @@ struct _LIBUNWIND_HIDDEN dl_iterate_cb_data {
 static FrameHeaderCache TheFrameHeaderCache;
 #endif
 
-static bool checkAddrInSegment(const Elf_Phdr *phdr, size_t image_base,
+static bool checkAddrInSegment(const Elf_Phdr *phdr, uintptr_t image_base,
                                dl_iterate_cb_data *cbdata) {
   if (phdr->p_type == PT_LOAD) {
-    uintptr_t begin = image_base + phdr->p_vaddr;
+    uintptr_t begin = getPhdrCapability(image_base, phdr);
     uintptr_t end = begin + phdr->p_memsz;
     if (cbdata->targetAddr >= begin && cbdata->targetAddr < end) {
       cbdata->sects->dso_base = begin;
@@ -405,20 +664,54 @@ static bool checkAddrInSegment(const Elf_Phdr *phdr, size_t image_base,
   return false;
 }
 
-static bool checkForUnwindInfoSegment(const Elf_Phdr *phdr, size_t image_base,
+#define PINFO_NAME(pinfo)                                                      \
+  ((pinfo->dlpi_name && pinfo->dlpi_name[0] != '\0') ? pinfo->dlpi_name        \
+                                                     : "<self>")
+
+#if defined(_LIBUNWIND_SUPPORT_DWARF_UNWIND)
+static bool boundEhFrameFromPhdr(struct dl_phdr_info *pinfo,
+                                 uintptr_t image_base,
+                                 dl_iterate_cb_data *cbdata) {
+  CHERI_DBG("Trying to bound PT_LOAD of .eh_frame in %s\n", PINFO_NAME(pinfo));
+  uintptr_t target_addr = cbdata->sects->dwarf_section();
+  for (Elf_Half i = 0; i < pinfo->dlpi_phnum; i++) {
+    const Elf_Phdr *phdr = &pinfo->dlpi_phdr[i];
+    if (phdr->p_type == PT_LOAD) {
+      uintptr_t begin = getPhdrCapability(image_base, phdr);
+      uintptr_t end = begin + phdr->p_memsz;
+      if (target_addr >= begin && target_addr < end) {
+        // This still overestimates the length of .eh_frame, but it
+        // should respect the bounds of the containing PT_LOAD.
+        cbdata->sects->dwarf_section_length =
+            phdr->p_memsz -
+            (size_t)((char *)cbdata->sects->dwarf_section() - (char *)begin);
+        return true;
+      }
+    }
+  }
+  CHERI_DBG("Could not find PT_LOAD of .eh_frame in %s\n", PINFO_NAME(pinfo));
+  return false;
+}
+#endif
+
+static bool checkForUnwindInfoSegment(const Elf_Phdr *phdr, uintptr_t image_base,
                                       dl_iterate_cb_data *cbdata) {
 #if defined(_LIBUNWIND_SUPPORT_DWARF_INDEX)
   if (phdr->p_type == PT_GNU_EH_FRAME) {
     EHHeaderParser<LocalAddressSpace>::EHHeaderInfo hdrInfo;
-    uintptr_t eh_frame_hdr_start = image_base + phdr->p_vaddr;
-    cbdata->sects->dwarf_index_section = eh_frame_hdr_start;
+    uintptr_t eh_frame_hdr_start = getPhdrCapability(image_base, phdr);
+#ifdef __CHERI_PURE_CAPABILITY__
+    if (!__builtin_cheri_tag_get((void *)eh_frame_hdr_start))
+        _LIBUNWIND_ABORT("eh_frame_hdr_start cap became unpresentable!");
+#endif
+    cbdata->sects->set_dwarf_index_section(eh_frame_hdr_start);
     cbdata->sects->dwarf_index_section_length = phdr->p_memsz;
     if (EHHeaderParser<LocalAddressSpace>::decodeEHHdr(
             *cbdata->addressSpace, eh_frame_hdr_start,
             eh_frame_hdr_start + phdr->p_memsz, hdrInfo)) {
       // .eh_frame_hdr records the start of .eh_frame, but not its size.
       // Rely on a zero terminator to find the end of the section.
-      cbdata->sects->dwarf_section = hdrInfo.eh_frame_ptr;
+      cbdata->sects->set_dwarf_section(hdrInfo.eh_frame_ptr);
       cbdata->sects->dwarf_section_length = SIZE_MAX;
       return true;
     }
@@ -440,8 +733,14 @@ static bool checkForUnwindInfoSegment(const Elf_Phdr *phdr, size_t image_base,
 static int findUnwindSectionsByPhdr(struct dl_phdr_info *pinfo,
                                     size_t pinfo_size, void *data) {
   auto cbdata = static_cast<dl_iterate_cb_data *>(data);
-  if (pinfo->dlpi_phnum == 0 || cbdata->targetAddr < pinfo->dlpi_addr)
+  if (pinfo->dlpi_phnum == 0)
     return 0;
+  if (cbdata->targetAddr < pinfo->dlpi_addr) {
+    CHERI_DBG("0x%jx out of bounds of %#p (%s)\n",
+              (uintmax_t)cbdata->targetAddr.address(), (void *)pinfo->dlpi_addr,
+              PINFO_NAME(pinfo));
+    return 0;
+  }
 #if defined(_LIBUNWIND_USE_FRAME_HEADER_CACHE)
   if (TheFrameHeaderCache.find(pinfo, pinfo_size, data))
     return 1;
@@ -450,7 +749,34 @@ static int findUnwindSectionsByPhdr(struct dl_phdr_info *pinfo,
   (void)pinfo_size;
 #endif
 
-  Elf_Addr image_base = pinfo->dlpi_addr;
+  uintptr_t image_base = calculateImageBase(pinfo);
+#ifdef __CHERI_PURE_CAPABILITY__
+  check_same_type<__uintcap_t, decltype(pinfo->dlpi_addr)>();
+  check_same_type<const Elf_Phdr *, decltype(pinfo->dlpi_phdr)>();
+
+  // Cannot use CTestSubset here because the dpli_addr perms are a strict
+  // subset that never includes execute and so won't match targetAddr
+  // which is always executable.
+  //
+  // TODO: __builtin_cheri_top_get_would be nice
+  if (__builtin_cheri_length_get((void *)image_base) +
+          __builtin_cheri_base_get((void *)image_base) <
+      cbdata->targetAddr) {
+    CHERI_DBG("%#p out of bounds of %#p (%s)\n",
+              (void *)cbdata->targetAddr.get(), (void *)image_base,
+              PINFO_NAME(pinfo));
+    return false;
+  }
+#endif
+  CHERI_DBG("Checking %s for target 0x%jx (%#p). Base=%#p\n", PINFO_NAME(pinfo),
+            (uintmax_t)cbdata->targetAddr.address(),
+            (void *)cbdata->targetAddr.get(), (void *)image_base);
+#ifdef __CHERI_PURE_CAPABILITY__
+  assert(cbdata->targetAddr.isValid());
+  if (!__builtin_cheri_tag_get((void *)image_base)) {
+    _LIBUNWIND_ABORT("image_base was untagged. CheriBSD needs to be updated!");
+  }
+#endif
 
   // Most shared objects seen in this callback function likely don't contain the
   // target address, so optimize for that. Scan for a matching PT_LOAD segment
@@ -475,9 +801,18 @@ static int findUnwindSectionsByPhdr(struct dl_phdr_info *pinfo,
       break;
     }
   }
-  if (!found_unwind)
+  if (!found_unwind) {
+    CHERI_DBG("Could not find EHDR in %s\n", PINFO_NAME(pinfo));
     return 0;
+  }
 
+  CHERI_DBG("found_text && found_unwind in %s\n", PINFO_NAME(pinfo));
+#if defined(_LIBUNWIND_SUPPORT_DWARF_UNWIND)
+  // Find the PT_LOAD containing .eh_frame.
+  if (!boundEhFrameFromPhdr(pinfo, image_base, cbdata)) {
+    return 0;
+  }
+#endif
 #if defined(_LIBUNWIND_USE_FRAME_HEADER_CACHE)
   TheFrameHeaderCache.add(cbdata->sects);
 #endif
@@ -487,14 +822,14 @@ static int findUnwindSectionsByPhdr(struct dl_phdr_info *pinfo,
 #endif  // defined(_LIBUNWIND_USE_DL_ITERATE_PHDR)
 
 
-inline bool LocalAddressSpace::findUnwindSections(pint_t targetAddr,
+inline bool LocalAddressSpace::findUnwindSections(pc_t targetAddr,
                                                   UnwindInfoSections &info) {
 #ifdef __APPLE__
   dyld_unwind_sections dyldInfo;
-  if (_dyld_find_unwind_sections((void *)targetAddr, &dyldInfo)) {
+  if (_dyld_find_unwind_sections(targetAddr.get(), &dyldInfo)) {
     info.dso_base                      = (uintptr_t)dyldInfo.mh;
  #if defined(_LIBUNWIND_SUPPORT_DWARF_UNWIND)
-    info.dwarf_section                 = (uintptr_t)dyldInfo.dwarf_section;
+    info.set_dwarf_section((uintptr_t)dyldInfo.dwarf_section);
     info.dwarf_section_length          = (size_t)dyldInfo.dwarf_section_length;
  #endif
     info.compact_unwind_section        = (uintptr_t)dyldInfo.compact_unwind_section;
@@ -518,17 +853,18 @@ inline bool LocalAddressSpace::findUnwindSections(pint_t targetAddr,
   }
 
 #elif defined(_LIBUNWIND_SUPPORT_DWARF_UNWIND) && defined(_LIBUNWIND_IS_BAREMETAL)
+  (void)targetAddr;
   info.dso_base = 0;
   // Bare metal is statically linked, so no need to ask the dynamic loader
   info.dwarf_section_length = (size_t)(&__eh_frame_end - &__eh_frame_start);
-  info.dwarf_section =        (uintptr_t)(&__eh_frame_start);
-  _LIBUNWIND_TRACE_UNWINDING("findUnwindSections: section %p length %p",
-                             (void *)info.dwarf_section, (void *)info.dwarf_section_length);
+  info.set_dwarf_section((uintptr_t)(&__eh_frame_start));
+  _LIBUNWIND_TRACE_UNWINDING("findUnwindSections: section %p length %#zx",
+                             (void *)info.dwarf_section(), info.dwarf_section_length);
 #if defined(_LIBUNWIND_SUPPORT_DWARF_INDEX)
-  info.dwarf_index_section =        (uintptr_t)(&__eh_frame_hdr_start);
+  info.set_dwarf_index_section((uintptr_t)(&__eh_frame_hdr_start));
   info.dwarf_index_section_length = (size_t)(&__eh_frame_hdr_end - &__eh_frame_hdr_start);
-  _LIBUNWIND_TRACE_UNWINDING("findUnwindSections: index section %p length %p",
-                             (void *)info.dwarf_index_section, (void *)info.dwarf_index_section_length);
+  _LIBUNWIND_TRACE_UNWINDING("findUnwindSections: index section %p length %#zx",
+                             (void *)info.dwarf_index_section(), info.dwarf_index_section_length);
 #endif
   if (info.dwarf_section_length)
     return true;
@@ -536,8 +872,8 @@ inline bool LocalAddressSpace::findUnwindSections(pint_t targetAddr,
   // Bare metal is statically linked, so no need to ask the dynamic loader
   info.arm_section =        (uintptr_t)(&__exidx_start);
   info.arm_section_length = (size_t)(&__exidx_end - &__exidx_start);
-  _LIBUNWIND_TRACE_UNWINDING("findUnwindSections: section %p length %p",
-                             (void *)info.arm_section, (void *)info.arm_section_length);
+  _LIBUNWIND_TRACE_UNWINDING("findUnwindSections: section %p length %#zx",
+                             (void *)info.arm_section, info.arm_section_length);
   if (info.arm_section && info.arm_section_length)
     return true;
 #elif defined(_LIBUNWIND_SUPPORT_DWARF_UNWIND) && defined(_WIN32)
@@ -621,7 +957,7 @@ inline bool LocalAddressSpace::findUnwindSections(pint_t targetAddr,
   }
   // Try to find the unwind info using `dl_find_object`
   dl_find_object findResult;
-  if (dlFindObject && dlFindObject((void *)targetAddr, &findResult) == 0) {
+  if (dlFindObject && dlFindObject(targetAddr.get(), &findResult) == 0) {
     if (findResult.dlfo_eh_frame == nullptr) {
       // Found an entry for `targetAddr`, but there is no unwind info.
       return false;
@@ -631,26 +967,28 @@ inline bool LocalAddressSpace::findUnwindSections(pint_t targetAddr,
         (char *)findResult.dlfo_map_end - (char *)findResult.dlfo_map_start);
 
     // Record the start of PT_GNU_EH_FRAME.
-    info.dwarf_index_section =
-        reinterpret_cast<uintptr_t>(findResult.dlfo_eh_frame);
+    info.set_dwarf_index_section(
+        reinterpret_cast<uintptr_t>(findResult.dlfo_eh_frame));
     // `_dl_find_object` does not give us the size of PT_GNU_EH_FRAME.
     // Setting length to `SIZE_MAX` effectively disables all range checks.
     info.dwarf_index_section_length = SIZE_MAX;
     EHHeaderParser<LocalAddressSpace>::EHHeaderInfo hdrInfo;
     if (!EHHeaderParser<LocalAddressSpace>::decodeEHHdr(
-            *this, info.dwarf_index_section,
+            *this, info.dwarf_index_section(),
             info.dwarf_index_section + info.dwarf_index_section_length,
             hdrInfo)) {
       return false;
     }
     // Record the start of the FDE and use SIZE_MAX to indicate that we do
     // not know the end address.
-    info.dwarf_section = hdrInfo.eh_frame_ptr;
+    info.set_dwarf_section(hdrInfo.eh_frame_ptr);
     info.dwarf_section_length = SIZE_MAX;
     return true;
   }
 #endif
   dl_iterate_cb_data cb_data = {this, &info, targetAddr};
+  CHERI_DBG("Calling dl_iterate_phdr(0x%jx)\n",
+            (uintmax_t)targetAddr.address());
   int found = dl_iterate_phdr(findUnwindSectionsByPhdr, &cb_data);
   return static_cast<bool>(found);
 #endif
@@ -658,22 +996,28 @@ inline bool LocalAddressSpace::findUnwindSections(pint_t targetAddr,
   return false;
 }
 
-inline bool LocalAddressSpace::findOtherFDE(pint_t targetAddr, pint_t &fde) {
+inline bool LocalAddressSpace::findOtherFDE(addr_t targetAddr, pint_t &fde) {
   // TO DO: if OS has way to dynamically register FDEs, check that.
   (void)targetAddr;
   (void)fde;
   return false;
 }
 
-inline bool LocalAddressSpace::findFunctionName(pint_t addr, char *buf,
+inline bool LocalAddressSpace::findFunctionName(pc_t ip, char *buf,
                                                 size_t bufLen,
                                                 unw_word_t *offset) {
 #if _LIBUNWIND_USE_DLADDR
   Dl_info dyldInfo;
-  if (dladdr((void *)addr, &dyldInfo)) {
+  CHERI_DBG("%s(0x%jx: %#p))\n", __func__, (uintmax_t)ip.address(),
+            (void *)ip.get());
+  if (dladdr((void *)ip.get(), &dyldInfo)) {
     if (dyldInfo.dli_sname != NULL) {
       snprintf(buf, bufLen, "%s", dyldInfo.dli_sname);
-      *offset = (addr - (pint_t) dyldInfo.dli_saddr);
+      *offset = ip.address() - (__cheri_addr addr_t)dyldInfo.dli_saddr;
+      return true;
+    } else if (dyldInfo.dli_fname != NULL) {
+      snprintf(buf, bufLen, "%s", dyldInfo.dli_fname);
+      *offset = ip.address() - (__cheri_addr addr_t)dyldInfo.dli_fbase;
       return true;
     }
   }
@@ -685,7 +1029,7 @@ inline bool LocalAddressSpace::findFunctionName(pint_t addr, char *buf,
     return true;
   }
 #else
-  (void)addr;
+  (void)ip;
   (void)buf;
   (void)bufLen;
   (void)offset;

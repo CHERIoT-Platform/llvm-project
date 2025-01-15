@@ -44,6 +44,9 @@ def SDT_RISCVIntBinOpW : SDTypeProfile<1, 2, [
 def SDT_RISCVIntShiftDOpW : SDTypeProfile<1, 3, [
   SDTCisSameAs<0, 1>, SDTCisSameAs<0, 2>, SDTCisVT<0, i64>, SDTCisVT<3, i64>
 ]>;
+def SDT_RISCVSymLoad : SDTypeProfile<1, 1, [
+  SDTCisSameAs<0, 1>, SDTCisPtrTy<0>
+]>;
 
 // Target-independent nodes, but with target-specific formats.
 def callseq_start : SDNode<"ISD::CALLSEQ_START", SDT_CallSeqStart,
@@ -84,6 +87,8 @@ def riscv_read_cycle_wide : SDNode<"RISCVISD::READ_CYCLE_WIDE",
 def riscv_add_lo : SDNode<"RISCVISD::ADD_LO", SDTIntBinOp>;
 def riscv_hi : SDNode<"RISCVISD::HI", SDTIntUnaryOp>;
 def riscv_lla : SDNode<"RISCVISD::LLA", SDTIntUnaryOp>;
+def riscv_lga : SDNode<"RISCVISD::LGA", SDT_RISCVSymLoad,
+                       [SDNPHasChain, SDNPMayLoad, SDNPMemOperand]>;
 def riscv_add_tprel : SDNode<"RISCVISD::ADD_TPREL",
                              SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>,
                                                   SDTCisSameAs<0, 2>,
@@ -289,6 +294,9 @@ def uimm20 : UImm20Operand {
     return isUInt<20>(Imm);
   }];
 }
+def uimm20_auigp : UImm20Operand {
+  let ParserMatchClass = UImmAsmOperand<20, "AUIGP">;
+}
 
 def Simm21Lsb0JALAsmOperand : SImmAsmOperand<21, "Lsb0JAL"> {
   let ParserMethod = "parseJALOffset";
@@ -317,7 +325,7 @@ def BareSymbol : AsmOperandClass {
 }
 
 // A bare symbol.
-def bare_symbol : Operand<XLenVT> {
+def bare_symbol : Operand<iPTRAny> {
   let ParserMatchClass = BareSymbol;
 }
 
@@ -607,6 +615,7 @@ let isReMaterializable = 1, isAsCheapAsAMove = 1,
 def LUI : RVInstU<OPC_LUI, (outs GPR:$rd), (ins uimm20_lui:$imm20),
                   "lui", "$rd, $imm20">, Sched<[WriteIALU]>;
 
+let Predicates = [NotCapMode] in {
 def AUIPC : RVInstU<OPC_AUIPC, (outs GPR:$rd), (ins uimm20_auipc:$imm20),
                     "auipc", "$rd, $imm20">, Sched<[WriteIALU]>;
 
@@ -617,6 +626,7 @@ def JALR : RVInstI<0b000, OPC_JALR, (outs GPR:$rd),
                    (ins GPR:$rs1, simm12:$imm12),
                    "jalr", "$rd, ${imm12}(${rs1})">,
            Sched<[WriteJalr, ReadJalr]>;
+} // Predicates = [NotCapMode]
 } // hasSideEffects = 0, mayLoad = 0, mayStore = 0
 
 def BEQ  : BranchCC_rri<0b000, "beq">;
@@ -626,6 +636,7 @@ def BGE  : BranchCC_rri<0b101, "bge">;
 def BLTU : BranchCC_rri<0b110, "bltu">;
 def BGEU : BranchCC_rri<0b111, "bgeu">;
 
+let Predicates = [NotCapMode] in {
 let IsSignExtendingOpW = 1 in {
 def LB  : Load_ri<0b000, "lb">, Sched<[WriteLDB, ReadMemBase]>;
 def LH  : Load_ri<0b001, "lh">, Sched<[WriteLDH, ReadMemBase]>;
@@ -637,6 +648,7 @@ def LHU : Load_ri<0b101, "lhu">, Sched<[WriteLDH, ReadMemBase]>;
 def SB : Store_rri<0b000, "sb">, Sched<[WriteSTB, ReadStoreData, ReadMemBase]>;
 def SH : Store_rri<0b001, "sh">, Sched<[WriteSTH, ReadStoreData, ReadMemBase]>;
 def SW : Store_rri<0b010, "sw">, Sched<[WriteSTW, ReadStoreData, ReadMemBase]>;
+} // Predicates = [NotCapMode]
 
 // ADDI isn't always rematerializable, but isReMaterializable will be used as
 // a hint which is verified in isReallyTriviallyReMaterializable.
@@ -741,11 +753,14 @@ def CSRRCI : CSR_ii<0b111, "csrrci">;
 
 /// RV64I instructions
 
-let Predicates = [IsRV64] in {
+let Predicates = [IsRV64, NotCapMode] in {
 def LWU   : Load_ri<0b110, "lwu">, Sched<[WriteLDW, ReadMemBase]>;
 def LD    : Load_ri<0b011, "ld">, Sched<[WriteLDD, ReadMemBase]>;
 def SD    : Store_rri<0b011, "sd">, Sched<[WriteSTD, ReadStoreData, ReadMemBase]>;
+} // Predicates = [IsRV64, NotCapMode]
 
+
+let Predicates = [IsRV64] in {
 let IsSignExtendingOpW = 1 in {
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
 def ADDIW : RVInstI<0b000, OPC_OP_IMM_32, (outs GPR:$rd),
@@ -861,6 +876,7 @@ let hasSideEffects = 0, mayLoad = 0, mayStore = 0, Size = 32,
 def PseudoLI : Pseudo<(outs GPR:$rd), (ins ixlenimm_li:$imm), [],
                       "li", "$rd, $imm">;
 
+let Predicates = [NotCapMode] in {
 def PseudoLB  : PseudoLoad<"lb">;
 def PseudoLBU : PseudoLoad<"lbu">;
 def PseudoLH  : PseudoLoad<"lh">;
@@ -870,12 +886,13 @@ def PseudoLW  : PseudoLoad<"lw">;
 def PseudoSB  : PseudoStore<"sb">;
 def PseudoSH  : PseudoStore<"sh">;
 def PseudoSW  : PseudoStore<"sw">;
+} // Predicates = [NotCapMode]
 
-let Predicates = [IsRV64] in {
+let Predicates = [IsRV64, NotCapMode] in {
 def PseudoLWU : PseudoLoad<"lwu">;
 def PseudoLD  : PseudoLoad<"ld">;
 def PseudoSD  : PseudoStore<"sd">;
-} // Predicates = [IsRV64]
+} // Predicates = [IsRV64, NotCapMode]
 
 def : InstAlias<"li $rd, $imm",  (ADDI GPR:$rd, X0, simm12:$imm)>;
 def : InstAlias<"mv $rd, $rs",   (ADDI GPR:$rd, GPR:$rs,       0)>;
@@ -923,6 +940,7 @@ def : InstAlias<"bgtu $rs, $rt, $offset",
 def : InstAlias<"bleu $rs, $rt, $offset",
                 (BGEU GPR:$rt, GPR:$rs, simm13_lsb0:$offset), 0>;
 
+let Predicates = [NotCapMode] in {
 def : InstAlias<"j $offset",   (JAL X0, simm21_lsb0_jal:$offset)>;
 def : InstAlias<"jal $offset", (JAL X1, simm21_lsb0_jal:$offset)>;
 
@@ -939,6 +957,7 @@ def : InstAlias<"ret",                   (JALR      X0,      X1, 0), 4>;
 def : InstAlias<"jr $rs, $offset",        (JALR      X0, GPR:$rs, simm12:$offset), 0>;
 def : InstAlias<"jalr $rs, $offset",      (JALR      X1, GPR:$rs, simm12:$offset), 0>;
 def : InstAlias<"jalr $rd, $rs, $offset", (JALR GPR:$rd, GPR:$rs, simm12:$offset), 0>;
+} // Predicates = [NotCapMode]
 
 def : InstAlias<"fence", (FENCE 0xF, 0xF)>; // 0xF == iorw
 
@@ -991,6 +1010,7 @@ let Predicates = [HasStdExtZihintntl] in {
 } // Predicates = [HasStdExtZihintntl]
 
 let EmitPriority = 0 in {
+let Predicates = [NotCapMode] in {
 def : InstAlias<"lb $rd, (${rs1})",
                 (LB  GPR:$rd, GPR:$rs1, 0)>;
 def : InstAlias<"lh $rd, (${rs1})",
@@ -1008,6 +1028,7 @@ def : InstAlias<"sh $rs2, (${rs1})",
                 (SH  GPR:$rs2, GPR:$rs1, 0)>;
 def : InstAlias<"sw $rs2, (${rs1})",
                 (SW  GPR:$rs2, GPR:$rs1, 0)>;
+} // Predicates = [NotCapMode]
 
 def : InstAlias<"add $rd, $rs1, $imm12",
                 (ADDI  GPR:$rd, GPR:$rs1, simm12:$imm12)>;
@@ -1023,14 +1044,16 @@ def : InstAlias<"srl $rd, $rs1, $shamt",
                 (SRLI  GPR:$rd, GPR:$rs1, uimmlog2xlen:$shamt)>;
 def : InstAlias<"sra $rd, $rs1, $shamt",
                 (SRAI  GPR:$rd, GPR:$rs1, uimmlog2xlen:$shamt)>;
-let Predicates = [IsRV64] in {
+let Predicates = [IsRV64, NotCapMode] in {
 def : InstAlias<"lwu $rd, (${rs1})",
                 (LWU  GPR:$rd, GPR:$rs1, 0)>;
 def : InstAlias<"ld $rd, (${rs1})",
                 (LD  GPR:$rd, GPR:$rs1, 0)>;
 def : InstAlias<"sd $rs2, (${rs1})",
                 (SD  GPR:$rs2, GPR:$rs1, 0)>;
+} // Predicates = [IsRV64, NotCapMode]
 
+let Predicates = [IsRV64] in {
 def : InstAlias<"addw $rd, $rs1, $imm12",
                 (ADDIW  GPR:$rd, GPR:$rs1, simm12:$imm12)>;
 def : InstAlias<"sllw $rd, $rs1, $shamt",
@@ -1597,6 +1620,7 @@ let Predicates = [HasStdExtC, OptForMinSize] in {
   def : BrccCompressOpt<SETNE, BNE>;
 }
 
+let Predicates = [NotCapMode] in {
 class LongBccPseudo : Pseudo<(outs),
                              (ins GPR:$rs1, GPR:$rs2, simm21_lsb0_jal:$imm20),
                              []> {
@@ -1628,13 +1652,15 @@ def PseudoBRIND : Pseudo<(outs), (ins GPRJALR:$rs1, simm12:$imm12), []>,
 def : Pat<(brind GPRJALR:$rs1), (PseudoBRIND GPRJALR:$rs1, 0)>;
 def : Pat<(brind (add GPRJALR:$rs1, simm12:$imm12)),
           (PseudoBRIND GPRJALR:$rs1, simm12:$imm12)>;
+} // Predicates = [NotCapMode]
 
 // PseudoCALLReg is a generic pseudo instruction for calls which will eventually
 // expand to auipc and jalr while encoding, with any given register used as the
 // destination.
 // Define AsmString to print "call" when compile with -S flag.
 // Define isCodeGenOnly = 0 to support parsing assembly "call" instruction.
-let isCall = 1, isBarrier = 1, isCodeGenOnly = 0, Size = 8, hasSideEffects = 0,
+let Predicates = [NotCapMode],
+    isCall = 1, isBarrier = 1, isCodeGenOnly = 0, Size = 8, hasSideEffects = 0,
     mayStore = 0, mayLoad = 0 in
 def PseudoCALLReg : Pseudo<(outs GPR:$rd), (ins call_symbol:$func), [],
                            "call", "$rd, $func">,
@@ -1646,45 +1672,55 @@ def PseudoCALLReg : Pseudo<(outs GPR:$rd), (ins call_symbol:$func), [],
 // if the offset fits in a signed 21-bit immediate.
 // Define AsmString to print "call" when compile with -S flag.
 // Define isCodeGenOnly = 0 to support parsing assembly "call" instruction.
-let isCall = 1, Defs = [X1], isCodeGenOnly = 0, Size = 8 in
+let Predicates = [NotCapMode],
+    isCall = 1, Defs = [X1], isCodeGenOnly = 0, Size = 8 in
 def PseudoCALL : Pseudo<(outs), (ins call_symbol:$func), [],
                         "call", "$func">,
                  Sched<[WriteIALU, WriteJalr, ReadJalr]>;
 
+let Predicates = [NotCapMode, NotPureCapABI] in {
 def : Pat<(riscv_call tglobaladdr:$func), (PseudoCALL tglobaladdr:$func)>;
 def : Pat<(riscv_call texternalsym:$func), (PseudoCALL texternalsym:$func)>;
+} // Predicates = [NotCapMode, NotPureCapABI]
 
 def : Pat<(riscv_sret_glue), (SRET (XLenVT X0), (XLenVT X0))>;
 def : Pat<(riscv_mret_glue), (MRET (XLenVT X0), (XLenVT X0))>;
 
-let isCall = 1, Defs = [X1] in
+let Predicates = [NotCapMode, NotPureCapABI],
+    isCall = 1, Defs = [X1] in
 def PseudoCALLIndirect : Pseudo<(outs), (ins GPRJALR:$rs1),
                                 [(riscv_call GPRJALR:$rs1)]>,
                          PseudoInstExpansion<(JALR X1, GPR:$rs1, 0)>;
 
-let isBarrier = 1, isReturn = 1, isTerminator = 1 in
+let Predicates = [NotCapMode, NotPureCapABI],
+    isBarrier = 1, isReturn = 1, isTerminator = 1 in
 def PseudoRET : Pseudo<(outs), (ins), [(riscv_ret_glue)]>,
                 PseudoInstExpansion<(JALR X0, X1, 0)>;
 
 // PseudoTAIL is a pseudo instruction similar to PseudoCALL and will eventually
 // expand to auipc and jalr while encoding.
 // Define AsmString to print "tail" when compile with -S flag.
-let isCall = 1, isTerminator = 1, isReturn = 1, isBarrier = 1, Uses = [X2],
+let Predicates = [NotCapMode],
+    isCall = 1, isTerminator = 1, isReturn = 1, isBarrier = 1, Uses = [X2],
     Size = 8, isCodeGenOnly = 0 in
 def PseudoTAIL : Pseudo<(outs), (ins call_symbol:$dst), [],
                         "tail", "$dst">,
                  Sched<[WriteIALU, WriteJalr, ReadJalr]>;
 
-let isCall = 1, isTerminator = 1, isReturn = 1, isBarrier = 1, Uses = [X2] in
+let Predicates = [NotCapMode, NotPureCapABI],
+    isCall = 1, isTerminator = 1, isReturn = 1, isBarrier = 1, Uses = [X2] in
 def PseudoTAILIndirect : Pseudo<(outs), (ins GPRTC:$rs1),
                                 [(riscv_tail GPRTC:$rs1)]>,
                          PseudoInstExpansion<(JALR X0, GPR:$rs1, 0)>;
 
+let Predicates = [NotCapMode, NotPureCapABI] in {
 def : Pat<(riscv_tail (iPTR tglobaladdr:$dst)),
           (PseudoTAIL tglobaladdr:$dst)>;
 def : Pat<(riscv_tail (iPTR texternalsym:$dst)),
           (PseudoTAIL texternalsym:$dst)>;
+} // Predicates = [NotCapMode, NotPureCapABI]
 
+let Predicates = [NotCapMode, NotPureCapABI] in {
 let isCall = 0, isBarrier = 1, isBranch = 1, isTerminator = 1, Size = 8,
     isCodeGenOnly = 0, hasSideEffects = 0, mayStore = 0, mayLoad = 0 in
 def PseudoJump : Pseudo<(outs GPR:$rd), (ins pseudo_jump_symbol:$target), [],
@@ -1741,6 +1777,7 @@ let hasSideEffects = 0, mayLoad = 0, mayStore = 0, Size = 8, isCodeGenOnly = 0,
     isAsmParserOnly = 1 in
 def PseudoLA_TLS_GD : Pseudo<(outs GPR:$dst), (ins bare_symbol:$src), [],
                              "la.tls.gd", "$dst, $src">;
+} // Predicates = [NotCapMode]
 
 let hasSideEffects = 0, mayLoad = 1, mayStore = 0, Size = 32, isCodeGenOnly = 0 in
 def PseudoLA_TLSDESC : Pseudo<(outs GPR:$dst), (ins bare_symbol:$src), [],
@@ -1796,13 +1833,13 @@ class LdPat<PatFrag LoadOp, RVInst Inst, ValueType vt = XLenVT>
     : Pat<(vt (LoadOp (AddrRegImm (XLenVT GPR:$rs1), simm12:$imm12))),
           (Inst GPR:$rs1, simm12:$imm12)>;
 
-def : LdPat<sextloadi8, LB>;
-def : LdPat<extloadi8, LBU>; // Prefer unsigned due to no c.lb in Zcb.
-def : LdPat<sextloadi16, LH>;
-def : LdPat<extloadi16, LH>;
-def : LdPat<load, LW, i32>;
-def : LdPat<zextloadi8, LBU>;
-def : LdPat<zextloadi16, LHU>;
+def : LdPat<sextloadi8, LB>, Requires<[NotCapMode]>;
+def : LdPat<extloadi8, LBU>, Requires<[NotCapMode]>; // Prefer unsigned due to no c.lb in Zcb.
+def : LdPat<sextloadi16, LH>, Requires<[NotCapMode]>;
+def : LdPat<extloadi16, LH>, Requires<[NotCapMode]>;
+def : LdPat<load, LW, i32>, Requires<[NotCapMode]>;
+def : LdPat<zextloadi8, LBU>, Requires<[NotCapMode]>;
+def : LdPat<zextloadi16, LHU>, Requires<[NotCapMode]>;
 
 /// Stores
 
@@ -1812,9 +1849,9 @@ class StPat<PatFrag StoreOp, RVInst Inst, RegisterClass StTy,
                    simm12:$imm12)),
           (Inst StTy:$rs2, GPR:$rs1, simm12:$imm12)>;
 
-def : StPat<truncstorei8, SB, GPR, XLenVT>;
-def : StPat<truncstorei16, SH, GPR, XLenVT>;
-def : StPat<store, SW, GPR, i32>;
+def : StPat<truncstorei8, SB, GPR, XLenVT>, Requires<[NotCapMode]>;
+def : StPat<truncstorei16, SH, GPR, XLenVT>, Requires<[NotCapMode]>;
+def : StPat<store, SW, GPR, i32>, Requires<[NotCapMode]>;
 
 /// Fences
 
@@ -1898,12 +1935,14 @@ def WriteFFLAGS : WriteSysReg<SysRegFFLAGS, [FFLAGS]>;
 /// Other pseudo-instructions
 
 // Pessimistically assume the stack pointer will be clobbered
+let Predicates = [NotPureCapABI] in {
 let Defs = [X2], Uses = [X2] in {
 def ADJCALLSTACKDOWN : Pseudo<(outs), (ins i32imm:$amt1, i32imm:$amt2),
                               [(callseq_start timm:$amt1, timm:$amt2)]>;
 def ADJCALLSTACKUP   : Pseudo<(outs), (ins i32imm:$amt1, i32imm:$amt2),
                               [(callseq_end timm:$amt1, timm:$amt2)]>;
 } // Defs = [X2], Uses = [X2]
+} // Predicates = [NotPureCapABI]
 
 /// RV64 patterns
 
@@ -1971,6 +2010,9 @@ def : Pat<(i64 (sra (shl GPR:$rs1, (i64 32)), uimm6gt32:$shamt)),
 def : PatGprGpr<shiftopw<riscv_sllw>, SLLW>;
 def : PatGprGpr<shiftopw<riscv_srlw>, SRLW>;
 def : PatGprGpr<shiftopw<riscv_sraw>, SRAW>;
+} // Predicates = [IsRV64]
+
+let Predicates = [IsRV64, NotCapMode] in {
 
 // Select W instructions if only the lower 32 bits of the result are used.
 def : PatGprGpr<binop_allwusers<add>, ADDW>;
@@ -2005,7 +2047,7 @@ def : LdPat<load, LD, i64>;
 
 def : StPat<truncstorei32, SW, GPR, i64>;
 def : StPat<store, SD, GPR, i64>;
-} // Predicates = [IsRV64]
+} // Predicates = [IsRV64, NotCapMode]
 
 /// readcyclecounter
 // On RV64, we can directly read the 64-bit "cycle" CSR.
@@ -2185,3 +2227,9 @@ include "RISCVInstrInfoXCV.td"
 //===----------------------------------------------------------------------===//
 
 include "RISCVInstrGISel.td"
+
+//===----------------------------------------------------------------------===//
+// Non-standard Extensions
+//===----------------------------------------------------------------------===//
+
+include "RISCVInstrInfoXCheri.td"

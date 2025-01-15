@@ -38,7 +38,7 @@ TEST(FunctionTest, hasLazyArguments) {
 
   // Functions start out with lazy arguments.
   std::unique_ptr<Function> F(
-      Function::Create(FTy, GlobalValue::ExternalLinkage, "F"));
+      Function::Create(FTy, GlobalValue::ExternalLinkage, 0, "F"));
   EXPECT_TRUE(F->hasLazyArguments());
 
   // Checking for empty or size shouldn't force arguments to be instantiated.
@@ -66,9 +66,9 @@ TEST(FunctionTest, stealArgumentListFrom) {
   Type *ArgTypes[] = {Type::getInt8Ty(C), Type::getInt32Ty(C)};
   FunctionType *FTy = FunctionType::get(Type::getVoidTy(C), ArgTypes, false);
   std::unique_ptr<Function> F1(
-      Function::Create(FTy, GlobalValue::ExternalLinkage, "F1"));
+      Function::Create(FTy, GlobalValue::ExternalLinkage, 0, "F1"));
   std::unique_ptr<Function> F2(
-      Function::Create(FTy, GlobalValue::ExternalLinkage, "F1"));
+      Function::Create(FTy, GlobalValue::ExternalLinkage, 0, "F1"));
   EXPECT_TRUE(F1->hasLazyArguments());
   EXPECT_TRUE(F2->hasLazyArguments());
 
@@ -159,7 +159,7 @@ TEST(FunctionTest, GetPointerAlignment) {
   Type *VoidType(Type::getVoidTy(Context));
   FunctionType *FuncType(FunctionType::get(VoidType, false));
   std::unique_ptr<Function> Func(Function::Create(
-      FuncType, GlobalValue::ExternalLinkage));
+      FuncType, GlobalValue::ExternalLinkage, 0));
   EXPECT_EQ(Align(1), Func->getPointerAlignment(DataLayout("")));
   EXPECT_EQ(Align(1), Func->getPointerAlignment(DataLayout("Fi8")));
   EXPECT_EQ(Align(1), Func->getPointerAlignment(DataLayout("Fn8")));

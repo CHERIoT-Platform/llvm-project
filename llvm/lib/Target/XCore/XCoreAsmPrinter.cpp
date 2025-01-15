@@ -154,7 +154,7 @@ void XCoreAsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
   }
   OutStreamer->emitLabel(GVSym);
 
-  emitGlobalConstant(DL, C);
+  emitGlobalConstant(DL, C, 0);
   // The ABI requires that unsigned scalar types smaller than 32 bits
   // are padded to 32 bits.
   if (Size < 4)

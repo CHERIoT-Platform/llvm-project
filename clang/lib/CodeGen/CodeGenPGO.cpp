@@ -1102,6 +1102,7 @@ void CodeGenPGO::emitCounterIncrement(CGBuilderTy &Builder, const Stmt *S,
     return;
 
   unsigned Counter = (*RegionCounterMap)[S];
+  auto *I8PtrTy = CGM.Int8PtrTy;
 
   llvm::Value *Args[] = {FuncNameVar,
                          Builder.getInt64(FunctionHash),
@@ -1243,7 +1244,7 @@ void CodeGenPGO::valueProfile(CGBuilderTy &Builder, uint32_t ValueKind,
     auto BuilderInsertPoint = Builder.saveIP();
     Builder.SetInsertPoint(ValueSite);
     llvm::Value *Args[5] = {
-        FuncNameVar,
+        llvm::ConstantExpr::getBitCast(FuncNameVar, CGM.Int8PtrTy),
         Builder.getInt64(FunctionHash),
         Builder.CreatePtrToInt(ValuePtr, Builder.getInt64Ty()),
         Builder.getInt32(ValueKind),

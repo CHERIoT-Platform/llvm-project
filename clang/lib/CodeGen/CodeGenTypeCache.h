@@ -46,7 +46,7 @@ struct CodeGenTypeCache {
 
   /// intptr_t, size_t, and ptrdiff_t, which we assume are the same size.
   union {
-    llvm::IntegerType *IntPtrTy;
+    llvm::IntegerType *IntPtrTy; // FIXME: this is not really intptr_t for CHERI
     llvm::IntegerType *SizeTy;
     llvm::IntegerType *PtrDiffTy;
   };
@@ -56,6 +56,16 @@ struct CodeGenTypeCache {
     llvm::PointerType *UnqualPtrTy;
     llvm::PointerType *VoidPtrTy;
     llvm::PointerType *Int8PtrTy;
+  };
+
+  /// void* in capability address space (if supported, otherwise nullptr)
+  union {
+    llvm::PointerType *VoidCheriCapTy;
+    llvm::PointerType *Int8CheriCapTy;
+  };
+
+  /// void** in address space 0
+  union {
     llvm::PointerType *VoidPtrPtrTy;
     llvm::PointerType *Int8PtrPtrTy;
   };
@@ -70,6 +80,12 @@ struct CodeGenTypeCache {
   union {
     llvm::PointerType *GlobalsVoidPtrTy;
     llvm::PointerType *GlobalsInt8PtrTy;
+  };
+
+  /// void* in program address space
+  union {
+    llvm::PointerType *ProgramVoidPtrTy;
+    llvm::PointerType *ProgramInt8PtrTy;
   };
 
   /// void* in the address space for constant globals
@@ -89,7 +105,7 @@ struct CodeGenTypeCache {
   }
 
   /// The width of a pointer into the generic address space.
-  unsigned char PointerWidthInBits;
+  unsigned short PointerWidthInBits; // This was uchar -> broken for cheri256!
 
   /// The size and alignment of a pointer into the generic address space.
   union {

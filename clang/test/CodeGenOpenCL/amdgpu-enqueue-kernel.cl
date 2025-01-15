@@ -689,7 +689,7 @@ kernel void test_target_features_kernel(global int *i) {
 // NOCPU: attributes #4 = { convergent noinline nounwind optnone "denormal-fp-math-f32"="preserve-sign,preserve-sign" "no-trapping-math"="true" "stack-protector-buffer-size"="8" }
 // NOCPU: attributes #5 = { convergent nounwind "denormal-fp-math-f32"="preserve-sign,preserve-sign" "enqueued-block" "no-trapping-math"="true" "stack-protector-buffer-size"="8" }
 // NOCPU: attributes #6 = { convergent noinline norecurse nounwind optnone "amdgpu-flat-work-group-size"="1,256" "denormal-fp-math-f32"="preserve-sign,preserve-sign" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+s-memtime-inst" "uniform-work-group-size"="false" }
-// NOCPU: attributes #7 = { nocallback nofree nosync nounwind willreturn }
+// NOCPU: attributes #7 = { hassideeffects nocallback nofree nosync nounwind willreturn }
 // NOCPU: attributes #8 = { convergent nounwind }
 //.
 // GFX900: attributes #0 = { "objc_arc_inert" }
@@ -699,7 +699,7 @@ kernel void test_target_features_kernel(global int *i) {
 // GFX900: attributes #4 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
 // GFX900: attributes #5 = { convergent nounwind "denormal-fp-math-f32"="preserve-sign,preserve-sign" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="gfx900" "target-features"="+16-bit-insts,+ci-insts,+dpp,+gfx8-insts,+gfx9-insts,+s-memrealtime,+s-memtime-inst,+wavefrontsize64,-sram-ecc" }
 // GFX900: attributes #6 = { convergent nounwind "denormal-fp-math-f32"="preserve-sign,preserve-sign" "enqueued-block" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="gfx900" "target-features"="+16-bit-insts,+ci-insts,+dpp,+gfx8-insts,+gfx9-insts,+s-memrealtime,+s-memtime-inst,+wavefrontsize64,-sram-ecc" }
-// GFX900: attributes #7 = { nocallback nofree nosync nounwind willreturn }
+// GFX900: attributes #7 = { hassideeffects nocallback nofree nosync nounwind willreturn }
 // GFX900: attributes #8 = { nounwind }
 // GFX900: attributes #9 = { convergent nounwind }
 //.

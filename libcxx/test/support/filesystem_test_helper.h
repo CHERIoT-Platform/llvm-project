@@ -114,7 +114,7 @@ namespace utils {
     inline FILE* fopen64(const char* pathname, const char* mode) {
         // Bionic does not distinguish between fopen and fopen64, but fopen64
         // wasn't added until API 24.
-#if defined(_WIN32) || defined(__MVS__) || defined(__LP64__) || defined(__BIONIC__)
+#if defined(_WIN32) || defined(__MVS__) || defined(__LP64__) || defined(__BIONIC__) || defined(__CHERI_PURE_CAPABILITY__)
         return ::fopen(pathname, mode);
 #else
         return ::fopen64(pathname, mode);
@@ -125,7 +125,7 @@ namespace utils {
 #if defined(_WIN32)
         // _chsize_s sets errno on failure and also returns the error number.
         return ::_chsize_s(fd, length) ? -1 : 0;
-#elif defined(__MVS__) || defined(__LP64__)
+#elif defined(__MVS__) || defined(__LP64__) || defined(__CHERI_PURE_CAPABILITY__)
         return ::ftruncate(fd, length);
 #else
         return ::ftruncate64(fd, length);

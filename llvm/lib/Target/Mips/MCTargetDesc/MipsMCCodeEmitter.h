@@ -14,7 +14,10 @@
 #define LLVM_LIB_TARGET_MIPS_MCTARGETDESC_MIPSMCCODEEMITTER_H
 
 #include "llvm/MC/MCCodeEmitter.h"
-#include <cstdint>
+#include "llvm/MC/MCInst.h"
+#include "llvm/Support/DataTypes.h"
+#include "llvm/Support/MathExtras.h"
+#include <assert.h>
 
 namespace llvm {
 
@@ -81,6 +84,24 @@ public:
   unsigned getUImm6Lsl2Encoding(const MCInst &MI, unsigned OpNo,
                                 SmallVectorImpl<MCFixup> &Fixups,
                                 const MCSubtargetInfo &STI) const;
+
+  template<int Width, int Shift>
+  unsigned getShiftedImmediate(const MCInst &MI, unsigned OpNo,
+                               SmallVectorImpl<MCFixup> &Fixups,
+                               const MCSubtargetInfo &STI) const {
+    int Value = getMachineOpValue(MI, MI.getOperand(OpNo), Fixups, STI);
+    assert((isShiftedInt<Width, Shift>(Value)));
+    return ((unsigned)Value) >> Shift;
+  }
+
+  template<int Width, int Shift>
+  unsigned getShiftedUnsignedImmediate(const MCInst &MI, unsigned OpNo,
+                               SmallVectorImpl<MCFixup> &Fixups,
+                               const MCSubtargetInfo &STI) const {
+    unsigned Value = getMachineOpValue(MI, MI.getOperand(OpNo), Fixups, STI);
+    assert((isShiftedUInt<Width, Shift>(Value)));
+    return Value >> Shift;
+  }
 
   // getSImm9AddiuspValue - Return binary encoding of the microMIPS addiusp
   // instruction immediate operand.

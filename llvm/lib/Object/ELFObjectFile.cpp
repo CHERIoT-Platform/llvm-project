@@ -145,6 +145,15 @@ SubtargetFeatures ELFObjectFileBase::getMIPSFeatures() const {
   case ELF::EF_MIPS_MACH_OCTEON:
     Features.AddFeature("cnmips");
     break;
+  case ELF::EF_MIPS_MACH_BERI:
+    Features.AddFeature("beri");
+    break;
+  case ELF::EF_MIPS_MACH_CHERI128:
+    Features.AddFeature("cheri128");
+    break;
+  case ELF::EF_MIPS_MACH_CHERI256:
+    Features.AddFeature("cheri256");
+    break;
   default:
     llvm_unreachable("Unknown EF_MIPS_ARCH value");
   }
@@ -293,6 +302,11 @@ Expected<SubtargetFeatures> ELFObjectFileBase::getRISCVFeatures() const {
 
   if (PlatformFlags & ELF::EF_RISCV_RVC) {
     Features.AddFeature("c");
+  }
+
+  if (PlatformFlags & ELF::EF_RISCV_CAP_MODE) {
+    Features.AddFeature("xcheri");
+    Features.AddFeature("cap-mode");
   }
 
   RISCVAttributeParser Attributes;

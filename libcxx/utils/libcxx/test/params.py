@@ -126,6 +126,14 @@ DEFAULT_PARAMETERS = [
             ],
         ),
     ),
+    Parameter(name='target_flags', type=str, default="",
+            help="Additional compile flags (e.g. -mabi=/-march=) to use when "
+                 "compiling the test suite. This must be compatible with the "
+                 "target that the tests will be run on.",
+            actions=lambda target_flags: [] if not target_flags else [
+              AddFlag(target_flags),
+              AddSubstitution('%{target_flags}', target_flags),
+            ]),
     Parameter(
         name="std",
         choices=_allStandards,
@@ -196,6 +204,11 @@ DEFAULT_PARAMETERS = [
             AddCompileFlag("-fno-rtti")
         ],
     ),
+    Parameter(name='executor', type=str, default="",
+            help="Custom executor to use instead of the configured default.",
+            actions=lambda executor: [] if not executor else [
+              AddSubstitution('%{executor}', executor)
+            ]),
     Parameter(
         name="stdlib",
         choices=["llvm-libc++", "apple-libc++", "libstdc++", "msvc"],

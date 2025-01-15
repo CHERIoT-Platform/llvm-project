@@ -84,6 +84,8 @@ ASM_FUNCTION_M68K_RE = re.compile(
 
 ASM_FUNCTION_MIPS_RE = re.compile(
     r'^_?(?P<func>[^:]+):[ \t]*#+[ \t]*@"?(?P=func)"?\n[^:]*?'  # f: (name of func)
+    r"(?:\s*\.?L(?P=func)\$local:\n)?"  # optional .L<func>$local: due to -fno-semantic-interposition
+    r"(?:\s*\.type\s+\.?L(?P=func)\$local,@function\n)?"  # optional .type .L<func>$local
     r"(?:\s*\.?Ltmp[^:\n]*:\n)?[^:]*?"  # optional .Ltmp<N> for EH
     r"(?:^[ \t]+\.(frame|f?mask|set).*?\n)+"  # Mips+LLVM standard asm prologue
     r"(?P<body>.*?)\n"  # (body of the function)
@@ -122,6 +124,7 @@ ASM_FUNCTION_PPC_RE = re.compile(
 
 ASM_FUNCTION_RISCV_RE = re.compile(
     r'^_?(?P<func>[^:]+):[ \t]*#+[ \t]*@"?(?P=func)"?\n'
+    r"(?:\s*\.?L(?P=func)\$jump_table_base:\n)?"  # optional .L<func>$jump_table_base: due to CHERI jump tables
     r"(?:\s*\.?L(?P=func)\$local:\n)?"  # optional .L<func>$local: due to -fno-semantic-interposition
     r"(?:\s*\.type\s+\.?L(?P=func)\$local,@function\n)?"  # optional .type .L<func>$local
     r"(?:\s*\.?Lfunc_begin[^:\n]*:\n)?[^:]*?"
@@ -380,6 +383,88 @@ def scrub_asm_m68k(asm, args):
     return asm
 
 
+
+def cap_size_multiple(offset, cap_size):
+  if offset % cap_size == 0:
+    return "[[#mul(CAP_SIZE, " + str(offset // cap_size) + ")]]"
+  else:
+    return "[[#mul(CAP_SIZE, " + str(offset // cap_size) + ") + " + str(offset % cap_size) + "]]"
+
+
+def offset_to_cap_expr(match, offset, cap_size, last_frame_size):
+  if offset == 0:
+    return "0"
+  if not last_frame_size:
+    print("clc/csc: unknown stackframe size:" + unchanged_match(match))
+    return str(offset)
+
+  if offset >= last_frame_size:
+    print("clc/csc: offset bigger than", last_frame_size, ":" + unchanged_match(match))
+    return str(offset)
+
+  difference = last_frame_size - offset
+  if difference % cap_size != 0:
+    print("clc/csc: modulo wrong:" + unchanged_match(match))
+    return cap_size_multiple(offset, cap_size)
+
+  if difference == cap_size:
+    return "[[#STACKFRAME_SIZE - CAP_SIZE]]"
+  return "[[#STACKFRAME_SIZE - mul(CAP_SIZE, " + str(difference // cap_size) + ")]]"
+
+
+def unchanged_match(match):
+  return match.string[match.start():match.end()]
+
+
+def _replace_group(match, group, replacement):
+  return match.string[match.start():match.start(group)] + replacement + match.string[match.end(group):match.end()]
+
+
+def do_clc_csc_sub(match, last_frame_size, last_cap_size_ref=None, cap_size=None):
+  offset = int(match.group('offset'))
+  if cap_size is None:
+    cap_size = int(match.group('cap_size'))
+    assert cap_size == 16 or cap_size == 32
+    last_cap_size_ref[0] = cap_size
+  offset_str = offset_to_cap_expr(match, offset, cap_size, last_frame_size)
+  result = _replace_group(match, 'offset', offset_str)
+  # print('replacing ', match.string[match.start():match.end()], 'with', result)
+  return result
+
+
+def do_save_load_dword_sub(match, last_frame_size):
+  offset = int(match.group('offset'))
+  # dwords are stored after capabilities so usually this can be $STACKFRAME_SIZE - n*dword
+  if not last_frame_size:
+    print("cld/csd: unknown stackframe size:" + unchanged_match(match))
+    return unchanged_match(match)
+  if offset >= last_frame_size:
+    print("cld/csd: offset bigger than", last_frame_size, ":" + unchanged_match(match))
+    return unchanged_match(match)
+  difference = last_frame_size - offset
+  if difference % 8 != 0:
+    print("cld/csd: modulo wrong:" + unchanged_match(match))
+    return unchanged_match(match)
+  result = _replace_group(match, 'offset', "[[#STACKFRAME_SIZE - " + str(difference) + "]]")
+  # print('replacing ', match.string[match.start():match.end()], 'with', result)
+  return result
+
+
+def do_cfi_offset_sub(match, last_frame_size, last_cap_size):
+  cap_size = 16 if last_cap_size is None else last_cap_size
+  offset_str = offset_to_cap_expr(match, int(match.group('offset')), cap_size, last_frame_size)
+  return _replace_group(match, 'offset', offset_str)
+
+
+def do_stackframe_size_sub(match, last_frame_size_ref):
+  if match.group("addi_size") is not None:
+    last_frame_size_ref[0] = int(match.group("addi_size"))
+    return _replace_group(match, 'addi_size', "[[#STACKFRAME_SIZE:]]")
+  else:
+    last_frame_size_ref[0] = int(match.group("size"))
+    return _replace_group(match, 'size', "[[#STACKFRAME_SIZE:]]")
+
+
 def scrub_asm_mips(asm, args):
     # Scrub runs of whitespace out of the assembly, but leave the leading
     # whitespace in place.
@@ -388,8 +473,38 @@ def scrub_asm_mips(asm, args):
     asm = string.expandtabs(asm, 2)
     # Strip trailing whitespace.
     asm = common.SCRUB_TRAILING_WHITESPACE_RE.sub(r"", asm)
-    return asm
 
+    if not getattr(args, 'scrub_stack_indices', False):
+      return asm
+
+    # "pass-by-reference"
+    last_frame_size_ref = [None]
+    stackframe_size_regex = re.compile(r'(daddiu\s+\$1, \$zero, -(?P<addi_size>\d+)\n\s*)?cincoffset \$c11, \$c11, -?(?P<size>(\d+)|(\$1))')
+    asm = stackframe_size_regex.sub(lambda m: do_stackframe_size_sub(m, last_frame_size_ref), asm, count=1)
+    if not last_frame_size_ref[0]:
+      mips_stackframe_size_regex = re.compile(r'daddiu \$sp, \$sp, -(?P<size>\d+)')
+      asm = mips_stackframe_size_regex.sub(lambda m: do_stackframe_size_sub(m, last_frame_size_ref), asm, count=1)
+    last_frame_size = last_frame_size_ref[0]
+    if last_frame_size is not None:
+      asm = re.sub(r'.cfi_def_cfa_offset ' + str(last_frame_size), '.cfi_def_cfa_offset [[#STACKFRAME_SIZE]]', asm, count=1)
+
+    # Expand .cfi offsets and clc offset to #CAPS_SIZE for CHERI128/256
+    stack_store_cap_re = re.compile(r'(?:csc|clc) \$\w+, \$zero, \-?(?P<offset>\d+)\(\$c11\) *# (?P<cap_size>16|32)\-byte Folded (Spill|Reload)')
+    last_cap_size_ref = [None]
+    asm = stack_store_cap_re.sub(lambda m: do_clc_csc_sub(m, last_frame_size, last_cap_size_ref), asm)
+    last_cap_size = last_cap_size_ref[0]
+    stack_store_dword_re = re.compile(r'(?:csd|cld) \$\w+, \$zero, \-?(?P<offset>\d+)\(\$c11\)')
+    asm = stack_store_dword_re.sub(lambda m: do_save_load_dword_sub(m, last_frame_size), asm)
+    cfi_offset_regex = re.compile(r'\.cfi_offset (?P<reg>[$\w]+), -(?P<offset>\d+)')
+    asm = cfi_offset_regex.sub(lambda m: do_cfi_offset_sub(m, last_frame_size, last_cap_size), asm)
+    stackframe_inc_return_regex = re.compile(r'cjr \$c17\n *cincoffset \$c11, \$c11, \d+')
+    asm = stackframe_inc_return_regex.sub('cjr $c17\n  cincoffset $c11, $c11, [[#STACKFRAME_SIZE]]', asm)
+    # Finally try to replace all other stack cincoffsets
+    if last_frame_size:
+      asm = re.sub("cincoffset\s+\$c11,\s+\$c11, " + str(last_frame_size), "cincoffset $c11, $c11, [[#STACKFRAME_SIZE]]", asm)
+      asm = re.sub("daddiu \$1, \$zero, " + str(last_frame_size), "daddiu $1, $zero, [[#STACKFRAME_SIZE]]", asm)
+      asm = re.sub("daddiu\s+\$sp,\s+\$sp, " + str(last_frame_size), "daddiu $sp, $sp, [[#STACKFRAME_SIZE]]", asm)
+    return asm
 
 def scrub_asm_msp430(asm, args):
     # Scrub runs of whitespace out of the assembly, but leave the leading
@@ -563,6 +678,7 @@ def get_run_handler(triple):
         "thumbv7-apple-ios": (scrub_asm_arm_eabi, ASM_FUNCTION_ARM_IOS_RE),
         "m68k": (scrub_asm_m68k, ASM_FUNCTION_M68K_RE),
         "mips": (scrub_asm_mips, ASM_FUNCTION_MIPS_RE),
+        "cheri": (scrub_asm_mips, ASM_FUNCTION_MIPS_RE),
         "msp430": (scrub_asm_msp430, ASM_FUNCTION_MSP430_RE),
         "avr": (scrub_asm_avr, ASM_FUNCTION_AVR_RE),
         "ppc32": (scrub_asm_powerpc, ASM_FUNCTION_PPC_RE),

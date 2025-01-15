@@ -1310,24 +1310,24 @@ proceed:
 ;; Intrinsic Functions
 
 ; Intrinsic Functions -- Variable Argument Handling
-declare void @llvm.va_start(i8*)
-declare void @llvm.va_copy(i8*, i8*)
-declare void @llvm.va_end(i8*)
+declare void @llvm.va_start.p0i8(i8*)
+declare void @llvm.va_copy.p0i8.p0i8(i8*, i8*)
+declare void @llvm.va_end.p0i8(i8*)
 define void @instructions.va_arg(i8* %v, ...) {
   %ap = alloca i8*
   %ap2 = bitcast i8** %ap to i8*
 
-  call void @llvm.va_start(i8* %ap2)
-  ; CHECK: call void @llvm.va_start(ptr %ap2)
+  call void @llvm.va_start.p0i8(i8* %ap2)
+  ; CHECK: call void @llvm.va_start.p0(ptr %ap2)
 
   va_arg i8* %ap2, i32
   ; CHECK: va_arg ptr %ap2, i32
 
-  call void @llvm.va_copy(i8* %v, i8* %ap2)
-  ; CHECK: call void @llvm.va_copy(ptr %v, ptr %ap2)
+  call void @llvm.va_copy.p0i8.p0i8(i8* %v, i8* %ap2)
+  ; CHECK: call void @llvm.va_copy.p0.p0(ptr %v, ptr %ap2)
 
-  call void @llvm.va_end(i8* %ap2)
-  ; CHECK: call void @llvm.va_end(ptr %ap2)
+  call void @llvm.va_end.p0i8(i8* %ap2)
+  ; CHECK: call void @llvm.va_end.p0(ptr %ap2)
 
   ret void
 }
@@ -1369,7 +1369,7 @@ declare void @llvm.instrprof_increment(i8*, i64, i32, i32)
 !10 = !{!"rax"}
 define void @intrinsics.codegen() {
   call i8* @llvm.returnaddress(i32 1)
-  ; CHECK: call ptr @llvm.returnaddress(i32 1)
+  ; CHECK: call ptr @llvm.returnaddress.p0(i32 1)
   call i8* @llvm.frameaddress(i32 1)
   ; CHECK: call ptr @llvm.frameaddress.p0(i32 1)
 
@@ -1397,7 +1397,7 @@ define void @intrinsics.codegen() {
   ; CHECK: call i64 @llvm.readcyclecounter()
 
   call void @llvm.clear_cache(i8* null, i8* null)
-  ; CHECK: call void @llvm.clear_cache(ptr null, ptr null)
+  ; CHECK: call void @llvm.clear_cache.p0(ptr null, ptr null)
 
   call void @llvm.instrprof_increment(i8* null, i64 0, i32 0, i32 0)
   ; CHECK: call void @llvm.instrprof_increment(ptr null, i64 0, i32 0, i32 0)
@@ -1624,11 +1624,11 @@ declare void @f.writeonly() writeonly
 ; CHECK: attributes #33 = { memory(inaccessiblemem: readwrite) }
 ; CHECK: attributes #34 = { memory(argmem: readwrite, inaccessiblemem: readwrite) }
 ; CHECK: attributes #35 = { nocallback nofree nosync nounwind willreturn memory(none) }
-; CHECK: attributes #36 = { nocallback nofree nosync nounwind willreturn }
-; CHECK: attributes #37 = { nounwind memory(argmem: read) }
-; CHECK: attributes #38 = { nounwind memory(argmem: readwrite) }
-; CHECK: attributes #39 = { nocallback nofree nosync nounwind willreturn memory(read) }
-; CHECK: attributes #40 = { nocallback nounwind }
+; CHECK: attributes #36 = { nounwind memory(argmem: read) }
+; CHECK: attributes #37 = { nounwind memory(argmem: readwrite) }
+; CHECK: attributes #38 = { nocallback nofree nosync nounwind willreturn memory(read) }
+; CHECK: attributes #39 = { nocallback nounwind }
+; CHECK: attributes #40 = { nocallback nofree nosync nounwind willreturn }
 ; CHECK: attributes #41 = { memory(write) }
 ; CHECK: attributes #42 = { nocallback nofree nosync nounwind willreturn memory(argmem: readwrite, inaccessiblemem: readwrite) }
 ; CHECK: attributes #43 = { builtin }

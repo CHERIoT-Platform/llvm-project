@@ -186,7 +186,7 @@ static uptr GetMmapGranularity() {
   return si.dwAllocationGranularity;
 }
 
-UNUSED static uptr RoundUpTo(uptr size, uptr boundary) {
+UNUSED static usize RoundUpTo(usize size, usize boundary) {
   return (size + boundary - 1) & ~(boundary - 1);
 }
 
@@ -221,21 +221,21 @@ static void _memcpy(void *dst, void *src, size_t sz) {
 }
 
 static bool ChangeMemoryProtection(
-    uptr address, uptr size, DWORD *old_protection) {
+    uptr address, usize size, DWORD *old_protection) {
   return ::VirtualProtect((void*)address, size,
                           PAGE_EXECUTE_READWRITE,
                           old_protection) != FALSE;
 }
 
 static bool RestoreMemoryProtection(
-    uptr address, uptr size, DWORD old_protection) {
+    uptr address, usize size, DWORD old_protection) {
   DWORD unused;
   return ::VirtualProtect((void*)address, size,
                           old_protection,
                           &unused) != FALSE;
 }
 
-static bool IsMemoryPadding(uptr address, uptr size) {
+static bool IsMemoryPadding(uptr address, usize size) {
   u8* function = (u8*)address;
   for (size_t i = 0; i < size; ++i)
     if (function[i] != 0x90 && function[i] != 0xCC)
@@ -256,7 +256,7 @@ static bool FunctionHasPrefix(uptr address, const T &pattern) {
   return true;
 }
 
-static bool FunctionHasPadding(uptr address, uptr size) {
+static bool FunctionHasPadding(uptr address, usize size) {
   if (IsMemoryPadding(address - size, size))
     return true;
   if (size <= sizeof(kHintNop8Bytes) &&
@@ -265,7 +265,7 @@ static bool FunctionHasPadding(uptr address, uptr size) {
   return false;
 }
 
-static void WritePadding(uptr from, uptr size) {
+static void WritePadding(uptr from, usize size) {
   _memset((void*)from, 0xCC, (size_t)size);
 }
 

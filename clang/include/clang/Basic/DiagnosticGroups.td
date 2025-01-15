@@ -144,6 +144,33 @@ def ObjCLiteralConversion : DiagGroup<"objc-literal-conversion">;
 def MacroRedefined : DiagGroup<"macro-redefined">;
 def BuiltinMacroRedefined : DiagGroup<"builtin-macro-redefined">;
 def BuiltinRequiresHeader : DiagGroup<"builtin-requires-header">;
+
+
+// Generally useful CHERI warnings
+def CHERICaps : DiagGroup<"cheri-capability-misuse">;
+def CHERIProvenance : DiagGroup<"cheri-provenance">;
+def CHERIProvenancePedantic : DiagGroup<"cheri-provenance-pedantic">;
+def CHERIMisaligned : DiagGroup<"cheri-misaligned">;
+def CHERIBitwiseOps : DiagGroup<"cheri-bitwise-operations">;
+def CHERIImplicitConversion : DiagGroup<"cheri-implicit-conversion">;
+def CHERIImplicitConversionSign : DiagGroup<"cheri-implicit-conversion-sign">;
+def CHERIPointerConversion : DiagGroup<"cheri-pointer-conversion", [CHERIImplicitConversionSign, CHERIImplicitConversion]>;
+def CHERIPrototypes: DiagGroup<"cheri-prototypes">;
+def CHERIPrototypesStrict: DiagGroup<"cheri-prototypes-strict">;
+// Remarks about setting/not setting subobject bounds
+def CheriSubobjectBoundsSuspicous : DiagGroup<"cheri-subobject-bounds-suspicious">;
+def CheriSubobjectBoundsRemarks : DiagGroup<"cheri-subobject-bounds">;
+def CHERICompartmentReturnVoid : DiagGroup<"cheri-compartment-return-void">;
+
+def CheriAll : DiagGroup<"cheri",
+     [CHERICaps, CHERIBitwiseOps, CHERIMisaligned, CHERIImplicitConversion, CheriSubobjectBoundsSuspicous,
+      CHERIProvenance, CHERIImplicitConversionSign, CHERIPrototypes, CHERICompartmentReturnVoid]>;
+// CHERI warnings that are too noisy to turn on by default
+def CHERICapabilityToIntegerCast : DiagGroup<"capability-to-integer-cast">;
+def CheriPedantic : DiagGroup<"cheri-pedantic", [CHERICapabilityToIntegerCast, CHERIPrototypesStrict, CHERIProvenancePedantic]>;
+// Warnings/Errors for bugs in the MIPS/CHERI backend
+def MIPSCHERIBugs: DiagGroup<"mips-cheri-bugs">;
+
 def C99Compat : DiagGroup<"c99-compat">;
 def C23Compat : DiagGroup<"c23-compat">;
 def : DiagGroup<"c2x-compat", [C23Compat]>;
@@ -584,6 +611,7 @@ def OpenCLUnsupportedRGBA: DiagGroup<"opencl-unsupported-rgba">;
 def UnderalignedExceptionObject : DiagGroup<"underaligned-exception-object">;
 def DeprecatedObjCIsaUsage : DiagGroup<"deprecated-objc-isa-usage">;
 def ExplicitInitializeCall : DiagGroup<"explicit-initialize-call">;
+def ExcessPadding : DiagGroup<"excess-padding">;
 def OrderedCompareFunctionPointers : DiagGroup<"ordered-compare-function-pointers">;
 def PackedNonPod : DiagGroup<"packed-non-pod">;
 def Packed : DiagGroup<"packed", [PackedNonPod]>;
@@ -632,6 +660,7 @@ def ShadowAll : DiagGroup<"shadow-all", [Shadow, ShadowFieldInConstructor,
                                          ShadowUncapturedLocal, ShadowField]>;
 
 def Shorten64To32 : DiagGroup<"shorten-64-to-32">;
+def ShortenCapToInt : DiagGroup<"shorten-cap-to-int">;
 def : DiagGroup<"sign-promo">;
 def SignCompare : DiagGroup<"sign-compare">;
 def SwitchDefault  : DiagGroup<"switch-default">;
@@ -943,6 +972,7 @@ def Conversion : DiagGroup<"conversion",
                             BitFieldEnumConversion,
                             FloatConversion,
                             Shorten64To32,
+                            ShortenCapToInt,
                             IntConversion,
                             ImplicitIntConversion,
                             ImplicitFloatConversion,
@@ -1013,6 +1043,7 @@ def Move : DiagGroup<"move", [
 
 def Extra : DiagGroup<"extra", [
     DeprecatedCopy,
+    CHERIPrototypesStrict, // this is quite noisy so only on for -Wextra
     MissingFieldInitializers,
     IgnoredQualifiers,
     InitializerOverrides,
@@ -1098,7 +1129,7 @@ def All : DiagGroup<"all", [Most, Parentheses, Switch, SwitchBool,
 def : DiagGroup<"CL4", [All, Extra]>;
 
 // Warnings enabled by -pedantic.  This is magically filled in by TableGen.
-def Pedantic : DiagGroup<"pedantic">;
+def Pedantic : DiagGroup<"pedantic", [CheriPedantic]>;
 
 // Aliases.
 def : DiagGroup<"", [Extra]>;                   // -W = -Wextra
@@ -1355,6 +1386,7 @@ def BackendOptimizationRemark : DiagGroup<"pass">;
 def BackendOptimizationRemarkMissed : DiagGroup<"pass-missed">;
 def BackendOptimizationRemarkAnalysis : DiagGroup<"pass-analysis">;
 def BackendOptimizationFailure : DiagGroup<"pass-failed">;
+def BackendCheriInefficient : DiagGroup<"cheri-inefficient">;
 def BackendWarningAttributes : DiagGroup<"attribute-warning">;
 
 // Instrumentation based profiling warnings.

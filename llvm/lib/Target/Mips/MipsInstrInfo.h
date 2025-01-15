@@ -192,9 +192,23 @@ public:
   std::optional<ParamLoadedValue>
   describeLoadedValue(const MachineInstr &MI, Register Reg) const override;
 
+  bool isGuaranteedNotToTrap(const MachineInstr &MI) const override {
+    if (isGuaranteedValidSetBounds(MI))
+      return true;
+    return false;
+  }
+  bool isSetBoundsInstr(const MachineInstr &I, const MachineOperand *&Base,
+                        const MachineOperand *&Size) const override;
+  bool isPtrAddInstr(const MachineInstr &I, const MachineOperand *&Base,
+                     const MachineOperand *&Increment) const override;
+  std::optional<int64_t>
+  getAsIntImmediate(const MachineOperand &Op,
+                    const MachineRegisterInfo &MRI) const override;
+
 protected:
   bool isZeroImm(const MachineOperand &op) const;
 
+public:
   MachineMemOperand *GetMemOperand(MachineBasicBlock &MBB, int FI,
                                    MachineMemOperand::Flags Flags) const;
 

@@ -146,17 +146,31 @@
 #define _LIBUNWIND_REMEMBER_CLEANUP_NEEDED
 #endif
 
+#ifdef __CHERI_PURE_CAPABILITY__
+#define _LIBUNWIND_FMT_PTR "%-#p"
+#else
+#define _LIBUNWIND_FMT_PTR "%p"
+#endif
+
 #if defined(NDEBUG) && defined(_LIBUNWIND_IS_BAREMETAL)
 #define _LIBUNWIND_ABORT(msg)                                                  \
   do {                                                                         \
     abort();                                                                   \
   } while (0)
+#define _LIBUNWIND_ABORT_FMT(fmt, msg, ...) _LIBUNWIND_ABORT(msg)
 #else
 #define _LIBUNWIND_ABORT(msg)                                                  \
   do {                                                                         \
     fprintf(stderr, "libunwind: %s - %s\n", __func__, msg);                    \
     fflush(stderr);                                                            \
-    abort();                                                                   \
+    __builtin_trap(); abort();                                                 \
+  } while (0)
+#define _LIBUNWIND_ABORT_FMT(fmt, ...)                                         \
+  do {                                                                         \
+    fprintf(stderr, "libunwind: %s %s:%d - " fmt "\n", __func__, __FILE__,     \
+            __LINE__, __VA_ARGS__);                                            \
+    fflush(stderr);                                                            \
+    __builtin_trap(); abort();                                                 \
   } while (0)
 #endif
 
@@ -185,6 +199,38 @@
     } while (0)
 #endif
 
+#ifdef __CHERI_PURE_CAPABILITY__
+static inline bool is_pointer_in_bounds(uintptr_t value, bool include_top) {
+  ptraddr_t addr = (ptraddr_t)value;
+  ptraddr_t base = __builtin_cheri_base_get(value);
+  ptraddr_t top = base + __builtin_cheri_length_get(value);
+  return __builtin_cheri_tag_get(value) && addr >= base &&
+         (include_top ? addr <= top : addr < top);
+}
+
+static inline uintptr_t assert_pointer_in_bounds(uintptr_t value) {
+  // XXX: Should some callers include the top?
+  if (!is_pointer_in_bounds(value, false)) {
+    _LIBUNWIND_ABORT_FMT(
+        "Out-of-bounds/invalid value used: " _LIBUNWIND_FMT_PTR, (void *)value);
+  }
+  return value;
+}
+#else
+static inline bool is_pointer_in_bounds(uintptr_t value, bool include_top) {
+  (void)value;
+  (void)include_top;
+  return true;
+}
+static inline uintptr_t assert_pointer_in_bounds(uintptr_t value) {
+  return value;
+}
+#endif
+
+#if !__has_extension(cheri_casts)
+#define __cheri_addr /* nothing */
+#endif
+
 // Macros that define away in non-Debug builds
 #ifdef NDEBUG
   #define _LIBUNWIND_DEBUG_LOG(msg, ...)
@@ -193,6 +239,7 @@
   #define _LIBUNWIND_TRACING_DWARF (0)
   #define _LIBUNWIND_TRACE_UNWINDING(msg, ...)
   #define _LIBUNWIND_TRACE_DWARF(...)
+  #define CHERI_DBG(...) (void)0
 #else
   #ifdef __cplusplus
     extern "C" {
@@ -200,6 +247,9 @@
     extern  bool logAPIs(void);
     extern  bool logUnwinding(void);
     extern  bool logDWARF(void);
+  #ifdef __CHERI_PURE_CAPABILITY__
+    extern  bool logCHERI(void);
+  #endif
   #ifdef __cplusplus
     }
   #endif
@@ -221,6 +271,15 @@
       if (logDWARF())                                                          \
         fprintf(stderr, __VA_ARGS__);                                          \
     } while (0)
+  #ifndef __CHERI_PURE_CAPABILITY__
+    #define CHERI_DBG(...) (void)0
+  #else
+    #define CHERI_DBG(...)                                                     \
+      do {                                                                     \
+        if (logCHERI())                                                        \
+          fprintf(stderr, __VA_ARGS__);                                        \
+      } while (0)
+  #endif
 #endif
 
 #ifdef __cplusplus
@@ -243,5 +302,18 @@ struct check_fit {
 };
 #undef COMP_OP
 #endif // __cplusplus
+
+static inline uintptr_t pcc_address(uintptr_t a)
+{
+#ifdef __CHERI_PURE_CAPABILITY__
+  if (__builtin_cheri_tag_get((void*)a))
+    return a;
+  void *pcc = __builtin_cheri_program_counter_get();
+  pcc = __builtin_cheri_offset_set(pcc, (long)__builtin_cheri_address_get((void*)a));
+  return (uintptr_t)pcc;
+#else
+  return a;
+#endif
+}
 
 #endif // LIBUNWIND_CONFIG_H

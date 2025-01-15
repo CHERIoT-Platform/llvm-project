@@ -34,12 +34,24 @@
 
 using namespace llvm;
 
+static cl::opt<bool>
+Cheri16("cheri16", cl::NotHidden,
+        cl::desc("CHERI: Only use 16 capability registers."),
+        cl::init(false));
+
+static cl::opt<bool>
+Cheri8("cheri8", cl::NotHidden,
+       cl::desc("CHERI: Only use 8 capability registers."),
+       cl::init(false));
+
 #define DEBUG_TYPE "mips-reg-info"
 
 #define GET_REGINFO_TARGET_DESC
 #include "MipsGenRegisterInfo.inc"
 
-MipsRegisterInfo::MipsRegisterInfo() : MipsGenRegisterInfo(Mips::RA) {}
+MipsRegisterInfo::MipsRegisterInfo(const MipsSubtarget &STI) :
+  MipsGenRegisterInfo(STI.isABI_CheriPureCap() ?
+          Mips::C17 : Mips::RA, 0, 0, 0, STI.getHwMode()) {}
 
 unsigned MipsRegisterInfo::getPICCallReg() { return Mips::T9; }
 
@@ -105,6 +117,12 @@ MipsRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
   if (Subtarget.isSingleFloat())
     return CSR_SingleFloatOnly_SaveList;
 
+  if (Subtarget.isABI_CheriPureCap())
+    return CSR_Cheri_Purecap_SaveList;
+
+  if (Subtarget.isCheri())
+    return CSR_N64_Cheri_SaveList;
+
   if (Subtarget.isABI_N64())
     return CSR_N64_SaveList;
 
@@ -126,6 +144,12 @@ MipsRegisterInfo::getCallPreservedMask(const MachineFunction &MF,
   const MipsSubtarget &Subtarget = MF.getSubtarget<MipsSubtarget>();
   if (Subtarget.isSingleFloat())
     return CSR_SingleFloatOnly_RegMask;
+
+  if (Subtarget.isABI_CheriPureCap())
+    return CSR_Cheri_Purecap_RegMask;
+
+  if (Subtarget.isCheri())
+    return CSR_N64_Cheri_RegMask;
 
   if (Subtarget.isABI_N64())
     return CSR_N64_RegMask;
@@ -149,11 +173,45 @@ const uint32_t *MipsRegisterInfo::getMips16RetHelperMask() {
 BitVector MipsRegisterInfo::
 getReservedRegs(const MachineFunction &MF) const {
   static const MCPhysReg ReservedGPR32[] = {
-    Mips::ZERO, Mips::K0, Mips::K1, Mips::SP
+    Mips::ZERO, Mips::K0, Mips::K1
   };
 
   static const MCPhysReg ReservedGPR64[] = {
-    Mips::ZERO_64, Mips::K0_64, Mips::K1_64, Mips::SP_64
+    Mips::ZERO_64, Mips::K0_64, Mips::K1_64
+  };
+
+  static const uint16_t ReservedCheriRegs[] = {
+      Mips::CNULL,
+      Mips::DDC,
+      Mips::C25,
+      Mips::C26,
+      Mips::C27,
+      Mips::C28,
+      Mips::C29,
+      Mips::C30,
+      Mips::C31,
+      // Mark the capability HWRegs as reserved to avoid machine verifier errors
+      Mips::CAPHWR0,
+      Mips::CAPHWR1,
+      Mips::CAPHWR8,
+      Mips::CAPHWR22,
+      Mips::CAPHWR23,
+      Mips::CAPHWR29,
+      Mips::CAPHWR30,
+      Mips::CAPHWR31,
+  };
+
+  // C1-C7, C11, C12, C17-C23 allowed
+  static const uint16_t ReservedCheri16Regs[] = {
+    Mips::C8, Mips::C9, Mips::C10, Mips::C13, Mips::C14, Mips::C15, Mips::C16,
+    Mips::C24
+  };
+
+  // C1-C3, C11, C12, C17-C19 allowed
+  static const uint16_t ReservedCheri8Regs[] = {
+    Mips::C4, Mips::C5, Mips::C6, Mips::C7, Mips::C8, Mips::C9, Mips::C10,
+    Mips::C13, Mips::C14, Mips::C15, Mips::C16, Mips::C20, Mips::C21,
+    Mips::C22, Mips::C23, Mips::C24
   };
 
   BitVector Reserved(getNumRegs());
@@ -172,6 +230,12 @@ getReservedRegs(const MachineFunction &MF) const {
   for (MCPhysReg R : ReservedGPR64)
     Reserved.set(R);
 
+  // In the CHERI pure-capability ABI, $sp is just another temporary register.
+  if (!Subtarget.isABI_CheriPureCap()) {
+    Reserved.set(Mips::SP);
+    Reserved.set(Mips::SP_64);
+  }
+
   // For mno-abicalls, GP is a program invariant!
   if (!Subtarget.isABICalls()) {
     Reserved.set(Mips::GP);
@@ -187,6 +251,32 @@ getReservedRegs(const MachineFunction &MF) const {
     for (MCPhysReg Reg : Mips::FGR64RegClass)
       Reserved.set(Reg);
   }
+
+  if (Subtarget.isCheri()) {
+    for (unsigned I = 0; I < std::size(ReservedCheriRegs); ++I)
+      Reserved.set(ReservedCheriRegs[I]);
+    auto &ABI = Subtarget.getABI();
+    auto *FL =
+      static_cast<const MipsFrameLowering*>(Subtarget.getFrameLowering());
+    if (Subtarget.isABI_CheriPureCap()) {
+      Reserved.set(ABI.GetStackPtr());
+      if (FL->hasFP(MF))
+        Reserved.set(ABI.GetFramePtr());
+      if (FL->hasBP(MF))
+        Reserved.set(ABI.GetBasePtr());
+      if (Subtarget.useCheriCapTable())
+        Reserved.set(ABI.GetGlobalCapability());
+
+    }
+    if (Cheri8)
+      for (unsigned I = 0; I < std::size(ReservedCheri8Regs); ++I)
+        Reserved.set(ReservedCheri8Regs[I]);
+    if (Cheri16)
+      for (unsigned I = 0; I < std::size(ReservedCheri16Regs); ++I)
+        Reserved.set(ReservedCheri16Regs[I]);
+  } else
+    Reserved.set(Mips::DDC);
+
   // Reserve FP if this function should have a dedicated frame pointer register.
   if (Subtarget.getFrameLowering()->hasFP(MF)) {
     if (Subtarget.inMips16Mode())
@@ -263,7 +353,7 @@ eliminateFrameIndex(MachineBasicBlock::iterator II, int SPAdj,
                     << DebugStr(MF.getFrameInfo().getObjectAlign(FrameIndex))
                     << "\n");
 
-  eliminateFI(MI, FIOperandNum, FrameIndex, stackSize, spOffset);
+  eliminateFI(MI, FIOperandNum, FrameIndex, stackSize, spOffset, RS);
   return false;
 }
 
@@ -271,14 +361,12 @@ Register MipsRegisterInfo::
 getFrameRegister(const MachineFunction &MF) const {
   const MipsSubtarget &Subtarget = MF.getSubtarget<MipsSubtarget>();
   const TargetFrameLowering *TFI = Subtarget.getFrameLowering();
-  bool IsN64 =
-      static_cast<const MipsTargetMachine &>(MF.getTarget()).getABI().IsN64();
+  auto &ABI = static_cast<const MipsTargetMachine &>(MF.getTarget()).getABI();
 
   if (Subtarget.inMips16Mode())
     return TFI->hasFP(MF) ? Mips::S0 : Mips::SP;
   else
-    return TFI->hasFP(MF) ? (IsN64 ? Mips::FP_64 : Mips::FP) :
-                            (IsN64 ? Mips::SP_64 : Mips::SP);
+    return TFI->hasFP(MF) ? ABI.GetFramePtr() : ABI.GetStackPtr();
 }
 
 bool MipsRegisterInfo::canRealignStack(const MachineFunction &MF) const {

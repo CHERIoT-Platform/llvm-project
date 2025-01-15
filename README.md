@@ -1,4 +1,4 @@
-# The LLVM Compiler Infrastructure
+# The CHERI LLVM Compiler Infrastructure
 
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/llvm/llvm-project/badge)](https://securityscorecards.dev/viewer/?uri=github.com/llvm/llvm-project)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8273/badge)](https://www.bestpractices.dev/projects/8273)
@@ -8,7 +8,7 @@ Welcome to the LLVM project!
 
 This repository contains the source code for LLVM, a toolkit for the
 construction of highly optimized compilers, optimizers, and run-time
-environments.
+environments, extended to support [CHERI](http://cheri-cpu.org).
 
 The LLVM project has multiple components. The core of the project is
 itself called "LLVM". This contains all of the tools, libraries, and header

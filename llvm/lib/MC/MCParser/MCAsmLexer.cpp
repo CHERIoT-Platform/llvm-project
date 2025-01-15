@@ -120,6 +120,21 @@ void AsmToken::dump(raw_ostream &OS) const {
   case AsmToken::PercentTlsldm:      OS << "PercentTlsldm"; break;
   case AsmToken::PercentTprel_Hi:    OS << "PercentTprel_Hi"; break;
   case AsmToken::PercentTprel_Lo:    OS << "PercentTprel_Lo"; break;
+  case AsmToken::PercentCapTab_Rel:  OS << "PercentCapTab_Rel"; break;
+  case AsmToken::PercentCapTab11:       OS << "PercentCapTab11";      break;
+  case AsmToken::PercentCapTab20:       OS << "PercentCapTab20";      break;
+  case AsmToken::PercentCapTab_Lo:      OS << "PercentCapTab_Lo";     break;
+  case AsmToken::PercentCapTab_Hi:      OS << "PercentCapTab_Hi";     break;
+  case AsmToken::PercentCapTabCall11:   OS << "PercentCapTabCall11";  break;
+  case AsmToken::PercentCapTabCall20:   OS << "PercentCapTabCall20";  break;
+  case AsmToken::PercentCapTabCall_Lo:  OS << "PercentCapTabCall_Lo"; break;
+  case AsmToken::PercentCapTabCall_Hi:  OS << "PercentCapTabCall_Hi"; break;
+  case AsmToken::PercentCapTabTlsgd_Hi:  OS << "PercentCapTabTlsgd_Hi";  break;
+  case AsmToken::PercentCapTabTlsgd_Lo:  OS << "PercentCapTabTlsgd_Lo";  break;
+  case AsmToken::PercentCapTabTlsldm_Hi: OS << "PercentCapTabTlsldm_Hi"; break;
+  case AsmToken::PercentCapTabTlsldm_Lo: OS << "PercentCapTabTlsldm_Lo"; break;
+  case AsmToken::PercentCapTabTprel_Hi:  OS << "PercentCapTabTprel_Hi";  break;
+  case AsmToken::PercentCapTabTprel_Lo:  OS << "PercentCapTabTprel_Lo";  break;
   }
 
   // Print the token string.

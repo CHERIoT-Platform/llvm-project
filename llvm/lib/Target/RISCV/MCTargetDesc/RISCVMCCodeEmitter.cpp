@@ -65,6 +65,10 @@ public:
                       SmallVectorImpl<MCFixup> &Fixups,
                       const MCSubtargetInfo &STI) const;
 
+  void expandCIncOffsetTPRel(const MCInst &MI, SmallVectorImpl<char> &CB,
+                             SmallVectorImpl<MCFixup> &Fixups,
+                             const MCSubtargetInfo &STI) const;
+
   void expandLongCondBr(const MCInst &MI, SmallVectorImpl<char> &CB,
                         SmallVectorImpl<MCFixup> &Fixups,
                         const MCSubtargetInfo &STI) const;
@@ -123,18 +127,39 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
   MCInst TmpInst;
   MCOperand Func;
   MCRegister Ra;
+  bool IsCap;
   if (MI.getOpcode() == RISCV::PseudoTAIL) {
     Func = MI.getOperand(0);
     Ra = RISCV::X6;
+    IsCap = false;
   } else if (MI.getOpcode() == RISCV::PseudoCALLReg) {
     Func = MI.getOperand(1);
     Ra = MI.getOperand(0).getReg();
+    IsCap = false;
   } else if (MI.getOpcode() == RISCV::PseudoCALL) {
     Func = MI.getOperand(0);
     Ra = RISCV::X1;
+    IsCap = false;
   } else if (MI.getOpcode() == RISCV::PseudoJump) {
     Func = MI.getOperand(1);
     Ra = MI.getOperand(0).getReg();
+    IsCap = false;
+  } else if (MI.getOpcode() == RISCV::PseudoCTAIL) {
+    Func = MI.getOperand(0);
+    Ra = RISCV::C6;
+    IsCap = true;
+  } else if (MI.getOpcode() == RISCV::PseudoCCALLReg) {
+    Func = MI.getOperand(1);
+    Ra = MI.getOperand(0).getReg();
+    IsCap = true;
+  } else if (MI.getOpcode() == RISCV::PseudoCCALL) {
+    Func = MI.getOperand(0);
+    Ra = RISCV::C1;
+    IsCap = true;
+  } else if (MI.getOpcode() == RISCV::PseudoCJump) {
+    Func = MI.getOperand(1);
+    Ra = MI.getOperand(0).getReg();
+    IsCap = true;
   }
   uint32_t Binary;
 
@@ -142,18 +167,28 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
 
   const MCExpr *CallExpr = Func.getExpr();
 
-  // Emit AUIPC Ra, Func with R_RISCV_CALL relocation type.
-  TmpInst = MCInstBuilder(RISCV::AUIPC).addReg(Ra).addExpr(CallExpr);
+  // Emit AUIPC[C] Ra, Func with R_RISCV_[CHERI_]CALL relocation type.
+  TmpInst = MCInstBuilder(IsCap ? RISCV::AUIPCC : RISCV::AUIPC)
+                .addReg(Ra)
+                .addExpr(CallExpr);
   Binary = getBinaryCodeForInstr(TmpInst, Fixups, STI);
   support::endian::write(CB, Binary, llvm::endianness::little);
 
   if (MI.getOpcode() == RISCV::PseudoTAIL ||
-      MI.getOpcode() == RISCV::PseudoJump)
-    // Emit JALR X0, Ra, 0
-    TmpInst = MCInstBuilder(RISCV::JALR).addReg(RISCV::X0).addReg(Ra).addImm(0);
+      MI.getOpcode() == RISCV::PseudoJump ||
+      MI.getOpcode() == RISCV::PseudoCTAIL ||
+      MI.getOpcode() == RISCV::PseudoCJump)
+    // Emit [C]JALR [XC]0, Ra, 0
+    TmpInst = MCInstBuilder(IsCap ? RISCV::CJALR : RISCV::JALR)
+                  .addReg(IsCap ? RISCV::C0 : RISCV::X0)
+                  .addReg(Ra)
+                  .addImm(0);
   else
-    // Emit JALR Ra, Ra, 0
-    TmpInst = MCInstBuilder(RISCV::JALR).addReg(Ra).addReg(Ra).addImm(0);
+    // Emit [C]JALR Ra, Ra, 0
+    TmpInst = MCInstBuilder(IsCap ? RISCV::CJALR : RISCV::JALR)
+                  .addReg(Ra)
+                  .addReg(Ra)
+                  .addImm(0);
   Binary = getBinaryCodeForInstr(TmpInst, Fixups, STI);
   support::endian::write(CB, Binary, llvm::endianness::little);
 }
@@ -215,6 +250,45 @@ void RISCVMCCodeEmitter::expandAddTPRel(const MCInst &MI,
                        .addOperand(TPReg);
   uint32_t Binary = getBinaryCodeForInstr(TmpInst, Fixups, STI);
   support::endian::write(CB, Binary, llvm::endianness::little);
+}
+
+// Expand PseudoCIncOffsetTPRel to a simple CIncOffset with the correct
+// relocation.
+void RISCVMCCodeEmitter::expandCIncOffsetTPRel(
+    const MCInst &MI, SmallVectorImpl<char> &CB,
+    SmallVectorImpl<MCFixup> &Fixups, const MCSubtargetInfo &STI) const {
+  MCOperand DestReg = MI.getOperand(0);
+  MCOperand TPReg = MI.getOperand(1);
+  MCOperand SrcReg = MI.getOperand(2);
+  assert(TPReg.isReg() && TPReg.getReg() == RISCV::C4 &&
+         "Expected thread pointer as first input to CTP-relative cincoffset");
+
+  MCOperand SrcSymbol = MI.getOperand(3);
+  assert(SrcSymbol.isExpr() &&
+         "Expected expression as third input to CTP-relative cincoffset");
+
+  const RISCVMCExpr *Expr = dyn_cast<RISCVMCExpr>(SrcSymbol.getExpr());
+  assert(Expr && Expr->getKind() == RISCVMCExpr::VK_RISCV_TPREL_CINCOFFSET &&
+         "Expected tprel_cincoffset relocation on CTP-relative symbol");
+
+  // Emit the correct tprel_cincoffset relocation for the symbol.
+  Fixups.push_back(MCFixup::create(
+      0, Expr, MCFixupKind(RISCV::fixup_riscv_tprel_cincoffset), MI.getLoc()));
+
+  // Emit fixup_riscv_relax for tprel_cincoffset where the relax feature is enabled.
+  if (STI.getFeatureBits()[RISCV::FeatureRelax]) {
+    const MCConstantExpr *Dummy = MCConstantExpr::create(0, Ctx);
+    Fixups.push_back(MCFixup::create(
+        0, Dummy, MCFixupKind(RISCV::fixup_riscv_relax), MI.getLoc()));
+  }
+
+  // Emit a normal CIncOffset instruction with the given operands.
+  MCInst TmpInst = MCInstBuilder(RISCV::CIncOffset)
+                       .addOperand(DestReg)
+                       .addOperand(TPReg)
+                       .addOperand(SrcReg);
+  uint32_t Binary = getBinaryCodeForInstr(TmpInst, Fixups, STI);
+  support::endian::write(CB, Binary, endianness::little);
 }
 
 static unsigned getInvertedBranchOp(unsigned BrOp) {
@@ -311,11 +385,19 @@ void RISCVMCCodeEmitter::encodeInstruction(const MCInst &MI,
   case RISCV::PseudoCALL:
   case RISCV::PseudoTAIL:
   case RISCV::PseudoJump:
+  case RISCV::PseudoCCALLReg:
+  case RISCV::PseudoCCALL:
+  case RISCV::PseudoCTAIL:
+  case RISCV::PseudoCJump:
     expandFunctionCall(MI, CB, Fixups, STI);
     MCNumEmitted += 2;
     return;
   case RISCV::PseudoAddTPRel:
     expandAddTPRel(MI, CB, Fixups, STI);
+    MCNumEmitted += 1;
+    return;
+  case RISCV::PseudoCIncOffsetTPRel:
+    expandCIncOffsetTPRel(MI, CB, Fixups, STI);
     MCNumEmitted += 1;
     return;
   case RISCV::PseudoLongBEQ:
@@ -332,6 +414,7 @@ void RISCVMCCodeEmitter::encodeInstruction(const MCInst &MI,
     MCNumEmitted += 1;
     return;
   }
+
 
   switch (Size) {
   default:
@@ -485,6 +568,38 @@ unsigned RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
     case RISCVMCExpr::VK_RISCV_TLSDESC_CALL:
       FixupKind = RISCV::fixup_riscv_tlsdesc_call;
       break;
+    case RISCVMCExpr::VK_RISCV_CAPTAB_PCREL_HI:
+      FixupKind = RISCV::fixup_riscv_captab_pcrel_hi20;
+      break;
+    case RISCVMCExpr::VK_RISCV_TPREL_CINCOFFSET:
+      // See VK_RISCV_TPREL_ADD.
+      llvm_unreachable(
+          "VK_RISCV_TPREL_CINCOFFSET should not represent an instruction operand");
+    case RISCVMCExpr::VK_RISCV_TLS_IE_CAPTAB_PCREL_HI:
+      FixupKind = RISCV::fixup_riscv_tls_ie_captab_pcrel_hi20;
+      break;
+    case RISCVMCExpr::VK_RISCV_TLS_GD_CAPTAB_PCREL_HI:
+      FixupKind = RISCV::fixup_riscv_tls_gd_captab_pcrel_hi20;
+      break;
+    case RISCVMCExpr::VK_RISCV_CCALL:
+      FixupKind = RISCV::fixup_riscv_ccall;
+      RelaxCandidate = true;
+      break;
+    case RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_HI:
+      FixupKind = RISCV::fixup_riscv_cheriot_compartment_hi;
+      RelaxCandidate = true;
+      break;
+    case RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_LO_I:
+      FixupKind = RISCV::fixup_riscv_cheriot_compartment_lo_i;
+      RelaxCandidate = true;
+      break;
+    case RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_LO_S:
+      FixupKind = RISCV::fixup_riscv_cheriot_compartment_lo_s;
+      RelaxCandidate = true;
+      break;
+    case RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_SIZE:
+      FixupKind = RISCV::fixup_riscv_cheriot_compartment_size;
+      break;
     }
   } else if ((Kind == MCExpr::SymbolRef &&
                  cast<MCSymbolRefExpr>(Expr)->getKind() ==
@@ -493,10 +608,15 @@ unsigned RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
     // FIXME: Sub kind binary exprs have chance of underflow.
     if (MIFrm == RISCVII::InstFormatJ) {
       FixupKind = RISCV::fixup_riscv_jal;
+    } else if (Desc.getOpcode() == RISCV::CJAL) {
+      FixupKind = RISCV::fixup_riscv_cjal;
     } else if (MIFrm == RISCVII::InstFormatB) {
       FixupKind = RISCV::fixup_riscv_branch;
     } else if (MIFrm == RISCVII::InstFormatCJ) {
-      FixupKind = RISCV::fixup_riscv_rvc_jump;
+      if (Desc.getOpcode() == RISCV::C_CJAL)
+        FixupKind = RISCV::fixup_riscv_rvc_cjump;
+      else
+        FixupKind = RISCV::fixup_riscv_rvc_jump;
     } else if (MIFrm == RISCVII::InstFormatCB) {
       FixupKind = RISCV::fixup_riscv_rvc_branch;
     } else if (MIFrm == RISCVII::InstFormatI) {

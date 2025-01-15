@@ -20,6 +20,7 @@
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInst.h"
@@ -58,6 +59,9 @@
 #include <string>
 #include <utility>
 
+#include "../MCTargetDesc/MipsInstPrinter.h"
+
+
 using namespace llvm;
 
 #define DEBUG_TYPE "mips-asm-parser"
@@ -69,6 +73,11 @@ class MCInstrInfo;
 } // end namespace llvm
 
 extern cl::opt<bool> EmitJalrReloc;
+
+static cl::opt<bool> CheriStrictC0(
+    "cheri-strict-c0-asm", cl::Hidden,
+    cl::desc("Require $ddc or $cnull instead of $c0."),
+    cl::init(true), cl::ZeroOrMore);
 
 namespace {
 
@@ -150,6 +159,7 @@ class MipsAsmParser : public MCTargetAsmParser {
   bool IsLittleEndian;
   bool IsPicEnabled;
   bool IsCpRestoreSet;
+  bool AreCheriSysRegsAccessible;
   bool CurForbiddenSlotAttr;
   int CpRestoreOffset;
   unsigned GPReg;
@@ -259,6 +269,14 @@ class MipsAsmParser : public MCTargetAsmParser {
                        const MCSubtargetInfo *STI, bool IsLoad);
   void expandMem9Inst(MCInst &Inst, SMLoc IDLoc, MCStreamer &Out,
                       const MCSubtargetInfo *STI, bool IsLoad);
+  MacroExpanderResultTy expandCapLoadC1(MCInst &Inst, SMLoc IDLoc, bool is64Bit,
+                                        MCStreamer &Out,
+                                        const MCSubtargetInfo *STI);
+  MacroExpanderResultTy expandCapStoreC1(MCInst &Inst, SMLoc IDLoc,
+                                         bool is64Bit, MCStreamer &Out,
+                                         const MCSubtargetInfo *STI);
+  void expandMemInst(MCInst &Inst, SMLoc IDLoc, MCStreamer &Out,
+                     const MCSubtargetInfo *STI, bool IsLoad);
 
   bool expandLoadStoreMultiple(MCInst &Inst, SMLoc IDLoc, MCStreamer &Out,
                                const MCSubtargetInfo *STI);
@@ -419,6 +437,9 @@ class MipsAsmParser : public MCTargetAsmParser {
 
   int matchHWRegsRegisterName(StringRef Symbol);
 
+  int matchCheriRegisterName(StringRef Name, const OperandVector &Operands);
+  int matchCheriHWRegsRegisterName(StringRef Symbol);
+
   int matchFPURegisterName(StringRef Name);
 
   int matchFCCRegisterName(StringRef Name);
@@ -548,6 +569,10 @@ public:
 
     getTargetStreamer().updateABIInfo(*this);
 
+    // HACK: Update the default CFA register for CHERI purecap
+    ABI.updateCheriInitialFrameStateHack(*getContext().getAsmInfo(),
+                                         *getContext().getRegisterInfo());
+
     if (!isABI_O32() && !useOddSPReg() != 0)
       report_fatal_error("-mno-odd-spreg requires the O32 ABI");
 
@@ -557,8 +582,10 @@ public:
     IsPicEnabled = getContext().getObjectFileInfo()->isPositionIndependent();
 
     IsCpRestoreSet = false;
+    AreCheriSysRegsAccessible = false;
     CpRestoreOffset = -1;
-    GPReg = ABI.GetGlobalPtr();
+    GPReg =
+        ABI.IsCheriPureCap() ? (unsigned)Mips::NoRegister : ABI.GetGlobalPtr();
 
     const Triple &TheTriple = sti.getTargetTriple();
     IsLittleEndian = TheTriple.isLittleEndian();
@@ -713,6 +740,20 @@ public:
     return getSTI().hasFeature(Mips::FeatureMT);
   }
 
+  bool isCheri() const override {
+    return getSTI().getFeatureBits()[Mips::FeatureMipsCheri];
+  }
+
+  unsigned getCheriCapabilitySize() const override {
+    if (getSTI().getFeatureBits()[Mips::FeatureMipsCheri256])
+      return 32;
+    if (getSTI().getFeatureBits()[Mips::FeatureMipsCheri128])
+      return 16;
+    if (getSTI().getFeatureBits()[Mips::FeatureMipsCheri64])
+      return 8;
+    llvm_unreachable("Should not have been called without checking isCheri()!");
+  }
+
   bool hasCRC() const {
     return getSTI().hasFeature(Mips::FeatureCRC);
   }
@@ -739,6 +780,11 @@ public:
   void warnIfRegIndexIsAT(unsigned RegIndex, SMLoc Loc);
 
   void warnIfNoMacro(SMLoc Loc);
+
+  /// Avoid another error message if we already have one pending
+  bool ErrorIfNotPending(SMLoc L, const Twine& Msg, SMRange Range = SMRange()) {
+    return getParser().hasPendingError() ? true : Error(L, Msg, Range);
+  }
 
   bool isLittle() const { return IsLittleEndian; }
 
@@ -775,6 +821,8 @@ public:
       return MipsMCExpr::create(MipsMCExpr::MEK_GOTTPREL, E, Ctx);
     case AsmToken::PercentGp_Rel:
       return MipsMCExpr::create(MipsMCExpr::MEK_GPREL, E, Ctx);
+    case AsmToken::PercentCapTab_Rel:
+      return MipsMCExpr::create(MipsMCExpr::MEK_CAPTABLEREL, E, Ctx);
     case AsmToken::PercentHi:
       return MipsMCExpr::create(MipsMCExpr::MEK_HI, E, Ctx);
     case AsmToken::PercentHigher:
@@ -797,6 +845,34 @@ public:
       return MipsMCExpr::create(MipsMCExpr::MEK_TPREL_HI, E, Ctx);
     case AsmToken::PercentTprel_Lo:
       return MipsMCExpr::create(MipsMCExpr::MEK_TPREL_LO, E, Ctx);
+    case AsmToken::PercentCapTab11:
+      return MipsMCExpr::create(MipsMCExpr::MEK_CAPTABLE11, E, Ctx);
+    case AsmToken::PercentCapTab20:
+      return MipsMCExpr::create(MipsMCExpr::MEK_CAPTABLE20, E, Ctx);
+    case AsmToken::PercentCapTab_Hi:
+      return MipsMCExpr::create(MipsMCExpr::MEK_CAPTABLE_HI16, E, Ctx);
+    case AsmToken::PercentCapTab_Lo:
+      return MipsMCExpr::create(MipsMCExpr::MEK_CAPTABLE_LO16, E, Ctx);
+    case AsmToken::PercentCapTabCall11:
+      return MipsMCExpr::create(MipsMCExpr::MEK_CAPCALL11, E, Ctx);
+    case AsmToken::PercentCapTabCall20:
+      return MipsMCExpr::create(MipsMCExpr::MEK_CAPCALL20, E, Ctx);
+    case AsmToken::PercentCapTabCall_Hi:
+      return MipsMCExpr::create(MipsMCExpr::MEK_CAPCALL_HI16, E, Ctx);
+    case AsmToken::PercentCapTabCall_Lo:
+      return MipsMCExpr::create(MipsMCExpr::MEK_CAPCALL_LO16, E, Ctx);
+    case AsmToken::PercentCapTabTlsgd_Hi:
+      return MipsMCExpr::create(MipsMCExpr::MEK_CAPTAB_TLSGD_HI16, E, Ctx);
+    case AsmToken::PercentCapTabTlsgd_Lo:
+      return MipsMCExpr::create(MipsMCExpr::MEK_CAPTAB_TLSGD_LO16, E, Ctx);
+    case AsmToken::PercentCapTabTlsldm_Hi:
+      return MipsMCExpr::create(MipsMCExpr::MEK_CAPTAB_TLSLDM_HI16, E, Ctx);
+    case AsmToken::PercentCapTabTlsldm_Lo:
+      return MipsMCExpr::create(MipsMCExpr::MEK_CAPTAB_TLSLDM_LO16, E, Ctx);
+    case AsmToken::PercentCapTabTprel_Hi:
+      return MipsMCExpr::create(MipsMCExpr::MEK_CAPTAB_TPREL_HI16, E, Ctx);
+    case AsmToken::PercentCapTabTprel_Lo:
+      return MipsMCExpr::create(MipsMCExpr::MEK_CAPTAB_TPREL_LO16, E, Ctx);
     }
   }
 
@@ -824,10 +900,14 @@ public:
     RegKind_HWRegs = 256, /// HWRegs
     RegKind_COP3 = 512,   /// COP3
     RegKind_COP0 = 1024,  /// COP0
+    RegKind_Cheri = 2048,
+    RegKind_CheriHWRegs = 4096,
     /// Potentially any (e.g. $1)
+    /// XXXAR: but not CHERI since those should always be prefixed
     RegKind_Numeric = RegKind_GPR | RegKind_FGR | RegKind_FCC | RegKind_MSA128 |
                       RegKind_MSACtrl | RegKind_COP2 | RegKind_ACC |
                       RegKind_CCR | RegKind_HWRegs | RegKind_COP3 | RegKind_COP0
+                      /* | RegKind_Cheri */ | RegKind_CheriHWRegs
   };
 
 private:
@@ -871,6 +951,7 @@ private:
     RegKind Kind;   /// Bitfield of the kinds it could possibly be
     struct Token Tok; /// The input token this operand originated from.
     const MCRegisterInfo *RegInfo;
+    unsigned RealRegister; // The real underlying register (if already known)
   };
 
   struct ImmOp {
@@ -897,17 +978,17 @@ private:
   SMLoc StartLoc, EndLoc;
 
   /// Internal constructor for register kinds
-  static std::unique_ptr<MipsOperand> CreateReg(unsigned Index, StringRef Str,
-                                                RegKind RegKind,
-                                                const MCRegisterInfo *RegInfo,
-                                                SMLoc S, SMLoc E,
-                                                MipsAsmParser &Parser) {
+  static std::unique_ptr<MipsOperand>
+  CreateReg(unsigned Index, StringRef Str, RegKind RegKind,
+            const MCRegisterInfo *RegInfo, SMLoc S, SMLoc E,
+            MipsAsmParser &Parser, unsigned RealRegister = Mips::NoRegister) {
     auto Op = std::make_unique<MipsOperand>(k_RegisterIndex, Parser);
     Op->RegIdx.Index = Index;
     Op->RegIdx.RegInfo = RegInfo;
     Op->RegIdx.Kind = RegKind;
     Op->RegIdx.Tok.Data = Str.data();
     Op->RegIdx.Tok.Length = Str.size();
+    Op->RegIdx.RealRegister = RealRegister;
     Op->StartLoc = S;
     Op->EndLoc = E;
     return Op;
@@ -1055,8 +1136,35 @@ private:
     unsigned ClassID = Mips::HWRegsRegClassID;
     return RegIdx.RegInfo->getRegClass(ClassID).getRegister(RegIdx.Index);
   }
-
+  /// Coerce the register to CheriHWRegs and return the real register for the
+  /// current target.
+  unsigned getCheriHWRegsReg() const {
+    assert(isRegIdx() && (RegIdx.Kind & RegKind_CheriHWRegs) && "Invalid access!");
+    unsigned ClassID = Mips::CheriHWRegsRegClassID;
+    return RegIdx.RegInfo->getRegClass(ClassID).getRegister(RegIdx.Index);
+  }
 public:
+  /// Coerce the register to Cheri capability register and return the real
+  /// register for the current target.
+  unsigned getCheriReg() const {
+    assert(isRegIdx() && (RegIdx.Kind & RegKind_Cheri) && "Invalid access!");
+    unsigned ClassID = Mips::CheriGPROrCNullRegClassID;
+    assert(
+        RegIdx.RealRegister == Mips::CNULL ||
+        (RegIdx.RealRegister >= Mips::C1 && RegIdx.RealRegister <= Mips::C31));
+    assert(RegIdx.Index <= 31);
+    return RegIdx.RegInfo->getRegClass(ClassID).getRegister(RegIdx.Index);
+  }
+  unsigned getCheriReg0IsDDC() const {
+    assert(isRegIdx() && (RegIdx.Kind & RegKind_Cheri) && "Invalid access!");
+    unsigned ClassID = Mips::CheriGPROrDDCRegClassID;
+    assert(
+        RegIdx.RealRegister == Mips::DDC ||
+        (RegIdx.RealRegister >= Mips::C1 && RegIdx.RealRegister <= Mips::C31));
+    assert(RegIdx.Index <= 31);
+    return RegIdx.RegInfo->getRegClass(ClassID).getRegister(RegIdx.Index);
+  }
+
   void addExpr(MCInst &Inst, const MCExpr *Expr) const {
     // Add as immediate when possible.  Null MCExpr = 0.
     if (!Expr)
@@ -1216,6 +1324,21 @@ public:
   void addHWRegsAsmRegOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
     Inst.addOperand(MCOperand::createReg(getHWRegsReg()));
+  }
+
+  void addCheriHWRegsAsmRegOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+    Inst.addOperand(MCOperand::createReg(getCheriHWRegsReg()));
+  }
+
+  void addCheriAsmRegOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+    Inst.addOperand(MCOperand::createReg(getCheriReg()));
+  }
+
+  void addCheriAsmReg0IsDDCOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+    Inst.addOperand(MCOperand::createReg(getCheriReg0IsDDC()));
   }
 
   template <unsigned Bits, int Offset = 0, int AdjustOffset = 0>
@@ -1413,7 +1536,24 @@ public:
     if (Kind != k_Immediate)
       return false;
     MCValue Res;
+    // FIXME: it would be nice to somehow get at the MCFixup here and check the size
+    // using MCAsmBackend::getFixupKindInfo()
     bool Success = getImm()->evaluateAsRelocatable(Res, nullptr, nullptr);
+    // FIXME: how can we get at the MCFixup object (to check size generically)?
+    if (auto Expr = dyn_cast<MipsMCExpr>(getImm())) {
+      // HACK: Check that only %captab and %capcall are allowed in clc / csc
+      if (ShiftLeftAmount == 4) {
+        if (Bits == 11) {
+          if (Expr->getKind() != MipsMCExpr::MEK_CAPTABLE11 &&
+              Expr->getKind() != MipsMCExpr::MEK_CAPCALL11)
+            return false;
+        } else if (Bits == 16) {
+          if (Expr->getKind() != MipsMCExpr::MEK_CAPTABLE20 &&
+              Expr->getKind() != MipsMCExpr::MEK_CAPCALL20)
+            return false;
+        }
+      }
+    }
     return Success && isShiftedInt<Bits, ShiftLeftAmount>(Res.getConstant());
   }
 
@@ -1543,6 +1683,12 @@ public:
     return CreateReg(Index, Str, RegKind_HWRegs, RegInfo, S, E, Parser);
   }
 
+  static std::unique_ptr<MipsOperand>
+  CreateCheriHWRegsReg(unsigned Index, StringRef Str, const MCRegisterInfo *RegInfo,
+                       SMLoc S, SMLoc E, MipsAsmParser &Parser) {
+    return CreateReg(Index, Str, RegKind_CheriHWRegs, RegInfo, S, E, Parser);
+  }
+
   /// Create a register that is definitely an FCC.
   /// This is typically only used for named registers such as $fcc0.
   static std::unique_ptr<MipsOperand>
@@ -1573,6 +1719,26 @@ public:
   createMSACtrlReg(unsigned Index, StringRef Str, const MCRegisterInfo *RegInfo,
                    SMLoc S, SMLoc E, MipsAsmParser &Parser) {
     return CreateReg(Index, Str, RegKind_MSACtrl, RegInfo, S, E, Parser);
+  }
+
+  /// Create a register that is definitely an Cheri register.
+  static std::unique_ptr<MipsOperand>
+  CreateCheriReg(unsigned Index, StringRef Str, const MCRegisterInfo *RegInfo,
+                 SMLoc S, SMLoc E, MipsAsmParser &Parser) {
+    // Turn the index into a real register index
+    unsigned EncodedNumber = -1;
+    // Pass along whether it was DDC or CNULL:
+    if (Index == Mips::DDC) {
+      EncodedNumber = 0;
+    } else if (Index == Mips::CNULL) {
+      EncodedNumber = 0;
+    } else {
+      assert(Index >= Mips::C1 && Index <= Mips::C31);
+      EncodedNumber = Index - Mips::C1 + 1;
+    }
+    assert(EncodedNumber <= 31);
+    return CreateReg(EncodedNumber, Str, RegKind_Cheri, RegInfo, S, E, Parser,
+                     Index);
   }
 
   static std::unique_ptr<MipsOperand>
@@ -1619,7 +1785,34 @@ public:
   bool isGPRAsmReg() const {
     return isRegIdx() && RegIdx.Kind & RegKind_GPR && RegIdx.Index <= 31;
   }
-
+  static_assert(Mips::CNULL != Mips::DDC, "DDC must not be CNULL");
+  static_assert(Mips::C31 - Mips::C1 == 30, "Need 31 contiguous GPRS");
+  bool isCheriAsmReg() const {
+    bool Result = isRegIdx() && RegIdx.Kind & RegKind_Cheri &&
+                  RegIdx.RegInfo->getRegClass(Mips::CheriGPROrCNullRegClassID)
+                      .contains(RegIdx.RealRegister);
+    if (isRegIdx())
+      LLVM_DEBUG(dbgs() << __func__ << " CheriGPROrCNullRegClassID contains("
+                        << (RegIdx.RealRegister
+                                ? RegIdx.RegInfo->getName(RegIdx.RealRegister)
+                                : "<NULL>")
+                        << "=" << RegIdx.RealRegister << "): " << Result
+                        << "\n");
+    return Result;
+  }
+  bool isCheriAsmReg0IsDDC() const {
+    bool Result = isRegIdx() && RegIdx.Kind & RegKind_Cheri &&
+                  RegIdx.RegInfo->getRegClass(Mips::CheriGPROrDDCRegClassID)
+                      .contains(RegIdx.RealRegister);
+    if (isRegIdx())
+      LLVM_DEBUG(dbgs() << __func__ << " CheriGPROrDDCRegClassID contains("
+                        << RegIdx.RegInfo->getName(RegIdx.RealRegister) << "="
+                        << RegIdx.RealRegister << "): " << Result << "\n");
+    return Result;
+  }
+  bool isCheriHWAsmReg() const {
+    return isRegIdx() && RegIdx.Kind & RegKind_CheriHWRegs && RegIdx.Index <= 31;
+  }
   bool isMM16AsmReg() const {
     if (!(isRegIdx() && RegIdx.Kind))
       return false;
@@ -1667,6 +1860,10 @@ public:
 
   bool isHWRegsAsmReg() const {
     return isRegIdx() && RegIdx.Kind & RegKind_HWRegs && RegIdx.Index <= 31;
+  }
+
+  bool isCheriHWRegsAsmReg() const {
+    return isRegIdx() && RegIdx.Kind & RegKind_CheriHWRegs && RegIdx.Index <= 31;
   }
 
   bool isCCRAsmReg() const {
@@ -1852,6 +2049,10 @@ static bool needsExpandMemInst(MCInst &Inst, const MCInstrDesc &MCID) {
   if (Op.isImm()) {
     if (OpInfo.OperandType == MipsII::OPERAND_MEM_SIMM9)
       return !isInt<9>(Op.getImm());
+    if (Inst.getOpcode() == Mips::STORECAP_BigImm ||
+        Inst.getOpcode() == Mips::LOADCAP_BigImm) {
+      return !isShiftedInt<16, 4>(Op.getImm());
+    }
     // Offset can't exceed 16bit value.
     return !isInt<16>(Op.getImm());
   }
@@ -2317,6 +2518,79 @@ bool MipsAsmParser::processInstruction(MCInst &Inst, SMLoc IDLoc,
     }
   }
 
+  // prevent invalid relocations in CHERI load/store instruction
+  switch (Inst.getOpcode()) {
+  default:
+    break;
+
+  case Mips::CAPLOAD8:
+  case Mips::CAPLOAD16:
+  case Mips::CAPLOAD32:
+  case Mips::CAPLOAD64:
+  case Mips::CAPLOAD832:
+  case Mips::CAPLOAD1632:
+  case Mips::CAPLOAD3264:
+  case Mips::CAPLOADU8:
+  case Mips::CAPLOADU16:
+  case Mips::CAPLOADU32:
+  case Mips::CAPLOADU832:
+  case Mips::CAPLOADU1632:
+  case Mips::CAPSTORE8:
+  case Mips::CAPSTORE832:
+  case Mips::CAPSTORE16:
+  case Mips::CAPSTORE1632:
+  case Mips::CAPSTORE32:
+  case Mips::CAPSTORE3264:
+  case Mips::CAPSTORE64:
+  // For CIncOffsetImm/CSetBoundsImm/CCallSelector we also need to check that
+  // operand two is actually an immediate.
+  case Mips::CIncOffsetImm:
+  case Mips::CSetBoundsImm:
+  case Mips::CCall:
+  {
+    const MCOperand &Opnd = Inst.getOperand(2);
+    if (!Opnd.isImm())
+      return Error(Opnd.isExpr() ? Opnd.getExpr()->getLoc() : IDLoc,
+                   "expected immediate operand kind");
+    break;
+  }
+
+  // The clc/csc instructions can use some relocations:
+  case Mips::STORECAP:
+  case Mips::LOADCAP: {
+    const MCOperand &Opnd = Inst.getOperand(2);
+    // allow captable relocations:
+    SMLoc ErrLoc = IDLoc;
+    bool ValidRelocation = false;
+    if (Opnd.isExpr()) {
+      ErrLoc = Opnd.getExpr()->getLoc();
+      if (auto Expr = dyn_cast<MipsMCExpr>(Opnd.getExpr()))
+        ValidRelocation = Expr->getKind() == MipsMCExpr::MEK_CAPTABLE11 ||
+                          Expr->getKind() == MipsMCExpr::MEK_CAPCALL11;
+    }
+    if (!ValidRelocation && !Opnd.isImm())
+      return Error(ErrLoc,
+                   "expected immediate operand or valid relocation type");
+    break;
+  }
+  case Mips::STORECAP_BigImm:
+  case Mips::LOADCAP_BigImm: {
+    const MCOperand &Opnd = Inst.getOperand(1);
+    SMLoc ErrLoc = IDLoc;
+    bool ValidRelocation = false;
+    if (Opnd.isExpr()) {
+      ErrLoc = Opnd.getExpr()->getLoc();
+      if (auto Expr = dyn_cast<MipsMCExpr>(Opnd.getExpr()))
+        ValidRelocation = Expr->getKind() == MipsMCExpr::MEK_CAPTABLE20 ||
+                          Expr->getKind() == MipsMCExpr::MEK_CAPCALL20;
+    }
+    if (!ValidRelocation && !Opnd.isImm())
+      return Error(ErrLoc,
+                   "expected immediate operand or valid relocation type");
+    break;
+  }
+  }
+
   bool FillDelaySlot =
       MCID.hasDelaySlot() && AssemblerOptions.back()->isReorder();
 
@@ -2435,6 +2709,7 @@ void MipsAsmParser::onEndOfFile() {
 MipsAsmParser::MacroExpanderResultTy
 MipsAsmParser::tryExpandInstruction(MCInst &Inst, SMLoc IDLoc, MCStreamer &Out,
                                     const MCSubtargetInfo *STI) {
+  bool is64Bit = true;
   switch (Inst.getOpcode()) {
   default:
     return MER_NotAMacro;
@@ -2454,6 +2729,16 @@ MipsAsmParser::tryExpandInstruction(MCInst &Inst, SMLoc IDLoc, MCStreamer &Out,
                              Out, STI)
                ? MER_Fail
                : MER_Success;
+  case Mips::CLWC1:
+    is64Bit = false;
+    LLVM_FALLTHROUGH;
+  case Mips::CLDC1:
+    return expandCapLoadC1(Inst, IDLoc, is64Bit, Out, STI);
+  case Mips::CSWC1:
+    is64Bit = false;
+    LLVM_FALLTHROUGH;
+  case Mips::CSDC1:
+    return expandCapStoreC1(Inst, IDLoc, is64Bit, Out, STI);
   case Mips::LoadAddrReg32:
   case Mips::LoadAddrReg64:
     assert(Inst.getOperand(0).isReg() && "expected register operand kind");
@@ -2695,6 +2980,53 @@ MipsAsmParser::tryExpandInstruction(MCInst &Inst, SMLoc IDLoc, MCStreamer &Out,
   }
 }
 
+MipsAsmParser::MacroExpanderResultTy
+MipsAsmParser::expandCapStoreC1(MCInst &Inst, SMLoc IDLoc, bool is64Bit,
+                                MCStreamer &Out, const MCSubtargetInfo *STI) {
+  MCInst tmpInst;
+  unsigned AtRegNum = getATReg(IDLoc);
+  if (AtRegNum == 0)
+    return MER_Fail; // requires $at but set noat enabled (getAtReg reports err)
+
+  tmpInst.setOpcode(is64Bit ? Mips::DMFC1 : Mips::MFC1);
+  tmpInst.addOperand(MCOperand::createReg(AtRegNum));
+  tmpInst.addOperand(MCOperand::createReg(Inst.getOperand(0).getReg()));
+  tmpInst.setLoc(IDLoc);
+  Out.emitInstruction(tmpInst, *STI);
+  tmpInst.clear();
+  tmpInst.setOpcode(is64Bit ? Mips::CAPSTORE64 : Mips::CAPSTORE32);
+  tmpInst.addOperand(MCOperand::createReg(AtRegNum));
+  tmpInst.addOperand(MCOperand::createReg(Inst.getOperand(1).getReg()));
+  tmpInst.addOperand(MCOperand::createImm(Inst.getOperand(2).getImm()));
+  tmpInst.addOperand(MCOperand::createReg(Inst.getOperand(3).getReg()));
+  tmpInst.setLoc(IDLoc);
+  Out.emitInstruction(tmpInst, *STI);
+  return MER_Success;
+}
+
+MipsAsmParser::MacroExpanderResultTy
+MipsAsmParser::expandCapLoadC1(MCInst &Inst, SMLoc IDLoc, bool is64Bit,
+                               MCStreamer &Out, const MCSubtargetInfo *STI) {
+  MCInst tmpInst;
+  unsigned AtRegNum = getATReg(IDLoc);
+  if (AtRegNum == 0)
+    return MER_Fail; // requires $at but set noat enabled (getAtReg reports err)
+  tmpInst.setOpcode(is64Bit ? Mips::CAPLOAD64 : Mips::CAPLOAD32);
+  tmpInst.addOperand(MCOperand::createReg(AtRegNum));
+  tmpInst.addOperand(MCOperand::createReg(Inst.getOperand(1).getReg()));
+  tmpInst.addOperand(MCOperand::createImm(Inst.getOperand(2).getImm()));
+  tmpInst.addOperand(MCOperand::createReg(Inst.getOperand(3).getReg()));
+  tmpInst.setLoc(IDLoc);
+  Out.emitInstruction(tmpInst, *STI);
+  tmpInst.clear();
+  tmpInst.setOpcode(is64Bit ? Mips::DMTC1 : Mips::MTC1);
+  tmpInst.addOperand(MCOperand::createReg(Inst.getOperand(0).getReg()));
+  tmpInst.addOperand(MCOperand::createReg(AtRegNum));
+  tmpInst.setLoc(IDLoc);
+  Out.emitInstruction(tmpInst, *STI);
+  return MER_Success;
+}
+
 bool MipsAsmParser::expandJalWithRegs(MCInst &Inst, SMLoc IDLoc,
                                       MCStreamer &Out,
                                       const MCSubtargetInfo *STI) {
@@ -2926,12 +3258,22 @@ bool MipsAsmParser::loadImmediate(int64_t ImmValue, unsigned DstReg,
 bool MipsAsmParser::expandLoadImm(MCInst &Inst, bool Is32BitImm, SMLoc IDLoc,
                                   MCStreamer &Out, const MCSubtargetInfo *STI) {
   const MCOperand &ImmOp = Inst.getOperand(1);
-  assert(ImmOp.isImm() && "expected immediate operand kind");
+  int64_t Imm = 0;
+  if (ImmOp.isExpr()) {
+    const MCExpr *Expr = ImmOp.getExpr();
+    if (!Expr->evaluateAsAbsolute(Imm, Out)) {
+      Out.getTargetStreamer();
+      return Error(IDLoc, "could not evaluate operand as immediate");
+    }
+  } else {
+    assert(ImmOp.isImm() && "expected immediate operand kind");
+    Imm = ImmOp.getImm();
+  }
   const MCOperand &DstRegOp = Inst.getOperand(0);
   assert(DstRegOp.isReg() && "expected register operand kind");
 
-  if (loadImmediate(ImmOp.getImm(), DstRegOp.getReg(), Mips::NoRegister,
-                    Is32BitImm, false, IDLoc, Out, STI))
+  if (loadImmediate(Imm, DstRegOp.getReg(), Mips::NoRegister, Is32BitImm, false,
+                    IDLoc, Out, STI))
     return true;
 
   return false;
@@ -3129,6 +3471,9 @@ bool MipsAsmParser::loadAndAddSymbolAddress(const MCExpr *SymExpr,
           LoExpr = MCConstantExpr::create(Res.getConstant(), getContext());
       }
     }
+
+    if (ABI.IsCheriPureCap())
+      return Error(IDLoc, "Can't expand $gp-relative in cap-table mode");
 
     TOut.emitRRX(IsPtr64 ? Mips::LD : Mips::LW, TmpReg, GPReg,
                  MCOperand::createExpr(GotExpr), IDLoc, STI);
@@ -3746,11 +4091,41 @@ bool MipsAsmParser::expandBranchImm(MCInst &Inst, SMLoc IDLoc, MCStreamer &Out,
 
 void MipsAsmParser::expandMem16Inst(MCInst &Inst, SMLoc IDLoc, MCStreamer &Out,
                                     const MCSubtargetInfo *STI, bool IsLoad) {
+  switch (Inst.getOpcode()) {
+  case Mips::CAPLOAD8:
+  case Mips::CAPLOAD16:
+  case Mips::CAPLOAD32:
+  case Mips::CAPLOAD64:
+  case Mips::CAPLOAD832:
+  case Mips::CAPLOAD1632:
+  case Mips::CAPLOAD3264:
+  case Mips::CAPLOADU8:
+  case Mips::CAPLOADU16:
+  case Mips::CAPLOADU32:
+  case Mips::CAPLOADU832:
+  case Mips::CAPLOADU1632:
+
+  case Mips::CAPSTORE8:
+  case Mips::CAPSTORE832:
+  case Mips::CAPSTORE16:
+  case Mips::CAPSTORE1632:
+  case Mips::CAPSTORE32:
+  case Mips::CAPSTORE3264:
+  case Mips::CAPSTORE64:
+
+  case Mips::STORECAP:
+  case Mips::STORECAP_BigImm:
+  case Mips::LOADCAP:
+  case Mips::LOADCAP_BigImm:
+    getParser().Error(IDLoc, "Cannot expand symbol in immediate operand for this instruction");
+    return;
+  default:
+    break;
+  }
   unsigned NumOp = Inst.getNumOperands();
   assert((NumOp == 3 || NumOp == 4) && "unexpected operands number");
   unsigned StartOp = NumOp == 3 ? 0 : 1;
-
-  const MCOperand &DstRegOp = Inst.getOperand(StartOp);
+  const MCOperand &DstRegOp = Inst.getOperand(0);
   assert(DstRegOp.isReg() && "expected register operand kind");
   const MCOperand &BaseRegOp = Inst.getOperand(StartOp + 1);
   assert(BaseRegOp.isReg() && "expected register operand kind");
@@ -5873,7 +6248,7 @@ unsigned MipsAsmParser::checkTargetMatchPredicate(MCInst &Inst) {
   case Mips::MTC0:
   case Mips::MTC2:
   case Mips::MFC2:
-    if (Inst.getOperand(2).getImm() != 0 && !hasMips32())
+    if (Inst.getOperand(2).getImm() != 0 && !hasMips32() && !isCheri() && STI->getCPU() != "beri")
       return Match_NonZeroOperandForMTCX;
     return Match_Success;
   // As described the MIPSR6 spec, the compact branches that compare registers
@@ -6029,7 +6404,7 @@ bool MipsAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
     return Error(IDLoc,
                  "s-type must be zero or unspecified for pre-MIPS32 ISAs");
   case Match_NonZeroOperandForMTCX:
-    return Error(IDLoc, "selector must be zero for pre-MIPS32 ISAs");
+    return Error(IDLoc, "selector must be zero for pre-MIPS32 ISAs / non-BERI CPUs");
   case Match_MnemonicFail:
     return Error(IDLoc, "invalid instruction");
   case Match_RequiresDifferentSrcAndDst:
@@ -6107,18 +6482,37 @@ bool MipsAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   case Match_SImm7_Lsl2:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "expected both 9-bit signed immediate and multiple of 4");
+  case Match_SImm8_Lsl0:
+    return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
+                 "expected 8-bit signed immediate");
+  case Match_SImm8_Lsl1:
+    return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
+                 "expected both 9-bit signed immediate and multiple of 2");
+  case Match_SImm8_Lsl2:
+    return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
+                 "expected both 10-bit signed immediate and multiple of 4");
+  case Match_SImm8_Lsl3:
+    return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
+                 "expected both 11-bit signed immediate and multiple of 8");
   case Match_UImm8_0:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "expected 8-bit unsigned immediate");
   case Match_UImm10_0:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "expected 10-bit unsigned immediate");
+  case Match_UImm11_Lsl0:
+    return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
+                 "expected 11-bit unsigned immediate");
   case Match_SImm10_0:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "expected 10-bit signed immediate");
   case Match_SImm11_0:
+  case Match_SImm11_Lsl0:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "expected 11-bit signed immediate");
+  case Match_SImm11_Lsl4:
+    return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
+                 "expected both 15-bit signed immediate and multiple of 16");
   case Match_UImm16:
   case Match_UImm16_Relaxed:
   case Match_UImm16_AltRelaxed:
@@ -6128,6 +6522,9 @@ bool MipsAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   case Match_SImm16_Relaxed:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "expected 16-bit signed immediate");
+  case Match_SImm16_Lsl4:
+    return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
+                 "expected both 20-bit signed immediate and multiple of 16");
   case Match_SImm19_Lsl2:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "expected both 19-bit signed immediate and multiple of 4");
@@ -6168,6 +6565,12 @@ bool MipsAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   case Match_MemSImm16:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "expected memory with 16-bit signed offset");
+  case Match_CheriAsmReg:
+    return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
+                 "expected general-purpose CHERI register operand or $cnull");
+  case Match_CheriAsmReg0IsDDC:
+    return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
+                 "expected general-purpose CHERI register operand or $ddc");
   case Match_MemSImmPtr:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "expected memory with 32-bit signed offset");
@@ -6329,6 +6732,194 @@ int MipsAsmParser::matchFPURegisterName(StringRef Name) {
   return -1;
 }
 
+// Check whether this instruction accepts the given spelling for Register 0
+// Some instructions (cfromptr + loads/stores, clc, cld) accept $c0 and $ddc
+// for references to DDC but in other instructions we would like to have $c0
+// be a NULL register (e.g. cincoffset)
+// TODO: would be nice if we could generate these checks from tablegen (0 == $ddc vs 0 == NULL)
+static bool isCRegZeroDDC(const OperandVector &Operands,
+                          StringRef RegSpelling) {
+  if (Operands.empty())
+    return false;
+  const auto& FirstOp = Operands[0];
+  if (!FirstOp->isToken()) {
+    LLVM_DEBUG(
+        dbgs() << "Access to $c0 not allowed since mnemonic is not known\n");
+    return false;
+  }
+  MipsOperand* MipsOp = static_cast<MipsOperand*>(FirstOp.get());
+  StringRef Mnemonic =  MipsOp->getToken();
+  size_t OperandIndex = Operands.size();
+  LLVM_DEBUG(dbgs() << "Checking if " << Mnemonic << " accepts register $"
+                    << RegSpelling << " as operand " << OperandIndex << ": ");
+  assert(RegSpelling == "c0" || RegSpelling == "ddc" || RegSpelling == "cnull");
+  // TODO: can I somehow get this information from the tablegen'd code?
+  size_t AllowedIndex =
+      StringSwitch<size_t>(Mnemonic)
+          .Cases("clc", "clb", "clbu", "clh", "clhu", "clw", "clwu", "cld", 5)
+          .Cases("csc", "csb", "csh", "csw", "csd", 5)
+          .Cases("clcbi", "cscbi", 4)
+          .Cases("cllc", "cllb", "cllbu", "cllh", "cllhu", "cllw", "cllwu",
+                 "clld", 2)
+          .Cases("cscc", "cscb", "csch", "cscw", "cscd", 3)
+          .Cases("cfromptr", "cbuildcap", "ctestsubset", 2)
+          .Case("ctoptr", 3) // XXXAR: inconsisten with the insns above
+          .Default(std::numeric_limits<size_t>::max());
+  LLVM_DEBUG(dbgs() << (OperandIndex == AllowedIndex ? "true" : "false")
+                    << " ");
+  LLVM_DEBUG(for (auto &&X
+                  : enumerate(Operands)) {
+    dbgs() << " Op" << X.index() << "=" << *(X.value());
+  });
+  LLVM_DEBUG(dbgs() << "\n");
+
+  return OperandIndex == AllowedIndex;
+}
+
+int MipsAsmParser::matchCheriRegisterName(StringRef Name,
+                                          const OperandVector &Operands) {
+  MCAsmParser &Parser = getParser();
+
+  int CC = -1;
+  LLVM_DEBUG(dbgs() << "DECODING '" << Name << "' (ABI.IsCheriPureCap()="
+                    << ABI.IsCheriPureCap() << ")\n");
+  CC = StringSwitch<unsigned>(Name)
+           .Case("cbp", ABI.GetBasePtr())
+           .Case("cfp", ABI.GetFramePtr())
+           .Case("cgp", ABI.GetGlobalCapability())
+           .Case("cra", ABI.GetReturnAddress())
+           .Case("csp", ABI.GetStackPtr())
+           .Case("ddc", ABI.GetDefaultDataCapability())
+           .Default(-1);
+  if (!ABI.IsCheriPureCap() && CC != -1) {
+    // symbolic capability register names other than $ddc are not available
+    // when targeting hybrid mode.
+    if ((unsigned)CC != ABI.GetDefaultDataCapability()) {
+      ErrorIfNotPending(Parser.getTok().getLoc(),
+                        "Register name $" + Name +
+                            " can only be used in the pure-capability ABI");
+      return -1;
+    }
+  }
+
+  if (CC == -1) {
+    if (Name[0] == 'c') {
+      if (Name == "cnull") {
+        CC = Mips::CNULL;
+      } else {
+        StringRef NumString = Name.substr(1);
+        int IntVal;
+        if (NumString.getAsInteger(10, IntVal))
+          return -1;                   // This is not an integer.
+        if (IntVal < 0 || IntVal > 31) // Maximum index for CHERI register.
+          return -1;
+        if (IntVal == 0)
+          CC = 0; // $c0 is special -> handled further down
+        else
+          CC = Mips::C1 + IntVal - 1;
+      }
+    } else {
+      int InvalidReg = StringSwitch<int>(Name)
+                           .Case("kr1c", 27)
+                           .Case("kr2c", 28)
+                           .Case("kcc", 29)
+                           .Case("kdc", 30)
+                           .Case("epcc", 31)
+                           .Default(0);
+      if (InvalidReg) {
+        ErrorIfNotPending(
+            Parser.getTok().getLoc(),
+            "Register $" + Name +
+                " is no longer a general-purpose CHERI register. If you want "
+                "to access the special register use c{get,set}" +
+                Name + " instead. If you really want to access $c" +
+                Twine(InvalidReg) +
+                " (which is ABI-reserved for kernel use and may be clobbered "
+                "at any time), use that instead.",
+            Parser.getTok().getLocRange());
+        return -1;
+      }
+      CC = StringSwitch<unsigned>(Name)
+               .Case("ddc", Mips::DDC)
+               .Case("idc", Mips::C26)
+               .Default(-1);
+    }
+  }
+  if (CC == 0) {
+    // special handling for register zero (some instructions treat it as NULL
+    // and other use it for $ddc)
+    bool RegZeroIsDDC = isCRegZeroDDC(Operands, Name);
+    if (Name == "c0") {
+      if (!RegZeroIsDDC) {
+        StringRef ErrMsg =
+            "register name $c0 is invalid as this operand. It will no longer "
+            "refer to $ddc but instead be NULL. If this is what you want use "
+            "$cnull, otherwise use CGetDefault/CSetDefault to manipulate $ddc.";
+        if (CheriStrictC0) {
+          Error(Parser.getTok().getLoc(), ErrMsg, Parser.getTok().getLocRange());
+          return -2;
+        } else {
+          Warning(Parser.getTok().getLoc(), ErrMsg);
+          return Mips::CNULL;
+        }
+      }
+      // Otherwise $c0 means $ddc so just print a deprecation warning
+      Warning(Parser.getTok().getLoc(),
+              "register name $c0 is deprecated. Use $ddc instead.");
+      return Mips::DDC;
+    }
+    errs() << "REGISTER NAME " << Name << "not handled?\n";
+    llvm_unreachable("Bad register name?");
+  }
+  auto ABIReservedReg = [&]() {
+    if (AreCheriSysRegsAccessible)
+      return CC;
+    Warning(Parser.getTok().getLoc(),
+            "Registers $c27 to $c31 are ABI-reserved for kernel use and may be "
+            "clobbered at any time. If you are writing kernel code and really "
+            "meant to access $" +
+                Name +
+                " you can use "
+                "`.set cheri_sysregs_accessible` to silence this  warning.");
+    return CC;
+  };
+  assert(CC != 0);
+  switch (CC) {
+  case Mips::C27:
+    return ABIReservedReg();
+  case Mips::C28:
+    return ABIReservedReg();
+  case Mips::C29:
+    return ABIReservedReg();
+  case Mips::C30:
+    return ABIReservedReg();
+  case Mips::C31:
+    return ABIReservedReg();
+  default:
+    break;
+  }
+  return CC;
+}
+
+int MipsAsmParser::matchCheriHWRegsRegisterName(StringRef Name) {
+  LLVM_DEBUG(dbgs() << "matchCheriHWRegsRegisterName(" << Name << ")\n");
+  if (!Name.starts_with("chwr_"))
+    return -1;
+
+  int Result = -1;
+  for (int Reg = Mips::CAPHWR0; Reg <= Mips::CAPHWR31; Reg++) {
+    StringRef RegName = MipsInstPrinter::getRegisterName(Reg);
+    if (RegName.starts_with("chwr_") && Name == RegName) {
+      Result = Reg - Mips::CAPHWR0;
+      LLVM_DEBUG(dbgs() << "-> CheriHWReg " << Result << ")\n");
+      break;
+    }
+  }
+  return Result;
+}
+
+
+
 int MipsAsmParser::matchFCCRegisterName(StringRef Name) {
   if (Name.starts_with("fcc")) {
     StringRef NumString = Name.substr(3);
@@ -6484,9 +7075,14 @@ ParseStatus MipsAsmParser::tryParseRegister(MCRegister &Reg, SMLoc &StartLoc,
     // directives.
     // Don't worry about eating tokens before failing. Using an unrecognised
     // register is a parse error.
+    Reg = -1;
     if (Operand.isGPRAsmReg()) {
       // Resolve to GPR32 or GPR64 appropriately.
       Reg = isGP64bit() ? Operand.getGPR64Reg() : Operand.getGPR32Reg();
+    } else if (Operand.isCheriAsmReg()) {
+      Reg = Operand.getCheriReg();
+    } else {
+      llvm_unreachable("Got non-GPR register in .cfi directive!");
     }
 
     return (Reg == (unsigned)-1) ? ParseStatus::NoMatch : ParseStatus::Success;
@@ -6519,6 +7115,7 @@ ParseStatus MipsAsmParser::parseMemOperand(OperandVector &Operands) {
     isParenExpr = true;
   }
 
+  bool HadLParen = false;
   if (getLexer().getKind() != AsmToken::Dollar) {
     if (parseMemOffset(IdVal, isParenExpr))
       return ParseStatus::Failure;
@@ -6598,16 +7195,17 @@ ParseStatus MipsAsmParser::parseMemOperand(OperandVector &Operands) {
         return ParseStatus::Failure;
       IdVal = MCBinaryExpr::create(Opcode, IdVal, NextExpr, getContext());
     }
-
+    assert(Parser.getTok().is(AsmToken::LParen));
     Parser.Lex(); // Eat the '(' token.
+    HadLParen = true;
   }
 
   Res = parseAnyRegister(Operands);
   if (!Res.isSuccess())
     return Res;
 
-  if (Parser.getTok().isNot(AsmToken::RParen))
-    return Error(Parser.getTok().getLoc(), "')' expected");
+  if (HadLParen && Parser.getTok().isNot(AsmToken::RParen))
+     return ErrorIfNotPending(Parser.getTok().getLoc(), "')' expected");
 
   SMLoc E = SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
 
@@ -6625,7 +7223,7 @@ ParseStatus MipsAsmParser::parseMemOperand(OperandVector &Operands) {
   // Add the memory operand.
   if (const MCBinaryExpr *BE = dyn_cast<MCBinaryExpr>(IdVal)) {
     int64_t Imm;
-    if (IdVal->evaluateAsAbsolute(Imm))
+    if (IdVal->evaluateAsAbsolute(Imm, getStreamer()))
       IdVal = MCConstantExpr::create(Imm, getContext());
     else if (BE->getLHS()->getKind() != MCExpr::SymbolRef)
       IdVal = MCBinaryExpr::create(BE->getOpcode(), BE->getRHS(), BE->getLHS(),
@@ -6679,6 +7277,7 @@ bool MipsAsmParser::searchSymbolAlias(OperandVector &Operands) {
 
 ParseStatus MipsAsmParser::matchAnyRegisterNameWithoutDollar(
     OperandVector &Operands, StringRef Identifier, SMLoc S) {
+  LLVM_DEBUG(dbgs() << "matchAnyRegisterNameWithoutDollar\n");
   int Index = matchCPURegisterName(Identifier);
   if (Index != -1) {
     Operands.push_back(MipsOperand::createGPRReg(
@@ -6730,6 +7329,23 @@ ParseStatus MipsAsmParser::matchAnyRegisterNameWithoutDollar(
   Index = matchMSA128CtrlRegisterName(Identifier);
   if (Index != -1) {
     Operands.push_back(MipsOperand::createMSACtrlReg(
+        Index, Identifier, getContext().getRegisterInfo(), S,
+        getLexer().getLoc(), *this));
+    return ParseStatus::Success;
+  }
+
+  Index = matchCheriRegisterName(Identifier, Operands);
+  if (Index != -1) {
+    if (Index == -2)
+      return MatchOperand_ParseFail;
+    Operands.push_back(MipsOperand::CreateCheriReg(
+        Index, Identifier, getContext().getRegisterInfo(), S, getLexer().getLoc(), *this));
+    return ParseStatus::Success;
+  }
+
+  Index = matchCheriHWRegsRegisterName(Identifier);
+  if (Index != -1) {
+    Operands.push_back(MipsOperand::CreateCheriHWRegsReg(
         Index, Identifier, getContext().getRegisterInfo(), S,
         getLexer().getLoc(), *this));
     return ParseStatus::Success;
@@ -6935,11 +7551,11 @@ bool MipsAsmParser::parseParenSuffix(StringRef Name, OperandVector &Operands) {
     Parser.Lex();
     if (parseOperand(Operands, Name)) {
       SMLoc Loc = getLexer().getLoc();
-      return Error(Loc, "unexpected token in argument list");
+      return ErrorIfNotPending(Loc, "unexpected token in argument list");
     }
     if (Parser.getTok().isNot(AsmToken::RParen)) {
       SMLoc Loc = getLexer().getLoc();
-      return Error(Loc, "unexpected token, expected ')'");
+      return ErrorIfNotPending(Loc, "unexpected token, expected ')'");
     }
     Operands.push_back(
         MipsOperand::CreateToken(")", getLexer().getLoc(), *this));
@@ -6963,7 +7579,7 @@ bool MipsAsmParser::parseBracketSuffix(StringRef Name,
     Parser.Lex();
     if (parseOperand(Operands, Name)) {
       SMLoc Loc = getLexer().getLoc();
-      return Error(Loc, "unexpected token in argument list");
+      return ErrorIfNotPending(Loc, "unexpected token in argument list");
     }
     if (Parser.getTok().isNot(AsmToken::RBrac)) {
       SMLoc Loc = getLexer().getLoc();
@@ -7014,18 +7630,78 @@ bool MipsAsmParser::ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
     // Read the first operand.
     if (parseOperand(Operands, Name)) {
       SMLoc Loc = getLexer().getLoc();
-      return Error(Loc, "unexpected token in argument list");
+      return ErrorIfNotPending(Loc, "unexpected token in argument list");
     }
     if (getLexer().is(AsmToken::LBrac) && parseBracketSuffix(Name, Operands))
       return true;
-    // AFAIK, parenthesis suffixes are never on the first operand
+    if (getLexer().is(AsmToken::LParen) && parseParenSuffix(Name, Operands))
+      return true;
 
-    while (getLexer().is(AsmToken::Comma)) {
-      Parser.Lex(); // Eat the comma.
+    // If this is a capability load / store, then we parse operands in the
+    // following form:
+    // $rt + offset($cb)
+    // We have already parsed the $rt
+    if (StringSwitch<bool>(Name).Case("clb", true).Case("clh", true)
+          .Case("clbu", true).Case("clhu", true).Case("clwu", true)
+          .Case("clw", true).Case("cld", true).Case("clc", true)
+          .Case("csb", true).Case("csh", true)
+          .Case("csw", true).Case("csd", true).Case("csc", true)
+          .Case("cldc1", true).Case("clwc1", true).Case("csdc1", true)
+          .Case("cswc1", true).Default(false)) {
+      if (getLexer().isNot(AsmToken::Comma)) {
+        SMLoc Loc = getLexer().getLoc();
+        Parser.eatToEndOfStatement();
+        return Error(Loc,
+            "expecting comma when parsing capability-relative address");
+      }
+      Parser.Lex();  // Eat the comma.
+      if (parseOperand(Operands, Name)) {
+        SMLoc Loc = getLexer().getLoc();
+        Parser.eatToEndOfStatement();
+        return ErrorIfNotPending(Loc, "unexpected token in argument list");
+      }
+      if (getLexer().isNot(AsmToken::Comma)) {
+        SMLoc Loc = getLexer().getLoc();
+        Parser.eatToEndOfStatement();
+        return Error(Loc,
+            "expecting offset when parsing capability-relative address");
+      }
+      Parser.Lex();  // Eat the comma.
+      if (parseOperand(Operands, Name)) {
+        SMLoc Loc = getLexer().getLoc();
+        Parser.eatToEndOfStatement();
+        return ErrorIfNotPending(Loc, "unexpected token in argument list");
+      }
+      if (getLexer().isNot(AsmToken::LParen)) {
+        SMLoc Loc = getLexer().getLoc();
+        Parser.eatToEndOfStatement();
+        return Error(Loc,
+            "expecting capability register when parsing capability-relative address");
+      }
+      Operands.push_back(MipsOperand::CreateToken("(", getLexer().getLoc(),
+            *this));
+      Parser.Lex();  // Eat the left paren.
+      if (parseOperand(Operands, Name)) {
+        SMLoc Loc = getLexer().getLoc();
+        Parser.eatToEndOfStatement();
+        return ErrorIfNotPending(Loc, "unexpected token in argument list");
+      }
+      if (getLexer().isNot(AsmToken::RParen)) {
+        SMLoc Loc = getLexer().getLoc();
+        Parser.eatToEndOfStatement();
+        return Error(Loc,
+            "expecting right parenthesis when parsing capability-relative address");
+      }
+      Operands.push_back(MipsOperand::CreateToken(")", getLexer().getLoc(), *this));
+      Parser.Lex();  // Eat the right paren.
+    }
+    else while (getLexer().is(AsmToken::Comma)) {
+      Parser.Lex();  // Eat the comma.
+
       // Parse and remember the operand.
       if (parseOperand(Operands, Name)) {
         SMLoc Loc = getLexer().getLoc();
-        return Error(Loc, "unexpected token in argument list");
+        return ErrorIfNotPending(Loc, "unexpected token in argument list");
       }
       // Parse bracket and parenthesis suffixes before we iterate
       if (getLexer().is(AsmToken::LBrac)) {
@@ -7038,7 +7714,7 @@ bool MipsAsmParser::ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
   }
   if (getLexer().isNot(AsmToken::EndOfStatement)) {
     SMLoc Loc = getLexer().getLoc();
-    return Error(Loc, "unexpected token in argument list");
+    return ErrorIfNotPending(Loc, "unexpected token in argument list");
   }
   Parser.Lex(); // Consume the EndOfStatement.
   return false;
@@ -7563,6 +8239,7 @@ bool MipsAsmParser::parseSetArchDirective() {
           .Case("mips64r6", "mips64r6")
           .Case("octeon", "cnmips")
           .Case("octeon+", "cnmipsp")
+          .Case("beri", "beri")  // BERI supports all of Mips4
           .Case("r4000", "mips3") // This is an implementation of Mips3.
           .Default("");
 
@@ -7807,7 +8484,7 @@ bool MipsAsmParser::parseDirectiveCpRestore(SMLoc Loc) {
     return false;
   }
 
-  if (!StackOffset->evaluateAsAbsolute(StackOffsetVal)) {
+  if (!StackOffset->evaluateAsAbsolute(StackOffsetVal, getStreamer())) {
     reportParseError("stack offset is not an absolute expression");
     return false;
   }
@@ -7865,7 +8542,7 @@ bool MipsAsmParser::parseDirectiveCPSetup() {
     SMLoc ExprLoc = getLexer().getLoc();
 
     if (Parser.parseExpression(OffsetExpr) ||
-        !OffsetExpr->evaluateAsAbsolute(OffsetVal)) {
+        !OffsetExpr->evaluateAsAbsolute(OffsetVal, getStreamer())) {
       reportParseError(ExprLoc, "expected save register or stack offset");
       return false;
     }
@@ -8046,6 +8723,14 @@ bool MipsAsmParser::parseDirectiveSet() {
     return parseSetSoftFloatDirective();
   if (IdVal == "hardfloat")
     return parseSetHardFloatDirective();
+  if (IdVal == "cheri_sysregs_accessible" || IdVal == "nocheri_sysregs_accessible") {
+    MCAsmParser &Parser = getParser();
+    Parser.Lex();
+    if (getLexer().isNot(AsmToken::EndOfStatement))
+      return reportParseError("unexpected token, expected end of statement");
+    AreCheriSysRegsAccessible = IdVal == "cheri_sysregs_accessible";
+    return false;
+  }
   if (IdVal == "crc")
     return parseSetFeature(Mips::FeatureCRC);
   if (IdVal == "nocrc")
@@ -8680,7 +9365,7 @@ bool MipsAsmParser::ParseDirective(AsmToken DirectiveID) {
         reportParseError("expected number after comma");
         return false;
       }
-      if (!DummyNumber->evaluateAsAbsolute(DummyNumberVal)) {
+      if (!DummyNumber->evaluateAsAbsolute(DummyNumberVal, getStreamer())) {
         reportParseError("expected an absolute expression after comma");
         return false;
       }
@@ -8739,12 +9424,14 @@ bool MipsAsmParser::ParseDirective(AsmToken DirectiveID) {
     }
 
     MipsOperand &StackRegOpnd = static_cast<MipsOperand &>(*TmpReg[0]);
-    if (!StackRegOpnd.isGPRAsmReg()) {
+    if (!StackRegOpnd.isGPRAsmReg() && !StackRegOpnd.isCheriAsmReg()) {
       reportParseError(StackRegOpnd.getStartLoc(),
                        "expected general purpose register");
       return false;
     }
-    unsigned StackReg = StackRegOpnd.getGPR32Reg();
+    unsigned StackReg = StackRegOpnd.isCheriAsmReg()
+                            ? StackRegOpnd.getCheriReg()
+                            : StackRegOpnd.getGPR32Reg();
 
     if (Parser.getTok().is(AsmToken::Comma))
       Parser.Lex();
@@ -8762,7 +9449,7 @@ bool MipsAsmParser::ParseDirective(AsmToken DirectiveID) {
       return false;
     }
 
-    if (!FrameSize->evaluateAsAbsolute(FrameSizeVal)) {
+    if (!FrameSize->evaluateAsAbsolute(FrameSizeVal, getStreamer())) {
       reportParseError("frame size not an absolute expression");
       return false;
     }
@@ -8783,7 +9470,7 @@ bool MipsAsmParser::ParseDirective(AsmToken DirectiveID) {
     }
 
     MipsOperand &ReturnRegOpnd = static_cast<MipsOperand &>(*TmpReg[0]);
-    if (!ReturnRegOpnd.isGPRAsmReg()) {
+    if (!ReturnRegOpnd.isGPRAsmReg() && !ReturnRegOpnd.isCheriAsmReg()) {
       reportParseError(ReturnRegOpnd.getStartLoc(),
                        "expected general purpose register");
       return false;
@@ -8795,8 +9482,11 @@ bool MipsAsmParser::ParseDirective(AsmToken DirectiveID) {
       return false;
     }
 
-    getTargetStreamer().emitFrame(StackReg, FrameSizeVal,
-                                  ReturnRegOpnd.getGPR32Reg());
+    unsigned ReturnReg = ReturnRegOpnd.isCheriAsmReg()
+                        ? ReturnRegOpnd.getCheriReg()
+                        : ReturnRegOpnd.getGPR32Reg();
+
+    getTargetStreamer().emitFrame(StackReg, FrameSizeVal, ReturnReg);
     IsCpRestoreSet = false;
     return false;
   }
@@ -8825,7 +9515,7 @@ bool MipsAsmParser::ParseDirective(AsmToken DirectiveID) {
       return false;
     }
 
-    if (!BitMask->evaluateAsAbsolute(BitMaskVal)) {
+    if (!BitMask->evaluateAsAbsolute(BitMaskVal, getStreamer())) {
       reportParseError("bitmask not an absolute expression");
       return false;
     }
@@ -8846,7 +9536,7 @@ bool MipsAsmParser::ParseDirective(AsmToken DirectiveID) {
       return false;
     }
 
-    if (!FrameOffset->evaluateAsAbsolute(FrameOffsetVal)) {
+    if (!FrameOffset->evaluateAsAbsolute(FrameOffsetVal, getStreamer())) {
       reportParseError("frame offset not an absolute expression");
       return false;
     }

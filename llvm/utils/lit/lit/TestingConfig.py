@@ -2,6 +2,12 @@ import os
 import sys
 
 
+class CheriTestMode(object):
+    INCLUDE = "include"
+    EXCLUDE = "exclude"
+    ONLY = "only"
+
+
 class TestingConfig(object):
     """
     TestingConfig - Information on the tests inside a suite.
@@ -14,6 +20,8 @@ class TestingConfig(object):
 
         Create a TestingConfig object with default values.
         """
+        import lit.LitConfig
+        assert isinstance(litConfig, lit.LitConfig.LitConfig)
         # Set the environment based on the command line arguments.
         environment = {
             "PATH": os.pathsep.join(litConfig.path + [os.environ.get("PATH", "")]),
@@ -93,6 +101,11 @@ class TestingConfig(object):
 
         # Set the default available features based on the LitConfig.
         available_features = []
+        if litConfig.cheri_test_mode == CheriTestMode.EXCLUDE:
+            litConfig.warning("Not running CHERI tests (is this intended?)")
+        elif litConfig.cheri_test_mode not in (CheriTestMode.INCLUDE, CheriTestMode.ONLY):
+            litConfig.fatal("Invalid value for litConfig.cheri_test_mode " +
+                            litConfig.cheri_test_mode)
         if litConfig.useValgrind:
             available_features.append("valgrind")
             if litConfig.valgrindLeakCheck:
@@ -109,6 +122,7 @@ class TestingConfig(object):
             test_exec_root=None,
             test_source_root=None,
             excludes=[],
+            cheri_test_mode = litConfig.cheri_test_mode,
             available_features=available_features,
             pipefail=True,
             standalone_tests=False,
@@ -170,6 +184,7 @@ class TestingConfig(object):
         available_features,
         pipefail,
         limit_to_features=[],
+        cheri_test_mode = CheriTestMode.INCLUDE,
         is_early=False,
         parallelism_group=None,
         standalone_tests=False,
@@ -184,6 +199,7 @@ class TestingConfig(object):
         self.test_exec_root = test_exec_root
         self.test_source_root = test_source_root
         self.excludes = set(excludes)
+        self.cheri_test_mode = cheri_test_mode
         self.available_features = set(available_features)
         self.pipefail = pipefail
         self.standalone_tests = standalone_tests

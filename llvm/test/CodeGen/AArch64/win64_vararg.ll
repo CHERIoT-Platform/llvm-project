@@ -17,7 +17,7 @@ define void @pass_va(i32 %count, ...) nounwind {
 ; CHECK-NEXT:    ret
 entry:
   %ap = alloca ptr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %ap2 = load ptr, ptr %ap, align 8
   call void @other_func(ptr %ap2)
   ret void
@@ -25,8 +25,8 @@ entry:
 
 declare void @other_func(ptr) local_unnamed_addr
 
-declare void @llvm.va_start(ptr) nounwind
-declare void @llvm.va_copy(ptr, ptr) nounwind
+declare void @llvm.va_start.p0(ptr) nounwind
+declare void @llvm.va_copy.p0.p0(ptr, ptr) nounwind
 
 define ptr @f9(i64 %a0, i64 %a1, i64 %a2, i64 %a3, i64 %a4, i64 %a5, i64 %a6, i64 %a7, i64 %a8, ...) nounwind {
 ; CHECK-LABEL: f9:
@@ -39,7 +39,7 @@ define ptr @f9(i64 %a0, i64 %a1, i64 %a2, i64 %a3, i64 %a4, i64 %a5, i64 %a6, i6
 ; CHECK-NEXT:    ret
 entry:
   %ap = alloca ptr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %ap2 = load ptr, ptr %ap, align 8
   ret ptr %ap2
 }
@@ -55,7 +55,7 @@ define ptr @f8(i64 %a0, i64 %a1, i64 %a2, i64 %a3, i64 %a4, i64 %a5, i64 %a6, i6
 ; CHECK-NEXT:    ret
 entry:
   %ap = alloca ptr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %ap2 = load ptr, ptr %ap, align 8
   ret ptr %ap2
 }
@@ -72,7 +72,7 @@ define ptr @f7(i64 %a0, i64 %a1, i64 %a2, i64 %a3, i64 %a4, i64 %a5, i64 %a6, ..
 ; CHECK-NEXT:    ret
 entry:
   %ap = alloca ptr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %ap2 = load ptr, ptr %ap, align 8
   ret ptr %ap2
 }
@@ -91,12 +91,12 @@ define void @copy1(i64 %a0, ...) nounwind {
 entry:
   %ap = alloca ptr, align 8
   %cp = alloca ptr, align 8
-  call void @llvm.va_start(ptr %ap)
-  call void @llvm.va_copy(ptr %cp, ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
+  call void @llvm.va_copy.p0.p0(ptr %cp, ptr %ap)
   ret void
 }
 
-declare void @llvm.va_end(ptr)
+declare void @llvm.va_end.p0(ptr)
 declare void @llvm.lifetime.start.p0(i64, ptr nocapture) #1
 declare void @llvm.lifetime.end.p0(i64, ptr nocapture) #1
 
@@ -148,7 +148,7 @@ define i32 @fp(ptr, i64, ptr, ...) local_unnamed_addr #6 {
 ; CHECK-NEXT:    .seh_endproc
   %4 = alloca ptr, align 8
   call void @llvm.lifetime.start.p0(i64 8, ptr nonnull %4) #2
-  call void @llvm.va_start(ptr nonnull %4)
+  call void @llvm.va_start.p0(ptr nonnull %4)
   %5 = load ptr, ptr %4, align 8
   %6 = call ptr @__local_stdio_printf_options() #2
   %7 = load i64, ptr %6, align 8
@@ -156,7 +156,7 @@ define i32 @fp(ptr, i64, ptr, ...) local_unnamed_addr #6 {
   %9 = call i32 @__stdio_common_vsprintf(i64 %8, ptr %0, i64 %1, ptr %2, ptr null, ptr %5) #2
   %10 = icmp sgt i32 %9, -1
   %11 = select i1 %10, i32 %9, i32 -1
-  call void @llvm.va_end(ptr nonnull %4)
+  call void @llvm.va_end.p0(ptr nonnull %4)
   call void @llvm.lifetime.end.p0(i64 8, ptr nonnull %4) #2
   ret i32 %11
 }
@@ -221,9 +221,9 @@ define void @vla(i32, ptr, ...) local_unnamed_addr {
 ; CHECK-NEXT:    .seh_endproc
   %3 = alloca ptr, align 8
   call void @llvm.lifetime.start.p0(i64 8, ptr nonnull %3) #5
-  call void @llvm.va_start(ptr nonnull %3)
+  call void @llvm.va_start.p0(ptr nonnull %3)
   %4 = zext i32 %0 to i64
-  %5 = call ptr @llvm.stacksave()
+  %5 = call ptr @llvm.stacksave.p0()
   %6 = alloca i8, i64 %4, align 1
   %7 = load ptr, ptr %3, align 8
   %8 = sext i32 %0 to i64
@@ -231,14 +231,14 @@ define void @vla(i32, ptr, ...) local_unnamed_addr {
   %10 = load i64, ptr %9, align 8
   %11 = or i64 %10, 2
   %12 = call i32 @__stdio_common_vsprintf(i64 %11, ptr nonnull %6, i64 %8, ptr %1, ptr null, ptr %7)
-  call void @llvm.va_end(ptr nonnull %3)
-  call void @llvm.stackrestore(ptr %5)
+  call void @llvm.va_end.p0(ptr nonnull %3)
+  call void @llvm.stackrestore.p0(ptr %5)
   call void @llvm.lifetime.end.p0(i64 8, ptr nonnull %3) #5
   ret void
 }
 
-declare ptr @llvm.stacksave()
-declare void @llvm.stackrestore(ptr)
+declare ptr @llvm.stacksave.p0()
+declare void @llvm.stackrestore.p0(ptr)
 
 define i32 @snprintf(ptr, i64, ptr, ...) local_unnamed_addr #5 {
 ; CHECK-LABEL: snprintf:
@@ -283,7 +283,7 @@ define i32 @snprintf(ptr, i64, ptr, ...) local_unnamed_addr #5 {
 ; CHECK-NEXT:    .seh_endproc
   %4 = alloca ptr, align 8
   call void @llvm.lifetime.start.p0(i64 8, ptr nonnull %4) #2
-  call void @llvm.va_start(ptr nonnull %4)
+  call void @llvm.va_start.p0(ptr nonnull %4)
   %5 = load ptr, ptr %4, align 8
   %6 = call ptr @__local_stdio_printf_options() #2
   %7 = load i64, ptr %6, align 8
@@ -291,7 +291,7 @@ define i32 @snprintf(ptr, i64, ptr, ...) local_unnamed_addr #5 {
   %9 = call i32 @__stdio_common_vsprintf(i64 %8, ptr %0, i64 %1, ptr %2, ptr null, ptr %5) #2
   %10 = icmp sgt i32 %9, -1
   %11 = select i1 %10, i32 %9, i32 -1
-  call void @llvm.va_end(ptr nonnull %4)
+  call void @llvm.va_end.p0(ptr nonnull %4)
   call void @llvm.lifetime.end.p0(i64 8, ptr nonnull %4) #2
   ret i32 %11
 }

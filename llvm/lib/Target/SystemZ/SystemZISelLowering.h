@@ -487,7 +487,8 @@ public:
   bool
   findOptimalMemOpLowering(std::vector<EVT> &MemOps, unsigned Limit,
                            const MemOp &Op, unsigned DstAS, unsigned SrcAS,
-                           const AttributeList &FuncAttributes) const override;
+                           const AttributeList &FuncAttributes,
+                           bool *ReachedLimit = nullptr) const override;
   EVT getOptimalMemOpType(const MemOp &Op,
                           const AttributeList &FuncAttributes) const override;
   bool isTruncateFree(Type *, Type *) const override;

@@ -685,6 +685,9 @@ set(mips64_SOURCES ${GENERIC_TF_SOURCES}
                    ${mips_SOURCES})
 set(mips64el_SOURCES ${GENERIC_TF_SOURCES}
                      ${mips_SOURCES})
+set(mips64c128_SOURCES ${GENERIC_TF_SOURCES} ${mips_SOURCES})
+set(mips64c256_SOURCES ${GENERIC_TF_SOURCES} ${mips_SOURCES})
+
 
 set(powerpc_SOURCES ${GENERIC_SOURCES})
 

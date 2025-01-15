@@ -9,6 +9,9 @@ import lit.formats
 import lit.TestingConfig
 import lit.util
 
+from lit.TestingConfig import CheriTestMode
+
+
 # LitConfig must be a new style class for properties to work
 class LitConfig(object):
     """LitConfig - Configuration data for a 'lit' test runner instance, shared
@@ -33,6 +36,7 @@ class LitConfig(object):
         isWindows,
         order,
         params,
+        shardNumber=None,
         config_prefix=None,
         maxIndividualTestTime=0,
         parallelism_groups={},
@@ -52,7 +56,10 @@ class LitConfig(object):
         self.isWindows = bool(isWindows)
         self.order = order
         self.params = dict(params)
+        self.shardNumber = shardNumber
         self.bashPath = None
+        # HACK to run only cheri tests: (status can be include, exclude, only)
+        self.cheri_test_mode = CheriTestMode.INCLUDE
 
         # Configuration files to look for when discovering test suites.
         self.config_prefix = config_prefix or "lit"

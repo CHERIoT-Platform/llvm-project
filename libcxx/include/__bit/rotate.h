@@ -40,12 +40,29 @@ _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR_SINCE_CXX14 _Tp __rotl(_Tp __t, int __cn
   return std::__rotr(__t, -__cnt);
 }
 
+#if __has_feature(capabilities)
+template<>
+_LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR_SINCE_CXX14 inline
+unsigned __intcap __rotr(unsigned __intcap __t, unsigned int __cnt) _NOEXCEPT {
+    // __builtin_cheri_address_set cannot be used in a constant expression (yet), so we return a null-derived integer.
+    return std::__rotr(static_cast<ptraddr_t>(__t), __cnt);
+}
+#endif
+
 #if _LIBCPP_STD_VER >= 20
 
 template <__libcpp_unsigned_integer _Tp>
 [[nodiscard]] _LIBCPP_HIDE_FROM_ABI constexpr _Tp rotl(_Tp __t, int __cnt) noexcept {
   return std::__rotl(__t, __cnt);
 }
+
+#if __has_feature(capabilities)
+template<>
+_LIBCPP_HIDE_FROM_ABI constexpr inline unsigned __intcap rotl(unsigned __intcap __t, unsigned int __cnt) noexcept {
+    // __builtin_cheri_address_set cannot be used in a constant expression (yet), so we return a null-derived integer.
+    return std::rotl(static_cast<ptraddr_t>(__t), __cnt);
+}
+#endif
 
 template <__libcpp_unsigned_integer _Tp>
 [[nodiscard]] _LIBCPP_HIDE_FROM_ABI constexpr _Tp rotr(_Tp __t, int __cnt) noexcept {

@@ -446,6 +446,7 @@ void ScalarBitSetTraits<ELFYAML::ELF_EF>::bitset(IO &IO,
     BCaseMask(EF_MIPS_ABI_O64, EF_MIPS_ABI);
     BCaseMask(EF_MIPS_ABI_EABI32, EF_MIPS_ABI);
     BCaseMask(EF_MIPS_ABI_EABI64, EF_MIPS_ABI);
+    BCaseMask(EF_MIPS_ABI_CHERIABI, EF_MIPS_ABI);
     BCaseMask(EF_MIPS_MACH_3900, EF_MIPS_MACH);
     BCaseMask(EF_MIPS_MACH_4010, EF_MIPS_MACH);
     BCaseMask(EF_MIPS_MACH_4100, EF_MIPS_MACH);
@@ -464,6 +465,9 @@ void ScalarBitSetTraits<ELFYAML::ELF_EF>::bitset(IO &IO,
     BCaseMask(EF_MIPS_MACH_LS2E, EF_MIPS_MACH);
     BCaseMask(EF_MIPS_MACH_LS2F, EF_MIPS_MACH);
     BCaseMask(EF_MIPS_MACH_LS3A, EF_MIPS_MACH);
+    BCaseMask(EF_MIPS_MACH_BERI, EF_MIPS_MACH);
+    BCaseMask(EF_MIPS_MACH_CHERI128, EF_MIPS_MACH);
+    BCaseMask(EF_MIPS_MACH_CHERI256, EF_MIPS_MACH);
     BCaseMask(EF_MIPS_ARCH_1, EF_MIPS_ARCH);
     BCaseMask(EF_MIPS_ARCH_2, EF_MIPS_ARCH);
     BCaseMask(EF_MIPS_ARCH_3, EF_MIPS_ARCH);
@@ -544,6 +548,8 @@ void ScalarBitSetTraits<ELFYAML::ELF_EF>::bitset(IO &IO,
     BCaseMask(EF_RISCV_FLOAT_ABI_QUAD, EF_RISCV_FLOAT_ABI);
     BCase(EF_RISCV_RVE);
     BCase(EF_RISCV_TSO);
+    BCase(EF_RISCV_CHERIABI);
+    BCase(EF_RISCV_CAP_MODE);
     break;
   case ELF::EM_XTENSA:
     BCase(EF_XTENSA_XT_INSN);
@@ -941,6 +947,7 @@ void ScalarEnumerationTraits<ELFYAML::ELF_DYNTAG>::enumeration(
 #define HEXAGON_DYNAMIC_TAG(name, value)
 #define PPC_DYNAMIC_TAG(name, value)
 #define PPC64_DYNAMIC_TAG(name, value)
+#define RISCV_DYNAMIC_TAG(name, value)
 // Ignore marker tags such as DT_HIOS (maps to DT_VERNEEDNUM), etc.
 #define DYNAMIC_TAG_MARKER(name, value)
 
@@ -998,6 +1005,7 @@ void ScalarEnumerationTraits<ELFYAML::ELF_DYNTAG>::enumeration(
 #undef HEXAGON_DYNAMIC_TAG
 #undef PPC_DYNAMIC_TAG
 #undef PPC64_DYNAMIC_TAG
+#undef RISCV_DYNAMIC_TAG
 #undef DYNAMIC_TAG_MARKER
 #undef STRINGIFY
 #undef DYNAMIC_TAG
@@ -1052,6 +1060,11 @@ void ScalarEnumerationTraits<ELFYAML::MIPS_AFL_EXT>::enumeration(
   ECase(EXT_LOONGSON_2E);
   ECase(EXT_LOONGSON_2F);
   ECase(EXT_OCTEON3);
+  ECase(EXT_CHERI);
+  ECase(EXT_CHERI_ABI_LEGACY);
+  ECase(EXT_CHERI_ABI_PLT);
+  ECase(EXT_CHERI_ABI_PCREL);
+  ECase(EXT_CHERI_ABI_FNDESC);
 #undef ECase
 }
 

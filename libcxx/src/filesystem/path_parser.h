@@ -230,7 +230,7 @@ private:
     case PS_InRootName:
     case PS_InRootDir:
     case PS_InFilenames:
-      return &RawEntry.back() + 1;
+      return RawEntry.end();
     case PS_InTrailingSep:
     case PS_AtEnd:
       return getAfterBack();
@@ -244,13 +244,13 @@ private:
     switch (State) {
     case PS_BeforeBegin:
     case PS_InRootName:
-      return &Path.front();
+      return Path.data();
     case PS_InRootDir:
     case PS_InFilenames:
     case PS_InTrailingSep:
-      return &RawEntry.front();
+      return RawEntry.data();
     case PS_AtEnd:
-      return &Path.back() + 1;
+      return Path.end();
     }
     __libcpp_unreachable();
   }

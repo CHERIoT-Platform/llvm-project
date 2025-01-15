@@ -107,6 +107,9 @@ def ConstantExpr : StmtNode<FullExpr>;
 // Atomic expressions
 def AtomicExpr : StmtNode<Expr>;
 
+// CHERI no bounds expression (pretend it's the same as a ParenExpr except in a few cases)
+def NoChangeBoundsExpr : StmtNode<ParenExpr>;
+
 // GNU Extensions.
 def AddrLabelExpr : StmtNode<Expr>;
 def StmtExpr : StmtNode<Expr>;

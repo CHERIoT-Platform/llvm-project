@@ -2329,6 +2329,16 @@ Instruction *InstCombinerImpl::visitSub(BinaryOperator &I) {
       return BinaryOperator::CreateAdd(X, ConstantExpr::getSub(C, C2));
   }
 
+  // (ptraddr_t)cap1 - (ptraddr_t)cap2 --> cheri_cap_diff(cap1, cap2)
+  if (match(Op0, m_Intrinsic<Intrinsic::cheri_cap_address_get>(m_Value(X))) &&
+      match(Op1, m_Intrinsic<Intrinsic::cheri_cap_address_get>(m_Value(Y)))) {
+    Function *F = Intrinsic::getDeclaration(
+        I.getModule(), Intrinsic::cheri_cap_diff, Op0->getType());
+    auto *Call = CallInst::Create(F, {X, Y});
+    assert(Call->getType() == I.getType());
+    return Call;
+  }
+
   const APInt *Op0C;
   if (match(Op0, m_APInt(Op0C))) {
     if (Op0C->isMask()) {

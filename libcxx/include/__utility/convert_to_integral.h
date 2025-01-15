@@ -48,6 +48,14 @@ inline _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR __int128_t __convert_to_integral(
 inline _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR __uint128_t __convert_to_integral(__uint128_t __val) { return __val; }
 #endif
 
+#if __has_feature(capabilities)
+inline _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR
+__intcap __convert_to_integral(__intcap __val) { return __val; }
+
+inline _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR
+unsigned __intcap __convert_to_integral(unsigned __intcap __val) { return __val; }
+#endif
+
 template <class _Tp, bool = is_enum<_Tp>::value>
 struct __sfinae_underlying_type {
   typedef typename underlying_type<_Tp>::type type;

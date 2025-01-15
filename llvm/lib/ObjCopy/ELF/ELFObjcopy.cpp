@@ -618,6 +618,7 @@ static Error handleArgs(const CommonConfig &Config, const ELFConfig &ELFConfig,
   if (Config.OutputArch) {
     Obj.Machine = Config.OutputArch->EMachine;
     Obj.OSABI = Config.OutputArch->OSABI;
+    Obj.Flags = Config.OutputArch->ELF_Flags;
   }
 
   if (!Config.SplitDWO.empty() && Config.ExtractDWO) {

@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "assembly.h"
+#include "__libunwind_config.h"
 
 #define FROM_0_TO_15 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
 #define FROM_16_TO_31 16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
@@ -238,6 +239,120 @@ DEFINE_LIBUNWIND_FUNCTION(__unw_getcontext)
   # return UNW_ESUCCESS
   or    $2, $0, $0
   .set pop
+END_LIBUNWIND_FUNCTION(__unw_getcontext)
+
+#elif defined(__mips__) && defined(__CHERI_PURE_CAPABILITY__)
+
+#if !defined(__mips_soft_float)
+#error "Only soft float supported"
+#endif
+
+.set noreorder
+#
+# extern int __unw_getcontext(unw_context_t* thread_state)
+#
+# On entry:
+#  thread_state pointer is in $c3
+#
+# This is always called from ABI C code, so we only need to initialise the
+# registers that are preserved across calls
+
+DEFINE_LIBUNWIND_FUNCTION(__unw_getcontext)
+#define SAVE_GPR(x) csd $x, $zero, (8*x)($c3)
+  SAVE_GPR(1) # $at
+  SAVE_GPR(2) # $v0
+  SAVE_GPR(3) # $v1
+  SAVE_GPR(4) # $a0
+  SAVE_GPR(5) # $a1
+  SAVE_GPR(6) # $a2
+  SAVE_GPR(7) # $a3
+  SAVE_GPR(8) # $a4
+  SAVE_GPR(9) # $a5
+  SAVE_GPR(10) # $a6
+  SAVE_GPR(11) # $a7
+  SAVE_GPR(12) # $t0/t4
+  SAVE_GPR(13) # $t1/t5
+  SAVE_GPR(14) # $t2/t6
+  SAVE_GPR(15) # $t3/t7
+  SAVE_GPR(16) # $s0
+  SAVE_GPR(17) # $s1
+  SAVE_GPR(18) # $s2
+  SAVE_GPR(19) # $s3
+  SAVE_GPR(20) # $s4
+  SAVE_GPR(21) # $s5
+  SAVE_GPR(22) # $s6
+  SAVE_GPR(23) # $s7
+  SAVE_GPR(24) # $t8
+  SAVE_GPR(25) # $t9
+  SAVE_GPR(26) # $k0
+  SAVE_GPR(27) # $k1
+  SAVE_GPR(28) # $gp
+  SAVE_GPR(29) # $sp
+  SAVE_GPR(30) # $fp
+  SAVE_GPR(31) # $ra
+
+  # hi and lo
+  mfhi	$t0
+  csd	$t0, $zero, (8*64)($c3)
+  mflo	$t0
+  csd	$t0, $zero, (8*65)($c3)
+  # TODO: floating point registers
+
+#ifndef _LIBUNWIND_CAPREG_START
+#error "_LIBUNWIND_CAPREG_START not defined"
+#endif
+#if ((_LIBUNWIND_CAPREG_START*64) % _MIPS_SZCAP) != 0
+#error "unw_context capability register offset is not capability aligned!"
+#endif
+  /* Add the offset of the start of the capability register set to $at */
+  daddiu $1, $zero, _LIBUNWIND_CAPREG_START*8
+#define SAVE_CAP_REG(src, x) csc $c ## src, $1, (x * __SIZEOF_UINTCAP__)($c3)
+#define SAVE_CAP(x) SAVE_CAP_REG(x, x)
+  SAVE_CAP(1)
+  SAVE_CAP(2)
+  SAVE_CAP(3)
+  SAVE_CAP(4)
+  SAVE_CAP(5)
+  SAVE_CAP(6)
+  SAVE_CAP(7)
+  SAVE_CAP(8)
+  SAVE_CAP(9)
+  SAVE_CAP(10)
+  SAVE_CAP(11)
+  SAVE_CAP(12)
+  SAVE_CAP(13)
+  SAVE_CAP(14)
+  SAVE_CAP(15)
+  SAVE_CAP(16)
+  SAVE_CAP(17)
+  SAVE_CAP(18)
+  SAVE_CAP(19)
+  SAVE_CAP(20)
+  SAVE_CAP(21)
+  SAVE_CAP(22)
+  SAVE_CAP(23)
+  SAVE_CAP(24)
+  SAVE_CAP(25)
+  SAVE_CAP(26)
+  // store NULL for 27-31 since they are reserved for kernel use
+  SAVE_CAP_REG(null, 27)
+  SAVE_CAP_REG(null, 28)
+  SAVE_CAP_REG(null, 29)
+  SAVE_CAP_REG(null, 30)
+  SAVE_CAP_REG(null, 31)
+
+  // Use $c12 as a temp register in order to save $ddc since $c12 will hold
+  // the cap for __unw_getcontext and it doesn't make sense to save it
+  cgetdefault $c12
+  SAVE_CAP_REG(12, 0)
+
+  // return UNW_ESUCCESS
+  daddiu $v0, $zero, 0
+  # Store the return address where we expect the current PC
+  daddiu $1, $1, 32*__SIZEOF_UINTCAP__
+  cjr $c17
+  csc $c17, $1, 0($c3)
+END_LIBUNWIND_FUNCTION(__unw_getcontext)
 
 #elif defined(__mips64)
 
@@ -273,6 +388,7 @@ DEFINE_LIBUNWIND_FUNCTION(__unw_getcontext)
   # return UNW_ESUCCESS
   or    $2, $0, $0
   .set pop
+END_LIBUNWIND_FUNCTION(__unw_getcontext)
 
 # elif defined(__mips__)
 
@@ -282,6 +398,7 @@ DEFINE_LIBUNWIND_FUNCTION(__unw_getcontext)
 # Just trap for the time being.
 DEFINE_LIBUNWIND_FUNCTION(__unw_getcontext)
   teq $0, $0
+END_LIBUNWIND_FUNCTION(__unw_getcontext)
 
 #elif defined(__powerpc64__)
 
@@ -726,6 +843,61 @@ LnoR2Fix:
 //
   .p2align 2
 DEFINE_LIBUNWIND_FUNCTION(__unw_getcontext)
+#ifdef __CHERI_PURE_CAPABILITY__
+  stp    c0, c1,  [c0, #0x000]
+  stp    c2, c3,  [c0, #0x020]
+  stp    c4, c5,  [c0, #0x040]
+  stp    c6, c7,  [c0, #0x060]
+  stp    c8, c9,  [c0, #0x080]
+  stp    c10,c11, [c0, #0x0a0]
+  stp    c12,c13, [c0, #0x0c0]
+  stp    c14,c15, [c0, #0x0e0]
+  stp    c16,c17, [c0, #0x100]
+  stp    c18,c19, [c0, #0x120]
+  stp    c20,c21, [c0, #0x140]
+  stp    c22,c23, [c0, #0x160]
+  stp    c24,c25, [c0, #0x180]
+  stp    c26,c27, [c0, #0x1a0]
+  stp    c28,c29, [c0, #0x1c0]
+  str    c30,     [c0, #0x1e0]
+  mov    c1,csp
+  str    c1,      [c0, #0x1f0]
+  str    c30,     [c0, #0x200]    // store return address as pcc
+  // skip cpsr
+  add    c0, c0,  #0x230
+  stp    d0, d1,  [c0, #0x000]
+  stp    d2, d3,  [c0, #0x010]
+  stp    d4, d5,  [c0, #0x020]
+  stp    d6, d7,  [c0, #0x030]
+  stp    d8, d9,  [c0, #0x040]
+  stp    d10,d11, [c0, #0x050]
+  stp    d12,d13, [c0, #0x060]
+  stp    d14,d15, [c0, #0x070]
+  stp    d16,d17, [c0, #0x080]
+  stp    d18,d19, [c0, #0x090]
+  stp    d20,d21, [c0, #0x0a0]
+  stp    d22,d23, [c0, #0x0b0]
+  stp    d24,d25, [c0, #0x0c0]
+  stp    d26,d27, [c0, #0x0d0]
+  stp    d28,d29, [c0, #0x0e0]
+  str    d30,     [c0, #0x0f0]
+  str    d31,     [c0, #0x0f8]
+#ifdef _LIBUNWIND_HAS_CHERI_LIB_C18N
+  // Store the trusted stack pointer
+  stp    c0, c30, [csp, #-0x20]!
+  mov    c0, c30
+  bl     dl_c18n_get_trusted_stack
+  ldp    c1, c30, [csp], #0x20
+  str    c0, [c1, #-0x20]         // -0x230 + 0x210 = -0x20
+#endif
+  mov    x0, #0                   // return UNW_ESUCCESS
+#ifdef __ARM_MORELLO_PURECAP_BENCHMARK_ABI
+  and    x30, x30, #~1
+  ret    x30                    // jump to pc
+#else
+  ret                           // jump to pcc
+#endif
+#else
   stp    x0, x1,  [x0, #0x000]
   stp    x2, x3,  [x0, #0x010]
   stp    x4, x5,  [x0, #0x020]
@@ -765,6 +937,7 @@ DEFINE_LIBUNWIND_FUNCTION(__unw_getcontext)
   str    d31,     [x0, #0x208]
   mov    x0, #0                   // return UNW_ESUCCESS
   ret
+#endif
 
 #elif defined(__arm__) && !defined(__APPLE__)
 
@@ -1100,6 +1273,22 @@ DEFINE_LIBUNWIND_FUNCTION(__unw_getcontext)
 
 #elif defined(__riscv)
 
+.macro save_fpr num, ctxreg
+#ifdef __CHERI_PURE_CAPABILITY__
+  cfsd   f\num, (RISCV_FOFFSET + RISCV_FSIZE * \num)(c\ctxreg)
+#else
+  FSTORE f\num, (RISCV_FOFFSET + RISCV_FSIZE * \num)(\ctxreg)
+#endif
+.endm
+
+.macro save_gpr num, ctxreg
+#ifdef __CHERI_PURE_CAPABILITY__
+  csc   c\num, (__SIZEOF_CHERI_CAPABILITY__ * \num)(c\ctxreg)
+#else
+  ISTORE x\num, (RISCV_ISIZE * \num)(\ctxreg)
+#endif
+.endm
+
 #
 # extern int __unw_getcontext(unw_context_t* thread_state)
 #
@@ -1107,19 +1296,28 @@ DEFINE_LIBUNWIND_FUNCTION(__unw_getcontext)
 #  thread_state pointer is in a0
 #
 DEFINE_LIBUNWIND_FUNCTION(__unw_getcontext)
+#ifdef __CHERI_PURE_CAPABILITY__
+  csc   c1, (__SIZEOF_CHERI_CAPABILITY__ * 0)(ca0) // store ra as pc
+#else
   ISTORE    x1, (RISCV_ISIZE * 0)(a0) // store ra as pc
+#endif
   .irp i,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
-    ISTORE x\i, (RISCV_ISIZE * \i)(a0)
+    save_gpr \i, a0
   .endr
 
 # if defined(__riscv_flen)
   .irp i,FROM_0_TO_31
-    FSTORE f\i, (RISCV_FOFFSET + RISCV_FSIZE * \i)(a0)
+    save_fpr \i, a0
   .endr
 # endif
 
   li     a0, 0  // return UNW_ESUCCESS
+#ifdef __CHERI_PURE_CAPABILITY__
+  cret          // jump to cra
+#else
   ret           // jump to ra
+#endif
+END_LIBUNWIND_FUNCTION(__unw_getcontext)
 
 #elif defined(__s390x__)
 

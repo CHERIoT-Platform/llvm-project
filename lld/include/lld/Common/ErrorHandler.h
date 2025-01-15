@@ -98,6 +98,8 @@ public:
   uint64_t errorLimit = 20;
   StringRef errorLimitExceededMsg = "too many errors emitted, stopping now";
   StringRef errorHandlingScript;
+  uint64_t warningLimit = 20;
+  StringRef warningLimitExceededMsg = "too many warnings emitted, stopping now";
   StringRef logName = "lld";
   bool exitEarly = true;
   bool fatalWarnings = false;
@@ -151,6 +153,13 @@ void log(const Twine &msg);
 void message(const Twine &msg, llvm::raw_ostream &s = outs());
 void warn(const Twine &msg);
 uint64_t errorCount();
+
+static inline void nonFatalWarning(const Twine &str) {
+  if (errorHandler().fatalWarnings)
+    message("warning: " + str);
+  else
+    warn(str);
+}
 
 [[noreturn]] void exitLld(int val);
 

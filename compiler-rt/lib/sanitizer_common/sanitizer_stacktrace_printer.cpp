@@ -264,7 +264,7 @@ void FormattedStackTracePrinter::RenderFrame(InternalScopedString *buffer,
         MaybeBuildIdToBuffer(*info, /*PrefixSpace=*/true, buffer);
 #endif
       } else {
-        buffer->AppendF("(%p)", (void *)address);
+        buffer->AppendF("(%p)", (void *)(uptr)address);
       }
       break;
     default:

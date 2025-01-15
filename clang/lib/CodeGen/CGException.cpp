@@ -270,7 +270,12 @@ static llvm::FunctionCallee getPersonalityFn(CodeGenModule &CGM,
 static llvm::Constant *getOpaquePersonalityFn(CodeGenModule &CGM,
                                         const EHPersonality &Personality) {
   llvm::FunctionCallee Fn = getPersonalityFn(CGM, Personality);
-  return cast<llvm::Constant>(Fn.getCallee());
+  llvm::PointerType *PtrTy =
+      llvm::PointerType::get(CGM.getLLVMContext(),
+                             CGM.getDataLayout().getProgramAddressSpace());
+
+  return llvm::ConstantExpr::getBitCast(cast<llvm::Constant>(Fn.getCallee()),
+                                        PtrTy);
 }
 
 /// Check whether a landingpad instruction only uses C++ features.
@@ -652,9 +657,14 @@ void CodeGenFunction::EnterCXXTryStmt(const CXXTryStmt &S, bool IsFnTryBlock) {
           C->getCaughtType().getNonReferenceType(), CaughtTypeQuals);
 
       CatchTypeInfo TypeInfo{nullptr, 0};
-      if (CaughtType->isObjCObjectPointerType())
+      if (CaughtType->isObjCObjectPointerType()) {
         TypeInfo.RTTI = CGM.getObjCRuntime().GetEHType(CaughtType);
-      else
+        TypeInfo.RTTI = llvm::ConstantExpr::getPointerBitCastOrAddrSpaceCast(
+            TypeInfo.RTTI,
+            llvm::PointerType::get(
+                cast<llvm::PointerType>(TypeInfo.RTTI->getType())->getContext(),
+                0));
+      } else
         TypeInfo = CGM.getCXXABI().getAddrOfCXXCatchHandlerType(
             CaughtType, C->getCaughtType());
       CatchScope->setHandler(I, TypeInfo, Handler);
@@ -2129,7 +2139,8 @@ void CodeGenFunction::EmitSEHExceptionCodeSave(CodeGenFunction &ParentCGF,
   //   CONTEXT *ContextRecord;
   // };
   // int exceptioncode = exception_pointers->ExceptionRecord->ExceptionCode;
-  llvm::Type *RecordTy = llvm::PointerType::getUnqual(getLLVMContext());
+  unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
+  llvm::Type *RecordTy = llvm::PointerType::get(getLLVMContext(), DefaultAS);
   llvm::Type *PtrsTy = llvm::StructType::get(RecordTy, CGM.VoidPtrTy);
   llvm::Value *Rec = Builder.CreateStructGEP(PtrsTy, SEHInfo, 0);
   Rec = Builder.CreateAlignedLoad(RecordTy, Rec, getPointerAlign());

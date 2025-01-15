@@ -30,6 +30,8 @@ class Symbol;
 class TargetInfo {
 public:
   virtual uint32_t calcEFlags() const { return 0; }
+  virtual int getCapabilitySize() const { return 0; }
+  virtual bool calcIsCheriAbi() const;
   virtual RelExpr getRelExpr(RelType type, const Symbol &s,
                              const uint8_t *loc) const = 0;
   virtual RelType getDynRel(RelType type) const { return 0; }
@@ -132,6 +134,10 @@ public:
   RelType tlsGotRel;
   RelType tlsModuleIndexRel;
   RelType tlsOffsetRel;
+  std::optional<RelType> absPointerRel; // TODO: remove the optional
+  std::optional<RelType> sizeRel;
+  std::optional<RelType> cheriCapRel;
+  std::optional<RelType> cheriCapCallRel;
   unsigned gotEntrySize = config->wordsize;
   unsigned pltEntrySize;
   unsigned pltHeaderSize;
@@ -168,6 +174,9 @@ public:
   virtual RelExpr adjustTlsExpr(RelType type, RelExpr expr) const;
   virtual RelExpr adjustGotPcExpr(RelType type, int64_t addend,
                                   const uint8_t *loc) const;
+
+  /// Returns the alignment required for a CHERI capability of the given size.
+  virtual uint64_t cheriRequiredAlignment(uint64_t) const { return 0; }
 
 protected:
   // On FreeBSD x86_64 the first page cannot be mmaped.

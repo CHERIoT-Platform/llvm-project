@@ -47,14 +47,24 @@ public:
                                     InlineAsm::ConstraintCode ConstraintID,
                                     std::vector<SDValue> &OutOps) override;
 
-  bool SelectAddrFrameIndex(SDValue Addr, SDValue &Base, SDValue &Offset);
+  bool SelectFrameIndexCommon(SDValue Addr, SDValue &Base, SDValue &Offset,
+                              EVT PtrVT);
+  bool SelectFrameRegImmCommon(SDValue Addr, SDValue &Base, SDValue &Offset,
+                               EVT PtrVT);
+  bool SelectAddrFrameIndex(SDValue Addr, SDValue &Base, SDValue &Offset);  
   bool SelectFrameAddrRegImm(SDValue Addr, SDValue &Base, SDValue &Offset);
+  bool SelectCapFrameAddrRegImm(SDValue Cap, SDValue &Base, SDValue &Offset);
+  bool SelectBase(SDValue Addr, SDValue &Base, EVT PtrVT);
+  bool SelectRegImmCommon(SDValue Addr, SDValue &Base, SDValue &Offset,
+                          EVT PtrVT, bool IsINX);
   bool SelectAddrRegImm(SDValue Addr, SDValue &Base, SDValue &Offset,
                         bool IsINX = false);
   bool SelectAddrRegImmINX(SDValue Addr, SDValue &Base, SDValue &Offset) {
     return SelectAddrRegImm(Addr, Base, Offset, true);
   }
   bool SelectAddrRegImmLsb00000(SDValue Addr, SDValue &Base, SDValue &Offset);
+
+  bool SelectCapRegImm(SDValue Addr, SDValue &Base, SDValue &Offset);
 
   bool SelectAddrRegRegScale(SDValue Addr, unsigned MaxShiftAmount,
                              SDValue &Base, SDValue &Index, SDValue &Scale);

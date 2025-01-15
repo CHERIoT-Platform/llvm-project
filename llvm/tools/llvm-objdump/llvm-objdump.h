@@ -45,6 +45,7 @@ namespace objdump {
 enum DebugVarsFormat { DVDisabled, DVUnicode, DVASCII, DVInvalid };
 
 extern bool ArchiveHeaders;
+extern bool CapRelocations;
 extern int DbgIndent;
 extern DebugVarsFormat DbgVariables;
 extern bool Demangle;
@@ -117,6 +118,7 @@ object::SectionFilter ToolSectionFilter(const llvm::object::ObjectFile &O,
                                         uint64_t *Idx = nullptr);
 
 bool isRelocAddressLess(object::RelocationRef A, object::RelocationRef B);
+void printCapRelocations(const object::ObjectFile *O);
 void printSectionHeaders(object::ObjectFile &O);
 void printSectionContents(const object::ObjectFile *O);
 [[noreturn]] void reportError(StringRef File, const Twine &Message);

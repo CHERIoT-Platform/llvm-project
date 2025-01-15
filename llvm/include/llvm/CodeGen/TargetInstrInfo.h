@@ -33,6 +33,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -144,6 +145,32 @@ public:
             MI.getNumOperands() == 1) ||
            (MI.getDesc().isRematerializable() &&
             isReallyTriviallyReMaterializable(MI));
+  }
+
+  /// For instructions that are marked as mayTrap/mayTrapOnSealed/
+  /// mayTrapOnUntagged this hook can be used to check if certain instructions
+  /// are really safe (e.g. an immediate setbounds on a stack slot).
+  virtual bool isGuaranteedNotToTrap(const MachineInstr &MI) const {
+    return false;
+  }
+  /// Returns true if \p is a CHERI setbounds instruction that will always
+  /// return a valid bounded capability (e.g. for in-bounds FrameIndex).
+  virtual bool isGuaranteedValidSetBounds(const MachineInstr &MI) const;
+  virtual bool isSetBoundsInstr(const MachineInstr &I,
+                                const MachineOperand *&Base,
+                                const MachineOperand *&Size) const {
+    return false;
+  }
+  virtual bool isPtrAddInstr(const MachineInstr &I, const MachineOperand *&Base,
+                             const MachineOperand *&Increment) const {
+    return false;
+  }
+  virtual std::optional<int64_t>
+  getAsIntImmediate(const MachineOperand &Op,
+                    const MachineRegisterInfo &MRI) const {
+    if (Op.isImm())
+      return Op.getImm();
+    return std::nullopt;
   }
 
   /// Given \p MO is a PhysReg use return if it can be ignored for the purpose
@@ -439,6 +466,17 @@ public:
                                               LiveVariables *LV,
                                               LiveIntervals *LIS) const {
     return nullptr;
+  }
+
+  // True if \p MI is an instruction that extracts the capability address.
+  virtual bool isCheriGetAddressInst(MachineInstr &MI) const {
+    llvm_unreachable("target did not implement");
+  }
+
+  // Returns the subregister index which contains the address part of a
+  // capability.
+  virtual unsigned getCheriAddressSubregIdx(MVT CapTy) const {
+    llvm_unreachable("target did not implement");
   }
 
   // This constant can be used as an input value of operand index passed to

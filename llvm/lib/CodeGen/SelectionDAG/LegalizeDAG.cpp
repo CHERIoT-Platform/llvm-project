@@ -47,6 +47,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
+#include "llvm/Transforms/Utils/CheriSetBounds.h"
 #include <cassert>
 #include <cstdint>
 #include <tuple>
@@ -333,8 +334,9 @@ SelectionDAGLegalize::ExpandConstantFP(ConstantFPSDNode *CFP, bool UseCP) {
     }
   }
 
-  SDValue CPIdx =
-      DAG.getConstantPool(LLVMC, TLI.getPointerTy(DAG.getDataLayout()));
+  SDValue CPIdx = DAG.getConstantPool(
+      LLVMC, TLI.getPointerTy(DAG.getDataLayout(),
+                              DAG.getDataLayout().getGlobalsAddressSpace()));
   Align Alignment = cast<ConstantPoolSDNode>(CPIdx)->getAlign();
   if (Extend) {
     SDValue Result = DAG.getExtLoad(
@@ -353,8 +355,10 @@ SelectionDAGLegalize::ExpandConstantFP(ConstantFPSDNode *CFP, bool UseCP) {
 SDValue SelectionDAGLegalize::ExpandConstant(ConstantSDNode *CP) {
   SDLoc dl(CP);
   EVT VT = CP->getValueType(0);
-  SDValue CPIdx = DAG.getConstantPool(CP->getConstantIntValue(),
-                                      TLI.getPointerTy(DAG.getDataLayout()));
+  SDValue CPIdx = DAG.getConstantPool(
+      CP->getConstantIntValue(),
+      TLI.getPointerTy(DAG.getDataLayout(),
+                       DAG.getDataLayout().getGlobalsAddressSpace()));
   Align Alignment = cast<ConstantPoolSDNode>(CPIdx)->getAlign();
   SDValue Result = DAG.getLoad(
       VT, dl, DAG.getEntryNode(), CPIdx,
@@ -614,12 +618,11 @@ void SelectionDAGLegalize::LegalizeStoreOps(SDNode *Node) {
 
       // Store the remaining ExtraWidth bits.
       IncrementSize = RoundWidth / 8;
-      Ptr = DAG.getNode(ISD::ADD, dl, Ptr.getValueType(), Ptr,
-                        DAG.getConstant(IncrementSize, dl,
-                                        Ptr.getValueType()));
+      Ptr = DAG.getPointerAdd(dl, Ptr, IncrementSize);
       Lo = DAG.getTruncStore(Chain, dl, Value, Ptr,
                              ST->getPointerInfo().getWithOffset(IncrementSize),
                              ExtraVT, ST->getOriginalAlign(), MMOFlags, AAInfo);
+
     }
 
     // The order of the stores doesn't matter.
@@ -1735,15 +1738,52 @@ void SelectionDAGLegalize::ExpandDYNAMIC_STACKALLOC(SDNode* Node,
   Align Alignment = cast<ConstantSDNode>(Tmp3)->getAlignValue();
   const TargetFrameLowering *TFL = DAG.getSubtarget().getFrameLowering();
   unsigned Opc =
-    TFL->getStackGrowthDirection() == TargetFrameLowering::StackGrowsUp ?
-    ISD::ADD : ISD::SUB;
+      TFL->getStackGrowthDirection() == TargetFrameLowering::StackGrowsUp ?
+      ISD::ADD : ISD::SUB;
 
   Align StackAlign = TFL->getStackAlign();
-  Tmp1 = DAG.getNode(Opc, dl, VT, SP, Size);       // Value
-  if (Alignment > StackAlign)
-    Tmp1 = DAG.getNode(ISD::AND, dl, VT, Tmp1,
-                       DAG.getConstant(-Alignment.value(), dl, VT));
-  Chain = DAG.getCopyToReg(Chain, dl, SPReg, Tmp1);     // Output chain
+  if (VT.isFatPointer()) {
+    EVT SizeVT = Size.getValueType();
+    SDValue GetAddr =
+      DAG.getTargetConstant(Intrinsic::cheri_cap_address_get, dl, SizeVT);
+    SDValue SetAddr =
+      DAG.getTargetConstant(Intrinsic::cheri_cap_address_set, dl, SizeVT);
+    SDValue CRRL =
+      DAG.getTargetConstant(Intrinsic::cheri_round_representable_length, dl,
+                            SizeVT);
+    SDValue CRAM =
+      DAG.getTargetConstant(Intrinsic::cheri_representable_alignment_mask, dl,
+                            SizeVT);
+
+    Tmp1 = DAG.getNode(ISD::INTRINSIC_WO_CHAIN, dl, SizeVT, GetAddr, SP);
+
+    if (TLI.cheriCapabilityTypeHasPreciseBounds()) {
+      Tmp2 = Size;
+      Tmp3 = DAG.getConstant(-Alignment.value(), dl, SizeVT);
+    } else {
+      Tmp2 = DAG.getNode(ISD::INTRINSIC_WO_CHAIN, dl, SizeVT, CRRL, Size);
+      Tmp3 = DAG.getNode(ISD::INTRINSIC_WO_CHAIN, dl, SizeVT, CRAM, Size);
+    }
+
+    Tmp1 = DAG.getNode(Opc, dl, SizeVT, Tmp1, Tmp2);
+    if (Alignment > StackAlign || !TLI.cheriCapabilityTypeHasPreciseBounds())
+      Tmp1 = DAG.getNode(ISD::AND, dl, SizeVT, Tmp1, Tmp3);
+
+    Tmp1 =
+      DAG.getNode(ISD::INTRINSIC_WO_CHAIN, dl, VT, SetAddr, SP, Tmp1);
+    // Move the stack pointer *before* setting the bounds!
+    Chain = DAG.getCopyToReg(Chain, dl, SPReg, Tmp1);     // Output chain
+    Tmp1 = DAG.getCSetBounds(
+        Tmp1, dl, Tmp2,
+         Alignment,
+        "ExpandDYNAMIC_STACKALLOC", cheri::SetBoundsPointerSource::Stack);
+  } else {
+    Tmp1 = DAG.getNode(Opc, dl, VT, SP, Size);       // Value
+    if (Alignment > StackAlign)
+      Tmp1 = DAG.getNode(ISD::AND, dl, VT, Tmp1,
+                         DAG.getConstant(-Alignment.value(), dl, VT));
+    Chain = DAG.getCopyToReg(Chain, dl, SPReg, Tmp1);     // Output chain
+  }
 
   Tmp2 = DAG.getCALLSEQ_END(Chain, 0, 0, SDValue(), dl);
 
@@ -1983,8 +2023,9 @@ SDValue SelectionDAGLegalize::ExpandBUILD_VECTOR(SDNode *Node) {
       }
     }
     Constant *CP = ConstantVector::get(CV);
-    SDValue CPIdx =
-        DAG.getConstantPool(CP, TLI.getPointerTy(DAG.getDataLayout()));
+    SDValue CPIdx = DAG.getConstantPool(
+        CP, TLI.getPointerTy(DAG.getDataLayout(),
+                             DAG.getDataLayout().getGlobalsAddressSpace()));
     Align Alignment = cast<ConstantPoolSDNode>(CPIdx)->getAlign();
     return DAG.getLoad(
         VT, dl, DAG.getEntryNode(), CPIdx,
@@ -2047,8 +2088,7 @@ SDValue SelectionDAGLegalize::ExpandSPLAT_VECTOR(SDNode *Node) {
 std::pair<SDValue, SDValue> SelectionDAGLegalize::ExpandLibCall(RTLIB::Libcall LC, SDNode *Node,
                                             TargetLowering::ArgListTy &&Args,
                                             bool isSigned) {
-  SDValue Callee = DAG.getExternalSymbol(TLI.getLibcallName(LC),
-                                         TLI.getPointerTy(DAG.getDataLayout()));
+  SDValue Callee = DAG.getExternalFunctionSymbol(TLI.getLibcallName(LC));
 
   EVT RetVT = Node->getValueType(0);
   Type *RetTy = RetVT.getTypeForEVT(*DAG.getContext());
@@ -2266,8 +2306,7 @@ SelectionDAGLegalize::ExpandDivRemLibCall(SDNode *Node,
   Entry.IsZExt = !isSigned;
   Args.push_back(Entry);
 
-  SDValue Callee = DAG.getExternalSymbol(TLI.getLibcallName(LC),
-                                         TLI.getPointerTy(DAG.getDataLayout()));
+  SDValue Callee = DAG.getExternalFunctionSymbol(TLI.getLibcallName(LC));
 
   SDLoc dl(Node);
   TargetLowering::CallLoweringInfo CLI(DAG);
@@ -2365,8 +2404,7 @@ SelectionDAGLegalize::ExpandSinCosLibCall(SDNode *Node,
   Entry.IsZExt = false;
   Args.push_back(Entry);
 
-  SDValue Callee = DAG.getExternalSymbol(TLI.getLibcallName(LC),
-                                         TLI.getPointerTy(DAG.getDataLayout()));
+  SDValue Callee = DAG.getExternalFunctionSymbol(TLI.getLibcallName(LC));
 
   SDLoc dl(Node);
   TargetLowering::CallLoweringInfo CLI(DAG);
@@ -2800,8 +2838,10 @@ SDValue SelectionDAGLegalize::ExpandLegalINT_TO_FP(SDNode *Node,
   Constant *FudgeFactor = ConstantInt::get(
                                        Type::getInt64Ty(*DAG.getContext()), FF);
 
-  SDValue CPIdx =
-      DAG.getConstantPool(FudgeFactor, TLI.getPointerTy(DAG.getDataLayout()));
+  SDValue CPIdx = DAG.getConstantPool(
+      FudgeFactor,
+      TLI.getPointerTy(DAG.getDataLayout(),
+                       DAG.getDataLayout().getGlobalsAddressSpace()));
   Align Alignment = cast<ConstantPoolSDNode>(CPIdx)->getAlign();
   CPIdx = DAG.getNode(ISD::ADD, dl, CPIdx.getValueType(), CPIdx, CstOffset);
   Alignment = commonAlignment(Alignment, 4);
@@ -3037,16 +3077,18 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
     Results.push_back(DAG.getConstant(0, dl, Node->getValueType(0)));
     break;
   case ISD::EH_DWARF_CFA: {
-    SDValue CfaArg = DAG.getSExtOrTrunc(Node->getOperand(0), dl,
-                                        TLI.getPointerTy(DAG.getDataLayout()));
+    unsigned DwarfAS = 0; // FIXME: is this correct?
+    SDValue CfaArg =
+        DAG.getSExtOrTrunc(Node->getOperand(0), dl,
+                           TLI.getPointerTy(DAG.getDataLayout(), DwarfAS));
     SDValue Offset = DAG.getNode(ISD::ADD, dl,
                                  CfaArg.getValueType(),
                                  DAG.getNode(ISD::FRAME_TO_ARGS_OFFSET, dl,
                                              CfaArg.getValueType()),
                                  CfaArg);
     SDValue FA = DAG.getNode(
-        ISD::FRAMEADDR, dl, TLI.getPointerTy(DAG.getDataLayout()),
-        DAG.getConstant(0, dl, TLI.getPointerTy(DAG.getDataLayout())));
+        ISD::FRAMEADDR, dl, TLI.getPointerTy(DAG.getDataLayout(), DwarfAS),
+        DAG.getConstant(0, dl, TLI.getPointerRangeTy(DAG.getDataLayout())));
     Results.push_back(DAG.getNode(ISD::ADD, dl, FA.getValueType(),
                                   FA, Offset));
     break;
@@ -3110,10 +3152,13 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
 
     SDValue ExtRes = Res;
     SDValue LHS = Res;
-    SDValue RHS = Node->getOperand(1);
+    SDValue RHS = Node->getOperand(2);
 
     EVT AtomicType = cast<AtomicSDNode>(Node)->getMemoryVT();
     EVT OuterType = Node->getValueType(0);
+    // XXXAR: Sign/Zero extending fat pointers doesn't make sense -> skip this
+    if (!OuterType.isFatPointer()) {
+    // XXXAR: not indented correctly to avoid merge conflicts
     switch (TLI.getExtendForAtomicOps()) {
     case ISD::SIGN_EXTEND:
       LHS = DAG.getNode(ISD::AssertSext, dl, OuterType, Res,
@@ -3134,6 +3179,7 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
       break;
     default:
       llvm_unreachable("Invalid atomic op extension");
+    }
     }
 
     SDValue Success =
@@ -3947,10 +3993,11 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
     SDValue Chain = Node->getOperand(0);
     SDValue Table = Node->getOperand(1);
     SDValue Index = Node->getOperand(2);
+    assert(Index.getValueType().isInteger());
     int JTI = cast<JumpTableSDNode>(Table.getNode())->getIndex();
 
     const DataLayout &TD = DAG.getDataLayout();
-    EVT PTy = TLI.getPointerTy(TD);
+    EVT PTy = TLI.getPointerRangeTy(TD);
 
     unsigned EntrySize =
       DAG.getMachineFunction().getJumpTableInfo()->getEntrySize(TD);
@@ -3966,8 +4013,14 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
     else
       Index = DAG.getNode(ISD::MUL, dl, Index.getValueType(), Index,
                           DAG.getConstant(EntrySize, dl, Index.getValueType()));
-    SDValue Addr = DAG.getNode(ISD::ADD, dl, Index.getValueType(),
-                               Index, Table);
+
+    // NB: Operands commuted for capabilities as PTRADD always takes the
+    // pointer on the left, but not for integers (would perturb tests).
+    SDValue Addr;
+    if (Table.getValueType().isFatPointer())
+      Addr = DAG.getNode(ISD::PTRADD, dl, Table.getValueType(), Table, Index);
+    else
+      Addr = DAG.getNode(ISD::ADD, dl, Table.getValueType(), Index, Table);
 
     EVT MemVT = EVT::getIntegerVT(*DAG.getContext(), EntrySize * 8);
     SDValue LD = DAG.getExtLoad(
@@ -3978,8 +4031,12 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
       // For PIC, the sequence is:
       // BRIND(load(Jumptable + index) + RelocBase)
       // RelocBase can be JumpTable, GOT or some sort of global base.
-      Addr = DAG.getNode(ISD::ADD, dl, PTy, Addr,
-                          TLI.getPICJumpTableRelocBase(Table, DAG));
+      SDValue Base = TLI.getPICJumpTableRelocBase(Table, DAG);
+      // NB: See table indexing comment
+      if (Base.getValueType().isFatPointer())
+        Addr = DAG.getNode(ISD::PTRADD, dl, Base.getValueType(), Base, Addr);
+      else
+        Addr = DAG.getNode(ISD::ADD, dl, Base.getValueType(), Addr, Base);
     }
 
     Tmp1 = TLI.expandIndirectJTBranch(dl, LD.getValue(1), Addr, JTI, DAG);
@@ -4327,11 +4384,9 @@ void SelectionDAGLegalize::ConvertNodeToLibcall(SDNode *Node) {
     TargetLowering::CallLoweringInfo CLI(DAG);
     CLI.setDebugLoc(dl)
         .setChain(Node->getOperand(0))
-        .setLibCallee(
-            CallingConv::C, Type::getVoidTy(*DAG.getContext()),
-            DAG.getExternalSymbol("__sync_synchronize",
-                                  TLI.getPointerTy(DAG.getDataLayout())),
-            std::move(Args));
+        .setLibCallee(CallingConv::C, Type::getVoidTy(*DAG.getContext()),
+                      DAG.getExternalFunctionSymbol("__sync_synchronize"),
+                      std::move(Args));
 
     std::pair<SDValue, SDValue> CallResult = TLI.LowerCallTo(CLI);
 
@@ -4387,9 +4442,7 @@ void SelectionDAGLegalize::ConvertNodeToLibcall(SDNode *Node) {
     CLI.setDebugLoc(dl)
         .setChain(Node->getOperand(0))
         .setLibCallee(CallingConv::C, Type::getVoidTy(*DAG.getContext()),
-                      DAG.getExternalSymbol(
-                          "abort", TLI.getPointerTy(DAG.getDataLayout())),
-                      std::move(Args));
+                      DAG.getExternalFunctionSymbol("abort"), std::move(Args));
     std::pair<SDValue, SDValue> CallResult = TLI.LowerCallTo(CLI);
 
     Results.push_back(CallResult.second);
@@ -4902,7 +4955,7 @@ void SelectionDAGLegalize::ConvertNodeToLibcall(SDNode *Node) {
     // FE_DFL_MODE is defined as '((const femode_t *) -1)' in glibc. If not, the
     // target must provide custom lowering.
     const DataLayout &DL = DAG.getDataLayout();
-    EVT PtrTy = TLI.getPointerTy(DL);
+    EVT PtrTy = TLI.getPointerTy(DL, DL.getGlobalsAddressSpace());
     SDValue Mode = DAG.getConstant(-1LL, dl, PtrTy);
     Results.push_back(DAG.makeStateFunctionCall(RTLIB::FESETMODE, Mode,
                                                 Node->getOperand(0), dl));

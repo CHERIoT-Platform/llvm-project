@@ -633,7 +633,7 @@ struct CheckFallThroughDiagnostics {
   }
 
   bool checkDiagnostics(DiagnosticsEngine &D, bool ReturnsVoid,
-                        bool HasNoReturn) const {
+                        bool HasNoReturn, bool HasCHERICompartmentName) const {
     if (funMode == Function) {
       return (ReturnsVoid ||
               D.isIgnored(diag::warn_maybe_falloff_nonvoid_function,
@@ -642,7 +642,8 @@ struct CheckFallThroughDiagnostics {
               D.isIgnored(diag::warn_noreturn_function_has_return_expr,
                           FuncLoc)) &&
              (!ReturnsVoid ||
-              D.isIgnored(diag::warn_suggest_noreturn_block, FuncLoc));
+              D.isIgnored(diag::warn_suggest_noreturn_block, FuncLoc)) &&
+             !HasCHERICompartmentName;
     }
     if (funMode == Coroutine) {
       return (ReturnsVoid ||
@@ -670,6 +671,7 @@ static void CheckFallThroughForBody(Sema &S, const Decl *D, const Stmt *Body,
 
   bool ReturnsVoid = false;
   bool HasNoReturn = false;
+  bool HasCHERICompartmentName = false;
   bool IsCoroutine = FSI->isCoroutine();
 
   if (const auto *FD = dyn_cast<FunctionDecl>(D)) {
@@ -678,6 +680,7 @@ static void CheckFallThroughForBody(Sema &S, const Decl *D, const Stmt *Body,
     else
       ReturnsVoid = FD->getReturnType()->isVoidType();
     HasNoReturn = FD->isNoReturn();
+    HasCHERICompartmentName = FD->hasAttr<CHERICompartmentNameAttr>();
   }
   else if (const auto *MD = dyn_cast<ObjCMethodDecl>(D)) {
     ReturnsVoid = MD->getReturnType()->isVoidType();
@@ -696,8 +699,9 @@ static void CheckFallThroughForBody(Sema &S, const Decl *D, const Stmt *Body,
   DiagnosticsEngine &Diags = S.getDiagnostics();
 
   // Short circuit for compilation speed.
-  if (CD.checkDiagnostics(Diags, ReturnsVoid, HasNoReturn))
-      return;
+  if (CD.checkDiagnostics(Diags, ReturnsVoid, HasNoReturn,
+                          HasCHERICompartmentName))
+    return;
   SourceLocation LBrace = Body->getBeginLoc(), RBrace = Body->getEndLoc();
   auto EmitDiag = [&](SourceLocation Loc, unsigned DiagID) {
     if (IsCoroutine)
@@ -720,12 +724,28 @@ static void CheckFallThroughForBody(Sema &S, const Decl *D, const Stmt *Body,
         EmitDiag(RBrace, CD.diag_MaybeFallThrough_HasNoReturn);
       else if (!ReturnsVoid)
         EmitDiag(RBrace, CD.diag_MaybeFallThrough_ReturnsNonVoid);
+
+      if (HasCHERICompartmentName) {
+        if (!ReturnsVoid)
+          S.Diag(RBrace, diag::warn_cheri_compartment_return_void_or_falloff);
+        else
+          S.Diag(RBrace, diag::warn_cheri_compartment_return_void_or_falloff)
+              << FixItHint::CreateInsertion(RBrace, "return 0;");
+      }
       break;
     case AlwaysFallThrough:
       if (HasNoReturn)
         EmitDiag(RBrace, CD.diag_AlwaysFallThrough_HasNoReturn);
       else if (!ReturnsVoid)
         EmitDiag(RBrace, CD.diag_AlwaysFallThrough_ReturnsNonVoid);
+
+      if (HasCHERICompartmentName) {
+        if (!ReturnsVoid)
+          S.Diag(RBrace, diag::warn_cheri_compartment_return_void_or_falloff);
+        else
+          S.Diag(RBrace, diag::warn_cheri_compartment_return_void_or_falloff)
+              << FixItHint::CreateInsertion(RBrace, "return 0;");
+      }
       break;
     case NeverFallThroughOrReturn:
       if (ReturnsVoid && !HasNoReturn && CD.diag_NeverFallThroughOrReturn) {

@@ -23,6 +23,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "Driver.h"
+#include "Arch/Cheri.h"
 #include "Config.h"
 #include "ICF.h"
 #include "InputFiles.h"
@@ -50,6 +51,7 @@
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Config/llvm-config.h"
+#include "llvm/Demangle/Demangle.h"
 #include "llvm/LTO/LTO.h"
 #include "llvm/Object/Archive.h"
 #include "llvm/Object/IRObjectFile.h"
@@ -58,9 +60,11 @@
 #include "llvm/Support/Compression.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/GlobPattern.h"
+#include "llvm/Support/JSON.h"
 #include "llvm/Support/LEB128.h"
 #include "llvm/Support/Parallel.h"
 #include "llvm/Support/Path.h"
+#include "llvm/Support/SHA256.h"
 #include "llvm/Support/TarWriter.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/TimeProfiler.h"
@@ -148,6 +152,9 @@ bool link(ArrayRef<const char *> args, llvm::raw_ostream &stdoutOS,
   ctx->e.logName = args::getFilenameWithoutExe(args[0]);
   ctx->e.errorLimitExceededMsg = "too many errors emitted, stopping now (use "
                                  "--error-limit=0 to see all errors)";
+  ctx->e.warningLimitExceededMsg =
+      "too many warnings emitted, stopping now (use "
+      "--warning-limit=0 to see all warnings)\n";
 
   config = ConfigWrapper();
   script = std::make_unique<LinkerScript>();
@@ -167,12 +174,18 @@ bool link(ArrayRef<const char *> args, llvm::raw_ostream &stdoutOS,
 } // namespace lld
 
 // Parses a linker -m option.
-static std::tuple<ELFKind, uint16_t, uint8_t> parseEmulation(StringRef emul) {
+static std::tuple<ELFKind, uint16_t, uint8_t, bool> parseEmulation(
+    StringRef emul) {
   uint8_t osabi = 0;
+  bool forceCheriAbi = false;
   StringRef s = emul;
   if (s.ends_with("_fbsd")) {
     s = s.drop_back(5);
     osabi = ELFOSABI_FREEBSD;
+    if (s.ends_with("_cheri")) {
+      s = s.drop_back(6);
+      forceCheriAbi = true;
+    }
   }
 
   std::pair<ELFKind, uint16_t> ret =
@@ -209,7 +222,7 @@ static std::tuple<ELFKind, uint16_t, uint8_t> parseEmulation(StringRef emul) {
     osabi = ELFOSABI_STANDALONE;
   else if (ret.second == EM_AMDGPU)
     osabi = ELFOSABI_AMDGPU_HSA;
-  return std::make_tuple(ret.first, ret.second, osabi);
+  return std::make_tuple(ret.first, ret.second, osabi, forceCheriAbi);
 }
 
 // Returns slices of MB by parsing MB as an archive file.
@@ -442,6 +455,16 @@ static void checkOptions() {
     if (config->exportDynamic)
       error("-r and --export-dynamic may not be used together");
   }
+  if (config->localCapRelocsMode == CapRelocsMode::ElfReloc)
+    error("local-cap-relocs=elf is not implemented yet");
+  if (config->localCapRelocsMode == CapRelocsMode::CBuildCap)
+    error("local-cap-relocs=cbuildcap is not implemented yet");
+  assert(config->preemptibleCapRelocsMode != CapRelocsMode::CBuildCap);
+
+  if (config->preemptibleCapRelocsMode == CapRelocsMode::Legacy &&
+      config->relativeCapRelocsOnly)
+    error("--preemptible-caprelocs=legacy is not compatible with "
+          "--relative-cap-relocs");
 
   if (config->executeOnly) {
     if (config->emachine != EM_AARCH64)
@@ -577,6 +600,7 @@ void LinkerDriver::linkerMain(ArrayRef<const char *> argsArr) {
 
   // Interpret these flags early because error()/warn() depend on them.
   errorHandler().errorLimit = args::getInteger(args, OPT_error_limit, 20);
+  errorHandler().warningLimit = args::getInteger(args, OPT_warning_limit, 20);
   errorHandler().fatalWarnings =
       args.hasFlag(OPT_fatal_warnings, OPT_no_fatal_warnings, false) &&
       !args.hasArg(OPT_no_warnings);
@@ -755,6 +779,52 @@ static DiscardPolicy getDiscard(opt::InputArgList &args) {
   if (arg->getOption().getID() == OPT_discard_locals)
     return DiscardPolicy::Locals;
   return DiscardPolicy::None;
+}
+
+static CapRelocsMode getPreemptibleCapRelocsMode(opt::InputArgList &args) {
+  auto *arg = args.getLastArg(OPT_preemptible_caprelocs_legacy,
+                              OPT_preemptible_caprelocs_elf);
+  // The default behaviour is to emit R_CHERI_CAPABILITY relocations for
+  // preemptible symbols
+  if (!arg)
+    return CapRelocsMode::ElfReloc;
+  if (arg->getOption().getID() == OPT_preemptible_caprelocs_legacy) {
+    return CapRelocsMode::Legacy;
+  } else if (arg->getOption().getID() == OPT_preemptible_caprelocs_elf) {
+    return CapRelocsMode::ElfReloc;
+  }
+  llvm_unreachable("Invalid arg");
+}
+
+static CapTableScopePolicy getCapTableScope(opt::InputArgList &args) {
+  auto *arg = args.getLastArg(OPT_captable_scope_all, OPT_captable_scope_file,
+                              OPT_captable_scope_function);
+  // The default behaviour is to use one captable per DSO as the others modes
+  // require PLT stubs even for intra-library calls
+  if (!arg || arg->getOption().getID() == OPT_captable_scope_all) {
+    return CapTableScopePolicy::All;
+  } else if (arg->getOption().getID() == OPT_captable_scope_file) {
+    return CapTableScopePolicy::File;
+  } else if (arg->getOption().getID() == OPT_captable_scope_function) {
+    return CapTableScopePolicy::Function;
+  }
+  llvm_unreachable("Invalid arg");
+}
+
+static CapRelocsMode getLocalCapRelocsMode(opt::InputArgList &args) {
+  auto *arg =
+      args.getLastArg(OPT_local_caprelocs_cbuildcap, OPT_local_caprelocs_elf,
+                      OPT_local_caprelocs_cbuildcap);
+  if (!arg) // TODO: change default to CBuildCap (at least for non-PIC)
+    return CapRelocsMode::Legacy;
+  if (arg->getOption().getID() == OPT_local_caprelocs_legacy) {
+    return CapRelocsMode::Legacy;
+  } else if (arg->getOption().getID() == OPT_local_caprelocs_elf) {
+    return CapRelocsMode::ElfReloc;
+  } else if (arg->getOption().getID() == OPT_local_caprelocs_cbuildcap) {
+    return CapRelocsMode::CBuildCap;
+  }
+  llvm_unreachable("Invalid arg");
 }
 
 static StringRef getDynamicLinker(opt::InputArgList &args) {
@@ -1199,6 +1269,7 @@ static void readConfigs(opt::InputArgList &args) {
       hasZOption(args, "muldefs") ||
       args.hasFlag(OPT_allow_multiple_definition,
                    OPT_no_allow_multiple_definition, false);
+  config->allowUndefinedCapRelocs = args.hasArg(OPT_allow_undefined_cap_relocs);
   config->androidMemtagHeap =
       args.hasFlag(OPT_android_memtag_heap, OPT_no_android_memtag_heap, false);
   config->androidMemtagStack = args.hasFlag(OPT_android_memtag_stack,
@@ -1220,7 +1291,9 @@ static void readConfigs(opt::InputArgList &args) {
     else if (arg->getOption().matches(OPT_Bsymbolic))
       config->bsymbolic = BsymbolicKind::All;
   }
+  config->buildingFreeBSDRtld = args.hasArg(OPT_building_freebsd_rtld);
   config->callGraphProfileSort = getCGProfileSortKind(args);
+  config->capTableScope = getCapTableScope(args);
   config->checkSections =
       args.hasFlag(OPT_check_sections, OPT_no_check_sections, true);
   config->chroot = args.getLastArgValue(OPT_chroot);
@@ -1273,6 +1346,7 @@ static void readConfigs(opt::InputArgList &args) {
   config->ignoreFunctionAddressEquality =
       args.hasArg(OPT_ignore_function_address_equality);
   config->init = args.getLastArgValue(OPT_init, "_init");
+  config->localCapRelocsMode = getLocalCapRelocsMode(args);
   config->ltoAAPipeline = args.getLastArgValue(OPT_lto_aa_pipeline);
   config->ltoCSProfileGenerate = args.hasArg(OPT_lto_cs_profile_generate);
   config->ltoCSProfileFile = args.getLastArgValue(OPT_lto_cs_profile_file);
@@ -1336,6 +1410,7 @@ static void readConfigs(opt::InputArgList &args) {
   config->outputFile = args.getLastArgValue(OPT_o);
   config->packageMetadata = args.getLastArgValue(OPT_package_metadata);
   config->pie = args.hasFlag(OPT_pie, OPT_no_pie, false);
+  config->preemptibleCapRelocsMode = getPreemptibleCapRelocsMode(args);
   config->printIcfSections =
       args.hasFlag(OPT_print_icf_sections, OPT_no_print_icf_sections, false);
   config->printGcSections =
@@ -1347,7 +1422,11 @@ static void readConfigs(opt::InputArgList &args) {
   config->relax = args.hasFlag(OPT_relax, OPT_no_relax, true);
   config->relaxGP = args.hasFlag(OPT_relax_gp, OPT_no_relax_gp, false);
   config->rpath = getRpath(args);
-  config->relocatable = args.hasArg(OPT_relocatable);
+  config->relocatable =
+      args.hasArg(OPT_relocatable) || args.hasArg(OPT_compartment);
+  config->compartment = args.hasArg(OPT_compartment);
+  config->compartmentReportFile = args.getLastArgValue(OPT_compartment_report);
+  assert(config->searchPaths.empty() && "Should not be set yet!");
 
   if (args.hasArg(OPT_save_temps)) {
     // --save-temps implies saving all temps.
@@ -1368,6 +1447,8 @@ static void readConfigs(opt::InputArgList &args) {
   config->shared = args.hasArg(OPT_shared);
   config->singleRoRx = !args.hasFlag(OPT_rosegment, OPT_no_rosegment, true);
   config->soName = args.getLastArgValue(OPT_soname);
+  config->sortCapRelocs =
+      args.hasFlag(OPT_sort_cap_relocs, OPT_no_sort_cap_relocs, true);
   config->sortSection = getSortSection(args);
   config->splitStackAdjustSize = args::getInteger(args, OPT_split_stack_adjust_size, 16384);
   config->strip = getStrip(args);
@@ -1415,12 +1496,14 @@ static void readConfigs(opt::InputArgList &args) {
   config->unique = args.hasArg(OPT_unique);
   config->useAndroidRelrTags = args.hasFlag(
       OPT_use_android_relr_tags, OPT_no_use_android_relr_tags, false);
+  config->verboseCapRelocs = args.hasArg(OPT_verbose_cap_relocs);
   config->warnBackrefs =
       args.hasFlag(OPT_warn_backrefs, OPT_no_warn_backrefs, false);
   config->warnCommon = args.hasFlag(OPT_warn_common, OPT_no_warn_common, false);
   config->warnSymbolOrdering =
       args.hasFlag(OPT_warn_symbol_ordering, OPT_no_warn_symbol_ordering, true);
   config->whyExtract = args.getLastArgValue(OPT_why_extract);
+  config->zCapTableDebug = getZFlag(args, "captabledebug", "nocaptabledebug", false);
   config->zCombreloc = getZFlag(args, "combreloc", "nocombreloc", true);
   config->zCopyreloc = getZFlag(args, "copyreloc", "nocopyreloc", true);
   config->zForceBti = hasZOption(args, "force-bti");
@@ -1614,7 +1697,7 @@ static void readConfigs(opt::InputArgList &args) {
   // Parse ELF{32,64}{LE,BE} and CPU type.
   if (auto *arg = args.getLastArg(OPT_m)) {
     StringRef s = arg->getValue();
-    std::tie(config->ekind, config->emachine, config->osabi) =
+    std::tie(config->ekind, config->emachine, config->osabi, config->isCheriAbi) =
         parseEmulation(s);
     config->mipsN32Abi =
         (s.starts_with("elf32btsmipn32") || s.starts_with("elf32ltsmipn32"));
@@ -1664,6 +1747,9 @@ static void readConfigs(opt::InputArgList &args) {
       config->callGraphProfileSort = CGProfileSortKind::None;
     }
   }
+
+  for (auto *arg : args.filtered(OPT_warn_file_linked))
+    config->warnIfFileLinked.push_back(arg->getValue());
 
   assert(config->versionDefinitions.empty());
   config->versionDefinitions.push_back(
@@ -1761,6 +1847,15 @@ static void setConfigs(opt::InputArgList &args) {
   config->writeAddends = args.hasFlag(OPT_apply_dynamic_relocs,
                                       OPT_no_apply_dynamic_relocs, false) ||
                          !config->isRela;
+
+  // Avoid dynamic relocations for __cap_relocs unless we are building legacy
+  // TODO: remove once benchmarking is done.
+  bool relativeCapRelocsDefault =
+      !config->isPic || config->preemptibleCapRelocsMode != CapRelocsMode::Legacy;
+  config->relativeCapRelocsOnly =
+      args.hasFlag(OPT_relative_cap_relocs, OPT_no_relative_cap_relocs,
+                   relativeCapRelocsDefault);
+
   // Validation of dynamic relocation addends is on by default for assertions
   // builds and disabled otherwise. This check is enabled when writeAddends is
   // true.
@@ -1914,7 +2009,7 @@ void LinkerDriver::inferMachineType() {
     config->ekind = f->ekind;
     config->emachine = f->emachine;
     config->osabi = f->osabi;
-    config->mipsN32Abi = config->emachine == EM_MIPS && isMipsN32Abi(f);
+    config->mipsN32Abi = f->emachine == EM_MIPS && isMipsN32Abi(f);
     return;
   }
   error("target emulation unknown: -m or at least one .o file required");
@@ -2658,6 +2753,7 @@ static void postParseObjectFile(ELFFileBase *file) {
 // all linker scripts have already been parsed.
 void LinkerDriver::link(opt::InputArgList &args) {
   llvm::TimeTraceScope timeScope("Link", StringRef("LinkerDriver::Link"));
+
   // If a --hash-style option was not given, set to a default value,
   // which varies depending on the target.
   if (!args.hasArg(OPT_hash_style)) {
@@ -2714,7 +2810,8 @@ void LinkerDriver::link(opt::InputArgList &args) {
   {
     llvm::TimeTraceScope timeScope("Parse input files");
     for (size_t i = 0; i < files.size(); ++i) {
-      llvm::TimeTraceScope timeScope("Parse input files", files[i]->getName());
+      auto fileName = files[i]->getName();
+      llvm::TimeTraceScope timeScope("Parse input files", fileName);
       parseFile(files[i]);
     }
     if (armCmseImpLib)
@@ -2728,7 +2825,7 @@ void LinkerDriver::link(opt::InputArgList &args) {
   // We also need one if any shared libraries are used and for pie executables
   // (probably because the dynamic linker needs it).
   config->hasDynSymTab =
-      !ctx.sharedFiles.empty() || config->isPic || config->exportDynamic;
+      !ctx.sharedFiles.empty() || config->isPic || (config->exportDynamic && !config->isStatic);
 
   // Some symbols (such as __ehdr_start) are defined lazily only when there
   // are undefined symbols for them, so we add these to trigger that logic.
@@ -2961,6 +3058,7 @@ void LinkerDriver::link(opt::InputArgList &args) {
   target = getTarget();
 
   config->eflags = target->calcEFlags();
+  config->isCheriAbi = target->calcIsCheriAbi();
   // maxPageSize (sometimes called abi page size) is the maximum page size that
   // the output can be run on. For example if the OS can use 4k or 64k page
   // sizes then maxPageSize must be 64k for the output to be useable on both.
@@ -2974,6 +3072,14 @@ void LinkerDriver::link(opt::InputArgList &args) {
   config->commonPageSize = getCommonPageSize(args);
 
   config->imageBase = getImageBase(args);
+  config->capabilitySize = target->getCapabilitySize();
+
+  // CapabilitySize must be set if we are targeting the purecap ABI
+  if (config->isCheriAbi) {
+    if (errorCount())
+      return;
+    assert(config->capabilitySize > 0);
+  }
 
   // This adds a .comment section containing a version string.
   if (!config->relocatable)
@@ -3001,8 +3107,11 @@ void LinkerDriver::link(opt::InputArgList &args) {
   // Some input sections that are used for exception handling need to be moved
   // into synthetic sections. Do that now so that they aren't assigned to
   // output sections in the usual way.
-  if (!config->relocatable)
+  if (!config->relocatable) {
     combineEhSections();
+    if (in.capRelocs)
+      ctx.inputSections.push_back(in.capRelocs.get());
+  }
 
   // Merge .riscv.attributes sections.
   if (config->emachine == EM_RISCV)
@@ -3050,4 +3159,5 @@ void LinkerDriver::link(opt::InputArgList &args) {
 
   // Write the result to the file.
   invokeELFT(writeResult,);
+
 }

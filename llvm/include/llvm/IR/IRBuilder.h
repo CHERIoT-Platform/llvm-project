@@ -447,9 +447,10 @@ public:
   ///
   /// If no module is given via \p M, it is take from the insertion point basic
   /// block.
-  GlobalVariable *CreateGlobalString(StringRef Str, const Twine &Name = "",
-                                     unsigned AddressSpace = 0,
-                                     Module *M = nullptr);
+  GlobalVariable *
+  CreateGlobalString(StringRef Str, const Twine &Name = "",
+                     std::optional<unsigned> AddressSpace = std::nullopt,
+                     Module *M = nullptr);
 
   /// Get a constant value representing either true or false.
   ConstantInt *getInt1(bool V) {
@@ -566,7 +567,8 @@ public:
 
   /// Fetch the type of an integer with size at least as big as that of a
   /// pointer in the given address space.
-  IntegerType *getIntPtrTy(const DataLayout &DL, unsigned AddrSpace = 0) {
+  IntegerType *getIntPtrTy(const DataLayout &DL,
+                           LLVM_DEFAULT_AS_PARAM(AddrSpace)) {
     return DL.getIntPtrType(Context, AddrSpace);
   }
 
@@ -650,42 +652,48 @@ public:
   /// If the pointers aren't i8*, they will be converted.  If a TBAA tag is
   /// specified, it will be added to the instruction. Likewise with alias.scope
   /// and noalias tags.
-  CallInst *CreateMemCpy(Value *Dst, MaybeAlign DstAlign, Value *Src,
-                         MaybeAlign SrcAlign, uint64_t Size,
-                         bool isVolatile = false, MDNode *TBAATag = nullptr,
-                         MDNode *TBAAStructTag = nullptr,
-                         MDNode *ScopeTag = nullptr,
-                         MDNode *NoAliasTag = nullptr) {
+  CallInst *
+  CreateMemCpy(Value *Dst, MaybeAlign DstAlign, Value *Src, MaybeAlign SrcAlign,
+               uint64_t Size,
+               PreserveCheriTags PreserveTags = PreserveCheriTags::TODO,
+               bool isVolatile = false, MDNode *TBAATag = nullptr,
+               MDNode *TBAAStructTag = nullptr, MDNode *ScopeTag = nullptr,
+               MDNode *NoAliasTag = nullptr) {
     return CreateMemCpy(Dst, DstAlign, Src, SrcAlign, getInt64(Size),
-                        isVolatile, TBAATag, TBAAStructTag, ScopeTag,
-                        NoAliasTag);
+                        PreserveTags, isVolatile, TBAATag, TBAAStructTag,
+                        ScopeTag, NoAliasTag);
   }
 
   CallInst *CreateMemTransferInst(
       Intrinsic::ID IntrID, Value *Dst, MaybeAlign DstAlign, Value *Src,
-      MaybeAlign SrcAlign, Value *Size, bool isVolatile = false,
-      MDNode *TBAATag = nullptr, MDNode *TBAAStructTag = nullptr,
-      MDNode *ScopeTag = nullptr, MDNode *NoAliasTag = nullptr);
+      MaybeAlign SrcAlign, Value *Size,
+      PreserveCheriTags PreserveTags = PreserveCheriTags::TODO,
+      bool isVolatile = false, MDNode *TBAATag = nullptr,
+      MDNode *TBAAStructTag = nullptr, MDNode *ScopeTag = nullptr,
+      MDNode *NoAliasTag = nullptr);
 
-  CallInst *CreateMemCpy(Value *Dst, MaybeAlign DstAlign, Value *Src,
-                         MaybeAlign SrcAlign, Value *Size,
-                         bool isVolatile = false, MDNode *TBAATag = nullptr,
-                         MDNode *TBAAStructTag = nullptr,
-                         MDNode *ScopeTag = nullptr,
-                         MDNode *NoAliasTag = nullptr) {
+  CallInst *
+  CreateMemCpy(Value *Dst, MaybeAlign DstAlign, Value *Src, MaybeAlign SrcAlign,
+               Value *Size,
+               PreserveCheriTags PreserveTags = PreserveCheriTags::TODO,
+               bool isVolatile = false, MDNode *TBAATag = nullptr,
+               MDNode *TBAAStructTag = nullptr, MDNode *ScopeTag = nullptr,
+               MDNode *NoAliasTag = nullptr) {
     return CreateMemTransferInst(Intrinsic::memcpy, Dst, DstAlign, Src,
-                                 SrcAlign, Size, isVolatile, TBAATag,
-                                 TBAAStructTag, ScopeTag, NoAliasTag);
+                                 SrcAlign, Size, PreserveTags, isVolatile,
+                                 TBAATag, TBAAStructTag, ScopeTag, NoAliasTag);
   }
 
   CallInst *
   CreateMemCpyInline(Value *Dst, MaybeAlign DstAlign, Value *Src,
-                     MaybeAlign SrcAlign, Value *Size, bool isVolatile = false,
+                     MaybeAlign SrcAlign, Value *Size,
+                     PreserveCheriTags PreserveTags = PreserveCheriTags::TODO,
+                     bool isVolatile = false,
                      MDNode *TBAATag = nullptr, MDNode *TBAAStructTag = nullptr,
                      MDNode *ScopeTag = nullptr, MDNode *NoAliasTag = nullptr) {
     return CreateMemTransferInst(Intrinsic::memcpy_inline, Dst, DstAlign, Src,
-                                 SrcAlign, Size, isVolatile, TBAATag,
-                                 TBAAStructTag, ScopeTag, NoAliasTag);
+                                 SrcAlign, Size, PreserveTags, isVolatile,
+                                 TBAATag, TBAAStructTag, ScopeTag, NoAliasTag);
   }
 
   /// Create and insert an element unordered-atomic memcpy between the
@@ -698,27 +706,31 @@ public:
   /// and noalias tags.
   CallInst *CreateElementUnorderedAtomicMemCpy(
       Value *Dst, Align DstAlign, Value *Src, Align SrcAlign, Value *Size,
-      uint32_t ElementSize, MDNode *TBAATag = nullptr,
-      MDNode *TBAAStructTag = nullptr, MDNode *ScopeTag = nullptr,
-      MDNode *NoAliasTag = nullptr);
+      uint32_t ElementSize,
+      PreserveCheriTags PreserveTags = PreserveCheriTags::TODO,
+      MDNode *TBAATag = nullptr, MDNode *TBAAStructTag = nullptr,
+      MDNode *ScopeTag = nullptr, MDNode *NoAliasTag = nullptr);
 
-  CallInst *CreateMemMove(Value *Dst, MaybeAlign DstAlign, Value *Src,
-                          MaybeAlign SrcAlign, uint64_t Size,
-                          bool isVolatile = false, MDNode *TBAATag = nullptr,
-                          MDNode *ScopeTag = nullptr,
-                          MDNode *NoAliasTag = nullptr) {
+  CallInst *
+  CreateMemMove(Value *Dst, MaybeAlign DstAlign, Value *Src,
+                MaybeAlign SrcAlign, uint64_t Size,
+                PreserveCheriTags PreserveTags = PreserveCheriTags::TODO,
+                bool isVolatile = false, MDNode *TBAATag = nullptr,
+                MDNode *ScopeTag = nullptr, MDNode *NoAliasTag = nullptr) {
     return CreateMemMove(Dst, DstAlign, Src, SrcAlign, getInt64(Size),
-                         isVolatile, TBAATag, ScopeTag, NoAliasTag);
+                         PreserveTags, isVolatile, TBAATag, ScopeTag,
+                         NoAliasTag);
   }
 
   CallInst *CreateMemMove(Value *Dst, MaybeAlign DstAlign, Value *Src,
                           MaybeAlign SrcAlign, Value *Size,
+                          PreserveCheriTags PreserveTags = PreserveCheriTags::TODO,
                           bool isVolatile = false, MDNode *TBAATag = nullptr,
                           MDNode *ScopeTag = nullptr,
                           MDNode *NoAliasTag = nullptr) {
     return CreateMemTransferInst(Intrinsic::memmove, Dst, DstAlign, Src,
-                                 SrcAlign, Size, isVolatile, TBAATag,
-                                 /*TBAAStructTag=*/nullptr, ScopeTag,
+                                 SrcAlign, Size, PreserveTags, isVolatile,
+                                 TBAATag, /*TBAAStructTag=*/nullptr, ScopeTag,
                                  NoAliasTag);
   }
 
@@ -733,9 +745,10 @@ public:
   /// and noalias tags.
   CallInst *CreateElementUnorderedAtomicMemMove(
       Value *Dst, Align DstAlign, Value *Src, Align SrcAlign, Value *Size,
-      uint32_t ElementSize, MDNode *TBAATag = nullptr,
-      MDNode *TBAAStructTag = nullptr, MDNode *ScopeTag = nullptr,
-      MDNode *NoAliasTag = nullptr);
+      uint32_t ElementSize,
+      PreserveCheriTags PreserveTags = PreserveCheriTags::TODO,
+      MDNode *TBAATag = nullptr, MDNode *TBAAStructTag = nullptr,
+      MDNode *ScopeTag = nullptr, MDNode *NoAliasTag = nullptr);
 
 private:
   CallInst *getReductionIntrinsic(Intrinsic::ID ID, Value *Src);
@@ -1989,9 +2002,10 @@ public:
   ///
   /// If no module is given via \p M, it is take from the insertion point basic
   /// block.
-  Constant *CreateGlobalStringPtr(StringRef Str, const Twine &Name = "",
-                                  unsigned AddressSpace = 0,
-                                  Module *M = nullptr) {
+  Constant *
+  CreateGlobalStringPtr(StringRef Str, const Twine &Name = "",
+                        std::optional<unsigned> AddressSpace = std::nullopt,
+                        Module *M = nullptr) {
     GlobalVariable *GV = CreateGlobalString(Str, Name, AddressSpace, M);
     Constant *Zero = ConstantInt::get(Type::getInt32Ty(Context), 0);
     Constant *Indices[] = {Zero, Zero};

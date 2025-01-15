@@ -424,20 +424,6 @@ UNDEF-USE-MSG2-NEXT:      numeric-expression.txt:[[#@LINE-5]]:40: error: undefin
 UNDEF-USE-MSG2-NEXT:      {{U}}NDEF-USE2-NOT: {{U}}NDEFVAR: {{\[\[#UNDEFVAR1\+UNDEFVAR2\]\]}}
 UNDEF-USE-MSG2-NEXT:              {{^}}                                       ^{{$}}
 
-; Numeric expression with unsupported operator.
-RUN: %ProtectFileCheckOutput \
-RUN: not FileCheck -D#NUMVAR=10 --check-prefix INVAL-OP \
-RUN:               --input-file %s %s 2>&1 \
-RUN:   | FileCheck --strict-whitespace --check-prefix INVAL-OP-MSG %s
-
-INVALID OPERATOR
-NUMVAR*2: 22
-INVAL-OP-LABEL: INVALID OPERATOR
-INVAL-OP-NEXT: NUMVAR*2: [[#NUMVAR*2]]
-INVAL-OP-MSG: numeric-expression.txt:[[#@LINE-1]]:35: error: unsupported operation '*'
-INVAL-OP-MSG-NEXT: {{I}}NVAL-OP-NEXT: NUMVAR*2: {{\[\[#NUMVAR\*2\]\]}}
-INVAL-OP-MSG-NEXT:     {{^}}                                  ^{{$}}
-
 ; Name conflict between Numeric variable definition and string variable
 ; definition whether from the command-line or input text.
 RUN: %ProtectFileCheckOutput \

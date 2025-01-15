@@ -53,6 +53,8 @@ enum NodeType : unsigned {
 
   // Represents an AUIPC+ADDI pair. Selected to PseudoLLA.
   LLA,
+  // Represents an AUIPCC+CIncOffset pair. Selected to PseudoCLLC.
+  CLLC,
 
   // Selected as PseudoAddTPRel. Used to emit a TP-relative relocation.
   ADD_TPREL,
@@ -129,6 +131,21 @@ enum NodeType : unsigned {
   // READ_CYCLE_WIDE - A read of the 64-bit cycle CSR on a 32-bit target
   // (returns (Lo, Hi)). It takes a chain operand.
   READ_CYCLE_WIDE,
+  CAP_CALL,
+  /// Cross-compartment call.
+  CAP_COMPARTMENT_CALL,
+  /// CHERIoT cross-library call.
+  CAP_LIB_CALL,
+  CAP_TAIL,
+  /// Legalised int_cheri_cap_tag_get[_temporal]
+  CAP_TAG_GET,
+  /// Legalised int_cheri_cap_sealed_get
+  CAP_SEALED_GET,
+  /// Legalised int_cheri_cap_subset_test
+  CAP_SUBSET_TEST,
+  /// Legalised int_cheri_cap_equal_exact
+  CAP_EQUAL_EXACT,
+
   // brev8, orc.b, zip, and unzip from Zbb and Zbkb. All operands are i32 or
   // XLenVT.
   BREV8,
@@ -142,6 +159,8 @@ enum NodeType : unsigned {
   SM4KS, SM4ED,
   SM3P0, SM3P1,
 
+  /// DAG node for CSetBounds
+  BOUNDS_SET,
   // Vector Extension
   FIRST_VL_VECTOR_OP,
   // VMV_V_V_VL matches the semantics of vmv.v.v but includes an extra operand
@@ -424,6 +443,8 @@ enum NodeType : unsigned {
   TH_LDD,
   TH_SWD,
   TH_SDD,
+
+  CLGC,
 };
 // clang-format on
 } // namespace RISCVISD
@@ -650,6 +671,15 @@ public:
   bool isDesirableToCommuteWithShift(const SDNode *N,
                                      CombineLevel Level) const override;
 
+  bool isJumpTableRelative() const override;
+
+  SDValue getPICJumpTableRelocBase(SDValue Table,
+                                   SelectionDAG &DAG) const override;
+
+  const MCExpr *
+  getPICJumpTableRelocBaseExpr(const MachineFunction *MF, unsigned JTI,
+                               MCContext &Ctx) const override;
+
   /// If a physical register, this returns the register that receives the
   /// exception address on entry to an EH pad.
   Register
@@ -659,6 +689,8 @@ public:
   /// exception typeid on entry to a landing pad.
   Register
   getExceptionSelectorRegister(const Constant *PersonalityFn) const override;
+
+  uint32_t getExceptionPointerAS() const override;
 
   bool shouldExtendTypeInLibCall(EVT Type) const override;
   bool shouldSignExtendTypeInLibCall(EVT Type, bool IsSigned) const override;
@@ -698,6 +730,10 @@ public:
 
   bool isMulAddWithConstProfitable(SDValue AddNode,
                                    SDValue ConstNode) const override;
+
+  bool supportsAtomicOperation(const DataLayout &DL, const Instruction *AI,
+                               Type *ValueTy, Type *PointerTy,
+                               Align Alignment) const override;
 
   TargetLowering::AtomicExpansionKind
   shouldExpandAtomicRMWInIR(AtomicRMWInst *AI) const override;
@@ -850,11 +886,12 @@ private:
                          RISCVCCAssignFn Fn) const;
 
   template <class NodeTy>
-  SDValue getAddr(NodeTy *N, SelectionDAG &DAG, bool IsLocal = true,
-                  bool IsExternWeak = false) const;
-  SDValue getStaticTLSAddr(GlobalAddressSDNode *N, SelectionDAG &DAG,
-                           bool UseGOT) const;
-  SDValue getDynamicTLSAddr(GlobalAddressSDNode *N, SelectionDAG &DAG) const;
+  SDValue getAddr(NodeTy *N, EVT Ty, SelectionDAG &DAG, bool IsLocal,
+                  bool CanDeriveFromPcc, bool IsExternWeak = false) const;
+  SDValue getStaticTLSAddr(GlobalAddressSDNode *N, EVT Ty, SelectionDAG &DAG,
+                           bool NotLocal) const;
+  SDValue getDynamicTLSAddr(GlobalAddressSDNode *N, EVT Ty,
+                            SelectionDAG &DAG) const;
   SDValue getTLSDescAddr(GlobalAddressSDNode *N, SelectionDAG &DAG) const;
 
   SDValue lowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const;
@@ -932,6 +969,12 @@ private:
   SDValue expandUnalignedRVVLoad(SDValue Op, SelectionDAG &DAG) const;
   SDValue expandUnalignedRVVStore(SDValue Op, SelectionDAG &DAG) const;
 
+  bool hasCapabilitySetAddress() const override { return true; }
+
+  TailPaddingAmount
+  getTailPaddingForPreciseBounds(uint64_t Size) const override;
+  Align getAlignmentForPreciseBounds(uint64_t Size) const override;
+
   bool isEligibleForTailCallOptimization(
       CCState &CCInfo, CallLoweringInfo &CLI, MachineFunction &MF,
       const SmallVector<CCValAssign, 16> &ArgLocs) const;
@@ -997,6 +1040,7 @@ bool CC_RISCV_GHC(unsigned ValNo, MVT ValVT, MVT LocVT,
                   CCState &State);
 
 ArrayRef<MCPhysReg> getArgGPRs(const RISCVABI::ABI ABI);
+ArrayRef<MCPhysReg> getArgGPCRs(const RISCVABI::ABI ABI);
 
 } // end namespace RISCV
 

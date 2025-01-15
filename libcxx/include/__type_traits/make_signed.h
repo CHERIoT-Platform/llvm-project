@@ -38,8 +38,14 @@ typedef __type_list<signed char,
 #  ifndef _LIBCPP_HAS_NO_INT128
         __type_list<__int128_t,
 #  endif
+#  if __has_feature(capabilities)
+        __type_list<__intcap_t,
+#  endif
         __nat
 #  ifndef _LIBCPP_HAS_NO_INT128
+        >
+#  endif
+#  if __has_feature(capabilities)
         >
 #  endif
         > > > > > __signed_types;
@@ -66,6 +72,10 @@ template <> struct __make_signed<unsigned long long, true> {typedef long long ty
 #  ifndef _LIBCPP_HAS_NO_INT128
 template <> struct __make_signed<__int128_t,         true> {typedef __int128_t type;};
 template <> struct __make_signed<__uint128_t,        true> {typedef __int128_t type;};
+#  endif
+#  if __has_feature(capabilities)
+template <> struct __make_signed<  signed __intcap,  true> {typedef __intcap type;};
+template <> struct __make_signed<unsigned __intcap,  true> {typedef __intcap type;};
 #  endif
 // clang-format on
 

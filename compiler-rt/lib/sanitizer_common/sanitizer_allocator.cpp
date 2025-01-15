@@ -24,6 +24,7 @@ namespace __sanitizer {
 // Default allocator names.
 const char *PrimaryAllocatorName = "SizeClassAllocator";
 const char *SecondaryAllocatorName = "LargeMmapAllocator";
+static constexpr usize InternalDefaultAlign = Max((usize)8, sizeof(void*));
 
 static ALIGNED(64) char internal_alloc_placeholder[sizeof(InternalAllocator)];
 static atomic_uint8_t internal_allocator_initialized;
@@ -46,9 +47,9 @@ InternalAllocator *internal_allocator() {
   return internal_allocator_instance;
 }
 
-static void *RawInternalAlloc(uptr size, InternalAllocatorCache *cache,
-                              uptr alignment) {
-  if (alignment == 0) alignment = 8;
+static void *RawInternalAlloc(usize size, InternalAllocatorCache *cache,
+                              usize alignment) {
+  if (alignment == 0) alignment = InternalDefaultAlign;
   if (cache == 0) {
     SpinMutexLock l(&internal_allocator_cache_mu);
     return internal_allocator()->Allocate(&internal_allocator_cache, size,
@@ -57,9 +58,9 @@ static void *RawInternalAlloc(uptr size, InternalAllocatorCache *cache,
   return internal_allocator()->Allocate(cache, size, alignment);
 }
 
-static void *RawInternalRealloc(void *ptr, uptr size,
+static void *RawInternalRealloc(void *ptr, usize size,
                                 InternalAllocatorCache *cache) {
-  uptr alignment = 8;
+  usize alignment = InternalDefaultAlign;
   if (cache == 0) {
     SpinMutexLock l(&internal_allocator_cache_mu);
     return internal_allocator()->Reallocate(&internal_allocator_cache, ptr,
@@ -83,21 +84,21 @@ static void NORETURN ReportInternalAllocatorOutOfMemory(uptr requested_size) {
   Die();
 }
 
-void *InternalAlloc(uptr size, InternalAllocatorCache *cache, uptr alignment) {
+void *InternalAlloc(uptr size, InternalAllocatorCache *cache, usize alignment) {
   void *p = RawInternalAlloc(size, cache, alignment);
   if (UNLIKELY(!p))
     ReportInternalAllocatorOutOfMemory(size);
   return p;
 }
 
-void *InternalRealloc(void *addr, uptr size, InternalAllocatorCache *cache) {
+void *InternalRealloc(void *addr, usize size, InternalAllocatorCache *cache) {
   void *p = RawInternalRealloc(addr, size, cache);
   if (UNLIKELY(!p))
     ReportInternalAllocatorOutOfMemory(size);
   return p;
 }
 
-void *InternalReallocArray(void *addr, uptr count, uptr size,
+void *InternalReallocArray(void *addr, usize count, usize size,
                            InternalAllocatorCache *cache) {
   if (UNLIKELY(CheckForCallocOverflow(count, size))) {
     Report(
@@ -109,7 +110,7 @@ void *InternalReallocArray(void *addr, uptr count, uptr size,
   return InternalRealloc(addr, count * size, cache);
 }
 
-void *InternalCalloc(uptr count, uptr size, InternalAllocatorCache *cache) {
+void *InternalCalloc(usize count, usize size, InternalAllocatorCache *cache) {
   if (UNLIKELY(CheckForCallocOverflow(count, size))) {
     Report("FATAL: %s: calloc parameters overflow: count * size (%zd * %zd) "
            "cannot be represented in type size_t\n", SanitizerToolName, count,
@@ -137,20 +138,23 @@ void InternalAllocatorUnlock() SANITIZER_NO_THREAD_SAFETY_ANALYSIS {
 }
 
 // LowLevelAllocator
-constexpr uptr kLowLevelAllocatorDefaultAlignment = 8;
+constexpr usize kLowLevelAllocatorDefaultAlignment = InternalDefaultAlign;
 constexpr uptr kMinNumPagesRounded = 16;
 constexpr uptr kMinRoundedSize = 65536;
-static uptr low_level_alloc_min_alignment = kLowLevelAllocatorDefaultAlignment;
+static usize low_level_alloc_min_alignment = kLowLevelAllocatorDefaultAlignment;
 static LowLevelAllocateCallback low_level_alloc_callback;
 
 static LowLevelAllocator Alloc;
 LowLevelAllocator &GetGlobalLowLevelAllocator() { return Alloc; }
 
-void *LowLevelAllocator::Allocate(uptr size) {
+static LowLevelAllocator Alloc;
+LowLevelAllocator &GetGlobalLowLevelAllocator() { return Alloc; }
+
+void *LowLevelAllocator::Allocate(usize size) {
   // Align allocation size.
   size = RoundUpTo(size, low_level_alloc_min_alignment);
   if (allocated_end_ - allocated_current_ < (sptr)size) {
-    uptr size_to_allocate = RoundUpTo(
+    usize size_to_allocate = RoundUpTo(
         size, Min(GetPageSizeCached() * kMinNumPagesRounded, kMinRoundedSize));
     allocated_current_ = (char *)MmapOrDie(size_to_allocate, __func__);
     allocated_end_ = allocated_current_ + size_to_allocate;
@@ -164,7 +168,7 @@ void *LowLevelAllocator::Allocate(uptr size) {
   return res;
 }
 
-void SetLowLevelAllocateMinAlignment(uptr alignment) {
+void SetLowLevelAllocateMinAlignment(usize alignment) {
   CHECK(IsPowerOfTwo(alignment));
   low_level_alloc_min_alignment = Max(alignment, low_level_alloc_min_alignment);
 }

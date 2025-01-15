@@ -106,6 +106,22 @@ enum RelExpr {
   R_RISCV_ADD,
   R_RISCV_LEB128,
   R_RISCV_PC_INDIRECT,
+  R_CHERI_CAPABILITY_TABLE_INDEX,
+  R_CHERI_CAPABILITY_TABLE_INDEX_SMALL_IMMEDIATE,
+  R_CHERI_CAPABILITY_TABLE_INDEX_CALL,
+  R_CHERI_CAPABILITY_TABLE_INDEX_CALL_SMALL_IMMEDIATE,
+  R_CHERI_CAPABILITY_TABLE_ENTRY_PC,
+  R_CHERI_CAPABILITY_TABLE_TLSGD_ENTRY_PC,
+  R_CHERI_CAPABILITY_TABLE_TLSIE_ENTRY_PC,
+  R_CHERI_CAPABILITY_TABLE_REL, // relative offset to _CHERI_CAPABILITY_TABLE_
+  R_MIPS_CHERI_CAPTAB_TLSGD,
+  R_MIPS_CHERI_CAPTAB_TLSLD,
+  R_MIPS_CHERI_CAPTAB_TPREL,
+  R_CHERI_CAPABILITY,
+  R_CHERIOT_COMPARTMENT_CGPREL_HI,
+  R_CHERIOT_COMPARTMENT_CGPREL_LO_S,
+  R_CHERIOT_COMPARTMENT_CGPREL_LO_I,
+  R_CHERIOT_COMPARTMENT_SIZE,
   // Same as R_PC but with page-aligned semantics.
   R_LOONGARCH_PAGE_PC,
   // Same as R_PLT_PC but with page-aligned semantics.
@@ -212,6 +228,10 @@ template <class ELFT>
 static inline int64_t getAddend(const typename ELFT::Rela &rel) {
   return rel.r_addend;
 }
+
+std::string getLocationMessage(const InputSectionBase &s, const Symbol &sym,
+                               uint64_t off);
+
 
 template <typename RelTy>
 ArrayRef<RelTy> sortRels(ArrayRef<RelTy> rels, SmallVector<RelTy, 0> &storage) {

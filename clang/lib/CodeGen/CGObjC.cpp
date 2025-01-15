@@ -1475,14 +1475,19 @@ CodeGenFunction::generateObjCSetterBody(const ObjCImplementationDecl *classImpl,
       EmitLValueForIvar(TypeOfSelfObject(), LoadObjCSelf(), ivar, /*quals*/ 0);
     Address ivarAddr = ivarLValue.getAddress(*this);
 
-    // Currently, all atomic accesses have to be through integer
-    // types, so there's no point in trying to pick a prettier type.
-    llvm::Type *castType = llvm::Type::getIntNTy(
-        getLLVMContext(), getContext().toBits(strategy.getIvarSize()));
+    llvm::Type *ivarType = ivarAddr.getElementType();
+    if (ivarType->isAggregateType()) {
+      // Currently, all atomic accesses have to be through integer
+      // types, so there's no point in trying to pick a prettier type.
+      llvm::Type *castType = llvm::Type::getIntNTy(
+          getLLVMContext(), getContext().toBits(strategy.getIvarSize()));
 
-    // Cast both arguments to the chosen operation type.
-    argAddr = argAddr.withElementType(castType);
-    ivarAddr = ivarAddr.withElementType(castType);
+      // Cast both arguments to the chosen operation type.
+      argAddr = argAddr.withElementType(castType);
+      ivarAddr = ivarAddr.withElementType(castType);
+    } else
+      // Just ensure that the types match
+      argAddr = argAddr.withElementType(ivarAddr.getElementType());
 
     llvm::Value *load = Builder.CreateLoad(argAddr);
 
@@ -1566,7 +1571,7 @@ CodeGenFunction::generateObjCSetterBody(const ObjCImplementationDecl *classImpl,
                    VK_LValue, SourceLocation());
   ImplicitCastExpr selfLoad(ImplicitCastExpr::OnStack, selfDecl->getType(),
                             CK_LValueToRValue, &self, VK_PRValue,
-                            FPOptionsOverride());
+                            FPOptionsOverride(), getContext());
   ObjCIvarRefExpr ivarRef(ivar, ivar->getType().getNonReferenceType(),
                           SourceLocation(), SourceLocation(),
                           &selfLoad, true, true);
@@ -1577,7 +1582,7 @@ CodeGenFunction::generateObjCSetterBody(const ObjCImplementationDecl *classImpl,
                   SourceLocation());
   ImplicitCastExpr argLoad(ImplicitCastExpr::OnStack,
                            argType.getUnqualifiedType(), CK_LValueToRValue,
-                           &arg, VK_PRValue, FPOptionsOverride());
+                           &arg, VK_PRValue, FPOptionsOverride(), getContext());
 
   // The property type can differ from the ivar type in some situations with
   // Objective-C pointer types, we can always bit cast the RHS in these cases.
@@ -1605,7 +1610,8 @@ CodeGenFunction::generateObjCSetterBody(const ObjCImplementationDecl *classImpl,
     argCK = CK_NonAtomicToAtomic;
   }
   ImplicitCastExpr argCast(ImplicitCastExpr::OnStack, ivarRef.getType(), argCK,
-                           &argLoad, VK_PRValue, FPOptionsOverride());
+                           &argLoad, VK_PRValue, FPOptionsOverride(),
+                           getContext());
   Expr *finalArg = &argLoad;
   if (!getContext().hasSameUnqualifiedType(ivarRef.getType(),
                                            argLoad.getType()))
@@ -2176,14 +2182,14 @@ static llvm::Value *emitARCValueOperation(
 
   // Cast the argument to 'id'.
   llvm::Type *origType = returnType ? returnType : value->getType();
-  value = CGF.Builder.CreateBitCast(value, CGF.Int8PtrTy);
+  value = CGF.Builder.CreatePointerBitCastOrAddrSpaceCast(value, CGF.Int8PtrTy);
 
   // Call the function.
   llvm::CallInst *call = CGF.EmitNounwindRuntimeCall(fn, value);
   call->setTailCallKind(tailKind);
 
   // Cast the result back to the original type.
-  return CGF.Builder.CreateBitCast(call, origType);
+  return CGF.Builder.CreatePointerBitCastOrAddrSpaceCast(call, origType);
 }
 
 /// Perform an operation having the following signature:

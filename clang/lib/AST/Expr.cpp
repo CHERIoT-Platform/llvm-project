@@ -937,7 +937,7 @@ IntegerLiteral::IntegerLiteral(const ASTContext &C, const llvm::APInt &V,
                                QualType type, SourceLocation l)
     : Expr(IntegerLiteralClass, type, VK_PRValue, OK_Ordinary), Loc(l) {
   assert(type->isIntegerType() && "Illegal type in IntegerLiteral");
-  assert(V.getBitWidth() == C.getIntWidth(type) &&
+  assert(V.getBitWidth() == C.getIntRange(type) &&
          "Integer type is not the correct size for constant.");
   setValue(C, V);
   setDependence(ExprDependence::None);
@@ -1795,13 +1795,89 @@ SourceLocation MemberExpr::getEndLoc() const {
   return EndLoc;
 }
 
-bool CastExpr::CastConsistency() const {
+bool CastExpr::CastConsistency(const ASTContext &Ctx) const {
+
+#if !defined(NDEBUG)
+  bool IsPurecap = Ctx.getTargetInfo().areAllPointersCapabilities();
+#endif
+  // Basic CHERI sanity checks here:
+  switch (getCastKind()) {
+  case CK_NullToPointer:
+    // This can be either a capability NULL pointer or a non-capability one.
+    break;
+  case CK_ArrayToPointerDecay:
+    // Decays brought about by dereferencing a container inherit whether they
+    // are a capability based on the pointer to the container, as they are just
+    // a GEP, and thus can be either type. We could add checks here, but that
+    // would just be a pointless copy of the code in SemaExpr.
+    break;
+  case CK_FunctionToPointerDecay:
+  case CK_BuiltinFnToFnPtr:
+    // For purecap these should create capabilities and not integer pointers
+    assert(getType()->isCapabilityPointerType() == IsPurecap);
+    break;
+  case CK_NullToMemberPointer:
+    // Member data pointers are always integer offset, function pointers are
+    // capabilities in the purecap ABI
+    if (getType()->isMemberDataPointerType())
+      assert(!getType()->isCHERICapabilityType(Ctx));
+    else
+      assert(getType()->isCHERICapabilityType(Ctx) == IsPurecap);
+    break;
+  case CK_PointerToCHERICapability:
+    assert(getType()->isCHERICapabilityType(Ctx));
+    assert(!getSubExpr()->getType()->isCHERICapabilityType(Ctx));
+    break;
+  case CK_CHERICapabilityToPointer:
+  case CK_CHERICapabilityToAddress:
+  case CK_CHERICapabilityToOffset:
+    assert(getSubExpr()->getType()->isCHERICapabilityType(Ctx));
+    assert(!getType()->isCHERICapabilityType(Ctx, /*IncludeIntCap=*/false));
+    break;
+
+  case CK_ToVoid:    // This is always allowed.
+  case CK_Dependent: // We don't know the real type yet.
+  case CK_ToUnion:   // Checks that the union is valid are performed elsewhere.
+  case CK_IntegralCast:
+  case CK_PointerToIntegral:
+  case CK_IntegralToPointer:
+  case CK_FloatingToIntegral:
+  case CK_FixedPointToIntegral:
+    // These can convert capability <-> non-capability
+    break;
+  case CK_IntegralToBoolean:
+  case CK_PointerToBoolean:
+  case CK_MemberPointerToBoolean:
+  case CK_IntegralToFloating:
+  case CK_IntegralToFixedPoint:
+    assert(!getType()->isCHERICapabilityType(Ctx));
+    break;
+
+  case CK_LValueBitCast:
+    // This creates a reference, but they are not included as part of the
+    // QualType. Since the type can change from e.g. class Foo -> char*& we
+    // cannot check whether the capability qualifier has changed.
+    break;
+
+  default:
+    // All other cast kinds should not change isCHERICapabilityType():
+    assert((getType()->isCHERICapabilityType(Ctx) ==
+            getSubExpr()->getType()->isCHERICapabilityType(Ctx)) &&
+           "Changed capability pointer qualifier with an invalid cast");
+    break;
+  }
+
   switch (getCastKind()) {
   case CK_DerivedToBase:
   case CK_UncheckedDerivedToBase:
   case CK_DerivedToBaseMemberPointer:
   case CK_BaseToDerived:
   case CK_BaseToDerivedMemberPointer:
+    if (auto PT = getType()->getAs<PointerType>()) {
+      assert(
+          PT->isCHERICapability() ==
+          getSubExpr()->getType()->getAs<PointerType>()->isCHERICapability());
+    }
     assert(!path_empty() && "Cast kind should have a base path!");
     break;
 
@@ -1847,6 +1923,26 @@ bool CastExpr::CastConsistency() const {
     assert(getType()->isPointerType());
     assert(getSubExpr()->getType()->isFunctionType());
     goto CheckNoBasePath;
+
+  case CK_CHERICapabilityToPointer: {
+    assert(getType()->isPointerType());
+    assert(!getType()->getAs<PointerType>()->isCHERICapability());
+    QualType SubType = getSubExpr()->getType();
+    if (!SubType->isDependentType()) {
+      assert(SubType->isCapabilityPointerType() || SubType->isIntCapType());
+    }
+    goto CheckNoBasePath;
+  }
+
+  case CK_PointerToCHERICapability: {
+    assert(getType()->isCapabilityPointerType() || getType()->isIntCapType());
+    QualType SubType = getSubExpr()->getType();
+    if (!SubType->isDependentType()) {
+      assert(SubType->isPointerType());
+      assert(!SubType->getAs<PointerType>()->isCHERICapability());
+    }
+    goto CheckNoBasePath;
+  }
 
   case CK_AddressSpaceConversion: {
     auto Ty = getType();
@@ -1900,6 +1996,24 @@ bool CastExpr::CastConsistency() const {
   case CK_MatrixCast:
     assert(!getType()->isBooleanType() && "unheralded conversion to bool");
     goto CheckNoBasePath;
+
+  case CK_CHERICapabilityToOffset:
+  case CK_CHERICapabilityToAddress: {
+    QualType SubType = getSubExpr()->getType();
+    if (!SubType->isDependentType()) {
+      bool IsCapabilityTy = getSubExpr()->hasUnderlyingCapability();
+      if (const PointerType *PTy =
+              getSubExpr()->getType()->getAs<PointerType>()) {
+        IsCapabilityTy |= PTy->isCHERICapability();
+      }
+      (void)IsCapabilityTy;
+      assert(IsCapabilityTy || SubType->isIntCapType() ||
+             SubType->isNullPtrType());
+      assert(getType()->isIntegerType());
+      assert(!getType()->isEnumeralType());
+    }
+    goto CheckNoBasePath;
+  }
 
   case CK_Dependent:
   case CK_LValueToRValue:
@@ -2026,6 +2140,43 @@ const FieldDecl *CastExpr::getTargetFieldForToUnionCast(const RecordDecl *RD,
   return nullptr;
 }
 
+QualType CastExpr::checkProvenanceImpl(QualType Ty, const ASTContext &C,
+                                       const Expr *Src) {
+  // This check is only needed for (u)intcap_t since all other types either
+  // always carry provenance (pointers+references) or never do.
+  if (!Ty->isIntCapType())
+    return Ty;
+
+  if (!Ty->canCarryProvenance(C))
+    return Ty; // avoid doubly-annotating a type
+
+  // If we are casting an definitely not-provenance carrying value to a
+  // (u)intcap_t, mark the result as not carrying provenance.
+  const QualType ExprTy = Src->getType();
+  // If the source type does not carry provenance, the result can't either.
+  bool ExprCanCarryProvenance = ExprTy->canCarryProvenance(C);
+  if (ExprCanCarryProvenance && ExprTy->isEnumeralType()) {
+    // References to enum constants can never carry provenance (even if the
+    // underlying type of the enumeration is __uintcap_t)
+    // TODO: Should uintcap_t enumerations be an error? Or do we warn and
+    //  implicitly convert them to the matching address type?
+    if (auto *DRE = dyn_cast<DeclRefExpr>(Src->IgnoreCasts())) {
+      if (isa<EnumConstantDecl>(DRE->getFoundDecl()))
+        ExprCanCarryProvenance = false;
+    }
+  }
+  // NULL pointers are untagged values
+  // FIXME: change isNullPointerConstant to take a const astctx.
+  if (ExprCanCarryProvenance &&
+      Src->isNullPointerConstant(const_cast<ASTContext &>(C),
+                                 NPC_ValueDependentIsNotNull))
+    ExprCanCarryProvenance = false;
+
+  if (!ExprCanCarryProvenance)
+    return C.getNonProvenanceCarryingType(Ty);
+  return Ty;
+}
+
 FPOptionsOverride *CastExpr::getTrailingFPFeatures() {
   assert(hasStoredFPFeatures());
   switch (getStmtClass()) {
@@ -2061,7 +2212,7 @@ ImplicitCastExpr *ImplicitCastExpr::Create(const ASTContext &C, QualType T,
           !(T->isNullPtrType() || T->getAsCXXRecordDecl())) &&
          "invalid type for lvalue-to-rvalue conversion");
   ImplicitCastExpr *E =
-      new (Buffer) ImplicitCastExpr(T, Kind, Operand, PathSize, FPO, VK);
+      new (Buffer) ImplicitCastExpr(T, Kind, Operand, PathSize, FPO, VK, C);
   if (PathSize)
     std::uninitialized_copy_n(BasePath->data(), BasePath->size(),
                               E->getTrailingObjects<CXXBaseSpecifier *>());
@@ -2087,8 +2238,8 @@ CStyleCastExpr *CStyleCastExpr::Create(const ASTContext &C, QualType T,
   void *Buffer =
       C.Allocate(totalSizeToAlloc<CXXBaseSpecifier *, FPOptionsOverride>(
           PathSize, FPO.requiresTrailingStorage()));
-  CStyleCastExpr *E =
-      new (Buffer) CStyleCastExpr(T, VK, K, Op, PathSize, FPO, WrittenTy, L, R);
+  CStyleCastExpr *E = new (Buffer)
+      CStyleCastExpr(T, VK, K, Op, PathSize, FPO, WrittenTy, L, R, C);
   if (PathSize)
     std::uninitialized_copy_n(BasePath->data(), BasePath->size(),
                               E->getTrailingObjects<CXXBaseSpecifier *>());
@@ -2577,6 +2728,7 @@ bool Expr::isUnusedResultAWarning(const Expr *&WarnE, SourceLocation &Loc,
     Loc = getExprLoc();
     R1 = getSourceRange();
     return true;
+  case NoChangeBoundsExprClass:
   case ParenExprClass:
     return cast<ParenExpr>(this)->getSubExpr()->
       isUnusedResultAWarning(WarnE, Loc, R1, R2, Ctx);
@@ -3036,6 +3188,11 @@ Expr *Expr::IgnoreParenImpCasts() {
                          IgnoreImplicitCastsExtraSingleStep);
 }
 
+Expr *Expr::IgnoreParenImpCastsExceptForNoChangeBounds() {
+  return IgnoreExprNodes(this, IgnoreParensExceptForNoChangeBoundsSingleStep,
+                         IgnoreImplicitCastsExtraSingleStep);
+}
+
 Expr *Expr::IgnoreParenCasts() {
   return IgnoreExprNodes(this, IgnoreParensSingleStep, IgnoreCastsSingleStep);
 }
@@ -3377,6 +3534,7 @@ bool Expr::isConstantInitializer(ASTContext &Ctx, bool IsForRef,
   case ImplicitValueInitExprClass:
   case NoInitExprClass:
     return true;
+  case NoChangeBoundsExprClass:
   case ParenExprClass:
     return cast<ParenExpr>(this)->getSubExpr()
       ->isConstantInitializer(Ctx, IsForRef, Culprit);
@@ -3626,6 +3784,7 @@ bool Expr::HasSideEffects(const ASTContext &Ctx,
     break;
 
   case ParenExprClass:
+  case NoChangeBoundsExprClass:
   case ArraySubscriptExprClass:
   case MatrixSubscriptExprClass:
   case OMPArraySectionExprClass:
@@ -5018,6 +5177,198 @@ QualType OMPArraySectionExpr::getBaseOriginalType(const Expr *Base) {
       return {};
   }
   return OriginalTy;
+}
+
+bool Expr::hasUnderlyingCapability() const {
+  // This is heavy and the information should instead be recorded on the AST
+  // itself. However this would require large changes and might not be easy to
+  // maintain downstream. We should also try to pass at some point an AST
+  // context object in order to be able to get the language options, but
+  // at the moment this gets called from the cast consistency checks where we
+  // don't have one available.
+  const Expr *E = this->IgnoreParens();
+
+  if (const InitListExpr* ILE = dyn_cast<const InitListExpr>(E)) {
+    if (ILE->getNumInits() == 1)
+      E = ILE->getInit(0)->IgnoreParens();
+  }
+
+  if (E->getValueKind() == VK_PRValue)
+    return false;
+
+  if (const DeclRefExpr *DRE = dyn_cast<const DeclRefExpr>(E)) {
+    // XXXAR: or should this be getFoundDecl instead of getDecl?
+    if (const ValueDecl *V =
+            dyn_cast_or_null<const ValueDecl>(DRE->getDecl())) {
+      if (const ReferenceType *RTy = V->getType()->getAs<ReferenceType>()) {
+        return RTy->isCHERICapability();
+      }
+    }
+  }
+
+  // This only applies if the subexpr is an LValue
+  if (auto SrcMemb = dyn_cast<MemberExpr>(E)) {
+    NamedDecl *Member = SrcMemb->getMemberDecl();
+    if (const auto *Value = dyn_cast<ValueDecl>(Member))
+      if (auto *Ty = Value->getType()->getAs<ReferenceType>())
+        return Ty->isCHERICapability();
+
+    if (isa<VarDecl>(Member) && Member->getDeclContext()->isRecord())
+      return false;
+
+    if (isa<FieldDecl>(Member)) {
+      if (SrcMemb->isArrow()) {
+        auto *Base = SrcMemb->getBase()->IgnoreParens();
+        if (auto *Ty = Base->getType()->getAs<PointerType>())
+          return Ty->isCHERICapability();
+        return false;
+      }
+      return SrcMemb->getBase()->hasUnderlyingCapability();
+    }
+    return false;
+  }
+
+  // Handle unary operator.
+  if (const UnaryOperator *UO = dyn_cast<const UnaryOperator>(E)) {
+    if (UO->getOpcode() == UO_Deref) {
+      auto *SubExpr = UO->getSubExpr()->IgnoreParens();
+      if (auto *Ty = SubExpr->getType()->getAs<PointerType>())
+        return Ty->isCHERICapability();
+      return false;
+    }
+    if (UO->getOpcode() == UO_AddrOf || UO->getOpcode() == UO_PreInc ||
+        UO->getOpcode() == UO_PreDec) {
+      return UO->getSubExpr()->hasUnderlyingCapability();
+    }
+    return false;
+  }
+
+  // Handle array subscript.
+  if (auto SE = dyn_cast<ArraySubscriptExpr>(E)) {
+    auto *Base = SE->getBase()->IgnoreParens();
+    if (auto *Ty = Base->getType()->getAs<PointerType>())
+      return Ty->isCHERICapability();
+    return Base->hasUnderlyingCapability();
+  }
+
+  // Handle casts.
+  if (auto CE = dyn_cast<CastExpr>(E)) {
+    if (CE->getCastKind() == CK_LValueBitCast)
+      return CE->getSubExpr()->hasUnderlyingCapability();
+    return false;
+  }
+
+  // Handle binary operators.
+  if (const BinaryOperator *BO = dyn_cast<const BinaryOperator>(E)) {
+    if (BO->isAssignmentOp())
+      return BO->getLHS()->hasUnderlyingCapability();
+
+    if (BO->getOpcode() == BO_Comma)
+      return BO->getRHS()->hasUnderlyingCapability();
+
+    if (BO->getOpcode() == BO_PtrMemD) {
+      if (BO->getType()->isFunctionType() ||
+          BO->hasPlaceholderType(BuiltinType::BoundMember))
+        return false;
+      return BO->getLHS()->hasUnderlyingCapability();
+    }
+
+    if (BO->getOpcode() == BO_PtrMemI) {
+      if (BO->getType()->isFunctionType() ||
+          BO->hasPlaceholderType(BuiltinType::BoundMember))
+        return false;
+      auto *LHS = BO->getLHS()->IgnoreParens();
+      if (auto *Ty = LHS->getType()->getAs<PointerType>())
+        return Ty->isCHERICapability();
+    }
+
+    return false;
+  }
+
+  // Handle conditional operators.
+  if (const ConditionalOperator *CO = dyn_cast<const ConditionalOperator>(E)) {
+    auto *True = CO->getTrueExpr()->IgnoreParens();
+    auto *False = CO->getFalseExpr()->IgnoreParens();
+    if (True->getType()->isVoidType() || False->getType()->isVoidType())
+      return false;
+    bool CTrue = True->hasUnderlyingCapability();
+    bool CFalse = False->hasUnderlyingCapability();
+    if (CTrue == CFalse)
+      return CTrue;
+    return false;
+  }
+
+  if (const CallExpr *CE = dyn_cast<const CallExpr>(E)) {
+    auto *Callee = CE->getCallee();
+    auto CalleeType = Callee->getType();
+    if (const auto *FnTypePtr = CalleeType->getAs<PointerType>()) {
+      CalleeType = FnTypePtr->getPointeeType();
+    } else if (const auto *BPT = CalleeType->getAs<BlockPointerType>()) {
+      CalleeType = BPT->getPointeeType();
+    } else if (CalleeType->isSpecificPlaceholderType(BuiltinType::BoundMember)) {
+      if (isa<CXXPseudoDestructorExpr>(Callee->IgnoreParens()))
+        return false;
+
+      // This should never be overloaded and so should never return null.
+      CalleeType = Expr::findBoundMemberType(Callee);
+    }
+
+    const FunctionType *FnType = CalleeType->castAs<FunctionType>();
+    if (auto *Ret = FnType->getReturnType()->getAs<ReferenceType>()) {
+      return Ret->isCHERICapability();
+    }
+    return false;
+  }
+
+  return false;
+}
+
+QualType Expr::getRealReferenceType(ASTContext &Ctx,
+                                    bool LValuesAsReferences) const {
+  const Expr *E = this->IgnoreParens();
+
+  // Make an exception for initializer lists with one element.
+  if (const InitListExpr *ILE = dyn_cast<const InitListExpr>(E)) {
+    if (ILE->getNumInits() == 1)
+      E = ILE->getInit(0)->IgnoreParens();
+  }
+
+  if (!Ctx.getLangOpts().CPlusPlus)
+    return E->getType();
+
+  // DeclRefExpr, CallExpr and ExplicitCastExpr can be of reference type, but
+  // in the AST E->getType() will always return the non-reference type.
+  if (const DeclRefExpr* DRE = dyn_cast<const DeclRefExpr>(E)) {
+    // XXXAR: or should this be getFoundDecl instead of getDecl?
+    if (const ValueDecl* V = dyn_cast_or_null<const ValueDecl>(DRE->getDecl())) {
+      QualType TargetType = V->getType();
+      if (TargetType->isReferenceType()) {
+        return TargetType;
+      }
+    }
+  } else if (const auto *CE = dyn_cast<const CallExpr>(E)) {
+    if (!CE->isTypeDependent() && !CE->isValueDependent())
+      return CE->getCallReturnType(Ctx);
+  } else if (const auto *ECE = dyn_cast<const ExplicitCastExpr>(E)) {
+    return ECE->getTypeAsWritten();
+  }
+  if (E->getType()->isPlaceholderType()) {
+    return E->getType();
+  }
+
+  // For LValues infer whether they should be capability references or not:
+  if (LValuesAsReferences && E->isLValue() && !E->getType()->isPointerType()) {
+#if 0
+      && (isa<MemberExpr>(E) || isa<AbstractConditionalOperator>(E) ||
+       isa<UnaryOperator>(E) || isa<BinaryOperator>(E) || isa<DeclRefExpr>(E) ||
+       isa<ArraySubscriptExpr>(E) || isa<ArraySubscriptExpr>(E))) {
+#endif
+    bool HasCap = Ctx.getTargetInfo().areAllPointersCapabilities() ||
+                  E->hasUnderlyingCapability();
+    return Ctx.getLValueReferenceType(E->getType(), true,
+                                      HasCap ? PIK_Capability : PIK_Integer);
+  }
+  return E->getType();
 }
 
 RecoveryExpr::RecoveryExpr(ASTContext &Ctx, QualType T, SourceLocation BeginLoc,

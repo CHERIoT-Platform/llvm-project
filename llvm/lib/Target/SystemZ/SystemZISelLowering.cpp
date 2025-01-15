@@ -1086,7 +1086,8 @@ bool SystemZTargetLowering::isLegalAddressingMode(const DataLayout &DL,
 
 bool SystemZTargetLowering::findOptimalMemOpLowering(
     std::vector<EVT> &MemOps, unsigned Limit, const MemOp &Op, unsigned DstAS,
-    unsigned SrcAS, const AttributeList &FuncAttributes) const {
+    unsigned SrcAS, const AttributeList &FuncAttributes,
+    bool *ReachedLimit) const {
   const int MVCFastLen = 16;
 
   if (Limit != ~unsigned(0)) {
@@ -1099,8 +1100,8 @@ bool SystemZTargetLowering::findOptimalMemOpLowering(
       return false; // Memset zero: Use XC
   }
 
-  return TargetLowering::findOptimalMemOpLowering(MemOps, Limit, Op, DstAS,
-                                                  SrcAS, FuncAttributes);
+  return TargetLowering::findOptimalMemOpLowering(
+      MemOps, Limit, Op, DstAS, SrcAS, FuncAttributes, ReachedLimit);
 }
 
 EVT SystemZTargetLowering::getOptimalMemOpType(const MemOp &Op,
@@ -2015,7 +2016,7 @@ SystemZTargetLowering::LowerCall(CallLoweringInfo &CLI,
       Callee = DAG.getTargetGlobalAddress(G->getGlobal(), DL, PtrVT);
       Callee = DAG.getNode(SystemZISD::PCREL_WRAPPER, DL, PtrVT, Callee);
     } else if (auto *E = dyn_cast<ExternalSymbolSDNode>(Callee)) {
-      Callee = DAG.getTargetExternalSymbol(E->getSymbol(), PtrVT);
+      Callee = DAG.getTargetExternalFunctionSymbol(E->getSymbol());
       Callee = DAG.getNode(SystemZISD::PCREL_WRAPPER, DL, PtrVT, Callee);
     } else if (IsTailCall) {
       Chain = DAG.getCopyToReg(Chain, DL, SystemZ::R1D, Callee, Glue);
@@ -3926,8 +3927,9 @@ SDValue SystemZTargetLowering::lowerVACOPY(SDValue Op,
       Subtarget.isTargetXPLINK64() ? getTargetMachine().getPointerSize(0) : 32;
   return DAG.getMemcpy(Chain, DL, DstPtr, SrcPtr, DAG.getIntPtrConstant(Sz, DL),
                        Align(8), /*isVolatile*/ false, /*AlwaysInline*/ false,
-                       /*isTailCall*/ false, MachinePointerInfo(DstSV),
-                       MachinePointerInfo(SrcSV));
+                       /*isTailCall*/ false,
+                       llvm::PreserveCheriTags::Unnecessary,
+                       MachinePointerInfo(DstSV), MachinePointerInfo(SrcSV));
 }
 
 SDValue

@@ -657,11 +657,13 @@ public:
   /// space.
   static PointerType *get(LLVMContext &C, unsigned AddressSpace);
 
+#ifndef LLVM_NO_DEFAULT_ADDRESS_SPACE
   /// This constructs a pointer to an object of the specified type in the
   /// default address space (address space zero).
   static PointerType *getUnqual(Type *ElementType) {
     return PointerType::get(ElementType, 0);
   }
+#endif
 
   /// This constructs an opaque pointer to an object in the
   /// default address space (address space zero).
@@ -681,6 +683,41 @@ public:
   /// Implement support type inquiry through isa, cast, and dyn_cast.
   static bool classof(const Type *T) {
     return T->getTypeID() == PointerTyID;
+  }
+};
+
+/// Class to represent fixed-size capability types during CodeGen.
+class SizedCapabilityType : public Type {
+  friend class LLVMContextImpl;
+
+protected:
+  explicit SizedCapabilityType(LLVMContext &C, unsigned NumBits)
+      : Type(C, SizedCapabilityTyID) {
+    setSubclassData(NumBits);
+  }
+
+public:
+  /// This enum is just used to hold constants we need for SizedCapabilityType.
+  enum {
+    MIN_CAP_BITS = 64,       ///< Minimum number of bits that can be specified
+    MAX_CAP_BITS = 256       ///< Maximum number of bits that can be specified
+      ///< Note that bit width is stored in the Type classes SubclassData field
+      ///< which has 24 bits.
+  };
+
+  /// This static method is the primary way of constructing an IntegerType.
+  /// If an IntegerType with the same NumBits value was previously instantiated,
+  /// that instance will be returned. Otherwise a new one will be created. Only
+  /// one instance with a given NumBits value is ever created.
+  /// Get or create an IntegerType instance.
+  static SizedCapabilityType *get(LLVMContext &C, unsigned NumBits);
+
+  /// Get the number of bits in this IntegerType
+  unsigned getBitWidth() const { return getSubclassData(); }
+
+  /// Methods for support type inquiry through isa, cast, and dyn_cast.
+  static bool classof(const Type *T) {
+    return T->getTypeID() == SizedCapabilityTyID;
   }
 };
 

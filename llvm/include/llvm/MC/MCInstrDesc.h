@@ -51,7 +51,8 @@ enum OperandFlags {
   LookupPtrRegClass = 0,
   Predicate,
   OptionalDef,
-  BranchTarget
+  BranchTarget,
+  TrapsIfSealedCapability,
 };
 
 /// Operands are tagged with one of the values of this enum.
@@ -115,6 +116,11 @@ public:
   /// Set if this operand is a branch target.
   bool isBranchTarget() const { return Flags & (1 << MCOI::BranchTarget); }
 
+  /// Whether the instruction traps if this operand is a sealed capability.
+  bool mustBeUnsealedCapability() const {
+    return Flags & (1 << MCOI::TrapsIfSealedCapability);
+  }
+
   bool isGenericType() const {
     return OperandType >= MCOI::OPERAND_FIRST_GENERIC &&
            OperandType <= MCOI::OPERAND_LAST_GENERIC;
@@ -168,6 +174,9 @@ enum Flag {
   MayLoad,
   MayStore,
   MayRaiseFPException,
+  MayTrap,
+  MayTrapOnSealedInput,
+  DefsCanBeSealed,
   Predicable,
   NotDuplicable,
   UnmodeledSideEffects,

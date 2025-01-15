@@ -19,8 +19,10 @@
 
 int main(int, char**)
 {
+#ifndef __CHERI_PURE_CAPABILITY__
     static_assert(sizeof(std::size_t) == sizeof(void*),
                   "sizeof(std::size_t) == sizeof(void*)");
+#endif
     static_assert(std::is_unsigned<std::size_t>::value,
                   "std::is_unsigned<std::size_t>::value");
     static_assert(std::is_integral<std::size_t>::value,

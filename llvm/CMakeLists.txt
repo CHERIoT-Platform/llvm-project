@@ -342,7 +342,7 @@ option(LLVM_TOOL_LLVM_DRIVER_BUILD "Enables building the llvm multicall tool" OF
 
 set(PACKAGE_NAME LLVM)
 set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
-set(PACKAGE_BUGREPORT "https://github.com/llvm/llvm-project/issues/")
+set(PACKAGE_BUGREPORT "https://github.com/CTSRD-CHERI/llvm-project/issues")
 
 set(BUG_REPORT_URL "${PACKAGE_BUGREPORT}" CACHE STRING
   "Default URL where bug reports are to be submitted.")
@@ -679,6 +679,7 @@ endif( LLVM_USE_PERF )
 set(LLVM_USE_SANITIZER "" CACHE STRING
   "Define the sanitizer used to build binaries and tests.")
 option(LLVM_OPTIMIZE_SANITIZED_BUILDS "Pass -O1 on debug sanitizer builds" ON)
+option(LLVM_OPTIMIZE_DEBUG_BUILDS "Pass -O1 on debug builds" OFF)
 set(LLVM_UBSAN_FLAGS
     "-fsanitize=undefined -fno-sanitize=vptr,function -fno-sanitize-recover=all"
     CACHE STRING
@@ -1256,6 +1257,11 @@ if( LLVM_INCLUDE_TESTS )
   endif()
 
   umbrella_lit_testsuite_end(check-all)
+    # Add shorter target aliases for the check-all-cheri128-only
+  add_custom_target(check-cheri128 DEPENDS check-all-cheri128-only)
+  set_target_properties(check-cheri128 PROPERTIES FOLDER "Tests")
+  add_custom_target(check-cheri256 DEPENDS check-all-cheri256-only)
+  set_target_properties(check-cheri256 PROPERTIES FOLDER "Tests")
   get_property(LLVM_ALL_LIT_DEPENDS GLOBAL PROPERTY LLVM_ALL_LIT_DEPENDS)
   get_property(LLVM_ALL_ADDITIONAL_TEST_DEPENDS
       GLOBAL PROPERTY LLVM_ALL_ADDITIONAL_TEST_DEPENDS)

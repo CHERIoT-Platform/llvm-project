@@ -97,6 +97,9 @@ static bool ArchSpecificInfo;
 static bool BBAddrMap;
 bool ExpandRelocs;
 static bool CGProfile;
+static bool CheriCapRelocs;
+static bool CheriCapTable;
+static bool CheriCapTableMapping;
 static bool Decompress;
 bool Demangle;
 static bool DependentLibraries;
@@ -212,6 +215,9 @@ static void parseOptions(const opt::InputArgList &Args) {
   opts::All = Args.hasArg(OPT_all);
   opts::ArchSpecificInfo = Args.hasArg(OPT_arch_specific);
   opts::BBAddrMap = Args.hasArg(OPT_bb_addr_map);
+  opts::CheriCapRelocs = Args.hasArg(OPT_cap_relocs);
+  opts::CheriCapTable = Args.hasArg(OPT_cap_table);
+  opts::CheriCapTableMapping = Args.hasArg(OPT_cap_table_mapping);
   opts::CGProfile = Args.hasArg(OPT_cg_profile);
   opts::Decompress = Args.hasArg(OPT_decompress);
   opts::Demangle = Args.hasFlag(OPT_demangle, OPT_no_demangle, false);
@@ -459,6 +465,12 @@ static void dumpObject(ObjectFile &Obj, ScopedPrinter &Writer,
       Dumper->printELFLinkerOptions();
     if (opts::ArchSpecificInfo)
       Dumper->printArchSpecificInfo();
+    if (opts::CheriCapRelocs)
+      Dumper->printCheriCapRelocs();
+    if (opts::CheriCapTable)
+      Dumper->printCheriCapTable();
+    if (opts::CheriCapTableMapping)
+      Dumper->printCheriCapTableMapping();
     if (opts::SectionGroups)
       Dumper->printGroupSections();
     if (opts::HashHistogram)
@@ -680,6 +692,8 @@ int llvm_readobj_main(int argc, char **argv, const llvm::ToolContext &) {
     opts::SectionGroups = true;
     opts::HashHistogram = true;
     if (opts::Output == opts::LLVM) {
+      opts::CheriCapRelocs = true;
+      opts::CheriCapTable = true;
       opts::Addrsig = true;
       opts::PrintStackSizes = true;
     }

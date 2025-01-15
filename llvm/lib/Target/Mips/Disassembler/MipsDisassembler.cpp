@@ -63,6 +63,8 @@ public:
 
   bool hasCnMips() const { return STI.hasFeature(Mips::FeatureCnMips); }
 
+  bool hasCHERI() const { return STI.hasFeature(Mips::FeatureMipsCheri); }
+
   bool hasCnMipsP() const { return STI.hasFeature(Mips::FeatureCnMipsP); }
 
   bool hasCOP3() const {
@@ -82,6 +84,16 @@ public:
 static DecodeStatus DecodeGPR64RegisterClass(MCInst &Inst, unsigned RegNo,
                                              uint64_t Address,
                                              const MCDisassembler *Decoder);
+static DecodeStatus
+DecodeCheriGPROrCNullRegisterClass(MCInst &Inst, unsigned RegNo,
+                                   uint64_t Address,
+                                   const MCDisassembler *Decoder);
+static DecodeStatus
+DecodeCheriGPROrDDCRegisterClass(MCInst &Inst, unsigned RegNo, uint64_t Address,
+                                 const MCDisassembler *Decoder);
+static DecodeStatus
+DecodeCheriHWRegsRegisterClass(MCInst &Inst, unsigned RegNo, uint64_t Address,
+                               const MCDisassembler *Decoder);
 
 static DecodeStatus DecodeCPU16RegsRegisterClass(MCInst &Inst, unsigned RegNo,
                                                  uint64_t Address,
@@ -1256,6 +1268,14 @@ DecodeStatus MipsDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
       return Result;
   }
 
+  if (hasCHERI()) {
+    LLVM_DEBUG(dbgs() << "Trying CHERI table (32-bit opcodes):\n");
+    Result =
+        decodeInstruction(DecoderTableCHERI32, Instr, Insn, Address, this, STI);
+    if (Result != MCDisassembler::Fail)
+      return Result;
+  }
+
   if (hasMips32r6() && isGP64()) {
     LLVM_DEBUG(
         dbgs() << "Trying Mips32r6_64r6 (GPR64) table (32-bit opcodes):\n");
@@ -1347,6 +1367,40 @@ static DecodeStatus DecodeGPR64RegisterClass(MCInst &Inst, unsigned RegNo,
     return MCDisassembler::Fail;
 
   unsigned Reg = getReg(Decoder, Mips::GPR64RegClassID, RegNo);
+  Inst.addOperand(MCOperand::createReg(Reg));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus
+DecodeCheriGPROrCNullRegisterClass(MCInst &Inst, unsigned RegNo,
+                                   uint64_t Address,
+                                   const MCDisassembler *Decoder) {
+  if (RegNo > 31)
+    return MCDisassembler::Fail;
+
+  unsigned Reg = getReg(Decoder, Mips::CheriGPROrCNullRegClassID, RegNo);
+  Inst.addOperand(MCOperand::createReg(Reg));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus
+DecodeCheriGPROrDDCRegisterClass(MCInst &Inst, unsigned RegNo, uint64_t Address,
+                                 const MCDisassembler *Decoder) {
+  if (RegNo > 31)
+    return MCDisassembler::Fail;
+
+  unsigned Reg = getReg(Decoder, Mips::CheriGPROrDDCRegClassID, RegNo);
+  Inst.addOperand(MCOperand::createReg(Reg));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus
+DecodeCheriHWRegsRegisterClass(MCInst &Inst, unsigned RegNo, uint64_t Address,
+                               const MCDisassembler *Decoder) {
+  if (RegNo > 31)
+    return MCDisassembler::Fail;
+
+  unsigned Reg = getReg(Decoder, Mips::CheriHWRegsRegClassID, RegNo);
   Inst.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
 }
@@ -1973,9 +2027,10 @@ static DecodeStatus DecodeHWRegsRegisterClass(MCInst &Inst, unsigned RegNo,
                                               uint64_t Address,
                                               const MCDisassembler *Decoder) {
   // Currently only hardware register 29 is supported.
-  if (RegNo != 29)
+  if (RegNo > 31)
     return  MCDisassembler::Fail;
-  Inst.addOperand(MCOperand::createReg(Mips::HWR29));
+  unsigned Reg = getReg(Decoder, Mips::HWRegsRegClassID, RegNo);
+  Inst.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
 }
 

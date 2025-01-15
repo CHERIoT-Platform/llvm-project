@@ -83,6 +83,8 @@
 #include "llvm/Transforms/Scalar/EarlyCSE.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Scalar/JumpThreading.h"
+#include "llvm/Transforms/Utils/CheriLogSetBounds.h"
+#include "llvm/Transforms/Utils/CheriSetBounds.h"
 #include "llvm/Transforms/Utils/Debugify.h"
 #include "llvm/Transforms/Utils/EntryExitInstrumenter.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
@@ -998,6 +1000,15 @@ void EmitAssemblyHelper::RunOptimizationPipeline(
           [Options](ModulePassManager &MPM, OptimizationLevel Level) {
             MPM.addPass(InstrProfilingLoweringPass(*Options, false));
           });
+    // Run the CSetBounds logging past after all IR-level optimization have run.
+    if (cheri::ShouldCollectCSetBoundsStats) {
+      PB.registerOptimizerLastEPCallback(
+          [](ModulePassManager &MPM, OptimizationLevel Level) {
+            FunctionPassManager FPM;
+            FPM.addPass(CheriLogSetBoundsPass());
+            MPM.addPass(createModuleToFunctionPassAdaptor(std::move(FPM)));
+          });
+    }
 
     // TODO: Consider passing the MemoryProfileOutput to the pass builder via
     // the PGOOptions, and set this up there.

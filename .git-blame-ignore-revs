@@ -16,6 +16,8 @@
 
 # r280751: [Coding style change][lldb] Moved LLDB code base to use LLVM style
 b9c1b51e45b845debb76d8658edabca70ca56079
+# Same change for CHERI:
+ffe13ea92c3bd526a4fdd458d48357affd8fe8a7
 
 # r302421: That change incorrectly changed line endings in some libc++ files
 9669df28d4fd3c52d09f451186bd217cdc3322c0

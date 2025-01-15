@@ -15,6 +15,7 @@
 
 #include "clang/Basic/LLVM.h"
 #include "clang/Basic/LangOptions.h"
+#include "clang/Basic/TargetInfo.h"
 
 namespace clang {
 
@@ -55,8 +56,9 @@ public:
 /// This type is intended to be small and suitable for passing by value.
 /// It is very frequently copied.
 struct PrintingPolicy {
-  /// Create a default printing policy for the specified language.
-  PrintingPolicy(const LangOptions &LO)
+  /// Create a default printing policy for the specified language and optional
+  /// target.
+  PrintingPolicy(const LangOptions &LO, const TargetInfo *TI = nullptr)
       : Indentation(2), SuppressSpecifiers(false),
         SuppressTagKeyword(LO.CPlusPlus), IncludeTagDefinition(false),
         SuppressScope(false), SuppressUnwrittenScope(false),
@@ -64,6 +66,7 @@ struct PrintingPolicy {
         SuppressInitializers(false), ConstantArraySizeAsWritten(false),
         AnonymousTagLocations(true), SuppressStrongLifetime(false),
         SuppressLifetimeQualifiers(false),
+        SuppressCapabilityQualifier(TI && TI->areAllPointersCapabilities()),
         SuppressTemplateArgsInCXXConstructors(false),
         SuppressDefaultTemplateArgs(true), Bool(LO.Bool),
         Nullptr(LO.CPlusPlus11 || LO.C23), NullptrTypeInNamespace(LO.CPlusPlus),
@@ -197,6 +200,9 @@ struct PrintingPolicy {
   /// When true, suppress printing of lifetime qualifier in ARC.
   LLVM_PREFERRED_TYPE(bool)
   unsigned SuppressLifetimeQualifiers : 1;
+
+  /// When true, suppress printing of the __capability qualifier.
+  unsigned SuppressCapabilityQualifier : 1;
 
   /// When true, suppresses printing template arguments in names of C++
   /// constructors.

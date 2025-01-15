@@ -20,6 +20,11 @@
 #include <string>
 #include <vector>
 
+#ifdef __CHERI_PURE_CAPABILITY__
+using VirtAddr = ptraddr_t;
+#else
+using VirtAddr = uintptr_t;
+#endif
 
 namespace fuzzer {
 

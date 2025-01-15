@@ -433,6 +433,8 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
                                                                    Opts);
     case llvm::Triple::Linux:
       return std::make_unique<LinuxTargetInfo<RISCV32TargetInfo>>(Triple, Opts);
+    case llvm::Triple::RTEMS:
+      return std::make_unique<RTEMSTargetInfo<RISCV32TargetInfo>>(Triple, Opts);
     default:
       return std::make_unique<RISCV32TargetInfo>(Triple, Opts);
     }
@@ -463,6 +465,8 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
         return std::make_unique<OHOSTargetInfo<RISCV64TargetInfo>>(Triple,
                                                                    Opts);
       }
+    case llvm::Triple::RTEMS:
+      return std::make_unique<RTEMSTargetInfo<RISCV64TargetInfo>>(Triple, Opts);
     default:
       return std::make_unique<RISCV64TargetInfo>(Triple, Opts);
     }
@@ -761,6 +765,11 @@ TargetInfo *
 TargetInfo::CreateTargetInfo(DiagnosticsEngine &Diags,
                              const std::shared_ptr<TargetOptions> &Opts) {
   llvm::Triple Triple(Opts->Triple);
+
+  // FIXME: this is probably not the right place to add this
+  if (Triple.isMIPS() && Opts->ABI == "purecap") {
+    Triple.setEnvironment(llvm::Triple::CheriPurecap);
+  }
 
   // Construct the target
   std::unique_ptr<TargetInfo> Target = AllocateTarget(Triple, *Opts);

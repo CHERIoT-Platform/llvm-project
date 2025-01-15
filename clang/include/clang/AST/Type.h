@@ -315,6 +315,13 @@ public:
     Mask |= mask;
   }
 
+  bool hasOutput() const { return Mask & OMask; }
+  void addOutput() { Mask |= OMask; }
+  void removeOutput() { Mask &= ~OMask; }
+  bool hasInput() const { return Mask & IMask; }
+  void addInput() { Mask |= IMask; }
+  void removeInput() { Mask &= ~IMask; }
+
   bool hasUnaligned() const { return Mask & UMask; }
   void setUnaligned(bool flag) {
     Mask = (Mask & ~UMask) | (flag ? UMask : 0);
@@ -609,19 +616,21 @@ public:
   }
 
 private:
-  // bits:     |0 1 2|3|4 .. 5|6  ..  8|9   ...   31|
-  //           |C R V|U|GCAttr|Lifetime|AddressSpace|
+  // bits:     |0 1 2|3|4|5|6 .. 7|8  .. 10|11  ...   31|
+  //           |C R V|U|O|I|GCAttr|Lifetime|AddressSpace|
   uint32_t Mask = 0;
 
   static const uint32_t UMask = 0x8;
   static const uint32_t UShift = 3;
-  static const uint32_t GCAttrMask = 0x30;
-  static const uint32_t GCAttrShift = 4;
-  static const uint32_t LifetimeMask = 0x1C0;
-  static const uint32_t LifetimeShift = 6;
+  static const uint32_t OMask = 0x10;
+  static const uint32_t IMask = 0x20;
+  static const uint32_t GCAttrMask = 0xC0;
+  static const uint32_t GCAttrShift = 6;
+  static const uint32_t LifetimeMask = 0x700;
+  static const uint32_t LifetimeShift = 8;
   static const uint32_t AddressSpaceMask =
-      ~(CVRMask | UMask | GCAttrMask | LifetimeMask);
-  static const uint32_t AddressSpaceShift = 9;
+      ~(IMask|OMask|CVRMask|UMask|GCAttrMask|LifetimeMask);
+  static const uint32_t AddressSpaceShift = 11;
 };
 
 class QualifiersAndAtomic {
@@ -1529,6 +1538,7 @@ public:
   }
 
   bool hasAddressSpace() const { return Quals.hasAddressSpace(); }
+
   LangAS getAddressSpace() const { return Quals.getAddressSpace(); }
 
   const Type *getBaseType() const { return BaseType; }
@@ -1576,6 +1586,15 @@ enum class AutoTypeKeyword {
 enum class ArraySizeModifier;
 enum class ElaboratedTypeKeyword;
 enum class VectorKind;
+
+/// The interpretation to use for a given pointer.
+enum PointerInterpretationKind {
+  /// The pointer should always be interpreted as a capability.
+  PIK_Capability,
+
+  /// The pointer should always be interpreted as an integer.
+  PIK_Integer,
+};
 
 /// The base class of the type hierarchy.
 ///
@@ -1678,8 +1697,17 @@ protected:
     /// 'int X[static restrict 4]'. For function parameters only.
     LLVM_PREFERRED_TYPE(ArraySizeModifier)
     unsigned SizeModifier : 3;
+
+    /// The interpretation to use for this array.
+    /// For function parameters only.
+    LLVM_PREFERRED_TYPE(PointerInterpretationKind)
+    unsigned PIK : 1;
+
+    /// Whether the pointer interpretation for this array is set.
+    LLVM_PREFERRED_TYPE(bool)
+    unsigned HasPIK : 1;
   };
-  enum { NumArrayTypeBits = NumTypeBits + 6 };
+  enum { NumArrayTypeBits = NumTypeBits + 8 };
 
   class ConstantArrayTypeBitfields {
     friend class ConstantArrayType;
@@ -1780,11 +1808,33 @@ protected:
     unsigned IsKindOf : 1;
   };
 
+  class PointerTypeBitfields {
+    friend class PointerType;
+
+    unsigned : NumTypeBits;
+
+    /// The interpretation (PointerInterpretationKind) to use for this pointer.
+    unsigned PIK : 1;
+  };
+
+  class DependentPointerTypeBitfields {
+    friend class DependentPointerType;
+
+    unsigned : NumTypeBits;
+
+    /// The interpretation (PointerInterpretationKind) to use for this pointer.
+    unsigned PIK : 1;
+  };
+
   class ReferenceTypeBitfields {
     friend class ReferenceType;
 
     LLVM_PREFERRED_TYPE(TypeBitfields)
     unsigned : NumTypeBits;
+
+    /// The interpretation (PointerInterpretationKind) to use for the pointer
+    /// backing this reference type.
+    unsigned PIK : 1;
 
     /// True if the type was originally spelled with an lvalue sigil.
     /// This is never true of rvalue references but can also be false
@@ -2012,6 +2062,8 @@ protected:
     BuiltinTypeBitfields BuiltinTypeBits;
     FunctionTypeBitfields FunctionTypeBits;
     ObjCObjectTypeBitfields ObjCObjectTypeBits;
+    PointerTypeBitfields PointerTypeBits;
+    DependentPointerTypeBitfields DependentPointerTypeBits;
     ReferenceTypeBitfields ReferenceTypeBits;
     TypeWithKeywordBitfields TypeWithKeywordBits;
     ElaboratedTypeBitfields ElaboratedTypeBits;
@@ -2261,6 +2313,28 @@ public:
   bool isFunctionNoProtoType() const { return getAs<FunctionNoProtoType>(); }
   bool isFunctionProtoType() const { return getAs<FunctionProtoType>(); }
   bool isPointerType() const;
+  /// Returns true if this type is a CHERI capability type.
+  /// If \p IncludeIntCap
+  /// is true this also includes __uintcap_t and __intcap_t, otherwise it will
+  /// return false for these types. This is useful for cases such as checking
+  /// the validity of casts where __uintcap_t is not handled the same way as
+  /// pointers.
+  bool isCHERICapabilityType(const ASTContext &Context,
+                             bool IncludeIntCap = true) const;
+  /// Returns true for __uintcap_t or __intcap_t (and enums/_Atomic with that
+  /// underlying type)
+  bool isIntCapType() const;
+  /// Returns true for pointers that are implemented as CHERI capabilities
+  /// and _Atomic with capability pointers as the underlying type.
+  bool isCapabilityPointerType() const;
+
+  /// Whether this type can hold tagged capability values.
+  /// This is true for capability types that have not been annotated with
+  /// attr::CHERINoProvenance.
+  /// In hybrid mode this also returns true for pointer types since they can
+  /// be converted to capabilities.
+  bool canCarryProvenance(const ASTContext &C) const;
+
   bool isAnyPointerType() const;   // Any C pointer or ObjC object pointer
   bool isBlockPointerType() const;
   bool isVoidPointerType() const;
@@ -2292,6 +2366,7 @@ public:
   bool isMatrixType() const;                    // Matrix type.
   bool isConstantMatrixType() const;            // Constant matrix type.
   bool isDependentAddressSpaceType() const;     // value-dependent address space qualifier
+  bool isDependentPointerType() const;          // Dependent type with PIK qualifier
   bool isObjCObjectPointerType() const;         // pointer to ObjC object
   bool isObjCRetainableType() const;            // ObjC object or block pointer
   bool isObjCLifetimeType() const;              // (array of)* retainable type
@@ -2342,6 +2417,7 @@ public:
   bool isObjCBuiltinType() const;               // 'id' or 'Class'
   bool isObjCARCBridgableType() const;
   bool isCARCBridgableType() const;
+  bool isCXXStructureOrClassType() const;       // C++ struct or class
   bool isTemplateTypeParmType() const;          // C++ template type parameter
   bool isNullPtrType() const;                   // C++11 std::nullptr_t or
                                                 // C23   nullptr_t
@@ -2890,15 +2966,57 @@ public:
   static bool classof(const Type *T) { return T->getTypeClass() == Paren; }
 };
 
+/// This class augments a type with a pointer interpretation.
+template <class T>
+class PointerInterpretationTrait {
+protected:
+  PointerInterpretationTrait() = default;
+
+public:
+  bool isCHERICapability() const {
+    return getPointerInterpretation() == PIK_Capability;
+  }
+
+  PointerInterpretationKind getPointerInterpretation() const {
+    return static_cast<const T *>(this)->getPointerInterpretationImpl();
+  }
+};
+
+/// This class augments a type with an optional pointer interpretation.
+template <class T>
+class OptionalPointerInterpretationTrait {
+protected:
+  OptionalPointerInterpretationTrait() = default;
+
+public:
+  bool isCHERICapability() const {
+    return getPointerInterpretation() == PIK_Capability;
+  }
+
+  std::optional<PointerInterpretationKind> getPointerInterpretation() const {
+    return static_cast<const T *>(this)->getPointerInterpretationImpl();
+  }
+};
+
 /// PointerType - C99 6.7.5.1 - Pointer Declarators.
-class PointerType : public Type, public llvm::FoldingSetNode {
+class PointerType : public Type,
+                    public PointerInterpretationTrait<PointerType>,
+                    public llvm::FoldingSetNode {
   friend class ASTContext; // ASTContext creates these.
+  friend class PointerInterpretationTrait<PointerType>;
 
   QualType PointeeType;
 
-  PointerType(QualType Pointee, QualType CanonicalPtr)
+  PointerType(QualType Pointee, QualType CanonicalPtr,
+              PointerInterpretationKind PIK)
       : Type(Pointer, CanonicalPtr, Pointee->getDependence()),
-        PointeeType(Pointee) {}
+        PointeeType(Pointee) {
+    PointerTypeBits.PIK = PIK;
+  }
+
+  PointerInterpretationKind getPointerInterpretationImpl() const {
+    return static_cast<PointerInterpretationKind>(PointerTypeBits.PIK);
+  }
 
 public:
   QualType getPointeeType() const { return PointeeType; }
@@ -2907,11 +3025,13 @@ public:
   QualType desugar() const { return QualType(this, 0); }
 
   void Profile(llvm::FoldingSetNodeID &ID) {
-    Profile(ID, getPointeeType());
+    Profile(ID, getPointeeType(), getPointerInterpretation());
   }
 
-  static void Profile(llvm::FoldingSetNodeID &ID, QualType Pointee) {
+  static void Profile(llvm::FoldingSetNodeID &ID, QualType Pointee,
+                      PointerInterpretationKind PIK) {
     ID.AddPointer(Pointee.getAsOpaquePtr());
+    ID.AddInteger(PIK);
   }
 
   static bool classof(const Type *T) { return T->getTypeClass() == Pointer; }
@@ -3002,14 +3122,23 @@ public:
 };
 
 /// Base for LValueReferenceType and RValueReferenceType
-class ReferenceType : public Type, public llvm::FoldingSetNode {
+class ReferenceType : public Type,
+                      public PointerInterpretationTrait<ReferenceType>,
+                      public llvm::FoldingSetNode {
+  friend class PointerInterpretationTrait<ReferenceType>;
+
   QualType PointeeType;
+
+  PointerInterpretationKind getPointerInterpretationImpl() const {
+    return static_cast<PointerInterpretationKind>(ReferenceTypeBits.PIK);
+  }
 
 protected:
   ReferenceType(TypeClass tc, QualType Referencee, QualType CanonicalRef,
-                bool SpelledAsLValue)
+                bool SpelledAsLValue, PointerInterpretationKind PIK)
       : Type(tc, CanonicalRef, Referencee->getDependence()),
         PointeeType(Referencee) {
+    ReferenceTypeBits.PIK = PIK;
     ReferenceTypeBits.SpelledAsLValue = SpelledAsLValue;
     ReferenceTypeBits.InnerRef = Referencee->isReferenceType();
   }
@@ -3029,14 +3158,16 @@ public:
   }
 
   void Profile(llvm::FoldingSetNodeID &ID) {
-    Profile(ID, PointeeType, isSpelledAsLValue());
+    Profile(ID, PointeeType, isSpelledAsLValue(), getPointerInterpretation());
   }
 
   static void Profile(llvm::FoldingSetNodeID &ID,
                       QualType Referencee,
-                      bool SpelledAsLValue) {
+                      bool SpelledAsLValue,
+                      PointerInterpretationKind PIK) {
     ID.AddPointer(Referencee.getAsOpaquePtr());
     ID.AddBoolean(SpelledAsLValue);
+    ID.AddInteger(PIK);
   }
 
   static bool classof(const Type *T) {
@@ -3050,9 +3181,9 @@ class LValueReferenceType : public ReferenceType {
   friend class ASTContext; // ASTContext creates these
 
   LValueReferenceType(QualType Referencee, QualType CanonicalRef,
-                      bool SpelledAsLValue)
+                      bool SpelledAsLValue, PointerInterpretationKind PIK)
       : ReferenceType(LValueReference, Referencee, CanonicalRef,
-                      SpelledAsLValue) {}
+                      SpelledAsLValue, PIK) {}
 
 public:
   bool isSugared() const { return false; }
@@ -3067,8 +3198,10 @@ public:
 class RValueReferenceType : public ReferenceType {
   friend class ASTContext; // ASTContext creates these
 
-  RValueReferenceType(QualType Referencee, QualType CanonicalRef)
-       : ReferenceType(RValueReference, Referencee, CanonicalRef, false) {}
+  RValueReferenceType(QualType Referencee, QualType CanonicalRef,
+                      PointerInterpretationKind PIK)
+       : ReferenceType(RValueReference, Referencee, CanonicalRef, false,
+                       PIK) {}
 
 public:
   bool isSugared() const { return false; }
@@ -3140,16 +3273,27 @@ public:
 enum class ArraySizeModifier { Normal, Static, Star };
 
 /// Represents an array type, per C99 6.7.5.2 - Array Declarators.
-class ArrayType : public Type, public llvm::FoldingSetNode {
+class ArrayType : public Type,
+                  public OptionalPointerInterpretationTrait<ArrayType>,
+                  public llvm::FoldingSetNode {
+  friend class OptionalPointerInterpretationTrait<ArrayType>;
 private:
   /// The element type of the array.
   QualType ElementType;
+
+  std::optional<PointerInterpretationKind>
+  getPointerInterpretationImpl() const {
+    if (!ArrayTypeBits.HasPIK)
+      return std::nullopt;
+    return static_cast<PointerInterpretationKind>(ArrayTypeBits.PIK);
+  }
 
 protected:
   friend class ASTContext; // ASTContext creates these.
 
   ArrayType(TypeClass tc, QualType et, QualType can, ArraySizeModifier sm,
-            unsigned tq, const Expr *sz = nullptr);
+            unsigned tq, std::optional<PointerInterpretationKind> PIK,
+            const Expr *sz = nullptr);
 
 public:
   QualType getElementType() const { return ElementType; }
@@ -3186,8 +3330,9 @@ class ConstantArrayType final
   llvm::APInt Size; // Allows us to unique the type.
 
   ConstantArrayType(QualType et, QualType can, const llvm::APInt &size,
-                    const Expr *sz, ArraySizeModifier sm, unsigned tq)
-      : ArrayType(ConstantArray, et, can, sm, tq, sz), Size(size) {
+                    const Expr *sz, ArraySizeModifier sm, unsigned tq,
+                    std::optional<PointerInterpretationKind> PIK)
+      : ArrayType(ConstantArray, et, can, sm, tq, PIK, sz), Size(size) {
     ConstantArrayTypeBits.HasStoredSizeExpr = sz != nullptr;
     if (ConstantArrayTypeBits.HasStoredSizeExpr) {
       assert(!can.isNull() && "canonical constant array should not have size");
@@ -3223,13 +3368,15 @@ public:
 
   void Profile(llvm::FoldingSetNodeID &ID, const ASTContext &Ctx) {
     Profile(ID, Ctx, getElementType(), getSize(), getSizeExpr(),
-            getSizeModifier(), getIndexTypeCVRQualifiers());
+            getSizeModifier(), getIndexTypeCVRQualifiers(),
+            getPointerInterpretation());
   }
 
   static void Profile(llvm::FoldingSetNodeID &ID, const ASTContext &Ctx,
                       QualType ET, const llvm::APInt &ArraySize,
                       const Expr *SizeExpr, ArraySizeModifier SizeMod,
-                      unsigned TypeQuals);
+                      unsigned TypeQuals,
+                      std::optional<PointerInterpretationKind> PIK);
 
   static bool classof(const Type *T) {
     return T->getTypeClass() == ConstantArray;
@@ -3242,9 +3389,9 @@ public:
 class IncompleteArrayType : public ArrayType {
   friend class ASTContext; // ASTContext creates these.
 
-  IncompleteArrayType(QualType et, QualType can,
-                      ArraySizeModifier sm, unsigned tq)
-      : ArrayType(IncompleteArray, et, can, sm, tq) {}
+  IncompleteArrayType(QualType et, QualType can, ArraySizeModifier sm,
+                      unsigned tq, std::optional<PointerInterpretationKind> PIK)
+      : ArrayType(IncompleteArray, et, can, sm, tq, PIK) {}
 
 public:
   friend class StmtIteratorBase;
@@ -3258,14 +3405,18 @@ public:
 
   void Profile(llvm::FoldingSetNodeID &ID) {
     Profile(ID, getElementType(), getSizeModifier(),
-            getIndexTypeCVRQualifiers());
+            getIndexTypeCVRQualifiers(), getPointerInterpretation());
   }
 
   static void Profile(llvm::FoldingSetNodeID &ID, QualType ET,
-                      ArraySizeModifier SizeMod, unsigned TypeQuals) {
+                      ArraySizeModifier SizeMod, unsigned TypeQuals,
+                      std::optional<PointerInterpretationKind> PIK) {
     ID.AddPointer(ET.getAsOpaquePtr());
     ID.AddInteger(llvm::to_underlying(SizeMod));
     ID.AddInteger(TypeQuals);
+    ID.AddBoolean(PIK.has_value());
+    if (PIK.has_value())
+      ID.AddInteger(*PIK);
   }
 };
 
@@ -3293,11 +3444,11 @@ class VariableArrayType : public ArrayType {
   /// The range spanned by the left and right array brackets.
   SourceRange Brackets;
 
-  VariableArrayType(QualType et, QualType can, Expr *e,
-                    ArraySizeModifier sm, unsigned tq,
-                    SourceRange brackets)
-      : ArrayType(VariableArray, et, can, sm, tq, e),
-        SizeExpr((Stmt*) e), Brackets(brackets) {}
+  VariableArrayType(QualType et, QualType can, Expr *e, ArraySizeModifier sm,
+                    unsigned tq, SourceRange brackets,
+                    std::optional<PointerInterpretationKind> PIK)
+      : ArrayType(VariableArray, et, can, sm, tq, PIK, e), SizeExpr((Stmt *)e),
+        Brackets(brackets) {}
 
 public:
   friend class StmtIteratorBase;
@@ -3352,7 +3503,8 @@ class DependentSizedArrayType : public ArrayType {
 
   DependentSizedArrayType(QualType et, QualType can, Expr *e,
                           ArraySizeModifier sm, unsigned tq,
-                          SourceRange brackets);
+                          SourceRange brackets,
+                          std::optional<PointerInterpretationKind> PIK);
 
 public:
   friend class StmtIteratorBase;
@@ -3376,12 +3528,14 @@ public:
 
   void Profile(llvm::FoldingSetNodeID &ID, const ASTContext &Context) {
     Profile(ID, Context, getElementType(),
-            getSizeModifier(), getIndexTypeCVRQualifiers(), getSizeExpr());
+            getSizeModifier(), getIndexTypeCVRQualifiers(), getSizeExpr(),
+            getPointerInterpretation());
   }
 
   static void Profile(llvm::FoldingSetNodeID &ID, const ASTContext &Context,
                       QualType ET, ArraySizeModifier SizeMod,
-                      unsigned TypeQuals, Expr *E);
+                      unsigned TypeQuals, Expr *E,
+                      std::optional<PointerInterpretationKind> PIK);
 };
 
 /// Represents an extended address space qualifier where the input address space
@@ -3423,6 +3577,44 @@ public:
 
   static void Profile(llvm::FoldingSetNodeID &ID, const ASTContext &Context,
                       QualType PointeeType, Expr *AddrSpaceExpr);
+};
+
+class DependentPointerType : public Type,
+                             public PointerInterpretationTrait<DependentPointerType>,
+                             public llvm::FoldingSetNode {
+  friend class ASTContext;
+  friend class PointerInterpretationTrait<DependentPointerType>;
+
+  const ASTContext &Context;
+  QualType PointerType;
+  SourceLocation Loc;
+
+  DependentPointerType(const ASTContext &Context, QualType PointerType,
+                       QualType Canonical, PointerInterpretationKind PIK,
+                       SourceLocation Loc);
+
+  PointerInterpretationKind getPointerInterpretationImpl() const {
+    return static_cast<PointerInterpretationKind>(
+        DependentPointerTypeBits.PIK);
+  }
+
+public:
+  QualType getPointerType() const { return PointerType; }
+  SourceLocation getQualifierLoc() const { return Loc; }
+
+  bool isSugared() const { return false; }
+  QualType desugar() const { return QualType(this, 0); }
+
+  static bool classof(const Type *T) {
+    return T->getTypeClass() == DependentPointer;
+  }
+
+  void Profile(llvm::FoldingSetNodeID &ID) {
+    Profile(ID, Context, getPointerType(), getPointerInterpretation());
+  }
+
+  static void Profile(llvm::FoldingSetNodeID &Id, const ASTContext &Context,
+                      QualType PointerType, PointerInterpretationKind PIK);
 };
 
 /// Represents an extended vector type where either the type or size is
@@ -7207,6 +7399,10 @@ inline bool Type::isConstantMatrixType() const {
 
 inline bool Type::isDependentAddressSpaceType() const {
   return isa<DependentAddressSpaceType>(CanonicalType);
+}
+
+inline bool Type::isDependentPointerType() const {
+  return isa<DependentPointerType>(CanonicalType);
 }
 
 inline bool Type::isObjCObjectPointerType() const {

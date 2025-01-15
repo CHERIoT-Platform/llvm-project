@@ -7,7 +7,7 @@ tablegen(LLVM MipsGenAsmWriter.inc -gen-asm-writer)
 tablegen(LLVM MipsGenCallingConv.inc -gen-callingconv)
 tablegen(LLVM MipsGenDAGISel.inc -gen-dag-isel)
 tablegen(LLVM MipsGenDisassemblerTables.inc -gen-disassembler)
-tablegen(LLVM MipsGenFastISel.inc -gen-fast-isel)
+# tablegen(LLVM MipsGenFastISel.inc -gen-fast-isel)
 tablegen(LLVM MipsGenGlobalISel.inc -gen-global-isel)
 tablegen(LLVM MipsGenPostLegalizeGICombiner.inc -gen-global-isel-combiner
               -combiners="MipsPostLegalizerCombiner")
@@ -53,6 +53,7 @@ add_llvm_target(MipsCodeGen
   MipsPostLegalizerCombiner.cpp
   MipsRegisterBankInfo.cpp
   MipsRegisterInfo.cpp
+  MipsSelectionDAGInfo.cpp
   MipsSEFrameLowering.cpp
   MipsSEInstrInfo.cpp
   MipsSEISelDAGToDAG.cpp
@@ -62,6 +63,12 @@ add_llvm_target(MipsCodeGen
   MipsTargetMachine.cpp
   MipsTargetObjectFile.cpp
   MipsTargetTransformInfo.cpp
+  Cheri128FailHard.cpp
+  CheriAddressingModeFolder.cpp
+  CheriAddressingModeFolder.cpp
+  CheriLoopPointerDecanonicalize.cpp
+  CheriStackInvalidatePass.cpp
+  CheriRangeChecker.cpp
   MicroMipsSizeReduction.cpp
   MipsMulMulBugPass.cpp
 
@@ -79,6 +86,8 @@ add_llvm_target(MipsCodeGen
   Support
   Target
   TargetParser
+  ScalarOpts
+  TransformUtils
 
   ADD_TO_COMPONENT
   Mips

@@ -330,7 +330,8 @@ void ARM_MC::initLLVMToCVRegMapping(MCRegisterInfo *MRI) {
     MRI->mapLLVMRegToCVReg(I.Reg, static_cast<int>(I.CVReg));
 }
 
-static MCRegisterInfo *createARMMCRegisterInfo(const Triple &Triple) {
+static MCRegisterInfo *
+createARMMCRegisterInfo(const Triple &TT, const MCTargetOptions &Options) {
   MCRegisterInfo *X = new MCRegisterInfo();
   InitARMMCRegisterInfo(X, ARM::LR, 0, 0, ARM::PC);
   ARM_MC::initLLVMToCVRegMapping(X);

@@ -1935,6 +1935,12 @@ Instruction *InstCombinerImpl::visitIntToPtr(IntToPtrInst &CI) {
   // trunc or zext to the intptr_t type, then inttoptr of it.  This allows the
   // cast to be exposed to other transforms.
   unsigned AS = CI.getAddressSpace();
+  if (DL.isFatPointer(AS)) {
+    if (Instruction *I = commonCastTransforms(CI))
+      return I;
+    return nullptr;
+  }
+
   if (CI.getOperand(0)->getType()->getScalarSizeInBits() !=
       DL.getPointerSizeInBits(AS)) {
     Type *Ty = CI.getOperand(0)->getType()->getWithNewType(
@@ -1949,6 +1955,29 @@ Instruction *InstCombinerImpl::visitIntToPtr(IntToPtrInst &CI) {
   return nullptr;
 }
 
+/// Implement the transforms for cast of pointer (bitcast/ptrtoint)
+Instruction *InstCombinerImpl::commonPointerCastTransforms(CastInst &CI) {
+  Value *Src = CI.getOperand(0);
+
+  if (GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(Src)) {
+    // If casting the result of a getelementptr instruction with no offset, turn
+    // this into a cast of the original pointer!
+    if (GEP->hasAllZeroIndices() &&
+        // If CI is an addrspacecast and GEP changes the poiner type, merging
+        // GEP into CI would undo canonicalizing addrspacecast with different
+        // pointer types, causing infinite loops.
+        (!isa<AddrSpaceCastInst>(CI) ||
+         GEP->getType() == GEP->getPointerOperandType())) {
+      // Changing the cast operand is usually not a good idea but it is safe
+      // here because the pointer operand is being replaced with another
+      // pointer operand so the opcode doesn't need to change.
+      return replaceOperand(CI, 0, GEP->getOperand(0));
+    }
+  }
+
+  return commonCastTransforms(CI);
+}
+
 Instruction *InstCombinerImpl::visitPtrToInt(PtrToIntInst &CI) {
   // If the destination integer type is not the intptr_t type for this target,
   // do a ptrtoint to intptr_t then do a trunc or zext.  This allows the cast
@@ -1957,6 +1986,10 @@ Instruction *InstCombinerImpl::visitPtrToInt(PtrToIntInst &CI) {
   Type *SrcTy = SrcOp->getType();
   Type *Ty = CI.getType();
   unsigned AS = CI.getPointerAddressSpace();
+
+  if (DL.isFatPointer(AS))
+    return commonPointerCastTransforms(CI);
+
   unsigned TySize = Ty->getScalarSizeInBits();
   unsigned PtrSize = DL.getPointerSizeInBits(AS);
   if (TySize != PtrSize) {

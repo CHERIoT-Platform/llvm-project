@@ -74,13 +74,12 @@ protected:
   }
 
 private:
-  llvm::GlobalVariable *createGlobal(llvm::Constant *initializer,
-                                     const llvm::Twine &name,
-                                     CharUnits alignment,
-                                     bool constant = false,
-                                     llvm::GlobalValue::LinkageTypes linkage
-                                       = llvm::GlobalValue::InternalLinkage,
-                                     unsigned addressSpace = 0);
+  llvm::GlobalVariable *
+  createGlobal(llvm::Constant *initializer, const llvm::Twine &name,
+               CharUnits alignment, bool constant = false,
+               llvm::GlobalValue::LinkageTypes linkage =
+                   llvm::GlobalValue::InternalLinkage,
+               std::optional<unsigned> addressSpace = std::nullopt);
 
   ConstantInitFuture createFuture(llvm::Constant *initializer);
 
@@ -202,6 +201,10 @@ public:
   /// Add a null pointer of a specific type.
   void addNullPointer(llvm::PointerType *ptrTy) {
     add(llvm::ConstantPointerNull::get(ptrTy));
+  }
+
+  void addPointerdBitCastOrAddrSpaceCast(llvm::Constant *value, llvm::Type *type) {
+    add(llvm::ConstantExpr::getPointerBitCastOrAddrSpaceCast(value, type));
   }
 
   /// Add a bunch of new values to this initializer.

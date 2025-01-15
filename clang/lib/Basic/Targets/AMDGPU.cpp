@@ -236,7 +236,7 @@ AMDGPUTargetInfo::AMDGPUTargetInfo(const llvm::Triple &Triple,
 
   // Set pointer width and alignment for the generic address space.
   PointerWidth = PointerAlign = getPointerWidthV(LangAS::Default);
-  if (getMaxPointerWidth() == 64) {
+  if (getMaxPointerRange() == 64) {
     LongWidth = LongAlign = 64;
     SizeType = UnsignedLong;
     PtrDiffType = SignedLong;

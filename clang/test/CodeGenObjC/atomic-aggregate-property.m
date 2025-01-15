@@ -30,7 +30,7 @@ struct s2 {};
 // CHECK-LP64: load atomic i64, ptr {{%.*}} unordered, align 8
 
 // CHECK-LP64: define internal void @"\01-[A setX:]"(
-// CHECK-LP64: store atomic i64 {{%.*}}, ptr {{%.*}} unordered, align 8
+// CHECK-LP64: store atomic double {{%.*}}, ptr {{%.*}} unordered, align 8
 
 // CHECK-LP64: define internal void @"\01-[A y]"(
 // CHECK-LP64: call void @objc_copyStruct(ptr {{%.*}}, ptr {{%.*}}, i64 32, i1 zeroext true, i1 zeroext false)

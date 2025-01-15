@@ -44,6 +44,10 @@ namespace llvm {
 #undef GET_VT_ATTR
 #undef GET_VT_RANGES
 
+      // CHERI-TODO: Integrate this properly into tablegen
+      FIRST_CAPABILITY_VALUETYPE = c64,
+      LAST_CAPABILITY_VALUETYPE = c256,
+
       VALUETYPE_SIZE = LAST_VALUETYPE + 1,
 
       // This is the current maximum for LAST_VALUETYPE.
@@ -98,6 +102,15 @@ namespace llvm {
               (SimpleTy >= MVT::FIRST_INTEGER_SCALABLE_VECTOR_VALUETYPE &&
                SimpleTy <= MVT::LAST_INTEGER_SCALABLE_VECTOR_VALUETYPE));
     }
+
+    /// Return true if this is a capability type.
+    bool isCapability() const {
+      return (SimpleTy >= MVT::FIRST_CAPABILITY_VALUETYPE) &&
+             (SimpleTy <= MVT::LAST_CAPABILITY_VALUETYPE);
+    }
+
+    /// Return true if this is a capability type. Deprecated.
+    bool isFatPointer() const { return isCapability(); }
 
     /// Return true if this is an integer, not including vectors.
     bool isScalarInteger() const {
@@ -315,6 +328,7 @@ namespace llvm {
       case Other:
         llvm_unreachable("Value type is non-standard value, Other.");
       case iPTR:
+      case cPTR:
         llvm_unreachable("Value type size is target-dependent. Ask TLI.");
       case iPTRAny:
       case iAny:
@@ -444,6 +458,19 @@ namespace llvm {
       return (MVT::SimpleValueType)(MVT::INVALID_SIMPLE_VALUE_TYPE);
     }
 
+    static MVT getCapabilityVT(unsigned BitWidth) {
+      switch (BitWidth) {
+      default:
+        return (MVT::SimpleValueType)(MVT::INVALID_SIMPLE_VALUE_TYPE);
+      case 64:
+        return MVT::c64;
+      case 128:
+        return MVT::c128;
+      case 256:
+        return MVT::c256;
+      }
+    }
+
     static MVT getVectorVT(MVT VT, unsigned NumElements) {
 #define GET_VT_VECATTR(Ty, Sc, nElem, ElTy, ElSz)                              \
   if (!Sc && VT.SimpleTy == ElTy && NumElements == nElem)                      \
@@ -492,6 +519,12 @@ namespace llvm {
     static auto integer_valuetypes() {
       return enum_seq_inclusive(MVT::FIRST_INTEGER_VALUETYPE,
                                 MVT::LAST_INTEGER_VALUETYPE,
+                                force_iteration_on_noniterable_enum);
+    }
+
+    static auto capability_valuetypes() {
+      return enum_seq_inclusive(MVT::FIRST_CAPABILITY_VALUETYPE,
+                                MVT::LAST_CAPABILITY_VALUETYPE,
                                 force_iteration_on_noniterable_enum);
     }
 

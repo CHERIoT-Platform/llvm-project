@@ -60,14 +60,14 @@ define void @exportedfun(ptr %a) {
 ; GLOBALOPT_ARGPROMOTION-NEXT:    call void @llvm.stackrestore.p0(ptr [[INALLOCA_SAVE]])
 ; GLOBALOPT_ARGPROMOTION-NEXT:    ret void
 ;
-  %inalloca.save = tail call ptr @llvm.stacksave()
+  %inalloca.save = tail call ptr @llvm.stacksave.p0()
   %argmem = alloca inalloca <{ %struct.a }>, align 4
   call x86_thiscallcc void @internalfun(ptr %a, <{ %struct.a }>* inalloca(<{ %struct.a }>) %argmem)
-  call void @llvm.stackrestore(ptr %inalloca.save)
+  call void @llvm.stackrestore.p0(ptr %inalloca.save)
   ret void
 }
 
 declare x86_thiscallcc ptr @copy_ctor(ptr returned, ptr dereferenceable(1))
 declare void @ext(<{ %struct.a }>* inalloca(<{ %struct.a }>))
-declare ptr @llvm.stacksave()
-declare void @llvm.stackrestore(ptr)
+declare ptr @llvm.stacksave.p0()
+declare void @llvm.stackrestore.p0(ptr)

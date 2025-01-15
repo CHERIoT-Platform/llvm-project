@@ -336,6 +336,13 @@ KEYWORD(__func__                    , KEYALL)
 KEYWORD(__objc_yes                  , KEYALL)
 KEYWORD(__objc_no                   , KEYALL)
 
+// CHERI C: Qualifiers.
+KEYWORD(__capability                , KEYALL)
+KEYWORD(__cheri_output              , KEYALL)
+KEYWORD(__cheri_input               , KEYALL)
+
+// CHERIoT Predefine Expr
+KEYWORD(__cheriot_minimum_stack__   , KEYALL)
 
 // C++ 2.11p1: Keywords.
 KEYWORD(asm                         , KEYCXX|KEYGNU)
@@ -464,6 +471,9 @@ KEYWORD(__thread                    , KEYALL)
 KEYWORD(__FUNCTION__                , KEYALL)
 KEYWORD(__PRETTY_FUNCTION__         , KEYALL)
 KEYWORD(__auto_type                 , KEYALL)
+
+// CHERI types
+KEYWORD(__intcap                    , KEYALL)
 
 // MS Extensions
 KEYWORD(__FUNCDNAME__               , KEYMS)
@@ -656,6 +666,21 @@ KEYWORD(__bridge_transfer            , KEYOBJC)
 KEYWORD(__bridge_retained            , KEYOBJC)
 KEYWORD(__bridge_retain              , KEYOBJC)
 
+
+// CHERI casts.
+KEYWORD(__cheri_tocap               , KEYALL) // cast ptr -> capability
+KEYWORD(__cheri_fromcap             , KEYALL) // cast capability -> ptr
+KEYWORD(__cheri_offset              , KEYALL) // get the capability offset field
+KEYWORD(__cheri_addr                , KEYALL) // convert capability to an address
+
+// Do not attempt to tighten (sub)-object bounds for the given expression if
+// CHERI subobject bounds are enabled. This can be used for fine-grained control
+// over bounds.
+KEYWORD(__builtin_no_change_bounds , KEYALL)
+// TODO: it would be more useful to have a general "has attribute foo" trait
+// This trait is useful to check containerof() uses
+TYPE_TRAIT_1(__builtin_marked_no_subobject_bounds, MarkedNoSubobjectBounds, KEYALL)
+
 // Objective-C keywords.
 KEYWORD(__covariant                  , KEYOBJC)
 KEYWORD(__contravariant              , KEYOBJC)
@@ -846,6 +871,8 @@ ANNOTATION(decltype)     // annotation for a decltype expression,
 // one 'pragma_unused' annotation token followed by the argument token.
 PRAGMA_ANNOTATION(pragma_unused)
 
+ANNOTATION(pragma_pointer_interpretation)
+
 // Annotation for #pragma GCC visibility...
 // The lexer produces these so that they only take effect when the parser
 // handles them.
@@ -1001,6 +1028,7 @@ ANNOTATION(repl_input_end)
 #undef TYPE_TRAIT_2
 #undef TYPE_TRAIT_1
 #undef TYPE_TRAIT
+#undef COROUTINES_KEYWORD
 #undef CXX20_KEYWORD
 #undef CXX11_KEYWORD
 #undef KEYWORD

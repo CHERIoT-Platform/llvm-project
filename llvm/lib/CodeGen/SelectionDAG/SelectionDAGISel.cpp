@@ -1276,7 +1276,11 @@ bool SelectionDAGISel::PrepareEHLandingPad() {
   const Constant *PersonalityFn = FuncInfo->Fn->getPersonalityFn();
   const BasicBlock *LLVMBB = MBB->getBasicBlock();
   const TargetRegisterClass *PtrRC =
-      TLI->getRegClassFor(TLI->getPointerTy(CurDAG->getDataLayout()));
+      TLI->getRegClassFor(TLI->getPointerTy(CurDAG->getDataLayout(),
+                  TLI->getExceptionPointerAS()));
+  // FIXME: what type is sel? pointer or pointer range?
+  const TargetRegisterClass *SelRC =
+      TLI->getRegClassFor(TLI->getPointerRangeTy(CurDAG->getDataLayout()));
 
   auto Pers = classifyEHPersonality(PersonalityFn);
 
@@ -1324,7 +1328,7 @@ bool SelectionDAGISel::PrepareEHLandingPad() {
       FuncInfo->ExceptionPointerVirtReg = MBB->addLiveIn(Reg, PtrRC);
     // Mark exception selector register as live in.
     if (unsigned Reg = TLI->getExceptionSelectorRegister(PersonalityFn))
-      FuncInfo->ExceptionSelectorVirtReg = MBB->addLiveIn(Reg, PtrRC);
+      FuncInfo->ExceptionSelectorVirtReg = MBB->addLiveIn(Reg, SelRC);
   }
 
   return true;
@@ -1425,7 +1429,7 @@ static bool processDbgDeclare(FunctionLoweringInfo &FuncInfo,
 
   // Look through casts and constant offset GEPs. These mostly come from
   // inalloca.
-  APInt Offset(DL.getTypeSizeInBits(Address->getType()), 0);
+  APInt Offset(Address->getType()->isPtrOrPtrVectorTy() ? DL.getIndexTypeSizeInBits(Address->getType()) : DL.getTypeSizeInBits(Address->getType()), 0);
   Address = Address->stripAndAccumulateInBoundsConstantOffsets(DL, Offset);
 
   // Check if the variable is a static alloca or a byval or inalloca
@@ -2737,7 +2741,15 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE static bool CheckType(MVT::SimpleValueType VT,
     return true;
 
   // Handle the case when VT is iPTR.
-  return VT == MVT::iPTR && N.getValueType() == TLI->getPointerTy(DL);
+  if (VT == MVT::iPTR && N.getValueType() == TLI->getPointerTy(DL, 0))
+    return true;
+
+  // Handle the case when VT is cPTR.
+  // XXX: Hard-coded AS
+  if (VT == MVT::cPTR && N.getValueType() == TLI->getPointerTy(DL, 200))
+    return true;
+
+  return false;
 }
 
 LLVM_ATTRIBUTE_ALWAYS_INLINE static bool
@@ -2772,7 +2784,17 @@ CheckValueType(const unsigned char *MatcherTable, unsigned &MatcherIndex,
     return true;
 
   // Handle the case when VT is iPTR.
-  return VT == MVT::iPTR && cast<VTSDNode>(N)->getVT() == TLI->getPointerTy(DL);
+  if (VT == MVT::iPTR &&
+      cast<VTSDNode>(N)->getVT() == TLI->getPointerTy(DL, 0))
+    return true;
+
+  // Handle the case when VT is cPTR.
+  // XXX: Hard-coded AS
+  if (VT == MVT::cPTR &&
+      cast<VTSDNode>(N)->getVT() == TLI->getPointerTy(DL, 200))
+    return true;
+
+  return false;
 }
 
 // Bit 0 stores the sign of the immediate. The upper bits contain the magnitude
@@ -3500,8 +3522,12 @@ void SelectionDAGISel::SelectCodeCommon(SDNode *NodeToMatch,
 
         MVT CaseVT =
             static_cast<MVT::SimpleValueType>(MatcherTable[MatcherIndex++]);
+        // FIXME: is AS0 correct here?
         if (CaseVT == MVT::iPTR)
-          CaseVT = TLI->getPointerTy(CurDAG->getDataLayout());
+          CaseVT = TLI->getPointerTy(CurDAG->getDataLayout(), 0);
+        else if (CaseVT == MVT::cPTR)
+          // XXX: Hard-coded AS
+          CaseVT = TLI->getPointerTy(CurDAG->getDataLayout(), 200);
 
         // If the VT matches, then we will execute this case.
         if (CurNodeVT == CaseVT)
@@ -3926,8 +3952,12 @@ void SelectionDAGISel::SelectCodeCommon(SDNode *NodeToMatch,
       for (unsigned i = 0; i != NumVTs; ++i) {
         MVT::SimpleValueType VT =
             static_cast<MVT::SimpleValueType>(MatcherTable[MatcherIndex++]);
+        // FIXME: is AS0 correct here? This is what it was before
         if (VT == MVT::iPTR)
-          VT = TLI->getPointerTy(CurDAG->getDataLayout()).SimpleTy;
+          VT = TLI->getPointerTy(CurDAG->getDataLayout(), 0).SimpleTy;
+        else if (VT == MVT::cPTR)
+          // XXX: Hard-coded AS
+          VT = TLI->getPointerTy(CurDAG->getDataLayout(), 200).SimpleTy;
         VTs.push_back(VT);
       }
 
@@ -4105,7 +4135,9 @@ void SelectionDAGISel::SelectCodeCommon(SDNode *NodeToMatch,
                "Invalid number of results to complete!");
         assert((NodeToMatch->getValueType(i) == Res.getValueType() ||
                 NodeToMatch->getValueType(i) == MVT::iPTR ||
+                NodeToMatch->getValueType(i) == MVT::cPTR ||
                 Res.getValueType() == MVT::iPTR ||
+                Res.getValueType() == MVT::cPTR ||
                 NodeToMatch->getValueType(i).getSizeInBits() ==
                     Res.getValueSizeInBits()) &&
                "invalid replacement");

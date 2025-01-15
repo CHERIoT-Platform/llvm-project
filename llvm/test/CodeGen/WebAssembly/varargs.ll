@@ -15,7 +15,7 @@ define void @start(ptr %ap, ...) {
 entry:
 ; Store the second argument (the hidden vararg buffer pointer) into ap
 ; CHECK: i32.store 0($0), $1
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   ret void
 }
 
@@ -26,7 +26,7 @@ entry:
 ; CHECK-NEXT: return{{$}}
 define void @end(ptr %ap) {
 entry:
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
   ret void
 }
 
@@ -39,7 +39,7 @@ entry:
 ; CHECK-NEXT: return{{$}}
 define void @copy(ptr %ap, ptr %bp) {
 entry:
-  call void @llvm.va_copy(ptr %ap, ptr %bp)
+  call void @llvm.va_copy.p0.p0(ptr %ap, ptr %bp)
   ret void
 }
 
@@ -132,7 +132,7 @@ bb0:
 bb1:
 ; Store the second argument (the hidden vararg buffer pointer) into ap
 ; CHECK: i32.store 0($1), $2
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   ret void
 }
 
@@ -201,6 +201,6 @@ entry:
   ret void
 }
 
-declare void @llvm.va_start(ptr)
-declare void @llvm.va_end(ptr)
-declare void @llvm.va_copy(ptr, ptr)
+declare void @llvm.va_start.p0(ptr)
+declare void @llvm.va_end.p0(ptr)
+declare void @llvm.va_copy.p0.p0(ptr, ptr)

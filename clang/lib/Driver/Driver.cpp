@@ -646,6 +646,17 @@ static llvm::Triple computeTargetTriple(const Driver &D,
   if (Target.isMIPS()) {
     if ((A = Args.getLastArg(options::OPT_mabi_EQ))) {
       StringRef ABIName = A->getValue();
+      if (Target.isMIPS64() &&
+          Target.getEnvironment() == llvm::Triple::CheriPurecap) {
+        if (ABIName.empty()) {
+          ABIName = "purecap";
+        } else if (ABIName != "purecap") {
+          D.Diag(diag::warn_drv_abi_overriding_triple)
+              << Target.str() << Target.getEnvironmentName() << ABIName;
+          Target.setEnvironment(llvm::Triple::GNUABI64);
+        }
+      }
+
       if (ABIName == "32") {
         Target = Target.get32BitArchVariant();
         if (Target.getEnvironment() == llvm::Triple::GNUABI64 ||
@@ -654,14 +665,48 @@ static llvm::Triple computeTargetTriple(const Driver &D,
       } else if (ABIName == "n32") {
         Target = Target.get64BitArchVariant();
         if (Target.getEnvironment() == llvm::Triple::GNU ||
-            Target.getEnvironment() == llvm::Triple::GNUABI64)
+            Target.getEnvironment() == llvm::Triple::GNUABI64 ||
+            Target.getEnvironment() == llvm::Triple::CheriPurecap)
           Target.setEnvironment(llvm::Triple::GNUABIN32);
       } else if (ABIName == "64") {
         Target = Target.get64BitArchVariant();
         if (Target.getEnvironment() == llvm::Triple::GNU ||
-            Target.getEnvironment() == llvm::Triple::GNUABIN32)
+            Target.getEnvironment() == llvm::Triple::GNUABIN32 ||
+            Target.getEnvironment() == llvm::Triple::CheriPurecap)
           Target.setEnvironment(llvm::Triple::GNUABI64);
+      } else if (ABIName == "purecap") {
+        if (Target.getEnvironment() != llvm::Triple::CheriPurecap &&
+            Target.getEnvironment() != llvm::Triple::UnknownEnvironment) {
+          D.Diag(diag::warn_drv_abi_overriding_triple)
+              << Target.str() << Target.getEnvironmentName() << ABIName;
+        }
+        Target.setEnvironment(llvm::Triple::CheriPurecap);
+        if (Target.isMIPS32())
+          D.Diag(diag::err_drv_unsupported_opt_for_target)
+              << "-mabi=purecap" << Target.str();
       }
+      // Adjust CHERI subarch based on -cheri/-mcpu flags
+      const char *ArchName = nullptr;
+      if (Arg *A = Args.getLastArg(options::OPT_cheri, options::OPT_cheri_EQ)) {
+        if (A->getOption().matches(options::OPT_cheri)) {
+          ArchName = "mips64c128";
+        } else {
+          ArchName = llvm::StringSwitch<const char *>(A->getValue())
+                         .Case("64", "mips64c64")
+                         .Case("128", "mips64c128")
+                         .Case("256", "mips64c256")
+                         .Default("mips64c128");
+        }
+      } else if (Arg *A2 = Args.getLastArg(options::OPT_mcpu_EQ)) {
+        ArchName = llvm::StringSwitch<const char *>(A2->getValue())
+                       .Case("cheri64", "mips64c64")
+                       .Case("cheri128", "mips64c128")
+                       .Case("cheri256", "mips64c256")
+                       .Default(nullptr);
+      }
+      // TODO: there is no Triple::setSubArch();
+      if (ArchName)
+        Target.setArchName(ArchName);
     }
   }
 

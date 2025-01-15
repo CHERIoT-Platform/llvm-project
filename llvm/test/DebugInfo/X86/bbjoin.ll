@@ -26,7 +26,7 @@ target triple = "x86_64-apple-macosx10.11.0"
 define i32 @f() #0 !dbg !4 {
 entry:
   %x = alloca i32, align 4
-  call void @llvm.lifetime.start(i64 4, ptr %x) #4, !dbg !14
+  call void @llvm.lifetime.start.p0(i64 4, ptr %x) #4, !dbg !14
   tail call void @llvm.dbg.value(metadata i32 23, metadata !9, metadata !15), !dbg !16
   store i32 23, ptr %x, align 4, !dbg !16, !tbaa !17
   tail call void @llvm.dbg.value(metadata ptr %x, metadata !9, metadata !DIExpression(DW_OP_deref)), !dbg !16
@@ -44,17 +44,17 @@ if.then:                                          ; preds = %entry
 if.end:                                           ; preds = %if.then, %entry
   %1 = phi i32 [ 43, %if.then ], [ %0, %entry ], !dbg !27
   call void @llvm.dbg.value(metadata ptr %x, metadata !9, metadata !DIExpression(DW_OP_deref)), !dbg !16
-  call void @llvm.lifetime.end(i64 4, ptr %x) #4, !dbg !28
+  call void @llvm.lifetime.end.p0(i64 4, ptr %x) #4, !dbg !28
   ret i32 %1, !dbg !29
 }
 
 ; Function Attrs: argmemonly nounwind
-declare void @llvm.lifetime.start(i64, ptr nocapture) #1
+declare void @llvm.lifetime.start.p0(i64, ptr nocapture) #1
 
 declare void @g(ptr) #4
 
 ; Function Attrs: argmemonly nounwind
-declare void @llvm.lifetime.end(i64, ptr nocapture) #1
+declare void @llvm.lifetime.end.p0(i64, ptr nocapture) #1
 
 ; Function Attrs: nounwind readnone
 declare void @llvm.dbg.value(metadata, metadata, metadata) #3

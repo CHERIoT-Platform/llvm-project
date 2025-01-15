@@ -386,8 +386,8 @@ class LLVMAnyType<ValueType vt> : LLVMType<vt> {
   assert isAny, "LLVMAnyType.VT should have isOverloaded";
 }
 
-class LLVMQualPointerType<int addrspace>
-  : LLVMType<iPTR> {
+class LLVMQualPointerType<int addrspace, ValueType vt = iPTR>
+  : LLVMType<vt> {
   assert !and(!le(0, addrspace), !le(addrspace, 255)),
     "Address space exceeds 255";
 
@@ -402,6 +402,12 @@ class LLVMQualPointerType<int addrspace>
 
 class LLVMAnyPointerType : LLVMAnyType<iPTRAny> {
   assert isAny, "iPTRAny should have isOverloaded";
+}
+
+class LLVMCapabilityType : LLVMQualPointerType<200, cPTR>{
+  // XXX: We need to set isAny manually here as there is no
+  // ElemTy anymore
+  let isAny = false;
 }
 
 // Match the type of another intrinsic parameter.  Number is an index into the
@@ -490,6 +496,7 @@ def llvm_f128_ty       : LLVMType<f128>;
 def llvm_ppcf128_ty    : LLVMType<ppcf128>;
 def llvm_ptr_ty        : LLVMQualPointerType<0>; // ptr
 def llvm_anyptr_ty     : LLVMAnyPointerType;     // ptr addrspace(N)
+def llvm_cap_ty        : LLVMCapabilityType;     // ptr addrspace(200)
 def llvm_empty_ty      : LLVMType<OtherVT>;      // { }
 def llvm_metadata_ty   : LLVMType<MetadataVT>;   // !{...}
 def llvm_token_ty      : LLVMType<token>;        // token
@@ -688,6 +695,11 @@ class ClangBuiltin<string name> {
   string ClangBuiltinName = name;
 }
 
+class GCCBuiltinAlias<string name> {
+  string GCCBuiltinAliasName = name;
+}
+
+
 class MSBuiltin<string name> {
   string MSBuiltinName = name;
 }
@@ -697,10 +709,10 @@ class MSBuiltin<string name> {
 //===--------------- Variable Argument Handling Intrinsics ----------------===//
 //
 
-def int_vastart : DefaultAttrsIntrinsic<[], [llvm_ptr_ty], [], "llvm.va_start">;
-def int_vacopy  : DefaultAttrsIntrinsic<[], [llvm_ptr_ty, llvm_ptr_ty], [],
+def int_vastart : DefaultAttrsIntrinsic<[], [llvm_anyptr_ty], [], "llvm.va_start">;
+def int_vacopy  : DefaultAttrsIntrinsic<[], [llvm_anyptr_ty, llvm_anyptr_ty], [],
                             "llvm.va_copy">;
-def int_vaend   : DefaultAttrsIntrinsic<[], [llvm_ptr_ty], [], "llvm.va_end">;
+def int_vaend   : DefaultAttrsIntrinsic<[], [llvm_anyptr_ty], [], "llvm.va_end">;
 
 //===------------------- Garbage Collection Intrinsics --------------------===//
 //
@@ -802,17 +814,17 @@ def int_swift_async_context_addr : Intrinsic<[llvm_ptr_ty], [], []>;
 
 //===--------------------- Code Generator Intrinsics ----------------------===//
 //
-def int_returnaddress : DefaultAttrsIntrinsic<[llvm_ptr_ty], [llvm_i32_ty],
+def int_returnaddress : DefaultAttrsIntrinsic<[llvm_anyptr_ty], [llvm_i32_ty],
                                   [IntrNoMem, ImmArg<ArgIndex<0>>]>;
 def int_addressofreturnaddress : DefaultAttrsIntrinsic<[llvm_anyptr_ty], [], [IntrNoMem]>;
 def int_frameaddress : DefaultAttrsIntrinsic<[llvm_anyptr_ty], [llvm_i32_ty],
                                  [IntrNoMem, ImmArg<ArgIndex<0>>]>;
 def int_sponentry  : DefaultAttrsIntrinsic<[llvm_anyptr_ty], [], [IntrNoMem]>;
-def int_read_register  : DefaultAttrsIntrinsic<[llvm_anyint_ty], [llvm_metadata_ty],
+def int_read_register  : DefaultAttrsIntrinsic<[llvm_any_ty], [llvm_metadata_ty],
                                    [IntrReadMem], "llvm.read_register">;
-def int_write_register : Intrinsic<[], [llvm_metadata_ty, llvm_anyint_ty],
+def int_write_register : Intrinsic<[], [llvm_metadata_ty, llvm_any_ty],
                                    [IntrNoCallback], "llvm.write_register">;
-def int_read_volatile_register  : Intrinsic<[llvm_anyint_ty], [llvm_metadata_ty],
+def int_read_volatile_register  : Intrinsic<[llvm_any_ty], [llvm_metadata_ty],
                                             [IntrHasSideEffects],
                                              "llvm.read_volatile_register">;
 
@@ -887,7 +899,7 @@ def int_experimental_noalias_scope_decl
 
 // Stack Protector Intrinsic - The stackprotector intrinsic writes the stack
 // guard to the correct place on the stack frame.
-def int_stackprotector : DefaultAttrsIntrinsic<[], [llvm_ptr_ty, llvm_ptr_ty], []>;
+def int_stackprotector : DefaultAttrsIntrinsic<[], [llvm_ptr_ty, llvm_anyptr_ty], []>;
 def int_stackguard : DefaultAttrsIntrinsic<[llvm_ptr_ty], [], []>;
 
 // A cover for instrumentation based profiling.
@@ -1747,7 +1759,7 @@ def int_fptosi_sat : DefaultAttrsIntrinsic<[llvm_anyint_ty], [llvm_anyfloat_ty]>
 
 // Clear cache intrinsic, default to ignore (ie. emit nothing)
 // maps to void __clear_cache() on supporting platforms
-def int_clear_cache : Intrinsic<[], [llvm_ptr_ty, llvm_ptr_ty],
+def int_clear_cache : Intrinsic<[], [llvm_anyptr_ty, LLVMMatchType<0>],
                                 [], "llvm.clear_cache">;
 
 // Intrinsic to detect whether its argument is a constant.
@@ -2597,6 +2609,7 @@ include "llvm/IR/IntrinsicsAMDGPU.td"
 include "llvm/IR/IntrinsicsBPF.td"
 include "llvm/IR/IntrinsicsSystemZ.td"
 include "llvm/IR/IntrinsicsWebAssembly.td"
+include "llvm/IR/IntrinsicsCHERICap.td"
 include "llvm/IR/IntrinsicsRISCV.td"
 include "llvm/IR/IntrinsicsSPIRV.td"
 include "llvm/IR/IntrinsicsVE.td"

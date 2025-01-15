@@ -108,6 +108,7 @@ public:
   ASTContext &getContext() const { return Context; }
   const ABIInfo &getABIInfo() const { return TheABIInfo; }
   const TargetInfo &getTarget() const { return Target; }
+  CodeGenModule& getCGM() { return CGM; }
   CGCXXABI &getCXXABI() const { return TheCXXABI; }
   llvm::LLVMContext &getLLVMContext() { return TheModule.getContext(); }
   const CodeGenOptions &getCodeGenOpts() const;
@@ -209,8 +210,9 @@ public:
   const CGFunctionInfo &
   arrangeBuiltinFunctionDeclaration(CanQualType resultType,
                                     ArrayRef<CanQualType> argTypes);
-  const CGFunctionInfo &arrangeBuiltinFunctionCall(QualType resultType,
-                                                   const CallArgList &args);
+  const CGFunctionInfo &
+  arrangeBuiltinFunctionCall(QualType resultType, const CallArgList &args,
+                             FunctionType::ExtInfo info = {});
 
   /// Objective-C methods are C functions with some implicit parameters.
   const CGFunctionInfo &arrangeObjCMethodDeclaration(const ObjCMethodDecl *MD);
@@ -294,6 +296,7 @@ public:  // These are internal details of CGT that shouldn't be used externally.
 
   bool isLongDoubleReferenced() const { return LongDoubleReferenced; }
   bool isRecordLayoutComplete(const Type *Ty) const;
+  bool canMarkAsNonNull(QualType DestTy) const;
   unsigned getTargetAddressSpace(QualType T) const;
 };
 

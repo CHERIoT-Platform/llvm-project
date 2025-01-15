@@ -14,6 +14,7 @@
 
 #include "clang/CodeGen/ConstantInitBuilder.h"
 #include "CodeGenModule.h"
+#include "TargetInfo.h"
 
 using namespace clang;
 using namespace CodeGen;
@@ -63,13 +64,10 @@ inline ConstantInitFuture::ConstantInitFuture(ConstantInitBuilderBase *builder)
   assert(builder->Buffer[0] != nullptr);
 }
 
-llvm::GlobalVariable *
-ConstantInitBuilderBase::createGlobal(llvm::Constant *initializer,
-                                      const llvm::Twine &name,
-                                      CharUnits alignment,
-                                      bool constant,
-                                      llvm::GlobalValue::LinkageTypes linkage,
-                                      unsigned addressSpace) {
+llvm::GlobalVariable *ConstantInitBuilderBase::createGlobal(
+    llvm::Constant *initializer, const llvm::Twine &name, CharUnits alignment,
+    bool constant, llvm::GlobalValue::LinkageTypes linkage,
+    std::optional<unsigned> addressSpace) {
   auto GV = new llvm::GlobalVariable(CGM.getModule(),
                                      initializer->getType(),
                                      constant,

@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 // test type_info
+// UNSUPPORTED: libcpp-no-rtti
 
 // UNSUPPORTED: no-rtti
 

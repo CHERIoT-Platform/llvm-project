@@ -35,7 +35,8 @@ struct TestRunner {
         while (Start == false) {}
         while (KeepRunning) {
             // loop to prevent always checking the atomic.
-            for (int i=0; i < 100000; ++i) {
+            const int limit = TEST_SLOW_HOST() ? 1000 : 100000;
+            for (int i=0; i < limit; ++i) {
                 Ptr x2 = x; // increment shared count
                 WeakPtr x3 = x; // increment weak count
                 Ptr x4 = x3.lock(); // increment shared count via lock

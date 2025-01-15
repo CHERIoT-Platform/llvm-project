@@ -15,6 +15,7 @@
 #include "llvm/MC/MCFixup.h"
 #include "llvm/MC/MCObjectWriter.h"
 #include "llvm/MC/MCSymbolELF.h"
+#include "llvm/MC/MCValue.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Debug.h"
@@ -274,6 +275,10 @@ unsigned MipsELFObjectWriter::getRelocType(MCContext &Ctx,
       return ELF::R_MIPS_PCHI16;
     case Mips::fixup_MIPS_PCLO16:
       return ELF::R_MIPS_PCLO16;
+    case Mips::fixup_Mips_HI16:
+      return ELF::R_MIPS_PCHI16;
+    case Mips::fixup_Mips_LO16:
+      return ELF::R_MIPS_PCLO16;
     }
 
     llvm_unreachable("invalid PC-relative fixup kind!");
@@ -294,6 +299,8 @@ unsigned MipsELFObjectWriter::getRelocType(MCContext &Ctx,
                      ELF::R_MIPS_NONE);
   case Mips::fixup_Mips_GPREL16:
     return ELF::R_MIPS_GPREL16;
+  case Mips::fixup_Mips_CAPTABLEREL16:
+    return ELF::R_MIPS_CHERI_CAPTABLEREL16;
   case Mips::fixup_Mips_26:
     return ELF::R_MIPS_26;
   case Mips::fixup_Mips_CALL16:
@@ -334,6 +341,12 @@ unsigned MipsELFObjectWriter::getRelocType(MCContext &Ctx,
   case Mips::fixup_MICROMIPS_GPOFF_LO:
     return setRTypes(ELF::R_MICROMIPS_GPREL16, ELF::R_MICROMIPS_SUB,
                      ELF::R_MICROMIPS_LO16);
+  case Mips::fixup_Mips_CAPTABLEOFF_HI:
+    return setRTypes(ELF::R_MIPS_CHERI_CAPTABLEREL16, ELF::R_MIPS_SUB,
+                     ELF::R_MIPS_HI16);
+  case Mips::fixup_Mips_CAPTABLEOFF_LO:
+    return setRTypes(ELF::R_MIPS_CHERI_CAPTABLEREL16, ELF::R_MIPS_SUB,
+                     ELF::R_MIPS_LO16);
   case Mips::fixup_Mips_HIGHER:
     return ELF::R_MIPS_HIGHER;
   case Mips::fixup_Mips_HIGHEST:
@@ -388,6 +401,52 @@ unsigned MipsELFObjectWriter::getRelocType(MCContext &Ctx,
     return ELF::R_MIPS_JALR;
   case Mips::fixup_MICROMIPS_JALR:
     return ELF::R_MICROMIPS_JALR;
+
+  // CHERI relocations:
+  case Mips::fixup_CHERI_CAPTABLE11:
+    return ELF::R_MIPS_CHERI_CAPTAB_CLC11;
+  case Mips::fixup_CHERI_CAPTABLE20:
+    return ELF::R_MIPS_CHERI_CAPTAB20;
+  case Mips::fixup_CHERI_CAPTABLE_LO16:
+    return ELF::R_MIPS_CHERI_CAPTAB_LO16;
+  case Mips::fixup_CHERI_CAPTABLE_HI16:
+    return ELF::R_MIPS_CHERI_CAPTAB_HI16;
+
+  case Mips::fixup_CHERI_CAPCALL11:
+    return ELF::R_MIPS_CHERI_CAPCALL_CLC11;
+  case Mips::fixup_CHERI_CAPCALL20:
+    return ELF::R_MIPS_CHERI_CAPCALL20;
+  case Mips::fixup_CHERI_CAPCALL_LO16:
+    return ELF::R_MIPS_CHERI_CAPCALL_LO16;
+  case Mips::fixup_CHERI_CAPCALL_HI16:
+    return ELF::R_MIPS_CHERI_CAPCALL_HI16;
+
+  case Mips::fixup_CHERI_CAPABILITY: {
+    const auto &ElfSym = cast<const MCSymbolELF>(Target.getSymA()->getSymbol());
+    // Assert that we don't create .chericap relocations against temporary
+    // symbols since those will result in wrong relocations (against sec+offset)
+    if (ElfSym.isDefined() && !ElfSym.getSize() &&
+        !ElfSym.getName().starts_with(".Llpad")) {
+      Ctx.reportWarning(Fixup.getLoc(),
+          "creating a R_MIPS_CHERI_CAPABILITY relocation against an unsized "
+          "defined symbol: " + ElfSym.getName() +
+          ". This will probably result in incorrect values at run time.");
+    }
+    return ELF::R_MIPS_CHERI_CAPABILITY;
+  }
+
+  case Mips::fixup_CHERI_CAPTAB_TLSGD_HI16:
+    return ELF::R_MIPS_CHERI_CAPTAB_TLS_GD_HI16;
+  case Mips::fixup_CHERI_CAPTAB_TLSGD_LO16:
+    return ELF::R_MIPS_CHERI_CAPTAB_TLS_GD_LO16;
+  case Mips::fixup_CHERI_CAPTAB_TLSLDM_HI16:
+    return ELF::R_MIPS_CHERI_CAPTAB_TLS_LDM_HI16;
+  case Mips::fixup_CHERI_CAPTAB_TLSLDM_LO16:
+    return ELF::R_MIPS_CHERI_CAPTAB_TLS_LDM_LO16;
+  case Mips::fixup_CHERI_CAPTAB_TPREL_HI16:
+    return ELF::R_MIPS_CHERI_CAPTAB_TLS_TPREL_HI16;
+  case Mips::fixup_CHERI_CAPTAB_TPREL_LO16:
+    return ELF::R_MIPS_CHERI_CAPTAB_TLS_TPREL_LO16;
   }
 
   llvm_unreachable("invalid fixup kind!");
@@ -566,6 +625,29 @@ bool MipsELFObjectWriter::needsRelocateWithSymbol(const MCValue &Val,
   case ELF::R_MIPS_PC16:
   case ELF::R_MIPS_SUB:
     return false;
+
+  // CHERI Capability relocations need to preserve the symbol in order to be
+  // able to get tight bounds on the resulting capability.
+  case ELF::R_MIPS_CHERI_CAPTAB_LO16:
+  case ELF::R_MIPS_CHERI_CAPTAB_HI16:
+  case ELF::R_MIPS_CHERI_CAPTAB_CLC11:
+  case ELF::R_MIPS_CHERI_CAPTAB20:
+  case ELF::R_MIPS_CHERI_CAPCALL_LO16:
+  case ELF::R_MIPS_CHERI_CAPCALL_HI16:
+  case ELF::R_MIPS_CHERI_CAPCALL_CLC11:
+  case ELF::R_MIPS_CHERI_CAPCALL20:
+  case ELF::R_MIPS_CHERI_CAPABILITY:
+    return true;
+  case ELF::R_MIPS_CHERI_SETTAG:
+  case ELF::R_MIPS_CHERI_SETTAG_LOADADDR:
+  case ELF::R_MIPS_CHERI_LOCAL_CAPABILITY:
+  case ELF::R_MIPS_CHERI_GLOBALS_TABLE:
+    llvm_unreachable("This relocation should not be genreated yet!");
+    return true;
+  // We want to keep the symbol for CAPTABLEREL since otherwise the offset to
+  // $pcc could be wrong
+  case ELF::R_MIPS_CHERI_CAPTABLEREL16:
+    return true;
 
   // FIXME: Many of these relocations should probably return false but this
   //        hasn't been confirmed to be safe yet.

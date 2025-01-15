@@ -146,18 +146,18 @@ void MemoryMappingLayout::DumpListOfModules(
 }
 
 #if SANITIZER_LINUX || SANITIZER_ANDROID || SANITIZER_SOLARIS || SANITIZER_NETBSD
-void GetMemoryProfile(fill_profile_f cb, uptr *stats) {
+void GetMemoryProfile(fill_profile_f cb, usize *stats) {
   char *smaps = nullptr;
-  uptr smaps_cap = 0;
-  uptr smaps_len = 0;
+  usize smaps_cap = 0;
+  usize smaps_len = 0;
   if (!ReadFileToBuffer("/proc/self/smaps", &smaps, &smaps_cap, &smaps_len))
     return;
   ParseUnixMemoryProfile(cb, stats, smaps, smaps_len);
   UnmapOrDie(smaps, smaps_cap);
 }
 
-void ParseUnixMemoryProfile(fill_profile_f cb, uptr *stats, char *smaps,
-                            uptr smaps_len) {
+void ParseUnixMemoryProfile(fill_profile_f cb, usize *stats, char *smaps,
+                            usize smaps_len) {
   uptr start = 0;
   bool file = false;
   const char *pos = smaps;
@@ -179,7 +179,7 @@ void ParseUnixMemoryProfile(fill_profile_f cb, uptr *stats, char *smaps,
       file = *pos == '/';
     } else if (internal_strncmp(pos, "Rss:", 4) == 0) {
       while (pos < end && !IsDecimal(*pos)) pos++;
-      uptr rss = ParseDecimal(&pos) * 1024;
+      usize rss = ParseDecimal(&pos) * 1024;
       cb(start, rss, file, stats);
     }
     while (*pos++ != '\n') {}

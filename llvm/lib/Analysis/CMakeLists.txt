@@ -42,6 +42,7 @@ add_llvm_component_library(LLVMAnalysis
   CallGraphSCCPass.cpp
   CallPrinter.cpp
   CaptureTracking.cpp
+  CheriBounds.cpp
   CmpInstAnalysis.cpp
   CostModel.cpp
   CodeMetrics.cpp

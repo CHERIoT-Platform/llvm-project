@@ -13,6 +13,7 @@
 #include "RISCVELFStreamer.h"
 #include "RISCVAsmBackend.h"
 #include "RISCVBaseInfo.h"
+#include "RISCVFixupKinds.h"
 #include "RISCVMCTargetDesc.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/MC/MCAsmBackend.h"
@@ -59,6 +60,8 @@ void RISCVTargetELFStreamer::emitDirectiveOptionRVC() {}
 void RISCVTargetELFStreamer::emitDirectiveOptionNoRVC() {}
 void RISCVTargetELFStreamer::emitDirectiveOptionRelax() {}
 void RISCVTargetELFStreamer::emitDirectiveOptionNoRelax() {}
+void RISCVTargetELFStreamer::emitDirectiveOptionCapMode() {}
+void RISCVTargetELFStreamer::emitDirectiveOptionNoCapMode() {}
 
 void RISCVTargetELFStreamer::emitAttribute(unsigned Attribute, unsigned Value) {
   getStreamer().setAttributeItem(Attribute, Value, /*OverwriteExisting=*/true);
@@ -97,21 +100,44 @@ void RISCVTargetELFStreamer::finish() {
   if (hasTSO())
     EFlags |= ELF::EF_RISCV_TSO;
 
+  if (isCapMode())
+    EFlags |= ELF::EF_RISCV_CAP_MODE;
+
   switch (ABI) {
   case RISCVABI::ABI_ILP32:
   case RISCVABI::ABI_LP64:
+    break;
+  case RISCVABI::ABI_IL32PC64:
+  case RISCVABI::ABI_L64PC128:
+  case RISCVABI::ABI_CHERIOT:
+  case RISCVABI::ABI_CHERIOT_BAREMETAL:
+    EFlags |= ELF::EF_RISCV_CHERIABI;
     break;
   case RISCVABI::ABI_ILP32F:
   case RISCVABI::ABI_LP64F:
     EFlags |= ELF::EF_RISCV_FLOAT_ABI_SINGLE;
     break;
+  case RISCVABI::ABI_IL32PC64F:
+  case RISCVABI::ABI_L64PC128F:
+    EFlags |= ELF::EF_RISCV_FLOAT_ABI_SINGLE;
+    EFlags |= ELF::EF_RISCV_CHERIABI;
+    break;
   case RISCVABI::ABI_ILP32D:
   case RISCVABI::ABI_LP64D:
     EFlags |= ELF::EF_RISCV_FLOAT_ABI_DOUBLE;
     break;
+  case RISCVABI::ABI_IL32PC64D:
+  case RISCVABI::ABI_L64PC128D:
+    EFlags |= ELF::EF_RISCV_FLOAT_ABI_DOUBLE;
+    EFlags |= ELF::EF_RISCV_CHERIABI;
+    break;
   case RISCVABI::ABI_ILP32E:
   case RISCVABI::ABI_LP64E:
     EFlags |= ELF::EF_RISCV_RVE;
+    break;
+  case RISCVABI::ABI_IL32PC64E:
+    EFlags |= ELF::EF_RISCV_RVE;
+    EFlags |= ELF::EF_RISCV_CHERIABI;
     break;
   case RISCVABI::ABI_Unknown:
     llvm_unreachable("Improperly initialised target ABI");
@@ -191,6 +217,34 @@ void RISCVELFStreamer::emitValueImpl(const MCExpr *Value, unsigned Size,
                                      SMLoc Loc) {
   emitDataMappingSymbol();
   MCELFStreamer::emitValueImpl(Value, Size, Loc);
+}
+
+void RISCVELFStreamer::emitCheriIntcap(const MCExpr *Expr, unsigned CapSize,
+                                       SMLoc Loc) {
+  assert(CapSize == (getContext().getTargetTriple().isArch64Bit() ? 16 : 8));
+  emitCheriIntcapGeneric(Expr, CapSize, Loc);
+}
+
+void RISCVELFStreamer::EmitCheriCapabilityImpl(const MCSymbol *Symbol,
+                                               const MCExpr *Addend,
+                                               unsigned CapSize, SMLoc Loc) {
+  assert(Addend && "Should have received a MCConstExpr(0) instead of nullptr");
+  visitUsedSymbol(*Symbol);
+  MCContext &Context = getContext();
+
+  const MCSymbolRefExpr *SRE =
+      MCSymbolRefExpr::create(Symbol, MCSymbolRefExpr::VK_None, Context, Loc);
+  const MCBinaryExpr *CapExpr = MCBinaryExpr::createAdd(SRE, Addend, Context);
+
+  // Pad to ensure that the capability is aligned
+  emitValueToAlignment(Align(CapSize), 0, 1, 0);
+
+  MCDataFragment *DF = new MCDataFragment();
+  MCFixup CapFixup =
+      MCFixup::create(0, CapExpr, MCFixupKind(RISCV::fixup_riscv_capability));
+  DF->getFixups().push_back(CapFixup);
+  DF->getContents().resize(DF->getContents().size() + CapSize, '\xca');
+  insert(DF);
 }
 
 namespace llvm {

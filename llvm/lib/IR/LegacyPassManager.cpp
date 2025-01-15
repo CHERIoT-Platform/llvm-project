@@ -747,22 +747,26 @@ void PMTopLevelManager::schedulePass(Pass *P) {
     return;
   }
 
-  if (PI && !PI->isAnalysis() && shouldPrintBeforePass(PI->getPassArgument())) {
-    Pass *PP =
-        P->createPrinterPass(dbgs(), ("*** IR Dump Before " + P->getPassName() +
-                                      " (" + PI->getPassArgument() + ") ***")
-                                         .str());
+  if ((PI && !PI->isAnalysis() &&
+       shouldPrintBeforePass(PI->getPassArgument())) ||
+      (!PI && shouldPrintBeforeAll())) {
+    Pass *PP = P->createPrinterPass(
+        dbgs(), ("*** IR Dump Before " + P->getPassName() + " (" +
+                 (PI ? PI->getPassArgument() : "<no PI>") + ") ***")
+                    .str());
     PP->assignPassManager(activeStack, getTopLevelPassManagerType());
   }
 
   // Add the requested pass to the best available pass manager.
   P->assignPassManager(activeStack, getTopLevelPassManagerType());
 
-  if (PI && !PI->isAnalysis() && shouldPrintAfterPass(PI->getPassArgument())) {
-    Pass *PP =
-        P->createPrinterPass(dbgs(), ("*** IR Dump After " + P->getPassName() +
-                                      " (" + PI->getPassArgument() + ") ***")
-                                         .str());
+  if ((PI && !PI->isAnalysis() &&
+       shouldPrintAfterPass(PI->getPassArgument())) ||
+      (!PI && shouldPrintAfterAll())) {
+    Pass *PP = P->createPrinterPass(
+        dbgs(), ("*** IR Dump After " + P->getPassName() + " (" +
+                 (PI ? PI->getPassArgument() : "<no PI>") + ") ***")
+                    .str());
     PP->assignPassManager(activeStack, getTopLevelPassManagerType());
   }
 }

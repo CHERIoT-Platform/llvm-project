@@ -43,6 +43,9 @@ add_llvm_target(MSP430CodeGen
   MSP430
   )
 
+# TODO: remove
+add_definitions(-DLLVM_TARGETLOWERINGINFO_DEFAULT_AS=0)
+
 add_subdirectory(MCTargetDesc)
 add_subdirectory(TargetInfo)
 add_subdirectory(AsmParser)

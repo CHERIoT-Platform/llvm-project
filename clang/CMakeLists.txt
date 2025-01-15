@@ -445,6 +445,10 @@ if(CLANG_ENABLE_ARCMT)
   set(CLANG_ENABLE_OBJC_REWRITER ON)
 endif()
 
+# Make sure we don't accidentaly generate AS0 pointers for CHERI pure ABI
+add_definitions(-DLLVM_NO_DEFAULT_ADDRESS_SPACE)
+# TODO: add_definitions(-DLLVM_NO_DEFAULT_ADDRESS_SPACE_FOR_GLOBAL_VARS)
+
 # This option is a stop-gap, we should commit to removing this as
 # soon as possible. See discussion:
 # https://discourse.llvm.org/t/rationale-for-removing-versioned-libclang-middle-ground-to-keep-it-behind-option/
@@ -469,6 +473,13 @@ option(CLANG_ENABLE_HLSL "Include HLSL build products" Off)
 mark_as_advanced(CLANG_ENABLE_HLSL)
 
 add_subdirectory(utils/TableGen)
+
+set(CREDUCE_CRASH_TESTCASE_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/utils/creduce_crash_testcase.py)
+configure_file(
+    utils/creduce_crash_testcase.py.in
+    ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/creduce_crash_testcase.py
+    @ONLY
+)
 
 # Export CLANG_TABLEGEN_EXE for use by flang docs.
 set(CLANG_TABLEGEN_EXE "${CLANG_TABLEGEN_EXE}" CACHE INTERNAL "")

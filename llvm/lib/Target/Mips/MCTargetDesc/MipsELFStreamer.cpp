@@ -7,10 +7,13 @@
 //===----------------------------------------------------------------------===//
 
 #include "MipsELFStreamer.h"
+#include "MipsFixupKinds.h"
+#include "MipsMCExpr.h"
 #include "MipsOptionRecord.h"
 #include "MipsTargetStreamer.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/MC/MCAsmBackend.h"
+#include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCAssembler.h"
 #include "llvm/MC/MCCodeEmitter.h"
 #include "llvm/MC/MCContext.h"
@@ -100,6 +103,35 @@ void MipsELFStreamer::emitValueImpl(const MCExpr *Value, unsigned Size,
                                     SMLoc Loc) {
   MCELFStreamer::emitValueImpl(Value, Size, Loc);
   Labels.clear();
+}
+
+void MipsELFStreamer::EmitCheriCapabilityImpl(const MCSymbol *Symbol,
+                                              const MCExpr *Addend,
+                                              unsigned CapSize, SMLoc Loc) {
+  assert(Addend && "Should have received a MCConstExpr(0) instead of nullptr");
+  visitUsedSymbol(*Symbol);
+  MCContext &Context = getContext();
+  const MCSymbolRefExpr *SRE =
+      MCSymbolRefExpr::create(Symbol, MCSymbolRefExpr::VK_None, Context, Loc);
+  const MCBinaryExpr *CapExpr = MCBinaryExpr::createAdd(SRE, Addend, Context);
+
+  // Pad to ensure that the capability is aligned
+  emitValueToAlignment(Align(CapSize), 0, 1, 0);
+
+  MCDataFragment *DF = new MCDataFragment();
+  MCFixup cheriFixup = MCFixup::create(
+      0, CapExpr, MCFixupKind(Mips::fixup_CHERI_CAPABILITY), Loc);
+  DF->getFixups().push_back(cheriFixup);
+  DF->getContents().resize(DF->getContents().size() + CapSize, '\xca');
+  insert(DF);
+}
+
+void MipsELFStreamer::emitCheriIntcap(const MCExpr *Expr, unsigned CapSize,
+                                      SMLoc Loc) {
+  assert(CapSize == 16 && "Only CHERI-128 is supported");
+  assert(!getContext().getAsmInfo()->isLittleEndian() &&
+         "Only big-endian MIPS is supported");
+  emitCheriIntcapGeneric(Expr, CapSize, Loc);
 }
 
 void MipsELFStreamer::emitIntValue(uint64_t Value, unsigned Size) {

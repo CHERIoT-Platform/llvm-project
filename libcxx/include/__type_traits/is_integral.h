@@ -45,6 +45,10 @@ template <>          struct __libcpp_is_integral<unsigned long long> { enum { va
 template <>          struct __libcpp_is_integral<__int128_t>         { enum { value = 1 }; };
 template <>          struct __libcpp_is_integral<__uint128_t>        { enum { value = 1 }; };
 #endif
+#if __has_feature(capabilities)
+template <>          struct __libcpp_is_integral<__intcap_t>         { enum { value = 1 }; };
+template <>          struct __libcpp_is_integral<__uintcap_t>        { enum { value = 1 }; };
+#endif
 // clang-format on
 
 #if __has_builtin(__is_integral)

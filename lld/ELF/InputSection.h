@@ -212,6 +212,9 @@ public:
   Defined *getEnclosingFunction(uint64_t offset) const {
     return getEnclosingSymbol(offset, llvm::ELF::STT_FUNC);
   }
+  Defined *getEnclosingObject(uint64_t offset) const {
+    return getEnclosingSymbol(offset, llvm::ELF::STT_OBJECT);
+  }
 
   // Returns a source location string. Used to construct an error message.
   std::string getLocation(uint64_t offset) const;
@@ -224,7 +227,8 @@ public:
   template <class ELFT> void relocate(uint8_t *buf, uint8_t *bufEnd);
   static uint64_t getRelocTargetVA(const InputFile *File, RelType Type,
                                    int64_t A, uint64_t P, const Symbol &Sym,
-                                   RelExpr Expr);
+                                   RelExpr Expr, const InputSectionBase *isec,
+                                   uint64_t offset);
 
   // The native ELF reloc data type is not very convenient to handle.
   // So we convert ELF reloc records to our own records in Relocations.cpp.
@@ -424,7 +428,7 @@ private:
   template <class ELFT> void copyShtGroup(uint8_t *buf);
 };
 
-static_assert(sizeof(InputSection) <= 160, "InputSection is too big");
+static_assert(sizeof(InputSection) <= 168, "InputSection is too big");
 
 class SyntheticSection : public InputSection {
 public:

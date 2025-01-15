@@ -39,7 +39,11 @@ void f1()
     assert(lk.owns_lock() == true);
     time_point t1 = Clock::now();
     ns d = t1 - t0 - ms(250);
+#if TEST_SLOW_HOST()
+    assert(d < ms(150));  // within 150ms
+#else
     assert(d < ms(50));  // within 50ms
+#endif
 }
 
 void f2()
@@ -49,7 +53,11 @@ void f2()
     assert(lk.owns_lock() == false);
     time_point t1 = Clock::now();
     ns d = t1 - t0 - ms(250);
+#if TEST_SLOW_HOST()
+    assert(d < ms(150));  // within 150ms
+#else
     assert(d < ms(50));  // within 50ms
+#endif
 }
 
 int main(int, char**)

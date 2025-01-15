@@ -71,7 +71,7 @@ class Vector {
     end_--;
   }
 
-  void Resize(uptr size) {
+  void Resize(usize size) {
     if (size == 0) {
       end_ = begin_;
       return;
@@ -93,7 +93,7 @@ class Vector {
   T *end_;
   T *last_;
 
-  void EnsureSize(uptr size) {
+  void EnsureSize(usize size) {
     if (size <= Size())
       return;
     if (size <= (uptr)(last_ - begin_)) {

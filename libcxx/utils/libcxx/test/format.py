@@ -99,6 +99,7 @@ def parseScript(test, preamble):
 
     # Parse the test file, including custom directives
     additionalCompileFlags = []
+    additionalLinkFlags = []
     fileDependencies = []
     modules = []  # The enabled modules
     moduleCompileFlags = []  # The compilation flags to use modules
@@ -112,6 +113,11 @@ def parseScript(test, preamble):
             "ADDITIONAL_COMPILE_FLAGS:",
             lit.TestRunner.ParserKind.SPACE_LIST,
             initial_value=additionalCompileFlags,
+        ),
+        lit.TestRunner.IntegratedTestKeywordParser(
+            'ADDITIONAL_LINK_FLAGS:',
+            lit.TestRunner.ParserKind.LIST,
+            initial_value=additionalLinkFlags
         ),
         lit.TestRunner.IntegratedTestKeywordParser(
             "MODULE_DEPENDENCIES:",
@@ -147,11 +153,15 @@ def parseScript(test, preamble):
     script += preamble
     script += scriptInTest
 
+
     # Add compile flags specified with ADDITIONAL_COMPILE_FLAGS.
     # Modules need to be built with the same compilation flags as the
     # test. So add these flags before adding the modules.
     substitutions = config._appendToSubstitution(
         substitutions, "%{compile_flags}", " ".join(additionalCompileFlags)
+    )
+    substitutions = config._appendToSubstitution(
+        substitutions, "%{link_flags}", " ".join(additionalLinkFlags)
     )
 
     if modules:

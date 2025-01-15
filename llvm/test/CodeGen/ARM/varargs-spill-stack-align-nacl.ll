@@ -1,6 +1,6 @@
 ; RUN: llc < %s -mtriple=arm-nacl-gnueabi | FileCheck %s
 
-declare void @llvm.va_start(ptr)
+declare void @llvm.va_start.p0(ptr)
 declare void @external_func(ptr)
 
 @va_list = external global ptr
@@ -14,7 +14,7 @@ declare void @external_func(ptr)
 ; alignment.
 
 define void @varargs_func(i32 %arg1, ...) {
-  call void @llvm.va_start(ptr @va_list)
+  call void @llvm.va_start.p0(ptr @va_list)
   call void @external_func(ptr @va_list)
   ret void
 }

@@ -72,12 +72,12 @@ entry:
   %retval = alloca i32, align 4
   store i32 0, ptr %retval
   %0 = load i32, ptr @i, align 4, !dbg !19
-  call void @llvm.lifetime.start(i64 4, ptr %x.addr.i)
+  call void @llvm.lifetime.start.p0(i64 4, ptr %x.addr.i)
   store i32 %0, ptr %x.addr.i, align 4
   call void @llvm.dbg.declare(metadata ptr %x.addr.i, metadata !120, metadata !DIExpression()), !dbg !21
   %1 = load i32, ptr %x.addr.i, align 4, !dbg !22
   %mul.i = mul nsw i32 %1, 2, !dbg !22
-  call void @llvm.lifetime.end(i64 4, ptr %x.addr.i), !dbg !22
+  call void @llvm.lifetime.end.p0(i64 4, ptr %x.addr.i), !dbg !22
   ret i32 %mul.i, !dbg !19
 }
 
@@ -96,10 +96,10 @@ entry:
 declare void @llvm.dbg.declare(metadata, metadata, metadata) #2
 
 ; Function Attrs: nounwind
-declare void @llvm.lifetime.start(i64, ptr nocapture) #3
+declare void @llvm.lifetime.start.p0(i64, ptr nocapture) #3
 
 ; Function Attrs: nounwind
-declare void @llvm.lifetime.end(i64, ptr nocapture) #3
+declare void @llvm.lifetime.end.p0(i64, ptr nocapture) #3
 
 attributes #0 = { uwtable "less-precise-fpmad"="false" "frame-pointer"="all" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { alwaysinline nounwind uwtable "less-precise-fpmad"="false" "frame-pointer"="all" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }

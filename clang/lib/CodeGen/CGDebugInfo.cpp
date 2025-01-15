@@ -873,6 +873,7 @@ llvm::DIType *CGDebugInfo::CreateType(const BuiltinType *BT) {
   case BuiltinType::UShort:
   case BuiltinType::UInt:
   case BuiltinType::UInt128:
+  case BuiltinType::UIntCap:
   case BuiltinType::ULong:
   case BuiltinType::WChar_U:
   case BuiltinType::ULongLong:
@@ -881,6 +882,7 @@ llvm::DIType *CGDebugInfo::CreateType(const BuiltinType *BT) {
   case BuiltinType::Short:
   case BuiltinType::Int:
   case BuiltinType::Int128:
+  case BuiltinType::IntCap:
   case BuiltinType::Long:
   case BuiltinType::WChar_S:
   case BuiltinType::LongLong:
@@ -1446,6 +1448,11 @@ static unsigned getDwarfCC(CallingConv CC) {
     return llvm::dwarf::DW_CC_LLVM_PreserveMost;
   case CC_PreserveAll:
     return llvm::dwarf::DW_CC_LLVM_PreserveAll;
+  case CC_CHERICCall:
+  case CC_CHERICCallee:
+  case CC_CHERICCallback:
+  case CC_CHERILibCall:
+    return 0;
   case CC_X86RegCall:
     return llvm::dwarf::DW_CC_LLVM_X86RegCall;
   case CC_M68kRTD:

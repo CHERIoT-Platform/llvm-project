@@ -45,9 +45,9 @@ struct MemoryMappingLayoutData {
 void ReadProcMaps(ProcSelfMapsBuff *proc_maps);
 
 // Syscall wrappers.
-uptr internal_getdents(fd_t fd, struct linux_dirent *dirp, unsigned int count);
-uptr internal_sigaltstack(const void *ss, void *oss);
-uptr internal_sigprocmask(int how, __sanitizer_sigset_t *set,
+usize internal_getdents(fd_t fd, struct linux_dirent *dirp, unsigned int count);
+usize internal_sigaltstack(const void *ss, void *oss);
+usize internal_sigprocmask(int how, __sanitizer_sigset_t *set,
                           __sanitizer_sigset_t *oldset);
 
 void SetSigProcMask(__sanitizer_sigset_t *set, __sanitizer_sigset_t *oldset);
@@ -109,12 +109,12 @@ class ThreadLister {
   bool IsAlive(int tid);
 
   pid_t pid_;
-  int descriptor_ = -1;
+  fd_t descriptor_ = -1;
   InternalMmapVector<char> buffer_;
 };
 
 // Exposed for testing.
-uptr ThreadDescriptorSize();
+usize ThreadDescriptorSize();
 uptr ThreadSelf();
 
 // Matches a library's file name against a base name (stripping path and version

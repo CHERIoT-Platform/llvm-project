@@ -41,6 +41,7 @@
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/ConstantRange.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/Cheri.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/Dominators.h"
@@ -94,7 +95,8 @@ static unsigned getBitWidth(Type *Ty, const DataLayout &DL) {
   if (unsigned BitWidth = Ty->getScalarSizeInBits())
     return BitWidth;
 
-  return DL.getPointerTypeSizeInBits(Ty);
+  // For CHERI capabilities the usable range here is the address range
+  return DL.getPointerAddrSizeInBits(Ty);
 }
 
 // Given the provided Value and, potentially, a context instruction, return
@@ -313,6 +315,100 @@ bool llvm::isKnownNonEqual(const Value *V1, const Value *V2,
   return ::isKnownNonEqual(
       V1, V2, 0,
       SimplifyQuery(DL, DT, AC, safeCxtI(V2, V1, CxtI), UseInstrInfo));
+}
+
+#define DEBUG_TAG(...)                                                         \
+  DEBUG_WITH_TYPE("infer-tag", dbgs() << __func__ << "(d=" << Depth            \
+                                      << "): " << __VA_ARGS__;                 \
+                  dbgs() << " -- "; V->dump())
+
+static bool isKnownUntaggedCapability(const Value *V, unsigned Depth,
+                                      const DataLayout *DL) {
+  assert(V && "No Value?");
+  assert(isCheriPointer(V->getType(), DL));
+  if (Depth >= MaxAnalysisRecursionDepth) {
+    DEBUG_TAG("reached max depth -> false");
+    return false;
+  }
+  if (DL) {
+    V = getBasePtrIgnoringCapabilityAddressManipulation(const_cast<Value *>(V),
+                                                        *DL);
+  }
+  if (isa<ConstantPointerNull>(V)) {
+    DEBUG_TAG("NULL base pointer -> true");
+    return true; // NULL is always untagged
+  } else if (const auto *II = dyn_cast<IntrinsicInst>(V)) {
+    switch (II->getIntrinsicID()) {
+    case Intrinsic::cheri_cap_tag_clear:
+      DEBUG_TAG("ccleartag -> true");
+      return true;
+    case Intrinsic::cheri_cap_offset_set:
+    case Intrinsic::cheri_cap_address_set:
+    case Intrinsic::cheri_cap_perms_and:
+    case Intrinsic::cheri_cap_flags_set:
+    case Intrinsic::cheri_cap_bounds_set:
+    case Intrinsic::cheri_cap_bounds_set_exact:
+      if (isa<ConstantPointerNull>(II->getOperand(0))) {
+        DEBUG_TAG("modifying NULL cap -> true");
+        return true;
+      }
+      // Otherwise check if the source argument is known to be untagged:
+      return isKnownUntaggedCapability(II->getOperand(0), Depth + 1, DL);
+    case Intrinsic::cheri_cap_from_pointer:
+      if (auto CI = dyn_cast<ConstantInt>(II->getOperand(1))) {
+        DEBUG_TAG("CFromPtr on constant -> " << CI->isZeroValue());
+        return CI->isZeroValue(); // cfromptr with zero returns NULL
+      }
+      DEBUG_TAG("CFromPtr on nonconst -> false");
+      return false; // We don't know if the source is NULL -> could be tagged
+    default:
+      DEBUG_TAG("unknown intrinsic -> false");
+      // Any other intrinsic returning a capability could be a tagged value
+      return false;
+    }
+  } else if (const auto *GEPI = dyn_cast<GetElementPtrInst>(V)) {
+    // GEP on NULL has to be untagged
+    DEBUG_TAG("is GEP on NULL? -> "
+              << isa<ConstantPointerNull>(GEPI->getPointerOperand()));
+    return isa<ConstantPointerNull>(GEPI->getPointerOperand());
+  } else if (const auto *ITP = dyn_cast<IntToPtrInst>(V)) {
+    // IntToPtr returns untagged values in the pure capability ABI
+    bool Purecap = DL && isCheriPointer(DL->getAllocaAddrSpace(), DL);
+    DEBUG_TAG("is nonconst inttoptr in" << (Purecap ? "purecap" : "hybrid")
+                                        << " ABI -> " << Purecap);
+    bool IsZero = false;
+    if (auto Constant = dyn_cast<ConstantInt>(ITP->getOperand(0)))
+      IsZero = Constant->isNullValue();
+    return Purecap || IsZero;
+  } else if (const auto *CE = dyn_cast<ConstantExpr>(V)) {
+    if (CE->getOpcode() == Instruction::IntToPtr) {
+      // IntToPtr returns untagged values in the pure capability ABI
+      bool Purecap = DL && isCheriPointer(DL->getAllocaAddrSpace(), DL);
+      DEBUG_TAG("is constant inttoptr in" << (Purecap ? "purecap" : "hybrid")
+                                          << " ABI -> " << Purecap);
+      return Purecap;
+    } else if (CE->getOpcode() == Instruction::GetElementPtr) {
+      if (CE->getOperand(0)->isNullValue()) {
+        DEBUG_TAG("GEP on NULL -> true");
+        return true;
+      } else {
+        DEBUG_TAG("GEP on non-NULL value -> false");
+        return false;
+      }
+    }
+    DEBUG_TAG("unknown constantexpr -> false");
+    return false;
+  }
+  DEBUG_TAG("unknown value -> false");
+  // Anything else could be tagged (what about GEP on NULL?)
+  return false;
+}
+
+bool llvm::cheri::isKnownUntaggedCapability(const Value *V,
+                                            const DataLayout *DL) {
+  DEBUG_WITH_TYPE("infer-tag", dbgs() << "Checking if value is untagged:";
+                  V->dump());
+  return ::isKnownUntaggedCapability(V, 0, DL);
 }
 
 bool llvm::MaskedValueIsZero(const Value *V, const APInt &Mask,
@@ -1011,7 +1107,7 @@ static void computeKnownBitsFromOperator(const Operator *I,
     // which fall through here.
     Type *ScalarTy = SrcTy->getScalarType();
     SrcBitWidth = ScalarTy->isPointerTy() ?
-      Q.DL.getPointerTypeSizeInBits(ScalarTy) :
+      Q.DL.getPointerAddrSizeInBits(ScalarTy) :
       Q.DL.getTypeSizeInBits(ScalarTy);
 
     assert(SrcBitWidth && "SrcBitWidth can't be zero");
@@ -1073,6 +1169,20 @@ static void computeKnownBitsFromOperator(const Operator *I,
         unsigned ShiftElt = Q.DL.isLittleEndian() ? i : SubScale - 1 - i;
         Known.insertBits(KnownSrc, ShiftElt * SubBitWidth);
       }
+    }
+    break;
+  }
+  case Instruction::AddrSpaceCast: {
+    Type *SrcTy = I->getOperand(0)->getType();
+    Type *DestTy = I->getType();
+    // Address space conversions between CHERI capability and integer pointer
+    // do not affect the virtual address bits
+    if (SrcTy->isIntOrPtrTy() && isCheriPointer(SrcTy, &Q.DL) != isCheriPointer(DestTy, &Q.DL)) {
+      unsigned SrcBitWidth = Q.DL.getPointerAddrSizeInBits(SrcTy);
+      if (SrcBitWidth != Known.getBitWidth())
+        Known = Known.trunc(SrcBitWidth);
+      computeKnownBits(I->getOperand(0), Known, Depth + 1, Q);
+      break;
     }
     break;
   }
@@ -1456,6 +1566,23 @@ static void computeKnownBitsFromOperator(const Operator *I,
         Known.Zero |= Known2.Zero.byteSwap();
         Known.One |= Known2.One.byteSwap();
         break;
+      case Intrinsic::cheri_cap_address_get: {
+        // This just fetches the virtual address -> treat the same as ptrtoint:
+        computeKnownBits(I->getOperand(0), Known, Depth + 1, Q);
+        break;
+      }
+      case Intrinsic::cheri_cap_address_set: {
+        // We can treat it the same as inttoptr:
+        // The virtual address after csetaddr will be the second argument.
+        computeKnownBits(I->getOperand(1), Known, Depth + 1, Q);
+        break;
+      }
+      case Intrinsic::cheri_cap_diff: {
+        bool NSW = false;
+        computeKnownBitsAddSub(false, I->getOperand(0), I->getOperand(1), NSW,
+                               DemandedElts, Known, Known2, Depth, Q);
+        break;
+      }
       case Intrinsic::ctlz: {
         computeKnownBits(I->getOperand(0), Known2, Depth + 1, Q);
         // If we have a known 1, its position is our upper bound.
@@ -1760,7 +1887,7 @@ void computeKnownBits(const Value *V, const APInt &DemandedElts,
 
   Type *ScalarTy = Ty->getScalarType();
   if (ScalarTy->isPointerTy()) {
-    assert(BitWidth == Q.DL.getPointerTypeSizeInBits(ScalarTy) &&
+    assert(BitWidth == Q.DL.getPointerAddrSizeInBits(ScalarTy) &&
            "V and Known should have same BitWidth");
   } else {
     assert(BitWidth == Q.DL.getTypeSizeInBits(ScalarTy) &&
@@ -2802,9 +2929,11 @@ bool isKnownNonZero(const Value *V, const APInt &DemandedElts, unsigned Depth,
     // or an absolute symbol reference. Other address spaces may have null as a
     // valid address for a global, so we can't assume anything.
     if (const GlobalValue *GV = dyn_cast<GlobalValue>(V)) {
-      if (!GV->isAbsoluteSymbolRef() && !GV->hasExternalWeakLinkage() &&
-          GV->getType()->getAddressSpace() == 0)
-        return true;
+      if (!GV->isAbsoluteSymbolRef() && !GV->hasExternalWeakLinkage()) {
+        unsigned GVAddrSpace = GV->getType()->getAddressSpace();
+        if (GVAddrSpace == 0 || Q.DL.isFatPointer(GVAddrSpace))
+          return true;
+      }
     }
 
     // For constant expressions, fall through to the Operator code below.
@@ -2834,6 +2963,14 @@ bool isKnownNonZero(const Value *V, const APInt &DemandedElts, unsigned Depth,
   // Check for pointer simplifications.
 
   if (PointerType *PtrTy = dyn_cast<PointerType>(V->getType())) {
+    // Alloca never returns null, malloc might.
+    if (isa<AllocaInst>(V)) {
+      unsigned AS = PtrTy->getAddressSpace();
+      // XXXAR: AMDGPU broke this because their allocaAddressSpace is weird
+      if (AS == 0 || Q.DL.isFatPointer(AS))
+        return true;
+    }
+
     // A byval, inalloca may not be null in a non-default addres space. A
     // nonnull argument is assumed never 0.
     if (const Argument *A = dyn_cast<Argument>(V)) {
@@ -3297,7 +3434,7 @@ static unsigned ComputeNumSignBitsImpl(const Value *V,
 
   Type *ScalarTy = Ty->getScalarType();
   unsigned TyBits = ScalarTy->isPointerTy() ?
-    Q.DL.getPointerTypeSizeInBits(ScalarTy) :
+    Q.DL.getPointerAddrSizeInBits(ScalarTy) :
     Q.DL.getTypeSizeInBits(ScalarTy);
 
   unsigned Tmp, Tmp2;
@@ -5859,6 +5996,18 @@ llvm::getArgumentAliasingToReturnedPointer(const CallBase *Call,
 bool llvm::isIntrinsicReturningPointerAliasingArgumentWithoutCapturing(
     const CallBase *Call, bool MustPreserveNullness) {
   switch (Call->getIntrinsicID()) {
+  // NOTE: we can't return true for setbounds even though the resulting pointer
+  // aliases with the target. It might not grant access to the last few bytes!
+  // If we return true here for setbounds, then GVN will remove some
+  // loads that would have trapped at runtime. See cheri-intrinisics.ll test.
+  // case Intrinsic::cheri_cap_bounds_set:
+  // case Intrinsic::cheri_cap_bounds_set_exact:
+  // However, we must return true for the stack capability bounding intrinsics
+  // so SelectionDAG finds the allocas for lifetime markers in the case that
+  // the lifetime marker uses a bitcast and that same bitcast has another
+  // unsafe use.
+  case Intrinsic::cheri_bounded_stack_cap:
+  case Intrinsic::cheri_bounded_stack_cap_dynamic:
   case Intrinsic::launder_invariant_group:
   case Intrinsic::strip_invariant_group:
   case Intrinsic::aarch64_irg:

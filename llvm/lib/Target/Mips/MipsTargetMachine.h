@@ -73,6 +73,11 @@ public:
     // Mips doesn't have any special address spaces so we just reserve
     // the first 256 for software use (e.g. OpenCL) and treat casts
     // between them as noops.
+    // TODO: can we get the datalayout somehow?
+    const bool SrcIsCheri = isCheriPointer(SrcAS, nullptr);
+    const bool DestIsCheri = isCheriPointer(DestAS, nullptr);
+    if ((SrcIsCheri || DestIsCheri) && (SrcIsCheri != DestIsCheri))
+      return false;
     return SrcAS < 256 && DestAS < 256;
   }
 

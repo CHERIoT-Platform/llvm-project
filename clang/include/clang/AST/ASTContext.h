@@ -201,6 +201,7 @@ class ASTContext : public RefCountedBase<ASTContext> {
       DependentSizedExtVectorTypes;
   mutable llvm::ContextualFoldingSet<DependentAddressSpaceType, ASTContext &>
       DependentAddressSpaceTypes;
+  mutable llvm::FoldingSet<DependentPointerType> DependentPointerTypes;
   mutable llvm::FoldingSet<VectorType> VectorTypes;
   mutable llvm::ContextualFoldingSet<DependentVectorType, ASTContext &>
       DependentVectorTypes;
@@ -344,7 +345,12 @@ class ASTContext : public RefCountedBase<ASTContext> {
   /// The typedef for the __uint128_t type.
   mutable TypedefDecl *UInt128Decl = nullptr;
 
-  /// The typedef for the target specific predefined
+  /// The typedef for the __intcap_t type.
+  mutable TypedefDecl *IntCapDecl = nullptr;
+
+  /// The typedef for the __uintcap_t type.
+  mutable TypedefDecl *UIntCapDecl = nullptr;
+
   /// __builtin_va_list type.
   mutable TypedefDecl *BuiltinVaListDecl = nullptr;
 
@@ -397,6 +403,8 @@ class ASTContext : public RefCountedBase<ASTContext> {
 
   /// The typedef declaration for the Objective-C "instancetype" type.
   TypedefDecl *ObjCInstanceTypeDecl = nullptr;
+
+  mutable RecordDecl *CHERIClassDecl = nullptr;
 
   /// The type for the C FILE type.
   TypeDecl *FILEDecl = nullptr;
@@ -1091,6 +1099,7 @@ public:
   CanQualType Char32Ty; // [C++0x 3.9.1p5], integer type in C99.
   CanQualType SignedCharTy, ShortTy, IntTy, LongTy, LongLongTy, Int128Ty;
   CanQualType UnsignedCharTy, UnsignedShortTy, UnsignedIntTy, UnsignedLongTy;
+  CanQualType IntCapTy, UnsignedIntCapTy;
   CanQualType UnsignedLongLongTy, UnsignedInt128Ty;
   CanQualType FloatTy, DoubleTy, LongDoubleTy, Float128Ty, Ibm128Ty;
   CanQualType ShortAccumTy, AccumTy,
@@ -1214,6 +1223,12 @@ public:
   /// Retrieve the declaration for the 128-bit unsigned integer type.
   TypedefDecl *getUInt128Decl() const;
 
+  /// \brief Retrieve the declaration for the signed capability-as-integer type.
+  TypedefDecl *getIntCapDecl() const;
+
+  /// \brief Retrieve the declaration for the unsigned capability-as-integer type.
+  TypedefDecl *getUIntCapDecl() const;
+
   //===--------------------------------------------------------------------===//
   //                           Type Constructors
   //===--------------------------------------------------------------------===//
@@ -1331,11 +1346,21 @@ public:
     return CanQualType::CreateUnsafe(getComplexType((QualType) T));
   }
 
+  /// Get the default pointer interpretation in use.
+  PointerInterpretationKind getDefaultPointerInterpretation() const;
+
   /// Return the uniqued reference to the type for a pointer to
   /// the specified type.
-  QualType getPointerType(QualType T) const;
+  QualType getPointerType(QualType T) const {
+    return getPointerType(T, getDefaultPointerInterpretation());
+  }
+  QualType getPointerType(QualType T, PointerInterpretationKind PIK) const;
   CanQualType getPointerType(CanQualType T) const {
-    return CanQualType::CreateUnsafe(getPointerType((QualType) T));
+    return getPointerType(T, getDefaultPointerInterpretation());
+  }
+  CanQualType getPointerType(CanQualType T,
+                             PointerInterpretationKind PIK) const {
+    return CanQualType::CreateUnsafe(getPointerType((QualType) T, PIK));
   }
 
   /// Return the uniqued reference to a type adjusted from the original
@@ -1419,12 +1444,21 @@ public:
 
   /// Return the uniqued reference to the type for an lvalue reference
   /// to the specified type.
-  QualType getLValueReferenceType(QualType T, bool SpelledAsLValue = true)
-    const;
+  QualType getLValueReferenceType(QualType T,
+                                  bool SpelledAsLValue = true) const {
+    return getLValueReferenceType(T, SpelledAsLValue,
+                                  getDefaultPointerInterpretation());
+  }
+  QualType getLValueReferenceType(QualType T, bool SpelledAsLValue,
+                                  PointerInterpretationKind PIK) const;
 
   /// Return the uniqued reference to the type for an rvalue reference
   /// to the specified type.
-  QualType getRValueReferenceType(QualType T) const;
+  QualType getRValueReferenceType(QualType T) const {
+    return getRValueReferenceType(T, getDefaultPointerInterpretation());
+  }
+  QualType getRValueReferenceType(QualType T,
+                                  PointerInterpretationKind PIK) const;
 
   /// Return the uniqued reference to the type for a member pointer to
   /// the specified type in the specified class.
@@ -1435,8 +1469,10 @@ public:
   /// Return a non-unique reference to the type for a variable array of
   /// the specified element type.
   QualType getVariableArrayType(QualType EltTy, Expr *NumElts,
-                                ArraySizeModifier ASM, unsigned IndexTypeQuals,
-                                SourceRange Brackets) const;
+                                ArraySizeModifier ASM,
+                                unsigned IndexTypeQuals,
+                                SourceRange Brackets,
+                                std::optional<PointerInterpretationKind> PIK = std::nullopt) const;
 
   /// Return a non-unique reference to the type for a dependently-sized
   /// array of the specified element type.
@@ -1446,18 +1482,23 @@ public:
   QualType getDependentSizedArrayType(QualType EltTy, Expr *NumElts,
                                       ArraySizeModifier ASM,
                                       unsigned IndexTypeQuals,
-                                      SourceRange Brackets) const;
+                                      SourceRange Brackets,
+      std::optional<PointerInterpretationKind> PIK = std::nullopt) const;
 
   /// Return a unique reference to the type for an incomplete array of
   /// the specified element type.
-  QualType getIncompleteArrayType(QualType EltTy, ArraySizeModifier ASM,
-                                  unsigned IndexTypeQuals) const;
+  QualType getIncompleteArrayType(QualType EltTy,
+                                  ArraySizeModifier ASM,
+                                  unsigned IndexTypeQuals,
+      std::optional<PointerInterpretationKind> PIK = std::nullopt) const;
 
   /// Return the unique reference to the type for a constant array of
   /// the specified element type.
   QualType getConstantArrayType(QualType EltTy, const llvm::APInt &ArySize,
-                                const Expr *SizeExpr, ArraySizeModifier ASM,
-                                unsigned IndexTypeQuals) const;
+                                const Expr *SizeExpr,
+                                ArraySizeModifier ASM,
+                                unsigned IndexTypeQuals,
+      std::optional<PointerInterpretationKind> PIK = std::nullopt) const;
 
   /// Return a type for a constant array for a string literal of the
   /// specified element type and length.
@@ -1538,6 +1579,10 @@ public:
                                         Expr *AddrSpaceExpr,
                                         SourceLocation AttrLoc) const;
 
+  QualType getDependentPointerType(QualType PointerType,
+                                   PointerInterpretationKind PIK,
+                                   SourceLocation QualifierLoc) const;
+
   /// Return a K&R style C function type like 'int()'.
   QualType getFunctionNoProtoType(QualType ResultTy,
                                   const FunctionType::ExtInfo &Info) const;
@@ -1602,6 +1647,7 @@ public:
 
   QualType getAttributedType(attr::Kind attrKind, QualType modifiedType,
                              QualType equivalentType) const;
+  QualType getNonProvenanceCarryingType(QualType T) const;
 
   QualType getBTFTagAttributedType(const BTFTypeTagAttr *BTFAttr,
                                    QualType Wrapped);
@@ -2063,6 +2109,11 @@ public:
     return getTypeDeclType(getObjCClassDecl());
   }
 
+  RecordDecl *getCHERIClassDecl() const;
+  QualType getCHERIClassType() const {
+    return getTypeDeclType(getCHERIClassDecl());
+  }
+
   /// Retrieve the Objective-C class declaration corresponding to
   /// the predefined \c Protocol class.
   ObjCInterfaceDecl *getObjCProtocolDecl() const;
@@ -2238,6 +2289,9 @@ public:
   ComparisonCategories CompCategories;
 
 private:
+  /// Map storing whether a type contains capabilities.
+  mutable llvm::DenseMap<void*, bool> ContainsCapabilities;
+
   CanQualType getFromTargetType(unsigned Type) const;
   TypeInfo getTypeInfoImpl(const Type *T) const;
 
@@ -2513,6 +2567,11 @@ public:
   unsigned CountNonClassIvars(const ObjCInterfaceDecl *OI) const;
   void CollectInheritedProtocols(const Decl *CDecl,
                           llvm::SmallPtrSet<ObjCProtocolDecl*, 8> &Protocols);
+  /// Returns true if the record type contains one or more capabilities.
+  bool containsCapabilities(const RecordDecl *RD) const;
+  /// Returns true if the type is a scalar type that is represented as a
+  /// capability or an aggregate type that contains one or more capabilities.
+  bool containsCapabilities(QualType Ty) const;
 
   /// Return true if the specified type has unique object representations
   /// according to (C++17 [meta.unary.prop]p9)
@@ -2655,9 +2714,9 @@ public:
   getCanonicalNestedNameSpecifier(NestedNameSpecifier *NNS) const;
 
   /// Retrieves the default calling convention for the current target.
-  CallingConv getDefaultCallingConvention(bool IsVariadic,
-                                          bool IsCXXMethod,
-                                          bool IsBuiltin = false) const;
+  CallingConv getDefaultCallingConvention(bool IsVariadic, bool IsCXXMethod,
+                                          bool IsBuiltin = false,
+                                          bool IsLibCall = false) const;
 
   /// Retrieves the "canonical" template name that refers to a
   /// given template.
@@ -2777,7 +2836,9 @@ public:
   /// qualified element of the array.
   ///
   /// See C99 6.7.5.3p7 and C99 6.3.2.1p3.
-  QualType getArrayDecayedType(QualType T) const;
+  QualType getArrayDecayedType(QualType T,
+                               std::optional<PointerInterpretationKind>
+                                   PIKFromBase = std::nullopt) const;
 
   /// Return the type that \p PromotableType will promote to: C99
   /// 6.3.1.1p2, assuming that \p PromotableType is a promotable integer type.
@@ -2851,8 +2912,9 @@ public:
   //===--------------------------------------------------------------------===//
 
   /// Compatibility predicates used to check assignment expressions.
-  bool typesAreCompatible(QualType T1, QualType T2,
-                          bool CompareUnqualified = false); // C99 6.2.7p1
+  bool
+  typesAreCompatible(QualType T1, QualType T2, bool CompareUnqualified = false,
+                     bool CompareCapabilityQualifier = true); // C99 6.2.7p1
 
   bool propertyTypesAreCompatible(QualType, QualType);
   bool typesAreBlockPointerCompatible(QualType, QualType);
@@ -2899,8 +2961,11 @@ public:
   // Functions for calculating composite types
   QualType mergeTypes(QualType, QualType, bool OfBlockPointer = false,
                       bool Unqualified = false, bool BlockReturnType = false,
-                      bool IsConditionalOperator = false);
-  QualType mergeFunctionTypes(QualType, QualType, bool OfBlockPointer = false,
+                      bool IsConditionalOperator = false,
+                      bool IncludeCapabilityQualifier = true,
+                      bool MergeVoidPtr = false,
+                      bool MergeLHSConst = false);
+  QualType mergeFunctionTypes(QualType, QualType, bool OfBlockPointer=false,
                               bool Unqualified = false, bool AllowCXX = false,
                               bool IsConditionalOperator = false);
   QualType mergeFunctionParameterTypes(QualType, QualType,
@@ -2946,6 +3011,10 @@ public:
   // The width of an integer, as defined in C99 6.2.6.2. This is the number
   // of bits in an integer type excluding any padding bits.
   unsigned getIntWidth(QualType T) const;
+
+  // The range of an integer type.  This is the same as IntWidth for all types
+  // other than fat pointers.
+  unsigned getIntRange(QualType T) const;
 
   // Per C99 6.2.5p6, for every signed integer type, there is a corresponding
   // unsigned integer type.  This method takes a signed type, and returns the

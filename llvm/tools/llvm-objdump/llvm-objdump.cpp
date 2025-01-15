@@ -187,6 +187,7 @@ static uint64_t AdjustVMA;
 static bool AllHeaders;
 static std::string ArchName;
 bool objdump::ArchiveHeaders;
+bool objdump::CapRelocations;
 bool objdump::Demangle;
 bool objdump::Disassemble;
 bool objdump::DisassembleAll;
@@ -882,7 +883,7 @@ DisassemblerTarget::DisassemblerTarget(const Target *TheTarget, ObjectFile &Obj,
                                        SubtargetFeatures &Features)
     : TheTarget(TheTarget),
       Printer(&selectPrettyPrinter(Triple(TripleName))),
-      RegisterInfo(TheTarget->createMCRegInfo(TripleName)) {
+      RegisterInfo(TheTarget->createMCRegInfo(TripleName, Options)) {
   if (!RegisterInfo)
     reportError(Obj.getFileName(), "no register info for target " + TripleName);
 
@@ -1553,6 +1554,8 @@ disassembleObject(ObjectFile &Obj, const ObjectFile &DbgObj,
     RelocMap = getRelocsMap(Obj);
   bool Is64Bits = Obj.getBytesInAddress() > 4;
 
+  std::optional<uint64_t> CheriCapTableAddress;
+
   // Create a mapping from virtual address to symbol name.  This is used to
   // pretty print the symbols while disassembling.
   std::map<SectionRef, SectionSymbolsTy> AllSymbols;
@@ -1612,6 +1615,10 @@ disassembleObject(ObjectFile &Obj, const ObjectFile &DbgObj,
                        MachO->getSymbolTableEntry(SymDRI).n_type);
       if (NType & MachO::N_STAB)
         continue;
+    }
+    if (*NameOrErr == "_CHERI_CAPABILITY_TABLE_") {
+      // errs() << "FOUND CHERI CAP TABLE @" << utohexstr(Address);
+      CheriCapTableAddress = unwrapOrError(Symbol.getAddress(), FileName);
     }
 
     section_iterator SecI = unwrapOrError(Symbol.getSection(), FileName);
@@ -1796,7 +1803,7 @@ disassembleObject(ObjectFile &Obj, const ObjectFile &DbgObj,
     // Subtract SectionAddr from the r_offset field of a relocation to get
     // the section offset.
     uint64_t RelAdjustment = Obj.isRelocatableObject() ? 0 : SectionAddr;
-    uint64_t Size;
+    uint64_t Size = 0;
     uint64_t Index;
     bool PrintedSection = false;
     std::vector<RelocationRef> Rels = RelocMap[Section];
@@ -2344,6 +2351,56 @@ disassembleObject(ObjectFile &Obj, const ObjectFile &DbgObj,
               if (TargetOS == &CommentStream)
                 *TargetOS << "\n";
             }
+            // Add a comment which symbol is being loaded for cap-table loads
+            int64_t CapTableOffset = std::numeric_limits<int64_t>::min();
+            // In .o files we can just use -r to get useful results
+            if (DT->InstrAnalysis && CheriCapTableAddress &&
+                DT->InstrAnalysis->isCapTableLoad(Inst, CapTableOffset) &&
+                !Obj.isRelocatableObject()) {
+
+              uint64_t Target = *CheriCapTableAddress + CapTableOffset;
+              // TODO: share this code:
+
+              // In a relocatable object, the target's section must reside in
+              // the same section as the call instruction or it is accessed
+              // through a relocation.
+              //
+              // In a non-relocatable object, the target may be in any section.
+              //
+              // N.B. We don't walk the relocations in the relocatable case yet.
+              auto *TargetSectionSymbols = &Symbols;
+              if (!Obj.isRelocatableObject()) {
+                auto SectionAddress = std::upper_bound(
+                    SectionAddresses.begin(), SectionAddresses.end(), Target,
+                    [](uint64_t LHS,
+                       const std::pair<uint64_t, SectionRef> &RHS) {
+                      return LHS < RHS.first;
+                    });
+                if (SectionAddress != SectionAddresses.begin()) {
+                  --SectionAddress;
+                  TargetSectionSymbols = &AllSymbols[SectionAddress->second];
+                } else {
+                  TargetSectionSymbols = nullptr;
+                }
+              }
+
+              // Find the first symbol in the section whose offset is less than
+              // or equal to the target.
+              if (TargetSectionSymbols) {
+                auto TargetSym = std::upper_bound(
+                    TargetSectionSymbols->begin(), TargetSectionSymbols->end(),
+                    Target, [](uint64_t LHS, const SymbolInfoTy &RHS) {
+                      return LHS < RHS.Addr;
+                    });
+                if (TargetSym != TargetSectionSymbols->begin()) {
+                  --TargetSym;
+                  outs() << "\t# probably " << TargetSym->Name;
+                  uint64_t Disp = Target - TargetSym->Addr;
+                  if (Disp)
+                    outs() << "+0x" << utohexstr(Disp);
+                }
+              }
+            }
 
             DT->InstrAnalysis->updateState(Inst, SectionAddr + Index);
           } else if (!Disassembled && DT->InstrAnalysis) {
@@ -2386,6 +2443,102 @@ disassembleObject(ObjectFile &Obj, const ObjectFile &DbgObj,
       set_difference(DisasmSymbolSet, FoundDisasmSymbolSet);
   for (StringRef Sym : MissingDisasmSymbolSet.keys())
     reportWarning("failed to disassemble missing symbol " + Sym, FileName);
+}
+
+template <class ELFT> static void
+printELFCapRelocations(const ELFObjectFile<ELFT> *Obj) {
+  StringRef AddrFmt = Obj->getBytesInAddress() > 4 ? "0x%016" PRIx64 :
+                                                     "0x%08" PRIx64;
+  StringRef PermsFmt = Obj->getBytesInAddress() > 4 ? "0x%08" PRIx64 :
+                                                      "0x%04" PRIx64;
+
+  std::unordered_map<uint64_t, std::string> SymbolNames;
+  for (const SymbolRef &Sym : Obj->symbols()) {
+    if (auto Type = Sym.getType()) {
+      // Skip STT_FILE symbols
+      if (*Type == SymbolRef::ST_File)
+        continue;
+    }
+    auto Section = Sym.getSection();
+    if (!Section || *Section == Obj->section_end()) {
+      continue; // Skip undefined symbols
+    }
+    Expected<uint64_t> Start = Sym.getAddress();
+    if (!Start)
+      continue;
+    Expected<StringRef> Name = Sym.getName();
+    if (!Name) {
+      continue;
+    }
+    SymbolNames.insert({Start.get(), Name.get().str()});
+  }
+  StringRef Data;
+  for (const SectionRef &Sec : Obj->sections()) {
+    Expected<StringRef> Name = Sec.getName();
+    if (!Name) {
+      consumeError(Name.takeError());
+      continue;
+    }
+    if (*Name == "__cap_relocs") {
+      Data = unwrapOrError(Sec.getContents(), Obj->getFileName());
+      break;
+    }
+  }
+  outs() << "CAPABILITY RELOCATION RECORDS:\n";
+  const size_t entry_size = ELFT::Is64Bits ? 40 : 20;
+  using TargetUint = typename ELFT::uint;
+  for (int i = 0, e = Data.size() / entry_size; i < e; i++) {
+    const char *entry = Data.data() + (entry_size * i);
+    uint64_t Target =
+        support::endian::read<TargetUint, ELFT::TargetEndianness, 1>(
+                entry);
+    uint64_t Base =
+        support::endian::read<TargetUint, ELFT::TargetEndianness, 1>(
+                entry + sizeof(TargetUint));
+    uint64_t Offset =
+        support::endian::read<TargetUint, ELFT::TargetEndianness, 1>(
+                entry + 2*sizeof(TargetUint));
+    uint64_t Length =
+        support::endian::read<TargetUint, ELFT::TargetEndianness, 1>(
+                entry + 3*sizeof(TargetUint));
+    uint64_t Perms =
+        support::endian::read<TargetUint, ELFT::TargetEndianness, 1>(
+                entry + 4*sizeof(TargetUint));
+    bool isFunction = Perms & (UINT64_C(1) << ((sizeof(TargetUint) * 8) - 1));
+    bool isConstant = Perms & (UINT64_C(1) << ((sizeof(TargetUint) * 8) - 2));
+    //Perms &= 0xffffffff;
+    StringRef Symbol = "<Unnamed symbol>";
+    if (SymbolNames.find(Base) != SymbolNames.end())
+      Symbol = SymbolNames[Base];
+    outs() << format(AddrFmt.data(), Target) << "\tBase: " << Symbol << " ("
+           << format(AddrFmt.data(), Base)
+           << ")\tOffset: " << format(AddrFmt.data(), Offset)
+           << "\tLength: " << format(AddrFmt.data(), Length)
+           << "\tPermissions: " << format(PermsFmt.data(), Perms)
+           << (isFunction ? " (Function)\n"
+                          : (isConstant ? " (Constant)\n" : "\n"));
+  }
+  outs() << "\n";
+}
+
+void objdump::printCapRelocations(const ObjectFile *Obj) {
+  if (!Obj->isELF()) {
+    WithColor::error(errs(), ToolName)
+        << "This operation is only currently supported "
+           "for ELF object files.\n";
+    return;
+  }
+
+  if (auto *Elf32LEObj = dyn_cast<ELF32LEObjectFile>(Obj))
+    printELFCapRelocations(Elf32LEObj);
+  else if (auto *Elf64LEObj = dyn_cast<ELF64LEObjectFile>(Obj))
+    printELFCapRelocations(Elf64LEObj);
+  else if (auto *Elf32BEObj = dyn_cast<ELF32BEObjectFile>(Obj))
+    printELFCapRelocations(Elf32BEObj);
+  else if (auto *Elf64BEObj = cast<ELF64BEObjectFile>(Obj))
+    printELFCapRelocations(Elf64BEObj);
+  else
+    llvm_unreachable("Unsupported binary format");
 }
 
 static void disassembleObject(ObjectFile *Obj, bool InlineRelocs) {
@@ -3156,6 +3309,8 @@ static void dumpObject(ObjectFile *O, const Archive *A = nullptr,
   }
   if (Relocations && !Disassemble)
     D.printRelocations();
+  if (CapRelocations)
+    printCapRelocations(O);
   if (DynamicRelocations)
     D.printDynamicRelocations();
   if (SectionContents)
@@ -3348,6 +3503,7 @@ static void parseObjdumpOptions(const llvm::opt::InputArgList &InputArgs) {
   AllHeaders = InputArgs.hasArg(OBJDUMP_all_headers);
   ArchName = InputArgs.getLastArgValue(OBJDUMP_arch_name_EQ).str();
   ArchiveHeaders = InputArgs.hasArg(OBJDUMP_archive_headers);
+  CapRelocations = InputArgs.hasArg(OBJDUMP_cap_relocs);
   Demangle = InputArgs.hasArg(OBJDUMP_demangle);
   Disassemble = InputArgs.hasArg(OBJDUMP_disassemble);
   DisassembleAll = InputArgs.hasArg(OBJDUMP_disassemble_all);
@@ -3569,7 +3725,7 @@ int llvm_objdump_main(int argc, char **argv, const llvm::ToolContext &) {
       !DisassembleSymbols.empty())
     Disassemble = true;
 
-  if (!ArchiveHeaders && !Disassemble && DwarfDumpType == DIDT_Null &&
+  if (!ArchiveHeaders && !Disassemble && DwarfDumpType == DIDT_Null && !CapRelocations &&
       !DynamicRelocations && !FileHeaders && !PrivateHeaders && !RawClangAST &&
       !Relocations && !SectionHeaders && !SectionContents && !SymbolTable &&
       !DynamicSymbolTable && !UnwindInfo && !FaultMapSection && !Offloading &&

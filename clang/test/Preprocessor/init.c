@@ -316,6 +316,125 @@
 // SHORTWCHAR2: #define __WCHAR_WIDTH__ 32
 // Other definitions vary from platform to platform
 
+
+// Check for CHERIoT-specific defines
+// RUN: %clang_cc1 %s -o - "-triple" "riscv32-unknown-unknown" "-emit-llvm" "-mframe-pointer=none" "-mcmodel=small" "-target-cpu" "cheriot" "-target-feature" "+xcheri" "-target-feature" "-64bit" "-target-feature" "-relax" "-target-feature" "-xcheri-rvc" "-target-feature" "-save-restore" "-target-abi" "cheriot" -E -dM < /dev/null | FileCheck -check-prefix CHERIOT %s
+// RUN: %clang_cc1 %s -o - "-triple" "riscv32-unknown-unknown" "-emit-llvm" "-mframe-pointer=none" "-mcmodel=small" "-target-cpu" "cheriot" "-target-feature" "+xcheri" "-target-feature" "-64bit" "-target-feature" "-relax" "-target-feature" "-xcheri-rvc" "-target-feature" "-save-restore" "-target-abi" "cheriot-baremetal" -E -dM < /dev/null | FileCheck -check-prefixes CHERIOT,CHERIOT-BAREMETAL %s
+// CHERIOT-BAREMETAL: #define __CHERIOT_BAREMETAL__ 20250113
+// CHERIOT: #define __CHERIOT__ 20250113
+
+
+// RUN: %cheri128_cc1 -fgnuc-version=4.2.1 -E -dM -ffreestanding < /dev/null | FileCheck -check-prefixes CHERI-COMMON,CHERI-MIPS,CHERI128 %s
+// RUN: %riscv64_cheri_cc1 -fgnuc-version=4.2.1 -E -dM -ffreestanding < /dev/null | FileCheck -check-prefixes CHERI-COMMON,CHERI-RISCV64,CHERI128 %s
+// RUN: %riscv32_cheri_cc1 -fgnuc-version=4.2.1 -E -dM -ffreestanding < /dev/null | FileCheck -check-prefixes CHERI-COMMON,CHERI-RISCV32,CHERI64 %s
+
+// CHERI-MIPS: #define MIPSEB 1
+// CHERI-MIPS-NEXT:   #define _ABI64 3
+// CHERI-MIPS-NEXT:   #define _LP64 1
+// CHERI-MIPS-NEXT:   #define _MIPSEB 1
+// CHERI-MIPS-NEXT:   #define _MIPS_ARCH "cheri128"
+// CHERI-MIPS-NEXT:   #define _MIPS_ARCH_CHERI128 1
+// CHERI-MIPS-NEXT:   #define _MIPS_CAP_ALIGN_MASK 0xfffffffffffffff0
+// CHERI-MIPS-NEXT:   #define _MIPS_FPSET 32
+// CHERI-MIPS-NEXT:   #define _MIPS_ISA _MIPS_ISA_MIPS64
+// CHERI-MIPS-NEXT:   #define _MIPS_SIM _ABI64
+// CHERI-MIPS-NEXT:   #define _MIPS_SPFPSET 32
+// CHERI-MIPS-NEXT:   #define _MIPS_SZCAP 128
+// CHERI-MIPS-NEXT:   #define _MIPS_SZINT 32
+// CHERI-MIPS-NEXT:   #define _MIPS_SZLONG 64
+// CHERI-MIPS-NEXT:   #define _MIPS_SZPTR 64
+// CHERI-MIPS-NEXT:   #define __ABICALLS__ 1
+
+// Even though sizeof(void* __capability) is only 8, RV32 requires 16 bytes for __BIGGEST_ALIGNMENT__
+// CHERI128:          #define __BIGGEST_ALIGNMENT__ 16
+// CHERI64:           #define __BIGGEST_ALIGNMENT__ 16
+// CHERI128:          #define __CHERI_ADDRESS_BITS__ 64
+// CHERI64:           #define __CHERI_ADDRESS_BITS__ 32
+// CHERI128-NEXT:     #define __CHERI_CAPABILITY_WIDTH__ 128
+// CHERI64-NEXT:      #define __CHERI_CAPABILITY_WIDTH__ 64
+// CHERI-COMMON-NEXT: #define __CHERI_CAP_PERMISSION_ACCESS_SYSTEM_REGISTERS__ 1024
+// CHERI-COMMON-NEXT: #define __CHERI_CAP_PERMISSION_GLOBAL__ 1
+// CHERI-COMMON-NEXT: #define __CHERI_CAP_PERMISSION_PERMIT_EXECUTE__ 2
+// CHERI-COMMON-NEXT: #define __CHERI_CAP_PERMISSION_PERMIT_INVOKE__ 256
+// CHERI-COMMON-NEXT: #define __CHERI_CAP_PERMISSION_PERMIT_LOAD_CAPABILITY__ 16
+// CHERI-COMMON-NEXT: #define __CHERI_CAP_PERMISSION_PERMIT_LOAD__ 4
+// CHERI-COMMON-NEXT: #define __CHERI_CAP_PERMISSION_PERMIT_SEAL__ 128
+// CHERI-COMMON-NEXT: #define __CHERI_CAP_PERMISSION_PERMIT_STORE_CAPABILITY__ 32
+// CHERI-COMMON-NEXT: #define __CHERI_CAP_PERMISSION_PERMIT_STORE_LOCAL__ 64
+// CHERI-COMMON-NEXT: #define __CHERI_CAP_PERMISSION_PERMIT_STORE__ 8
+// CHERI-COMMON-NEXT: #define __CHERI_CAP_PERMISSION_PERMIT_UNSEAL__ 512
+// CHERI-COMMON-NEXT: #define __CHERI__ 1
+// CHERI64:           #define __POINTER_WIDTH__ 32
+// CHERI128:          #define __POINTER_WIDTH__ 64
+// CHERI-COMMON-NEXT: #define __PRAGMA_REDEFINE_EXTNAME 1
+// CHERI128-NEXT:     #define __PTRADDR_FMTX__ "lX"
+// CHERI128-NEXT:     #define __PTRADDR_FMTo__ "lo"
+// CHERI128-NEXT:     #define __PTRADDR_FMTu__ "lu"
+// CHERI128-NEXT:     #define __PTRADDR_FMTx__ "lx"
+// CHERI128-NEXT:     #define __PTRADDR_MAX__ 18446744073709551615UL
+// CHERI128-NEXT:     #define __PTRADDR_TYPE__ long unsigned int
+// CHERI128-NEXT:     #define __PTRADDR_WIDTH__ 64
+// CHERI128-NEXT:     #define __PTRDIFF_FMTd__ "ld"
+// CHERI128-NEXT:     #define __PTRDIFF_FMTi__ "li"
+// CHERI128-NEXT:     #define __PTRDIFF_MAX__ 9223372036854775807L
+// CHERI128-NEXT:     #define __PTRDIFF_TYPE__ long int
+// CHERI128-NEXT:     #define __PTRDIFF_WIDTH__ 64
+// CHERI64-NEXT:      #define __PTRADDR_FMTX__ "X"
+// CHERI64-NEXT:      #define __PTRADDR_FMTo__ "o"
+// CHERI64-NEXT:      #define __PTRADDR_FMTu__ "u"
+// CHERI64-NEXT:      #define __PTRADDR_FMTx__ "x"
+// CHERI64-NEXT:      #define __PTRADDR_MAX__ 4294967295U
+// CHERI64-NEXT:      #define __PTRADDR_TYPE__ unsigned int
+// CHERI64-NEXT:      #define __PTRADDR_WIDTH__ 32
+// CHERI64-NEXT:      #define __PTRDIFF_FMTd__ "d"
+// CHERI64-NEXT:      #define __PTRDIFF_FMTi__ "i"
+// CHERI64-NEXT:      #define __PTRDIFF_MAX__ 2147483647
+// CHERI64-NEXT:      #define __PTRDIFF_TYPE__ int
+// CHERI64-NEXT:      #define __PTRDIFF_WIDTH__ 32
+// CHERI128:          #define __SIZEOF_CHERI_CAPABILITY__ 16
+// CHERI64:           #define __SIZEOF_CHERI_CAPABILITY__ 8
+// CHERI128:          #define __SIZEOF_POINTER__ 8
+// CHERI64:           #define __SIZEOF_POINTER__ 4
+// CHERI128:          #define __SIZEOF_PTRDIFF_T__ 8
+// CHERI64:           #define __SIZEOF_PTRDIFF_T__ 4
+// CHERI64:           #define __SIZEOF_UINTCAP__ 8
+// CHERI128:          #define __SIZEOF_UINTCAP__ 16
+// CHERI128:          #define __UINTCAP_MAX__ 18446744073709551615UL
+// CHERI128:          #define __UINTPTR_MAX__ 18446744073709551615UL
+// CHERI128-NEXT:     #define __UINTPTR_TYPE__ long unsigned int
+// CHERI128-NEXT:     #define __UINTPTR_WIDTH__ 64
+// CHERI64:           #define __UINTCAP_MAX__ 4294967295U
+// CHERI64:           #define __UINTPTR_MAX__ 4294967295U
+// CHERI64-NEXT:      #define __UINTPTR_TYPE__ unsigned int
+// CHERI64-NEXT:      #define __UINTPTR_WIDTH__ 32
+// CHERI-COMMON       #define __clang__ 1
+// CHERI-RISCV32: #define __riscv_clen 64
+// CHERI-RISCV64: #define __riscv_clen 128
+
+// RUN: %cheri_cc1 -E -dM -ffreestanding -triple=mips64-none-none -target-abi purecap < /dev/null | FileCheck -check-prefix CHERI128-PURECAP %s
+// CHERI128-PURECAP: #define _MIPS_FPSET 32
+// CHERI128-PURECAP: #define __CHERI_PURE_CAPABILITY__ 2
+// CHERI128-PURECAP: #define __CHERI_SANDBOX__ 4
+// CHERI128-PURECAP: #define __INTPTR_FMTd__ "Pd"
+// CHERI128-PURECAP: #define __INTPTR_FMTi__ "Pi"
+// CHERI128-PURECAP: #define __INTPTR_MAX__ 9223372036854775807L
+// CHERI128-PURECAP: #define __INTPTR_TYPE__ __intcap
+// CHERI128-PURECAP: #define __INTPTR_WIDTH__ 128
+// CHERI128-PURECAP: #define __UINTPTR_FMTX__ "PX"
+// CHERI128-PURECAP: #define __UINTPTR_FMTo__ "Po"
+// CHERI128-PURECAP: #define __UINTPTR_FMTu__ "Pu"
+// CHERI128-PURECAP: #define __UINTPTR_FMTx__ "Px"
+// CHERI128-PURECAP: #define __UINTPTR_MAX__ 18446744073709551615UL
+// CHERI128-PURECAP: #define __UINTPTR_TYPE__ unsigned __intcap
+// CHERI128-PURECAP: #define __UINTPTR_WIDTH__ 128
+// CHERI128-PURECAP: #define __mips_fpr 64
+
+// RUN: %cheri_cc1 -E -dM -ffreestanding -target-feature +soft-float -msoft-float -mfloat-abi soft -target-abi purecap < /dev/null | FileCheck -check-prefix CHERI-PURECAP-SOFT %s
+// CHERI-PURECAP-SOFT: #define _MIPS_FPSET 32
+// CHERI-PURECAP-SOFT: #define __mips_fpr 64
+// CHERI-PURECAP-SOFT-NOT: #define __mips_hard_float 1
+// CHERI-PURECAP-SOFT: #define __mips_soft_float 1
+
 //
 // RUN: %clang_cc1 -E -dM -ffreestanding -triple=msp430-none-none < /dev/null | FileCheck -match-full-lines -check-prefix MSP430 %s
 // RUN: %clang_cc1 -x c++ -E -dM -ffreestanding -triple=msp430-none-none < /dev/null | FileCheck -match-full-lines -check-prefix MSP430 -check-prefix MSP430-CXX %s
@@ -1429,8 +1548,10 @@
 // GNUSTEP2:#define __OBJC_GNUSTEP_RUNTIME_ABI__ 20
 //
 // RUN: %clang_cc1 -x c++ -fgnuc-version=4.2.1 -std=c++98 -fno-rtti -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix NORTTI %s
+// RUN: %clang_cc1 -x c++ -fgnuc-version=4.2.1 -std=c++98 -triple mips64-unknown-freebsd -fno-rtti -target-abi purecap -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix NORTTI %s
 // NORTTI: #define __GXX_ABI_VERSION {{.*}}
 // NORTTI-NOT:#define __GXX_RTTI
+// NORTTI-NOT:#define __cpp_rtti
 // NORTTI:#define __STDC__ 1
 //
 // RUN: %clang_cc1 -triple arm-linux-androideabi -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix ANDROID %s
@@ -1761,6 +1882,15 @@
 // WEBASSEMBLY32-NEXT:#define __POINTER_WIDTH__ 32
 // WEBASSEMBLY64-NEXT:#define __POINTER_WIDTH__ 64
 // WEBASSEMBLY-NEXT:#define __PRAGMA_REDEFINE_EXTNAME 1
+// WEBASSEMBLY-NEXT:#define __PTRADDR_FMTX__ "lX"
+// WEBASSEMBLY-NEXT:#define __PTRADDR_FMTo__ "lo"
+// WEBASSEMBLY-NEXT:#define __PTRADDR_FMTu__ "lu"
+// WEBASSEMBLY-NEXT:#define __PTRADDR_FMTx__ "lx"
+// WEBASSEMBLY32-NEXT:#define __PTRADDR_MAX__ 4294967295UL
+// WEBASSEMBLY64-NEXT:#define __PTRADDR_MAX__ 18446744073709551615UL
+// WEBASSEMBLY-NEXT:#define __PTRADDR_TYPE__ long unsigned int
+// WEBASSEMBLY32-NEXT:#define __PTRADDR_WIDTH__ 32
+// WEBASSEMBLY64-NEXT:#define __PTRADDR_WIDTH__ 64
 // WEBASSEMBLY-NEXT:#define __PTRDIFF_FMTd__ "ld"
 // WEBASSEMBLY-NEXT:#define __PTRDIFF_FMTi__ "li"
 // WEBASSEMBLY32-NEXT:#define __PTRDIFF_MAX__ 2147483647L

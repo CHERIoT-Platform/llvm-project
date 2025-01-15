@@ -625,6 +625,9 @@ class Instruction : InstructionEncoding {
   bit mayLoad      = ?;         // Is it possible for this inst to read memory?
   bit mayStore     = ?;         // Is it possible for this inst to write memory?
   bit mayRaiseFPException = false; // Can this raise a floating-point exception?
+  bit mayTrap = false;          // Can this instruction trap?
+  bit mayTrapOnSealedInput = ?; // Can this trap if the input is a sealed capability?
+  bit defsCanBeSealed = false;  // Output operands can be sealed capabilities (e.g. CSeal)
   bit isConvertibleToThreeAddress = false;  // Can this 2-addr instruction promote?
   bit isCommutable = false;     // Is this 3 operand instruction commutable?
   bit isTerminator = false;     // Is this part of the terminator for a basic block?
@@ -879,8 +882,9 @@ def decoder;
 /// derived from this.  TableGen treats the register class as having a symbolic
 /// type that it doesn't know, and resolves the actual regclass to use by using
 /// the TargetRegisterInfo::getPointerRegClass() hook at codegen time.
-class PointerLikeRegClass<int Kind> {
+class PointerLikeRegClass<int Kind, ValueType Type = iPTR> {
   int RegClassKind = Kind;
+  ValueType RegClassType = Type;
 }
 
 

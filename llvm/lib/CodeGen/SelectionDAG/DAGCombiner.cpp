@@ -51,6 +51,7 @@
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/Support/Casting.h"
@@ -417,7 +418,9 @@ namespace {
     //   otherwise              - N should be replaced by the returned Operand.
     //
     SDValue visitTokenFactor(SDNode *N);
+    SDValue visitCopyToReg(SDNode *N);
     SDValue visitMERGE_VALUES(SDNode *N);
+    SDValue visitPTRADD(SDNode *N);
     SDValue visitADD(SDNode *N);
     SDValue visitADDLike(SDNode *N);
     SDValue visitADDLikeCommutative(SDValue N0, SDValue N1, SDNode *LocReference);
@@ -1211,7 +1214,8 @@ bool DAGCombiner::reassociationCanBreakAddressingModePattern(unsigned Opc,
   // (load/store (add, (add, x, y), offset2)) ->
   // (load/store (add, (add, x, offset2), y)).
 
-  if (Opc != ISD::ADD || N0.getOpcode() != ISD::ADD)
+  if ((Opc != ISD::ADD && Opc != ISD::PTRADD) ||
+      (N0.getOpcode() != ISD::ADD && N0.getOpcode() != ISD::PTRADD))
     return false;
 
   auto *C2 = dyn_cast<ConstantSDNode>(N1);
@@ -1916,12 +1920,36 @@ void DAGCombiner::Run(CombineLevel AtLevel) {
   DAG.RemoveDeadNodes();
 }
 
+SDValue DAGCombiner::visitCopyToReg(SDNode *N) {
+  // For CHERI: if the target has a NULL register, we combine copies of
+  // (inttoptr (i64 0)) to (COPY CNULL) rather than waiting for the
+  // MachineCopyPropagation pass to eliminate the value. This helps MIPS
+  // at -O0 since it elimites the copies to clear $c13
+  SDValue Src = N->getOperand(2);
+  if (Src.getOpcode() == ISD::INTTOPTR && Src.getValueType().isFatPointer()) {
+    if (auto ConstVal = dyn_cast<ConstantSDNode>(Src.getOperand(0))) {
+      if (ConstVal->isZero() && TLI.getNullCapabilityRegister()) {
+        auto NullValue = DAG.getRegister(TLI.getNullCapabilityRegister(),
+                                         Src.getValueType());
+        // Glue argument is optional
+        SDValue Glue = N->getNumOperands() > 3 ? N->getOperand(3) : SDValue();
+        SDValue Ops[] = {N->getOperand(0), N->getOperand(1), NullValue, Glue};
+        SDNode *NewCopy =
+            DAG.UpdateNodeOperands(N, ArrayRef(Ops, Glue.getNode() ? 4 : 3));
+        return SDValue(NewCopy, 0);
+      }
+    }
+  }
+  return SDValue();
+}
+
 SDValue DAGCombiner::visit(SDNode *N) {
   // clang-format off
   switch (N->getOpcode()) {
   default: break;
   case ISD::TokenFactor:        return visitTokenFactor(N);
   case ISD::MERGE_VALUES:       return visitMERGE_VALUES(N);
+  case ISD::PTRADD:             return visitPTRADD(N);
   case ISD::ADD:                return visitADD(N);
   case ISD::SUB:                return visitSUB(N);
   case ISD::SADDSAT:
@@ -2071,6 +2099,7 @@ SDValue DAGCombiner::visit(SDNode *N) {
   case ISD::VECREDUCE_FMIN:
   case ISD::VECREDUCE_FMAXIMUM:
   case ISD::VECREDUCE_FMINIMUM:     return visitVECREDUCE(N);
+  case ISD::CopyToReg:          return visitCopyToReg(N);
 #define BEGIN_REGISTER_VP_SDNODE(SDOPC, ...) case ISD::SDOPC:
 #include "llvm/IR/VPIntrinsics.def"
     return visitVPOp(N);
@@ -2658,6 +2687,75 @@ static SDValue foldAddSubBoolOfMaskedVal(SDNode *N, SelectionDAG &DAG) {
   SDValue C1 = IsAdd ? DAG.getConstant(CN->getAPIntValue() + 1, DL, VT) :
                        DAG.getConstant(CN->getAPIntValue() - 1, DL, VT);
   return DAG.getNode(IsAdd ? ISD::SUB : ISD::ADD, DL, VT, C1, LowBit);
+}
+
+/// Try to fold a pointer arithmetic node, preferring integer arithmetic.
+/// This needs to be done separately from normal addition, because pointer
+/// addition is not commutative.
+SDValue DAGCombiner::visitPTRADD(SDNode *N) {
+  SDValue N0 = N->getOperand(0);
+  SDValue N1 = N->getOperand(1);
+  EVT PtrVT = N0.getValueType();
+  EVT IntVT = N1.getValueType();
+  SDLoc DL(N);
+
+  // fold (ptradd undef, y) -> undef
+  if (N0.isUndef())
+    return N0;
+
+  // fold (ptradd x, undef) -> undef
+  if (N1.isUndef())
+    return DAG.getUNDEF(PtrVT);
+
+  // fold (ptradd x, 0) -> x
+  if (isNullConstant(N1))
+    return N0;
+
+  // Reassociate: (ptradd (ptradd x, y), z) -> (ptradd x, (add y, z)) if:
+  //   * x is a null pointer; or
+  //   * the add can be constant-folded; or
+  //   * the add can be combined and z is not a constant; or
+  //   * y is a constant and z has one use; or
+  //   * y is a constant and (ptradd x, y) has one use; or
+  //   * (ptradd x, y) and z have one use and z is not a constant.
+  //
+  // Some of these overly-restrictive conditions are to not obfuscate CAndAddr
+  // patterns. Once we represent that with PTRMASK that will be less of a
+  // concern, though we might still want to detect code not using the builtins
+  // and canonicalise it to a PTRMASK.
+  if (N0.getOpcode() == ISD::PTRADD &&
+      !reassociationCanBreakAddressingModePattern(ISD::PTRADD, DL, N, N0, N1)) {
+    SDValue X = N0.getOperand(0);
+    SDValue Y = N0.getOperand(1);
+    SDValue Z = N1;
+
+    SDValue Add = DAG.getNode(ISD::ADD, DL, IntVT, {Y, Z});
+    // Calling visit() can replace the Add node with ISD::DELETED_NODE if there
+    // aren't any users, so keep a handle around whilst we visit it.
+    HandleSDNode ADDHandle(Add);
+    SDValue VisitedAdd = visit(Add.getNode());
+    if (VisitedAdd) {
+      // If visit() returns the same node, it means the SDNode was RAUW'd, and
+      // therefore we have to load the new value to perform the checks whether
+      // the reassociation fold is profitable.
+      if (VisitedAdd.getNode() == Add.getNode())
+        Add = ADDHandle.getValue();
+      else
+        Add = VisitedAdd;
+    }
+    LLVM_DEBUG(dbgs() << "visitPTRADD() add operand:"; Add.dump(&DAG));
+    assert(Add->getOpcode() != ISD::DELETED_NODE && "Deleted Node used");
+    if (isNullConstant(X) ||
+        DAG.isConstantIntBuildVectorOrConstantInt(Add) ||
+        (VisitedAdd && !DAG.isConstantIntBuildVectorOrConstantInt(Z)) ||
+        (DAG.isConstantIntBuildVectorOrConstantInt(Y) && Z.hasOneUse()) ||
+        (DAG.isConstantIntBuildVectorOrConstantInt(Y) && N0.hasOneUse()) ||
+        (N0.hasOneUse() && Z.hasOneUse() &&
+         !DAG.isConstantIntBuildVectorOrConstantInt(Z)))
+      return DAG.getPointerAdd(DL, X, Add);
+  }
+
+  return SDValue();
 }
 
 /// Try to fold a 'not' shifted sign-bit with add/sub with constant operand into
@@ -18718,6 +18816,9 @@ SDValue DAGCombiner::visitLOAD(SDNode *N) {
   SDValue Chain = LD->getChain();
   SDValue Ptr   = LD->getBasePtr();
 
+  // FIXME: combine unaligned stores of loads to memove here (useful for caps)
+
+
   // If load is not volatile and there are no uses of the loaded value (and
   // the updated indexed value in case of indexed loads), change uses of the
   // chain value into uses of the chain input (i.e. delete the dead load).
@@ -20995,6 +21096,80 @@ SDValue DAGCombiner::replaceStoreOfFPConstant(StoreSDNode *ST) {
   }
 }
 
+// Replace unaligned store of unaligned load with memmove.
+static SDValue convertUnalignedStoreOfLoadToMemmove(SDNode *N,
+                                                    SelectionDAG &DAG,
+                                                    bool IsBeforeLegalize,
+                                                    AAResults *AA,
+                                                    const TargetLowering &TLI) {
+  StoreSDNode *ST = dyn_cast<StoreSDNode>(N);
+  if (!ST)
+    return SDValue();
+  if (!IsBeforeLegalize || ST->isVolatile() || ST->isIndexed() || !ST->getMemoryVT().isSimple()) {
+    return SDValue();
+  }
+  if (ST->getMemoryVT().isFatPointer()) {
+    if (TLI.supportsUnalignedCapabilityMemOps())
+      return SDValue();
+
+  } else {
+    // XXXAR: for now only perform this conversion for Capabilities
+    return SDValue();
+  }
+
+  const Align Alignment = ST->getAlign();
+  // Don't bother doing this transformation if the unaligned load/store is fast
+  unsigned Fast = 0;
+  if (TLI.allowsMisalignedMemoryAccesses(ST->getMemoryVT(),
+                                         ST->getAddressSpace(), Alignment,
+                                         MachineMemOperand::MONone, &Fast)) {
+    if (Fast)
+      return SDValue();
+  }
+  SDValue Chain = ST->getChain();
+
+  unsigned StoreBits = ST->getMemoryVT().getStoreSizeInBits();
+  unsigned StoreBytes = StoreBits / 8;
+  assert((StoreBits % 8) == 0 && "Store size in bits must be a multiple of 8");
+  Align ABIAlignment = DAG.getDataLayout().getABITypeAlign(
+      ST->getMemoryVT().getTypeForEVT(*DAG.getContext()));
+  if (Alignment >= ABIAlignment) {
+    return SDValue();
+  }
+
+  if (LoadSDNode *LD = dyn_cast<LoadSDNode>(ST->getValue())) {
+    if (LD->hasNUsesOfValue(1, 0) && ST->getMemoryVT() == LD->getMemoryVT() &&
+        LD->getAlign() < ABIAlignment && !LD->isVolatile() &&
+        !LD->isIndexed() &&
+        Chain.reachesChainWithoutSideEffects(SDValue(LD, 1))) {
+      SDLoc dl(N);
+      bool isTail = TLI.isInTailCallPosition(DAG, ST, Chain);
+      SDValue Src = TLI.unalignedLoadStoreCSetbounds(
+          "store+load memmove src", LD->getBasePtr(), dl, StoreBytes, DAG);
+      SDValue Dest = TLI.unalignedLoadStoreCSetbounds(
+          "store+load memmove dest", ST->getBasePtr(), dl, StoreBytes, DAG);
+      auto PreserveTags = PreserveCheriTags::Unknown;
+      if (ST->getMemoryVT().isFatPointer()) {
+        DiagnosticInfoCheriInefficient Warning(
+            DAG.getMachineFunction().getFunction(), dl.getDebugLoc(),
+            "found underaligned store of underaligned load of capability type"
+            " (aligned to " +
+                Twine(Alignment.value()) + " bytes instead of " +
+                Twine(ABIAlignment.value()) +
+                "). Will use memmove() to preserve tags if it is aligned "
+                "correctly at runtime");
+        DAG.getContext()->diagnose(Warning);
+        PreserveTags = PreserveCheriTags::Required;
+      }
+      return DAG.getMemmove(
+          Chain, dl, Dest, Src, DAG.getConstant(StoreBytes, dl, MVT::i32),
+          Align(Alignment), false, isTail, PreserveTags, ST->getPointerInfo(),
+          LD->getPointerInfo(), AAMDNodes(), AA, "!!<CHERI-NODIAG>!!");
+    }
+  }
+  return SDValue();
+}
+
 // (store (insert_vector_elt (load p), x, i), p) -> (store x, p+offset)
 //
 // If a store of a load with an element inserted into it has no other
@@ -21266,6 +21441,11 @@ SDValue DAGCombiner::visitSTORE(SDNode *N) {
       if (N->getOpcode() == ISD::DELETED_NODE || !isa<StoreSDNode>(N))
         return SDValue(N, 0);
     }
+  }
+
+  if (SDValue Memmove =
+          convertUnalignedStoreOfLoadToMemmove(N, DAG, !LegalTypes, AA, TLI)) {
+    return Memmove;
   }
 
   // Try transforming N to an indexed store.
@@ -27241,8 +27421,11 @@ SDValue DAGCombiner::convertSelectOfFPConstantsToLoadOffset(
 
   // Create a ConstantArray of the two constants.
   Constant *CA = ConstantArray::get(ArrayType::get(FPTy, 2), Elts);
-  SDValue CPIdx = DAG.getConstantPool(CA, TLI.getPointerTy(DAG.getDataLayout()),
-                                      TD.getPrefTypeAlign(FPTy));
+  SDValue CPIdx = DAG.getConstantPool(
+      CA,
+      TLI.getPointerTy(DAG.getDataLayout(),
+                       DAG.getDataLayout().getGlobalsAddressSpace()),
+      TD.getPrefTypeAlign(FPTy));
   Align Alignment = cast<ConstantPoolSDNode>(CPIdx)->getAlign();
 
   // Get offsets to the 0 and 1 elements of the array, so we can select between
@@ -27255,7 +27438,7 @@ SDValue DAGCombiner::convertSelectOfFPConstantsToLoadOffset(
   AddToWorklist(Cond.getNode());
   SDValue CstOffset = DAG.getSelect(DL, Zero.getValueType(), Cond, One, Zero);
   AddToWorklist(CstOffset.getNode());
-  CPIdx = DAG.getNode(ISD::ADD, DL, CPIdx.getValueType(), CPIdx, CstOffset);
+  CPIdx = DAG.getPointerAdd(DL, CPIdx, CstOffset);
   AddToWorklist(CPIdx.getNode());
   return DAG.getLoad(TV->getValueType(0), DL, DAG.getEntryNode(), CPIdx,
                      MachinePointerInfo::getConstantPool(

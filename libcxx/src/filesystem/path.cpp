@@ -65,7 +65,7 @@ string_view_t path::__root_path_raw() const {
     auto NextCh = PP.peek();
     if (NextCh && isSeparator(*NextCh)) {
       ++PP;
-      return createView(__pn_.data(), &PP.RawEntry.back());
+      return createView(__pn_.data(), std::prev(PP.RawEntry.end()));
     }
     return PP.RawEntry;
   }
@@ -93,7 +93,7 @@ string_view_t path::__relative_path() const {
   auto PP = PathParser::CreateBegin(__pn_);
   if (ConsumeRootDir(&PP))
     return {};
-  return createView(PP.RawEntry.data(), &__pn_.back());
+  return createView(PP.RawEntry.data(), __pn_.data() + __pn_.size() - 1);
 }
 
 string_view_t path::__parent_path() const {
@@ -114,7 +114,7 @@ string_view_t path::__parent_path() const {
     if (PP.RawEntry.data() == __pn_.data())
       return {};
     --PP;
-    return createView(__pn_.data(), &PP.RawEntry.back());
+    return createView(__pn_.data(), std::prev(PP.RawEntry.end()));
   }
 }
 

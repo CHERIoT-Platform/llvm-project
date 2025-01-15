@@ -129,6 +129,12 @@ void MipsAsmPrinter::emitPseudoIndirectBranch(MCStreamer &OutStreamer,
   } else if (Subtarget->inMicroMipsMode())
     // microMIPS should use (JR_MM $rs)
     TmpInst0.setOpcode(Mips::JR_MM);
+  else if (static_cast<MipsTargetMachine &>(TM).getABI().IsCheriPureCap())
+    // Everything else should use (JR $rs) or (CJR $rs), depending on the register.
+    TmpInst0.setOpcode(
+        Mips::CheriGPROrCNullRegClass.contains(MI->getOperand(0).getReg())
+            ? Mips::CJR
+            : Mips::JR);
   else {
     // Everything else should use (JR $rs)
     TmpInst0.setOpcode(Mips::JR);
@@ -226,8 +232,10 @@ void MipsAsmPrinter::emitInstruction(const MachineInstr *MI) {
     const MachineConstantPoolEntry &MCPE = MCP->getConstants()[CPIdx];
     if (MCPE.isMachineConstantPoolEntry())
       emitMachineConstantPoolValue(MCPE.Val.MachineCPVal);
-    else
-      emitGlobalConstant(MF->getDataLayout(), MCPE.Val.ConstVal);
+    else {
+      // XXXAR: should not need tail padding here since all entries are small
+      emitGlobalConstant(MF->getDataLayout(), MCPE.Val.ConstVal, 0);
+    }
     return;
   }
 
@@ -262,8 +270,10 @@ void MipsAsmPrinter::emitInstruction(const MachineInstr *MI) {
 
     if (I->getOpcode() == Mips::PseudoReturn ||
         I->getOpcode() == Mips::PseudoReturn64 ||
+        I->getOpcode() == Mips::PseudoReturnCap ||
         I->getOpcode() == Mips::PseudoIndirectBranch ||
         I->getOpcode() == Mips::PseudoIndirectBranch64 ||
+        I->getOpcode() == Mips::PseudoIndirectBranchCap ||
         I->getOpcode() == Mips::TAILCALLREG ||
         I->getOpcode() == Mips::TAILCALLREG64) {
       emitPseudoIndirectBranch(*OutStreamer, &*I);
@@ -418,7 +428,7 @@ void MipsAsmPrinter::emitFunctionEntryLabel() {
     TS.emitDirectiveSetNoMips16();
 
   TS.emitDirectiveEnt(*CurrentFnSym);
-  OutStreamer->emitLabel(CurrentFnSym);
+  AsmPrinter::emitFunctionEntryLabel();
 }
 
 /// EmitFunctionBodyStart - Targets can override this to emit stuff before
@@ -637,9 +647,18 @@ void MipsAsmPrinter::printOperand(const MachineInstr *MI, int opNum,
   case MipsII::MO_TPREL_LO: O << "%tprel_lo("; break;
   case MipsII::MO_GPOFF_HI: O << "%hi(%neg(%gp_rel("; break;
   case MipsII::MO_GPOFF_LO: O << "%lo(%neg(%gp_rel("; break;
+  case MipsII::MO_CAPTABLE_OFF_HI: O << "%hi(%neg(%captab_rel("; break;
+  case MipsII::MO_CAPTABLE_OFF_LO: O << "%lo(%neg(%captab_rel("; break;
   case MipsII::MO_GOT_DISP: O << "%got_disp("; break;
   case MipsII::MO_GOT_PAGE: O << "%got_page("; break;
   case MipsII::MO_GOT_OFST: O << "%got_ofst("; break;
+
+  case MipsII::MO_CAPTAB11:         O << "%captab(";    break;
+  case MipsII::MO_CAPTAB_HI16:      O << "%captab_hi("; break;
+  case MipsII::MO_CAPTAB_LO16:      O << "%captab_lo("; break;
+  case MipsII::MO_CAPTAB_CALL11:    O << "%capcall(";    break;
+  case MipsII::MO_CAPTAB_CALL_HI16: O << "%capcall_hi("; break;
+  case MipsII::MO_CAPTAB_CALL_LO16: O << "%capcall_lo("; break;
   }
 
   switch (MO.getType()) {

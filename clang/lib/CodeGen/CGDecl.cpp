@@ -386,7 +386,9 @@ CodeGenFunction::AddInitializerToStaticVarDecl(const VarDecl &D,
     GV->takeName(OldGV);
 
     // Replace all uses of the old global with the new global
-    OldGV->replaceAllUsesWith(GV);
+    llvm::Constant *NewPtrForOldDecl =
+    llvm::ConstantExpr::getPointerBitCastOrAddrSpaceCast(GV, OldGV->getType());
+    OldGV->replaceAllUsesWith(NewPtrForOldDecl);
 
     // Erase the old global, since it is no longer used.
     OldGV->eraseFromParent();
@@ -915,9 +917,15 @@ static bool canEmitInitWithFewStoresAfterBZero(llvm::Constant *Init,
       isa<llvm::UndefValue>(Init))
     return true;
   if (isa<llvm::ConstantInt>(Init) || isa<llvm::ConstantFP>(Init) ||
-      isa<llvm::ConstantVector>(Init) || isa<llvm::BlockAddress>(Init) ||
-      isa<llvm::ConstantExpr>(Init))
+      isa<llvm::ConstantVector>(Init) || isa<llvm::BlockAddress>(Init))
     return Init->isNullValue() || NumStores--;
+  if (auto C = dyn_cast<llvm::ConstantExpr>(Init)) {
+    // To match the pcrel ABI, don't emit bzero for legacy ABI where all
+    // functions are addrspacecast
+    if (C->isCast() && C->getOpcode() == llvm::Instruction::AddrSpaceCast && isa<llvm::Function>(C->getOperand(0)))
+      return false;
+    return Init->isNullValue() || NumStores--;
+  }
 
   // See if we can emit each element.
   if (isa<llvm::ConstantArray>(Init) || isa<llvm::ConstantStruct>(Init)) {
@@ -993,7 +1001,8 @@ static void emitStoresForInitAfterBZero(CodeGenModule &CGM,
 /// variable instead of using a memcpy from a constant global.  It is beneficial
 /// to use bzero if the global is all zeros, or mostly zeros and large.
 static bool shouldUseBZeroPlusStoresToInitialize(llvm::Constant *Init,
-                                                 uint64_t GlobalSize) {
+                                                 uint64_t GlobalSize,
+                                                 uint64_t AddedThreshold) {
   // If a global is all zeros, always use a bzero.
   if (isa<llvm::ConstantAggregateZero>(Init)) return true;
 
@@ -1002,7 +1011,10 @@ static bool shouldUseBZeroPlusStoresToInitialize(llvm::Constant *Init,
   // TODO: Should budget depends on the size?  Avoiding a large global warrants
   // plopping in more stores.
   unsigned StoreBudget = 6;
-  uint64_t SizeLimit = 32;
+  // TODO: should maybe check if more than x% of the struct needs initialization
+  // after bzero instead?
+  // XXXAR: Don't do a bzero if the size is only 32 over the capability size
+  uint64_t SizeLimit = 32  + AddedThreshold;
 
   return GlobalSize > SizeLimit &&
          canEmitInitWithFewStoresAfterBZero(Init, StoreBudget);
@@ -1189,7 +1201,8 @@ static Address createUnnamedGlobalForMemcpyFrom(CodeGenModule &CGM,
 static void emitStoresForConstant(CodeGenModule &CGM, const VarDecl &D,
                                   Address Loc, bool isVolatile,
                                   CGBuilderTy &Builder,
-                                  llvm::Constant *constant, bool IsAutoInit) {
+                                  llvm::Constant *constant, bool ContainsCaps,
+                                  bool IsAutoInit) {
   auto *Ty = constant->getType();
   uint64_t ConstantSize = CGM.getDataLayout().getTypeAllocSize(Ty);
   if (!ConstantSize)
@@ -1208,7 +1221,13 @@ static void emitStoresForConstant(CodeGenModule &CGM, const VarDecl &D,
 
   // If the initializer is all or mostly the same, codegen with bzero / memset
   // then do a few stores afterward.
-  if (shouldUseBZeroPlusStoresToInitialize(constant, ConstantSize)) {
+  // Avoid generating a memset() intrinisic for structs that are just capability
+  // and an integer (at least for CHERI256)
+  uint64_t AddedThreshold = 0;
+  if (ContainsCaps)
+    AddedThreshold = CGM.getTarget().getCHERICapabilityWidth() / 8;
+
+  if (shouldUseBZeroPlusStoresToInitialize(constant, ConstantSize, AddedThreshold)) {
     auto *I = Builder.CreateMemSet(Loc, llvm::ConstantInt::get(CGM.Int8Ty, 0),
                                    SizeVal, isVolatile);
     if (IsAutoInit)
@@ -1224,6 +1243,7 @@ static void emitStoresForConstant(CodeGenModule &CGM, const VarDecl &D,
     return;
   }
 
+  // FIXME: is this fine with capabilities?
   // If the initializer is a repeated byte pattern, use memset.
   llvm::Value *Pattern =
       shouldUseMemSetToInitialize(constant, ConstantSize, CGM.getDataLayout());
@@ -1258,7 +1278,8 @@ static void emitStoresForConstant(CodeGenModule &CGM, const VarDecl &D,
           Address EltPtr = Builder.CreateConstInBoundsByteGEP(
               Loc.withElementType(CGM.Int8Ty), CurOff);
           emitStoresForConstant(CGM, D, EltPtr, isVolatile, Builder,
-                                constant->getAggregateElement(i), IsAutoInit);
+                                constant->getAggregateElement(i),
+                                ContainsCaps, IsAutoInit);
         }
         return;
       }
@@ -1269,7 +1290,8 @@ static void emitStoresForConstant(CodeGenModule &CGM, const VarDecl &D,
           Address EltPtr = Builder.CreateConstGEP(
               Loc.withElementType(ATy->getElementType()), i);
           emitStoresForConstant(CGM, D, EltPtr, isVolatile, Builder,
-                                constant->getAggregateElement(i), IsAutoInit);
+                                constant->getAggregateElement(i),
+                                ContainsCaps, IsAutoInit);
         }
         return;
       }
@@ -1281,7 +1303,7 @@ static void emitStoresForConstant(CodeGenModule &CGM, const VarDecl &D,
       Builder.CreateMemCpy(Loc,
                            createUnnamedGlobalForMemcpyFrom(
                                CGM, D, Builder, constant, Loc.getAlignment()),
-                           SizeVal, isVolatile);
+                           SizeVal, llvm::PreserveCheriTags::TODO, isVolatile);
   if (IsAutoInit)
     I->addAnnotationMetadata("auto-init");
 }
@@ -1292,7 +1314,7 @@ static void emitStoresForZeroInit(CodeGenModule &CGM, const VarDecl &D,
   llvm::Type *ElTy = Loc.getElementType();
   llvm::Constant *constant =
       constWithPadding(CGM, IsPattern::No, llvm::Constant::getNullValue(ElTy));
-  emitStoresForConstant(CGM, D, Loc, isVolatile, Builder, constant,
+  emitStoresForConstant(CGM, D, Loc, isVolatile, Builder, constant, false,
                         /*IsAutoInit=*/true);
 }
 
@@ -1303,7 +1325,7 @@ static void emitStoresForPatternInit(CodeGenModule &CGM, const VarDecl &D,
   llvm::Constant *constant = constWithPadding(
       CGM, IsPattern::Yes, initializationPatternFor(CGM, ElTy));
   assert(!isa<llvm::UndefValue>(constant));
-  emitStoresForConstant(CGM, D, Loc, isVolatile, Builder, constant,
+  emitStoresForConstant(CGM, D, Loc, isVolatile, Builder, constant, false,
                         /*IsAutoInit=*/true);
 }
 
@@ -1857,11 +1879,11 @@ void CodeGenFunction::emitZeroOrPatternForAutoVarInit(QualType type,
     llvm::PHINode *Cur = Builder.CreatePHI(Begin.getType(), 2, "vla.cur");
     Cur->addIncoming(Begin.getPointer(), OriginBB);
     CharUnits CurAlign = Loc.getAlignment().alignmentOfArrayElement(EltSize);
-    auto *I =
-        Builder.CreateMemCpy(Address(Cur, Int8Ty, CurAlign),
-                             createUnnamedGlobalForMemcpyFrom(
-                                 CGM, D, Builder, Constant, ConstantAlign),
-                             BaseSizeInChars, isVolatile);
+    auto *I = Builder.CreateMemCpy(
+        Address(Cur, Int8Ty, CurAlign),
+        createUnnamedGlobalForMemcpyFrom(CGM, D, Builder, Constant,
+                                         ConstantAlign),
+        BaseSizeInChars, llvm::PreserveCheriTags::TODO, isVolatile);
     I->addAnnotationMetadata("auto-init");
     llvm::Value *Next =
         Builder.CreateInBoundsGEP(Int8Ty, Cur, BaseSizeInChars, "vla.next");
@@ -1980,8 +2002,15 @@ void CodeGenFunction::EmitAutoVarInit(const AutoVarEmission &emission) {
     return EmitStoreThroughLValue(RValue::get(constant), lv, true);
   }
 
+  // FIXME: some of these initialization patterns are fine with capabilities...
+  // Just need to be careful that all fields are untagged.
+  // For now just don't do it to avoid errors.
+  bool ContainsCapabilities =
+      Target.SupportsCapabilities() && getContext().containsCapabilities(type);
+
   emitStoresForConstant(CGM, D, Loc.withElementType(CGM.Int8Ty),
                         type.isVolatileQualified(), Builder, constant,
+                        ContainsCapabilities,
                         /*IsAutoInit=*/false);
 }
 

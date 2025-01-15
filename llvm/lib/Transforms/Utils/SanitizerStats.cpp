@@ -21,7 +21,10 @@
 using namespace llvm;
 
 SanitizerStatReport::SanitizerStatReport(Module *M) : M(M) {
-  StatTy = ArrayType::get(PointerType::getUnqual(M->getContext()), 2);
+  StatTy = ArrayType::get(
+    PointerType::get(M->getContext(),
+                     M->getDataLayout().getGlobalsAddressSpace()),
+    2);
   EmptyModuleStatsTy = makeModuleStatsTy();
 
   ModuleStatsGV = new GlobalVariable(*M, EmptyModuleStatsTy, false,
@@ -34,7 +37,8 @@ ArrayType *SanitizerStatReport::makeModuleStatsArrayTy() {
 
 StructType *SanitizerStatReport::makeModuleStatsTy() {
   return StructType::get(M->getContext(),
-                         {PointerType::getUnqual(M->getContext()),
+                         {PointerType::get(M->getContext(),
+                                           M->getDataLayout().getGlobalsAddressSpace()),
                           Type::getInt32Ty(M->getContext()),
                           makeModuleStatsArrayTy()});
 }
@@ -42,8 +46,8 @@ StructType *SanitizerStatReport::makeModuleStatsTy() {
 void SanitizerStatReport::create(IRBuilder<> &B, SanitizerStatKind SK) {
   Function *F = B.GetInsertBlock()->getParent();
   Module *M = F->getParent();
-  PointerType *PtrTy = B.getPtrTy();
-  IntegerType *IntPtrTy = B.getIntPtrTy(M->getDataLayout());
+  PointerType *PtrTy = B.getPtrTy(M->getDataLayout().getGlobalsAddressSpace());
+  IntegerType *IntPtrTy = B.getIntPtrTy(M->getDataLayout(), M->getDataLayout().getGlobalsAddressSpace());
   ArrayType *StatTy = ArrayType::get(PtrTy, 2);
 
   Inits.push_back(ConstantArray::get(
@@ -73,7 +77,7 @@ void SanitizerStatReport::finish() {
     return;
   }
 
-  PointerType *Int8PtrTy = PointerType::getUnqual(M->getContext());
+  PointerType *Int8PtrTy = PointerType::get(M->getContext(), M->getDataLayout().getGlobalsAddressSpace());
   IntegerType *Int32Ty = Type::getInt32Ty(M->getContext());
   Type *VoidTy = Type::getVoidTy(M->getContext());
 

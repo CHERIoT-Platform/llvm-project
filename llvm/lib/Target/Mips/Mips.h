@@ -20,6 +20,7 @@
 namespace llvm {
 class FunctionPass;
 class InstructionSelector;
+class MachineFunctionPass;
 class MipsRegisterBankInfo;
 class MipsSubtarget;
 class MipsTargetMachine;
@@ -41,6 +42,12 @@ FunctionPass *createMipsPreLegalizeCombiner();
 FunctionPass *createMipsPostLegalizeCombiner(bool IsOptNone);
 FunctionPass *createMipsMulMulBugPass();
 
+FunctionPass *createCheriInvalidatePass();
+FunctionPass *createCheriRangeChecker();
+FunctionPass *createCheriLoopPointerDecanonicalize();
+
+MachineFunctionPass *createCheriAddressingModeFolder();
+MachineFunctionPass *createCheri128FailHardPass();
 InstructionSelector *createMipsInstructionSelector(const MipsTargetMachine &,
                                                    MipsSubtarget &,
                                                    MipsRegisterBankInfo &);
@@ -50,6 +57,9 @@ void initializeMipsBranchExpansionPass(PassRegistry &);
 void initializeMipsDAGToDAGISelPass(PassRegistry &);
 void initializeMipsDelaySlotFillerPass(PassRegistry &);
 void initializeMipsMulMulBugFixPass(PassRegistry &);
+void initializeMipsOptimizePICCallPass(PassRegistry &);
+void initializeCheriAddressingModeFolderPass(PassRegistry &);
+void initializeCheriRangeCheckerPass(PassRegistry &);
 void initializeMipsPostLegalizerCombinerPass(PassRegistry &);
 void initializeMipsPreLegalizerCombinerPass(PassRegistry &);
 } // namespace llvm

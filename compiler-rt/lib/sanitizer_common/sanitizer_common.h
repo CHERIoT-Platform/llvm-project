@@ -61,64 +61,64 @@ inline int Verbosity() {
 }
 
 #if SANITIZER_ANDROID
-inline uptr GetPageSize() {
+inline usize GetPageSize() {
 // Android post-M sysconf(_SC_PAGESIZE) crashes if called from .preinit_array.
   return 4096;
 }
-inline uptr GetPageSizeCached() {
+inline usize GetPageSizeCached() {
   return 4096;
 }
 #else
-uptr GetPageSize();
-extern uptr PageSizeCached;
-inline uptr GetPageSizeCached() {
+usize GetPageSize();
+extern usize PageSizeCached;
+inline usize GetPageSizeCached() {
   if (!PageSizeCached)
     PageSizeCached = GetPageSize();
   return PageSizeCached;
 }
 #endif
-uptr GetMmapGranularity();
-uptr GetMaxVirtualAddress();
-uptr GetMaxUserVirtualAddress();
+usize GetMmapGranularity();
+vaddr GetMaxVirtualAddress();
+vaddr GetMaxUserVirtualAddress();
 // Threads
 tid_t GetTid();
 int TgKill(pid_t pid, tid_t tid, int sig);
 uptr GetThreadSelf();
 void GetThreadStackTopAndBottom(bool at_initialization, uptr *stack_top,
                                 uptr *stack_bottom);
-void GetThreadStackAndTls(bool main, uptr *stk_addr, uptr *stk_size,
-                          uptr *tls_addr, uptr *tls_size);
+void GetThreadStackAndTls(bool main, uptr *stk_addr, usize *stk_size,
+                          uptr *tls_addr, usize *tls_size);
 
 // Memory management
-void *MmapOrDie(uptr size, const char *mem_type, bool raw_report = false);
-inline void *MmapOrDieQuietly(uptr size, const char *mem_type) {
+void *MmapOrDie(usize size, const char *mem_type, bool raw_report = false);
+inline void *MmapOrDieQuietly(usize size, const char *mem_type) {
   return MmapOrDie(size, mem_type, /*raw_report*/ true);
 }
-void UnmapOrDie(void *addr, uptr size);
+void UnmapOrDie(void *addr, usize size);
 // Behaves just like MmapOrDie, but tolerates out of memory condition, in that
 // case returns nullptr.
-void *MmapOrDieOnFatalError(uptr size, const char *mem_type);
-bool MmapFixedNoReserve(uptr fixed_addr, uptr size, const char *name = nullptr)
+void *MmapOrDieOnFatalError(usize size, const char *mem_type);
+bool MmapFixedNoReserve(uptr fixed_addr, usize size, const char *name = nullptr)
      WARN_UNUSED_RESULT;
-bool MmapFixedSuperNoReserve(uptr fixed_addr, uptr size,
+bool MmapFixedSuperNoReserve(uptr fixed_addr, usize size,
                              const char *name = nullptr) WARN_UNUSED_RESULT;
-void *MmapNoReserveOrDie(uptr size, const char *mem_type);
-void *MmapFixedOrDie(uptr fixed_addr, uptr size, const char *name = nullptr);
+void *MmapNoReserveOrDie(usize size, const char *mem_type);
+void *MmapFixedOrDie(uptr fixed_addr, usize size, const char *name = nullptr);
 // Behaves just like MmapFixedOrDie, but tolerates out of memory condition, in
 // that case returns nullptr.
-void *MmapFixedOrDieOnFatalError(uptr fixed_addr, uptr size,
+void *MmapFixedOrDieOnFatalError(uptr fixed_addr, usize size,
                                  const char *name = nullptr);
-void *MmapFixedNoAccess(uptr fixed_addr, uptr size, const char *name = nullptr);
-void *MmapNoAccess(uptr size);
+void *MmapFixedNoAccess(uptr fixed_addr, usize size, const char *name = nullptr);
+void *MmapNoAccess(usize size);
 // Map aligned chunk of address space; size and alignment are powers of two.
 // Dies on all but out of memory errors, in the latter case returns nullptr.
-void *MmapAlignedOrDieOnFatalError(uptr size, uptr alignment,
+void *MmapAlignedOrDieOnFatalError(usize size, usize alignment,
                                    const char *mem_type);
 // Disallow access to a memory range.  Use MmapFixedNoAccess to allocate an
 // unaccessible memory.
-bool MprotectNoAccess(uptr addr, uptr size);
-bool MprotectReadOnly(uptr addr, uptr size);
-bool MprotectReadWrite(uptr addr, uptr size);
+bool MprotectNoAccess(uptr addr, usize size);
+bool MprotectReadOnly(uptr addr, usize size);
+bool MprotectReadWrite(uptr addr, usize size);
 
 void MprotectMallocZones(void *addr, int prot);
 
@@ -162,7 +162,7 @@ void ProtectGap(uptr addr, uptr size, uptr zero_base_shadow_start,
                 uptr zero_base_max_shadow_start);
 
 // Find an available address space.
-uptr FindAvailableMemoryRange(uptr size, uptr alignment, uptr left_padding,
+uptr FindAvailableMemoryRange(usize size, usize alignment, usize left_padding,
                               uptr *largest_gap_found, uptr *max_occupied_addr);
 
 // Used to check if we can map shadow memory to a fixed location.
@@ -170,41 +170,41 @@ bool MemoryRangeIsAvailable(uptr range_start, uptr range_end);
 // Releases memory pages entirely within the [beg, end] address range. Noop if
 // the provided range does not contain at least one entire page.
 void ReleaseMemoryPagesToOS(uptr beg, uptr end);
-void IncreaseTotalMmap(uptr size);
-void DecreaseTotalMmap(uptr size);
-uptr GetRSS();
-void SetShadowRegionHugePageMode(uptr addr, uptr length);
-bool DontDumpShadowMemory(uptr addr, uptr length);
+void IncreaseTotalMmap(usize size);
+void DecreaseTotalMmap(usize size);
+usize GetRSS();
+void SetShadowRegionHugePageMode(uptr addr, usize length);
+bool DontDumpShadowMemory(uptr addr, usize length);
 // Check if the built VMA size matches the runtime one.
 void CheckVMASize();
-void RunMallocHooks(void *ptr, uptr size);
+void RunMallocHooks(void *ptr, usize size);
 void RunFreeHooks(void *ptr);
 
 class ReservedAddressRange {
  public:
-  uptr Init(uptr size, const char *name = nullptr, uptr fixed_addr = 0);
-  uptr InitAligned(uptr size, uptr align, const char *name = nullptr);
-  uptr Map(uptr fixed_addr, uptr size, const char *name = nullptr);
-  uptr MapOrDie(uptr fixed_addr, uptr size, const char *name = nullptr);
-  void Unmap(uptr addr, uptr size);
+  uptr Init(usize size, const char *name = nullptr, uptr fixed_addr = 0);
+  uptr InitAligned(usize size, usize align, const char *name = nullptr);
+  uptr Map(uptr fixed_addr, usize size, const char *name = nullptr);
+  uptr MapOrDie(uptr fixed_addr, usize size, const char *name = nullptr);
+  void Unmap(uptr addr, usize size);
   void *base() const { return base_; }
-  uptr size() const { return size_; }
+  usize size() const { return size_; }
 
  private:
   void* base_;
-  uptr size_;
+  usize size_;
   const char* name_;
   uptr os_handle_;
 };
 
-typedef void (*fill_profile_f)(uptr start, uptr rss, bool file,
-                               /*out*/ uptr *stats);
+typedef void (*fill_profile_f)(uptr start, usize rss, bool file,
+                               /*out*/ usize *stats);
 
 // Parse the contents of /proc/self/smaps and generate a memory profile.
 // |cb| is a tool-specific callback that fills the |stats| array.
-void GetMemoryProfile(fill_profile_f cb, uptr *stats);
-void ParseUnixMemoryProfile(fill_profile_f cb, uptr *stats, char *smaps,
-                            uptr smaps_len);
+void GetMemoryProfile(fill_profile_f cb, usize *stats);
+void ParseUnixMemoryProfile(fill_profile_f cb, usize *stats, char *smaps,
+                            usize smaps_len);
 
 // Simple low-level (mmap-based) allocator for internal use. Doesn't have
 // constructor, so all instances of LowLevelAllocator should be
@@ -217,15 +217,15 @@ void ParseUnixMemoryProfile(fill_profile_f cb, uptr *stats, char *smaps,
 class LowLevelAllocator {
  public:
   // Requires an external lock.
-  void *Allocate(uptr size);
+  void *Allocate(usize size);
 
  private:
   char *allocated_end_;
   char *allocated_current_;
 };
 // Set the min alignment of LowLevelAllocator to at least alignment.
-void SetLowLevelAllocateMinAlignment(uptr alignment);
-typedef void (*LowLevelAllocateCallback)(uptr ptr, uptr size);
+void SetLowLevelAllocateMinAlignment(usize alignment);
+typedef void (*LowLevelAllocateCallback)(uptr ptr, usize size);
 // Allows to register tool-specific callbacks for LowLevelAllocator.
 // Passing NULL removes the callback.
 void SetLowLevelAllocateCallback(LowLevelAllocateCallback callback);
@@ -233,7 +233,7 @@ void SetLowLevelAllocateCallback(LowLevelAllocateCallback callback);
 LowLevelAllocator &GetGlobalLowLevelAllocator();
 
 // IO
-void CatastrophicErrorWrite(const char *buffer, uptr length);
+void CatastrophicErrorWrite(const char *buffer, usize length);
 void RawWrite(const char *buffer);
 bool ColorizeReports();
 void RemoveANSIEscapeSequencesFromString(char *buffer);
@@ -242,11 +242,11 @@ void Report(const char *format, ...) FORMAT(1, 2);
 void SetPrintfAndReportCallback(void (*callback)(const char *));
 #define VReport(level, ...)                                              \
   do {                                                                   \
-    if ((uptr)Verbosity() >= (level)) Report(__VA_ARGS__); \
+    if ((usize)Verbosity() >= (level)) Report(__VA_ARGS__); \
   } while (0)
 #define VPrintf(level, ...)                                              \
   do {                                                                   \
-    if ((uptr)Verbosity() >= (level)) Printf(__VA_ARGS__); \
+    if ((usize)Verbosity() >= (level)) Printf(__VA_ARGS__); \
   } while (0)
 
 // Lock sanitizer error reporting and protects against nested errors.
@@ -264,10 +264,10 @@ class ScopedErrorReportLock {
   static StaticSpinMutex mutex_;
 };
 
-extern uptr stoptheworld_tracer_pid;
-extern uptr stoptheworld_tracer_ppid;
+extern pid_t stoptheworld_tracer_pid;
+extern pid_t stoptheworld_tracer_ppid;
 
-bool IsAccessibleMemoryRange(uptr beg, uptr size);
+bool IsAccessibleMemoryRange(uptr beg, usize size);
 
 // Error report formatting.
 const char *StripPathPrefix(const char *filepath,
@@ -276,10 +276,10 @@ const char *StripPathPrefix(const char *filepath,
 const char *StripModuleName(const char *module);
 
 // OS
-uptr ReadBinaryName(/*out*/char *buf, uptr buf_len);
-uptr ReadBinaryNameCached(/*out*/char *buf, uptr buf_len);
-uptr ReadBinaryDir(/*out*/ char *buf, uptr buf_len);
-uptr ReadLongProcessName(/*out*/ char *buf, uptr buf_len);
+usize ReadBinaryName(/*out*/char *buf, usize buf_len);
+usize ReadBinaryNameCached(/*out*/char *buf, usize buf_len);
+usize ReadBinaryDir(/*out*/ char *buf, usize buf_len);
+usize ReadLongProcessName(/*out*/ char *buf, usize buf_len);
 const char *GetProcessName();
 void UpdateProcessName();
 void CacheBinaryName();
@@ -296,7 +296,7 @@ char **GetArgv();
 char **GetEnviron();
 void PrintCmdline();
 bool StackSizeIsUnlimited();
-void SetStackSizeLimitInBytes(uptr limit);
+void SetStackSizeLimitInBytes(usize limit);
 bool AddressSpaceIsUnlimited();
 void SetAddressSpaceUnlimited();
 void AdjustStackSize(void *attr);
@@ -306,7 +306,7 @@ void SetSandboxingCallback(void (*f)());
 void InitializeCoverage(bool enabled, const char *coverage_dir);
 
 void InitTlsSize();
-uptr GetTlsSize();
+usize GetTlsSize();
 
 // Other
 void WaitForDebugger(unsigned seconds, const char *label);
@@ -322,7 +322,7 @@ void NORETURN Abort();
 void NORETURN Die();
 void NORETURN
 CheckFailed(const char *file, int line, const char *cond, u64 v1, u64 v2);
-void NORETURN ReportMmapFailureAndDie(uptr size, const char *mem_type,
+void NORETURN ReportMmapFailureAndDie(usize size, const char *mem_type,
                                       const char *mmap_type, error_t err,
                                       bool raw_report = false);
 void NORETURN ReportMunmapFailureAndDie(void *ptr, uptr size, error_t err,
@@ -411,7 +411,7 @@ unsigned char _BitScanReverse64(unsigned long *index, unsigned __int64 mask);
 }
 #endif
 
-inline uptr MostSignificantSetBitIndex(uptr x) {
+inline usize MostSignificantSetBitIndex(usize x) {
   CHECK_NE(x, 0U);
   unsigned long up;
 #if !SANITIZER_WINDOWS || defined(__clang__) || defined(__GNUC__)
@@ -427,8 +427,17 @@ inline uptr MostSignificantSetBitIndex(uptr x) {
 #endif
   return up;
 }
+#ifdef __CHERI_PURE_CAPABILITY__
+inline usize MostSignificantSetBitIndex(u64 x) {
+  return MostSignificantSetBitIndex((usize)x);
+}
+inline usize MostSignificantSetBitIndex(u32 x) {
+  return MostSignificantSetBitIndex((usize)x);
+}
+usize MostSignificantSetBitIndex(uptr x) = delete;
+#endif
 
-inline uptr LeastSignificantSetBitIndex(uptr x) {
+inline usize LeastSignificantSetBitIndex(usize x) {
   CHECK_NE(x, 0U);
   unsigned long up;
 #if !SANITIZER_WINDOWS || defined(__clang__) || defined(__GNUC__)
@@ -444,33 +453,82 @@ inline uptr LeastSignificantSetBitIndex(uptr x) {
 #endif
   return up;
 }
+#ifdef __CHERI_PURE_CAPABILITY__
+usize LeastSignificantSetBitIndex(uptr x) = delete;
+inline u64 LeastSignificantSetBitIndex(u64 x) {
+  return LeastSignificantSetBitIndex((usize)x);
+}
+#endif
 
-inline constexpr bool IsPowerOfTwo(uptr x) { return (x & (x - 1)) == 0; }
+inline constexpr bool IsPowerOfTwo(u64 x) { return (x & (x - 1)) == 0; }
 
-inline uptr RoundUpToPowerOfTwo(uptr size) {
+inline u64 RoundUpToPowerOfTwo(u64 size) {
   CHECK(size);
   if (IsPowerOfTwo(size)) return size;
 
-  uptr up = MostSignificantSetBitIndex(size);
+  usize up = MostSignificantSetBitIndex(size);
   CHECK_LT(size, (1ULL << (up + 1)));
   CHECK_GT(size, (1ULL << up));
   return 1ULL << (up + 1);
 }
+#ifdef __CHERI_PURE_CAPABILITY__
+uptr RoundUpToPowerOfTwo(uptr size) = delete;
+inline u32 RoundUpToPowerOfTwo(u32 x) {
+  return (u32)RoundUpToPowerOfTwo((u64)x);
+}
+inline usize RoundUpToPowerOfTwo(usize x) {
+  return (usize)RoundUpToPowerOfTwo((u64)x);
+}
+#endif
 
-inline constexpr uptr RoundUpTo(uptr size, uptr boundary) {
+inline constexpr uptr RoundUpTo(uptr p, usize boundary) {
   RAW_CHECK(IsPowerOfTwo(boundary));
-  return (size + boundary - 1) & ~(boundary - 1);
+#if __has_builtin(__builtin_align_up)
+  return __builtin_align_up(p, boundary);
+#else
+  return (p + boundary - 1) & ~(boundary - 1);
+#endif
+}
+template <typename T>
+inline constexpr T *RoundUpTo(T *p, usize boundary) {
+  RAW_CHECK(IsPowerOfTwo(boundary));
+#if __has_builtin(__builtin_align_up)
+  return __builtin_align_up(p, boundary);
+#else
+  return (T *)RoundUpTo((uptr)p, boundary);
+#endif
 }
 
-inline constexpr uptr RoundDownTo(uptr x, uptr boundary) {
+inline constexpr uptr RoundDownTo(uptr x, usize boundary) {
+#if __has_builtin(__builtin_align_down)
+  return __builtin_align_down(x, boundary);
+#else
   return x & ~(boundary - 1);
+#endif
+}
+template <typename T>
+inline constexpr T *RoundDownTo(T *p, usize boundary) {
+  RAW_CHECK(IsPowerOfTwo(boundary));
+#if __has_builtin(__builtin_align_down)
+  return __builtin_align_down(p, boundary);
+#else
+  return (T *)RoundDownTo((uptr)p, boundary);
+#endif
 }
 
-inline constexpr bool IsAligned(uptr a, uptr alignment) {
+inline constexpr bool IsAligned(uptr a, usize alignment) {
+#if __has_builtin(__builtin_is_aligned)
+  return __builtin_is_aligned(a, alignment);
+#else
   return (a & (alignment - 1)) == 0;
+#endif
 }
 
-inline uptr Log2(uptr x) {
+inline bool IsAligned(const void *ptr, usize alignment) {
+  return IsAligned((uptr)ptr, alignment);
+}
+
+inline u64 Log2(u64 x) {
   CHECK(IsPowerOfTwo(x));
   return LeastSignificantSetBitIndex(x);
 }
@@ -514,25 +572,25 @@ template<typename T>
 class InternalMmapVectorNoCtor {
  public:
   using value_type = T;
-  void Initialize(uptr initial_capacity) {
+  void Initialize(usize initial_capacity) {
     capacity_bytes_ = 0;
     size_ = 0;
     data_ = 0;
     reserve(initial_capacity);
   }
   void Destroy() { UnmapOrDie(data_, capacity_bytes_); }
-  T &operator[](uptr i) {
+  T &operator[](usize i) {
     CHECK_LT(i, size_);
     return data_[i];
   }
-  const T &operator[](uptr i) const {
+  const T &operator[](usize i) const {
     CHECK_LT(i, size_);
     return data_[i];
   }
   void push_back(const T &element) {
     if (UNLIKELY(size_ >= capacity())) {
       CHECK_EQ(size_, capacity());
-      uptr new_capacity = RoundUpToPowerOfTwo(size_ + 1);
+      usize new_capacity = RoundUpToPowerOfTwo(size_ + 1);
       Realloc(new_capacity);
     }
     internal_memcpy(&data_[size_++], &element, sizeof(T));
@@ -545,7 +603,7 @@ class InternalMmapVectorNoCtor {
     CHECK_GT(size_, 0);
     size_--;
   }
-  uptr size() const {
+  usize size() const {
     return size_;
   }
   const T *data() const {
@@ -554,13 +612,13 @@ class InternalMmapVectorNoCtor {
   T *data() {
     return data_;
   }
-  uptr capacity() const { return capacity_bytes_ / sizeof(T); }
-  void reserve(uptr new_size) {
+  usize capacity() const { return capacity_bytes_ / sizeof(T); }
+  void reserve(usize new_size) {
     // Never downsize internal buffer.
     if (new_size > capacity())
       Realloc(new_size);
   }
-  void resize(uptr new_size) {
+  void resize(usize new_size) {
     if (new_size > size_) {
       reserve(new_size);
       internal_memset(&data_[size_], 0, sizeof(T) * (new_size - size_));
@@ -591,10 +649,10 @@ class InternalMmapVectorNoCtor {
   }
 
  private:
-  NOINLINE void Realloc(uptr new_capacity) {
+  NOINLINE void Realloc(usize new_capacity) {
     CHECK_GT(new_capacity, 0);
     CHECK_LE(size_, new_capacity);
-    uptr new_capacity_bytes =
+    usize new_capacity_bytes =
         RoundUpTo(new_capacity * sizeof(T), GetPageSizeCached());
     T *new_data = (T *)MmapOrDie(new_capacity_bytes, "InternalMmapVector");
     internal_memcpy(new_data, data_, size_ * sizeof(T));
@@ -604,8 +662,8 @@ class InternalMmapVectorNoCtor {
   }
 
   T *data_;
-  uptr capacity_bytes_;
-  uptr size_;
+  usize capacity_bytes_;
+  usize size_;
 };
 
 template <typename T>
@@ -625,7 +683,7 @@ template<typename T>
 class InternalMmapVector : public InternalMmapVectorNoCtor<T> {
  public:
   InternalMmapVector() { InternalMmapVectorNoCtor<T>::Initialize(0); }
-  explicit InternalMmapVector(uptr cnt) {
+  explicit InternalMmapVector(usize cnt) {
     InternalMmapVectorNoCtor<T>::Initialize(cnt);
     this->resize(cnt);
   }
@@ -641,7 +699,7 @@ class InternalScopedString {
  public:
   InternalScopedString() : buffer_(1) { buffer_[0] = '\0'; }
 
-  uptr length() const { return buffer_.size() - 1; }
+  usize length() const { return buffer_.size() - 1; }
   void clear() {
     buffer_.resize(1);
     buffer_[0] = '\0';
@@ -662,12 +720,12 @@ struct CompareLess {
 
 // HeapSort for arrays and InternalMmapVector.
 template <class T, class Compare = CompareLess<T>>
-void Sort(T *v, uptr size, Compare comp = {}) {
+void Sort(T *v, usize size, Compare comp = {}) {
   if (size < 2)
     return;
   // Stage 1: insert elements to the heap.
-  for (uptr i = 1; i < size; i++) {
-    uptr j, p;
+  for (usize i = 1; i < size; i++) {
+    usize j, p;
     for (j = i; j > 0; j = p) {
       p = (j - 1) / 2;
       if (comp(v[p], v[j]))
@@ -678,12 +736,12 @@ void Sort(T *v, uptr size, Compare comp = {}) {
   }
   // Stage 2: swap largest element with the last one,
   // and sink the new top.
-  for (uptr i = size - 1; i > 0; i--) {
+  for (usize i = size - 1; i > 0; i--) {
     Swap(v[0], v[i]);
-    uptr j, max_ind;
+    usize j, max_ind;
     for (j = 0; j < i; j = max_ind) {
-      uptr left = 2 * j + 1;
-      uptr right = 2 * j + 2;
+      usize left = 2 * j + 1;
+      usize right = 2 * j + 2;
       max_ind = j;
       if (left < i && comp(v[max_ind], v[left]))
         max_ind = left;
@@ -701,11 +759,11 @@ void Sort(T *v, uptr size, Compare comp = {}) {
 // than the val.
 template <class Container, class T,
           class Compare = CompareLess<typename Container::value_type>>
-uptr InternalLowerBound(const Container &v, const T &val, Compare comp = {}) {
-  uptr first = 0;
-  uptr last = v.size();
+usize InternalLowerBound(const Container &v, const T &val, Compare comp = {}) {
+  usize first = 0;
+  usize last = v.size();
   while (last > first) {
-    uptr mid = (first + last) / 2;
+    usize mid = (first + last) / 2;
     if (comp(v[mid], val))
       first = mid + 1;
     else
@@ -757,7 +815,7 @@ constexpr uptr kDefaultFileMaxSize = FIRST_32_SECOND_64(1 << 26, 1 << 28);
 // Returns true if file was successfully opened and read.
 bool ReadFileToVector(const char *file_name,
                       InternalMmapVectorNoCtor<char> *buff,
-                      uptr max_len = kDefaultFileMaxSize,
+                      usize max_len = kDefaultFileMaxSize,
                       error_t *errno_p = nullptr);
 
 // Opens the file 'file_name" and reads up to 'max_len' bytes.
@@ -768,12 +826,12 @@ bool ReadFileToVector(const char *file_name,
 // The size of the mmaped region is stored in '*buff_size'.
 // The total number of read bytes is stored in '*read_len'.
 // Returns true if file was successfully opened and read.
-bool ReadFileToBuffer(const char *file_name, char **buff, uptr *buff_size,
-                      uptr *read_len, uptr max_len = kDefaultFileMaxSize,
+bool ReadFileToBuffer(const char *file_name, char **buff, usize *buff_size,
+                      usize *read_len, usize max_len = kDefaultFileMaxSize,
                       error_t *errno_p = nullptr);
 
 int GetModuleAndOffsetForPc(uptr pc, char *module_name, uptr module_name_len,
-                            uptr *pc_offset);
+                            usize *pc_offset);
 
 // When adding a new architecture, don't forget to also update
 // script/asan_symbolize.py and sanitizer_symbolizer_libcdep.cpp.
@@ -809,11 +867,11 @@ inline const char *ModuleArchToString(ModuleArch arch) {
 }
 
 #if SANITIZER_APPLE
-const uptr kModuleUUIDSize = 16;
+const usize kModuleUUIDSize = 16;
 #else
-const uptr kModuleUUIDSize = 32;
+const usize kModuleUUIDSize = 32;
 #endif
-const uptr kMaxSegName = 16;
+const usize kMaxSegName = 16;
 
 // Represents a binary loaded into virtual memory (e.g. this can be an
 // executable or a shared object).
@@ -829,18 +887,18 @@ class LoadedModule {
     internal_memset(uuid_, 0, kModuleUUIDSize);
     ranges_.clear();
   }
-  void set(const char *module_name, uptr base_address);
-  void set(const char *module_name, uptr base_address, ModuleArch arch,
+  void set(const char *module_name, vaddr base_address);
+  void set(const char *module_name, vaddr base_address, ModuleArch arch,
            u8 uuid[kModuleUUIDSize], bool instrumented);
   void setUuid(const char *uuid, uptr size);
   void clear();
-  void addAddressRange(uptr beg, uptr end, bool executable, bool writable,
+  void addAddressRange(vaddr beg, vaddr end, bool executable, bool writable,
                        const char *name = nullptr);
-  bool containsAddress(uptr address) const;
+  bool containsAddress(vaddr address) const;
 
   const char *full_name() const { return full_name_; }
-  uptr base_address() const { return base_address_; }
-  uptr max_address() const { return max_address_; }
+  vaddr base_address() const { return base_address_; }
+  vaddr max_address() const { return max_address_; }
   ModuleArch arch() const { return arch_; }
   const u8 *uuid() const { return uuid_; }
   uptr uuid_size() const { return uuid_size_; }
@@ -848,13 +906,13 @@ class LoadedModule {
 
   struct AddressRange {
     AddressRange *next;
-    uptr beg;
-    uptr end;
+    vaddr beg;
+    vaddr end;
     bool executable;
     bool writable;
     char name[kMaxSegName];
 
-    AddressRange(uptr beg, uptr end, bool executable, bool writable,
+    AddressRange(vaddr beg, vaddr end, bool executable, bool writable,
                  const char *name)
         : next(nullptr),
           beg(beg),
@@ -869,8 +927,8 @@ class LoadedModule {
 
  private:
   char *full_name_;  // Owned.
-  uptr base_address_;
-  uptr max_address_;
+  vaddr base_address_;
+  vaddr max_address_;
   ModuleArch arch_;
   uptr uuid_size_;
   u8 uuid_[kModuleUUIDSize];
@@ -890,8 +948,8 @@ class ListOfModules {
   LoadedModule *begin() { return modules_.begin(); }
   const LoadedModule *end() const { return modules_.end(); }
   LoadedModule *end() { return modules_.end(); }
-  uptr size() const { return modules_.size(); }
-  const LoadedModule &operator[](uptr i) const {
+  usize size() const { return modules_.size(); }
+  const LoadedModule &operator[](usize i) const {
     CHECK_LT(i, modules_.size());
     return modules_[i];
   }
@@ -908,12 +966,12 @@ class ListOfModules {
 
   InternalMmapVectorNoCtor<LoadedModule> modules_;
   // We rarely have more than 16K loaded modules.
-  static const uptr kInitialCapacity = 1 << 14;
+  static const usize kInitialCapacity = 1 << 14;
   bool initialized;
 };
 
 // Callback type for iterating over a set of memory ranges.
-typedef void (*RangeIteratorCallback)(uptr begin, uptr end, void *arg);
+typedef void (*RangeIteratorCallback)(vaddr begin, vaddr end, void *arg);
 
 enum AndroidApiLevel {
   ANDROID_NOT_ANDROID = 0,
@@ -963,7 +1021,7 @@ inline void SanitizerInitializeUnwinder() {}
 inline AndroidApiLevel AndroidGetApiLevel() { return ANDROID_NOT_ANDROID; }
 #endif
 
-inline uptr GetPthreadDestructorIterations() {
+inline usize GetPthreadDestructorIterations() {
 #if SANITIZER_ANDROID
   return (AndroidGetApiLevel() == ANDROID_LOLLIPOP_MR1) ? 8 : 4;
 #elif SANITIZER_POSIX
@@ -986,7 +1044,11 @@ static inline void SanitizerBreakOptimization(void *arg) {
 #if defined(_MSC_VER) && !defined(__clang__)
   _ReadWriteBarrier();
 #else
+#ifdef __CHERI_PURE_CAPABILITY__
+  __asm__ __volatile__("" : : "C" (arg) : "memory");
+#else
   __asm__ __volatile__("" : : "r" (arg) : "memory");
+#endif
 #endif
 }
 
@@ -1072,8 +1134,8 @@ inline void AvoidCVE_2016_2143() {}
 #endif
 
 struct StackDepotStats {
-  uptr n_uniq_ids;
-  uptr allocated;
+  usize n_uniq_ids;
+  usize allocated;
 };
 
 // The default value for allocator_release_to_os_interval_ms common flag to
@@ -1084,7 +1146,7 @@ void CheckNoDeepBind(const char *filename, int flag);
 
 // Returns the requested amount of random data (up to 256 bytes) that can then
 // be used to seed a PRNG. Defaults to blocking like the underlying syscall.
-bool GetRandom(void *buffer, uptr length, bool blocking = true);
+bool GetRandom(void *buffer, usize length, bool blocking = true);
 
 // Returns the number of logical processors on the system.
 u32 GetNumberOfCPUs();

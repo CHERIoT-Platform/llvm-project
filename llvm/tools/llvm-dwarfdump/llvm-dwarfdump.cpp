@@ -21,6 +21,7 @@
 #include "llvm/DebugInfo/DWARF/DWARFContext.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/TargetRegistry.h"
+#include "llvm/MC/MCTargetOptions.h"
 #include "llvm/Object/Archive.h"
 #include "llvm/Object/MachOUniversal.h"
 #include "llvm/Object/ObjectFile.h"
@@ -635,7 +636,8 @@ createRegInfo(const object::ObjectFile &Obj) {
       TargetRegistry::lookupTarget(TT.str(), TargetLookupError);
   if (!TargetLookupError.empty())
     return nullptr;
-  MCRegInfo.reset(TheTarget->createMCRegInfo(TT.str()));
+  MCTargetOptions MCOpts;
+  MCRegInfo.reset(TheTarget->createMCRegInfo(TT.str(), MCOpts));
   return MCRegInfo;
 }
 

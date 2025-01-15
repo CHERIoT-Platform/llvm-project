@@ -19,7 +19,8 @@ using namespace llvm;
 SDValue HexagonSelectionDAGInfo::EmitTargetCodeForMemcpy(
     SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Dst, SDValue Src,
     SDValue Size, Align Alignment, bool isVolatile, bool AlwaysInline,
-    MachinePointerInfo DstPtrInfo, MachinePointerInfo SrcPtrInfo) const {
+    PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
+    MachinePointerInfo SrcPtrInfo) const {
   ConstantSDNode *ConstantSize = dyn_cast<ConstantSDNode>(Size);
   if (AlwaysInline || Alignment < Align(4) || !ConstantSize)
     return SDValue();
@@ -53,8 +54,7 @@ SDValue HexagonSelectionDAGInfo::EmitTargetCodeForMemcpy(
       .setLibCallee(
           TLI.getLibcallCallingConv(RTLIB::MEMCPY),
           Type::getVoidTy(*DAG.getContext()),
-          DAG.getTargetExternalSymbol(
-              SpecialMemcpyName, TLI.getPointerTy(DAG.getDataLayout()), Flags),
+          DAG.getTargetExternalFunctionSymbol(SpecialMemcpyName, Flags),
           std::move(Args))
       .setDiscardResult();
 

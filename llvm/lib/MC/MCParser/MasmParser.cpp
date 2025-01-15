@@ -6081,11 +6081,12 @@ bool MasmParser::parseDirectiveComm(bool IsLocal) {
   // Create the Symbol as a common or local common with Size and Pow2Alignment.
   if (IsLocal) {
     getStreamer().emitLocalCommonSymbol(Sym, Size,
-                                        Align(1ULL << Pow2Alignment));
+                                        Align(1ULL << Pow2Alignment), TailPaddingAmount::None);
     return false;
   }
 
-  getStreamer().emitCommonSymbol(Sym, Size, Align(1ULL << Pow2Alignment));
+  getStreamer().emitCommonSymbol(Sym, Size, Align(1ULL << Pow2Alignment),
+                                 TailPaddingAmount::None);
   return false;
 }
 

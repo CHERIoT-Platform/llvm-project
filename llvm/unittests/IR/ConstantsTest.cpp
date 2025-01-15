@@ -440,8 +440,8 @@ bool foldFuncPtrAndConstToNull(LLVMContext &Context, Module *TheModule,
                                MaybeAlign FunctionAlign = std::nullopt) {
   Type *VoidType(Type::getVoidTy(Context));
   FunctionType *FuncType(FunctionType::get(VoidType, false));
-  Function *Func(
-      Function::Create(FuncType, GlobalValue::ExternalLinkage, "", TheModule));
+  Function *Func(Function::Create(FuncType, GlobalValue::ExternalLinkage, 0, "",
+                                  TheModule));
 
   if (FunctionAlign)
     Func->setAlignment(*FunctionAlign);
@@ -531,7 +531,8 @@ TEST(ConstantsTest, FoldGlobalVariablePtr) {
   IntegerType *IntType(Type::getInt32Ty(Context));
 
   std::unique_ptr<GlobalVariable> Global(
-      new GlobalVariable(IntType, true, GlobalValue::ExternalLinkage));
+      new GlobalVariable(IntType, true, GlobalValue::ExternalLinkage, nullptr,
+                         "", GlobalValue::NotThreadLocal, /*AS*/ 0));
 
   Global->setAlignment(Align(4));
 

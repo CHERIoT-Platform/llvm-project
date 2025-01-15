@@ -134,10 +134,41 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   const auto &ToolChain = static_cast<const FreeBSD &>(getToolChain());
   const Driver &D = ToolChain.getDriver();
   const llvm::Triple::ArchType Arch = ToolChain.getArch();
+  bool IsCHERIPureCapABI = ToolChain.isCheriPurecap();
+  // For CheriABI default to -pie unless -static is also passed
+  // TODO: enable static PIE?
+  const bool CheriAbiPIEDefault =
+      IsCHERIPureCapABI && !Args.hasArg(options::OPT_static);
+  const bool IsPIEDefault = ToolChain.isPIEDefault(Args) || CheriAbiPIEDefault;
+  // We can't pass -pie to the linker if any of -shared,-r,-no-pie,-no-pie are
+  // set
+  Arg *ConflictsWithPie = Args.getLastArg(options::OPT_r, options::OPT_shared);
+  // Have to negate here to handle the no-pie and nopie aliases
+  Arg *LastPIEArg = Args.getLastArg(options::OPT_pie, options::OPT_no_pie,
+                                    options::OPT_nopie);
+  const bool ExplicitPIE =
+      LastPIEArg && LastPIEArg->getOption().matches(options::OPT_pie);
+  if (ExplicitPIE && ConflictsWithPie) {
+    getToolChain().getDriver().Diag(diag::err_drv_argument_not_allowed_with)
+        << LastPIEArg->getAsString(Args) << ConflictsWithPie->getAsString(Args);
+  }
   const bool IsPIE =
-      !Args.hasArg(options::OPT_shared) &&
-      (Args.hasArg(options::OPT_pie) || ToolChain.isPIEDefault(Args));
+      (LastPIEArg ? ExplicitPIE : IsPIEDefault) && !ConflictsWithPie;
+
   ArgStringList CmdArgs;
+
+  // Silence warning for -cheri=NNN
+  Args.ClaimAllArgs(options::OPT_cheri_EQ);
+  Args.ClaimAllArgs(options::OPT_cheri);
+  // And -cheri-uintcap=
+  Args.ClaimAllArgs(options::OPT_cheri_uintcap_EQ);
+  // Also pretend that all the captable flags were used
+  Args.ClaimAllArgs(options::OPT_cheri_cap_table_abi);
+  Args.ClaimAllArgs(options::OPT_cheri_large_cap_table);
+  Args.ClaimAllArgs(options::OPT_no_cheri_large_cap_table);
+  // Various other CHERI flags can also be passed to the linker without warning:
+  Args.ClaimAllArgs(options::OPT_cheri_data_dependent_provenance);
+  Args.ClaimAllArgs(options::OPT_cheri_bounds_EQ);
 
   // Silence warning for "clang -g foo.o -o foo"
   Args.ClaimAllArgs(options::OPT_g_Group);
@@ -197,7 +228,9 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     break;
   case llvm::Triple::mips64:
     CmdArgs.push_back("-m");
-    if (tools::mips::hasMipsAbiArg(Args, "n32"))
+    if (IsCHERIPureCapABI)
+      CmdArgs.push_back("elf64btsmip_cheri_fbsd");
+    else if (tools::mips::hasMipsAbiArg(Args, "n32"))
       CmdArgs.push_back("elf32btsmipn32_fbsd");
     else
       CmdArgs.push_back("elf64btsmip_fbsd");
@@ -227,6 +260,11 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   assert((Output.isFilename() || Output.isNothing()) && "Invalid output.");
+  // The FreeBSD/MIPS version of GNU ld is horribly buggy and errors out
+  // complaining about linking 32-bit and 64-bit code when linking CHERI code.
+  if (IsCHERIPureCapABI)
+    CmdArgs.push_back(Args.MakeArgString("--no-warn-mismatch"));
+
   if (Output.isFilename()) {
     CmdArgs.push_back("-o");
     CmdArgs.push_back(Output.getFilename());
@@ -246,13 +284,15 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     if (crt1)
       CmdArgs.push_back(Args.MakeArgString(ToolChain.GetFilePath(crt1)));
 
-    CmdArgs.push_back(Args.MakeArgString(ToolChain.GetFilePath("crti.o")));
+    // Don't support .init and .fini sections for CheriABI.
+    if (!IsCHERIPureCapABI)
+      CmdArgs.push_back(Args.MakeArgString(ToolChain.GetFilePath("crti.o")));
 
     const char *crtbegin = nullptr;
-    if (Args.hasArg(options::OPT_static))
-      crtbegin = "crtbeginT.o";
-    else if (Args.hasArg(options::OPT_shared) || IsPIE)
+    if (Args.hasArg(options::OPT_shared) || IsPIE)
       crtbegin = "crtbeginS.o";
+    else if (Args.hasArg(options::OPT_static))
+      crtbegin = "crtbeginT.o";
     else
       crtbegin = "crtbegin.o";
 
@@ -292,6 +332,7 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
                         !Args.hasArg(options::OPT_static);
     addOpenMPRuntime(CmdArgs, ToolChain, Args, StaticOpenMP);
 
+    CmdArgs.push_back("--start-group");
     if (D.CCCIsCXX()) {
       if (ToolChain.ShouldLinkCXXStdlib(Args))
         ToolChain.AddCXXStdlibLibArgs(Args, CmdArgs);
@@ -364,6 +405,7 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
       CmdArgs.push_back("-lgcc_s");
       CmdArgs.push_back("--no-as-needed");
     }
+    CmdArgs.push_back("--end-group");
   }
 
   if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles,
@@ -374,7 +416,10 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     else
       crtend = "crtend.o";
     CmdArgs.push_back(Args.MakeArgString(ToolChain.GetFilePath(crtend)));
-    CmdArgs.push_back(Args.MakeArgString(ToolChain.GetFilePath("crtn.o")));
+
+    // Don't support .init and .fini sections for CheriABI.
+    if (!IsCHERIPureCapABI)
+      CmdArgs.push_back(Args.MakeArgString(ToolChain.GetFilePath("crtn.o")));
   }
 
   ToolChain.addProfileRTLibs(Args, CmdArgs);
@@ -391,11 +436,13 @@ FreeBSD::FreeBSD(const Driver &D, const llvm::Triple &Triple,
                  const ArgList &Args)
     : Generic_ELF(D, Triple, Args) {
 
-  // When targeting 32-bit platforms, look for '/usr/lib32/crt1.o' and fall
-  // back to '/usr/lib' if it doesn't exist.
-  if (Triple.isArch32Bit() &&
-      D.getVFS().exists(concat(getDriver().SysRoot, "/usr/lib32/crt1.o")))
-    getFilePaths().push_back(concat(getDriver().SysRoot, "/usr/lib32"));
+  // When targeting 32-bit platforms, look for '/usr/lib32(c)/crt1.o' and fall
+  // back to '/usr/lib' if it doesn't exist. We also do the same for 64-bit
+  // targets with '/usr/lib64(c)'.
+  std::string CompatLib = (Twine("lib") + (Triple.isArch32Bit() ? "32" : "64") +
+                           (IsCheriPurecap ? "c" : "")).str();
+  if (D.getVFS().exists(concat(getDriver().SysRoot, "/usr/" + CompatLib + "/crt1.o")))
+    getFilePaths().push_back(concat(getDriver().SysRoot, "/usr/" + CompatLib));
   else
     getFilePaths().push_back(concat(getDriver().SysRoot, "/usr/lib"));
 }
@@ -483,7 +530,10 @@ SanitizerMask FreeBSD::getSupportedSanitizers() const {
   const bool IsX86_64 = getTriple().getArch() == llvm::Triple::x86_64;
   const bool IsMIPS64 = getTriple().isMIPS64();
   SanitizerMask Res = ToolChain::getSupportedSanitizers();
-  Res |= SanitizerKind::Address;
+  if (getTriple().getEnvironment() != llvm::Triple::CheriPurecap) {
+    // ASAN currently crashes when enabled for purecap
+    Res |= SanitizerKind::Address;
+  }
   Res |= SanitizerKind::PointerCompare;
   Res |= SanitizerKind::PointerSubtract;
   Res |= SanitizerKind::Vptr;
@@ -495,6 +545,9 @@ SanitizerMask FreeBSD::getSupportedSanitizers() const {
     Res |= SanitizerKind::SafeStack;
     Res |= SanitizerKind::Fuzzer;
     Res |= SanitizerKind::FuzzerNoLink;
+  } else if (IsMIPS64) {
+    Res |= SanitizerKind::Fuzzer;
+    Res |= SanitizerKind::FuzzerNoLink;
   }
   if (IsAArch64 || IsX86_64) {
     Res |= SanitizerKind::KernelAddress;
@@ -502,4 +555,15 @@ SanitizerMask FreeBSD::getSupportedSanitizers() const {
     Res |= SanitizerKind::Memory;
   }
   return Res;
+}
+
+void FreeBSD::addClangTargetOptions(const ArgList &DriverArgs,
+                                    ArgStringList &CC1Args,
+                                    Action::OffloadKind) const {
+  unsigned Major = getTriple().getOSMajorVersion();
+  if (!DriverArgs.hasFlag(options::OPT_fuse_init_array,
+                          options::OPT_fno_use_init_array,
+                          (Major >= 12 || Major == 0 || getTriple().isMIPS() ||
+                           isCheriPurecap())))
+    CC1Args.push_back("-fno-use-init-array");
 }

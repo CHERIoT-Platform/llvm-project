@@ -1,0 +1,195 @@
+//===--- CHERICompressedCapability.h ----------------------------*- C++ -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef LLVM_COMPRESSED_CAPABILITY_H
+#define LLVM_COMPRESSED_CAPABILITY_H
+
+#include <algorithm>
+#include <cstdint>
+
+namespace llvm {
+namespace CompressedCapability {
+
+enum class CapabilityFormat {
+  Cheri64,
+  Cheri128,
+  Cheriot64,
+};
+
+static constexpr CapabilityFormat Cheri64 = CapabilityFormat::Cheri64;
+static constexpr CapabilityFormat Cheri128 = CapabilityFormat::Cheri128;
+static constexpr CapabilityFormat Cheriot64 = CapabilityFormat::Cheriot64;
+
+static inline uint64_t GetAddressMask(CapabilityFormat CapSize) {
+  switch (CapSize) {
+  case CapabilityFormat::Cheri64:
+  case CapabilityFormat::Cheriot64:
+    return std::numeric_limits<uint32_t>::max();
+  case CapabilityFormat::Cheri128:
+    return std::numeric_limits<uint64_t>::max();
+  }
+}
+
+static inline uint64_t GetAlignmentMask(uint64_t Length,
+                                        CapabilityFormat CapSize) {
+  static constexpr std::pair<uint64_t, uint64_t> CHERI64_ALIGN_MASKS[] = {
+      {0x000000000000003F, 0x00000000FFFFFFFF},
+      {0x0000000000000078, 0x00000000FFFFFFF8},
+      {0x00000000000000F0, 0x00000000FFFFFFF0},
+      {0x00000000000001E0, 0x00000000FFFFFFE0},
+      {0x00000000000003C0, 0x00000000FFFFFFC0},
+      {0x0000000000000780, 0x00000000FFFFFF80},
+      {0x0000000000000F00, 0x00000000FFFFFF00},
+      {0x0000000000001E00, 0x00000000FFFFFE00},
+      {0x0000000000003C00, 0x00000000FFFFFC00},
+      {0x0000000000007800, 0x00000000FFFFF800},
+      {0x000000000000F000, 0x00000000FFFFF000},
+      {0x000000000001E000, 0x00000000FFFFE000},
+      {0x000000000003C000, 0x00000000FFFFC000},
+      {0x0000000000078000, 0x00000000FFFF8000},
+      {0x00000000000F0000, 0x00000000FFFF0000},
+      {0x00000000001E0000, 0x00000000FFFE0000},
+      {0x00000000003C0000, 0x00000000FFFC0000},
+      {0x0000000000780000, 0x00000000FFF80000},
+      {0x0000000000F00000, 0x00000000FFF00000},
+      {0x0000000001E00000, 0x00000000FFE00000},
+      {0x0000000003C00000, 0x00000000FFC00000},
+      {0x0000000007800000, 0x00000000FF800000},
+      {0x000000000F000000, 0x00000000FF000000},
+      {0x000000001E000000, 0x00000000FE000000},
+      {0x000000003C000000, 0x00000000FC000000},
+      {0x0000000078000000, 0x00000000F8000000},
+      {0x00000000F0000000, 0x00000000F0000000},
+      {0x00000000FFFFFFFF, 0x00000000E0000000}};
+
+  static constexpr std::pair<uint64_t, uint64_t> CHERI128_ALIGN_MASKS[] = {
+      {0x0000000000000FFF, 0xFFFFFFFFFFFFFFFF},
+      {0x0000000000001FF8, 0xFFFFFFFFFFFFFFF8},
+      {0x0000000000003FF0, 0xFFFFFFFFFFFFFFF0},
+      {0x0000000000007FE0, 0xFFFFFFFFFFFFFFE0},
+      {0x000000000000FFC0, 0xFFFFFFFFFFFFFFC0},
+      {0x000000000001FF80, 0xFFFFFFFFFFFFFF80},
+      {0x000000000003FF00, 0xFFFFFFFFFFFFFF00},
+      {0x000000000007FE00, 0xFFFFFFFFFFFFFE00},
+      {0x00000000000FFC00, 0xFFFFFFFFFFFFFC00},
+      {0x00000000001FF800, 0xFFFFFFFFFFFFF800},
+      {0x00000000003FF000, 0xFFFFFFFFFFFFF000},
+      {0x00000000007FE000, 0xFFFFFFFFFFFFE000},
+      {0x0000000000FFC000, 0xFFFFFFFFFFFFC000},
+      {0x0000000001FF8000, 0xFFFFFFFFFFFF8000},
+      {0x0000000003FF0000, 0xFFFFFFFFFFFF0000},
+      {0x0000000007FE0000, 0xFFFFFFFFFFFE0000},
+      {0x000000000FFC0000, 0xFFFFFFFFFFFC0000},
+      {0x000000001FF80000, 0xFFFFFFFFFFF80000},
+      {0x000000003FF00000, 0xFFFFFFFFFFF00000},
+      {0x000000007FE00000, 0xFFFFFFFFFFE00000},
+      {0x00000000FFC00000, 0xFFFFFFFFFFC00000},
+      {0x00000001FF800000, 0xFFFFFFFFFF800000},
+      {0x00000003FF000000, 0xFFFFFFFFFF000000},
+      {0x00000007FE000000, 0xFFFFFFFFFE000000},
+      {0x0000000FFC000000, 0xFFFFFFFFFC000000},
+      {0x0000001FF8000000, 0xFFFFFFFFF8000000},
+      {0x0000003FF0000000, 0xFFFFFFFFF0000000},
+      {0x0000007FE0000000, 0xFFFFFFFFE0000000},
+      {0x000000FFC0000000, 0xFFFFFFFFC0000000},
+      {0x000001FF80000000, 0xFFFFFFFF80000000},
+      {0x000003FF00000000, 0xFFFFFFFF00000000},
+      {0x000007FE00000000, 0xFFFFFFFE00000000},
+      {0x00000FFC00000000, 0xFFFFFFFC00000000},
+      {0x00001FF800000000, 0xFFFFFFF800000000},
+      {0x00003FF000000000, 0xFFFFFFF000000000},
+      {0x00007FE000000000, 0xFFFFFFE000000000},
+      {0x0000FFC000000000, 0xFFFFFFC000000000},
+      {0x0001FF8000000000, 0xFFFFFF8000000000},
+      {0x0003FF0000000000, 0xFFFFFF0000000000},
+      {0x0007FE0000000000, 0xFFFFFE0000000000},
+      {0x000FFC0000000000, 0xFFFFFC0000000000},
+      {0x001FF80000000000, 0xFFFFF80000000000},
+      {0x003FF00000000000, 0xFFFFF00000000000},
+      {0x007FE00000000000, 0xFFFFE00000000000},
+      {0x00FFC00000000000, 0xFFFFC00000000000},
+      {0x01FF800000000000, 0xFFFF800000000000},
+      {0x03FF000000000000, 0xFFFF000000000000},
+      {0x07FE000000000000, 0xFFFE000000000000},
+      {0x0FFC000000000000, 0xFFFC000000000000},
+      {0x1FF8000000000000, 0xFFF8000000000000},
+      {0x3FF0000000000000, 0xFFF0000000000000},
+      {0x7FE0000000000000, 0xFFE0000000000000},
+      {0xFFC0000000000000, 0xFFC0000000000000},
+      {0xFFFFFFFFFFFFFFFF, 0xFF80000000000000}};
+
+  static constexpr std::pair<uint64_t, uint64_t> CHERIOT64_ALIGN_MASKS[] = {
+      {0x00000000000001FF, 0x00000000FFFFFFFF},
+      {0x00000000000003FE, 0x00000000FFFFFFFE},
+      {0x00000000000007FC, 0x00000000FFFFFFFC},
+      {0x0000000000000FF8, 0x00000000FFFFFFF8},
+      {0x0000000000001FF0, 0x00000000FFFFFFF0},
+      {0x0000000000003FE0, 0x00000000FFFFFFE0},
+      {0x0000000000007FC0, 0x00000000FFFFFFC0},
+      {0x000000000000FF80, 0x00000000FFFFFF80},
+      {0x000000000001FF00, 0x00000000FFFFFF00},
+      {0x000000000003FE00, 0x00000000FFFFFE00},
+      {0x000000000007FC00, 0x00000000FFFFFC00},
+      {0x00000000000FF800, 0x00000000FFFFF800},
+      {0x00000000001FF000, 0x00000000FFFFF000},
+      {0x00000000003FE000, 0x00000000FFFFE000},
+      {0x00000000007FC000, 0x00000000FFFFC000},
+      // FIXME: These may be enabled by a future change the cheriot spec.
+      // { 0x0000000000FF8000, 0x00000000FFFF8000 },
+      // { 0x0000000001FF0000, 0x00000000FFFF0000 },
+      // { 0x0000000003FE0000, 0x00000000FFFE0000 },
+      // { 0x0000000007FC0000, 0x00000000FFFC0000 },
+      // { 0x000000000FF80000, 0x00000000FFF80000 },
+      // { 0x000000001FF00000, 0x00000000FFF00000 },
+      // { 0x000000003FE00000, 0x00000000FFE00000 },
+      // { 0x000000007FC00000, 0x00000000FFC00000 },
+      // { 0x00000000FF800000, 0x00000000FF800000 },
+      {0x00000000FFFFFFFF, 0x00000000FF000000},
+  };
+
+  auto LookupInLUT = [=](const auto &LUT) {
+    auto I = std::begin(LUT);
+    auto E = std::end(LUT);
+    auto el =
+        std::find_if(I, E, [=](const auto &p) { return Length <= p.first; });
+    assert(el != E);
+    return el->second;
+  };
+
+  switch (CapSize) {
+  case CapabilityFormat::Cheri64:
+    return LookupInLUT(CHERI64_ALIGN_MASKS);
+  case CapabilityFormat::Cheri128:
+    return LookupInLUT(CHERI128_ALIGN_MASKS);
+  case CapabilityFormat::Cheriot64:
+    return LookupInLUT(CHERIOT64_ALIGN_MASKS);
+  }
+}
+
+static inline uint64_t GetRepresentableLength(uint64_t Length,
+                                              CapabilityFormat CapSize) {
+  uint64_t Mask = GetAlignmentMask(Length, CapSize);
+  return (Length + ~Mask) & Mask;
+}
+
+static inline Align GetRequiredAlignment(uint64_t Length,
+                                         CapabilityFormat CapSize) {
+  return Align((~GetAlignmentMask(Length, CapSize) + 1) &
+               GetAddressMask(CapSize));
+}
+
+static inline TailPaddingAmount
+GetRequiredTailPadding(uint64_t Length, CapabilityFormat CapSize) {
+  return static_cast<TailPaddingAmount>(
+      llvm::alignTo(Length, GetRequiredAlignment(Length, CapSize)) - Length);
+}
+
+} // namespace CompressedCapability
+} // namespace llvm
+
+#endif

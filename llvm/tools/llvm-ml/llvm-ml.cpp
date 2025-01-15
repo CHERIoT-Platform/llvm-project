@@ -310,7 +310,8 @@ int llvm_ml_main(int Argc, char **Argv, const llvm::ToolContext &) {
   }
   SrcMgr.setIncludeDirs(IncludeDirs);
 
-  std::unique_ptr<MCRegisterInfo> MRI(TheTarget->createMCRegInfo(TripleName));
+  std::unique_ptr<MCRegisterInfo> MRI(
+      TheTarget->createMCRegInfo(TripleName, MCOptions));
   assert(MRI && "Unable to create target register info!");
 
   std::unique_ptr<MCAsmInfo> MAI(

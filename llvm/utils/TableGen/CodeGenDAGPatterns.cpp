@@ -47,9 +47,6 @@ static inline bool isVector(MVT VT) {
 static inline bool isScalar(MVT VT) {
   return !VT.isVector();
 }
-static inline bool isScalarInteger(MVT VT) {
-  return VT.isScalarInteger();
-}
 
 template <typename Predicate>
 static bool berase_if(MachineValueTypeSet &S, Predicate P) {
@@ -273,85 +270,92 @@ void TypeSetByHwMode::dump() const {
 }
 
 bool TypeSetByHwMode::intersect(SetType &Out, const SetType &In) {
-  bool OutP = Out.count(MVT::iPTR), InP = In.count(MVT::iPTR);
-  // Complement of In.
-  auto CompIn = [&In](MVT T) -> bool { return !In.count(T); };
+  auto IntersectP = [&](std::optional<MVT> WildVT, function_ref<bool(MVT)> P) {
+    // Complement of In within this partition.
+    auto CompIn = [&](MVT T) -> bool { return !In.count(T) && P(T); };
 
-  if (OutP == InP)
-    return berase_if(Out, CompIn);
+    if (!WildVT)
+      return berase_if(Out, CompIn);
 
-  // Compute the intersection of scalars separately to account for only
-  // one set containing iPTR.
-  // The intersection of iPTR with a set of integer scalar types that does not
-  // include iPTR will result in the most specific scalar type:
-  // - iPTR is more specific than any set with two elements or more
-  // - iPTR is less specific than any single integer scalar type.
-  // For example
-  // { iPTR } * { i32 }     -> { i32 }
-  // { iPTR } * { i32 i64 } -> { iPTR }
-  // and
-  // { iPTR i32 } * { i32 }          -> { i32 }
-  // { iPTR i32 } * { i32 i64 }      -> { i32 i64 }
-  // { iPTR i32 } * { i32 i64 i128 } -> { iPTR i32 }
+    bool OutW = Out.count(*WildVT), InW = In.count(*WildVT);
+    if (OutW == InW)
+      return berase_if(Out, CompIn);
 
-  // Let In' = elements only in In, Out' = elements only in Out, and
-  // IO = elements common to both. Normally IO would be returned as the result
-  // of the intersection, but we need to account for iPTR being a "wildcard" of
-  // sorts. Since elements in IO are those that match both sets exactly, they
-  // will all belong to the output. If any of the "leftovers" (i.e. In' or
-  // Out') contain iPTR, it means that the other set doesn't have it, but it
-  // could have (1) a more specific type, or (2) a set of types that is less
-  // specific. The "leftovers" from the other set is what we want to examine
-  // more closely.
+    // Compute the intersection of scalars separately to account for only one
+    // set containing WildVT.
+    // The intersection of WildVT with a set of corresponding types that does
+    // not include WildVT will result in the most specific type:
+    // - WildVT is more specific than any set with two elements or more
+    // - WildVT is less specific than any single type.
+    // For example, for iPTR and scalar integer types
+    // { iPTR } * { i32 }     -> { i32 }
+    // { iPTR } * { i32 i64 } -> { iPTR }
+    // and
+    // { iPTR i32 } * { i32 }          -> { i32 }
+    // { iPTR i32 } * { i32 i64 }      -> { i32 i64 }
+    // { iPTR i32 } * { i32 i64 i128 } -> { iPTR i32 }
 
-  auto subtract = [](const SetType &A, const SetType &B) {
-    SetType Diff = A;
-    berase_if(Diff, [&B](MVT T) { return B.count(T); });
-    return Diff;
+    // Looking at just this partition, let In' = elements only in In,
+    // Out' = elements only in Out, and IO = elements common to both. Normally
+    // IO would be returned as the result of the intersection, but we need to
+    // account for WildVT being a "wildcard" of sorts. Since elements in IO are
+    // those that match both sets exactly, they will all belong to the output.
+    // If any of the "leftovers" (i.e. In' or Out') contain WildVT, it means
+    // that the other set doesn't have it, but it could have (1) a more
+    // specific type, or (2) a set of types that is less specific. The
+    // "leftovers" from the other set is what we want to examine more closely.
+
+    auto Leftovers = [&](const SetType &A, const SetType &B) {
+      SetType Diff = A;
+      berase_if(Diff, [&](MVT T) { return B.count(T) || !P(T); });
+      return Diff;
+    };
+
+    if (InW) {
+      SetType OutLeftovers = Leftovers(Out, In);
+      if (OutLeftovers.size() < 2) {
+        // WildVT not added to Out. Keep the possible single leftover.
+        return false;
+      }
+      // WildVT replaces the leftovers.
+      berase_if(Out, CompIn);
+      Out.insert(*WildVT);
+      return true;
+    }
+
+    // OutW == true
+    SetType InLeftovers = Leftovers(In, Out);
+    unsigned SizeOut = Out.size();
+    berase_if(Out, CompIn); // This will remove at least the WildVT.
+    if (InLeftovers.size() < 2) {
+      // WildVT deleted from Out. Add back the possible single leftover.
+      Out.insert(InLeftovers);
+      return true;
+    }
+
+    // Keep the WildVT in Out.
+    Out.insert(*WildVT);
+    // If WildVT was the only element initially removed from Out, then Out
+    // has not changed.
+    return SizeOut != Out.size();
   };
 
-  if (InP) {
-    SetType OutOnly = subtract(Out, In);
-    if (OutOnly.empty()) {
-      // This means that Out \subset In, so no change to Out.
-      return false;
-    }
-    unsigned NumI = llvm::count_if(OutOnly, isScalarInteger);
-    if (NumI == 1 && OutOnly.size() == 1) {
-      // There is only one element in Out', and it happens to be a scalar
-      // integer that should be kept as a match for iPTR in In.
-      return false;
-    }
-    berase_if(Out, CompIn);
-    if (NumI == 1) {
-      // Replace the iPTR with the leftover scalar integer.
-      Out.insert(*llvm::find_if(OutOnly, isScalarInteger));
-    } else if (NumI > 1) {
-      Out.insert(MVT::iPTR);
-    }
-    return true;
-  }
+  // Note: must be non-overlapping
+  using WildPartT = std::pair<MVT, std::function<bool(MVT)>>;
+  static const WildPartT WildParts[] = {
+      {MVT::iPTR, [](MVT T) { return T.isScalarInteger() || T == MVT::iPTR; }},
+      {MVT::cPTR, [](MVT T) { return T.isCapability() || T == MVT::cPTR; }},
+  };
 
-  // OutP == true
-  SetType InOnly = subtract(In, Out);
-  unsigned SizeOut = Out.size();
-  berase_if(Out, CompIn);   // This will remove at least the iPTR.
-  unsigned NumI = llvm::count_if(InOnly, isScalarInteger);
-  if (NumI == 0) {
-    // iPTR deleted from Out.
-    return true;
-  }
-  if (NumI == 1) {
-    // Replace the iPTR with the leftover scalar integer.
-    Out.insert(*llvm::find_if(InOnly, isScalarInteger));
-    return true;
-  }
+  bool Changed = false;
+  for (const auto &I : WildParts)
+    Changed |= IntersectP(I.first, I.second);
 
-  // NumI > 1: Keep the iPTR in Out.
-  Out.insert(MVT::iPTR);
-  // If iPTR was the only element initially removed from Out, then Out
-  // has not changed.
-  return SizeOut != Out.size();
+  Changed |= IntersectP(std::nullopt, [&](MVT T) {
+    return !any_of(WildParts, [=](const WildPartT &I) { return I.second(T); });
+  });
+
+  return Changed;
 }
 
 bool TypeSetByHwMode::validate() const {
@@ -822,6 +826,11 @@ void TypeInfer::expandOverloads(TypeSetByHwMode::SetType &Out,
   if (Out.count(MVT::iPTRAny)) {
     Out.erase(MVT::iPTRAny);
     Out.insert(MVT::iPTR);
+    for (MVT T : MVT::capability_valuetypes()) {
+      if (Legal.count(T)) {
+        Out.insert(MVT::cPTR);
+      }
+    }
   } else if (Out.count(MVT::iAny)) {
     Out.erase(MVT::iAny);
     for (MVT T : MVT::integer_valuetypes())
@@ -1630,9 +1639,11 @@ bool SDTypeConstraint::ApplyTypeConstraint(TreePatternNode *N,
   case SDTCisVT:
     // Operand must be a particular type.
     return NodeToApply->UpdateNodeType(ResNo, VVT, TP);
-  case SDTCisPtrTy:
-    // Operand must be same as target pointer type.
-    return NodeToApply->UpdateNodeType(ResNo, MVT::iPTR, TP);
+  case SDTCisPtrTy: {
+    // Operand must be a legal pointer (iPTR, or possibly cPTR) type.
+    const auto &PtrTys = TP.getDAGPatterns().getLegalPtrTypes();
+    return NodeToApply->UpdateNodeType(ResNo, PtrTys, TP);
+  }
   case SDTCisInt:
     // Require it to be one of the legal integer VTs.
      return TI.EnforceInteger(NodeToApply->getExtType(ResNo));
@@ -1745,8 +1756,10 @@ bool TreePatternNode::UpdateNodeTypeFromInst(unsigned ResNo,
   }
 
   // PointerLikeRegClass has a type that is determined at runtime.
-  if (Operand->isSubClassOf("PointerLikeRegClass"))
-    return UpdateNodeType(ResNo, MVT::iPTR, TP);
+  if (Operand->isSubClassOf("PointerLikeRegClass")) {
+    Record *R = Operand->getValueAsDef("RegClassType");
+    return UpdateNodeType(ResNo, getValueType(R), TP);
+  }
 
   // Both RegisterClass and RegisterOperand operands derive their types from a
   // register class def.
@@ -1845,7 +1858,7 @@ MVT::SimpleValueType SDNodeInfo::getKnownType(unsigned ResNo) const {
         return Constraint.VVT.getSimple().SimpleTy;
       break;
     case SDTypeConstraint::SDTCisPtrTy:
-      return MVT::iPTR;
+      return MVT::iPTRAny;
     }
   }
   return MVT::Other;
@@ -2309,7 +2322,8 @@ static TypeSetByHwMode getImplicitType(Record *R, unsigned ResNo,
   }
   if (R->isSubClassOf("PointerLikeRegClass")) {
     assert(ResNo == 0 && "Regclass can only have one result!");
-    TypeSetByHwMode VTS(MVT::iPTR);
+    Record *T = R->getValueAsDef("RegClassType");
+    TypeSetByHwMode VTS(getValueType(T));
     TP.getInfer().expandOverloads(VTS);
     return VTS;
   }
@@ -2487,7 +2501,7 @@ bool TreePatternNode::ApplyTypeConstraints(TreePattern &TP, bool NotRegisters) {
       ValueTypeByHwMode VVT = TP.getInfer().getConcrete(Types[0], false);
       for (auto &P : VVT) {
         MVT::SimpleValueType VT = P.second.SimpleTy;
-        if (VT == MVT::iPTR || VT == MVT::iPTRAny)
+        if (VT == MVT::iPTR || VT == MVT::cPTR || VT == MVT::iPTRAny)
           continue;
         unsigned Size = MVT(VT).getFixedSizeInBits();
         // Make sure that the value is representable for this type.
@@ -3181,7 +3195,7 @@ void TreePattern::dump() const { print(errs()); }
 CodeGenDAGPatterns::CodeGenDAGPatterns(RecordKeeper &R,
                                        PatternRewriterFn PatternRewriter)
     : Records(R), Target(R), LegalVTS(Target.getLegalValueTypes()),
-      PatternRewriter(PatternRewriter) {
+      LegalPtrVTS(ComputeLegalPtrTypes()), PatternRewriter(PatternRewriter) {
 
   Intrinsics = CodeGenIntrinsicTable(Records);
   ParseNodeInfo();
@@ -3217,6 +3231,36 @@ Record *CodeGenDAGPatterns::getSDNodeNamed(StringRef Name) const {
     PrintFatalError("Error getting SDNode '" + Name + "'!");
 
   return N;
+}
+
+// Compute the subset of iPTR and cPTR legal for each mode, coalescing into the
+// default mode where possible to avoid predicate explosion.
+TypeSetByHwMode CodeGenDAGPatterns::ComputeLegalPtrTypes() const {
+  auto LegalPtrsForSet = [](const MachineValueTypeSet &In) {
+    MachineValueTypeSet Out;
+    Out.insert(MVT::iPTR);
+    for (MVT T : MVT::capability_valuetypes()) {
+      if (In.count(T)) {
+        Out.insert(MVT::cPTR);
+        break;
+      }
+    }
+    return Out;
+  };
+
+  const auto &LegalTypes = getLegalTypes();
+  MachineValueTypeSet LegalPtrsDefault =
+      LegalPtrsForSet(LegalTypes.get(DefaultMode));
+
+  TypeSetByHwMode LegalPtrTypes;
+  for (const auto &I : LegalTypes) {
+    MachineValueTypeSet S = LegalPtrsForSet(I.second);
+    if (I.first != DefaultMode && S == LegalPtrsDefault)
+      continue;
+    LegalPtrTypes.getOrCreate(I.first).insert(S);
+  }
+
+  return LegalPtrTypes;
 }
 
 // Parse all of the SDNode definitions for the target, populating SDNodes.

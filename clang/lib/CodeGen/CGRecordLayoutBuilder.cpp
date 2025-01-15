@@ -350,10 +350,11 @@ void CGRecordLowering::lowerUnion(bool isNoUniqueAddress) {
     if (!IsZeroInitializable)
       continue;
     // Conditionally update our storage type if we've got a new "better" one.
-    if (!StorageType ||
-        getAlignment(FieldType) >  getAlignment(StorageType) ||
+    if (!StorageType || getAlignment(FieldType) > getAlignment(StorageType) ||
         (getAlignment(FieldType) == getAlignment(StorageType) &&
-        getSize(FieldType) > getSize(StorageType)))
+         getSize(FieldType) > getSize(StorageType)) ||
+        (DataLayout.isFatPointer(FieldType) &&
+         !DataLayout.isFatPointer(StorageType)))
       StorageType = FieldType;
   }
   // If we have no storage type just pad to the appropriate size and return.
@@ -657,14 +658,15 @@ void CGRecordLowering::computeVolatileBitfields() {
 }
 
 void CGRecordLowering::accumulateVPtrs() {
+  unsigned AS = Types.getCGM().getTargetCodeGenInfo().getDefaultAS();
   if (Layout.hasOwnVFPtr())
     Members.push_back(
         MemberInfo(CharUnits::Zero(), MemberInfo::VFPtr,
-                   llvm::PointerType::getUnqual(Types.getLLVMContext())));
+                   llvm::PointerType::get(Types.getLLVMContext(), AS)));
   if (Layout.hasOwnVBPtr())
     Members.push_back(
         MemberInfo(Layout.getVBPtrOffset(), MemberInfo::VBPtr,
-                   llvm::PointerType::getUnqual(Types.getLLVMContext())));
+                   llvm::PointerType::get(Types.getLLVMContext(), AS)));
 }
 
 void CGRecordLowering::accumulateVBases() {

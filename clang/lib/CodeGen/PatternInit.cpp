@@ -22,7 +22,7 @@ llvm::Constant *clang::CodeGen::initializationPatternFor(CodeGenModule &CGM,
   // zero page can reasonably be expected to be unmapped. We use max 0xFFFFFFFF
   // assuming that memory access will overlap into zero page.
   const uint64_t IntValue =
-      CGM.getContext().getTargetInfo().getMaxPointerWidth() < 64
+      CGM.getContext().getTargetInfo().getMaxPointerRange() < 64
           ? 0xFFFFFFFFFFFFFFFFull
           : 0xAAAAAAAAAAAAAAAAull;
   // Floating-point values are initialized as NaNs because they propagate. Using
@@ -43,13 +43,35 @@ llvm::Constant *clang::CodeGen::initializationPatternFor(CodeGenModule &CGM,
   }
   if (Ty->isPtrOrPtrVectorTy()) {
     auto *PtrTy = cast<llvm::PointerType>(Ty->getScalarType());
-    unsigned PtrWidth =
-        CGM.getDataLayout().getPointerSizeInBits(PtrTy->getAddressSpace());
-    if (PtrWidth > 64)
-      llvm_unreachable("pattern initialization of unsupported pointer width");
-    llvm::Type *IntTy = llvm::IntegerType::get(CGM.getLLVMContext(), PtrWidth);
-    auto *Int = llvm::ConstantInt::get(IntTy, IntValue);
-    return llvm::ConstantExpr::getIntToPtr(Int, PtrTy);
+    if (CGM.getDataLayout().isFatPointer(PtrTy)) {
+      // Capabilities are initialised to null with the pattern as their
+      // address. We cannot currently offer an alternative where the entire
+      // capability is pattern initialised since we cannot bitcast from a
+      // sufficiently-wide integer to a capability and coercing via memory is
+      // unavailable due to needing to return a constant. If we really wanted
+      // to we could have an ugly hack to use a hidden global variable.
+      unsigned PtrRange = CGM.getContext().getTargetInfo().getPointerRange(
+          LangAS::cheri_capability);
+      if (PtrRange > 64)
+        llvm_unreachable("pattern initialization of unsupported pointer range");
+
+      llvm::Type *I8Ty = llvm::Type::getInt8Ty(CGM.getLLVMContext());
+      llvm::Type *NullPtrTy = I8Ty->getPointerTo(PtrTy->getAddressSpace());
+      llvm::Type *IntTy = llvm::IntegerType::get(CGM.getLLVMContext(), PtrRange);
+
+      llvm::Constant *NullPtr = llvm::Constant::getNullValue(NullPtrTy);
+      llvm::Constant *Int = llvm::ConstantInt::get(IntTy, IntValue);
+      llvm::Constant *I8Ptr = llvm::ConstantExpr::getGetElementPtr(I8Ty, NullPtr, Int);
+      return llvm::ConstantExpr::getBitCast(I8Ptr, PtrTy);
+    } else {
+      unsigned PtrWidth =
+          CGM.getDataLayout().getPointerSizeInBits(PtrTy->getAddressSpace());
+      if (PtrWidth > 64)
+        llvm_unreachable("pattern initialization of unsupported pointer width");
+      llvm::Type *IntTy = llvm::IntegerType::get(CGM.getLLVMContext(), PtrWidth);
+      auto *Int = llvm::ConstantInt::get(IntTy, IntValue);
+      return llvm::ConstantExpr::getIntToPtr(Int, PtrTy);
+    }
   }
   if (Ty->isFPOrFPVectorTy()) {
     unsigned BitWidth = llvm::APFloat::semanticsSizeInBits(

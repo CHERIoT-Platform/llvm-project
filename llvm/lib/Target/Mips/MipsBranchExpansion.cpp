@@ -436,6 +436,7 @@ void MipsBranchExpansion::expandToLongBranch(MBBInfo &I) {
             : STI->inMicroMipsMode() ? Mips::BAL_BR_MM : Mips::BAL_BR;
 
     if (!ABI.IsN64()) {
+      assert (!ABI.IsCheriPureCap() && "Only n64 base abi supported in purecap ABI");
       // Pre R6:
       // $longbr:
       //  addiu $sp, $sp, -8
@@ -590,6 +591,46 @@ void MipsBranchExpansion::expandToLongBranch(MBBInfo &I) {
 
       Pos = LongBrMBB->begin();
 
+      if (ABI.IsCheriPureCap()) {
+        // CHERI (purecap):
+        // $longbr:
+        //  daddiu $at, $zero, %hi($tgt - $baltgt)
+        //  dsll $at, $at, 16
+        //  b $baltgt
+        //  daddiu $at, $at, %lo($tgt - $baltgt)
+        // $baltgt:
+        //  cgetpcc $c12
+        //  cincoffset $c12, $c12, $1
+        //  cjr $c12
+        // $fallthrough:
+        BuildMI(*LongBrMBB, Pos, DL, TII->get(Mips::LONG_BRANCH_DADDiu),
+              Mips::AT_64).addReg(Mips::ZERO_64)
+                          .addMBB(TgtMBB, MipsII::MO_ABS_HI).addMBB(BalTgtMBB);
+        BuildMI(*LongBrMBB, Pos, DL, TII->get(Mips::DSLL), Mips::AT_64)
+        .addReg(Mips::AT_64).addImm(16);
+        // This b is needed since otherwise the assembler won't emit the label for the target
+        // and compute a garbage address. Otherwise we could be omitting it since CHERI
+        // has a CGetPCC instruction so doesn't need to use bal to get the current PC.
+        // TODO: is there a way to force emitting a label?
+        BuildMI(*LongBrMBB, Pos, DL, TII->get(Mips::B)).addMBB(BalTgtMBB);
+        BuildMI(*LongBrMBB, Pos, DL, TII->get(Mips::LONG_BRANCH_DADDiu), Mips::AT_64)
+          .addReg(Mips::AT_64)
+          .addMBB(TgtMBB, MipsII::MO_ABS_LO)
+          .addMBB(BalTgtMBB);
+        LongBrMBB->rbegin()->bundleWithPred();
+
+        Pos = BalTgtMBB->begin();
+
+        BuildMI(*BalTgtMBB, Pos, DL, TII->get(Mips::CGetPCC), Mips::C12);
+        BuildMI(*BalTgtMBB, Pos, DL, TII->get(Mips::CIncOffset), Mips::C12)
+          .addReg(Mips::C12)
+          .addReg(Mips::AT_64);
+        BuildMI(*BalTgtMBB, Pos, DL, TII->get(Mips::CJR)).addReg(Mips::C12);
+        BuildMI(*BalTgtMBB, Pos, DL, TII->get(Mips::NOP));
+        BalTgtMBB->rbegin()->bundleWithPred();
+        goto finish;  // This allows avoiding lots of merge conflicts
+      }
+
       BuildMI(*LongBrMBB, Pos, DL, TII->get(Mips::DADDiu), Mips::SP_64)
           .addReg(Mips::SP_64)
           .addImm(-16);
@@ -646,6 +687,7 @@ void MipsBranchExpansion::expandToLongBranch(MBBInfo &I) {
       }
     }
   } else { // Not PIC
+    assert (!ABI.IsCheriPureCap() && "This will generate broken code in the purecap ABI");
     Pos = LongBrMBB->begin();
     LongBrMBB->addSuccessor(TgtMBB);
 
@@ -720,6 +762,7 @@ void MipsBranchExpansion::expandToLongBranch(MBBInfo &I) {
     }
   }
 
+finish:
   if (I.Br->isUnconditionalBranch()) {
     // Change branch destination.
     assert(I.Br->getDesc().getNumOperands() == 1);

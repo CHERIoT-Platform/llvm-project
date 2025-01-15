@@ -16,6 +16,7 @@
 #include <cassert>
 
 #include "test_macros.h"
+TEST_CHERI_NO_SUBOBJECT_WARNING
 
 template <typename CharT>
 void test(const CharT* s, std::size_t len) {

@@ -16,10 +16,11 @@
 #include "MipsRegisterInfo.h"
 
 namespace llvm {
+class MipsSubtarget;
 
 class Mips16RegisterInfo : public MipsRegisterInfo {
 public:
-  Mips16RegisterInfo();
+  Mips16RegisterInfo(const MipsSubtarget &STI);
 
   bool requiresRegisterScavenging(const MachineFunction &MF) const override;
 
@@ -38,7 +39,7 @@ public:
 private:
   void eliminateFI(MachineBasicBlock::iterator II, unsigned OpNo,
                    int FrameIndex, uint64_t StackSize,
-                   int64_t SPOffset) const override;
+                   int64_t SPOffset, RegScavenger *RS) const override;
 };
 
 } // end namespace llvm

@@ -54,7 +54,7 @@ class LargeMmapAllocatorPtrArrayDynamic {
   static const int kMaxNumChunks = 1 << 20;
   static const int kChunksBlockCount = 1 << 14;
   ReservedAddressRange address_range_;
-  uptr n_reserved_;
+  usize n_reserved_;
 };
 
 #if SANITIZER_WORDSIZE == 32
@@ -82,9 +82,9 @@ class LargeMmapAllocator {
     InitLinkerInitialized();
   }
 
-  void *Allocate(AllocatorStats *stat, const uptr size, uptr alignment) {
+  void *Allocate(AllocatorStats *stat, const usize size, usize alignment) {
     CHECK(IsPowerOfTwo(alignment));
-    uptr map_size = RoundUpMapSize(size);
+    usize map_size = RoundUpMapSize(size);
     if (alignment > page_size_)
       map_size += alignment;
     // Overflow.
@@ -101,8 +101,8 @@ class LargeMmapAllocator {
     CHECK(IsAligned(map_beg, page_size_));
     uptr map_end = map_beg + map_size;
     uptr res = map_beg + page_size_;
-    if (res & (alignment - 1))  // Align.
-      res += alignment - (res & (alignment - 1));
+    if (!IsAligned(res, alignment))  // Align.
+      res = RoundUpTo(res, alignment);
     MapUnmapCallback().OnMapSecondary(map_beg, map_size, res, size);
     CHECK(IsAligned(res, alignment));
     CHECK(IsAligned(res, page_size_));
@@ -112,7 +112,7 @@ class LargeMmapAllocator {
     h->size = size;
     h->map_beg = map_beg;
     h->map_size = map_size;
-    uptr size_log = MostSignificantSetBitIndex(map_size);
+    usize size_log = MostSignificantSetBitIndex(map_size);
     CHECK_LT(size_log, ARRAY_SIZE(stats.by_size_log));
     {
       SpinMutexLock l(&mutex_);
@@ -188,7 +188,7 @@ class LargeMmapAllocator {
     for (uptr i = 0; i < n_chunks_; i++) {
       uptr ch = reinterpret_cast<uptr>(chunks[i]);
       if (p < ch) continue;  // p is at left to this chunk, skip it.
-      if (p - ch < p - nearest_chunk)
+      if ((char*)p - (char*)ch < (char*)p - (char*)nearest_chunk)
         nearest_chunk = ch;
     }
     if (!nearest_chunk)
@@ -288,9 +288,9 @@ class LargeMmapAllocator {
  private:
   struct Header {
     uptr map_beg;
-    uptr map_size;
-    uptr size;
-    uptr chunk_idx;
+    usize map_size;
+    usize size;
+    usize chunk_idx;
   };
 
   Header *GetHeader(uptr p) {
@@ -306,17 +306,17 @@ class LargeMmapAllocator {
     return reinterpret_cast<void*>(reinterpret_cast<uptr>(h) + page_size_);
   }
 
-  uptr RoundUpMapSize(uptr size) {
+  uptr RoundUpMapSize(usize size) {
     return RoundUpTo(size, page_size_) + page_size_;
   }
 
-  uptr page_size_;
+  usize page_size_;
   Header **chunks_;
   PtrArrayT ptr_array_;
-  uptr n_chunks_;
+  usize n_chunks_;
   bool chunks_sorted_;
   struct Stats {
-    uptr n_allocs, n_frees, currently_allocated, max_allocated, by_size_log[64];
+    usize n_allocs, n_frees, currently_allocated, max_allocated, by_size_log[64];
   } stats;
   mutable StaticSpinMutex mutex_;
 };

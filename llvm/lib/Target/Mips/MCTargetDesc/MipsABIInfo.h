@@ -11,12 +11,14 @@
 
 #include "llvm/IR/CallingConv.h"
 #include "llvm/MC/MCRegisterInfo.h"
+#include "llvm/MC/MCTargetOptions.h"
 #include "llvm/TargetParser/Triple.h"
 
 namespace llvm {
 
 template <typename T> class ArrayRef;
 class MCTargetOptions;
+class MCAsmInfo;
 class StringRef;
 
 class MipsABIInfo {
@@ -25,14 +27,17 @@ public:
 
 protected:
   ABI ThisABI;
+  bool isCheriPureCap = false;
 
 public:
-  MipsABIInfo(ABI ThisABI) : ThisABI(ThisABI) {}
+  MipsABIInfo(ABI ThisABI, bool isAllCap=false) : ThisABI(ThisABI),
+    isCheriPureCap(isAllCap) {}
 
   static MipsABIInfo Unknown() { return MipsABIInfo(ABI::Unknown); }
   static MipsABIInfo O32() { return MipsABIInfo(ABI::O32); }
   static MipsABIInfo N32() { return MipsABIInfo(ABI::N32); }
   static MipsABIInfo N64() { return MipsABIInfo(ABI::N64); }
+  static MipsABIInfo CheriPureCap() { return MipsABIInfo(ABI::N64, true); }
   static MipsABIInfo computeTargetABI(const Triple &TT, StringRef CPU,
                                       const MCTargetOptions &Options);
 
@@ -40,6 +45,12 @@ public:
   bool IsO32() const { return ThisABI == ABI::O32; }
   bool IsN32() const { return ThisABI == ABI::N32; }
   bool IsN64() const { return ThisABI == ABI::N64; }
+  bool IsCheriPureCap() const { return isCheriPureCap; }
+  CheriCapabilityTableABI CapabilityTableABI() const {
+    assert(IsCheriPureCap());
+    return MCTargetOptions::cheriCapabilityTableABI();
+  }
+  unsigned StackAddrSpace() const { return isCheriPureCap ? 200 : 0; }
   ABI GetEnumValue() const { return ThisABI; }
 
   /// The registers to use for byval arguments.
@@ -59,10 +70,16 @@ public:
     return ThisABI < Other.GetEnumValue();
   }
 
+  unsigned GetDefaultDataCapability() const;
+  unsigned GetReturnAddress() const;
   unsigned GetStackPtr() const;
   unsigned GetFramePtr() const;
   unsigned GetBasePtr() const;
   unsigned GetGlobalPtr() const;
+  /// This method will eventually be replaced by GetGlobalPtr in
+  /// pure-capability mode, but until all of the new linker work is done we
+  /// need a separate $gp and $cgp as a transition step.
+  unsigned GetGlobalCapability() const;
   unsigned GetNullPtr() const;
   unsigned GetZeroReg() const;
   unsigned GetPtrAdduOp() const;
@@ -70,10 +87,15 @@ public:
   unsigned GetPtrSubuOp() const;
   unsigned GetPtrAndOp() const;
   unsigned GetGPRMoveOp() const;
+  unsigned GetSPMoveOp() const;
   inline bool ArePtrs64bit() const { return IsN64(); }
   inline bool AreGprs64bit() const { return IsN32() || IsN64(); }
 
   unsigned GetEhDataReg(unsigned I) const;
+
+  // Update the initial CFA register from SP to C11 if needed
+  void updateCheriInitialFrameStateHack(const MCAsmInfo &MAI,
+                                        const MCRegisterInfo &MRI);
 };
 }
 

@@ -37,11 +37,13 @@ void backtrace(int lower_bound) {
       fprintf(stderr, "Frame %d: Could not get name for cursor\n", n);
     }
     if (n > 100) {
+      fprintf(stderr, "ERROR: Got %d frames, but expected at most 100\n", n);
       abort();
     }
   } while (unw_step(&cursor) > 0);
 
   if (n < lower_bound) {
+    fprintf(stderr, "ERROR: Got %d frames, but expected at least %d\n", n, lower_bound);
     abort();
   }
 }
@@ -164,5 +166,6 @@ int main(int, char**) {
   test_reg_names();
   test_reg_get_set();
   test_fpreg_get_set();
+  fprintf(stderr, "Success!\n");
   return 0;
 }

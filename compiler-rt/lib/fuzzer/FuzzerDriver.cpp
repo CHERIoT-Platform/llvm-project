@@ -835,6 +835,8 @@ int FuzzerDriver(int *argc, char ***argv, UserCallback Callback) {
   Options.HandleXfsz = Flags.handle_xfsz;
   Options.HandleUsr1 = Flags.handle_usr1;
   Options.HandleUsr2 = Flags.handle_usr2;
+  Options.HandleTrap = Flags.handle_trap;
+  Options.HandleProt = Flags.handle_prot;
   Options.HandleWinExcept = Flags.handle_winexcept;
 
   SetSignalHandler(Options);

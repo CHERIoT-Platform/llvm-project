@@ -21,6 +21,8 @@
 #include "clang/AST/DeclObjC.h"
 #include "clang/AST/Expr.h"
 #include "clang/AST/RecordLayout.h"
+#include "clang/AST/Type.h"
+#include "clang/Basic/Specifiers.h"
 #include "clang/CodeGen/CGFunctionInfo.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"
@@ -394,6 +396,15 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
                                  static_cast<unsigned>(Context.getTypeSize(T)));
       break;
 
+    // We store these as capabilities (and must use capability instructions for
+    // writing them to memory), and must perform some explicit casts for
+    // arithmetic.
+    case BuiltinType::IntCap:
+    case BuiltinType::UIntCap:
+      ResultType =
+          llvm::PointerType::get(llvm::Type::getInt8Ty(getLLVMContext()),
+              CGM.getTargetCodeGenInfo().getCHERICapabilityAS());
+      break;
     case BuiltinType::Float16:
       ResultType =
           getTypeForFormat(getLLVMContext(), Context.getFloatTypeSemantics(T),
@@ -422,7 +433,8 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
 
     case BuiltinType::NullPtr:
       // Model std::nullptr_t as i8*
-      ResultType = llvm::PointerType::getUnqual(getLLVMContext());
+      ResultType = llvm::PointerType::get(getLLVMContext(),
+        CGM.getTargetCodeGenInfo().getDefaultAS());
       break;
 
     case BuiltinType::UInt128:
@@ -555,7 +567,11 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
   case Type::RValueReference: {
     const ReferenceType *RTy = cast<ReferenceType>(Ty);
     QualType ETy = RTy->getPointeeType();
-    unsigned AS = getTargetAddressSpace(ETy);
+    // XXXAR: If Rty is capability, use AS200 otherwise the same as LangAS as
+    // the underlying type
+    unsigned AS = RTy->isCHERICapability()
+                      ? CGM.getTargetCodeGenInfo().getCHERICapabilityAS()
+                      : getTargetAddressSpace(ETy);
     ResultType = llvm::PointerType::get(getLLVMContext(), AS);
     break;
   }
@@ -563,10 +579,24 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     const PointerType *PTy = cast<PointerType>(Ty);
     QualType ETy = PTy->getPointeeType();
     unsigned AS = getTargetAddressSpace(ETy);
+    // CHERI CCallback function pointers are not actually pointers, they are
+    // structs containing three pointers.
+    if (ETy->isFunctionProtoType()) {
+      auto *FPT = ETy->getAs<FunctionProtoType>();
+      if (FPT->getCallConv() == CC_CHERICCallback &&
+          Context.getTargetInfo().cheriCallbackKind() ==
+              TargetInfo::CCB_Struct) {
+        auto *MethNoTy = llvm::Type::getInt64Ty(getLLVMContext());
+        auto *ObjTy = ConvertType(Context.getCHERIClassType());
+        ResultType = llvm::StructType::get(ObjTy, MethNoTy);
+        break;
+      }
+    }
+    if (PTy->isCHERICapability())
+      AS = CGM.getTargetCodeGenInfo().getCHERICapabilityAS();
     ResultType = llvm::PointerType::get(getLLVMContext(), AS);
     break;
   }
-
   case Type::VariableArray: {
     const VariableArrayType *A = cast<VariableArrayType>(Ty);
     assert(A->getIndexTypeCVRQualifiers() == 0 &&
@@ -641,7 +671,8 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
   }
 
   case Type::ObjCObjectPointer:
-    ResultType = llvm::PointerType::getUnqual(getLLVMContext());
+    ResultType = llvm::PointerType::get(
+        getLLVMContext(), CGM.getTargetCodeGenInfo().getDefaultAS());
     break;
 
   case Type::Enum: {
@@ -664,6 +695,9 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     // address space for data pointers and not function pointers.
     const QualType FTy = cast<BlockPointerType>(Ty)->getPointeeType();
     unsigned AS = Context.getTargetAddressSpace(FTy.getAddressSpace());
+   // XXXAR: If Pty is a capability, we have to use AS200
+   if (Ty->isCHERICapabilityType(Context))
+     AS = CGM.getTargetCodeGenInfo().getCHERICapabilityAS();
     ResultType = llvm::PointerType::get(getLLVMContext(), AS);
     break;
   }
@@ -833,4 +867,12 @@ unsigned CodeGenTypes::getTargetAddressSpace(QualType T) const {
   return T->isFunctionType() && !T.hasAddressSpace()
              ? getDataLayout().getProgramAddressSpace()
              : getContext().getTargetAddressSpace(T.getAddressSpace());
+}
+
+bool CodeGenTypes::canMarkAsNonNull(QualType DestTy) const {
+  unsigned AS = getTargetAddressSpace(DestTy);
+  if (AS == 0 || (Context.getTargetInfo().SupportsCapabilities() &&
+                  AS == CGM.getTargetCodeGenInfo().getCHERICapabilityAS()))
+    return true;
+  return false;
 }

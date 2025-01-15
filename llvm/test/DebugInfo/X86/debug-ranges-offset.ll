@@ -88,7 +88,7 @@ entry:
   %1 = and i64 %0, -70368744177672, !dbg !30
   %2 = inttoptr i64 %1 to ptr, !dbg !30
   store i64 -1, ptr %2, align 8, !dbg !30
-  call void @llvm.lifetime.start(i64 8, ptr %p.i), !dbg !30
+  call void @llvm.lifetime.start.p0(i64 8, ptr %p.i), !dbg !30
   store i64 0, ptr @__msan_param_tls, align 8, !dbg !30
   store i64 0, ptr @__msan_retval_tls, align 8, !dbg !30
   %call.i = call ptr @_Znwm(i64 4) #4, !dbg !30
@@ -137,7 +137,7 @@ if.then.i:                                        ; preds = %15
   br label %_Z1fv.exit, !dbg !34
 
 _Z1fv.exit:                                       ; preds = %15, %if.then.i
-  call void @llvm.lifetime.end(i64 8, ptr %p.i), !dbg !35
+  call void @llvm.lifetime.end.p0(i64 8, ptr %p.i), !dbg !35
   store i32 0, ptr @__msan_retval_tls, align 8, !dbg !36
   ret i32 0, !dbg !36
 }
@@ -151,10 +151,10 @@ declare void @llvm.dbg.value(metadata, metadata, metadata) #2
 declare i32 @puts(ptr nocapture readonly) #3
 
 ; Function Attrs: nounwind
-declare void @llvm.lifetime.start(i64, ptr nocapture) #3
+declare void @llvm.lifetime.start.p0(i64, ptr nocapture) #3
 
 ; Function Attrs: nounwind
-declare void @llvm.lifetime.end(i64, ptr nocapture) #3
+declare void @llvm.lifetime.end.p0(i64, ptr nocapture) #3
 
 declare void @__msan_warning_noreturn()
 

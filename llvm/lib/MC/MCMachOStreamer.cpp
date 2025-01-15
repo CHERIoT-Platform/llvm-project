@@ -102,16 +102,18 @@ public:
   void emitThumbFunc(MCSymbol *Func) override;
   bool emitSymbolAttribute(MCSymbol *Symbol, MCSymbolAttr Attribute) override;
   void emitSymbolDesc(MCSymbol *Symbol, unsigned DescValue) override;
-  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
-                        Align ByteAlignment) override;
+  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size, Align ByteAlignment,
+                        TailPaddingAmount TailPadding) override;
 
   void emitLocalCommonSymbol(MCSymbol *Symbol, uint64_t Size,
-                             Align ByteAlignment) override;
+                             Align ByteAlignment, TailPaddingAmount TailPadding) override;
   void emitZerofill(MCSection *Section, MCSymbol *Symbol = nullptr,
                     uint64_t Size = 0, Align ByteAlignment = Align(1),
+                    TailPaddingAmount TailPadding = TailPaddingAmount::None,
                     SMLoc Loc = SMLoc()) override;
   void emitTBSSSymbol(MCSection *Section, MCSymbol *Symbol, uint64_t Size,
-                      Align ByteAlignment = Align(1)) override;
+                      Align ByteAlignment = Align(1),
+                      TailPaddingAmount TailPadding = TailPaddingAmount::None) override;
 
   void emitIdent(StringRef IdentString) override {
     llvm_unreachable("macho doesn't support this directive");
@@ -431,7 +433,9 @@ void MCMachOStreamer::emitSymbolDesc(MCSymbol *Symbol, unsigned DescValue) {
 }
 
 void MCMachOStreamer::emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
-                                       Align ByteAlignment) {
+                                       Align ByteAlignment,
+                                       TailPaddingAmount TailPadding) {
+  assert(TailPadding == TailPaddingAmount::None && "Not supported yet");
   // FIXME: Darwin 'as' does appear to allow redef of a .comm by itself.
   assert(Symbol->isUndefined() && "Cannot define a symbol twice!");
 
@@ -441,15 +445,17 @@ void MCMachOStreamer::emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
 }
 
 void MCMachOStreamer::emitLocalCommonSymbol(MCSymbol *Symbol, uint64_t Size,
-                                            Align ByteAlignment) {
+                                            Align ByteAlignment,
+                                            TailPaddingAmount TailPadding) {
   // '.lcomm' is equivalent to '.zerofill'.
   return emitZerofill(getContext().getObjectFileInfo()->getDataBSSSection(),
-                      Symbol, Size, ByteAlignment);
+                      Symbol, Size, ByteAlignment, TailPadding);
 }
 
 void MCMachOStreamer::emitZerofill(MCSection *Section, MCSymbol *Symbol,
                                    uint64_t Size, Align ByteAlignment,
-                                   SMLoc Loc) {
+                                   TailPaddingAmount TailPadding, SMLoc Loc) {
+  assert(TailPadding == TailPaddingAmount::None && "Not implemented yet");
   // On darwin all virtual sections have zerofill type. Disallow the usage of
   // .zerofill in non-virtual functions. If something similar is needed, use
   // .space or .zero.
@@ -457,7 +463,7 @@ void MCMachOStreamer::emitZerofill(MCSection *Section, MCSymbol *Symbol,
     getContext().reportError(
         Loc, "The usage of .zerofill is restricted to sections of "
              "ZEROFILL type. Use .zero or .space instead.");
-    return; // Early returning here shouldn't harm. EmitZeros should work on any
+    return; // Early returning here shouldn't harm. emitZeros should work on any
             // section.
   }
 
@@ -476,8 +482,9 @@ void MCMachOStreamer::emitZerofill(MCSection *Section, MCSymbol *Symbol,
 // This should always be called with the thread local bss section.  Like the
 // .zerofill directive this doesn't actually switch sections on us.
 void MCMachOStreamer::emitTBSSSymbol(MCSection *Section, MCSymbol *Symbol,
-                                     uint64_t Size, Align ByteAlignment) {
-  emitZerofill(Section, Symbol, Size, ByteAlignment);
+                                     uint64_t Size, Align ByteAlignment,
+                                     TailPaddingAmount TailPadding) {
+  emitZerofill(Section, Symbol, Size, ByteAlignment, TailPadding);
 }
 
 void MCMachOStreamer::emitInstToData(const MCInst &Inst,

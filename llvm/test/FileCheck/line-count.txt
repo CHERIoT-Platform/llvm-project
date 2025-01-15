@@ -7,7 +7,7 @@
 ; RUN: %ProtectFileCheckOutput not FileCheck -check-prefix BAD6 -input-file %s %s 2>&1 | FileCheck -check-prefix ERR6 %s
 ; RUN: %ProtectFileCheckOutput not FileCheck -check-prefix BAD7 -input-file %s %s 2>&1 | FileCheck -check-prefix ERR7 %s
 ; RUN: %ProtectFileCheckOutput not FileCheck -check-prefix BAD8 -input-file %s %s 2>&1 | FileCheck -check-prefix ERR8 %s
-; RUN: %ProtectFileCheckOutput not FileCheck -check-prefix BAD9 -input-file %s %s 2>&1 | FileCheck -check-prefix ERR9 %s
+
 ; RUN: %ProtectFileCheckOutput not FileCheck -check-prefix BAD10 -input-file %s %s 2>&1 | FileCheck -check-prefix ERR10 %s
 ; RUN: %ProtectFileCheckOutput not FileCheck -check-prefix BAD11 -input-file %s %s 2>&1 | FileCheck -check-prefix ERR11 %s
 13
@@ -46,8 +46,8 @@
 46 BAD8: [[@LIN]]
 47 ERR8: line-count.txt:[[#@LINE-1]]:12: error: invalid pseudo numeric variable '@LIN'
 48
-49 BAD9: [[@LINE*2]]
-50 ERR9: line-count.txt:[[#@LINE-1]]:17: error: unsupported operation '*'
+49
+50
 51
 52 BAD10: [[@LINE-x]]
 53 ERR10: line-count.txt:[[#@LINE-1]]:19: error: invalid operand format

@@ -112,7 +112,7 @@ struct BufferedStackTrace : public StackTrace {
 
   BufferedStackTrace() : StackTrace(trace_buffer, 0), top_frame_bp(0) {}
 
-  void Init(const uptr *pcs, uptr cnt, uptr extra_top_pc = 0);
+  void Init(const uptr *pcs, usize cnt, uptr extra_top_pc = 0);
 
   // Get the stack trace with the given pc and bp.
   // The pc will be in the position 0 of the resulting stack trace.
@@ -149,8 +149,8 @@ struct BufferedStackTrace : public StackTrace {
   void UnwindSlow(uptr pc, u32 max_depth);
   void UnwindSlow(uptr pc, void *context, u32 max_depth);
 
-  void PopStackFrames(uptr count);
-  uptr LocatePcInTrace(uptr pc);
+  void PopStackFrames(usize count);
+  usize LocatePcInTrace(uptr pc);
 
   BufferedStackTrace(const BufferedStackTrace &) = delete;
   void operator=(const BufferedStackTrace &) = delete;

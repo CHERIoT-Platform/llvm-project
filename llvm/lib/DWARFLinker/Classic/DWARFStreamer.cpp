@@ -56,13 +56,13 @@ Error DwarfStreamer::init(Triple TheTriple,
   TripleName = TheTriple.getTriple();
 
   // Create all the MC Objects.
-  MRI.reset(TheTarget->createMCRegInfo(TripleName));
+  MCTargetOptions MCOptions = mc::InitMCTargetOptionsFromFlags();
+  MRI.reset(TheTarget->createMCRegInfo(TripleName, MCOptions));
   if (!MRI)
     return createStringError(std::errc::invalid_argument,
                              "no register info for target %s",
                              TripleName.c_str());
 
-  MCTargetOptions MCOptions = mc::InitMCTargetOptionsFromFlags();
   MAI.reset(TheTarget->createMCAsmInfo(*MRI, TripleName, MCOptions));
   if (!MAI)
     return createStringError(std::errc::invalid_argument,

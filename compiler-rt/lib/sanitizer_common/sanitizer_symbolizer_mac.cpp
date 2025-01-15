@@ -77,7 +77,7 @@ class AtosSymbolizerProcess final : public SymbolizerProcess {
     return SymbolizerProcess::StartSymbolizerSubprocess();
   }
 
-  bool ReachedEndOfOutput(const char *buffer, uptr length) const override {
+  bool ReachedEndOfOutput(const char *buffer, usize length) const override {
     return (length >= 1 && buffer[length - 1] == '\n');
   }
 
@@ -103,7 +103,7 @@ class AtosSymbolizerProcess final : public SymbolizerProcess {
 #undef K_ATOS_ENV_VAR
 
 static bool ParseCommandOutput(const char *str, uptr addr, char **out_name,
-                               char **out_module, char **out_file, uptr *line,
+                               char **out_module, char **out_file, usize *line,
                                uptr *start_address) {
   // Trim ending newlines.
   char *trim;
@@ -139,12 +139,12 @@ static bool ParseCommandOutput(const char *str, uptr addr, char **out_name,
       rest = ExtractTokenUpToDelimiter(rest, ":", out_file);
       char *extracted_line_number;
       rest = ExtractTokenUpToDelimiter(rest, ")", &extracted_line_number);
-      if (line) *line = (uptr)internal_atoll(extracted_line_number);
+      if (line) *line = (usize)internal_atoll(extracted_line_number);
       InternalFree(extracted_line_number);
     }
   } else if (rest[0] == '+') {
     rest += 2;
-    uptr offset = internal_atoll(rest);
+    usize offset = internal_atoll(rest);
     if (start_address) *start_address = addr - offset;
   }
 
@@ -162,7 +162,7 @@ bool AtosSymbolizer::SymbolizePC(uptr addr, SymbolizedStack *stack) {
   internal_snprintf(command, sizeof(command), "0x%zx\n", addr);
   const char *buf = process_->SendCommand(command);
   if (!buf) return false;
-  uptr line;
+  usize line;
   uptr start_address = AddressInfo::kUnknown;
   if (!ParseCommandOutput(buf, addr, &stack->info.function, &stack->info.module,
                           &stack->info.file, &line, &start_address)) {

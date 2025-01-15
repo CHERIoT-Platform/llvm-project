@@ -1,0 +1,111 @@
+# Linking an .eh_frame section that uses absolute R_MIPS_64 relocations into a
+# shared library output used to crash ld.lld.
+# After the LLVM 15 merge it reports an incorrect addend written error instead.
+# This is not a problem with ld.bfd since bfd rewrites the relocations to pcrel.
+# REQUIRES: asserts
+# RUN: yaml2obj %s -o %t.o
+# RUN: llvm-readobj -r --section-details %t.o | FileCheck %s -check-prefix OBJECT
+# RUN: ld.lld --noinhibit-exec --eh-frame-hdr --shared -o %t.so %t.o
+# RUN: llvm-readobj --elf-output-style=GNU --program-headers --relocations --sections %t.so | FileCheck %s
+
+# OBJECT-LABEL:  Section {
+# OBJECT:         Name: .eh_frame
+# OBJECT-NEXT:    Type: SHT_PROGBITS (0x1)
+# OBJECT-NEXT:    Flags [ (0x3)
+# OBJECT-NEXT:      SHF_ALLOC (0x2)
+# OBJECT-NEXT:      SHF_WRITE (0x1)
+# OBJECT-NEXT:    ]
+
+# OBJECT-LABEL: Relocations [
+# OBJECT-NEXT:   Section ({{.+}}) .rela.eh_frame {
+# OBJECT-NEXT:     0x1C R_MIPS_64/R_MIPS_NONE/R_MIPS_NONE .text 0x0
+# OBJECT-NEXT:   }
+# OBJECT-NEXT: ]
+
+# CHECK-LABEL: Section Headers:
+# CHECK-NEXT: [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al
+# CHECK:      [ 8] .eh_frame         PROGBITS        00000000000203b8 0003b8 000034 00  WA  0   0  8
+
+
+# CHECK-LABEL: There are 9 program headers, starting at offset 64
+# CHECK:       Program Headers:
+# CHECK-NEXT:   Type           Offset   VirtAddr           PhysAddr           FileSiz  MemSiz   Flg Align
+# CHECK-NEXT:   PHDR           0x000040 0x0000000000000040 0x0000000000000040 0x0001f8 0x0001f8 R   0x8
+# CHECK-NEXT:   LOAD           0x000000 0x0000000000000000 0x0000000000000000 0x0003ac 0x0003ac R   0x10000
+# CHECK-NEXT:   LOAD           0x0003b0 0x00000000000103b0 0x00000000000103b0 0x000004 0x000004 R E 0x10000
+# CHECK-NEXT:   LOAD           0x0003b8 0x00000000000203b8 0x00000000000203b8 0x000034 0x000c48 RW  0x10000
+# CHECK-NEXT:   LOAD           0x0003f0 0x00000000000303f0 0x00000000000303f0 0x000010 0x000010 RW  0x10000
+# CHECK-NEXT:   DYNAMIC        0x000280 0x0000000000000280 0x0000000000000280 0x000100 0x000100 R   0x8
+# CHECK-NEXT:   GNU_RELRO      0x0003b8 0x00000000000203b8 0x00000000000203b8 0x000034 0x000c48 R   0x1
+# CHECK-NEXT:   GNU_EH_FRAME   0x000398 0x0000000000000398 0x0000000000000398 0x000014 0x000014 R   0x4
+# CHECK-NEXT:   GNU_STACK      0x000000 0x0000000000000000 0x0000000000000000 0x000000 0x000000 RW  0x0
+# CHECK-EMPTY:
+#
+# CHECK-LABEL: Section to Segment mapping:
+# CHECK-NEXT:  Segment Sections...
+# CHECK-NEXT:   00
+# CHECK-NEXT:   01     .dynsym .hash .dynamic .dynstr .rel.dyn .eh_frame_hdr
+# CHECK-NEXT:   02     .text
+# CHECK-NEXT:   03     .eh_frame
+# CHECK-NEXT:   04     .data .got
+# CHECK-NEXT:   05     .dynamic
+# CHECK-NEXT:   06     .eh_frame
+# CHECK-NEXT:   07     .eh_frame_hdr
+# CHECK-NEXT:   08
+
+# CHECK-LABEL: Relocation section '.rel.dyn'
+# CHECK-SAME:  at offset 0x{{.+}} contains 1 entries:
+# CHECK-NEXT:    Offset             Info             Type               Symbol's Value  Symbol's Name
+## NOTE: The relocation offset was to be changed to 203dc instead of 203d8
+## which means we read the addend from the wrong offset and report the error.
+## This was changed in commit 6faba31e0d88ce71e87567ddb51d2444524b8a81 (https://reviews.llvm.org/D122459)
+## This fixed more common use-cases but now generates incorrect outputs for MIPS non-PIC object -> shared lib.
+# CHECK-NEXT: 00000000000203d4  0000000000001203 R_MIPS_REL32/R_MIPS_64/R_MIPS_NONE 
+
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS64
+  Data:            ELFDATA2MSB
+  OSABI:           ELFOSABI_FREEBSD
+  Type:            ET_REL
+  Machine:         EM_MIPS
+  Flags:           [ EF_MIPS_PIC, EF_MIPS_CPIC, EF_MIPS_ARCH_64 ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    0x0000000000000010
+    Content:         3C0B0001
+  - Name:            .data
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    AddressAlign:    0x0000000000000010
+    Content:         ''
+  - Name:            .bss
+    Type:            SHT_NOBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    AddressAlign:    0x0000000000000010
+  - Name:            .eh_frame
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    AddressAlign:    0x0000000000000008
+    Content:         0000001000000000017A520001781F010C0C1D0000000018000000180000000000000000000000000000000400000000
+  - Name:            .rela.eh_frame
+    Type:            SHT_RELA
+    Link:            .symtab
+    AddressAlign:    0x0000000000000008
+    Info:            .eh_frame
+    Relocations:
+      - Offset:          0x000000000000001C
+        Symbol:          .text
+        Type:            R_MIPS_64
+Symbols:
+    - Name:            .text
+      Type:            STT_SECTION
+      Binding:         STB_LOCAL
+      Section:         .text
+    - Name:            foo
+      Section:         .text
+      Binding:         STB_GLOBAL
+

@@ -124,6 +124,7 @@ public:
   // If this is an architecture-specific file, the following members
   // have ELF type (i.e. ELF{32,64}{LE,BE}) and target machine type.
   uint16_t emachine = llvm::ELF::EM_NONE;
+  uint64_t eflags = 0;
   const Kind fileKind;
   ELFKind ekind = ELFNoneKind;
   uint8_t osabi = 0;
@@ -342,6 +343,8 @@ public:
 class SharedFile : public ELFFileBase {
 public:
   SharedFile(MemoryBufferRef m, StringRef defaultSoName);
+
+  uint64_t cheriFlags = 0;
 
   // This is actually a vector of Elf_Verdef pointers.
   SmallVector<const void *, 0> verdefs;

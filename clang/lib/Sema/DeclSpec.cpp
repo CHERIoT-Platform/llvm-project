@@ -365,6 +365,7 @@ bool Declarator::isDeclarationOfFunction() const {
     case TST_half:
     case TST_int:
     case TST_int128:
+    case TST_intcap:
     case TST_bitint:
     case TST_struct:
     case TST_interface:
@@ -566,6 +567,7 @@ const char *DeclSpec::getSpecifierName(DeclSpec::TST T,
   case DeclSpec::TST_char32:      return "char32_t";
   case DeclSpec::TST_int:         return "int";
   case DeclSpec::TST_int128:      return "__int128";
+  case DeclSpec::TST_intcap:      return "__intcap";
   case DeclSpec::TST_bitint:      return "_BitInt";
   case DeclSpec::TST_half:        return "half";
   case DeclSpec::TST_float:       return "float";
@@ -951,6 +953,24 @@ bool DeclSpec::SetTypeSpecError() {
   TSTNameLoc = SourceLocation();
   return false;
 }
+bool DeclSpec::SetOutput(const char *&PrevSpec, unsigned &DiagID) {
+  if (TQ_cheri_input) {
+    DiagID = diag::err_invalid_decl_spec_combination;
+    PrevSpec = "__cheri_input";
+    return true;
+  }
+  TQ_cheri_output = true;
+  return false;
+}
+bool DeclSpec::SetInput(const char *&PrevSpec, unsigned &DiagID) {
+  if (TQ_cheri_output) {
+    DiagID = diag::err_invalid_decl_spec_combination;
+    PrevSpec = "__cheri_output";
+    return true;
+  }
+  TQ_cheri_input = true;
+  return false;
+}
 
 bool DeclSpec::SetBitIntType(SourceLocation KWLoc, Expr *BitsExpr,
                              const char *&PrevSpec, unsigned &DiagID,
@@ -1271,7 +1291,8 @@ void DeclSpec::Finish(Sema &S, const PrintingPolicy &Policy) {
       TypeSpecType = TST_int; // unsigned -> unsigned int, signed -> signed int.
     else if (TypeSpecType != TST_int && TypeSpecType != TST_int128 &&
              TypeSpecType != TST_char && TypeSpecType != TST_wchar &&
-             !IsFixedPointType && TypeSpecType != TST_bitint) {
+             !IsFixedPointType && TypeSpecType != TST_bitint &&
+             TypeSpecType != TST_intcap) {
       S.Diag(TSSLoc, diag::err_invalid_sign_spec)
         << getSpecifierName((TST)TypeSpecType, Policy);
       // signed double -> double.

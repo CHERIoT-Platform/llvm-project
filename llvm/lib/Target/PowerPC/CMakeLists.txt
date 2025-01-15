@@ -84,6 +84,10 @@ add_llvm_target(PowerPCCodeGen
   PowerPC
   )
 
+
+# TODO: remove
+add_definitions(-DLLVM_TARGETLOWERINGINFO_DEFAULT_AS=0)
+
 add_subdirectory(AsmParser)
 add_subdirectory(Disassembler)
 add_subdirectory(MCTargetDesc)

@@ -346,6 +346,29 @@ bool AssemblerInvocation::CreateFromArgs(AssemblerInvocation &Opts,
                             .Default(0);
   }
 
+  // Fixup the triple for CHERI ABI flags:
+  llvm::Triple TT(Opts.Triple);
+  if (TT.isMIPS()) {
+    if (Opts.TargetABI != "purecap" &&
+        TT.getEnvironment() == llvm::Triple::CheriPurecap) {
+      // Can't use -mabi=64 with -purecap triple
+      if (Opts.TargetABI.empty())
+        Opts.TargetABI = "purecap";
+      else
+        Diags.Report(diag::err_drv_abi_incompatible_with_triple)
+            << Opts.TargetABI << TT.str();
+    } else if (Opts.TargetABI == "purecap") {
+      if (TT.getEnvironment() == llvm::Triple::UnknownEnvironment) {
+        TT.setEnvironment(llvm::Triple::CheriPurecap);
+        Opts.Triple = llvm::Triple::normalize(TT.str());
+      } else if (TT.getEnvironment() != llvm::Triple::CheriPurecap) {
+        // e.g. explicit gnuabin32 triple with -mabi=purecap
+        Diags.Report(diag::err_drv_abi_incompatible_with_triple)
+            << Opts.TargetABI << TT.str();
+      }
+    }
+  }
+
   if (auto *A = Args.getLastArg(OPT_femit_dwarf_unwind_EQ)) {
     Opts.EmitDwarfUnwind =
         llvm::StringSwitch<EmitDwarfUnwindType>(A->getValue())
@@ -405,14 +428,14 @@ static bool ExecuteAssemblerImpl(AssemblerInvocation &Opts,
   // it later.
   SrcMgr.setIncludeDirs(Opts.IncludePaths);
 
-  std::unique_ptr<MCRegisterInfo> MRI(TheTarget->createMCRegInfo(Opts.Triple));
-  assert(MRI && "Unable to create target register info!");
-
   MCTargetOptions MCOptions;
   MCOptions.EmitDwarfUnwind = Opts.EmitDwarfUnwind;
   MCOptions.EmitCompactUnwindNonCanonical = Opts.EmitCompactUnwindNonCanonical;
   MCOptions.AsSecureLogFile = Opts.AsSecureLogFile;
 
+  std::unique_ptr<MCRegisterInfo> MRI(
+      TheTarget->createMCRegInfo(Opts.Triple, MCOptions));
+  assert(MRI && "Unable to create target register info!");
   std::unique_ptr<MCAsmInfo> MAI(
       TheTarget->createMCAsmInfo(*MRI, Opts.Triple, MCOptions));
   assert(MAI && "Unable to create target asm info!");

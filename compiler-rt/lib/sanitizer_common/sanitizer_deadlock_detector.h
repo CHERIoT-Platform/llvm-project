@@ -136,7 +136,7 @@ class DeadlockDetector {
  public:
   typedef BV BitVector;
 
-  uptr size() const { return g_.size(); }
+  usize size() const { return g_.size(); }
 
   // No CTOR.
   void clear() {

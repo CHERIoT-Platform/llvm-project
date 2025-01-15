@@ -341,6 +341,7 @@ static bool shouldPinPassToLegacyPM(StringRef Pass) {
       "amdgcn-", "polly-", "riscv-", "dxil-"};
   std::vector<StringRef> PassNameContain = {"-eh-prepare"};
   std::vector<StringRef> PassNameExact = {
+      "cheri-bound-allocas", // CodeGen pass so still uses LPM.
       "safe-stack",
       "cost-model",
       "codegenprepare",
@@ -444,6 +445,9 @@ int main(int argc, char **argv) {
   initializeWriteBitcodePassPass(Registry);
   initializeReplaceWithVeclibLegacyPass(Registry);
   initializeJMCInstrumenterPass(Registry);
+
+  // Add the Cheri IR -> IR passes
+  initializeCheriBoundAllocasPass(Registry);
 
   SmallVector<PassPlugin, 1> PluginList;
   PassPlugins.setCallback([&](const std::string &PluginPath) {

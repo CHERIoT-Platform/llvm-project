@@ -22,8 +22,8 @@ target triple = "i386-pc-windows-msvc19.0.24210"
 
 %struct.Foo = type { i32 }
 
-declare ptr @llvm.stacksave()
-declare void @llvm.stackrestore(ptr)
+declare ptr @llvm.stacksave.p0()
+declare void @llvm.stackrestore.p0(ptr)
 
 declare x86_thiscallcc ptr @"\01??0Foo@@QAE@XZ"(ptr returned) unnamed_addr
 declare x86_thiscallcc void @"\01??1Foo@@QAE@XZ"(ptr) unnamed_addr
@@ -36,11 +36,11 @@ entry:
 
 define internal void @g() alwaysinline {
 entry:
-  %inalloca.save = call ptr @llvm.stacksave()
+  %inalloca.save = call ptr @llvm.stacksave.p0()
   %argmem = alloca inalloca <{ %struct.Foo }>, align 4
   %call = call x86_thiscallcc ptr @"\01??0Foo@@QAE@XZ"(ptr %argmem)
   call void @h(ptr inalloca(<{ %struct.Foo }>) %argmem)
-  call void @llvm.stackrestore(ptr %inalloca.save)
+  call void @llvm.stackrestore.p0(ptr %inalloca.save)
   ret void
 }
 

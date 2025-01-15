@@ -915,8 +915,8 @@ define i64 @explode_16xi64(<16 x i64> %v) {
 ; RV32-NEXT:    vslidedown.vi v16, v8, 15
 ; RV32-NEXT:    vsrl.vx v24, v16, a3
 ; RV32-NEXT:    vmv.x.s ra, v24
-; RV32-NEXT:    vmv.s.x v9, zero
 ; RV32-NEXT:    vmv.x.s a2, v16
+; RV32-NEXT:    vmv.s.x v9, zero
 ; RV32-NEXT:    vsetivli zero, 2, e64, m1, ta, ma
 ; RV32-NEXT:    vredxor.vs v8, v8, v9
 ; RV32-NEXT:    vsetivli zero, 1, e64, m1, ta, ma

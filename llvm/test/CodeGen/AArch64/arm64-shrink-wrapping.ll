@@ -496,7 +496,7 @@ entry:
   br i1 %tobool, label %if.else, label %if.then
 
 if.then:                                          ; preds = %entry
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %cmp6 = icmp sgt i32 %count, 0
   br i1 %cmp6, label %for.body, label %for.end
 
@@ -511,7 +511,7 @@ for.body:                                         ; preds = %if.then, %for.body
 
 for.end:                                          ; preds = %for.body, %if.then
   %sum.0.lcssa = phi i32 [ 0, %if.then ], [ %add, %for.body ]
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
   br label %if.end
 
 if.else:                                          ; preds = %entry
@@ -523,9 +523,9 @@ if.end:                                           ; preds = %if.else, %for.end
   ret i32 %sum.1
 }
 
-declare void @llvm.va_start(ptr)
+declare void @llvm.va_start.p0(ptr)
 
-declare void @llvm.va_end(ptr)
+declare void @llvm.va_end.p0(ptr)
 
 ; Check that we handle inline asm correctly.
 define i32 @inlineAsm(i32 %cond, i32 %N) {

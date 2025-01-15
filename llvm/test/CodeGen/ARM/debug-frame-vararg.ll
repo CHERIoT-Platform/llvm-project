@@ -110,7 +110,7 @@
 define i32 @sum(i32 %count, ...) !dbg !4 {
 entry:
   %vl = alloca ptr, align 4
-  call void @llvm.va_start(ptr %vl)
+  call void @llvm.va_start.p0(ptr %vl)
   %cmp4 = icmp sgt i32 %count, 0
   br i1 %cmp4, label %for.body, label %for.end
 
@@ -126,12 +126,12 @@ for.body:                                         ; preds = %entry, %for.body
   br i1 %exitcond, label %for.end, label %for.body
 
 for.end:                                          ; preds = %for.body, %entry
-  call void @llvm.va_end(ptr %vl)
+  call void @llvm.va_end.p0(ptr %vl)
   ret i32 undef
 }
 
-declare void @llvm.va_start(ptr) nounwind
+declare void @llvm.va_start.p0(ptr) nounwind
 
 declare i32 @foo(i32)
 
-declare void @llvm.va_end(ptr) nounwind
+declare void @llvm.va_end.p0(ptr) nounwind

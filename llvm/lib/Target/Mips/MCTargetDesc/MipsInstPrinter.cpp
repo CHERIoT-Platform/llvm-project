@@ -194,6 +194,10 @@ void MipsInstPrinter::printUImm(const MCInst *MI, int opNum,
 void MipsInstPrinter::printMemOperand(const MCInst *MI, int opNum,
                                       const MCSubtargetInfo &STI,
                                       raw_ostream &O) {
+  if (opNum + 1 >= (int)MI->getNumOperands()) {
+    printOperand(MI, opNum, STI, O);
+    return;
+  }
   // Load/Store memory operands -- imm($reg)
   // If PIC target the target is loaded as the
   // pattern lw $25,%call16($28)

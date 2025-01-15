@@ -48,7 +48,7 @@ protected:
     for (size_t i = 0, e = std::size(TestValues); i != e; ++i)
       TestPtrs.push_back(PtrT(&TestValues[i]));
 
-    std::shuffle(TestPtrs.begin(), TestPtrs.end(), std::mt19937{});
+    llvm::shuffle(TestPtrs.begin(), TestPtrs.end(), std::mt19937{});
   }
 
   PtrT makePtr(ValueT *V) { return PtrT(V); }

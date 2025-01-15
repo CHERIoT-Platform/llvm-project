@@ -246,6 +246,8 @@ Sema::Sema(Preprocessor &pp, ASTContext &ctxt, ASTConsumer &consumer,
   // Initialization of data sharing attributes stack for OpenMP
   InitDataSharingAttributesStack();
 
+  PointerInterpretation = Context.getDefaultPointerInterpretation();
+
   std::unique_ptr<sema::SemaPPCallbacks> Callbacks =
       std::make_unique<sema::SemaPPCallbacks>();
   SemaPPCallbackHandler = Callbacks.get();
@@ -295,6 +297,17 @@ void Sema::Initialize() {
       PushOnScopeChains(Context.getUInt128Decl(), TUScope);
   }
 
+  // If the target supports capabilities, add capability-as-integer builtin
+  // types.
+  if (PP.getTargetInfo().SupportsCapabilities()) {
+    DeclarationName IntCap = &Context.Idents.get("__intcap_t");
+    if (IdResolver.begin(IntCap) == IdResolver.end())
+      PushOnScopeChains(Context.getIntCapDecl(), TUScope);
+
+    DeclarationName UIntCap = &Context.Idents.get("__uintcap_t");
+    if (IdResolver.begin(UIntCap) == IdResolver.end())
+      PushOnScopeChains(Context.getUIntCapDecl(), TUScope);
+  }
 
   // Initialize predefined Objective-C types:
   if (getLangOpts().ObjC) {
@@ -665,6 +678,11 @@ ExprResult Sema::ImpCastExprToType(Expr *E, QualType Ty,
   QualType ExprTy = Context.getCanonicalType(E->getType());
   QualType TypeTy = Context.getCanonicalType(Ty);
 
+  if (ExprTy.getQualifiers().hasOutput() &&
+      !TypeTy.getQualifiers().hasOutput())
+    return ExprError(Diag(E->getExprLoc(), diag::err_typecheck_read_output)
+      << E->getSourceRange());
+
   if (ExprTy == TypeTy)
     return E;
 
@@ -702,14 +720,183 @@ ExprResult Sema::ImpCastExprToType(Expr *E, QualType Ty,
 
   if (ImplicitCastExpr *ImpCast = dyn_cast<ImplicitCastExpr>(E)) {
     if (ImpCast->getCastKind() == Kind && (!BasePath || BasePath->empty())) {
-      ImpCast->setType(Ty);
+      // We need to update the no-provenance check here since we are changing
+      // the type without calling ImplicitCastExpr::Create()
+      ImpCast->setType(Ty, Context, ImpCast->getSubExpr());
       ImpCast->setValueKind(VK);
       return E;
     }
   }
 
+  // Check for conversions between capabilities and integers.
+  // We only allow implicit casts from pointers to CHERI capabilities
+  // for the following cases:
+  //
+  // - String literal
+  // - Null literal
+  // - address-of (&) expressions and types are compatible
+  // - array/function to pointer decay and types are compatible
+  // Note: we skip this check for uintcap_t conversions, since those should
+  // be handled differently
+  ExprTy = E->getType();
+  auto ShouldCheckCastForCapConversion = [](CastKind CK) {
+    // We don't need to check for cap <-> non-cap conversions for the following
+    // cast kinds. For the decay this is required to avoid infinite recursion.
+    switch (CK) {
+    case CK_NullToPointer:          // always valid
+    case CK_NullToMemberPointer:    // always valid
+    case CK_FunctionToPointerDecay: // Checked in CastConsistency()
+    case CK_ArrayToPointerDecay:    // Checked in CastConsistency()
+    case CK_BuiltinFnToFnPtr:       // Checked in CastConsistency()
+    case CK_IntegralToPointer:      // Checked later
+    case CK_Dependent:              // Checked later
+      return false;
+    default:
+      return true;
+    }
+  };
+  if (Ty->isPointerType() && ShouldCheckCastForCapConversion(Kind)) {
+    const bool FromIsCap =
+        ExprTy->isCHERICapabilityType(Context, /*IncludeIntCap=*/false);
+    const bool ResultIsCap =
+        TypeTy->isCHERICapabilityType(Context, /*IncludeIntCap=*/false);
+    std::optional<unsigned> DiagID;
+    if (FromIsCap && !ResultIsCap && ExprTy->isPointerType()) {
+      // T* __capability -> T* is never allowed implicitly.
+      DiagID = diag::err_typecheck_convert_cap_to_ptr;
+    } else if (ResultIsCap && !FromIsCap) {
+      // ImpCastPointerToCHERICapability can create new implicit
+      // CK_FunctionToPointerDecay/CK_ArrayToPointerDecay so we need to avoid
+      // infinite recursion here
+      if (!ImpCastPointerToCHERICapability(ExprTy, TypeTy, E, true))
+        return ExprError();               // diagnostics already emitted
+      DiagID = std::nullopt;              // got a permitted explicit conversion
+      Kind = CK_PointerToCHERICapability; // update cast-kind for the new cast
+    }
+    if (DiagID) {
+      // Note: ImpCastPointerToCHERICapability may have changed E, so we must
+      // use E->getType() instead of ExprTy
+      auto Fixit = FixItHint::CreateInsertion(
+          E->getBeginLoc(), "(__cheri_" +
+                                std::string(FromIsCap ? "from" : "to") +
+                                "cap " + TypeTy.getAsString() + ")");
+      return ExprError(Diag(E->getBeginLoc(), *DiagID)
+                       << E->getType() << TypeTy << false << Fixit);
+    }
+  }
+
   return ImplicitCastExpr::Create(Context, Ty, Kind, E, BasePath, VK,
                                   CurFPFeatureOverrides());
+}
+
+bool Sema::ImpCastPointerToCHERICapability(QualType FromTy, QualType ToTy,
+                                           Expr *&From, bool Diagnose) {
+  // We should not be performing these checks for dependent or placeholder
+  // types (e.g. overloaded function references) since they will be done again
+  // once the actual type has been resolved.
+  assert(!(FromTy->isDependentType() || FromTy->isPlaceholderType()) &&
+         "Should not be used for dependent source types or placeholders!");
+  assert(!(ToTy->isDependentType() || ToTy->isPlaceholderType()) &&
+         "Should not be used for dependent target types or placeholders!");
+  assert(ToTy->isPointerType() && "Target types should be PointerType");
+  assert(ToTy->getAs<PointerType>()->isCHERICapability() &&
+         "Target type must be a capability pointer");
+  if (From->isNullPointerConstant(Context, Expr::NPC_ValueDependentIsNotNull)) {
+    return true; // NULL constants are always fine
+  }
+
+  bool StrLit = dyn_cast<StringLiteral>(From->IgnoreImpCasts()) != nullptr;
+  bool AddrOf = false;
+  bool Decayed = false;
+
+  // Function-to-pointer and array-to-pointer decay
+  ExprResult DecayedExpr = DefaultFunctionArrayConversion(From, Diagnose);
+  if (DecayedExpr.isUsable() && !DecayedExpr.isInvalid()) {
+    From = DecayedExpr.get();
+    FromTy = From->getType();
+  }
+
+  auto ImplicitConversionFailure = [&](bool CompatTypes) {
+    if (Diagnose) {
+      // Converting to void* should always print the compatible types warning.
+      if (ToTy->isVoidPointerType())
+        CompatTypes = true;
+      Diag(From->getExprLoc(),
+           CompatTypes ? diag::err_typecheck_convert_ptr_to_cap
+                       : diag::err_typecheck_convert_ptr_to_cap_unrelated_type)
+          << From->getType() << ToTy << false;
+    }
+    return false;
+  };
+
+  // FIXME: clean up control-flow in this function
+  if (!FromTy->isPointerType()) {
+    // Implicit casts can never be valid for non-pointer types
+    return ImplicitConversionFailure(/*CompatTypes=*/false);
+  }
+  if (getLangOpts().getCheriIntToCap() != LangOptions::CapInt_Relative) {
+    // All pointer -> capability conversions must be explicit unless we are
+    // compiling in "relative" mode.
+    bool CompatTypes = CheckCHERIAssignCompatible(ToTy, FromTy, From, false);
+    // Note: this check comes after the decay check to get char* instead of
+    // char (&)[N] in diagnostics messages for C++.
+    return ImplicitConversionFailure(CompatTypes);
+  }
+
+  bool CompatTypes = false;
+  if (ImplicitCastExpr *Imp = dyn_cast<ImplicitCastExpr>(From)) {
+    if (Imp->getCastKind() == CK_ArrayToPointerDecay
+        || Imp->getCastKind() == CK_FunctionToPointerDecay) {
+      Decayed = true;
+      CompatTypes = CheckCHERIAssignCompatible(ToTy, FromTy, From);
+    }
+  }
+
+  // address-of (&)
+  if (UnaryOperator *UnOp = dyn_cast<UnaryOperator>(From)) {
+    if (UnOp->getOpcode() == UO_AddrOf) {
+      AddrOf = true;
+      CompatTypes = CheckCHERIAssignCompatible(ToTy, FromTy, From);
+    }
+  }
+
+  // The type check for address-of (&) could have failed above but may
+  // still succeed below when we look at pointee types
+  if (!(StrLit || Decayed || (AddrOf && CompatTypes))) {
+    // Check if pointee types are assign compatible
+    QualType TPointee = ToTy->getAs<PointerType>()->getPointeeType();
+    QualType EPointee = FromTy->getAs<PointerType>()->getPointeeType();
+    if (CheckCHERIAssignCompatible(TPointee, EPointee, From, false)) {
+      if (Diagnose)
+        Diag(From->getExprLoc(), diag::warn_typecheck_convert_ptr_to_cap)
+            << From->getType() << ToTy
+            << FixItHint::CreateInsertion(From->getExprLoc(),
+                                          "(__cheri_tocap " +
+                                              ToTy.getAsString() + ")");
+      CompatTypes = true;
+    } else {
+      // Check for integer pointee types with differences only in sign
+      // (if they were exactly the same integer type then the above if-test
+      // would have succeeded)
+      if (TPointee->isIntegerType() && EPointee->isIntegerType()) {
+        if (TPointee->isSignedIntegerType())
+          TPointee = Context.getCorrespondingUnsignedType(TPointee);
+        if (EPointee->isSignedIntegerType())
+          EPointee = Context.getCorrespondingUnsignedType(EPointee);
+
+        if (TPointee == EPointee) {
+          // Output a warning, as unsigned types are the same but the only difference is sign
+          if (Diagnose)
+            Diag(From->getExprLoc(), diag::warn_typecheck_convert_ptr_to_cap_sign_difference) << FromTy << ToTy;
+          CompatTypes = true;
+        }
+      }
+    }
+    if (!(StrLit || Decayed || AddrOf || CompatTypes) || !CompatTypes) {
+      return ImplicitConversionFailure(CompatTypes);
+    }
+  }
+  return true;
 }
 
 /// ScalarTypeToBooleanCastKind - Returns the cast kind corresponding

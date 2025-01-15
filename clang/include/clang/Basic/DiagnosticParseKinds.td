@@ -325,6 +325,10 @@ def err_expected_selector_for_method : Error<
   "expected selector for Objective-C method">;
 def err_expected_property_name : Error<"expected property name">;
 
+def warn_cheri_capability_qualifier_location : Warning<
+  "use of __capability before the pointer type is deprecated">,
+  InGroup<DeprecatedDeclarations>;
+
 def err_unexpected_at : Error<"unexpected '@' in program">;
 def err_atimport : Error<
 "use of '@import' when modules are disabled">;
@@ -1149,6 +1153,11 @@ def warn_pragma_invalid_argument : Warning<
   "unexpected argument '%0' to '#pragma %1'%select{|; expected %3}2">, InGroup<IgnoredPragmas>;
 
 def err_pragma_misplaced_in_decl : Error<"this pragma cannot appear in %0 declaration">;
+
+// CHERI C support.
+def err_pragma_pointer_interpretation_invalid_argument : Error<
+  "unexpected argument '%0' to '#pragma pointer_interpretation'; "
+  "expected 'push', 'pop', 'default', 'integer' or 'capability'">;
 
 // '#pragma clang section' related errors
 def err_pragma_expected_clang_section_name : Error<

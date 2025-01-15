@@ -50,6 +50,12 @@ using namespace CodeGen;
 unsigned CodeGenTypes::ClangCallConvToLLVMCallConv(CallingConv CC) {
   switch (CC) {
   default: return llvm::CallingConv::C;
+  case CC_CHERICCall:
+  case CC_CHERICCallback:
+    return llvm::CallingConv::CHERI_CCall;
+  case CC_CHERILibCall:
+    return llvm::CallingConv::CHERI_LibCall;
+  case CC_CHERICCallee: return llvm::CallingConv::CHERI_CCallee;
   case CC_X86StdCall: return llvm::CallingConv::X86_StdCall;
   case CC_X86FastCall: return llvm::CallingConv::X86_FastCall;
   case CC_X86RegCall: return llvm::CallingConv::X86_RegCall;
@@ -206,7 +212,8 @@ CodeGenTypes::arrangeFreeFunctionType(CanQual<FunctionProtoType> FTP) {
 }
 
 static CallingConv getCallingConventionForDecl(const ObjCMethodDecl *D,
-                                               bool IsWindows) {
+                                               bool IsWindows,
+                                               StringRef CompartmentName) {
   // Set the appropriate calling convention for the Function.
   if (D->hasAttr<StdCallAttr>())
     return CC_X86StdCall;
@@ -228,6 +235,18 @@ static CallingConv getCallingConventionForDecl(const ObjCMethodDecl *D,
 
   if (PcsAttr *PCS = D->getAttr<PcsAttr>())
     return (PCS->getPCS() == PcsAttr::AAPCS ? CC_AAPCS : CC_AAPCS_VFP);
+
+  if (auto Attr = D->getAttr<CHERICompartmentNameAttr>()) {
+    if (Attr->getCompartmentName() == CompartmentName)
+      return CC_CHERICCallee;
+    return CC_CHERICCall;
+  }
+
+  if (D->hasAttr<CHERICCallAttr>())
+    return CC_CHERICCall;
+
+  if (D->hasAttr<CHERICCallbackAttr>())
+    return CC_CHERICCallback;
 
   if (D->hasAttr<AArch64VectorPcsAttr>())
     return CC_AArch64VectorCall;
@@ -505,7 +524,9 @@ CodeGenTypes::arrangeObjCMessageSendSignature(const ObjCMethodDecl *MD,
 
   FunctionType::ExtInfo einfo;
   bool IsWindows = getContext().getTargetInfo().getTriple().isOSWindows();
-  einfo = einfo.withCallingConv(getCallingConventionForDecl(MD, IsWindows));
+  auto &Compartment = getContext().getLangOpts().CheriCompartmentName;
+  einfo = einfo.withCallingConv(
+      getCallingConventionForDecl(MD, IsWindows, Compartment));
 
   if (getContext().getLangOpts().ObjCAutoRefCount &&
       MD->hasAttr<NSReturnsRetainedAttr>())
@@ -654,15 +675,14 @@ CodeGenTypes::arrangeBlockFunctionDeclaration(const FunctionProtoType *proto,
                                  RequiredArgs::forPrototypePlus(proto, 1));
 }
 
-const CGFunctionInfo &
-CodeGenTypes::arrangeBuiltinFunctionCall(QualType resultType,
-                                         const CallArgList &args) {
+const CGFunctionInfo &CodeGenTypes::arrangeBuiltinFunctionCall(
+    QualType resultType, const CallArgList &args, FunctionType::ExtInfo info) {
   // FIXME: Kill copy.
   SmallVector<CanQualType, 16> argTypes;
   for (const auto &Arg : args)
     argTypes.push_back(Context.getCanonicalParamType(Arg.Ty));
   return arrangeLLVMFunctionInfo(GetReturnType(resultType), FnInfoOpts::None,
-                                 argTypes, FunctionType::ExtInfo(),
+                                 argTypes, info,
                                  /*paramInfos=*/{}, RequiredArgs::All);
 }
 
@@ -1212,6 +1232,8 @@ static llvm::Value *CoerceIntOrPtrToIntOrPtr(llvm::Value *Val,
     if (isa<llvm::PointerType>(Ty))
       return CGF.Builder.CreateBitCast(Val, Ty, "coerce.val");
 
+    // This should not happen in CHERI:
+    assert(!CGF.CGM.getDataLayout().isFatPointer(Val->getType()));
     // Convert the pointer to an integer so we can play with its width.
     Val = CGF.Builder.CreatePtrToInt(Val, CGF.IntPtrTy, "coerce.val.pi");
   }
@@ -1241,12 +1263,26 @@ static llvm::Value *CoerceIntOrPtrToIntOrPtr(llvm::Value *Val,
     }
   }
 
-  if (isa<llvm::PointerType>(Ty))
+  if (isa<llvm::PointerType>(Ty)) {
+    assert(!CGF.CGM.getDataLayout().isFatPointer(Ty));
     Val = CGF.Builder.CreateIntToPtr(Val, Ty, "coerce.val.ip");
+  }
   return Val;
 }
 
-
+// returns true if the struct STy contains exactly one field that is a
+// capability (regardless of how deep - i.e. also checks nested unions/structs)
+static bool structContainsExactlyOneFieldThatIsACapability(llvm::StructType* STy,
+                                                          CodeGenFunction &CGF) {
+  if (STy->getNumElements() == 1) {
+    llvm::Type* ETy = STy->getElementType(0);
+    if (llvm::PointerType* EPTy = dyn_cast<llvm::PointerType>(ETy))
+      return EPTy->getAddressSpace() == CGF.CGM.getTargetCodeGenInfo().getCHERICapabilityAS();
+    else if (llvm::StructType* ESTy = dyn_cast<llvm::StructType>(ETy))
+      return structContainsExactlyOneFieldThatIsACapability(ESTy, CGF);
+  }
+  return false;
+}
 
 /// CreateCoercedLoad - Create a load from \arg SrcPtr interpreted as
 /// a pointer to an object of type \arg Ty, known to be aligned to
@@ -1266,6 +1302,20 @@ static llvm::Value *CreateCoercedLoad(Address Src, llvm::Type *Ty,
   llvm::TypeSize DstSize = CGF.CGM.getDataLayout().getTypeAllocSize(Ty);
 
   if (llvm::StructType *SrcSTy = dyn_cast<llvm::StructType>(SrcTy)) {
+    // If Ty is a CHERI capability meaning that we are coercing the struct
+    // into a capability, then we need to handle it specially:
+    // If the struct contains exactly one field that is a capability
+    // (regardless of how deep) then enter the struct so we can pass the
+    // capability in a register, otherwise pass a pointer to the struct.
+    if (CGF.getTarget().SupportsCapabilities()) {
+      if (!structContainsExactlyOneFieldThatIsACapability(SrcSTy, CGF)) {
+        if (llvm::PointerType* PTy = dyn_cast<llvm::PointerType>(Ty)) {
+          if (PTy->getAddressSpace() == CGF.CGM.getTargetCodeGenInfo().getCHERICapabilityAS()) {
+            return CGF.Builder.CreateBitCast(Src.getPointer(), Ty);
+          }
+        }
+      }
+    }
     Src = EnterStructPointerForCoercedAccess(Src, SrcSTy,
                                              DstSize.getFixedValue(), CGF);
     SrcTy = Src.getElementType();
@@ -1371,6 +1421,25 @@ static void CreateCoercedStore(llvm::Value *Src,
   llvm::TypeSize SrcSize = CGF.CGM.getDataLayout().getTypeAllocSize(SrcTy);
 
   if (llvm::StructType *DstSTy = dyn_cast<llvm::StructType>(DstTy)) {
+    // If Src is a CHERI capability then we load the struct using the
+    // capability and store into the dst struct pointer. If the dst struct
+    // contains exactly one field that is a capability (regardless of how
+    // deep) then we must dive into the struct as the capability will
+    // have been passed in a register.
+    if (CGF.getTarget().SupportsCapabilities()) {
+      if (!structContainsExactlyOneFieldThatIsACapability(DstSTy, CGF)) {
+        if (llvm::PointerType* PTy = dyn_cast<llvm::PointerType>(SrcTy)) {
+          unsigned CapAS = CGF.CGM.getTargetCodeGenInfo().getCHERICapabilityAS();
+          if (PTy->getAddressSpace() == CapAS) {
+            Src = CGF.Builder.CreateBitCast(Src, DstTy->getPointerTo(CapAS));
+            Src =
+                CGF.Builder.CreateLoad(Address(Src, DstTy, Dst.getAlignment()));
+            CGF.Builder.CreateStore(Src, Dst, DstIsVolatile);
+            return;
+          }
+        }
+      }
+    }
     Dst = EnterStructPointerForCoercedAccess(Dst, DstSTy,
                                              SrcSize.getFixedValue(), CGF);
     DstTy = Dst.getElementType();
@@ -1676,9 +1745,12 @@ CodeGenTypes::GetFunctionType(const CGFunctionInfo &FI) {
   }
 
   // Add type for inalloca argument.
-  if (IRFunctionArgs.hasInallocaArg())
+  if (IRFunctionArgs.hasInallocaArg()) {
+    // XXXAR: is this correct?
+    unsigned AS = CGM.getTargetCodeGenInfo().getDefaultAS();
     ArgTypes[IRFunctionArgs.getInallocaArgNo()] =
-        llvm::PointerType::getUnqual(getLLVMContext());
+        llvm::PointerType::get(getLLVMContext(), AS);
+  }
 
   // Add in all of the required arguments.
   unsigned ArgNo = 0;
@@ -2613,8 +2685,7 @@ void CodeGenModule::ConstructAttributeList(StringRef Name,
       if (!PTy->isIncompleteType() && PTy->isConstantSizeType())
         RetAttrs.addDereferenceableAttr(
             getMinimumObjectSize(PTy).getQuantity());
-      if (getTypes().getTargetAddressSpace(PTy) == 0 &&
-          !CodeGenOpts.NullPointerIsValid)
+      if (getTypes().canMarkAsNonNull(PTy) && !CodeGenOpts.NullPointerIsValid)
         RetAttrs.addAttribute(llvm::Attribute::NonNull);
       if (PTy->isObjectType()) {
         llvm::Align Alignment =
@@ -2664,7 +2735,7 @@ void CodeGenModule::ConstructAttributeList(StringRef Name,
         FI.arg_begin()->type.getTypePtr()->getPointeeType();
 
     if (!CodeGenOpts.NullPointerIsValid &&
-        getTypes().getTargetAddressSpace(FI.arg_begin()->type) == 0) {
+        getTypes().canMarkAsNonNull(FI.arg_begin()->type)) {
       Attrs.addAttribute(llvm::Attribute::NonNull);
       Attrs.addDereferenceableAttr(getMinimumObjectSize(ThisTy).getQuantity());
     } else {
@@ -2794,8 +2865,7 @@ void CodeGenModule::ConstructAttributeList(StringRef Name,
       if (!PTy->isIncompleteType() && PTy->isConstantSizeType())
         Attrs.addDereferenceableAttr(
             getMinimumObjectSize(PTy).getQuantity());
-      if (getTypes().getTargetAddressSpace(PTy) == 0 &&
-          !CodeGenOpts.NullPointerIsValid)
+      if (getTypes().canMarkAsNonNull(PTy) && !CodeGenOpts.NullPointerIsValid)
         Attrs.addAttribute(llvm::Attribute::NonNull);
       if (PTy->isObjectType()) {
         llvm::Align Alignment =
@@ -3113,7 +3183,7 @@ void CodeGenFunction::EmitFunctionProlog(const CGFunctionInfo &FI,
               llvm::Align Alignment =
                   CGM.getNaturalTypeAlignment(ETy).getAsAlign();
               AI->addAttrs(llvm::AttrBuilder(getLLVMContext()).addAlignmentAttr(Alignment));
-              if (!getTypes().getTargetAddressSpace(ETy) &&
+              if (CGM.getTypes().canMarkAsNonNull(ETy) &&
                   !CGM.getCodeGenOpts().NullPointerIsValid)
                 AI->addAttr(llvm::Attribute::NonNull);
             }
@@ -4034,7 +4104,8 @@ static AggValueSlot createPlaceholderSlot(CodeGenFunction &CGF,
   // FIXME: Generate IR in one pass, rather than going back and fixing up these
   // placeholders.
   llvm::Type *IRTy = CGF.ConvertTypeForMem(Ty);
-  llvm::Type *IRPtrTy = llvm::PointerType::getUnqual(CGF.getLLVMContext());
+  unsigned DefaultAS = CGF.CGM.getTargetCodeGenInfo().getDefaultAS();
+  llvm::Type *IRPtrTy = llvm::PointerType::get(CGF.getLLVMContext(), DefaultAS);
   llvm::Value *Placeholder = llvm::PoisonValue::get(IRPtrTy);
 
   // FIXME: When we generate this IR in one pass, we shouldn't need
@@ -4448,7 +4519,8 @@ void CodeGenFunction::EmitCallArgs(
     if (MD) {
       IsVariadic = MD->isVariadic();
       ExplicitCC = getCallingConventionForDecl(
-          MD, CGM.getTarget().getTriple().isOSWindows());
+          MD, CGM.getTarget().getTriple().isOSWindows(),
+          getContext().getLangOpts().CheriCompartmentName);
       ArgTypes.assign(MD->param_type_begin() + ParamsToSkip,
                       MD->param_type_end());
     } else {
@@ -5673,7 +5745,10 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
 
   // Set tail call kind if necessary.
   if (llvm::CallInst *Call = dyn_cast<llvm::CallInst>(CI)) {
-    if (TargetDecl && TargetDecl->hasAttr<NotTailCalledAttr>())
+    if ((TargetDecl && TargetDecl->hasAttr<NotTailCalledAttr>()) ||
+        ((CallingConv == llvm::CallingConv::CHERI_CCall) &&
+         (getContext().getTargetInfo().cheriCallbackKind() ==
+          TargetInfo::CCB_ImportTable)))
       Call->setTailCallKind(llvm::CallInst::TCK_NoTail);
     else if (IsMustTail)
       Call->setTailCallKind(llvm::CallInst::TCK_MustTail);
@@ -5835,6 +5910,46 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
           llvm::Value *V = CI;
           if (V->getType() != RetIRTy)
             V = Builder.CreateBitCast(V, RetIRTy);
+          if (TargetDecl && RetTy->isPointerType()) {
+            // By the time this is called, we've got the canonical form of the
+            // function type, stripping typedefs.  We need to rediscover them to
+            // create the opaque form.
+            QualType Ty = cast<ValueDecl>(TargetDecl)->getType();
+            if (const FunctionType *FT = dyn_cast<FunctionType>(Ty)) {
+              if (const TypedefType *TT = dyn_cast<TypedefType>(FT->getReturnType())) {
+                // If this is a #pragma opaque return type, and we can see the
+                // key, then we should decode it so that we can use it.  DCE
+                // should later strip away the decoding if we don't use the
+                // result.
+
+                // TT->getDecl() could be a TypedefDecl or a TypedefNameDecl
+                const TypedefDecl* TD = dyn_cast<TypedefDecl>(TT->getDecl());
+                VarDecl *Key = TD ? TD->getOpaqueKey() : nullptr;
+                if (Key) {
+                  llvm::Value *KeyV = CGM.GetAddrOfGlobalVar(Key);
+                  CharUnits Alignment = getContext().getDeclAlign(Key);
+                  Address Addr(V, ConvertTypeForMem(Key->getType()), Alignment);
+                  KeyV = Builder.CreateLoad(Addr);
+                  // If this is CHERI, enforce this in hardware
+                  if (RetTy->isCHERICapabilityType(CGM.getContext())) {
+                    unsigned CapAS = CGM.getTargetCodeGenInfo().getCHERICapabilityAS();
+                    llvm::Function *F =
+                        CGM.getIntrinsic(llvm::Intrinsic::cheri_cap_unseal);
+                    llvm::Type *CapPtrTy = llvm::PointerType::get(Int8Ty, CapAS);
+                    V = Builder.CreateCall(F,
+                          {Builder.CreateBitCast(V, CapPtrTy),
+                           Builder.CreateBitCast(KeyV, CapPtrTy)});
+                    V = Builder.CreateBitCast(V, RetIRTy);
+                  } else {
+                    KeyV = Builder.CreatePtrToInt(KeyV, IntPtrTy);
+                    V = Builder.CreatePtrToInt(V, IntPtrTy);
+                    V = Builder.CreateXor(V, KeyV);
+                    V = Builder.CreateIntToPtr(V, RetIRTy);
+                  }
+                }
+              }
+            }
+          }
           return RValue::get(V);
         }
         }

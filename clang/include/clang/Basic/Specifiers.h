@@ -62,6 +62,7 @@ namespace clang {
     TST_char32, // C++11 char32_t
     TST_int,
     TST_int128,
+    TST_intcap,  // CHERI C integer capability
     TST_bitint,  // Bit-precise integer types.
     TST_half,    // OpenCL half, ARM NEON __fp16
     TST_Float16, // C11 extension ISO/IEC TS 18661-3
@@ -282,6 +283,10 @@ namespace clang {
     CC_X86RegCall, // __attribute__((regcall))
     CC_AAPCS,       // __attribute__((pcs("aapcs")))
     CC_AAPCS_VFP,   // __attribute__((pcs("aapcs-vfp")))
+    CC_CHERICCall,  // __attribute__((cheri_ccall))
+    CC_CHERICCallee,// __attribute__((cheri_ccallee))
+    CC_CHERICCallback,// __attribute__((cheri_ccallback))
+    CC_CHERILibCall,      // __attribute__((cheri_libcall))
     CC_IntelOclBicc, // __attribute__((intel_ocl_bicc))
     CC_SpirFunction, // default for OpenCL functions on SPIR target
     CC_OpenCLKernel, // inferred for OpenCL kernels

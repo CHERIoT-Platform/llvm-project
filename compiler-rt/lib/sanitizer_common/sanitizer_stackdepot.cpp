@@ -33,9 +33,9 @@ struct StackDepotNode {
   bool eq(hash_type hash, const args_type &args) const {
     return hash == stack_hash;
   }
-  static uptr allocated();
+  static usize allocated();
   static hash_type hash(const args_type &args) {
-    MurMur2Hash64Builder H(args.size * sizeof(uptr));
+    MurMur2Hash64Builder H(args.size * sizeof(args.trace[0]));
     for (uptr i = 0; i < args.size; i++) H.add(args.trace[i]);
     H.add(args.tag);
     return H.get();
@@ -70,7 +70,7 @@ void StackDepotHandle::inc_use_count_unsafe() {
   atomic_fetch_add(&useCounts[id_], 1, memory_order_relaxed);
 }
 
-uptr StackDepotNode::allocated() {
+usize StackDepotNode::allocated() {
   return stackStore.Allocated() + useCounts.MemoryUsage();
 }
 

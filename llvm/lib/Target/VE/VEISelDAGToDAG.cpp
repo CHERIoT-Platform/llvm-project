@@ -328,7 +328,7 @@ bool VEDAGToDAGISel::SelectInlineAsmMemoryOperand(
 SDNode *VEDAGToDAGISel::getGlobalBaseReg() {
   Register GlobalBaseReg = Subtarget->getInstrInfo()->getGlobalBaseReg(MF);
   return CurDAG
-      ->getRegister(GlobalBaseReg, TLI->getPointerTy(CurDAG->getDataLayout()))
+      ->getRegister(GlobalBaseReg, TLI->getPointerTy(CurDAG->getDataLayout(), CurDAG->getDataLayout().getDefaultGlobalsAddressSpace()))
       .getNode();
 }
 

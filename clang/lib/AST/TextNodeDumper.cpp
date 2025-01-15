@@ -519,6 +519,10 @@ void TextNodeDumper::Visit(const APValue &Value, QualType Ty) {
       ColorScope Color(OS, ShowColors, ValueColor);
       OS << Value.getInt();
     }
+    if (Ty->isIntCapType() && Value.mustBeNullDerivedCap()) {
+      ColorScope Color(OS, ShowColors, AttrColor);
+      OS << " <must-be-null-derived>";
+    }
     return;
   case APValue::Float:
     OS << "Float ";
@@ -565,6 +569,10 @@ void TextNodeDumper::Visit(const APValue &Value, QualType Ty) {
   case APValue::LValue:
     (void)Context;
     OS << "LValue <todo>";
+    if (Value.mustBeNullDerivedCap()) {
+      ColorScope Color(OS, ShowColors, AttrColor);
+      OS << " <must-be-null-derived>";
+    }
     return;
   case APValue::Array: {
     unsigned ArraySize = Value.getArraySize();
@@ -630,6 +638,10 @@ void TextNodeDumper::Visit(const APValue &Value, QualType Ty) {
   }
   case APValue::MemberPointer:
     OS << "MemberPointer <todo>";
+    if (Value.mustBeNullDerivedCap()) {
+      ColorScope Color(OS, ShowColors, AttrColor);
+      OS << " <must-be-null-derived>";
+    }
     return;
   case APValue::AddrLabelDiff:
     OS << "AddrLabelDiff <todo>";

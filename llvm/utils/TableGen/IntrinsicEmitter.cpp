@@ -524,6 +524,8 @@ void IntrinsicEmitter::EmitAttributes(const CodeGenIntrinsicTable &Ints,
       OS << "      Attribute::get(C, Attribute::Convergent),\n";
     if (Intrinsic.isSpeculatable)
       OS << "      Attribute::get(C, Attribute::Speculatable),\n";
+    if (Intrinsic.hasSideEffects)
+      OS << "      Attribute::get(C, Attribute::HasSideEffects),\n";
     if (Intrinsic.isStrictFP)
       OS << "      Attribute::get(C, Attribute::StrictFP),\n";
 
@@ -598,8 +600,8 @@ void IntrinsicEmitter::EmitAttributes(const CodeGenIntrinsicTable &Ints,
         Intrinsic.isNoReturn || Intrinsic.isNoCallback || Intrinsic.isNoSync ||
         Intrinsic.isNoFree || Intrinsic.isWillReturn || Intrinsic.isCold ||
         Intrinsic.isNoDuplicate || Intrinsic.isNoMerge ||
-        Intrinsic.isConvergent || Intrinsic.isSpeculatable ||
-        Intrinsic.isStrictFP) {
+        Intrinsic.isConvergent || Intrinsic.hasSideEffects ||
+        Intrinsic.isSpeculatable || Intrinsic.isStrictFP) {
       unsigned ID = UniqFnAttributes.find(&Intrinsic)->second;
       OS << "      AS[" << numAttrs++ << "] = {AttributeList::FunctionIndex, "
          << "getIntrinsicFnAttributeSet(C, " << ID << ")};\n";
@@ -642,6 +644,16 @@ void IntrinsicEmitter::EmitIntrinsicToBuiltinMap(
                         "Intrinsic '" + Ints[i].TheDef->getName() +
                             "': duplicate " + CompilerName + " builtin name!");
       Table.GetOrAddStringOffset(BuiltinName);
+    }
+    if (!Ints[i].GCCBuiltinAliasName.empty()) {
+      // Get the map for this target prefix.
+      std::map<std::string, std::string> &BIM =BuiltinMap[Ints[i].TargetPrefix];
+
+      if (!BIM.insert(std::make_pair(Ints[i].GCCBuiltinAliasName,
+                                     Ints[i].EnumName)).second)
+        PrintFatalError("Intrinsic '" + Ints[i].TheDef->getName() +
+              "': duplicate GCC builtin name!");
+      Table.GetOrAddStringOffset(Ints[i].GCCBuiltinAliasName);
     }
   }
 

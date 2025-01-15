@@ -11,6 +11,8 @@ add_llvm_component_library(LLVMTransformUtils
   CallGraphUpdater.cpp
   CanonicalizeAliases.cpp
   CanonicalizeFreezeInLoops.cpp
+  CheriSetBounds.cpp
+  CheriLogSetBoundsPass.cpp
   CloneFunction.cpp
   CloneModule.cpp
   CodeExtractor.cpp
@@ -91,6 +93,7 @@ add_llvm_component_library(LLVMTransformUtils
   ${LLVM_MAIN_INCLUDE_DIR}/llvm/Transforms/Utils
 
   DEPENDS
+  vt_gen
   intrinsics_gen
 
   LINK_COMPONENTS
@@ -99,3 +102,5 @@ add_llvm_component_library(LLVMTransformUtils
   Support
   TargetParser
   )
+
+add_definitions(-DLLVM_NO_DEFAULT_ADDRESS_SPACE)

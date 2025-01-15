@@ -9,6 +9,7 @@
 #include "Writer.h"
 #include "AArch64ErrataFix.h"
 #include "ARMErrataFix.h"
+#include "Arch/Cheri.h"
 #include "CallGraphSort.h"
 #include "Config.h"
 #include "InputFiles.h"
@@ -25,9 +26,13 @@
 #include "lld/Common/Filesystem.h"
 #include "lld/Common/Strings.h"
 #include "llvm/ADT/StringMap.h"
+#include "llvm/Demangle/Demangle.h"
 #include "llvm/Support/BLAKE3.h"
+#include "llvm/Support/JSON.h"
 #include "llvm/Support/Parallel.h"
 #include "llvm/Support/RandomNumberGenerator.h"
+#include "llvm/Support/SHA1.h"
+#include "llvm/Support/SHA256.h"
 #include "llvm/Support/TimeProfiler.h"
 #include "llvm/Support/xxhash.h"
 #include <climits>
@@ -95,6 +100,10 @@ static bool needsInterpSection() {
          !config->dynamicLinker.empty() && script->needsInterpSection();
 }
 
+bool elf::hasDynamicLinker() {
+  return config->shared || config->pie || !ctx.sharedFiles.empty();
+}
+
 template <class ELFT> void elf::writeResult() {
   Writer<ELFT>().run();
 }
@@ -143,7 +152,8 @@ void elf::copySectionsIntoPartitions() {
 }
 
 static Defined *addOptionalRegular(StringRef name, SectionBase *sec,
-                                   uint64_t val, uint8_t stOther = STV_HIDDEN) {
+                                   uint64_t val, uint8_t stOther = STV_HIDDEN,
+                                   bool canBeSectionStart = true) {
   Symbol *s = symtab.find(name);
   if (!s || s->isDefined() || s->isCommon())
     return nullptr;
@@ -151,8 +161,26 @@ static Defined *addOptionalRegular(StringRef name, SectionBase *sec,
   s->resolve(Defined{ctx.internalFile, StringRef(), STB_GLOBAL, stOther,
                      STT_NOTYPE, val,
                      /*size=*/0, sec});
+  // If Val == 0 assume this symbol references the start of a section.
+  // When targetting CHERI we set the size of that symbol since otherwise
+  // an expression like foo = &_DYNAMIC will create a zero-length capability
+  // for foo and most likely crash the program.
+  // TODO: I would like to do this for all targets but that might cause
+  // compatibility issues
+  if (val == 0 && canBeSectionStart) {
+    log("Treating " + name + " as a section start symbol");
+    s->isSectionStartSymbol = true;
+  }
+
   s->isUsedInRegularObj = true;
   return cast<Defined>(s);
+}
+
+static Defined *addAbsolute(StringRef name) {
+  Symbol *sym = symtab.addSymbol(Defined{nullptr, name, STB_GLOBAL, STV_HIDDEN,
+                                         STT_NOTYPE, 0, 0, nullptr});
+  sym->isUsedInRegularObj = true;
+  return cast<Defined>(sym);
 }
 
 // The linker is expected to define some symbols depending on
@@ -363,9 +391,22 @@ template <class ELFT> void elf::createSyntheticSections() {
       hasDataRelRo ? ".data.rel.ro.bss" : ".bss.rel.ro", 0, 1);
   add(*in.bssRelRo);
 
+  if (config->capabilitySize > 0) {
+    in.capRelocs = std::make_unique<CheriCapRelocsSection>();
+    in.cheriCapTable = std::make_unique<CheriCapTableSection>();
+    add(*in.cheriCapTable);
+    if (config->capTableScope != CapTableScopePolicy::All) {
+      in.cheriCapTableMapping = std::make_unique<CheriCapTableMappingSection>();
+      add(*in.cheriCapTableMapping);
+    }
+  }
+
   // Add MIPS-specific sections.
   if (config->emachine == EM_MIPS) {
-    if (!config->shared && config->hasDynSymTab) {
+    // XXXAR: also add the RLD_MAP dynamic tags to rtld so that we can use
+    // gdb with rtld direct exec mode.
+    // TODO: should probably try to build rtld as PIE instead?
+    if ((!config->shared || config->buildingFreeBSDRtld) && config->hasDynSymTab) {
       in.mipsRldMap = std::make_unique<MipsRldMapSection>();
       add(*in.mipsRldMap);
     }
@@ -686,9 +727,9 @@ static void markUsedLocalSymbolsImpl(ObjFile<ELFT> *file,
 // The function ensures that the "used" field of local symbols reflects the fact
 // that the symbol is used in a relocation from a live section.
 template <class ELFT> static void markUsedLocalSymbols() {
-  // With --gc-sections, the field is already filled.
+  // With --gc-sections, the field is already filled, unless -r is specified.
   // See MarkLive<ELFT>::resolveReloc().
-  if (config->gcSections)
+  if (config->gcSections && !config->relocatable)
     return;
   for (ELFFileBase *file : ctx.objectFiles) {
     ObjFile<ELFT> *f = cast<ObjFile<ELFT>>(file);
@@ -815,9 +856,11 @@ template <class ELFT> void Writer<ELFT>::addSectionSymbols() {
     // Set the symbol to be relative to the output section so that its st_value
     // equals the output section address. Note, there may be a gap between the
     // start of the output section and isec.
-    in.symTab->addSymbol(makeDefined(isec->file, "", STB_LOCAL, /*stOther=*/0,
-                                     STT_SECTION,
-                                     /*value=*/0, /*size=*/0, &osec));
+    auto *sym =
+        makeDefined(isec->file, "", STB_LOCAL, /*stOther=*/0, STT_SECTION,
+                    /*value=*/0, /*size=*/0, &osec);
+    sym->isSectionStartSymbol = true;
+    in.symTab->addSymbol(sym);
   }
 }
 
@@ -827,7 +870,7 @@ template <class ELFT> void Writer<ELFT>::addSectionSymbols() {
 //
 // This function returns true if a section needs to be put into a
 // PT_GNU_RELRO segment.
-static bool isRelroSection(const OutputSection *sec) {
+bool elf::isRelroSection(const OutputSection *sec) {
   if (!config->zRelro)
     return false;
   if (sec->relro)
@@ -882,6 +925,14 @@ static bool isRelroSection(const OutputSection *sec) {
   if (sec == in.gotPlt->getParent())
     return config->zNow;
 
+  // Similarly the CHERI capability table is also relro since the capabilities
+  // in the table need to be initialized at runtime to set the tag bits
+  if (in.cheriCapTable && sec == in.cheriCapTable->getParent()) {
+    // Without -z now, the PLT stubs can update the captable entries so we
+    // can't mark it as relro. It can also be relro for static binaries:
+    return config->zNow || !config->isPic;
+  }
+
   if (in.relroPadding && sec == in.relroPadding->getParent())
     return true;
 
@@ -899,7 +950,8 @@ static bool isRelroSection(const OutputSection *sec) {
   return s == ".data.rel.ro" || s == ".bss.rel.ro" || s == ".ctors" ||
          s == ".dtors" || s == ".jcr" || s == ".eh_frame" ||
          s == ".fini_array" || s == ".init_array" ||
-         s == ".openbsd.randomdata" || s == ".preinit_array";
+         s == ".openbsd.randomdata" || s == ".preinit_array" ||
+         s == "__cap_relocs" || s == ".gcc_except_table";
 }
 
 // We compute a rank for each section. The rank indicates where the
@@ -1804,14 +1856,14 @@ static void fixSymbolsAfterShrinking() {
         def->value -= inputSec->bytesDropped;
         return;
       }
-
-      if (def->value + def->size > NewSize && def->value <= OldSize &&
-          def->value + def->size <= OldSize) {
+      auto defSize = def->getSize();
+      if (def->value + defSize > NewSize && def->value <= OldSize &&
+          def->value + defSize <= OldSize) {
         LLVM_DEBUG(llvm::dbgs()
                    << "Shrinking symbol " << Sym->getName() << " from "
-                   << def->size << " to " << def->size - inputSec->bytesDropped
+                   << defSize << " to " << defSize - inputSec->bytesDropped
                    << " bytes\n");
-        def->size -= inputSec->bytesDropped;
+        def->reduceSize(inputSec->bytesDropped);
       }
     });
   }
@@ -1908,6 +1960,7 @@ static void removeUnusedSyntheticSections() {
 
 // Create output section objects and add them to OutputSections.
 template <class ELFT> void Writer<ELFT>::finalizeSections() {
+  StringRef captableSym = "_CHERI_CAPABILITY_TABLE_";
   if (!config->relocatable) {
     Out::preinitArray = findSection(".preinit_array");
     Out::initArray = findSection(".init_array");
@@ -1925,12 +1978,25 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
     // It should be okay as no one seems to care about the type.
     // Even the author of gold doesn't remember why gold behaves that way.
     // https://sourceware.org/ml/binutils/2002-03/msg00360.html
-    if (mainPart->dynamic->parent) {
+    bool needsDYNAMIC = (config->isPic || !ctx.sharedFiles.empty()); // TODO: --as-needed?
+    if (mainPart->dynamic->parent && needsDYNAMIC) {
       Symbol *s = symtab.addSymbol(Defined{
           ctx.internalFile, "_DYNAMIC", STB_WEAK, STV_HIDDEN, STT_NOTYPE,
           /*value=*/0, /*size=*/0, mainPart->dynamic.get()});
       s->isUsedInRegularObj = true;
+      // In CheriABI we want sensible bounds if we do &_DYNAMIC in C code
+      s->isSectionStartSymbol = true;
     }
+
+    // The common check if a program is dynamically linked (&_DYNAMIC != 0)
+    // will not work in the early CHERI startup. In PIC code we also can't
+    // use dla _DYNAMIC since that needs either $gp or text relocations
+    // Instead we just let the linker generate a new symbol _HAS__DYNAMIC
+    if (auto *reference = symtab.find("_HAS__DYNAMIC"))
+      if (!reference->isDefined()) {
+        Defined *hasDynamicSym = addAbsolute("_HAS__DYNAMIC");
+        hasDynamicSym->value = needsDYNAMIC ? 1 : 0;
+      }
 
     // Define __rel[a]_iplt_{start,end} symbols if needed.
     addRelIpltSymbols();
@@ -1976,6 +2042,15 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
       }
     }
 
+    if (in.cheriCapTable) {
+      // When creating relocatable output we should not define the
+      // _CHERI_CAPABILITY_TABLE_ symbol because otherwise we get duplicate
+      // symbol errors when linking that into a final executable
+      if (!config->relocatable)
+        ElfSym::cheriCapabilityTable =
+            addOptionalRegular(captableSym, in.cheriCapTable.get(), 0);
+    }
+
     // This responsible for splitting up .eh_frame section into
     // pieces. The relocation scan uses those pieces, so this has to be
     // earlier.
@@ -2010,6 +2085,28 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
     reportUndefinedSymbols();
     postScanRelocations();
 
+    // Do the cap table index assignment
+    // Must come before CapRelocs->finalizeContents() because it can add
+    // __cap_relocs
+    if (in.cheriCapTable) {
+      // Ensure that we always have a _CHERI_CAPABILITY_TABLE_ symbol if the
+      // cap table exists. This makes llvm-objdump more useful since it can now
+      // print the target of a cap table load
+      if (!ElfSym::cheriCapabilityTable && in.cheriCapTable->isNeeded()) {
+        ElfSym::cheriCapabilityTable = cast<Defined>(
+            symtab.addSymbol(Defined{nullptr, captableSym, STB_LOCAL,
+              STV_HIDDEN, STT_NOTYPE, 0, 0, in.cheriCapTable.get()}));
+        ElfSym::cheriCapabilityTable->isSectionStartSymbol = true;
+        assert(!ElfSym::cheriCapabilityTable->isPreemptible);
+      }
+      in.cheriCapTable->assignValuesAndAddCapTableSymbols<ELFT>();
+    }
+
+    // Now handle __cap_relocs (must be before RelaDyn because it might
+    // result in new dynamic relocations being added)
+    if (in.capRelocs) {
+      finalizeSynthetic(in.capRelocs.get());
+    }
     if (in.plt && in.plt->isNeeded())
       in.plt->addSymbols();
     if (in.iplt && in.iplt->isNeeded())
@@ -2262,6 +2359,34 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
   for (OutputSection *sec : outputSections)
     sec->finalize();
 
+  // If a synthetic section was removed from the output we have to manually
+  // change the start&stop symbols to be NULL since otherwise we create a
+  // corrupted symbol table
+  // XXXAR: I think this only affects __cap_relocs since the other potentially
+  // empty synthetic sections will not have start stop symbols
+  for (Symbol *s : symtab.getSymbols()) {
+    auto *reg = dyn_cast<Defined>(s);
+    if (!reg)
+      continue;
+    if (const OutputSection *outSec = reg->getOutputSection())
+      // XXXAR: Out::ElfHeader is a special output section and will never be
+      // marked as live. We still need keep symbols pointing there since they
+      // will then point to the first output section
+      // See assignment above:   Out::ElfHeader->SectionIndex = 1;
+      // Ditto for LinkerScript's "aether" otherwise we will zero out all
+      // symbol assignments outside output sections.
+
+      if (!outSec->isLive() && outSec != Out::elfHeader &&
+          !script->isAether(outSec)) {
+        reg->type = STT_NOTYPE;
+        reg->section = nullptr;
+        reg->value = 0;
+        // Avoid crashes when calling getSize()/setSize().
+        reg->isSectionStartSymbol = false;
+        reg->setSize(0);
+      }
+  }
+
   script->checkFinalScriptConditions();
 
   if (config->emachine == EM_ARM && !config->isLE && config->armBe8) {
@@ -2315,14 +2440,25 @@ template <class ELFT> void Writer<ELFT>::addStartEndSymbols() {
       addOptionalRegular(start, os, 0);
       addOptionalRegular(end, os, -1);
     } else {
-      addOptionalRegular(start, Default, 0);
-      addOptionalRegular(end, Default, 0);
+      // Since this is an empty section we don't want to set canBeSectionStart
+      // Iterating over this should terminate immediately so setting the size
+      // to zero is fine
+      addOptionalRegular(start, Default, 0, STV_HIDDEN,
+                         /*canBeSectionStart=*/false);
+      // End is not a section start symbol even though it has value 0:
+      addOptionalRegular(end, Default, 0, STV_HIDDEN,
+                         /*canBeSectionStart=*/false);
     }
   };
 
   define("__preinit_array_start", "__preinit_array_end", Out::preinitArray);
   define("__init_array_start", "__init_array_end", Out::initArray);
   define("__fini_array_start", "__fini_array_end", Out::finiArray);
+  define("__ctors_start", "__ctors_end", findSection(".ctors"));
+  define("__dtors_start", "__dtors_end", findSection(".dtors"));
+  if (in.cheriCapTable)
+    define("__cap_table_start", "__cap_table_end",
+           in.cheriCapTable->getOutputSection());
 
   if (OutputSection *sec = findSection(".ARM.exidx"))
     define("__exidx_start", "__exidx_end", sec);
@@ -2339,9 +2475,9 @@ void Writer<ELFT>::addStartStopSymbols(OutputSection &osec) {
   if (!isValidCIdentifier(s))
     return;
   addOptionalRegular(saver().save("__start_" + s), &osec, 0,
-                     config->zStartStopVisibility);
+                     config->zStartStopVisibility, /*canBeSectionStart=*/true);
   addOptionalRegular(saver().save("__stop_" + s), &osec, -1,
-                     config->zStartStopVisibility);
+                     config->zStartStopVisibility, /*canBeSectionStart=*/false);
 }
 
 static bool needsPtLoad(OutputSection *sec) {
@@ -2969,7 +3105,634 @@ template <class ELFT> void Writer<ELFT>::openFile() {
   }
   buffer = std::move(*bufferOrErr);
   Out::bufferStart = buffer->getBufferStart();
+  Out::bufferSize = buffer->getBufferSize();
 }
+
+/**
+ * Helper class that builds and emits the compartment report.
+ *
+ * FIXME: This assumes that the host is little endian.  Apparently some
+ * big-endian platforms still exist, so we should fix this before upstreaming.
+ */
+class CompartmentReportWriter {
+  /// CHERIoT import table entry.
+  struct ImportTableEntry {
+    /// Start address (target endian)
+    uint32_t start;
+    /// Length and permissions (target endian)
+    uint32_t length;
+  };
+  /**
+   * Export table entry.  Metadata associated with a function that is exported
+   * from a compartment.
+   */
+  struct ExportTableEntry {
+    /// The offset of the start of the function in PCC.
+    uint16_t functionStart;
+    /// The minimum stack space that the entry point requires (in units of 8
+    /// bytes).
+    uint8_t minimumStackSize;
+    /**
+     * Flags.  See the accessors for how these are used.
+     */
+    uint8_t flags;
+
+    /// Return the number of argument registers used for the call
+    uint8_t argument_registers() const { return flags & 0b111; }
+
+    /// Return a string indicating the interrupt status for this function.
+    const char *interrupt_status() const {
+      const char *interrupt_status[] = {"inherit", "enabled", "disabled",
+                                        "invalid"};
+      int field = (flags >> 3) & 0b11;
+      assert(field < 3);
+      return interrupt_status[field];
+    }
+
+    /// Returns true if this is an exported sealing type, false otherwise.
+    bool is_sealing_type() const { return flags & 0b100000; }
+  };
+
+  /// The root of the report
+  json::Object Json;
+  /// The buffer holding the output
+  uint8_t *buffer;
+  /// The length of `buffer`.
+  size_t bufferSize;
+
+  /// Sections for stacks and trusted stacks
+  std::set<OutputSection *> stackSections;
+  /// Map from compartment names to compartments.
+  std::map<std::string, json::Object> compartments;
+  /// The section that holds sealed objects.
+  OutputSection *sealedObjects;
+  /// The section that holds export tables for compartments.
+  OutputSection *compartmentExportTables;
+  /// The section that holds export tables for libraries.
+  OutputSection *libraryExportTables;
+  /// Sections used for pre-shared globals
+  std::vector<OutputSection *> sharedGlobalSections;
+
+  /// Start of the pre-shared object region.
+  uint32_t preSharedObjectStart = 0;
+  /// End of the pre-shared object region.
+  uint32_t preSharedObjectEnd = 0;
+
+  /**
+   * Map from file names to the metadata about their exports.  This is a bit
+   * clunky, because we don't have a good way of mapping from an export table
+   * to a compartment name.
+   */
+  std::unordered_map<std::string, json::Array> exportsByFile;
+
+  template <typename T> T read(size_t offset) {
+    if (offset + sizeof(T) > bufferSize)
+      fatal("Offset out of range in output file");
+    return endian::read<T>(buffer + offset, endianness::little);
+  }
+
+  /**
+   * Format `bytes` as a hex string.  If `spaces` is non-zero, emits a space
+   * every `spaces` bytes.
+   */
+  auto formatHex(ArrayRef<uint8_t> bytes, int spaces = 0) {
+    std::string str;
+    raw_string_ostream s{str};
+    int writtenBytes = 0;
+    for (uint8_t b : bytes) {
+      writtenBytes++;
+      if ((spaces != 0) && (writtenBytes > 1) &&
+          ((writtenBytes % spaces) == 1)) {
+        s << ' ';
+      }
+      s << format_hex_no_prefix(b, 2);
+    }
+    return s.str();
+  };
+
+  /**
+   * If `outputSection` contains an input section that contains `address`,
+   * return it. Return `nullptr` in all other cases.
+   */
+  InputSection *findInputSection(OutputSection *outputSection,
+                                 uint32_t address) {
+    uint32_t start = outputSection->getLMA();
+    uint32_t end = start + outputSection->size;
+    // Give up if this address isn't in the desired section
+    if ((address < start) || (address >= end))
+      return nullptr;
+    // Find the displacement within the output section
+    uint32_t offset = address - start;
+    SmallVector<InputSection *, 0> storage;
+    for (auto *inSec : getInputSections(*outputSection, storage))
+      if ((inSec->outSecOff <= offset) &&
+          ((inSec->outSecOff + inSec->getSize()) > offset))
+        return inSec;
+    return nullptr;
+  }
+
+  /**
+   * Add the import table for `compartmentName`.  The `table` argument contains
+   * the import table in the linked binary.
+   */
+  void addImports(StringRef compartmentName, ArrayRef<ImportTableEntry> table) {
+    // Skip the placeholder for the compartment switcher.
+    table = table.drop_front();
+    json::Array imports;
+    uint32_t sealedRangeStart = sealedObjects->getLMA();
+
+    // Process each import table entry.
+    for (auto entry : table) {
+      // If the length is not zero then this must either an MMIO import or a
+      // static sealed object.
+      if (entry.length != 0) {
+        // First check if this is a sealed object.
+        if (auto inSec = findInputSection(sealedObjects, entry.start)) {
+          uint32_t start = entry.start - sealedRangeStart;
+          auto *sym =
+              inSec->getEnclosingObject(start - inSec->outSecOff);
+          if (!sym) {
+            error("Compartment '" + compartmentName +
+                  "' imports non-existent sealed object");
+            continue;
+          }
+          if (sym->getSize() != entry.length)
+            error("Import from compartment '" + compartmentName +
+                  "' refers to sealed object '" + sym->getName() +
+                  " with length " + utostr(sym->getSize()) +
+                  " but requests an import of length " + utostr(entry.length) +
+                  ".");
+          uint32_t sealingType = read<uint32_t>(sealedObjects->offset + start);
+          auto *sealingSec =
+              findInputSection(compartmentExportTables, sealingType);
+          if (!sealingSec) {
+            error("Sealed object '" + sym->getName() + "' for compartment '" +
+                  compartmentName + "' has a sealing type address 0x" +
+                  utohexstr(sealingType) +
+                  " that does not appear in any export table");
+            continue;
+          }
+          auto *exportType = sealingSec->getEnclosingObject(
+              sealingType - compartmentExportTables->getLMA() -
+              sealingSec->outSecOff);
+          if (!exportType) {
+            error("Sealed object '" + sym->getName() + "' for compartment '" +
+                  compartmentName + "' has a sealing type address 0x" +
+                  utohexstr(sealingType) +
+                  ", which does not correspond to a symbol in an export table");
+            continue;
+          }
+
+          auto typeName = exportType->getName();
+          if (!typeName.consume_front("__export.sealing_type.")) {
+            error("Sealed object '" + sym->getName() + "' for compartment '" +
+                  compartmentName + "' uses an invalid sealing type '" +
+                  typeName + ".");
+            continue;
+          }
+          auto [compartment, keyName] = typeName.split('.');
+
+          imports.push_back(json::Object{
+              {"kind", "SealedObject"},
+              {"sealing_type",
+               json::Object{{"provided_by", sealingSec->file->getName()},
+                            {"compartment", compartment},
+                            {"key", keyName},
+                            {"symbol", exportType->getName()}}},
+              {"contents", formatHex({buffer + sealedObjects->offset + start +
+                                          sizeof(uint64_t),
+                                      entry.length - sizeof(uint64_t)},
+                                     4)}});
+        } else {
+          static constexpr uint32_t ImportPermitsLoad = (1UL << 31);
+          static constexpr uint32_t ImportPermitsStore = (1UL << 30);
+          static constexpr uint32_t ImportPermitsLoadStoreCapabilities =
+              (1UL << 29);
+          static constexpr uint32_t ImportPermitsLoadMutable = (1UL << 28);
+
+          imports.push_back(json::Object{
+              {"kind", "MMIO"},
+              {"start", entry.start},
+              {"length", entry.length & 0xfffffff},
+              {"permits_load", (entry.length & ImportPermitsLoad) != 0},
+              {"permits_store", (entry.length & ImportPermitsStore) != 0},
+              {"permits_load_store_capabilities",
+               (entry.length & ImportPermitsLoadStoreCapabilities) != 0},
+              {"permits_load_mutable",
+               (entry.length & ImportPermitsLoadMutable) != 0}});
+        }
+        continue;
+      }
+      // A few compartments have empty entries that the loader fills in with
+      // sealing capabilities, skip those.  If they're not the privileged
+      // compartments, the loader will not provide any capabilities in these.
+      if (entry.start == 0)
+        continue;
+      uint32_t target = entry.start;
+      bool isLibcall = target & 1;
+      target &= ~uint32_t(1);
+      auto handleExport = [&](OutputSection *exportTables, bool isLibrary) {
+        if (!exportTables)
+          return false;
+        if (auto *inSec = findInputSection(exportTables, target)) {
+          uint32_t base = exportTables->getLMA();
+          auto inputBase = base + inSec->outSecOff;
+          if (auto *sym =
+                  inSec->getEnclosingObject(target - inputBase)) {
+            auto name = sym->getName();
+            json::Object importEntry{
+                {"kind", isLibcall ? "LibraryFunction" : "CompartmentExport"},
+                {"provided_by", inSec->file->getName()},
+                {"export_symbol", name}};
+            // We allow compartments to expose library exports.  This may be
+            // useful for fast paths, but it's also necessary for the older
+            // linker script, which put all exports in the same place.
+            // no useful way that a library can expose a compartment call.
+            if (isLibrary && !isLibcall)
+              error(
+                  "Import table for compartment '" + compartmentName +
+                  "' imports '" + name +
+                  "', as a compartment call but it is exported from a library");
+            if (name.consume_front("__library_export_")) {
+              if (!isLibcall)
+                error("Compartment '" + compartmentName +
+                      "' imports library function '" + sym->getName() +
+                      "' as cross-compartment call");
+              size_t functionNameStart = name.find("__Z");
+              if (functionNameStart != StringRef::npos)
+                importEntry.insert({"function", demangle(name.substr(
+                                                    functionNameStart + 1))});
+            } else if (name.consume_front("__export_")) {
+              size_t functionNameStart = name.find("__Z");
+              if (functionNameStart != StringRef::npos) {
+                importEntry.insert(
+                    {"compartment_name", name.take_front(functionNameStart)});
+                importEntry.insert({"function", demangle(name.substr(
+                                                    functionNameStart + 1))});
+              }
+            }
+            imports.push_back(std::move(importEntry));
+            // FIXME: Error if sym->isLocal() and the export table is not
+            // the one corresponding to the import table.
+            return true;
+          }
+        }
+        return false;
+      };
+      if (!handleExport(compartmentExportTables, false) &&
+          !handleExport(libraryExportTables, true))
+        error("Import table for compartment '" + compartmentName +
+              "' refers to address 0x" + utohexstr(target) +
+              ", which is not a valid export");
+    }
+    if (!imports.empty()) {
+      auto &compartment = compartments[compartmentName.str()];
+      compartment.insert({"imports", std::move(imports)});
+    }
+  }
+
+  /**
+   * Add an input section.  Adds the hashes of this input section.
+   */
+  void addInput(InputSectionBase *inSec, json::Array *inputs) {
+    if (auto *ms = dyn_cast<MergeSyntheticSection>(inSec)) {
+      for (auto *mergedSection : ms->sections) {
+        addInput(mergedSection, inputs);
+      }
+      return;
+    }
+    json::Object sectionEntry{{"section_name", inSec->name},
+                              {"size", static_cast<int64_t>(inSec->getSize())},
+                              {"file", inSec->file->getName().str()}};
+    // Yes, InputSection really does return an ArrayRef with a non-zero
+    // length but a null pointer for the data for BSS sections.
+    if (inSec->contentMaybeDecompress().data() != nullptr)
+      sectionEntry.insert({"sha256", formatHex(SHA256::hash(inSec->contentMaybeDecompress()))});
+    inputs->push_back(std::move(sectionEntry));
+  }
+
+  /**
+   * Process the exports output section.
+   *
+   * The old ABI had one of these, concatenating all compartment and library
+   * export tables.  The newer ABI separates library export tables, which are
+   * not needed after loading and can be erased.
+   */
+  void processExports(OutputSection *sec, bool isLibrary) {
+    OutputSection *&exportTables =
+        isLibrary ? libraryExportTables : compartmentExportTables;
+    exportTables = sec;
+    // Look at all of the export tables in turn
+    SmallVector<InputSection *, 0> storage;
+    for (auto *inSec : getInputSections(*sec, storage)) {
+      // Skip pcc, ddc, and the error handler.
+      constexpr uint64_t firstEntryOffset = 20;
+      uint64_t offset = firstEntryOffset;
+      // Skip ones that don't actually export anything.
+      if (inSec->getSize() <= offset)
+        continue;
+      uint8_t *sectionStartInOutput = buffer + sec->offset + inSec->outSecOff;
+      ArrayRef<ExportTableEntry> table{
+          reinterpret_cast<ExportTableEntry *>(sectionStartInOutput + offset),
+          (inSec->getSize() - offset) / sizeof(ExportTableEntry)};
+      json::Array exports;
+      for (const auto &e : table) {
+        auto *sym = inSec->getEnclosingObject(offset);
+        offset += sizeof(ExportTableEntry);
+        if (!sym) {
+          error("Export table entry " +
+                utostr((offset - firstEntryOffset - sizeof(ExportTableEntry)) /
+                       sizeof(ExportTableEntry)) +
+                " from " + toString(inSec->file) +
+                " has no symbol associated with it");
+          continue;
+        }
+
+        json::Object entry{
+            {"kind", e.is_sealing_type() ? "SealingKey" : "Function"},
+            {"exported", !sym->isLocal()},
+            {"export_symbol", sym->getName()}};
+
+        if (!e.is_sealing_type()) {
+          entry.insert({"start_offset", e.functionStart});
+          entry.insert({"register_arguments", e.argument_registers()});
+          entry.insert({"interrupt_status", e.interrupt_status()});
+        }
+        exports.push_back(std::move(entry));
+      }
+      if (!exports.empty()) {
+        exportsByFile[inSec->file->getName().str()] = std::move(exports);
+      }
+    }
+  }
+
+  void crossReferenceImports() {
+    for (auto &[compartmentName, compartment] : compartments)
+      if (auto *imports = compartment.getArray("imports"))
+        for (auto &importValue : *imports)
+          if (auto *importEntry = importValue.getAsObject()) {
+            if (*importEntry->getString("kind") == "MMIO") {
+              const uint32_t start = *importEntry->getInteger("start");
+              const uint32_t end = start + *importEntry->getInteger("length");
+              // Skip any entries that aren't in the shared object range.
+              if ((start < preSharedObjectStart) ||
+                  (start >= preSharedObjectEnd))
+                continue;
+              for (auto *sec : sharedGlobalSections) {
+                if ((start < sec->getLMA()) ||
+                    (start >= (sec->getLMA() + sec->size)))
+                  continue;
+                StringRef name = sec->name;
+                name.consume_front("__cheriot_shared_object_section_");
+                if (end > (sec->getLMA() + sec->size)) {
+                  error("Shared object import from compartment '" +
+                        compartmentName + "' refers to address range 0x" +
+                        utohexstr(start) + " to 0x" + utohexstr(end) +
+                        " which overlaps shared object " + name);
+                }
+                (*importEntry)["kind"] = "SharedObject";
+                (*importEntry)["shared_object"] = name.str();
+                break;
+              }
+            }
+          }
+  }
+
+  /**
+   * Process a thread info section.  This section starts with the number of
+   * threads, followed by an array of thread descriptions that include their
+   * priority, entry point (as an export table index) and the location / length
+   * of the stack and trusted stack.
+   */
+  void processThreads(OutputSection *sec) {
+    uint32_t threadCount = read<uint16_t>(sec->offset);
+    if ((threadCount * 18) + 2 > sec->size)
+      fatal("Thread section is too small for reported thread count ");
+
+    size_t offset = sec->offset + 2;
+
+    auto consume32 = [&]() {
+      offset += 4;
+      return read<uint32_t>(offset - 4);
+    };
+
+    auto consume16 = [&]() {
+      offset += 2;
+      return read<uint16_t>(offset - 2);
+    };
+
+    auto checkStack = [&](uint32_t start, uint32_t length) {
+      for (auto i = stackSections.begin(), e = stackSections.end(); i != e;
+           ++i) {
+        if ((start == (*i)->getLMA()) && (length == (*i)->size)) {
+          stackSections.erase(i);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    json::Array threadsArray;
+
+    for (uint32_t i = 0; i < threadCount; i++) {
+      auto priority = consume16();
+      auto entryPoint = consume32();
+      auto stackStart = consume32();
+      auto stackLength = consume16();
+      auto trustedStackStart = consume32();
+      auto trustedStackLength = consume16();
+
+      if (!checkStack(stackStart, stackLength))
+        error("Thread " + Twine(i) + "has invalid stack");
+      if (!checkStack(trustedStackStart, trustedStackLength))
+        error("Thread " + Twine(i) + "has invalid trusted stack");
+
+      json::Object thread{
+          {"priority", priority},
+          {"stack",
+           json::Object{{"start", stackStart}, {"length", stackLength}}},
+          {"trusted_stack",
+           json::Object{{"start", trustedStackStart}, {"length", trustedStackLength}}}};
+      json::Object entryPointDescription;
+      bool foundExport = false;
+
+      if (auto *inSec = findInputSection(compartmentExportTables, entryPoint)) {
+        auto inputBase = compartmentExportTables->getLMA() + inSec->outSecOff;
+        if (auto *sym =
+                inSec->getEnclosingObject(entryPoint - inputBase)) {
+          entryPointDescription.insert({"provided_by", inSec->file->getName()});
+          auto name = sym->getName();
+          if (name.consume_front("__export_")) {
+            size_t functionNameStart = name.find("__Z");
+            if (functionNameStart != StringRef::npos) {
+              entryPointDescription.insert(
+                  {"compartment_name", name.take_front(functionNameStart)});
+              entryPointDescription.insert(
+                  {"function",
+                   demangle(name.substr(functionNameStart + 1))});
+              foundExport = true;
+            }
+          }
+        }
+      }
+      if (!foundExport) {
+        error("Import table for thread " + Twine(i) + "' refers to address 0x" +
+              utohexstr(entryPoint) + ", which is not a valid export");
+        continue;
+      }
+      thread.insert({"entry_point", std::move(entryPointDescription)});
+      threadsArray.push_back(std::move(thread));
+    }
+    Json.insert({"threads", std::move(threadsArray)});
+  }
+
+  /**
+   * Process and output section.
+   */
+  void addOutputSection(OutputSection *sec) {
+    auto *outputStart = buffer + sec->offset;
+    // Special case the things that are not compartments.
+    if (StringSwitch<bool>(sec->name)
+            .Case(".loader_start", true)
+            .Case(".loader_code", true)
+            .Case(".loader_data", true)
+            .Default(false)) {
+      json::Object sectionDescription({{"section_name", sec->name.str()},
+                                       {"inputs", json::Array()},
+                                       {"output", json::Object()}});
+      auto inputs = sectionDescription.getArray("inputs");
+      SmallVector<InputSection *, 0> storage;
+      for (auto *inSec : getInputSections(*sec, storage))
+        addInput(inSec, inputs);
+      sectionDescription.getObject("output")->insert(
+          {"sha256",
+           formatHex(SHA256::hash({buffer + sec->offset, sec->size}))});
+      Json.getObject("core")->insert(
+          {sec->name.str(), std::move(sectionDescription)});
+    } else if (sec->name.starts_with(".thread_trusted_stack_") ||
+               sec->name.starts_with(".thread_stack_")) {
+      stackSections.insert(sec);
+    } else if (sec->name == ".thread_config") {
+      processThreads(sec);
+    } else if (sec->getVA() >= preSharedObjectStart &&
+               sec->getVA() < preSharedObjectEnd) {
+      auto name = sec->name;
+      name.consume_front("__cheriot_shared_object_section_");
+      Json.getArray("sharedObjects")
+          ->emplace_back(
+              json::Object{{"name", name.str()},
+                           {"start", uint32_t(sec->getVA())},
+                           {"end", uint32_t(sec->getVA() + sec->size)}});
+      sharedGlobalSections.push_back(sec);
+    } else if (sec->name.ends_with("_code")) {
+      auto compartmentName = sec->name.drop_back(5);
+      if (compartmentName.starts_with("."))
+        compartmentName = compartmentName.drop_front(1);
+
+      auto &compartment = compartments[compartmentName.str()];
+
+      // If this is a code section, we want to record the hashes of the
+      // contents.
+      json::Object sectionDescription({{"name", sec->name.str()},
+                                       {"inputs", json::Array()},
+                                       {"output", json::Object()}});
+      auto inputs = sectionDescription.getArray("inputs");
+      SmallVector<InputSection *, 0> storage;
+      for (auto *inSec : getInputSections(*sec, storage)) {
+        if (inSec->file) {
+          auto it = exportsByFile.find(inSec->file->getName().str());
+          if (it != exportsByFile.end()) {
+            compartment.insert({"exports", std::move(it->second)});
+            exportsByFile.erase(it);
+          }
+        }
+        if (inSec->name == ".compartment_import_table") {
+          addImports(compartmentName,
+                     {reinterpret_cast<ImportTableEntry *>(outputStart),
+                      inSec->getSize() / sizeof(ImportTableEntry)});
+        } else
+          addInput(inSec, inputs);
+      }
+      sectionDescription.getObject("output")->insert(
+          {"sha256", formatHex(SHA256::hash({outputStart, sec->size}))});
+      compartment.insert({"code", std::move(sectionDescription)});
+    } else if (sec->name.ends_with("_data")) {
+      auto compartmentName = sec->name.drop_back(5);
+      if (compartmentName.starts_with("."))
+        compartmentName = compartmentName.drop_front(1);
+
+      auto &compartment = compartments[compartmentName.str()];
+
+      // If this is a code section, we want to record the hashes of the
+      // contents.
+      json::Object sectionDescription({{"name", sec->name.str()},
+                                       {"inputs", json::Array()},
+                                       {"output", json::Object()}});
+      auto inputs = sectionDescription.getArray("inputs");
+      SmallVector<InputSection *, 0> storage;
+      for (auto *inSec : getInputSections(*sec, storage))
+        addInput(inSec, inputs);
+      sectionDescription.getObject("output")->insert(
+          {"sha256", formatHex(SHA256::hash({outputStart, sec->size}))});
+      compartment.insert({"data", std::move(sectionDescription)});
+    }
+  }
+
+  /**
+   * Write the output to the specified file.
+   */
+  void writeToFile(StringRef file) {
+    if (!exportsByFile.empty())
+      for (auto &i : exportsByFile)
+        error(
+            toString(i.first) +
+            " contains an export table that was not attached to a compartment");
+    std::error_code ec;
+    raw_fd_ostream out(file, ec, sys::fs::OF_TextWithCRLF);
+    if (ec)
+      fatal("failed to create compartment file" + file + ": " + ec.message());
+
+    // Pretty print JSON output
+    json::OStream JOS(out, /* pretty */ 2);
+    JOS.value(json::Value(std::move(Json)));
+  }
+
+public:
+  /**
+   * Write the compartment report.
+   */
+  CompartmentReportWriter(StringRef fileName, uint8_t *buffer,
+                          size_t bufferSize)
+      : Json({{"file", fileName},
+              {"core", json::Object()},
+              {"compartments", json::Object()},
+              {"sharedObjects", json::Array()}}),
+        buffer(buffer), bufferSize(bufferSize) {
+    if (config->shouldEmitCompartmentReport()) {
+      for (OutputSection *sec : outputSections)
+        if (sec->name == ".compartment_export_tables") {
+          processExports(sec, false);
+        } else if (sec->name == ".library_export_tables") {
+          processExports(sec, true);
+        } else if (sec->name == ".sealed_objects")
+          sealedObjects = sec;
+
+      if (Symbol *sym = symtab.find("__shared_objects_start"))
+        preSharedObjectStart = sym->getVA();
+      if (Symbol *sym = symtab.find("__shared_objects_end"))
+        preSharedObjectEnd = sym->getVA();
+      for (OutputSection *sec : outputSections)
+        addOutputSection(sec);
+      crossReferenceImports();
+      auto *compartmentJson = Json.getObject("compartments");
+      for (auto &c : compartments)
+        compartmentJson->insert({c.first, std::move(c.second)});
+      Json.insert(
+          {"final_hash", formatHex(SHA256::hash({buffer, bufferSize}))});
+      writeToFile(config->compartmentReportFile);
+    }
+  }
+};
 
 template <class ELFT> void Writer<ELFT>::writeSectionsBinary() {
   parallel::TaskGroup tg;
@@ -3033,6 +3796,10 @@ template <class ELFT> void Writer<ELFT>::writeSections() {
       if (sec->type != SHT_REL && sec->type != SHT_RELA)
         sec->writeTo<ELFT>(Out::bufferStart + sec->offset, tg);
   }
+
+  // Write a compartment report, if requested.
+  CompartmentReportWriter{config->outputFile, Out::bufferStart,
+                          Out::bufferSize};
 
   // Finally, check that all dynamic relocation addends were written correctly.
   if (config->checkDynamicRelocs && config->writeAddends) {

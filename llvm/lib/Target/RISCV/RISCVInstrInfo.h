@@ -68,6 +68,7 @@ public:
                          MachineBasicBlock::iterator MBBI, const DebugLoc &DL,
                          MCRegister DstReg, MCRegister SrcReg, bool KillSrc,
                          unsigned Opc, unsigned NF = 1) const;
+
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
                    const DebugLoc &DL, MCRegister DstReg, MCRegister SrcReg,
                    bool KillSrc) const override;
@@ -139,6 +140,17 @@ public:
 
   bool isAsCheapAsAMove(const MachineInstr &MI) const override;
 
+  bool isGuaranteedNotToTrap(const MachineInstr &MI) const override;
+  bool isSetBoundsInstr(const MachineInstr &I, const MachineOperand *&Base,
+                        const MachineOperand *&Size) const override;
+  bool isPtrAddInstr(const MachineInstr &I, const MachineOperand *&Base,
+                     const MachineOperand *&Increment) const override;
+  bool isCheriGetAddressInst(MachineInstr &MI) const override;
+  unsigned getCheriAddressSubregIdx(MVT CapTy) const override;
+  std::optional<int64_t>
+  getAsIntImmediate(const MachineOperand &Op,
+                    const MachineRegisterInfo &MRI) const override;
+
   std::optional<DestSourcePair>
   isCopyInstrImpl(const MachineInstr &MI) const override;
 
@@ -178,6 +190,9 @@ public:
 
   ArrayRef<std::pair<unsigned, const char *>>
   getSerializableDirectMachineOperandTargetFlags() const override;
+
+  ArrayRef<std::pair<unsigned, const char *>>
+  getSerializableBitmaskMachineOperandTargetFlags() const override;
 
   // Return true if the function can safely be outlined from.
   bool isFunctionSafeToOutlineFrom(MachineFunction &MF,

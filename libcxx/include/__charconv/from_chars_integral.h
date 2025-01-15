@@ -202,7 +202,12 @@ __from_chars_integral(const char* __first, const char* __last, _Tp& __value, int
 
         if (__p == __lastp || !__in_pattern(*__p, __b)) {
           if (__tl::max() - __x >= __y) {
+            _LIBCPP_DIAGNOSTIC_PUSH
+#    ifdef __CHERI_PURE_CAPABILITY__
+            _LIBCPP_CLANG_DIAGNOSTIC_IGNORED("-Wcheri-provenance")
+#    endif
             __val = __x + __y;
+            _LIBCPP_DIAGNOSTIC_POP
             return {__p, {}};
           }
         }

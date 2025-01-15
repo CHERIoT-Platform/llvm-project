@@ -102,6 +102,9 @@ def DisableSanitizerInstrumentation: EnumAttr<"disable_sanitizer_instrumentation
 /// Provide pointer element type to intrinsic.
 def ElementType : TypeAttr<"elementtype", [ParamAttr]>;
 
+/// Function has additional side-effects.
+def HasSideEffects : EnumAttr<"hassideeffects", [FnAttr]>;
+
 /// Whether to keep return instructions, or replace with a jump to an external
 /// symbol.
 def FnRetThunkExtern : EnumAttr<"fn_ret_thunk_extern", [FnAttr]>;
@@ -315,6 +318,14 @@ def WriteOnly : EnumAttr<"writeonly", [ParamAttr]>;
 /// Zero extended before/after call.
 def ZExt : EnumAttr<"zeroext", [ParamAttr, RetAttr]>;
 
+// This MemTransferInst may transfer capabilities and must not be
+// split into smaller loads/stores that would break this property
+def MustPreserveCheriTags : EnumAttr<"must_preserve_cheri_tags", [FnAttr]>;
+// This MemTransferInst will never transfer capabilities and can
+// therefore be split into smaller loads/stores and/or be lowered to
+// copy instructions/functions that do not retain CHERI tags.
+def NoPreserveCheriTags : EnumAttr<"no_preserve_cheri_tags", [FnAttr]>;
+
 /// Function is required to make Forward Progress.
 def MustProgress : EnumAttr<"mustprogress", [FnAttr]>;
 
@@ -374,6 +385,7 @@ def : CompatRule<"checkDenormMode">;
 def : CompatRuleStrAttr<"isEqual", "sign-return-address">;
 def : CompatRuleStrAttr<"isEqual", "sign-return-address-key">;
 def : CompatRuleStrAttr<"isEqual", "branch-protection-pauth-lr">;
+def : CompatRule<"isInterruptPostureCompatible">;
 
 class MergeRule<string F> {
   // The name of the function called to merge the attributes of the caller and

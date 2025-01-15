@@ -830,6 +830,69 @@ TEST(TripleTest, ParsedIDs) {
   EXPECT_EQ(Triple::GNU, T.getEnvironment());
   EXPECT_EQ(Triple::MipsSubArch_r6, T.getSubArch());
 
+  T = Triple("mips64-unknown-freebsd-purecap");
+  EXPECT_EQ(Triple::mips64, T.getArch());
+  EXPECT_EQ(Triple::UnknownVendor, T.getVendor());
+  EXPECT_EQ(Triple::FreeBSD, T.getOS());
+  EXPECT_EQ(Triple::CheriPurecap, T.getEnvironment());
+  EXPECT_EQ(Triple::NoSubArch, T.getSubArch());
+
+  T = Triple("mips64-unknown-linux-cheripurecap");
+  EXPECT_EQ(Triple::mips64, T.getArch());
+  EXPECT_EQ(Triple::UnknownVendor, T.getVendor());
+  EXPECT_EQ(Triple::Linux, T.getOS());
+  EXPECT_EQ(Triple::CheriPurecap, T.getEnvironment());
+  EXPECT_EQ(Triple::NoSubArch, T.getSubArch());
+  // Also allow mips64c as purecap triple
+  // And mips allow mips64c256 as purecap triple with cheri256
+  T = Triple("mips64c");
+  EXPECT_EQ(Triple::mips64, T.getArch());
+  EXPECT_EQ(Triple::UnknownVendor, T.getVendor());
+  EXPECT_EQ(Triple::UnknownOS, T.getOS());
+  EXPECT_EQ(Triple::CheriPurecap, T.getEnvironment());
+  EXPECT_EQ(Triple::NoSubArch, T.getSubArch());
+
+  // Backwards compat with build scripts:
+  T = Triple("cheri-unknown-freebsd");
+  EXPECT_EQ(Triple::mips64, T.getArch());
+  EXPECT_EQ(Triple::UnknownEnvironment, T.getEnvironment());
+  EXPECT_EQ(Triple::UnknownVendor, T.getVendor());
+  EXPECT_EQ(Triple::FreeBSD, T.getOS());
+  EXPECT_EQ(Triple::MipsSubArch_cheri128, T.getSubArch());
+  EXPECT_EQ(T.normalize(), "mips64c128-unknown-freebsd");
+
+  T = Triple("mips64c128");
+  EXPECT_EQ(Triple::mips64, T.getArch());
+  EXPECT_EQ(Triple::CheriPurecap, T.getEnvironment());
+  EXPECT_EQ(Triple::MipsSubArch_cheri128, T.getSubArch());
+  EXPECT_EQ(T.normalize(), "mips64c128-unknown-unknown-purecap");
+  T = Triple("mips64c256");
+  EXPECT_EQ(Triple::mips64, T.getArch());
+  EXPECT_EQ(Triple::CheriPurecap, T.getEnvironment());
+  EXPECT_EQ(Triple::MipsSubArch_cheri256, T.getSubArch());
+  EXPECT_EQ(T.normalize(), "mips64c256-unknown-unknown-purecap");
+  T = Triple("mips64c64");
+  EXPECT_EQ(Triple::mips64, T.getArch());
+  EXPECT_EQ(Triple::CheriPurecap, T.getEnvironment());
+  EXPECT_EQ(Triple::MipsSubArch_cheri64, T.getSubArch());
+  EXPECT_EQ(T.normalize(), "mips64c64-unknown-unknown-purecap");
+
+  T = Triple("mips64c128hybrid");
+  EXPECT_EQ(Triple::mips64, T.getArch());
+  EXPECT_EQ(Triple::GNUABI64, T.getEnvironment());
+  EXPECT_EQ(Triple::MipsSubArch_cheri128, T.getSubArch());
+  EXPECT_EQ(T.normalize(), "mips64c128-unknown-unknown-gnuabi64");
+  T = Triple("mips64c256hybrid");
+  EXPECT_EQ(Triple::mips64, T.getArch());
+  EXPECT_EQ(Triple::GNUABI64, T.getEnvironment());
+  EXPECT_EQ(Triple::MipsSubArch_cheri256, T.getSubArch());
+  EXPECT_EQ(T.normalize(), "mips64c256-unknown-unknown-gnuabi64");
+  T = Triple("mips64c64hybrid");
+  EXPECT_EQ(Triple::mips64, T.getArch());
+  EXPECT_EQ(Triple::GNUABI64, T.getEnvironment());
+  EXPECT_EQ(Triple::MipsSubArch_cheri64, T.getSubArch());
+  EXPECT_EQ(T.normalize(), "mips64c64-unknown-unknown-gnuabi64");
+
   T = Triple("mipsisa32r6-unknown-linux-gnu");
   EXPECT_EQ(Triple::mips, T.getArch());
   EXPECT_EQ(Triple::UnknownVendor, T.getVendor());
@@ -1162,6 +1225,24 @@ TEST(TripleTest, Normalization) {
             Triple::normalize("wasm32-wasi")); // wasm32-unknown-wasi
   EXPECT_EQ("wasm64-unknown-wasi",
             Triple::normalize("wasm64-wasi")); // wasm64-unknown-wasi
+}
+
+TEST(TripleTest, MutateNameCHERI) {
+  Triple T = Triple("mips64c");
+  EXPECT_EQ(Triple::mips64, T.getArch());
+  EXPECT_EQ(Triple::UnknownVendor, T.getVendor());
+  EXPECT_EQ(Triple::UnknownOS, T.getOS());
+  EXPECT_EQ(Triple::CheriPurecap, T.getEnvironment());
+  EXPECT_EQ(Triple::NoSubArch, T.getSubArch());
+  EXPECT_EQ(T.str(), "mips64c---purecap");
+  T.setOS(Triple::FreeBSD);
+  EXPECT_EQ(T.str(), "mips64c--freebsd-purecap");
+  T.setEnvironment(Triple::CheriPurecap);
+  EXPECT_EQ(Triple::CheriPurecap, T.getEnvironment());
+  EXPECT_EQ(T.str(), "mips64c--freebsd-purecap");
+  T.setEnvironment(Triple::GNUABI64);
+  EXPECT_EQ(Triple::GNUABI64, T.getEnvironment());
+  EXPECT_EQ(T.str(), "mips64c--freebsd-gnuabi64");
 }
 
 TEST(TripleTest, MutateName) {

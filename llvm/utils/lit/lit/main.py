@@ -39,10 +39,14 @@ def main(builtin_params={}):
         isWindows=is_windows,
         order=opts.order,
         params=params,
+        shardNumber=opts.runShard,
         config_prefix=opts.configPrefix,
         per_test_coverage=opts.per_test_coverage,
         gtest_sharding=opts.gtest_sharding,
     )
+
+    lit_config.cheri_test_mode = opts.cheri_tests_filter
+    lit_config.run_with_debugger = opts.run_with_debugger
 
     discovered_tests = lit.discovery.find_tests_for_inputs(
         lit_config, opts.test_paths
@@ -115,6 +119,8 @@ def main(builtin_params={}):
             sys.exit(0)
 
     selected_tests = selected_tests[: opts.max_tests]
+    if opts.skipTests is not None:
+        selected_tests = selected_tests[opts.skipTests:]
 
     mark_xfail(discovered_tests, opts)
 

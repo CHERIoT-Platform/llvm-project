@@ -37,7 +37,7 @@ int main(int, char**)
             std::string in(" A\x07.a1\xfb");
             std::vector<wchar_t> v(in.size());
 
-            assert(f.widen(&in[0], in.data() + in.size(), v.data()) == in.data() + in.size());
+            assert(f.widen(in.data(), in.data() + in.size(), v.data()) == in.data() + in.size());
             assert(v[0] == L' ');
             assert(v[1] == L'A');
             assert(v[2] == L'\x07');
@@ -56,7 +56,7 @@ int main(int, char**)
             std::string in(" A\x07.a1\xfb");
             std::vector<wchar_t> v(in.size());
 
-            assert(f.widen(&in[0], in.data() + in.size(), v.data()) == in.data() + in.size());
+            assert(f.widen(in.data(), in.data() + in.size(), v.data()) == in.data() + in.size());
             assert(v[0] == L' ');
             assert(v[1] == L'A');
             assert(v[2] == L'\x07');

@@ -2087,13 +2087,15 @@ public:
                               const DeclSpec *DS = nullptr);
   QualType BuildQualifiedType(QualType T, SourceLocation Loc, unsigned CVRA,
                               const DeclSpec *DS = nullptr);
-  QualType BuildPointerType(QualType T,
-                            SourceLocation Loc, DeclarationName Entity);
+  QualType BuildPointerType(QualType T, PointerInterpretationKind PIK,
+                            SourceLocation Loc, DeclarationName Entity,
+                            bool* ValidPointer);
   QualType BuildReferenceType(QualType T, bool LValueRef,
                               SourceLocation Loc, DeclarationName Entity);
-  QualType BuildArrayType(QualType T, ArraySizeModifier ASM, Expr *ArraySize,
-                          unsigned Quals, SourceRange Brackets,
-                          DeclarationName Entity);
+  QualType BuildArrayType(QualType T, ArraySizeModifier ASM,
+                          Expr *ArraySize, unsigned Quals,
+                          SourceRange Brackets, DeclarationName Entity,
+                          std::optional<PointerInterpretationKind> PIK);
   QualType BuildVectorType(QualType T, Expr *VecSize, SourceLocation AttrLoc);
   QualType BuildExtVectorType(QualType T, Expr *ArraySize,
                               SourceLocation AttrLoc);
@@ -2109,6 +2111,10 @@ public:
 
   CodeAlignAttr *BuildCodeAlignAttr(const AttributeCommonInfo &CI, Expr *E);
   bool CheckRebuiltStmtAttributes(ArrayRef<const Attr *> Attrs);
+
+  QualType BuildPointerInterpretationAttr(QualType T,
+                                          PointerInterpretationKind PIK,
+                                          SourceLocation QualifierLoc);
 
   bool CheckQualifiedFunctionForTypeId(QualType T, SourceLocation Loc);
 
@@ -4751,8 +4757,16 @@ public:
     bool IgnoreTypeAttributes;
   };
 
+  enum DeclAttributeLocation {
+    DAL_Unspecified,
+    DAL_DeclSpec,
+    DAL_DeclChunk,
+    DAL_Decl,
+  };
+
   void ProcessDeclAttributeList(Scope *S, Decl *D,
                                 const ParsedAttributesView &AttrList,
+                                DeclAttributeLocation DAL = DAL_Unspecified,
                                 const ProcessDeclAttributeOptions &Options =
                                     ProcessDeclAttributeOptions());
   bool ProcessAccessDeclAttributeList(AccessSpecDecl *ASDecl,
@@ -5510,6 +5524,9 @@ public:
   void DiagnoseSentinelCalls(const NamedDecl *D, SourceLocation Loc,
                              ArrayRef<Expr *> Args);
 
+  PointerInterpretationKind
+  PointerInterpretationForBaseExpr(const Expr *Base) const;
+
   void PushExpressionEvaluationContext(
       ExpressionEvaluationContext NewContext, Decl *LambdaContextDecl = nullptr,
       ExpressionEvaluationContextRecord::ExpressionKind Type =
@@ -5793,6 +5810,8 @@ public:
   ExprResult ActOnCharacterConstant(const Token &Tok,
                                     Scope *UDLScope = nullptr);
   ExprResult ActOnParenExpr(SourceLocation L, SourceLocation R, Expr *E);
+  ExprResult ActOnNoChangeBoundsExpr(SourceLocation L, SourceLocation R,
+                                     Expr *E);
   ExprResult ActOnParenListExpr(SourceLocation L,
                                 SourceLocation R,
                                 MultiExprArg Val);
@@ -10843,6 +10862,23 @@ public:
                                   SourceLocation RParenLoc,
                                   Expr *SubExpr);
 
+  ExprResult BuildCheriToOrFromCap(SourceLocation LParenLoc, bool IsToCap,
+                                   TypeSourceInfo *TSInfo,
+                                   SourceLocation RParenLoc, Expr *SubExpr);
+
+  ExprResult BuildCheriOffsetOrAddress(SourceLocation LParenLoc,
+                                       bool IsOffsetCast,
+                                       TypeSourceInfo *TSInfo,
+                                       SourceLocation RParenLoc, Expr *SubExpr);
+
+  ExprResult ActOnCheriCast(Scope *S, SourceLocation LParenLoc,
+                            tok::TokenKind Kind, SourceLocation KeywordLoc,
+                            ParsedType Type, SourceLocation RParenLoc,
+                            Expr *SubExpr);
+
+  bool CheckCHERIAssignCompatible(QualType LHS, QualType RHS, Expr *&RHSExpr,
+                                  bool InsertBitCast = true);
+
   void CheckTollFreeBridgeCast(QualType castType, Expr *castExpr);
 
   void CheckObjCBridgeRelatedCast(QualType castType, Expr *castExpr);
@@ -10904,9 +10940,21 @@ public:
   void ActOnPragmaOptionsAlign(PragmaOptionsAlignKind Kind,
                                SourceLocation PragmaLoc);
 
+  PointerInterpretationKind PointerInterpretation;
+  llvm::SmallVector<PointerInterpretationKind, 4> PointerInterpretationStack;
+
   /// ActOnPragmaPack - Called on well formed \#pragma pack(...).
   void ActOnPragmaPack(SourceLocation PragmaLoc, PragmaMsStackAction Action,
                        StringRef SlotLabel, Expr *Alignment);
+
+  void ActOnPragmaPointerInterpretation(PointerInterpretationKind K);
+  void ActOnPragmaPointerInterpretationPush() {
+    PointerInterpretationStack.push_back(PointerInterpretation);
+  }
+  void ActOnPragmaPointerInterpretationPop() {
+    PointerInterpretation = PointerInterpretationStack.back();
+    PointerInterpretationStack.pop_back();
+  }
 
   enum class PragmaAlignPackDiagnoseKind {
     NonDefaultStateAtInclude,
@@ -11027,6 +11075,12 @@ public:
                                   SourceLocation PragmaLoc,
                                   SourceLocation WeakNameLoc,
                                   SourceLocation AliasNameLoc);
+
+  void ActOnPragmaOpaque(IdentifierInfo* TypeName,
+                         IdentifierInfo* KeyName,
+                         SourceLocation PragmaLoc,
+                         SourceLocation TypeLoc,
+                         SourceLocation KeyLoc);
 
   /// ActOnPragmaWeakAlias - Called on well formed \#pragma weak ident = ident.
   void ActOnPragmaWeakAlias(IdentifierInfo* WeakName,
@@ -12636,6 +12690,11 @@ public:
                     const CXXCastPath *BasePath = nullptr,
                     CheckedConversionKind CCK = CCK_ImplicitConversion);
 
+  /// ImpCastPointerToCHERICapability - Checks if pointer type FromTy can be
+  /// implicitly converted to capability type ToTy
+  bool ImpCastPointerToCHERICapability(QualType FromTy, QualType ToTy,
+                                       Expr *&From, bool Diagnose);
+
   /// ScalarTypeToBooleanCastKind - Returns the cast kind corresponding
   /// to the conversion from scalar type ScalarTy to the Boolean type.
   static CastKind ScalarTypeToBooleanCastKind(QualType ScalarTy);
@@ -12776,6 +12835,13 @@ public:
     /// IntToPointer - The assignment converts an int to a pointer, which we
     /// accept as an extension.
     IntToPointer,
+
+    /// CHERICapabilityToPointer - The assignment converts a capability to a
+    /// pointer, which we reject (it needs an explicit __cheri_fromcap).
+    CHERICapabilityToPointer,
+    /// PointerToCHERICapability - The assignment converts a pointer to a
+    /// capability, which we reject (it needs an explicit __cheri_tocap).
+    PointerToCHERICapability,
 
     /// FunctionVoidPointer - The assignment is between a function pointer and
     /// void*, which the standard doesn't allow, but we accept as an extension.

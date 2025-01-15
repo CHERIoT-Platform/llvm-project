@@ -111,6 +111,10 @@ if (__MIPSHF AND __MIPS_O32)
     CMAKE_FLAGS -DCMAKE_C_LINK_EXECUTABLE='echo')
 endif()
 
+set(LIBUNWIND_TEST_CONFIG "${CMAKE_CURRENT_SOURCE_DIR}/test/lit.site.cfg.in" CACHE STRING
+        "The Lit testing configuration to use when running the tests.")
+set(LIBUNWIND_TEST_PARAMS "" CACHE STRING
+        "A list of parameters to run the Lit test suite with.")
 #===============================================================================
 # Configure System
 #===============================================================================
@@ -261,7 +265,9 @@ else()
 endif()
 
 # Cross-unwinding
-if (NOT LIBUNWIND_ENABLE_CROSS_UNWINDING)
+if (LIBUNWIND_ENABLE_CROSS_UNWINDING)
+  add_compile_flags(-D_LIBUNWIND_ENABLE_CROSS_UNWINDING)
+else()
   add_compile_flags(-D_LIBUNWIND_IS_NATIVE_ONLY)
 endif()
 
@@ -308,6 +314,10 @@ if (C_SUPPORTS_COMMENT_LIB_PRAGMA)
   if (LIBUNWIND_HAS_PTHREAD_LIB)
     add_definitions(-D_LIBUNWIND_LINK_PTHREAD_LIB)
   endif()
+endif()
+
+if (LIBUNWIND_HAS_CHERI_LIB_C18N)
+  add_compile_definitions(_LIBUNWIND_HAS_CHERI_LIB_C18N)
 endif()
 
 #===============================================================================

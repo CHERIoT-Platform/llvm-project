@@ -78,6 +78,40 @@ enum Fixups {
   fixup_riscv_tlsdesc_add_lo12,
   fixup_riscv_tlsdesc_call,
 
+  // fixup_riscv_captab_pcrel_hi20 - 20-bit fixup corresponding to
+  // captab_pcrel_hi(foo) for instructions like auipcc
+  fixup_riscv_captab_pcrel_hi20,
+  // fixup_riscv_capability - CLen-bit fixup corresponding to .chericap
+  fixup_riscv_capability,
+  // fixup_riscv_tprel_cincoffset - A fixup corresponding to
+  // %tprel_cincoffset(foo) for the cincoffset_tls instruction. Used to provide
+  // a hint to the linker.
+  fixup_riscv_tprel_cincoffset,
+  // fixup_riscv_tls_ie_captab_pcrel_hi20 - 20-bit fixup corresponding to
+  // tls_ie_captab_pcrel_hi(foo) for instructions like auipcc
+  fixup_riscv_tls_ie_captab_pcrel_hi20,
+  // fixup_riscv_tls_gd_captab_pcrel_hi20 - 20-bit fixup corresponding to
+  // tls_gd_captab_pcrel_hi(foo) for instructions like auipcc
+  fixup_riscv_tls_gd_captab_pcrel_hi20,
+  // fixup_riscv_cjal - 20-bit fixup for symbol references in the cjal
+  // instruction
+  fixup_riscv_cjal,
+  // fixup_riscv_call - A fixup representing a ccall attached to the auipcc
+  // instruction in a pair composed of adjacent auipcc+cjalr instructions.
+  fixup_riscv_ccall,
+  // fixup_riscv_rvc_cjump - 11-bit fixup for symbol references in the
+  // compressed capability jump instruction
+  fixup_riscv_rvc_cjump,
+
+  // $cgp- or $pcc-relative global, used with auicgp / auipcc instructions
+  fixup_riscv_cheriot_compartment_hi,
+  // $cgp- or $pcc-relative global, used with RV32 I instructions
+  fixup_riscv_cheriot_compartment_lo_i,
+  // $cgp-relative global, used with RV32 S instructions
+  fixup_riscv_cheriot_compartment_lo_s,
+  // Size of the symbol.
+  fixup_riscv_cheriot_compartment_size,
+
   // Used as a sentinel, must be the last
   fixup_riscv_invalid,
   NumTargetFixupKinds = fixup_riscv_invalid - FirstTargetFixupKind

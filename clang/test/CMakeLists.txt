@@ -128,17 +128,18 @@ if( NOT CLANG_BUILT_STANDALONE )
     llvm-objdump
     llvm-pdbutil
     llvm-profdata
-    llvm-rc
     llvm-readelf
     llvm-readobj
     llvm-strip
     llvm-symbolizer
-    llvm-windres
     opt
     split-file
     yaml2obj
     )
 
+  if (TARGET llvm-rc)
+    list(APPEND LLVM_TEST_DEPENDS llvm-rc llvm-windres)
+  endif()
   if(TARGET llvm-lto)
     list(APPEND CLANG_TEST_DEPS llvm-lto)
   endif()
@@ -168,7 +169,7 @@ configure_file(AST/gen_ast_dump_json_test.py
 add_custom_target(clang-test-depends DEPENDS ${CLANG_TEST_DEPS})
 set_target_properties(clang-test-depends PROPERTIES FOLDER "Clang tests")
 
-add_lit_testsuite(check-clang "Running the Clang regression tests"
+add_lit_testsuite_with_cheri_selectors(check-clang "Running the Clang regression tests"
   ${CMAKE_CURRENT_BINARY_DIR}
   #LIT ${LLVM_LIT}
   PARAMS ${CLANG_TEST_PARAMS}

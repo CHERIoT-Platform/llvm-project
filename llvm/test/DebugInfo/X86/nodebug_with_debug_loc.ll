@@ -54,12 +54,12 @@ entry:
 
 for.body:                                         ; preds = %for.body, %entry
   %iter.02 = phi i32 [ 0, %entry ], [ %inc, %for.body ]
-  call void @llvm.lifetime.start(i64 4, ptr %str2.i), !dbg !26
+  call void @llvm.lifetime.start.p0(i64 4, ptr %str2.i), !dbg !26
   call void @llvm.dbg.value(metadata ptr %str2.i, metadata !16, metadata !DIExpression(DW_OP_deref)) #3, !dbg !26
   call void @llvm.dbg.value(metadata ptr %str2.i, metadata !27, metadata !DIExpression(DW_OP_deref)) #3, !dbg !29
   call void @_Z4sinkPKv(ptr undef) #3, !dbg !29
   call void @_Z4sinkPKv(ptr %str2.i) #3, !dbg !30
-  call void @llvm.lifetime.end(i64 4, ptr %str2.i), !dbg !31
+  call void @llvm.lifetime.end.p0(i64 4, ptr %str2.i), !dbg !31
   %1 = load ptr, ptr %0, align 4, !tbaa !32
   call void @_Z4sinkPKv(ptr %1) #3
   %2 = load i8, ptr @b, align 1, !tbaa !37, !range !39
@@ -79,10 +79,10 @@ declare void @_Z4sinkPKv(ptr) #1
 declare void @llvm.dbg.value(metadata, metadata, metadata) #2
 
 ; Function Attrs: nounwind
-declare void @llvm.lifetime.start(i64, ptr nocapture) #3
+declare void @llvm.lifetime.start.p0(i64, ptr nocapture) #3
 
 ; Function Attrs: nounwind
-declare void @llvm.lifetime.end(i64, ptr nocapture) #3
+declare void @llvm.lifetime.end.p0(i64, ptr nocapture) #3
 
 attributes #0 = { nounwind "less-precise-fpmad"="false" "frame-pointer"="none" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-realign-stack" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { "less-precise-fpmad"="false" "frame-pointer"="none" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-realign-stack" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }

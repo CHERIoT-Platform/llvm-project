@@ -13,6 +13,19 @@
 // clang-format off
 
 /*
+ * CHERI CHANGES START
+ * {
+ *   "updated": 20190426,
+ *   "target_type": "header",
+ *   "changes": [
+ *     "subobject_bounds"
+ *   ],
+ *   "change_comment": "std::string: short-string optimization references to __data_ should span the full array since they are passed to std::addressof()"
+ * }
+ * CHERI CHANGES END
+ */
+
+/*
     string synopsis
 
 #include <compare>
@@ -757,7 +770,9 @@ private:
   enum { __min_cap = (sizeof(__long) - 1) / sizeof(value_type) > 2 ? (sizeof(__long) - 1) / sizeof(value_type) : 2 };
 
   struct __short {
-    value_type __data_[__min_cap];
+    // XXXAR: Don't set set 1 char bounds for the references to __data_[0]
+    // that is then passed to std::addressof()
+    value_type __data_[__min_cap] _LIBCPP_NO_SUBOBJECT_BOUNDS;
     unsigned char __padding_[sizeof(value_type) - 1];
     unsigned char __size_    : 7;
     unsigned char __is_long_ : 1;
@@ -811,7 +826,9 @@ private:
       unsigned char __size_    : 7;
     };
     char __padding_[sizeof(value_type) - 1];
-    value_type __data_[__min_cap];
+    // XXXAR: Don't set set 1 char bounds for the references to __data_[0]
+    // that is then passed to std::addressof()
+    value_type __data_[__min_cap] _LIBCPP_NO_SUBOBJECT_BOUNDS;
   };
 
 #endif // _LIBCPP_ABI_ALTERNATE_STRING_LAYOUT

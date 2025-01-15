@@ -298,7 +298,7 @@ Register FastISel::materializeConstant(const Value *V, MVT VT) {
     if (!Reg) {
       // Try to emit the constant by using an integer constant with a cast.
       const APFloat &Flt = CF->getValueAPF();
-      EVT IntVT = TLI.getPointerTy(DL);
+      EVT IntVT = TLI.getPointerRangeTy(DL);
       uint32_t IntBitWidth = IntVT.getSizeInBits();
       APSInt SIntVal(IntBitWidth, /*isUnsigned=*/false);
       bool isExact;
@@ -387,7 +387,7 @@ Register FastISel::getRegForGEPIndex(const Value *Idx) {
     return Register();
 
   // If the index is smaller or larger than intptr_t, truncate or extend it.
-  MVT PtrVT = TLI.getPointerTy(DL);
+  MVT PtrVT = TLI.getPointerRangeTy(DL);
   EVT IdxVT = EVT::getEVT(Idx->getType(), /*HandleUnknown=*/false);
   if (IdxVT.bitsLT(PtrVT)) {
     IdxN = fastEmit_r(IdxVT.getSimpleVT(), PtrVT, ISD::SIGN_EXTEND, IdxN);
@@ -532,6 +532,8 @@ bool FastISel::selectGetElementPtr(const User *I) {
   Register N = getRegForValue(I->getOperand(0));
   if (!N) // Unhandled operand. Halt "fast" selection and bail.
     return false;
+  if (DL.isFatPointer(I->getOperand(0)->getType()))
+    return false;
 
   // FIXME: The code below does not handle vector GEPs. Halt "fast" selection
   // and bail.
@@ -543,7 +545,7 @@ bool FastISel::selectGetElementPtr(const User *I) {
   uint64_t TotalOffs = 0;
   // FIXME: What's a good SWAG number for MaxOffs?
   uint64_t MaxOffs = 2048;
-  MVT VT = TLI.getPointerTy(DL);
+  MVT VT = TLI.getPointerRangeTy(DL);
   for (gep_type_iterator GTI = gep_type_begin(I), E = gep_type_end(I);
        GTI != E; ++GTI) {
     const Value *Idx = GTI.getOperand();

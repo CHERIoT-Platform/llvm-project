@@ -22,6 +22,7 @@
 #include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/Analysis/CFG.h"
 #include "llvm/Analysis/ValueTracking.h"
+#include "llvm/IR/Cheri.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/Instructions.h"
@@ -380,7 +381,7 @@ UseCaptureKind llvm::DetermineUseCaptureKind(
       // Don't count comparisons of a no-alias return value against null as
       // captures. This allows us to ignore comparisons of malloc results
       // with null, for example.
-      if (CPN->getType()->getAddressSpace() == 0)
+      if (CPN->getType()->getAddressSpace() == 0 || isCheriPointer(CPN->getType(), getDataLayoutOrNull(I)))
         if (isNoAliasCall(U.get()->stripPointerCasts()))
           return UseCaptureKind::NO_CAPTURE;
       if (!I->getFunction()->nullPointerIsDefined()) {

@@ -907,6 +907,14 @@ public:
     return const_cast<Expr *>(this)->IgnoreParenImpCasts();
   }
 
+  /// XXXAR: This is the same as IgnoreParenImpCasts but doesn't ignore
+  /// NoChangeBoundsExpr. Needed for CHERI subobject bounds
+  Expr *IgnoreParenImpCastsExceptForNoChangeBounds() LLVM_READONLY;
+  const Expr *IgnoreParenImpCastsExceptForNoChangeBounds() const {
+    return const_cast<Expr *>(this)
+        ->IgnoreParenImpCastsExceptForNoChangeBounds();
+  }
+
   /// Skip past any parentheses and casts which might surround this expression
   /// until reaching a fixed point. Skips:
   /// * What IgnoreParens() skips
@@ -1000,6 +1008,17 @@ public:
     SmallVector<SubobjectAdjustment, 8> Adjustments;
     return skipRValueSubobjectAdjustments(CommaLHSs, Adjustments);
   }
+
+  /// Returns true if the underlying memory of this expression is
+  /// accessed through a capability.
+  bool hasUnderlyingCapability() const;
+
+  /// XXXAR: Expr->getType() returns int for the initializers expression in
+  /// `void x(int& __capability arg) { int& a = arg }`
+  /// DeclRefExpr 0x7ffb54000590 'int' lvalue ParmVar 0x7ffb53873eb8 'arg' 'int & __capability'
+  /// We need to also check the underlying type and return that
+  QualType getRealReferenceType(ASTContext &C,
+                                bool LValuesAsReferences = true) const;
 
   /// Checks that the two Expr's will refer to the same value as a comparison
   /// operand.  The caller must ensure that the values referenced by the Expr's
@@ -2106,13 +2125,17 @@ public:
 class ParenExpr : public Expr {
   SourceLocation L, R;
   Stmt *Val;
-public:
-  ParenExpr(SourceLocation l, SourceLocation r, Expr *val)
-      : Expr(ParenExprClass, val->getType(), val->getValueKind(),
-             val->getObjectKind()),
+protected:
+  ParenExpr(StmtClass SC, EmptyShell Empty) : Expr(SC, Empty) {}
+  ParenExpr(StmtClass SC, SourceLocation l, SourceLocation r, Expr *val)
+      : Expr(SC, val->getType(), val->getValueKind(), val->getObjectKind()),
         L(l), R(r), Val(val) {
     setDependence(computeDependence(this));
   }
+
+public:
+  ParenExpr(SourceLocation l, SourceLocation r, Expr *val)
+      : ParenExpr(ParenExprClass, l, r, val) {}
 
   /// Construct an empty parenthesized expression.
   explicit ParenExpr(EmptyShell Empty)
@@ -2134,13 +2157,58 @@ public:
   void setRParen(SourceLocation Loc) { R = Loc; }
 
   static bool classof(const Stmt *T) {
-    return T->getStmtClass() == ParenExprClass;
+    return T->getStmtClass() >= firstParenExprConstant &&
+           T->getStmtClass() <= lastParenExprConstant;
   }
 
   // Iterators
   child_range children() { return child_range(&Val, &Val+1); }
   const_child_range children() const {
     return const_child_range(&Val, &Val + 1);
+  }
+};
+
+/// NoChangeBoundsExpr - A __builtin_no_change_bounds() expression.
+/// This expression only has an effect if CHERI sub-object bounds are enabled,
+/// otherwise it can be ignored.
+/// In case sub-object bounds are enabled, this expression can be used to
+/// disable the tightening of bounds that would normally happen for the given
+/// expression: e.g. __builtin_no_change_bounds(my_array) will not set bounds
+/// on the resulting array decay, or __builtin_no_change_bounds(&foo.b) will
+/// not attempt to set bounds to the size of member b.
+/// The orginal bounds of the expression will be used.
+/// Note: this only applies to the expression immediately below, so for example
+/// __builtin_no_change_bounds(&(&foo.bar)->a) will still set bounds on bar.
+///
+/// XXXAR: inheriting from ParenExpr is probably wrong, but it means I need to
+/// chage a lot less code since this almost always behaves in the same way as
+/// a ParenExpr.
+/// This means a parentExpr might report a LParenLoc that is actually the start
+/// of the __builtin_ identifier and not the paren. I doubt this should matter
+/// in practise though.
+class NoChangeBoundsExpr : public ParenExpr {
+  NoChangeBoundsExpr(SourceLocation start, SourceLocation end, Expr *val)
+      : ParenExpr(NoChangeBoundsExprClass, start, end, val) {}
+
+public:
+  static NoChangeBoundsExpr *Create(const ASTContext &Context, SourceLocation L,
+                                    SourceLocation R, Expr *E) {
+    return new (Context) NoChangeBoundsExpr(L, R, E);
+  }
+
+  // The LParen and accessors should be inaccessible when casted to
+  // NoChangeBoundsExpr
+  SourceLocation getLParen() const = delete;
+  void setLParen(SourceLocation L) = delete;
+  SourceLocation getBuiltinLoc() const { return ParenExpr::getLParen(); }
+  void setBuiltinLoc(SourceLocation Loc) { ParenExpr::setLParen(Loc); }
+
+  /// Construct an empty no change bounds expression.
+  explicit NoChangeBoundsExpr(EmptyShell Empty)
+      : ParenExpr(NoChangeBoundsExprClass, Empty) {}
+
+  static bool classof(const Stmt *T) {
+    return T->getStmtClass() == NoChangeBoundsExprClass;
   }
 };
 
@@ -3466,7 +3534,7 @@ public:
 class CastExpr : public Expr {
   Stmt *Op;
 
-  bool CastConsistency() const;
+  bool CastConsistency(const ASTContext &Ctx) const;
 
   const CXXBaseSpecifier * const *path_buffer() const {
     return const_cast<CastExpr*>(this)->path_buffer();
@@ -3477,14 +3545,15 @@ class CastExpr : public Expr {
 
 protected:
   CastExpr(StmtClass SC, QualType ty, ExprValueKind VK, const CastKind kind,
-           Expr *op, unsigned BasePathSize, bool HasFPFeatures)
-      : Expr(SC, ty, VK, OK_Ordinary), Op(op) {
+           Expr *op, unsigned BasePathSize, bool HasFPFeatures,
+           const ASTContext &Ctx)
+      : Expr(SC, provenanceCheckedTy(ty, Ctx, op), VK, OK_Ordinary), Op(op) {
     CastExprBits.Kind = kind;
     CastExprBits.PartOfExplicitCast = false;
     CastExprBits.BasePathSize = BasePathSize;
     assert((CastExprBits.BasePathSize == BasePathSize) &&
            "BasePathSize overflow!");
-    assert(CastConsistency());
+    assert(CastConsistency(Ctx));
     CastExprBits.HasFPFeatures = HasFPFeatures;
   }
 
@@ -3595,6 +3664,27 @@ public:
            T->getStmtClass() <= lastCastExprConstant;
   }
 
+  // Check if @p Dst can carry provenance (i.e. CHERI tag bits) and if not
+  // change it to the non-provenance carrying annotated type.
+  // Note: This only applies to (u)intcap_t.
+  static QualType checkProvenanceImpl(QualType T, const ASTContext &Ctx,
+                                      const Expr *Src);
+  static inline QualType provenanceCheckedTy(QualType T, const ASTContext &Ctx,
+                                             const Expr *op) {
+    if (LLVM_UNLIKELY(T->isIntCapType()))
+      return checkProvenanceImpl(T, Ctx, op);
+    return T;
+  }
+  // Always pass the ASTContext to setType() to allow calling checkProvenance():
+  void setType(QualType t) = delete;
+  void setType(QualType t, const ASTContext &Ctx, const Expr *Src) {
+    Expr::setType(provenanceCheckedTy(t, Ctx, Src));
+  }
+  void setType(QualType t, bool ProvenanceChecked) {
+    assert(ProvenanceChecked);
+    Expr::setType(t);
+  };
+
   // Iterators
   child_range children() { return child_range(&Op, &Op+1); }
   const_child_range children() const { return const_child_range(&Op, &Op + 1); }
@@ -3627,9 +3717,9 @@ class ImplicitCastExpr final
 
   ImplicitCastExpr(QualType ty, CastKind kind, Expr *op,
                    unsigned BasePathLength, FPOptionsOverride FPO,
-                   ExprValueKind VK)
+                   ExprValueKind VK, const ASTContext &Ctx)
       : CastExpr(ImplicitCastExprClass, ty, VK, kind, op, BasePathLength,
-                 FPO.requiresTrailingStorage()) {
+                 FPO.requiresTrailingStorage(), Ctx) {
     setDependence(computeDependence(this));
     if (hasStoredFPFeatures())
       *getTrailingFPFeatures() = FPO;
@@ -3647,9 +3737,9 @@ class ImplicitCastExpr final
 public:
   enum OnStack_t { OnStack };
   ImplicitCastExpr(OnStack_t _, QualType ty, CastKind kind, Expr *op,
-                   ExprValueKind VK, FPOptionsOverride FPO)
+                   ExprValueKind VK, FPOptionsOverride FPO, const ASTContext &Ctx)
       : CastExpr(ImplicitCastExprClass, ty, VK, kind, op, 0,
-                 FPO.requiresTrailingStorage()) {
+                 FPO.requiresTrailingStorage(), Ctx) {
     if (hasStoredFPFeatures())
       *getTrailingFPFeatures() = FPO;
   }
@@ -3706,8 +3796,9 @@ class ExplicitCastExpr : public CastExpr {
 protected:
   ExplicitCastExpr(StmtClass SC, QualType exprTy, ExprValueKind VK,
                    CastKind kind, Expr *op, unsigned PathSize,
-                   bool HasFPFeatures, TypeSourceInfo *writtenTy)
-      : CastExpr(SC, exprTy, VK, kind, op, PathSize, HasFPFeatures),
+                   bool HasFPFeatures, TypeSourceInfo *writtenTy,
+                   const ASTContext &Ctx)
+      : CastExpr(SC, exprTy, VK, kind, op, PathSize, HasFPFeatures, Ctx),
         TInfo(writtenTy) {
     setDependence(computeDependence(this));
   }
@@ -3742,12 +3833,15 @@ class CStyleCastExpr final
                                     FPOptionsOverride> {
   SourceLocation LPLoc; // the location of the left paren
   SourceLocation RPLoc; // the location of the right paren
+  // To indicate __cheri_foo casts in dependent contexts
+  CastKind DependentCastKind = CK_Dependent;
 
   CStyleCastExpr(QualType exprTy, ExprValueKind vk, CastKind kind, Expr *op,
                  unsigned PathSize, FPOptionsOverride FPO,
-                 TypeSourceInfo *writtenTy, SourceLocation l, SourceLocation r)
+                 TypeSourceInfo *writtenTy, SourceLocation l, SourceLocation r,
+                 const ASTContext &Ctx)
       : ExplicitCastExpr(CStyleCastExprClass, exprTy, vk, kind, op, PathSize,
-                         FPO.requiresTrailingStorage(), writtenTy),
+                         FPO.requiresTrailingStorage(), writtenTy, Ctx),
         LPLoc(l), RPLoc(r) {
     if (hasStoredFPFeatures())
       *getTrailingFPFeatures() = FPO;
@@ -3776,6 +3870,18 @@ public:
 
   SourceLocation getRParenLoc() const { return RPLoc; }
   void setRParenLoc(SourceLocation L) { RPLoc = L; }
+
+
+  // These two functions are needed to correctly reassemble __cheri_* casts
+  // in template instantiations without adding a new CastExpr to the hierarchy
+  CastKind getDependentCastKind() const {
+    assert(getCastKind() == CK_Dependent);
+    return DependentCastKind;
+  }
+  void setDependentCastKind(CastKind NewCK) {
+    assert(getCastKind() == CK_Dependent);
+    DependentCastKind = NewCK;
+  }
 
   SourceLocation getBeginLoc() const LLVM_READONLY { return LPLoc; }
   SourceLocation getEndLoc() const LLVM_READONLY {
@@ -3960,6 +4066,20 @@ public:
       return Opcode(unsigned(Opc) - BO_AndAssign + BO_And);
     else
       return Opcode(unsigned(Opc) - BO_MulAssign + BO_Mul);
+  }
+
+  bool isCommutative() const { return isCommutative(getOpcode()); }
+  static bool isCommutative(Opcode Opc) {
+    switch (Opc) {
+    case BO_Add:
+    case BO_Mul:
+    case BO_And:
+    case BO_Or:
+    case BO_Xor:
+      return true;
+    default:
+      return false;
+    }
   }
 
   static bool isShiftAssignOp(Opcode Opc) {

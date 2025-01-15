@@ -13,6 +13,7 @@
 
 #include "llvm/Target/TargetLoweringObjectFile.h"
 #include "llvm/BinaryFormat/Dwarf.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"
@@ -23,6 +24,7 @@
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCExpr.h"
+#include "llvm/MC/MCSectionELF.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/SectionKind.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -146,6 +148,25 @@ void TargetLoweringObjectFile::emitPersonalityValue(MCStreamer &Streamer,
                                                     const MCSymbol *Sym) const {
 }
 
+// TODO: these functions should move somewhere else
+static bool isCapabilityType(const Type* T, const DataLayout& DL) {
+  if (T->isPointerTy())
+    return DL.isFatPointer(T);
+  for (const Type* SubTy : T->subtypes()) {
+    if (isCapabilityType(SubTy, DL))
+      return true;
+  }
+  return false;
+}
+
+/// Check whether the global variable needs a capability relocation (such as
+/// setting the tag bit on startup). This is needed to check whether the
+/// variable can be placed into the read only section
+static bool needsCapabilityRelocation(const GlobalVariable* GV,
+                                      const DataLayout& DL) {
+  // TODO: make it dependent on the initializer
+  return isCapabilityType(GV->getValueType(), DL);
+}
 void TargetLoweringObjectFile::emitCGProfileMetadata(MCStreamer &Streamer,
                                                      Module &M) const {
   MCContext &C = getContext();
@@ -294,6 +315,11 @@ SectionKind TargetLoweringObjectFile::getKindForGlobal(const GlobalObject *GO,
       }
 
     } else {
+      // Even with a static relocation model the startup code will have to
+      // modify capabilities to initialize them because we can't store tag bits
+      // in the ELF file
+      if (needsCapabilityRelocation(GVar, GVar->getParent()->getDataLayout()))
+        return SectionKind::getReadOnlyWithRel();
       // In static, ROPI and RWPI relocation models, the linker will resolve
       // all addresses, so the relocation entries will actually be constants by
       // the time the app starts up.  However, we can't put this into a

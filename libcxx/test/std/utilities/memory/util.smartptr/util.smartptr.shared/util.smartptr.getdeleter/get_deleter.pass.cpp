@@ -36,11 +36,15 @@ int main(int, char**)
         {
             A* ptr = new A;
             std::shared_ptr<A> p(ptr, test_deleter<A>(3));
+#ifndef _LIBCPP_NO_RTTI
             test_deleter<A>* d = std::get_deleter<test_deleter<A> >(p);
+#endif
             assert(test_deleter<A>::count == 1);
             assert(test_deleter<A>::dealloc_count == 0);
+#ifndef _LIBCPP_NO_RTTI
             assert(d);
             assert(d->state() == 3);
+#endif
         }
         assert(A::count == 0);
         assert(test_deleter<A>::count == 0);
@@ -50,11 +54,15 @@ int main(int, char**)
     {
         {
             std::shared_ptr<A> p(nullptr, test_deleter<A>(3));
+#ifndef _LIBCPP_NO_RTTI
             test_deleter<A>* d = std::get_deleter<test_deleter<A> >(p);
+#endif
             assert(test_deleter<A>::count == 1);
             assert(test_deleter<A>::dealloc_count == 0);
+#ifndef _LIBCPP_NO_RTTI
             assert(d);
             assert(d->state() == 3);
+#endif
         }
         assert(A::count == 0);
         assert(test_deleter<A>::count == 0);
@@ -63,8 +71,10 @@ int main(int, char**)
     test_deleter<A>::dealloc_count = 0;
     {
         std::shared_ptr<A> p(nullptr, test_deleter<A>(3));
+#ifndef _LIBCPP_NO_RTTI
         std::default_delete<A>* d = std::get_deleter<std::default_delete<A> >(p);
         assert(d == 0);
+#endif
     }
 
   return 0;

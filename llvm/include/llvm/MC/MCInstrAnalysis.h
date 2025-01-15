@@ -91,6 +91,10 @@ public:
     return Info->get(Inst.getOpcode()).hasDefOfPhysReg(Inst, PC, MCRI);
   }
 
+  virtual bool isCapTableLoad(const MCInst &Inst, int64_t &Offset) const {
+    return false;
+  }
+
   /// Returns true if at least one of the register writes performed by
   /// \param Inst implicitly clears the upper portion of all super-registers.
   ///

@@ -8,6 +8,7 @@
 
 #include "Symbols.h"
 #include "Driver.h"
+#include "Arch/Cheri.h"
 #include "InputFiles.h"
 #include "InputSection.h"
 #include "OutputSections.h"
@@ -58,6 +59,74 @@ std::string lld::toString(const elf::Symbol &sym) {
   return ret;
 }
 
+std::string lld::verboseToString(const Symbol *b, uint64_t symOffset) {
+  std::string msg;
+
+  if (b->isLocal())
+    msg += "local ";
+  if (b->isWeak())
+    msg += "weak ";
+  if (b->isShared())
+    msg += "shared ";
+  // else if (B->isDefined())
+  //  Msg += "defined ";
+  if (b->type == STT_COMMON)
+    msg += "common ";
+  else if (b->type == STT_TLS)
+    msg += "TLS ";
+  if (b->isSection())
+    msg += "section ";
+  else if (b->isTls())
+    msg += "tls ";
+  else if (b->isFunc())
+    msg += "function ";
+  else if (b->isGnuIFunc())
+    msg += "gnu ifunc ";
+  else if (b->isObject())
+    msg += "object ";
+  else if (b->isFile())
+    msg += "file ";
+  else if (b->isUndefined())
+    msg += "<undefined> ";
+  else
+    msg += "<unknown kind> ";
+
+  if (b->isInGot())
+    msg += "(in GOT) ";
+  if (b->isInPlt())
+    msg += "(in PLT) ";
+
+  const elf::Defined* dr = dyn_cast<elf::Defined>(b);
+  elf::InputSectionBase* isec = nullptr;
+  if (dr && dr->section) {
+    symOffset = dr->isSection() ? symOffset : dr->section->getOffset(dr->value);
+    isec = dyn_cast<elf::InputSectionBase>(dr->section);
+  }
+  std::string name = toString(*b);
+  if (name.empty()) {
+    if (dr && dr->section) {
+      if (isec) {
+        name = isec->getLocation(symOffset);
+      } else {
+        name = (dr->section->name + "+0x" + utohexstr(symOffset)).str();
+      }
+    } else if (elf::OutputSection* os = b->getOutputSection()) {
+      name = (os->name + "+(unknown offset)").str();
+    }
+  }
+  if (name.empty()) {
+    name = "<unknown symbol>";
+  }
+  msg += name;
+  if (!b->isUndefined()) {
+    std::string src = isec ? isec->getSrcMsg(*b, symOffset) : toString(b->file);
+    if (isec)
+      src += " (" + isec->getObjMsg(symOffset) + ")";
+    msg += "\n>>> defined in " + src;
+  }
+  return msg;
+}
+
 Defined *ElfSym::bss;
 Defined *ElfSym::etext1;
 Defined *ElfSym::etext2;
@@ -69,6 +138,7 @@ Defined *ElfSym::globalOffsetTable;
 Defined *ElfSym::mipsGp;
 Defined *ElfSym::mipsGpDisp;
 Defined *ElfSym::mipsLocalGp;
+Defined *ElfSym::cheriCapabilityTable;
 Defined *ElfSym::riscvGlobalPointer;
 Defined *ElfSym::relaIpltStart;
 Defined *ElfSym::relaIpltEnd;
@@ -196,9 +266,38 @@ uint64_t Symbol::getPltVA() const {
   return outVA;
 }
 
+uint64_t Symbol::getCapTableVA(const InputSectionBase *isec,
+                               uint64_t offset) const {
+  return ElfSym::cheriCapabilityTable->getVA() +
+    getCapTableOffset(isec, offset);
+}
+
+uint64_t Symbol::getCapTableOffset(const InputSectionBase *isec,
+                                   uint64_t offset) const {
+  return config->capabilitySize *
+    in.cheriCapTable->getIndex(*this, isec, offset);
+}
+
+uint64_t Defined::getSize() const {
+  if (LLVM_UNLIKELY(config->isCheriAbi && isSectionStartSymbol)) {
+    assert(value == 0 && "Bad section start symbol?");
+    if (!section)
+      return 0; // Section is not included in the output
+    return section->getOutputSection()->size;
+  }
+  return size;
+}
+
 uint64_t Symbol::getSize() const {
-  if (const auto *dr = dyn_cast<Defined>(this))
-    return dr->size;
+  if (const auto *dr = dyn_cast<Defined>(this)) {
+    return dr->getSize();
+  }
+  // FIXME: assuming it is always shared broke this
+  if (isa<Undefined>(this))
+    return 0;
+  if (isUndefWeak())
+    return 0;
+  // errs() << "Should be a Shared symbol " << toString(*this) << ":" << this->kind() << "\n";
   return cast<SharedSymbol>(this)->size;
 }
 
@@ -270,7 +369,8 @@ void Symbol::extract() const {
 
 uint8_t Symbol::computeBinding() const {
   auto v = visibility();
-  if ((v != STV_DEFAULT && v != STV_PROTECTED) || versionId == VER_NDX_LOCAL)
+  if ((v != STV_DEFAULT && v != STV_PROTECTED && !usedByDynReloc) ||
+      versionId == VER_NDX_LOCAL)
     return STB_LOCAL;
   if (binding == STB_GNU_UNIQUE && !config->gnuUnique)
     return STB_GLOBAL;
@@ -278,6 +378,8 @@ uint8_t Symbol::computeBinding() const {
 }
 
 bool Symbol::includeInDynsym() const {
+  if (usedByDynReloc)
+    return true;
   if (computeBinding() == STB_LOCAL)
     return false;
   if (!isDefined() && !isCommon())

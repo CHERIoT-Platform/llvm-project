@@ -254,7 +254,8 @@ Error LVBinaryReader::loadGenericTargetInfo(StringRef TheTriple,
     return createStringError(errc::invalid_argument, TargetLookupError.c_str());
 
   // Register information.
-  MCRegisterInfo *RegisterInfo = TheTarget->createMCRegInfo(TheTriple);
+  MCTargetOptions MCOpts;
+  MCRegisterInfo *RegisterInfo = TheTarget->createMCRegInfo(TheTriple, MCOpts);
   if (!RegisterInfo)
     return createStringError(errc::invalid_argument,
                              "no register info for target " + TheTriple);

@@ -33,7 +33,7 @@ define void @test(i1 %b) {
 ;
 entry:
   %x = alloca i8
-  %inalloca.save = call ptr @llvm.stacksave()
+  %inalloca.save = call ptr @llvm.stacksave.p0()
   %argmem = alloca inalloca <{ %struct.S }>, align 4
   br i1 %b, label %true, label %false
 
@@ -49,9 +49,9 @@ false:
 
 exit:
   call void @f(ptr inalloca(<{ %struct.S }>) %argmem)
-  call void @llvm.stackrestore(ptr %inalloca.save)
+  call void @llvm.stackrestore.p0(ptr %inalloca.save)
   ret void
 }
 
-declare ptr @llvm.stacksave()
-declare void @llvm.stackrestore(ptr)
+declare ptr @llvm.stacksave.p0()
+declare void @llvm.stackrestore.p0(ptr)

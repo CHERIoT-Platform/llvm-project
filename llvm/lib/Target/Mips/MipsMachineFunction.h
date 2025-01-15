@@ -37,12 +37,21 @@ public:
   void setSRetReturnReg(unsigned Reg) { SRetReturnReg = Reg; }
 
   bool globalBaseRegSet() const;
-  Register getGlobalBaseReg(MachineFunction &MF);
+  Register getGlobalBaseReg(MachineFunction &MF, bool IsForTls);
+  Register getGlobalBaseRegUnchecked() const;
+
+  bool capGlobalBaseRegSet() const;
+  Register getCapEntryPointReg(MachineFunction &MF);
+  Register getCapGlobalBaseReg(MachineFunction &MF);
+  Register getCapGlobalBaseRegForGlobalISel(MachineFunction &MF);
   Register getGlobalBaseRegForGlobalISel(MachineFunction &MF);
 
   // Insert instructions to initialize the global base register in the
   // first MBB of the function.
   void initGlobalBaseReg(MachineFunction &MF);
+  // Insert instructions to initialize the capability global base register in
+  // the first MBB of the function.
+  void initCapGlobalBaseReg(MachineFunction &MF);
 
   int getVarArgsFrameIndex() const { return VarArgsFrameIndex; }
   void setVarArgsFrameIndex(int Index) { VarArgsFrameIndex = Index; }
@@ -81,6 +90,8 @@ public:
   void setSaveS2() { SaveS2 = true; }
   bool hasSaveS2() const { return SaveS2; }
 
+  bool usesTlsViaGlobalReg() const { return UsesTlsViaGlobalReg; }
+
   int getMoveF64ViaSpillFI(MachineFunction &MF, const TargetRegisterClass *RC);
 
   std::map<const char *, const Mips16HardFloatInfo::FuncSignature *>
@@ -98,6 +109,13 @@ private:
   /// use as the global base register. This is used for PIC in some PIC
   /// relocation models.
   Register GlobalBaseReg;
+
+  /// CapGlobalBaseReg - keeps track of the virtual register initialized for
+  /// use as the capability global base register. This is used for all global
+  /// accesses in the purecap ABI.
+  Register CapGlobalBaseReg;
+  Register CapComputedEntryPoint; /// $pcc-derived entry point register
+  Register CapABIEntryPointReg; /// $c12 for the legacy ABI
 
   /// VarArgsFrameIndex - FrameIndex for start of varargs area.
   int VarArgsFrameIndex = 0;
@@ -126,6 +144,8 @@ private:
   /// FrameIndex for expanding BuildPairF64 nodes to spill and reload when the
   /// O32 FPXX ABI is enabled. -1 is used to denote invalid index.
   int MoveF64ViaSpillFI = -1;
+
+  bool UsesTlsViaGlobalReg = false;
 };
 
 } // end namespace llvm

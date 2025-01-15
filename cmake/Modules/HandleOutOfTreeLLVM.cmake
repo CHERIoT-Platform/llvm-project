@@ -3,11 +3,11 @@ if (NOT DEFINED LLVM_PATH)
 endif()
 
 if(NOT IS_DIRECTORY ${LLVM_PATH})
-  message(FATAL_ERROR
-    "The provided LLVM_PATH (${LLVM_PATH}) is not a valid directory. Note that "
-    "building libc++ outside of the monorepo is not supported anymore. Please "
-    "use a Standalone build against the monorepo, a Runtimes build or a classic "
-    "monorepo build.")
+    message(FATAL_ERROR
+            "The provided LLVM_PATH (${LLVM_PATH}) is not a valid directory. Note that "
+            "building ${PROJECT_NAME} outside of the monorepo is not supported anymore. Please "
+            "use a Standalone build against the monorepo, a Runtimes build or a classic "
+            "monorepo build.")
 endif()
 
 set(LLVM_INCLUDE_DIR ${LLVM_PATH}/include CACHE PATH "Path to llvm/include")

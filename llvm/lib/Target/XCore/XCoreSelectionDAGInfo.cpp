@@ -18,7 +18,8 @@ using namespace llvm;
 SDValue XCoreSelectionDAGInfo::EmitTargetCodeForMemcpy(
     SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Dst, SDValue Src,
     SDValue Size, Align Alignment, bool isVolatile, bool AlwaysInline,
-    MachinePointerInfo DstPtrInfo, MachinePointerInfo SrcPtrInfo) const {
+    PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
+    MachinePointerInfo SrcPtrInfo) const {
   unsigned SizeBitWidth = Size.getValueSizeInBits();
   // Call __memcpy_4 if the src, dst and size are all 4 byte aligned.
   if (!AlwaysInline && Alignment >= Align(4) &&
@@ -36,8 +37,7 @@ SDValue XCoreSelectionDAGInfo::EmitTargetCodeForMemcpy(
         .setChain(Chain)
         .setLibCallee(TLI.getLibcallCallingConv(RTLIB::MEMCPY),
                       Type::getVoidTy(*DAG.getContext()),
-                      DAG.getExternalSymbol(
-                          "__memcpy_4", TLI.getPointerTy(DAG.getDataLayout())),
+                      DAG.getExternalFunctionSymbol("__memcpy_4"),
                       std::move(Args))
         .setDiscardResult();
 

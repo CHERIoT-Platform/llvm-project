@@ -9,9 +9,12 @@
 #ifndef LLVM_LIB_TARGET_MIPS_MCTARGETDESC_MIPSABIFLAGSSECTION_H
 #define LLVM_LIB_TARGET_MIPS_MCTARGETDESC_MIPSABIFLAGSSECTION_H
 
+#include "llvm/MC/MCTargetOptions.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MipsABIFlags.h"
 #include <cstdint>
+
+#include "MipsABIInfo.h"
 
 namespace llvm {
 
@@ -138,8 +141,10 @@ public:
   }
 
   template <class PredicateLibrary>
-  void setISAExtensionFromPredicates(const PredicateLibrary &P) {
-    if (P.hasCnMipsP())
+  void setISAExtensionFromPredicates(const PredicateLibrary &P, const MipsABIInfo& ABI) {
+    if (ABI.IsCheriPureCap())
+      ISAExtension = CheriPurecapISA_EXT(ABI);
+    else if (P.hasCnMipsP())
       ISAExtension = Mips::AFL_EXT_OCTEONP;
     else if (P.hasCnMips())
       ISAExtension = Mips::AFL_EXT_OCTEON;
@@ -190,14 +195,29 @@ public:
   }
 
   template <class PredicateLibrary>
-  void setAllFromPredicates(const PredicateLibrary &P) {
+  void setAllFromPredicates(const PredicateLibrary &P, const MipsABIInfo& ABI) {
     setISALevelAndRevisionFromPredicates(P);
     setGPRSizeFromPredicates(P);
     setCPR1SizeFromPredicates(P);
-    setISAExtensionFromPredicates(P);
+    setISAExtensionFromPredicates(P, ABI);
     setASESetFromPredicates(P);
     setFpAbiFromPredicates(P);
     OddSPReg = P.useOddSPReg();
+  }
+private:
+  Mips::AFL_EXT CheriPurecapISA_EXT(const MipsABIInfo& ABI) const {
+    CheriCapabilityTableABI CTA = ABI.CapabilityTableABI();
+    if ((int)CTA == 0)
+      return Mips::AFL_EXT_CHERI_ABI_LEGACY;
+    switch (CTA) {
+    case CheriCapabilityTableABI::PLT:
+      return Mips::AFL_EXT_CHERI_ABI_PLT;
+    case CheriCapabilityTableABI::Pcrel:
+      return Mips::AFL_EXT_CHERI_ABI_PCREL;
+    case CheriCapabilityTableABI::FunctionDescriptor:
+      return Mips::AFL_EXT_CHERI_ABI_FNDESC;
+    }
+    llvm_unreachable("CheriCapabilityTableABI not set");
   }
 };
 

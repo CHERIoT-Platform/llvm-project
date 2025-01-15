@@ -237,6 +237,9 @@ protected:
   /// alignment is supported.
   bool UseDotAlignForAlignment = false;
 
+  /// This is true if a CHERI pure capability ABI is in use.
+  bool IsCheriPurecapABI = false;
+
   /// True if the target supports LEB128 directives.
   bool HasLEB128Directives = true;
 
@@ -709,6 +712,10 @@ public:
 
   bool useDotAlignForAlignment() const {
     return UseDotAlignForAlignment;
+  }
+
+  bool isCheriPurecapABI() const {
+    return IsCheriPurecapABI;
   }
 
   bool hasLEB128Directives() const { return HasLEB128Directives; }

@@ -52,6 +52,8 @@ entry:
 }
 
 define i64 @g(ptr %gp) {
+;; TODO-CHERI: We don't perform the same GEP hoist as upstream here. Should find out why and if so determine whether
+;; that is patch that should be upstreamed.
 ; CHECK-LABEL: @g(
 ; CHECK-NEXT:    [[DOTPRE:%.*]] = load ptr addrspace(4), ptr [[GP:%.*]], align 8
 ; CHECK-NEXT:    [[V74:%.*]] = call ptr addrspace(4) @alloc()

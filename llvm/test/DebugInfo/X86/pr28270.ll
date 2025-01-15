@@ -14,7 +14,7 @@ entry:
   %agg.tmp.i.i = alloca %class.A, align 1
   %text.i = alloca %class.A, align 1
   %v = alloca %class.B, align 1
-  call void @llvm.lifetime.start(i64 1, ptr %v) #4, !dbg !40
+  call void @llvm.lifetime.start.p0(i64 1, ptr %v) #4, !dbg !40
   br label %for.cond, !dbg !65
 
 for.cond:                                         ; preds = %for.cond, %entry
@@ -23,27 +23,27 @@ for.cond:                                         ; preds = %for.cond, %entry
   call void @llvm.dbg.value(metadata double %call, metadata !49, metadata !69), !dbg !70
   call void @llvm.dbg.value(metadata ptr null, metadata !52, metadata !69), !dbg !71
   call void @llvm.dbg.value(metadata ptr undef, metadata !54, metadata !69), !dbg !72
-  call void @llvm.lifetime.start(i64 1, ptr %text.i) #4, !dbg !41
+  call void @llvm.lifetime.start.p0(i64 1, ptr %text.i) #4, !dbg !41
   %tobool.i = fcmp une double %call, 0.000000e+00, !dbg !73
   %cond.i = select i1 %tobool.i, ptr @.str, ptr @.str.1, !dbg !73
   call void @llvm.dbg.value(metadata ptr %text.i, metadata !55, metadata !66), !dbg !74
-  call void @llvm.lifetime.start(i64 1, ptr %agg.tmp.i.i), !dbg !59
+  call void @llvm.lifetime.start.p0(i64 1, ptr %agg.tmp.i.i), !dbg !59
   call void @llvm.dbg.value(metadata ptr %text.i, metadata !62, metadata !69), !dbg !59
   call void @llvm.dbg.value(metadata ptr %cond.i, metadata !63, metadata !69), !dbg !75
   call void @_ZN1AC1EPKc(ptr nonnull %agg.tmp.i.i, ptr %cond.i), !dbg !76
   call void @_ZN1A5m_fn1ES_(ptr nonnull %text.i), !dbg !77
-  call void @llvm.lifetime.end(i64 1, ptr %agg.tmp.i.i), !dbg !79
-  call void @llvm.lifetime.end(i64 1, ptr %text.i) #4, !dbg !80
+  call void @llvm.lifetime.end.p0(i64 1, ptr %agg.tmp.i.i), !dbg !79
+  call void @llvm.lifetime.end.p0(i64 1, ptr %text.i) #4, !dbg !80
   br label %for.cond, !dbg !81, !llvm.loop !82
 }
 
 ; Function Attrs: argmemonly nounwind
-declare void @llvm.lifetime.start(i64, ptr nocapture) #1
+declare void @llvm.lifetime.start.p0(i64, ptr nocapture) #1
 
 declare double @_ZN1BixEj(ptr, i32) local_unnamed_addr #2
 
 ; Function Attrs: argmemonly nounwind
-declare void @llvm.lifetime.end(i64, ptr nocapture) #1
+declare void @llvm.lifetime.end.p0(i64, ptr nocapture) #1
 
 declare void @_ZN1A5m_fn1ES_(ptr) local_unnamed_addr #2
 

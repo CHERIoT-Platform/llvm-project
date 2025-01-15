@@ -46,6 +46,17 @@ def __lldb_init_module(debugger, internal_dict):
         f"-l {__name__}.OptionalSynthProvider "
         '-x "^llvm::Optional<.+>$"'
     )
+    # doesn't seem to handle subclasses (add more as needed):
+    for c in ('Value', 'Instruction', 'Constant', 'User', 'CallInst', 'CallBase',
+              'IntrinsicInst'):
+        debugger.HandleCommand('type summary add -w llvm '
+                               '-e -F lldbDataFormatters.ValueSummaryProvider '
+                               'llvm::' + c)
+    for c in ('Type', 'IntegerType', 'FunctionType', 'StructType', 'ArrayType',
+              'VectorType', 'PointerType'):
+        debugger.HandleCommand('type summary add -w llvm '
+                               '-e -F lldbDataFormatters.TypeSummaryProvider '
+                               'llvm::' + c)
     debugger.HandleCommand(
         "type summary add -w llvm "
         f"-e -F {__name__}.OptionalSummaryProvider "
@@ -266,6 +277,26 @@ def get_expression_path(val):
     if not val.GetExpressionPath(stream):
         return None
     return stream.GetData()
+
+
+def get_expr_summary(valobj, expr):
+    if valobj.GetValue() is None:
+        return None
+    expr = valobj.GetFrame().EvaluateExpression(expr)
+    if expr.GetError().Success():
+        summary = expr.GetSummary().strip('\"')  # strip the quotes added by std::string summary
+    else:
+        summary = "ERROR: " + expr.GetError().GetCString()
+    del expr
+    return summary
+
+
+def ValueSummaryProvider(valobj, internal_dict):
+    return get_expr_summary(valobj, '::llvm::Value::dbgString(' + get_expression_path(valobj) + ')')
+
+
+def TypeSummaryProvider(valobj, internal_dict):
+    return get_expr_summary(valobj, '::llvm::Type::dbgString(' + get_expression_path(valobj) + ')')
 
 
 class PointerIntPairSynthProvider:

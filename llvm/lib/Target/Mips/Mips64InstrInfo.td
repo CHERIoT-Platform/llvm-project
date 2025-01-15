@@ -275,6 +275,8 @@ let isCodeGenOnly = 1 in {
                GPR_64;
   def BLTZ64 : CBranchZero<"bltz", brtarget, setlt, GPR64Opnd>, BGEZ_FM<1, 0>,
                GPR_64;
+  def CPSETUP : MipsPseudo<(outs GPR64Opnd: $gp), (ins GPR64Opnd: $t9), []>,
+               GPR_64;
   let AdditionalPredicates = [NoIndirectJumpGuards] in
     def JALR64Pseudo : JumpLinkRegPseudo<GPR64Opnd, JALR, RA, GPR32Opnd>,
                        PTR_64;
@@ -671,6 +673,11 @@ def : MipsPat<(MipsGotHi tglobaladdr:$in), (LUi64 tglobaladdr:$in)>, ISA_MIPS3,
       GPR_64;
 def : MipsPat<(MipsGotHi texternalsym:$in), (LUi64 texternalsym:$in)>,
       ISA_MIPS3, GPR_64;
+
+// XXXAR: For CHERI we also access jumptables with GotHi/GotLo if -mxgot is set
+// This will go away once we use cap-table
+def : MipsPat<(MipsGotHi tjumptable:$in), (LUi64 tjumptable:$in)>, ISA_MIPS3, GPR_64;
+// def : MipsPat<(MipsLo tjumptable:$in), (DADDiu ZERO_64, tjumptable:$in)>, ISA_MIPS3, GPR_64;
 
 def : MipsPat<(MipsTlsHi tglobaltlsaddr:$in), (LUi64 tglobaltlsaddr:$in)>,
       ISA_MIPS3, GPR_64;

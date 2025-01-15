@@ -20,6 +20,7 @@
 #include "clang/Basic/CodeGenOptions.h"
 #include "clang/CodeGen/CGFunctionInfo.h"
 #include "llvm/IR/Intrinsics.h"
+#include "llvm/Transforms/Utils/CheriSetBounds.h"
 
 using namespace clang;
 using namespace CodeGen;
@@ -317,7 +318,8 @@ RValue CodeGenFunction::EmitCXXMemberOrOperatorMemberCallExpr(
                        ? TrivialAssignmentRHS
                        : EmitLValue(*CE->arg_begin());
       EmitAggregateAssign(This, RHS, CE->getType());
-      return RValue::get(This.getPointer(*this));
+      return RValue::get(This.getPointer(*this),
+                         This.getAlignment().getQuantity());
     }
 
     assert(MD->getParent()->mayInsertExtraPadding() &&
@@ -723,8 +725,8 @@ static llvm::Value *EmitCXXNewAllocSize(CodeGenFunction &CGF,
   // Emit the array size expression.
   // We multiply the size of all dimensions for NumElements.
   // e.g for 'int[2][3]', ElemType is 'int' and NumElements is 6.
-  numElements =
-    ConstantEmitter(CGF).tryEmitAbstract(*e->getArraySize(), e->getType());
+  numElements = ConstantEmitter(CGF).tryEmitAbstract(
+      *e->getArraySize(), (*e->getArraySize())->getType());
   if (!numElements)
     numElements = CGF.EmitScalarExpr(*e->getArraySize());
   assert(isa<llvm::IntegerType>(numElements->getType()));
@@ -1541,7 +1543,9 @@ static void EnterNewDeleteCleanup(CodeGenFunction &CGF,
 
   // Otherwise, we need to save all this stuff.
   DominatingValue<RValue>::saved_type SavedNewPtr =
-    DominatingValue<RValue>::save(CGF, RValue::get(NewPtr.getPointer()));
+      DominatingValue<RValue>::save(
+          CGF, RValue::get(NewPtr.getPointer(),
+                           NewPtr.getAlignment().getQuantity()));
   DominatingValue<RValue>::saved_type SavedAllocSize =
     DominatingValue<RValue>::save(CGF, RValue::get(AllocSize));
 
@@ -1608,12 +1612,31 @@ llvm::Value *CodeGenFunction::EmitCXXNewExpr(const CXXNewExpr *E) {
   // operator, just "inline" it directly.
   Address allocation = Address::invalid();
   CallArgList allocatorArgs;
-  if (allocator->isReservedGlobalPlacementOperator()) {
+
+  const bool ReservedGlobalPlacement = allocator->isReservedGlobalPlacementOperator();
+  if (ReservedGlobalPlacement) {
     assert(E->getNumPlacementArgs() == 1);
     const Expr *arg = *E->placement_arguments().begin();
 
     LValueBaseInfo BaseInfo;
     allocation = EmitPointerWithAlignment(arg, &BaseInfo);
+
+    // If we are setting bounds aggressively, also insert a csetbounds
+    // after calls to  new(addr) Foo(); since it seems like clang
+    // ignores the contents of a global declaration
+    // for void* operator new(std::size_t count, void* p)
+    if (getTarget().areAllPointersCapabilities() &&
+        getLangOpts().getCheriBounds() >= LangOptions::CBM_Aggressive) {
+      allocation = Address(
+          setPointerBounds(allocation.getPointer(), allocSize, E->getExprLoc(),
+                           "new.with.bounds",
+                           E->isArray() ? "non-allocating placement new"
+                                        : "non-allocating placement new[]",
+                           /*isSubObject=*/false,
+                           "for type " + allocType.getAsString(),
+                           allocation.getAlignment().getAsAlign()),
+          allocation.getElementType(), allocation.getAlignment());
+    }
 
     // The pointer expression will, in many cases, be an opaque void*.
     // In these cases, discard the computed alignment and use the
@@ -1626,7 +1649,9 @@ llvm::Value *CodeGenFunction::EmitCXXNewExpr(const CXXNewExpr *E) {
     if (E->getOperatorDelete() &&
         !E->getOperatorDelete()->isReservedGlobalPlacementOperator()) {
       allocatorArgs.add(RValue::get(allocSize), getContext().getSizeType());
-      allocatorArgs.add(RValue::get(allocation.getPointer()), arg->getType());
+      allocatorArgs.add(RValue::get(allocation.getPointer(),
+                                    allocation.getAlignment().getQuantity()),
+                        arg->getType());
     }
 
   } else {
@@ -1795,6 +1820,36 @@ llvm::Value *CodeGenFunction::EmitCXXNewExpr(const CXXNewExpr *E) {
                      nullCheckBB);
 
     resultPtr = PHI;
+  }
+
+  // Don't log the non-allocating placement new since it will probably
+  // not be setting bounds (unless cheri-bounds>=aggresive, but in that case
+  // we will already have logged the bounds)
+  if (llvm::cheri::ShouldCollectCSetBoundsStats && !ReservedGlobalPlacement) {
+    // TODO: placement new with pointer might not be heap!
+    auto Kind = llvm::cheri::SetBoundsPointerSource::Heap;
+    llvm::Align KnownAlignment = allocation.getAlignment().getAsAlign();
+    std::optional<uint64_t> AllocSizeConstant =
+        llvm::cheri::inferConstantValue(allocSize);
+    std::optional<uint64_t> MultipleOf;
+    std::string BoundsSource;
+    llvm::raw_string_ostream DS(BoundsSource);
+    // allocator->getNameForDiagnostic(DS, getContext().getPrintingPolicy(),
+    // true);
+    DS << "operator new";
+    if (E->isArray()) {
+      DS << "[]";
+      if (!AllocSizeConstant)
+        MultipleOf = getContext().getTypeSizeInChars(allocType).getQuantity();
+    }
+    DS << " for " << E->getType().getAsString(getContext().getPrintingPolicy());
+    DS.flush();
+    // TODO: if it is an array get multiple of
+    llvm::cheri::CSetBoundsStats->add(
+        KnownAlignment, AllocSizeConstant, BoundsSource, Kind,
+        "allocating type " + allocType.getAsString(),
+        E->getSourceRange().printToString(getContext().getSourceManager()),
+        MultipleOf);
   }
 
   return resultPtr;

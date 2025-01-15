@@ -529,7 +529,7 @@ Address AArch64ABIInfo::EmitAAPCSVAArg(Address VAListAddr, QualType Ty,
 
   llvm::Type *BaseTy = CGF.ConvertType(Ty);
   if (IsIndirect)
-    BaseTy = llvm::PointerType::getUnqual(BaseTy);
+    BaseTy = CGF.CGM.getPointerInDefaultAS(BaseTy);
   else if (AI.getCoerceToType())
     BaseTy = AI.getCoerceToType();
 
@@ -646,7 +646,7 @@ Address AArch64ABIInfo::EmitAAPCSVAArg(Address VAListAddr, QualType Ty,
   if (IsIndirect) {
     // If it's been passed indirectly (actually a struct), whatever we find from
     // stored registers or on the stack will actually be a struct **.
-    MemTy = llvm::PointerType::getUnqual(MemTy);
+    MemTy = CGF.CGM.getPointerInDefaultAS(MemTy);
   }
 
   const Type *Base = nullptr;

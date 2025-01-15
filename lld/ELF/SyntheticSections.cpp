@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "SyntheticSections.h"
+#include "Arch/Cheri.h"
 #include "Config.h"
 #include "DWARF.h"
 #include "EhFrame.h"
@@ -37,6 +38,7 @@
 #include "llvm/DebugInfo/DWARF/DWARFDebugPubTable.h"
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/LEB128.h"
+#include "llvm/Support/MipsABIFlags.h"
 #include "llvm/Support/Parallel.h"
 #include "llvm/Support/TimeProfiler.h"
 #include <cstdlib>
@@ -107,6 +109,7 @@ std::unique_ptr<MipsAbiFlagsSection<ELFT>> MipsAbiFlagsSection<ELFT>::create() {
   Elf_Mips_ABIFlags flags = {};
   bool create = false;
 
+  std::string lastFile = "<internal>";
   for (InputSectionBase *sec : ctx.inputSections) {
     if (sec->type != SHT_MIPS_ABIFLAGS)
       continue;
@@ -130,24 +133,54 @@ std::unique_ptr<MipsAbiFlagsSection<ELFT>> MipsAbiFlagsSection<ELFT>::create() {
             Twine(s->version));
       return nullptr;
     }
+    if (size > sizeof(Elf_Mips_ABIFlags)) {
+      warn(filename + ": .MIPS.abiflags section has multiple entries: got " +
+          Twine(size) + " instead of " + Twine(sizeof(Elf_Mips_ABIFlags)) +
+          " bytes");
+    }
 
     // LLD checks ISA compatibility in calcMipsEFlags(). Here we just
     // select the highest number of ISA/Rev/Ext.
     flags.isa_level = std::max(flags.isa_level, s->isa_level);
     flags.isa_rev = std::max(flags.isa_rev, s->isa_rev);
-    flags.isa_ext = std::max(flags.isa_ext, s->isa_ext);
+    flags.isa_ext =
+        elf::getMipsIsaExt(flags.isa_ext, lastFile, s->isa_ext, filename);
     flags.gpr_size = std::max(flags.gpr_size, s->gpr_size);
     flags.cpr1_size = std::max(flags.cpr1_size, s->cpr1_size);
     flags.cpr2_size = std::max(flags.cpr2_size, s->cpr2_size);
     flags.ases |= s->ases;
     flags.flags1 |= s->flags1;
     flags.flags2 |= s->flags2;
-    flags.fp_abi = elf::getMipsFpAbiFlag(flags.fp_abi, s->fp_abi, filename);
+    flags.fp_abi =
+        elf::getMipsFpAbiFlag(flags.fp_abi, lastFile, s->fp_abi, filename);
+    lastFile = std::move(filename);
   };
 
   if (create)
     return std::make_unique<MipsAbiFlagsSection<ELFT>>(flags);
   return nullptr;
+}
+
+template <class ELFT>
+std::optional<unsigned> MipsAbiFlagsSection<ELFT>::getCheriAbiVariant() const {
+  auto cheriAbiVariant = flags.isa_ext & Mips::AFL_EXT_CHERI_ABI_MASK;
+  if (!cheriAbiVariant) {
+    warn("Linking old object files without CheriABI variant flag.");
+    return std::nullopt;
+  }
+  switch (cheriAbiVariant) {
+  case Mips::AFL_EXT_CHERI_ABI_LEGACY:
+    return DF_MIPS_CHERI_ABI_LEGACY;
+  case Mips::AFL_EXT_CHERI_ABI_PCREL:
+    return DF_MIPS_CHERI_ABI_PCREL;
+  case Mips::AFL_EXT_CHERI_ABI_PLT:
+    return DF_MIPS_CHERI_ABI_PLT;
+  case Mips::AFL_EXT_CHERI_ABI_FNDESC:
+    return DF_MIPS_CHERI_ABI_FNDESC;
+  default:
+    error("Unknown CHERI ABI variant " + Twine(cheriAbiVariant));
+    return std::nullopt;
+  }
 }
 
 // .MIPS.options section.
@@ -1526,12 +1559,52 @@ DynamicSection<ELFT>::computeContents() {
       addInt(DT_MIPS_GOTSYM, part.dynSymTab->getNumSymbols());
     addInSec(DT_PLTGOT, *in.mipsGot);
     if (in.mipsRldMap) {
-      if (!config->pie)
+      if (!config->pie && !config->shared)
         addInSec(DT_MIPS_RLD_MAP, *in.mipsRldMap);
       // Store the offset to the .rld_map section
       // relative to the address of the tag.
       addInt(DT_MIPS_RLD_MAP_REL,
              in.mipsRldMap->getVA() - (getVA() + entries.size() * entsize));
+    }
+    uint64_t targetCheriFlags = 0;
+    if (config->isCheriAbi) {
+      if (in.mipsAbiFlags)
+        if (auto abi =
+                static_cast<MipsAbiFlagsSection<ELFT> &>(*in.mipsAbiFlags)
+                    .getCheriAbiVariant())
+          targetCheriFlags |= *abi;
+      // if (Config->CapTableScope != CapTableScopePolicy::All)
+      // Add the captable scope to the CHERI flags:
+      targetCheriFlags |= ((unsigned)config->capTableScope) << 3;
+      if (config->relativeCapRelocsOnly)
+        targetCheriFlags |= DF_MIPS_CHERI_RELATIVE_CAPRELOCS;
+      addInt(DT_MIPS_CHERI_FLAGS, targetCheriFlags);
+    }
+    // CHeck that we didn't link incompatible libraries:
+    for (InputFile *file : ctx.sharedFiles) {
+      auto *f = cast<SharedFile>(file);
+      // Add an e_flags check here for CHERI-MIPS to avoid linking between
+      // incompatible libraries:
+      if (f->isNeeded)
+        checkMipsShlibCompatible(f, f->cheriFlags, targetCheriFlags);
+    }
+    if (in.cheriCapTable && in.cheriCapTable->isNeeded()) {
+      addInSec(DT_MIPS_CHERI_CAPTABLE, *in.cheriCapTable);
+      addInt(DT_MIPS_CHERI_CAPTABLESZ, in.cheriCapTable->getParent()->size);
+    }
+    if (in.cheriCapTableMapping && in.cheriCapTableMapping->isNeeded()) {
+      addInSec(DT_MIPS_CHERI_CAPTABLE_MAPPING, *in.cheriCapTableMapping);
+      addInt(DT_MIPS_CHERI_CAPTABLE_MAPPINGSZ,
+             in.cheriCapTableMapping->getParent()->size);
+    }
+    if (in.capRelocs && in.capRelocs->isNeeded()) {
+      addInSec(DT_MIPS_CHERI___CAPRELOCS, *in.capRelocs);
+      addInt(DT_MIPS_CHERI___CAPRELOCSSZ, in.capRelocs->getParent()->size);
+    }
+  } else if (config->emachine == EM_RISCV) {
+    if (in.capRelocs && in.capRelocs->isNeeded()) {
+      addInSec(DT_RISCV_CHERI___CAPRELOCS, *in.capRelocs);
+      addInt(DT_RISCV_CHERI___CAPRELOCSSZ, in.capRelocs->getParent()->size);
     }
   }
 
@@ -1585,7 +1658,8 @@ int64_t DynamicReloc::computeAddend() const {
   case AddendOnlyWithTargetVA:
   case AgainstSymbolWithTargetVA: {
     uint64_t ca = InputSection::getRelocTargetVA(inputSec->file, type, addend,
-                                                 getOffset(), *sym, expr);
+                                                 getOffset(), *sym, expr,
+                                                 inputSec, offsetInSec);
     return config->is64 ? ca : SignExtend64<32>(ca);
   }
   case MipsMultiGotPage:
@@ -1623,7 +1697,7 @@ void RelocationBaseSection::addSymbolReloc(
 }
 
 void RelocationBaseSection::addAddendOnlyRelocIfNonPreemptible(
-    RelType dynType, GotSection &sec, uint64_t offsetInSec, Symbol &sym,
+    RelType dynType, InputSectionBase &sec, uint64_t offsetInSec, Symbol &sym,
     RelType addendRelType) {
   // No need to write an addend to the section for preemptible symbols.
   if (sym.isPreemptible)
@@ -1666,11 +1740,39 @@ void RelocationBaseSection::finalizeContents() {
 
   if (in.relaPlt.get() == this && in.gotPlt->getParent()) {
     getParent()->flags |= ELF::SHF_INFO_LINK;
-    getParent()->info = in.gotPlt->getParent()->sectionIndex;
+    // For CheriABI we use the captable as the sh_info value
+    if (config->isCheriAbi && in.cheriCapTable && in.cheriCapTable->isNeeded()) {
+      assert(in.cheriCapTable->getParent()->sectionIndex != UINT32_MAX);
+      getParent()->info = in.cheriCapTable->getParent()->sectionIndex;
+    } else {
+      getParent()->info = in.gotPlt->getParent()->sectionIndex;
+    }
   }
   if (in.relaIplt.get() == this && in.igotPlt->getParent()) {
     getParent()->flags |= ELF::SHF_INFO_LINK;
-    getParent()->info = in.igotPlt->getParent()->sectionIndex;
+    // For CheriABI we use the captable as the sh_info value
+    if (config->isCheriAbi && in.cheriCapTable && in.cheriCapTable->isNeeded()) {
+      assert(in.cheriCapTable->getParent()->sectionIndex != UINT32_MAX);
+      getParent()->info = in.cheriCapTable->getParent()->sectionIndex;
+    } else {
+      getParent()->info = in.igotPlt->getParent()->sectionIndex;
+    }
+  }
+  for (auto reloc : relocs) {
+    if (config->isCheriAbi && config->relativeCapRelocsOnly &&
+        reloc.inputSec->name == "__cap_relocs") {
+      warn("attempting to add a dynamic relocation against the __cap_relocs "
+           "section. If this is intended pass --no-relative-cap-relocs.");
+    }
+    if (config->emachine == EM_MIPS && config->buildingFreeBSDRtld) {
+      unsigned baseRelocType = reloc.type & 0xff;
+      if (baseRelocType != R_MIPS_REL32 && baseRelocType != R_MIPS_NONE)
+        error(
+            "relocation " + toString(reloc.type) + " against " +
+            toString(*reloc.sym) +
+            " cannot be using when building FreeBSD RTLD" +
+            getLocationMessage(*reloc.inputSec, *reloc.sym, reloc.offsetInSec));
+    }
   }
 }
 
@@ -2119,6 +2221,12 @@ void SymbolTableBaseSection::finalizeContents() {
   // Because the first symbol entry is a null entry, 1 is the first.
   getParent()->info = 1;
 
+  // XXXAR: in the CheriABI case it is possible that we have local symbols
+  // in .dynsym (for function pointers in the PLT ABI)
+  if (config->isCheriAbi) {
+    sortSymTabSymbols();
+  }
+
   if (getPartition().gnuHashTab) {
     // NB: It also sorts Symbols to meet the GNU hash table requirements.
     getPartition().gnuHashTab->addSymbols(symbols);
@@ -2168,7 +2276,22 @@ void SymbolTableBaseSection::sortSymTabSymbols() {
 void SymbolTableBaseSection::addSymbol(Symbol *b) {
   // Adding a local symbol to a .dynsym is a bug.
   assert(this->type != SHT_DYNSYM || !b->isLocal());
-  symbols.push_back({b, strTabSec.addString(b->getName(), false)});
+
+  // If we're linking a compartment, mark every symbol as local except for
+  // ones in the export table.
+  if (config->compartment) {
+    if (auto *def = dyn_cast<Defined>(b)) {
+      auto *section = dyn_cast_or_null<InputSection>(def->section);
+      if (!section || ((section->name != ".compartment_exports") &&
+                       !section->name.starts_with(".compartment_exports."))) {
+        b->binding = STB_LOCAL;
+      }
+    }
+  }
+
+  // XXX can we infer hashIt = false from assert above?
+  bool hashIt = b->isLocal() && config->compartment;
+  symbols.push_back({b, strTabSec.addString(b->getName(), hashIt)});
 }
 
 size_t SymbolTableBaseSection::getSymbolIndex(Symbol *sym) {
@@ -2239,7 +2362,7 @@ template <class ELFT> void SymbolTableSection<ELFT>::writeTo(uint8_t *buf) {
       // holds SHN_COMMON and st_value holds the alignment.
       eSym->st_shndx = SHN_COMMON;
       eSym->st_value = commonSec->addralign;
-      eSym->st_size = cast<Defined>(sym)->size;
+      eSym->st_size = cast<Defined>(sym)->getSize();
     } else {
       const uint32_t shndx = getSymSectionIndex(sym);
       if (isDefinedHere) {
@@ -2250,7 +2373,7 @@ template <class ELFT> void SymbolTableSection<ELFT>::writeTo(uint8_t *buf) {
         // to us if that's the case. We'll leave it as zero because by not
         // setting a value, we can get the exact same outputs for two sets of
         // input files that differ only in undefined symbol size in DSOs.
-        eSym->st_size = shndx != SHN_UNDEF ? cast<Defined>(sym)->size : 0;
+        eSym->st_size = shndx != SHN_UNDEF ? cast<Defined>(sym)->getSize() : 0;
       } else {
         eSym->st_shndx = 0;
         eSym->st_value = 0;
@@ -3352,6 +3475,10 @@ void elf::combineEhSections() {
     EhFrameSection &eh = *sec->getPartition().ehFrame;
     sec->parent = &eh;
     eh.addralign = std::max(eh.addralign, sec->addralign);
+    // TODO: ideally we should only make .eh_frame writable if we have any
+    // dynamic relocations against it.
+    if (sec->flags & SHF_WRITE)
+      eh.flags |= SHF_WRITE; // TODO: Or should we just do Flags |= Sec->Flags?
     eh.sections.push_back(sec);
     llvm::append_range(eh.dependentSections, sec->dependentSections);
   }
@@ -3626,7 +3753,7 @@ bool ThunkSection::assignOffsets() {
     off = alignToPowerOf2(off, t->alignment);
     t->setOffset(off);
     uint32_t size = t->size();
-    t->getThunkTargetSym()->size = size;
+    t->getThunkTargetSym()->setSize(size);
     off += size;
   }
   bool changed = off != size;
@@ -3723,6 +3850,11 @@ bool PPC64LongBranchTargetSection::isNeeded() const {
 static uint8_t getAbiVersion() {
   // MIPS non-PIC executable gets ABI version 1.
   if (config->emachine == EM_MIPS) {
+    // Bump this number everytime we break the ABI to avoid strange runtime
+    // crashes (happened e.g. when using a binary with the old TLS offset
+    // on a new kernel).
+    if (config->isCheriAbi)
+      return 3; // Bump for every incompatible change
     if (!config->isPic && !config->relocatable &&
         (config->eflags & (EF_MIPS_PIC | EF_MIPS_CPIC)) == EF_MIPS_CPIC)
       return 1;
@@ -3843,6 +3975,9 @@ void InStruct::reset() {
   riscvAttributes.reset();
   bss.reset();
   bssRelRo.reset();
+  capRelocs.reset();
+  cheriCapTableMapping.reset();
+  cheriCapTableMapping.reset();
   got.reset();
   gotPlt.reset();
   igotPlt.reset();

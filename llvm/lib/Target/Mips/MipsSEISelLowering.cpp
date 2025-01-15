@@ -32,6 +32,7 @@
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/CodeGen/ValueTypes.h"
 #include "llvm/IR/DebugLoc.h"
+#include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/IntrinsicsMips.h"
 #include "llvm/Support/Casting.h"
@@ -172,6 +173,29 @@ MipsSETargetLowering::MipsSETargetLowering(const MipsTargetMachine &TM,
     }
   }
 
+  if (Subtarget.isCheri()) {
+    // This crashes: addRegisterClass(CapType, &Mips::CheriRegsAllRegClass);
+    addRegisterClass(CapType, &Mips::CheriGPRRegClass);
+    setTruncStoreAction(MVT::i32, MVT::i8, Custom);
+    setTruncStoreAction(MVT::i32, MVT::i16, Custom);
+    setLoadExtAction(ISD::EXTLOAD, MVT::i8, MVT::i32, Custom);
+    setLoadExtAction(ISD::SEXTLOAD, MVT::i8, MVT::i32, Custom);
+    setLoadExtAction(ISD::ZEXTLOAD, MVT::i8, MVT::i32, Custom);
+    setLoadExtAction(ISD::EXTLOAD, MVT::i16, MVT::i32, Custom);
+    setLoadExtAction(ISD::SEXTLOAD, MVT::i16, MVT::i32, Custom);
+    setLoadExtAction(ISD::ZEXTLOAD, MVT::i16, MVT::i32, Custom);
+    setLoadExtAction(ISD::EXTLOAD, MVT::i8, MVT::i64, Custom);
+    setLoadExtAction(ISD::SEXTLOAD, MVT::i8, MVT::i64, Custom);
+    setLoadExtAction(ISD::ZEXTLOAD, MVT::i8, MVT::i64, Custom);
+    setLoadExtAction(ISD::EXTLOAD, MVT::i16, MVT::i64, Custom);
+    setLoadExtAction(ISD::SEXTLOAD, MVT::i16, MVT::i64, Custom);
+    setLoadExtAction(ISD::ZEXTLOAD, MVT::i16, MVT::i64, Custom);
+    setOperationAction(ISD::SETCC, CapType, Legal);
+    setOperationAction(ISD::SELECT, CapType, Legal);
+    setOperationAction(ISD::SELECT_CC, CapType, Expand);
+    setOperationAction(ISD::BR_CC, CapType, Expand);
+  }
+
   setOperationAction(ISD::SMUL_LOHI,          MVT::i32, Custom);
   setOperationAction(ISD::UMUL_LOHI,          MVT::i32, Custom);
   setOperationAction(ISD::MULHS,              MVT::i32, Custom);
@@ -264,6 +288,7 @@ MipsSETargetLowering::MipsSETargetLowering(const MipsTargetMachine &TM,
   }
 
   if (Subtarget.hasMips64r6()) {
+    // FIXME: we should really do some smarter expanding
     // MIPS64r6 replaces the accumulator-based multiplies with a three register
     // instruction
     setOperationAction(ISD::SMUL_LOHI, MVT::i64, Expand);
@@ -295,6 +320,10 @@ const MipsTargetLowering *
 llvm::createMipsSETargetLowering(const MipsTargetMachine &TM,
                                  const MipsSubtarget &STI) {
   return new MipsSETargetLowering(TM, STI);
+}
+
+uint32_t MipsSETargetLowering::getExceptionPointerAS() const {
+  return Subtarget.isABI_CheriPureCap() ? 200 : 0;
 }
 
 const TargetRegisterClass *
@@ -414,25 +443,35 @@ SDValue MipsSETargetLowering::lowerSELECT(SDValue Op, SelectionDAG &DAG) const {
 }
 
 bool MipsSETargetLowering::allowsMisalignedMemoryAccesses(
-    EVT VT, unsigned, Align, MachineMemOperand::Flags, unsigned *Fast) const {
+    EVT VT, unsigned AS, Align, MachineMemOperand::Flags, unsigned *Fast) const {
+  // capabilities must be aligned
+  if (VT.isFatPointer())
+    return false;
+
   MVT::SimpleValueType SVT = VT.getSimpleVT().SimpleTy;
 
-  if (Subtarget.systemSupportsUnalignedAccess()) {
+  if (Subtarget.systemSupportsUnalignedAccess(AS)) {
     // MIPS32r6/MIPS64r6 is required to support unaligned access. It's
     // implementation defined whether this is handled by hardware, software, or
     // a hybrid of the two but it's expected that most implementations will
     // handle the majority of cases in hardware.
-    if (Fast)
-      *Fast = 1;
+    if (Fast) {
+      // CHERI used to support unaligned loads and stores within a cache-line
+      // but now it is emulated in the OS instead.
+      if (Subtarget.isCheri())
+        *Fast = 0;
+      else
+        *Fast = 1;
+    }
     return true;
   }
 
   switch (SVT) {
-  case MVT::i64:
-  case MVT::i32:
+  case MVT::i64: // LDL/LDR/SDL/SDR
+  case MVT::i32: // LWL/LWR/SWL/SWR
     if (Fast)
       *Fast = 1;
-    return true;
+    return AS == 0;
   default:
     return false;
   }
@@ -826,11 +865,12 @@ static SDValue performMULCombine(SDNode *N, SelectionDAG &DAG,
 
   if (ConstantSDNode *C = dyn_cast<ConstantSDNode>(N->getOperand(1)))
     if (!VT.isVector() && shouldTransformMulToShiftsAddsSubs(
-                              C->getAPIntValue(), VT, DAG, Subtarget))
+                              C->getAPIntValue(), VT, DAG, Subtarget)) {
+      assert(VT.isInteger());
       return genConstMult(N->getOperand(0), C->getAPIntValue(), SDLoc(N), VT,
                           TL->getScalarShiftAmountTy(DAG.getDataLayout(), VT),
                           DAG);
-
+    }
   return SDValue(N, 0);
 }
 
@@ -1117,6 +1157,20 @@ MipsSETargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
     return emitFEXP2_W_1(MI, BB);
   case Mips::FEXP2_D_1_PSEUDO:
     return emitFEXP2_D_1(MI, BB);
+  case Mips::CLWC1:
+    return emitCapFloat32Load(MI, BB);
+  case Mips::CLDC1:
+    return emitCapFloat64Load(MI, BB);
+  case Mips::CSWC1:
+    return emitCapFloat32Store(MI, BB);
+  case Mips::CSDC1:
+    return emitCapFloat64Store(MI, BB);
+  case Mips::CEQPseudo:
+  case Mips::CEQPseudo32:
+    return emitCapEqual(MI, BB);
+  case Mips::CNEPseudo:
+  case Mips::CNEPseudo32:
+    return emitCapNotEqual(MI, BB);
   case Mips::ST_F16:
     return emitST_F16_PSEUDO(MI, BB);
   case Mips::LD_F16:
@@ -1172,14 +1226,13 @@ SDValue MipsSETargetLowering::lowerLOAD(SDValue Op, SelectionDAG &DAG) const {
   // Replace a double precision load with two i32 loads and a buildpair64.
   SDLoc DL(Op);
   SDValue Ptr = Nd.getBasePtr(), Chain = Nd.getChain();
-  EVT PtrVT = Ptr.getValueType();
 
   // i32 load from lower address.
   SDValue Lo = DAG.getLoad(MVT::i32, DL, Chain, Ptr, MachinePointerInfo(),
                            Nd.getAlign(), Nd.getMemOperand()->getFlags());
 
   // i32 load from higher address.
-  Ptr = DAG.getNode(ISD::ADD, DL, PtrVT, Ptr, DAG.getConstant(4, DL, PtrVT));
+  Ptr = DAG.getPointerAdd(DL, Ptr, 4);
   SDValue Hi = DAG.getLoad(
       MVT::i32, DL, Lo.getValue(1), Ptr, MachinePointerInfo(),
       commonAlignment(Nd.getAlign(), 4), Nd.getMemOperand()->getFlags());
@@ -1201,7 +1254,6 @@ SDValue MipsSETargetLowering::lowerSTORE(SDValue Op, SelectionDAG &DAG) const {
   // Replace a double precision store with two extractelement64s and i32 stores.
   SDLoc DL(Op);
   SDValue Val = Nd.getValue(), Ptr = Nd.getBasePtr(), Chain = Nd.getChain();
-  EVT PtrVT = Ptr.getValueType();
   SDValue Lo = DAG.getNode(MipsISD::ExtractElementF64, DL, MVT::i32,
                            Val, DAG.getConstant(0, DL, MVT::i32));
   SDValue Hi = DAG.getNode(MipsISD::ExtractElementF64, DL, MVT::i32,
@@ -1215,7 +1267,7 @@ SDValue MipsSETargetLowering::lowerSTORE(SDValue Op, SelectionDAG &DAG) const {
                        Nd.getMemOperand()->getFlags(), Nd.getAAInfo());
 
   // i32 store to higher address.
-  Ptr = DAG.getNode(ISD::ADD, DL, PtrVT, Ptr, DAG.getConstant(4, DL, PtrVT));
+  Ptr = DAG.getPointerAdd(DL, Ptr, 4);
   return DAG.getStore(Chain, DL, Hi, Ptr, MachinePointerInfo(),
                       commonAlignment(Nd.getAlign(), 4),
                       Nd.getMemOperand()->getFlags(), Nd.getAAInfo());
@@ -1532,6 +1584,13 @@ SDValue MipsSETargetLowering::lowerINTRINSIC_WO_CHAIN(SDValue Op,
   switch (Intrinsic) {
   default:
     return SDValue();
+  case Intrinsic::mips_captable_get:
+    if (ABI.IsCheriPureCap())
+      return getCapGlobalReg(DAG, CapType);
+    DAG.getContext()->diagnose(DiagnosticInfoUnsupported(
+        DAG.getMachineFunction().getFunction(),
+        "the current ABI does not use a captable", DL.getDebugLoc()));
+    return DAG.getNullCapability(DL);
   case Intrinsic::mips_shilo:
     return lowerDSPIntr(Op, DAG, MipsISD::SHILO);
   case Intrinsic::mips_dpau_h_qbl:
@@ -2272,7 +2331,9 @@ SDValue MipsSETargetLowering::lowerINTRINSIC_WO_CHAIN(SDValue Op,
     return DAG.getNode(ISD::XOR, DL, Op->getValueType(0),
                        Op->getOperand(1), lowerMSASplatImm(Op, 2, DAG));
   case Intrinsic::thread_pointer: {
-    EVT PtrVT = getPointerTy(DAG.getDataLayout());
+    EVT PtrVT = getPointerTy(DAG.getDataLayout(), 0);
+    if (ABI.IsCheriPureCap())
+      PtrVT = CapType;
     return DAG.getNode(MipsISD::ThreadPointer, DL, PtrVT);
   }
   }
@@ -3850,4 +3911,96 @@ MipsSETargetLowering::emitFEXP2_D_1(MachineInstr &MI,
 
   MI.eraseFromParent(); // The pseudo instruction is gone now.
   return BB;
+}
+template<unsigned MTC1, unsigned CAPLOAD>
+static MachineBasicBlock *
+emitCapFloatLoad(const MipsSubtarget &Subtarget,
+                  const llvm::TargetRegisterClass &RC,
+                  MachineInstr &MI,
+                  MachineBasicBlock *BB) {
+  DebugLoc DL = MI.getDebugLoc();
+  MachineRegisterInfo &RegInfo = BB->getParent()->getRegInfo();
+  Register IntReg = RegInfo.createVirtualRegister(&RC);
+  const TargetInstrInfo *TII = Subtarget.getInstrInfo();
+  BuildMI(*BB, &MI, DL, TII->get(CAPLOAD), IntReg)
+      .add(MI.getOperand(1))
+      .add(MI.getOperand(2))
+      .add(MI.getOperand(3));
+  BuildMI(*BB, MI, DL, TII->get(MTC1))
+      .add(MI.getOperand(0))
+      .addReg(IntReg);
+  MI.eraseFromParent();
+  return BB;
+}
+MachineBasicBlock *
+MipsSETargetLowering::emitCapFloat32Load(MachineInstr &MI,
+                                    MachineBasicBlock *BB) const {
+  return emitCapFloatLoad<Mips::MTC1, Mips::CAPLOAD32>(Subtarget,
+          Mips::GPR32RegClass, MI, BB);
+}
+MachineBasicBlock *
+MipsSETargetLowering::emitCapFloat64Load(MachineInstr &MI,
+                                    MachineBasicBlock *BB) const {
+  return emitCapFloatLoad<Mips::DMTC1, Mips::CAPLOAD64>(Subtarget,
+          Mips::GPR64RegClass, MI, BB);
+}
+MachineBasicBlock *
+MipsSETargetLowering::emitCapNotEqual(MachineInstr &MI,
+                                    MachineBasicBlock *BB) const {
+  bool is64 = (MI.getOpcode() == Mips::CNEPseudo);
+  unsigned Op = Subtarget.useCheriExactEquals()
+                    ? (is64 ? Mips::CNEXEQ : Mips::CNEXEQ32)
+                    : (is64 ? Mips::CNE : Mips::CNE32);
+  const TargetInstrInfo *TII = Subtarget.getInstrInfo();
+  BuildMI(*BB, MI, MI.getDebugLoc(), TII->get(Op))
+      .add(MI.getOperand(0))
+      .add(MI.getOperand(1))
+      .add(MI.getOperand(2));
+  MI.eraseFromParent();
+  return BB;
+}
+MachineBasicBlock *
+MipsSETargetLowering::emitCapEqual(MachineInstr &MI,
+                                    MachineBasicBlock *BB) const {
+  bool is64 = (MI.getOpcode() == Mips::CEQPseudo);
+  unsigned Op = Subtarget.useCheriExactEquals()
+                    ? (is64 ? Mips::CEXEQ : Mips::CEXEQ32)
+                    : (is64 ? Mips::CEQ : Mips::CEQ32);
+  const TargetInstrInfo *TII = Subtarget.getInstrInfo();
+  BuildMI(*BB, MI, MI.getDebugLoc(), TII->get(Op))
+      .add(MI.getOperand(0))
+      .add(MI.getOperand(1))
+      .add(MI.getOperand(2));
+  MI.eraseFromParent();
+  return BB;
+}
+template<unsigned MFC1, unsigned CAPSTORE>
+static MachineBasicBlock *
+emitCapFloatStore(const MipsSubtarget &Subtarget,
+                  MachineInstr &MI,
+                  const llvm::TargetRegisterClass &RC,
+                  MachineBasicBlock *BB) {
+  DebugLoc DL = MI.getDebugLoc();
+  MachineRegisterInfo &RegInfo = BB->getParent()->getRegInfo();
+  Register IntReg = RegInfo.createVirtualRegister(&RC);
+  const TargetInstrInfo *TII = Subtarget.getInstrInfo();
+  BuildMI(*BB, MI, DL, TII->get(MFC1), IntReg)
+      .add(MI.getOperand(0));
+  BuildMI(*BB, MI, DL, TII->get(CAPSTORE))
+      .addReg(IntReg, RegState::Kill)
+      .add(MI.getOperand(1))
+      .add(MI.getOperand(2))
+      .add(MI.getOperand(3));
+  MI.eraseFromParent();
+  return BB;
+}
+MachineBasicBlock *
+MipsSETargetLowering::emitCapFloat64Store(MachineInstr &MI,
+                                    MachineBasicBlock *BB) const {
+  return emitCapFloatStore<Mips::DMFC1, Mips::CAPSTORE64>(Subtarget, MI, Mips::GPR64RegClass, BB);
+}
+MachineBasicBlock *
+MipsSETargetLowering::emitCapFloat32Store(MachineInstr &MI,
+                                    MachineBasicBlock *BB) const {
+  return emitCapFloatStore<Mips::MFC1, Mips::CAPSTORE32>(Subtarget, MI, Mips::GPR32RegClass, BB);
 }

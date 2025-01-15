@@ -6,8 +6,10 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "Cheri.h"
 #include "InputFiles.h"
 #include "OutputSections.h"
+#include "Relocations.h"
 #include "Symbols.h"
 #include "SyntheticSections.h"
 #include "Target.h"
@@ -16,6 +18,9 @@
 #include "llvm/Support/RISCVAttributeParser.h"
 #include "llvm/Support/RISCVAttributes.h"
 #include "llvm/Support/RISCVISAInfo.h"
+#include "llvm/ADT/StringExtras.h"
+#include "llvm/BinaryFormat/ELF.h"
+#include "llvm/Object/ELF.h"
 #include "llvm/Support/TimeProfiler.h"
 
 using namespace llvm;
@@ -31,6 +36,8 @@ class RISCV final : public TargetInfo {
 public:
   RISCV();
   uint32_t calcEFlags() const override;
+  bool calcIsCheriAbi() const override;
+  int getCapabilitySize() const override;
   int64_t getImplicitAddend(const uint8_t *buf, RelType type) const override;
   void writeGotHeader(uint8_t *buf) const override;
   void writeGotPlt(uint8_t *buf, const Symbol &s) const override;
@@ -46,6 +53,7 @@ public:
   void relocateAlloc(InputSectionBase &sec, uint8_t *buf) const override;
   bool relaxOnce(int pass) const override;
   void finalizeRelax(int passes) const override;
+  uint64_t cheriRequiredAlignment(uint64_t) const override;
 };
 
 } // end anonymous namespace
@@ -67,6 +75,14 @@ enum Op {
   LW = 0x2003,
   SRLI = 0x5013,
   SUB = 0x40000033,
+
+  CIncOffsetImm = 0x105b,
+  CLC_64 = 0x3003,
+  CLC_128 = 0x200f,
+  CSub = 0x2800005b,
+
+  AUIPCC = 0x17,
+  AUICGP = 0x7b,
 };
 
 enum Reg {
@@ -112,6 +128,10 @@ RISCV::RISCV() {
   pltRel = R_RISCV_JUMP_SLOT;
   relativeRel = R_RISCV_RELATIVE;
   iRelativeRel = R_RISCV_IRELATIVE;
+  sizeRel = R_RISCV_CHERI_SIZE;
+  cheriCapRel = R_RISCV_CHERI_CAPABILITY;
+  // TODO: R_RISCV_CHERI_JUMP_SLOT in a separate .got.plt / .captable.plt
+  cheriCapCallRel = R_RISCV_CHERI_CAPABILITY;
   if (config->is64) {
     symbolicRel = R_RISCV_64;
     tlsModuleIndexRel = R_RISCV_TLS_DTPMOD64;
@@ -125,6 +145,7 @@ RISCV::RISCV() {
   }
   gotRel = symbolicRel;
   tlsDescRel = R_RISCV_TLSDESC;
+  absPointerRel = symbolicRel;
 
   // .got[0] = _DYNAMIC
   gotHeaderEntriesNum = 1;
@@ -141,6 +162,10 @@ static uint32_t getEFlags(InputFile *f) {
   if (config->is64)
     return cast<ObjFile<ELF64LE>>(f)->getObj().getHeader().e_flags;
   return cast<ObjFile<ELF32LE>>(f)->getObj().getHeader().e_flags;
+}
+
+int RISCV::getCapabilitySize() const {
+  return config->is64 ? 16 : 8;
 }
 
 uint32_t RISCV::calcEFlags() const {
@@ -165,9 +190,27 @@ uint32_t RISCV::calcEFlags() const {
     if ((eflags & EF_RISCV_RVE) != (target & EF_RISCV_RVE))
       error(toString(f) +
             ": cannot link object files with different EF_RISCV_RVE");
+
+    if ((eflags & EF_RISCV_CHERIABI) != (target & EF_RISCV_CHERIABI))
+      error(toString(f) +
+            ": cannot link object files with different EF_RISCV_CHERIABI");
+
+    if ((eflags & EF_RISCV_CAP_MODE) != (target & EF_RISCV_CAP_MODE))
+      error(toString(f) +
+            ": cannot link object files with different EF_RISCV_CAP_MODE");
   }
 
   return target;
+}
+
+bool RISCV::calcIsCheriAbi() const {
+  bool isCheriAbi = config->eflags & EF_RISCV_CHERIABI;
+
+  if (config->isCheriAbi && !ctx.objectFiles.empty() && !isCheriAbi)
+    error(toString(ctx.objectFiles.front()) +
+          ": object file is non-CheriABI but emulation forces it");
+
+  return isCheriAbi;
 }
 
 int64_t RISCV::getImplicitAddend(const uint8_t *buf, RelType type) const {
@@ -222,35 +265,61 @@ void RISCV::writeIgotPlt(uint8_t *buf, const Symbol &s) const {
 }
 
 void RISCV::writePltHeader(uint8_t *buf) const {
-  // 1: auipc t2, %pcrel_hi(.got.plt)
-  // sub t1, t1, t3
-  // l[wd] t3, %pcrel_lo(1b)(t2); t3 = _dl_runtime_resolve
+  // TODO: Remove once we have a CHERI .got.plt and R_RISCV_CHERI_JUMP_SLOT.
+  // Without those there can be no lazy binding support (though the former
+  // requirement can be relaxed provided .captable[0] is _dl_runtime_resolve,
+  // at least when the PLT is non-empty), so for now we emit a header full of
+  // trapping instructions to ensure we don't accidentally end up trying to use
+  // it. Ideally we would have a header size of 0, but isCheriAbi isn't known
+  // in the constructor.
+  if (config->isCheriAbi) {
+    memset(buf, 0, pltHeaderSize);
+    return;
+  }
+  // 1: auipc(c) (c)t2, %pcrel_hi(.got.plt)
+  // (c)sub t1, (c)t1, (c)t3
+  // l[wdc] (c)t3, %pcrel_lo(1b)((c)t2); (c)t3 = _dl_runtime_resolve
   // addi t1, t1, -pltHeaderSize-12; t1 = &.plt[i] - &.plt[0]
-  // addi t0, t2, %pcrel_lo(1b)
-  // srli t1, t1, (rv64?1:2); t1 = &.got.plt[i] - &.got.plt[0]
-  // l[wd] t0, Wordsize(t0); t0 = link_map
-  // jr t3
+  // addi/cincoffset (c)t0, (c)t2, %pcrel_lo(1b)
+  // (if shift != 0): srli t1, t1, shift; t1 = &.got.plt[i] - &.got.plt[0]
+  // l[wdc] (c)t0, Ptrsize((c)t0); (c)t0 = link_map
+  // (c)jr (c)t3
+  // (if shift == 0): nop
   uint32_t offset = in.gotPlt->getVA() - in.plt->getVA();
-  uint32_t load = config->is64 ? LD : LW;
+  uint32_t ptrsub = config->isCheriAbi ? CSub : SUB;
+  uint32_t ptrload = config->isCheriAbi ? config->is64 ? CLC_128 : CLC_64
+                                        : config->is64 ? LD : LW;
+  uint32_t ptraddi = config->isCheriAbi ? CIncOffsetImm : ADDI;
+  // Shift is log2(pltsize / ptrsize), which is 0 for CHERI-128 so skipped
+  uint32_t shift = 2 - config->is64 - config->isCheriAbi;
+  uint32_t ptrsize = config->isCheriAbi ? config->capabilitySize
+                                        : config->wordsize;
   write32le(buf + 0, utype(AUIPC, X_T2, hi20(offset)));
-  write32le(buf + 4, rtype(SUB, X_T1, X_T1, X_T3));
-  write32le(buf + 8, itype(load, X_T3, X_T2, lo12(offset)));
+  write32le(buf + 4, rtype(ptrsub, X_T1, X_T1, X_T3));
+  write32le(buf + 8, itype(ptrload, X_T3, X_T2, lo12(offset)));
   write32le(buf + 12, itype(ADDI, X_T1, X_T1, -target->pltHeaderSize - 12));
-  write32le(buf + 16, itype(ADDI, X_T0, X_T2, lo12(offset)));
-  write32le(buf + 20, itype(SRLI, X_T1, X_T1, config->is64 ? 1 : 2));
-  write32le(buf + 24, itype(load, X_T0, X_T0, config->wordsize));
-  write32le(buf + 28, itype(JALR, 0, X_T3, 0));
+  write32le(buf + 16, itype(ptraddi, X_T0, X_T2, lo12(offset)));
+  if (shift != 0)
+    write32le(buf + 20, itype(SRLI, X_T1, X_T1, shift));
+  write32le(buf + 24 - 4 * (shift == 0), itype(ptrload, X_T0, X_T0, ptrsize));
+  write32le(buf + 28 - 4 * (shift == 0), itype(JALR, 0, X_T3, 0));
+  if (shift == 0)
+    write32le(buf + 28, itype(ADDI, 0, 0, 0));
 }
 
 void RISCV::writePlt(uint8_t *buf, const Symbol &sym,
                      uint64_t pltEntryAddr) const {
-  // 1: auipc t3, %pcrel_hi(f@.got.plt)
-  // l[wd] t3, %pcrel_lo(1b)(t3)
-  // jalr t1, t3
+  // 1: auipc(c) (c)t3, %pcrel_hi(f@[.got.plt|.captable])
+  // l[wdc] (c)t3, %pcrel_lo(1b)((c)t3)
+  // (c)jalr (c)t1, (c)t3
   // nop
-  uint32_t offset = sym.getGotPltVA() - pltEntryAddr;
+  uint32_t ptrload = config->isCheriAbi ? config->is64 ? CLC_128 : CLC_64
+                                        : config->is64 ? LD : LW;
+  uint32_t entryva = config->isCheriAbi ? sym.getCapTableVA(in.plt.get(), 0)
+                                        : sym.getGotPltVA();
+  uint32_t offset = entryva - pltEntryAddr;
   write32le(buf + 0, utype(AUIPC, X_T3, hi20(offset)));
-  write32le(buf + 4, itype(config->is64 ? LD : LW, X_T3, X_T3, lo12(offset)));
+  write32le(buf + 4, itype(ptrload, X_T3, X_T3, lo12(offset)));
   write32le(buf + 8, itype(JALR, X_T1, X_T3, 0));
   write32le(buf + 12, itype(ADDI, 0, 0, 0));
 }
@@ -287,14 +356,17 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
   case R_RISCV_SUB64:
     return R_RISCV_ADD;
   case R_RISCV_JAL:
+  case R_RISCV_CHERI_CJAL:
   case R_RISCV_BRANCH:
   case R_RISCV_PCREL_HI20:
   case R_RISCV_RVC_BRANCH:
   case R_RISCV_RVC_JUMP:
+  case R_RISCV_CHERI_RVC_CJUMP:
   case R_RISCV_32_PCREL:
     return R_PC;
   case R_RISCV_CALL:
   case R_RISCV_CALL_PLT:
+  case R_RISCV_CHERI_CCALL:
   case R_RISCV_PLT32:
     return R_PLT_PC;
   case R_RISCV_GOT_HI20:
@@ -320,11 +392,28 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
   case R_RISCV_ALIGN:
     return R_RELAX_HINT;
   case R_RISCV_TPREL_ADD:
+  case R_RISCV_CHERI_TPREL_CINCOFFSET:
   case R_RISCV_RELAX:
     return config->relax ? R_RELAX_HINT : R_NONE;
   case R_RISCV_SET_ULEB128:
   case R_RISCV_SUB_ULEB128:
     return R_RISCV_LEB128;
+  case R_RISCV_CHERI_CAPABILITY:
+    return R_CHERI_CAPABILITY;
+  case R_RISCV_CHERI_CAPTAB_PCREL_HI20:
+    return R_CHERI_CAPABILITY_TABLE_ENTRY_PC;
+  case R_RISCV_CHERI_TLS_IE_CAPTAB_PCREL_HI20:
+    return R_CHERI_CAPABILITY_TABLE_TLSIE_ENTRY_PC;
+  case R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20:
+    return R_CHERI_CAPABILITY_TABLE_TLSGD_ENTRY_PC;
+  case R_RISCV_CHERIOT_COMPARTMENT_HI:
+    return isPCCRelative(loc, &s) ? R_PC : R_CHERIOT_COMPARTMENT_CGPREL_HI;
+  case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
+    return R_CHERIOT_COMPARTMENT_CGPREL_LO_I;
+  case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
+    return R_CHERIOT_COMPARTMENT_CGPREL_LO_S;
+  case R_RISCV_CHERIOT_COMPARTMENT_SIZE:
+    return R_CHERIOT_COMPARTMENT_SIZE;
   default:
     error(getErrorLocation(loc) + "unknown relocation (" + Twine(type) +
           ") against symbol " + toString(s));
@@ -358,7 +447,8 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     return;
   }
 
-  case R_RISCV_RVC_JUMP: {
+  case R_RISCV_RVC_JUMP:
+  case R_RISCV_CHERI_RVC_CJUMP: {
     checkInt(loc, val, 12, rel);
     checkAlignment(loc, val, 2, rel);
     uint16_t insn = read16le(loc) & 0xE003;
@@ -389,7 +479,8 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     return;
   }
 
-  case R_RISCV_JAL: {
+  case R_RISCV_JAL:
+  case R_RISCV_CHERI_CJAL: {
     checkInt(loc, val, 21, rel);
     checkAlignment(loc, val, 2, rel);
 
@@ -419,9 +510,10 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     return;
   }
 
-  // auipc + jalr pair
+  // auipc[c] + [c]jalr pair
   case R_RISCV_CALL:
-  case R_RISCV_CALL_PLT: {
+  case R_RISCV_CALL_PLT:
+  case R_RISCV_CHERI_CCALL: {
     int64_t hi = SignExtend64(val + 0x800, bits) >> 12;
     checkInt(loc, hi, 20, rel);
     if (isInt<20>(hi)) {
@@ -431,6 +523,9 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     return;
   }
 
+  case R_RISCV_CHERI_CAPTAB_PCREL_HI20:
+  case R_RISCV_CHERI_TLS_IE_CAPTAB_PCREL_HI20:
+  case R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20:
   case R_RISCV_GOT_HI20:
   case R_RISCV_PCREL_HI20:
   case R_RISCV_TLSDESC_HI20:
@@ -523,10 +618,16 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     return;
 
   case R_RISCV_TLS_DTPREL32:
-    write32le(loc, val - dtpOffset);
+    if (config->isCheriAbi)
+      write32le(loc, val);
+    else
+      write32le(loc, val - dtpOffset);
     break;
   case R_RISCV_TLS_DTPREL64:
-    write64le(loc, val - dtpOffset);
+    if (config->isCheriAbi)
+      write64le(loc, val);
+    else
+      write64le(loc, val - dtpOffset);
     break;
 
   case R_RISCV_RELAX:
@@ -538,9 +639,71 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     else
       write32le(loc + 4, val);
     break;
+  case R_RISCV_CHERIOT_COMPARTMENT_LO_I: {
+    if (isPCCRelative(loc, rel.sym)) {
+      // Attach a negative sign bit to LO12 if the offset is negative.
+      // However, if HI20 alone is enough to reach the target, then this should
+      // not be done and LO14 should just be 0 regardless.
+      if (int64_t(val) >= 0 || (val & 0x7ff) == 0)
+        val &= 0x7ff;
+      else
+        val = (uint64_t(-1) & ~0x7ff) | (val & 0x7ff);
+    }
+    checkInt(loc, val, 12, rel);
+    write32le(loc, (read32le(loc) & 0x000fffff) | (val << 20));
+    break;
+  }
+  case R_RISCV_CHERIOT_COMPARTMENT_SIZE:
+    checkUInt(loc, val, 12, rel);
+    write32le(loc, (read32le(loc) & 0x000fffff) | (val << 20));
+    break;
+  case R_RISCV_CHERIOT_COMPARTMENT_LO_S: {
+    // Stores have their immediate fields split because RISC-V prematurely
+    // optimises for small pipelines with no FPU.
+    uint32_t insn = read32le(loc) & 0x1fff07f;
+    uint32_t val_high = val & 0xfe0;
+    uint32_t val_low = val & 0x1f;
+    write32le(loc, insn | (val_high << 20) | (val_low << 7));
+    break;
+  }
+  case R_RISCV_CHERIOT_COMPARTMENT_HI: {
+    // AUICGP
+    uint32_t opcode = AUICGP;
+    if (isPCCRelative(loc, rel.sym)) {
+      opcode = AUIPCC;
+      if (int64_t(val) < 0)
+        val = (val + 0x7ff) & ~0x7ff;
+      val = int64_t(val) >> 11;
+    }
+    uint32_t existingOpcode = read32le(loc) & 0x7f;
+    if ((existingOpcode != AUIPCC) && (existingOpcode != AUICGP))
+      warn("R_RISCV_CHERIOT_COMPARTMENT_HI relocation applied to instruction "
+           "with unexpected opcode " +
+           Twine(existingOpcode));
+    checkInt(loc, val, 20, rel);
+    // Preserve the target register.  We will rewrite the opcode (source
+    // register) to either AUICGP or AUIPCC and set the immediate field.
+    uint32_t insn = read32le(loc) & 0x00000f80;
+    write32le(loc, insn | (val << 12) | opcode);
+    break;
+  }
+
   default:
     llvm_unreachable("unknown relocation");
   }
+}
+
+uint64_t RISCV::cheriRequiredAlignment(uint64_t size) const {
+  // FIXME: Non-CherIoT targets will have different calculations here
+  uint64_t mantissaWidth = 9;
+  auto mantissaWidthMinusOneMask = (uint64_t(1) << (mantissaWidth - 1)) - 1;
+  uint64_t msbIdxPlusOne = 64 - llvm::countl_zero(size);
+  uint64_t e = std::max<int64_t>(int64_t(msbIdxPlusOne) - mantissaWidth, 0);
+  // If we are very close to the top, then we need to round up one more
+  if (((size >> (e + 1)) & mantissaWidthMinusOneMask) ==
+      mantissaWidthMinusOneMask)
+    ++e;
+  return uint64_t(1) << e;
 }
 
 static bool relaxable(ArrayRef<Relocation> relocs, size_t i) {
@@ -604,7 +767,7 @@ void RISCV::relocateAlloc(InputSectionBase &sec, uint8_t *buf) const {
     uint8_t *loc = buf + rel.offset;
     uint64_t val =
         sec.getRelocTargetVA(sec.file, rel.type, rel.addend,
-                             secAddr + rel.offset, *rel.sym, rel.expr);
+                             secAddr + rel.offset, *rel.sym, rel.expr, &sec, rel.offset);
 
     switch (rel.expr) {
     case R_RELAX_HINT:
@@ -712,7 +875,7 @@ void elf::initSymbolAnchors() {
         if (sec->flags & SHF_EXECINSTR && sec->relaxAux) {
           // If sec is discarded, relaxAux will be nullptr.
           sec->relaxAux->anchors.push_back({d->value, d, false});
-          sec->relaxAux->anchors.push_back({d->value + d->size, d, true});
+          sec->relaxAux->anchors.push_back({d->value + d->getSize(), d, true});
         }
     }
   // Sort anchors by offset so that we can find the closest relocation
@@ -732,8 +895,15 @@ void elf::initSymbolAnchors() {
 }
 
 // Relax R_RISCV_CALL/R_RISCV_CALL_PLT auipc+jalr to c.j, c.jal, or jal.
+// Relax R_RISCV_CHERI_CCALL auipcc+cjalr to c.cj, c.cjal, or cjal.
 static void relaxCall(const InputSection &sec, size_t i, uint64_t loc,
                       Relocation &r, uint32_t &remove) {
+  // We need to emit the correct relocations for CHERI, although the instruction
+  // encodings are exactly the same with vanilla RISC-V.
+  auto jalRVCType = (r.type == R_RISCV_CHERI_CCALL) ? R_RISCV_CHERI_RVC_CJUMP
+                                                    : R_RISCV_RVC_JUMP;
+  auto jalType = (r.type == R_RISCV_CHERI_CCALL) ? R_RISCV_CHERI_CJAL
+                                                 : R_RISCV_JAL;
   const bool rvc = getEFlags(sec.file) & EF_RISCV_RVC;
   const Symbol &sym = *r.sym;
   const uint64_t insnPair = read64le(sec.content().data() + r.offset);
@@ -743,17 +913,17 @@ static void relaxCall(const InputSection &sec, size_t i, uint64_t loc,
   const int64_t displace = dest - loc;
 
   if (rvc && isInt<12>(displace) && rd == 0) {
-    sec.relaxAux->relocTypes[i] = R_RISCV_RVC_JUMP;
-    sec.relaxAux->writes.push_back(0xa001); // c.j
+    sec.relaxAux->relocTypes[i] = jalRVCType;
+    sec.relaxAux->writes.push_back(0xa001); // c.[c]j
     remove = 6;
   } else if (rvc && isInt<12>(displace) && rd == X_RA &&
              !config->is64) { // RV32C only
-    sec.relaxAux->relocTypes[i] = R_RISCV_RVC_JUMP;
-    sec.relaxAux->writes.push_back(0x2001); // c.jal
+    sec.relaxAux->relocTypes[i] = jalRVCType;
+    sec.relaxAux->writes.push_back(0x2001); // c.[c]jal
     remove = 6;
   } else if (isInt<21>(displace)) {
-    sec.relaxAux->relocTypes[i] = R_RISCV_JAL;
-    sec.relaxAux->writes.push_back(0x6f | rd << 7); // jal
+    sec.relaxAux->relocTypes[i] = jalType;
+    sec.relaxAux->writes.push_back(0x6f | rd << 7); // [c]jal
     remove = 4;
   }
 }
@@ -811,7 +981,109 @@ static void relaxHi20Lo12(const InputSection &sec, size_t i, uint64_t loc,
   }
 }
 
-static bool relax(InputSection &sec) {
+// Relax auicgp + cincoffset/memop to cincoffset/memop cgp
+static void relaxCGP(const InputSection &sec, size_t i, uint64_t loc,
+                     Relocation &r, uint32_t &remove) {
+  if (isPCCRelative(nullptr, r.sym))
+    return;
+  uint64_t hival = getBiasedCGPOffset(*r.sym) - getBiasedCGPOffsetLo12(*r.sym);
+  // We can only relax when imm == 0 in auicgp rd, imm.
+  if (hival != 0)
+    return;
+  uint32_t insn = read32le(sec.content().data() + r.offset);
+  switch (r.type) {
+  case R_RISCV_CHERIOT_COMPARTMENT_HI: {
+    // Remove auicgp rd, 0.
+    sec.relaxAux->relocTypes[i] = R_RISCV_RELAX;
+    remove = 4;
+    break;
+  }
+  case R_RISCV_CHERIOT_COMPARTMENT_LO_I: {
+    // cincoffset/load rd, cs1, %lo(x) => cincoffset/load rd, cgp, %lo(x)
+    sec.relaxAux->relocTypes[i] = R_RISCV_CHERIOT_COMPARTMENT_LO_I;
+    insn = (insn & ~(31 << 15)) | (3 << 15);
+    sec.relaxAux->writes.push_back(insn);
+    break;
+  }
+  case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
+    // store cs2, cs1, %lo(x) => store cs2, cgp, %lo(x)
+    sec.relaxAux->relocTypes[i] = R_RISCV_CHERIOT_COMPARTMENT_LO_I;
+    insn = (insn & ~(31 << 15)) | (3 << 15);
+    sec.relaxAux->writes.push_back(insn);
+    break;
+  }
+}
+
+/**
+ * Find all R_RISCV_CHERIOT_COMPARTMENT_LO_I relocations that are CGP-relative
+ * and rewrite them to be relative to the target of the current relocation.
+ * These relocations mirror the HI20/LO12 PC-relative relocations and are
+ * written as pairs where the first has the real relocation target as its
+ * symbol and the second has the location of the first as its target.  This is
+ * necessary for PC-relative relocations because the final address depends on
+ * the location of the first instruction.  For CHERIoT, both PCC and
+ * CGP-relative relocations use the same relocation types and we don't know
+ * whether it is relative to PCC or CGP until we know the target.  That would
+ * be fine, except that relaxation can delete the AUICGP, which means that we
+ * then can't find the target.  We void this by doing a pass to find these
+ * relocation targets and attaching them to the
+ * R_RISCV_CHERIOT_COMPARTMENT_LO_I relocations for the cases where the target
+ * is CGP-relative.
+ *
+ * Note: If we ever get direct PC[C]-relative loads in RISC-V then other
+ * relocations will want to reuse this path.
+ */
+static bool rewriteCheriotLowRelocs(InputSection &sec) {
+  bool modified = false;
+  for (auto it : llvm::enumerate(sec.relocations)) {
+    Relocation &r = it.value();
+    if (r.type == R_RISCV_CHERIOT_COMPARTMENT_LO_I) {
+      // If this is PCC-relative, then the relocation points to the auicgp /
+      // auipcc instruction and we need to look there to find the real target.
+      if (isPCCRelative(nullptr, r.sym)) {
+        const Defined *d = cast<Defined>(r.sym);
+        if (!d->section)
+          error("R_RISCV_CHERIOT_COMPARTMENT_LO_I relocation points to an "
+                "absolute symbol: " +
+                r.sym->getName());
+        InputSection *isec = cast<InputSection>(d->section);
+
+        // Relocations are sorted by offset, so we can use std::equal_range to
+        // do binary search.
+        Relocation targetReloc;
+        targetReloc.offset = d->value;
+        auto range = std::equal_range(
+            isec->relocations.begin(), isec->relocations.end(), targetReloc,
+            [](const Relocation &lhs, const Relocation &rhs) {
+              return lhs.offset < rhs.offset;
+            });
+
+        const Relocation *target = nullptr;
+        for (auto it = range.first; it != range.second; ++it)
+          if (it->type == R_RISCV_CHERIOT_COMPARTMENT_HI) {
+            target = &*it;
+            break;
+          }
+        if (!target) {
+          error(
+              "Could not find R_RISCV_CHERIOT_COMPARTMENT_HI relocation for " +
+              toString(*r.sym));
+        }
+        // If the target is PCC-relative then the auipcc can't be erased and so
+        // skip the rewriting.
+        if (isPCCRelative(nullptr, target->sym))
+          continue;
+        // Update our relocation to point to the target thing.
+        r.sym = target->sym;
+        r.addend = target->addend;
+        modified = true;
+      }
+    }
+  }
+  return modified;
+}
+
+static bool relax(InputSection &sec, int pass) {
   const uint64_t secAddr = sec.getVA();
   const MutableArrayRef<Relocation> relocs = sec.relocs();
   auto &aux = *sec.relaxAux;
@@ -819,6 +1091,10 @@ static bool relax(InputSection &sec) {
   ArrayRef<SymbolAnchor> sa = ArrayRef(aux.anchors);
   uint64_t delta = 0;
   bool tlsdescRelax = false, toLeShortForm = false;
+
+  // On the first pass, do a scan of LO_I CHERIoT relocations
+  if (pass == 0)
+    changed |= rewriteCheriotLowRelocs(sec);
 
   std::fill_n(aux.relocTypes.get(), relocs.size(), R_RISCV_NONE);
   aux.writes.clear();
@@ -843,6 +1119,7 @@ static bool relax(InputSection &sec) {
     }
     case R_RISCV_CALL:
     case R_RISCV_CALL_PLT:
+    case R_RISCV_CHERI_CCALL:
       if (relaxable(relocs, i))
         relaxCall(sec, i, loc, r, remove);
       break;
@@ -874,6 +1151,13 @@ static bool relax(InputSection &sec) {
       if (toLeShortForm)
         remove = 4;
       break;
+    case R_RISCV_CHERIOT_COMPARTMENT_HI:
+    case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
+    case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
+      if (i + 1 != sec.relocations.size() &&
+          sec.relocations[i + 1].type == R_RISCV_RELAX)
+        relaxCGP(sec, i, loc, r, remove);
+      break;
     }
 
     // For all anchors whose offsets are <= r.offset, they are preceded by
@@ -881,7 +1165,7 @@ static bool relax(InputSection &sec) {
     // Decrease their st_value and update their st_size.
     for (; sa.size() && sa[0].offset <= r.offset; sa = sa.slice(1)) {
       if (sa[0].end)
-        sa[0].d->size = sa[0].offset - delta - sa[0].d->value;
+        sa[0].d->setSize(sa[0].offset - delta - sa[0].d->value);
       else
         sa[0].d->value = sa[0].offset - delta;
     }
@@ -894,7 +1178,7 @@ static bool relax(InputSection &sec) {
 
   for (const SymbolAnchor &a : sa) {
     if (a.end)
-      a.d->size = a.offset - delta - a.d->value;
+      a.d->setSize(a.offset - delta - a.d->value);
     else
       a.d->value = a.offset - delta;
   }
@@ -926,7 +1210,7 @@ bool RISCV::relaxOnce(int pass) const {
     if (!(osec->flags & SHF_EXECINSTR))
       continue;
     for (InputSection *sec : getInputSections(*osec, storage))
-      changed |= relax(*sec);
+      changed |= relax(*sec, pass);
   }
   return changed;
 }
@@ -994,10 +1278,12 @@ void RISCV::finalizeRelax(int passes) const {
             // Used by relaxTlsLe to indicate the relocation is ignored.
             break;
           case R_RISCV_RVC_JUMP:
+          case R_RISCV_CHERI_RVC_CJUMP:
             skip = 2;
             write16le(p, aux.writes[writesIdx++]);
             break;
           case R_RISCV_JAL:
+          case R_RISCV_CHERI_CJAL:
             skip = 4;
             write32le(p, aux.writes[writesIdx++]);
             break;
@@ -1007,6 +1293,11 @@ void RISCV::finalizeRelax(int passes) const {
             skip = 4;
             write32le(p, aux.writes[writesIdx++]);
             aux.relocTypes[i] = R_RISCV_NONE;
+            break;
+          case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
+          case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
+            skip = 4;
+            write32le(p, aux.writes[writesIdx++]);
             break;
           default:
             llvm_unreachable("unsupported type");

@@ -138,6 +138,7 @@ public:
   DominatorTree &getDominatorTree() const { return *DT; }
   AAResults *getAliasAnalysis() const { return VN.getAliasAnalysis(); }
   MemoryDependenceResults &getMemDep() const { return *MD; }
+  const TargetLibraryInfo *getTargetLibraryInfo() const { return TLI; }
 
   bool isPREEnabled() const;
   bool isLoadPREEnabled() const;

@@ -200,6 +200,7 @@ protected:
   MCSymbol *CurrentFnBegin = nullptr;
 
   /// For dso_local functions, the current $local alias for the function.
+  /// Also used for exception handling for pure-capability CHERI targets.
   MCSymbol *CurrentFnBeginLocal = nullptr;
 
   /// A vector of all debug/EH info emitters we should use. This vector
@@ -325,7 +326,10 @@ public:
   /// Similar to getSymbol() but preferred for references. On ELF, this uses a
   /// local symbol if a reference to GV is guaranteed to be resolved to the
   /// definition in the same module.
-  MCSymbol *getSymbolPreferLocal(const GlobalValue &GV) const;
+  /// If \p Force is set to true, return a local alias if possible even if the
+  /// normal heuristics say it is not beneficial.
+  MCSymbol *getSymbolPreferLocal(const GlobalValue &GV,
+                                 bool Force = false) const;
 
   bool doesDwarfUseRelocationsAcrossSections() const {
     return DwarfUsesRelocationsAcrossSections;
@@ -506,7 +510,7 @@ public:
   /// label of that alias needs to be emitted before the corresponding element.
   using AliasMapTy = DenseMap<uint64_t, SmallVector<const GlobalAlias *, 1>>;
   void emitGlobalConstant(const DataLayout &DL, const Constant *CV,
-                          AliasMapTy *AliasList = nullptr);
+                          uint64_t TailPadding, AliasMapTy *AliasList = nullptr);
 
   /// Unnamed constant global variables solely contaning a pointer to
   /// another globals variable act like a global variable "proxy", or GOT
@@ -582,7 +586,7 @@ public:
   /// Targets can override this to change how global constants that are part of
   /// a C++ static/global constructor list are emitted.
   virtual void emitXXStructor(const DataLayout &DL, const Constant *CV) {
-    emitGlobalConstant(DL, CV);
+    emitGlobalConstant(DL, CV, 0);
   }
 
   /// Return true if the basic block has exactly one predecessor and the control
@@ -750,6 +754,9 @@ public:
                           unsigned Encoding) const;
   /// Emit an integer value corresponding to the call site encoding
   void emitCallSiteValue(uint64_t Value, unsigned Encoding) const;
+  /// Emit a CHERI capability to a call site
+  void emitCallSiteCheriCapability(const MCSymbol *Hi,
+                                   const MCSymbol *Lo) const;
 
   /// Get the value for DW_AT_APPLE_isa. Zero if no isa encoding specified.
   virtual unsigned getISAEncoding() { return 0; }

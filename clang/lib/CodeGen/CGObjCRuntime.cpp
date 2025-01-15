@@ -180,8 +180,20 @@ void CGObjCRuntime::EmitTryCatchStmt(CodeGenFunction &CGF,
         // Don't consider any other catches.
         break;
       }
-
-      Handler.TypeInfo = GetEHType(CatchDecl->getType());
+      auto EHType = GetEHType(CatchDecl->getType());
+      if (!EHType) {
+        // CGObjCGNU::GetEHType() returns null to indicated a catch-all
+        // only happens if CGM.getLangOpts().ObjCRuntime.isNonFragile()
+        // which probably explains why we were only seeing this test
+        // fail on some systems (Linux without GNUStep?)
+        Handler.TypeInfo = nullptr; // catch-all
+        // Don't consider any other catches.
+        break;
+      }
+      unsigned AS = CGF.CGM.getTargetCodeGenInfo().getDefaultAS();
+      Handler.TypeInfo =
+          llvm::ConstantExpr::getPointerBitCastOrAddrSpaceCast(EHType,
+                  CGM.Int8Ty->getPointerTo(AS));
     }
 
     EHCatchScope *Catch = CGF.EHStack.pushCatch(Handlers.size());

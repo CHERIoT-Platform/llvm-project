@@ -219,7 +219,7 @@ entry:
   %1 = load volatile i32, ptr @"\01?x@@3HC", align 4, !dbg !17, !tbaa !13
   %add.i = add nsw i32 %1, 4, !dbg !17
   store volatile i32 %add.i, ptr @"\01?x@@3HC", align 4, !dbg !17, !tbaa !13
-  call void @llvm.lifetime.start(i64 4, ptr %y.i.i) #2, !dbg !19
+  call void @llvm.lifetime.start.p0(i64 4, ptr %y.i.i) #2, !dbg !19
   store i32 1, ptr %y.i.i, align 4, !dbg !21, !tbaa !13
   %2 = ptrtoint ptr %y.i.i to i64, !dbg !22
   %3 = trunc i64 %2 to i32, !dbg !22
@@ -232,7 +232,7 @@ entry:
   %6 = load volatile i32, ptr @"\01?x@@3HC", align 4, !dbg !25, !tbaa !13
   %add2.i.i = add nsw i32 %6, 3, !dbg !25
   store volatile i32 %add2.i.i, ptr @"\01?x@@3HC", align 4, !dbg !25, !tbaa !13
-  call void @llvm.lifetime.end(i64 4, ptr %y.i.i) #2, !dbg !26
+  call void @llvm.lifetime.end.p0(i64 4, ptr %y.i.i) #2, !dbg !26
   %7 = load volatile i32, ptr @"\01?x@@3HC", align 4, !dbg !27, !tbaa !13
   %add1.i = add nsw i32 %7, 5, !dbg !27
   store volatile i32 %add1.i, ptr @"\01?x@@3HC", align 4, !dbg !27, !tbaa !13
@@ -243,10 +243,10 @@ entry:
 }
 
 ; Function Attrs: argmemonly nounwind
-declare void @llvm.lifetime.start(i64, ptr nocapture) #1
+declare void @llvm.lifetime.start.p0(i64, ptr nocapture) #1
 
 ; Function Attrs: argmemonly nounwind
-declare void @llvm.lifetime.end(i64, ptr nocapture) #1
+declare void @llvm.lifetime.end.p0(i64, ptr nocapture) #1
 
 attributes #0 = { norecurse nounwind uwtable "disable-tail-calls"="false" "less-precise-fpmad"="false" "frame-pointer"="none" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+fxsr,+mmx,+sse,+sse2" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { argmemonly nounwind }

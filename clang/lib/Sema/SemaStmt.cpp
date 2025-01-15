@@ -3542,7 +3542,8 @@ ExprResult Sema::PerformMoveOrCopyInitialization(
       (!getLangOpts().CPlusPlus23 || SupressSimplerImplicitMoves) &&
       NRInfo.isMoveEligible()) {
     ImplicitCastExpr AsRvalue(ImplicitCastExpr::OnStack, Value->getType(),
-                              CK_NoOp, Value, VK_XValue, FPOptionsOverride());
+                              CK_NoOp, Value, VK_XValue, FPOptionsOverride(),
+                              Context);
     Expr *InitExpr = &AsRvalue;
     auto Kind = InitializationKind::CreateCopy(Value->getBeginLoc(),
                                                Value->getBeginLoc());
@@ -3553,9 +3554,9 @@ ExprResult Sema::PerformMoveOrCopyInitialization(
          VerifyInitializationSequenceCXX98(*this, Seq))) {
       // Promote "AsRvalue" to the heap, since we now need this
       // expression node to persist.
-      Value =
-          ImplicitCastExpr::Create(Context, Value->getType(), CK_NoOp, Value,
-                                   nullptr, VK_XValue, FPOptionsOverride());
+      Value = ImplicitCastExpr::Create(Context, Value->getType(), CK_NoOp,
+                                       Value, nullptr, VK_XValue,
+                                       FPOptionsOverride());
       // Complete type-checking the initialization of the return type
       // using the constructor we found.
       return Seq.Perform(*this, Entity, Kind, Value);
@@ -4131,6 +4132,12 @@ StmtResult Sema::BuildReturnStmt(SourceLocation ReturnLoc, Expr *RetValExp,
           return StmtError();
         RetValExp = ER.get();
       }
+    } else if (getCurFunctionOrMethodDecl()
+                   ->hasAttr<CHERICompartmentNameAttr>()) {
+      SourceLocation AfterReturnLoc = getLocForEndOfToken(ReturnLoc);
+      /* Compartment call */
+      Diag(ReturnLoc, diag::warn_cheri_compartment_return_void_or_falloff)
+          << FixItHint::CreateInsertion(AfterReturnLoc, " 0");
     }
 
     Result = ReturnStmt::Create(Context, ReturnLoc, RetValExp,

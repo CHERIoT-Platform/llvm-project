@@ -20,10 +20,12 @@
 #define _LIBUNWIND_HIGHEST_DWARF_REGISTER_X86_64    32
 #define _LIBUNWIND_HIGHEST_DWARF_REGISTER_PPC       112
 #define _LIBUNWIND_HIGHEST_DWARF_REGISTER_PPC64     116
+#define _LIBUNWIND_HIGHEST_DWARF_REGISTER_MORELLO   229
 #define _LIBUNWIND_HIGHEST_DWARF_REGISTER_ARM64     95
 #define _LIBUNWIND_HIGHEST_DWARF_REGISTER_ARM       287
 #define _LIBUNWIND_HIGHEST_DWARF_REGISTER_OR1K      32
 #define _LIBUNWIND_HIGHEST_DWARF_REGISTER_MIPS      65
+#define _LIBUNWIND_HIGHEST_DWARF_REGISTER_MIPS_CHERI 103
 #define _LIBUNWIND_HIGHEST_DWARF_REGISTER_SPARC     31
 #define _LIBUNWIND_HIGHEST_DWARF_REGISTER_SPARC64   31
 #define _LIBUNWIND_HIGHEST_DWARF_REGISTER_HEXAGON   34
@@ -31,6 +33,13 @@
 #define _LIBUNWIND_HIGHEST_DWARF_REGISTER_VE        143
 #define _LIBUNWIND_HIGHEST_DWARF_REGISTER_S390X     83
 #define _LIBUNWIND_HIGHEST_DWARF_REGISTER_LOONGARCH 64
+
+#define _LIBUNWIND_MAX_CONTEXT_SIZE 200
+#define _LIBUNWIND_MAX_CURSOR_SIZE 248
+
+#if !defined(_LIBUNWIND_ENABLE_CROSS_UNWINDING)
+#define _LIBUNWIND_IS_NATIVE_ONLY 1
+#endif
 
 #if defined(_LIBUNWIND_IS_NATIVE_ONLY)
 # if defined(__linux__)
@@ -70,13 +79,23 @@
 #  define _LIBUNWIND_HIGHEST_DWARF_REGISTER _LIBUNWIND_HIGHEST_DWARF_REGISTER_PPC
 # elif defined(__aarch64__)
 #  define _LIBUNWIND_TARGET_AARCH64 1
-#  define _LIBUNWIND_CONTEXT_SIZE 66
-#  if defined(__SEH__)
-#    define _LIBUNWIND_CURSOR_SIZE 164
+#  if defined(__CHERI_PURE_CAPABILITY__)
+#    define _LIBUNWIND_CONTEXT_SIZE 102
+#    if defined(__SEH__)
+#      error "Pure-capability aarch64 SEH not supported"
+#    else
+#      define _LIBUNWIND_CURSOR_SIZE 126
+#    endif
+#    define _LIBUNWIND_HIGHEST_DWARF_REGISTER _LIBUNWIND_HIGHEST_DWARF_REGISTER_MORELLO
 #  else
-#    define _LIBUNWIND_CURSOR_SIZE 78
+#    define _LIBUNWIND_CONTEXT_SIZE 66
+#    if defined(__SEH__)
+#      define _LIBUNWIND_CURSOR_SIZE 164
+#    else
+#      define _LIBUNWIND_CURSOR_SIZE 78
+#    endif
+#    define _LIBUNWIND_HIGHEST_DWARF_REGISTER _LIBUNWIND_HIGHEST_DWARF_REGISTER_ARM64
 #  endif
-#  define _LIBUNWIND_HIGHEST_DWARF_REGISTER _LIBUNWIND_HIGHEST_DWARF_REGISTER_ARM64
 # elif defined(__arm__)
 #  define _LIBUNWIND_TARGET_ARM 1
 #  if defined(__SEH__)
@@ -111,6 +130,22 @@
 #      define _LIBUNWIND_CONTEXT_SIZE 18
 #      define _LIBUNWIND_CURSOR_SIZE 24
 #    endif
+#  elif defined(__CHERI_PURE_CAPABILITY__)
+#   ifdef __mips_hard_float
+#    error "not supported yet"
+#   endif
+#   define _LIBUNWIND_TARGET_MIPS_CHERI 1
+    /* 32 GPRs + 32 FPRs + HI + LO + (padding for CHERI256) + capregs*/
+#if _MIPS_SZCAP == 256
+    /* add two words as padding to ensure capability alignment*/
+#   define _LIBUNWIND_CAPREG_START (32+32+2+2)
+#else
+#   define _LIBUNWIND_CAPREG_START (32+32+2)
+#endif
+    /*  32 CapGPR (with index 0 -> $ddc) and $pcc */
+#   define _LIBUNWIND_NUM_CAPREGS 33
+#   define _LIBUNWIND_CONTEXT_SIZE (_LIBUNWIND_CAPREG_START+(_LIBUNWIND_NUM_CAPREGS*(_MIPS_SZCAP/64)))
+#   define _LIBUNWIND_CURSOR_SIZE (_LIBUNWIND_CONTEXT_SIZE+12*(_MIPS_SZCAP/64))
 #  elif defined(_ABIN32) && _MIPS_SIM == _ABIN32
 #    define _LIBUNWIND_TARGET_MIPS_NEWABI 1
 #    if defined(__mips_hard_float)
@@ -132,7 +167,11 @@
 #  else
 #    error "Unsupported MIPS ABI and/or environment"
 #  endif
-#  define _LIBUNWIND_HIGHEST_DWARF_REGISTER _LIBUNWIND_HIGHEST_DWARF_REGISTER_MIPS
+#  ifdef __CHERI_PURE_CAPABILITY__
+#   define _LIBUNWIND_HIGHEST_DWARF_REGISTER _LIBUNWIND_HIGHEST_DWARF_REGISTER_MIPS_CHERI
+#  else
+#   define _LIBUNWIND_HIGHEST_DWARF_REGISTER _LIBUNWIND_HIGHEST_DWARF_REGISTER_MIPS
+#  endif
 #elif defined(__sparc__) && defined(__arch64__)
 #define _LIBUNWIND_TARGET_SPARC64 1
 #define _LIBUNWIND_HIGHEST_DWARF_REGISTER                                      \
@@ -151,13 +190,18 @@
 #  else
 #   define RISCV_FLEN 0
 #  endif
-#  define _LIBUNWIND_CONTEXT_SIZE (32 * (__riscv_xlen + RISCV_FLEN) / 64)
-#  if __riscv_xlen == 32
-#   define _LIBUNWIND_CURSOR_SIZE (_LIBUNWIND_CONTEXT_SIZE + 7)
-#  elif __riscv_xlen == 64
-#   define _LIBUNWIND_CURSOR_SIZE (_LIBUNWIND_CONTEXT_SIZE + 12)
+#  ifdef __CHERI_PURE_CAPABILITY__
+#   define _LIBUNWIND_CONTEXT_SIZE 96
+#   define _LIBUNWIND_CURSOR_SIZE 120
 #  else
-#   error "Unsupported RISC-V ABI"
+#   define _LIBUNWIND_CONTEXT_SIZE (32 * (__riscv_xlen + RISCV_FLEN) / 64)
+#   if __riscv_xlen == 32
+#    define _LIBUNWIND_CURSOR_SIZE (_LIBUNWIND_CONTEXT_SIZE + 7)
+#   elif __riscv_xlen == 64
+#    define _LIBUNWIND_CURSOR_SIZE (_LIBUNWIND_CONTEXT_SIZE + 12)
+#   else
+#    error "Unsupported RISC-V ABI"
+#   endif
 #  endif
 # define _LIBUNWIND_HIGHEST_DWARF_REGISTER _LIBUNWIND_HIGHEST_DWARF_REGISTER_RISCV
 # elif defined(__ve__)
@@ -191,6 +235,7 @@
 # define _LIBUNWIND_TARGET_AARCH64 1
 # define _LIBUNWIND_TARGET_ARM 1
 # define _LIBUNWIND_TARGET_OR1K 1
+# define _LIBUNWIND_TARGET_MIPS_CHERI 1
 # define _LIBUNWIND_TARGET_MIPS_O32 1
 # define _LIBUNWIND_TARGET_MIPS_NEWABI 1
 # define _LIBUNWIND_TARGET_SPARC 1
@@ -200,8 +245,8 @@
 # define _LIBUNWIND_TARGET_VE 1
 # define _LIBUNWIND_TARGET_S390X 1
 # define _LIBUNWIND_TARGET_LOONGARCH 1
-# define _LIBUNWIND_CONTEXT_SIZE 167
-# define _LIBUNWIND_CURSOR_SIZE 204
+# define _LIBUNWIND_CONTEXT_SIZE _LIBUNWIND_MAX_CONTEXT_SIZE
+# define _LIBUNWIND_CURSOR_SIZE _LIBUNWIND_MAX_CURSOR_SIZE
 # define _LIBUNWIND_HIGHEST_DWARF_REGISTER 287
 #endif // _LIBUNWIND_IS_NATIVE_ONLY
 

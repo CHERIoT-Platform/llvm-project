@@ -453,6 +453,7 @@ public:
     bool IsJTAllowed = TLI->areJTsAllowed(SI.getParent()->getParent());
 
     // Early exit if both a jump table and bit test are not allowed.
+    // XXXAR: AS0 hardcoded
     if (N < 1 || (!IsJTAllowed && DL.getIndexSizeInBits(0u) < N))
       return N;
 
@@ -467,6 +468,7 @@ public:
     }
 
     // Check if suitable for a bit test
+    // XXXAR: AS0 hardcoded
     if (N <= DL.getIndexSizeInBits(0u)) {
       SmallPtrSet<const BasicBlock *, 4> Dests;
       for (auto I : SI.cases())
@@ -854,6 +856,7 @@ public:
     // the only operation that costs anything is the split. After splitting
     // we need to handle two types.
     while (true) {
+    assert(!MTy.isOverloaded());
       TargetLoweringBase::LegalizeKind LK = getTLI()->getTypeConversion(C, MTy);
 
       if (LK.first == TargetLoweringBase::TypeScalarizeScalableVector) {

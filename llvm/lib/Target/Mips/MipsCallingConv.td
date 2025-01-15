@@ -19,6 +19,12 @@ class CCIfSubtarget<string F, CCAction A, string Invert = "">
 // The inverse of CCIfSubtarget
 class CCIfSubtargetNot<string F, CCAction A> : CCIfSubtarget<F, A, "!">;
 
+def CC_MipsCheriCapOnStack : CallingConv<[
+  CCIfSubtarget<"isCheri128()", CCAssignToStack<16, 16>>,
+  CCIfSubtargetNot<"isCheri128()", CCAssignToStack<32, 32>>
+]>;
+
+
 /// Match if the original argument (before lowering) was a float.
 /// For example, this is true for i32's that were lowered from soft-float.
 class CCIfOrigArgWasNotFloat<CCAction A>
@@ -162,7 +168,15 @@ def CC_MipsN : CallingConv<[
 
   // All stack parameter slots become 64-bit doublewords and are 8-byte aligned.
   CCIfType<[f32], CCAssignToStack<4, 8>>,
-  CCIfType<[i64, f64], CCAssignToStack<8, 8>>
+  CCIfType<[i64, f64], CCAssignToStack<8, 8>>,
+  CCIfType<[c64, c128, c256], CCAssignToReg<[C3, C4, C5, C6, C7, C8, C9, C10]>>,
+  CCIfType<[c64, c128, c256], CCDelegateTo<CC_MipsCheriCapOnStack>>
+]>;
+
+def CC_CHERI_CCall : CallingConv<[
+  CCIfType<[c64, c128, c256], CCAssignToReg<[C1, C2, C3, C4, C5, C6, C7, C8, C9, C10]>>,
+  CCIfType<[i64], CCAssignToReg<[V0_64]>>,
+  CCDelegateTo<CC_MipsN>
 ]>;
 
 // N32/64 variable arguments.
@@ -182,7 +196,19 @@ def CC_MipsN_VarArg : CallingConv<[
 
   // All stack parameter slots become 64-bit doublewords and are 8-byte aligned.
   CCIfType<[f32], CCAssignToStack<4, 8>>,
-  CCIfType<[i64, f64], CCAssignToStack<8, 8>>
+  CCIfType<[i64, f64], CCAssignToStack<8, 8>>,
+  // All capability arguments are passed on the stack:
+  CCIfType<[c64, c128, c256], CCDelegateTo<CC_MipsCheriCapOnStack>>
+]>;
+
+// In purecap mode, all variadic arguments are passed on the stack.
+def CC_MipsCheriPureCap_VarArg : CallingConv<[
+  // Promote i8/i16 arguments to i32.
+  CCIfType<[i8, i16, i32], CCPromoteToType<i64>>,
+  // All stack parameter slots become 64-bit doublewords and are 8-byte aligned.
+  CCIfType<[f32], CCAssignToStack<4, 8>>,
+  CCIfType<[i64, f64], CCAssignToStack<8, 8>>,
+  CCIfType<[c64, c128, c256], CCDelegateTo<CC_MipsCheriCapOnStack>>
 ]>;
 
 def RetCC_MipsN : CallingConv<[
@@ -214,7 +240,9 @@ def RetCC_MipsN : CallingConv<[
   CCIfType<[f32], CCAssignToReg<[F0, F2]>>,
 
   // f64 are returned in registers D0, D2
-  CCIfType<[f64], CCAssignToReg<[D0_64, D2_64]>>
+  CCIfType<[f64], CCAssignToReg<[D0_64, D2_64]>>,
+  // Capabilities are returned in C3, C4
+  CCIfType<[c64, c128, c256], CCAssignToReg<[C3, C4]>>
 ]>;
 
 //===----------------------------------------------------------------------===//
@@ -255,7 +283,11 @@ def CC_MipsN_FastCC : CallingConv<[
 
   // Stack parameter slots for i64 and f64 are 64-bit doublewords and
   // 8-byte aligned.
-  CCIfType<[i64, f64], CCAssignToStack<8, 8>>
+  CCIfType<[i64, f64], CCAssignToStack<8, 8>>,
+
+  CCIfType<[c64, c128, c256], CCAssignToReg<[C1, C2, C3, C4, C5, C6, C7, C8, C9, C10,
+                                     C13, C14, C15, C16]>>,
+  CCIfType<[c64, c128, c256], CCDelegateTo<CC_MipsCheriCapOnStack>>
 ]>;
 
 def CC_Mips_FastCC : CallingConv<[
@@ -304,6 +336,7 @@ def RetCC_Mips : CallingConv<[
 ]>;
 
 def CC_Mips_ByVal : CallingConv<[
+  CCIfSubtarget<"isABI_CheriPureCap()", CCIfByVal<CCPassByVal<16, 16>>>,
   CCIfSubtarget<"isABI_O32()", CCIfByVal<CCPassByVal<4, 4>>>,
   CCIfByVal<CCPassByVal<8, 8>>
 ]>;
@@ -320,6 +353,8 @@ def CC_Mips_FixedArg : CallingConv<[
   CCIf<"State.getCallingConv() != CallingConv::Fast",
       CCIfSpecialCallingConv<"Mips16RetHelperConv",
            CCDelegateTo<CC_Mips16RetHelper>>>,
+  CCIf<"State.getCallingConv() == CallingConv::CHERI_CCall",
+       CCDelegateTo<CC_CHERI_CCall>>,
 
   CCIfByVal<CCDelegateTo<CC_Mips_ByVal>>,
 
@@ -344,7 +379,10 @@ def CC_Mips_FixedArg : CallingConv<[
 ]>;
 
 def CC_Mips_VarArg : CallingConv<[
+  // If this is the CHERI purecap ABI then we need to pass everything on the
+  // stack for variadic functions.
   CCIfByVal<CCDelegateTo<CC_Mips_ByVal>>,
+  CCIfSubtarget<"isABI_CheriPureCap()", CCDelegateTo<CC_MipsCheriPureCap_VarArg>>,
 
   CCIfSubtarget<"isABI_O32()", CCDelegateTo<CC_MipsO32_FP>>,
   CCDelegateTo<CC_MipsN_VarArg>
@@ -380,6 +418,14 @@ def CSR_N32 : CalleeSavedRegs<(add D20_64, D22_64, D24_64, D26_64, D28_64,
 
 def CSR_N64 : CalleeSavedRegs<(add (sequence "D%u_64", 31, 24), RA_64, FP_64,
                                    GP_64, (sequence "S%u_64", 7, 0))>;
+
+def CSR_N64_Cheri : CalleeSavedRegs<(add (sequence "D%u_64", 31, 24), RA_64, FP_64,
+                                   GP_64, (sequence "S%u_64", 7, 0),
+                                   (sequence "C%u", 23, 17))>;
+
+def CSR_Cheri_Purecap : CalleeSavedRegs<(add (sequence "D%u_64", 31, 24), RA_64, FP_64,
+                                   GP_64, (sequence "S%u_64", 7, 0),
+                                   (sequence "C%u", 25, 17))>;
 
 def CSR_Mips16RetHelper :
   CalleeSavedRegs<(add V0, V1, FP,

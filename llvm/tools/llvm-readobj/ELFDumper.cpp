@@ -69,6 +69,7 @@
 #include <optional>
 #include <string>
 #include <system_error>
+#include <unordered_map>
 #include <vector>
 
 using namespace llvm;
@@ -219,6 +220,10 @@ public:
   void printLoadName() override;
   void printVersionInfo() override;
   void printArchSpecificInfo() override;
+  void printCheriCapRelocs() override;
+  void printCheriCapTable() override;
+  void printCheriCapTableMapping() override;
+
   void printStackMap() const override;
   void printMemtag() override;
   ArrayRef<uint8_t> getMemtagGlobalsSectionContents(uint64_t ExpectedAddr);
@@ -1525,6 +1530,7 @@ const EnumEntry<unsigned> ElfHeaderMipsFlags[] = {
   ENUM_ENT(EF_MIPS_ABI_O64, "o64"),
   ENUM_ENT(EF_MIPS_ABI_EABI32, "eabi32"),
   ENUM_ENT(EF_MIPS_ABI_EABI64, "eabi64"),
+  ENUM_ENT(EF_MIPS_ABI_CHERIABI, "cheriabi"),
   ENUM_ENT(EF_MIPS_MACH_3900, "3900"),
   ENUM_ENT(EF_MIPS_MACH_4010, "4010"),
   ENUM_ENT(EF_MIPS_MACH_4100, "4100"),
@@ -1543,6 +1549,9 @@ const EnumEntry<unsigned> ElfHeaderMipsFlags[] = {
   ENUM_ENT(EF_MIPS_MACH_LS2E, "loongson-2e"),
   ENUM_ENT(EF_MIPS_MACH_LS2F, "loongson-2f"),
   ENUM_ENT(EF_MIPS_MACH_LS3A, "loongson-3a"),
+  ENUM_ENT(EF_MIPS_MACH_BERI, "beri"),
+  ENUM_ENT(EF_MIPS_MACH_CHERI128, "cheri128"),
+  ENUM_ENT(EF_MIPS_MACH_CHERI256, "cheri256"),
   ENUM_ENT(EF_MIPS_MICROMIPS, "micromips"),
   ENUM_ENT(EF_MIPS_ARCH_ASE_M16, "mips16"),
   ENUM_ENT(EF_MIPS_ARCH_ASE_MDMX, "mdmx"),
@@ -1715,6 +1724,8 @@ const EnumEntry<unsigned> ElfHeaderRISCVFlags[] = {
   ENUM_ENT(EF_RISCV_FLOAT_ABI_QUAD, "quad-float ABI"),
   ENUM_ENT(EF_RISCV_RVE, "RVE"),
   ENUM_ENT(EF_RISCV_TSO, "TSO"),
+  ENUM_ENT(EF_RISCV_CHERIABI, "cheriabi"),
+  ENUM_ENT(EF_RISCV_CAP_MODE, "capability mode"),
 };
 
 const EnumEntry<unsigned> ElfHeaderAVRFlags[] = {
@@ -2303,6 +2314,12 @@ const EnumEntry<unsigned> ElfDynamicDTMipsFlags[] = {
   LLVM_READOBJ_DT_FLAG_ENT(RHF, RLD_ORDER_SAFE)
 };
 
+static const EnumEntry<unsigned> ElfDynamicDTMipsCheriAbiFlags[] = {
+    LLVM_READOBJ_DT_FLAG_ENT(DF_MIPS_CHERI, CAPTABLE_PER_FILE),
+    LLVM_READOBJ_DT_FLAG_ENT(DF_MIPS_CHERI, CAPTABLE_PER_FUNC),
+    LLVM_READOBJ_DT_FLAG_ENT(DF_MIPS_CHERI, RELATIVE_CAPRELOCS),
+};
+
 #undef LLVM_READOBJ_DT_FLAG_ENT
 
 template <typename T, typename TFlag>
@@ -2312,8 +2329,14 @@ void printFlags(T Value, ArrayRef<EnumEntry<TFlag>> Flags, raw_ostream &OS) {
     if (Flag.Value != 0 && (Value & Flag.Value) == Flag.Value)
       SetFlags.push_back(Flag);
 
-  for (const EnumEntry<TFlag> &Flag : SetFlags)
+  T RemainingBits = Value;
+  for (const EnumEntry<TFlag> &Flag : SetFlags) {
     OS << Flag.Name << " ";
+    RemainingBits &= ~Flag.Value;
+  }
+  if (RemainingBits) {
+    OS << "| 0x" << utohexstr(RemainingBits, false) << " ";
+  }
 }
 
 template <class ELFT>
@@ -2447,6 +2470,29 @@ std::string ELFDumper<ELFT>::getDynamicEntry(uint64_t Type,
       return FormatHexValue(Value);
     case DT_MIPS_FLAGS:
       return FormatFlags(Value, ArrayRef(ElfDynamicDTMipsFlags));
+    case DT_MIPS_CHERI_FLAGS: {
+      std::string Result;
+      switch (Value & DF_MIPS_CHERI_ABI_MASK) {
+      case DF_MIPS_CHERI_ABI_LEGACY:
+        Result += "ABI_LEGACY";
+        break;
+      case DF_MIPS_CHERI_ABI_PCREL:
+        Result += "ABI_PCREL";
+        break;
+      case DF_MIPS_CHERI_ABI_PLT:
+        Result += "ABI_PLT";
+        break;
+      case DF_MIPS_CHERI_ABI_FNDESC:
+        Result += "ABI_FNDESC";
+        break;
+      }
+      Value &= ~DF_MIPS_CHERI_ABI_MASK;
+      if (Value) {
+        Result += ' ';
+        Result += FormatFlags(Value, ArrayRef(ElfDynamicDTMipsCheriAbiFlags));
+      }
+      return Result;
+    }
     default:
       break;
     }
@@ -3280,7 +3326,12 @@ const EnumEntry<unsigned> ElfMipsISAExtType[] = {
   {"NEC VR5400",              Mips::AFL_EXT_5400},
   {"NEC VR5500",              Mips::AFL_EXT_5500},
   {"RMI Xlr",                 Mips::AFL_EXT_XLR},
-  {"Toshiba R3900",           Mips::AFL_EXT_3900}
+  {"Toshiba R3900",           Mips::AFL_EXT_3900},
+  {"CHERI purecap (unknown ABI)",  Mips::AFL_EXT_CHERI},
+  {"CHERI purecap (legacy)",       Mips::AFL_EXT_CHERI_ABI_LEGACY},
+  {"CHERI purecap (pc-relative)",  Mips::AFL_EXT_CHERI_ABI_PCREL},
+  {"CHERI purecap (PLT based)",    Mips::AFL_EXT_CHERI_ABI_PLT},
+  {"CHERI purecap (function descriptor)", Mips::AFL_EXT_CHERI_ABI_FNDESC},
 };
 
 const EnumEntry<unsigned> ElfMipsASEFlags[] = {
@@ -3330,6 +3381,370 @@ static int getMipsRegisterSize(uint8_t Flag) {
     return 128;
   default:
     return -1;
+  }
+}
+
+template <class ELFT> void ELFDumper<ELFT>::printCheriCapRelocs() {
+  const ELFFile<ELFT> &Obj = ObjF.getELFFile();
+  const Elf_Shdr *Shdr = findSectionByName("__cap_relocs");
+  if (!Shdr) {
+    W.startLine() << "There is no __cap_relocs section in the file.\n";
+    return;
+  }
+  // TODO: get symbol name for __cap_reloc
+  ArrayRef<uint8_t> Data =
+      unwrapOrError(ObjF.getFileName(), Obj.getSectionContents(*Shdr));
+  const uint64_t CapRelocsStartVaddr = Shdr->sh_addr;
+  const uint64_t CapRelocsEndVaddr = Shdr->sh_addr + Shdr->sh_size;
+  const size_t entry_size = ELFT::Is64Bits ? 40 : 20;
+  if (Data.size() % entry_size != 0) {
+    W.startLine() << "The __cap_relocs section has a wrong size: "
+                  << Data.size() << "\n";
+    return;
+  }
+  ListScope L(W, "CHERI __cap_relocs");
+#if 0
+  errs() << "Cap relocs section from 0x" << utohexstr(CapRelocsFileOffset)
+         << " to 0x" << utohexstr(CapRelocsEnd)
+         << " size =" << (CapRelocsEnd - CapRelocsFileOffset) << "\n";
+#endif
+  // Create a map of all dynamic relocations that point into the
+  // __cap_relocs section to add a symbol name to unresolved values
+  // FIXME: this hardcodes REL so won't work for architectures that use RELA
+  using Elf_Rel = typename ELFT::Rel;
+  // typedef Elf64_Rel Elf_Rel;
+  DenseMap<uint64_t, Elf_Rel> CapRelocsDynRels;
+  for (const Elf_Rel &R : DynRelRegion.getAsArrayRef<Elf_Rel>()) {
+    if (R.r_offset >= CapRelocsStartVaddr && R.r_offset < CapRelocsEndVaddr) {
+      // No need to store relocations aginst symbol zero since they don't have
+      // a name
+      if (R.getSymbol(Obj.isMips64EL()) != 0)
+        CapRelocsDynRels.insert(std::make_pair((uint64_t)R.r_offset, R));
+    }
+  }
+
+  // Use the .symtab section if available otherwise use .dynsym:
+  typename ELFT::SymRange Syms;
+  StringRef StrTable;
+  DataRegion<Elf_Word> ShndxTable = ArrayRef<Elf_Word>();
+  DataRegion<Elf_Word> DynShndxTable(
+      (const Elf_Word *)this->DynSymTabShndxRegion.Addr, this->Obj.end());
+  bool UsingDynsym = false;
+  if (DotSymtabSec) {
+    StrTable = unwrapOrError(ObjF.getFileName(),
+                             Obj.getStringTableForSymtab(*DotSymtabSec));
+    Syms = unwrapOrError(ObjF.getFileName(), Obj.symbols(DotSymtabSec));
+    ShndxTable = this->getShndxTable(this->DotSymtabSec);
+  } else {
+    StrTable = DynamicStringTable;
+    Syms = dynamic_symbols();
+    ShndxTable = DynShndxTable;
+    UsingDynsym = true;
+  }
+  std::unordered_map<uint64_t, std::string> SymbolNames;
+  const Elf_Sym &FirstSym = Syms[0];
+  for (const auto &Sym : Syms) {
+    uint64_t Start = Sym.st_value;
+    if (!Start)
+      continue;
+    std::string Name =
+        getFullSymbolName(Sym, &Sym - &FirstSym, ShndxTable, StrTable, UsingDynsym);
+    if (Name.empty())
+      continue;
+    SymbolNames.insert({Start, Name});
+  }
+  // errs() << "Found " << CapRelocsDynRels.size()
+  //        << " dynamic relocations pointing to __cap_relocs section\n";
+
+  // Static binaries won't have a dynamic symbol table, and we only use this
+  // for looking up relocations' symbols.
+  const Elf_Shdr *SymTab = DotDynsymSec;
+  if (!SymTab && !CapRelocsDynRels.empty())
+    reportError(
+        createStringError(object_error::parse_failed,
+                          "No dynamic symbol section"),
+        ObjF.getFileName());
+  using TargetUint = typename ELFT::uint;
+  using TargetInt =
+      typename std::conditional<ELFT::Is64Bits, int64_t, int32_t>::type;
+  for (int i = 0, e = Data.size() / entry_size; i < e; i++) {
+    const uint64_t CurrentOffset = entry_size * i;
+    const uint8_t *entry = Data.data() + CurrentOffset;
+    uint64_t Target =
+        support::endian::read<TargetUint, ELFT::TargetEndianness, 1>(
+                entry);
+    uint64_t Base =
+        support::endian::read<TargetUint, ELFT::TargetEndianness, 1>(
+                entry + sizeof(TargetUint));
+    int64_t Offset =
+        support::endian::read<TargetInt,  ELFT::TargetEndianness, 1>(
+                entry + 2*sizeof(TargetUint));
+    uint64_t Length =
+        support::endian::read<TargetUint, ELFT::TargetEndianness, 1>(
+                entry + 3*sizeof(TargetUint));
+    uint64_t Perms =
+        support::endian::read<TargetUint, ELFT::TargetEndianness, 1>(
+                entry + 4*sizeof(TargetUint));
+    bool isFunction = Perms & (UINT64_C(1) << ((sizeof(TargetUint) * 8) - 1));
+    bool isReadOnly = Perms & (UINT64_C(1) << ((sizeof(TargetUint) * 8) - 2));
+    const char *PermStr =
+        isFunction ? "Function" : (isReadOnly ? "Constant" : "Object");
+    // Perms &= 0xffffffff;
+    std::string BaseSymbol;
+    if (Base == 0) {
+      // Base is 0 -> either it is really NULL or (more likely) there is a
+      // dynamic relocation that will set the real address
+      auto it = CapRelocsDynRels.find(CapRelocsStartVaddr + CurrentOffset + 8);
+      if (it != CapRelocsDynRels.end()) {
+        Elf_Rel R = it->second;
+        const Elf_Sym *Sym = unwrapOrError(ObjF.getFileName(),
+                                           Obj.getRelocationSymbol(R, SymTab));
+        // Since we are looking up dynamic relocations, we have to look for the
+        // symbol name in the .dynstrtab section.
+        BaseSymbol = getFullSymbolName(*Sym, R.getSymbol(Obj.isMips64EL()),
+                                       DynShndxTable, DynamicStringTable, true);
+        // errs() << "Found dyn_rel for base: 0x" << utohexstr(R.r_offset) << "Name=" << BaseSymbol << "\n";
+      }
+    } else {
+      auto it = SymbolNames.find(Base);
+      if (it != SymbolNames.end()) {
+        BaseSymbol = it->second;
+        // errs() << "BaseSymbol = SymbolNames[" << Base << "] = " << it->second << "\n";
+      }
+    }
+    if (BaseSymbol.empty())
+      BaseSymbol = "<unknown symbol>";
+    StringRef LocationSym;
+    if (SymbolNames.find(Target) != SymbolNames.end())
+      LocationSym = SymbolNames[Target];
+    // TODO: If base == 0 find the dynamic relocation target
+    if (opts::ExpandRelocs) {
+      DictScope L(W, "Relocation");
+      raw_ostream &OS = W.startLine();
+      OS << "Location: 0x" << utohexstr(Target);
+      if (!LocationSym.empty())
+        OS << " (" << LocationSym << ")";
+      OS << "\n";
+      W.printHex("Base", BaseSymbol, Base);
+      W.printNumber("Offset", Offset);
+      W.printNumber("Length", Length);
+      W.printHex("Permissions", PermStr, Perms);
+    } else {
+      raw_ostream &OS = W.startLine();
+      OS << format(" 0x%06lx", static_cast<unsigned long>(Target));
+      if (!LocationSym.empty())
+        OS << left_justify((" (" + LocationSym + ")").str(), 16);
+      OS << format(" Base: 0x%lx (", static_cast<unsigned long>(Base))
+         << BaseSymbol;
+      if (Offset >= 0)
+        OS << "+";
+      OS << Offset;
+      OS << format(") Length: %ld", static_cast<unsigned long>(Length));
+      OS << " Perms: " << PermStr;
+      OS << "\n";
+    }
+  }
+}
+
+template <class ELFT> void ELFDumper<ELFT>::printCheriCapTable() {
+  const ELFFile<ELFT> &Obj = ObjF.getELFFile();
+  const Elf_Shdr *Shdr = findSectionByName(".captable");
+  if (!Shdr) {
+    W.startLine() << "There is no .captable section in the file.\n";
+    return;
+  }
+  ListScope L(W, "CHERI .captable");
+
+  const Elf_Ehdr &e = Obj.getHeader();
+  unsigned CapSize;
+  switch (e.e_machine) {
+  case EM_MIPS:
+    if ((e.e_flags & EF_MIPS_MACH) == EF_MIPS_MACH_CHERI256) {
+      CapSize = 32;
+    } else if ((e.e_flags & EF_MIPS_MACH) == EF_MIPS_MACH_CHERI128) {
+      CapSize = 16;
+    } else {
+      W.startLine() << "Invalid ELF header (no EF_MIPS_MACH_CHERI128/256 flag)\n";
+      return;
+    }
+    break;
+  case EM_RISCV:
+    CapSize = e.getFileClass() == ELF::ELFCLASS64 ? 16 : 8;
+    break;
+  default:
+    W.startLine() << "Unknown machine type\n";
+    return;
+  }
+  const uint64_t CapTableStartVaddr = Shdr->sh_addr;
+  const uint64_t CapTableEndVaddr = Shdr->sh_addr + Shdr->sh_size;
+
+  // Use the .symtab section if available otherwise use .dynsym:
+  typename ELFT::SymRange Syms;
+  StringRef StrTable;
+  bool UsingDynsym = false;
+  DataRegion<Elf_Word> ShndxTable = ArrayRef<Elf_Word>();
+  DataRegion<Elf_Word> DynShndxTable(
+      (const Elf_Word *)this->DynSymTabShndxRegion.Addr, this->Obj.end());
+  if (DotSymtabSec) {
+    StrTable = unwrapOrError(ObjF.getFileName(),
+                             Obj.getStringTableForSymtab(*DotSymtabSec));
+    Syms = unwrapOrError(ObjF.getFileName(), Obj.symbols(DotSymtabSec));
+    ShndxTable = this->getShndxTable(this->DotSymtabSec);
+  } else {
+    StrTable = DynamicStringTable;
+    Syms = dynamic_symbols();
+    ShndxTable = DynShndxTable;
+    UsingDynsym = true;
+  }
+
+  std::unordered_map<uint64_t, std::string> SymbolNames;
+  const Elf_Sym &FirstSym = Syms[0];
+  for (const auto &Sym : Syms) {
+    uint64_t Start = Sym.st_value;
+    if (Start < CapTableStartVaddr || Start > CapTableEndVaddr)
+      continue;
+    std::string Name = getFullSymbolName(Sym, &Sym - &FirstSym, ShndxTable,
+                                         StrTable, UsingDynsym);
+    if (Name == "_CHERI_CAPABILITY_TABLE_")
+      continue;
+    SymbolNames.insert({Start, Name});
+  }
+
+  // Create a map of all dynamic relocations that point into the
+  // __cap_relocs section to add a symbol name to unresolved values
+  // FIXME: this hardcodes REL so won't work for architectures that use RELA
+  using Elf_Rel = typename ELFT::Rel;
+  // typedef Elf64_Rel Elf_Rel;
+  DenseMap<uint64_t, Elf_Rela> CapTableDynRels;
+
+  auto FindRelocs = [&](const DynRegionInfo &RelRegion) {
+    if (RelRegion.Size == 0)
+      return;
+    if (RelRegion.EntSize == sizeof(Elf_Rela)) {
+      for (const Elf_Rela &Rela : RelRegion.getAsArrayRef<Elf_Rela>()) {
+        if (Rela.r_offset >= CapTableStartVaddr &&
+            Rela.r_offset < CapTableEndVaddr)
+          CapTableDynRels.insert(std::make_pair((uint64_t)Rela.r_offset, Rela));
+      }
+    } else {
+      for (const Elf_Rel &Rel : RelRegion.getAsArrayRef<Elf_Rel>()) {
+        if (Rel.r_offset >= CapTableStartVaddr &&
+            Rel.r_offset < CapTableEndVaddr) {
+          Elf_Rela Rela;
+          Rela.r_offset = Rel.r_offset;
+          Rela.r_info = Rel.r_info;
+          Rela.r_addend = 0;
+          CapTableDynRels.insert(std::make_pair((uint64_t)Rela.r_offset, Rela));
+        }
+      }
+    }
+  };
+  FindRelocs(DynPLTRelRegion);
+  FindRelocs(DynRelRegion);
+  FindRelocs(DynRelaRegion);
+
+  // Static binaries won't have a dynamic symbol table, and we only use this
+  // for looking up relocations' symbols.
+  const Elf_Shdr *SymTab = DotDynsymSec;
+  if (!SymTab && !CapTableDynRels.empty())
+    reportError(
+        createStringError(object_error::parse_failed,
+                          "No dynamic symbol section"),
+        ObjF.getFileName());
+  for (uint64_t Offset = CapTableStartVaddr; Offset < CapTableEndVaddr;
+       Offset += CapSize) {
+    // Find name:
+    const auto &Name = SymbolNames.find(Offset);
+    formatted_raw_ostream OS(W.startLine());
+    OS << W.hex(Offset - CapTableStartVaddr);
+    OS.PadToColumn(9u);
+    if (Name == SymbolNames.end())
+      OS << "<unknown symbol>"
+         << " ";
+    else
+      OS << Name->second << " ";
+
+    auto Reloc = CapTableDynRels.find(Offset);
+    if (Reloc != CapTableDynRels.end()) {
+      OS.PadToColumn(40u);
+      auto R = Reloc->second;
+      SmallString<32> RelocName;
+      StringRef TargetName;
+      Obj.getRelocationTypeName(R.getType(Obj.isMips64EL()), RelocName);
+
+      const Elf_Sym *Sym =
+          unwrapOrError(ObjF.getFileName(), Obj.getRelocationSymbol(R, SymTab));
+      if (Sym) {
+        TargetName = unwrapOrError(
+            ObjF.getFileName(), Sym->getName(getDynamicStringTable()));
+      }
+      OS << " " << RelocName << " against " << TargetName;
+      // TODO: getSymbol(dynamic_symbols()); StrTable = DynamicStringTable;
+    }
+    OS << "\n";
+  }
+}
+
+template <class ELFT> void ELFDumper<ELFT>::printCheriCapTableMapping() {
+  const ELFFile<ELFT> &Obj = ObjF.getELFFile();
+  const Elf_Shdr *Shdr = findSectionByName(".captable_mapping");
+  if (!Shdr) {
+    W.startLine() << "There is no .captable_mapping section in the file.\n";
+    return;
+  }
+  ArrayRef<uint8_t> Data =
+      unwrapOrError(ObjF.getFileName(), Obj.getSectionContents(*Shdr));
+  const size_t EntrySize = 24;
+
+  typename ELFT::SymRange Syms;
+  StringRef StrTable;
+  bool UsingDynsym = false;
+  DataRegion<Elf_Word> ShndxTable = ArrayRef<Elf_Word>();
+  DataRegion<Elf_Word> DynShndxTable(
+      (const Elf_Word *)this->DynSymTabShndxRegion.Addr, this->Obj.end());
+  if (DotSymtabSec) {
+    StrTable = unwrapOrError(ObjF.getFileName(),
+                             Obj.getStringTableForSymtab(*DotSymtabSec));
+    Syms = unwrapOrError(ObjF.getFileName(), Obj.symbols(DotSymtabSec));
+    ShndxTable = this->getShndxTable(this->DotSymtabSec);
+  } else {
+    StrTable = DynamicStringTable;
+    Syms = dynamic_symbols();
+    ShndxTable = DynShndxTable;
+    UsingDynsym = true;
+  }
+
+  ListScope L(W, "CHERI .captable per-file/per-function mapping information");
+  for (int CurrentOffset = 0, e = Data.size(); CurrentOffset < e;
+       CurrentOffset += EntrySize) {
+    const uint8_t *CurrentEntry = Data.data() + CurrentOffset;
+    uint64_t FunctionStart =
+        support::endian::read64<ELFT::TargetEndianness>(CurrentEntry);
+    uint64_t FunctionEnd =
+        support::endian::read64<ELFT::TargetEndianness>(CurrentEntry + 8);
+    uint32_t TableOffset =
+        support::endian::read32<ELFT::TargetEndianness>(CurrentEntry + 16);
+    uint32_t SubTableLength =
+        support::endian::read32<ELFT::TargetEndianness>(CurrentEntry + 20);
+    auto& OS = W.startLine();
+    OS << "Function start: " << W.hex(FunctionStart);
+    // Try to find a matching symbol
+    std::string SymName = "<unknown function>";
+
+    const Elf_Sym &FirstSym = Syms[0];
+    for (const auto &Sym : Syms) {
+      if (Sym.getType() != ELF::STT_FUNC)
+        continue;
+      if (Sym.st_value >= FunctionStart && Sym.st_value < FunctionEnd) {
+        SymName = getFullSymbolName(Sym, &Sym - &FirstSym, ShndxTable, StrTable,
+                                    UsingDynsym);
+        break;
+      }
+    }
+    OS << " (" << SymName << ")";
+    OS << " Function end: " << W.hex(FunctionEnd)
+       << " .captable offset: " << W.hex(TableOffset)
+       << " Length:" << W.hex(SubTableLength) << "\n";
   }
 }
 

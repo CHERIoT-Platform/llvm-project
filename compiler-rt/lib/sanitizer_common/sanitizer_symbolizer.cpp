@@ -36,7 +36,7 @@ void AddressInfo::Clear() {
   uuid_size = 0;
 }
 
-void AddressInfo::FillModuleInfo(const char *mod_name, uptr mod_offset,
+void AddressInfo::FillModuleInfo(const char *mod_name, usize mod_offset,
                                  ModuleArch mod_arch) {
   module = internal_strdup(mod_name);
   module_offset = mod_offset;
@@ -55,8 +55,9 @@ void AddressInfo::FillModuleInfo(const LoadedModule &mod) {
 
 SymbolizedStack::SymbolizedStack() : next(nullptr), info() {}
 
-SymbolizedStack *SymbolizedStack::New(uptr addr) {
+SymbolizedStack *SymbolizedStack::New(vaddr addr) {
   void *mem = InternalAlloc(sizeof(SymbolizedStack));
+  DCHECK(IsAligned(mem, sizeof(void*)));
   SymbolizedStack *res = new(mem) SymbolizedStack();
   res->info.address = addr;
   return res;

@@ -141,6 +141,13 @@ llvm::Value *TargetCodeGenInfo::performAddrSpaceCast(
       Src, DestTy, Src->hasName() ? Src->getName() + ".ascast" : "");
 }
 
+llvm::Value *TargetCodeGenInfo::getPointerAddress(CodeGen::CodeGenFunction &CGF,
+                                                  llvm::Value *V,
+                                                  const Twine &Name) const {
+  assert(isa<llvm::PointerType>(V->getType()));
+  return CGF.Builder.CreatePtrToInt(V, CGF.PtrDiffTy);
+}
+
 llvm::Constant *
 TargetCodeGenInfo::performAddrSpaceCast(CodeGenModule &CGM, llvm::Constant *Src,
                                         LangAS SrcAddr, LangAS DestAddr,

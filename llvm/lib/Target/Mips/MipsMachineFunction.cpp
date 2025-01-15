@@ -15,6 +15,7 @@
 #include "llvm/CodeGen/PseudoSourceValue.h"
 #include "llvm/CodeGen/PseudoSourceValueManager.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
+#include "llvm/MC/MCContext.h"
 #include "llvm/Support/CommandLine.h"
 
 using namespace llvm;
@@ -52,16 +53,93 @@ static const TargetRegisterClass &getGlobalBaseRegClass(MachineFunction &MF) {
   return Mips::GPR32RegClass;
 }
 
-Register MipsFunctionInfo::getGlobalBaseReg(MachineFunction &MF) {
+Register MipsFunctionInfo::getGlobalBaseRegUnchecked() const {
+  assert(GlobalBaseReg);
+  return GlobalBaseReg;
+}
+
+Register MipsFunctionInfo::getGlobalBaseReg(MachineFunction &MF, bool IsForTls) {
+  if (IsForTls)
+    UsesTlsViaGlobalReg = true;
+  else
+    assert(!static_cast<const MipsSubtarget &>(MF.getSubtarget()).useCheriCapTable() &&
+           "$gp should only be used for TLS in cap-table mode");
+
+  // Return if it has already been initialized.
   if (!GlobalBaseReg)
     GlobalBaseReg =
         MF.getRegInfo().createVirtualRegister(&getGlobalBaseRegClass(MF));
   return GlobalBaseReg;
 }
 
+bool MipsFunctionInfo::capGlobalBaseRegSet() const {
+  return CapGlobalBaseReg;
+}
+
+Register MipsFunctionInfo::getCapGlobalBaseReg(MachineFunction &MF) {
+  // Return if it has already been initialized.
+  if (CapGlobalBaseReg)
+    return CapGlobalBaseReg;
+
+  const TargetRegisterClass *RC = &Mips::CheriGPRRegClass;
+  return CapGlobalBaseReg = MF.getRegInfo().createVirtualRegister(RC);
+}
+
+Register MipsFunctionInfo::getCapGlobalBaseRegForGlobalISel(MachineFunction &MF) {
+  assert(static_cast<const MipsSubtarget&>(MF.getSubtarget()).useCheriCapTable());
+  if (!CapGlobalBaseReg) {
+    getCapGlobalBaseReg(MF);
+    initCapGlobalBaseReg(MF);
+  }
+  return CapGlobalBaseReg;
+}
+
+Register MipsFunctionInfo::getCapEntryPointReg(MachineFunction &MF) {
+  // Return if it has already been initialized.
+  if (CapComputedEntryPoint)
+    return CapComputedEntryPoint;
+
+  const MipsABIInfo &ABI =
+      static_cast<const MipsTargetMachine &>(MF.getTarget()).getABI();
+  assert(ABI.IsCheriPureCap());
+  MachineBasicBlock &MBB = MF.front();
+  Register Tmp = MF.getRegInfo().createVirtualRegister(&Mips::CheriGPRRegClass);
+  const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
+  DebugLoc DL;
+  // FIXME: This is ugly but currently required to unseal $c12 in case it is a
+  // sentry. We should instead add new instructions to improve this pattern
+  // cgetpcc $c1
+  // daddiu $1, $zero, %pcrel_lo(.Lentry_point+4) # +4 since the getpcc is on the previous line
+  // cincoffset $c2, $c1, $1
+  // XXX: ugly const_cast to ensure the label is emitted
+  MBB.setMachineBlockAddressTaken();
+  auto BA = BlockAddress::get(const_cast<BasicBlock *>(MBB.getBasicBlock()));
+  auto MBBSym = MachineOperand::CreateBA(BA, 0, 0);
+  // XXX: we could do this in two instructions instead of three since we
+  // know that the offset will be smaller than 16 bits
+  // Since we need to ensure that these instrs are written together we need to
+  // bundle them. However, this is only possible after register allocation so
+  // we convert this to another pseudo instruction first.
+  auto I = MBB.begin();
+  Register Scratch = MF.getRegInfo().createVirtualRegister(&Mips::GPR64RegClass);
+  BuildMI(MBB, I, DL, TII.get(Mips::PseudoPccRelativeAddressPostRA), Tmp)
+      .add(MBBSym)
+      .addReg(Scratch, RegState::Define | RegState::EarlyClobber |
+          RegState::Implicit | RegState::Dead);
+  CapComputedEntryPoint = Tmp;
+  return Tmp;
+}
+
 Register MipsFunctionInfo::getGlobalBaseRegForGlobalISel(MachineFunction &MF) {
+  if (static_cast<const MipsSubtarget&>(MF.getSubtarget()).useCheriCapTable()) {
+    if (!CapGlobalBaseReg) {
+      getCapGlobalBaseReg(MF);
+      initCapGlobalBaseReg(MF);
+    }
+    return CapGlobalBaseReg;
+  }
   if (!GlobalBaseReg) {
-    getGlobalBaseReg(MF);
+    getGlobalBaseReg(MF, false);
     initGlobalBaseReg(MF);
   }
   return GlobalBaseReg;
@@ -85,8 +163,25 @@ void MipsFunctionInfo::initGlobalBaseReg(MachineFunction &MF) {
   Register V1 = RegInfo.createVirtualRegister(RC);
 
   if (ABI.IsN64()) {
-    MF.getRegInfo().addLiveIn(Mips::T9_64);
-    MBB.addLiveIn(Mips::T9_64);
+    if (ABI.IsCheriPureCap()) {
+      if (ABI.IsCheriPureCap()) {
+        assert(usesTlsViaGlobalReg() && "$gp should only be used for TLS");
+        assert((CapGlobalBaseReg || !MF.getRegInfo().isLiveIn(Mips::C12)) &&
+                    "C12 should not be used yet");
+      }
+      MF.getRegInfo().addLiveIn(Mips::C12);
+      MBB.addLiveIn(Mips::C12);
+      assert(!CapABIEntryPointReg.isValid() && "Should not be used yet");
+      CapABIEntryPointReg = RegInfo.createVirtualRegister(&Mips::CheriGPRRegClass);
+      BuildMI(MBB, I, DL, TII.get(TargetOpcode::COPY), CapABIEntryPointReg)
+          .addReg(Mips::C12);
+      BuildMI(MBB, I, DL, TII.get(Mips::CGetOffset))
+        .addReg(Mips::T9_64, RegState::Define)
+        .addReg(CapABIEntryPointReg);
+    } else {
+      MF.getRegInfo().addLiveIn(Mips::T9_64);
+      MBB.addLiveIn(Mips::T9_64);
+    }
 
     // lui $v0, %hi(%neg(%gp_rel(fname)))
     // daddu $v1, $v0, $t9
@@ -153,6 +248,86 @@ void MipsFunctionInfo::initGlobalBaseReg(MachineFunction &MF) {
   BuildMI(MBB, I, DL, TII.get(Mips::ADDu), GlobalBaseReg)
       .addReg(Mips::V0).addReg(Mips::T9);
 }
+
+void MipsFunctionInfo::initCapGlobalBaseReg(MachineFunction &MF) {
+  if (!CapGlobalBaseReg)
+    return;
+
+  auto &TM = static_cast<const MipsTargetMachine &>(MF.getTarget());
+  // assert(MF.getTarget().isPositionIndependent() && "CHERI CODEGEN REQUIRES -fPIC");
+
+  MachineBasicBlock &MBB = MF.front();
+  MachineBasicBlock::iterator I = MBB.begin();
+  const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
+  DebugLoc DL;
+  const MipsABIInfo &ABI = TM.getABI();
+
+  assert(ABI.IsCheriPureCap());
+  const unsigned ABIGlobalCapReg = ABI.GetGlobalCapability();
+
+  // For the purecap ABI, $cgp is required to point to the function's/DSOs
+  // capability table on function entry, so emit a single COPY
+  // (which may be optimised away):
+  // COPY $capglobalbasereg, $c26
+  if (MCTargetOptions::cheriCapabilityTableABI() ==
+      CheriCapabilityTableABI::Pcrel) {
+    // We also support a mode where we derive the $cgp register from $pcc.
+    // This is closer to what MIPS does and has the advantage that we don't
+    // need to reserve $cgp since we can always derive it from $pcc.
+    // However, in this mode we can't restrict the bounds or permissions on $pcc
+    // very much since we need it to always span the entire captable as well
+    // as have the Load_Capability permission. If we decide to
+    // also inline global statics into the cap-table it also needs to contain
+    // write permissions which means we'd be back to relying only on the MMU to
+    // protect the .text segment.
+
+#if 0 // old code relative to $c12 (entry point cap), doesn't work with sentries
+    // For now I'll just add a new relocation or see if I can convert itm
+    MachineRegisterInfo &RegInfo = MF.getRegInfo();
+    const GlobalValue *FName = &MF.getFunction();
+    Register Tmp1 = RegInfo.createVirtualRegister(&Mips::GPR64RegClass);
+    Register Tmp2 = RegInfo.createVirtualRegister(&Mips::GPR64RegClass);
+    BuildMI(MBB, I, DL, TII.get(Mips::LUi64), Tmp1)
+        .addGlobalAddress(FName, 0, MipsII::MO_CAPTABLE_OFF_HI);
+    BuildMI(MBB, I, DL, TII.get(Mips::DADDiu), Tmp2)
+        .addReg(Tmp1)
+        .addGlobalAddress(FName, 0, MipsII::MO_CAPTABLE_OFF_LO);
+    // Generate the globals in $cgp to make the llvm-objdump output more useful
+    // since it will guess which global is being loaded. Also I think that if
+    // we explicitly use $cgp here the register allocator will be able to use
+    // one additional register (since it can optimize away the copy node and
+    // just use $cgp directly for loads)
+    if (MF.getTarget().getOptLevel() == CodeGenOpt::None) {
+        // At -O0 ensure that the global register ends up in $c26
+        BuildMI(MBB, I, DL, TII.get(Mips::CIncOffset), ABIGlobalCapReg)
+            .addReg(getCapEntryPointReg())
+            .addReg(Tmp2);
+        BuildMI(MBB, I, DL, TII.get(TargetOpcode::COPY), CapGlobalBaseReg)
+            .addReg(ABIGlobalCapReg);
+    } else {
+        // Otherwise we will use the first available callee-save register for $cgp
+        BuildMI(MBB, I, DL, TII.get(Mips::CIncOffset), CapGlobalBaseReg)
+            .addReg(getCapEntryPointReg())
+            .addReg(Tmp2);
+    }
+#else
+    // Since we need to ensure that these instrs are written together we need to
+    // bundle them. However, this is only possible after register allocation so
+    // we convert this to another pseudo instruction first.
+    Register Scratch = MF.getRegInfo().createVirtualRegister(&Mips::GPR64RegClass);
+    BuildMI(MBB, I, DL, TII.get(Mips::PseudoPccRelativeAddressPostRA), CapGlobalBaseReg)
+        .addExternalSymbol("_CHERI_CAPABILITY_TABLE_")
+        .addReg(Scratch, RegState::Define | RegState::EarlyClobber |
+            RegState::Implicit | RegState::Dead);
+#endif
+  } else {
+    MF.getRegInfo().addLiveIn(ABIGlobalCapReg);
+    MBB.addLiveIn(ABIGlobalCapReg);
+    BuildMI(MBB, I, DL, TII.get(TargetOpcode::COPY), CapGlobalBaseReg)
+        .addReg(ABIGlobalCapReg);
+  }
+}
+
 
 void MipsFunctionInfo::createEhDataRegsFI(MachineFunction &MF) {
   const TargetRegisterInfo &TRI = *MF.getSubtarget().getRegisterInfo();

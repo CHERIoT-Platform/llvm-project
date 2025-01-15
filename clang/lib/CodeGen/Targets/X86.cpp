@@ -2986,7 +2986,9 @@ static Address EmitX86_64VAArgFromMemory(CodeGenFunction &CGF,
 
   // AMD64-ABI 3.5.7p5: Step 8. Fetch type from l->overflow_arg_area.
   llvm::Type *LTy = CGF.ConvertTypeForMem(Ty);
-  llvm::Value *Res = overflow_arg_area;
+  llvm::Value *Res =
+    CGF.Builder.CreateBitCast(overflow_arg_area,
+                              CGF.CGM.getPointerInDefaultAS(LTy));
 
   // AMD64-ABI 3.5.7p5: Step 9. Set l->overflow_arg_area to:
   // l->overflow_arg_area + sizeof(type).
@@ -3089,6 +3091,8 @@ Address X86_64ABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
     llvm::Type *TyHi = ST->getElementType(1);
     assert((TyLo->isFPOrFPVectorTy() ^ TyHi->isFPOrFPVectorTy()) &&
            "Unexpected ABI info for mixed regs");
+    llvm::Type *PTyLo = CGF.CGM.getPointerInDefaultAS(TyLo);
+    llvm::Type *PTyHi = CGF.CGM.getPointerInDefaultAS(TyHi);
     llvm::Value *GPAddr =
         CGF.Builder.CreateGEP(CGF.Int8Ty, RegSaveArea, gp_offset);
     llvm::Value *FPAddr =
@@ -3099,13 +3103,13 @@ Address X86_64ABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
     // Copy the first element.
     // FIXME: Our choice of alignment here and below is probably pessimistic.
     llvm::Value *V = CGF.Builder.CreateAlignedLoad(
-        TyLo, RegLoAddr,
+        TyLo, CGF.Builder.CreateBitCast(RegLoAddr, PTyLo),
         CharUnits::fromQuantity(getDataLayout().getABITypeAlign(TyLo)));
     CGF.Builder.CreateStore(V, CGF.Builder.CreateStructGEP(Tmp, 0));
 
     // Copy the second element.
     V = CGF.Builder.CreateAlignedLoad(
-        TyHi, RegHiAddr,
+        TyHi, CGF.Builder.CreateBitCast(RegHiAddr, PTyHi),
         CharUnits::fromQuantity(getDataLayout().getABITypeAlign(TyHi)));
     CGF.Builder.CreateStore(V, CGF.Builder.CreateStructGEP(Tmp, 1));
 
@@ -3123,7 +3127,8 @@ Address X86_64ABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
     // register save area.
     if (TyAlign.getQuantity() > 8) {
       Address Tmp = CGF.CreateMemTemp(Ty);
-      CGF.Builder.CreateMemCpy(Tmp, RegAddr, TySize, false);
+      CGF.Builder.CreateMemCpy(Tmp, RegAddr, TySize,
+                               llvm::PreserveCheriTags::TODO, false);
       RegAddr = Tmp;
     }
 

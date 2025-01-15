@@ -35,6 +35,7 @@ class RISCVTargetStreamer : public MCTargetStreamer {
   RISCVABI::ABI TargetABI = RISCVABI::ABI_Unknown;
   bool HasRVC = false;
   bool HasTSO = false;
+  bool IsCapMode = false;
 
 public:
   RISCVTargetStreamer(MCStreamer &S);
@@ -49,6 +50,8 @@ public:
   virtual void emitDirectiveOptionNoRVC();
   virtual void emitDirectiveOptionRelax();
   virtual void emitDirectiveOptionNoRelax();
+  virtual void emitDirectiveOptionCapMode();
+  virtual void emitDirectiveOptionNoCapMode();
   virtual void emitDirectiveOptionArch(ArrayRef<RISCVOptionArchArg> Args);
   virtual void emitDirectiveVariantCC(MCSymbol &Symbol);
   virtual void emitAttribute(unsigned Attribute, unsigned Value);
@@ -63,6 +66,7 @@ public:
   void setFlagsFromFeatures(const MCSubtargetInfo &STI);
   bool hasRVC() const { return HasRVC; }
   bool hasTSO() const { return HasTSO; }
+  bool isCapMode() const { return IsCapMode; }
 };
 
 // This part is for ascii assembly output
@@ -86,6 +90,8 @@ public:
   void emitDirectiveOptionNoRVC() override;
   void emitDirectiveOptionRelax() override;
   void emitDirectiveOptionNoRelax() override;
+  void emitDirectiveOptionCapMode() override;
+  void emitDirectiveOptionNoCapMode() override;
   void emitDirectiveOptionArch(ArrayRef<RISCVOptionArchArg> Args) override;
   void emitDirectiveVariantCC(MCSymbol &Symbol) override;
 };

@@ -33,7 +33,7 @@ Register SwiftErrorValueTracking::getOrCreateVReg(const MachineBasicBlock *MBB,
   // use" by inserting a copy or phi at the beginning of this block.
   if (It == VRegDefMap.end()) {
     auto &DL = MF->getDataLayout();
-    const TargetRegisterClass *RC = TLI->getRegClassFor(TLI->getPointerTy(DL));
+    const TargetRegisterClass *RC = TLI->getRegClassFor(TLI->getPointerTy(DL, DL.getAllocaAddrSpace()));
     auto VReg = MF->getRegInfo().createVirtualRegister(RC);
     VRegDefMap[Key] = VReg;
     VRegUpwardsUse[Key] = VReg;
@@ -55,7 +55,7 @@ Register SwiftErrorValueTracking::getOrCreateVRegDefAt(
     return It->second;
 
   auto &DL = MF->getDataLayout();
-  const TargetRegisterClass *RC = TLI->getRegClassFor(TLI->getPointerTy(DL));
+  const TargetRegisterClass *RC = TLI->getRegClassFor(TLI->getPointerTy(DL, DL.getAllocaAddrSpace()));
   Register VReg = MF->getRegInfo().createVirtualRegister(RC);
   VRegDefUses[Key] = VReg;
   setCurrentVReg(MBB, Val, VReg);
@@ -123,7 +123,7 @@ bool SwiftErrorValueTracking::createEntriesInEntryBlock(DebugLoc DbgLoc) {
 
   MachineBasicBlock *MBB = &*MF->begin();
   auto &DL = MF->getDataLayout();
-  auto const *RC = TLI->getRegClassFor(TLI->getPointerTy(DL));
+  auto const *RC = TLI->getRegClassFor(TLI->getPointerTy(DL, DL.getAllocaAddrSpace()));
   bool Inserted = false;
   for (const auto *SwiftErrorVal : SwiftErrorVals) {
     // We will always generate a copy from the argument. It is always used at
@@ -237,7 +237,7 @@ void SwiftErrorValueTracking::propagateVRegs() {
       // We need a phi: if there is an upwards exposed use we already have a
       // destination virtual register number otherwise we generate a new one.
       auto &DL = MF->getDataLayout();
-      auto const *RC = TLI->getRegClassFor(TLI->getPointerTy(DL));
+      auto const *RC = TLI->getRegClassFor(TLI->getPointerTy(DL, DL.getAllocaAddrSpace()));
       Register PHIVReg =
           UpwardsUse ? UUseVReg : MF->getRegInfo().createVirtualRegister(RC);
       MachineInstrBuilder PHI =

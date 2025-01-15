@@ -119,6 +119,9 @@ namespace llvm {
       /// track constraint info for each.
       std::vector<ConstraintInfo> Constraints;
 
+      /// The instruction may trap if this operand is a sealed capability.
+      bool TrapsIfSealedCapability = false;
+
       OperandInfo(Record *R, const std::string &N, const std::string &PMN,
                   const std::string &OT, unsigned MION, unsigned MINO,
                   DagInit *MIOI)
@@ -262,6 +265,9 @@ namespace llvm {
     bool mayStore : 1;
     bool mayStore_Unset : 1;
     bool mayRaiseFPException : 1;
+    bool mayTrap : 1;
+    bool mayTrapOnSealedInput : 1;
+    bool defsCanBeSealed : 1;
     bool isPredicable : 1;
     bool isConvertibleToThreeAddress : 1;
     bool isCommutable : 1;

@@ -2061,14 +2061,15 @@ getTargetInfo(const Triple &TT,
         make_error<StringError>("Unable to create subtarget for " + TripleName,
                                 inconvertibleErrorCode()));
 
-  std::unique_ptr<MCRegisterInfo> MRI(TheTarget->createMCRegInfo(TripleName));
+  MCTargetOptions MCOptions;
+  std::unique_ptr<MCRegisterInfo> MRI(
+      TheTarget->createMCRegInfo(TripleName, MCOptions));
   if (!MRI)
     ExitOnErr(make_error<StringError>("Unable to create target register info "
                                       "for " +
                                           TripleName,
                                       inconvertibleErrorCode()));
 
-  MCTargetOptions MCOptions;
   std::unique_ptr<MCAsmInfo> MAI(
       TheTarget->createMCAsmInfo(*MRI, TripleName, MCOptions));
   if (!MAI)

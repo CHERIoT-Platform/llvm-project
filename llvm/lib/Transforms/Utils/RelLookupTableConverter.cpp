@@ -33,6 +33,17 @@ static bool shouldConvertToRelLookupTable(Module &M, GlobalVariable &GV) {
       !GV.hasOneUse())
     return false;
 
+  const DataLayout &DL = M.getDataLayout();
+  // Relative lookup tables derive pointers to the other globals by adding an
+  // offset to the address of a newly synthesized global array. We can't do
+  // this in the current purecap code generation since the bounds of that new
+  // array will not cover the referenced globals. We could allow this
+  // transformation if we relaxed the global bounds and inserted setbounds
+  // instructions for the loaded value but for now this is very low priority.
+  // See https://github.com/CTSRD-CHERI/llvm-project/issues/572
+  if (DL.isFatPointer(GV.getAddressSpace()))
+    return false;
+
   GetElementPtrInst *GEP =
       dyn_cast<GetElementPtrInst>(GV.use_begin()->getUser());
   if (!GEP || !GEP->hasOneUse() ||
@@ -61,7 +72,6 @@ static bool shouldConvertToRelLookupTable(Module &M, GlobalVariable &GV) {
     return false;
 
   // If values are not 64-bit pointers, do not generate a relative lookup table.
-  const DataLayout &DL = M.getDataLayout();
   Type *ElemType = Array->getType()->getElementType();
   if (!ElemType->isPointerTy() || DL.getPointerTypeSizeInBits(ElemType) != 64)
     return false;
@@ -73,7 +83,7 @@ static bool shouldConvertToRelLookupTable(Module &M, GlobalVariable &GV) {
 
     // If an operand is not a constant offset from a lookup table,
     // do not generate a relative lookup table.
-    if (!IsConstantOffsetFromGlobal(ConstOp, GVOp, Offset, DL))
+    if (!IsConstantOffsetFromGlobal(ConstOp, GVOp, Offset, DL, false))
       return false;
 
     // If operand is mutable, do not generate a relative lookup table.
@@ -110,7 +120,8 @@ static GlobalVariable *createRelLookupTable(Function &Func,
 
   for (Use &Operand : LookupTableArr->operands()) {
     Constant *Element = cast<Constant>(Operand);
-    Type *IntPtrTy = M.getDataLayout().getIntPtrType(M.getContext());
+    Type *IntPtrTy = M.getDataLayout().getIntPtrType(
+        M.getContext(), LookupTable.getAddressSpace());
     Constant *Base = llvm::ConstantExpr::getPtrToInt(RelLookupTable, IntPtrTy);
     Constant *Target = llvm::ConstantExpr::getPtrToInt(Element, IntPtrTy);
     Constant *Sub = llvm::ConstantExpr::getSub(Target, Base);
@@ -153,11 +164,17 @@ static void convertToRelLookupTable(GlobalVariable &LookupTable) {
   Builder.SetInsertPoint(Load);
   Function *LoadRelIntrinsic = llvm::Intrinsic::getDeclaration(
       &M, Intrinsic::load_relative, {Index->getType()});
+  Value *Base = Builder.CreateBitCast(
+      RelLookupTable, Builder.getPtrTy(LookupTable.getAddressSpace()));
 
   // Create a call to load.relative intrinsic that computes the target address
   // by adding base address (lookup table address) and relative offset.
-  Value *Result = Builder.CreateCall(LoadRelIntrinsic, {RelLookupTable, Offset},
+  Value *Result = Builder.CreateCall(LoadRelIntrinsic, {Base, Offset},
                                      "reltable.intrinsic");
+
+  // Create a bitcast instruction if necessary.
+  if (Load->getType() != Builder.getPtrTy(LookupTable.getAddressSpace()))
+    Result = Builder.CreateBitCast(Result, Load->getType(), "reltable.bitcast");
 
   // Replace load instruction with the new generated instruction sequence.
   Load->replaceAllUsesWith(Result);

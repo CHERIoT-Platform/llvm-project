@@ -1127,6 +1127,7 @@ class CodeGenDAGPatterns {
   std::vector<PatternToMatch> PatternsToMatch;
 
   TypeSetByHwMode LegalVTS;
+  TypeSetByHwMode LegalPtrVTS;
 
   using PatternRewriterFn = std::function<void (TreePattern *)>;
   PatternRewriterFn PatternRewriter;
@@ -1140,6 +1141,7 @@ public:
   CodeGenTarget &getTargetInfo() { return Target; }
   const CodeGenTarget &getTargetInfo() const { return Target; }
   const TypeSetByHwMode &getLegalTypes() const { return LegalVTS; }
+  const TypeSetByHwMode &getLegalPtrTypes() const { return LegalPtrVTS; }
 
   Record *getSDNodeNamed(StringRef Name) const;
 
@@ -1242,6 +1244,7 @@ public:
   }
 
 private:
+  TypeSetByHwMode ComputeLegalPtrTypes() const;
   void ParseNodeInfo();
   void ParseNodeTransforms();
   void ParseComplexPatterns();

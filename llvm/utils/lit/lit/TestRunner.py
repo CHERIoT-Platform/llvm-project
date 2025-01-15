@@ -28,6 +28,7 @@ import lit.Test as Test
 import lit.util
 from lit.util import to_bytes, to_string, to_unicode
 from lit.BooleanExpression import BooleanExpression
+from lit.TestingConfig import CheriTestMode
 
 
 class InternalShellError(Exception):
@@ -2129,6 +2130,24 @@ def parseIntegratedTestScript(test, additional_parsers=[], require_script=True):
     test.unsupported += parsed["UNSUPPORTED:"] or []
     if parsed["ALLOW_RETRIES:"]:
         test.allowed_retries = parsed["ALLOW_RETRIES:"][0]
+
+    # HACK to allow running only cheri tests:
+    # Tests are CHERI tests if they are inside a cheri directory. They are also
+    # cheri tests if they use any of the CHERI substitutions in the RUN: lines
+    if test.config.cheri_test_mode != CheriTestMode.INCLUDE:
+        is_cheri_test = False
+        assert isinstance(test.path_in_suite, tuple)
+        if "cheri" in test.path_in_suite or "CHERI" in test.path_in_suite or "CHERI-Generic" in test.path_in_suite:
+            is_cheri_test = True
+        if not is_cheri_test and (script and any("%cheri" in command for command in script)):
+            # print("Test", test.getFullName(), "uses cheri substitutions")
+            is_cheri_test = True
+
+        if is_cheri_test and test.config.cheri_test_mode == CheriTestMode.EXCLUDE:
+            return lit.Test.Result(Test.SKIPPED, "Skipped since CHERI tests are excluded.")
+        elif not is_cheri_test and test.config.cheri_test_mode == CheriTestMode.ONLY:
+            return lit.Test.Result(Test.SKIPPED, "Not a CHERI test and only running CHERI tests.")
+
 
     # Enforce REQUIRES:
     missing_required_features = test.getMissingRequiredFeatures()

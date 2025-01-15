@@ -385,6 +385,10 @@ void Sema::ActOnPragmaPack(SourceLocation PragmaLoc, PragmaMsStackAction Action,
   AlignPackStack.Act(PragmaLoc, Action, SlotLabel, Info);
 }
 
+void Sema::ActOnPragmaPointerInterpretation(PointerInterpretationKind K) {
+  PointerInterpretation = K;
+}
+
 bool Sema::ConstantFoldAttrArgs(const AttributeCommonInfo &CI,
                                 MutableArrayRef<Expr *> Args) {
   llvm::SmallVector<PartialDiagnosticAt, 8> Notes;

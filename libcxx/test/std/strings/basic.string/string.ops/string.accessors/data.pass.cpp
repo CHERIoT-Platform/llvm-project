@@ -22,7 +22,7 @@ TEST_CONSTEXPR_CXX20 void test_const(const S& s) {
   typedef typename S::traits_type T;
   const typename S::value_type* str = s.data();
   if (s.size() > 0) {
-    assert(T::compare(str, &s[0], s.size()) == 0);
+    assert(T::compare(str, s.data(), s.size()) == 0);
     assert(T::eq(str[s.size()], typename S::value_type()));
   } else
     assert(T::eq(str[0], typename S::value_type()));
@@ -33,7 +33,7 @@ TEST_CONSTEXPR_CXX20 void test_nonconst(S& s) {
   typedef typename S::traits_type T;
   typename S::value_type* str = s.data();
   if (s.size() > 0) {
-    assert(T::compare(str, &s[0], s.size()) == 0);
+    assert(T::compare(str, s.data(), s.size()) == 0);
     assert(T::eq(str[s.size()], typename S::value_type()));
   } else
     assert(T::eq(str[0], typename S::value_type()));

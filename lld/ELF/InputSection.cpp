@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "InputSection.h"
+#include "Arch/Cheri.h"
 #include "Config.h"
 #include "InputFiles.h"
 #include "OutputSections.h"
@@ -16,6 +17,7 @@
 #include "SyntheticSections.h"
 #include "Target.h"
 #include "lld/Common/CommonLinkerContext.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Compression.h"
 #include "llvm/Support/Endian.h"
@@ -63,6 +65,8 @@ InputSectionBase::InputSectionBase(InputFile *file, uint64_t flags,
   if (sectionKind == SectionBase::Merge && content().size() > UINT32_MAX)
     error(toString(this) + ": section too large");
 
+  relaxAux = nullptr;
+
   // The ELF spec states that a value of 0 means the section has
   // no alignment constraints.
   uint32_t v = std::max<uint32_t>(addralign, 1);
@@ -81,7 +85,7 @@ InputSectionBase::InputSectionBase(InputFile *file, uint64_t flags,
 // That flag doesn't make sense in an executable.
 static uint64_t getFlags(uint64_t flags) {
   flags &= ~(uint64_t)SHF_INFO_LINK;
-  if (!config->relocatable)
+  if (!config->relocatable || config->compartment)
     flags &= ~(uint64_t)SHF_GROUP;
   return flags;
 }
@@ -250,7 +254,7 @@ Defined *InputSectionBase::getEnclosingSymbol(uint64_t offset,
   for (Symbol *b : file->getSymbols())
     if (Defined *d = dyn_cast<Defined>(b))
       if (d->section == this && d->value <= offset &&
-          offset < d->value + d->size && (type == 0 || type == d->type))
+          offset < d->value + d->getSize() && (type == 0 || type == d->type))
         return d;
   return nullptr;
 }
@@ -267,6 +271,8 @@ std::string InputSectionBase::getLocation(uint64_t offset) const {
   std::string filename = toString(file);
   if (Defined *d = getEnclosingFunction(offset))
     return filename + ":(function " + toString(*d) + ": " + secAndOffset;
+  else if (Defined *d = getEnclosingObject(offset))
+    return filename + ":(object " + toString(*d) + ": " + secAndOffset + ")";
 
   return filename + ":(" + secAndOffset;
 }
@@ -608,7 +614,11 @@ static Relocation *getRISCVPCRelHi20(const Symbol *sym, uint64_t addend) {
 
   for (auto it = range.first; it != range.second; ++it)
     if (it->type == R_RISCV_PCREL_HI20 || it->type == R_RISCV_GOT_HI20 ||
-        it->type == R_RISCV_TLS_GD_HI20 || it->type == R_RISCV_TLS_GOT_HI20)
+        it->type == R_RISCV_TLS_GD_HI20 || it->type == R_RISCV_TLS_GOT_HI20 ||
+        it->type == R_RISCV_CHERIOT_COMPARTMENT_HI ||
+        it->type == R_RISCV_CHERI_CAPTAB_PCREL_HI20 ||
+        it->type == R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20 ||
+        it->type == R_RISCV_CHERI_TLS_IE_CAPTAB_PCREL_HI20)
       return &*it;
 
   errorOrWarn("R_RISCV_PCREL_LO12 relocation points to " +
@@ -648,7 +658,11 @@ static int64_t getTlsTpOffset(const Symbol &s) {
     // Adjusted Variant 1. TP is placed with a displacement of 0x7000, which is
     // to allow a signed 16-bit offset to reach 0x1000 of TCB/thread-library
     // data and 0xf000 of the program's TLS segment.
-    return s.getVA(0) + (tls->p_vaddr & (tls->p_align - 1)) - 0x7000;
+    //
+    // For CheriABI we always use an offset of 0 to stay representable.
+    if (!config->isCheriAbi)
+      return s.getVA(0) + (tls->p_vaddr & (tls->p_align - 1)) - 0x7000;
+    LLVM_FALLTHROUGH;
   case EM_LOONGARCH:
   case EM_RISCV:
     return s.getVA(0) + (tls->p_vaddr & (tls->p_align - 1));
@@ -668,7 +682,10 @@ static int64_t getTlsTpOffset(const Symbol &s) {
 
 uint64_t InputSectionBase::getRelocTargetVA(const InputFile *file, RelType type,
                                             int64_t a, uint64_t p,
-                                            const Symbol &sym, RelExpr expr) {
+                                            const Symbol &sym, RelExpr expr,
+                                            const InputSectionBase *isec,
+                                            uint64_t offset) {
+
   switch (expr) {
   case R_ABS:
   case R_DTPREL:
@@ -693,7 +710,7 @@ uint64_t InputSectionBase::getRelocTargetVA(const InputFile *file, RelType type,
     if (sym.hasFlag(NEEDS_TLSGD) && type != R_LARCH_TLS_IE_PC_LO12)
       // Like R_LOONGARCH_TLSGD_PAGE_PC but taking the absolute value.
       return in.got->getGlobalDynAddr(sym) + a;
-    return getRelocTargetVA(file, type, a, p, sym, R_GOT);
+    return getRelocTargetVA(file, type, a, p, sym, R_GOT, isec, offset);
   case R_GOTONLY_PC:
     return in.got->getVA() + a - p;
   case R_GOTPLTONLY_PC:
@@ -771,7 +788,7 @@ uint64_t InputSectionBase::getRelocTargetVA(const InputFile *file, RelType type,
   case R_RISCV_PC_INDIRECT: {
     if (const Relocation *hiRel = getRISCVPCRelHi20(&sym, a))
       return getRelocTargetVA(file, hiRel->type, hiRel->addend, sym.getVA(),
-                              *hiRel->sym, hiRel->expr);
+                              *hiRel->sym, hiRel->expr, isec, offset);
     return 0;
   }
   case R_LOONGARCH_PAGE_PC:
@@ -881,6 +898,69 @@ uint64_t InputSectionBase::getRelocTargetVA(const InputFile *file, RelType type,
     return in.got->getTlsIndexOff() + a;
   case R_TLSLD_PC:
     return in.got->getTlsIndexVA() + a - p;
+  case R_CHERI_CAPABILITY:
+    llvm_unreachable("R_CHERI_CAPABILITY should not be handled here!");
+  case R_CHERI_CAPABILITY_TABLE_INDEX:
+  case R_CHERI_CAPABILITY_TABLE_INDEX_SMALL_IMMEDIATE:
+  case R_CHERI_CAPABILITY_TABLE_INDEX_CALL:
+  case R_CHERI_CAPABILITY_TABLE_INDEX_CALL_SMALL_IMMEDIATE:
+    assert(a == 0 && "capability table index relocs should not have addends");
+    return sym.getCapTableOffset(isec, offset);
+  case R_CHERI_CAPABILITY_TABLE_ENTRY_PC: {
+    assert(a == 0 && "capability table entry relocs should not have addends");
+    return sym.getCapTableVA(isec, offset) - p;
+  }
+  case R_CHERI_CAPABILITY_TABLE_TLSGD_ENTRY_PC: {
+    assert(a == 0 && "capability table index relocs should not have addends");
+    uint64_t capTableOffset = in.cheriCapTable->getDynTlsOffset(sym);
+    return ElfSym::cheriCapabilityTable->getVA() + capTableOffset - p;
+  }
+  case R_CHERI_CAPABILITY_TABLE_TLSIE_ENTRY_PC: {
+    assert(a == 0 && "capability table index relocs should not have addends");
+    uint64_t capTableOffset = in.cheriCapTable->getTlsOffset(sym);
+    return ElfSym::cheriCapabilityTable->getVA() + capTableOffset - p;
+  }
+  case R_CHERI_CAPABILITY_TABLE_REL:
+    if (!ElfSym::cheriCapabilityTable) {
+      error("cannot compute difference between non-existent "
+            "CheriCapabilityTable and symbol " + toString(sym));
+      return sym.getVA(a);
+    }
+    return sym.getVA(a) - ElfSym::cheriCapabilityTable->getVA();
+  case R_MIPS_CHERI_CAPTAB_TLSGD:
+    assert(a == 0 && "capability table index relocs should not have addends");
+    return in.cheriCapTable->getDynTlsOffset(sym);
+  case R_MIPS_CHERI_CAPTAB_TLSLD:
+    assert(a == 0 && "capability table index relocs should not have addends");
+    return in.cheriCapTable->getTlsIndexOffset();
+  case R_MIPS_CHERI_CAPTAB_TPREL:
+    assert(a == 0 && "capability table index relocs should not have addends");
+    return in.cheriCapTable->getTlsOffset(sym);
+  // LO_I is used for both PCC and CGP-relative addresses.  For backwards
+  // compatibility, the symbol may be a CGP-relative symbol.  In newer code, it
+  // will always be the symbol containing the accompanying HI relocation.
+  case R_CHERIOT_COMPARTMENT_CGPREL_LO_I: {
+    if (isPCCRelative(nullptr, &sym)) {
+      if (const Relocation *hiRel = getRISCVPCRelHi20(&sym, a)) {
+        if (isPCCRelative(nullptr, hiRel->sym))
+          return getRelocTargetVA(file, hiRel->type, hiRel->addend, sym.getVA(),
+                                  *hiRel->sym, hiRel->expr, isec, offset);
+        return getBiasedCGPOffsetLo12(*hiRel->sym);
+      }
+      fatal("R_CHERIOT_COMPARTMENT_CGPREL_LO_I relocation points to " +
+            sym.getName() +
+            " without an associated R_RISCV_PCREL_HI20 relocation");
+    }
+    return getBiasedCGPOffsetLo12(sym);
+  }
+  // Reached only for CGP-relative relocations.  PCC-relative addresses are
+  // calculated with the R_PC and R_PC_INDIRECT cases.
+  case R_CHERIOT_COMPARTMENT_CGPREL_LO_S:
+    return getBiasedCGPOffsetLo12(sym);
+  case R_CHERIOT_COMPARTMENT_CGPREL_HI:
+    return (getBiasedCGPOffset(sym) - getBiasedCGPOffsetLo12(sym)) >> 11;
+  case R_CHERIOT_COMPARTMENT_SIZE:
+    return sym.getSize();
   default:
     llvm_unreachable("invalid expression");
   }
@@ -1015,6 +1095,12 @@ void InputSection::relocateNonAlloc(uint8_t *buf, ArrayRef<RelTy> rels) {
       continue;
     }
 
+    if (expr == R_SIZE) {
+      target.relocateNoSym(bufLoc, type,
+                           SignExtend64<bits>(sym.getSize() + addend));
+      continue;
+    }
+
     std::string msg = getLocation(offset) + ": has non-ABS relocation " +
                       toString(type) + " against symbol '" + toString(sym) +
                       "'";
@@ -1093,7 +1179,7 @@ static void switchMorestackCallsToMorestackNonSplit(
     while (it != morestackCalls.end() && (*it)->offset < f->value)
       ++it;
     // Adjust all calls inside the function.
-    while (it != morestackCalls.end() && (*it)->offset < f->value + f->size) {
+    while (it != morestackCalls.end() && (*it)->offset < f->value + f->getSize()) {
       (*it)->sym = moreStackNonSplit;
       ++it;
     }
@@ -1103,7 +1189,7 @@ static void switchMorestackCallsToMorestackNonSplit(
 static bool enclosingPrologueAttempted(uint64_t offset,
                                        const DenseSet<Defined *> &prologues) {
   for (Defined *f : prologues)
-    if (f->value <= offset && offset < f->value + f->size)
+    if (f->value <= offset && offset < f->value + f->getSize())
       return true;
   return false;
 }

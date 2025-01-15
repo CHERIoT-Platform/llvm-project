@@ -1,8 +1,9 @@
 ; RUN: %llc_dwarf -O0 -filetype=obj < %s > %t
 ; RUN: llvm-dwarfdump -v %t | FileCheck %s
 
-; Check that pointers and references get emitted without size information in
-; DWARF, even if they are so specified in the IR
+; Check that pointers and references with size equal to the target's pointer
+; size get emitted without size information in DWARF, even if they are so
+; specified in the IR.
 
 ; CHECK: 0x[[O1:[0-9a-f]+]]:   DW_TAG_pointer_type
 ; CHECK-NEXT: DW_AT_type [DW_FORM_ref4]

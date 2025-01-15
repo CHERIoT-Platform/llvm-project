@@ -978,7 +978,7 @@ Align Value::getPointerAlignment(const DataLayout &DL) const {
     // if the only "reduction" is combining a bitcast + ptrtoint.
     CstPtr = CstPtr->stripPointerCasts();
     if (auto *CstInt = dyn_cast_or_null<ConstantInt>(ConstantExpr::getPtrToInt(
-            const_cast<Constant *>(CstPtr), DL.getIntPtrType(getType()),
+            const_cast<Constant *>(CstPtr), DL.getIndexType(getType()),
             /*OnlyIfReduced=*/true))) {
       size_t TrailingZeros = CstInt->getValue().countr_zero();
       // While the actual alignment may be large, elsewhere we have

@@ -188,6 +188,15 @@ public:
     return *this;
   }
 
+  const MachineInstrBuilder &
+  addExternalSymbolWithDisp(const char *FnName, int64_t Offset,
+                            unsigned TargetFlags = 0) const {
+    auto Op = MachineOperand::CreateES(FnName, TargetFlags);
+    Op.setOffset(Offset);
+    MI->addOperand(*MF, Op);
+    return *this;
+  }
+
   const MachineInstrBuilder &addBlockAddress(const BlockAddress *BA,
                                              int64_t Offset = 0,
                                              unsigned TargetFlags = 0) const {
@@ -307,9 +316,15 @@ public:
       case MachineOperand::MO_GlobalAddress:
         return addGlobalAddress(Disp.getGlobal(), Disp.getOffset() + off,
                                 TargetFlags);
+      case MachineOperand::MO_ExternalSymbol:
+        return addExternalSymbolWithDisp(Disp.getSymbolName(),
+                                         Disp.getOffset() + off, TargetFlags);
       case MachineOperand::MO_BlockAddress:
         return addBlockAddress(Disp.getBlockAddress(), Disp.getOffset() + off,
                                TargetFlags);
+      case MachineOperand::MO_MachineBasicBlock:
+        assert(off == 0 && "cannot create offset into MBB");
+        return addMBB(Disp.getMBB(), TargetFlags);
       case MachineOperand::MO_JumpTableIndex:
         assert(off == 0 && "cannot create offset into jump tables");
         return addJumpTableIndex(Disp.getIndex(), TargetFlags);

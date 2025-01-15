@@ -440,7 +440,7 @@ static bool matchConstraints(ArrayRef<InputSectionBase *> sections,
 static void sortSections(MutableArrayRef<InputSectionBase *> vec,
                          SortSectionPolicy k) {
   auto alignmentComparator = [](InputSectionBase *a, InputSectionBase *b) {
-    // ">" is not a mistake. Sections with larger alignments are placed
+    // ">" is not a mistake. Sections with larger sec are placed
     // before sections with smaller alignments in order to reduce the
     // amount of padding necessary. This is compatible with GNU.
     return a->addralign > b->addralign;
@@ -718,6 +718,10 @@ static OutputSection *findByName(ArrayRef<SectionCommand *> vec,
 
 static OutputDesc *createSection(InputSectionBase *isec, StringRef outsecName) {
   OutputDesc *osd = script->createOutputSection(outsecName, "<internal>");
+  if (outsecName == "__cap_relocs" && !config->relativeCapRelocsOnly) {
+    // TODO: remove this hack
+    isec->flags |= SHF_WRITE;
+  }
   osd->osec.recordSection(isec);
   return osd;
 }
@@ -920,6 +924,36 @@ void LinkerScript::diagnoseMissingSGSectionAddress() const {
     error("no address assigned to the veneers output section " + sec->name);
 }
 
+// Perform a worst case estimate of the output section CHERI alignment.
+// This is roughly the same logic as the loop in assignOffsets() to loop
+// through all commands and input sections in an output section to calculate
+// the total size.
+static uint64_t outputSectionCheriAlignment(OutputSection *sec)
+{
+  uint64_t total = 0;
+
+  for (SectionCommand *cmd : sec->commands) {
+    if (dyn_cast<SymbolAssignment>(cmd)) {
+      continue;
+    }
+
+    // Add BYTE(), SHORT(), LONG(), or QUAD().
+    if (auto *data = dyn_cast<ByteCommand>(cmd)) {
+      total += data->size;
+      continue;
+    }
+
+    // Add two alignment to the size, one for unaligned start one for unaligned
+    // end which is the worst case scenario.
+    for (InputSection *s : cast<InputSectionDescription>(cmd)->sections) {
+      total += s->getSize() + 2 * s->addralign;
+    }
+  }
+
+  uint64_t ret = target->cheriRequiredAlignment(total);
+  return ret;
+}
+
 // This function searches for a memory region to place the given output
 // section in. If found, a pointer to the appropriate memory region is
 // returned in the first member of the pair. Otherwise, a nullptr is returned.
@@ -1018,8 +1052,14 @@ void LinkerScript::assignOffsets(OutputSection *sec) {
     // The alignment is ignored.
     sec->addr = dot;
   } else {
-    // sec->alignment is the max of ALIGN and the maximum of input
+    // sec->addralign is the max of ALIGN and the maximum of input
     // section alignments.
+    if (sec->isCapAligned) {
+      uint64_t capAlignment = outputSectionCheriAlignment(sec);
+      if (capAlignment > 1) {
+        sec->addralign = std::max<uint64_t>(capAlignment, sec->addralign);
+      }
+    }
     const uint64_t pos = dot;
     dot = alignToPowerOf2(dot, sec->addralign);
     sec->addr = dot;
@@ -1102,6 +1142,26 @@ void LinkerScript::assignOffsets(OutputSection *sec) {
     // NOBITS TLS sections are similar. Additionally save the end address.
     state->tbssAddr = dot;
     dot = savedDot;
+  }
+
+  // Round up the size and alignment to the required alignment for
+  // capabilities.
+  if (sec->isCapAligned) {
+    // Target-specific size for capability alignment for objects of the
+    // given size.
+    uint64_t capAlignment = target->cheriRequiredAlignment(sec->size);
+    // If capabilities require additional alignment, round the start and length
+    // alignment to these values.
+    if (capAlignment > 1) {
+      capAlignment = std::max<uint64_t>(capAlignment, sec->addralign);
+      sec->size = alignTo(sec->size, capAlignment);
+      uint64_t start = isTbss ? state->tbssAddr : dot;
+      start = alignTo(start, capAlignment);
+      if (isTbss)
+          state->tbssAddr = start;
+      else
+        dot = start;
+    }
   }
 }
 

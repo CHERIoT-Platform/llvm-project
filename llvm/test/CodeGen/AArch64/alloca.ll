@@ -145,13 +145,13 @@ define void @test_alloca_large_frame(i64 %n) {
 ; CHECK-MACHO: ldp     x20, x19, [sp], #32
 }
 
-declare ptr @llvm.stacksave()
-declare void @llvm.stackrestore(ptr)
+declare ptr @llvm.stacksave.p0()
+declare void @llvm.stackrestore.p0(ptr)
 
 define void @test_scoped_alloca(i64 %n) {
 ; CHECK-LABEL: test_scoped_alloca:
 
-  %sp = call ptr @llvm.stacksave()
+  %sp = call ptr @llvm.stacksave.p0()
 ; CHECK: mov x29, sp
 ; CHECK: mov [[SAVED_SP:x[0-9]+]], sp
 ; CHECK: mov [[OLDSP:x[0-9]+]], sp
@@ -164,7 +164,7 @@ define void @test_scoped_alloca(i64 %n) {
   call void @use_addr(ptr %addr)
 ; CHECK: bl use_addr
 
-  call void @llvm.stackrestore(ptr %sp)
+  call void @llvm.stackrestore.p0(ptr %sp)
 ; CHECK: mov sp, [[SAVED_SP]]
 
   ret void

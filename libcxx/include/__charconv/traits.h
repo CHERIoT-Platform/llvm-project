@@ -138,6 +138,20 @@ __mul_overflowed(unsigned short __a, _Tp __b, unsigned short& __r) {
   return __c > numeric_limits<unsigned short>::max();
 }
 
+#if __has_feature(capabilities)
+template <typename _Tp>
+inline _LIBCPP_HIDE_FROM_ABI bool
+__mul_overflowed(unsigned __intcap __a, _Tp __b, unsigned __intcap& __r)
+{
+    // Explicitly perform the overflow check using ptraddr_t due to
+    // https://github.com/CTSRD-CHERI/llvm-project/issues/720
+    ptraddr_t __r_addr = 0;
+    bool __ov = __builtin_mul_overflow(static_cast<ptraddr_t>(__a), static_cast<ptraddr_t>(__b), &__r);
+    __r = __builtin_cheri_address_set(__a, __r_addr);
+    return __ov;
+}
+#endif
+
 template <typename _Tp>
 inline _LIBCPP_CONSTEXPR_SINCE_CXX23 _LIBCPP_HIDE_FROM_ABI bool __mul_overflowed(_Tp __a, _Tp __b, _Tp& __r) {
   static_assert(is_unsigned<_Tp>::value, "");

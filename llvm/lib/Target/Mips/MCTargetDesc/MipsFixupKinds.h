@@ -222,6 +222,34 @@ namespace Mips {
     fixup_Mips_JALR,
     fixup_MICROMIPS_JALR,
 
+    // Fixups for load instructions (R_MIPS_CHERI_CAPTAB_*)
+    fixup_CHERI_CAPTABLE11,
+    fixup_CHERI_CAPTABLE20,
+    fixup_CHERI_CAPTABLE_HI16,
+    fixup_CHERI_CAPTABLE_LO16,
+    fixup_CHERI_CAPCALL11,
+    fixup_CHERI_CAPCALL20,
+    fixup_CHERI_CAPCALL_HI16,
+    fixup_CHERI_CAPCALL_LO16,
+
+    // resulting in - R_MIPS_CHERI_CAPABILITY
+    fixup_CHERI_CAPABILITY,
+
+    // 16 bit fixup for _CHERI_CAPABILITY_TABLE offest resulting in - R_MIPS_CHERI_CAPTABLEREL16.
+    fixup_Mips_CAPTABLEREL16,
+    // resulting in - R_MIPS_CHERI_CAPTABLEREL16/R_MIPS_SUB/R_MIPS_HI16
+    fixup_Mips_CAPTABLEOFF_HI,
+    // resulting in - R_MIPS_CHERI_CAPTABLEREL16/R_MIPS_SUB/R_MIPS_LO16
+    fixup_Mips_CAPTABLEOFF_LO,
+
+    // Fixups for capability TLS (R_MIPS_CHERI_CAPTAB_*)
+    fixup_CHERI_CAPTAB_TLSGD_HI16,
+    fixup_CHERI_CAPTAB_TLSGD_LO16,
+    fixup_CHERI_CAPTAB_TLSLDM_HI16,
+    fixup_CHERI_CAPTAB_TLSLDM_LO16,
+    fixup_CHERI_CAPTAB_TPREL_HI16,
+    fixup_CHERI_CAPTAB_TPREL_LO16,
+
     // Marker
     LastTargetFixupKind,
     NumTargetFixupKinds = LastTargetFixupKind - FirstTargetFixupKind

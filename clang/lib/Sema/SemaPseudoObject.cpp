@@ -535,8 +535,8 @@ PseudoOpBuilder::buildIncDecOperation(Scope *Sc, SourceLocation opcLoc,
       UnaryOperator::Create(S.Context, syntacticOp, opcode, resultType,
                             VK_LValue, OK_Ordinary, opcLoc,
                             !resultType->isDependentType()
-                                ? S.Context.getTypeSize(resultType) >=
-                                      S.Context.getTypeSize(S.Context.IntTy)
+                                ? S.Context.getIntRange(resultType) >=
+                                      S.Context.getIntRange(S.Context.IntTy)
                                 : false,
                             S.CurFPFeatureOverrides());
   return complete(syntactic);

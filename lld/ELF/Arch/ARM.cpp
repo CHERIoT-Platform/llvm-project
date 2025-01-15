@@ -1121,7 +1121,7 @@ template <class ELFT> void ObjFile<ELFT>::importCmseSymbols() {
     memset(sym, 0, sizeof(Symbol));
     sym->setName(CHECK(eSyms[i].getName(stringTable), this));
     sym->value = eSym.st_value;
-    sym->size = eSym.st_size;
+    sym->setSize(eSym.st_size);
     sym->type = eSym.getType();
     sym->binding = eSym.getBinding();
     sym->stOther = eSym.st_other;
@@ -1257,7 +1257,7 @@ ArmCmseSGSection::ArmCmseSGSection()
   // The range of addresses used in the CMSE import library should be fixed.
   for (auto &[_, sym] : symtab.cmseImportLib) {
     if (impLibMaxAddr <= sym->value)
-      impLibMaxAddr = sym->value + sym->size;
+      impLibMaxAddr = sym->value + sym->getSize();
   }
   if (symtab.cmseSymMap.empty())
     return;

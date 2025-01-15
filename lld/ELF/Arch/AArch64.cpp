@@ -781,7 +781,7 @@ void AArch64::relocateAlloc(InputSectionBase &sec, uint8_t *buf) const {
     uint8_t *loc = buf + rel.offset;
     const uint64_t val =
         sec.getRelocTargetVA(sec.file, rel.type, rel.addend,
-                             secAddr + rel.offset, *rel.sym, rel.expr);
+                             secAddr + rel.offset, *rel.sym, rel.expr, &sec, rel.offset);
 
     if (needsGotForMemtag(rel)) {
       relocate(loc, rel, val);

@@ -95,6 +95,10 @@ public:
   bool expressionsUseSymbols = false;
   bool usedInExpression = false;
   bool inOverlay = false;
+  /// Set to true if this section should have its start and end alignment
+  /// rounded up so that it can be represented by a single capability on the
+  /// target platform.  This has no effect on non-CHERI targets.
+  bool isCapAligned = false;
 
   // Tracks whether the section has ever had an input section added to it, even
   // if the section was later removed (e.g. because it is a synthetic section
@@ -147,6 +151,7 @@ getInputSections(const OutputSection &os,
 // until Writer is initialized.
 struct Out {
   static uint8_t *bufferStart;
+  static size_t bufferSize;
   static PhdrEntry *tlsPhdr;
   static OutputSection *elfHeader;
   static OutputSection *programHeaders;

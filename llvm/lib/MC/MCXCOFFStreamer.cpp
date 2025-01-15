@@ -117,7 +117,9 @@ void MCXCOFFStreamer::emitXCOFFCInfoSym(StringRef Name, StringRef Metadata) {
 }
 
 void MCXCOFFStreamer::emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
-                                       Align ByteAlignment) {
+                                       Align ByteAlignment,
+                                       TailPaddingAmount TailPadding) {
+  assert(TailPadding == TailPaddingAmount::None && "Not supported yet");
   getAssembler().registerSymbol(*Symbol);
   Symbol->setExternal(cast<MCSymbolXCOFF>(Symbol)->getStorageClass() !=
                       XCOFF::C_HIDEXT);
@@ -135,7 +137,7 @@ void MCXCOFFStreamer::emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
 
 void MCXCOFFStreamer::emitZerofill(MCSection *Section, MCSymbol *Symbol,
                                    uint64_t Size, Align ByteAlignment,
-                                   SMLoc Loc) {
+                                   TailPaddingAmount TailPadding, SMLoc Loc) {
   report_fatal_error("Zero fill not implemented for XCOFF.");
 }
 
@@ -175,5 +177,5 @@ void MCXCOFFStreamer::emitXCOFFLocalCommonSymbol(MCSymbol *LabelSym,
                                                  uint64_t Size,
                                                  MCSymbol *CsectSym,
                                                  Align Alignment) {
-  emitCommonSymbol(CsectSym, Size, Alignment);
+  emitCommonSymbol(CsectSym, Size, Alignment, TailPaddingAmount::None);
 }

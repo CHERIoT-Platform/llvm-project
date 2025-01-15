@@ -35,6 +35,7 @@
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/CFG.h"
+#include "llvm/IR/Cheri.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/ConstantRange.h"
 #include "llvm/IR/Constants.h"
@@ -1386,6 +1387,12 @@ bool SimplifyCFGOpt::FoldValueComparisonIntoPredecessors(Instruction *TI,
   BasicBlock *BB = TI->getParent();
   Value *CV = isValueEqualityComparison(TI); // CondVal
   assert(CV && "Not a comparison?");
+
+  // Don't fold if the value is a CHERI capability
+  if (PointerType* PT = dyn_cast<PointerType>(CV->getType())) {
+    if (isCheriPointer(PT, getDataLayoutOrNull(BB)))
+      return false;
+  }
 
   bool Changed = false;
 
@@ -4833,6 +4840,14 @@ bool SimplifyCFGOpt::SimplifyBranchOnICmpChain(BranchInst *BI,
   if (UsedICmps <= 1)
     return false;
 
+  if (CompVal->getType()->isPointerTy() && isCheriPointer(CompVal->getType(), &DL)) {
+    if (!cheri::isKnownUntaggedCapability(CompVal, &DL)) {
+      LLVM_DEBUG(dbgs() << "Not converting 'icmp' chain with " << Values.size()
+                    << " cases into vaddr SWITCH since the source could be a tagged capability\n");
+      return false;
+    }
+  }
+
   bool TrueWhenEqual = match(Cond, m_LogicalOr(m_Value(), m_Value()));
 
   // There might be duplicate constants in the list, which the switch
@@ -4905,8 +4920,17 @@ bool SimplifyCFGOpt::SimplifyBranchOnICmpChain(BranchInst *BI,
   Builder.SetInsertPoint(BI);
   // Convert pointer to int before we switch.
   if (CompVal->getType()->isPointerTy()) {
-    CompVal = Builder.CreatePtrToInt(
+    // For CHERI capabilities we want to compare the virtual address ->
+    // call cap_address_get instead of ptrtoint which might be turned into
+    // ctoptr in the hybrid ABI.
+    if (isCheriPointer(CompVal->getType(), &DL)) {
+      assert(cheri::isKnownUntaggedCapability(CompVal, &DL) && "This optimization should only be used with known untagged values");
+      CompVal = Builder.CreateIntrinsic(Intrinsic::cheri_cap_address_get, DL.getIntPtrType(CompVal->getType()),
+        Builder.CreatePointerCast(CompVal, Builder.getPtrTy(CompVal->getType()->getPointerAddressSpace())), nullptr, "magicptr");
+    } else {
+      CompVal = Builder.CreatePtrToInt(
         CompVal, DL.getIntPtrType(CompVal->getType()), "magicptr");
+    }
   }
 
   // Create the new switch instruction now.
@@ -6555,6 +6579,16 @@ static bool SwitchToLookupTable(SwitchInst *SI, IRBuilder<> &Builder,
   // attribute is not set.
   if (!TTI.shouldBuildLookupTables() ||
       (Fn->getFnAttribute("no-jump-tables").getValueAsBool()))
+    return false;
+
+  // FIXME: This is a work-around for the lack of linker support in CHERI: We
+  // can't construct jump tables if we're using the pure-cap ABI because we
+  // don't have a way of statically generating all of the constant GEPs to jump
+  // table entries.
+  // XXXAR: this check does not seem to be working as we are still generating
+  // jump tables for the purecap ABI? Possibly caused by DL->setAllocaAS(0); in
+  // CheriSandboxABI.cpp?
+  if (DL.getAllocaAddrSpace() != 0)
     return false;
 
   // FIXME: If the switch is too sparse for a lookup table, perhaps we could

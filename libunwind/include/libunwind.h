@@ -67,12 +67,12 @@ enum {
 #endif
 };
 
-struct unw_context_t {
+struct __attribute__((aligned(sizeof(void*)))) unw_context_t {
   uint64_t data[_LIBUNWIND_CONTEXT_SIZE];
 };
 typedef struct unw_context_t unw_context_t;
 
-struct unw_cursor_t {
+struct __attribute__((aligned(sizeof(void*)))) unw_cursor_t {
   uint64_t data[_LIBUNWIND_CURSOR_SIZE];
 } LIBUNWIND_CURSOR_ALIGNMENT_ATTR;
 typedef struct unw_cursor_t unw_cursor_t;
@@ -105,6 +105,8 @@ typedef struct unw_proc_info_t unw_proc_info_t;
 #ifdef __cplusplus
 extern "C" {
 #endif
+extern size_t unw_context_size(void) LIBUNWIND_AVAIL;
+extern size_t unw_cursor_size(void) LIBUNWIND_AVAIL;
 
 extern int unw_getcontext(unw_context_t *) LIBUNWIND_AVAIL;
 extern int unw_init_local(unw_cursor_t *, unw_context_t *) LIBUNWIND_AVAIL;
@@ -640,6 +642,47 @@ enum {
   UNW_ARM64_D29 = UNW_AARCH64_V29,
   UNW_ARM64_D30 = UNW_AARCH64_V30,
   UNW_ARM64_D31 = UNW_AARCH64_V31,
+  // reserved block
+  // Morello registers
+  UNW_ARM64_C0 = 198,
+  UNW_ARM64_C1 = 199,
+  UNW_ARM64_C2 = 200,
+  UNW_ARM64_C3 = 201,
+  UNW_ARM64_C4 = 202,
+  UNW_ARM64_C5 = 203,
+  UNW_ARM64_C6 = 204,
+  UNW_ARM64_C7 = 205,
+  UNW_ARM64_C8 = 206,
+  UNW_ARM64_C9 = 207,
+  UNW_ARM64_C10 = 208,
+  UNW_ARM64_C11 = 209,
+  UNW_ARM64_C12 = 210,
+  UNW_ARM64_C13 = 211,
+  UNW_ARM64_C14 = 212,
+  UNW_ARM64_C15 = 213,
+  UNW_ARM64_C16 = 214,
+  UNW_ARM64_C17 = 215,
+  UNW_ARM64_C18 = 216,
+  UNW_ARM64_C19 = 217,
+  UNW_ARM64_C20 = 218,
+  UNW_ARM64_C21 = 219,
+  UNW_ARM64_C22 = 220,
+  UNW_ARM64_C23 = 221,
+  UNW_ARM64_C24 = 222,
+  UNW_ARM64_C25 = 223,
+  UNW_ARM64_C26 = 224,
+  UNW_ARM64_C27 = 225,
+  UNW_ARM64_C28 = 226,
+  UNW_ARM64_C29 = 227,
+  UNW_ARM64_CFP = 227,
+  UNW_ARM64_C30 = 228,
+  UNW_ARM64_CLR = 228,
+  UNW_ARM64_C31 = 229,
+  UNW_ARM64_CSP = 229,
+  // Use 240 for ECSP (executive stack pointer). ECSP is not a real DWARF
+  // register, but we need it to implement c18n-aware unwinding. We pick 240
+  // because it is far enough away from the range of reserved registers on Arm.
+  UNW_ARM64_ECSP = 240,
 };
 
 // 32-bit ARM registers. Numbers match DWARF for ARM spec #3.1 Table 1.
@@ -881,6 +924,39 @@ enum {
   // for r6 and pre-r6.
   UNW_MIPS_HI = 64,
   UNW_MIPS_LO = 65,
+  // CHERI registers
+  UNW_MIPS_DDC  = 72,
+  UNW_MIPS_C1,
+  UNW_MIPS_C2,
+  UNW_MIPS_C3,
+  UNW_MIPS_C4,
+  UNW_MIPS_C5,
+  UNW_MIPS_C6,
+  UNW_MIPS_C7,
+  UNW_MIPS_C8,
+  UNW_MIPS_C9,
+  UNW_MIPS_C10,
+  UNW_MIPS_C11,
+  UNW_MIPS_C12,
+  UNW_MIPS_C13,
+  UNW_MIPS_C14,
+  UNW_MIPS_C15,
+  UNW_MIPS_C16,
+  UNW_MIPS_C17,
+  UNW_MIPS_C18,
+  UNW_MIPS_C19,
+  UNW_MIPS_C20,
+  UNW_MIPS_C21,
+  UNW_MIPS_C22,
+  UNW_MIPS_C23,
+  UNW_MIPS_C24,
+  UNW_MIPS_C25,
+  UNW_MIPS_C26,
+  UNW_MIPS_C27,
+  UNW_MIPS_C28,
+  UNW_MIPS_C29,
+  UNW_MIPS_C30,
+  UNW_MIPS_C31
 };
 
 // SPARC registers

@@ -13,7 +13,9 @@
 #include "clang/Driver/Driver.h"
 #include "clang/Driver/DriverDiagnostic.h"
 #include "clang/Driver/Options.h"
+#include "llvm/ADT/StringSwitch.h"
 #include "llvm/Option/ArgList.h"
+#include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/RISCVISAInfo.h"
 #include "llvm/Support/raw_ostream.h"
@@ -51,6 +53,24 @@ static bool getArchFeatures(const Driver &D, StringRef Arch,
 
   return true;
 }
+
+static bool isCheriPurecapABIName(StringRef ABI) {
+  return llvm::StringSwitch<bool>(ABI)
+      .Case("il32pc64", true)
+      .Case("il32pc64f", true)
+      .Case("il32pc64d", true)
+      .Case("il32pc64e", true)
+      .Case("l64pc128", true)
+      .Case("l64pc128f", true)
+      .Case("l64pc128d", true)
+      .Default(false);
+}
+
+bool riscv::isCheriPurecap(const llvm::opt::ArgList &Args,
+                           const llvm::Triple &Triple) {
+  return isCheriPurecapABIName(getRISCVABI(Args, Triple));
+}
+
 
 // Get features except standard extension feature
 static void getRISCFeaturesFromMcpu(const Driver &D, const Arg *A,
@@ -167,6 +187,30 @@ void riscv::getRISCVTargetFeatures(const Driver &D, const llvm::Triple &Triple,
     Features.push_back("-relax");
   }
 
+  if (Arg *A = Args.getLastArg(options::OPT_mabi_EQ)) {
+    bool IsPureCapability = isCheriPurecapABIName(A->getValue());
+    if (IsPureCapability) {
+      if (llvm::find(Features, "+xcheri") == Features.end()) {
+        D.Diag(diag::err_riscv_invalid_abi) << A->getValue()
+          << "pure capability ABI requires xcheri extension to be specified";
+        return;
+      }
+      Features.push_back("+cap-mode");
+    }
+  }
+
+  if (Arg *A = Args.getLastArg(options::OPT_mabi_EQ)) {
+    bool IsPureCapability = isCheriPurecapABIName(A->getValue());
+    if (IsPureCapability) {
+      if (llvm::find(Features, "+xcheri") == Features.end()) {
+        D.Diag(diag::err_riscv_invalid_abi) << A->getValue()
+          << "pure capability ABI requires xcheri extension to be specified";
+        return;
+      }
+      Features.push_back("+cap-mode");
+    }
+  }
+
   // -mno-unaligned-access is default, unless -munaligned-access is specified.
   AddTargetFeature(Args, Features, options::OPT_munaligned_access,
                    options::OPT_mno_unaligned_access, "fast-unaligned-access");
@@ -213,6 +257,13 @@ StringRef riscv::getRISCVABI(const ArgList &Args, const llvm::Triple &Triple) {
   // rv64e -> lp64e
   // rv64* -> lp64
   StringRef Arch = getRISCVArch(Args, Triple);
+  if (Triple.getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1) {
+    llvm::Triple::OSType OS = Triple.getOS();
+    if (OS == llvm::Triple::CheriotRTOS)
+      return "cheriot";
+    else if (OS == llvm::Triple::UnknownOS)
+      return "cheriot-baremetal";
+  }
 
   auto ParseResult = llvm::RISCVISAInfo::parseArchString(
       Arch, /* EnableExperimentalExtension */ true);
@@ -311,6 +362,8 @@ StringRef riscv::getRISCVArch(const llvm::opt::ArgList &Args,
   // We deviate from GCC's defaults here:
   // - On `riscv{XLEN}-unknown-elf` we default to `rv{XLEN}imac`
   // - On all other OSs we use `rv{XLEN}imafdc` (equivalent to `rv{XLEN}gc`)
+  if (Triple.getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1)
+    return "rv32emc_xcheri";
   if (Triple.isRISCV32()) {
     if (Triple.getOS() == llvm::Triple::UnknownOS)
       return "rv32imac";
@@ -339,6 +392,9 @@ std::string riscv::getRISCVTargetCPU(const llvm::opt::ArgList &Args,
 
   if (!CPU.empty())
     return CPU;
+
+  if (Triple.getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1)
+    return "cheriot";
 
   return Triple.isRISCV64() ? "generic-rv64" : "generic-rv32";
 }

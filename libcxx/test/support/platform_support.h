@@ -6,6 +6,20 @@
 //
 //===----------------------------------------------------------------------===//
 
+
+/*
+ * CHERI CHANGES START
+ * {
+ *   "updated": 20190426,
+ *   "target_type": "header",
+ *   "changes": [
+ *     "subobject_bounds"
+ *   ],
+ *   "change_comment": "address of std::string::operator[]: `&str[0] -> buf.data()`"
+ * }
+ * CHERI CHANGES END
+ */
+
 // Define a bunch of macros that can be used in the tests instead of
 //  implementation defined assumptions:
 //   - locale names
@@ -73,7 +87,8 @@ std::string get_temp_file_name()
     }
 #else
     std::string Name = "libcxx.XXXXXX";
-    int FD = mkstemp(&Name[0]);
+    // XXXAR: subobject bounds: FD = mkstemp(&Name[0]);
+    int FD = mkstemp(Name.data());
     if (FD == -1) {
         perror("mkstemp");
         abort();

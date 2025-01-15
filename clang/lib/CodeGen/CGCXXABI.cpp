@@ -46,8 +46,9 @@ CGCallee CGCXXABI::EmitLoadOfMemberFunctionPointer(
 
   ThisPtrForCall = This.getPointer();
   const auto *FPT = MPT->getPointeeType()->castAs<FunctionProtoType>();
+  unsigned AS = CGM.getTargetCodeGenInfo().getDefaultAS();
   llvm::Constant *FnPtr = llvm::Constant::getNullValue(
-      llvm::PointerType::getUnqual(CGM.getLLVMContext()));
+      llvm::PointerType::get(CGM.getLLVMContext(), AS));
   return CGCallee::forDirect(FnPtr, FPT);
 }
 

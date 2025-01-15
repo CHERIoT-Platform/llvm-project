@@ -11,7 +11,7 @@ entry:
 
 lab:		; preds = %cleanup31, %entry
 	%n.0 = phi i32 [ 0, %entry ], [ %tmp25, %cleanup31 ]		; <i32> [#uses=2]
-	%tmp2 = call ptr @llvm.stacksave( )		; <ptr> [#uses=2]
+	%tmp2 = call ptr @llvm.stacksave.p0( )		; <ptr> [#uses=2]
 	%tmp4 = srem i32 %n.0, 47		; <i32> [#uses=1]
 	%tmp5 = add i32 %tmp4, 1		; <i32> [#uses=5]
 	%tmp7 = sub i32 %tmp5, 1		; <i32> [#uses=0]
@@ -32,14 +32,14 @@ lab:		; preds = %cleanup31, %entry
 	br i1 %toBool, label %cleanup31, label %cond_next
 
 cond_next:		; preds = %lab
-	call void @llvm.stackrestore( ptr %tmp2 )
+	call void @llvm.stackrestore.p0( ptr %tmp2 )
 	ret i32 0
 
 cleanup31:		; preds = %lab
-	call void @llvm.stackrestore( ptr %tmp2 )
+	call void @llvm.stackrestore.p0( ptr %tmp2 )
 	br label %lab
 }
 
-declare ptr @llvm.stacksave()
+declare ptr @llvm.stacksave.p0()
 
-declare void @llvm.stackrestore(ptr)
+declare void @llvm.stackrestore.p0(ptr)

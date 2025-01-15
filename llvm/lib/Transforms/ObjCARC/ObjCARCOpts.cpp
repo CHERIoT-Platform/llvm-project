@@ -1762,7 +1762,8 @@ void ObjCARCOpt::MoveCalls(Value *Arg, RRInfo &RetainsToMove,
                            SmallVectorImpl<Instruction *> &DeadInsts,
                            Module *M) {
   Type *ArgTy = Arg->getType();
-  Type *ParamTy = PointerType::getUnqual(Type::getInt8Ty(ArgTy->getContext()));
+  Type *ParamTy = PointerType::get(Type::getInt8Ty(ArgTy->getContext()),
+                                   ArgTy->getPointerAddressSpace());
 
   LLVM_DEBUG(dbgs() << "== ObjCARCOpt::MoveCalls ==\n");
 

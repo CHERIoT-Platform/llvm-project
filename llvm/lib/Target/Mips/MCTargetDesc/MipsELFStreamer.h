@@ -68,8 +68,15 @@ public:
   /// Emits all the option records stored up until the point it's called.
   void EmitMipsOptionRecords();
 
+  void emitCheriIntcap(const MCExpr *Expr, unsigned CapSize,
+                       SMLoc Loc) override;
+
   /// Mark labels as microMIPS, if necessary for the subtarget.
   void createPendingLabelRelocs();
+
+protected:
+  void EmitCheriCapabilityImpl(const MCSymbol *Symbol, const MCExpr *Addend,
+                               unsigned CapSize, SMLoc Loc) override;
 };
 
 MCELFStreamer *createMipsELFStreamer(MCContext &Context,

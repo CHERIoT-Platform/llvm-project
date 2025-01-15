@@ -7,7 +7,7 @@ target triple = "i386-unknown-linux-gnu"
 define i32 @foo() #0 {
 ; CHECK-LABEL: define i32 @foo() comdat {
 ; CHECK-NEXT:  entry:
-; CHECK-NEXT:    call void @__sanitizer_cov_trace_pc_guard(ptr inttoptr (i32 ptrtoint (ptr @__sancov_gen_ to i32) to ptr)) #[[ATTR1:[0-9]+]]
+; CHECK-NEXT:    call void @__sanitizer_cov_trace_pc_guard(ptr @__sancov_gen_) #[[ATTR1:[0-9]+]]
 ; CHECK-NEXT:    ret i32 0
 ;
 entry:

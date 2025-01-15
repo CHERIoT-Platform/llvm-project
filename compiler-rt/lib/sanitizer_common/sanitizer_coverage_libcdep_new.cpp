@@ -47,7 +47,7 @@ static void GetCoverageFilename(char* path, const char* name,
 }
 
 static void WriteModuleCoverage(char* file_path, const char* module_name,
-                                const uptr* pcs, uptr len) {
+                                const vaddr* pcs, usize len) {
   GetCoverageFilename(file_path, StripModuleName(module_name), "sancov");
   fd_t fd = OpenFile(file_path);
   WriteToFile(fd, &Magic, sizeof(Magic));
@@ -56,29 +56,29 @@ static void WriteModuleCoverage(char* file_path, const char* module_name,
   Printf("SanitizerCoverage: %s: %zd PCs written\n", file_path, len);
 }
 
-static void SanitizerDumpCoverage(const uptr* unsorted_pcs, uptr len) {
+static void SanitizerDumpCoverage(const vaddr* unsorted_pcs, usize len) {
   if (!len) return;
 
   char* file_path = static_cast<char*>(InternalAlloc(kMaxPathLength));
   char* module_name = static_cast<char*>(InternalAlloc(kMaxPathLength));
-  uptr* pcs = static_cast<uptr*>(InternalAlloc(len * sizeof(uptr)));
+  vaddr* pcs = static_cast<vaddr*>(InternalAlloc(len * sizeof(vaddr)));
 
-  internal_memcpy(pcs, unsorted_pcs, len * sizeof(uptr));
+  internal_memcpy(pcs, unsorted_pcs, len * sizeof(unsorted_pcs[0]));
   Sort(pcs, len);
 
   bool module_found = false;
-  uptr last_base = 0;
-  uptr module_start_idx = 0;
+  vaddr last_base = 0;
+  vaddr module_start_idx = 0;
 
-  for (uptr i = 0; i < len; ++i) {
-    const uptr pc = pcs[i];
+  for (usize i = 0; i < len; ++i) {
+    const vaddr pc = pcs[i];
     if (!pc) continue;
 
     if (!GetModuleAndOffsetForPc(pc, nullptr, 0, &pcs[i])) {
       Printf("ERROR: unknown pc 0x%zx (may happen if dlclose is used)\n", pc);
       continue;
     }
-    uptr module_base = pc - pcs[i];
+    vaddr module_base = pc - pcs[i];
 
     if (module_base != last_base || !module_found) {
       if (module_found) {
@@ -126,12 +126,12 @@ class TracePcGuardController {
     pc_vector.resize(i);
   }
 
-  void TracePcGuard(u32* guard, uptr pc) {
+  void TracePcGuard(u32* guard, vaddr pc) {
     u32 idx = *guard;
     if (!idx) return;
     // we start indices from 1.
-    atomic_uintptr_t* pc_ptr =
-        reinterpret_cast<atomic_uintptr_t*>(&pc_vector[idx - 1]);
+    atomic_vaddr_t* pc_ptr =
+        reinterpret_cast<atomic_vaddr_t*>(&pc_vector[idx - 1]);
     if (atomic_load(pc_ptr, memory_order_relaxed) == 0)
       atomic_store(pc_ptr, pc, memory_order_relaxed);
   }
@@ -147,7 +147,7 @@ class TracePcGuardController {
 
  private:
   bool initialized;
-  InternalMmapVectorNoCtor<uptr> pc_vector;
+  InternalMmapVectorNoCtor<vaddr> pc_vector;
 };
 
 static TracePcGuardController pc_guard_controller;
@@ -216,8 +216,8 @@ void InitializeCoverage(bool enabled, const char *dir) {
 } // namespace __sanitizer
 
 extern "C" {
-SANITIZER_INTERFACE_ATTRIBUTE void __sanitizer_dump_coverage(const uptr* pcs,
-                                                             uptr len) {
+SANITIZER_INTERFACE_ATTRIBUTE void __sanitizer_dump_coverage(const vaddr* pcs,
+                                                             usize len) {
   return __sancov::SanitizerDumpCoverage(pcs, len);
 }
 
@@ -289,7 +289,7 @@ SANITIZER_INTERFACE_WEAK_DEF(void, __sanitizer_cov_pcs_init, const uptr* beg,
 // "data with thread storage duration may not have dll interface"
 #if !SANITIZER_APPLE && !SANITIZER_WINDOWS
 SANITIZER_INTERFACE_ATTRIBUTE SANITIZER_WEAK_ATTRIBUTE
-thread_local uptr __sancov_lowest_stack;
+thread_local vaddr __sancov_lowest_stack;
 #endif
 
 #endif  // !SANITIZER_FUCHSIA

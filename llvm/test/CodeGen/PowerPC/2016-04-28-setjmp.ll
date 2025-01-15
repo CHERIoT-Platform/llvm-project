@@ -14,7 +14,7 @@ define void @h() nounwind {
   %1 = load ptr, ptr @ptr, align 8
   %2 = tail call ptr @llvm.frameaddress(i32 0)
   store ptr %2, ptr %1, align 8
-  %3 = tail call ptr @llvm.stacksave()
+  %3 = tail call ptr @llvm.stacksave.p0()
   %4 = getelementptr inbounds ptr, ptr %1, i64 2
   store ptr %3, ptr %4, align 8
   %5 = tail call i32 @llvm.eh.sjlj.setjmp(ptr %1)
@@ -37,7 +37,7 @@ define void @h() nounwind {
 declare ptr @llvm.frameaddress(i32)
 
 ; Function Attrs: nounwind
-declare ptr @llvm.stacksave()
+declare ptr @llvm.stacksave.p0()
 
 ; Function Attrs: nounwind
 declare i32 @llvm.eh.sjlj.setjmp(ptr)

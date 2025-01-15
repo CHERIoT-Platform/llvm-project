@@ -7,4 +7,4 @@ define void @foo(ptr, ...) {
 ; CHECK-LABEL: {{^_?}}foo:
 ; CHECK-NOT: str
 ; CHECK: {{bx lr|mov pc, lr}}
-declare void @llvm.va_start(ptr) nounwind
+declare void @llvm.va_start.p0(ptr) nounwind

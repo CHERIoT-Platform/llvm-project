@@ -539,6 +539,7 @@ private:
     DK_PRINT,
     DK_ADDRSIG,
     DK_ADDRSIG_SYM,
+    DK_CHERICAP,
     DK_PSEUDO_PROBE,
     DK_LTO_DISCARD,
     DK_LTO_SET_CONDITIONAL,
@@ -717,6 +718,9 @@ private:
   // Directives to support address-significance tables.
   bool parseDirectiveAddrsig();
   bool parseDirectiveAddrsigSym();
+
+  // ".chericap"
+  bool parseDirectiveCheriCap(SMLoc DirectiveLoc);
 
   void initializeDirectiveKindMap();
   void initializeCVDefRangeTypeMap();
@@ -1368,6 +1372,7 @@ bool AsmParser::parsePrimaryExpr(const MCExpr *&Res, SMLoc &EndLoc,
   case AsmToken::PercentGot_Page:
   case AsmToken::PercentGottprel:
   case AsmToken::PercentGp_Rel:
+  case AsmToken::PercentCapTab_Rel:
   case AsmToken::PercentHi:
   case AsmToken::PercentHigher:
   case AsmToken::PercentHighest:
@@ -1379,6 +1384,20 @@ bool AsmParser::parsePrimaryExpr(const MCExpr *&Res, SMLoc &EndLoc,
   case AsmToken::PercentTlsldm:
   case AsmToken::PercentTprel_Hi:
   case AsmToken::PercentTprel_Lo:
+  case AsmToken::PercentCapTab11:
+  case AsmToken::PercentCapTabCall11:
+  case AsmToken::PercentCapTab20:
+  case AsmToken::PercentCapTabCall20:
+  case AsmToken::PercentCapTab_Lo:
+  case AsmToken::PercentCapTabCall_Lo:
+  case AsmToken::PercentCapTab_Hi:
+  case AsmToken::PercentCapTabCall_Hi:
+  case AsmToken::PercentCapTabTlsgd_Hi:
+  case AsmToken::PercentCapTabTlsgd_Lo:
+  case AsmToken::PercentCapTabTlsldm_Hi:
+  case AsmToken::PercentCapTabTlsldm_Lo:
+  case AsmToken::PercentCapTabTprel_Hi:
+  case AsmToken::PercentCapTabTprel_Lo:
     Lex(); // Eat the operator.
     if (Lexer.isNot(AsmToken::LParen))
       return TokError("expected '(' after operator");
@@ -2289,6 +2308,8 @@ bool AsmParser::parseStatement(ParseStatementInfo &Info,
       return parseDirectiveAddrsig();
     case DK_ADDRSIG_SYM:
       return parseDirectiveAddrsigSym();
+    case DK_CHERICAP:
+      return parseDirectiveCheriCap(IDLoc);
     case DK_PSEUDO_PROBE:
       return parseDirectivePseudoProbe();
     case DK_LTO_DISCARD:
@@ -2353,8 +2374,9 @@ bool AsmParser::parseAndMatchAndEmitTargetInstruction(ParseStatementInfo &Info,
       getContext().getGenDwarfSectionSyms().count(
           getStreamer().getCurrentSectionOnly())) {
     unsigned Line;
+    // XXXAR: CurBuffer is sometimes wrong!!
     if (ActiveMacros.empty())
-      Line = SrcMgr.FindLineNumber(IDLoc, CurBuffer);
+      Line = SrcMgr.FindLineNumber(IDLoc/*, CurBuffer */);
     else
       Line = SrcMgr.FindLineNumber(ActiveMacros.front()->InstantiationLoc,
                                    ActiveMacros.front()->ExitBuffer);
@@ -4241,6 +4263,9 @@ bool AsmParser::parseRegisterOrRegisterNumber(int64_t &Register,
     if (getTargetParser().parseRegister(RegNo, DirectiveLoc, DirectiveLoc))
       return true;
     Register = getContext().getRegisterInfo()->getDwarfRegNum(RegNo, true);
+    if (Register == -1 && RegNo != 0) {
+      Warning(DirectiveLoc, "could not get dwarf register number for register " + Twine(RegNo));
+    }
   } else
     return parseAbsoluteExpression(Register);
 
@@ -4439,6 +4464,10 @@ bool AsmParser::parseDirectiveCFIRestore(SMLoc DirectiveLoc) {
   int64_t Register = 0;
   if (parseRegisterOrRegisterNumber(Register, DirectiveLoc) || parseEOL())
     return true;
+
+  if (Register == -1) {
+    Warning(DirectiveLoc, "Failed to parse get DWARF regnum for .cfi_restore");
+  }
 
   getStreamer().emitCFIRestore(Register, DirectiveLoc);
   return false;
@@ -5065,16 +5094,17 @@ bool AsmParser::parseDirectiveComm(bool IsLocal) {
 
   Sym->redefineIfPossible();
   if (!Sym->isUndefined())
-    return Error(IDLoc, "invalid symbol redefinition");
+    return Error(IDLoc, "invalid symbol redefinition of " + Sym->getName());
 
   // Create the Symbol as a common or local common with Size and Pow2Alignment
   if (IsLocal) {
     getStreamer().emitLocalCommonSymbol(Sym, Size,
-                                        Align(1ULL << Pow2Alignment));
+                                        Align(1ULL << Pow2Alignment), TailPaddingAmount::None);
     return false;
   }
 
-  getStreamer().emitCommonSymbol(Sym, Size, Align(1ULL << Pow2Alignment));
+  getStreamer().emitCommonSymbol(Sym, Size, Align(1ULL << Pow2Alignment),
+                                 TailPaddingAmount::None);
   return false;
 }
 
@@ -5612,6 +5642,7 @@ void AsmParser::initializeDirectiveKindMap() {
   DirectiveKindMap[".print"] = DK_PRINT;
   DirectiveKindMap[".addrsig"] = DK_ADDRSIG;
   DirectiveKindMap[".addrsig_sym"] = DK_ADDRSIG_SYM;
+  DirectiveKindMap[".chericap"] = DK_CHERICAP;
   DirectiveKindMap[".pseudoprobe"] = DK_PSEUDO_PROBE;
   DirectiveKindMap[".lto_discard"] = DK_LTO_DISCARD;
   DirectiveKindMap[".lto_set_conditional"] = DK_LTO_SET_CONDITIONAL;
@@ -5863,6 +5894,59 @@ bool AsmParser::parseDirectiveAddrsigSym() {
     return true;
   MCSymbol *Sym = getContext().getOrCreateSymbol(Name);
   getStreamer().emitAddrsigSym(Sym);
+  return false;
+}
+
+/// parseDirectiveCheriCap
+///  ::= .chericap sym[+off]
+bool AsmParser::parseDirectiveCheriCap(SMLoc DirectiveLoc) {
+  const MCExpr *SymExpr;
+  SMLoc ExprLoc = getLexer().getLoc();
+
+  if (!getTargetParser().isCheri())
+    return Error(DirectiveLoc, "'.chericap' requires CHERI");
+
+  if (parseExpression(SymExpr))
+    return true;
+
+  int64_t Offset = 0;
+  unsigned CapSize = getTargetParser().getCheriCapabilitySize();
+  // Allow .chericap 0x123456 to create an untagged uintcap_t
+  if (SymExpr->evaluateAsAbsolute(Offset)) {
+    getStreamer().emitCheriIntcap(Offset, CapSize, ExprLoc);
+  } else {
+    const MCSymbolRefExpr *SRE = nullptr;
+    if (const MCBinaryExpr *BE = dyn_cast<MCBinaryExpr>(SymExpr)) {
+      const MCConstantExpr *CE = nullptr;
+      bool Neg = false;
+      switch (BE->getOpcode()) {
+        case MCBinaryExpr::Sub:
+          Neg = true;
+          LLVM_FALLTHROUGH;
+        case MCBinaryExpr::Add:
+          CE = dyn_cast<MCConstantExpr>(BE->getRHS());
+          break;
+        default:
+          break;
+      }
+
+      SRE = dyn_cast<MCSymbolRefExpr>(BE->getLHS());
+      if (!SRE || !CE)
+        return Error(ExprLoc, "must be sym[+const]");
+      Offset = CE->getValue();
+      if (Neg)
+        Offset = -Offset;
+    } else {
+      SRE = dyn_cast<MCSymbolRefExpr>(SymExpr);
+      if (!SRE)
+        return Error(ExprLoc, "must be sym[+const]");
+      Offset = 0;
+    }
+    const MCSymbol &Symbol = SRE->getSymbol();
+    getStreamer().EmitCheriCapability(&Symbol, Offset, CapSize, ExprLoc);
+  }
+  if (parseToken(AsmToken::EndOfStatement, "expected end of statement"))
+    return true;
   return false;
 }
 

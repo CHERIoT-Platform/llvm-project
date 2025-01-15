@@ -1003,6 +1003,48 @@ def FeatureRVE
 def IsRVE : Predicate<"Subtarget->isRVE()">,
             AssemblerPredicate<(all_of FeatureRVE)>;
 
+// TODO: Once all supported CheriBSD branches are ready for the new semantics
+// this feature should be enabled automatically.
+def FeatureCheriISAV9Semantics
+    : SubtargetFeature<"xcheri-v9-semantics", "HasCheriISAv9Semantics", "true",
+                       "CHERI ISAv9 semantics (tag-clearing, no relocation)">;
+def HasCheriISAv9
+    : Predicate<"Subtarget->hasCheriISAv9Semantics()">,
+                AssemblerPredicate<(all_of FeatureCheriISAV9Semantics),
+                "CHERI ISAv9 semantics (tag-clearing, no relocation)">;
+def NotCheriISAv9
+    : Predicate<"!Subtarget->hasCheriISAv9Semantics()">,
+                AssemblerPredicate<(all_of (not FeatureCheriISAV9Semantics)),
+                "CHERI ISAv8 semantics (trapping, DDC/PCC relocation)">;
+
+def FeatureCheri
+    : SubtargetFeature<"xcheri", "HasCheri", "true",
+                       "Implements CHERI extension">;
+def HasCheri : Predicate<"Subtarget->hasCheri()">,
+                         AssemblerPredicate<(all_of FeatureCheri),
+                         "CHERI Extension">;
+def FeatureCheriNoRVC
+    : SubtargetFeature<"xcheri-norvc", "EnableCheriRVCInstrs", "false",
+                       "Disable CHERI RVC Instructions.">;
+def HasCheriRVC : Predicate<"Subtarget->enableCheriRVCInstrs()">,
+                  AssemblerPredicate<(all_of (not FeatureCheriNoRVC)),
+                                     "CHERI RVC Instructions">;
+
+def FeatureCapMode
+    : SubtargetFeature<"cap-mode", "IsCapMode", "true",
+                       "Capability mode">;
+def IsCapMode  : Predicate<"Subtarget->isCapMode()">,
+                           AssemblerPredicate<(all_of FeatureCapMode),
+                           "Capability Mode">;
+def NotCapMode : Predicate<"!Subtarget->isCapMode()">,
+                           AssemblerPredicate<(all_of (not FeatureCapMode)),
+                           "Not Capability Mode">;
+
+def IsPureCapABI
+    : Predicate<"RISCVABI::isCheriPureCapABI(Subtarget->getTargetABI())">;
+def NotPureCapABI
+    : Predicate<"!RISCVABI::isCheriPureCapABI(Subtarget->getTargetABI())">;
+
 def FeatureRelax
     : SubtargetFeature<"relax", "EnableLinkerRelax", "true",
                        "Enable Linker relaxation.">;

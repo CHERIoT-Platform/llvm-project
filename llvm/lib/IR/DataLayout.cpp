@@ -18,6 +18,7 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/IR/Cheri.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/GetElementPtrTypeIterator.h"
@@ -144,7 +145,8 @@ bool LayoutAlignElem::operator==(const LayoutAlignElem &rhs) const {
 PointerAlignElem PointerAlignElem::getInBits(uint32_t AddressSpace,
                                              Align ABIAlign, Align PrefAlign,
                                              uint32_t TypeBitWidth,
-                                             uint32_t IndexBitWidth) {
+                                             uint32_t IndexBitWidth,
+                                             bool IsFatPointer) {
   assert(ABIAlign <= PrefAlign && "Preferred alignment worse than ABI!");
   PointerAlignElem retval;
   retval.AddressSpace = AddressSpace;
@@ -152,14 +154,17 @@ PointerAlignElem PointerAlignElem::getInBits(uint32_t AddressSpace,
   retval.PrefAlign = PrefAlign;
   retval.TypeBitWidth = TypeBitWidth;
   retval.IndexBitWidth = IndexBitWidth;
+  retval.IsFatPointer = IsFatPointer;
+  if (IsFatPointer && IndexBitWidth == TypeBitWidth)
+    report_fatal_error("Fat pointers must have different type and index size");
   return retval;
 }
 
-bool
-PointerAlignElem::operator==(const PointerAlignElem &rhs) const {
+bool PointerAlignElem::operator==(const PointerAlignElem &rhs) const {
   return (ABIAlign == rhs.ABIAlign && AddressSpace == rhs.AddressSpace &&
           PrefAlign == rhs.PrefAlign && TypeBitWidth == rhs.TypeBitWidth &&
-          IndexBitWidth == rhs.IndexBitWidth);
+          IndexBitWidth == rhs.IndexBitWidth &&
+          IsFatPointer == rhs.IsFatPointer);
 }
 
 //===----------------------------------------------------------------------===//
@@ -213,7 +218,8 @@ void DataLayout::reset(StringRef Desc) {
                                  Layout.TypeBitWidth))
       return report_fatal_error(std::move(Err));
   }
-  if (Error Err = setPointerAlignmentInBits(0, Align(8), Align(8), 64, 64))
+  if (Error Err =
+          setPointerAlignmentInBits(0, Align(8), Align(8), 64, 64, false))
     return report_fatal_error(std::move(Err));
 
   if (Error Err = parseSpecifier(Desc))
@@ -319,6 +325,11 @@ Error DataLayout::parseSpecifier(StringRef Desc) {
       BigEndian = false;
       break;
     case 'p': {
+      bool isFat = false;
+      if (!Tok.empty() && (Tok[0] == 'f')) {
+          isFat = true;
+          Tok = Tok.drop_front(1);
+      }
       // Address space.
       unsigned AddrSpace = 0;
       if (!Tok.empty())
@@ -326,6 +337,10 @@ Error DataLayout::parseSpecifier(StringRef Desc) {
           return Err;
       if (!isUInt<24>(AddrSpace))
         return reportError("Invalid address space, must be a 24-bit integer");
+      if (isFat) {
+        assert(AddrSpace == 200 && "CHERI caps must use AS 200 since there are "
+                                   "still some hardcoded checks");
+      }
 
       // Size.
       if (Rest.empty())
@@ -354,7 +369,6 @@ Error DataLayout::parseSpecifier(StringRef Desc) {
       // Size of index used in GEP for address calculation.
       // The parameter is optional. By default it is equal to size of pointer.
       unsigned IndexSize = PointerMemSize;
-
       // Preferred alignment.
       unsigned PointerPrefAlign = PointerABIAlign;
       if (!Rest.empty()) {
@@ -378,7 +392,8 @@ Error DataLayout::parseSpecifier(StringRef Desc) {
       }
       if (Error Err = setPointerAlignmentInBits(
               AddrSpace, assumeAligned(PointerABIAlign),
-              assumeAligned(PointerPrefAlign), PointerMemSize, IndexSize))
+              assumeAligned(PointerPrefAlign), PointerMemSize, IndexSize,
+              isFat))
         return Err;
       break;
     }
@@ -558,6 +573,7 @@ void DataLayout::init(const Module *M) { *this = M->getDataLayout(); }
 
 bool DataLayout::operator==(const DataLayout &Other) const {
   bool Ret = BigEndian == Other.BigEndian &&
+             HasCheriCapabilities == Other.HasCheriCapabilities &&
              AllocaAddrSpace == Other.AllocaAddrSpace &&
              StackNaturalAlign == Other.StackNaturalAlign &&
              ProgramAddrSpace == Other.ProgramAddrSpace &&
@@ -645,7 +661,8 @@ DataLayout::getPointerAlignElem(uint32_t AddressSpace) const {
 Error DataLayout::setPointerAlignmentInBits(uint32_t AddrSpace, Align ABIAlign,
                                             Align PrefAlign,
                                             uint32_t TypeBitWidth,
-                                            uint32_t IndexBitWidth) {
+                                            uint32_t IndexBitWidth,
+                                            bool IsFatPointer) {
   if (PrefAlign < ABIAlign)
     return reportError(
         "Preferred alignment cannot be less than the ABI alignment");
@@ -657,14 +674,21 @@ Error DataLayout::setPointerAlignmentInBits(uint32_t AddrSpace, Align ABIAlign,
     return A.AddressSpace < AddressSpace;
   });
   if (I == Pointers.end() || I->AddressSpace != AddrSpace) {
-    Pointers.insert(I,
-                    PointerAlignElem::getInBits(AddrSpace, ABIAlign, PrefAlign,
-                                                TypeBitWidth, IndexBitWidth));
+    Pointers.insert(I, PointerAlignElem::getInBits(
+                           AddrSpace, ABIAlign, PrefAlign, TypeBitWidth,
+                           IndexBitWidth, IsFatPointer));
+    HasCheriCapabilities = HasCheriCapabilities || IsFatPointer;
   } else {
     I->ABIAlign = ABIAlign;
     I->PrefAlign = PrefAlign;
     I->TypeBitWidth = TypeBitWidth;
     I->IndexBitWidth = IndexBitWidth;
+    I->IsFatPointer = IsFatPointer;
+    if (IsFatPointer && IndexBitWidth == TypeBitWidth)
+      report_fatal_error("Fat pointers must have different type and index size");
+    // Value was replaced, re-calculate HasCheriCapabilities
+    HasCheriCapabilities = any_of(
+        Pointers, [](const PointerAlignElem &P) { return P.IsFatPointer; });
   }
   return Error::success();
 }
@@ -771,6 +795,10 @@ unsigned DataLayout::getIndexSize(unsigned AS) const {
   return divideCeil(getPointerAlignElem(AS).IndexBitWidth, 8);
 }
 
+bool DataLayout::isFatPointer(unsigned AS) const {
+  return getPointerAlignElem(AS).IsFatPointer;
+}
+
 unsigned DataLayout::getIndexTypeSizeInBits(Type *Ty) const {
   assert(Ty->isPtrOrPtrVectorTy() &&
          "This should only be called with a pointer or pointer vector type");
@@ -853,6 +881,8 @@ Align DataLayout::getAlignment(Type *Ty, bool abi_or_pref) const {
   }
   case Type::X86_AMXTyID:
     return Align(64);
+  case Type::SizedCapabilityTyID:
+    return Align(cast<SizedCapabilityType>(Ty)->getBitWidth() / 8);
   case Type::TargetExtTyID: {
     Type *LayoutTy = cast<TargetExtType>(Ty)->getLayoutType();
     return getAlignment(LayoutTy, abi_or_pref);
@@ -877,6 +907,10 @@ Align DataLayout::getPrefTypeAlign(Type *Ty) const {
 
 IntegerType *DataLayout::getIntPtrType(LLVMContext &C,
                                        unsigned AddressSpace) const {
+  if (isFatPointer(AddressSpace)) {
+    // TODO: llvm_unreachable("Did you mean getIndexType()");
+    return IntegerType::get(C, getIndexSizeInBits(AddressSpace));
+  }
   return IntegerType::get(C, getPointerSizeInBits(AddressSpace));
 }
 
@@ -884,6 +918,10 @@ Type *DataLayout::getIntPtrType(Type *Ty) const {
   assert(Ty->isPtrOrPtrVectorTy() &&
          "Expected a pointer or pointer vector type.");
   unsigned NumBits = getPointerTypeSizeInBits(Ty);
+  if (isFatPointer(Ty)) {
+    // TODO: llvm_unreachable("Did you mean getIndexType()");
+    NumBits = getIndexTypeSizeInBits(Ty);
+  }
   IntegerType *IntTy = IntegerType::get(Ty->getContext(), NumBits);
   if (VectorType *VecTy = dyn_cast<VectorType>(Ty))
     return VectorType::get(IntTy, VecTy);

@@ -1112,7 +1112,8 @@ WebAssemblyTargetLowering::LowerCall(CallLoweringInfo &CLI,
       Chain = DAG.getMemcpy(
           Chain, DL, FINode, OutVal, SizeNode, Out.Flags.getNonZeroByValAlign(),
           /*isVolatile*/ false, /*AlwaysInline=*/false,
-          /*isTailCall*/ false, MachinePointerInfo(), MachinePointerInfo());
+          /*isTailCall*/ false, llvm::PreserveCheriTags::Unnecessary,
+          MachinePointerInfo(), MachinePointerInfo());
       OutVal = FINode;
     }
     // Count the number of fixed args *after* legalization.

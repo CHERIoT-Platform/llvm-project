@@ -36,7 +36,11 @@ int main(int, char**)
 {
     test t;
     std::ios_base& b = t;
+#if TEST_SLOW_HOST()
+    for (std::intptr_t i = 0; i < 500; ++i)
+#else
     for (std::intptr_t i = 0; i < 10000; ++i)
+#endif
     {
         assert(b.pword(i) == 0);
         b.pword(i) = (void*)i;

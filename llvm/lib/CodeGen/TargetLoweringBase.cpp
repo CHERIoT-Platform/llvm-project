@@ -968,7 +968,7 @@ EVT TargetLoweringBase::getShiftAmountTy(EVT LHSTy, const DataLayout &DL,
   if (LHSTy.isVector())
     return LHSTy;
   MVT ShiftVT =
-      LegalTypes ? getScalarShiftAmountTy(DL, LHSTy) : getPointerTy(DL);
+      LegalTypes ? getScalarShiftAmountTy(DL, LHSTy) : getPointerRangeTy(DL);
   // If any possible shift value won't fit in the prefered type, just use
   // something safe. Assume it will be legalized when the shift is expanded.
   if (ShiftVT.getSizeInBits() < Log2_32_Ceil(LHSTy.getSizeInBits()))
@@ -1579,7 +1579,7 @@ void TargetLoweringBase::computeRegisterProperties(
 EVT TargetLoweringBase::getSetCCResultType(const DataLayout &DL, LLVMContext &,
                                            EVT VT) const {
   assert(!VT.isVector() && "No default SetCC type for vectors!");
-  return getPointerTy(DL).SimpleTy;
+  return getPointerRangeTy(DL).SimpleTy;
 }
 
 MVT::SimpleValueType TargetLoweringBase::getCmpLibcallReturnType() const {
@@ -2350,6 +2350,19 @@ TargetLoweringBase::getAtomicMemOperandFlags(const Instruction &AI,
   // FIXME: Not preserving dereferenceable
   Flags |= getTargetMMOFlags(AI);
   return Flags;
+}
+
+bool TargetLoweringBase::supportsAtomicOperation(const DataLayout &DL,
+                                                 const Instruction *AI,
+                                                 Type *ValueTy, Type *PointerTy,
+                                                 Align Alignment) const {
+  unsigned Size = DL.getTypeStoreSize(ValueTy);
+  if (DL.isFatPointer(ValueTy)) {
+    assert(Alignment >= Size && "Unexpcted unaligned capability atomic op");
+    return supportsAtomicCapabilityOperations();
+  }
+  return Size <= getMaxAtomicSizeInBitsSupported() / 8 &&
+         (supportsUnalignedAtomics() || Alignment >= Size);
 }
 
 Instruction *TargetLoweringBase::emitLeadingFence(IRBuilderBase &Builder,

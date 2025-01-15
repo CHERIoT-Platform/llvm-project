@@ -18,6 +18,7 @@
 #include "CodeGenModule.h"
 #include "CGValue.h"
 #include "clang/AST/Type.h"
+#include "clang/AST/Expr.h"
 #include "clang/Basic/LLVM.h"
 #include "clang/Basic/SyncScope.h"
 #include "llvm/ADT/SmallString.h"
@@ -268,6 +269,66 @@ public:
   virtual void getDetectMismatchOption(llvm::StringRef Name,
                                        llvm::StringRef Value,
                                        llvm::SmallString<32> &Opt) const {}
+
+  virtual unsigned getDefaultAS() const {
+#if 0
+    // For e.g. AMDGPU this should not return 0 but instead whatever LangAS::Default maps to
+    return getABIInfo().getContext().getTargetAddressSpace(LangAS::Default, nullptr);
+#else
+    return 0; // XXXAR: to keep code the same as upstream
+#endif
+  }
+  /// The address space for thead_local variables in the IR. This should be the
+  /// same as getDefaultAS() but for CHERI we still place TLS vars in AS0 when
+  /// using the legacy TLS ABI.
+  virtual unsigned getTlsAddressSpace() const { return getDefaultAS(); }
+
+  virtual unsigned getCHERICapabilityAS() const {
+    llvm_unreachable("Target does not support CHERI capabilities!\n");
+    return 0;
+  }
+
+  virtual llvm::Value *getPointerOffset(CodeGen::CodeGenFunction &,
+                                        llvm::Value *V) const {
+    llvm_unreachable("Target does not support CHERI capabilities!\n");
+    return nullptr;
+  }
+  virtual llvm::Value *setPointerOffset(CodeGen::CodeGenFunction &,
+                                        llvm::Value *Ptr, llvm::Value *Offset,
+                                        const llvm::Twine &Name,
+                                        SourceLocation Loc) const {
+    llvm_unreachable("Target does not support CHERI capabilities!\n");
+    return nullptr;
+  }
+  virtual llvm::Value *setPointerAddress(CodeGen::CodeGenFunction &,
+                                         llvm::Value *Ptr, llvm::Value *Address,
+                                         const llvm::Twine &Name,
+                                         SourceLocation Loc) const {
+    llvm_unreachable("Target does not support CHERI capabilities!\n");
+    return nullptr;
+  }
+  virtual llvm::Value *setPointerBounds(CodeGen::CodeGenFunction &,
+                                        llvm::Value *Ptr, llvm::Value *Size,
+                                        const llvm::Twine &Name) const {
+    llvm_unreachable("Target does not support CHERI capabilities!\n");
+    return nullptr;
+  }
+  virtual llvm::Value *getPointerValidity(CodeGen::CodeGenFunction &,
+                                          llvm::Value *V,
+                                          const llvm::Twine &Name) const {
+    // In theory we could also query something like the ASAN runtime to check
+    // if a pointer is valid, but for now this is only implemented for CHERI.
+    llvm_unreachable("Target does not support CHERI capabilities!\n");
+    return nullptr;
+  }
+
+  virtual llvm::Value *getPointerBase(CodeGen::CodeGenFunction &,
+                                      llvm::Value *V) const {
+      return V;
+  }
+  virtual llvm::Value *getPointerAddress(CodeGen::CodeGenFunction &CGF,
+                                         llvm::Value *V,
+                                         const llvm::Twine &Name) const;
 
   /// Get LLVM calling convention for OpenCL kernel.
   virtual unsigned getOpenCLKernelCallingConv() const;

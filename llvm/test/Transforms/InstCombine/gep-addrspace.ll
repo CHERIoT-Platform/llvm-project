@@ -22,6 +22,7 @@ define void @func(ptr addrspace(1) nocapture %p) nounwind {
 @array = internal addrspace(3) global [256 x float] zeroinitializer, align 4
 @scalar = internal addrspace(3) global float 0.000000e+00, align 4
 
+; Make sure that GEPs are not reordered to before addrspacecasts.
 define void @keep_necessary_addrspacecast(i64 %i, ptr %out0, ptr %out1) {
 ; CHECK-LABEL: @keep_necessary_addrspacecast(
 ; CHECK-NEXT:    [[T0:%.*]] = getelementptr [256 x float], ptr addrspacecast (ptr addrspace(3) @array to ptr), i64 0, i64 [[I:%.*]]

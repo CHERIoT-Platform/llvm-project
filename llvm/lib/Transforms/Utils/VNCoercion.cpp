@@ -1,5 +1,6 @@
 #include "llvm/Transforms/Utils/VNCoercion.h"
 #include "llvm/Analysis/ConstantFolding.h"
+#include "llvm/Analysis/MemoryBuiltins.h"
 #include "llvm/Analysis/ValueTracking.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/IntrinsicInst.h"
@@ -53,6 +54,13 @@ bool canCoerceMustAliasedValueToLoad(Value *StoredVal, Type *LoadTy,
                  LoadTy->getPointerAddressSpace()) {
     return false;
   }
+
+  // We can't coerce a store of a fat pointer to a load of anything that isn't
+  // a fat pointer. We also can't coerce a store of a non fat pointer to
+  // anything that is a fat pointer.
+  if (DL.isFatPointer(StoredVal->getType()) != DL.isFatPointer(LoadTy))
+    return false;
+  // FIXME: we should be able to transform fat pointers
 
 
   // The implementation below uses inttoptr for vectors of unequal size; we
@@ -124,15 +132,24 @@ Value *coerceAvailableValueToLoadType(Value *StoredVal, Type *LoadedTy,
 
   // Convert source pointers to integers, which can be manipulated.
   if (StoredValTy->isPtrOrPtrVectorTy()) {
+    if (DL.isFatPointer(StoredValTy->getScalarType()->getPointerAddressSpace()))
+      return nullptr; // TODO: we can do stuff here
     StoredValTy = DL.getIntPtrType(StoredValTy);
     StoredVal = Helper.CreatePtrToInt(StoredVal, StoredValTy);
   }
+
+  // FIXME: Extracting bits works differently for CHERI capabilities
+  assert(!DL.isFatPointer(StoredValTy));
 
   // Convert vectors and fp to integer, which can be manipulated.
   if (!StoredValTy->isIntegerTy()) {
     StoredValTy = IntegerType::get(StoredValTy->getContext(), StoredValSize);
     StoredVal = Helper.CreateBitCast(StoredVal, StoredValTy);
   }
+
+  // Check that this did not change the size of the value:
+  assert(DL.getTypeSizeInBits(StoredVal->getType()) == StoredValSize &&
+      "Size of stored value should not change");
 
   // If this is a big-endian system, we need to shift the value down to the low
   // bits so that a truncate will work.
@@ -173,7 +190,8 @@ Value *coerceAvailableValueToLoadType(Value *StoredVal, Type *LoadedTy,
 static int analyzeLoadFromClobberingWrite(Type *LoadTy, Value *LoadPtr,
                                           Value *WritePtr,
                                           uint64_t WriteSizeInBits,
-                                          const DataLayout &DL) {
+                                          const DataLayout &DL,
+                                          const TargetLibraryInfo *TLI) {
   // If the loaded/stored value is a first class array/struct, or scalable type,
   // don't try to transform them. We need to be able to bitcast to integer.
   if (isFirstClassAggregateOrScalableType(LoadTy))
@@ -201,6 +219,20 @@ static int analyzeLoadFromClobberingWrite(Type *LoadTy, Value *LoadPtr,
       StoreOffset + int64_t(StoreSize) < LoadOffset + int64_t(LoadSize))
     return -1;
 
+  // If we're dealing with a bounds-checked pointer, then we have stricter
+  // overlap requirements.
+  if (DL.isFatPointer(LoadPtr->getType()->getPointerAddressSpace())) {
+    uint64_t Size = 0;
+    bool KnownSize = getObjectSize(StoreBase, Size, DL, TLI);
+    // If we don't know the size of the underlying object then we can't
+    // assume that we can look through this pointer.
+    unsigned SrcValSize = DL.getTypeStoreSize(LoadTy);
+    if (!KnownSize)
+      return -1;
+    if ((SrcValSize+LoadSize > SrcValSize) && (NextPowerOf2(SrcValSize)+LoadOffset > Size))
+      return -1;
+  }
+
   // Okay, we can do this transformation.  Return the number of bytes into the
   // store that the load is.
   return LoadOffset - StoreOffset;
@@ -209,7 +241,8 @@ static int analyzeLoadFromClobberingWrite(Type *LoadTy, Value *LoadPtr,
 /// This function is called when we have a
 /// memdep query of a load that ends up being a clobbering store.
 int analyzeLoadFromClobberingStore(Type *LoadTy, Value *LoadPtr,
-                                   StoreInst *DepSI, const DataLayout &DL) {
+                                   StoreInst *DepSI, const DataLayout &DL,
+                                   const TargetLibraryInfo *TLI) {
   auto *StoredVal = DepSI->getValueOperand();
 
   // Cannot handle reading from store of first-class aggregate or scalable type.
@@ -223,14 +256,15 @@ int analyzeLoadFromClobberingStore(Type *LoadTy, Value *LoadPtr,
   uint64_t StoreSize =
       DL.getTypeSizeInBits(DepSI->getValueOperand()->getType()).getFixedValue();
   return analyzeLoadFromClobberingWrite(LoadTy, LoadPtr, StorePtr, StoreSize,
-                                        DL);
+                                        DL, TLI);
 }
 
 /// This function is called when we have a
 /// memdep query of a load that ends up being clobbered by another load.  See if
 /// the other load can feed into the second load.
 int analyzeLoadFromClobberingLoad(Type *LoadTy, Value *LoadPtr, LoadInst *DepLI,
-                                  const DataLayout &DL) {
+                                  const DataLayout &DL,
+                                  const TargetLibraryInfo *TLI) {
   // Cannot handle reading from store of first-class aggregate yet.
   if (DepLI->getType()->isStructTy() || DepLI->getType()->isArrayTy())
     return -1;
@@ -240,14 +274,20 @@ int analyzeLoadFromClobberingLoad(Type *LoadTy, Value *LoadPtr, LoadInst *DepLI,
 
   Value *DepPtr = DepLI->getPointerOperand();
   uint64_t DepSize = DL.getTypeSizeInBits(DepLI->getType()).getFixedValue();
-  return analyzeLoadFromClobberingWrite(LoadTy, LoadPtr, DepPtr, DepSize, DL);
+  return analyzeLoadFromClobberingWrite(LoadTy, LoadPtr, DepPtr, DepSize, DL, TLI);
 }
 
 int analyzeLoadFromClobberingMemInst(Type *LoadTy, Value *LoadPtr,
-                                     MemIntrinsic *MI, const DataLayout &DL) {
+                                     MemIntrinsic *MI, const DataLayout &DL,
+                                     const TargetLibraryInfo *TLI) {
   // If the mem operation is a non-constant size, we can't handle it.
   ConstantInt *SizeCst = dyn_cast<ConstantInt>(MI->getLength());
   if (!SizeCst)
+    return -1;
+  // If this is a pointer type that's larger than the largest integer that we
+  // support, then ignore it.
+  if (LoadTy->isPointerTy() &&
+      DL.getTypeSizeInBits(LoadTy) > DL.getLargestLegalIntTypeSizeInBits())
     return -1;
   uint64_t MemSizeInBits = SizeCst->getZExtValue() * 8;
 
@@ -260,7 +300,7 @@ int analyzeLoadFromClobberingMemInst(Type *LoadTy, Value *LoadPtr,
         return -1;
     }
     return analyzeLoadFromClobberingWrite(LoadTy, LoadPtr, MI->getDest(),
-                                          MemSizeInBits, DL);
+                                          MemSizeInBits, DL, TLI);
   }
 
   // If we have a memcpy/memmove, the only case we can handle is if this is a
@@ -278,7 +318,7 @@ int analyzeLoadFromClobberingMemInst(Type *LoadTy, Value *LoadPtr,
 
   // See if the access is within the bounds of the transfer.
   int Offset = analyzeLoadFromClobberingWrite(LoadTy, LoadPtr, MI->getDest(),
-                                              MemSizeInBits, DL);
+                                              MemSizeInBits, DL, TLI);
   if (Offset == -1)
     return Offset;
 
@@ -307,14 +347,26 @@ static Value *getStoreValueForLoadHelper(Value *SrcVal, unsigned Offset,
   uint64_t StoreSize =
       (DL.getTypeSizeInBits(SrcVal->getType()).getFixedValue() + 7) / 8;
   uint64_t LoadSize = (DL.getTypeSizeInBits(LoadTy).getFixedValue() + 7) / 8;
+
+  if ((LoadSize == StoreSize) && Offset == 0 &&
+       SrcVal->getType()->isPointerTy() && LoadTy->isPointerTy())
+    return coerceAvailableValueToLoadType(
+        Builder.CreateBitCast(SrcVal, LoadTy), LoadTy, Builder, DL);
+
   // Compute which bits of the stored value are being used by the load.  Convert
   // to an integer type to start with.
+  // FIXME: Extracting bits works differently for CHERI capabilities
+  assert(!DL.isFatPointer(SrcVal->getType()));
   if (SrcVal->getType()->isPtrOrPtrVectorTy())
     SrcVal =
         Builder.CreatePtrToInt(SrcVal, DL.getIntPtrType(SrcVal->getType()));
   if (!SrcVal->getType()->isIntegerTy())
     SrcVal =
         Builder.CreateBitCast(SrcVal, IntegerType::get(Ctx, StoreSize * 8));
+
+  // Check that this did not change the size of the value:
+  assert(((DL.getTypeSizeInBits(SrcVal->getType()) + 7) / 8) == StoreSize &&
+         "Size of stored value should not change");
 
   // Shift the bits to the least significant depending on endianness.
   unsigned ShiftAmt;

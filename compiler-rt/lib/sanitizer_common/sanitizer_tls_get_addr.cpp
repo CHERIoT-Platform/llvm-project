@@ -24,7 +24,7 @@ namespace __sanitizer {
 // is a pointer to a struct with two words in it:
 struct TlsGetAddrParam {
   uptr dso_id;
-  uptr offset;
+  usize offset;
 };
 
 // This must be static TLS
@@ -33,7 +33,7 @@ static __thread DTLS dtls;
 
 // Make sure we properly destroy the DTLS objects:
 // this counter should never get too large.
-static atomic_uintptr_t number_of_live_dtls;
+static atomic_size_t number_of_live_dtls;
 
 static const uptr kDestroyedThread = -1;
 
@@ -92,19 +92,19 @@ void DTLS_Destroy() {
 // This is glibc's TLS_DTV_OFFSET:
 // "Dynamic thread vector pointers point 0x8000 past the start of each
 //  TLS block." (sysdeps/<arch>/dl-tls.h)
-static const uptr kDtvOffset = 0x8000;
+static const usize kDtvOffset = 0x8000;
 #elif defined(__riscv)
 // This is glibc's TLS_DTV_OFFSET:
 // "Dynamic thread vector pointers point 0x800 past the start of each
 // TLS block." (sysdeps/riscv/dl-tls.h)
-static const uptr kDtvOffset = 0x800;
+static const usize kDtvOffset = 0x800;
 #else
-static const uptr kDtvOffset = 0;
+static const usize kDtvOffset = 0;
 #endif
 
 extern "C" {
 SANITIZER_WEAK_ATTRIBUTE
-uptr __sanitizer_get_allocated_size(const void *p);
+usize __sanitizer_get_allocated_size(const void *p);
 
 SANITIZER_WEAK_ATTRIBUTE
 const void *__sanitizer_get_allocated_begin(const void *p);
@@ -150,7 +150,7 @@ DTLS::DTV *DTLS_on_tls_get_addr(void *arg_void, void *res,
   return dtv;
 }
 
-void DTLS_on_libc_memalign(void *ptr, uptr size) {
+void DTLS_on_libc_memalign(void *ptr, usize size) {
   if (!common_flags()->intercept_tls_get_addr) return;
   VReport(2, "DTLS_on_libc_memalign: %p 0x%zx\n", ptr, size);
   dtls.last_memalign_ptr = reinterpret_cast<uptr>(ptr);
@@ -165,7 +165,7 @@ bool DTLSInDestruction(DTLS *dtls) {
 }
 
 #else
-void DTLS_on_libc_memalign(void *ptr, uptr size) {}
+void DTLS_on_libc_memalign(void *ptr, usize size) {}
 DTLS::DTV *DTLS_on_tls_get_addr(void *arg, void *res,
   unsigned long, unsigned long) { return 0; }
 DTLS *DTLS_Get() { return 0; }

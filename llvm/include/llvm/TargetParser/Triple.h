@@ -154,6 +154,9 @@ public:
     KalimbaSubArch_v5,
 
     MipsSubArch_r6,
+    MipsSubArch_cheri64,
+    MipsSubArch_cheri128,
+    MipsSubArch_cheri256,
 
     PPCSubArch_spe,
 
@@ -165,6 +168,8 @@ public:
     SPIRVSubArch_v14,
     SPIRVSubArch_v15,
     SPIRVSubArch_v16,
+
+    RISCV32SubArch_cheriot_v1
   };
   enum VendorType {
     UnknownVendor,
@@ -194,7 +199,7 @@ public:
     IOS,
     KFreeBSD,
     Linux,
-    Lv2,        // PS3
+    Lv2, // PS3
     MacOSX,
     NetBSD,
     OpenBSD,
@@ -204,11 +209,11 @@ public:
     ZOS,
     Haiku,
     RTEMS,
-    NaCl,       // Native Client
+    NaCl, // Native Client
     AIX,
-    CUDA,       // NVIDIA CUDA
-    NVCL,       // NVIDIA OpenCL
-    AMDHSA,     // AMD HSA Runtime
+    CUDA,   // NVIDIA CUDA
+    NVCL,   // NVIDIA OpenCL
+    AMDHSA, // AMD HSA Runtime
     PS4,
     PS5,
     ELFIAMCU,
@@ -223,6 +228,7 @@ public:
     WASI,       // Experimental WebAssembly OS
     Emscripten,
     ShaderModel, // DirectX ShaderModel
+    CheriotRTOS,
     LiteOS,
     Serenity,
     Vulkan,      // Vulkan SPIR-V
@@ -249,6 +255,8 @@ public:
     MuslEABI,
     MuslEABIHF,
     MuslX32,
+
+    CheriPurecap,
 
     MSVC,
     Itanium,

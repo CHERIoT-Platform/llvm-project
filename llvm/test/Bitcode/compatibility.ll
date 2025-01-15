@@ -1639,23 +1639,23 @@ proceed:
 ;; Intrinsic Functions
 
 ; Intrinsic Functions -- Variable Argument Handling
-declare void @llvm.va_start(ptr)
-declare void @llvm.va_copy(ptr, ptr)
-declare void @llvm.va_end(ptr)
+declare void @llvm.va_start.p0(ptr)
+declare void @llvm.va_copy.p0.p0(ptr, ptr)
+declare void @llvm.va_end.p0(ptr)
 define void @instructions.va_arg(ptr %v, ...) {
   %ap = alloca ptr
 
-  call void @llvm.va_start(ptr %ap)
-  ; CHECK: call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
+  ; CHECK: call void @llvm.va_start.p0(ptr %ap)
 
   va_arg ptr %ap, i32
   ; CHECK: va_arg ptr %ap, i32
 
-  call void @llvm.va_copy(ptr %v, ptr %ap)
-  ; CHECK: call void @llvm.va_copy(ptr %v, ptr %ap)
+  call void @llvm.va_copy.p0.p0(ptr %v, ptr %ap)
+  ; CHECK: call void @llvm.va_copy.p0.p0(ptr %v, ptr %ap)
 
-  call void @llvm.va_end(ptr %ap)
-  ; CHECK: call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
+  ; CHECK: call void @llvm.va_end.p0(ptr %ap)
 
   ret void
 }
@@ -1697,7 +1697,7 @@ declare void @llvm.instrprof_increment(ptr, i64, i32, i32)
 !10 = !{!"rax"}
 define void @intrinsics.codegen() {
   call ptr @llvm.returnaddress(i32 1)
-  ; CHECK: call ptr @llvm.returnaddress(i32 1)
+  ; CHECK: call ptr @llvm.returnaddress.p0(i32 1)
   call ptr @llvm.frameaddress(i32 1)
   ; CHECK: call ptr @llvm.frameaddress.p0(i32 1)
 
@@ -1725,7 +1725,7 @@ define void @intrinsics.codegen() {
   ; CHECK: call i64 @llvm.readcyclecounter()
 
   call void @llvm.clear_cache(ptr null, ptr null)
-  ; CHECK: call void @llvm.clear_cache(ptr null, ptr null)
+  ; CHECK: call void @llvm.clear_cache.p0(ptr null, ptr null)
 
   call void @llvm.instrprof_increment(ptr null, i64 0, i32 0, i32 0)
   ; CHECK: call void @llvm.instrprof_increment(ptr null, i64 0, i32 0, i32 0)

@@ -10,7 +10,7 @@ declare i1 @cond()
 
 declare ptr @use_and_return(ptr)
 
-declare ptr @llvm.stacksave() #0
+declare ptr @llvm.stacksave.p0() #0
 
 declare void @llvm.stackrestore(ptr) #0
 
@@ -21,7 +21,7 @@ entry:
 
 nonentry:                                         ; preds = %entry
   %argmem = alloca i32, i32 %x, align 4
-  %sp = call ptr @llvm.stacksave()
+  %sp = call ptr @llvm.stacksave.p0()
   %c2 = call i1 @cond()
   br i1 %c2, label %ret, label %sinktarget
 

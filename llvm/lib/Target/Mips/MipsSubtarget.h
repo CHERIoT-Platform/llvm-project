@@ -17,6 +17,7 @@
 #include "MipsFrameLowering.h"
 #include "MipsISelLowering.h"
 #include "MipsInstrInfo.h"
+#include "MipsSelectionDAGInfo.h"
 #include "llvm/CodeGen/GlobalISel/CallLowering.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelector.h"
 #include "llvm/CodeGen/GlobalISel/LegalizerInfo.h"
@@ -139,6 +140,23 @@ class MipsSubtarget : public MipsGenSubtargetInfo {
   // HasMips5_32r2 - Has the subset of MIPS-V present in MIPS32r2
   bool HasMips5_32r2;
 
+  /// IsCheri64 - CHERI capabilities are 64 bits.
+  bool IsCheri64;
+
+  /// IsCheri128 - CHERI capabilities are 128 bits.
+  bool IsCheri128;
+
+  /// IsCheri256 - CHERI capabilities are 256 bits.
+  bool IsCheri256;
+
+  /// IsCheri - Supports the CHERI capability extensions
+  bool IsCheri;
+
+  /// IsCheri - Supports the BERI MIPS4 extensions
+  bool IsBeri;
+
+  bool UseCheriExactEquals;
+
   // InMips16 -- can process Mips16 instructions
   bool InMips16Mode;
 
@@ -217,7 +235,7 @@ class MipsSubtarget : public MipsGenSubtargetInfo {
 
   Triple TargetTriple;
 
-  const SelectionDAGTargetInfo TSInfo;
+  const MipsSelectionDAGInfo TSInfo;
   std::unique_ptr<const MipsInstrInfo> InstrInfo;
   std::unique_ptr<const MipsFrameLowering> FrameLowering;
   std::unique_ptr<const MipsTargetLowering> TLInfo;
@@ -225,6 +243,14 @@ class MipsSubtarget : public MipsGenSubtargetInfo {
 public:
   bool isPositionIndependent() const;
   /// This overrides the PostRAScheduler bit in the SchedModel for each CPU.
+  bool enableMachineScheduler() const override { return isCheri() || isBeri(); }
+  // TODO: unless we set enableMachineSchedDefaultSched() to false
+  //  this causes lots of unncessary stack spills really likely
+  //  See stack-spill-unncessary.c test
+  //  See also createDefaultScheduler() in SelectionDAGISel.cpp
+  // TODO: However, it seems like the MachineScheduler is better overall for webkit so keep it on
+  bool enableMachineSchedDefaultSched() const override { return true; }
+
   bool enablePostRAScheduler() const override;
   void getCriticalPathRCs(RegClassVector &CriticalPathRCs) const override;
   CodeGenOptLevel getOptLevelToEnablePostRAScheduler() const override;
@@ -232,6 +258,7 @@ public:
   bool isABI_N64() const;
   bool isABI_N32() const;
   bool isABI_O32() const;
+  bool isABI_CheriPureCap() const;
   const MipsABIInfo &getABI() const;
   bool isABI_FPXX() const { return isABI_O32() && IsFPXX; }
 
@@ -272,6 +299,7 @@ public:
            hasMips64r6();
   }
   bool hasMips64() const { return MipsArchVersion >= Mips64; }
+  bool hasMips3_32() const { return hasMips3() || hasMips32(); }
   bool hasMips64r2() const { return MipsArchVersion >= Mips64r2; }
   bool hasMips64r3() const { return MipsArchVersion >= Mips64r3; }
   bool hasMips64r5() const { return MipsArchVersion >= Mips64r5; }
@@ -291,6 +319,14 @@ public:
   bool isGP64bit() const { return IsGP64bit; }
   bool isGP32bit() const { return !IsGP64bit; }
   unsigned getGPRSizeInBytes() const { return isGP64bit() ? 8 : 4; }
+  unsigned getCapSizeInBytes() const {
+    assert(isCheri() && "Should only be called for CHERI");
+    return IsCheri64 ? 8 : (IsCheri128 ? 16 : 32);
+  }
+  Align getCapAlignment() const {
+    assert(isCheri() && "Should only be called for CHERI");
+    return IsCheri64 ? Align(8) : (IsCheri128 ? Align(16) : Align(32));
+  }
   bool isPTR64bit() const { return IsPTR64bit; }
   bool isPTR32bit() const { return !IsPTR64bit; }
   bool hasSym32() const {
@@ -329,6 +365,26 @@ public:
     return UseIndirectJumpsHazard && hasMips32r2();
   }
   bool useSmallSection() const { return UseSmallSection; }
+  bool isBeri() const { return IsBeri; }
+  bool isCheri() const { return IsCheri; }
+  bool isCheri64() const { return IsCheri64; }
+  bool isCheri128() const { return IsCheri128; }
+  bool isCheri256() const { return IsCheri256; }
+  bool useCheriCapTable() const { return getABI().IsCheriPureCap(); };
+  MVT typeForCapabilities() const {
+    return IsCheri64 ? MVT::c64 : (IsCheri128 ? MVT::c128 : MVT::c256);
+  }
+
+  /// This is a very ugly hack.  CodeGenPrepare can sink pointer arithmetic to
+  /// appear closer to load and store operations (because SelectionDAG only
+  /// looks at one basic block at a time).  Unfortunately, it defaults to using
+  /// ptrtoint / inttoptr pairs, which means that SelectionDAG doesn't generate
+  /// pointer addition nodes and instead just ends up producing CToPtr /
+  /// CFromPtr instruction pairs.  There is a command-line flag for preferring
+  /// to sink GEPs instead, but no way for the subtarget to set this flag.
+  /// Claiming that you use AA also enables the GEP-sinking mode, so we claim
+  /// this for CHERI.
+  bool useAA() const override { return IsCheri; }
 
   bool hasStandardEncoding() const { return !InMips16Mode && !InMicroMipsMode; }
 
@@ -337,6 +393,8 @@ public:
   bool useLongCalls() const { return UseLongCalls; }
 
   bool useXGOT() const { return UseXGOT; }
+
+  bool useCheriExactEquals() const { return UseCheriExactEquals; }
 
   bool enableLongBranchPass() const {
     return hasStandardEncoding() || inMicroMipsMode() || allowMixed16_32();
@@ -355,6 +413,8 @@ public:
 
   bool isXRaySupported() const override { return true; }
 
+  void overrideSchedPolicy(MachineSchedPolicy &Policy, unsigned NumRegionInstrs) const override;
+
   // for now constant islands are on for the whole compilation unit but we only
   // really use them if in addition we are in mips16 mode
   static bool useConstantIslands();
@@ -372,7 +432,9 @@ public:
   /// MIPS32r6/MIPS64r6 require full unaligned access support but does not
   /// specify which component of the system provides it. Hardware, software, and
   /// hybrid implementations are all valid.
-  bool systemSupportsUnalignedAccess() const { return hasMips32r6(); }
+  bool systemSupportsUnalignedAccess(unsigned AS = 0) const {
+    return hasMips32r6();
+  }
 
   // Set helper classes
   void setHelperClassesMips16();

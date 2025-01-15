@@ -35,8 +35,12 @@
 #elif defined(__APPLE__) && defined(__aarch64__)
 #define SEPARATOR %%
 #elif defined(__riscv)
+#ifdef __CHERI_PURE_CAPABILITY__
+# define RISCV_FOFFSET (__SIZEOF_CHERI_CAPABILITY__ * 32)
+#else
 # define RISCV_ISIZE (__riscv_xlen / 8)
 # define RISCV_FOFFSET (RISCV_ISIZE * 32)
+#endif
 # if defined(__riscv_flen)
 #  define RISCV_FSIZE (__riscv_flen / 8)
 # endif
@@ -145,6 +149,7 @@
 #define EXPORT_SYMBOL(name)
 #endif
 #define WEAK_SYMBOL(name) .weak name
+#define EMIT_FUNCTION_SIZE(name) .size name, . - name
 
 #if defined(__hexagon__)
 #define WEAK_ALIAS(name, aliasname)                                            \
@@ -241,6 +246,19 @@ aliasname:                                                                     \
 
 #endif
 
+#ifndef EMIT_FUNCTION_SIZE
+#define EMIT_FUNCTION_SIZE(name)
+#endif
+
+#if defined(__mips__) && defined(__ELF__)
+#define FUNCTION_ENTRY_DIRECTIVE(name) .ent name
+#define FUNCTION_END_DIRECTIVE(name) .end name
+#else
+#define FUNCTION_ENTRY_DIRECTIVE(name)
+#define FUNCTION_END_DIRECTIVE(name)
+#endif
+
+
 #if defined(_AIX)
   // clang-format off
 #define DEFINE_LIBUNWIND_FUNCTION(name)                                        \
@@ -257,6 +275,7 @@ aliasname:                                                                     \
 #else
 #define DEFINE_LIBUNWIND_FUNCTION(name)                                        \
   .globl SYMBOL_NAME(name) SEPARATOR                                           \
+  FUNCTION_ENTRY_DIRECTIVE(SYMBOL_NAME(name)) SEPARATOR                        \
   HIDDEN_SYMBOL(SYMBOL_NAME(name)) SEPARATOR                                   \
   SYMBOL_IS_FUNC(SYMBOL_NAME(name)) SEPARATOR                                  \
   PPC64_OPD1                                                                   \
@@ -264,6 +283,10 @@ aliasname:                                                                     \
   PPC64_OPD2                                                                   \
   AARCH64_BTI
 #endif
+
+#define END_LIBUNWIND_FUNCTION(name)                                           \
+  EMIT_FUNCTION_SIZE(SYMBOL_NAME(name)) SEPARATOR                              \
+  FUNCTION_END_DIRECTIVE(SYMBOL_NAME(name))
 
 #if defined(__arm__)
 #if !defined(__ARM_ARCH)

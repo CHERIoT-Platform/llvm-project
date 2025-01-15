@@ -884,6 +884,10 @@ public:
     return getInnerTypeLoc();
   }
 
+  TypeLoc getEquivalentTypeLoc() const {
+    return TypeLoc(getTypePtr()->getEquivalentType(), getNonLocalData());
+  }
+
   /// The type attribute.
   const Attr *getAttr() const {
     return getLocalData()->TypeAttr;
@@ -1777,6 +1781,46 @@ public:
     setAttrOperandParensRange(loc);
     setAttrOperandParensRange(SourceRange(loc));
     setAttrExprOperand(getTypePtr()->getAddrSpaceExpr());
+  }
+};
+
+struct DependentPointerLocInfo {
+  SourceLocation QualifierLoc;
+};
+
+class DependentPointerTypeLoc
+    : public ConcreteTypeLoc<UnqualTypeLoc,
+                             DependentPointerTypeLoc,
+                             DependentPointerType,
+                             DependentPointerLocInfo> {
+public:
+  /// The location of the pointer qualifier, i.e.
+  ///    T __capability
+  ///      ^~~~~~~~~~~~
+  SourceLocation getQualifierLoc() const {
+    return getLocalData()->QualifierLoc;
+  }
+  void setQualifierLoc(SourceLocation Loc) {
+    getLocalData()->QualifierLoc = Loc;
+  }
+
+  SourceRange getLocalSourceRange() const {
+    return getPointerTypeLoc().getSourceRange();
+  }
+
+  /// The type before the pointer qualifier, i.e.
+  ///   T __capability
+  ///   ^
+  QualType getInnerType() const {
+    return this->getTypePtr()->getPointerType();
+  }
+
+  TypeLoc getPointerTypeLoc() const {
+    return this->getInnerTypeLoc();
+  }
+
+  void initializeLocal(ASTContext &Context, SourceLocation Loc) {
+    setQualifierLoc(Loc);
   }
 };
 

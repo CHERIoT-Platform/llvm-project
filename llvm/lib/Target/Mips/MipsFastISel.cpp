@@ -261,7 +261,7 @@ public:
   unsigned fastMaterializeConstant(const Constant *C) override;
   bool fastSelectInstruction(const Instruction *I) override;
 
-#include "MipsGenFastISel.inc"
+//#include "MipsGenFastISel.inc"
 };
 
 } // end anonymous namespace
@@ -415,7 +415,7 @@ unsigned MipsFastISel::materializeGV(const GlobalValue *GV, MVT VT) {
   if (IsThreadLocal)
     return 0;
   emitInst(Mips::LW, DestReg)
-      .addReg(MFI->getGlobalBaseReg(*MF))
+      .addReg(MFI->getGlobalBaseReg(*MF, /*IsForTls=*/IsThreadLocal))
       .addGlobalAddress(GV, 0, MipsII::MO_GOT);
   if ((GV->hasInternalLinkage() ||
        (GV->hasLocalLinkage() && !isa<Function>(GV)))) {
@@ -431,8 +431,10 @@ unsigned MipsFastISel::materializeGV(const GlobalValue *GV, MVT VT) {
 unsigned MipsFastISel::materializeExternalCallSym(MCSymbol *Sym) {
   const TargetRegisterClass *RC = &Mips::GPR32RegClass;
   Register DestReg = createResultReg(RC);
+  // XXXAR: the IsForTls=false might be wrong but it only matters for CHERI
+  // anyway and there we don't have a working FastISel
   emitInst(Mips::LW, DestReg)
-      .addReg(MFI->getGlobalBaseReg(*MF))
+      .addReg(MFI->getGlobalBaseReg(*MF, /*IsForTls=*/false))
       .addSym(Sym, MipsII::MO_GOT);
   return DestReg;
 }
@@ -562,14 +564,16 @@ bool MipsFastISel::computeCallAddress(const Value *V, Address &Addr) {
       return computeCallAddress(U->getOperand(0), Addr);
     break;
   case Instruction::IntToPtr:
+    assert(!DL.isFatPointer(DL.getProgramAddressSpace()));
     // Look past no-op inttoptrs if its operand is in the same BB.
     if (TLI.getValueType(DL, U->getOperand(0)->getType()) ==
-        TLI.getPointerTy(DL))
+        TLI.getPointerTy(DL, 0))
       return computeCallAddress(U->getOperand(0), Addr);
     break;
   case Instruction::PtrToInt:
+    assert(!DL.isFatPointer(DL.getProgramAddressSpace()));
     // Look past no-op ptrtoints if its operand is in the same BB.
-    if (TLI.getValueType(DL, U->getType()) == TLI.getPointerTy(DL))
+    if (TLI.getValueType(DL, U->getType()) == TLI.getPointerTy(DL, 0))
       return computeCallAddress(U->getOperand(0), Addr);
     break;
   }

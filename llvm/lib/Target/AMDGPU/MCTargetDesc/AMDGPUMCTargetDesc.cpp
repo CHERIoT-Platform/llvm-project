@@ -59,7 +59,8 @@ static MCInstrInfo *createAMDGPUMCInstrInfo() {
   return X;
 }
 
-static MCRegisterInfo *createAMDGPUMCRegisterInfo(const Triple &TT) {
+static MCRegisterInfo *
+createAMDGPUMCRegisterInfo(const Triple &TT, const MCTargetOptions &Options) {
   MCRegisterInfo *X = new MCRegisterInfo();
   if (TT.getArch() == Triple::r600)
     InitR600MCRegisterInfo(X, 0);
@@ -92,10 +93,9 @@ static MCInstPrinter *createAMDGPUMCInstPrinter(const Triple &T,
     return new AMDGPUInstPrinter(MAI, MII, MRI);
 }
 
-static MCTargetStreamer *createAMDGPUAsmTargetStreamer(MCStreamer &S,
-                                                      formatted_raw_ostream &OS,
-                                                      MCInstPrinter *InstPrint,
-                                                      bool isVerboseAsm) {
+static MCTargetStreamer *
+createAMDGPUAsmTargetStreamer(MCStreamer &S, formatted_raw_ostream &OS,
+                              MCInstPrinter *InstPrint, bool isVerboseAsm) {
   return new AMDGPUTargetAsmStreamer(S, OS);
 }
 

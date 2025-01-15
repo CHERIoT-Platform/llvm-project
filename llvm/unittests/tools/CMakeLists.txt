@@ -4,9 +4,13 @@ if(LLVM_TARGETS_TO_BUILD MATCHES "X86")
   )
 endif()
 
-add_subdirectory(
-  llvm-exegesis
-)
+if (TARGET llvm-exegesis)
+  add_subdirectory(llvm-exegesis)
+endif()
+
 add_subdirectory(llvm-profdata)
+
 add_subdirectory(llvm-profgen)
-add_subdirectory(llvm-mca)
+if (TARGET llvm-mca)
+  add_subdirectory(llvm-mca)
+endif()

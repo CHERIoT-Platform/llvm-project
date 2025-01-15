@@ -128,6 +128,9 @@ def warn_fe_cc_log_diagnostics_failure : Warning<
 def warn_fe_unable_to_open_stats_file : Warning<
     "unable to open statistics output file '%0': '%1'">,
     InGroup<DiagGroup<"unable-to-open-stats-file">>;
+def warn_fe_unable_to_lock_stats_file : Warning<
+    "unable to lock statistics output file '%0': '%1'">,
+    InGroup<DiagGroup<"unable-to-lock-stats-file">>, DefaultError;
 def err_fe_no_pch_in_dir : Error<
     "no suitable precompiled header file found in directory '%0'">;
 def err_fe_action_not_available : Error<
@@ -266,6 +269,62 @@ def warn_eagerly_load_for_standard_cplusplus_modules : Warning<
   "the form '-fmodule-file=<BMI-path>' is deprecated for standard C++ named modules;"
   "consider to use '-fmodule-file=<module-name>=<BMI-path>' instead">,
   InGroup<DiagGroup<"eager-load-cxx-named-modules">>;
+
+def select_subobject_bounds_kind : TextSubstitution<
+  "%select{pointer to|reference to|array subscript on|array decay on}0">;
+
+def remark_setting_cheri_subobject_bounds :
+  Remark<"setting %select{|sub-object }0bounds for %sub{select_subobject_bounds_kind}1 %2 to %3 bytes%4">,
+  InGroup<CheriSubobjectBoundsRemarks>;
+def remark_setting_cheri_subobject_bounds_field :
+  Remark<"setting sub-object bounds for field %0 (%sub{select_subobject_bounds_kind}1 %2) to %3 bytes%4">,
+  InGroup<CheriSubobjectBoundsRemarks>;
+def remark_subobject_using_container_size :
+  Remark<"using size of containing type %0 instead of object type %1 for "
+         "subobject bounds on %2">, InGroup<CheriSubobjectBoundsRemarks>;
+def remark_no_cheri_subobject_bounds :
+  Remark<"not setting bounds for %sub{select_subobject_bounds_kind}0 %1 (%2)">,
+  InGroup<CheriSubobjectBoundsRemarks>;
+
+def warn_subobject_bounds_addressof_subscript :
+  Warning<"pointer created from reference returned by %0 will be bounded to a single element">,
+  InGroup<CheriSubobjectBoundsSuspicous>, DefaultWarnNoWerror;
+// TODO: add a better suggestion for known classes such as std::string/std::vector
+def note_subobject_bounds_addressof_subscript_fixit :
+  Note<"add an explicit cast to %0 to silence this warning or if you intended to "
+       "get a pointer to the full buffer use a different accessor such as .data()/.begin() "
+       "if this is available">;
+
+def warn_subobject_bounds_unknown_type :
+  Warning<"unhandled type %0 in CHERI bounds setting">,
+  InGroup<CheriSubobjectBoundsSuspicous>, DefaultWarnNoWerror;
+
+def warn_cheri_memintrin_misaligned_inefficient : Warning<
+  "%0 operation with capability argument %2 and underaligned destination"
+  " (aligned to %1 bytes) may be inefficient or result in CHERI tags bits"
+  " being stripped">, InGroup<CHERIMisaligned>, DefaultWarnNoWerror;
+def warn_fe_backend_cheri_inefficient : Warning<"%0">, BackendInfo,
+    InGroup<BackendCheriInefficient>, DefaultWarn, DefaultWarnNoWerror;
+def note_cheri_memintrin_misaligned_fixit : Note<
+  "use __builtin_assume_aligned() or cast to (u)int%select{cap|ptr}1_t* if you know that the"
+  " pointer is actually aligned to capability size; this will allow the %0"
+  " call to be inlined if the size is constant (otherwise a library call must"
+  " be used to maintain tag bits). For more information see"
+  " https://github.com/CTSRD-CHERI/llvm-project/wiki/Unaligned-capability-copies">;
+
+// TODO: move these into a sensible warning group
+def warn_uintcap_subtract_unintended_provenance : Warning<
+  "subtracting %0 from %1 may result in an unintended tagged value "
+  "if the left-hand side is derived from a pointer; "
+  "see https://github.com/CTSRD-CHERI/llvm-project/wiki/intcap_t-arithmetic">,
+  InGroup<CHERIProvenancePedantic>, DefaultIgnore;
+def warn_ptr_uintcap_subtract_offset_mode : Warning<
+  "subtracting %0 from %1 may give an unexpected result if the right-hand side "
+  "is derived from a pointer since it will only consider the capability offset">,
+  InGroup<CHERIProvenance>, DefaultWarnNoWerror;
+def note_uintcap_subtract: Note<"in order to perform pointer arithmetic, "
+  "cast the right-hand operand to an integer type; if you intended to compute "
+  "the difference between the addresses cast both operands to char*">;
 
 def err_missing_vfs_overlay_file : Error<
   "virtual filesystem overlay file '%0' not found">, DefaultFatal;

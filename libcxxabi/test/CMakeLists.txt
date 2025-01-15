@@ -49,6 +49,10 @@ else()
   serialize_lit_string_param(SERIALIZED_LIT_PARAMS target_triple "${LLVM_DEFAULT_TARGET_TRIPLE}")
 endif()
 
+if (LIBCXXABI_TEST_TARGET_FLAGS)
+  serialize_lit_string_param(SERIALIZED_LIT_PARAMS target_flags "${LIBCXXABI_TEST_TARGET_FLAGS}")
+endif()
+
 serialize_lit_params_list(SERIALIZED_LIT_PARAMS LIBCXXABI_TEST_PARAMS)
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/configs/cmake-bridge.cfg.in"

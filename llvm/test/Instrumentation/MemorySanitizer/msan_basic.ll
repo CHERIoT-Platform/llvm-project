@@ -739,10 +739,10 @@ define <8 x ptr> @VectorOfPointers(ptr %p) nounwind uwtable sanitize_memory {
 
 ; Test handling of va_copy.
 
-declare void @llvm.va_copy(ptr, ptr) nounwind
+declare void @llvm.va_copy.p0.p0(ptr, ptr) nounwind
 
 define void @VACopy(ptr %p1, ptr %p2) nounwind uwtable sanitize_memory {
-  call void @llvm.va_copy(ptr %p1, ptr %p2) nounwind
+  call void @llvm.va_copy.p0.p0(ptr %p1, ptr %p2) nounwind
   ret void
 }
 
@@ -755,7 +755,7 @@ define void @VACopy(ptr %p1, ptr %p2) nounwind uwtable sanitize_memory {
 ; It should work with a local stack copy instead.
 
 %struct.__va_list_tag = type { i32, i32, ptr, ptr }
-declare void @llvm.va_start(ptr) nounwind
+declare void @llvm.va_start.p0(ptr) nounwind
 
 ; Function Attrs: nounwind uwtable
 define void @VAStart(i32 %x, ...) sanitize_memory {
@@ -763,12 +763,12 @@ entry:
   %x.addr = alloca i32, align 4
   %va = alloca [1 x %struct.__va_list_tag], align 16
   store i32 %x, ptr %x.addr, align 4
-  call void @llvm.va_start(ptr %va)
+  call void @llvm.va_start.p0(ptr %va)
   ret void
 }
 
 ; CHECK-LABEL: @VAStart
-; CHECK: call void @llvm.va_start
+; CHECK: call void @llvm.va_start.p0
 ; CHECK-NOT: @__msan_va_arg_tls
 ; CHECK-NOT: @__msan_va_arg_overflow_size_tls
 ; CHECK: ret void

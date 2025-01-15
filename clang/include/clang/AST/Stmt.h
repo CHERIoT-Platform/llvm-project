@@ -612,7 +612,7 @@ protected:
     SourceLocation OperatorLoc;
   };
 
-  class CastExprBitfields {
+  struct CastExprBitfields {
     friend class CastExpr;
     friend class ImplicitCastExpr;
 
@@ -632,6 +632,9 @@ protected:
     /// here. ([implimits] Direct and indirect base classes [16384]).
     unsigned BasePathSize;
   };
+
+  static_assert(CK_IntToOCLSampler == (CastExprBitfields{.Kind = CK_IntToOCLSampler}).Kind,
+                "Need more cast kind bits");
 
   class BinaryOperatorBitfields {
     friend class BinaryOperator;

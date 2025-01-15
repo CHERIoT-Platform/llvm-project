@@ -6,7 +6,7 @@ target triple = "i386-pc-linux-gnu"
 
 define i32 @main() nounwind  {
 entry:
-	%tmp248 = call ptr @llvm.stacksave( )		; <ptr> [#uses=1]
+	%tmp248 = call ptr @llvm.stacksave.p0( )		; <ptr> [#uses=1]
 	%tmp2752 = alloca i32		; <ptr> [#uses=2]
 	store i32 2, ptr %tmp2752, align 4
 	store volatile ptr %tmp2752, ptr @p, align 4
@@ -19,8 +19,8 @@ bb44:		; preds = %bb44, %entry
 	%indvar = phi i32 [ 0, %entry ], [ %tmp3857, %bb44 ]		; <i32> [#uses=1]
 	%tmp249 = phi ptr [ %tmp248, %entry ], [ %tmp2, %bb44 ]		; <ptr> [#uses=1]
 	%tmp3857 = add i32 %indvar, 1		; <i32> [#uses=3]
-	call void @llvm.stackrestore( ptr %tmp249 )
-	%tmp2 = call ptr @llvm.stacksave( )		; <ptr> [#uses=1]
+	call void @llvm.stackrestore.p0( ptr %tmp249 )
+	%tmp2 = call ptr @llvm.stacksave.p0( )		; <ptr> [#uses=1]
 	%tmp4 = srem i32 %tmp3857, 1000		; <i32> [#uses=2]
 	%tmp5 = add i32 %tmp4, 1		; <i32> [#uses=1]
 	%tmp27 = alloca i32, i32 %tmp5		; <ptr> [#uses=3]
@@ -32,6 +32,6 @@ bb44:		; preds = %bb44, %entry
 	br i1 %exitcond, label %bb, label %bb44
 }
 
-declare ptr @llvm.stacksave() nounwind 
+declare ptr @llvm.stacksave.p0() nounwind 
 
-declare void @llvm.stackrestore(ptr) nounwind 
+declare void @llvm.stackrestore.p0(ptr) nounwind 

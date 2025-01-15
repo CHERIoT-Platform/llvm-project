@@ -836,7 +836,8 @@ RValue CodeGenFunction::EmitCoroutineIntrinsic(const CallExpr *E,
     }
     CGM.Error(E->getBeginLoc(), "this builtin expect that __builtin_coro_begin "
                                 "has been used earlier in this function");
-    auto *NullPtr = llvm::ConstantPointerNull::get(Builder.getPtrTy());
+    unsigned AS = CGM.getTargetCodeGenInfo().getDefaultAS();
+    auto *NullPtr = llvm::ConstantPointerNull::get(Builder.getPtrTy(AS));
     return RValue::get(NullPtr);
   }
   case llvm::Intrinsic::coro_size: {

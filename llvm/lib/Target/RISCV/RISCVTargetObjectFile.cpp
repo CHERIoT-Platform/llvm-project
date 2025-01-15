@@ -9,7 +9,9 @@
 #include "RISCVTargetObjectFile.h"
 #include "MCTargetDesc/RISCVMCObjectFileInfo.h"
 #include "RISCVTargetMachine.h"
+#include "MCTargetDesc/RISCVCompressedCap.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCSectionELF.h"
 #include "llvm/MC/MCValue.h"
@@ -60,6 +62,9 @@ bool RISCVELFTargetObjectFile::isGlobalInSmallSection(
   // Only global variables, not functions.
   const GlobalVariable *GVA = dyn_cast<GlobalVariable>(GO);
   if (!GVA)
+    return false;
+
+  if (GO->hasComdat())
     return false;
 
   // If the variable has an explicit section, it is placed in that section.
@@ -132,4 +137,30 @@ MCSection *RISCVELFTargetObjectFile::getSectionForConstant(
   // Otherwise, we work the same as ELF.
   return TargetLoweringObjectFileELF::getSectionForConstant(DL, Kind, C,
                                                             Alignment);
+}
+
+TailPaddingAmount
+RISCVELFTargetObjectFile::getTailPaddingForPreciseBounds(
+    uint64_t Size, const TargetMachine &TM) const {
+  if (!getContext().getAsmInfo()->isCheriPurecapABI())
+    return TailPaddingAmount::None;
+
+  return RISCVCompressedCap::getRequiredTailPadding(Size,
+                                                    *TM.getMCSubtargetInfo());
+}
+
+Align
+RISCVELFTargetObjectFile::getAlignmentForPreciseBounds(
+    uint64_t Size, const TargetMachine &TM) const {
+  if (!getContext().getAsmInfo()->isCheriPurecapABI())
+    return Align();
+
+  return RISCVCompressedCap::getRequiredAlignment(Size,
+                                                  *TM.getMCSubtargetInfo());
+}
+
+int RISCVELFTargetObjectFile::getCheriCapabilitySize(
+    const TargetMachine &TM) const {
+  const RISCVTargetMachine &RTM = static_cast<const RISCVTargetMachine &>(TM);
+  return RTM.IsRV64() ? 16 : 8;
 }

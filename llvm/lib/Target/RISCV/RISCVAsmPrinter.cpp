@@ -26,15 +26,18 @@
 #include "llvm/CodeGen/MachineConstantPool.h"
 #include "llvm/CodeGen/MachineFunctionPass.h"
 #include "llvm/CodeGen/MachineInstr.h"
+#include "llvm/CodeGen/MachineJumpTableInfo.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCContext.h"
+#include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCInstBuilder.h"
 #include "llvm/MC/MCObjectFileInfo.h"
 #include "llvm/MC/MCSectionELF.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSymbol.h"
+#include "llvm/MC/MCSectionELF.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/RISCVISAInfo.h"
 #include "llvm/Support/raw_ostream.h"
@@ -100,6 +103,27 @@ public:
   bool emitDirectiveOptionArch();
 
 private:
+  /**
+   * Struct describing compartment exports that must be emitted for this
+   * compilation unit.
+   */
+  struct CompartmentExport
+  {
+    /// The compartment name for the function.
+    std::string CompartmentName;
+    /// The IR function corresponding to the function.
+    const Function &Fn;
+    /// The symbol for the function
+    MCSymbol *FnSym;
+    /// The number of registers that are live on entry to this function
+    int LiveIns;
+    /// Emit this export as a local symbol even if the function is not local.
+    bool forceLocal = false;
+    /// The size in bytes of the stack frame, 0 if not used.
+    uint32_t stackSize = 0;
+  };
+  SmallVector<CompartmentExport, 1> CompartmentEntries;
+
   void emitAttributes(const MCSubtargetInfo &SubtargetInfo);
 
   void emitNTLHint(const MachineInstr *MI);
@@ -374,8 +398,67 @@ bool RISCVAsmPrinter::runOnMachineFunction(MachineFunction &MF) {
   SetupMachineFunction(MF);
   emitFunctionBody();
 
+  auto &Fn = MF.getFunction();
+  // The low 3 bits of the flags field specify the number of registers to
+  // clear.  The next two provide the set of
+  int interruptFlag = 0;
+  if (Fn.hasFnAttribute("interrupt-state"))
+    interruptFlag = StringSwitch<int>(
+                        Fn.getFnAttribute("interrupt-state").getValueAsString())
+                        .Case("enabled", 1 << 3)
+                        .Case("disabled", 2 << 3)
+                        .Default(0);
+
+  // For the CHERI MCU ABI, find the highest used argument register.  The
+  // switcher will zero all of the ones above this.
+  auto countUsedArgRegisters = [](auto const &MF) -> int {
+    static constexpr int ArgRegCount = 7;
+    static const MCPhysReg ArgGPCRsE[ArgRegCount] = {
+        RISCV::C10, RISCV::C11, RISCV::C12, RISCV::C13,
+        RISCV::C14, RISCV::C15, RISCV::C5};
+    auto LiveIns = MF.getRegInfo().liveins();
+    auto *TRI = MF.getRegInfo().getTargetRegisterInfo();
+    int NumArgRegs = 0;
+    for (auto LI : LiveIns)
+      for (int i = 0; i < ArgRegCount; i++)
+        if ((ArgGPCRsE[i] == LI.first) ||
+            TRI->isSubRegister(ArgGPCRsE[i], LI.first)) {
+          NumArgRegs = std::max(NumArgRegs, i + 1);
+          break;
+        }
+    return NumArgRegs;
+  };
+
+  if (Fn.getCallingConv() == CallingConv::CHERI_CCallee) {
+    Function &Fn = MF.getFunction();
+    uint32_t stackSize;
+    if (Fn.hasFnAttribute("minimum-stack-size")) {
+      bool converted =
+          to_integer(Fn.getFnAttribute("minimum-stack-size").getValueAsString(),
+                     stackSize);
+      assert(converted && "minimum-stack-size attribute must be an integer");
+      (void)converted;
+    } else
+      stackSize = MF.getFrameInfo().getStackSize();
+    // FIXME: Get stack size as function attribute if specified
+    CompartmentEntries.push_back(
+        {std::string(Fn.getFnAttribute("cheri-compartment").getValueAsString()),
+         Fn, OutStreamer->getContext().getOrCreateSymbol(MF.getName()),
+         countUsedArgRegisters(MF) + interruptFlag, false, stackSize});
+  } else if (Fn.getCallingConv() == CallingConv::CHERI_LibCall)
+    CompartmentEntries.push_back(
+        {"libcalls", Fn,
+         OutStreamer->getContext().getOrCreateSymbol(MF.getName()),
+         countUsedArgRegisters(MF) + interruptFlag});
+  else if (interruptFlag != 0)
+    CompartmentEntries.push_back(
+        {std::string(Fn.getFnAttribute("cheri-compartment").getValueAsString()),
+         Fn, OutStreamer->getContext().getOrCreateSymbol(MF.getName()),
+         countUsedArgRegisters(MF) + interruptFlag, true});
+
   if (EmittedOptionArch)
     RTS.emitDirectiveOptionPop();
+
   return false;
 }
 
@@ -384,7 +467,7 @@ void RISCVAsmPrinter::emitStartOfAsmFile(Module &M) {
       static_cast<RISCVTargetStreamer &>(*OutStreamer->getTargetStreamer());
   if (const MDString *ModuleTargetABI =
           dyn_cast_or_null<MDString>(M.getModuleFlag("target-abi")))
-    RTS.setTargetABI(RISCVABI::getTargetABI(ModuleTargetABI->getString()));
+    RTS.setTargetABI(RISCVABI::getTargetABI(ModuleTargetABI->getString(), TM.getTargetTriple()));
 
   MCSubtargetInfo SubtargetInfo = *TM.getMCSubtargetInfo();
 
@@ -417,6 +500,76 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
   RISCVTargetStreamer &RTS =
       static_cast<RISCVTargetStreamer &>(*OutStreamer->getTargetStreamer());
 
+  if (!CompartmentEntries.empty()) {
+    auto &C = OutStreamer->getContext();
+    auto *Exports = C.getELFSection(".compartment_exports", ELF::SHT_PROGBITS,
+                                    ELF::SHF_ALLOC | ELF::SHF_GNU_RETAIN);
+    OutStreamer->switchSection(Exports);
+    auto CompartmentStartSym = C.getOrCreateSymbol("__compartment_pcc_start");
+    for (auto &Entry : CompartmentEntries) {
+      std::string ExportName = getImportExportTableName(
+          Entry.CompartmentName, Entry.Fn.getName(), Entry.Fn.getCallingConv(),
+          /*IsImport*/ false);
+      auto Sym = C.getOrCreateSymbol(ExportName);
+      OutStreamer->emitSymbolAttribute(Sym, MCSA_ELF_TypeObject);
+      // If the function isn't global, don't make its export table entry global
+      // either.  Two different compilation units in the same compartment may
+      // export different static things.
+      if (Entry.Fn.hasExternalLinkage() && !Entry.forceLocal)
+        OutStreamer->emitSymbolAttribute(Sym, MCSA_Global);
+      OutStreamer->emitValueToAlignment(Align(4));
+      OutStreamer->emitLabel(Sym);
+      emitLabelDifference(Entry.FnSym, CompartmentStartSym, 2);
+      auto stackSize = Entry.stackSize;
+      // Round up to multiple of 8 and divide by 8.
+      stackSize = (stackSize + 7) / 8;
+      // TODO: We should probably warn if the std::min truncates here.
+      OutStreamer->emitIntValue(std::min(uint32_t(255), stackSize), 1);
+      OutStreamer->emitIntValue(Entry.LiveIns, 1);
+      OutStreamer->emitELFSize(Sym, MCConstantExpr::create(4, C));
+    }
+  }
+  // Generate CHERIoT imports if there are any.
+  auto &CHERIoTCompartmentImports =
+      static_cast<RISCVTargetMachine &>(TM).ImportedFunctions;
+  if (!CHERIoTCompartmentImports.empty()) {
+    auto &C = OutStreamer->getContext();
+
+    for (auto &Entry : CHERIoTCompartmentImports) {
+      // Import entries are capability-sized entries.  The second word is
+      // zero, the first is the address of the corresponding export table
+      // entry.
+
+      // Public symbols must be COMDATs so that they can be merged across
+      // compilation units.  Private ones must not be.
+      auto *Section =
+          Entry.IsPublic
+              ? C.getELFSection(".compartment_imports", ELF::SHT_PROGBITS,
+                                ELF::SHF_ALLOC | ELF::SHF_GROUP, 0,
+                                Entry.ImportName, true)
+              : C.getELFSection(".compartment_imports", ELF::SHT_PROGBITS,
+                                ELF::SHF_ALLOC);
+      OutStreamer->switchSection(Section);
+      auto Sym = C.getOrCreateSymbol(Entry.ImportName);
+      auto ExportSym = C.getOrCreateSymbol(Entry.ExportName);
+      OutStreamer->emitSymbolAttribute(Sym, MCSA_ELF_TypeObject);
+      if (Entry.IsPublic)
+        OutStreamer->emitSymbolAttribute(Sym, MCSA_Weak);
+      OutStreamer->emitValueToAlignment(Align(8));
+      OutStreamer->emitLabel(Sym);
+      // Library imports have their low bit set.
+      if (Entry.IsLibrary)
+        OutStreamer->emitValue(
+            MCBinaryExpr::createAdd(MCSymbolRefExpr::create(ExportSym, C),
+                                    MCConstantExpr::create(1, C), C),
+            4);
+      else
+        OutStreamer->emitValue(MCSymbolRefExpr::create(ExportSym, C), 4);
+      OutStreamer->emitIntValue(0, 4);
+      OutStreamer->emitELFSize(Sym, MCConstantExpr::create(8, C));
+    }
+  }
+
   if (TM.getTargetTriple().isOSBinFormatELF())
     RTS.finishAttributeSection();
   EmitHwasanMemaccessSymbols(M);
@@ -438,7 +591,15 @@ void RISCVAsmPrinter::emitFunctionEntryLabel() {
         static_cast<RISCVTargetStreamer &>(*OutStreamer->getTargetStreamer());
     RTS.emitDirectiveVariantCC(*CurrentFnSym);
   }
-  return AsmPrinter::emitFunctionEntryLabel();
+  AsmPrinter::emitFunctionEntryLabel();
+  auto &Subtarget = MF->getSubtarget<RISCVSubtarget>();
+  const MachineJumpTableInfo *MJTI = MF->getJumpTableInfo();
+  if (RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()) &&
+      MJTI && !MJTI->isEmpty()) {
+    MCSymbol *Sym = getSymbolWithGlobalValueBase(&MF->getFunction(),
+                                                 "$jump_table_base");
+    OutStreamer->emitLabel(Sym);
+  }
 }
 
 // Force static initialization.
@@ -765,7 +926,7 @@ static MCOperand lowerSymbolOperand(const MachineOperand &MO, MCSymbol *Sym,
   MCContext &Ctx = AP.OutContext;
   RISCVMCExpr::VariantKind Kind;
 
-  switch (MO.getTargetFlags()) {
+  switch (MO.getTargetFlags() & ~RISCVII::MO_JUMP_TABLE_BASE) {
   default:
     llvm_unreachable("Unknown target flag on GV operand");
   case RISCVII::MO_None:
@@ -816,6 +977,33 @@ static MCOperand lowerSymbolOperand(const MachineOperand &MO, MCSymbol *Sym,
   case RISCVII::MO_TLSDESC_CALL:
     Kind = RISCVMCExpr::VK_RISCV_TLSDESC_CALL;
     break;
+  case RISCVII::MO_CAPTAB_PCREL_HI:
+    Kind = RISCVMCExpr::VK_RISCV_CAPTAB_PCREL_HI;
+    break;
+  case RISCVII::MO_TPREL_CINCOFFSET:
+    Kind = RISCVMCExpr::VK_RISCV_TPREL_CINCOFFSET;
+    break;
+  case RISCVII::MO_TLS_IE_CAPTAB_PCREL_HI:
+    Kind = RISCVMCExpr::VK_RISCV_TLS_IE_CAPTAB_PCREL_HI;
+    break;
+  case RISCVII::MO_TLS_GD_CAPTAB_PCREL_HI:
+    Kind = RISCVMCExpr::VK_RISCV_TLS_GD_CAPTAB_PCREL_HI;
+    break;
+  case RISCVII::MO_CCALL:
+    Kind = RISCVMCExpr::VK_RISCV_CCALL;
+    break;
+  case RISCVII::MO_CHERIOT_COMPARTMENT_HI:
+    Kind = RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_HI;
+    break;
+  case RISCVII::MO_CHERIOT_COMPARTMENT_LO_I:
+    Kind = RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_LO_I;
+    break;
+  case RISCVII::MO_CHERIOT_COMPARTMENT_LO_S:
+    Kind = RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_LO_S;
+    break;
+  case RISCVII::MO_CHERIOT_COMPARTMENT_SIZE:
+    Kind = RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_SIZE;
+    break;
   }
 
   const MCExpr *ME =
@@ -850,9 +1038,16 @@ bool RISCVAsmPrinter::lowerOperand(const MachineOperand &MO,
   case MachineOperand::MO_MachineBasicBlock:
     MCOp = lowerSymbolOperand(MO, MO.getMBB()->getSymbol(), *this);
     break;
-  case MachineOperand::MO_GlobalAddress:
-    MCOp = lowerSymbolOperand(MO, getSymbolPreferLocal(*MO.getGlobal()), *this);
+  case MachineOperand::MO_GlobalAddress: {
+    const GlobalValue *GV = MO.getGlobal();
+    MCSymbol *Sym;
+    if (MO.getTargetFlags() & RISCVII::MO_JUMP_TABLE_BASE)
+      Sym = getSymbolWithGlobalValueBase(GV, "$jump_table_base");
+    else
+      Sym = getSymbolPreferLocal(*GV);
+    MCOp = lowerSymbolOperand(MO, Sym, *this);
     break;
+  }
   case MachineOperand::MO_BlockAddress:
     MCOp = lowerSymbolOperand(MO, GetBlockAddressSymbol(MO.getBlockAddress()),
                               *this);

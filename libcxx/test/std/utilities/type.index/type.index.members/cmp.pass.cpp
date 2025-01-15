@@ -19,6 +19,7 @@
 // strong_ordering operator<=>(const type_index& rhs) const noexcept;
 
 // UNSUPPORTED: no-rtti
+// UNSUPPORTED: libcpp-no-rtti
 
 #include <typeindex>
 #include <cassert>

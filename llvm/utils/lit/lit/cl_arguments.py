@@ -6,6 +6,8 @@ import sys
 
 import lit.reports
 import lit.util
+from lit.LitConfig import CheriTestMode
+
 
 
 @enum.unique
@@ -218,6 +220,12 @@ def parse_args():
         type=_positive_int,
     )
     selection_group.add_argument(
+        "--skip-tests",
+        dest="skipTests",
+        metavar="N",
+        help="Number of initial tests to skip",
+        type=_positive_int)
+    selection_group.add_argument(
         "--max-time",
         dest="timeout",
         metavar="N",
@@ -280,6 +288,13 @@ def parse_args():
         default=os.environ.get("LIT_NUM_SHARDS"),
     )
     selection_group.add_argument(
+            "--cheri-tests-filter",
+            choices=(CheriTestMode.INCLUDE, CheriTestMode.EXCLUDE, CheriTestMode.ONLY),
+            help="Selector for CHERI specific test (include, exclude, only). "
+                 "This is useful to run only the tests that depend"
+                 " on Cheri128 vs Cheri256)",
+            default=CheriTestMode.INCLUDE)
+    selection_group.add_argument(
         "--run-shard",
         dest="runShard",
         metavar="N",
@@ -305,6 +320,13 @@ def parse_args():
         help="Show all features used in the test suite (in XFAIL, UNSUPPORTED and REQUIRES) and exit",
         action="store_true",
     )
+    # TODO: should rename this to --run-with-debugger to allow lldb/gdb
+    debug_group.add_argument(
+        "--gdb",
+        dest="run_with_debugger",
+        help="Run tests with gdb and print a backtrace on crash. "
+             "This is currently only supported for libc++/libunwind.",
+        action="store_true")
 
     # LIT is special: environment variables override command line arguments.
     env_args = shlex.split(os.environ.get("LIT_OPTS", ""))

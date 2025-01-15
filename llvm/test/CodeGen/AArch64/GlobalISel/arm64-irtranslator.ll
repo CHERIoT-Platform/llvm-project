@@ -1216,13 +1216,13 @@ next:
   ret ptr inttoptr(i32 42 to ptr)
 }
 
-declare void @llvm.va_end(ptr)
-define void @test_va_end(ptr %list) {
+declare void @llvm.va_end.p0(ptr)
+define void @test_va_end.p0(ptr %list) {
 ; CHECK-LABEL: name: test_va_end
 ; CHECK-NOT: va_end
 ; CHECK-NOT: INTRINSIC
 ; CHECK: RET_ReallyLR
-  call void @llvm.va_end(ptr %list)
+  call void @llvm.va_end.p0(ptr %list)
   ret void
 }
 

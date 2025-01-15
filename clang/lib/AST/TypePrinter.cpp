@@ -274,6 +274,7 @@ bool TypePrinter::canPrefixQualifiers(const Type *T,
     case Type::RValueReference:
     case Type::MemberPointer:
     case Type::DependentAddressSpace:
+    case Type::DependentPointer:
     case Type::DependentVector:
     case Type::DependentSizedExtVector:
     case Type::Vector:
@@ -351,6 +352,24 @@ void TypePrinter::printBefore(const Type *T,Qualifiers Quals, raw_ostream &OS) {
 #include "clang/AST/TypeNodes.inc"
   }
 
+  // Print __capability
+  if (!Policy.SuppressCapabilityQualifier) {
+    if (const PointerType *PTy = dyn_cast<PointerType>(T)) {
+      if (PTy->getPointerInterpretation() == PIK_Capability) {
+        OS << " __capability";
+        if (hasAfterQuals || !PrevPHIsEmpty.get())
+          OS << " ";
+      }
+    }
+    else if (const ReferenceType *RTy = dyn_cast<ReferenceType>(T)) {
+      if (RTy->getPointerInterpretation() == PIK_Capability) {
+        OS << " __capability";
+        if (hasAfterQuals || !PrevPHIsEmpty.get())
+          OS << " ";
+      }
+    }
+  }
+
   if (hasAfterQuals) {
     if (NeedARCStrongQualifier) {
       IncludeStrongLifetimeRAII Strong(Policy);
@@ -397,10 +416,11 @@ void TypePrinter::printComplexAfter(const ComplexType *T, raw_ostream &OS) {
 void TypePrinter::printPointerBefore(const PointerType *T, raw_ostream &OS) {
   IncludeStrongLifetimeRAII Strong(Policy);
   SaveAndRestore NonEmptyPH(HasEmptyPlaceHolder, false);
-  printBefore(T->getPointeeType(), OS);
+  QualType PointeeTy = T->getPointeeType();
+  printBefore(PointeeTy, OS);
   // Handle things like 'int (*A)[4];' correctly.
   // FIXME: this should include vectors, but vectors use attributes I guess.
-  if (isa<ArrayType>(T->getPointeeType()))
+  if (isa<ArrayType>(PointeeTy))
     OS << '(';
   OS << '*';
 }
@@ -622,6 +642,21 @@ void TypePrinter::printDependentAddressSpaceAfter(
     T->getAddrSpaceExpr()->printPretty(OS, nullptr, Policy);
   OS << ")))";
   printAfter(T->getPointeeType(), OS);
+}
+
+void TypePrinter::printDependentPointerBefore(
+    const DependentPointerType *T, raw_ostream &OS) {
+  printBefore(T->getPointerType(), OS);
+}
+
+void TypePrinter::printDependentPointerAfter(
+    const DependentPointerType *T, raw_ostream &OS) {
+  if (!Policy.SuppressCapabilityQualifier) {
+    if (T->getPointerInterpretation() == PIK_Capability) {
+      OS << " __capability";
+    }
+  }
+  printAfter(T->getPointerType(), OS);
 }
 
 void TypePrinter::printDependentSizedExtVectorBefore(
@@ -1039,6 +1074,18 @@ void TypePrinter::printFunctionAfter(const FunctionType::ExtInfo &Info,
       break;
     case CC_X86_64SysV:
       OS << " __attribute__((sysv_abi))";
+      break;
+    case CC_CHERICCallback:
+      OS << " __attribute__((cheri_ccallback))";
+      break;
+    case CC_CHERICCall:
+      OS << " __attribute__((cheri_ccall))";
+      break;
+    case CC_CHERILibCall:
+      OS << " __attribute__((cheri_libcall))";
+      break;
+    case CC_CHERICCallee:
+      OS << " __attribute__((cheri_ccallee))";
       break;
     case CC_X86RegCall:
       OS << " __attribute__((regcall))";
@@ -1761,7 +1808,8 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
 
   // Some attributes are printed as qualifiers before the type, so we have
   // nothing left to do.
-  if (T->getAttrKind() == attr::ObjCKindOf || T->isMSTypeSpec() ||
+  if (T->getAttrKind() == attr::ObjCKindOf ||
+      T->getAttrKind() == attr::CHERICapability || T->isMSTypeSpec() ||
       T->getImmediateNullability() || T->isWebAssemblyFuncrefSpec())
     return;
 
@@ -1840,6 +1888,7 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   case attr::Ptr64:
   case attr::SPtr:
   case attr::UPtr:
+  case attr::CHERICapability:
   case attr::AddressSpace:
   case attr::CmseNSCall:
   case attr::AnnotateType:
@@ -1851,6 +1900,24 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   case attr::ArmInOut:
   case attr::ArmPreserves:
     llvm_unreachable("This attribute should have been handled already");
+  case attr::CHERIMethodClass:
+    OS << "cheri_method_class(" << "???" << ")"; break;
+  case attr::CHERIMethodSuffix:
+    OS << "cheri_method_suffix(" << "???" << ")";
+    break;
+  case attr::CHERICompartmentName:
+    OS << "cheri_compartment(" << "???" << ")";
+    break;
+  case attr::CHERINoSubobjectBounds:
+     OS << "cheri_no_subobject_bounds";
+     break;
+  case attr::CHERINoProvenance:
+    OS << "cheri_no_provenance";
+    break;
+  case attr::PointerInterpretationCaps:
+     OS << "pointer_interpretation_capabilities";
+     break;
+
 
   case attr::NSReturnsRetained:
     OS << "ns_returns_retained";
@@ -1860,6 +1927,12 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   // attribute again in printFunctionProtoAfter.
   case attr::AnyX86NoCfCheck: OS << "nocf_check"; break;
   case attr::CDecl: OS << "cdecl"; break;
+  case attr::CHERICCall: OS << "cheri_ccall"; break;
+  case attr::CHERICCallback: OS << "cheri_ccallback"; break;
+  case attr::CHERICCallee: OS << "cheri_ccallee"; break;
+  case attr::CHERILibCall:
+    OS << "cheri_libcall";
+    break;
   case attr::FastCall: OS << "fastcall"; break;
   case attr::StdCall: OS << "stdcall"; break;
   case attr::ThisCall: OS << "thiscall"; break;
@@ -1896,6 +1969,9 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
     break;
   case attr::NoDeref:
     OS << "noderef";
+    break;
+  case attr::MemoryAddress:
+    OS << "memory_address";
     break;
   case attr::AcquireHandle:
     OS << "acquire_handle";

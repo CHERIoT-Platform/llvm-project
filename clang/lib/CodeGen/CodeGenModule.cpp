@@ -48,6 +48,7 @@
 #include "clang/CodeGen/BackendUtil.h"
 #include "clang/CodeGen/ConstantInitBuilder.h"
 #include "clang/Frontend/FrontendDiagnostic.h"
+#include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringSwitch.h"
@@ -55,6 +56,7 @@
 #include "llvm/Frontend/OpenMP/OMPIRBuilder.h"
 #include "llvm/IR/AttributeMask.h"
 #include "llvm/IR/CallingConv.h"
+#include "llvm/IR/Cheri.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/LLVMContext.h"
@@ -67,8 +69,11 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ConvertUTF.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/RISCVISAInfo.h"
+#include "llvm/Support/YAMLParser.h"
 #include "llvm/Support/TimeProfiler.h"
+#include "llvm/Transforms/Utils/CheriSetBounds.h"
 #include "llvm/Support/xxhash.h"
 #include "llvm/TargetParser/Triple.h"
 #include "llvm/TargetParser/X86TargetParser.h"
@@ -80,6 +85,11 @@ using namespace CodeGen;
 static llvm::cl::opt<bool> LimitedCoverage(
     "limited-coverage-experimental", llvm::cl::Hidden,
     llvm::cl::desc("Emit limited coverage mapping information (experimental)"));
+
+static llvm::cl::opt<bool> CollectPointerCastStats(
+    "collect-pointer-cast-stats", llvm::cl::ZeroOrMore, llvm::cl::Hidden,
+    llvm::cl::desc("Collect statistics on numbers of int <-> pointer casts"),
+    llvm::cl::init(false));
 
 static const char AnnotationSection[] = "llvm.metadata";
 
@@ -224,7 +234,7 @@ createTargetCodeGenInfo(CodeGenModule &CGM) {
   case llvm::Triple::riscv32:
   case llvm::Triple::riscv64: {
     StringRef ABIStr = Target.getABI();
-    unsigned XLen = Target.getPointerWidth(LangAS::Default);
+    unsigned XLen = Target.getPointerRange(LangAS::Default);
     unsigned ABIFLen = 0;
     if (ABIStr.ends_with("f"))
       ABIFLen = 32;
@@ -350,25 +360,36 @@ CodeGenModule::CodeGenModule(ASTContext &C,
   BFloatTy = llvm::Type::getBFloatTy(LLVMContext);
   FloatTy = llvm::Type::getFloatTy(LLVMContext);
   DoubleTy = llvm::Type::getDoubleTy(LLVMContext);
+  const TargetInfo &Target = C.getTargetInfo();
   PointerWidthInBits = C.getTargetInfo().getPointerWidth(LangAS::Default);
   PointerAlignInBytes =
       C.toCharUnitsFromBits(C.getTargetInfo().getPointerAlign(LangAS::Default))
           .getQuantity();
   SizeSizeInBytes =
-    C.toCharUnitsFromBits(C.getTargetInfo().getMaxPointerWidth()).getQuantity();
+    C.toCharUnitsFromBits(Target.getTypeWidth(Target.getSizeType())).getQuantity();
   IntAlignInBytes =
-    C.toCharUnitsFromBits(C.getTargetInfo().getIntAlign()).getQuantity();
+    C.toCharUnitsFromBits(Target.getIntAlign()).getQuantity();
   CharTy =
     llvm::IntegerType::get(LLVMContext, C.getTargetInfo().getCharWidth());
   IntTy = llvm::IntegerType::get(LLVMContext, C.getTargetInfo().getIntWidth());
-  IntPtrTy = llvm::IntegerType::get(LLVMContext,
-    C.getTargetInfo().getMaxPointerWidth());
-  Int8PtrTy = llvm::PointerType::get(LLVMContext, 0);
+  // XXXAR: it seems like the codegen uses this type as an integer which can fit
+  // the pointer range and not as an integer with the same width as a pointer
+  IntPtrTy = llvm::IntegerType::get(LLVMContext, Target.getMaxPointerRange());
+  Int8PtrTy = Int8Ty->getPointerTo(getTargetCodeGenInfo().getDefaultAS());
+  if (Target.SupportsCapabilities()) {
+    Int8CheriCapTy =
+        Int8Ty->getPointerTo(getTargetCodeGenInfo().getCHERICapabilityAS());
+  } else {
+    Int8CheriCapTy = nullptr;
+  }
+  Int8PtrPtrTy = Int8PtrTy->getPointerTo(getTargetCodeGenInfo().getDefaultAS());
   const llvm::DataLayout &DL = M.getDataLayout();
   AllocaInt8PtrTy =
       llvm::PointerType::get(LLVMContext, DL.getAllocaAddrSpace());
   GlobalsInt8PtrTy =
       llvm::PointerType::get(LLVMContext, DL.getDefaultGlobalsAddressSpace());
+  ProgramInt8PtrTy =
+      llvm::PointerType::get(LLVMContext, DL.getProgramAddressSpace());
   ConstGlobalsPtrTy = llvm::PointerType::get(
       LLVMContext, C.getTargetAddressSpace(GetGlobalConstantAddressSpace()));
   ASTAllocaAddressSpace = getTargetCodeGenInfo().getASTAllocaAddressSpace();
@@ -426,6 +447,9 @@ CodeGenModule::CodeGenModule(ASTContext &C,
   // CoverageMappingModuleGen object.
   if (CodeGenOpts.CoverageMapping)
     CoverageMapping.reset(new CoverageMappingModuleGen(*this, *CoverageInfo));
+
+  if (CollectPointerCastStats)
+    PointerCastStats.reset(new PointerCastLocations);
 
   // Generate the module name hash here if needed.
   if (CodeGenOpts.UniqueInternalLinkageNames &&
@@ -753,6 +777,54 @@ void setLLVMVisibility(llvm::GlobalValue &GV,
   GV.setVisibility(*V);
 }
 
+void CodeGenModule::PointerCastLocations::printStats(llvm::raw_ostream &OS,
+                                                     const CodeGenModule &CGM) {
+  const SourceManager &SM = CGM.getContext().getSourceManager();
+  auto DumpStat = [&](const llvm::SmallVectorImpl<std::pair<SourceRange, bool>> &Vec) {
+    const size_t Total = Vec.size();
+    OS << "\t\t\"count\": " << Total << ",\n\t\t\"locations\": [";
+    unsigned NumImplicitCasts = 0;
+    if (Total == 0) {
+      OS << "]";
+      return;
+    }
+
+    for (size_t i = 0; i < Total;) {
+      OS << "\n\t\t\t\"" << llvm::yaml::escape(Vec[i].first.printToString(SM));
+      if (Vec[i].second) {
+        OS << " (implicit)";
+        NumImplicitCasts++;
+      }
+      OS << '"';
+      i++;
+      if (i < Total)
+        OS << ',';
+    }
+    OS << "\n\t\t]";
+    if (NumImplicitCasts)
+      OS << ",\n\t\t\"implicit_count\": " << NumImplicitCasts << "";
+  };
+
+  OS << "{ \"pointer_cast_stats\": {\n";
+  StringRef MainFile = CGM.getCodeGenOpts().MainFileName;
+  if (MainFile.empty()) {
+    SourceLocation MainFileLoc = SM.getLocForStartOfFile(SM.getMainFileID());
+    MainFile = SM.getFilename(MainFileLoc);
+  }
+  OS << "\t\"main_file\": \"" << llvm::yaml::escape(MainFile) << "\",\n";
+  OS << "\t\"ptrtoint\": {\n";
+
+  DumpStat(PointerToInt);
+  OS << "\n\t}, \"inttoptr\": {\n";
+  DumpStat(IntToPointer);
+  OS << "\n\t}, \"captoptr\": {\n";
+  DumpStat(CapToPointer);
+  OS << "\n\t}, \"ptrtocap\": {\n";
+  DumpStat(PointerToCap);
+  OS << "\n\t}";
+  OS << "\n} }";
+}
+
 static void setVisibilityFromDLLStorageClass(const clang::LangOptions &LO,
                                              llvm::Module &M) {
   if (!LO.VisibilityFromDLLStorageClass)
@@ -922,6 +994,21 @@ void CodeGenModule::Release() {
   emitLLVMUsed();
   if (SanStats)
     SanStats->finish();
+
+  if (CollectPointerCastStats) {
+    auto StatsOS = llvm::cheri::StatsOutputFile::open(
+        getCodeGenOpts().CHERIStatsFile,
+        [this](StringRef StatsFile, const std::error_code &EC) {
+          getDiags().Report(diag::warn_fe_unable_to_open_stats_file)
+              << StatsFile << EC.message();
+        },
+        [this](StringRef StatsFile, const std::error_code &EC) {
+          getDiags().Report(diag::warn_fe_unable_to_lock_stats_file)
+              << StatsFile << EC.message();
+        });
+    if (StatsOS)
+      PointerCastStats->printStats(StatsOS->stream(), *this);
+  }
 
   if (CodeGenOpts.Autolink &&
       (Context.getLangOpts().Modules || !LinkerOptionsMetadata.empty())) {
@@ -2061,8 +2148,8 @@ void CodeGenModule::EmitCtorList(CtorList &Fns, const char *GlobalName) {
 
   // Ctor function type is void()*.
   llvm::FunctionType* CtorFTy = llvm::FunctionType::get(VoidTy, false);
-  llvm::Type *CtorPFTy = llvm::PointerType::get(CtorFTy,
-      TheModule.getDataLayout().getProgramAddressSpace());
+  llvm::Type *CtorPFTy = llvm::PointerType::get(
+      CtorFTy, TheModule.getDataLayout().getProgramAddressSpace());
 
   // Get the type of a ctor entry, { i32, void ()*, i8* }.
   llvm::StructType *CtorStructTy = llvm::StructType::get(
@@ -2927,6 +3014,7 @@ void CodeGenModule::addUsedOrCompilerUsedGlobal(llvm::GlobalValue *GV) {
 
 static void emitUsed(CodeGenModule &CGM, StringRef Name,
                      std::vector<llvm::WeakTrackingVH> &List) {
+  llvm::PointerType *UsedPtrTy = CGM.Int8Ty->getPointerTo(0);
   // Don't create llvm.used if there is no need.
   if (List.empty())
     return;
@@ -2937,12 +3025,12 @@ static void emitUsed(CodeGenModule &CGM, StringRef Name,
   for (unsigned i = 0, e = List.size(); i != e; ++i) {
     UsedArray[i] =
         llvm::ConstantExpr::getPointerBitCastOrAddrSpaceCast(
-            cast<llvm::Constant>(&*List[i]), CGM.Int8PtrTy);
+            cast<llvm::Constant>(&*List[i]), UsedPtrTy);
   }
 
   if (UsedArray.empty())
     return;
-  llvm::ArrayType *ATy = llvm::ArrayType::get(CGM.Int8PtrTy, UsedArray.size());
+  llvm::ArrayType *ATy = llvm::ArrayType::get(UsedPtrTy, UsedArray.size());
 
   auto *GV = new llvm::GlobalVariable(
       CGM.getModule(), ATy, false, llvm::GlobalValue::AppendingLinkage,
@@ -4470,7 +4558,6 @@ llvm::Constant *CodeGenModule::GetOrCreateLLVMFunction(
     bool DontDefer, bool IsThunk, llvm::AttributeList ExtraAttrs,
     ForDefinition_t IsForDefinition) {
   const Decl *D = GD.getDecl();
-
   // Any attempts to use a MultiVersion function should result in retrieving
   // the iFunc instead. Name Mangling will handle the rest of the changes.
   if (const FunctionDecl *FD = cast_or_null<FunctionDecl>(D)) {
@@ -4676,6 +4763,37 @@ CodeGenModule::GetAddrOfFunction(GlobalDecl GD, llvm::Type *Ty, bool ForVTable,
   auto *F = GetOrCreateLLVMFunction(MangledName, Ty, GD, ForVTable, DontDefer,
                                     /*IsThunk=*/false, llvm::AttributeList(),
                                     IsForDefinition);
+  auto *FD = cast<FunctionDecl>(GD.getDecl());
+  bool isExportedFunction = false;
+  if (FD->hasAttr<CHERICompartmentNameAttr>()) {
+    cast<llvm::Function>(F->stripPointerCasts())
+        ->addFnAttr(
+            "cheri-compartment",
+            FD->getAttr<CHERICompartmentNameAttr>()->getCompartmentName());
+    isExportedFunction = true;
+  } else {
+    auto CC = FD->getType()->castAs<FunctionType>()->getCallConv();
+    if (CC == CC_CHERICCallback)
+      isExportedFunction = true;
+    else if (!getLangOpts().CheriCompartmentName.empty() &&
+             (CC != CC_CHERILibCall)) {
+      // NB: guard against the underlying value being a Constant
+      if (auto *Fn = dyn_cast<llvm::Function>(F->stripPointerCasts()))
+        Fn->addFnAttr("cheri-compartment", getLangOpts().CheriCompartmentName);
+    }
+  }
+
+  if (FD->hasAttr<InterruptStateAttr>())
+    cast<llvm::Function>(F->stripPointerCasts())
+        ->addFnAttr("interrupt-state",
+                    InterruptStateAttr::ConvertInterruptStateToStr(
+                        FD->getAttr<InterruptStateAttr>()->getState()));
+  else if (isExportedFunction)
+    // Exported functions with no explicit interrupt state have interrupts
+    // enabled.
+    cast<llvm::Function>(F->stripPointerCasts())
+        ->addFnAttr("interrupt-state", "enabled");
+
   // Returns kernel handle for HIP kernel stub function.
   if (LangOpts.CUDA && !LangOpts.CUDAIsDevice &&
       cast<FunctionDecl>(GD.getDecl())->hasAttr<CUDAGlobalAttr>()) {
@@ -5027,8 +5145,8 @@ llvm::GlobalVariable *CodeGenModule::CreateOrReplaceCXXRuntimeVariable(
   }
 
   // Create a new variable.
-  GV = new llvm::GlobalVariable(getModule(), Ty, /*isConstant=*/true,
-                                Linkage, nullptr, Name);
+  GV = new llvm::GlobalVariable(getModule(), Ty, /*isConstant=*/true, Linkage,
+                                nullptr, Name);
 
   if (OldGV) {
     // Replace occurrences of the old variable if needed.
@@ -5141,6 +5259,25 @@ LangAS CodeGenModule::GetGlobalVarAddressSpace(const VarDecl *D) {
         return LangAS::cuda_constant;
     }
     return LangAS::cuda_device;
+  }
+  // FIXME-cheri-qual: May need to handle GetGlobalVarAddressSpace carefully
+  const TargetInfo &Target = getContext().getTargetInfo();
+  if (Target.SupportsCapabilities()) {
+    // In the hybrid ABI, AddrSpace == 200 means that D is a
+    // capability-qualified pointer.
+    // FIXME-cheri-qual: We currently can't handle thread-local storage
+    unsigned CapAS = getTargetCodeGenInfo().getCHERICapabilityAS();
+    if (Target.areAllPointersCapabilities()) { // Pure ABI
+      if (D && (D->getTLSKind() != VarDecl::TLS_None)) {
+        return getLangASFromTargetAS(
+            getTargetCodeGenInfo().getTlsAddressSpace());
+      }
+      // All non-TLS variables should be in the Cap AS
+      return getLangASFromTargetAS(CapAS);
+    } else if (D && getTypes().getTargetAddressSpace(D->getType()) == CapAS) {
+      // In the hybrid ABI all globals are in AS 0 (even capabilities)
+      return LangAS::Default; // XXXAR: FIXME: is this really  correct?
+    }
   }
 
   if (LangOpts.OpenMP) {
@@ -7466,6 +7603,139 @@ void CodeGenModule::AddVTableTypeMetadata(llvm::GlobalVariable *VTable,
     llvm::Metadata *MD = llvm::MDString::get(getLLVMContext(), "all-vtables");
     VTable->addTypeMetadata(Offset.getQuantity(), MD);
   }
+}
+
+static llvm::GlobalVariable *
+GenerateAS0StringLiteral(CodeGenModule &CGM, StringRef Str) {
+  llvm::SmallString<128> StrWithNull(Str);
+  StrWithNull.push_back('\0');
+
+  llvm::Constant *C = llvm::ConstantDataArray::getString(CGM.getLLVMContext(),
+                                                         StrWithNull, false);
+
+  auto *GV = new llvm::GlobalVariable( CGM.getModule(), C->getType(), true,
+          llvm::GlobalValue::PrivateLinkage, C);
+  GV->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
+
+  return GV;
+}
+
+Address CodeGenModule::EmitSandboxRequiredMethod(StringRef Cls, StringRef Fn) {
+  // We're going to emit a structure of the following form:
+  // struct sandbox_required_method {
+  //   int64_t   flags;
+  //   char     *class;
+  //   char     *method;
+  //   int64_t  *method_number_var;
+  //   int64_t   method_number;
+  // };
+  // The class and method fields point to the names of the class and method.
+  // The method_number_var field is temporary and points to the
+  // __cheri_method.{class}.{function} variable that older versions of the
+  // sandbox interface ABI used.
+  // The method number is the new method number variable.
+  // The low 32 bits of the flags field are reserved for the compiler, the high
+  // 32 bits for the runtime.  The runtime uses one of these to indicate a
+  // resolved method.
+  // At some point, the compiler will use the low 1 bit of flags to indicate
+  // that the `method_number_var` field is not present and that the compiled
+  // code uses the method_number field directly.
+
+
+  // Emit a global of the form __cheri_method.{class}.{function}
+  auto GlobalName = (StringRef("__cheri_method.") + Cls + "." + Fn).str();
+
+  auto *MethodNumVar = getModule().getNamedGlobal(GlobalName);
+  auto *Zero64 = llvm::ConstantInt::get(Int64Ty, 0);
+  if (!MethodNumVar) {
+    MethodNumVar = new llvm::GlobalVariable(getModule(), Int64Ty,
+        /*isConstant*/false, llvm::GlobalValue::LinkOnceODRLinkage,
+        Zero64, GlobalName);
+    MethodNumVar->setSection(".CHERI_CALLER");
+    addUsedGlobal(MethodNumVar);
+  }
+
+  auto GlobalStructName = (StringRef(".sandbox_required_method.") + Cls + "." +
+      Fn).str();
+  if (!getModule().getNamedGlobal(GlobalStructName)) {
+    auto *ClsName = GenerateAS0StringLiteral(*this, Cls);
+    auto *MethodName = GenerateAS0StringLiteral(*this, Fn);
+    auto StructTy = llvm::StructType::get(Int64Ty,
+        ClsName->getType(), MethodName->getType(),
+        MethodNumVar->getType(), Int64Ty);
+
+    auto *StructInit = llvm::ConstantStruct::get(StructTy, {Zero64,
+        ClsName, MethodName, MethodNumVar, Zero64});
+    auto *MetadataGV = new llvm::GlobalVariable(getModule(), StructTy,
+        /*isConstant*/false, llvm::GlobalValue::ExternalLinkage, StructInit,
+        GlobalStructName);
+    MetadataGV->setSection("__cheri_sandbox_required_methods");
+    MetadataGV->setComdat(getModule().getOrInsertComdat(GlobalStructName));
+    addUsedGlobal(MetadataGV);
+  }
+
+  return Address(
+      MethodNumVar, MethodNumVar->getValueType(),
+      Context.toCharUnitsFromBits(Target.getTypeAlign(Target.getInt64Type())));
+}
+
+void CodeGenModule::EmitSandboxDefinedMethod(StringRef Cls, StringRef
+    Method, llvm::Function *Fn) {
+  // For each defined method, we emit a structure of the following form:
+  // struct sandbox_provided_method {
+  //   int64_t   flags;
+  //   char     *class;
+  //   char     *method;
+  //   void     *method_ptr;
+  // };
+  // The flags field is always zero.  The class and method give the name of the
+  // class and method.  The method_ptr field includes the sandbox-relative
+  // address of the method.
+
+  // Emit a global of the form __cheri_callee_method.{class}.{function}
+  // containing the sandbox-relative address of the function.
+  auto GlobalName = (StringRef("__cheri_callee_method.") + Cls + "." +
+      Method).str();
+  auto *MethodPtrVar = getModule().getNamedGlobal(GlobalName);
+  if (!MethodPtrVar) {
+    llvm::Constant *FnAS0;
+    if (Fn->getType()->getAddressSpace() != 0)
+      FnAS0 = llvm::ConstantExpr::getAddrSpaceCast(Fn,
+          llvm::PointerType::get(Fn->getType(), 0));
+    else
+      FnAS0 = Fn;
+
+    MethodPtrVar = new llvm::GlobalVariable(getModule(),
+        FnAS0->getType(),
+        /*isConstant*/false, llvm::GlobalValue::ExternalLinkage,
+        FnAS0, GlobalName);
+    MethodPtrVar->setSection(".CHERI_CALLEE");
+    addUsedGlobal(MethodPtrVar);
+  }
+
+  auto GlobalStructName = (StringRef(".sandbox_provided_method.") + Cls + "." +
+      Method).str();
+  if (!getModule().getNamedGlobal(GlobalStructName)) {
+    auto *ClsName = GenerateAS0StringLiteral(*this, Cls);
+    auto *MethodName = GenerateAS0StringLiteral(*this, Method);
+    auto *StructTy = llvm::StructType::get(Int64Ty, ClsName->getType(),
+                                           MethodName->getType(),
+                                           MethodPtrVar->getType());
+    auto *Zero64 = llvm::ConstantInt::get(Int64Ty, 0);
+
+    auto *StructInit = llvm::ConstantStruct::get(StructTy, {Zero64,
+        ClsName, MethodName, MethodPtrVar});
+    auto *MetadataGV = new llvm::GlobalVariable(getModule(), StructTy,
+        /*isConstant*/false, llvm::GlobalValue::ExternalLinkage, StructInit,
+        GlobalStructName);
+    MetadataGV->setSection("__cheri_sandbox_provided_methods");
+    MetadataGV->setComdat(getModule().getOrInsertComdat(StringRef(GlobalStructName)));
+    addUsedGlobal(MetadataGV);
+  }
+}
+
+llvm::PointerType* CodeGenModule::getPointerInDefaultAS(llvm::Type* T) {
+  return llvm::PointerType::get(T, getTargetCodeGenInfo().getDefaultAS());
 }
 
 llvm::SanitizerStatReport &CodeGenModule::getSanStats() {

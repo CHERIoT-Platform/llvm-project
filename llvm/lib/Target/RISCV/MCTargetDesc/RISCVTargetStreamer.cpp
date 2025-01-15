@@ -33,6 +33,8 @@ void RISCVTargetStreamer::emitDirectiveOptionRVC() {}
 void RISCVTargetStreamer::emitDirectiveOptionNoRVC() {}
 void RISCVTargetStreamer::emitDirectiveOptionRelax() {}
 void RISCVTargetStreamer::emitDirectiveOptionNoRelax() {}
+void RISCVTargetStreamer::emitDirectiveOptionCapMode() {}
+void RISCVTargetStreamer::emitDirectiveOptionNoCapMode() {}
 void RISCVTargetStreamer::emitDirectiveOptionArch(
     ArrayRef<RISCVOptionArchArg> Args) {}
 void RISCVTargetStreamer::emitDirectiveVariantCC(MCSymbol &Symbol) {}
@@ -51,6 +53,7 @@ void RISCVTargetStreamer::setTargetABI(RISCVABI::ABI ABI) {
 void RISCVTargetStreamer::setFlagsFromFeatures(const MCSubtargetInfo &STI) {
   HasRVC = STI.hasFeature(RISCV::FeatureStdExtC);
   HasTSO = STI.hasFeature(RISCV::FeatureStdExtZtso);
+  IsCapMode = STI.hasFeature(RISCV::FeatureCapMode);
 }
 
 void RISCVTargetStreamer::emitTargetAttributes(const MCSubtargetInfo &STI,
@@ -109,6 +112,14 @@ void RISCVTargetAsmStreamer::emitDirectiveOptionRelax() {
 
 void RISCVTargetAsmStreamer::emitDirectiveOptionNoRelax() {
   OS << "\t.option\tnorelax\n";
+}
+
+void RISCVTargetAsmStreamer::emitDirectiveOptionCapMode() {
+  OS << "\t.option\tcapmode\n";
+}
+
+void RISCVTargetAsmStreamer::emitDirectiveOptionNoCapMode() {
+  OS << "\t.option\tnocapmode\n";
 }
 
 void RISCVTargetAsmStreamer::emitDirectiveOptionArch(

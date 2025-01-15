@@ -1,4 +1,4 @@
-## Check how llvm-readobj and llvm-readelf tools dump addends of relocations. 
+## Check how llvm-readobj and llvm-readelf tools dump addends of relocations.
 
 # RUN: yaml2obj --docnum=1 -DENCODE=LSB -DTYPE=SHT_RELA %s -o %t.le64.rela
 # RUN: llvm-readobj -r %t.le64.rela | FileCheck %s --check-prefix=LLVM-RELA64

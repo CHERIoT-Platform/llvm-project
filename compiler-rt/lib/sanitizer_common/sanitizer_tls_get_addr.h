@@ -57,7 +57,7 @@ struct DTLS {
   atomic_uintptr_t dtv_block;
 
   // Auxiliary fields, don't access them outside sanitizer_tls_get_addr.cpp
-  uptr last_memalign_size;
+  usize last_memalign_size;
   uptr last_memalign_ptr;
 };
 
@@ -76,7 +76,7 @@ void ForEachDVT(DTLS *dtls, const Fn &fn) {
 // Each block is returned exactly once.
 DTLS::DTV *DTLS_on_tls_get_addr(void *arg, void *res, uptr static_tls_begin,
                                 uptr static_tls_end);
-void DTLS_on_libc_memalign(void *ptr, uptr size);
+void DTLS_on_libc_memalign(void *ptr, usize size);
 DTLS *DTLS_Get();
 void DTLS_Destroy();  // Make sure to call this before the thread is destroyed.
 // Returns true if DTLS of suspended thread is in destruction process.

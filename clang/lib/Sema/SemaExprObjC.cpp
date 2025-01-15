@@ -4733,9 +4733,8 @@ ExprResult Sema::BuildObjCBridgedCast(SourceLocation LParenLoc,
     return ExprError();
   }
 
-  Expr *Result = new (Context) ObjCBridgedCastExpr(LParenLoc, Kind, CK,
-                                                   BridgeKeywordLoc,
-                                                   TSInfo, SubExpr);
+  Expr *Result = new (Context) ObjCBridgedCastExpr(
+      LParenLoc, Kind, CK, BridgeKeywordLoc, TSInfo, SubExpr, Context);
 
   if (MustConsume) {
     Cleanup.setExprNeedsCleanups(true);

@@ -20,6 +20,8 @@
 # CHECK32:   nop                    # encoding: [0x00,0x00,0x00,0x00]
 # CHECK32:   bgezal $6, 1332        # encoding: [0x4d,0x01,0xd1,0x04]
 # CHECK32:   nop                    # encoding: [0x00,0x00,0x00,0x00]
+# CHECK32:   bltzal $6, 1332        # encoding: [0x4d,0x01,0xd0,0x04]
+# CHECK32:   nop                    # encoding: [0x00,0x00,0x00,0x00]
 # CHECK32:   bgtz $6, 1332          # encoding: [0x4d,0x01,0xc0,0x1c]
 # CHECK32:   nop                    # encoding: [0x00,0x00,0x00,0x00]
 # CHECK32:   blez $6, 1332          # encoding: [0x4d,0x01,0xc0,0x18]
@@ -44,6 +46,8 @@
 # CHECK64:   bgez $6, 1332          # encoding: [0x4d,0x01,0xc1,0x04]
 # CHECK64:   nop                    # encoding: [0x00,0x00,0x00,0x00]
 # CHECK64:   bgezal $6, 1332        # encoding: [0x4d,0x01,0xd1,0x04]
+# CHECK64:   nop                    # encoding: [0x00,0x00,0x00,0x00]
+# CHECK64:   bltzal $6, 1332        # encoding: [0x4d,0x01,0xd0,0x04]
 # CHECK64:   nop                    # encoding: [0x00,0x00,0x00,0x00]
 # CHECK64:   bgtz $6, 1332          # encoding: [0x4d,0x01,0xc0,0x1c]
 # CHECK64:   nop                    # encoding: [0x00,0x00,0x00,0x00]
@@ -71,6 +75,8 @@
          bgez $6,1332
          nop
          bgezal $6,1332
+         nop
+         bltzal $6,1332
          nop
          bgtz $6,1332
          nop

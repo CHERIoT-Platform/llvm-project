@@ -346,7 +346,8 @@ bool PostRAScheduler::runOnMachineFunction(MachineFunction &Fn) {
         Scheduler.Observe(MI, CurrentCount);
       }
       I = MI;
-      if (MI.isBundle())
+      // TODO: this should be upstreamed. What is the test case that broke?
+      if (MI.isBundled())
         Count -= MI.getBundleSize();
     }
     assert(Count == 0 && "Instruction count mismatch!");

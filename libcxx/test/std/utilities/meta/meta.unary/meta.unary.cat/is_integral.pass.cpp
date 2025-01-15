@@ -87,6 +87,8 @@ int main(int, char**)
 #ifndef TEST_HAS_NO_CHAR8_T
     test_is_integral<char8_t>();
 #endif
+    test_is_integral<intptr_t>();
+    test_is_integral<uintptr_t>();
 
     test_is_not_integral<std::nullptr_t>();
     test_is_not_integral<void>();

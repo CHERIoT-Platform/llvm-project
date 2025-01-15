@@ -1942,6 +1942,8 @@ static Attribute::AttrKind getAttrFromCode(uint64_t Code) {
     return Attribute::DisableSanitizerInstrumentation;
   case bitc::ATTR_KIND_ELEMENTTYPE:
     return Attribute::ElementType;
+  case bitc::ATTR_KIND_HAS_SIDE_EFFECTS:
+    return Attribute::HasSideEffects;
   case bitc::ATTR_KIND_FNRETTHUNK_EXTERN:
     return Attribute::FnRetThunkExtern;
   case bitc::ATTR_KIND_INLINE_HINT:
@@ -1956,6 +1958,8 @@ static Attribute::AttrKind getAttrFromCode(uint64_t Code) {
     return Attribute::NoFPClass;
   case bitc::ATTR_KIND_MIN_SIZE:
     return Attribute::MinSize;
+  case bitc::ATTR_KIND_MUST_PRESERVE_CHERI_TAGS:
+    return Attribute::MustPreserveCheriTags;
   case bitc::ATTR_KIND_NAKED:
     return Attribute::Naked;
   case bitc::ATTR_KIND_NEST:
@@ -1976,6 +1980,8 @@ static Attribute::AttrKind getAttrFromCode(uint64_t Code) {
     return Attribute::NoImplicitFloat;
   case bitc::ATTR_KIND_NO_INLINE:
     return Attribute::NoInline;
+  case bitc::ATTR_KIND_NO_PRESERVE_CHERI_TAGS:
+    return Attribute::NoPreserveCheriTags;
   case bitc::ATTR_KIND_NO_RECURSE:
     return Attribute::NoRecurse;
   case bitc::ATTR_KIND_NO_MERGE:

@@ -23,6 +23,7 @@
 namespace llvm {
 
 class TargetRegisterClass;
+class MipsSubtarget;
 
 class MipsRegisterInfo : public MipsGenRegisterInfo {
 public:
@@ -38,7 +39,7 @@ public:
     GlobalPointer = 3,
   };
 
-  MipsRegisterInfo();
+  MipsRegisterInfo(const MipsSubtarget &STI);
 
   /// Get PIC indirect call register
   static unsigned getPICCallReg();
@@ -73,7 +74,7 @@ public:
 private:
   virtual void eliminateFI(MachineBasicBlock::iterator II, unsigned OpNo,
                            int FrameIndex, uint64_t StackSize,
-                           int64_t SPOffset) const = 0;
+                           int64_t SPOffset, RegScavenger *RS) const = 0;
 };
 
 } // end namespace llvm

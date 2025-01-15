@@ -64,12 +64,14 @@
 //  I   -> Required to constant fold to an integer constant expression.
 //
 // Types may be postfixed with the following modifiers:
-// * -> pointer (optionally followed by an address space number, if no address
-//               space is specified than any address space will be accepted)
+// * -> pointer (optionally followed by an address space number, or 'm' for
+//      memory capabilities. If no address space is specified than
+//      any address space will be accepted)
 // & -> reference (optionally followed by an address space number)
 // C -> const
 // D -> volatile
 // R -> restrict
+// m -> memory capability
 
 // The third value provided to the macro specifies information about attributes
 // of the function.  These must be kept in sync with the predicates in the
@@ -567,6 +569,8 @@ BUILTIN(__builtin_va_end, "vA", "n")
 BUILTIN(__builtin_va_copy, "vAA", "n")
 BUILTIN(__builtin_stdarg_start, "vA.", "nt")
 BUILTIN(__builtin_assume_aligned, "v*vC*z.", "nctE")
+// adding a _cap suffix is easier than supporting overloading
+BUILTIN(__builtin_assume_aligned_cap, "v*mvC*mz.", "nct")
 BUILTIN(__builtin_bcmp, "ivC*vC*z", "FnE")
 BUILTIN(__builtin_bcopy, "vvC*v*z", "nF")
 BUILTIN(__builtin_bzero, "vv*z", "nF")
@@ -736,6 +740,7 @@ BUILTIN(__sync_fetch_and_add_2, "ssD*s.", "nt")
 BUILTIN(__sync_fetch_and_add_4, "iiD*i.", "nt")
 BUILTIN(__sync_fetch_and_add_8, "LLiLLiD*LLi.", "nt")
 BUILTIN(__sync_fetch_and_add_16, "LLLiLLLiD*LLLi.", "nt")
+BUILTIN(__sync_fetch_and_add_cap, "imimD*im.", "nt")
 
 BUILTIN(__sync_fetch_and_sub, "v.", "t")
 BUILTIN(__sync_fetch_and_sub_1, "ccD*c.", "nt")
@@ -743,6 +748,7 @@ BUILTIN(__sync_fetch_and_sub_2, "ssD*s.", "nt")
 BUILTIN(__sync_fetch_and_sub_4, "iiD*i.", "nt")
 BUILTIN(__sync_fetch_and_sub_8, "LLiLLiD*LLi.", "nt")
 BUILTIN(__sync_fetch_and_sub_16, "LLLiLLLiD*LLLi.", "nt")
+BUILTIN(__sync_fetch_and_sub_cap, "imimD*im.", "nt")
 
 BUILTIN(__sync_fetch_and_or, "v.", "t")
 BUILTIN(__sync_fetch_and_or_1, "ccD*c.", "nt")
@@ -750,6 +756,7 @@ BUILTIN(__sync_fetch_and_or_2, "ssD*s.", "nt")
 BUILTIN(__sync_fetch_and_or_4, "iiD*i.", "nt")
 BUILTIN(__sync_fetch_and_or_8, "LLiLLiD*LLi.", "nt")
 BUILTIN(__sync_fetch_and_or_16, "LLLiLLLiD*LLLi.", "nt")
+BUILTIN(__sync_fetch_and_or_cap, "imimD*im.", "nt")
 
 BUILTIN(__sync_fetch_and_and, "v.", "t")
 BUILTIN(__sync_fetch_and_and_1, "ccD*c.", "tn")
@@ -757,6 +764,7 @@ BUILTIN(__sync_fetch_and_and_2, "ssD*s.", "tn")
 BUILTIN(__sync_fetch_and_and_4, "iiD*i.", "tn")
 BUILTIN(__sync_fetch_and_and_8, "LLiLLiD*LLi.", "tn")
 BUILTIN(__sync_fetch_and_and_16, "LLLiLLLiD*LLLi.", "tn")
+BUILTIN(__sync_fetch_and_and_cap, "imimD*im.", "tn")
 
 BUILTIN(__sync_fetch_and_xor, "v.", "t")
 BUILTIN(__sync_fetch_and_xor_1, "ccD*c.", "tn")
@@ -764,6 +772,7 @@ BUILTIN(__sync_fetch_and_xor_2, "ssD*s.", "tn")
 BUILTIN(__sync_fetch_and_xor_4, "iiD*i.", "tn")
 BUILTIN(__sync_fetch_and_xor_8, "LLiLLiD*LLi.", "tn")
 BUILTIN(__sync_fetch_and_xor_16, "LLLiLLLiD*LLLi.", "tn")
+BUILTIN(__sync_fetch_and_xor_cap, "imimD*im.", "tn")
 
 BUILTIN(__sync_fetch_and_nand, "v.", "t")
 BUILTIN(__sync_fetch_and_nand_1, "ccD*c.", "tn")
@@ -771,6 +780,7 @@ BUILTIN(__sync_fetch_and_nand_2, "ssD*s.", "tn")
 BUILTIN(__sync_fetch_and_nand_4, "iiD*i.", "tn")
 BUILTIN(__sync_fetch_and_nand_8, "LLiLLiD*LLi.", "tn")
 BUILTIN(__sync_fetch_and_nand_16, "LLLiLLLiD*LLLi.", "tn")
+BUILTIN(__sync_fetch_and_nand_cap, "imimD*im.", "tn")
 
 BUILTIN(__sync_add_and_fetch, "v.", "t")
 BUILTIN(__sync_add_and_fetch_1, "ccD*c.", "tn")
@@ -778,6 +788,7 @@ BUILTIN(__sync_add_and_fetch_2, "ssD*s.", "tn")
 BUILTIN(__sync_add_and_fetch_4, "iiD*i.", "tn")
 BUILTIN(__sync_add_and_fetch_8, "LLiLLiD*LLi.", "tn")
 BUILTIN(__sync_add_and_fetch_16, "LLLiLLLiD*LLLi.", "tn")
+BUILTIN(__sync_add_and_fetch_cap, "imimD*im.", "tn")
 
 BUILTIN(__sync_sub_and_fetch, "v.", "t")
 BUILTIN(__sync_sub_and_fetch_1, "ccD*c.", "tn")
@@ -785,6 +796,7 @@ BUILTIN(__sync_sub_and_fetch_2, "ssD*s.", "tn")
 BUILTIN(__sync_sub_and_fetch_4, "iiD*i.", "tn")
 BUILTIN(__sync_sub_and_fetch_8, "LLiLLiD*LLi.", "tn")
 BUILTIN(__sync_sub_and_fetch_16, "LLLiLLLiD*LLLi.", "tn")
+BUILTIN(__sync_sub_and_fetch_cap, "imimD*im.", "tn")
 
 BUILTIN(__sync_or_and_fetch, "v.", "t")
 BUILTIN(__sync_or_and_fetch_1, "ccD*c.", "tn")
@@ -792,6 +804,7 @@ BUILTIN(__sync_or_and_fetch_2, "ssD*s.", "tn")
 BUILTIN(__sync_or_and_fetch_4, "iiD*i.", "tn")
 BUILTIN(__sync_or_and_fetch_8, "LLiLLiD*LLi.", "tn")
 BUILTIN(__sync_or_and_fetch_16, "LLLiLLLiD*LLLi.", "tn")
+BUILTIN(__sync_or_and_fetch_cap, "imimD*im.", "tn")
 
 BUILTIN(__sync_and_and_fetch, "v.", "t")
 BUILTIN(__sync_and_and_fetch_1, "ccD*c.", "tn")
@@ -799,6 +812,7 @@ BUILTIN(__sync_and_and_fetch_2, "ssD*s.", "tn")
 BUILTIN(__sync_and_and_fetch_4, "iiD*i.", "tn")
 BUILTIN(__sync_and_and_fetch_8, "LLiLLiD*LLi.", "tn")
 BUILTIN(__sync_and_and_fetch_16, "LLLiLLLiD*LLLi.", "tn")
+BUILTIN(__sync_and_and_fetch_cap, "imimD*im.", "tn")
 
 BUILTIN(__sync_xor_and_fetch, "v.", "t")
 BUILTIN(__sync_xor_and_fetch_1, "ccD*c.", "tn")
@@ -806,6 +820,7 @@ BUILTIN(__sync_xor_and_fetch_2, "ssD*s.", "tn")
 BUILTIN(__sync_xor_and_fetch_4, "iiD*i.", "tn")
 BUILTIN(__sync_xor_and_fetch_8, "LLiLLiD*LLi.", "tn")
 BUILTIN(__sync_xor_and_fetch_16, "LLLiLLLiD*LLLi.", "tn")
+BUILTIN(__sync_xor_and_fetch_cap, "imimD*im.", "tn")
 
 BUILTIN(__sync_nand_and_fetch, "v.", "t")
 BUILTIN(__sync_nand_and_fetch_1, "ccD*c.", "tn")
@@ -813,6 +828,7 @@ BUILTIN(__sync_nand_and_fetch_2, "ssD*s.", "tn")
 BUILTIN(__sync_nand_and_fetch_4, "iiD*i.", "tn")
 BUILTIN(__sync_nand_and_fetch_8, "LLiLLiD*LLi.", "tn")
 BUILTIN(__sync_nand_and_fetch_16, "LLLiLLLiD*LLLi.", "tn")
+BUILTIN(__sync_nand_and_fetch_cap, "imimD*im.", "tn")
 
 BUILTIN(__sync_bool_compare_and_swap, "v.", "t")
 BUILTIN(__sync_bool_compare_and_swap_1, "bcD*cc.", "tn")
@@ -820,6 +836,7 @@ BUILTIN(__sync_bool_compare_and_swap_2, "bsD*ss.", "tn")
 BUILTIN(__sync_bool_compare_and_swap_4, "biD*ii.", "tn")
 BUILTIN(__sync_bool_compare_and_swap_8, "bLLiD*LLiLLi.", "tn")
 BUILTIN(__sync_bool_compare_and_swap_16, "bLLLiD*LLLiLLLi.", "tn")
+BUILTIN(__sync_bool_compare_and_swap_cap, "bimD*imim.", "tn")
 
 BUILTIN(__sync_val_compare_and_swap, "v.", "t")
 BUILTIN(__sync_val_compare_and_swap_1, "ccD*cc.", "tn")
@@ -827,6 +844,7 @@ BUILTIN(__sync_val_compare_and_swap_2, "ssD*ss.", "tn")
 BUILTIN(__sync_val_compare_and_swap_4, "iiD*ii.", "tn")
 BUILTIN(__sync_val_compare_and_swap_8, "LLiLLiD*LLiLLi.", "tn")
 BUILTIN(__sync_val_compare_and_swap_16, "LLLiLLLiD*LLLiLLLi.", "tn")
+BUILTIN(__sync_val_compare_and_swap_cap, "imimD*imim.", "tn")
 
 BUILTIN(__sync_lock_test_and_set, "v.", "t")
 BUILTIN(__sync_lock_test_and_set_1, "ccD*c.", "tn")
@@ -834,6 +852,7 @@ BUILTIN(__sync_lock_test_and_set_2, "ssD*s.", "tn")
 BUILTIN(__sync_lock_test_and_set_4, "iiD*i.", "tn")
 BUILTIN(__sync_lock_test_and_set_8, "LLiLLiD*LLi.", "tn")
 BUILTIN(__sync_lock_test_and_set_16, "LLLiLLLiD*LLLi.", "tn")
+BUILTIN(__sync_lock_test_and_set_cap, "imimD*im.", "tn")
 
 BUILTIN(__sync_lock_release, "v.", "t")
 BUILTIN(__sync_lock_release_1, "vcD*.", "tn")
@@ -841,6 +860,7 @@ BUILTIN(__sync_lock_release_2, "vsD*.", "tn")
 BUILTIN(__sync_lock_release_4, "viD*.", "tn")
 BUILTIN(__sync_lock_release_8, "vLLiD*.", "tn")
 BUILTIN(__sync_lock_release_16, "vLLLiD*.", "tn")
+BUILTIN(__sync_lock_release_cap, "vimD*.", "tn")
 
 BUILTIN(__sync_swap, "v.", "t")
 BUILTIN(__sync_swap_1, "ccD*c.", "tn")
@@ -848,6 +868,7 @@ BUILTIN(__sync_swap_2, "ssD*s.", "tn")
 BUILTIN(__sync_swap_4, "iiD*i.", "tn")
 BUILTIN(__sync_swap_8, "LLiLLiD*LLi.", "tn")
 BUILTIN(__sync_swap_16, "LLLiLLLiD*LLLi.", "tn")
+BUILTIN(__sync_swap_cap, "imimD*im.", "tn")
 
 // Some of our atomics builtins are handled by AtomicExpr rather than
 // as normal builtin CallExprs. This macro is used for such builtins.
@@ -1697,6 +1718,55 @@ BUILTIN(__builtin_preserve_access_index, "v.", "t")
 BUILTIN(__builtin_is_aligned, "bvC*z", "nctE")
 BUILTIN(__builtin_align_up, "v*vC*z", "nctE")
 BUILTIN(__builtin_align_down, "v*vC*z", "nctE")
+
+// Memory capability builtins
+BUILTIN(__builtin_cheri_address_get, "zvC*m", "nct")
+BUILTIN(__builtin_cheri_address_set, "v*mvC*mz", "nct")
+BUILTIN(__builtin_cheri_base_get, "zvC*m", "nct")
+BUILTIN(__builtin_cheri_bounds_set, "v*mvC*mz", "nct")
+BUILTIN(__builtin_cheri_bounds_set_exact, "v*mvC*mz", "nct")
+BUILTIN(__builtin_cheri_equal_exact, "bvC*mvC*m", "nct")
+BUILTIN(__builtin_cheri_flags_set, "v*mvC*mz", "nct")
+BUILTIN(__builtin_cheri_flags_get, "zvC*m", "nct")
+BUILTIN(__builtin_cheri_high_get, "zvC*m", "nct")
+BUILTIN(__builtin_cheri_high_set, "v*mvC*mz", "nct")
+BUILTIN(__builtin_cheri_length_get, "zvC*m", "nct")
+BUILTIN(__builtin_cheri_offset_get, "zvC*m", "nct")
+BUILTIN(__builtin_cheri_offset_increment, "v*mvC*mz", "nct")
+BUILTIN(__builtin_cheri_offset_set, "v*mvC*mY", "nct")
+BUILTIN(__builtin_cheri_perms_and, "v*mvC*mz", "nct")
+BUILTIN(__builtin_cheri_perms_check, "vvC*mCz", "nct")
+BUILTIN(__builtin_cheri_perms_get, "zvC*m", "nct")
+BUILTIN(__builtin_cheri_seal, "v*mvC*mvC*m", "nct")
+BUILTIN(__builtin_cheri_seal_entry, "v*mvC*m", "nct")
+BUILTIN(__builtin_cheri_sealed_get, "bvC*m", "nct")
+BUILTIN(__builtin_cheri_subset_test, "bvC*mvC*m", "nct")
+BUILTIN(__builtin_cheri_tag_clear, "v*mvC*m", "nct")
+BUILTIN(__builtin_cheri_tag_get, "bvC*m", "nct")
+BUILTIN(__builtin_cheri_tag_get_temporal, "bvC*m", "nct")
+BUILTIN(__builtin_cheri_top_get, "zvC*m", "nct")
+BUILTIN(__builtin_cheri_type_check, "vvC*mvC*m", "nct")
+BUILTIN(__builtin_cheri_type_get, "YvC*m", "nct")
+BUILTIN(__builtin_cheri_unseal, "v*mvC*mvC*m", "nct")
+
+BUILTIN(__builtin_cheri_callback_create, "v.", "nct")
+
+BUILTIN(__builtin_cheri_cap_load_tags, "zvC*m", "n")
+
+BUILTIN(__builtin_cheri_round_representable_length, "zz", "nc")
+BUILTIN(__builtin_cheri_representable_alignment_mask, "zz", "nc")
+
+BUILTIN(__builtin_cheri_global_data_get, "v*m", "nc")
+BUILTIN(__builtin_cheri_program_counter_get, "v*m", "nc")
+BUILTIN(__builtin_cheri_stack_get, "v*m", "nc")
+
+BUILTIN(__builtin_cheri_cap_from_pointer, "v*mvC*mvC*", "nct")
+BUILTIN(__builtin_cheri_cap_to_pointer, "v*vC*mvC*m", "nct")
+
+BUILTIN(__builtin_cheri_cap_build, "v*mvC*mvC*m", "nct")
+BUILTIN(__builtin_cheri_cap_type_copy, "v*mvC*mvC*m", "nct")
+BUILTIN(__builtin_cheri_conditional_seal, "v*mvC*mvC*m", "nct")
+
 
 // Safestack builtins
 BUILTIN(__builtin___get_unsafe_stack_start, "v*", "Fn")

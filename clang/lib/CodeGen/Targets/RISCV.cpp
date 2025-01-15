@@ -8,6 +8,7 @@
 
 #include "ABIInfoImpl.h"
 #include "TargetInfo.h"
+#include "CommonCheriTargetCodeGenInfo.h"
 
 using namespace clang;
 using namespace clang::CodeGen;
@@ -38,7 +39,13 @@ public:
   RISCVABIInfo(CodeGen::CodeGenTypes &CGT, unsigned XLen, unsigned FLen,
                bool EABI)
       : DefaultABIInfo(CGT), XLen(XLen), FLen(FLen), NumArgGPRs(EABI ? 6 : 8),
-        NumArgFPRs(FLen != 0 ? 8 : 0), EABI(EABI) {}
+        NumArgFPRs(FLen != 0 ? 8 : 0), EABI(EABI) {
+      if (CGT.getTarget().getABI() == "cheriot") {
+        // NB: not for "cheriot-baremetal"
+        RuntimeCC = llvm::CallingConv::CHERI_LibCall;
+        AtomicsCC = CallingConv::CC_CHERILibCall;
+      }
+  }
 
   // DefaultABIInfo's classifyReturnType and classifyArgumentType are
   // non-virtual, but computeInfo is virtual, so we overload it.
@@ -367,6 +374,25 @@ ABIArgInfo RISCVABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
 
   uint64_t Size = getContext().getTypeSize(Ty);
 
+  bool IsSingleCapRecord = false;
+  if (auto *RT = Ty->getAs<RecordType>())
+    IsSingleCapRecord = Size == getTarget().getCHERICapabilityWidth() &&
+                        getContext().containsCapabilities(RT->getDecl());
+
+  bool IsCapability = Ty->isCHERICapabilityType(getContext()) ||
+                      IsSingleCapRecord;
+
+  // Capabilities (including single-capability records, which are treated the
+  // same as a single capability) are passed indirectly for hybrid varargs.
+  // Anything larger is bigger than 2*XLEN and thus automatically passed
+  // indirectly anyway.
+  if (!IsFixed && IsCapability &&
+      !getContext().getTargetInfo().areAllPointersCapabilities()) {
+    if (ArgGPRsLeft)
+      ArgGPRsLeft -= 1;
+    return getNaturalAlignIndirect(Ty, /*ByVal=*/false);
+  }
+
   // Pass floating point values via FPRs if possible.
   if (IsFixed && Ty->isFloatingType() && !Ty->isComplexType() &&
       FLen >= Size && ArgFPRsLeft) {
@@ -410,10 +436,14 @@ ABIArgInfo RISCVABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
   // TODO: To be compatible with GCC's behaviors, we don't align registers
   // currently if we are using ILP32E calling convention. This behavior may be
   // changed when RV32E/ILP32E is ratified.
+  //
+  // Structs with a single capability will be passed unpacked.
+  // TODO: Pairs involving capabilities should be passed in registers too like
+  // int/fp pairs (requires thought for fp+cap when out of FPRs).
   int NeededArgGPRs = 1;
-  if (!IsFixed && NeededAlign == 2 * XLen)
+  if (!IsCapability && !IsFixed && NeededAlign == 2 * XLen)
     NeededArgGPRs = 2 + (EABI && XLen == 32 ? 0 : (ArgGPRsLeft % 2));
-  else if (Size > XLen && Size <= 2 * XLen)
+  else if (!IsCapability && Size > XLen && Size <= 2 * XLen)
     NeededArgGPRs = 2;
 
   if (NeededArgGPRs > ArgGPRsLeft) {
@@ -443,6 +473,9 @@ ABIArgInfo RISCVABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
 
     return ABIArgInfo::getDirect();
   }
+
+  if (IsSingleCapRecord)
+    return ABIArgInfo::getDirect();
 
   if (const VectorType *VT = Ty->getAs<VectorType>())
     if (VT->getVectorKind() == VectorKind::RVVFixedLengthData ||
@@ -502,8 +535,21 @@ Address RISCVABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
   if (EABI && XLen == 32)
     TInfo.Align = std::min(TInfo.Align, CharUnits::fromQuantity(4));
 
-  // Arguments bigger than 2*Xlen bytes are passed indirectly.
-  bool IsIndirect = TInfo.Width > 2 * SlotSize;
+  bool IsSingleCapRecord = false;
+  CharUnits CapabilityWidth =
+    CharUnits::fromQuantity(getTarget().getCHERICapabilityWidth() / 8);
+  if (const auto *RT = Ty->getAs<RecordType>())
+    IsSingleCapRecord = TInfo.Width == CapabilityWidth &&
+                        getContext().containsCapabilities(RT->getDecl());
+
+  bool IsCapability = Ty->isCHERICapabilityType(getContext()) ||
+                      IsSingleCapRecord;
+
+  // Arguments bigger than 2*Xlen bytes are passed indirectly, as are
+  // capabilities for the hybrid ABI.
+  bool IsIndirect = TInfo.Width > 2 * SlotSize ||
+    (!getContext().getTargetInfo().areAllPointersCapabilities() &&
+     IsCapability);
 
   return emitVoidPtrVAArg(CGF, VAListAddr, Ty, IsIndirect, TInfo,
                           SlotSize, /*AllowHigherAlign=*/true);
@@ -518,11 +564,12 @@ ABIArgInfo RISCVABIInfo::extendType(QualType Ty) const {
 }
 
 namespace {
-class RISCVTargetCodeGenInfo : public TargetCodeGenInfo {
+class RISCVTargetCodeGenInfo : public CommonCheriTargetCodeGenInfo {
 public:
   RISCVTargetCodeGenInfo(CodeGen::CodeGenTypes &CGT, unsigned XLen,
                          unsigned FLen, bool EABI)
-      : TargetCodeGenInfo(
+      : CommonCheriTargetCodeGenInfo(
+            
             std::make_unique<RISCVABIInfo>(CGT, XLen, FLen, EABI)) {}
 
   void setTargetAttributes(const Decl *D, llvm::GlobalValue *GV,
@@ -543,6 +590,15 @@ public:
     auto *Fn = cast<llvm::Function>(GV);
 
     Fn->addFnAttr("interrupt", Kind);
+  }
+
+  unsigned getDefaultAS() const override {
+    const TargetInfo &Target = getABIInfo().getContext().getTargetInfo();
+    return Target.areAllPointersCapabilities() ? getCHERICapabilityAS() : 0;
+  }
+
+  unsigned getCHERICapabilityAS() const override {
+    return 200;
   }
 };
 } // namespace

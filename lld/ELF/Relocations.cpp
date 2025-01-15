@@ -41,6 +41,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "Relocations.h"
+#include "Arch/Cheri.h"
 #include "Config.h"
 #include "InputFiles.h"
 #include "LinkerScript.h"
@@ -50,6 +51,7 @@
 #include "SyntheticSections.h"
 #include "Target.h"
 #include "Thunks.h"
+#include "Writer.h"
 #include "lld/Common/ErrorHandler.h"
 #include "lld/Common/Memory.h"
 #include "llvm/ADT/SmallSet.h"
@@ -87,13 +89,18 @@ static std::string getDefinedLocation(const Symbol &sym) {
 // >>> defined in /home/alice/src/foo.o
 // >>> referenced by bar.c:12 (/home/alice/src/bar.c:12)
 // >>>               /home/alice/src/bar.o:(.text+0x1)
-static std::string getLocation(InputSectionBase &s, const Symbol &sym,
+static std::string getLocation(const InputSectionBase &s, const Symbol &sym,
                                uint64_t off) {
   std::string msg = getDefinedLocation(sym) + "\n>>> referenced by ";
   std::string src = s.getSrcMsg(sym, off);
   if (!src.empty())
     msg += src + "\n>>>               ";
   return msg + s.getObjMsg(off);
+}
+
+std::string elf::getLocationMessage(const InputSectionBase &s,
+                                    const Symbol &sym, uint64_t off) {
+  return getLocation(s, sym, off);
 }
 
 void elf::reportRangeError(uint8_t *loc, const Relocation &rel, const Twine &v,
@@ -221,7 +228,7 @@ static bool isRelExpr(RelExpr expr) {
   return oneof<R_PC, R_GOTREL, R_GOTPLTREL, R_ARM_PCA, R_MIPS_GOTREL,
                R_PPC64_CALL, R_PPC64_RELAX_TOC, R_AARCH64_PAGE_PC,
                R_RELAX_GOT_PC, R_RISCV_PC_INDIRECT, R_PPC64_RELAX_GOT_PC,
-               R_LOONGARCH_PAGE_PC>(expr);
+               R_LOONGARCH_PAGE_PC, R_CHERI_CAPABILITY_TABLE_REL>(expr);
 }
 
 static RelExpr toPlt(RelExpr expr) {
@@ -473,6 +480,7 @@ private:
   int64_t computeMipsAddend(const RelTy &rel, RelExpr expr, bool isLocal) const;
   bool isStaticLinkTimeConstant(RelExpr e, RelType type, const Symbol &sym,
                                 uint64_t relOff) const;
+  template <typename ELFT>
   void processAux(RelExpr expr, RelType type, uint64_t offset, Symbol &sym,
                   int64_t addend) const;
   template <class ELFT, class RelTy> void scanOne(RelTy *&i);
@@ -775,6 +783,39 @@ static void reportUndefinedSymbol(const UndefinedDiag &undef,
     }
   }
 
+  // Provide a spelling-like hint when we fail to resolve a local symbol but
+  // find a corresponding export in another compartment.
+  // FIXME: Is there a better way to test for cheriot here?
+  if (config->isCheriAbi && config->emachine == EM_RISCV &&
+      config->capabilitySize == 8) {
+    StringRef SymName = sym.getName();
+    for (auto GlobalSymbol : symtab.getSymbols()) {
+      if (!GlobalSymbol->isGlobal())
+        continue;
+      if (!GlobalSymbol->isDefined())
+        continue;
+
+      StringRef GlobalName = GlobalSymbol->getName();
+      if (!GlobalName.consume_front("__export_"))
+        continue;
+      size_t functionNameStart = GlobalName.find("__Z");
+      if (functionNameStart == StringRef::npos)
+        continue;
+
+      StringRef GlobalCompartmentName =
+          GlobalName.take_front(functionNameStart);
+      StringRef GlobalFunctionName = GlobalName.substr(functionNameStart + 1);
+      if (GlobalFunctionName == SymName) {
+        msg += "\n>>> did you mean the \"" + toString(sym) +
+               "\" export from compartment \"" +
+               toString(GlobalCompartmentName) + "\"?";
+        msg += "\n>>> defined in: " + toString(GlobalSymbol->file);
+        msg += "\n>>> the declaration may be missing a compartment annotation";
+        break;
+      }
+    }
+  }
+
   if (sym.getName().starts_with("_ZTV"))
     msg +=
         "\n>>> the vtable symbol may be undefined because the class is missing "
@@ -911,11 +952,20 @@ template <class PltSection, class GotPltSection>
 static void addPltEntry(PltSection &plt, GotPltSection &gotPlt,
                         RelocationBaseSection &rel, RelType type, Symbol &sym) {
   plt.addEntry(sym);
-  gotPlt.addEntry(sym);
-  rel.addReloc({type, &gotPlt, sym.getGotPltOffset(),
-                sym.isPreemptible ? DynamicReloc::AgainstSymbol
-                                  : DynamicReloc::AddendOnlyWithTargetVA,
-                sym, 0, R_ABS});
+  if (config->isCheriAbi) {
+    // TODO: More normal .got.plt rather than piggy-backing on .captable. We
+    // pass R_CHERI_CAPABILITY_TABLE_INDEX rather than the more obvious
+    // R_CHERI_CAPABILITY_TABLE_INDEX_CALL to force dynamic relocations into
+    // .rela.dyn rather than .rela.plt so no rtld changes are needed, as the
+    // latter doesn't really achieve anything without lazy binding.
+    in.cheriCapTable->addEntry(sym, R_CHERI_CAPABILITY_TABLE_INDEX, &plt, 0);
+  } else {
+    gotPlt.addEntry(sym);
+    rel.addReloc({type, &gotPlt, sym.getGotPltOffset(),
+                  sym.isPreemptible ? DynamicReloc::AgainstSymbol
+                                    : DynamicReloc::AddendOnlyWithTargetVA,
+                  sym, 0, R_ABS});
+  }
 }
 
 void elf::addGotEntry(Symbol &sym) {
@@ -981,14 +1031,33 @@ bool RelocationScanner::isStaticLinkTimeConstant(RelExpr e, RelType type,
                                                  const Symbol &sym,
                                                  uint64_t relOff) const {
   // These expressions always compute a constant
-  if (oneof<R_GOTPLT, R_GOT_OFF, R_RELAX_HINT, R_MIPS_GOT_LOCAL_PAGE,
-            R_MIPS_GOTREL, R_MIPS_GOT_OFF, R_MIPS_GOT_OFF32, R_MIPS_GOT_GP_PC,
-            R_AARCH64_GOT_PAGE_PC, R_GOT_PC, R_GOTONLY_PC, R_GOTPLTONLY_PC,
+  if (oneof<R_GOTPLT, R_GOT_OFF, R_RELAX_HINT,
+            R_CHERI_CAPABILITY_TABLE_INDEX,
+            R_CHERI_CAPABILITY_TABLE_INDEX_SMALL_IMMEDIATE,
+            R_CHERI_CAPABILITY_TABLE_INDEX_CALL,
+            R_CHERI_CAPABILITY_TABLE_INDEX_CALL_SMALL_IMMEDIATE,
+            R_CHERI_CAPABILITY_TABLE_ENTRY_PC,
+            R_CHERI_CAPABILITY_TABLE_REL,
+            R_CHERIOT_COMPARTMENT_CGPREL_HI,
+            R_CHERIOT_COMPARTMENT_CGPREL_LO_I,
+            R_CHERIOT_COMPARTMENT_CGPREL_LO_S,
+            R_CHERIOT_COMPARTMENT_SIZE,
+            R_MIPS_GOT_LOCAL_PAGE, R_MIPS_GOTREL, R_MIPS_GOT_OFF,
+            R_MIPS_GOT_OFF32, R_MIPS_GOT_GP_PC, R_MIPS_TLSGD,
+            R_AARCH64_GOT_PAGE_PC,
+            R_GOT_PC, R_GOTONLY_PC, R_GOTPLTONLY_PC,
             R_PLT_PC, R_PLT_GOTREL, R_PLT_GOTPLT, R_GOTPLT_GOTREL, R_GOTPLT_PC,
             R_PPC32_PLTREL, R_PPC64_CALL_PLT, R_PPC64_RELAX_TOC, R_RISCV_ADD,
             R_AARCH64_GOT_PAGE, R_LOONGARCH_PLT_PAGE_PC, R_LOONGARCH_GOT,
             R_LOONGARCH_GOT_PAGE_PC>(e))
     return true;
+
+  // Cheri capability relocations are never static link time constants since
+  // even if we know the exact value of the capability we can't write it since
+  // there is no way to store the tag bit
+  // TODO: for undef weak -> 0 (or other untagged values) it actually is okay
+  if (e == R_CHERI_CAPABILITY)
+    return false;
 
   // These never do, except if the entire file is position dependent or if
   // only the low bits are used.
@@ -1048,6 +1117,7 @@ bool RelocationScanner::isStaticLinkTimeConstant(RelExpr e, RelType type,
 // sections. Given that it is ro, we will need an extra PT_LOAD. This
 // complicates things for the dynamic linker and means we would have to reserve
 // space for the extra PT_LOAD even if we end up not using it.
+template <typename ELFT>
 void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
                                    Symbol &sym, int64_t addend) const {
   // If non-ifunc non-preemptible, change PLT to direct call and optimize GOT
@@ -1082,6 +1152,18 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
     std::lock_guard<std::mutex> lock(relocMutex);
     sym.exportDynamic = true;
     mainPart->relaDyn->addSymbolReloc(type, *sec, offset, sym, addend, type);
+    return;
+  }
+
+  if (oneof<R_CHERI_CAPABILITY_TABLE_INDEX,
+            R_CHERI_CAPABILITY_TABLE_INDEX_SMALL_IMMEDIATE,
+            R_CHERI_CAPABILITY_TABLE_INDEX_CALL,
+            R_CHERI_CAPABILITY_TABLE_INDEX_CALL_SMALL_IMMEDIATE,
+            R_CHERI_CAPABILITY_TABLE_ENTRY_PC>(expr)) {
+    std::lock_guard<std::mutex> lock(relocMutex);
+    in.cheriCapTable->addEntry(sym, expr, sec, offset);
+    // Write out the index into the instruction
+    sec->relocations.push_back({expr, type, offset, addend, &sym});
     return;
   }
 
@@ -1120,8 +1202,10 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
   // -shared matches the spirit of its -z undefs default. -pie has freedom on
   // choices, and we choose dynamic relocations to be consistent with the
   // handling of GOT-generating relocations.
+  //
+  // R_CHERI_CAPABILITY is always handled below.
   if (isStaticLinkTimeConstant(expr, type, sym, offset) ||
-      (!config->isPic && sym.isUndefWeak())) {
+      (!config->isPic && sym.isUndefWeak() && expr != R_CHERI_CAPABILITY)) {
     sec->addReloc({expr, type, offset, addend, &sym});
     return;
   }
@@ -1135,6 +1219,24 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
   bool canWrite = (sec->flags & SHF_WRITE) ||
                   !(config->zText ||
                     (isa<EhInputSection>(sec) && config->emachine != EM_MIPS));
+
+  if (expr == R_CHERI_CAPABILITY) {
+    std::lock_guard<std::mutex> lock(relocMutex);
+    static auto getRelocTargetLocation = [&]() -> std::string {
+      return "\n>>> referenced by " +
+             SymbolAndOffset(sec, offset).verboseToString();
+    };
+    if (!canWrite) {
+      readOnlyCapRelocsError(sym, getRelocTargetLocation());
+      return;
+    }
+    addCapabilityRelocation<ELFT>(&sym, type, sec, offset, expr, addend,
+                                  /* isCallExpr=*/false,
+                                  getRelocTargetLocation);
+    // TODO: check if it is a call and needs a plt stub
+    return;
+  }
+
   if (canWrite) {
     RelType rel = target->getDynRel(type);
     if (oneof<R_GOT, R_LOONGARCH_GOT>(expr) ||
@@ -1255,6 +1357,21 @@ static unsigned handleMipsTlsRelocation(RelType type, Symbol &sym,
     c.addReloc({expr, type, offset, addend, &sym});
     return 1;
   }
+  if (expr == R_MIPS_CHERI_CAPTAB_TLSLD) {
+    in.cheriCapTable->addTlsIndex();
+    c.relocations.push_back({expr, type, offset, addend, &sym});
+    return 1;
+  }
+  if (expr == R_MIPS_CHERI_CAPTAB_TLSGD) {
+    in.cheriCapTable->addDynTlsEntry(sym);
+    c.relocations.push_back({expr, type, offset, addend, &sym});
+    return 1;
+  }
+  if (expr == R_MIPS_CHERI_CAPTAB_TPREL) {
+    in.cheriCapTable->addTlsEntry(sym);
+    c.relocations.push_back({expr, type, offset, addend, &sym});
+    return 1;
+  }
   return 0;
 }
 
@@ -1304,6 +1421,21 @@ static unsigned handleTlsRelocation(RelType type, Symbol &sym,
       config->emachine != EM_HEXAGON && config->emachine != EM_LOONGARCH &&
       !(isRISCV && expr != R_TLSDESC_PC && expr != R_TLSDESC_CALL) &&
       !c.file->ppc64DisableTLSRelax;
+
+  // No targets currently support TLS relaxation, so we can avoid duplicating
+  // much of the logic below for the captable.
+  if (expr == R_CHERI_CAPABILITY_TABLE_TLSGD_ENTRY_PC) {
+    std::lock_guard<std::mutex> lock(relocMutex);
+    in.cheriCapTable->addDynTlsEntry(sym);
+    c.relocations.push_back({expr, type, offset, addend, &sym});
+    return 1;
+  }
+  if (expr == R_CHERI_CAPABILITY_TABLE_TLSIE_ENTRY_PC) {
+    std::lock_guard<std::mutex> lock(relocMutex);
+    in.cheriCapTable->addTlsEntry(sym);
+    c.relocations.push_back({expr, type, offset, addend, &sym});
+    return 1;
+  }
 
   // If we are producing an executable and the symbol is non-preemptable, it
   // must be defined and the code sequence can be optimized to use Local-Exec.
@@ -1491,7 +1623,7 @@ template <class ELFT, class RelTy> void RelocationScanner::scanOne(RelTy *&i) {
     }
   }
 
-  processAux(expr, type, offset, sym, addend);
+  processAux<ELFT>(expr, type, offset, sym, addend);
 }
 
 // R_PPC64_TLSGD/R_PPC64_TLSLD is required to mark `bl __tls_get_addr` for
@@ -1675,7 +1807,7 @@ static bool handleNonPreemptibleIfunc(Symbol &sym, uint16_t flags) {
     auto &d = cast<Defined>(sym);
     d.section = in.iplt.get();
     d.value = d.getPltIdx() * target->ipltEntrySize;
-    d.size = 0;
+    d.setSize(0);
     // It's important to set the symbol type here so that dynamic loaders
     // don't try to call the PLT as if it were an ifunc resolver.
     d.type = STT_FUNC;

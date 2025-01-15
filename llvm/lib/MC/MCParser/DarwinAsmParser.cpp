@@ -866,13 +866,13 @@ bool DarwinAsmParser::parseDirectiveTBSS(StringRef, SMLoc) {
                  "than zero");
 
   if (!Sym->isUndefined())
-    return Error(IDLoc, "invalid symbol redefinition");
+    return Error(IDLoc, "invalid symbol redefinition of " + Sym->getName());
 
   getStreamer().emitTBSSSymbol(
       getContext().getMachOSection("__DATA", "__thread_bss",
                                    MachO::S_THREAD_LOCAL_ZEROFILL, 0,
                                    SectionKind::getThreadBSS()),
-      Sym, Size, Align(1ULL << Pow2Alignment));
+      Sym, Size, Align(1ULL << Pow2Alignment), TailPaddingAmount::None);
 
   return false;
 }
@@ -902,7 +902,7 @@ bool DarwinAsmParser::parseDirectiveZerofill(StringRef, SMLoc) {
     getStreamer().emitZerofill(
         getContext().getMachOSection(Segment, Section, MachO::S_ZEROFILL, 0,
                                      SectionKind::getBSS()),
-        /*Symbol=*/nullptr, /*Size=*/0, Align(1), SectionLoc);
+        /*Symbol=*/nullptr, /*Size=*/0, Align(1), TailPaddingAmount::None, SectionLoc);
     return false;
   }
 
@@ -953,7 +953,7 @@ bool DarwinAsmParser::parseDirectiveZerofill(StringRef, SMLoc) {
                  "can't be less than zero");
 
   if (!Sym->isUndefined())
-    return Error(IDLoc, "invalid symbol redefinition");
+    return Error(IDLoc, "invalid symbol redefinition of " + Sym->getName());
 
   // Create the zerofill Symbol with Size and Pow2Alignment
   //
@@ -961,7 +961,7 @@ bool DarwinAsmParser::parseDirectiveZerofill(StringRef, SMLoc) {
   getStreamer().emitZerofill(
       getContext().getMachOSection(Segment, Section, MachO::S_ZEROFILL, 0,
                                    SectionKind::getBSS()),
-      Sym, Size, Align(1ULL << Pow2Alignment), SectionLoc);
+      Sym, Size, Align(1ULL << Pow2Alignment), TailPaddingAmount::None, SectionLoc);
 
   return false;
 }

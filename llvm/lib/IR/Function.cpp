@@ -23,6 +23,7 @@
 #include "llvm/IR/Argument.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Cheri.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
@@ -2007,6 +2008,9 @@ bool Function::nullPointerIsDefined() const {
 bool llvm::NullPointerIsDefined(const Function *F, unsigned AS) {
   if (F && F->nullPointerIsDefined())
     return true;
+
+  if (isCheriPointer(AS, getDataLayoutOrNull(F)))
+    return false; // Null is not a valid address for AS200 (if we are using CHERI)
 
   if (AS != 0)
     return true;

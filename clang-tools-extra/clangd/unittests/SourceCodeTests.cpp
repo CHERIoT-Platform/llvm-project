@@ -803,6 +803,9 @@ TEST(SourceCodeTests, isHeaderFile) {
 TEST(SourceCodeTests, isKeywords) {
   LangOptions LangOpts;
   LangOpts.CPlusPlus20 = true;
+  // XXX CHERI FIXME: We require coroutines to be enabled separately from C++20
+  // because we don't support them yet.
+  LangOpts.Coroutines = true;
   EXPECT_TRUE(isKeyword("int", LangOpts));
   EXPECT_TRUE(isKeyword("return", LangOpts));
   EXPECT_TRUE(isKeyword("co_await", LangOpts));

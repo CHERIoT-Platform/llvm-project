@@ -27,7 +27,7 @@
 namespace __sanitizer {
 
 // --------------- sanitizer_libc.h
-uptr internal_mmap(void *addr, uptr length, int prot, int flags, int fd,
+uptr internal_mmap(void *addr, usize length, int prot, int flags, int fd,
                    u64 offset) {
   struct s390_mmap_params {
     unsigned long addr;

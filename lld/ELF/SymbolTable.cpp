@@ -1,4 +1,3 @@
-//===- SymbolTable.cpp ----------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -17,6 +16,7 @@
 #include "Config.h"
 #include "InputFiles.h"
 #include "Symbols.h"
+#include "lld/Common/CommonLinkerContext.h"
 #include "lld/Common/ErrorHandler.h"
 #include "lld/Common/Memory.h"
 #include "lld/Common/Strings.h"
@@ -30,6 +30,49 @@ using namespace lld;
 using namespace lld::elf;
 
 SymbolTable elf::symtab;
+
+Defined *SymbolTable::ensureSymbolWillBeInDynsym(Symbol* original) {
+  assert(!original->includeInDynsym() && "Already included in dynsym?");
+  assert(original->isFunc() && "This should only be used for functions");
+  // Hack: Add a new global symbol with a unique name so that we can use
+  // a dynamic relocation against it.
+  // TODO: It would be nice to just be able to reuse the original symbol, but we
+  // can't have STB_LOCAL symbols in .dynsym
+  // TODO: should it be possible to add STB_LOCAL symbols to .dynsymtab?
+
+  auto it = localSymbolsForDynsym.find(original);
+  if (it != localSymbolsForDynsym.end()) {
+    if (config->verboseCapRelocs)
+      message("Reusing existing 'fake' symbol " + toString(*it->second) +
+              " to allow relocation against " + verboseToString(original));
+    return it->second;
+  }
+
+  std::string uniqueName = ("__cheri_fnptr_" + original->getName()).str();
+  for (int i = 2; symtab.find(uniqueName); i++) {
+    uniqueName = ("__cheri_fnptr" + Twine(i) + "_" + original->getName()).str();
+  }
+  StringRef newName = saver().save(uniqueName);
+  Symbol* newSym = symtab.insert(newName);
+  newSym->resolve(cast<Defined>(*original));
+  newSym->setName(newName); // resolve() changes the name to original->name
+  newSym->binding = llvm::ELF::STB_GLOBAL;
+  newSym->setVisibility(llvm::ELF::STV_HIDDEN);
+  newSym->versionId = VER_NDX_GLOBAL;
+  newSym->usedByDynReloc = true;
+  newSym->isUsedInRegularObj = true;
+  newSym->isPreemptible = false;
+  assert(newSym->computeBinding() == llvm::ELF::STB_GLOBAL);
+
+  assert(newSym->isFunc() && "This should only be used for functions");
+
+  if (config->verboseCapRelocs)
+    message("Adding new symbol " + toString(*newSym) +
+            " to allow relocation against " + verboseToString(original));
+  localSymbolsForDynsym[original] = cast<Defined>(newSym);
+  return cast<Defined>(newSym);
+}
+
 
 void SymbolTable::wrap(Symbol *sym, Symbol *real, Symbol *wrap) {
   // Redirect __real_foo to the original foo and foo to the original __wrap_foo.

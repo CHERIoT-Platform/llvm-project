@@ -95,7 +95,7 @@ static int PrintFunctions() {
                      "| c++filt",
                      "w");
   for (size_t I = 0; I < __dft.NumGuards; I++) {
-    uintptr_t PC = __dft.PCsBeg[I * 2];
+    VirtAddr PC = __dft.PCsBeg[I * 2];
     if (!BlockIsEntry(I)) continue;
     void *const Buf[1] = {(void*)PC};
     backtrace_symbols_fd(Buf, 1, fileno(Pipe));

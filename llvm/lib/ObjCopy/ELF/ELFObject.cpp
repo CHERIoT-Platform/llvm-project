@@ -816,7 +816,7 @@ void SymbolTableSection::fillShndxTable() {
     return;
   // Fill section index table with real section indexes. This function must
   // be called after assignOffsets.
-  for (const std::unique_ptr<Symbol> &Sym : Symbols) {
+  for (const auto &Sym : Symbols) {
     if (Sym->DefinedIn != nullptr && Sym->DefinedIn->Index >= SHN_LORESERVE)
       SectionIndexTable->addIndex(Sym->DefinedIn->Index);
     else

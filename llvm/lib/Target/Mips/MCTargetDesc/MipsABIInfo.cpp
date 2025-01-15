@@ -10,6 +10,8 @@
 #include "Mips.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/CodeGen/LowLevelType.h"
+#include "llvm/MC/MCAsmInfo.h"
+#include "llvm/MC/MCDwarf.h"
 #include "llvm/MC/MCTargetOptions.h"
 #include "llvm/Support/CommandLine.h"
 
@@ -28,9 +30,18 @@ static const MCPhysReg O32IntRegs[4] = {Mips::A0, Mips::A1, Mips::A2, Mips::A3};
 static const MCPhysReg Mips64IntRegs[8] = {
     Mips::A0_64, Mips::A1_64, Mips::A2_64, Mips::A3_64,
     Mips::T0_64, Mips::T1_64, Mips::T2_64, Mips::T3_64};
+
+static const MCPhysReg CheriCapArgRegs[8] = {
+    Mips::C3, Mips::C4, Mips::C5, Mips::C6,
+    Mips::C7, Mips::C8, Mips::C9, Mips::C10};
+
 }
 
 ArrayRef<MCPhysReg> MipsABIInfo::GetByValArgRegs() const {
+  // In the purecap ABI we don't pass parts of byval arguments in registers and
+  // instead always memcpy() the entire struct.
+  if (IsCheriPureCap())
+    return {};
   if (IsO32())
     return ArrayRef(O32IntRegs);
   if (IsN32() || IsN64())
@@ -39,6 +50,8 @@ ArrayRef<MCPhysReg> MipsABIInfo::GetByValArgRegs() const {
 }
 
 ArrayRef<MCPhysReg> MipsABIInfo::GetVarArgRegs() const {
+  if (IsCheriPureCap())
+    return ArrayRef(CheriCapArgRegs);
   if (IsO32())
     return ArrayRef(O32IntRegs);
   if (IsN32() || IsN64())
@@ -62,9 +75,13 @@ MipsABIInfo MipsABIInfo::computeTargetABI(const Triple &TT, StringRef CPU,
     return MipsABIInfo::N32();
   if (Options.getABIName().starts_with("n64"))
     return MipsABIInfo::N64();
+  if (Options.getABIName().starts_with("purecap"))
+    return MipsABIInfo::CheriPureCap();
   if (TT.getEnvironment() == llvm::Triple::GNUABIN32)
     return MipsABIInfo::N32();
   assert(Options.getABIName().empty() && "Unknown ABI option for MIPS");
+  if (TT.getEnvironment() == llvm::Triple::CheriPurecap)
+    return MipsABIInfo::CheriPureCap();
 
   if (TT.isMIPS64())
     return MipsABIInfo::N64();
@@ -72,18 +89,83 @@ MipsABIInfo MipsABIInfo::computeTargetABI(const Triple &TT, StringRef CPU,
 }
 
 unsigned MipsABIInfo::GetStackPtr() const {
-  return ArePtrs64bit() ? Mips::SP_64 : Mips::SP;
+  return IsCheriPureCap() ?
+    Mips::C11 :
+    (ArePtrs64bit() ? Mips::SP_64 : Mips::SP);
 }
 
 unsigned MipsABIInfo::GetFramePtr() const {
-  return ArePtrs64bit() ? Mips::FP_64 : Mips::FP;
+  return IsCheriPureCap() ?
+    Mips::C24 :
+    (ArePtrs64bit() ? Mips::FP_64 : Mips::FP);
 }
 
 unsigned MipsABIInfo::GetBasePtr() const {
-  return ArePtrs64bit() ? Mips::S7_64 : Mips::S7;
+  // FIXME: $c25 is probably not sensible here.
+  return IsCheriPureCap() ?
+    Mips::C25 :
+    (ArePtrs64bit() ? Mips::S7_64 : Mips::S7);
+}
+
+unsigned MipsABIInfo::GetDefaultDataCapability() const { return Mips::DDC; }
+
+unsigned MipsABIInfo::GetGlobalCapability() const {
+  return Mips::C26;
+}
+
+// HACK: Update the default CFA register for CHERI purecap
+void MipsABIInfo::updateCheriInitialFrameStateHack(const MCAsmInfo &MAI,
+                                                   const MCRegisterInfo &MRI) {
+  if (!IsCheriPureCap()) {
+    assert((MRI.getRARegister() == Mips::RA ||
+            MRI.getRARegister() == Mips::RA_64) &&
+           "Wrong RA register");
+    return;
+  }
+
+  // Some general sanity checks
+  auto ReturnReg = GetReturnAddress();
+  assert(ReturnReg == Mips::C17 && "Wrong RA register");
+  auto StackReg = GetStackPtr();
+  assert(StackReg == Mips::C11 && "Wrong SP register");
+  assert(GetFramePtr() == Mips::C24 && "Wrong FP register");
+
+  // Update the value of the return register
+  if (MRI.getRARegister() != ReturnReg) {
+    const_cast<MCRegisterInfo&>(MRI).RAReg = ReturnReg;
+  }
+  assert(MRI.getRARegister() == ReturnReg && "Wrong RA register");
+  // Check that we didn't set the PC register:
+  assert(MRI.getProgramCounter() == 0 && "Wrong PC register");
+
+  // Update the value of the initial frame state (since C11 is set too late)
+  auto &InitialState = MAI.getInitialFrameState();
+  unsigned C11Dwarf = MRI.getDwarfRegNum(StackReg, true);
+  for (const MCCFIInstruction &Inst : InitialState) {
+    if (Inst.getOperation() == MCCFIInstruction::OpDefCfaRegister) {
+      if (Inst.getRegister() != C11Dwarf) {
+        // errs() << __func__ << ": Updating default OpDefCfaRegister from "
+        //       << Inst.getRegister() << " to " << C11Dwarf << "\n";
+        const_cast<MCCFIInstruction &>(Inst).setRegister(C11Dwarf);
+      }
+    } else if (Inst.getOperation() == MCCFIInstruction::OpDefCfa) {
+      if (Inst.getRegister() != C11Dwarf) {
+        // errs() << __func__ << ": Updating default OpDefCfa from "
+        //        << Inst.getRegister() << "to" << C11Dwarf << "\n";
+        const_cast<MCCFIInstruction &>(Inst).setRegister(C11Dwarf);
+      }
+    }
+  }
+}
+
+unsigned MipsABIInfo::GetReturnAddress() const {
+  return IsCheriPureCap() ?
+    Mips::C17 :
+    (ArePtrs64bit() ? Mips::RA_64 : Mips::RA);
 }
 
 unsigned MipsABIInfo::GetGlobalPtr() const {
+  assert(!IsCheriPureCap());
   return ArePtrs64bit() ? Mips::GP_64 : Mips::GP;
 }
 
@@ -113,6 +195,12 @@ unsigned MipsABIInfo::GetPtrAndOp() const {
 
 unsigned MipsABIInfo::GetGPRMoveOp() const {
   return ArePtrs64bit() ? Mips::OR64 : Mips::OR;
+}
+
+unsigned MipsABIInfo::GetSPMoveOp() const {
+  return IsCheriPureCap() ?
+    Mips::CIncOffset :
+    (ArePtrs64bit() ? Mips::OR64 : Mips::OR);
 }
 
 unsigned MipsABIInfo::GetEhDataReg(unsigned I) const {

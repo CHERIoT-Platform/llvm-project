@@ -51,18 +51,34 @@ static MCInstrInfo *createRISCVMCInstrInfo() {
   return X;
 }
 
-static MCRegisterInfo *createRISCVMCRegisterInfo(const Triple &TT) {
+static MCRegisterInfo *
+createRISCVMCRegisterInfo(const Triple &TT, const MCTargetOptions &Options) {
   MCRegisterInfo *X = new MCRegisterInfo();
-  InitRISCVMCRegisterInfo(X, RISCV::X1);
+  RISCVABI::ABI ABI = RISCVABI::getTargetABI(Options.getABIName(), TT);
+
+  MCRegister RAReg;
+  if (ABI != RISCVABI::ABI_Unknown && RISCVABI::isCheriPureCapABI(ABI))
+    RAReg = RISCV::C1;
+  else
+    RAReg = RISCV::X1;
+
+  InitRISCVMCRegisterInfo(X, RAReg);
   return X;
 }
 
 static MCAsmInfo *createRISCVMCAsmInfo(const MCRegisterInfo &MRI,
                                        const Triple &TT,
                                        const MCTargetOptions &Options) {
-  MCAsmInfo *MAI = new RISCVMCAsmInfo(TT);
+  RISCVABI::ABI ABI = RISCVABI::getTargetABI(Options.getABIName(), TT);
+  MCAsmInfo *MAI = new RISCVMCAsmInfo(TT, ABI);
 
-  MCRegister SP = MRI.getDwarfRegNum(RISCV::X2, true);
+  MCRegister SPReg;
+  if (ABI != RISCVABI::ABI_Unknown && RISCVABI::isCheriPureCapABI(ABI))
+    SPReg = RISCV::C2;
+  else
+    SPReg = RISCV::X2;
+
+  MCRegister SP = MRI.getDwarfRegNum(SPReg, true);
   MCCFIInstruction Inst = MCCFIInstruction::cfiDefCfa(nullptr, SP, 0);
   MAI->addInitialFrameState(Inst);
 
@@ -200,12 +216,13 @@ public:
       return true;
     }
 
-    if (Inst.getOpcode() == RISCV::C_JAL || Inst.getOpcode() == RISCV::C_J) {
+    if (Inst.getOpcode() == RISCV::C_JAL || Inst.getOpcode() == RISCV::C_J ||
+        Inst.getOpcode() == RISCV::C_CJAL) {
       Target = Addr + Inst.getOperand(0).getImm();
       return true;
     }
 
-    if (Inst.getOpcode() == RISCV::JAL) {
+    if (Inst.getOpcode() == RISCV::JAL || Inst.getOpcode() == RISCV::CJAL) {
       Target = Addr + Inst.getOperand(1).getImm();
       return true;
     }

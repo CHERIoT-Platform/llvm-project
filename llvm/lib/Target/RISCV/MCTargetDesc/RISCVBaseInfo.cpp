@@ -30,6 +30,11 @@ namespace RISCVSysReg {
 #include "RISCVGenSearchableTables.inc"
 } // namespace RISCVSysReg
 
+namespace RISCVSpecialCapReg {
+#define GET_SpecialCapRegsList_IMPL
+#include "RISCVGenSearchableTables.inc"
+} // namespace RISCVSpecialCapReg
+
 namespace RISCVInsnOpcode {
 #define GET_RISCVOpcodesList_IMPL
 #include "RISCVGenSearchableTables.inc"
@@ -38,7 +43,7 @@ namespace RISCVInsnOpcode {
 namespace RISCVABI {
 ABI computeTargetABI(const Triple &TT, const FeatureBitset &FeatureBits,
                      StringRef ABIName) {
-  auto TargetABI = getTargetABI(ABIName);
+  auto TargetABI = getTargetABI(ABIName, TT);
   bool IsRV64 = TT.isArch64Bit();
   bool IsRVE = FeatureBits[RISCV::FeatureRVE];
 
@@ -46,19 +51,28 @@ ABI computeTargetABI(const Triple &TT, const FeatureBitset &FeatureBits,
     errs()
         << "'" << ABIName
         << "' is not a recognized ABI for this target (ignoring target-abi)\n";
-  } else if (ABIName.starts_with("ilp32") && IsRV64) {
+  } else if ((ABIName.starts_with("ilp32") || ABIName.starts_with("il32")) &&
+             IsRV64) {
     errs() << "32-bit ABIs are not supported for 64-bit targets (ignoring "
               "target-abi)\n";
     TargetABI = ABI_Unknown;
-  } else if (ABIName.starts_with("lp64") && !IsRV64) {
+  } else if ((ABIName.starts_with("lp64") || ABIName.starts_with("l64")) &&
+             !IsRV64) {
     errs() << "64-bit ABIs are not supported for 32-bit targets (ignoring "
               "target-abi)\n";
     TargetABI = ABI_Unknown;
+  } else if ((ABIName.starts_with("il32pc") || ABIName.starts_with("l64pc")) &&
+             !FeatureBits[RISCV::FeatureCheri]) {
+    errs() << "Pure-capability ABI can't be used for a target that "
+              "doesn't support the XCheri instruction set extension (ignoring "
+              "target-abi)\n";
+    TargetABI = ABI_Unknown;
   } else if (!IsRV64 && IsRVE && TargetABI != ABI_ILP32E &&
-             TargetABI != ABI_Unknown) {
+             TargetABI != ABI_IL32PC64E && TargetABI != ABI_Unknown &&
+             TargetABI != ABI_CHERIOT && TargetABI != ABI_CHERIOT_BAREMETAL) {
     // TODO: move this checking to RISCVTargetLowering and RISCVAsmParser
-    errs()
-        << "Only the ilp32e ABI is supported for RV32E (ignoring target-abi)\n";
+    errs() << "Only the ilp32e and il32pc64e ABIs are supported for RV32E "
+              "(ignoring target-abi)\n";
     TargetABI = ABI_Unknown;
   } else if (IsRV64 && IsRVE && TargetABI != ABI_LP64E &&
              TargetABI != ABI_Unknown) {
@@ -80,27 +94,43 @@ ABI computeTargetABI(const Triple &TT, const FeatureBitset &FeatureBits,
   auto ISAInfo = RISCVFeatures::parseFeatureBits(IsRV64, FeatureBits);
   if (!ISAInfo)
     report_fatal_error(ISAInfo.takeError());
-  return getTargetABI((*ISAInfo)->computeDefaultABI());
+  return getTargetABI((*ISAInfo)->computeDefaultABI(), TT);
 }
 
-ABI getTargetABI(StringRef ABIName) {
+ABI getTargetABI(StringRef ABIName, const Triple &TT) {
+  ABI Default = ABI_Unknown;
+  if (TT.getSubArch() == Triple::RISCV32SubArch_cheriot_v1) {
+    Default = (TT.getOS() == Triple::CheriotRTOS) ? ABI_CHERIOT : ABI_CHERIOT_BAREMETAL;
+  }
+
   auto TargetABI = StringSwitch<ABI>(ABIName)
                        .Case("ilp32", ABI_ILP32)
                        .Case("ilp32f", ABI_ILP32F)
                        .Case("ilp32d", ABI_ILP32D)
                        .Case("ilp32e", ABI_ILP32E)
+                       .Case("il32pc64", ABI_IL32PC64)
+                       .Case("il32pc64f", ABI_IL32PC64F)
+                       .Case("il32pc64d", ABI_IL32PC64D)
+                       .Case("il32pc64e", ABI_IL32PC64E)
                        .Case("lp64", ABI_LP64)
                        .Case("lp64f", ABI_LP64F)
                        .Case("lp64d", ABI_LP64D)
                        .Case("lp64e", ABI_LP64E)
-                       .Default(ABI_Unknown);
+                       .Case("l64pc128", ABI_L64PC128)
+                       .Case("l64pc128f", ABI_L64PC128F)
+                       .Case("l64pc128d", ABI_L64PC128D)
+                       .Case("cheriot", ABI_CHERIOT)
+                       .Case("cheriot-baremetal", ABI_CHERIOT_BAREMETAL)
+                       .Default(Default);
   return TargetABI;
 }
 
 // To avoid the BP value clobbered by a function call, we need to choose a
 // callee saved register to save the value. RV32E only has X8 and X9 as callee
 // saved registers and X8 will be used as fp. So we choose X9 as bp.
-MCRegister getBPReg() { return RISCV::X9; }
+MCRegister getBPReg(ABI TargetABI) {
+  return isCheriPureCapABI(TargetABI) ? RISCV::C9 : RISCV::X9;
+}
 
 // Returns the register holding shadow call stack pointer.
 MCRegister getSCSPReg() { return RISCV::X3; }

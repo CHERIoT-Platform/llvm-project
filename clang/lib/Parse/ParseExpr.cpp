@@ -1308,6 +1308,7 @@ ExprResult Parser::ParseCastExpression(CastParseKind ParseKind,
   case tok::kw_L__FUNCTION__:   // primary-expression: L__FUNCTION__ [MS]
   case tok::kw_L__FUNCSIG__:    // primary-expression: L__FUNCSIG__ [MS]
   case tok::kw___PRETTY_FUNCTION__:  // primary-expression: __P..Y_F..N__ [GNU]
+  case tok::kw___cheriot_minimum_stack__:
     // Function local predefined macros are represented by PredefinedExpr except
     // when Microsoft extensions are enabled and one of these macros is adjacent
     // to a string literal or another one of these macros.
@@ -1335,6 +1336,7 @@ ExprResult Parser::ParseCastExpression(CastParseKind ParseKind,
   case tok::kw___builtin_va_arg:
   case tok::kw___builtin_offsetof:
   case tok::kw___builtin_choose_expr:
+  case tok::kw___builtin_no_change_bounds:
   case tok::kw___builtin_astype: // primary-expression: [OCL] as_type()
   case tok::kw___builtin_convertvector:
   case tok::kw___builtin_COLUMN:
@@ -1560,6 +1562,7 @@ ExprResult Parser::ParseCastExpression(CastParseKind ParseKind,
   case tok::kw_long:
   case tok::kw___int64:
   case tok::kw___int128:
+  case tok::kw___intcap:
   case tok::kw__ExtInt:
   case tok::kw__BitInt:
   case tok::kw_signed:
@@ -2789,6 +2792,20 @@ ExprResult Parser::ParseBuiltinPrimaryExpression() {
                                   Expr2.get(), ConsumeParen());
     break;
   }
+  case tok::kw___builtin_no_change_bounds: {
+    ExprResult Expr(ParseAssignmentExpression());
+    if (Expr.isInvalid()) {
+      SkipUntil(tok::r_paren, StopAtSemi);
+      return Expr;
+    }
+    if (Tok.isNot(tok::r_paren)) {
+      Diag(Tok, diag::err_expected) << tok::r_paren;
+      return ExprError();
+    }
+    // TODO: optional second argument indicating kind of opt-out?
+    Res = Actions.ActOnNoChangeBoundsExpr(StartLoc, ConsumeParen(), Expr.get());
+    break;
+  }
   case tok::kw___builtin_astype: {
     // The first argument is an expression to be converted, followed by a comma.
     ExprResult Expr(ParseAssignmentExpression());
@@ -3062,6 +3079,24 @@ Parser::ParseParenExpression(ParenParseOption &ExprType, bool stopIfCastExpr,
     return Actions.ActOnObjCBridgedCast(getCurScope(), OpenLoc, Kind,
                                         BridgeKeywordLoc, Ty.get(),
                                         RParenLoc, SubExpr.get());
+  } else if (Tok.isOneOf(tok::kw___cheri_fromcap, tok::kw___cheri_tocap,
+                         tok::kw___cheri_offset, tok::kw___cheri_addr)) {
+    // TODO: (__cheri_bounded_cast struct foo[42])?
+    tok::TokenKind tokenKind = Tok.getKind();
+    SourceLocation CheriKeywordLoc = ConsumeToken();
+
+    // Parse a CHERI ptr, offset or address cast
+    TypeResult Ty = ParseTypeName();
+    T.consumeClose();
+    ColonProtection.restore();
+    RParenLoc = T.getCloseLocation();
+    ExprResult SubExpr = ParseCastExpression(AnyCastExpr);
+    if (Ty.isInvalid() || SubExpr.isInvalid())
+      return ExprError();
+
+    return Actions.ActOnCheriCast(getCurScope(), OpenLoc, tokenKind,
+                                  CheriKeywordLoc, Ty.get(),
+                                  RParenLoc, SubExpr.get());
   } else if (ExprType >= CompoundLiteral &&
              isTypeIdInParens(isAmbiguousTypeId)) {
 

@@ -30,20 +30,20 @@ extern const int __mod_usb_device_table __attribute__ ((alias("wacom_usb_ids")))
 // CHECKBASIC-DAG: @__mod_usb_device_table ={{.*}} alias i32, ptr @wacom_usb_ids
 // CHECKASM-DAG: .globl __mod_usb_device_table
 // CHECKASM-DAG: .set __mod_usb_device_table, wacom_usb_ids
-// CHECKASM-NOT: .size __mod_usb_device_table
+// CHECKASM-DAG: .size __mod_usb_device_table, 32
 
 extern int g1;
 extern int g1 __attribute((alias("g0")));
 // CHECKBASIC-DAG: @g1 ={{.*}} alias i32, ptr @g0
 // CHECKASM-DAG: .globl g1
 // CHECKASM-DAG: .set g1, g0
-// CHECKASM-NOT: .size g1
+// CHECKASM-DAG: .size g1, 4
 
 extern __thread int __libc_errno __attribute__ ((alias ("TL_WITH_ALIAS")));
 // CHECKBASIC-DAG: @__libc_errno ={{.*}} thread_local alias i32, ptr @TL_WITH_ALIAS
 // CHECKASM-DAG: .globl __libc_errno
 // CHECKASM-DAG: .set __libc_errno, TL_WITH_ALIAS
-// CHECKASM-NOT: .size __libc_errno
+// CHECKASM-DAG: .size __libc_errno, 4
 
 void f0(void) { }
 extern void f1(void);
@@ -90,9 +90,10 @@ int outer_weak(int a) { return inner_weak_a(a); }
 void test8_bar() {}
 void test8_foo() __attribute__((weak, alias("test8_bar")));
 void test8_zed() __attribute__((alias("test8_foo")));
-
+// expected-warning@-1{{alias will always resolve to test8_bar even if weak definition of test8_foo is overridden}}
 void test9_bar(void) { }
 void test9_zed(void) __attribute__((section("test")));
+// expected-warning@-1{{alias will not be in section 'test' but in the same section as the aliasee}}
 void test9_zed(void) __attribute__((alias("test9_bar")));
 
 // Test that the alias gets its linkage from its declared qual type.
@@ -115,3 +116,4 @@ inline void test12_alias(void) __attribute__((gnu_inline, alias("test12")));
 enum a_type { test13_a };
 void test13(enum a_type y) {}
 void test13_alias(enum undeclared_type y) __attribute__((alias ("test13")));
+// expected-warning@-1{{declaration of 'enum undeclared_type' will not be visible outside of this function}}

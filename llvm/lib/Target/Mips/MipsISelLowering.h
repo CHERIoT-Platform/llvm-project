@@ -27,6 +27,7 @@
 #include "llvm/CodeGen/TargetLowering.h"
 #include "llvm/CodeGen/ValueTypes.h"
 #include "llvm/IR/CallingConv.h"
+#include "llvm/IR/Cheri.h"
 #include "llvm/IR/InlineAsm.h"
 #include "llvm/IR/Type.h"
 #include "llvm/Target/TargetMachine.h"
@@ -49,6 +50,8 @@ class MipsSubtarget;
 class MipsTargetMachine;
 class TargetLibraryInfo;
 class TargetRegisterClass;
+
+extern bool LargeCapTable;
 
   namespace MipsISD {
 
@@ -87,6 +90,9 @@ class TargetRegisterClass;
 
       // Thread Pointer
       ThreadPointer,
+
+      // Capability Thread Pointer
+      CapThreadPointer,
 
       // Vector Floating Point Multiply and Subtract
       FMS,
@@ -149,6 +155,7 @@ class TargetRegisterClass;
       ExtractElementF64,
 
       Wrapper,
+      WrapperCapOp,  // Cheri cap table relocations
 
       DynAlloc,
 
@@ -198,6 +205,27 @@ class TargetRegisterClass;
       MADDU_DSP,
       MSUB_DSP,
       MSUBU_DSP,
+      // CHERI extensions:
+      /// Capability branch if tag unset
+      CBTU,
+      /// Capability branch if tag set
+      CBTS,
+      /// Convert a stack pointer into a capability.
+      STACKTOCAP,
+      // Jump and link pseudo that ties the clear regs.
+      CheriJmpLink,
+      /// Jump and link with a capability (rather than an integer address)
+      CapJmpLink,
+      /// Return from a call with a capability (rather than an integer address)
+      CapRet,
+      /// Legalised int_cheri_cap_tag_get
+      CapTagGet,
+      /// Legalised int_cheri_cap_sealed_get
+      CapSealedGet,
+      /// Legalised int_cheri_cap_subset_test
+      CapSubsetTest,
+      /// Legalised int_cheri_cap_equal_exact
+      CapEqualExact,
 
       // DSP shift nodes.
       SHLL_DSP,
@@ -335,6 +363,12 @@ class TargetRegisterClass;
 
     SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;
 
+    void computeKnownBitsForTargetNode(const SDValue Op,
+                                       KnownBits &Known,
+                                       const APInt &DemandedElts,
+                                       const SelectionDAG &DAG,
+                                       unsigned Depth = 0) const override;
+
     MachineBasicBlock *
     EmitInstrWithCustomInserter(MachineInstr &MI,
                                 MachineBasicBlock *MBB) const override;
@@ -351,7 +385,8 @@ class TargetRegisterClass;
     /// exception address on entry to an EH pad.
     Register
     getExceptionPointerRegister(const Constant *PersonalityFn) const override {
-      return ABI.IsN64() ? Mips::A0_64 : Mips::A0;
+      return ABI.IsCheriPureCap() ? Mips::C16 :
+                     (ABI.IsN64() ? Mips::A0_64 : Mips::A0);
     }
 
     /// If a physical register, this returns the register that receives the
@@ -365,12 +400,22 @@ class TargetRegisterClass;
       return getTargetMachine().isPositionIndependent();
     }
 
-   CCAssignFn *CCAssignFnForCall() const;
+    // Although we don't currently have a CSetAddr, our CheriExpandIntrinsics
+    // pass handles the intrinsic so we want to keep the intrinsic as-is.
+    bool hasCapabilitySetAddress() const override { return true; }
 
-   CCAssignFn *CCAssignFnForReturn() const;
+    TailPaddingAmount
+    getTailPaddingForPreciseBounds(uint64_t Size) const override;
+    Align getAlignmentForPreciseBounds(uint64_t Size) const override;
+
+    CCAssignFn *CCAssignFnForCall() const;
+
+    CCAssignFn *CCAssignFnForReturn() const;
 
   protected:
-    SDValue getGlobalReg(SelectionDAG &DAG, EVT Ty) const;
+    SDValue getGlobalReg(SelectionDAG &DAG, EVT Ty, bool IsForTls) const;
+
+    SDValue getCapGlobalReg(SelectionDAG &DAG, EVT Ty) const;
 
     // This method creates the following nodes, which are necessary for
     // computing a local symbol's address:
@@ -378,9 +423,11 @@ class TargetRegisterClass;
     // (add (load (wrapper $gp, %got(sym)), %lo(sym))
     template <class NodeTy>
     SDValue getAddrLocal(NodeTy *N, const SDLoc &DL, EVT Ty, SelectionDAG &DAG,
-                         bool IsN32OrN64) const {
+                         bool IsN32OrN64, bool IsForTls) const {
+      assert(!ABI.IsCheriPureCap());
+      assert(!Ty.isFatPointer());
       unsigned GOTFlag = IsN32OrN64 ? MipsII::MO_GOT_PAGE : MipsII::MO_GOT;
-      SDValue GOT = DAG.getNode(MipsISD::Wrapper, DL, Ty, getGlobalReg(DAG, Ty),
+      SDValue GOT = DAG.getNode(MipsISD::Wrapper, DL, Ty, getGlobalReg(DAG, Ty, IsForTls),
                                 getTargetNode(N, Ty, DAG, GOTFlag));
       SDValue Load =
           DAG.getLoad(Ty, DL, DAG.getEntryNode(), GOT,
@@ -398,10 +445,13 @@ class TargetRegisterClass;
     template <class NodeTy>
     SDValue getAddrGlobal(NodeTy *N, const SDLoc &DL, EVT Ty, SelectionDAG &DAG,
                           unsigned Flag, SDValue Chain,
-                          const MachinePointerInfo &PtrInfo) const {
-      SDValue Tgt = DAG.getNode(MipsISD::Wrapper, DL, Ty, getGlobalReg(DAG, Ty),
+                          const MachinePointerInfo &PtrInfo,
+                          bool IsForTls) const {
+      assert(!ABI.IsCheriPureCap());
+      assert(!Ty.isFatPointer());
+      SDValue Tgt = DAG.getNode(MipsISD::Wrapper, DL, Ty, getGlobalReg(DAG, Ty, IsForTls),
                                 getTargetNode(N, Ty, DAG, Flag));
-      return DAG.getLoad(Ty, DL, Chain, Tgt, PtrInfo);
+       return DAG.getLoad(Ty, DL, Chain, Tgt, PtrInfo);
     }
 
     // This method creates the following nodes, which are necessary for
@@ -412,10 +462,13 @@ class TargetRegisterClass;
     SDValue getAddrGlobalLargeGOT(NodeTy *N, const SDLoc &DL, EVT Ty,
                                   SelectionDAG &DAG, unsigned HiFlag,
                                   unsigned LoFlag, SDValue Chain,
-                                  const MachinePointerInfo &PtrInfo) const {
+                                  const MachinePointerInfo &PtrInfo,
+                                  bool IsForTls) const {
+      assert(!ABI.IsCheriPureCap());
+      assert(!Ty.isFatPointer());
       SDValue Hi = DAG.getNode(MipsISD::GotHi, DL, Ty,
                                getTargetNode(N, Ty, DAG, HiFlag));
-      Hi = DAG.getNode(ISD::ADD, DL, Ty, Hi, getGlobalReg(DAG, Ty));
+      Hi = DAG.getNode(ISD::ADD, DL, Ty, Hi, getGlobalReg(DAG, Ty, IsForTls));
       SDValue Wrapper = DAG.getNode(MipsISD::Wrapper, DL, Ty, Hi,
                                     getTargetNode(N, Ty, DAG, LoFlag));
       return DAG.getLoad(Ty, DL, Chain, Wrapper, PtrInfo);
@@ -430,6 +483,8 @@ class TargetRegisterClass;
     template <class NodeTy>
     SDValue getAddrNonPIC(NodeTy *N, const SDLoc &DL, EVT Ty,
                           SelectionDAG &DAG) const {
+      assert(!ABI.IsCheriPureCap());
+      assert(!Ty.isFatPointer());
       SDValue Hi = getTargetNode(N, Ty, DAG, MipsII::MO_ABS_HI);
       SDValue Lo = getTargetNode(N, Ty, DAG, MipsII::MO_ABS_LO);
       return DAG.getNode(ISD::ADD, DL, Ty,
@@ -447,6 +502,8 @@ class TargetRegisterClass;
    template <class NodeTy>
    SDValue getAddrNonPICSym64(NodeTy *N, const SDLoc &DL, EVT Ty,
                           SelectionDAG &DAG) const {
+      assert(!ABI.IsCheriPureCap());
+      assert(!Ty.isFatPointer());
       SDValue Hi = getTargetNode(N, Ty, DAG, MipsII::MO_ABS_HI);
       SDValue Lo = getTargetNode(N, Ty, DAG, MipsII::MO_ABS_LO);
 
@@ -474,11 +531,109 @@ class TargetRegisterClass;
     template <class NodeTy>
     SDValue getAddrGPRel(NodeTy *N, const SDLoc &DL, EVT Ty,
                          SelectionDAG &DAG, bool IsN64) const {
+      assert(!ABI.IsCheriPureCap());
+      assert(!Ty.isFatPointer());
       SDValue GPRel = getTargetNode(N, Ty, DAG, MipsII::MO_GPREL);
       return DAG.getNode(
           ISD::ADD, DL, Ty,
           DAG.getRegister(IsN64 ? Mips::GP_64 : Mips::GP, Ty),
           DAG.getNode(MipsISD::GPRel, DL, DAG.getVTList(Ty), GPRel));
+    }
+
+    template <class NodeTy>
+    SDValue getCallTargetFromCapTable(NodeTy *N, const SDLoc &DL, EVT Ty,
+                                      SelectionDAG &DAG, SDValue Chain,
+                                      const MachinePointerInfo &PtrInfo) const {
+      assert(ABI.IsCheriPureCap());
+      return getFromCapTable(N, DL, Ty, DAG, Chain, PtrInfo,
+                             MipsII::MO_CAPTAB_CALL_HI16,
+                             MipsII::MO_CAPTAB_CALL_LO16,
+                             MipsII::MO_CAPTAB_CALL20, MipsISD::GotHi);
+    }
+
+    template <class NodeTy>
+    SDValue getDataFromCapTable(NodeTy *N, const SDLoc &DL, EVT Ty,
+                                SelectionDAG &DAG, SDValue Chain,
+                                const MachinePointerInfo &PtrInfo) const {
+      assert(ABI.IsCheriPureCap());
+      return getFromCapTable(N, DL, Ty, DAG, Chain, PtrInfo,
+                             MipsII::MO_CAPTAB_HI16, MipsII::MO_CAPTAB_LO16,
+                             MipsII::MO_CAPTAB20, MipsISD::GotHi);
+    }
+
+    template <class NodeTy>
+    SDValue getFromCapTable(NodeTy *N, const SDLoc &DL, EVT Ty,
+                            SelectionDAG &DAG, SDValue Chain,
+                            const MachinePointerInfo &PtrInfo,
+                            unsigned HiFlag, unsigned LoFlag,
+                            unsigned SmallFlag, unsigned HiOpc) const {
+      assert(ABI.IsCheriPureCap());
+      if (LargeCapTable || SmallFlag == 0) {
+        return _getGlobalCapBigImmediate(N, SDLoc(N), Ty, DAG, HiFlag, LoFlag,
+                                         Chain, &PtrInfo, true, HiOpc);
+      } else {
+        return _getGlobalCapSmallImmediate(N, SDLoc(N), Ty, DAG, SmallFlag,
+                                           Chain, &PtrInfo, true);
+      }
+    }
+
+    template <class NodeTy>
+    SDValue getCapToCapTable(NodeTy *N, const SDLoc &DL, SelectionDAG &DAG,
+                             unsigned HiFlag, unsigned LoFlag,
+                             unsigned SmallFlag, unsigned HiOpc) const {
+      assert(ABI.IsCheriPureCap());
+      if (LargeCapTable || SmallFlag == 0) {
+        return _getGlobalCapBigImmediate(N, SDLoc(N), CapType, DAG, HiFlag, LoFlag,
+                                         SDValue(), nullptr, false, HiOpc);
+      } else {
+        return _getGlobalCapSmallImmediate(N, SDLoc(N), CapType, DAG, SmallFlag,
+                                           SDValue(), nullptr, false);
+      }
+    }
+
+    // This method creates the following nodes, which are necessary for
+    // computing a symbol's capability:
+    //
+    // (load (wrappercapop $cgp, %captab20(sym)))
+    template <class NodeTy>
+    SDValue
+    _getGlobalCapSmallImmediate(NodeTy *N, const SDLoc &DL, EVT Ty,
+                                SelectionDAG &DAG, unsigned Flag, SDValue Chain,
+                                const MachinePointerInfo *PtrInfo,
+                                bool DoLoad) const {
+      assert(Ty.isFatPointer());
+      assert(ABI.IsCheriPureCap());
+      SDValue Off = getTargetNode(N, MVT::i64, DAG, Flag);
+      SDValue Tgt = DAG.getNode(MipsISD::WrapperCapOp, DL, CapType,
+                                getCapGlobalReg(DAG, CapType), Off);
+      // Why can't I use the target node here directly?
+      // SDNode *Addr = DAG.getMachineNode(Mips::CapGlobalAddrPseudo, DL, Ty, getCapGlobalReg(DAG, CapType), Off);
+      if (DoLoad)
+        return DAG.getLoad(Ty, DL, Chain, Tgt, *PtrInfo);
+      else
+        return Tgt;
+    }
+
+    // This method creates the following nodes, which are necessary for
+    // computing a global symbol's address in large-GOT mode:
+    //
+    // (load (ptradd $cgp, (wrapper %captab_hi(sym), %captab_lo(sym))))
+    template <class NodeTy>
+    SDValue _getGlobalCapBigImmediate(NodeTy *N, const SDLoc &DL, EVT Ty,
+                                      SelectionDAG &DAG, unsigned HiFlag,
+                                      unsigned LoFlag, SDValue Chain,
+                                      const MachinePointerInfo *PtrInfo,
+                                      bool DoLoad, unsigned HiOpc) const {
+      SDValue Off = DAG.getNode(HiOpc, DL, MVT::i64,
+                                getTargetNode(N, MVT::i64, DAG, HiFlag));
+      Off = DAG.getNode(MipsISD::Wrapper, DL, MVT::i64, Off,
+                        getTargetNode(N, MVT::i64, DAG, LoFlag));
+      SDValue Tgt = DAG.getNode(ISD::PTRADD, DL, CapType,
+                                getCapGlobalReg(DAG, CapType), Off);
+      if (DoLoad)
+        return DAG.getLoad(Ty, DL, Chain, Tgt, *PtrInfo);
+      else
+        return Tgt;
     }
 
     /// This function fills Ops, which is the list of operands that will later
@@ -530,6 +685,7 @@ class TargetRegisterClass;
                             TargetLowering::CallLoweringInfo &CLI) const;
 
     // Lower Operand specifics
+    SDValue lowerADDRSPACECAST(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerBRCOND(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerConstantPool(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const;
@@ -538,6 +694,7 @@ class TargetRegisterClass;
     SDValue lowerJumpTable(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerSELECT(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerSETCC(SDValue Op, SelectionDAG &DAG) const;
+    SDValue lowerVACOPY(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerVASTART(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerVAARG(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerFCOPYSIGN(SDValue Op, SelectionDAG &DAG) const;
@@ -555,7 +712,12 @@ class TargetRegisterClass;
                                  bool IsSRA) const;
     SDValue lowerEH_DWARF_CFA(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerFP_TO_SINT(SDValue Op, SelectionDAG &DAG) const;
-
+    SDValue lowerBR_JT(SDValue Op, SelectionDAG &DAG) const;
+    // Convert Addr (either i64 or capability) to a pcc derived capability
+    // by subtracting the addresses and performing a CIncOffset
+    SDValue convertToPCCDerivedCap(SDValue TargetAddr, const SDLoc &DL,
+                                   SelectionDAG &DAG,
+                                   SDValue AdditionalOffset = SDValue()) const;
     /// isEligibleForTailCallOptimization - Check whether the call is eligible
     /// for tail call optimization.
     virtual bool
@@ -602,6 +764,11 @@ class TargetRegisterClass;
 
     SDValue LowerCall(TargetLowering::CallLoweringInfo &CLI,
                       SmallVectorImpl<SDValue> &InVals) const override;
+
+    SDValue setPccOffset(SelectionDAG &DAG, const SDLoc DL,
+                         SDValue Callee) const;
+
+    SDValue cFromDDC(SelectionDAG &DAG, const SDLoc DL, SDValue Offset) const;
 
     bool CanLowerReturn(CallingConv::ID CallConv, MachineFunction &MF,
                         bool isVarArg,
@@ -675,6 +842,10 @@ class TargetRegisterClass;
     bool shouldInsertFencesForAtomic(const Instruction *I) const override {
       return true;
     }
+
+    bool supportsAtomicOperation(const DataLayout &DL, const Instruction *AI,
+                                 Type *ValueTy, Type *PointerTy,
+                                 Align Alignment) const override;
 
     /// Emit a sign-extension using sll/sra, seb, or seh appropriately.
     MachineBasicBlock *emitSignExtendToI32InReg(MachineInstr &MI,

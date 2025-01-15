@@ -65,6 +65,8 @@ private:
   uint64_t RVVPadding = 0;
   /// Size of stack frame to save callee saved registers
   unsigned CalleeSavedStackSize = 0;
+  /// Size of on-stack arguments
+  uint64_t StackArgumentSize;
   /// Is there any vector argument or return?
   bool IsVectorCall = false;
 
@@ -86,6 +88,9 @@ public:
 
   int getVarArgsFrameIndex() const { return VarArgsFrameIndex; }
   void setVarArgsFrameIndex(int Index) { VarArgsFrameIndex = Index; }
+
+  unsigned getStackArgumentSize() const { return StackArgumentSize; }
+  void setStackArgumentSize(int Size) { StackArgumentSize = Size; }
 
   unsigned getVarArgsSaveSize() const { return VarArgsSaveSize; }
   void setVarArgsSaveSize(int Size) { VarArgsSaveSize = Size; }

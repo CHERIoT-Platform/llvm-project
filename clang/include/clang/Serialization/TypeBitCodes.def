@@ -65,4 +65,7 @@ TYPE_BIT_CODE(DependentSizedMatrix, DEPENDENT_SIZE_MATRIX, 53)
 TYPE_BIT_CODE(Using, USING, 54)
 TYPE_BIT_CODE(BTFTagAttributed, BTFTAG_ATTRIBUTED, 55)
 
+// CHERI extension; leave room for new upstream IDs
+TYPE_BIT_CODE(DependentPointer, DEPENDENT_POINTER, 80) // 'P'
+
 #undef TYPE_BIT_CODE

@@ -179,8 +179,9 @@ bool CodeGenModule::TryEmitBaseDestructorAsAlias(const CXXDestructorDecl *D) {
     return true;
 
   // Create the alias with no name.
-  auto *Alias = llvm::GlobalAlias::create(AliasValueType, 0, Linkage, "",
-                                          Aliasee, &getModule());
+  auto *Alias =
+      llvm::GlobalAlias::create(AliasValueType, getFunctionAddrSpace(), Linkage,
+                                "", Aliasee, &getModule());
 
   // Destructors are always unnamed_addr.
   Alias->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
@@ -251,7 +252,8 @@ static CGCallee BuildAppleKextVirtualCall(CodeGenFunction &CGF,
          "No kext in Microsoft ABI");
   CodeGenModule &CGM = CGF.CGM;
   llvm::Value *VTable = CGM.getCXXABI().getAddrOfVTable(RD, CharUnits());
-  Ty = llvm::PointerType::getUnqual(CGM.getLLVMContext());
+  const unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
+  Ty = llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS);
   assert(VTable && "BuildVirtualCall = kext vtbl pointer is null");
   uint64_t VTableIndex = CGM.getItaniumVTableContext().getMethodVTableIndex(GD);
   const VTableLayout &VTLayout = CGM.getItaniumVTableContext().getVTableLayout(RD);

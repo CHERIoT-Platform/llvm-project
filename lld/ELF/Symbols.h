@@ -27,6 +27,7 @@ class Symbol;
 }
 // Returns a string representation for a symbol for diagnostics.
 std::string toString(const elf::Symbol &);
+std::string verboseToString(const elf::Symbol *b, uint64_t symOffset = 0);
 
 namespace elf {
 class CommonSymbol;
@@ -109,7 +110,15 @@ public:
 
   uint8_t stOther; // st_other field value
 
-  uint8_t symbolKind;
+  uint8_t symbolKind : 6;
+  // True if a symbol is referenced by a dynamic relocation and therefore needs
+  // to be included in the dynamic symbol table.
+  uint8_t usedByDynReloc : 1;
+
+  // True if the linker should set the size of this symbol to be the size of the
+  // section it references. For compatibility reason this is only used when
+  // building for CHERI
+  uint8_t isSectionStartSymbol : 1;
 
   // The partition whose dynamic symbol table contains this symbol's definition.
   uint8_t partition;
@@ -217,6 +226,9 @@ public:
   uint64_t getGotPltOffset() const;
   uint64_t getGotPltVA() const;
   uint64_t getPltVA() const;
+  uint64_t getCapTableVA(const InputSectionBase *isec, uint64_t offset) const;
+  uint64_t getCapTableOffset(const InputSectionBase *isec,
+                             uint64_t offset) const;
   uint64_t getSize() const;
   OutputSection *getOutputSection() const;
 
@@ -363,9 +375,20 @@ public:
   void overwrite(Symbol &sym) const;
 
   static bool classof(const Symbol *s) { return s->isDefined(); }
+  uint64_t getSize() const;
+  void setSize(uint64_t newSize) {
+    assert(!isSectionStartSymbol);
+    size = newSize;
+  }
+  void reduceSize(uint64_t diff) {
+    assert(!isSectionStartSymbol);
+    size -= diff;
+  }
 
   uint64_t value;
-  uint64_t size;
+private:
+  uint64_t size; // Avoid accessing this directly due to CHERI st_size hack.
+public:
   SectionBase *section;
 };
 
@@ -521,6 +544,10 @@ struct ElfSym {
   static Defined *mipsGp;
   static Defined *mipsGpDisp;
   static Defined *mipsLocalGp;
+
+  // The _CHERI_CAPABILITY_TABLE_ symbol points to the beginning of the
+  // .captable section
+  static Defined *cheriCapabilityTable;
 
   // __global_pointer$ for RISC-V.
   static Defined *riscvGlobalPointer;

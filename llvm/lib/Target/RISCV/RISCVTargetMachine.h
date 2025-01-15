@@ -15,6 +15,8 @@
 
 #include "MCTargetDesc/RISCVMCTargetDesc.h"
 #include "RISCVSubtarget.h"
+#include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/CodeGen/SelectionDAGTargetInfo.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/Target/TargetMachine.h"
@@ -50,6 +52,10 @@ public:
 
   TargetTransformInfo getTargetTransformInfo(const Function &F) const override;
 
+  bool IsRV64() const {
+    return getTargetTriple().isArch64Bit();
+  }
+
   bool isNoopAddrSpaceCast(unsigned SrcAS, unsigned DstAS) const override;
 
   yaml::MachineFunctionInfo *createDefaultFuncInfoYAML() const override;
@@ -59,6 +65,9 @@ public:
                                 PerFunctionMIParsingState &PFS,
                                 SMDiagnostic &Error,
                                 SMRange &SourceRange) const override;
+
+  /// The set of functions imported from this compilation unit.
+  CHERIoTImportedFunctionSet ImportedFunctions;
 };
 } // namespace llvm
 

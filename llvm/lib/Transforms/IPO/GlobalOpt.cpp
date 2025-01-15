@@ -937,7 +937,8 @@ OptimizeGlobalAddressOfAllocation(GlobalVariable *GV, CallInst *CI,
     new GlobalVariable(Type::getInt1Ty(GV->getContext()), false,
                        GlobalValue::InternalLinkage,
                        ConstantInt::getFalse(GV->getContext()),
-                       GV->getName()+".init", GV->getThreadLocalMode());
+                       GV->getName()+".init", GV->getThreadLocalMode(),
+                       GV->getType()->getAddressSpace());
   bool InitBoolUsed = false;
 
   // Loop over all instruction uses of GV, processing them in turn.
@@ -1110,8 +1111,16 @@ static bool
 optimizeOnceStoredGlobal(GlobalVariable *GV, Value *StoredOnceVal,
                          const DataLayout &DL,
                          function_ref<TargetLibraryInfo &(Function &)> GetTLI) {
+  // Address space casts can have run-time behaviour, so don't eliminate the
+  // store if it involves an AS cast.
+  Value *StoredOnceBaseVal = StoredOnceVal->stripPointerCasts();
+  if (StoredOnceVal->getType()->isPointerTy() &&
+      (StoredOnceVal->getType()->getPointerAddressSpace() !=
+       StoredOnceBaseVal->getType()->getPointerAddressSpace()))
+    return false;
+
   // Ignore no-op GEPs and bitcasts.
-  StoredOnceVal = StoredOnceVal->stripPointerCasts();
+  StoredOnceVal = StoredOnceBaseVal;
 
   // If we are dealing with a pointer global that is initialized to null and
   // only has one (non-null) value stored into it, then we can optimize any

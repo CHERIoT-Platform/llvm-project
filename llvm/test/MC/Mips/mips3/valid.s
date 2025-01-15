@@ -318,7 +318,7 @@ a:
         trunc.w.s $f4,$f6,$4           # CHECK: trunc.w.s $f4, $f6     # encoding: [0x46,0x00,0x31,0x0d]
         xor       $s2,$a0,$s8
         xor       $2, 4                # CHECK: xori $2, $2, 4         # encoding: [0x38,0x42,0x00,0x04]
-
+        dmfc0     $2, $16, 1           # CHECK: dmfc0 $2, $16, 1     # encoding: [0x40,0x22,0x80,0x01]
 1:
 
         # Check that we accept traditional %relocation(symbol) offsets for stores

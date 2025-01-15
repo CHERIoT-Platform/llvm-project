@@ -268,11 +268,22 @@ enum {
   MO_TLSDESC_LOAD_LO = 14,
   MO_TLSDESC_ADD_LO = 15,
   MO_TLSDESC_CALL = 16,
+  MO_CAPTAB_PCREL_HI = 17,
+  MO_TPREL_CINCOFFSET = 18,
+  MO_TLS_IE_CAPTAB_PCREL_HI = 19,
+  MO_TLS_GD_CAPTAB_PCREL_HI = 20,
+  MO_CCALL = 21,
+  MO_CHERIOT_COMPARTMENT_HI = 22,
+  MO_CHERIOT_COMPARTMENT_LO_I = 23,
+  MO_CHERIOT_COMPARTMENT_LO_S = 24,
+  MO_CHERIOT_COMPARTMENT_SIZE = 25,
 
   // Used to differentiate between target-specific "direct" flags and "bitmask"
   // flags. A machine operand can only have one "direct" flag, but can have
   // multiple "bitmask" flags.
-  MO_DIRECT_FLAG_MASK = 31
+  MO_DIRECT_FLAG_MASK = 31,
+
+  MO_JUMP_TABLE_BASE = 32,
 };
 } // namespace RISCVII
 
@@ -434,6 +445,16 @@ struct SysReg {
 #include "RISCVGenSearchableTables.inc"
 } // end namespace RISCVSysReg
 
+namespace RISCVSpecialCapReg {
+struct SpecialCapReg {
+  const char *Name;
+  unsigned Encoding;
+};
+
+#define GET_SpecialCapRegsList_DECL
+#include "RISCVGenSearchableTables.inc"
+} // end namespace RISCVSpecialCapReg
+
 namespace RISCVInsnOpcode {
 struct RISCVOpcode {
   const char *Name;
@@ -451,10 +472,19 @@ enum ABI {
   ABI_ILP32F,
   ABI_ILP32D,
   ABI_ILP32E,
+  ABI_IL32PC64,
+  ABI_IL32PC64F,
+  ABI_IL32PC64D,
+  ABI_IL32PC64E,
   ABI_LP64,
   ABI_LP64F,
   ABI_LP64D,
   ABI_LP64E,
+  ABI_L64PC128,
+  ABI_L64PC128F,
+  ABI_L64PC128D,
+  ABI_CHERIOT,
+  ABI_CHERIOT_BAREMETAL,
   ABI_Unknown
 };
 
@@ -463,11 +493,36 @@ enum ABI {
 ABI computeTargetABI(const Triple &TT, const FeatureBitset &FeatureBits,
                      StringRef ABIName);
 
-ABI getTargetABI(StringRef ABIName);
+ABI getTargetABI(StringRef ABIName, const Triple &TT);
 
 // Returns the register used to hold the stack pointer after realignment.
-MCRegister getBPReg();
+MCRegister getBPReg(ABI TargetABI);
 
+inline static bool isCheriPureCapABI(ABI TargetABI) {
+  switch (TargetABI) {
+  case ABI_ILP32:
+  case ABI_ILP32F:
+  case ABI_ILP32D:
+  case ABI_ILP32E:
+  case ABI_LP64:
+  case ABI_LP64F:
+  case ABI_LP64D:
+  case ABI_LP64E:
+    return false;
+  case ABI_IL32PC64:
+  case ABI_IL32PC64F:
+  case ABI_IL32PC64D:
+  case ABI_IL32PC64E:
+  case ABI_L64PC128:
+  case ABI_L64PC128F:
+  case ABI_L64PC128D:
+  case ABI_CHERIOT:
+  case ABI_CHERIOT_BAREMETAL:
+    return true;
+  default:
+    llvm_unreachable("Improperly initialised target ABI");
+  }
+}
 // Returns the register holding shadow call stack pointer.
 MCRegister getSCSPReg();
 

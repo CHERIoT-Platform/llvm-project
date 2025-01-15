@@ -10,7 +10,7 @@ entry:
 	store i32 0, ptr %tmp
 	%tmp1 = load i32, ptr %tmp		; <i32> [#uses=1]
 	store i32 %tmp1, ptr %retval
-	call void @llvm.va_start(ptr null)
+	call void @llvm.va_start.p0(ptr null)
 	call void asm sideeffect "", "~{d8}"()
 	br label %return
 
@@ -25,4 +25,4 @@ return:		; preds = %entry
 ; OABI: add sp, sp, #24
 }
 
-declare void @llvm.va_start(ptr) nounwind
+declare void @llvm.va_start.p0(ptr) nounwind

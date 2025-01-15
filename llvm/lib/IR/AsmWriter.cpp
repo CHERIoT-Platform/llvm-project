@@ -35,6 +35,7 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/CallingConv.h"
+#include "llvm/IR/Cheri.h"
 #include "llvm/IR/Comdat.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/Constants.h"
@@ -337,6 +338,11 @@ static void PrintCallingConv(unsigned cc, raw_ostream &Out) {
   case CallingConv::Win64:         Out << "win64cc"; break;
   case CallingConv::SPIR_FUNC:     Out << "spir_func"; break;
   case CallingConv::SPIR_KERNEL:   Out << "spir_kernel"; break;
+  case CallingConv::CHERI_CCall:   Out << "chericcallcc"; break;
+  case CallingConv::CHERI_CCallee: Out << "chericcallcce"; break;
+  case CallingConv::CHERI_LibCall:
+    Out << "cherilibcallcc";
+    break;
   case CallingConv::Swift:         Out << "swiftcc"; break;
   case CallingConv::SwiftTail:     Out << "swifttailcc"; break;
   case CallingConv::X86_INTR:      Out << "x86_intrcc"; break;
@@ -631,6 +637,9 @@ void TypePrinting::print(Type *Ty, raw_ostream &OS) {
     OS << '>';
     return;
   }
+  case Type::SizedCapabilityTyID:
+    OS << 'c' << cast<SizedCapabilityType>(Ty)->getBitWidth();
+    return;
   case Type::TypedPointerTyID: {
     TypedPointerType *TPTy = cast<TypedPointerType>(Ty);
     OS << "typedptr(" << *TPTy->getElementType() << ", "
@@ -4109,6 +4118,7 @@ static void maybePrintCallAddrSpace(const Value *Operand, const Instruction *I,
   }
   unsigned CallAddrSpace = Operand->getType()->getPointerAddressSpace();
   bool PrintAddrSpace = CallAddrSpace != 0;
+
   if (!PrintAddrSpace) {
     const Module *Mod = getModuleFromVal(I);
     // We also print it if it is zero but not equal to the program address space
@@ -4116,6 +4126,22 @@ static void maybePrintCallAddrSpace(const Value *Operand, const Instruction *I,
     // the resulting file even without a datalayout string.
     if (!Mod || Mod->getDataLayout().getProgramAddressSpace() != 0)
       PrintAddrSpace = true;
+  }
+
+  // Hack for CHERI: don't print the addrspace() attribute for capability calls
+  // FIXME: this hack should be removed once all testcases have been updated
+  if (PrintAddrSpace) {
+    // if it is a CHERI cap call, don't print the AS
+    if (isCheriPointer(CallAddrSpace, getDataLayoutOrNull(I)))
+      PrintAddrSpace = false;
+    if (CallAddrSpace == 0) {
+      // Also don't print an address space for legacy ABI:
+      // FIXME: remove once we drop legacy ABI completely
+      const DataLayout* DL = getDataLayoutOrNull(I);
+      assert(DL && "Should only reach this branch if DL != null");
+      if (isCheriPointer(DL->getProgramAddressSpace(), DL))
+        PrintAddrSpace = false;
+    }
   }
   if (PrintAddrSpace)
     Out << " addrspace(" << CallAddrSpace << ")";
@@ -5136,6 +5162,19 @@ void ModuleSlotTracker::collectMDNodes(MachineMDNodeListType &L, unsigned LB,
 LLVM_DUMP_METHOD
 void Value::dump() const { print(dbgs(), /*IsForDebug=*/true); dbgs() << '\n'; }
 
+LLVM_DUMP_METHOD std::string Value::dbgString(const llvm::Value *V) {
+  if (!V)
+    return "nullptr";
+  std::string DbgStr;
+  llvm::raw_string_ostream OS(DbgStr);
+  V->print(OS, true);
+  return OS.str();
+}
+
+LLVM_DUMP_METHOD std::string Value::dbgString(const llvm::Value &V) {
+  return Value::dbgString(&V);
+}
+
 // Value::dump - allow easy printing of Values from the debugger.
 LLVM_DUMP_METHOD
 void DPMarker::dump() const { print(dbgs(), /*IsForDebug=*/true); dbgs() << '\n'; }
@@ -5147,6 +5186,18 @@ void DPValue::dump() const { print(dbgs(), /*IsForDebug=*/true); dbgs() << '\n';
 // Type::dump - allow easy printing of Types from the debugger.
 LLVM_DUMP_METHOD
 void Type::dump() const { print(dbgs(), /*IsForDebug=*/true); dbgs() << '\n'; }
+
+LLVM_DUMP_METHOD std::string Type::dbgString(const llvm::Type *T) {
+  if (!T)
+    return "nullptr";
+  std::string DbgStr;
+  llvm::raw_string_ostream OS(DbgStr);
+  T->print(OS, true, false);
+  return OS.str();
+}
+LLVM_DUMP_METHOD std::string Type::dbgString(const llvm::Type &T) {
+  return Type::dbgString(&T);
+}
 
 // Module::dump() - Allow printing of Modules from the debugger.
 LLVM_DUMP_METHOD

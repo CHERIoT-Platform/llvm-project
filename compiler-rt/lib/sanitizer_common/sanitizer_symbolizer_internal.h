@@ -25,7 +25,8 @@ namespace __sanitizer {
 // to the next characted after the found delimiter.
 const char *ExtractToken(const char *str, const char *delims, char **result);
 const char *ExtractInt(const char *str, const char *delims, int *result);
-const char *ExtractUptr(const char *str, const char *delims, uptr *result);
+const char *ExtractUSize(const char *str, const char *delims, usize *result);
+const char *ExtractSSize(const char *str, const char *delims, ssize *result);
 const char *ExtractTokenUpToDelimiter(const char *str, const char *delimiter,
                                       char **result);
 
@@ -49,17 +50,17 @@ class SymbolizerTool {
   // The |stack| parameter is inout. It is pre-filled with the address,
   // module base and module offset values and is to be used to construct
   // other stack frames.
-  virtual bool SymbolizePC(uptr addr, SymbolizedStack *stack) {
+  virtual bool SymbolizePC(vaddr addr, SymbolizedStack *stack) {
     UNIMPLEMENTED();
   }
 
   // The |info| parameter is inout. It is pre-filled with the module base
   // and module offset values.
-  virtual bool SymbolizeData(uptr addr, DataInfo *info) {
+  virtual bool SymbolizeData(vaddr addr, DataInfo *info) {
     UNIMPLEMENTED();
   }
 
-  virtual bool SymbolizeFrame(uptr addr, FrameInfo *info) {
+  virtual bool SymbolizeFrame(vaddr addr, FrameInfo *info) {
     return false;
   }
 
@@ -96,7 +97,7 @@ class SymbolizerProcess {
   InternalMmapVector<char> &GetBuff() { return buffer_; }
 
  private:
-  virtual bool ReachedEndOfOutput(const char *buffer, uptr length) const {
+  virtual bool ReachedEndOfOutput(const char *buffer, usize length) const {
     UNIMPLEMENTED();
   }
 
@@ -108,7 +109,7 @@ class SymbolizerProcess {
 
   bool Restart();
   const char *SendCommandImpl(const char *command);
-  bool WriteToSymbolizer(const char *buffer, uptr length);
+  bool WriteToSymbolizer(const char *buffer, usize length);
 
   const char *path_;
   fd_t input_fd_;
@@ -116,9 +117,9 @@ class SymbolizerProcess {
 
   InternalMmapVector<char> buffer_;
 
-  static const uptr kMaxTimesRestarted = 5;
+  static const usize kMaxTimesRestarted = 5;
   static const int kSymbolizerStartupTimeMillis = 10;
-  uptr times_restarted_;
+  usize times_restarted_;
   bool failed_to_start_;
   bool reported_invalid_path_;
   bool use_posix_spawn_;
@@ -132,17 +133,17 @@ class LLVMSymbolizer final : public SymbolizerTool {
  public:
   explicit LLVMSymbolizer(const char *path, LowLevelAllocator *allocator);
 
-  bool SymbolizePC(uptr addr, SymbolizedStack *stack) override;
-  bool SymbolizeData(uptr addr, DataInfo *info) override;
-  bool SymbolizeFrame(uptr addr, FrameInfo *info) override;
+  bool SymbolizePC(vaddr addr, SymbolizedStack *stack) override;
+  bool SymbolizeData(vaddr addr, DataInfo *info) override;
+  bool SymbolizeFrame(vaddr addr, FrameInfo *info) override;
 
  private:
   const char *FormatAndSendCommand(const char *command_prefix,
-                                   const char *module_name, uptr module_offset,
+                                   const char *module_name, usize module_offset,
                                    ModuleArch arch);
 
   LLVMSymbolizerProcess *symbolizer_process_;
-  static const uptr kBufferSize = 16 * 1024;
+  static const usize kBufferSize = 16 * 1024;
   char buffer_[kBufferSize];
 };
 

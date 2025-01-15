@@ -1063,6 +1063,19 @@ void Parser::ParseNullabilityTypeSpecifiers(ParsedAttributes &attrs) {
   }
 }
 
+void Parser::ParseCapabilityQualifier(ParsedAttributes &Attrs) {
+  IdentifierInfo *AttrName = Tok.getIdentifierInfo();
+  SourceLocation AttrNameLoc = Tok.getLocation();
+  // Report an error if the target does not support CHERI.
+  // TODO: we should not treat __capability as a keyword for non-CHERI.
+  // See https://github.com/CTSRD-CHERI/llvm-project/issues/706.
+  if (!getTargetInfo().SupportsCapabilities())
+    Diag(AttrNameLoc, diag::err_cheri_capability_qualifier_not_supported);
+  else
+    Attrs.addNew(AttrName, AttrNameLoc, nullptr, AttrNameLoc, nullptr, 0,
+                 Tok.getKind());
+}
+
 static bool VersionNumberSeparator(const char Separator) {
   return (Separator == '.' || Separator == '_');
 }
@@ -4248,6 +4261,10 @@ void Parser::ParseDeclarationSpecifiers(
       isInvalid = DS.SetTypeSpecType(DeclSpec::TST_int128, Loc, PrevSpec,
                                      DiagID, Policy);
       break;
+    case tok::kw___intcap:
+      isInvalid = DS.SetTypeSpecType(DeclSpec::TST_intcap, Loc, PrevSpec,
+                                     DiagID, Policy);
+      break;
     case tok::kw_half:
       isInvalid = DS.SetTypeSpecType(DeclSpec::TST_half, Loc, PrevSpec,
                                      DiagID, Policy);
@@ -4425,6 +4442,17 @@ void Parser::ParseDeclarationSpecifiers(
     case tok::kw_restrict:
       isInvalid = DS.SetTypeQual(DeclSpec::TQ_restrict, Loc, PrevSpec, DiagID,
                                  getLangOpts());
+      break;
+
+    // CHERI C qualifiers
+    case tok::kw___capability:
+      ParseCapabilityQualifier(DS.getAttributes());
+      break;
+    case tok::kw___cheri_input:
+      isInvalid = DS.SetInput(PrevSpec, DiagID);
+      break;
+    case tok::kw___cheri_output:
+      isInvalid = DS.SetOutput(PrevSpec, DiagID);
       break;
 
     // C++ typename-specifier:
@@ -5390,6 +5418,7 @@ bool Parser::isKnownToBeTypeSpecifier(const Token &Tok) const {
   case tok::kw_long:
   case tok::kw___int64:
   case tok::kw___int128:
+  case tok::kw___intcap:
   case tok::kw_signed:
   case tok::kw_unsigned:
   case tok::kw__Complex:
@@ -5474,6 +5503,7 @@ bool Parser::isTypeSpecifierQualifier() {
   case tok::kw_long:
   case tok::kw___int64:
   case tok::kw___int128:
+  case tok::kw___intcap:
   case tok::kw_signed:
   case tok::kw_unsigned:
   case tok::kw__Complex:
@@ -5517,6 +5547,8 @@ bool Parser::isTypeSpecifierQualifier() {
   case tok::kw_const:
   case tok::kw_volatile:
   case tok::kw_restrict:
+  case tok::kw___capability:
+  case tok::kw___cheri_output:
   case tok::kw__Sat:
 
     // Debugger support.
@@ -5687,6 +5719,7 @@ bool Parser::isDeclarationSpecifier(
   case tok::kw_long:
   case tok::kw___int64:
   case tok::kw___int128:
+  case tok::kw___intcap:
   case tok::kw_signed:
   case tok::kw_unsigned:
   case tok::kw__Complex:
@@ -5729,6 +5762,8 @@ bool Parser::isDeclarationSpecifier(
   case tok::kw_const:
   case tok::kw_volatile:
   case tok::kw_restrict:
+  case tok::kw___capability:
+  case tok::kw___cheri_output:
   case tok::kw__Sat:
 
     // function-specifier
@@ -6053,6 +6088,17 @@ void Parser::ParseTypeQualifierListOpt(
         Diag(Tok, diag::ext_c11_feature) << Tok.getName();
       isInvalid = DS.SetTypeQual(DeclSpec::TQ_atomic, Loc, PrevSpec, DiagID,
                                  getLangOpts());
+      break;
+
+    // CHERI C qualifiers
+    case tok::kw___capability:
+      ParseCapabilityQualifier(DS.getAttributes());
+      break;
+    case tok::kw___cheri_input:
+      isInvalid = DS.SetInput(PrevSpec, DiagID);
+      break;
+    case tok::kw___cheri_output:
+      isInvalid = DS.SetOutput(PrevSpec, DiagID);
       break;
 
     // OpenCL qualifiers:

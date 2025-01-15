@@ -50,8 +50,13 @@ bool includeInSymtab(const Symbol &b);
 
 template <class ELFT> uint32_t calcMipsEFlags();
 
-uint8_t getMipsFpAbiFlag(uint8_t oldFlag, uint8_t newFlag,
-                         llvm::StringRef fileName);
+uint8_t getMipsFpAbiFlag(uint8_t oldFlag, llvm::StringRef oldFile,
+                         uint8_t newFlag, llvm::StringRef newFile);
+uint8_t getMipsIsaExt(uint64_t oldExt, llvm::StringRef oldFile, uint64_t newExt,
+                      llvm::StringRef newFile);
+void checkMipsShlibCompatible(InputFile *f, uint64_t shlibCheriFlags,
+                              uint64_t targetCheriFlags);
+bool isRelroSection(const OutputSection *sec);
 
 bool isMipsN32Abi(const InputFile *f);
 bool isMicroMips();
@@ -59,6 +64,8 @@ bool isMipsR6();
 
 bool hasMemtag();
 bool canHaveMemtagGlobals();
+
+bool hasDynamicLinker();
 } // namespace lld::elf
 
 #endif

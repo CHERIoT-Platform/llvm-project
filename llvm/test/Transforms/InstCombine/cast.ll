@@ -533,6 +533,8 @@ define ptr @test41(ptr %t1) {
   ret ptr %t1
 }
 
+; Make sure that InstCombine does not try to reorder GEPs before
+; addrspacecasts, which can break the semantics.
 define ptr addrspace(1) @test41_addrspacecast_smaller(ptr %t1) {
 ; ALL-LABEL: @test41_addrspacecast_smaller(
 ; ALL-NEXT:    [[T64:%.*]] = addrspacecast ptr [[T1:%.*]] to ptr addrspace(1)

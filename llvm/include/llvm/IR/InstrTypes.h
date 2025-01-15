@@ -1954,6 +1954,10 @@ public:
   bool isNoInline() const { return hasFnAttr(Attribute::NoInline); }
   void setIsNoInline() { addFnAttr(Attribute::NoInline); }
 
+  /// Determine if the function has additional side-effects.
+  bool hasSideEffects() const { return hasFnAttr(Attribute::HasSideEffects); }
+  void setHasSideEffects() { addFnAttr(Attribute::HasSideEffects); }
+
   MemoryEffects getMemoryEffects() const;
   void setMemoryEffects(MemoryEffects ME);
 

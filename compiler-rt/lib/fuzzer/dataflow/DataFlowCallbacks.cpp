@@ -32,8 +32,8 @@ void __sanitizer_cov_trace_pc_guard_init(uint32_t *start,
   GuardsEnd = stop;
 }
 
-void __sanitizer_cov_pcs_init(const uintptr_t *pcs_beg,
-                              const uintptr_t *pcs_end) {
+void __sanitizer_cov_pcs_init(const VirtAddr *pcs_beg,
+                              const VirtAddr *pcs_end) {
   if (__dft.NumGuards) return;  // Initialize only once.
   __dft.NumGuards = GuardsEnd - GuardsBeg;
   __dft.PCsBeg = pcs_beg;

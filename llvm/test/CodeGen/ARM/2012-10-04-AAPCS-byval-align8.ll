@@ -4,8 +4,8 @@
 %struct_t = type { double, double, double }
 @static_val = constant %struct_t { double 1.0, double 2.0, double 3.0 }
 
-declare void @llvm.va_start(ptr) nounwind
-declare void @llvm.va_end(ptr) nounwind
+declare void @llvm.va_start.p0(ptr) nounwind
+declare void @llvm.va_end.p0(ptr) nounwind
 
 ; CHECK-LABEL: test_byval_8_bytes_alignment:
 define void @test_byval_8_bytes_alignment(i32 %i, ...) {
@@ -14,12 +14,12 @@ entry:
 ; CHECK: add       r0, sp, #4
 ; CHECK: stmib     sp, {r1, r2, r3}
   %g = alloca ptr
-  call void @llvm.va_start(ptr %g)
+  call void @llvm.va_start.p0(ptr %g)
 
 ; CHECK: add	[[REG:(r[0-9]+)|(lr)]], {{(r[0-9]+)|(lr)}}, #7
 ; CHECK: bic	[[REG]], [[REG]], #7
   %0 = va_arg ptr %g, double
-  call void @llvm.va_end(ptr %g)
+  call void @llvm.va_end.p0(ptr %g)
 
   ret void
 }

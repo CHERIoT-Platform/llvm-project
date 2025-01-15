@@ -21,8 +21,11 @@ let Class = PointerType in {
   def : Property<"pointeeType", QualType> {
     let Read = [{ node->getPointeeType() }];
   }
+  def : Property<"pointerInterpretation", PointerInterpretationKind> {
+    let Read = [{ node->getPointerInterpretation() }];
+  }
 
-  def : Creator<[{ return ctx.getPointerType(pointeeType); }]>;
+  def : Creator<[{ return ctx.getPointerType(pointeeType, pointerInterpretation); }]>;
 }
 
 let Class = AdjustedType in {
@@ -58,6 +61,9 @@ let Class = ReferenceType in {
   def : Property<"pointeeTypeAsWritten", QualType> {
     let Read = [{ node->getPointeeTypeAsWritten() }];
   }
+  def : Property<"pointerInterpretation", PointerInterpretationKind> {
+    let Read = [{ node->getPointerInterpretation() }];
+  }
 }
 
 let Class = LValueReferenceType in {
@@ -67,13 +73,15 @@ let Class = LValueReferenceType in {
 
   def : Creator<[{
     return ctx.getLValueReferenceType(pointeeTypeAsWritten,
-                                      isSpelledAsLValue);
+                                      isSpelledAsLValue,
+                                      pointerInterpretation);
   }]>;
 }
 
 let Class = RValueReferenceType in {
   def : Creator<[{
-    return ctx.getRValueReferenceType(pointeeTypeAsWritten);
+    return ctx.getRValueReferenceType(pointeeTypeAsWritten,
+                                      pointerInterpretation);
   }]>;
 }
 
@@ -654,6 +662,23 @@ let Class = DependentAddressSpaceType in {
   def : Creator<[{
     return ctx.getDependentAddressSpaceType(pointeeType, addressSpace,
                                             attributeLoc);
+  }]>;
+}
+
+let Class = DependentPointerType in {
+  def : Property<"pointerType", QualType> {
+    let Read = [{ node->getPointerType() }];
+  }
+  def : Property<"pointerInterpretation", PointerInterpretationKind> {
+    let Read = [{ node->getPointerInterpretation() }];
+  }
+  def : Property<"qualifierLoc", SourceLocation> {
+    let Read = [{ node->getQualifierLoc() }];
+  }
+
+  def : Creator<[{
+    return ctx.getDependentPointerType(pointerType, pointerInterpretation,
+                                       qualifierLoc);
   }]>;
 }
 

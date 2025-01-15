@@ -59,6 +59,17 @@ $BB0_4:
     abs.s  f6,FPU_MASK
     lui r1, %hi($tmp7)
 
+
+    .cpsetup $25, ((8 * 4) - 3 * 8), __cerror
+# CHECK: .cpsetup	$25, 8, __cerror
+    .cpreturn
+# CHECK: .cpreturn
+    .cpsetup $25, $22, __cerror
+# CHECK: .cpsetup	$25, $22, __cerror
+    .cpreturn
+# CHECK: .cpreturn
+
+
 # CHECK:    .set mips32r2
 # CHECK:    ldxc1   $f0, $zero($5)     # encoding: [0x4c,0xa0,0x00,0x01]
 # CHECK:    luxc1   $f0, $6($5)        # encoding: [0x4c,0xa6,0x00,0x05]

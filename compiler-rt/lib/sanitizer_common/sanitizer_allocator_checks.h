@@ -41,7 +41,7 @@ inline void *SetErrnoOnNull(void *ptr) {
 // two and that the size is a multiple of alignment for POSIX implementation,
 // and a bit relaxed requirement for non-POSIX ones, that the size is a multiple
 // of alignment.
-inline bool CheckAlignedAllocAlignmentAndSize(uptr alignment, uptr size) {
+inline bool CheckAlignedAllocAlignmentAndSize(usize alignment, usize size) {
 #if SANITIZER_POSIX
   return alignment != 0 && IsPowerOfTwo(alignment) &&
          (size & (alignment - 1)) == 0;
@@ -61,7 +61,7 @@ inline bool CheckPosixMemalignAlignment(uptr alignment) {
 inline bool CheckForCallocOverflow(uptr size, uptr n) {
   if (!size)
     return false;
-  uptr max = (uptr)-1L;
+  usize max = (usize)-1L;
   return (max / size) < n;
 }
 

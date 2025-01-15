@@ -45,6 +45,9 @@
 #include <numeric>
 #include <optional>
 
+// XXXAR: TODO fix default address space in this file as well
+#define getUnqual(arg) get(arg, 0u)
+
 using namespace clang;
 using namespace CodeGen;
 using namespace llvm::omp;
@@ -1716,9 +1719,10 @@ llvm::Function *CGOpenMPRuntime::emitThreadPrivateVarDefinition(
       return nullptr;
 
     llvm::Type *CopyCtorTyArgs[] = {CGM.VoidPtrTy, CGM.VoidPtrTy};
+    unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
     auto *CopyCtorTy = llvm::FunctionType::get(CGM.VoidPtrTy, CopyCtorTyArgs,
                                                /*isVarArg=*/false)
-                           ->getPointerTo();
+                           ->getPointerTo(DefaultAS);
     // Copying constructor for the threadprivate variable.
     // Must be NULL - reserved by runtime, but currently it requires that this
     // parameter is always NULL. Otherwise it fires assertion.
@@ -1726,13 +1730,13 @@ llvm::Function *CGOpenMPRuntime::emitThreadPrivateVarDefinition(
     if (Ctor == nullptr) {
       auto *CtorTy = llvm::FunctionType::get(CGM.VoidPtrTy, CGM.VoidPtrTy,
                                              /*isVarArg=*/false)
-                         ->getPointerTo();
+                         ->getPointerTo(DefaultAS);
       Ctor = llvm::Constant::getNullValue(CtorTy);
     }
     if (Dtor == nullptr) {
       auto *DtorTy = llvm::FunctionType::get(CGM.VoidTy, CGM.VoidPtrTy,
                                              /*isVarArg=*/false)
-                         ->getPointerTo();
+                         ->getPointerTo(DefaultAS);
       Dtor = llvm::Constant::getNullValue(DtorTy);
     }
     if (!CGF) {
@@ -3672,9 +3676,10 @@ CGOpenMPRuntime::emitTaskInit(CodeGenFunction &CGF, SourceLocation Loc,
   QualType KmpTaskTWithPrivatesQTy = C.getRecordType(KmpTaskTWithPrivatesQTyRD);
   QualType KmpTaskTWithPrivatesPtrQTy =
       C.getPointerType(KmpTaskTWithPrivatesQTy);
+  unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
   llvm::Type *KmpTaskTWithPrivatesTy = CGF.ConvertType(KmpTaskTWithPrivatesQTy);
   llvm::Type *KmpTaskTWithPrivatesPtrTy =
-      KmpTaskTWithPrivatesTy->getPointerTo();
+      KmpTaskTWithPrivatesTy->getPointerTo(DefaultAS);
   llvm::Value *KmpTaskTWithPrivatesTySize =
       CGF.getTypeSize(KmpTaskTWithPrivatesQTy);
   QualType SharedsPtrTy = C.getPointerType(SharedsTy);

@@ -1926,7 +1926,7 @@ endfunction()
 # A raw function to create a lit target. This is used to implement the testuite
 # management functions.
 function(add_lit_target target comment)
-  cmake_parse_arguments(ARG "" "" "PARAMS;DEPENDS;ARGS" ${ARGN})
+  cmake_parse_arguments(ARG "" "LIT_PROGRAM_SUFFIX;LIT_CHERI_FLAG" "PARAMS;DEPENDS;ARGS" ${ARGN})
   set(LIT_ARGS "${ARG_ARGS} ${LLVM_LIT_ARGS}")
   separate_arguments(LIT_ARGS)
   if (NOT CMAKE_CFG_INTDIR STREQUAL ".")
@@ -1941,8 +1941,9 @@ function(add_lit_target target comment)
     ALLOW_EXTERNAL
     )
 
-  set(LIT_COMMAND "${Python3_EXECUTABLE};${lit_base_dir}/${lit_file_name}")
+  set(LIT_COMMAND "${Python3_EXECUTABLE};${lit_base_dir}/${lit_file_name}${ARG_LIT_PROGRAM_SUFFIX}")
   list(APPEND LIT_COMMAND ${LIT_ARGS})
+  list(APPEND LIT_COMMAND ${ARG_LIT_CHERI_FLAG})
   foreach(param ${ARG_PARAMS})
     list(APPEND LIT_COMMAND --param ${param})
   endforeach()
@@ -1956,6 +1957,7 @@ function(add_lit_target target comment)
     add_custom_target(${target}
       COMMAND ${CMAKE_COMMAND} -E echo "${target} does nothing, no tools built.")
     message(STATUS "${target} does nothing.")
+    message(STATUS "argv was ${ARGV}.")
   endif()
 
   if (ARG_DEPENDS)
@@ -2071,6 +2073,33 @@ function(add_lit_testsuites project directory)
       endif()
     endforeach()
   endif()
+endfunction()
+
+# Add lit targets with --cheri-tests-filter set
+function(add_lit_targets_for_cheri target comment)
+  # Add two -cheriXXX targets that allow selecting whether to test 128 or 256-bit CHERI
+  add_lit_target(${target}-cheri128 "${comment} (with CHERI128)"
+    LIT_CHERI_FLAG "--cheri-tests-filter=include" LIT_PROGRAM_SUFFIX "-cheri128" ${ARGN})
+  add_lit_target(${target}-cheri256 "${comment} (with CHERI256)" ${ARGN}
+    LIT_CHERI_FLAG "--cheri-tests-filter=include" LIT_PROGRAM_SUFFIX "-cheri256" ${ARGN})
+  # Add two -cheriXXX-only targets that skip all tests that don't depend on CHERI
+  add_lit_target(${target}-cheri128-only "${comment} (only CHERI128)"
+    LIT_CHERI_FLAG "--cheri-tests-filter=only" LIT_PROGRAM_SUFFIX "-cheri128" ${ARGN})
+  add_lit_target(${target}-cheri256-only "${comment} (only CHERI256)"
+    LIT_CHERI_FLAG "--cheri-tests-filter=only" LIT_PROGRAM_SUFFIX "-cheri256" ${ARGN})
+  # Add a -without cheri that skips all CHERI tests
+  add_lit_target(${target}-without-cheri "${comment} (without CHERI tests)"
+    LIT_CHERI_FLAG --cheri-tests-filter=exclude ${ARGN})
+endfunction()
+
+function(add_lit_target_with_cheri_selectors target comment)
+  add_lit_target(${ARGV})
+  add_lit_targets_for_cheri(${ARGV})
+endfunction()
+
+function(add_lit_testsuite_with_cheri_selectors target comment)
+  add_lit_testsuite(${ARGV})
+  add_lit_targets_for_cheri(${ARGV})
 endfunction()
 
 function(llvm_install_library_symlink name dest type)

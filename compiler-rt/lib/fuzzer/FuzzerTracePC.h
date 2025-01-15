@@ -70,9 +70,9 @@ struct MemMemTable {
 class TracePC {
  public:
   void HandleInline8bitCountersInit(uint8_t *Start, uint8_t *Stop);
-  void HandlePCsInit(const uintptr_t *Start, const uintptr_t *Stop);
-  void HandleCallerCallee(uintptr_t Caller, uintptr_t Callee);
-  template <class T> void HandleCmp(uintptr_t PC, T Arg1, T Arg2);
+  void HandlePCsInit(const VirtAddr *Start, const VirtAddr *Stop);
+  void HandleCallerCallee(VirtAddr Caller, VirtAddr Callee);
+  template <class T> void HandleCmp(VirtAddr PC, T Arg1, T Arg2);
   size_t GetTotalPCCoverage();
   void SetUseCounters(bool UC) { UseCounters = UC; }
   void SetUseValueProfileMask(uint32_t VPMask) { UseValueProfileMask = VPMask; }
@@ -108,7 +108,7 @@ class TracePC {
   MemMemTable<1024> MMT;
 
   void RecordInitialStack();
-  uintptr_t GetMaxStackOffset() const;
+  VirtAddr GetMaxStackOffset() const;
 
   template<class CallBack>
   void ForEachObservedPC(CallBack CB) {
@@ -120,12 +120,12 @@ class TracePC {
   bool ObservedFocusFunction();
 
   struct PCTableEntry {
-    uintptr_t PC, PCFlags;
+    VirtAddr PC, PCFlags;
   };
 
-  uintptr_t PCTableEntryIdx(const PCTableEntry *TE);
-  const PCTableEntry *PCTableEntryByIdx(uintptr_t Idx);
-  static uintptr_t GetNextInstructionPc(uintptr_t PC);
+  size_t PCTableEntryIdx(const PCTableEntry *TE);
+  const PCTableEntry *PCTableEntryByIdx(size_t Idx);
+  static VirtAddr GetNextInstructionPc(VirtAddr PC);
   bool PcIsFuncEntry(const PCTableEntry *TE) { return TE->PCFlags & 1; }
 
 private:
@@ -170,12 +170,12 @@ private:
   size_t NumPCsInPCTables;
 
   std::set<const PCTableEntry *> ObservedPCs;
-  std::unordered_map<uintptr_t, uintptr_t> ObservedFuncs;  // PC => Counter.
+  std::unordered_map<VirtAddr, size_t> ObservedFuncs;  // PC => Counter.
 
   uint8_t *FocusFunctionCounterPtr = nullptr;
 
   ValueBitMap ValueProfileMap;
-  uintptr_t InitialStack;
+  VirtAddr InitialStack;
 };
 
 template <class Callback>
@@ -183,17 +183,17 @@ template <class Callback>
 ATTRIBUTE_NO_SANITIZE_ALL
 size_t ForEachNonZeroByte(const uint8_t *Begin, const uint8_t *End,
                         size_t FirstFeature, Callback Handle8bitCounter) {
-  typedef uintptr_t LargeType;
+  typedef VirtAddr LargeType;
   const size_t Step = sizeof(LargeType) / sizeof(uint8_t);
   const size_t StepMask = Step - 1;
   auto P = Begin;
   // Iterate by 1 byte until either the alignment boundary or the end.
-  for (; reinterpret_cast<uintptr_t>(P) & StepMask && P < End; P++)
+  for (; reinterpret_cast<VirtAddr>(P) & StepMask && P < End; P++)
     if (uint8_t V = *P)
       Handle8bitCounter(FirstFeature, P - Begin, V);
 
   // Iterate by Step bytes at a time.
-  for (; P + Step <= End; P += Step)
+  for (; P + Step < End; P += Step)
     if (LargeType Bundle = *reinterpret_cast<const LargeType *>(P)) {
       Bundle = HostToLE(Bundle);
       for (size_t I = 0; I < Step; I++, Bundle >>= 8)

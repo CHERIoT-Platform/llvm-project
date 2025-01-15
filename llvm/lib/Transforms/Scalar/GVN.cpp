@@ -1143,6 +1143,35 @@ static void reportMayClobberedLoad(LoadInst *Load, MemDepResult DepInfo,
   ORE->emit(R);
 }
 
+static bool canExtractBitsFromCapability(Type *Src, Type *Dst, int Offset,
+                                         const DataLayout &DL) {
+  if (!DL.isFatPointer(Src))
+    return true;
+
+  LLVM_DEBUG(dbgs() << "canExtractBitsFromCapability(Offset=" << Offset << ")\n"
+                    << " Src " << *Src << '\n'
+                    << " Dst " << *Dst << '\n'
+                    << "\n\n\n");
+
+  // FIXME: THIS IS WRONG! But we can indeed extract some bits
+#if 0
+  // At worst capability to capability
+  if (Src == Dst && Offset == 0)
+    return true;
+  // Compute the offset in bits.
+  Offset = Offset * 8;
+  // If we're not extracting bits from a capability then we're ok.
+  if (!isa<PointerType>(Src))
+    return true;
+
+  if (DL.getPointerAddrSizeInBits(Src) < Offset + DL.getTypeSizeInBits(Dst)) {
+    return false;
+  }
+  return true;
+#endif
+  return false;
+}
+
 // Find non-clobbered value for Loc memory location in extended basic block
 // (chain of basic blocks with single predecessors) starting From instruction.
 static Value *findDominatingValue(const MemoryLocation &Loc, Type *LoadTy,
@@ -1181,10 +1210,15 @@ GVNPass::AnalyzeLoadAvailability(LoadInst *Load, MemDepResult DepInfo,
     if (StoreInst *DepSI = dyn_cast<StoreInst>(DepInst)) {
       // Can't forward from non-atomic to atomic without violating memory model.
       if (Address && Load->isAtomic() <= DepSI->isAtomic()) {
-        int Offset =
-            analyzeLoadFromClobberingStore(Load->getType(), Address, DepSI, DL);
-        if (Offset != -1)
-          return AvailableValue::get(DepSI->getValueOperand(), Offset);
+        int Offset = analyzeLoadFromClobberingStore(Load->getType(), Address,
+                                                    DepSI, DL, TLI);
+        if (Offset != -1) {
+          if (canExtractBitsFromCapability(DepSI->getValueOperand()->getType(),
+                                           Load->getType(), Offset, DL)) {
+            return AvailableValue::get(DepSI->getValueOperand(), Offset);
+          }
+          return std::nullopt;
+        }
       }
     }
 
@@ -1211,10 +1245,13 @@ GVNPass::AnalyzeLoadAvailability(LoadInst *Load, MemDepResult DepInfo,
                        : *ClobberOff;
         }
         if (Offset == -1)
-          Offset =
-              analyzeLoadFromClobberingLoad(LoadType, Address, DepLoad, DL);
-        if (Offset != -1)
+          Offset = analyzeLoadFromClobberingLoad(LoadType, Address, DepLoad, DL,
+                                                 TLI);
+        if (Offset != -1 &&
+            canExtractBitsFromCapability(DepLoad->getType(), Load->getType(),
+                                         Offset, DL)) {
           return AvailableValue::getLoad(DepLoad, Offset);
+        }
       }
     }
 
@@ -1223,9 +1260,10 @@ GVNPass::AnalyzeLoadAvailability(LoadInst *Load, MemDepResult DepInfo,
     if (MemIntrinsic *DepMI = dyn_cast<MemIntrinsic>(DepInst)) {
       if (Address && !Load->isAtomic()) {
         int Offset = analyzeLoadFromClobberingMemInst(Load->getType(), Address,
-                                                      DepMI, DL);
-        if (Offset != -1)
+                                                      DepMI, DL, TLI);
+        if (Offset != -1) {
           return AvailableValue::getMI(DepMI, Offset);
+        }
       }
     }
 
@@ -1258,6 +1296,9 @@ GVNPass::AnalyzeLoadAvailability(LoadInst *Load, MemDepResult DepInfo,
                                          DL))
       return std::nullopt;
 
+    if (!canExtractBitsFromCapability(S->getType(), Load->getType(), /*Offset=*/0, DL))
+      return std::nullopt;
+
     // Can't forward from non-atomic to atomic without violating memory model.
     if (S->isAtomic() < Load->isAtomic())
       return std::nullopt;
@@ -1270,6 +1311,9 @@ GVNPass::AnalyzeLoadAvailability(LoadInst *Load, MemDepResult DepInfo,
     // If the stored value is larger or equal to the loaded value, we can reuse
     // it.
     if (!canCoerceMustAliasedValueToLoad(LD, Load->getType(), DL))
+      return std::nullopt;
+
+    if (!canExtractBitsFromCapability(LD->getType(), Load->getType(), /*Offset=*/0, DL))
       return std::nullopt;
 
     // Can't forward from non-atomic to atomic without violating memory model.
@@ -1474,6 +1518,10 @@ void GVNPass::eliminatePartiallyRedundantLoad(
 
   // Perform PHI construction.
   Value *V = ConstructSSAForLoadSet(Load, ValuesPerBlock, *this);
+  // This check was added in ac4f47d6788e44c53e0de3b25ab74e9ef84ccb26, can it
+  // actually be triggered?
+  if (V == Load)
+    return;
   // ConstructSSAForLoadSet is responsible for combining metadata.
   ICF->removeUsersOf(Load);
   Load->replaceAllUsesWith(V);
@@ -1891,6 +1939,8 @@ bool GVNPass::processNonLocalLoad(LoadInst *Load) {
 
     // Perform PHI construction.
     Value *V = ConstructSSAForLoadSet(Load, ValuesPerBlock, *this);
+    if (V == Load)
+      return false;
     // ConstructSSAForLoadSet is responsible for combining metadata.
     ICF->removeUsersOf(Load);
     Load->replaceAllUsesWith(V);

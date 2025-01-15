@@ -1,0 +1,106 @@
+gcp_credentials: ENCRYPTED[cf2b73ff299c7afb7adf7a219c948781a360b3c629b4a5583133d855a5563c7e55514c86f995b41967f3f8cb9fa49673]
+pr_task:
+  name: Build and test PR
+  skip: $CIRRUS_PR == ""
+  timeout_in: 240m
+  gce_instance: &arm_vm
+    image_project: ubuntu-os-cloud
+    image_family: ubuntu-2404-lts-arm64
+    architecture: arm64
+    zone: us-central1-a
+    type: c4a-standard-8
+    disk: 60
+    preemptible: true
+  env:
+    NINJA_STATUS: '%p [%f:%s/%t] %o/s, %es: '
+    CIRRUS_CLONE_DEPTH: 1
+  dependencies_script:
+    - set -eo pipefail
+    - apt-get update
+    - apt-get install -y clang ninja-build lld cmake ccache perl
+  configure_script:
+    - mkdir Build
+    - cd Build
+    - cmake ../llvm -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ASSERTIONS=ON -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" -DLLVM_ENABLE_UNWIND_TABLES=NO -DLLVM_ENABLE_LLD=ON -DLLVM_PARALLEL_LINK_JOBS=1 -DLLVM_APPEND_VC_REV=ON -DLLVM_VC_REPOSITORY=${CIRRUS_REPO_FULL_NAME} -DLLVM_VC_REVISION=${CIRRUS_CHANGE_IN_REPO} -DLLVM_CCACHE_BUILD=ON -G Ninja
+  build_script:
+    - cd Build
+    - export CCACHE_REMOTE_STORAGE="http://${CIRRUS_HTTP_CACHE_HOST}/${CIRRUS_OS}/"
+    - export CCACHE_REMOTE_ONLY=1
+    - ninja test-depends
+  test_script:
+    - cd Build
+    - ./bin/llvm-lit -v ../llvm/test/Unit ../clang/test/Unit
+    - ./bin/llvm-lit -v ../llvm/test/ ../clang/test/ 
+
+x86_release_task:
+  name: Build and upload artefact x86_64
+  only_if: ($CIRRUS_PR == "") && ($CIRRUS_BRANCH == "cheriot")
+  timeout_in: 120m
+  gce_instance:
+    <<: *arm_vm
+    image_family: ubuntu-2404-lts-amd64
+    architecture: amd64
+    zone: us-central1-a
+    type: t2d-standard-8
+  env:
+    NINJA_STATUS: '%p [%f:%s/%t] %o/s, %es: '
+    CIRRUS_CLONE_DEPTH: 1
+  dependencies_script:
+    - set -eo pipefail
+    - apt-get update
+    - apt-get install -y clang ninja-build lld cmake ccache
+  configure_script:
+    - mkdir Build
+    - cd Build
+    - cmake ../llvm -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" -DLLVM_ENABLE_UNWIND_TABLES=NO -DLLVM_ENABLE_LLD=ON -DLLVM_TARGETS_TO_BUILD=RISCV -DLLVM_DISTRIBUTION_COMPONENTS="clang;clangd;lld;llvm-objdump;llvm-objcopy;llvm-strip;clang-tidy;clang-format" -DCMAKE_INSTALL_PREFIX=install -DLLVM_PARALLEL_LINK_JOBS=1 -DLLVM_APPEND_VC_REV=ON -DLLVM_VC_REPOSITORY=${CIRRUS_REPO_FULL_NAME} -DLLVM_VC_REVISION=${CIRRUS_CHANGE_IN_REPO} -DLLVM_CCACHE_BUILD=ON -G Ninja
+  build_script:
+    - cd Build
+    - export CCACHE_REMOTE_STORAGE="http://${CIRRUS_HTTP_CACHE_HOST}/release-amd64/${CIRRUS_OS}/"
+    - export CCACHE_REMOTE_ONLY=1
+    - ninja install-distribution
+    - cp ../llvm/LICENSE.TXT install/LLVM-LICENSE.TXT
+    # Artefact upload uploads symlinks as copies, so delete all of the clang symlinks
+    - rm install/bin/clang
+    - rm install/bin/clang++
+    - rm install/bin/clang-cl
+    - rm install/bin/clang-cpp
+    - rm install/bin/ld.lld
+    - rm install/bin/ld64*
+    - rm install/bin/lld-link
+    - rm install/bin/wasm-ld
+  binaries_artifacts:
+    path: "Build/install/**"
+
+arm_release_task:
+  name: Build and upload artefact aarch64
+  only_if: ($CIRRUS_PR == "") && ($CIRRUS_BRANCH == "cheriot")
+  timeout_in: 120m
+  gce_instance: *arm_vm
+  env:
+    NINJA_STATUS: '%p [%f:%s/%t] %o/s, %es: '
+    CIRRUS_CLONE_DEPTH: 1
+  dependencies_script:
+    - set -eo pipefail
+    - apt-get update
+    - apt-get install -y clang ninja-build lld cmake ccache
+  configure_script:
+    - mkdir Build
+    - cd Build
+    - cmake ../llvm -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" -DLLVM_ENABLE_UNWIND_TABLES=NO -DLLVM_ENABLE_LLD=ON -DLLVM_TARGETS_TO_BUILD=RISCV -DLLVM_DISTRIBUTION_COMPONENTS="clang;clangd;lld;llvm-objdump;llvm-objcopy;llvm-strip;clang-tidy;clang-format" -DCMAKE_INSTALL_PREFIX=install -DLLVM_PARALLEL_LINK_JOBS=1 -DLLVM_APPEND_VC_REV=ON -DLLVM_VC_REPOSITORY=${CIRRUS_REPO_FULL_NAME} -DLLVM_VC_REVISION=${CIRRUS_CHANGE_IN_REPO} -DLLVM_CCACHE_BUILD=ON -G Ninja
+  build_script:
+    - cd Build
+    - export CCACHE_REMOTE_STORAGE="http://${CIRRUS_HTTP_CACHE_HOST}/release/${CIRRUS_OS}/arm64/"
+    - export CCACHE_REMOTE_ONLY=1
+    - ninja install-distribution
+    - cp ../llvm/LICENSE.TXT install/LLVM-LICENSE.TXT
+    # Artefact upload uploads symlinks as copies, so delete all of the clang symlinks
+    - rm install/bin/clang
+    - rm install/bin/clang++
+    - rm install/bin/clang-cl
+    - rm install/bin/clang-cpp
+    - rm install/bin/ld.lld
+    - rm install/bin/ld64*
+    - rm install/bin/lld-link
+    - rm install/bin/wasm-ld
+  binaries_artifacts:
+    path: "Build/install/**"

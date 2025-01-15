@@ -23,14 +23,14 @@ namespace __sanitizer {
 typedef CompactSizeClassMap InternalSizeClassMap;
 
 struct AP32 {
-  static const uptr kSpaceBeg = 0;
+  static const vaddr kSpaceBeg = 0;
   static const u64 kSpaceSize = SANITIZER_MMAP_RANGE_SIZE;
-  static const uptr kMetadataSize = 0;
+  static const usize kMetadataSize = 0;
   typedef InternalSizeClassMap SizeClassMap;
-  static const uptr kRegionSizeLog = 20;
+  static const usize kRegionSizeLog = 20;
   using AddressSpaceView = LocalAddressSpaceView;
   typedef NoOpMapUnmapCallback MapUnmapCallback;
-  static const uptr kFlags = 0;
+  static const usize kFlags = 0;
 };
 typedef SizeClassAllocator32<AP32> PrimaryInternalAllocator;
 
@@ -39,13 +39,13 @@ typedef CombinedAllocator<PrimaryInternalAllocator,
     InternalAllocator;
 typedef InternalAllocator::AllocatorCache InternalAllocatorCache;
 
-void *InternalAlloc(uptr size, InternalAllocatorCache *cache = nullptr,
-                    uptr alignment = 0);
-void *InternalRealloc(void *p, uptr size,
+void *InternalAlloc(usize size, InternalAllocatorCache *cache = nullptr,
+                    usize alignment = 0);
+void *InternalRealloc(void *p, usize size,
                       InternalAllocatorCache *cache = nullptr);
-void *InternalReallocArray(void *p, uptr count, uptr size,
+void *InternalReallocArray(void *p, usize count, usize size,
                            InternalAllocatorCache *cache = nullptr);
-void *InternalCalloc(uptr count, uptr size,
+void *InternalCalloc(usize count, usize size,
                      InternalAllocatorCache *cache = nullptr);
 void InternalFree(void *p, InternalAllocatorCache *cache = nullptr);
 void InternalAllocatorLock();

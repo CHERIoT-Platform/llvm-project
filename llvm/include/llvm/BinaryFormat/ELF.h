@@ -521,6 +521,7 @@ enum : unsigned {
   EF_MIPS_ABI_O64 = 0x00002000, // O32 ABI extended for 64-bit architecture.
   EF_MIPS_ABI_EABI32 = 0x00003000, // EABI in 32 bit mode.
   EF_MIPS_ABI_EABI64 = 0x00004000, // EABI in 64 bit mode.
+  EF_MIPS_ABI_CHERIABI = 0x0000c000, // CHERIABI
   EF_MIPS_ABI = 0x0000f000,        // Mask for selecting EF_MIPS_ABI_ variant.
 
   // MIPS machine variant
@@ -543,6 +544,9 @@ enum : unsigned {
   EF_MIPS_MACH_LS2E = 0x00a00000,    // ST Microelectronics Loongson 2E
   EF_MIPS_MACH_LS2F = 0x00a10000,    // ST Microelectronics Loongson 2F
   EF_MIPS_MACH_LS3A = 0x00a20000,    // Loongson 3A
+  EF_MIPS_MACH_BERI = 0x00be0000, // BERI MIPS
+  EF_MIPS_MACH_CHERI128 = 0x00c10000, // CHERI 128-bit
+  EF_MIPS_MACH_CHERI256 = 0x00c20000, // CHERI 256-bit
   EF_MIPS_MACH = 0x00ff0000,         // EF_MIPS_MACH_xxx selection mask
 
   // ARCH_ASE
@@ -676,6 +680,10 @@ enum : unsigned {
   EF_RISCV_FLOAT_ABI_QUAD = 0x0006,
   EF_RISCV_RVE = 0x0008,
   EF_RISCV_TSO = 0x0010,
+
+  // CHERI-specific flags
+  EF_RISCV_CHERIABI = 0x00010000,
+  EF_RISCV_CAP_MODE = 0x00020000,
 };
 
 // ELF Relocation types for RISC-V
@@ -1582,6 +1590,20 @@ enum {
   RHF_NO_UNRES_UNDEF = 0x00002000,         // Object contains no unresolved
                                            // undef symbols.
   RHF_RLD_ORDER_SAFE = 0x00004000          // Symbol table is in a safe order.
+};
+
+// DT_MIPS_CHERI_FLAGS values.
+enum {
+  DF_MIPS_CHERI_NONE = 0x00000000,     // No flags.
+  DF_MIPS_CHERI_ABI_MASK = 0x00000007, // 3 bits for the ABI
+  DF_MIPS_CHERI_ABI_LEGACY = 0x00000000,
+  DF_MIPS_CHERI_ABI_PCREL = 0x00000001,
+  DF_MIPS_CHERI_ABI_PLT = 0x00000002,
+  DF_MIPS_CHERI_ABI_FNDESC = 0x00000003,
+  // Tighter bounds on captable:
+  DF_MIPS_CHERI_CAPTABLE_PER_FILE = 0x00000008,
+  DF_MIPS_CHERI_CAPTABLE_PER_FUNC = 0x00000010,
+  DF_MIPS_CHERI_RELATIVE_CAPRELOCS = 0x00000020,
 };
 
 // ElfXX_VerDef structure version (GNU versioning)

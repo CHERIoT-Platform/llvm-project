@@ -138,6 +138,10 @@ public:
   virtual void printArchSpecificInfo() {}
   virtual void printMemtag() {}
 
+  virtual void printCheriCapRelocs() {}
+  virtual void printCheriCapTable() {}
+  virtual void printCheriCapTableMapping() {}
+
   // Only implemented for PE/COFF.
   virtual void printCOFFImports() { }
   virtual void printCOFFExports() { }

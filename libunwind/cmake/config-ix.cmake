@@ -127,3 +127,5 @@ endif()
 if(HAIKU)
   check_library_exists(bsd dl_iterate_phdr "" LIBUNWIND_HAS_BSD_LIB)
 endif()
+
+check_symbol_exists(dl_c18n_is_trampoline link.h LIBUNWIND_HAS_CHERI_LIB_C18N)

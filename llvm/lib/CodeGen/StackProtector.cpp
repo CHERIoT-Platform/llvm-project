@@ -61,6 +61,12 @@ STATISTIC(NumAddrTaken, "Number of local variables that have their address"
 
 static cl::opt<bool> EnableSelectionDAGSP("enable-selectiondag-sp",
                                           cl::init(true), cl::Hidden);
+static cl::opt<bool>
+    EnablePurecapSP("enable-purecap-stack-protector",
+                    cl::desc("Allow stack protector even for pure-capability "
+                             "code (should be used for testing only)"),
+                    cl::init(false), cl::Hidden);
+
 static cl::opt<bool> DisableCheckNoReturn("disable-check-noreturn-call",
                                           cl::init(false), cl::Hidden);
 
@@ -374,6 +380,14 @@ bool SSPLayoutAnalysis::requiresStackProtector(Function *F,
   bool Strong = false;
   bool NeedsProtector = false;
 
+  // Skip stack-protector for pure-capability CHERI
+  const DataLayout& DL = F->getParent()->getDataLayout();
+  const bool IsCheriPurecap = DL.isFatPointer(DL.getAllocaAddrSpace());
+  if (IsCheriPurecap && !EnablePurecapSP) {
+    // Skip the SSP analysis since SSP is useless when compiling in purecap mode.
+    return false;
+  }
+
   // The set of PHI nodes visited when determining if a variable's reference has
   // been taken.  This set is maintained to ensure we don't visit the same PHI
   // node multiple times.
@@ -540,7 +554,8 @@ static bool CreatePrologue(Function *F, Module *M, Instruction *CheckLoc,
   AI = B.CreateAlloca(PtrTy, nullptr, "StackGuardSlot");
 
   Value *GuardSlot = getStackGuard(TLI, M, B, &SupportsSelectionDAGSP);
-  B.CreateCall(Intrinsic::getDeclaration(M, Intrinsic::stackprotector),
+  B.CreateCall(Intrinsic::getDeclaration(M, Intrinsic::stackprotector,
+                                         AI->getType()),
                {GuardSlot, AI});
   return SupportsSelectionDAGSP;
 }

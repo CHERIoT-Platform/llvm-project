@@ -37,7 +37,7 @@ struct gen
 
 void f() {
     int v[1] = {1};
-    std::random_shuffle(&v[0], &v[1]); // expected-warning {{'random_shuffle<int *>' is deprecated}}
+    std::random_shuffle(&v[0], &v[1]); // expected-warning-re{{'random_shuffle<int *{{( __capability)?}}>' is deprecated}}
     gen r;
-    std::random_shuffle(&v[0], &v[1], r); // expected-warning {{'random_shuffle<int *, gen &>' is deprecated}}
+    std::random_shuffle(&v[0], &v[1], r); // expected-warning-re{{'random_shuffle<int *{{( __capability)?}}, gen &{{( __capability)?}}>' is deprecated}}
 }

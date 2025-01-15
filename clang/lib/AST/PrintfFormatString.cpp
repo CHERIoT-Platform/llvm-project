@@ -322,7 +322,12 @@ static PrintfSpecifierResult ParsePrintfSpecifier(FormatStringHandler &H,
         k = ConversionSpecifier::nArg;
       break;
     case 'o': k = ConversionSpecifier::oArg; break;
-    case 'p': k = ConversionSpecifier::pArg; break;
+    case 'p':
+      if (Target.SupportsCapabilities())
+        k = ConversionSpecifier::CHERIpArg;
+      else
+        k = ConversionSpecifier::pArg;
+      break;
     case 's': k = ConversionSpecifier::sArg; break;
     case 'u': k = ConversionSpecifier::uArg; break;
     case 'x': k = ConversionSpecifier::xArg; break;
@@ -526,6 +531,8 @@ ArgType PrintfSpecifier::getScalarArgType(ASTContext &Ctx,
         return ArgType(Ctx.LongLongTy, "__int64");
       case LengthModifier::AsIntMax:
         return ArgType(Ctx.getIntMaxType(), "intmax_t");
+      case LengthModifier::AsIntPtr:
+        return ArgType(Ctx.getIntPtrType(), "intptr_t");
       case LengthModifier::AsSizeT:
         return ArgType::makeSizeT(ArgType(Ctx.getSignedSizeType(), "ssize_t"));
       case LengthModifier::AsInt3264:
@@ -561,6 +568,8 @@ ArgType PrintfSpecifier::getScalarArgType(ASTContext &Ctx,
         return ArgType(Ctx.UnsignedLongLongTy, "unsigned __int64");
       case LengthModifier::AsIntMax:
         return ArgType(Ctx.getUIntMaxType(), "uintmax_t");
+      case LengthModifier::AsIntPtr:
+        return ArgType(Ctx.getUIntPtrType(), "uintptr_t");
       case LengthModifier::AsSizeT:
         return ArgType::makeSizeT(ArgType(Ctx.getSizeType(), "size_t"));
       case LengthModifier::AsInt3264:
@@ -609,6 +618,8 @@ ArgType PrintfSpecifier::getScalarArgType(ASTContext &Ctx,
         return ArgType::PtrTo(Ctx.LongLongTy);
       case LengthModifier::AsIntMax:
         return ArgType::PtrTo(ArgType(Ctx.getIntMaxType(), "intmax_t"));
+      case LengthModifier::AsIntPtr:
+        return ArgType::PtrTo(ArgType(Ctx.getIntPtrType(), "intptr_t"));
       case LengthModifier::AsSizeT:
         return ArgType::PtrTo(ArgType(Ctx.getSignedSizeType(), "ssize_t"));
       case LengthModifier::AsPtrDiff:
@@ -655,6 +666,10 @@ ArgType PrintfSpecifier::getScalarArgType(ASTContext &Ctx,
       return ArgType(Ctx.WideCharTy, "wchar_t");
     case ConversionSpecifier::pArg:
     case ConversionSpecifier::PArg:
+      return ArgType::CPointerTy;
+    case ConversionSpecifier::CHERIpArg:
+      if (LM.getKind() == LengthModifier::AsLong)
+        return ArgType::CCapabilityTy;
       return ArgType::CPointerTy;
     case ConversionSpecifier::ObjCObjArg:
       return ArgType::ObjCPointerTy;
@@ -752,6 +767,8 @@ bool PrintfSpecifier::fixType(QualType QT, const LangOptions &LangOpt,
   case BuiltinType::Char8: // FIXME: Treat like 'char'?
   case BuiltinType::Char16:
   case BuiltinType::Char32:
+  case BuiltinType::UIntCap:
+  case BuiltinType::IntCap:
   case BuiltinType::UInt128:
   case BuiltinType::Int128:
   case BuiltinType::Half:
@@ -984,6 +1001,7 @@ bool PrintfSpecifier::hasValidAlternativeForm() const {
   case ConversionSpecifier::GArg:
   case ConversionSpecifier::FreeBSDrArg:
   case ConversionSpecifier::FreeBSDyArg:
+  case ConversionSpecifier::CHERIpArg:
     return true;
 
   default:
@@ -1115,6 +1133,10 @@ bool PrintfSpecifier::hasValidPrecision() const {
   case ConversionSpecifier::FreeBSDyArg:
   case ConversionSpecifier::PArg:
     return true;
+
+  case ConversionSpecifier::CHERIpArg:
+    // Precision only makes sense when used with '#'
+    return HasAlternativeForm.isSet();
 
   default:
     return false;

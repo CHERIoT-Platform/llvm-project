@@ -489,8 +489,8 @@ define void @dynamic_static_alloca(i32 %alloc) noredzone {
  ret void
 }
 
-declare ptr @llvm.stacksave()
-declare void @llvm.stackrestore(ptr)
+declare ptr @llvm.stacksave.p0()
+declare void @llvm.stackrestore.p0(ptr)
 
 define void @llvm_stack_builtins(i32 %alloc) noredzone {
 ; CHECK-32-LABEL: llvm_stack_builtins:
@@ -543,10 +543,10 @@ define void @llvm_stack_builtins(i32 %alloc) noredzone {
 ; CHECK-64-NEXT:    local.get $push14=, 2
 ; CHECK-64-NEXT:    global.set __stack_pointer, $pop14
 ; CHECK-64-NEXT:    return
- %stack = call ptr @llvm.stacksave()
+ %stack = call ptr @llvm.stacksave.p0()
  ; Ensure we don't reassign the stacksave local
  %dynamic = alloca i32, i32 %alloc
- call void @llvm.stackrestore(ptr %stack)
+ call void @llvm.stackrestore.p0(ptr %stack)
  ret void
 }
 

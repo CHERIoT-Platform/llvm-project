@@ -183,6 +183,9 @@ set(x86_files
   bmi2intrin.h
   bmiintrin.h
   cetintrin.h
+  cheri.h
+  cheriintrin.h
+  cheri_init_globals.h
   cldemoteintrin.h
   clflushoptintrin.h
   clwbintrin.h

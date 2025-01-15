@@ -553,7 +553,8 @@ TEST_F(MDNodeTest, DistinctOnDeletedValueOperand) {
   // i1* @GV
   Type *Ty = PointerType::getUnqual(Context);
   std::unique_ptr<GlobalVariable> GV(
-      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage));
+      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage, nullptr, "",
+                         GlobalVariable::NotThreadLocal, 0));
   ConstantAsMetadata *Op = ConstantAsMetadata::get(GV.get());
 
   // !{i1* @GV}
@@ -792,7 +793,8 @@ TEST_F(MDNodeTest, replaceWithUniquedDeletedOperand) {
   // i1* @GV
   Type *Ty = PointerType::getUnqual(Context);
   std::unique_ptr<GlobalVariable> GV(
-      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage));
+      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage, nullptr, "",
+                         GlobalVariable::NotThreadLocal, 0));
   ConstantAsMetadata *Op = ConstantAsMetadata::get(GV.get());
 
   // temp !{i1* @GV}
@@ -815,7 +817,8 @@ TEST_F(MDNodeTest, replaceWithUniquedChangedOperand) {
   // i1* @GV
   Type *Ty = PointerType::getUnqual(Context);
   std::unique_ptr<GlobalVariable> GV(
-      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage));
+      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage, nullptr, "",
+                         GlobalVariable::NotThreadLocal, 0));
   ConstantAsMetadata *Op = ConstantAsMetadata::get(GV.get());
 
   // temp !{i1* @GV}
@@ -828,7 +831,8 @@ TEST_F(MDNodeTest, replaceWithUniquedChangedOperand) {
 
   // !{i1* @GV} => !{i1* @GV2}
   std::unique_ptr<GlobalVariable> GV2(
-      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage));
+      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage, nullptr, "",
+                         GlobalVariable::NotThreadLocal, 0));
   GV->replaceAllUsesWith(GV2.get());
   ASSERT_TRUE(N->isUniqued());
   Metadata *NullOps[] = {ConstantAsMetadata::get(GV2.get())};
@@ -3713,13 +3717,15 @@ typedef MetadataTest ValueAsMetadataTest;
 TEST_F(ValueAsMetadataTest, UpdatesOnRAUW) {
   Type *Ty = PointerType::getUnqual(Context);
   std::unique_ptr<GlobalVariable> GV0(
-      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage));
+      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage, nullptr, "",
+                         GlobalVariable::NotThreadLocal, 0));
   auto *MD = ValueAsMetadata::get(GV0.get());
   EXPECT_TRUE(MD->getValue() == GV0.get());
   ASSERT_TRUE(GV0->use_empty());
 
   std::unique_ptr<GlobalVariable> GV1(
-      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage));
+      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage, nullptr, "",
+                         GlobalVariable::NotThreadLocal, 0));
   GV0->replaceAllUsesWith(GV1.get());
   EXPECT_TRUE(MD->getValue() == GV1.get());
 }
@@ -3829,13 +3835,15 @@ typedef MetadataTest TrackingMDRefTest;
 TEST_F(TrackingMDRefTest, UpdatesOnRAUW) {
   Type *Ty = PointerType::getUnqual(Context);
   std::unique_ptr<GlobalVariable> GV0(
-      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage));
+      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage, nullptr, "",
+                         GlobalVariable::NotThreadLocal, 0));
   TypedTrackingMDRef<ValueAsMetadata> MD(ValueAsMetadata::get(GV0.get()));
   EXPECT_TRUE(MD->getValue() == GV0.get());
   ASSERT_TRUE(GV0->use_empty());
 
   std::unique_ptr<GlobalVariable> GV1(
-      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage));
+      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage, nullptr, "",
+                         GlobalVariable::NotThreadLocal, 0));
   GV0->replaceAllUsesWith(GV1.get());
   EXPECT_TRUE(MD->getValue() == GV1.get());
 
@@ -3846,7 +3854,8 @@ TEST_F(TrackingMDRefTest, UpdatesOnRAUW) {
 TEST_F(TrackingMDRefTest, UpdatesOnDeletion) {
   Type *Ty = PointerType::getUnqual(Context);
   std::unique_ptr<GlobalVariable> GV(
-      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage));
+      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage, nullptr, "",
+                         GlobalVariable::NotThreadLocal, 0));
   TypedTrackingMDRef<ValueAsMetadata> MD(ValueAsMetadata::get(GV.get()));
   EXPECT_TRUE(MD->getValue() == GV.get());
   ASSERT_TRUE(GV->use_empty());

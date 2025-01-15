@@ -93,7 +93,7 @@ static void handleTypeMismatchImpl(TypeMismatchData *Data, ValueHandle Pointer,
     ET = (Data->TypeCheckKind == TCK_NonnullAssign)
              ? ErrorType::NullPointerUseWithNullability
              : ErrorType::NullPointerUse;
-  else if (Pointer & (Alignment - 1))
+  else if (!IsAligned(Pointer, Alignment))
     ET = ErrorType::MisalignedPointerUse;
   else
     ET = ErrorType::InsufficientObjectSize;
@@ -163,12 +163,12 @@ static void handleAlignmentAssumptionImpl(AlignmentAssumptionData *Data,
 
   ScopedReport R(Opts, Loc, ET);
 
-  uptr RealPointer = Pointer - Offset;
-  uptr LSB = LeastSignificantSetBitIndex(RealPointer);
-  uptr ActualAlignment = uptr(1) << LSB;
+  vaddr RealPointerAddr = (char *)Pointer - (char *)Offset;
+  usize LSB = LeastSignificantSetBitIndex(RealPointerAddr);
+  usize ActualAlignment = usize(1) << LSB;
 
-  uptr Mask = Alignment - 1;
-  uptr MisAlignmentOffset = RealPointer & Mask;
+  usize Mask = Alignment - 1;
+  usize MisAlignmentOffset = RealPointerAddr & Mask;
 
   if (!Offset) {
     Diag(Loc, DL_Error, ET,
@@ -184,7 +184,7 @@ static void handleAlignmentAssumptionImpl(AlignmentAssumptionData *Data,
   if (!AssumptionLoc.isInvalid())
     Diag(AssumptionLoc, DL_Note, ET, "alignment assumption was specified here");
 
-  Diag(RealPointer, DL_Note, ET,
+  Diag(RealPointerAddr, DL_Note, ET,
        "%0address is %1 aligned, misalignment offset is %2 bytes")
       << (Offset ? "offset " : "") << ActualAlignment << MisAlignmentOffset;
 }

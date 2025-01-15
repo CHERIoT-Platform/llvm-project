@@ -348,3 +348,14 @@ def XIANGSHAN_NANHU : RISCVProcessorModel<"xiangshan-nanhu",
                                            FeatureStdExtSvinval,
                                            FeatureStdExtZicbom,
                                            FeatureStdExtZicboz]>;
+
+// NB: FeatureCheri =>'s RVC (!FeatureCheriNoRVC)
+def CHERIOT : RISCVProcessorModel<"cheriot",
+                                   NoSchedModel,
+                                   [Feature32Bit,
+                                    FeatureRVE,
+                                    FeatureCheri,
+                                    FeatureCapMode,
+                                    FeatureStdExtC,
+                                    FeatureStdExtM,
+                                    FeatureUnalignedScalarMem]>;

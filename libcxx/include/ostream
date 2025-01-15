@@ -267,6 +267,11 @@ public:
   basic_ostream& operator<<(long double __f);
   basic_ostream& operator<<(const void* __p);
 
+#if __has_feature(capabilities)
+    basic_ostream& operator<<(__intcap __n);
+    basic_ostream& operator<<(unsigned __intcap __n);
+#endif
+
 #if _LIBCPP_STD_VER >= 23
   _LIBCPP_HIDE_FROM_ABI basic_ostream& operator<<(const volatile void* __p) {
     return operator<<(const_cast<const void*>(__p));
@@ -582,8 +587,18 @@ basic_ostream<_CharT, _Traits>& basic_ostream<_CharT, _Traits>::operator<<(unsig
   return *this;
 }
 
+#if __has_feature(capabilities)
 template <class _CharT, class _Traits>
-basic_ostream<_CharT, _Traits>& basic_ostream<_CharT, _Traits>::operator<<(float __n) {
+basic_ostream<_CharT, _Traits>&
+basic_ostream<_CharT, _Traits>::operator<<(__intcap __n)
+{
+    return *this << static_cast<ptrdiff_t>(__n);
+}
+
+template <class _CharT, class _Traits>
+basic_ostream<_CharT, _Traits>&
+basic_ostream<_CharT, _Traits>::operator<<(unsigned __intcap __n)
+{
 #ifndef _LIBCPP_HAS_NO_EXCEPTIONS
   try {
 #endif // _LIBCPP_HAS_NO_EXCEPTIONS

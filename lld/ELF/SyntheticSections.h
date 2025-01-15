@@ -472,6 +472,7 @@ private:
   // The kind of expression used to calculate the added (required e.g. for
   // relative GOT relocations).
   RelExpr expr;
+  friend class RelocationBaseSection;
 };
 
 template <class ELFT> class DynamicSection final : public SyntheticSection {
@@ -518,7 +519,7 @@ public:
   }
   /// Add a dynamic relocation using the target address of \p sym as the addend
   /// if \p sym is non-preemptible. Otherwise add a relocation against \p sym.
-  void addAddendOnlyRelocIfNonPreemptible(RelType dynType, GotSection &sec,
+  void addAddendOnlyRelocIfNonPreemptible(RelType dynType, InputSectionBase &sec,
                                           uint64_t offsetInSec, Symbol &sym,
                                           RelType addendRelType);
   template <bool shard = false>
@@ -527,7 +528,19 @@ public:
                 RelType addendRelType) {
     // Write the addends to the relocated address if required. We skip
     // it if the written value would be zero.
-    if (config->writeAddends && (expr != R_ADDEND || addend != 0))
+    bool writeAddend =
+        config->writeAddends && (expr != R_ADDEND || addend != 0);
+    // If we are adding a dynamic R_CHERI_CAPABILITY relocation we need to write
+    // the added to the output file since it will be initialized to 0xcacacaca
+    if (expr == R_CHERI_CAPABILITY) {
+      expr = R_ADDEND;
+      if (sym.isFunc() && addend != 0)
+        warn("got capability relocation with non-zero addend (0x" +
+             llvm::utohexstr(addend) + ") against function " + toString(sym) +
+             ". This may not be supported by the runtime linker." +
+             getLocationMessage(sec, sym, offsetInSec));
+    }
+    if (writeAddend)
       sec.addReloc({expr, addendRelType, offsetInSec, addend, &sym});
     addReloc<shard>({dynType, &sec, offsetInSec, kind, sym, addend, expr});
   }
@@ -1005,6 +1018,7 @@ public:
   MipsAbiFlagsSection(Elf_Mips_ABIFlags flags);
   size_t getSize() const override { return sizeof(Elf_Mips_ABIFlags); }
   void writeTo(uint8_t *buf) override;
+  std::optional<unsigned> getCheriAbiVariant() const;
 
 private:
   Elf_Mips_ABIFlags flags;
@@ -1212,6 +1226,11 @@ private:
   bool finalized = false;
 };
 
+// Can only be forward declared here since it depends on SyntheticSection
+class CheriCapRelocsSection;
+class CheriCapTableSection;
+class CheriCapTableMappingSection;
+
 template <typename ELFT>
 class PartitionElfHeaderSection final : public SyntheticSection {
 public:
@@ -1344,6 +1363,10 @@ struct InStruct {
   std::unique_ptr<GotPltSection> gotPlt;
   std::unique_ptr<IgotPltSection> igotPlt;
   std::unique_ptr<RelroPaddingSection> relroPadding;
+  std::unique_ptr<CheriCapTableSection> cheriCapTable;
+  std::unique_ptr<CheriCapRelocsSection> capRelocs;
+  // For per-file/per-function tables:
+  std::unique_ptr<CheriCapTableMappingSection> cheriCapTableMapping;
   std::unique_ptr<SyntheticSection> armCmseSGSection;
   std::unique_ptr<PPC64LongBranchTargetSection> ppc64LongBranchTarget;
   std::unique_ptr<SyntheticSection> mipsAbiFlags;

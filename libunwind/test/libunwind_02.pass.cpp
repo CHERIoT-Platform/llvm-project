@@ -17,6 +17,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <unwind.h>
+#include <stdio.h>
 
 #define EXPECTED_NUM_FRAMES 50
 #define NUM_FRAMES_UPPER_BOUND 100
@@ -27,6 +28,7 @@ __attribute__((noinline)) _Unwind_Reason_Code callback(_Unwind_Context *context,
   int *i = (int *)cnt;
   ++*i;
   if (*i > NUM_FRAMES_UPPER_BOUND) {
+    fprintf(stderr, "Error: %d > %d\n", *i, NUM_FRAMES_UPPER_BOUND);
     abort();
   }
   return _URC_NO_REASON;
@@ -36,6 +38,7 @@ __attribute__((noinline)) void test_backtrace() {
   int n = 0;
   _Unwind_Backtrace(&callback, &n);
   if (n < EXPECTED_NUM_FRAMES) {
+    fprintf(stderr, "Error: %d < %d\n", n, EXPECTED_NUM_FRAMES);
     abort();
   }
 }
@@ -68,6 +71,10 @@ __attribute__((noinline)) int test2(int i) {
 
 int main(int, char**) {
   int total = test1(50);
-  assert(total == 1275);
+  if (total != 1275) {
+    fprintf(stderr, "Got incorrect total: %d\n", total);
+    abort();
+  }
+  fprintf(stderr, "Success!\n");
   return 0;
 }

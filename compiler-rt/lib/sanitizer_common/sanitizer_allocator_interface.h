@@ -16,6 +16,7 @@
 #include "sanitizer_internal_defs.h"
 
 using __sanitizer::uptr;
+using __sanitizer::usize;
 
 extern "C" {
 SANITIZER_INTERFACE_ATTRIBUTE
@@ -23,7 +24,7 @@ uptr __sanitizer_get_estimated_allocated_size(uptr size);
 SANITIZER_INTERFACE_ATTRIBUTE int __sanitizer_get_ownership(const void *p);
 SANITIZER_INTERFACE_ATTRIBUTE const void *__sanitizer_get_allocated_begin(
     const void *p);
-SANITIZER_INTERFACE_ATTRIBUTE uptr
+SANITIZER_INTERFACE_ATTRIBUTE usize
 __sanitizer_get_allocated_size(const void *p);
 SANITIZER_INTERFACE_ATTRIBUTE uptr
 __sanitizer_get_allocated_size_fast(const void *p);
@@ -33,11 +34,11 @@ SANITIZER_INTERFACE_ATTRIBUTE uptr __sanitizer_get_free_bytes();
 SANITIZER_INTERFACE_ATTRIBUTE uptr __sanitizer_get_unmapped_bytes();
 
 SANITIZER_INTERFACE_ATTRIBUTE int __sanitizer_install_malloc_and_free_hooks(
-    void (*malloc_hook)(const void *, uptr),
+    void (*malloc_hook)(const void *, usize),
     void (*free_hook)(const void *));
 
 SANITIZER_INTERFACE_ATTRIBUTE SANITIZER_WEAK_ATTRIBUTE
-    void __sanitizer_malloc_hook(void *ptr, uptr size);
+    void __sanitizer_malloc_hook(void *ptr, usize size);
 SANITIZER_INTERFACE_ATTRIBUTE SANITIZER_WEAK_ATTRIBUTE
     void __sanitizer_free_hook(void *ptr);
 

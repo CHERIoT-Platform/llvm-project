@@ -40,8 +40,14 @@ typedef __type_list<unsigned char,
 #  ifndef _LIBCPP_HAS_NO_INT128
         __type_list<__uint128_t,
 #  endif
+#  if __has_feature(capabilities)
+        __type_list<__uintcap_t,
+#  endif
         __nat
 #  ifndef _LIBCPP_HAS_NO_INT128
+        >
+#  endif
+#  if __has_feature(capabilities)
         >
 #  endif
         > > > > > __unsigned_types;
@@ -68,6 +74,10 @@ template <> struct __make_unsigned<unsigned long long, true> {typedef unsigned l
 #  ifndef _LIBCPP_HAS_NO_INT128
 template <> struct __make_unsigned<__int128_t,         true> {typedef __uint128_t        type;};
 template <> struct __make_unsigned<__uint128_t,        true> {typedef __uint128_t        type;};
+#  endif
+#  if __has_feature(capabilities)
+template <> struct __make_unsigned<  signed __intcap,  true> {typedef unsigned __intcap type;};
+template <> struct __make_unsigned<unsigned __intcap,  true> {typedef unsigned __intcap type;};
 #  endif
 // clang-format on
 

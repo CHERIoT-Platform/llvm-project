@@ -12,6 +12,7 @@
 #include "Gnu.h"
 #include "clang/Driver/InputInfo.h"
 
+#include "Arch/Mips.h"
 #include "Arch/ARM.h"
 #include "Arch/RISCV.h"
 #include "clang/Driver/Compilation.h"
@@ -152,6 +153,23 @@ static bool isAArch64BareMetal(const llvm::Triple &Triple) {
   return Triple.getEnvironmentName() == "elf";
 }
 
+/// Allow mips*-none-elf
+static bool isMIPSBareMetal(const llvm::Triple& Triple) {
+  switch(Triple.getArch()) {
+  case llvm::Triple::mips:
+  case llvm::Triple::mips64el:
+  case llvm::Triple::mips64:
+  case llvm::Triple::mipsel:
+    if (Triple.getVendor() != llvm::Triple::UnknownVendor)
+      return false;
+    if (Triple.getOS() != llvm::Triple::UnknownOS)
+      return false;
+    return Triple.isOSBinFormatELF();
+  default:
+    return false;
+  }
+}
+
 static bool isRISCVBareMetal(const llvm::Triple &Triple) {
   if (!Triple.isRISCV())
     return false;
@@ -236,7 +254,8 @@ void BareMetal::findMultilibs(const Driver &D, const llvm::Triple &Triple,
 
 bool BareMetal::handlesTarget(const llvm::Triple &Triple) {
   return isARMBareMetal(Triple) || isAArch64BareMetal(Triple) ||
-         isRISCVBareMetal(Triple) || isPPCBareMetal(Triple);
+         isRISCVBareMetal(Triple) || isMIPSBareMetal(Triple) ||
+         isPPCBareMetal(Triple);
 }
 
 Tool *BareMetal::buildLinker() const {

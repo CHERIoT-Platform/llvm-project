@@ -10,6 +10,17 @@
 #ifndef _LIBCPP_LOCALE
 #define _LIBCPP_LOCALE
 
+// CHERI CHANGES START
+// {
+//   "updated": 20190722,
+//   "target_type": "header",
+//   "changes": [
+//     "subobject_bounds"
+//   ],
+//   "change_comment": "address of std::string::operator[]: `std::string buf; &buf[0] -> __buf.begin().base()`"
+// }
+// CHERI CHANGES END
+
 /*
     locale synopsis
 
@@ -857,7 +868,10 @@ _InputIterator num_get<_CharT, _InputIterator>::__do_get_signed(
 #endif
   string __buf;
   __buf.resize(__buf.capacity());
-  char* __a     = &__buf[0];
+  // XXXAR: &__buf[0] would set bounds to 1 since operator[] returns a reference
+  // Note __buf.begin().base() instead of buf.data() since non-const version requires c++17
+  // char* __a = &__buf[0];
+  char* __a = __buf.begin().base();
   char* __a_end = __a;
   unsigned __g[__num_get_base::__num_get_buf_sz];
   unsigned* __g_end = __g;
@@ -867,7 +881,9 @@ _InputIterator num_get<_CharT, _InputIterator>::__do_get_signed(
       size_t __tmp = __buf.size();
       __buf.resize(2 * __buf.size());
       __buf.resize(__buf.capacity());
-      __a     = &__buf[0];
+      // XXXAR: &__buf[0] would set bounds to 1 since operator[] returns a reference
+      // __a = &__buf[0];
+      __a = __buf.begin().base();
       __a_end = __a + __tmp;
     }
     if (this->__stage2_int_loop(*__b, __base, __a, __a_end, __dc, __thousands_sep, __grouping, __g, __g_end, __atoms))
@@ -906,7 +922,9 @@ _InputIterator num_get<_CharT, _InputIterator>::__do_get_unsigned(
 #endif
   string __buf;
   __buf.resize(__buf.capacity());
-  char* __a     = &__buf[0];
+  // XXXAR: &__buf[0] would set bounds to 1 since operator[] returns a reference
+  // char* __a = &__buf[0];
+  char* __a = __buf.begin().base();
   char* __a_end = __a;
   unsigned __g[__num_get_base::__num_get_buf_sz];
   unsigned* __g_end = __g;
@@ -916,7 +934,9 @@ _InputIterator num_get<_CharT, _InputIterator>::__do_get_unsigned(
       size_t __tmp = __buf.size();
       __buf.resize(2 * __buf.size());
       __buf.resize(__buf.capacity());
-      __a     = &__buf[0];
+      // XXXAR: &__buf[0] would set bounds to 1 since operator[] returns a reference
+      // __a = &__buf[0];
+      __a = __buf.begin().base();
       __a_end = __a + __tmp;
     }
     if (this->__stage2_int_loop(*__b, __base, __a, __a_end, __dc, __thousands_sep, __grouping, __g, __g_end, __atoms))
@@ -948,7 +968,9 @@ _InputIterator num_get<_CharT, _InputIterator>::__do_get_floating_point(
   string __grouping = this->__stage2_float_prep(__iob, __atoms, __decimal_point, __thousands_sep);
   string __buf;
   __buf.resize(__buf.capacity());
-  char* __a     = &__buf[0];
+  // XXXAR: &__buf[0] would set bounds to 1 since operator[] returns a reference
+  // char* __a = &__buf[0];
+  char* __a = __buf.begin().base();
   char* __a_end = __a;
   unsigned __g[__num_get_base::__num_get_buf_sz];
   unsigned* __g_end = __g;
@@ -960,7 +982,9 @@ _InputIterator num_get<_CharT, _InputIterator>::__do_get_floating_point(
       size_t __tmp = __buf.size();
       __buf.resize(2 * __buf.size());
       __buf.resize(__buf.capacity());
-      __a     = &__buf[0];
+      // XXXAR: &__buf[0] would set bounds to 1 since operator[] returns a reference
+      // __a = &__buf[0];
+      __a = __buf.begin().base();
       __a_end = __a + __tmp;
     }
     if (this->__stage2_float_loop(
@@ -1002,7 +1026,9 @@ _InputIterator num_get<_CharT, _InputIterator>::do_get(
   std::use_facet<ctype<_CharT> >(__iob.getloc()).widen(__num_get_base::__src, __num_get_base::__src + 26, __atoms);
   string __buf;
   __buf.resize(__buf.capacity());
-  char* __a     = &__buf[0];
+  // XXXAR: &__buf[0] would set bounds to 1 since operator[] returns a reference
+  // char* __a = &__buf[0];
+  char* __a = __buf.begin().base();
   char* __a_end = __a;
   unsigned __g[__num_get_base::__num_get_buf_sz];
   unsigned* __g_end = __g;
@@ -1012,7 +1038,9 @@ _InputIterator num_get<_CharT, _InputIterator>::do_get(
       size_t __tmp = __buf.size();
       __buf.resize(2 * __buf.size());
       __buf.resize(__buf.capacity());
-      __a     = &__buf[0];
+      // XXXAR: &__buf[0] would set bounds to 1 since operator[] returns a reference
+      // __a = &__buf[0];
+      __a = __buf.begin().base();
       __a_end = __a + __tmp;
     }
     if (this->__stage2_int_loop(*__b, __base, __a, __a_end, __dc, __thousands_sep, __grouping, __g, __g_end, __atoms))
@@ -3046,10 +3074,16 @@ locale::id messages<_CharT>::id;
 template <class _CharT>
 typename messages<_CharT>::catalog messages<_CharT>::do_open(const basic_string<char>& __nm, const locale&) const {
 #ifdef _LIBCPP_HAS_CATOPEN
-  return (catalog)catopen(__nm.c_str(), NL_CAT_LOCALE);
-#else  // !_LIBCPP_HAS_CATOPEN
-  (void)__nm;
-  return -1;
+    catalog __cat = (catalog)catopen(__nm.c_str(), NL_CAT_LOCALE);
+#ifndef __CHERI_PURE_CAPABILITY__
+    // We can already distinguish invalid pointers from a pointer with high bits set -> don't do this shifting
+    if (__cat != -1)
+        __cat = static_cast<catalog>((static_cast<size_t>(__cat) >> 1));
+#endif
+    return __cat;
+#else // !_LIBCPP_HAS_CATOPEN
+    (void)__nm;
+    return -1;
 #endif // _LIBCPP_HAS_CATOPEN
 }
 
@@ -3060,6 +3094,11 @@ messages<_CharT>::do_get(catalog __c, int __set, int __msgid, const string_type&
   string __ndflt;
   __narrow_to_utf8<sizeof(char_type) * __CHAR_BIT__>()(
       std::back_inserter(__ndflt), __dflt.c_str(), __dflt.c_str() + __dflt.size());
+#ifndef __CHERI_PURE_CAPABILITY__
+  // We can already distinguish invalid pointers from a pointer with high bits set -> don't do this shifting
+  if (__c != -1)
+      __c = __c << 1;
+#endif
   nl_catd __cat = (nl_catd)__c;
   static_assert(sizeof(catalog) >= sizeof(nl_catd), "Unexpected nl_catd type");
   char* __n = catgets(__cat, __set, __msgid, __ndflt.c_str());
@@ -3077,6 +3116,11 @@ messages<_CharT>::do_get(catalog __c, int __set, int __msgid, const string_type&
 template <class _CharT>
 void messages<_CharT>::do_close(catalog __c) const {
 #ifdef _LIBCPP_HAS_CATOPEN
+#ifndef __CHERI_PURE_CAPABILITY__
+  // We can already distinguish invalid pointers from a pointer with high bits set -> don't do this shifting
+  if (__c != -1)
+      __c = __c << 1;
+#endif
   catclose((nl_catd)__c);
 #else  // !_LIBCPP_HAS_CATOPEN
   (void)__c;
@@ -3215,7 +3259,7 @@ wstring_convert<_Codecvt, _Elem, _WideAlloc, _ByteAlloc>::from_bytes(const char*
     codecvt_base::result __r = codecvt_base::ok;
     state_type __st          = __cvtstate_;
     if (__frm != __frm_end) {
-      _Elem* __to     = &__ws[0];
+      _Elem* __to     = /*&__ws[0]*/__ws.begin().base();
       _Elem* __to_end = __to + __ws.size();
       const char* __frm_nxt;
       do {
@@ -3225,19 +3269,19 @@ wstring_convert<_Codecvt, _Elem, _WideAlloc, _ByteAlloc>::from_bytes(const char*
         if (__frm_nxt == __frm) {
           __r = codecvt_base::error;
         } else if (__r == codecvt_base::noconv) {
-          __ws.resize(__to - &__ws[0]);
+          __ws.resize(__to - /*&__ws[0]*/__ws.begin().base());
           // This only gets executed if _Elem is char
           __ws.append((const _Elem*)__frm, (const _Elem*)__frm_end);
           __frm = __frm_nxt;
           __r   = codecvt_base::ok;
         } else if (__r == codecvt_base::ok) {
-          __ws.resize(__to_nxt - &__ws[0]);
+          __ws.resize(__to_nxt - /*&__ws[0]*/__ws.begin().base());
           __frm = __frm_nxt;
         } else if (__r == codecvt_base::partial) {
-          ptrdiff_t __s = __to_nxt - &__ws[0];
+          ptrdiff_t __s = __to_nxt - /*&__ws[0]*/__ws.begin().base();
           __ws.resize(2 * __s);
-          __to     = &__ws[0] + __s;
-          __to_end = &__ws[0] + __ws.size();
+          __to     = /*&__ws[0]*/__ws.begin().base() + __s;
+          __to_end = /*&__ws[0]*/__ws.begin().base() + __ws.size();
           __frm    = __frm_nxt;
         }
       } while (__r == codecvt_base::partial && __frm_nxt < __frm_end);
@@ -3263,7 +3307,7 @@ wstring_convert<_Codecvt, _Elem, _WideAlloc, _ByteAlloc>::to_bytes(const _Elem* 
     codecvt_base::result __r = codecvt_base::ok;
     state_type __st          = __cvtstate_;
     if (__frm != __frm_end) {
-      char* __to     = &__bs[0];
+      char* __to     = /*&__bs[0]*/__bs.begin().base();
       char* __to_end = __to + __bs.size();
       const _Elem* __frm_nxt;
       do {
@@ -3273,19 +3317,19 @@ wstring_convert<_Codecvt, _Elem, _WideAlloc, _ByteAlloc>::to_bytes(const _Elem* 
         if (__frm_nxt == __frm) {
           __r = codecvt_base::error;
         } else if (__r == codecvt_base::noconv) {
-          __bs.resize(__to - &__bs[0]);
+          __bs.resize(__to - /*&__bs[0]*/__bs.begin().base());
           // This only gets executed if _Elem is char
           __bs.append((const char*)__frm, (const char*)__frm_end);
           __frm = __frm_nxt;
           __r   = codecvt_base::ok;
         } else if (__r == codecvt_base::ok) {
-          __bs.resize(__to_nxt - &__bs[0]);
+          __bs.resize(__to_nxt - /*&__bs[0]*/__bs.begin().base());
           __frm = __frm_nxt;
         } else if (__r == codecvt_base::partial) {
-          ptrdiff_t __s = __to_nxt - &__bs[0];
+          ptrdiff_t __s = __to_nxt - /*&__bs[0]*/__bs.begin().base();
           __bs.resize(2 * __s);
-          __to     = &__bs[0] + __s;
-          __to_end = &__bs[0] + __bs.size();
+          __to     = /*&__bs[0]*/__bs.begin().base() + __s;
+          __to_end = /*&__bs[0]*/__bs.begin().base() + __bs.size();
           __frm    = __frm_nxt;
         }
       } while (__r == codecvt_base::partial && __frm_nxt < __frm_end);
@@ -3293,21 +3337,21 @@ wstring_convert<_Codecvt, _Elem, _WideAlloc, _ByteAlloc>::to_bytes(const _Elem* 
     if (__r == codecvt_base::ok) {
       size_t __s = __bs.size();
       __bs.resize(__bs.capacity());
-      char* __to     = &__bs[0] + __s;
+      char* __to     = /*&__bs[0]*/__bs.begin().base() + __s;
       char* __to_end = __to + __bs.size();
       do {
         char* __to_nxt;
         __r = __cvtptr_->unshift(__st, __to, __to_end, __to_nxt);
         if (__r == codecvt_base::noconv) {
-          __bs.resize(__to - &__bs[0]);
+          __bs.resize(__to - /*&__bs[0]*/__bs.begin().base());
           __r = codecvt_base::ok;
         } else if (__r == codecvt_base::ok) {
-          __bs.resize(__to_nxt - &__bs[0]);
+          __bs.resize(__to_nxt - /*&__bs[0]*/__bs.begin().base());
         } else if (__r == codecvt_base::partial) {
-          ptrdiff_t __sp = __to_nxt - &__bs[0];
+          ptrdiff_t __sp = __to_nxt - /*&__bs[0]*/__bs.begin().base();
           __bs.resize(2 * __sp);
-          __to     = &__bs[0] + __sp;
-          __to_end = &__bs[0] + __bs.size();
+          __to     = /*&__bs[0]*/__bs.begin().base() + __sp;
+          __to_end = /*&__bs[0]*/__bs.begin().base() + __bs.size();
         }
       } while (__r == codecvt_base::partial);
       if (__r == codecvt_base::ok)

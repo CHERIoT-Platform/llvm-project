@@ -42,7 +42,7 @@ public:
   void getAnalysisUsage(AnalysisUsage &AU) const override;
 
 protected:
-  SDNode *getGlobalBaseReg();
+  SDNode *getGlobalBaseReg(bool IsForTls);
 
   /// Keep a pointer to the MipsSubtarget around so that we can make the right
   /// decision when generating code for different targets.
@@ -56,6 +56,7 @@ private:
   /// (reg + imm).
   virtual bool selectAddrRegImm(SDValue Addr, SDValue &Base,
                                 SDValue &Offset) const;
+  virtual bool selectAddrFI(SDValue Addr, SDValue &Base) const;
 
   /// Fall back on this function if all else fails.
   virtual bool selectAddrDefault(SDValue Addr, SDValue &Base,

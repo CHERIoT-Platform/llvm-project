@@ -94,18 +94,18 @@ static void *GetRealLibcAddress(const char *symbol) {
   CHECK(real_##func);
 
 // --------------- sanitizer_libc.h
-uptr internal_mmap(void *addr, uptr length, int prot, int flags, int fd,
+uptr internal_mmap(void *addr, usize length, int prot, int flags, int fd,
                    u64 offset) {
   CHECK(&__mmap);
   return (uptr)__mmap(addr, length, prot, flags, fd, 0, offset);
 }
 
-uptr internal_munmap(void *addr, uptr length) {
+uptr internal_munmap(void *addr, usize length) {
   DEFINE__REAL(int, munmap, void *a, uptr b);
   return _REAL(munmap, addr, length);
 }
 
-uptr internal_mremap(void *old_address, uptr old_size, uptr new_size, int flags,
+uptr internal_mremap(void *old_address, usize old_size, usize new_size, int flags,
                      void *new_address) {
   CHECK(false && "internal_mremap is unimplemented on NetBSD");
   return 0;
@@ -126,31 +126,31 @@ uptr internal_close(fd_t fd) {
   return _sys_close(fd);
 }
 
-uptr internal_open(const char *filename, int flags) {
+fd_t internal_open(const char *filename, int flags) {
   CHECK(&_sys_open);
   return _sys_open(filename, flags);
 }
 
-uptr internal_open(const char *filename, int flags, u32 mode) {
+fd_t internal_open(const char *filename, int flags, u32 mode) {
   CHECK(&_sys_open);
   return _sys_open(filename, flags, mode);
 }
 
-uptr internal_read(fd_t fd, void *buf, uptr count) {
+uptr internal_read(fd_t fd, void *buf, usize count) {
   sptr res;
   CHECK(&_sys_read);
   HANDLE_EINTR(res, (sptr)_sys_read(fd, buf, (size_t)count));
   return res;
 }
 
-uptr internal_write(fd_t fd, const void *buf, uptr count) {
+uptr internal_write(fd_t fd, const void *buf, usize count) {
   sptr res;
   CHECK(&_sys_write);
   HANDLE_EINTR(res, (sptr)_sys_write(fd, buf, count));
   return res;
 }
 
-uptr internal_ftruncate(fd_t fd, uptr size) {
+uptr internal_ftruncate(fd_t fd, usize size) {
   sptr res;
   CHECK(&__ftruncate);
   HANDLE_EINTR(res, __ftruncate(fd, 0, (s64)size));
@@ -189,12 +189,12 @@ uptr internal_dup2(int oldfd, int newfd) {
   return _REAL(dup2, oldfd, newfd);
 }
 
-uptr internal_readlink(const char *path, char *buf, uptr bufsize) {
+usize internal_readlink(const char *path, char *buf, usize bufsize) {
   CHECK(&_sys_readlink);
   return (uptr)_sys_readlink(path, buf, bufsize);
 }
 
-uptr internal_unlink(const char *path) {
+usize internal_unlink(const char *path) {
   DEFINE__REAL(int, unlink, const char *a);
   return _REAL(unlink, path);
 }
@@ -318,7 +318,7 @@ int internal_sysctlbyname(const char *sname, void *oldp, uptr *oldlenp,
                (size_t)newlen);
 }
 
-uptr internal_sigprocmask(int how, __sanitizer_sigset_t *set,
+usize internal_sigprocmask(int how, __sanitizer_sigset_t *set,
                           __sanitizer_sigset_t *oldset) {
   CHECK(&_sys___sigprocmask14);
   return _sys___sigprocmask14(how, set, oldset);

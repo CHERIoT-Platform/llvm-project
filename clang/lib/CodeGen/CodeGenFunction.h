@@ -20,6 +20,7 @@
 #include "CodeGenModule.h"
 #include "CodeGenPGO.h"
 #include "EHScopeStack.h"
+#include "TargetInfo.h"
 #include "VarBypassDetector.h"
 #include "clang/AST/CharUnits.h"
 #include "clang/AST/CurrentSourceLocExprScope.h"
@@ -226,6 +227,8 @@ template <> struct DominatingValue<RValue> {
     return value.restore(CGF);
   }
 };
+
+enum class SubObjectBoundsKind { AddrOf, Reference, ArraySubscript, ArrayDecay };
 
 /// CodeGenFunction - This class organizes the per-function state that is used
 /// while generating LLVM code.
@@ -560,6 +563,26 @@ public:
 
   /// True if the current statement has nomerge attribute.
   bool InNoMergeAttributedStmt = false;
+
+  bool InCheriContainerBoundsEmission = false;
+  struct TightenBoundsResult {
+    // either a fixed size or when UseRemainingSize is set the maximum size
+    std::optional<uint64_t> Size;
+    bool IsSubObject = false;
+    bool IsContainerSize = false;
+    bool UseRemainingSize = false;
+    std::string DebugMessage;
+    std::string DiagMessage;
+    ValueDecl *TargetField = nullptr;
+    const Expr *ContainerAccessExpr = nullptr;
+  };
+  struct CheriContainerBoundsInfo {
+    const Expr *LocationExpr = nullptr;
+    const TightenBoundsResult *TBR = nullptr;
+    QualType Ty;
+    SubObjectBoundsKind Kind = SubObjectBoundsKind::AddrOf;
+    bool BoundsAdded = false;
+  } AddCheriContainerBoundsInfo;
 
   /// True if the current statement has noinline attribute.
   bool InNoInlineAttributedStmt = false;
@@ -3011,6 +3034,14 @@ public:
   llvm::Value *EmitDynamicCast(Address V, const CXXDynamicCastExpr *DCE);
   Address EmitCXXUuidofExpr(const CXXUuidofExpr *E);
 
+  /// Emit a pointer cast.  This should be used for all pointer casts and will
+  /// emit a simple bitcast where applicable or a more complex sequence for
+  /// different address spaces.
+  llvm::Value* EmitPointerCast(llvm::Value *From,
+                               QualType FromTy,
+                               QualType ToTy);
+  llvm::Value* EmitPointerCast(llvm::Value *From, llvm::PointerType *ToType);
+
   /// Situations in which we might emit a check for the suitability of a
   /// pointer or glvalue. Needs to be kept in sync with ubsan_handlers.cpp in
   /// compiler-rt.
@@ -4067,10 +4098,23 @@ public:
       return CGF.MakeNaturalAlignAddrLValue(ValueAndIsReference.getPointer(),
                                             refExpr->getType());
     }
-
-    llvm::Constant *getValue() const {
+    // XXXAR: the CGF parameter exists to prevent inttoptr instructions
+    // that are lowered incorrectly
+    // See https://github.com/CTSRD-CHERI/llvm/issues/268
+    llvm::Value *getValue(CodeGenFunction &CGF) const {
       assert(!isReference());
-      return ValueAndIsReference.getPointer();
+      llvm::Constant *C = ValueAndIsReference.getPointer();
+      if (auto *PTy = dyn_cast<llvm::PointerType>(C->getType())) {
+        if (auto *CE = dyn_cast<llvm::ConstantExpr>(C)) {
+          if (CE->getOpcode() == llvm::Instruction::IntToPtr &&
+              CGF.CGM.getDataLayout().isFatPointer(PTy)) {
+            return CGF.getNullDerivedCapability(PTy, CE->getOperand(0));
+          }
+        }
+        // TODO: are there any other exprs we need to special case?
+        // assert(!CGF.CGM.getDataLayout().isFatPointer(PTy));
+      }
+      return C;
     }
   };
 
@@ -4391,6 +4435,7 @@ public:
   llvm::Value *BuildVector(ArrayRef<llvm::Value*> Ops);
   llvm::Value *EmitX86BuiltinExpr(unsigned BuiltinID, const CallExpr *E);
   llvm::Value *EmitPPCBuiltinExpr(unsigned BuiltinID, const CallExpr *E);
+  llvm::Value *EmitMIPSBuiltinExpr(unsigned BuiltinID, const CallExpr *E);
   llvm::Value *EmitAMDGPUBuiltinExpr(unsigned BuiltinID, const CallExpr *E);
   llvm::Value *EmitScalarOrConstFoldImmArg(unsigned ICEArguments, unsigned Idx,
                                            const CallExpr *E);
@@ -4502,6 +4547,23 @@ public:
 
   /// Emits a reference binding to the passed in expression.
   RValue EmitReferenceBindingToExpr(const Expr *E);
+  /// Emits an address of expression (potentially with CHERI subobject bounds).
+  /// @p OuterExpr is the expression being bounded (i.e. __builtin_addressof() or
+  /// '&') and @p E is the subexpression that should have bounds set (e.g. the
+  /// argument of __builtin_addressof)
+  llvm::Value *emitAddrOf(const Expr *E, const Expr *OuterExpr);
+  /// Emit C++ reference binding (porentially CHERI with subobject bounds).
+  LValue emitLValueForReferenceBinding(const Expr *E);
+  LValue emitLValueWithCheriSubobjectBounds(const Expr *E,
+                                            const Expr *OuterExpr, QualType Ty,
+                                            SubObjectBoundsKind Kind,
+                                            const TightenBoundsResult &TBR);
+  llvm::Value *setCHERIBoundsOnArraySubscript(llvm::Value *Ptr,
+                                              const ArraySubscriptExpr *E);
+  llvm::Value *setCHERIBoundsOnArrayDecay(llvm::Value *Ptr, const Expr *E);
+
+  std::optional<TightenBoundsResult>
+  canTightenCheriBounds(QualType Ty, const Expr *E, SubObjectBoundsKind Kind);
 
   //===--------------------------------------------------------------------===//
   //                           Expression Emission
@@ -4744,6 +4806,13 @@ public:
                                       bool IsSubtraction,
                                       SourceLocation Loc,
                                       const Twine &Name = "");
+  /// Checks whether a capability arithmetic operation is invalid.
+  /// Currently this implements a check for values becoming untagged, but in
+  /// the future we may want to add an option to also check creation of
+  /// out-of-bounds CHERI capabilities.
+  llvm::Value *EmitCapabilityArithmeticCheck(llvm::Value *Input,
+                                             llvm::Value *Result,
+                                             SourceLocation Loc);
 
   /// Specifies which type of sanitizer check to apply when handling a
   /// particular builtin.
@@ -4922,6 +4991,52 @@ public:
                     AbstractCallee AC = AbstractCallee(),
                     unsigned ParamsToSkip = 0,
                     EvaluationOrder Order = EvaluationOrder::Default);
+
+  llvm::Value *getPointerOffset(llvm::Value *V) {
+    return getTargetHooks().getPointerOffset(*this, V);
+  }
+  /// Returns the result of casting a __uintcap_t to long:
+  /// This returns the address by default but if -cheri-uintcap=offset is
+  /// passed we will return the offset instead.
+  llvm::Value *getCapabilityIntegerValue(llvm::Value *V) {
+    return getLangOpts().getCheriUIntCap() == LangOptions::UIntCap_Addr
+               ? getPointerAddress(V)
+               : getPointerOffset(V);
+  }
+  /// Update a __uintcap_t with a long value:
+  /// This sets the address by default but if -cheri-uintcap=offset is
+  /// passed we will update the offset instead.
+  llvm::Value *setCapabilityIntegerValue(llvm::Value *Ptr, llvm::Value *NewVal,
+                                         SourceLocation Loc) {
+    return getLangOpts().getCheriUIntCap() == LangOptions::UIntCap_Addr
+               ? getTargetHooks().setPointerAddress(*this, Ptr, NewVal, "", Loc)
+               : getTargetHooks().setPointerOffset(*this, Ptr, NewVal, "", Loc);
+  }
+  llvm::Value *getNullDerivedCapability(llvm::Type *ResultTy,
+                                        llvm::Value *IntValue) {
+    assert(isa<llvm::PointerType>(ResultTy));
+    return Builder.CreateBitCast(
+        Builder.CreateGEP(
+            Int8Ty, llvm::ConstantPointerNull::get(Int8CheriCapTy), IntValue),
+        ResultTy);
+  }
+  llvm::Value *getPointerAddress(llvm::Value *V, const llvm::Twine &Name = "") {
+    return getTargetHooks().getPointerAddress(*this, V, Name);
+  }
+  llvm::Value *setPointerBounds(llvm::Value *V, llvm::Value *Size,
+                                SourceLocation Loc, const llvm::Twine &Name,
+                                StringRef Pass, bool isSubObject,
+                                const llvm::Twine &Details = "",
+                                llvm::MaybeAlign KnownAlignment = std::nullopt);
+
+  llvm::Value *
+  setPointerBounds(llvm::Value *V, uint64_t Size, SourceLocation Loc,
+                   const llvm::Twine &Name, StringRef Pass, bool IsSubObject,
+                   const llvm::Twine &Details = "",
+                   llvm::MaybeAlign KnownAlignment = std::nullopt) {
+    return setPointerBounds(V, llvm::ConstantInt::get(Int64Ty, Size), Loc, Name,
+                            Pass, IsSubObject, Details, KnownAlignment);
+  }
 
   /// EmitPointerWithAlignment - Given an expression with a pointer type,
   /// emit the value and compute our best estimate of the alignment of the

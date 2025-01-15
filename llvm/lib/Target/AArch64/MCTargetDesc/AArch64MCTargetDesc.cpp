@@ -332,7 +332,8 @@ bool AArch64_MC::isFpOrNEON(const MCInst &MI, const MCInstrInfo *MCII) {
   return llvm::any_of(MI, IsFPR);
 }
 
-static MCRegisterInfo *createAArch64MCRegisterInfo(const Triple &Triple) {
+static MCRegisterInfo *
+createAArch64MCRegisterInfo(const Triple &, const MCTargetOptions &) {
   MCRegisterInfo *X = new MCRegisterInfo();
   InitAArch64MCRegisterInfo(X, AArch64::LR);
   AArch64_MC::initLLVMToCVRegMapping(X);

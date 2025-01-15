@@ -62,7 +62,7 @@ void ReadProcMaps(ProcSelfMapsBuff *proc_maps) {
 #endif
   };
 
-  uptr Size = 0;
+  usize Size = 0;
   int Err = internal_sysctl(Mib, ARRAY_SIZE(Mib), NULL, &Size, NULL, 0);
   CHECK_EQ(Err, 0);
   CHECK_GT(Size, 0);
@@ -99,7 +99,7 @@ bool MemoryMappingLayout::Next(MemoryMappedSegment *segment) {
 
   if (segment->filename != NULL && segment->filename_size > 0) {
     internal_snprintf(segment->filename,
-                      Min(segment->filename_size, (uptr)PATH_MAX), "%s",
+                      Min(segment->filename_size, (usize)PATH_MAX), "%s",
                       VmEntry->kve_path);
   }
 

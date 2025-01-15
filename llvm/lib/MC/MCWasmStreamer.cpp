@@ -164,7 +164,9 @@ bool MCWasmStreamer::emitSymbolAttribute(MCSymbol *S, MCSymbolAttr Attribute) {
 }
 
 void MCWasmStreamer::emitCommonSymbol(MCSymbol *S, uint64_t Size,
-                                      Align ByteAlignment) {
+                                      Align ByteAlignment,
+                                      TailPaddingAmount TailPadding) {
+  assert(TailPadding == TailPaddingAmount::None && "Not supported yet");
   llvm_unreachable("Common symbols are not yet implemented for Wasm");
 }
 
@@ -173,7 +175,8 @@ void MCWasmStreamer::emitELFSize(MCSymbol *Symbol, const MCExpr *Value) {
 }
 
 void MCWasmStreamer::emitLocalCommonSymbol(MCSymbol *S, uint64_t Size,
-                                           Align ByteAlignment) {
+                                           Align ByteAlignment,
+                                           TailPaddingAmount TailPadding) {
   llvm_unreachable("Local common symbols are not yet implemented for Wasm");
 }
 
@@ -263,12 +266,13 @@ void MCWasmStreamer::emitSymbolDesc(MCSymbol *Symbol, unsigned DescValue) {
 
 void MCWasmStreamer::emitZerofill(MCSection *Section, MCSymbol *Symbol,
                                   uint64_t Size, Align ByteAlignment,
-                                  SMLoc Loc) {
+                                  TailPaddingAmount TailPadding, SMLoc Loc) {
   llvm_unreachable("Wasm doesn't support this directive");
 }
 
 void MCWasmStreamer::emitTBSSSymbol(MCSection *Section, MCSymbol *Symbol,
-                                    uint64_t Size, Align ByteAlignment) {
+                                    uint64_t Size, Align ByteAlignment,
+                                    TailPaddingAmount TailPadding) {
   llvm_unreachable("Wasm doesn't support this directive");
 }
 

@@ -48,7 +48,10 @@ template <typename T, typename F>
 void test(F func) {
     typedef std::chrono::high_resolution_clock Clock;
     typedef std::chrono::duration<double, std::milli> ms;
-
+    ms Tolerance = ms(5);
+#if defined(TEST_HAS_SANITIZERS) || TEST_SLOW_HOST()
+    Tolerance *= 4;
+#endif
     std::promise<T> p;
     std::future<T> f = p.get_future();
     support::make_test_thread(func, std::move(p)).detach();
@@ -59,7 +62,7 @@ void test(F func) {
     f.wait();
     Clock::time_point t1 = Clock::now();
     assert(f.valid());
-    assert(t1-t0 < ms(5));
+    assert(t1-t0 < Tolerance);
 }
 
 int main(int, char**)

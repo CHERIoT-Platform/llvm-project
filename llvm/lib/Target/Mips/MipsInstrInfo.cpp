@@ -28,6 +28,7 @@
 #include "llvm/MC/MCInstrDesc.h"
 #include "llvm/Target/TargetMachine.h"
 #include <cassert>
+#include <optional>
 
 using namespace llvm;
 
@@ -38,7 +39,10 @@ using namespace llvm;
 void MipsInstrInfo::anchor() {}
 
 MipsInstrInfo::MipsInstrInfo(const MipsSubtarget &STI, unsigned UncondBr)
-    : MipsGenInstrInfo(Mips::ADJCALLSTACKDOWN, Mips::ADJCALLSTACKUP),
+    : MipsGenInstrInfo(STI.isABI_CheriPureCap() ?
+          Mips::ADJCALLSTACKCAPDOWN : Mips::ADJCALLSTACKDOWN,
+        STI.isABI_CheriPureCap() ?
+          Mips::ADJCALLSTACKCAPUP: Mips::ADJCALLSTACKUP),
       Subtarget(STI), UncondBrOpc(UncondBr) {}
 
 const MipsInstrInfo *MipsInstrInfo::create(MipsSubtarget &STI) {
@@ -430,6 +434,14 @@ bool MipsInstrInfo::isBranchOffsetInRange(unsigned BranchOpc,
   case Mips::BBIT1:
   case Mips::BBIT132:
     return isInt<18>(BrOffset);
+
+  // CHERI branches:
+  case Mips::CBTU:
+  case Mips::CBTS:
+  case Mips::CBEZ:
+  case Mips::CBNZ:
+    return isInt<18>(BrOffset);
+
 
   // MSA branches.
   case Mips::BZ_B:
@@ -847,6 +859,17 @@ static bool verifyInsExtInstruction(const MachineInstr &MI, StringRef &ErrInfo,
 }
 
 //  Perform target specific instruction verification.
+template<unsigned Width, unsigned Scale>
+bool checkScaledImmediate(const MachineInstr &MI, StringRef& ErrInfo, unsigned OpndIdx) {
+  assert(MI.getDesc().operands()[OpndIdx].OperandType == MCOI::OPERAND_IMMEDIATE);
+  if (MI.getOperand(OpndIdx).isImm() && !isShiftedInt<Width, Scale>(MI.getOperand(OpndIdx).getImm())) {
+    ErrInfo = "Operand immediate is not representable!";
+    return false;
+  }
+  return true;
+}
+
+
 bool MipsInstrInfo::verifyInstruction(const MachineInstr &MI,
                                       StringRef &ErrInfo) const {
   // Verify that ins and ext instructions are well formed.
@@ -888,6 +911,61 @@ bool MipsInstrInfo::verifyInstruction(const MachineInstr &MI,
 
       ErrInfo = "invalid instruction when using jump guards!";
       return false;
+
+    // Check that we don't use the cjalr output register (usually $c17) in the
+    // delay slot since it will have changed
+    case Mips::CapJumpLinkPseudo:
+    case Mips::CJALR:
+      // errs() << "CAPJUMPLINK: (delay slot: " << MI.hasDelaySlot()
+      //    << ", bundle size: " << MI.getBundleSize() << ") "; MI.dump();
+      if (MI.isBundledWithSucc()) {
+        auto &OutputOp =
+            MI.getOpcode() == Mips::CJALR ? MI.getOperand(0) : MI.getOperand(2);
+        if (MI.getOpcode() ==
+            Mips::CapJumpLinkPseudo) // Op2 here is implicitly c17:
+          assert(OutputOp.isReg() && OutputOp.getReg() == Mips::C17);
+        auto DelaySlotInstr = MI.getNextNode();
+        if (DelaySlotInstr->readsRegister(Mips::C17)) {
+          ErrInfo = "Filled CapJumpLinkPseudo delay slot with a read of $c17 "
+                    "(which will have been clobbered!)";
+          return false;
+        }
+      }
+      return true;
+    // FIXME: duplicating all this here is silly, tablegen should
+    //   be able to generate those checks!
+    case Mips::CAPLOADU8:
+    case Mips::CAPLOADU832:
+    case Mips::CAPLOAD8:
+    case Mips::CAPLOAD832:
+    case Mips::CAPSTORE8:
+    case Mips::CAPSTORE832:
+      return checkScaledImmediate<8, 0>(MI, ErrInfo, 2);
+    case Mips::CAPLOADU16:
+    case Mips::CAPLOADU1632:
+    case Mips::CAPLOAD16:
+    case Mips::CAPLOAD1632:
+    case Mips::CAPSTORE16:
+    case Mips::CAPSTORE1632:
+      return checkScaledImmediate<8, 1>(MI, ErrInfo, 2);
+    case Mips::CAPLOADU32:
+    case Mips::CAPLOAD3264:
+    case Mips::CAPSTORE32:
+    case Mips::CAPSTORE3264:
+      return checkScaledImmediate<8, 2>(MI, ErrInfo, 2);
+    case Mips::CAPLOAD64:
+    case Mips::CAPSTORE64:
+      return checkScaledImmediate<8, 3>(MI, ErrInfo, 2);
+    case Mips::STORECAP:
+    case Mips::LOADCAP:
+      return checkScaledImmediate<11, 4>(MI, ErrInfo, 2);
+    case Mips::LOADCAP_BigImm:
+      return checkScaledImmediate<16, 4>(MI, ErrInfo, 1);
+    case Mips::CIncOffsetImm:
+      return checkScaledImmediate<11, 0>(MI, ErrInfo, 2);
+    case Mips::CSetBoundsImm:
+      // FIXME: actually 11 bit unsigned
+      return checkScaledImmediate<12, 0>(MI, ErrInfo, 2);
     default:
       return true;
   }
@@ -928,7 +1006,29 @@ MipsInstrInfo::getSerializableDirectMachineOperandTargetFlags() const {
     {MO_GOT_LO16,     "mips-got-lo16"},
     {MO_CALL_HI16,    "mips-call-hi16"},
     {MO_CALL_LO16,    "mips-call-lo16"},
-    {MO_JALR,         "mips-jalr"}
+    {MO_JALR,         "mips-jalr"},
+
+    { MO_PCREL_LO,  "mips-pcrel-lo16" },
+    { MO_PCREL_HI,  "mips-pcrel-hi16" },
+
+    { MO_CAPTAB11,         "mips-captable11" },
+    { MO_CAPTAB_CALL11,    "mips-captable11-call" },
+    { MO_CAPTAB20,         "mips-captable20" },
+    { MO_CAPTAB_CALL20,    "mips-captable20-call" },
+    { MO_CAPTAB_LO16,      "mips-captable-lo16" },
+    { MO_CAPTAB_HI16,      "mips-captable-hi16" },
+    { MO_CAPTAB_CALL_LO16, "mips-captable-lo16-call" },
+    { MO_CAPTAB_CALL_HI16, "mips-captable-hi16-call" },
+
+    { MO_CAPTABLE_OFF_HI, "mips-captable-off-hi" },
+    { MO_CAPTABLE_OFF_LO, "mips-captable-off-lo" },
+
+    { MO_CAPTAB_TLSGD_HI16,  "mips-captable-tlsgd-hi16" },
+    { MO_CAPTAB_TLSGD_LO16,  "mips-captable-tlsgd-lo16" },
+    { MO_CAPTAB_TLSLDM_HI16, "mips-captable-tlsldm-hi16" },
+    { MO_CAPTAB_TLSLDM_LO16, "mips-captable-tlsldm-lo16" },
+    { MO_CAPTAB_TPREL_HI16,  "mips-captable-gottprel-hi16" },
+    { MO_CAPTAB_TPREL_LO16,  "mips-captable-gottprel-lo16" },
   };
  return ArrayRef(Flags);
 }
@@ -960,6 +1060,64 @@ MipsInstrInfo::describeLoadedValue(const MachineInstr &MI, Register Reg) const {
   }
 
   return TargetInstrInfo::describeLoadedValue(MI, Reg);
+}
+
+std::optional<int64_t>
+MipsInstrInfo::getAsIntImmediate(const MachineOperand &Op,
+                                 const MachineRegisterInfo &MRI) const {
+  if (Op.isImm())
+    return Op.getImm();
+  if (Op.isReg()) {
+    Register Reg = Op.getReg();
+    if (Reg == Mips::ZERO || Reg == Mips::ZERO_64)
+      return 0;
+    if (Reg.isVirtual()) {
+      auto *Def = MRI.getUniqueVRegDef(Reg);
+      switch (Def->getOpcode()) {
+      default:
+        return std::nullopt; // Unknown immediate
+      case Mips::ADDiu:
+      case Mips::DADDiu:
+      case Mips::ORi:
+      case Mips::ORi64: {
+        Register BaseReg = Def->getOperand(1).getReg();
+        if (BaseReg == Mips::ZERO || BaseReg == Mips::ZERO_64)
+          return Def->getOperand(2).getImm();
+        return std::nullopt;
+      }
+      }
+    }
+  }
+  return std::nullopt; // Unknown immediate
+}
+
+bool MipsInstrInfo::isSetBoundsInstr(const MachineInstr &I,
+                                     const MachineOperand *&Base,
+                                     const MachineOperand *&Size) const {
+  switch (I.getOpcode()) {
+  default:
+    return false;
+  case Mips::CSetBounds:
+  case Mips::CSetBoundsExact:
+  case Mips::CSetBoundsImm:
+    Base = &I.getOperand(1);
+    Size = &I.getOperand(2);
+    return true;
+  }
+}
+
+bool MipsInstrInfo::isPtrAddInstr(const MachineInstr &I,
+                                  const MachineOperand *&Base,
+                                  const MachineOperand *&Increment) const {
+  switch (I.getOpcode()) {
+  default:
+    return false;
+  case Mips::CIncOffsetImm:
+  case Mips::CIncOffset:
+    Base = &I.getOperand(1);
+    Increment = &I.getOperand(2);
+    return true;
+  }
 }
 
 std::optional<RegImmPair> MipsInstrInfo::isAddImmediate(const MachineInstr &MI,

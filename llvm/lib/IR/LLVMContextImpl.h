@@ -1576,6 +1576,7 @@ public:
   PointerType *AS0PointerType = nullptr; // AddrSpace = 0
   DenseMap<unsigned, PointerType *> PointerTypes;
   DenseMap<std::pair<Type *, unsigned>, PointerType *> LegacyPointerTypes;
+  SmallDenseMap<unsigned, SizedCapabilityType *, 1> SizedCapabilityTypes;
   DenseMap<std::pair<Type *, unsigned>, TypedPointerType *> ASTypedPointerTypes;
 
   /// ValueHandles - This map keeps track of all of the value handles that are

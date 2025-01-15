@@ -15,12 +15,12 @@ C:		; preds = %T, %0
 }
 
 define ptr @test2(i32 %width) {
-	%tmp = call ptr @llvm.stacksave( )
+	%tmp = call ptr @llvm.stacksave.p0( )
         %tmp14 = alloca i32, i32 %width
 	ret ptr %tmp14
 } 
 
-declare ptr @llvm.stacksave()
+declare ptr @llvm.stacksave.p0()
 
 declare void @llvm.lifetime.start.p0(i64, ptr)
 declare void @llvm.lifetime.end.p0(i64, ptr)

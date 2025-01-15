@@ -26,6 +26,7 @@ namespace libunwind {
 template <typename A> class EHHeaderParser {
 public:
   typedef typename A::pint_t pint_t;
+  typedef typename A::pc_t pc_t;
 
   /// Information encoded in the EH frame header.
   struct EHHeaderInfo {
@@ -37,8 +38,8 @@ public:
 
   static bool decodeEHHdr(A &addressSpace, pint_t ehHdrStart, pint_t ehHdrEnd,
                           EHHeaderInfo &ehHdrInfo);
-  static bool findFDE(A &addressSpace, pint_t pc, pint_t ehHdrStart,
-                      uint32_t sectionLength,
+  static bool findFDE(A &addressSpace, pc_t pc, pint_t ehHdrStart,
+                      size_t sectionLength,
                       typename CFI_Parser<A>::FDE_Info *fdeInfo,
                       typename CFI_Parser<A>::CIE_Info *cieInfo);
 
@@ -81,10 +82,11 @@ bool EHHeaderParser<A>::decodeEHHdr(A &addressSpace, pint_t ehHdrStart,
 
   ehHdrInfo.eh_frame_ptr =
       addressSpace.getEncodedP(p, ehHdrEnd, eh_frame_ptr_enc, ehHdrStart);
-  ehHdrInfo.fde_count =
-      fde_count_enc == DW_EH_PE_omit
-          ? 0
-          : addressSpace.getEncodedP(p, ehHdrEnd, fde_count_enc, ehHdrStart);
+  assert_pointer_in_bounds(ehHdrInfo.eh_frame_ptr);
+  ehHdrInfo.fde_count = fde_count_enc == DW_EH_PE_omit
+                            ? 0
+                            : (size_t)addressSpace.getEncodedP(
+                                  p, ehHdrEnd, fde_count_enc, ehHdrStart);
   ehHdrInfo.table = p;
 
   return true;
@@ -112,8 +114,8 @@ bool EHHeaderParser<A>::decodeTableEntry(
 }
 
 template <typename A>
-bool EHHeaderParser<A>::findFDE(A &addressSpace, pint_t pc, pint_t ehHdrStart,
-                                uint32_t sectionLength,
+bool EHHeaderParser<A>::findFDE(A &addressSpace, pc_t pc, pint_t ehHdrStart,
+                                size_t sectionLength,
                                 typename CFI_Parser<A>::FDE_Info *fdeInfo,
                                 typename CFI_Parser<A>::CIE_Info *cieInfo) {
   pint_t ehHdrEnd = ehHdrStart + sectionLength;
@@ -131,7 +133,7 @@ bool EHHeaderParser<A>::findFDE(A &addressSpace, pint_t pc, pint_t ehHdrStart,
   size_t low = 0;
   for (size_t len = hdrInfo.fde_count; len > 1;) {
     size_t mid = low + (len / 2);
-    tableEntry = hdrInfo.table + mid * tableEntrySize;
+    tableEntry = assert_pointer_in_bounds(hdrInfo.table + mid * tableEntrySize);
     pint_t start = addressSpace.getEncodedP(tableEntry, ehHdrEnd,
                                             hdrInfo.table_enc, ehHdrStart);
 
@@ -149,7 +151,7 @@ bool EHHeaderParser<A>::findFDE(A &addressSpace, pint_t pc, pint_t ehHdrStart,
   tableEntry = hdrInfo.table + low * tableEntrySize;
   if (decodeTableEntry(addressSpace, tableEntry, ehHdrStart, ehHdrEnd,
                        hdrInfo.table_enc, fdeInfo, cieInfo)) {
-    if (pc >= fdeInfo->pcStart && pc < fdeInfo->pcEnd)
+    if (pc.address() >= fdeInfo->pcStart && pc.address() < fdeInfo->pcEnd)
       return true;
   }
 

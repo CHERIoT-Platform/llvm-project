@@ -45,8 +45,8 @@ void ReportUnrecognizedFlags() {
   unknown_flags.Report();
 }
 
-char *FlagParser::ll_strndup(const char *s, uptr n) {
-  uptr len = internal_strnlen(s, n);
+char *FlagParser::ll_strndup(const char *s, usize n) {
+  usize len = internal_strnlen(s, n);
   char *s2 = (char *)GetGlobalLowLevelAllocator().Allocate(len + 1);
   internal_memcpy(s2, s, len);
   s2[len] = 0;
@@ -81,7 +81,7 @@ void FlagParser::skip_whitespace() {
 }
 
 void FlagParser::parse_flag(const char *env_option_name) {
-  uptr name_start = pos_;
+  usize name_start = pos_;
   while (buf_[pos_] != 0 && buf_[pos_] != '=' && !is_space(buf_[pos_])) ++pos_;
   if (buf_[pos_] != '=') {
     if (env_option_name) {
@@ -94,7 +94,7 @@ void FlagParser::parse_flag(const char *env_option_name) {
   }
   char *name = ll_strndup(buf_ + name_start, pos_ - name_start);
 
-  uptr value_start = ++pos_;
+  usize value_start = ++pos_;
   char *value;
   if (buf_[pos_] == '\'' || buf_[pos_] == '"') {
     char quote = buf_[pos_++];
@@ -135,7 +135,7 @@ void FlagParser::ParseString(const char *s, const char *env_option_name) {
   if (!s) return;
   // Backup current parser state to allow nested ParseString() calls.
   const char *old_buf_ = buf_;
-  uptr old_pos_ = pos_;
+  usize old_pos_ = pos_;
   buf_ = s;
   pos_ = 0;
 
@@ -146,11 +146,11 @@ void FlagParser::ParseString(const char *s, const char *env_option_name) {
 }
 
 bool FlagParser::ParseFile(const char *path, bool ignore_missing) {
-  static const uptr kMaxIncludeSize = 1 << 15;
+  static const usize kMaxIncludeSize = 1 << 15;
   char *data;
-  uptr data_mapped_size;
+  usize data_mapped_size;
   error_t err;
-  uptr len;
+  usize len;
   if (!ReadFileToBuffer(path, &data, &data_mapped_size, &len,
                         Max(kMaxIncludeSize, GetPageSizeCached()), &err)) {
     if (ignore_missing)

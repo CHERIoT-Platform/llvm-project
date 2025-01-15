@@ -55,9 +55,17 @@ private:
 public:
   /// GlobalVariable ctor - If a parent module is specified, the global is
   /// automatically inserted into the end of the specified modules global list.
+  [[deprecated("use the overload with a Module& or an explicit address "
+               "space")]] GlobalVariable(
+      Type *Ty, bool isConstant, LinkageTypes Linkage,
+      Constant *Initializer = nullptr, const Twine &Name = "",
+      ThreadLocalMode TLMode = NotThreadLocal)
+      : GlobalVariable(Ty, isConstant, Linkage, Initializer, Name, TLMode, 0,
+                       false) {}
+
   GlobalVariable(Type *Ty, bool isConstant, LinkageTypes Linkage,
-                 Constant *Initializer = nullptr, const Twine &Name = "",
-                 ThreadLocalMode = NotThreadLocal, unsigned AddressSpace = 0,
+                 Constant *Initializer, const Twine &Name,
+                 ThreadLocalMode, unsigned AddressSpace,
                  bool isExternallyInitialized = false);
   /// GlobalVariable ctor - This creates a global and inserts it before the
   /// specified other global.

@@ -10,6 +10,7 @@
 #define LLD_ELF_CONFIG_H
 
 #include "lld/Common/ErrorHandler.h"
+#include "llvm/ADT/APInt.h"
 #include "llvm/ADT/CachedHashString.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/MapVector.h"
@@ -30,6 +31,8 @@
 #include <atomic>
 #include <memory>
 #include <optional>
+#include <map>
+#include <set>
 #include <vector>
 
 namespace lld::elf {
@@ -61,6 +64,10 @@ enum class BuildIdKind { None, Fast, Md5, Sha1, Hexstring, Uuid };
 
 // For --call-graph-profile-sort={none,hfsort,cdsort}.
 enum class CGProfileSortKind { None, Hfsort, Cdsort };
+
+enum class CapRelocsMode { Legacy, ElfReloc, CBuildCap };
+
+enum class CapTableScopePolicy { All, File, Function };
 
 // For --discard-{all,locals,none}.
 enum class DiscardPolicy { Default, All, Locals, None };
@@ -201,6 +208,7 @@ struct Config {
   llvm::SmallVector<llvm::StringRef, 0> symbolOrderingFile;
   llvm::SmallVector<llvm::StringRef, 0> thinLTOModulesToCompile;
   llvm::SmallVector<llvm::StringRef, 0> undefined;
+  llvm::SmallVector<llvm::StringRef, 0> warnIfFileLinked;
   llvm::SmallVector<SymbolVersion, 0> dynamicList;
   llvm::SmallVector<uint8_t, 0> buildIdVector;
   llvm::SmallVector<llvm::StringRef, 0> mllvmOpts;
@@ -210,6 +218,7 @@ struct Config {
   bool cmseImplib = false;
   bool allowMultipleDefinition;
   bool fatLTOObjects;
+  bool allowUndefinedCapRelocs = false;
   bool androidPackDynRelocs = false;
   bool armHasBlx = false;
   bool armHasMovtMovw = false;
@@ -218,6 +227,9 @@ struct Config {
   bool asNeeded = false;
   bool armBe8 = false;
   BsymbolicKind bsymbolic = BsymbolicKind::None;
+  // make dynamic relocations that are not supported by
+  // FreeBSD _rtld_relocate_nonplt_self an error.
+  bool buildingFreeBSDRtld;
   CGProfileSortKind callGraphProfileSort;
   bool checkSections;
   bool checkDynamicRelocs;
@@ -277,6 +289,8 @@ struct Config {
   bool relrPackDynRelocs = false;
   llvm::DenseSet<llvm::StringRef> saveTempsArgs;
   llvm::SmallVector<std::pair<llvm::GlobPattern, uint32_t>, 0> shuffleSections;
+  bool compartment = false;
+  bool sortCapRelocs;
   bool singleRoRx;
   bool shared;
   bool symbolic;
@@ -293,12 +307,16 @@ struct Config {
   bool undefinedVersion;
   bool unique;
   bool useAndroidRelrTags = false;
+  bool verboseCapRelocs = false;
   bool warnBackrefs;
   llvm::SmallVector<llvm::GlobPattern, 0> warnBackrefsExclude;
   bool warnCommon;
   bool warnMissingEntry;
   bool warnSymbolOrdering;
   bool writeAddends;
+  // -z captabledebug: add additional symbols $captable_load_<symbols> before
+  // each captable clc instruction that indicates which symbol should be loaded
+  bool zCapTableDebug;
   bool zCombreloc;
   bool zCopyreloc;
   bool zForceBti;
@@ -332,6 +350,13 @@ struct Config {
   UnresolvedPolicy unresolvedSymbols;
   UnresolvedPolicy unresolvedSymbolsInShlib;
   Target2Policy target2;
+  // Method used for capability relocations for preemptible symbols
+  CapRelocsMode preemptibleCapRelocsMode;
+  // Method used for capability relocations for non-preemptible symbols
+  CapRelocsMode localCapRelocsMode;
+  CapTableScopePolicy capTableScope;
+  bool relativeCapRelocsOnly;
+
   bool power10Stubs;
   ARMVFPArgKind armVFPArgs = ARMVFPArgKind::Default;
   BuildIdKind buildId = BuildIdKind::None;
@@ -412,6 +437,12 @@ struct Config {
   // 4 for ELF32, 8 for ELF64.
   int wordsize;
 
+  // Size of a CHERI capability
+  int capabilitySize = 0;
+
+  // True if we are creating a pure-capability CheriABI output.
+  bool isCheriAbi = false;
+
   // Mode of MTE to write to the ELF note. Should be one of NT_MEMTAG_ASYNC (for
   // async), NT_MEMTAG_SYNC (for sync), or NT_MEMTAG_LEVEL_NONE (for none). If
   // async or sync is enabled, write the ELF note specifying the default MTE
@@ -434,6 +465,12 @@ struct Config {
   // If an input file matches a wildcard pattern, remap it to the value.
   llvm::SmallVector<std::pair<llvm::GlobPattern, llvm::StringRef>, 0>
       remapInputsWildcards;
+
+  /// The name of the compartment report file
+  StringRef compartmentReportFile;
+
+  /// Should we emit a compartment report file?
+  bool shouldEmitCompartmentReport() { return !compartmentReportFile.empty(); }
 };
 struct ConfigWrapper {
   Config c;

@@ -55,6 +55,17 @@ using namespace llvm::sys;
   } else {                                                                     \
   }
 
+#define EXPECT_NO_ERROR(x)                                                     \
+  if (std::error_code EXPECT_NO_ERROR_ec = x) {                                \
+    SmallString<128> MessageStorage;                                           \
+    raw_svector_ostream Message(MessageStorage);                               \
+    Message << #x ": did not return errc::success.\n"                          \
+            << "error number: " << EXPECT_NO_ERROR_ec.value() << "\n"          \
+            << "error message: " << EXPECT_NO_ERROR_ec.message() << "\n";      \
+    GTEST_NONFATAL_FAILURE_(MessageStorage.c_str());                           \
+  } else {                                                                     \
+  }
+
 #define ASSERT_ERROR(x)                                                        \
   if (!x) {                                                                    \
     SmallString<128> MessageStorage;                                           \
@@ -2298,7 +2309,14 @@ TEST_F(FileSystemTest, permissions) {
   EXPECT_EQ(fs::setPermissions(TempPath, fs::set_uid_on_exe), NoError);
   EXPECT_TRUE(CheckPermissions(fs::set_uid_on_exe));
 
-  EXPECT_EQ(fs::setPermissions(TempPath, fs::set_gid_on_exe), NoError);
+  // On FreeBSD the group id for the temporary file is taken from the parent
+  // directory, but setting the setgid bit requires the file group to match the
+  // current effecitive group ID. Otherwise we receive an EPERM error.
+  // This might also affect other operating systems but most will set the group
+  // ID to the current effective group ID so this works just fine.
+  EXPECT_EQ(chown(TempPath.c_str(), geteuid(), getegid()), 0);
+
+  EXPECT_NO_ERROR(fs::setPermissions(TempPath, fs::set_gid_on_exe));
   EXPECT_TRUE(CheckPermissions(fs::set_gid_on_exe));
 
   // Modern BSDs require root to set the sticky bit on files.
@@ -2323,12 +2341,11 @@ TEST_F(FileSystemTest, permissions) {
   EXPECT_TRUE(CheckPermissions(fs::all_read | fs::set_uid_on_exe |
                                fs::set_gid_on_exe | fs::sticky_bit));
 
-  EXPECT_EQ(fs::setPermissions(TempPath, fs::all_perms), NoError);
+  EXPECT_NO_ERROR(fs::setPermissions(TempPath, fs::all_perms));
   EXPECT_TRUE(CheckPermissions(fs::all_perms));
 #endif // !FreeBSD && !NetBSD && !OpenBSD && !AIX
 
-  EXPECT_EQ(fs::setPermissions(TempPath, fs::all_perms & ~fs::sticky_bit),
-                               NoError);
+  EXPECT_NO_ERROR(fs::setPermissions(TempPath, fs::all_perms & ~fs::sticky_bit));
   EXPECT_TRUE(CheckPermissions(fs::all_perms & ~fs::sticky_bit));
 #endif
 }

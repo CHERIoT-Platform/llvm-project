@@ -17,6 +17,7 @@
 #include "RISCVFrameLowering.h"
 #include "RISCVISelLowering.h"
 #include "RISCVInstrInfo.h"
+#include "RISCVSelectionDAGInfo.h"
 #include "llvm/CodeGen/GlobalISel/CallLowering.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelector.h"
 #include "llvm/CodeGen/GlobalISel/LegalizerInfo.h"
@@ -86,7 +87,7 @@ private:
   RISCVInstrInfo InstrInfo;
   RISCVRegisterInfo RegInfo;
   RISCVTargetLowering TLInfo;
-  SelectionDAGTargetInfo TSInfo;
+  RISCVSelectionDAGInfo TSInfo;
 
   /// Initializes using the passed in CPU and feature strings so that we can
   /// use initializer lists for subtarget initialization.
@@ -161,6 +162,8 @@ public:
   }
 
   bool is64Bit() const { return IsRV64; }
+  bool isRV32E() const { return IsRVE && !IsRV64; }
+
   MVT getXLenVT() const {
     return is64Bit() ? MVT::i64 : MVT::i32;
   }
@@ -191,12 +194,18 @@ public:
   RISCVABI::ABI getTargetABI() const { return TargetABI; }
   bool isSoftFPABI() const {
     return TargetABI == RISCVABI::ABI_LP64 ||
+           TargetABI == RISCVABI::ABI_L64PC128 ||
            TargetABI == RISCVABI::ABI_ILP32 ||
+           TargetABI == RISCVABI::ABI_IL32PC64 ||
            TargetABI == RISCVABI::ABI_ILP32E;
   }
   bool isRegisterReservedByUser(Register i) const {
     assert(i < RISCV::NUM_TARGET_REGS && "Register out of range");
     return UserReservedRegister[i];
+  }
+  MVT typeForCapabilities() const {
+    assert(HasCheri && "Cannot get capability type for non-CHERI");
+    return is64Bit() ? MVT::c128 : MVT::c64;
   }
 
   // Vector codegen related methods.

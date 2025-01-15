@@ -218,6 +218,8 @@ bool DwarfEHPrepare::InsertUnwindResumeCalls() {
   FunctionType *FTy;
   const char *RewindName;
   bool DoesRewindFunctionNeedExceptionObject;
+  ResumeInst *RI = Resumes.front();
+  Type *ExTy = cast<StructType>(RI->getValue()->getType())->elements()[0];
 
   if ((Pers == EHPersonality::GNU_CXX || Pers == EHPersonality::GNU_CXX_SjLj) &&
       TargetTriple.isTargetEHABICompatible()) {
@@ -228,8 +230,8 @@ bool DwarfEHPrepare::InsertUnwindResumeCalls() {
     DoesRewindFunctionNeedExceptionObject = false;
   } else {
     RewindName = TLI.getLibcallName(RTLIB::UNWIND_RESUME);
-    FTy = FunctionType::get(Type::getVoidTy(Ctx), PointerType::getUnqual(Ctx),
-                            false);
+    FTy =
+        FunctionType::get(Type::getVoidTy(Ctx), ExTy, false);
     RewindFunctionCallingConv = TLI.getLibcallCallingConv(RTLIB::UNWIND_RESUME);
     DoesRewindFunctionNeedExceptionObject = true;
   }
@@ -270,8 +272,7 @@ bool DwarfEHPrepare::InsertUnwindResumeCalls() {
   llvm::SmallVector<Value *, 1> RewindFunctionArgs;
 
   BasicBlock *UnwindBB = BasicBlock::Create(Ctx, "unwind_resume", &F);
-  PHINode *PN = PHINode::Create(PointerType::getUnqual(Ctx), ResumesLeft,
-                                "exn.obj", UnwindBB);
+  PHINode *PN = PHINode::Create(ExTy, ResumesLeft, "exn.obj", UnwindBB);
 
   // Extract the exception object from the ResumeInst and add it to the PHI node
   // that feeds the _Unwind_Resume call.

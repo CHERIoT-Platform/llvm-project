@@ -37,11 +37,11 @@ entry:
         store volatile double %a, ptr %0
 
         %ap = alloca ptr
-        call void @llvm.va_start(ptr %ap)
+        call void @llvm.va_start.p0(ptr %ap)
         %b = va_arg ptr %ap, double
         %1 = getelementptr [11 x double], ptr @doubles, i32 0, i32 2
         store volatile double %b, ptr %1
-        call void @llvm.va_end(ptr %ap)
+        call void @llvm.va_end.p0(ptr %ap)
         ret void
 }
 
@@ -98,11 +98,11 @@ entry:
         store volatile float %a, ptr %0
 
         %ap = alloca ptr
-        call void @llvm.va_start(ptr %ap)
+        call void @llvm.va_start.p0(ptr %ap)
         %b = va_arg ptr %ap, float
         %1 = getelementptr [11 x float], ptr @floats, i32 0, i32 2
         store volatile float %b, ptr %1
-        call void @llvm.va_end(ptr %ap)
+        call void @llvm.va_end.p0(ptr %ap)
         ret void
 }
 
@@ -157,6 +157,6 @@ entry:
 ; NEWBE-DAG:         lwc1 [[FTMP1:\$f[0-9]+]], 12($sp)
 ; ALL-DAG:           swc1 [[FTMP1]], 8([[R2]])
 
-declare void @llvm.va_start(ptr)
-declare void @llvm.va_copy(ptr, ptr)
-declare void @llvm.va_end(ptr)
+declare void @llvm.va_start.p0(ptr)
+declare void @llvm.va_copy.p0.p0(ptr, ptr)
+declare void @llvm.va_end.p0(ptr)

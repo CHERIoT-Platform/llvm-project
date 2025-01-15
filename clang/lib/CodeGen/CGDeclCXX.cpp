@@ -28,10 +28,11 @@ using namespace CodeGen;
 
 static void EmitDeclInit(CodeGenFunction &CGF, const VarDecl &D,
                          ConstantAddress DeclPtr) {
-  assert(
-      (D.hasGlobalStorage() ||
-       (D.hasLocalStorage() && CGF.getContext().getLangOpts().OpenCLCPlusPlus)) &&
-      "VarDecl must have global or local (in the case of OpenCL) storage!");
+  // TODO: Enable assert for non-CHERI like OpenCL
+  //assert(
+  //    (D.hasGlobalStorage() ||
+  //     (D.hasLocalStorage() && CGF.getContext().getLangOpts().OpenCLCPlusPlus)) &&
+  //    "VarDecl must have global or local (in the case of OpenCL) storage!");
   assert(!D.getType()->isReferenceType() &&
          "Should not call EmitDeclInit on a reference!");
 
@@ -122,7 +123,7 @@ static void EmitDeclDestroy(CodeGenFunction &CGF, const VarDecl &D,
     if (CGF.getContext().getLangOpts().OpenCL) {
       auto DestAS =
           CGM.getTargetCodeGenInfo().getAddrSpaceOfCxaAtexitPtrParam();
-      auto DestTy = llvm::PointerType::get(
+      auto *DestTy = llvm::PointerType::get(
           CGM.getLLVMContext(), CGM.getContext().getTargetAddressSpace(DestAS));
       auto SrcAS = D.getType().getQualifiers().getAddressSpace();
       if (DestAS == SrcAS)
@@ -155,6 +156,9 @@ static void EmitDeclInvariant(CodeGenFunction &CGF, const VarDecl &D,
 }
 
 void CodeGenFunction::EmitInvariantStart(llvm::Constant *Addr, CharUnits Size) {
+  // If the address space isn't 0, do we can't mark it as invariant
+  if (Addr->getType()->getPointerAddressSpace() != 0)
+    return;
   // Do not emit the intrinsic if we're not optimizing.
   if (!CGM.getCodeGenOpts().OptimizationLevel)
     return;
@@ -193,7 +197,12 @@ void CodeGenFunction::EmitCXXGlobalVarDeclInit(const VarDecl &D,
   // For example, in the above CUDA code, the static local variable s has a
   // "shared" address space qualifier, but the constructor of StructWithCtor
   // expects "this" in the "generic" address space.
-  unsigned ExpectedAddrSpace = getTypes().getTargetAddressSpace(T);
+  // This is not quite right, we don't want an __intcap_t alloca to be AS200
+  ASTContext &Context = getContext();
+  unsigned ExpectedAddrSpace =
+      Context.getTargetInfo().areAllPointersCapabilities()
+          ? CGM.getTargetCodeGenInfo().getCHERICapabilityAS()
+          : getTypes().getTargetAddressSpace(T);
   unsigned ActualAddrSpace = GV->getAddressSpace();
   llvm::Constant *DeclPtr = GV;
   if (ActualAddrSpace != ExpectedAddrSpace) {
@@ -202,8 +211,8 @@ void CodeGenFunction::EmitCXXGlobalVarDeclInit(const VarDecl &D,
     DeclPtr = llvm::ConstantExpr::getAddrSpaceCast(DeclPtr, PTy);
   }
 
-  ConstantAddress DeclAddr(
-      DeclPtr, GV->getValueType(), getContext().getDeclAlign(&D));
+  ConstantAddress DeclAddr(DeclPtr, GV->getValueType(),
+                           Context.getDeclAlign(&D));
 
   if (!T->isReferenceType()) {
     if (getLangOpts().OpenMP && !getLangOpts().OpenMPSimd &&

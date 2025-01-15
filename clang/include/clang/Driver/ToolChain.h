@@ -192,6 +192,7 @@ private:
 protected:
   MultilibSet Multilibs;
   llvm::SmallVector<Multilib> SelectedMultilibs;
+  bool IsCheriPurecap = false;
 
   ToolChain(const Driver &D, const llvm::Triple &T,
             const llvm::opt::ArgList &Args);
@@ -472,6 +473,9 @@ public:
   GetDefaultStackProtectorLevel(bool KernelOrKext) const {
     return LangOptions::SSPOff;
   }
+
+  /// Test whether this toolchain uses CHERI pure-capability compilation.
+  virtual bool isCheriPurecap() const;
 
   /// Get the default trivial automatic variable initialization.
   virtual LangOptions::TrivialAutoVarInitKind

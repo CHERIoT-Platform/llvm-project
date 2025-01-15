@@ -28,6 +28,13 @@ _LIBCPP_NODISCARD_EXT _LIBCPP_HIDE_FROM_ABI constexpr bool has_single_bit(_Tp __
   return __t != 0 && (((__t & (__t - 1)) == 0));
 }
 
+#if __has_feature(capabilities)
+template<>
+_LIBCPP_HIDE_FROM_ABI constexpr inline bool has_single_bit(unsigned __intcap __t) noexcept {
+    return std::has_single_bit(static_cast<ptraddr_t>(__t));
+}
+#endif
+
 _LIBCPP_END_NAMESPACE_STD
 
 #endif // _LIBCPP_STD_VER >= 20

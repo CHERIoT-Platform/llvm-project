@@ -25,9 +25,60 @@ namespace targets {
 
 // RISC-V Target
 class RISCVTargetInfo : public TargetInfo {
+  void setDataLayout() {
+    std::string Layout;
+    IsABICHERIoT = false;
+    IsABICHERIoTBareMetal = false;
+
+    if (ABI == "ilp32" || ABI == "ilp32f" || ABI == "ilp32d" ||
+        ABI == "cheriot" || ABI == "cheriot-baremetal" ||
+        ABI == "il32pc64" || ABI == "il32pc64f" || ABI == "il32pc64d" ||
+        ABI == "il32pc64e") {
+      Layout += "e-m:e-p:32:32-i64:64-n32-S128";
+      if (HasCheri)
+        Layout += "-pf200:64:64:64:32";
+    } else if (ABI == "ilp32e") {
+      Layout = "e-m:e-p:32:32-i64:64-n32-S32";
+      if (HasCheri)
+        Layout += "-pf200:64:64:64:32";
+    } else if (ABI == "lp64" || ABI == "lp64f" || ABI == "lp64d" ||
+               ABI == "l64pc128" || ABI == "l64pc128f" ||
+               ABI == "l64pc128d") {
+      Layout = "e-m:e-p:64:64-i64:64-i128:128-n32:64-S128";
+      if (HasCheri)
+        Layout += "-pf200:128:128:128:64";
+    } else if (ABI == "lp64e") {
+      Layout = "e-m:e-p:64:64-i64:64-i128:128-n32:64-S64";
+      if (HasCheri)
+        Layout += "-pf200:128:128:128:64";
+    } else
+      llvm_unreachable("Invalid ABI");
+
+    if (ABI == "cheriot" || ABI == "cheriot-baremetal") {
+      IsABICHERIoT = true;
+      if (ABI == "cheriot-baremetal")
+        IsABICHERIoTBareMetal = true;
+      EmptyParameterListIsVoid = true;
+    }
+
+    // Only set globals address space to 200 for cap-table mode
+    if (CapabilityABI)
+      Layout += "-A200-P200-G200";
+
+    resetDataLayout(Layout);
+  }
+
 protected:
   std::string ABI, CPU;
   std::unique_ptr<llvm::RISCVISAInfo> ISAInfo;
+  int CapSize = -1;
+  bool HasCheri = false;
+  bool HasCheriISAv9Semantics = false;
+  bool IsABICHERIoT = false;
+  bool IsABICHERIoTBareMetal = false;
+  void setCapabilityABITypes() {
+    IntPtrType = TargetInfo::SignedIntCap;
+  }
 
 private:
   bool FastUnalignedAccess;
@@ -49,6 +100,12 @@ public:
     MCountName = "_mcount";
     HasFloat16 = true;
     HasStrictFP = true;
+
+    if (Triple.getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1) {
+      CPU = "cheriot";
+      ABI = (Triple.getOS() == llvm::Triple::CheriotRTOS) ? "cheriot"
+                                                          : "cheriot-baremetal";
+    }
   }
 
   bool setCPU(const std::string &Name) override {
@@ -106,6 +163,35 @@ public:
   bool handleTargetFeatures(std::vector<std::string> &Features,
                             DiagnosticsEngine &Diags) override;
 
+  unsigned getIntCapWidth() const override { return CapSize; }
+  unsigned getIntCapAlign() const override { return CapSize; }
+
+  uint64_t getCHERICapabilityWidth() const override { return CapSize; }
+
+  uint64_t getCHERICapabilityAlign() const override { return CapSize; }
+
+  uint64_t getPointerWidthV(LangAS AddrSpace) const override {
+    return (AddrSpace == LangAS::cheri_capability) ? CapSize : PointerWidth;
+
+  }
+
+  uint64_t getPointerRangeV(LangAS AddrSpace) const override {
+    return (AddrSpace == LangAS::cheri_capability) ? getPointerRangeForCHERICapability() : PointerWidth;
+  }
+
+  uint64_t getPointerAlignV(LangAS AddrSpace) const override {
+    return (AddrSpace == LangAS::cheri_capability) ? CapSize : PointerAlign;
+  }
+
+  CallingConv getLibcallCallingConv() const override {
+    return IsABICHERIoT && !IsABICHERIoTBareMetal ?
+        CallingConv::CC_CHERILibCall : CallingConv::CC_C;
+  }
+
+  bool SupportsCapabilities() const override { return HasCheri; }
+
+  bool validateTarget(DiagnosticsEngine &Diags) const override;
+
   bool hasBitIntType() const override { return true; }
 
   bool hasBFloat16Type() const override { return true; }
@@ -120,6 +206,22 @@ public:
   void fillValidTuneCPUList(SmallVectorImpl<StringRef> &Values) const override;
   bool supportsTargetAttributeTune() const override { return true; }
   ParsedTargetAttr parseTargetAttr(StringRef Str) const override;
+
+  CallingConvCheckResult checkCallingConvention(CallingConv CC) const override {
+    if ((CC == CallingConv::CC_CHERICCall) ||
+        (CC == CallingConv::CC_CHERICCallee) ||
+        (CC == CallingConv::CC_CHERICCallback) ||
+        (CC == CallingConv::CC_CHERILibCall)) {
+      // NB: with cheriot-baremetal the caller will generate a warning
+      //   and downgrade to the default target CC
+      return ABI == "cheriot" ? CCCR_OK : CCCR_Warning;
+    }
+    return TargetInfo::checkCallingConvention(CC);
+  }
+
+  CheriCCallbackABIKind cheriCallbackKind() const override {
+    return CCB_ImportTable;
+  }
 };
 class LLVM_LIBRARY_VISIBILITY RISCV32TargetInfo : public RISCVTargetInfo {
 public:
@@ -128,7 +230,6 @@ public:
     IntPtrType = SignedInt;
     PtrDiffType = SignedInt;
     SizeType = UnsignedInt;
-    resetDataLayout("e-m:e-p:32:32-i64:64-n32-S128");
   }
 
   bool setABI(const std::string &Name) override {
@@ -142,6 +243,14 @@ public:
       ABI = Name;
       return true;
     }
+    if (Name == "il32pc64" || Name == "il32pc64f" || Name == "il32pc64d" ||
+        Name == "cheriot" || Name == "cheriot-baremetal") {
+      setCapabilityABITypes();
+      CapabilityABI = true;
+      ABI = Name;
+      // XXX -cheriot-bare-metal may not be honored
+      return true;
+    }
     return false;
   }
 
@@ -151,6 +260,8 @@ public:
     if (ISAInfo->hasExtension("a"))
       MaxAtomicInlineWidth = 32;
   }
+
+  uint64_t getPointerRangeForCHERICapability() const override { return 32; }
 };
 class LLVM_LIBRARY_VISIBILITY RISCV64TargetInfo : public RISCVTargetInfo {
 public:
@@ -158,7 +269,6 @@ public:
       : RISCVTargetInfo(Triple, Opts) {
     LongWidth = LongAlign = PointerWidth = PointerAlign = 64;
     IntMaxType = Int64Type = SignedLong;
-    resetDataLayout("e-m:e-p:64:64-i64:64-i128:128-n32:64-S128");
   }
 
   bool setABI(const std::string &Name) override {
@@ -172,6 +282,12 @@ public:
       ABI = Name;
       return true;
     }
+    if (Name == "l64pc128" || Name == "l64pc128f" || Name == "l64pc128d") {
+      setCapabilityABITypes();
+      CapabilityABI = true;
+      ABI = Name;
+      return true;
+    }
     return false;
   }
 
@@ -181,6 +297,8 @@ public:
     if (ISAInfo->hasExtension("a"))
       MaxAtomicInlineWidth = 64;
   }
+
+  uint64_t getPointerRangeForCHERICapability() const override { return 64; }
 };
 } // namespace targets
 } // namespace clang

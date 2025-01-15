@@ -79,7 +79,7 @@ class StackStore {
   void Unmap(void *addr, uptr size);
 
   // Total number of allocated frames.
-  atomic_uintptr_t total_frames_ = {};
+  atomic_size_t total_frames_ = {};
 
   // Tracks total allocated memory in bytes.
   atomic_uintptr_t allocated_ = {};

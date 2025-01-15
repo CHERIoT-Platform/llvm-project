@@ -33,6 +33,7 @@ public:
   enum PSVKind : unsigned {
     Stack,
     GOT,
+    CapTable,
     JumpTable,
     ConstantPool,
     FixedStack,
@@ -63,6 +64,7 @@ public:
 
   bool isStack() const { return Kind == Stack; }
   bool isGOT() const { return Kind == GOT; }
+  bool isCapTable() const { return Kind == CapTable; }
   bool isConstantPool() const { return Kind == ConstantPool; }
   bool isJumpTable() const { return Kind == JumpTable; }
 

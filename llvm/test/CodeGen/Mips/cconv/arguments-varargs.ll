@@ -119,7 +119,7 @@ entry:
 ; ALL-DAG:       sh [[ARG2]], 4([[GV]])
 
   %ap = alloca ptr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
 
   call void asm sideeffect "teqi $$zero, 1", ""()
   %arg1 = va_arg ptr %ap, i16
@@ -131,7 +131,7 @@ entry:
   %e2 = getelementptr [3 x i16], ptr @hwords, i32 0, i32 2
   store volatile i16 %arg2, ptr %e2, align 2
 
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
 
   ret void
 }
@@ -233,7 +233,7 @@ entry:
 ; ALL-DAG:       sw [[ARG2]], 8([[GV]])
 
   %ap = alloca ptr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
 
   call void asm sideeffect "teqi $$zero, 1", ""()
   %arg1 = va_arg ptr %ap, i32
@@ -245,7 +245,7 @@ entry:
   %e2 = getelementptr [3 x i32], ptr @words, i32 0, i32 2
   store volatile i32 %arg2, ptr %e2, align 4
 
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
 
   ret void
 }
@@ -354,7 +354,7 @@ entry:
 ; NEW-DAG:       sd [[ARG2]], 16([[GV]])
 
   %ap = alloca ptr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
 
   call void asm sideeffect "teqi $$zero, 1", ""()
   %arg1 = va_arg ptr %ap, i64
@@ -366,7 +366,7 @@ entry:
   %e2 = getelementptr [3 x i64], ptr @dwords, i32 0, i32 2
   store volatile i64 %arg2, ptr %e2, align 8
 
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
 
   ret void
 }
@@ -468,7 +468,7 @@ entry:
 ; ALL-DAG:       sh [[ARG2]], 4([[GV]])
 
   %ap = alloca ptr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
 
   call void asm sideeffect "teqi $$zero, 1", ""()
   %arg1 = va_arg ptr %ap, i16
@@ -480,7 +480,7 @@ entry:
   %e2 = getelementptr [3 x i16], ptr @hwords, i32 0, i32 2
   store volatile i16 %arg2, ptr %e2, align 2
 
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
 
   ret void
 }
@@ -582,7 +582,7 @@ entry:
 ; ALL-DAG:       sw [[ARG2]], 8([[GV]])
 
   %ap = alloca ptr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
 
   call void asm sideeffect "teqi $$zero, 1", ""()
   %arg1 = va_arg ptr %ap, i32
@@ -594,7 +594,7 @@ entry:
   %e2 = getelementptr [3 x i32], ptr @words, i32 0, i32 2
   store volatile i32 %arg2, ptr %e2, align 4
 
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
 
   ret void
 }
@@ -703,7 +703,7 @@ entry:
 ; NEW-DAG:       sd [[ARG2]], 16([[GV]])
 
   %ap = alloca ptr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
 
   call void asm sideeffect "teqi $$zero, 1", ""()
   %arg1 = va_arg ptr %ap, i64
@@ -715,7 +715,7 @@ entry:
   %e2 = getelementptr [3 x i64], ptr @dwords, i32 0, i32 2
   store volatile i64 %arg2, ptr %e2, align 8
 
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
 
   ret void
 }
@@ -816,7 +816,7 @@ entry:
 ; ALL-DAG:       sh [[ARG2]], 4([[GV]])
 
   %ap = alloca ptr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
 
   call void asm sideeffect "teqi $$zero, 1", ""()
   %arg1 = va_arg ptr %ap, i16
@@ -828,7 +828,7 @@ entry:
   %e2 = getelementptr [3 x i16], ptr @hwords, i32 0, i32 2
   store volatile i16 %arg2, ptr %e2, align 2
 
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
 
   ret void
 }
@@ -929,7 +929,7 @@ entry:
 ; ALL-DAG:       sw [[ARG2]], 8([[GV]])
 
   %ap = alloca ptr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
 
   call void asm sideeffect "teqi $$zero, 1", ""()
   %arg1 = va_arg ptr %ap, i32
@@ -941,7 +941,7 @@ entry:
   %e2 = getelementptr [3 x i32], ptr @words, i32 0, i32 2
   store volatile i32 %arg2, ptr %e2, align 4
 
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
 
   ret void
 }
@@ -1049,7 +1049,7 @@ entry:
 ; NEW-DAG:       sd [[ARG2]], 16([[GV]])
 
   %ap = alloca ptr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
 
   call void asm sideeffect "teqi $$zero, 1", ""()
   %arg1 = va_arg ptr %ap, i64
@@ -1061,10 +1061,10 @@ entry:
   %e2 = getelementptr [3 x i64], ptr @dwords, i32 0, i32 2
   store volatile i64 %arg2, ptr %e2, align 8
 
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
 
   ret void
 }
 
-declare void @llvm.va_start(ptr)
-declare void @llvm.va_end(ptr)
+declare void @llvm.va_start.p0(ptr)
+declare void @llvm.va_end.p0(ptr)

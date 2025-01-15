@@ -142,6 +142,8 @@ static bool isCallingConvCCompatible(CallingConv::ID CC, StringRef TT,
     }
     return true;
   }
+  case llvm::CallingConv::CHERI_LibCall:
+    return true;
   }
   return false;
 }

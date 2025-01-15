@@ -130,6 +130,7 @@ public:
   unsigned getExtraInfo() const { return std::get<unsigned>(Data); }
 
   MVT getLocVT() const { return LocVT; }
+  void setLocVT(MVT VT) { LocVT = VT; }
 
   LocInfo getLocInfo() const { return HTP; }
   bool isExtInLoc() const {

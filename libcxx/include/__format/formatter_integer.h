@@ -72,6 +72,11 @@ struct _LIBCPP_TEMPLATE_VIS formatter<long long, _CharT> : public __formatter_in
 template <__fmt_char_type _CharT>
 struct _LIBCPP_TEMPLATE_VIS formatter<__int128_t, _CharT> : public __formatter_integer<_CharT> {};
 #  endif
+#  if __has_feature(capabilities)
+template <__fmt_char_type _CharT>
+struct _LIBCPP_TEMPLATE_VIS formatter<__intcap, _CharT>
+    : public __formatter_integer<_CharT> {};
+#  endif
 
 // Unsigned integral types.
 template <__fmt_char_type _CharT>
@@ -87,6 +92,11 @@ struct _LIBCPP_TEMPLATE_VIS formatter<unsigned long long, _CharT> : public __for
 #  ifndef _LIBCPP_HAS_NO_INT128
 template <__fmt_char_type _CharT>
 struct _LIBCPP_TEMPLATE_VIS formatter<__uint128_t, _CharT> : public __formatter_integer<_CharT> {};
+#  endif
+#  if __has_feature(capabilities)
+template <__fmt_char_type _CharT>
+struct _LIBCPP_TEMPLATE_VIS formatter<unsigned __intcap, _CharT>
+    : public __formatter_integer<_CharT> {};
 #  endif
 
 #endif //_LIBCPP_STD_VER >= 20

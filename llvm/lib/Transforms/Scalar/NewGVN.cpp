@@ -1453,7 +1453,8 @@ NewGVN::performSymbolicLoadCoercion(Type *LoadType, Value *LoadPtr,
     if (LI->isAtomic() > DepSI->isAtomic() ||
         LoadType == DepSI->getValueOperand()->getType())
       return nullptr;
-    int Offset = analyzeLoadFromClobberingStore(LoadType, LoadPtr, DepSI, DL);
+    int Offset = analyzeLoadFromClobberingStore(LoadType, LoadPtr, DepSI, DL,
+                                                TLI);
     if (Offset >= 0) {
       if (auto *C = dyn_cast<Constant>(
               lookupOperandLeader(DepSI->getValueOperand()))) {
@@ -1468,7 +1469,7 @@ NewGVN::performSymbolicLoadCoercion(Type *LoadType, Value *LoadPtr,
     // Can't forward from non-atomic to atomic without violating memory model.
     if (LI->isAtomic() > DepLI->isAtomic())
       return nullptr;
-    int Offset = analyzeLoadFromClobberingLoad(LoadType, LoadPtr, DepLI, DL);
+    int Offset = analyzeLoadFromClobberingLoad(LoadType, LoadPtr, DepLI, DL, TLI);
     if (Offset >= 0) {
       // We can coerce a constant load into a load.
       if (auto *C = dyn_cast<Constant>(lookupOperandLeader(DepLI)))
@@ -1480,7 +1481,7 @@ NewGVN::performSymbolicLoadCoercion(Type *LoadType, Value *LoadPtr,
         }
     }
   } else if (auto *DepMI = dyn_cast<MemIntrinsic>(DepInst)) {
-    int Offset = analyzeLoadFromClobberingMemInst(LoadType, LoadPtr, DepMI, DL);
+    int Offset = analyzeLoadFromClobberingMemInst(LoadType, LoadPtr, DepMI, DL, TLI);
     if (Offset >= 0) {
       if (auto *PossibleConstant =
               getConstantMemInstValueForLoad(DepMI, Offset, LoadType, DL)) {

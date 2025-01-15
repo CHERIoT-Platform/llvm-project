@@ -688,6 +688,8 @@ static uint64_t getAttrKindEncoding(Attribute::AttrKind Kind) {
     return bitc::ATTR_KIND_COLD;
   case Attribute::DisableSanitizerInstrumentation:
     return bitc::ATTR_KIND_DISABLE_SANITIZER_INSTRUMENTATION;
+  case Attribute::HasSideEffects:
+    return bitc::ATTR_KIND_HAS_SIDE_EFFECTS;
   case Attribute::FnRetThunkExtern:
     return bitc::ATTR_KIND_FNRETTHUNK_EXTERN;
   case Attribute::Hot:
@@ -706,6 +708,8 @@ static uint64_t getAttrKindEncoding(Attribute::AttrKind Kind) {
     return bitc::ATTR_KIND_ALLOCATED_POINTER;
   case Attribute::AllocKind:
     return bitc::ATTR_KIND_ALLOC_KIND;
+  case Attribute::MustPreserveCheriTags:
+    return bitc::ATTR_KIND_MUST_PRESERVE_CHERI_TAGS;
   case Attribute::Memory:
     return bitc::ATTR_KIND_MEMORY;
   case Attribute::NoFPClass:
@@ -742,6 +746,8 @@ static uint64_t getAttrKindEncoding(Attribute::AttrKind Kind) {
     return bitc::ATTR_KIND_DEREFERENCEABLE;
   case Attribute::DereferenceableOrNull:
     return bitc::ATTR_KIND_DEREFERENCEABLE_OR_NULL;
+  case Attribute::NoPreserveCheriTags:
+    return bitc::ATTR_KIND_NO_PRESERVE_CHERI_TAGS;
   case Attribute::NoRedZone:
     return bitc::ATTR_KIND_NO_RED_ZONE;
   case Attribute::NoReturn:
@@ -1077,6 +1083,8 @@ void ModuleBitcodeWriter::writeTypeTable() {
         TypeVals.push_back(true);
       break;
     }
+    case Type::SizedCapabilityTyID:
+      llvm_unreachable("Fixed-size capabilities cannot be added to IR modules");
     case Type::TargetExtTyID: {
       TargetExtType *TET = cast<TargetExtType>(T);
       Code = bitc::TYPE_CODE_TARGET_TYPE;

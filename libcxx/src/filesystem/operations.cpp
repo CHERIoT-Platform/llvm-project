@@ -6,6 +6,17 @@
 //
 //===----------------------------------------------------------------------===//
 
+// CHERI CHANGES START
+// {
+//   "updated": 20190429,
+//   "target_type": "lib",
+//   "changes": [
+//     "subobject_bounds"
+//   ],
+//   "change_comment": "std::string: &str[N] -> str.data()/str.end()"
+// }
+// CHERI CHANGES END
+
 #include <__assert>
 #include <__config>
 #include <__utility/unreachable.h>
@@ -936,7 +947,7 @@ path __weakly_canonical(const path& p, error_code* ec) {
   vector<string_view_t> DNEParts;
 
   while (PP.State != PathParser::PS_BeforeBegin) {
-    tmp.assign(createView(p.native().data(), &PP.RawEntry.back()));
+    tmp.assign(createView(p.native().data(), std::prev(PP.RawEntry.end())));
     error_code m_ec;
     file_status st = __status(tmp, &m_ec);
     if (!status_known(st)) {

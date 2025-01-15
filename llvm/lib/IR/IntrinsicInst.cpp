@@ -21,6 +21,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/IR/IntrinsicInst.h"
+#include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DebugInfoMetadata.h"
@@ -32,6 +33,12 @@
 #include <optional>
 
 using namespace llvm;
+
+#define DEBUG_TYPE "intrinsics"
+STATISTIC(NumMustPreserveTagAttrs,
+          "Number of must_preserve_cheri_tags attributes specified");
+STATISTIC(NumNoPreserveTagAttrs,
+          "Number of no_preserve_cheri_tags attributes specified");
 
 bool IntrinsicInst::mayLowerToFunctionCall(Intrinsic::ID IID) {
   switch (IID) {
@@ -863,6 +870,27 @@ unsigned BinaryOpIntrinsic::getNoWrapKind() const {
     return OverflowingBinaryOperator::NoSignedWrap;
   else
     return OverflowingBinaryOperator::NoUnsignedWrap;
+}
+
+void llvm::setPreserveCheriTags(IntrinsicInst *I, PreserveCheriTags NewValue,
+                                const DataLayout &DL) {
+  if (NewValue == PreserveCheriTags::Required) {
+    assert(DL.hasCheriCapabilities());
+    assert(!I->hasFnAttr(Attribute::NoPreserveCheriTags) &&
+           "attempting to set conflicting attributes");
+    I->addFnAttr(llvm::Attribute::MustPreserveCheriTags);
+    NumMustPreserveTagAttrs++;
+  } else if (NewValue == PreserveCheriTags::Unnecessary) {
+    assert(!I->hasFnAttr(Attribute::MustPreserveCheriTags) &&
+           "attempting to set conflicting attributes");
+    assert(DL.hasCheriCapabilities());
+    I->addFnAttr(llvm::Attribute::NoPreserveCheriTags);
+    NumNoPreserveTagAttrs++;
+  } else {
+    assert(!I->hasFnAttr(Attribute::MustPreserveCheriTags) &&
+           !I->hasFnAttr(Attribute::NoPreserveCheriTags) &&
+           "Cannot set unknown on an already annotated instruction");
+  }
 }
 
 const Value *GCProjectionInst::getStatepoint() const {

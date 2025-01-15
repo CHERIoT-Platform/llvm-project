@@ -18,7 +18,7 @@
 // This data is shared between DataFlowCallbacks.cpp and DataFlow.cpp.
 struct CallbackData {
   size_t NumFuncs, NumGuards;
-  const uintptr_t *PCsBeg, *PCsEnd;
+  const VirtAddr *PCsBeg, *PCsEnd;
   dfsan_label *FuncLabels;  // Array of NumFuncs elements.
   bool *BBExecuted;         // Array of NumGuards elements.
 };

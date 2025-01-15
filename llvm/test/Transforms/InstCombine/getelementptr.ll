@@ -789,6 +789,7 @@ define ptr addrspace(1) @test33_array_struct_as1(ptr addrspace(1) %A) {
   ret ptr addrspace(1) %C
 }
 
+; Make sure that GEPs are not moved before addrspacecasts.
 define ptr addrspace(1) @test33_addrspacecast(ptr %A) {
 ; CHECK-LABEL: @test33_addrspacecast(
 ; CHECK-NEXT:    [[B:%.*]] = addrspacecast ptr [[A:%.*]] to ptr addrspace(1)

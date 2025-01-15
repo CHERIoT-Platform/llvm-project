@@ -601,6 +601,11 @@ def err_drv_unknown_indirect_jump_opt : Error<
 def err_drv_unsupported_fpatchable_function_entry_argument : Error<
   "the second argument of '-fpatchable-function-entry' must be smaller than the first argument">;
 
+def warn_drv_ignored_ssp_purecap : Warning<
+  "ignoring '%0' option since stack protector is unnecessary when using "
+  "pure-capability CHERI compilation">,
+  InGroup<OptionIgnored>;
+
 def warn_drv_unable_to_find_directory_expected : Warning<
   "unable to find %0 directory, expected to be in '%1' found via %2">,
   InGroup<InvalidOrNonExistentDirectory>, DefaultIgnore;
@@ -615,6 +620,18 @@ def warn_drv_msvc_not_found : Warning<
   "unable to find a Visual Studio installation; "
   "try running Clang from a developer command prompt">,
   InGroup<DiagGroup<"msvc-not-found">>;
+
+def warn_cheri_purecap_nopic_broken : Warning<
+  "Using -fno-pic with the purecap ABI will generate completely broken code. ">,
+  InGroup<MIPSCHERIBugs>, DefaultError;
+def warn_cheri_purecap_init_array_required : Warning<
+  "The CHERI RTLD does not support .ctors. Passing -fno-use-init-array will "
+  "probably create broken binaries.">, InGroup<MIPSCHERIBugs>;
+def err_drv_abi_incompatible_with_triple : Error<
+  "ABI '%0' is incompatible with target triple '%1'">;
+def warn_drv_abi_overriding_triple : Warning<
+  "overriding triple '%0' environment '%1' since an explicit -mabi=%2 flag was passed">,
+  InGroup<OptionIgnored>;
 
 def warn_drv_fuse_ld_path : Warning<
   "'-fuse-ld=' taking a path is deprecated; use '--ld-path=' instead">,

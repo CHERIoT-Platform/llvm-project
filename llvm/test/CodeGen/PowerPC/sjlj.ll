@@ -37,7 +37,7 @@ entry:
   store i32 0, ptr %retval
   %0 = call ptr @llvm.frameaddress(i32 0)
   store ptr %0, ptr @env_sigill
-  %1 = call ptr @llvm.stacksave()
+  %1 = call ptr @llvm.stacksave.p0()
   store ptr %1, ptr getelementptr (ptr, ptr @env_sigill, i32 2)
   %2 = call i32 @llvm.eh.sjlj.setjmp(ptr @env_sigill)
   %tobool = icmp ne i32 %2, 0
@@ -109,7 +109,7 @@ entry:
   store i32 0, ptr %retval
   %0 = call ptr @llvm.frameaddress(i32 0)
   store ptr %0, ptr @env_sigill
-  %1 = call ptr @llvm.stacksave()
+  %1 = call ptr @llvm.stacksave.p0()
   store ptr %1, ptr getelementptr (ptr, ptr @env_sigill, i32 2)
   %2 = call i32 @llvm.eh.sjlj.setjmp(ptr @env_sigill)
   %tobool = icmp ne i32 %2, 0
@@ -167,7 +167,7 @@ declare void @bar(ptr) #3
 
 declare ptr @llvm.frameaddress(i32) #2
 
-declare ptr @llvm.stacksave() #3
+declare ptr @llvm.stacksave.p0() #3
 
 declare i32 @llvm.eh.sjlj.setjmp(ptr) #3
 

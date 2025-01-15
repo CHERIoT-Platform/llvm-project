@@ -768,14 +768,14 @@ private:
                                          TripleName,
                                      inconvertibleErrorCode());
 
-    std::unique_ptr<MCRegisterInfo> MRI(TheTarget->createMCRegInfo(TripleName));
+    llvm::MCTargetOptions MCOptions;
+    std::unique_ptr<MCRegisterInfo> MRI(TheTarget->createMCRegInfo(TripleName, MCOptions));
     if (!MRI)
       return make_error<StringError>("Unable to create target register info "
                                      "for " +
                                          TripleName,
                                      inconvertibleErrorCode());
 
-    MCTargetOptions MCOptions;
     std::unique_ptr<MCAsmInfo> MAI(
         TheTarget->createMCAsmInfo(*MRI, TripleName, MCOptions));
     if (!MAI)

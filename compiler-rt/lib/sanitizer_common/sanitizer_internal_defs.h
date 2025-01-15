@@ -142,13 +142,19 @@ namespace __sanitizer {
 // 64-bit Windows uses LLP64 data model.
 typedef unsigned long long uptr;
 typedef signed long long sptr;
+#elif defined(__CHERI_PURE_CAPABILITY__)
+typedef __uintcap_t uptr;
+typedef __intcap_t sptr;
+typedef unsigned long vaddr;
 #else
 #  if (SANITIZER_WORDSIZE == 64) || SANITIZER_APPLE || SANITIZER_WINDOWS
 typedef unsigned long uptr;
 typedef signed long sptr;
+typedef unsigned long vaddr;
 #  else
 typedef unsigned int uptr;
 typedef signed int sptr;
+typedef unsigned int vaddr;
 #  endif
 #endif  // defined(_WIN64)
 #if defined(__x86_64__)
@@ -191,7 +197,9 @@ typedef uptr OFF_T;
 #endif
 typedef u64  OFF64_T;
 
-#if (SANITIZER_WORDSIZE == 64) || SANITIZER_APPLE
+#ifdef __CHERI_PURE_CAPABILITY__
+typedef __SIZE_TYPE__ operator_new_size_type;
+#elif (SANITIZER_WORDSIZE == 64) || SANITIZER_APPLE
 typedef uptr operator_new_size_type;
 #else
 # if defined(__s390__) && !defined(__s390x__)
@@ -202,7 +210,32 @@ typedef u32 operator_new_size_type;
 # endif
 #endif
 
+#if (SANITIZER_WORDSIZE == 64)
+static_assert(sizeof(operator_new_size_type) == 8, "");
+#endif
+
 typedef u64 tid_t;
+
+#if (SANITIZER_WORDSIZE == 64)
+typedef u64 uword;
+typedef s64 sword;
+typedef s64 ptrdiff;
+#elif (SANITIZER_WORDSIZE == 32)
+typedef u32 uword;
+typedef s32 sword;
+typedef s32 ptrdiff;
+#else
+#error "SANITIZER_WORDSIZE not supported"
+#endif
+typedef unsigned long usize;
+typedef signed long ssize;
+
+#ifdef __CHERI_PURE_CAPABILITY__
+static_assert(sizeof(ptrdiff) == sizeof(__PTRDIFF_TYPE__), "");
+static_assert(sizeof(usize) == sizeof(__SIZE_TYPE__), "");
+static_assert(sizeof(uptr) == sizeof(__UINTPTR_TYPE__), "");
+static_assert(sizeof(sptr) == sizeof(__INTPTR_TYPE__), "");
+#endif
 
 // ----------- ATTENTION -------------
 // This header should NOT include any other headers to avoid portability issues.

@@ -5,7 +5,7 @@ target triple = "thumbv7-apple-ios"
 declare i32 @llvm.eh.sjlj.setjmp(ptr)
 declare void @llvm.eh.sjlj.longjmp(ptr)
 declare ptr @llvm.frameaddress(i32)
-declare ptr @llvm.stacksave()
+declare ptr @llvm.stacksave.p0()
 @g = external global i32
 
 define void @double_foobar() {
@@ -84,7 +84,7 @@ entry:
 
   %fa = tail call ptr @llvm.frameaddress(i32 0)
   store ptr %fa, ptr %buf, align 4
-  %ss = tail call ptr @llvm.stacksave()
+  %ss = tail call ptr @llvm.stacksave.p0()
   %ssgep = getelementptr [5 x ptr], ptr %buf, i32 0, i32 2
   store ptr %ss, ptr %ssgep, align 4
 
@@ -104,7 +104,7 @@ if.else:
 if.end:
   %fa2 = tail call ptr @llvm.frameaddress(i32 0)
   store ptr %fa2, ptr %buf, align 4
-  %ss2 = tail call ptr @llvm.stacksave()
+  %ss2 = tail call ptr @llvm.stacksave.p0()
   store ptr %ss2, ptr %ssgep, align 4
 
   %setjmpres2 = call i32 @llvm.eh.sjlj.setjmp(ptr %buf)

@@ -137,7 +137,7 @@
 // C-RV64IMAFDC-BAREMETAL-MULTI-ILP64D: "{{.*}}/Inputs/multilib_riscv_elf_sdk/lib/gcc/riscv64-unknown-elf/8.2.0/rv64imafdc/lp64d/crtend.o"
 
 // Check that --rtlib can be used to override the used runtime library
-// RUN: %clang -### %s \
+// RUN: env "PATH=" %clang -### %s \
 // RUN:   --gcc-toolchain=%S/Inputs/multilib_riscv_elf_sdk \
 // RUN:   --target=riscv64-unknown-elf --rtlib=libgcc --unwindlib=libgcc 2>&1 \
 // RUN:   | FileCheck -check-prefix=C-RV64-RTLIB-LIBGCC-LP64 %s

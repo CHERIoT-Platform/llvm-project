@@ -219,6 +219,7 @@ void ErrorHandler::reportDiagnostic(StringRef location, Colors c,
   }
   os << msg << '\n';
   lld::errs() << buf;
+  sep = getSeparator(msg);
 }
 
 void ErrorHandler::log(const Twine &msg) {
@@ -245,9 +246,15 @@ void ErrorHandler::warn(const Twine &msg) {
   if (suppressWarnings)
     return;
 
+  static uint64_t warningCount = 0;
   std::lock_guard<std::mutex> lock(mu);
-  reportDiagnostic(getLocation(msg), Colors::MAGENTA, "warning", msg);
-  sep = getSeparator(msg);
+  if (warningLimit == 0 || warningCount < warningLimit) {
+    reportDiagnostic(getLocation(msg), Colors::MAGENTA, "warning", msg);
+  } else if (warningCount == warningLimit) {
+    reportDiagnostic(getLocation(msg), Colors::MAGENTA, "warning",
+                     warningLimitExceededMsg);
+  }
+  ++warningCount;
 }
 
 void ErrorHandler::error(const Twine &msg) {
@@ -278,7 +285,6 @@ void ErrorHandler::error(const Twine &msg) {
       exit = exitEarly;
     }
 
-    sep = getSeparator(msg);
     ++errorCount;
   }
 

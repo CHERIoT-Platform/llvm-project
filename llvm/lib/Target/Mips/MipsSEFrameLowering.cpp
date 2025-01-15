@@ -44,6 +44,13 @@
 #include <utility>
 #include <vector>
 
+static llvm::cl::opt<bool>
+CHERICFI(
+      "cheri-cfi", llvm::cl::NotHidden,
+      llvm::cl::desc("Spill return addresses as capabilities"),
+      llvm::cl::init(false));
+
+
 using namespace llvm;
 
 static std::pair<unsigned, unsigned> getMFHiLoOpc(unsigned Src) {
@@ -414,7 +421,7 @@ void MipsSEFrameLowering::emitPrologue(MachineFunction &MF,
   unsigned SP = ABI.GetStackPtr();
   unsigned FP = ABI.GetFramePtr();
   unsigned ZERO = ABI.GetNullPtr();
-  unsigned MOVE = ABI.GetGPRMoveOp();
+  unsigned MOVE = ABI.GetSPMoveOp();
   unsigned ADDiu = ABI.GetPtrAddiuOp();
   unsigned AND = ABI.IsN64() ? Mips::AND64 : Mips::AND;
 
@@ -442,6 +449,7 @@ void MipsSEFrameLowering::emitPrologue(MachineFunction &MF,
   if (MF.getFunction().hasFnAttribute("interrupt"))
     emitInterruptPrologueStub(MF, MBB);
 
+  bool IsRASpilled = false;
   const std::vector<CalleeSavedInfo> &CSI = MFI.getCalleeSavedInfo();
 
   if (!CSI.empty()) {
@@ -455,6 +463,8 @@ void MipsSEFrameLowering::emitPrologue(MachineFunction &MF,
     for (const CalleeSavedInfo &I : CSI) {
       int64_t Offset = MFI.getObjectOffset(I.getFrameIdx());
       Register Reg = I.getReg();
+      if (Reg == Mips::RA_64 || Reg == Mips::RA)
+        IsRASpilled = true;
 
       // If Reg is a double precision register, emit two cfa_offsets,
       // one for each of the paired single precision registers.
@@ -542,19 +552,44 @@ void MipsSEFrameLowering::emitPrologue(MachineFunction &MF,
       assert((Log2(MFI.getMaxAlign()) < 16) &&
              "Function's alignment size requirement is not supported.");
       int64_t MaxAlign = -(int64_t)MFI.getMaxAlign().value();
+      unsigned IntSP = SP;
+      if (ABI.IsCheriPureCap()) {
+        IntSP = MF.getRegInfo().createVirtualRegister(RC);
+        BuildMI(MBB, MBBI, dl, TII.get(Mips::CGetAddr), IntSP).addReg(SP);
+      }
+
 
       BuildMI(MBB, MBBI, dl, TII.get(ADDiu), VR).addReg(ZERO).addImm(MaxAlign);
-      BuildMI(MBB, MBBI, dl, TII.get(AND), SP).addReg(SP).addReg(VR);
+      BuildMI(MBB, MBBI, dl, TII.get(AND), IntSP).addReg(IntSP).addReg(VR);
+
+      if (ABI.IsCheriPureCap())
+        BuildMI(MBB, MBBI, dl, TII.get(Mips::CSetAddr), SP)
+            .addReg(SP)
+            .addReg(IntSP);
 
       if (hasBP(MF)) {
         // move $s7, $sp
-        unsigned BP = STI.isABI_N64() ? Mips::S7_64 : Mips::S7;
+        unsigned BP = ABI.GetBasePtr();
         BuildMI(MBB, MBBI, dl, TII.get(MOVE), BP)
           .addReg(SP)
           .addReg(ZERO);
       }
     }
   }
+
+  // If we've spilled RA and we're targeting CHERI, then we want to use
+  // cjr $c16 for return, not jr $ra
+  if (CHERICFI && IsRASpilled && STI.isCheri())
+    for (auto &BB : MF)
+      for (auto &I : BB.terminators())
+        if (I.getOpcode() == Mips::RetRA) {
+            BuildMI(BB, (MachineBasicBlock::iterator)I, I.getDebugLoc(),
+                TII.get(Mips::CJR))
+              .addReg(Mips::C16);
+            I.eraseFromBundle();
+            break;
+        }
+
 }
 
 void MipsSEFrameLowering::emitInterruptPrologueStub(
@@ -701,7 +736,10 @@ void MipsSEFrameLowering::emitEpilogue(MachineFunction &MF,
   unsigned SP = ABI.GetStackPtr();
   unsigned FP = ABI.GetFramePtr();
   unsigned ZERO = ABI.GetNullPtr();
-  unsigned MOVE = ABI.GetGPRMoveOp();
+  unsigned MOVE = ABI.GetSPMoveOp();
+
+  // No need to clean up if we didn't allocate space on the stack.
+  if (MFI.getStackSize() == 0 && !MFI.adjustsStack()) return;
 
   // if framepointer enabled, restore the stack pointer.
   if (hasFP(MF)) {
@@ -743,6 +781,19 @@ void MipsSEFrameLowering::emitEpilogue(MachineFunction &MF,
 
   // Adjust stack.
   TII.adjustStackPtr(SP, StackSize, MBB, MBBI);
+}
+
+bool MipsSEFrameLowering::assignCalleeSavedSpillSlots(MachineFunction &MF,
+          const TargetRegisterInfo *TRI, std::vector<CalleeSavedInfo> &CSI) const {
+  // If we're on CHERI and we're compiling for the compatible ABI, then reserve
+  // an extra spill slot for the return capability, if $ra is spilled.
+  if (CHERICFI && STI.isCheri() && !STI.getABI().IsCheriPureCap())
+    for (auto &I : CSI)
+      if (I.getReg() == Mips::RA_64) {
+        CSI.push_back(CalleeSavedInfo(Mips::C16, 0));
+        break;
+      }
+  return false;
 }
 
 void MipsSEFrameLowering::emitInterruptEpilogueStub(
@@ -797,6 +848,12 @@ bool MipsSEFrameLowering::spillCalleeSavedRegisters(
   MachineFunction *MF = MBB.getParent();
   const TargetInstrInfo &TII = *STI.getInstrInfo();
 
+  bool IsRetAddrTaken = MF->getFrameInfo().isReturnAddressTaken();
+  bool KillRAOnSpill = true;
+  if (STI.isCheri() && !STI.getABI().IsCheriPureCap())
+    KillRAOnSpill = false;
+
+
   for (const CalleeSavedInfo &I : CSI) {
     // Add the callee-saved register as live-in. Do not add if the register is
     // RA and return address is taken, because it has already been added in
@@ -804,10 +861,22 @@ bool MipsSEFrameLowering::spillCalleeSavedRegisters(
     // It's killed at the spill, unless the register is RA and return address
     // is taken.
     Register Reg = I.getReg();
-    bool IsRAAndRetAddrIsTaken = (Reg == Mips::RA || Reg == Mips::RA_64)
-        && MF->getFrameInfo().isReturnAddressTaken();
+    bool IsRA = (Reg == Mips::RA || Reg == Mips::RA_64);
+    if (STI.getABI().IsCheriPureCap())
+      IsRA = (Reg == Mips::C17);
+    bool IsRAAndRetAddrIsTaken = IsRA && IsRetAddrTaken;
     if (!IsRAAndRetAddrIsTaken)
       MBB.addLiveIn(Reg);
+
+    // $c16 is not a callee-save register, so if we're being asked to spill it
+    // then we're actually using it to hold the return address as a capability.
+    if (Reg == Mips::C16) {
+      BuildMI(MBB, &*MI, MI->getDebugLoc(), TII.get(Mips::CGetPCC), Mips::C16);
+      BuildMI(MBB, &*MI, MI->getDebugLoc(), TII.get(Mips::CSetOffset), Mips::C16)
+          .addReg(Mips::C16).addReg(Mips::RA_64, RegState::Kill);
+      MachineFrameInfo &MFI = MBB.getParent()->getFrameInfo();
+      MFI.setObjectAlignment(I.getFrameIdx(), STI.getCapAlignment());
+    }
 
     // ISRs require HI/LO to be spilled into kernel registers to be then
     // spilled to the stack frame.
@@ -830,7 +899,7 @@ bool MipsSEFrameLowering::spillCalleeSavedRegisters(
     }
 
     // Insert the spill to the stack frame.
-    bool IsKill = !IsRAAndRetAddrIsTaken;
+    bool IsKill = !IsRAAndRetAddrIsTaken && KillRAOnSpill;
     const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
     TII.storeRegToStackSlot(MBB, MI, Reg, IsKill, I.getFrameIdx(), RC, TRI,
                             Register());
@@ -865,9 +934,9 @@ void MipsSEFrameLowering::determineCalleeSaves(MachineFunction &MF,
   const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
   MipsFunctionInfo *MipsFI = MF.getInfo<MipsFunctionInfo>();
   MipsABIInfo ABI = STI.getABI();
-  unsigned RA = ABI.IsN64() ? Mips::RA_64 : Mips::RA;
+  unsigned RA = ABI.GetReturnAddress();
   unsigned FP = ABI.GetFramePtr();
-  unsigned BP = ABI.IsN64() ? Mips::S7_64 : Mips::S7;
+  unsigned BP = ABI.GetBasePtr();
 
   // Mark $ra and $fp as used if function has dedicated frame pointer.
   if (hasFP(MF)) {
@@ -902,9 +971,23 @@ void MipsSEFrameLowering::determineCalleeSaves(MachineFunction &MF,
   // Set scavenging frame index if necessary.
   uint64_t MaxSPOffset = estimateStackSize(MF);
 
+  // We will need the emergency spill slot if we have any stack offsets that
+  // don't fit in an immediate.  In normal MIPS code, this means a 16-bit
+  // field, for CHERI code we have an 11-bit immediate (plus a 4-bit shift) for
+  // csc / cld, but only 8-bit immediates (plus a 3-bit shift) for c[ls]x
+  // instructions for other spills.  The latter only matters if we're using the
+  // capability-stack ABI.
+  // XXXAR: no longer true if we have the big immediate CLC enabled
+  if (STI.isCheri()) {
+    if (STI.isABI_CheriPureCap()) {
+      if (isInt<10>(MaxSPOffset))
+        return;
+    } else if (isInt<15>(MaxSPOffset))
+      return;
+  }
   // MSA has a minimum offset of 10 bits signed. If there is a variable
   // sized object on the stack, the estimation cannot account for it.
-  if (isIntN(STI.hasMSA() ? 10 : 16, MaxSPOffset) &&
+  else if (isIntN(STI.hasMSA() ? 10 : 16, MaxSPOffset) &&
       !MF.getFrameInfo().hasVarSizedObjects())
     return;
 

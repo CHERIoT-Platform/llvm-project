@@ -504,6 +504,13 @@ public:
     return AttributeSets.getParamDereferenceableOrNullBytes(ArgNo);
   }
 
+  /// Determine if the function has additional side-effects.
+  bool hasSideEffects() const {
+    return hasFnAttribute(Attribute::HasSideEffects);
+  }
+  void setHasSideEffects() {
+    addFnAttr(Attribute::HasSideEffects);
+  }
   /// Extract the nofpclass attribute for a parameter.
   FPClassTest getParamNoFPClass(unsigned ArgNo) const {
     return AttributeSets.getParamNoFPClass(ArgNo);

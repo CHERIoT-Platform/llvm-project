@@ -369,6 +369,11 @@ void TypeLocWriter::VisitDependentAddressSpaceTypeLoc(
   Record.AddStmt(TL.getAttrExprOperand());
 }
 
+void TypeLocWriter::VisitDependentPointerTypeLoc(
+    DependentPointerTypeLoc TL) {
+  Record.AddSourceLocation(TL.getQualifierLoc());
+}
+
 void TypeLocWriter::VisitDependentSizedExtVectorTypeLoc(
                                         DependentSizedExtVectorTypeLoc TL) {
   addSourceLocation(TL.getNameLoc());

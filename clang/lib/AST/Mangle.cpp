@@ -120,6 +120,19 @@ bool MangleContext::shouldMangleDeclName(const NamedDecl *D) {
       isUniqueInternalLinkageDecl(D))
     return true;
 
+  // This is necessary because hasAttrs returns false for calling convention
+  // attributes.
+  if (auto *FD = dyn_cast<FunctionDecl>(D))
+    if (FD->getType()->castAs<FunctionType>()->getCallConv() == CC_CHERILibCall) {
+      assert(ASTContext.getTargetInfo().getTargetOpts().ABI != "cheriot-baremetal");
+      return llvm::StringSwitch<bool>(FD->getName())
+        .Case("memcpy", false)
+        .Case("memmove", false)
+        .Case("memset", false)
+        .Case("memcmp", false)
+        .Default(true);
+    }
+
   // In C, functions with no attributes never need to be mangled. Fastpath them.
   if (!getASTContext().getLangOpts().CPlusPlus && !D->hasAttrs())
     return false;

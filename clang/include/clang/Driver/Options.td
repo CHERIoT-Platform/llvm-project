@@ -616,6 +616,93 @@ def internal_debug_Group :
   OptionGroup<"<clang debug/development internal options>">,
   Group<internal_Group>, HelpText<"DEBUG/DEVELOPMENT OPTIONS">;
 
+def cheri_Group : OptionGroup<"<CHERI specific options>">, HelpText<"CHERI OPTIONS">;
+
+// HACK for rtems:
+def q_rtems : Flag<["-"], "qrtems">, Flags<[NoXarchOption]>, Group<cheri_Group>,
+  HelpText<"Hack for RTEMS to use start.o instead of crt0.o">;
+
+def cheri_compartment_EQ : Joined<["-"], "cheri-compartment=">,
+  Visibility<[ClangOption, CC1Option]>,
+  Group<cheri_Group>, HelpText<"The name of the compartment that includes this compilation unit">;
+
+def cheri_EQ : Joined<["-"], "cheri=">, Flags<[NoXarchOption]>, Group<cheri_Group>,
+  HelpText<"Enable CHERI support, specifying the size (in bits) of CHERI capabilities">;
+def cheri : Flag<["-"], "cheri">, Flags<[NoXarchOption]>, Group<cheri_Group>,
+  HelpText<"Enable CHERI support with the default capability size (128 bits)">;
+
+def cheri_cap_table_abi : Joined<["-"], "cheri-cap-table-abi=">, Group<cheri_Group>,
+  HelpText<"CHERI cap table ABI to use">;
+def cheri_large_cap_table : Flag<["-"], "mxcaptable">, Flags<[NoXarchOption]>, Group<cheri_Group>,
+  HelpText<"Use large immediates to index the cap table">;
+def no_cheri_large_cap_table : Flag<["-"], "no-mxcaptable">, Flags<[NoXarchOption]>, Group<cheri_Group>,
+  HelpText<"Do not use large immediates to index the cap table">;
+
+def cheri_uintcap_EQ : Joined<["-"], "cheri-uintcap=">, Flags<[NoXarchOption,HelpHidden]>, 
+  Visibility<[ClangOption, CC1Option]>,
+  Group<cheri_Group>,
+  HelpText<"Whether to use the capability address or offset when performing arithmetic on capabilities."
+            "By default 'address' is used, 'offset' could theoretically be useful for copying GC but is usually "
+            "incompatible with existing C code.">,
+  Values<"address,addr,offset">, NormalizedValuesScope<"LangOptions">,
+  NormalizedValues<["UIntCap_Addr", "UIntCap_Addr", "UIntCap_Offset"]>,
+  MarshallingInfoEnum<LangOpts<"CheriUIntCap">, "UIntCap_Addr">;
+def cheri_data_dependent_provenance : Flag<["-"], "cheri-data-dependent-provenance">,
+  Flags<[HelpHidden]>, Group<cheri_Group>,
+  Visibility<[CC1Option]>,
+  HelpText<"Use the LHS or NULL provenance of a bitwise-and operation depending on the value of the RHS">,
+  MarshallingInfoFlag<LangOpts<"CheriDataDependentProvenance">>;
+def cheri_bounds_EQ : Joined<["-"], "cheri-bounds=">, Visibility<[CC1Option]>, Group<cheri_Group>,
+  HelpText<"Choose when to tighten bounds on capabilities. Choices are: "
+           "'conservative' (only stack allocations, default), "
+           "'references-only' (also set bounds on C++ references that are definitely fixed size) "
+           "'subobject-safe' (also set bounds when taking a pointer to a subobject) "
+           "'aggressive' (tighten bounds whenever feasible and not annotated as unsafe) "
+           "'very-aggressive' (same as aggressive but also set bounds for &array[index] expressions) and "
+           "'everywhere-unsafe' (attempt to set bounds everwhere where there isn't an explicit opt-out. "
+           "This is highly unsafe and will almost certainly not work at runtime)">,
+  Values<"conservative,references-only,subobject-safe,aggressive,very-aggressive,everywhere-unsafe">,
+  NormalizedValuesScope<"LangOptions">,
+  NormalizedValues<["CBM_Conservative", "CBM_References", "CBM_SubObjectsSafe", "CBM_Aggressive",
+                    "CBM_VeryAggressive", "CBM_EverywhereUnsafe"]>,
+  MarshallingInfoEnum<LangOpts<"CheriBounds">, "CBM_Conservative">;
+
+def cheri_cap_to_int_EQ : Joined<["-"], "cheri-cap-to-int=">, Visibility<[CC1Option]>,
+  Group<cheri_Group>,
+  HelpText<"How to convert capabilities to integer values. Choices are: "
+           "'explicit' (require explicit casts when casting capability pointers to pointer/integer), "
+           "'strict' (like 'explicit' but also require explicit casts to convert __(u)intcap_t to integer), "
+           "'address' (return the address when casting from capability to pointer/integer) "
+           "'relative' (create DDC or PCC relative offsets when casting from capability to pointer/integer)">,
+  Values<"explicit,strict,address,relative">, NormalizedValuesScope<"LangOptions">,
+  NormalizedValues<["CapInt_Explicit", "CapInt_Strict", "CapInt_Address", "CapInt_Relative"]>,
+  MarshallingInfoEnum<LangOpts<"CheriCapToInt">, "CapInt_Relative">;
+def cheri_int_to_cap_EQ : Joined<["-"], "cheri-int-to-cap=">, Visibility<[CC1Option]>,
+  Group<cheri_Group>,
+  HelpText<"How to convert capabilities to integer values. Choices are: "
+           "'explicit' (require explicit casts when casting to capabilities), "
+           "'strict' (like 'explicit' but also require explicit casts to convert integers to __(u)intcap_t), "
+           "'address' (create untagged capabilities holding the pointer address when casting from pointer/integer) "
+           "'relative' (derive capabilities from DDC or PCC when converting from pointer/integer)">,
+  Values<"explicit,strict,address,relative">, NormalizedValuesScope<"LangOptions">,
+  NormalizedValues<["CapInt_Explicit", "CapInt_Strict", "CapInt_Address", "CapInt_Relative"]>,
+  MarshallingInfoEnum<LangOpts<"CheriIntToCap">, "CapInt_Relative">;
+
+// TODO: it would be nice if BoolOption allowed custom spelling of the positive and negative flags
+defm cheri_exact_equality : BoolOption<"", "cheri-exact-equality",
+  LangOpts<"CheriCompareExact">, DefaultFalse,
+  PosFlag<SetTrue, [], [CC1Option], "Equality comparisons between capabilities compare all capability fields">,
+  NegFlag<SetFalse, [], [CC1Option], "Equality comparisons between capabilities only compare the address (default)">,
+  BothFlags<[NoXarchOption], [CC1Option], "">>, Group<cheri_Group>;
+def : Flag<["-"], "cheri-comparison=address">, Flags<[NoXarchOption]>,
+  Visibility<[CC1Option]>,
+  Group<cheri_Group>,
+  HelpText<no_cheri_exact_equality.HelpText>, Alias<no_cheri_exact_equality>;
+def : Flag<["-"], "cheri-comparison=exact">, Flags<[NoXarchOption]>,
+  Visibility<[CC1Option]>, Group<cheri_Group>,
+  HelpText<cheri_exact_equality.HelpText>, Alias<cheri_exact_equality>;
+
+
 class InternalDriverOpt : Group<internal_driver_Group>,
   Flags<[NoXarchOption, HelpHidden]>;
 def driver_mode : Joined<["--"], "driver-mode=">, Group<internal_driver_Group>,
@@ -4622,6 +4709,22 @@ def mrvv_vector_bits_EQ : Joined<["-"], "mrvv-vector-bits=">, Group<m_Group>,
            "\"zvl\" to use the value implied by -march/-mcpu. On Clang, value "
            "will be reflected in __riscv_v_fixed_vlen preprocessor define "
            "(RISC-V only)">;
+// TODO: Remove these options (https://github.com/CTSRD-CHERI/llvm-project/issues/681)
+def mxcheri_norvc : Flag<["-"], "mxcheri-norvc">, Group<m_riscv_Features_Group>,
+  HelpText<"Disable using compressed CHERI instructions">;
+def mno_xcheri_rvc : Flag<["-"], "mno-xcheri-rvc">, Alias<mxcheri_norvc>;
+// Positive (i.e. double negated) flag for backwards compatibility/consistency.
+def mno_xcheri_norvc : Flag<["-"], "mno-xcheri-norvc">, Group<m_riscv_Features_Group>,
+  HelpText<"Enable using compressed CHERI instructions">;
+def mxcheri_rvc : Flag<["-"], "mxcheri-rvc">, Alias<mno_xcheri_norvc>;
+// Temporary flags to enable/disable CHERI ISAv8 compatibility.
+// Flag name is a bit odd but this is required by handleTargetFeaturesGroup().
+def mxcheri_v9_semantics : Flag<["-"], "mxcheri-v9-semantics">, Group<m_riscv_Features_Group>,
+  HelpText<"Generate code that is no longer compatible with CHERI ISAv8">;
+def mno_xcheri_v9_semantics : Flag<["-"], "mno-xcheri-v9-semantics">, Group<m_riscv_Features_Group>,
+  HelpText<"Generate code that is compatible with CHERI ISAv8">;
+// Add an alias with a more sensible name for when the default is flipped.
+def mxcheri_v8_compat : Flag<["-"], "mxcheri-v8-compat">, Alias<mno_xcheri_v9_semantics>;
 
 def munaligned_access : Flag<["-"], "munaligned-access">, Group<m_Group>,
   HelpText<"Allow memory accesses to be unaligned (AArch32/AArch64/LoongArch/RISC-V only)">;
@@ -6525,8 +6628,9 @@ def target_sdk_version_EQ : Joined<["-"], "target-sdk-version=">,
 def darwin_target_variant_sdk_version_EQ : Joined<["-"],
   "darwin-target-variant-sdk-version=">,
   HelpText<"The version of darwin target variant SDK used for compilation">;
-
-} // let Visibility = [CC1Option, CC1AsOption]
+def cheri_size : Separate<["-"], "cheri-size">,
+  HelpText<"CHERI capability size">, Group<cheri_Group>;
+}
 
 let Visibility = [ClangOption, CC1Option, CC1AsOption] in {
 
@@ -7416,6 +7520,9 @@ def stats_file : Joined<["-"], "stats-file=">,
 def stats_file_append : Flag<["-"], "stats-file-append">,
   HelpText<"If stats should be appended to stats-file instead of overwriting it">,
   MarshallingInfoFlag<FrontendOpts<"AppendStats">>;
+def cheri_stats_file : Joined<["-"], "cheri-stats-file=">,
+  HelpText<"Filename to write CHERI statistics to">,
+  MarshallingInfoString<CodeGenOpts<"CHERIStatsFile">>;
 def fdump_record_layouts_simple : Flag<["-"], "fdump-record-layouts-simple">,
   HelpText<"Dump record layout information in a simple form used for testing">,
   MarshallingInfoFlag<LangOpts<"DumpRecordLayoutsSimple">>;

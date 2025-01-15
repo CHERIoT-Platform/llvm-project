@@ -7,10 +7,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "MipsTargetObjectFile.h"
+#include "MCTargetDesc/MipsMCExpr.h"
 #include "MipsSubtarget.h"
 #include "MipsTargetMachine.h"
-#include "MCTargetDesc/MipsMCExpr.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/CHERI/CompressedCapability.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/GlobalVariable.h"
@@ -18,6 +19,7 @@
 #include "llvm/MC/MCSectionELF.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Target/TargetMachine.h"
+
 using namespace llvm;
 
 static cl::opt<unsigned>
@@ -192,4 +194,44 @@ MipsTargetObjectFile::getDebugThreadLocalSymbol(const MCSymbol *Sym) const {
   Expr = MCBinaryExpr::createAdd(
       Expr, MCConstantExpr::create(0x8000, getContext()), getContext());
   return MipsMCExpr::create(MipsMCExpr::MEK_DTPREL, Expr, getContext());
+}
+
+TailPaddingAmount
+MipsTargetObjectFile::getTailPaddingForPreciseBounds(
+    uint64_t Size, const TargetMachine &TM) const {
+  const MipsSubtarget &Subtarget =
+      *static_cast<const MipsTargetMachine &>(TM).getSubtargetImpl();
+  if (!Subtarget.isCheri())
+    return TailPaddingAmount::None;
+  if (Subtarget.isCheri128()) {
+    return static_cast<TailPaddingAmount>(
+        llvm::alignTo(Size, CompressedCapability::GetRequiredAlignment(
+                                Size, CompressedCapability::Cheri128)) -
+        Size);
+  }
+  assert(Subtarget.isCheri256());
+  // No padding required for CHERI256
+  return TailPaddingAmount::None;
+}
+
+Align
+MipsTargetObjectFile::getAlignmentForPreciseBounds(
+    uint64_t Size, const TargetMachine &TM) const {
+  const MipsSubtarget &Subtarget =
+      *static_cast<const MipsTargetMachine &>(TM).getSubtargetImpl();
+  if (!Subtarget.isCheri())
+    return Align();
+  if (Subtarget.isCheri128()) {
+    return Align(CompressedCapability::GetRequiredAlignment(
+        Size, CompressedCapability::Cheri128));
+  }
+  assert(Subtarget.isCheri256());
+  // No alignment required for CHERI256
+  return Align();
+}
+
+int MipsTargetObjectFile::getCheriCapabilitySize(const TargetMachine &TM) const {
+  const MipsSubtarget &Subtarget =
+      *static_cast<const MipsTargetMachine &>(TM).getSubtargetImpl();
+  return Subtarget.getCapSizeInBytes();
 }

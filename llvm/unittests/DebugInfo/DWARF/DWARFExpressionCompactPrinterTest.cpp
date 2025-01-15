@@ -13,6 +13,7 @@
 #include "llvm/DebugInfo/DWARF/DWARFExpression.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
+#include "llvm/MC/MCTargetOptions.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/DataExtractor.h"
 #include "llvm/Support/TargetSelect.h"
@@ -40,8 +41,8 @@ public:
 
     if (!TheTarget)
       return;
-
-    MRI.reset(TheTarget->createMCRegInfo(TripleName));
+    MCTargetOptions MCOptions;
+    MRI.reset(TheTarget->createMCRegInfo(TripleName, MCOptions));
   }
 
   void TestExprPrinter(ArrayRef<uint8_t> ExprData, StringRef Expected);

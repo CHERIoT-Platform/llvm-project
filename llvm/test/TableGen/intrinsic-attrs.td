@@ -70,6 +70,11 @@ def int_deref_ptr_ret : Intrinsic<[llvm_ptr_ty], [], [Dereferenceable<RetIndex, 
 // CHECK-NEXT: return AttributeSet::get(C, {
 // CHECK-NEXT: Attribute::get(C, Attribute::NoUnwind),
 // CHECK-NEXT: });
+//CHECK: case 1:
+// CHECK-NEXT: return AttributeSet::get(C, {
+// CHECK-NEXT: Attribute::get(C, Attribute::NoUnwind),
+// CHECK-NEXT: Attribute::get(C, Attribute::HasSideEffects),
+// CHECK-NEXT: });
 
 
 // CHECK: 1, // llvm.deref.ptr.ret

@@ -124,6 +124,16 @@ def main():
                 preprocess_cmd = " | ".join(commands[:-2])
             tool_cmd = commands[-2]
             filecheck_cmd = commands[-1]
+            if tool_cmd.startswith("%"):
+                tool_cmd = tool_cmd.replace("%cheri_purecap_opt", "opt -mtriple=mips64-unknown-freebsd -target-abi purecap -relocation-model pic -mcpu=cheri128 -mattr=+cheri128")
+                tool_cmd = tool_cmd.replace("%cheri128_purecap_opt", "opt -mtriple=mips64-unknown-freebsd -target-abi purecap -relocation-model pic -mcpu=cheri128 -mattr=+cheri128")
+                tool_cmd = tool_cmd.replace("%cheri_opt", "opt -mtriple=mips64-unknown-freebsd -mcpu=cheri128 -mattr=+cheri128")
+                tool_cmd = tool_cmd.replace("%cheri128_opt", "opt -mtriple=mips64-unknown-freebsd -mcpu=cheri128 -mattr=+cheri128")
+                tool_cmd = tool_cmd.replace("%riscv32_cheri_purecap_opt", "opt -mtriple=riscv32-unknown-freebsd -target-abi il32pc64 -mattr=+xcheri,+cap-mode")
+                tool_cmd = tool_cmd.replace("%riscv64_cheri_purecap_opt", "opt -mtriple=riscv64-unknown-freebsd -target-abi l64pc128 -mattr=+xcheri,+cap-mode")
+                tool_cmd = tool_cmd.replace("%riscv32_cheri_opt", "opt -mtriple=riscv32-unknown-freebsd -mattr=+xcheri")
+                tool_cmd = tool_cmd.replace("%riscv64_cheri_opt", "opt -mtriple=riscv64-unknown-freebsd -mattr=+xcheri")
+
             common.verify_filecheck_prefixes(filecheck_cmd)
             if not tool_cmd.startswith(tool_basename + " "):
                 common.warn("Skipping non-%s RUN line: %s" % (tool_basename, l))
@@ -326,6 +336,8 @@ def main():
         common.debug("Writing %d lines to %s..." % (len(output_lines), ti.path))
 
         with open(ti.path, "wb") as f:
+            if initial_args.verbose:
+                sys.stderr.writelines(['{}\n'.format(l) for l in output_lines])
             f.writelines(["{}\n".format(l).encode("utf-8") for l in output_lines])
 
 

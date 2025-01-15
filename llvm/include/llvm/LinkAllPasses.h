@@ -141,7 +141,7 @@ namespace {
 
       (void)new llvm::IntervalPartition();
       (void)new llvm::ScalarEvolutionWrapperPass();
-      llvm::Function::Create(nullptr, llvm::GlobalValue::ExternalLinkage)->viewCFGOnly();
+      llvm::Function::Create(nullptr, llvm::GlobalValue::ExternalLinkage, 0)->viewCFGOnly();
       llvm::RGPassManager RGM;
       llvm::TargetLibraryInfoImpl TLII;
       llvm::TargetLibraryInfo TLI(TLII);

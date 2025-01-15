@@ -36,6 +36,23 @@ static cl::opt<bool> RoundSectionSizes(
     cl::desc("Round section sizes up to the section alignment"), cl::Hidden);
 } // end anonymous namespace
 
+std::optional<unsigned> llvm::getCheriCapabilitySize(FeatureBitset Features) {
+  if (Features[Mips::FeatureMipsCheri256]) {
+    assert(Features[Mips::FeatureMipsCheri]);
+    return 32;
+  }
+  if (Features[Mips::FeatureMipsCheri128]) {
+    assert(Features[Mips::FeatureMipsCheri]);
+    return 16;
+  }
+  if (Features[Mips::FeatureMipsCheri64]) {
+    assert(Features[Mips::FeatureMipsCheri]);
+    return 8;
+  }
+  assert(!Features[Mips::FeatureMipsCheri]);
+  return std::nullopt;
+}
+
 static bool isMicroMips(const MCSubtargetInfo *STI) {
   return STI->hasFeature(Mips::FeatureMicroMips);
 }
@@ -799,7 +816,8 @@ void MipsTargetAsmStreamer::emitDirectiveModuleNoGINV() {
 // This part is for ELF object output.
 MipsTargetELFStreamer::MipsTargetELFStreamer(MCStreamer &S,
                                              const MCSubtargetInfo &STI)
-    : MipsTargetStreamer(S), MicroMipsEnabled(false), STI(STI) {
+    : MipsTargetStreamer(S),
+      MicroMipsEnabled(false), STI(STI) {
   MCAssembler &MCA = getStreamer().getAssembler();
 
   // It's possible that MCObjectFileInfo isn't fully initialized at this point
@@ -868,6 +886,12 @@ MipsTargetELFStreamer::MipsTargetELFStreamer(MCStreamer &S,
   // Machine
   if (Features[Mips::FeatureCnMips])
     EFlags |= ELF::EF_MIPS_MACH_OCTEON;
+  else if (Features[Mips::FeatureMipsCheri128])
+    EFlags |= ELF::EF_MIPS_MACH_CHERI128;
+  else if (Features[Mips::FeatureMipsCheri])
+    EFlags |= ELF::EF_MIPS_MACH_CHERI256;
+  else if (Features[Mips::FeatureMipsBeri])
+    EFlags |= ELF::EF_MIPS_MACH_BERI;
 
   // Other options.
   if (Features[Mips::FeatureNaN2008])
@@ -947,6 +971,9 @@ void MipsTargetELFStreamer::finish() {
 
   if (Pic)
     EFlags |= ELF::EF_MIPS_PIC | ELF::EF_MIPS_CPIC;
+
+  if (getABI().IsCheriPureCap())
+    EFlags |= ELF::EF_MIPS_ABI_CHERIABI;
 
   MCA.setELFHeaderEFlags(EFlags);
 

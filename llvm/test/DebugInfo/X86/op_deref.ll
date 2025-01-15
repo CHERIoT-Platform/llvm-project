@@ -35,7 +35,7 @@ entry:
   call void @llvm.dbg.declare(metadata ptr %s.addr, metadata !10, metadata !DIExpression()), !dbg !11
   %0 = load i32, ptr %s.addr, align 4, !dbg !12
   %1 = zext i32 %0 to i64, !dbg !12
-  %2 = call ptr @llvm.stacksave(), !dbg !12
+  %2 = call ptr @llvm.stacksave.p0(), !dbg !12
   store ptr %2, ptr %saved_stack, !dbg !12
   %vla = alloca i32, i64 %1, align 16, !dbg !12
   call void @llvm.dbg.declare(metadata ptr %vla, metadata !14, metadata !30), !dbg !18
@@ -67,15 +67,15 @@ for.inc:                                          ; preds = %for.body
 
 for.end:                                          ; preds = %for.cond
   %9 = load ptr, ptr %saved_stack, !dbg !27
-  call void @llvm.stackrestore(ptr %9), !dbg !27
+  call void @llvm.stackrestore.p0(ptr %9), !dbg !27
   ret void, !dbg !27
 }
 
 declare void @llvm.dbg.declare(metadata, metadata, metadata) nounwind readnone
 
-declare ptr @llvm.stacksave() nounwind
+declare ptr @llvm.stacksave.p0() nounwind
 
-declare void @llvm.stackrestore(ptr) nounwind
+declare void @llvm.stackrestore.p0(ptr) nounwind
 
 !llvm.dbg.cu = !{!0}
 !llvm.module.flags = !{!29}

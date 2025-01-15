@@ -47,7 +47,7 @@ define void @fn9(ptr %a1, i32 %a2, i32 %a3, i32 %a4, i32 %a5, i32 %a6, i32 %a7, 
   store i32 %a8, ptr %8, align 4
   store i32 %a9, ptr %9, align 4
   store i32 %a9, ptr %a1
-  call void @llvm.va_start(ptr %args)
+  call void @llvm.va_start.p0(ptr %args)
   %10 = va_arg ptr %args, i32
   store i32 %10, ptr %a10, align 4
   %11 = va_arg ptr %args, i32
@@ -57,7 +57,7 @@ define void @fn9(ptr %a1, i32 %a2, i32 %a3, i32 %a4, i32 %a5, i32 %a6, i32 %a7, 
   ret void
 }
 
-declare void @llvm.va_start(ptr) nounwind
+declare void @llvm.va_start.p0(ptr) nounwind
 
 define i32 @main() nounwind ssp {
 ; CHECK-LABEL: main:
@@ -160,7 +160,7 @@ entry:
   %vc = alloca i32, align 4
   %vv = alloca <4 x i32>, align 16
   store ptr %fmt, ptr %fmt.addr, align 8
-  call void @llvm.va_start(ptr %args)
+  call void @llvm.va_start.p0(ptr %args)
   %0 = va_arg ptr %args, i32
   store i32 %0, ptr %vc, align 4
   %1 = va_arg ptr %args, <4 x i32>
@@ -221,7 +221,7 @@ entry:
   %vc = alloca i32, align 4
   %vs = alloca %struct.s41, align 16
   store ptr %fmt, ptr %fmt.addr, align 8
-  call void @llvm.va_start(ptr %args)
+  call void @llvm.va_start.p0(ptr %args)
   %0 = va_arg ptr %args, i32
   store i32 %0, ptr %vc, align 4
   %ap.cur = load ptr, ptr %args

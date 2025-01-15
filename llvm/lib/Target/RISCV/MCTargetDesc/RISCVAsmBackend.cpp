@@ -92,6 +92,22 @@ RISCVAsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
       {"fixup_riscv_tlsdesc_load_lo12", 20, 12, 0},
       {"fixup_riscv_tlsdesc_add_lo12", 20, 12, 0},
       {"fixup_riscv_tlsdesc_call", 0, 0, 0},
+
+      {"fixup_riscv_captab_pcrel_hi20", 12, 20, MCFixupKindInfo::FKF_IsPCRel},
+      {"fixup_riscv_capability", 0, 0, 0},
+      {"fixup_riscv_tprel_cincoffset", 0, 0, 0},
+      {"fixup_riscv_tls_ie_captab_pcrel_hi20", 12, 20,
+       MCFixupKindInfo::FKF_IsPCRel},
+      {"fixup_riscv_tls_gd_captab_pcrel_hi20", 12, 20,
+       MCFixupKindInfo::FKF_IsPCRel},
+      {"fixup_riscv_cjal", 12, 20, MCFixupKindInfo::FKF_IsPCRel},
+      {"fixup_riscv_ccall", 0, 64, MCFixupKindInfo::FKF_IsPCRel},
+      {"fixup_riscv_rvc_cjump", 2, 11, MCFixupKindInfo::FKF_IsPCRel},
+
+      {"fixup_riscv_cheriot_compartment_hi", 0, 32, 0},
+      {"fixup_riscv_cheriot_compartment_lo_i", 0, 32, 0},
+      {"fixup_riscv_cheriot_compartment_lo_s", 0, 32, 0},
+      {"fixup_riscv_cheriot_compartment_size", 20, 12, 0},
   };
   static_assert((std::size(Infos)) == RISCV::NumTargetFixupKinds,
                 "Not all fixup kinds added to Infos array");
@@ -133,6 +149,9 @@ bool RISCVAsmBackend::shouldForceRelocation(const MCAssembler &Asm,
   case RISCV::fixup_riscv_tls_got_hi20:
   case RISCV::fixup_riscv_tls_gd_hi20:
   case RISCV::fixup_riscv_tlsdesc_hi20:
+  case RISCV::fixup_riscv_captab_pcrel_hi20:
+  case RISCV::fixup_riscv_tls_ie_captab_pcrel_hi20:
+  case RISCV::fixup_riscv_tls_gd_captab_pcrel_hi20:
     return true;
   }
 
@@ -166,6 +185,7 @@ bool RISCVAsmBackend::fixupNeedsRelaxationAdvanced(const MCFixup &Fixup,
     // in the range [-256, 254].
     return Offset > 254 || Offset < -256;
   case RISCV::fixup_riscv_rvc_jump:
+  case RISCV::fixup_riscv_rvc_cjump:
     // For compressed jump instructions the immediate must be
     // in the range [-2048, 2046].
     return Offset > 2046 || Offset < -2048;
@@ -184,6 +204,7 @@ void RISCVAsmBackend::relaxInstruction(MCInst &Inst,
     llvm_unreachable("Opcode not expected!");
   case RISCV::C_BEQZ:
   case RISCV::C_BNEZ:
+  case RISCV::C_CJAL:
   case RISCV::C_J:
   case RISCV::C_JAL: {
     bool Success = RISCVRVC::uncompress(Res, Inst, STI);
@@ -352,6 +373,8 @@ std::pair<bool, bool> RISCVAsmBackend::relaxLEB128(MCLEBFragment &LF,
 // Given a compressed control flow instruction this function returns
 // the expanded instruction.
 unsigned RISCVAsmBackend::getRelaxedOpcode(unsigned Op) const {
+  bool IsCapMode = STI.getFeatureBits()[RISCV::FeatureCapMode];
+
   switch (Op) {
   default:
     return Op;
@@ -360,8 +383,11 @@ unsigned RISCVAsmBackend::getRelaxedOpcode(unsigned Op) const {
   case RISCV::C_BNEZ:
     return RISCV::BNE;
   case RISCV::C_J:
-  case RISCV::C_JAL: // fall through.
+    return IsCapMode ? RISCV::CJAL : RISCV::JAL;
+  case RISCV::C_JAL:
     return RISCV::JAL;
+  case RISCV::C_CJAL:
+    return RISCV::CJAL;
   case RISCV::BEQ:
     return RISCV::PseudoLongBEQ;
   case RISCV::BNE:
@@ -419,6 +445,10 @@ static uint64_t adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
   case RISCV::fixup_riscv_tls_got_hi20:
   case RISCV::fixup_riscv_tls_gd_hi20:
   case RISCV::fixup_riscv_tlsdesc_hi20:
+  case RISCV::fixup_riscv_captab_pcrel_hi20:
+  case RISCV::fixup_riscv_capability:
+  case RISCV::fixup_riscv_tls_ie_captab_pcrel_hi20:
+  case RISCV::fixup_riscv_tls_gd_captab_pcrel_hi20:
     llvm_unreachable("Relocation should be unconditionally forced\n");
   case FK_Data_1:
   case FK_Data_2:
@@ -446,7 +476,8 @@ static uint64_t adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
   case RISCV::fixup_riscv_tprel_hi20:
     // Add 1 if bit 11 is 1, to compensate for low 12 bits being negative.
     return ((Value + 0x800) >> 12) & 0xfffff;
-  case RISCV::fixup_riscv_jal: {
+  case RISCV::fixup_riscv_jal:
+  case RISCV::fixup_riscv_cjal: {
     if (!isInt<21>(Value))
       Ctx.reportError(Fixup.getLoc(), "fixup value out of range");
     if (Value & 0x1)
@@ -482,7 +513,8 @@ static uint64_t adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
     return Value;
   }
   case RISCV::fixup_riscv_call:
-  case RISCV::fixup_riscv_call_plt: {
+  case RISCV::fixup_riscv_call_plt:
+  case RISCV::fixup_riscv_ccall: {
     // Jalr will add UpperImm with the sign-extended 12-bit LowerImm,
     // we need to add 0x800ULL before extract upper bits to reflect the
     // effect of the sign extension.
@@ -490,7 +522,8 @@ static uint64_t adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
     uint64_t LowerImm = Value & 0xfffULL;
     return UpperImm | ((LowerImm << 20) << 32);
   }
-  case RISCV::fixup_riscv_rvc_jump: {
+  case RISCV::fixup_riscv_rvc_jump:
+  case RISCV::fixup_riscv_rvc_cjump: {
     if (!isInt<12>(Value))
       Ctx.reportError(Fixup.getLoc(), "fixup value out of range");
     // Need to produce offset[11|4|9:8|10|6|7|3:1|5] from the 11-bit Value.
@@ -657,6 +690,7 @@ void RISCVAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
   // For each byte of the fragment that the fixup touches, mask in the
   // bits from the fixup value.
   for (unsigned i = 0; i != NumBytes; ++i) {
+    assert((Data[Offset + i] & uint8_t((Value >> (i * 8)) & 0xff)) == 0);
     Data[Offset + i] |= uint8_t((Value >> (i * 8)) & 0xff);
   }
 }

@@ -657,7 +657,7 @@ public:
     return isOneOf(tok::kw_const, tok::kw_restrict, tok::kw_volatile,
                    tok::kw__Nonnull, tok::kw__Nullable,
                    tok::kw__Null_unspecified, tok::kw___ptr32, tok::kw___ptr64,
-                   tok::kw___funcref) ||
+                   tok::kw___capability, tok::kw___funcref) ||
            isAttribute();
   }
 
@@ -1730,6 +1730,20 @@ struct AdditionalKeywords {
       return Tok.is(tok::identifier) &&
              CSharpExtraKeywords.find(Tok.Tok.getIdentifierInfo()) ==
                  CSharpExtraKeywords.end();
+    }
+  }
+
+  /// Returns \c true if \p Tok is a CHERI cast keyword, returns
+  /// \c false if it is anything else.
+  bool isCHERICastKeyword(const FormatToken &Tok) const {
+    switch (Tok.Tok.getKind()) {
+    case tok::kw___cheri_tocap:
+    case tok::kw___cheri_fromcap:
+    case tok::kw___cheri_offset:
+    case tok::kw___cheri_addr:
+      return true;
+    default:
+      return false;
     }
   }
 

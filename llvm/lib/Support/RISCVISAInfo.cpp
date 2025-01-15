@@ -64,6 +64,7 @@ static const RISCVSupportedExtension SupportedExtensions[] = {
     {"v", {1, 0}},
 
     // vendor-defined ('X') extensions
+    {"xcheri", {0, 0}},
     {"xcvalu", {1, 0}},
     {"xcvbi", {1, 0}},
     {"xcvbitmanip", {1, 0}},
@@ -487,6 +488,11 @@ std::vector<std::string> RISCVISAInfo::toFeatures(bool AddAllExtensions,
     for (const RISCVSupportedExtension &Ext : SupportedExtensions) {
       if (Exts.count(Ext.Name))
         continue;
+
+      // cheriot: clang -cc1 does not support -i
+      if (StringRef{Ext.Name} == "i")
+        continue;
+
       Features.push_back((llvm::Twine("-") + Ext.Name).str());
     }
 

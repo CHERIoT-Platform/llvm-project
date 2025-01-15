@@ -1230,6 +1230,12 @@ __sanitizer_verify_double_ended_contiguous_container(const void*, const void*, c
 #    define _LIBCPP_CONSTINIT
 #  endif
 
+#  if __has_attribute(cheri_no_subobject_bounds)
+#    define _LIBCPP_NO_SUBOBJECT_BOUNDS __attribute__((__cheri_no_subobject_bounds__))
+#  else
+#    define _LIBCPP_NO_SUBOBJECT_BOUNDS
+#  endif
+
 #  if defined(__CUDACC__) || defined(__CUDA_ARCH__) || defined(__CUDA_LIBDEVICE__)
 // The CUDA SDK contains an unfortunate definition for the __noinline__ macro,
 // which breaks the regular __attribute__((__noinline__)) syntax. Therefore,

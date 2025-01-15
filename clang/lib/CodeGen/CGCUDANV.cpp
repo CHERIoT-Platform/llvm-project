@@ -232,7 +232,9 @@ CGNVCUDARuntime::CGNVCUDARuntime(CodeGenModule &CGM)
   VoidTy = CGM.VoidTy;
   Zeros[0] = llvm::ConstantInt::get(SizeTy, 0);
   Zeros[1] = Zeros[0];
-  PtrTy = CGM.UnqualPtrTy;
+
+  unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
+  PtrTy = llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS);
 }
 
 llvm::FunctionCallee CGNVCUDARuntime::getSetupArgumentFn() const {
@@ -375,7 +377,7 @@ void CGNVCUDARuntime::emitDeviceStubBodyNew(CodeGenFunction &CGF,
     return;
   }
   // Create temporary dim3 grid_dim, block_dim.
-  ParmVarDecl *GridDimParam = cudaLaunchKernelFD->getParamDecl(1);
+  const ParmVarDecl *GridDimParam = cudaLaunchKernelFD->getParamDecl(1);
   QualType Dim3Ty = GridDimParam->getType();
   Address GridDim =
       CGF.CreateMemTemp(Dim3Ty, CharUnits::fromQuantity(8), "grid_dim");
@@ -530,6 +532,7 @@ llvm::Function *CGNVCUDARuntime::makeRegisterGlobalsFn() {
   CGBuilderTy Builder(CGM, Context);
   Builder.SetInsertPoint(EntryBB);
 
+  unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
   // void __cudaRegisterFunction(void **, const char *, char *, const char *,
   //                             int, uint3*, uint3*, dim3*, dim3*, int*)
   llvm::Type *RegisterFuncParams[] = {
@@ -557,7 +560,7 @@ llvm::Function *CGNVCUDARuntime::makeRegisterGlobalsFn() {
         NullPtr,
         NullPtr,
         NullPtr,
-        llvm::ConstantPointerNull::get(llvm::PointerType::getUnqual(Context))};
+        llvm::ConstantPointerNull::get(llvm::PointerType::get(Context, DefaultAS))};
     Builder.CreateCall(RegisterFunc, Args);
   }
 

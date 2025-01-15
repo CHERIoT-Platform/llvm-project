@@ -849,6 +849,9 @@ AMDGPUTargetMachine::getAddressSpaceForPseudoSourceKind(unsigned Kind) const {
     return AMDGPUAS::PRIVATE_ADDRESS;
   case PseudoSourceValue::ConstantPool:
   case PseudoSourceValue::GOT:
+  // CapTable is not used on AMDGPU but we still need to handle it to
+  // avoid assertions during PseudoSourceValueManager ctor
+  case PseudoSourceValue::CapTable:
   case PseudoSourceValue::JumpTable:
   case PseudoSourceValue::GlobalValueCallEntry:
   case PseudoSourceValue::ExternalSymbolCallEntry:

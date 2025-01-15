@@ -16,6 +16,7 @@
 #include "clang/Basic/MacroBuilder.h"
 #include "clang/Basic/TargetBuiltins.h"
 #include "llvm/ADT/StringSwitch.h"
+#include "llvm/MC/MCTargetOptions.h"
 
 using namespace clang;
 using namespace clang::targets;
@@ -30,6 +31,10 @@ static constexpr Builtin::Info BuiltinInfo[] = {
 
 bool MipsTargetInfo::processorSupportsGPR64() const {
   return llvm::StringSwitch<bool>(CPU)
+      .Case("cheri128", true)
+      .Case("cheri256", true)
+      .Case("cheri64", true)
+      .Case("beri", true)
       .Case("mips3", true)
       .Case("mips4", true)
       .Case("mips5", true)
@@ -44,6 +49,7 @@ bool MipsTargetInfo::processorSupportsGPR64() const {
 }
 
 static constexpr llvm::StringLiteral ValidCPUNames[] = {
+    {"cheri128"}, {"cheri256"}, {"cheri64"}, {"beri"},
     {"mips1"},  {"mips2"},    {"mips3"},    {"mips4"},    {"mips5"},
     {"mips32"}, {"mips32r2"}, {"mips32r3"}, {"mips32r5"}, {"mips32r6"},
     {"mips64"}, {"mips64r2"}, {"mips64r3"}, {"mips64r5"}, {"mips64r6"},
@@ -183,6 +189,38 @@ void MipsTargetInfo::getTargetDefines(const LangOptions &Opts,
   if (HasMSA)
     Builder.defineMacro("__mips_msa", Twine(1));
 
+  if (IsCHERI) {
+    if (CapabilityABI) {
+      Builder.defineMacro("__CHERI_SANDBOX__", Twine(4)); // TODO: remove this?
+      auto CapTableABI = llvm::MCTargetOptions::cheriCapabilityTableABI();
+      Builder.defineMacro("__CHERI_CAPABILITY_TABLE__",
+                          Twine(((int)CapTableABI) + 1));
+      Builder.defineMacro("__CHERI_CAPABILITY_TLS__", Twine(1));
+    }
+
+    // Macros for use with the set and get permissions builtins.
+    Builder.defineMacro("__CHERI_CAP_PERMISSION_GLOBAL__", Twine(1<<0));
+    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_EXECUTE__",
+            Twine(1<<1));
+    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_LOAD__", Twine(1<<2));
+    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_STORE__", Twine(1<<3));
+    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_LOAD_CAPABILITY__",
+            Twine(1<<4));
+    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_STORE_CAPABILITY__",
+            Twine(1<<5));
+    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_STORE_LOCAL__",
+            Twine(1<<6));
+    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_SEAL__", Twine(1<<7));
+    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_INVOKE__", Twine(1<<8));
+    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_UNSEAL__", Twine(1<<9));
+    Builder.defineMacro("__CHERI_CAP_PERMISSION_ACCESS_SYSTEM_REGISTERS__", Twine(1<<10));
+
+    Builder.defineMacro("_MIPS_SZCAP", Twine(getCHERICapabilityWidth()));
+    if (getCHERICapabilityWidth() == 128)
+        Builder.defineMacro("_MIPS_CAP_ALIGN_MASK", "0xfffffffffffffff0");
+    else
+        Builder.defineMacro("_MIPS_CAP_ALIGN_MASK", "0xffffffffffffffe0");
+  }
   if (DisableMadd4)
     Builder.defineMacro("__mips_no_madd4", Twine(1));
 
@@ -209,8 +247,9 @@ void MipsTargetInfo::getTargetDefines(const LangOptions &Opts,
   // found in 64-bit processors. In the case of O32 on a 64-bit processor,
   // the instructions exist but using them violates the ABI since they
   // require 64-bit GPRs and O32 only supports 32-bit GPRs.
-  if (ABI == "n32" || ABI == "n64")
+  if (IsCHERI || ABI == "n32" || ABI == "n64")
     Builder.defineMacro("__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8");
+
 }
 
 bool MipsTargetInfo::hasFeature(StringRef Feature) const {

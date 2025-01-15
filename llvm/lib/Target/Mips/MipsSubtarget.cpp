@@ -20,6 +20,7 @@
 #include "MipsTargetMachine.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/Function.h"
+#include "llvm/CodeGen/MachineScheduler.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
@@ -77,7 +78,9 @@ MipsSubtarget::MipsSubtarget(const Triple &TT, StringRef CPU, StringRef FS,
       IsFP64bit(false), UseOddSPReg(true), IsNaN2008bit(false),
       IsGP64bit(false), HasVFPU(false), HasCnMips(false), HasCnMipsP(false),
       HasMips3_32(false), HasMips3_32r2(false), HasMips4_32(false),
-      HasMips4_32r2(false), HasMips5_32r2(false), InMips16Mode(false),
+      HasMips4_32r2(false), HasMips5_32r2(false),
+      IsCheri64(false), IsCheri128(false), IsCheri256(false), IsCheri(false),
+      IsBeri(false), UseCheriExactEquals(false), InMips16Mode(false),
       InMips16HardFloat(Mips16HardFloat), InMicroMipsMode(false), HasDSP(false),
       HasDSPR2(false), HasDSPR3(false), AllowMixed16_32(Mixed16_32 || Mips_Os16),
       Os16(Mips_Os16), HasMSA(false), UseTCCInDIV(false), HasSym32(false),
@@ -232,6 +235,8 @@ void MipsSubtarget::getCriticalPathRCs(RegClassVector &CriticalPathRCs) const {
   CriticalPathRCs.clear();
   CriticalPathRCs.push_back(isGP64bit() ? &Mips::GPR64RegClass
                                         : &Mips::GPR32RegClass);
+  if (IsCheri)
+    CriticalPathRCs.push_back(&Mips::CheriGPROrCNullRegClass);
 }
 
 CodeGenOptLevel MipsSubtarget::getOptLevelToEnablePostRAScheduler() const {
@@ -242,6 +247,18 @@ MipsSubtarget &
 MipsSubtarget::initializeSubtargetDependencies(StringRef CPU, StringRef FS,
                                                const TargetMachine &TM) {
   StringRef CPUName = MIPS_MC::selectMipsCPU(TM.getTargetTriple(), CPU);
+  std::string CheriFeatures;
+  // enable capabilties for all cheri-*-* triples even if CPUName != cheri
+  if (TM.getTargetTriple().getEnvironment() == llvm::Triple::CheriPurecap) {
+    if (FS.empty())
+      FS = "+cheri128";
+    else {
+      CheriFeatures = FS.str();
+      if (!FS.contains("+cheri256") && !FS.contains("+cheri64"))
+        CheriFeatures += ",+cheri128";
+      FS = CheriFeatures;
+    }
+  }
 
   // Parse features string.
   ParseSubtargetFeatures(CPUName, /*TuneCPU*/ CPUName, FS);
@@ -253,7 +270,12 @@ MipsSubtarget::initializeSubtargetDependencies(StringRef CPU, StringRef FS,
 
   if (StackAlignOverride)
     stackAlignment = *StackAlignOverride;
-  else if (isABI_N32() || isABI_N64())
+  else if (isCheri()) {
+    if (isCheri256())
+      stackAlignment = Align(32);
+    else
+      stackAlignment = Align(16);
+  } else if (isABI_N32() || isABI_N64())
     stackAlignment = Align(16);
   else {
     assert(isABI_O32() && "Unknown ABI for stack alignment!");
@@ -280,6 +302,9 @@ Reloc::Model MipsSubtarget::getRelocationModel() const {
 bool MipsSubtarget::isABI_N64() const { return getABI().IsN64(); }
 bool MipsSubtarget::isABI_N32() const { return getABI().IsN32(); }
 bool MipsSubtarget::isABI_O32() const { return getABI().IsO32(); }
+bool MipsSubtarget::isABI_CheriPureCap() const {
+  return getABI().IsCheriPureCap();
+}
 const MipsABIInfo &MipsSubtarget::getABI() const { return TM.getABI(); }
 
 const CallLowering *MipsSubtarget::getCallLowering() const {
@@ -292,6 +317,16 @@ const LegalizerInfo *MipsSubtarget::getLegalizerInfo() const {
 
 const RegisterBankInfo *MipsSubtarget::getRegBankInfo() const {
   return RegBankInfo.get();
+}
+
+void MipsSubtarget::overrideSchedPolicy(MachineSchedPolicy &Policy,
+                                        unsigned NumRegionInstrs) const {
+  // Note: OnlyTopDown seems to work better for latency scheduling
+  //  Policy.OnlyTopDown = true;
+  //  Policy.OnlyBottomUp = false;
+  //  Policy.DisableLatencyHeuristic = false;
+  //  Policy.ComputeDFSResult = true;
+  //  Policy.ShouldTrackPressure = true;
 }
 
 InstructionSelector *MipsSubtarget::getInstructionSelector() const {

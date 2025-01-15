@@ -113,6 +113,9 @@ defm allow_shlib_undefined: B<"allow-shlib-undefined",
     "Allow unresolved references in shared libraries (default when linking a shared library)",
     "Do not allow unresolved references in shared libraries (default when linking an executable)">;
 
+def allow_undefined_cap_relocs: F<"allow-undefined-cap-relocs">,
+  HelpText<"Allow undefined __cap_relocs">;
+
 defm apply_dynamic_relocs: BB<"apply-dynamic-relocs",
     "Apply link-time values for dynamic relocations",
     "Do not apply link-time values for dynamic relocations (default)">;
@@ -197,6 +200,9 @@ defm entry: Eq<"entry", "Name of entry point symbol">,
 
 defm error_limit:
   EEq<"error-limit", "Maximum number of errors to emit before stopping (0 = no limit)">;
+
+defm warning_limit:
+  Eq<"warning-limit", "Maximum number of warnings to emit before stopping (0 = no limit)">;
 
 def error_unresolved_symbols: F<"error-unresolved-symbols">,
   HelpText<"Report unresolved symbols as errors">;
@@ -402,6 +408,10 @@ defm rpath: Eq<"rpath", "Add a DT_RUNPATH to the output">;
 
 def relocatable: F<"relocatable">, HelpText<"Create relocatable object file">;
 
+def compartment: F<"compartment">, HelpText<"Create object file for a compartment">;
+
+defm compartment_report: Eq<"compartment-report", "Emit a compartment report metadata file">;
+
 defm retain_symbols_file:
   Eq<"retain-symbols-file", "Retain only the symbols listed in the file">,
   MetaVarName<"<file>">;
@@ -524,6 +534,8 @@ defm warn_symbol_ordering: BB<"warn-symbol-ordering",
 
 def warn_unresolved_symbols: F<"warn-unresolved-symbols">,
   HelpText<"Report unresolved symbols as warnings">;
+
+defm warn_file_linked: Eq<"warn-if-file-linked", "Warn when the given file is linked">;
 
 defm whole_archive: B<"whole-archive",
     "Force load of all members in a static library",
@@ -737,6 +749,38 @@ def: J<"plugin-opt=-pass-through=">;
 // This may be either an unhandled LLVMgold.so feature or GCC passed
 // -plugin-opt=path/to/{liblto_plugin.so,lto-wrapper}
 def plugin_opt_eq : J<"plugin-opt=">;
+
+
+// CHERI options:
+def building_freebsd_rtld: F<"building-freebsd-rtld">,
+    HelpText<"Disallow any relocations that are not supported by _rtld_relocate_nonplt_self">;
+defm relative_cap_relocs: B<"relative-cap-relocs",
+    "All __cap_relocs entries are relative to the load addresss (not compatible with -preemptible-caprelocs=legacy)",
+    "Add dynamic relocations to write the full addresses to all __cap_relocs entries">;
+defm sort_cap_relocs: B<"sort-cap-relocs",
+    "Sort the __cap_relocs section by capability location",
+    "Do not sort the __cap_relocs section by capability location">, Flags<[HelpHidden]>;
+def verbose_cap_relocs : F<"verbose-cap-relocs">, HelpText<"Print all cap_relocs information (this is a lot!)">;
+
+// Select which method is used to emit dynamic capability relocations:
+def preemptible_caprelocs_legacy: F<"preemptible-caprelocs=legacy">,
+  HelpText<"Emit capability relocations for preemptible symbols using the __cap_relocs mechanism">;
+def preemptible_caprelocs_elf: F<"preemptible-caprelocs=elf">,
+  HelpText<"Emit capability relocations for preemptible symbols using R_CAPABILITY relocations in .rel(a).dyn.">;
+
+def local_caprelocs_legacy: F<"local-caprelocs=legacy">,
+  HelpText<"Emit capability relocations for local symbols using the __cap_relocs mechanism">;
+def local_caprelocs_elf: F<"local-caprelocs=elf">,
+  HelpText<"Use ELF relocations for local capabilities.">;
+def local_caprelocs_cbuildcap: F<"local-caprelocs=cbuildcap">,
+  HelpText<"Emit capability relocations for local symbols by writing bits to be initialized using CBuildCap.">;
+
+def captable_scope_all: F<"captable-scope=all">,
+  HelpText<"Use one captable for the whole DSO for global accesses (this is the default)">;
+def captable_scope_file: F<"captable-scope=file">,
+  HelpText<"Use one captable per input file for global accesses (slower but reduces scope of $cgp)">;
+def captable_scope_function: F<"captable-scope=function">,
+  HelpText<"Use one captable per function for global accesses (very slow but minimizes scope of $cgp)">;
 
 // Options listed below are silently ignored for now for compatibility.
 def: Flag<["-"], "d">;

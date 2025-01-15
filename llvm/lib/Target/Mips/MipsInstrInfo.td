@@ -234,6 +234,10 @@ def InMicroMips    :  Predicate<"Subtarget->inMicroMipsMode()">,
                       AssemblerPredicate<(all_of FeatureMicroMips)>;
 def NotInMicroMips :  Predicate<"!Subtarget->inMicroMipsMode()">,
                       AssemblerPredicate<(all_of (not FeatureMicroMips))>;
+def IsCHERI        :  Predicate<"Subtarget->isCheri()">;
+def NotCHERI        :  Predicate<"!Subtarget->isCheri()">;
+def IsCHERIABI     :  Predicate<"Subtarget->isABI_CheriPureCap()">;
+def NotCHERIABI     :  Predicate<"!Subtarget->isABI_CheriPureCap()">;
 def IsLE           :  Predicate<"Subtarget->isLittle()">;
 def IsBE           :  Predicate<"!Subtarget->isLittle()">;
 def IsNotNaCl    :    Predicate<"!Subtarget->isTargetNaCl()">;
@@ -1896,7 +1900,7 @@ let isReturn=1, isTerminator=1, isBarrier=1, hasCtrlDep=1, isCTI=1 in {
   def ERet : PseudoSE<(outs), (ins), [(MipsERet)]>;
 }
 
-let Defs = [SP], Uses = [SP], hasSideEffects = 1, hasNoSchedulingInfo = 1 in {
+let Defs = [SP], Uses = [SP], hasSideEffects = 1, hasNoSchedulingInfo = 1, Predicates=[NotCHERIABI] in {
 def ADJCALLSTACKDOWN : MipsPseudo<(outs), (ins i32imm:$amt1, i32imm:$amt2),
                                   [(callseq_start timm:$amt1, timm:$amt2)]>;
 def ADJCALLSTACKUP   : MipsPseudo<(outs), (ins i32imm:$amt1, i32imm:$amt2),
@@ -2133,6 +2137,10 @@ def SWL : MMRel, StoreLeftRight<"swl", MipsSWL, GPR32Opnd, II_SWL>, LW_FM<0x2a>,
 def SWR : MMRel, StoreLeftRight<"swr", MipsSWR, GPR32Opnd, II_SWR>, LW_FM<0x2e>,
           ISA_MIPS1_NOT_32R6_64R6;
 
+// XXXAR: let AdditionalPredicates= replaces and doesn't add another predicate
+// so we also need to include the NotInMicroMips from above:
+// These opcodes conflict with CHERI instructions so we need to disable them:
+let AdditionalPredicates=[NotInMicroMips,NotCHERI] in {
 // COP2 Memory Instructions
 def LWC2 : StdMMR6Rel, LW_FT2<"lwc2", COP2Opnd, II_LWC2, load>, LW_FM<0x32>,
            ISA_MIPS1_NOT_32R6_64R6;
@@ -2142,6 +2150,7 @@ def LDC2 : StdMMR6Rel, LW_FT2<"ldc2", COP2Opnd, II_LDC2, load>, LW_FM<0x36>,
            ISA_MIPS2_NOT_32R6_64R6;
 def SDC2 : StdMMR6Rel, SW_FT2<"sdc2", COP2Opnd, II_SDC2, store>,
            LW_FM<0x3e>, ISA_MIPS2_NOT_32R6_64R6;
+}
 
 // COP3 Memory Instructions
 let DecoderNamespace = "COP3_" in {
@@ -2257,9 +2266,12 @@ let AdditionalPredicates = [NotInMicroMips, NoIndirectJumpGuards] in {
   def JALRPseudo : JumpLinkRegPseudo<GPR32Opnd, JALR, RA>, ISA_MIPS1;
 }
 
-let AdditionalPredicates = [NotInMicroMips] in {
+// JALX is reused by clc big immediate
+let AdditionalPredicates = [NotInMicroMips,NotCHERI] in {
   def JALX : MMRel, JumpLink<"jalx", calltarget>, FJ<0x1D>,
              ISA_MIPS32_NOT_32R6_64R6;
+}
+let AdditionalPredicates = [NotInMicroMips] in {
   def BGEZAL : MMRel, BGEZAL_FT<"bgezal", brtarget, GPR32Opnd>, BGEZAL_FM<0x11>,
                ISA_MIPS1_NOT_32R6_64R6;
   def BGEZALL : MMRel, BGEZAL_FT<"bgezall", brtarget, GPR32Opnd>,
@@ -3403,6 +3415,9 @@ include "MipsMTInstrInfo.td"
 include "MicroMipsInstrFormats.td"
 include "MicroMipsInstrInfo.td"
 include "MicroMipsInstrFPU.td"
+
+// CHERI
+include "MipsInstrCheri.td"
 
 // Micromips r6
 include "MicroMips32r6InstrFormats.td"

@@ -9,8 +9,8 @@ entry:
 ;CHECK: str	r{{[0-9]+}}, [sp], #4
 ;CHECK: bx	lr
 	%ap = alloca ptr, align 4
-	call void @llvm.va_start(ptr %ap)
+	call void @llvm.va_start.p0(ptr %ap)
 	ret void
 }
 
-declare void @llvm.va_start(ptr) nounwind
+declare void @llvm.va_start.p0(ptr) nounwind

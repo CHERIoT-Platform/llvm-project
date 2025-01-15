@@ -31,6 +31,9 @@ class IRBuilderBase;
 class Value;
 class Type;
 class DataLayout;
+class TargetLibraryInfo;
+class GVN;
+
 namespace VNCoercion {
 /// Return true if CoerceAvailableValueToLoadType would succeed if it was
 /// called.
@@ -52,7 +55,8 @@ Value *coerceAvailableValueToLoadType(Value *StoredVal, Type *LoadedTy,
 /// On success, it returns the offset into DepSI that extraction would start.
 /// On failure, it returns -1.
 int analyzeLoadFromClobberingStore(Type *LoadTy, Value *LoadPtr,
-                                   StoreInst *DepSI, const DataLayout &DL);
+                                   StoreInst *DepSI,  const DataLayout &DL,
+                                   const TargetLibraryInfo *TLI);
 
 /// This function determines whether a value for the pointer LoadPtr can be
 /// extracted from the load at DepLI.
@@ -60,7 +64,8 @@ int analyzeLoadFromClobberingStore(Type *LoadTy, Value *LoadPtr,
 /// On success, it returns the offset into DepLI that extraction would start.
 /// On failure, it returns -1.
 int analyzeLoadFromClobberingLoad(Type *LoadTy, Value *LoadPtr, LoadInst *DepLI,
-                                  const DataLayout &DL);
+                                  const DataLayout &DL,
+                                  const TargetLibraryInfo *TLI);
 
 /// This function determines whether a value for the pointer LoadPtr can be
 /// extracted from the memory intrinsic at DepMI.
@@ -68,7 +73,8 @@ int analyzeLoadFromClobberingLoad(Type *LoadTy, Value *LoadPtr, LoadInst *DepLI,
 /// On success, it returns the offset into DepMI that extraction would start.
 /// On failure, it returns -1.
 int analyzeLoadFromClobberingMemInst(Type *LoadTy, Value *LoadPtr,
-                                     MemIntrinsic *DepMI, const DataLayout &DL);
+                                     MemIntrinsic *DepMI, const DataLayout &DL,
+                                     const TargetLibraryInfo *TLI);
 
 /// If analyzeLoadFromClobberingStore/Load returned an offset, this function
 /// can be used to actually perform the extraction of the bits from the store.

@@ -11,6 +11,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/COFF.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/BinaryFormat/MachO.h"
 #include "llvm/DebugInfo/CodeView/SymbolRecord.h"
 #include "llvm/MC/MCAsmBackend.h"
@@ -27,10 +28,12 @@
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSection.h"
 #include "llvm/MC/MCSectionCOFF.h"
+#include "llvm/MC/MCSectionELF.h"
 #include "llvm/MC/MCSymbol.h"
 #include "llvm/MC/MCWin64EH.h"
 #include "llvm/MC/MCWinEH.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/LEB128.h"
 #include "llvm/Support/MathExtras.h"
@@ -178,6 +181,7 @@ unsigned MCStreamer::emitSLEB128IntValue(int64_t Value) {
 }
 
 void MCStreamer::emitValue(const MCExpr *Value, unsigned Size, SMLoc Loc) {
+  assert(Size <= 8);
   emitValueImpl(Value, Size, Loc);
 }
 
@@ -214,6 +218,63 @@ void MCStreamer::emitGPRel64Value(const MCExpr *Value) {
 
 void MCStreamer::emitGPRel32Value(const MCExpr *Value) {
   report_fatal_error("unsupported directive in streamer");
+}
+
+void MCStreamer::EmitCheriCapability(const MCSymbol *Value,
+                                     const MCExpr *Addend, unsigned CapSize,
+                                     SMLoc Loc) {
+  if (!Addend) {
+    Addend = MCConstantExpr::create(0, Context);
+  }
+  EmitCheriCapabilityImpl(Value, Addend, CapSize, Loc);
+}
+
+void MCStreamer::EmitCheriCapabilityImpl(const MCSymbol *Value,
+                                         const MCExpr *Addend, unsigned CapSize,
+                                         SMLoc Loc) {
+  report_fatal_error("EmitCheriCapability is not implemented for this target!");
+}
+
+void MCStreamer::EmitCheriCapability(const MCSymbol *Value, int64_t Addend,
+                                     unsigned CapSize, SMLoc Loc) {
+  EmitCheriCapability(Value, MCConstantExpr::create(Addend, Context), CapSize,
+                      Loc);
+}
+
+void MCStreamer::emitCheriIntcap(int64_t Value, unsigned CapSize, SMLoc Loc) {
+  emitCheriIntcap(MCConstantExpr::create(Value, Context), CapSize, Loc);
+}
+
+void MCStreamer::emitCheriIntcap(const MCExpr *Expr, unsigned CapSize,
+                                 SMLoc Loc) {
+  report_fatal_error(
+      "emitCheriIntcap(MCExpr *) is not implemented for this target!");
+}
+
+void MCStreamer::emitCheriIntcapGeneric(const MCExpr *Expr, unsigned CapSize,
+                                        SMLoc Loc) {
+  // Pad to ensure that the (u)intcap_t is aligned
+  // Note: this assumes that capability alignment is the same as the size.
+  emitValueToAlignment(Align(CapSize), 0, 1, 0);
+  int64_t AbsValue;
+  if (Expr->evaluateAsAbsolute(AbsValue, *this) && AbsValue == 0) {
+    // Emit a single zero-fill block for zero values.
+    emitZeros(CapSize);
+  } else {
+    const unsigned AddressSize = Context.getAsmInfo()->getCodePointerSize();
+    assert(CapSize == 2 * AddressSize && "Unknown CHERI capability format?");
+    // Could use cheri-compressed-cap here for constants, but we know that the
+    // address is always the first/second 64-bit value depending on endianess.
+    if (Context.getAsmInfo()->isLittleEndian()) {
+      // Little-endian architectures (e.g. CHERI-RISCV) place the address first.
+      emitValue(Expr, AddressSize, Loc);
+      emitIntValue(0, AddressSize);
+    } else {
+      // Big-endian architectures (e.g. CHERI-MIPS) place the address second.
+      emitIntValue(0, AddressSize);
+      emitValue(Expr, AddressSize, Loc);
+    }
+  }
 }
 
 /// Emit NumBytes bytes worth of the value specified by FillValue.
@@ -1014,6 +1075,42 @@ void MCStreamer::finish(SMLoc EndLoc) {
     return;
   }
 
+  if (!FatRelocs.empty()) {
+    MCSection *DefaultRelocSection = Context.getELFSection("__cap_relocs",
+        ELF::SHT_PROGBITS, ELF::SHF_ALLOC);
+    DefaultRelocSection->setAlignment(llvm::Align(8));
+    for (auto &R : FatRelocs) {
+      MCSymbol *Sym;
+      const MCExpr *Value;
+      MCSection *RelocSection;
+      StringRef GroupName;
+
+      std::tie(Sym, Value, GroupName) = R;
+      if (GroupName != StringRef()) {
+        RelocSection = Context.getELFSection("__cap_relocs", ELF::SHT_PROGBITS,
+                                             ELF::SHF_ALLOC | ELF::SHF_GROUP, 0,
+                                             GroupName, false);
+        RelocSection->setAlignment(llvm::Align(8));
+      } else {
+        RelocSection = DefaultRelocSection;
+      }
+
+      switchSection(RelocSection);
+
+      emitValue(MCSymbolRefExpr::create(Sym, Context), 8);
+      if (const MCSymbolRefExpr *Sym = dyn_cast<MCSymbolRefExpr>(Value)) {
+        emitValue(Sym, 8);
+        emitZeros(8);
+      } else {
+        const MCBinaryExpr *Bin = cast<MCBinaryExpr>(Value);
+        emitValue(cast<MCSymbolRefExpr>(Bin->getLHS()), 8);
+        emitValue(Bin->getRHS(), 8);
+      }
+      // TODO: Emit size / perms here.
+      emitZeros(16);
+    }
+  }
+
   MCTargetStreamer *TS = getTargetStreamer();
   if (TS)
     TS->finish();
@@ -1197,7 +1294,7 @@ void MCStreamer::emitXCOFFRefDirective(const MCSymbol *Symbol) {
 }
 
 void MCStreamer::emitXCOFFExceptDirective(const MCSymbol *Symbol,
-                                          const MCSymbol *Trap,
+                                          const MCSymbol *Trap, 
                                           unsigned Lang, unsigned Reason,
                                           unsigned FunctionSize,
                                           bool hasDebug) {
@@ -1214,9 +1311,11 @@ void MCStreamer::emitELFSize(MCSymbol *Symbol, const MCExpr *Value) {}
 void MCStreamer::emitELFSymverDirective(const MCSymbol *OriginalSym,
                                         StringRef Name, bool KeepOriginalSym) {}
 void MCStreamer::emitLocalCommonSymbol(MCSymbol *Symbol, uint64_t Size,
-                                       Align ByteAlignment) {}
+                                       Align ByteAlignment,
+                                       TailPaddingAmount TailPadding) {}
 void MCStreamer::emitTBSSSymbol(MCSection *Section, MCSymbol *Symbol,
-                                uint64_t Size, Align ByteAlignment) {}
+                                uint64_t Size, Align ByteAlignment,
+                                TailPaddingAmount TailPadding) {}
 void MCStreamer::changeSection(MCSection *, const MCExpr *) {}
 void MCStreamer::emitWeakReference(MCSymbol *Alias, const MCSymbol *Symbol) {}
 void MCStreamer::emitBytes(StringRef Data) {}

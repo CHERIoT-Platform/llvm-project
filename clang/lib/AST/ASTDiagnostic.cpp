@@ -212,16 +212,19 @@ break; \
   // FIXME: Handle other pointer-like types.
   if (const PointerType *Ty = QT->getAs<PointerType>()) {
     QT = Context.getPointerType(
-        desugarForDiagnostic(Context, Ty->getPointeeType(), ShouldAKA));
+        desugarForDiagnostic(Context, Ty->getPointeeType(), ShouldAKA),
+        Ty->getPointerInterpretation());
   } else if (const auto *Ty = QT->getAs<ObjCObjectPointerType>()) {
     QT = Context.getObjCObjectPointerType(
         desugarForDiagnostic(Context, Ty->getPointeeType(), ShouldAKA));
   } else if (const LValueReferenceType *Ty = QT->getAs<LValueReferenceType>()) {
     QT = Context.getLValueReferenceType(
-        desugarForDiagnostic(Context, Ty->getPointeeType(), ShouldAKA));
+        desugarForDiagnostic(Context, Ty->getPointeeType(), ShouldAKA), true,
+        Ty->getPointerInterpretation());
   } else if (const RValueReferenceType *Ty = QT->getAs<RValueReferenceType>()) {
     QT = Context.getRValueReferenceType(
-        desugarForDiagnostic(Context, Ty->getPointeeType(), ShouldAKA));
+        desugarForDiagnostic(Context, Ty->getPointeeType(), ShouldAKA),
+        Ty->getPointerInterpretation());
   } else if (const auto *Ty = QT->getAs<ObjCObjectType>()) {
     if (Ty->getBaseType().getTypePtr() != Ty && !ShouldAKA) {
       QualType BaseType =

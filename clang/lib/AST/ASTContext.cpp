@@ -1166,6 +1166,18 @@ TypedefDecl *ASTContext::buildImplicitTypedef(QualType T,
   return NewDecl;
 }
 
+TypedefDecl *ASTContext::getIntCapDecl() const {
+  if (!IntCapDecl)
+    IntCapDecl = buildImplicitTypedef(IntCapTy, "__intcap_t");
+  return IntCapDecl;
+}
+
+TypedefDecl *ASTContext::getUIntCapDecl() const {
+  if (!UIntCapDecl)
+    UIntCapDecl = buildImplicitTypedef(UnsignedIntCapTy, "__uintcap_t");
+  return UIntCapDecl;
+}
+
 TypedefDecl *ASTContext::getInt128Decl() const {
   if (!Int128Decl)
     Int128Decl = buildImplicitTypedef(Int128Ty, "__int128_t");
@@ -1195,6 +1207,8 @@ void ASTContext::InitBuiltinTypes(const TargetInfo &Target,
 
   ABI.reset(createCXXABI(Target));
   AddrSpaceMapMangling = isAddrSpaceMapManglingEnabled(Target, LangOpts);
+  PrintingPolicy.SuppressCapabilityQualifier =
+      Target.areAllPointersCapabilities();
 
   // C99 6.2.5p19.
   InitBuiltinType(VoidTy,              BuiltinType::Void);
@@ -1224,6 +1238,9 @@ void ASTContext::InitBuiltinTypes(const TargetInfo &Target,
   InitBuiltinType(FloatTy,             BuiltinType::Float);
   InitBuiltinType(DoubleTy,            BuiltinType::Double);
   InitBuiltinType(LongDoubleTy,        BuiltinType::LongDouble);
+
+  InitBuiltinType(IntCapTy,            BuiltinType::IntCap);
+  InitBuiltinType(UnsignedIntCapTy,    BuiltinType::UIntCap);
 
   // GNU extension, __float128 for IEEE quadruple precision
   InitBuiltinType(Float128Ty,          BuiltinType::Float128);
@@ -1664,7 +1681,8 @@ CharUnits ASTContext::getDeclAlign(const Decl *D, bool ForAlignof) const {
       if (ForAlignof)
         T = RT->getPointeeType();
       else
-        T = getPointerType(RT->getPointeeType());
+        T = getPointerType(RT->getPointeeType(),
+                           RT->getPointerInterpretation());
     }
     QualType BaseT = getBaseElementType(T);
     if (T->isFunctionType())
@@ -2020,6 +2038,11 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
       Width = Target->getLongLongWidth();
       Align = Target->getLongLongAlign();
       break;
+    case BuiltinType::IntCap:
+    case BuiltinType::UIntCap:
+      Width = Target->getIntCapWidth();
+      Align = Target->getIntCapAlign();
+      break;
     case BuiltinType::Int128:
     case BuiltinType::UInt128:
       Width = 128;
@@ -2209,23 +2232,55 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
     Align = Target->getPointerAlign(LangAS::Default);
     break;
   case Type::BlockPointer:
-    AS = cast<BlockPointerType>(T)->getPointeeType().getAddressSpace();
-    Width = Target->getPointerWidth(AS);
-    Align = Target->getPointerAlign(AS);
+    if (Target->areAllPointersCapabilities() ||
+        T->isCHERICapabilityType(*this, false)) {
+      Width = Target->getCHERICapabilityWidth();
+      Align = Target->getCHERICapabilityAlign();
+    } else {
+      AS = cast<BlockPointerType>(T)->getPointeeType().getAddressSpace();
+      Width = Target->getPointerWidth(AS);
+      Align = Target->getPointerAlign(AS);
+    }
     break;
   case Type::LValueReference:
   case Type::RValueReference:
     // alignof and sizeof should never enter this code path here, so we go
     // the pointer route.
-    AS = cast<ReferenceType>(T)->getPointeeType().getAddressSpace();
-    Width = Target->getPointerWidth(AS);
-    Align = Target->getPointerAlign(AS);
+    if (cast<ReferenceType>(T)->isCHERICapability() ||
+        Target->areAllPointersCapabilities()) {
+      Width = Target->getCHERICapabilityWidth();
+      Align = Target->getCHERICapabilityAlign();
+    } else {
+      AS = cast<ReferenceType>(T)->getPointeeType().getAddressSpace();
+      Width = Target->getPointerWidth(AS);
+      Align = Target->getPointerAlign(AS);
+    }
     break;
-  case Type::Pointer:
-    AS = cast<PointerType>(T)->getPointeeType().getAddressSpace();
-    Width = Target->getPointerWidth(AS);
-    Align = Target->getPointerAlign(AS);
+  case Type::Pointer: {
+    auto PointeeTy = cast<PointerType>(T)->getPointeeType();
+    if (PointeeTy->isFunctionProtoType()) {
+      auto FPT = PointeeTy->getAs<FunctionProtoType>();
+      // Old-style libcheri callbacks are two capabilities for the code and data
+      // and an integer for the vtable index.
+      if ((FPT->getCallConv() == CC_CHERICCallback) &&
+          (getTargetInfo().cheriCallbackKind() == TargetInfo::CCB_Struct)) {
+        Width = Target->getCHERICapabilityWidth() * 3;
+        Align = Target->getCHERICapabilityAlign();
+        break;
+      }
+    }
+
+    if (cast<PointerType>(T)->isCHERICapability() ||
+        Target->areAllPointersCapabilities()) {
+      Width = Target->getCHERICapabilityWidth();
+      Align = Target->getCHERICapabilityAlign();
+    } else {
+      AS = PointeeTy.getAddressSpace();
+      Width = Target->getPointerWidth(AS);
+      Align = Target->getPointerAlign(AS);
+    }
     break;
+  }
   case Type::MemberPointer: {
     const auto *MPT = cast<MemberPointerType>(T);
     CXXABI::MemberPointerInfo MPI = ABI->getMemberPointerInfo(MPT);
@@ -2461,9 +2516,13 @@ unsigned ASTContext::getPreferredTypeAlign(const Type *T) const {
 
   T = T->getBaseElementTypeUnsafe();
 
-  // The preferred alignment of member pointers is that of a pointer.
-  if (T->isMemberPointerType())
-    return getPreferredTypeAlign(getPointerDiffType().getTypePtr());
+  // The preferred alignment of member pointers is that of a pointer (unless we
+  // are targeting CHERI capability ABI, where data pointers are less aligned)
+  //
+  // XXXAR: do we want member data pointers to also be capability aligned
+  // although they are only a ptrdiff_t?
+  if (T->isMemberPointerType() && !getTargetInfo().areAllPointersCapabilities())
+    return getPreferredTypeAlign(VoidPtrTy.getTypePtr());
 
   if (!Target->allowsLargerPreferedTypeAlignment())
     return ABIAlign;
@@ -3264,13 +3323,19 @@ QualType ASTContext::getComplexType(QualType T) const {
   return QualType(New, 0);
 }
 
+PointerInterpretationKind
+ASTContext::getDefaultPointerInterpretation() const {
+  return getTargetInfo().areAllPointersCapabilities()
+      ? PIK_Capability : PIK_Integer;
+}
+
 /// getPointerType - Return the uniqued reference to the type for a pointer to
 /// the specified type.
-QualType ASTContext::getPointerType(QualType T) const {
+QualType ASTContext::getPointerType(QualType T, PointerInterpretationKind PIK) const {
   // Unique pointers, to guarantee there is only one pointer of a particular
   // structure.
   llvm::FoldingSetNodeID ID;
-  PointerType::Profile(ID, T);
+  PointerType::Profile(ID, T, PIK);
 
   void *InsertPos = nullptr;
   if (PointerType *PT = PointerTypes.FindNodeOrInsertPos(ID, InsertPos))
@@ -3280,13 +3345,13 @@ QualType ASTContext::getPointerType(QualType T) const {
   // so fill in the canonical type field.
   QualType Canonical;
   if (!T.isCanonical()) {
-    Canonical = getPointerType(getCanonicalType(T));
+    Canonical = getPointerType(getCanonicalType(T), PIK);
 
     // Get the new insert position for the node we care about.
     PointerType *NewIP = PointerTypes.FindNodeOrInsertPos(ID, InsertPos);
     assert(!NewIP && "Shouldn't be in the map!"); (void)NewIP;
   }
-  auto *New = new (*this, alignof(PointerType)) PointerType(T, Canonical);
+  auto *New = new (*this, alignof(PointerType)) PointerType(T, Canonical, PIK);
   Types.push_back(New);
   PointerTypes.InsertNode(New, InsertPos);
   return QualType(New, 0);
@@ -3391,7 +3456,7 @@ QualType ASTContext::getBlockPointerType(QualType T) const {
 /// getLValueReferenceType - Return the uniqued reference to the type for an
 /// lvalue reference to the specified type.
 QualType
-ASTContext::getLValueReferenceType(QualType T, bool SpelledAsLValue) const {
+ASTContext::getLValueReferenceType(QualType T, bool SpelledAsLValue, PointerInterpretationKind PIK) const {
   assert((!T->isPlaceholderType() ||
           T->isSpecificPlaceholderType(BuiltinType::UnknownAny)) &&
          "Unresolved placeholder type");
@@ -3399,7 +3464,7 @@ ASTContext::getLValueReferenceType(QualType T, bool SpelledAsLValue) const {
   // Unique pointers, to guarantee there is only one pointer of a particular
   // structure.
   llvm::FoldingSetNodeID ID;
-  ReferenceType::Profile(ID, T, SpelledAsLValue);
+  ReferenceType::Profile(ID, T, SpelledAsLValue, PIK);
 
   void *InsertPos = nullptr;
   if (LValueReferenceType *RT =
@@ -3413,7 +3478,7 @@ ASTContext::getLValueReferenceType(QualType T, bool SpelledAsLValue) const {
   QualType Canonical;
   if (!SpelledAsLValue || InnerRef || !T.isCanonical()) {
     QualType PointeeType = (InnerRef ? InnerRef->getPointeeType() : T);
-    Canonical = getLValueReferenceType(getCanonicalType(PointeeType));
+    Canonical = getLValueReferenceType(getCanonicalType(PointeeType), true, PIK);
 
     // Get the new insert position for the node we care about.
     LValueReferenceType *NewIP =
@@ -3422,7 +3487,7 @@ ASTContext::getLValueReferenceType(QualType T, bool SpelledAsLValue) const {
   }
 
   auto *New = new (*this, alignof(LValueReferenceType))
-      LValueReferenceType(T, Canonical, SpelledAsLValue);
+      LValueReferenceType(T, Canonical, SpelledAsLValue, PIK);
   Types.push_back(New);
   LValueReferenceTypes.InsertNode(New, InsertPos);
 
@@ -3431,7 +3496,7 @@ ASTContext::getLValueReferenceType(QualType T, bool SpelledAsLValue) const {
 
 /// getRValueReferenceType - Return the uniqued reference to the type for an
 /// rvalue reference to the specified type.
-QualType ASTContext::getRValueReferenceType(QualType T) const {
+QualType ASTContext::getRValueReferenceType(QualType T, PointerInterpretationKind PIK) const {
   assert((!T->isPlaceholderType() ||
           T->isSpecificPlaceholderType(BuiltinType::UnknownAny)) &&
          "Unresolved placeholder type");
@@ -3439,7 +3504,7 @@ QualType ASTContext::getRValueReferenceType(QualType T) const {
   // Unique pointers, to guarantee there is only one pointer of a particular
   // structure.
   llvm::FoldingSetNodeID ID;
-  ReferenceType::Profile(ID, T, false);
+  ReferenceType::Profile(ID, T, false, PIK);
 
   void *InsertPos = nullptr;
   if (RValueReferenceType *RT =
@@ -3453,7 +3518,7 @@ QualType ASTContext::getRValueReferenceType(QualType T) const {
   QualType Canonical;
   if (InnerRef || !T.isCanonical()) {
     QualType PointeeType = (InnerRef ? InnerRef->getPointeeType() : T);
-    Canonical = getRValueReferenceType(getCanonicalType(PointeeType));
+    Canonical = getRValueReferenceType(getCanonicalType(PointeeType), PIK);
 
     // Get the new insert position for the node we care about.
     RValueReferenceType *NewIP =
@@ -3462,7 +3527,7 @@ QualType ASTContext::getRValueReferenceType(QualType T) const {
   }
 
   auto *New = new (*this, alignof(RValueReferenceType))
-      RValueReferenceType(T, Canonical);
+      RValueReferenceType(T, Canonical, PIK);
   Types.push_back(New);
   RValueReferenceTypes.InsertNode(New, InsertPos);
   return QualType(New, 0);
@@ -3505,7 +3570,8 @@ QualType ASTContext::getConstantArrayType(QualType EltTy,
                                           const llvm::APInt &ArySizeIn,
                                           const Expr *SizeExpr,
                                           ArraySizeModifier ASM,
-                                          unsigned IndexTypeQuals) const {
+                                          unsigned IndexTypeQuals,
+    std::optional<PointerInterpretationKind> PIK) const {
   assert((EltTy->isDependentType() ||
           EltTy->isIncompleteType() || EltTy->isConstantSizeType()) &&
          "Constant array of VLAs is illegal!");
@@ -3517,11 +3583,11 @@ QualType ASTContext::getConstantArrayType(QualType EltTy,
   // Convert the array size into a canonical width matching the pointer size for
   // the target.
   llvm::APInt ArySize(ArySizeIn);
-  ArySize = ArySize.zextOrTrunc(Target->getMaxPointerWidth());
+  ArySize = ArySize.zextOrTrunc(Target->getMaxPointerRange());
 
   llvm::FoldingSetNodeID ID;
   ConstantArrayType::Profile(ID, *this, EltTy, ArySize, SizeExpr, ASM,
-                             IndexTypeQuals);
+                             IndexTypeQuals, PIK);
 
   void *InsertPos = nullptr;
   if (ConstantArrayType *ATP =
@@ -3536,7 +3602,7 @@ QualType ASTContext::getConstantArrayType(QualType EltTy,
   if (!EltTy.isCanonical() || EltTy.hasLocalQualifiers() || SizeExpr) {
     SplitQualType canonSplit = getCanonicalType(EltTy).split();
     Canon = getConstantArrayType(QualType(canonSplit.Ty, 0), ArySize, nullptr,
-                                 ASM, IndexTypeQuals);
+                                 ASM, IndexTypeQuals, PIK);
     Canon = getQualifiedType(Canon, canonSplit.Quals);
 
     // Get the new insert position for the node we care about.
@@ -3549,7 +3615,8 @@ QualType ASTContext::getConstantArrayType(QualType EltTy,
       ConstantArrayType::totalSizeToAlloc<const Expr *>(SizeExpr ? 1 : 0),
       alignof(ConstantArrayType));
   auto *New = new (Mem)
-    ConstantArrayType(EltTy, Canon, ArySize, SizeExpr, ASM, IndexTypeQuals);
+    ConstantArrayType(EltTy, Canon, ArySize, SizeExpr, ASM, IndexTypeQuals,
+                      PIK);
   ConstantArrayTypes.InsertNode(New, InsertPos);
   Types.push_back(New);
   return QualType(New, 0);
@@ -3583,6 +3650,7 @@ QualType ASTContext::getVariableArrayDecayedType(QualType type) const {
   case Type::ConstantMatrix:
   case Type::DependentSizedMatrix:
   case Type::DependentAddressSpace:
+  case Type::DependentPointer:
   case Type::ObjCObject:
   case Type::ObjCInterface:
   case Type::ObjCObjectPointer:
@@ -3697,7 +3765,8 @@ QualType ASTContext::getVariableArrayDecayedType(QualType type) const {
 QualType ASTContext::getVariableArrayType(QualType EltTy, Expr *NumElts,
                                           ArraySizeModifier ASM,
                                           unsigned IndexTypeQuals,
-                                          SourceRange Brackets) const {
+                                          SourceRange Brackets,
+    std::optional<PointerInterpretationKind> PIK) const {
   // Since we don't unique expressions, it isn't possible to unique VLA's
   // that have an expression provided for their size.
   QualType Canon;
@@ -3707,12 +3776,12 @@ QualType ASTContext::getVariableArrayType(QualType EltTy, Expr *NumElts,
   if (!EltTy.isCanonical() || EltTy.hasLocalQualifiers()) {
     SplitQualType canonSplit = getCanonicalType(EltTy).split();
     Canon = getVariableArrayType(QualType(canonSplit.Ty, 0), NumElts, ASM,
-                                 IndexTypeQuals, Brackets);
+                                 IndexTypeQuals, Brackets, PIK);
     Canon = getQualifiedType(Canon, canonSplit.Quals);
   }
 
   auto *New = new (*this, alignof(VariableArrayType))
-      VariableArrayType(EltTy, Canon, NumElts, ASM, IndexTypeQuals, Brackets);
+      VariableArrayType(EltTy, Canon, NumElts, ASM, IndexTypeQuals, Brackets, PIK);
 
   VariableArrayTypes.push_back(New);
   Types.push_back(New);
@@ -3726,7 +3795,8 @@ QualType ASTContext::getDependentSizedArrayType(QualType elementType,
                                                 Expr *numElements,
                                                 ArraySizeModifier ASM,
                                                 unsigned elementTypeQuals,
-                                                SourceRange brackets) const {
+                                                SourceRange brackets,
+    std::optional<PointerInterpretationKind> PIK) const {
   assert((!numElements || numElements->isTypeDependent() ||
           numElements->isValueDependent()) &&
          "Size must be type- or value-dependent!");
@@ -3738,7 +3808,7 @@ QualType ASTContext::getDependentSizedArrayType(QualType elementType,
   if (!numElements) {
     auto *newType = new (*this, alignof(DependentSizedArrayType))
         DependentSizedArrayType(elementType, QualType(), numElements, ASM,
-                                elementTypeQuals, brackets);
+                                elementTypeQuals, brackets, PIK);
     Types.push_back(newType);
     return QualType(newType, 0);
   }
@@ -3752,7 +3822,7 @@ QualType ASTContext::getDependentSizedArrayType(QualType elementType,
   llvm::FoldingSetNodeID ID;
   DependentSizedArrayType::Profile(ID, *this,
                                    QualType(canonElementType.Ty, 0),
-                                   ASM, elementTypeQuals, numElements);
+                                   ASM, elementTypeQuals, numElements, PIK);
 
   // Look for an existing type with these properties.
   DependentSizedArrayType *canonTy =
@@ -3762,7 +3832,7 @@ QualType ASTContext::getDependentSizedArrayType(QualType elementType,
   if (!canonTy) {
     canonTy = new (*this, alignof(DependentSizedArrayType))
         DependentSizedArrayType(QualType(canonElementType.Ty, 0), QualType(),
-                                numElements, ASM, elementTypeQuals, brackets);
+                                numElements, ASM, elementTypeQuals, brackets, PIK);
     DependentSizedArrayTypes.InsertNode(canonTy, insertPos);
     Types.push_back(canonTy);
   }
@@ -3781,16 +3851,17 @@ QualType ASTContext::getDependentSizedArrayType(QualType elementType,
   // of the element type.
   auto *sugaredType = new (*this, alignof(DependentSizedArrayType))
       DependentSizedArrayType(elementType, canon, numElements, ASM,
-                              elementTypeQuals, brackets);
+                              elementTypeQuals, brackets, PIK);
   Types.push_back(sugaredType);
   return QualType(sugaredType, 0);
 }
 
-QualType ASTContext::getIncompleteArrayType(QualType elementType,
-                                            ArraySizeModifier ASM,
-                                            unsigned elementTypeQuals) const {
+QualType ASTContext::getIncompleteArrayType(
+    QualType elementType, ArraySizeModifier ASM,
+    unsigned elementTypeQuals,
+    std::optional<PointerInterpretationKind> PIK) const {
   llvm::FoldingSetNodeID ID;
-  IncompleteArrayType::Profile(ID, elementType, ASM, elementTypeQuals);
+  IncompleteArrayType::Profile(ID, elementType, ASM, elementTypeQuals, PIK);
 
   void *insertPos = nullptr;
   if (IncompleteArrayType *iat =
@@ -3806,7 +3877,7 @@ QualType ASTContext::getIncompleteArrayType(QualType elementType,
   if (!elementType.isCanonical() || elementType.hasLocalQualifiers()) {
     SplitQualType canonSplit = getCanonicalType(elementType).split();
     canon = getIncompleteArrayType(QualType(canonSplit.Ty, 0),
-                                   ASM, elementTypeQuals);
+                                   ASM, elementTypeQuals, PIK);
     canon = getQualifiedType(canon, canonSplit.Quals);
 
     // Get the new insert position for the node we care about.
@@ -3816,7 +3887,7 @@ QualType ASTContext::getIncompleteArrayType(QualType elementType,
   }
 
   auto *newType = new (*this, alignof(IncompleteArrayType))
-      IncompleteArrayType(elementType, canon, ASM, elementTypeQuals);
+      IncompleteArrayType(elementType, canon, ASM, elementTypeQuals, PIK);
 
   IncompleteArrayTypes.InsertNode(newType, insertPos);
   Types.push_back(newType);
@@ -4268,6 +4339,36 @@ QualType ASTContext::getDependentAddressSpaceType(QualType PointeeType,
                                 AddrSpaceExpr, AttrLoc);
   Types.push_back(sugaredType);
   return QualType(sugaredType, 0);
+}
+
+QualType ASTContext::getDependentPointerType(QualType PointerType,
+                                             PointerInterpretationKind PIK,
+                                             SourceLocation QualifierLoc) const {
+  QualType CanonPointerType = getCanonicalType(PointerType);
+
+  void *InsertPos = nullptr;
+  llvm::FoldingSetNodeID ID;
+  DependentPointerType::Profile(ID, *this, CanonPointerType, PIK);
+
+  DependentPointerType *Canon =
+    DependentPointerTypes.FindNodeOrInsertPos(ID, InsertPos);
+
+  if (!Canon) {
+    Canon = new (*this, TypeAlignment) DependentPointerType(
+        *this, CanonPointerType, QualType(), PIK, QualifierLoc);
+    DependentPointerTypes.InsertNode(Canon, InsertPos);
+    Types.push_back(Canon);
+  }
+
+  if (CanonPointerType == PointerType &&
+      Canon->getPointerInterpretation() == PIK)
+    return QualType(Canon, 0);
+
+  DependentPointerType *New = new (*this, TypeAlignment)
+      DependentPointerType(*this, PointerType, QualType(Canon, 0), PIK,
+                           QualifierLoc);
+  Types.push_back(New);
+  return QualType(New, 0);
 }
 
 /// Determine whether \p T is canonical as the result type of a function.
@@ -4757,6 +4858,13 @@ QualType ASTContext::getAttributedType(attr::Kind attrKind,
   QualType canon = getCanonicalType(equivalentType);
   type = new (*this, alignof(AttributedType))
       AttributedType(canon, attrKind, modifiedType, equivalentType);
+
+  if (attrKind == attr::CHERINoProvenance) {
+    assert(modifiedType->isCHERICapabilityType(*this));
+    assert(equivalentType->isCHERICapabilityType(*this));
+    assert(canon->isCHERICapabilityType(*this));
+    assert(type->isCHERICapabilityType(*this));
+  }
 
   Types.push_back(type);
   AttributedTypes.InsertNode(type, insertPos);
@@ -6164,6 +6272,14 @@ bool ASTContext::hasCvrSimilarType(QualType T1, QualType T2) {
     if (Quals1 != Quals2)
       return false;
 
+    // We also need to check if the capability qualifier matches since otherwise
+    // we return true for `int*__capability*` and `int**` and then generate
+    // CK_NoOp casts that will crash during CodeGen
+    if (T1->isCHERICapabilityType(*this, false) !=
+        T2->isCHERICapabilityType(*this, false)) {
+      return false;
+    }
+
     if (hasSameType(T1, T2))
       return true;
 
@@ -6902,7 +7018,7 @@ const ArrayType *ASTContext::getAsArrayType(QualType T) const {
 }
 
 QualType ASTContext::getAdjustedParameterType(QualType T) const {
-  if (T->isArrayType() || T->isFunctionType())
+  if (T->isFunctionType() || T->isArrayType())
     return getDecayedType(T);
   return T;
 }
@@ -6932,7 +7048,8 @@ QualType ASTContext::getExceptionObjectType(QualType T) const {
 /// this returns a pointer to a properly qualified element of the array.
 ///
 /// See C99 6.7.5.3p7 and C99 6.3.2.1p3.
-QualType ASTContext::getArrayDecayedType(QualType Ty) const {
+QualType ASTContext::getArrayDecayedType(
+    QualType Ty, std::optional<PointerInterpretationKind> PIKFromBase) const {
   // Get the element type with 'getAsArrayType' so that we don't lose any
   // typedefs in the element type of the array.  This also handles propagation
   // of type qualifiers from the array type into the element type if present
@@ -6940,7 +7057,16 @@ QualType ASTContext::getArrayDecayedType(QualType Ty) const {
   const ArrayType *PrettyArrayType = getAsArrayType(Ty);
   assert(PrettyArrayType && "Not an array type!");
 
-  QualType PtrTy = getPointerType(PrettyArrayType->getElementType());
+  std::optional<PointerInterpretationKind> PIKFromType =
+      PrettyArrayType->getPointerInterpretation();
+
+  assert((!PIKFromType.has_value() || !PIKFromBase.has_value()) &&
+         "Cannot have both a qualifier and an interpretation from a base");
+
+  PointerInterpretationKind PIK = PIKFromType.value_or(
+      PIKFromBase.value_or(getDefaultPointerInterpretation()));
+
+  QualType PtrTy = getPointerType(PrettyArrayType->getElementType(), PIK);
 
   // int x[restrict 4] ->  int *restrict
   QualType Result = getQualifiedType(PtrTy,
@@ -7074,6 +7200,12 @@ unsigned ASTContext::getIntegerRank(const Type *T) const {
   case BuiltinType::Int128:
   case BuiltinType::UInt128:
     return 7 + (getIntWidth(Int128Ty) << 3);
+  // __intcap types are special and get a rank above all other integer types.
+  // This mirrors normal pointer arithmetic and ensures tags and metadata don't
+  // get lost.
+  case BuiltinType::IntCap:
+  case BuiltinType::UIntCap:
+    return UINT_MAX;
 
   // "The ranks of char8_t, char16_t, char32_t, and wchar_t equal the ranks of
   // their underlying types" [c++20 conv.rank]
@@ -7988,6 +8120,7 @@ static char getObjCEncodingForPrimitiveType(const ASTContext *C,
     case BuiltinType::ULong:
         return C->getTargetInfo().getLongWidth() == 32 ? 'L' : 'Q';
     case BuiltinType::UInt128:    return 'T';
+    case BuiltinType::UIntCap:    return 'Y';
     case BuiltinType::ULongLong:  return 'Q';
     case BuiltinType::Char_S:
     case BuiltinType::SChar:      return 'c';
@@ -7999,6 +8132,7 @@ static char getObjCEncodingForPrimitiveType(const ASTContext *C,
       return C->getTargetInfo().getLongWidth() == 32 ? 'l' : 'q';
     case BuiltinType::LongLong:   return 'q';
     case BuiltinType::Int128:     return 't';
+    case BuiltinType::IntCap:     return 'y';
     case BuiltinType::Float:      return 'f';
     case BuiltinType::Double:     return 'd';
     case BuiltinType::LongDouble: return 'D';
@@ -8710,6 +8844,33 @@ TypedefDecl *ASTContext::getObjCClassDecl() const {
   return ObjCClassDecl;
 }
 
+RecordDecl *ASTContext::getCHERIClassDecl() const {
+  if (!CHERIClassDecl) {
+    RecordDecl *RD;
+    RD = buildImplicitRecord("cheri_object");
+    RD->startDefinition();
+
+    QualType CapTy = getPointerType(VoidTy, PIK_Capability);
+
+    QualType FieldTypes[] = { CapTy, CapTy };
+    static const char *const FieldNames[] = { "co_codecap", "co_datacap" };
+
+    for (size_t i = 0; i < 2; ++i) {
+      FieldDecl *Field = FieldDecl::Create(
+          *this, RD, SourceLocation(), SourceLocation(),
+          &Idents.get(FieldNames[i]), FieldTypes[i], /*TInfo=*/nullptr,
+          /*BitWidth=*/nullptr, /*Mutable=*/false, ICIS_NoInit);
+      Field->setAccess(AS_public);
+      RD->addDecl(Field);
+    }
+
+    RD->completeDefinition();
+    RD->setImplicit();
+    CHERIClassDecl = RD;
+  }
+  return CHERIClassDecl;
+}
+
 ObjCInterfaceDecl *ASTContext::getObjCProtocolDecl() const {
   if (!ObjCProtocolClassDecl) {
     ObjCProtocolClassDecl
@@ -9335,6 +9496,8 @@ CanQualType ASTContext::getFromTargetType(unsigned Type) const {
   case TargetInfo::UnsignedLong: return UnsignedLongTy;
   case TargetInfo::SignedLongLong: return LongLongTy;
   case TargetInfo::UnsignedLongLong: return UnsignedLongLongTy;
+  case TargetInfo::SignedIntCap: return IntCapTy;
+  case TargetInfo::UnsignedIntCap: return UnsignedIntCapTy;
   }
 
   llvm_unreachable("Unhandled TargetInfo::IntType value");
@@ -10240,11 +10403,14 @@ bool ASTContext::canBindObjCObjectType(QualType To, QualType From) {
 /// C99 6.2.7p1: Two types have compatible types if their types are the
 /// same. See 6.7.[2,3,5] for additional rules.
 bool ASTContext::typesAreCompatible(QualType LHS, QualType RHS,
-                                    bool CompareUnqualified) {
+                                    bool CompareUnqualified,
+                                    bool CompareCapabilityQualifier) {
   if (getLangOpts().CPlusPlus)
     return hasSameType(LHS, RHS);
 
-  return !mergeTypes(LHS, RHS, false, CompareUnqualified).isNull();
+  return !mergeTypes(LHS, RHS, false, CompareUnqualified, false,
+                     CompareCapabilityQualifier)
+              .isNull();
 }
 
 bool ASTContext::propertyTypesAreCompatible(QualType LHS, QualType RHS) {
@@ -10347,8 +10513,11 @@ QualType ASTContext::mergeFunctionTypes(QualType lhs, QualType rhs,
   FunctionType::ExtInfo rbaseInfo = rbase->getExtInfo();
 
   // Compatible functions must have compatible calling conventions
-  if (lbaseInfo.getCC() != rbaseInfo.getCC())
-    return {};
+  if (lbaseInfo.getCC() != rbaseInfo.getCC()) {
+    // cheriot: Allow decay of CC_CHERI_LibCall to CC_C.
+    if (!(lbaseInfo.getCC() == CC_C && rbaseInfo.getCC() == CC_CHERILibCall))
+      return {};
+  }
 
   // Regparm is part of the calling convention.
   if (lbaseInfo.getHasRegParm() != rbaseInfo.getHasRegParm())
@@ -10518,7 +10687,9 @@ static QualType mergeEnumWithInteger(ASTContext &Context, const EnumType *ET,
 
 QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
                                 bool Unqualified, bool BlockReturnType,
-                                bool IsConditionalOperator) {
+                                bool IsConditionalOperator,
+                                bool IncludeCapabilityQualifier,
+                                bool MergeVoidPtr, bool MergeLHSConst) {
   // For C++ we will not reach this code with reference types (see below),
   // for OpenMP variant call overloading we might.
   //
@@ -10539,6 +10710,10 @@ QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
   if (Unqualified) {
     LHS = LHS.getUnqualifiedType();
     RHS = RHS.getUnqualifiedType();
+  }
+  else if (MergeLHSConst) {
+    if (LHS.isLocalConstQualified() && !RHS.isLocalConstQualified())
+      RHS = RHS.withConst();
   }
 
   QualType LHSCan = getCanonicalType(LHS),
@@ -10668,8 +10843,23 @@ QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
       LHSPointee = LHSPointee.getUnqualifiedType();
       RHSPointee = RHSPointee.getUnqualifiedType();
     }
+    // capability and non-capability pointers are not the same!
+    // See https://github.com/CTSRD-CHERI/clang/issues/160
+    if (IncludeCapabilityQualifier &&
+        (LHS->getAs<PointerType>()->isCHERICapability() !=
+         RHS->getAs<PointerType>()->isCHERICapability()))
+      return QualType();
+
+    // special-case merging with void*
+    if (MergeVoidPtr) {
+      if (LHS->isVoidPointerType()) return RHS;
+      if (RHS->isVoidPointerType()) return LHS;
+    }
+
     QualType ResultType = mergeTypes(LHSPointee, RHSPointee, false,
-                                     Unqualified);
+                                     Unqualified, BlockReturnType, false,
+                                     IncludeCapabilityQualifier,
+                                     MergeVoidPtr, MergeLHSConst);
     if (ResultType.isNull())
       return {};
     if (getCanonicalType(LHSPointee) == getCanonicalType(ResultType))
@@ -11012,8 +11202,42 @@ unsigned ASTContext::getIntWidth(QualType T) const {
     return 1;
   if (const auto *EIT = T->getAs<BitIntType>())
     return EIT->getNumBits();
+  // FIXME: do we ever want the actual bit width for capabilities?
+  if (Target->SupportsCapabilities()) {
+    if (T->isPointerType() && T->getAs<PointerType>()->isCHERICapability())
+      return Target->getPointerRangeForCHERICapability();
+    if (T->isIntCapType())
+      return Target->getPointerRangeForCHERICapability();
+    // This assertion is correct but breaks some static analyser code paths
+    // that don't actually care that the result from this is nonsense.
+    //assert(!T->isReferenceType() && "Should probably not be handled here");
+  }
   // For builtin types, just use the standard type sizing method
   return (unsigned)getTypeSize(T);
+}
+
+unsigned ASTContext::getIntRange(QualType T) const {
+  return getIntWidth(T);
+}
+
+QualType ASTContext::getNonProvenanceCarryingType(QualType T) const {
+  // if (!Target->SupportsCapabilities())
+  //  return T; // XXX: should probably assert instead?
+  assert(Target->SupportsCapabilities());
+  // Must be called with either intcap_t or uintcap_t (or atomic variants
+  // thereof)
+  assert(T->isIntCapType() &&
+         "Invalid type passed to getNonProvenanceCarryingType");
+  if (const AtomicType *AT = dyn_cast<AtomicType>(T.getDesugaredType(*this))) {
+    QualType VT = AT->getValueType();
+    if (VT->hasAttr(attr::CHERINoProvenance))
+      return T;
+    return getAtomicType(getNonProvenanceCarryingType(VT));
+  }
+  if (T->hasAttr(attr::CHERINoProvenance))
+    return T;
+  return const_cast<ASTContext *>(this)->getAttributedType(
+      attr::CHERINoProvenance, T, T);
 }
 
 QualType ASTContext::getCorrespondingUnsignedType(QualType T) const {
@@ -11052,6 +11276,8 @@ QualType ASTContext::getCorrespondingUnsignedType(QualType T) const {
     return UnsignedLongLongTy;
   case BuiltinType::Int128:
     return UnsignedInt128Ty;
+  case BuiltinType::IntCap:
+    return UnsignedIntCapTy;
   // wchar_t is special. It is either signed or not, but when it's signed,
   // there's no matching "unsigned wchar_t". Therefore we return the unsigned
   // version of its underlying type instead.
@@ -11516,6 +11742,27 @@ static QualType DecodeTypeFromStr(const char *&Str, const ASTContext &Context,
     case 'R':
       Type = Type.withRestrict();
       break;
+    case 'm': {
+      Qualifiers Qs = Type.getQualifiers();
+      if (const auto *PT = Type->getAs<PointerType>())
+        Type = Context.getPointerType(PT->getPointeeType(), PIK_Capability);
+      else if (const auto *LRT = Type->getAs<LValueReferenceType>())
+        Type = Context.getLValueReferenceType(LRT->getPointeeTypeAsWritten(),
+                                              LRT->isSpelledAsLValue(),
+                                              PIK_Capability);
+      else {
+        const auto *BT = Type->getAs<BuiltinType>();
+        assert(BT &&
+               (BT->getKind() == BuiltinType::Int ||
+                BT->getKind() == BuiltinType::UInt) &&
+               "Modifier 'm' only applies to pointers, references and integer "
+               "built-in types");
+        Type = BT->getKind() == BuiltinType::UInt ? Context.UnsignedIntCapTy
+                                                  : Context.IntCapTy;
+      }
+      if (Qs.hasQualifiers())
+        Type = Context.getQualifiedType(Type, Qs);
+    }
     }
   }
 
@@ -11584,7 +11831,8 @@ QualType ASTContext::GetBuiltinType(unsigned Id,
   bool Variadic = (TypeStr[0] == '.');
 
   FunctionType::ExtInfo EI(getDefaultCallingConvention(
-      Variadic, /*IsCXXMethod=*/false, /*IsBuiltin=*/true));
+      Variadic, /*IsCXXMethod=*/false, /*IsBuiltin=*/true,
+      /*IsLibcall*/ Target->getTargetOpts().ABI != "cheriot-baremetal"));
   if (BuiltinInfo.isNoReturn(Id)) EI = EI.withNoReturn(true);
 
 
@@ -11965,7 +12213,8 @@ void ASTContext::forEachMultiversionedFunctionVersion(
 
 CallingConv ASTContext::getDefaultCallingConvention(bool IsVariadic,
                                                     bool IsCXXMethod,
-                                                    bool IsBuiltin) const {
+                                                    bool IsBuiltin,
+                                                    bool IsLibcall) const {
   // Pass through to the C++ ABI object
   if (IsCXXMethod)
     return ABI->getDefaultMethodCallConv(IsVariadic);
@@ -12001,6 +12250,10 @@ CallingConv ASTContext::getDefaultCallingConvention(bool IsVariadic,
         return CC_M68kRTD;
       break;
     }
+  }
+  if (IsLibcall) {
+    assert(Target->getTargetOpts().ABI != "cheriot-baremetal");
+    return Target->getLibcallCallingConv();
   }
   return Target->getDefaultCallingConv();
 }
@@ -12370,7 +12623,54 @@ uint64_t ASTContext::getTargetNullPointerValue(QualType QT) const {
 }
 
 unsigned ASTContext::getTargetAddressSpace(LangAS AS) const {
+  if (getTargetInfo().areAllPointersCapabilities() && AS == LangAS::Default) {
+    // FIXME: hardcoding 200 here is ugly but we don't have TargetCodeGenInfo()
+    return 200; // Hack for CHERI purecap ABI where we want default to mean AS200
+  }
   return getTargetInfo().getTargetAddressSpace(AS);
+}
+
+bool ASTContext::containsCapabilities(const RecordDecl *RD) const {
+  for (auto i = RD->field_begin(), e = RD->field_end(); i != e; ++i) {
+    const QualType Ty = i->getType();
+    if (Ty->isCHERICapabilityType(*this))
+      return true;
+    if (const RecordType *RT = Ty->getAs<RecordType>())
+      if (containsCapabilities(RT->getDecl()))
+        return true;
+    if (Ty->isArrayType() && containsCapabilities(Ty))
+      return true;
+  }
+  // In the case of C++ classes, also check base classes
+  if (const CXXRecordDecl *CRD = dyn_cast<CXXRecordDecl>(RD)) {
+    for (auto i = CRD->bases_begin(), e = CRD->bases_end(); i != e; ++i) {
+      const QualType Ty = i->getType();
+      if (const RecordType *RT = Ty->getAs<RecordType>())
+        if (containsCapabilities(RT->getDecl()))
+          return true;
+    }
+  }
+  return false;
+}
+
+bool ASTContext::containsCapabilities(QualType Ty) const {
+  // If we've already looked up this type, then return the cached value.
+  auto Cached = ContainsCapabilities.find(Ty.getAsOpaquePtr());
+  if (Cached != ContainsCapabilities.end())
+    return Cached->second;
+  // Don't bother caching the trivial cases.
+  if (Ty->isCHERICapabilityType(*this))
+      return true;
+  if (Ty->isArrayType()) {
+    QualType ElTy = QualType(Ty->getBaseElementTypeUnsafe(), 0);
+    return containsCapabilities(ElTy);
+  }
+  const RecordType *RT = Ty->getAs<RecordType>();
+  if (!RT)
+    return false;
+  bool Ret = containsCapabilities(RT->getDecl());
+  ContainsCapabilities[Ty.getAsOpaquePtr()] = Ret;
+  return Ret;
 }
 
 bool ASTContext::hasSameExpr(const Expr *X, const Expr *Y) const {
@@ -12974,6 +13274,16 @@ static QualType getCommonNonSugarTypeNode(ASTContext &Ctx, const Type *X,
         TX->getDepth(), TX->getIndex(), TX->isParameterPack(),
         getCommonDecl(TX->getDecl(), TY->getDecl()));
   }
+  // case Type::DependentPointer: {
+  //   const auto *PX = cast<DependentPointerType>(X),
+  //              *PY = cast<DependentPointerType>(Y);
+  //   assert(PX->getPointerInterpretation() == PY->getPointerInterpretation());
+  //   return Ctx.getDependentPointerType(
+  //     getCommonPointeeType(Ctx, PX, PY),
+  //     PX->getPointerInterpretation(),
+  //     PX->getQualifierLoc()
+  //   );
+  // }
   }
   llvm_unreachable("Unknown Type Class");
 }

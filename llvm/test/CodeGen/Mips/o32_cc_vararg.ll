@@ -8,8 +8,8 @@
 ; variable argument is returned from the correct stack location.
 
 
-declare void @llvm.va_start(ptr) nounwind
-declare void @llvm.va_end(ptr) nounwind
+declare void @llvm.va_start.p0(ptr) nounwind
+declare void @llvm.va_end.p0(ptr) nounwind
 
 ; return int
 define i32 @va1(i32 %a, ...) nounwind {
@@ -18,10 +18,10 @@ entry:
   %ap = alloca ptr, align 4
   %b = alloca i32, align 4
   store i32 %a, ptr %a.addr, align 4
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %0 = va_arg ptr %ap, i32
   store i32 %0, ptr %b, align 4
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
   %tmp = load i32, ptr %b, align 4
   ret i32 %tmp
 
@@ -42,10 +42,10 @@ entry:
   %ap = alloca ptr, align 4
   %b = alloca double, align 8
   store i32 %a, ptr %a.addr, align 4
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %0 = va_arg ptr %ap, double
   store double %0, ptr %b, align 8
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
   %tmp = load double, ptr %b, align 8
   ret double %tmp
 
@@ -68,10 +68,10 @@ entry:
   %ap = alloca ptr, align 4
   %b = alloca i32, align 4
   store double %a, ptr %a.addr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %0 = va_arg ptr %ap, i32
   store i32 %0, ptr %b, align 4
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
   %tmp = load i32, ptr %b, align 4
   ret i32 %tmp
 
@@ -89,10 +89,10 @@ entry:
   %ap = alloca ptr, align 4
   %b = alloca double, align 8
   store double %a, ptr %a.addr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %0 = va_arg ptr %ap, double
   store double %0, ptr %b, align 8
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
   %tmp = load double, ptr %b, align 8
   ret double %tmp
 
@@ -115,10 +115,10 @@ entry:
   store i32 %a, ptr %a.addr, align 4
   store i32 %b, ptr %b.addr, align 4
   store i32 %c, ptr %c.addr, align 4
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %0 = va_arg ptr %ap, i32
   store i32 %0, ptr %d, align 4
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
   %tmp = load i32, ptr %d, align 4
   ret i32 %tmp
 
@@ -139,10 +139,10 @@ entry:
   store i32 %a, ptr %a.addr, align 4
   store i32 %b, ptr %b.addr, align 4
   store i32 %c, ptr %c.addr, align 4
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %0 = va_arg ptr %ap, double
   store double %0, ptr %d, align 8
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
   %tmp = load double, ptr %d, align 8
   ret double %tmp
 
@@ -165,10 +165,10 @@ entry:
   %c = alloca i32, align 4
   store i32 %a, ptr %a.addr, align 4
   store double %b, ptr %b.addr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %0 = va_arg ptr %ap, i32
   store i32 %0, ptr %c, align 4
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
   %tmp = load i32, ptr %c, align 4
   ret i32 %tmp
 
@@ -186,10 +186,10 @@ entry:
   %c = alloca double, align 8
   store i32 %a, ptr %a.addr, align 4
   store double %b, ptr %b.addr, align 8
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %0 = va_arg ptr %ap, double
   store double %0, ptr %c, align 8
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
   %tmp = load double, ptr %c, align 8
   ret double %tmp
 
@@ -210,10 +210,10 @@ entry:
   store double %a, ptr %a.addr, align 8
   store double %b, ptr %b.addr, align 8
   store i32 %c, ptr %c.addr, align 4
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %0 = va_arg ptr %ap, i32
   store i32 %0, ptr %d, align 4
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
   %tmp = load i32, ptr %d, align 4
   ret i32 %tmp
 
@@ -233,10 +233,10 @@ entry:
   store double %a, ptr %a.addr, align 8
   store double %b, ptr %b.addr, align 8
   store i32 %c, ptr %c.addr, align 4
-  call void @llvm.va_start(ptr %ap)
+  call void @llvm.va_start.p0(ptr %ap)
   %0 = va_arg ptr %ap, double
   store double %0, ptr %d, align 8
-  call void @llvm.va_end(ptr %ap)
+  call void @llvm.va_end.p0(ptr %ap)
   %tmp = load double, ptr %d, align 8
   ret double %tmp
 

@@ -134,7 +134,7 @@ void *test_ReturnAddress(void) {
   return _ReturnAddress();
 }
 // CHECK-LABEL: define{{.*}}ptr @test_ReturnAddress()
-// CHECK: = tail call ptr @llvm.returnaddress(i32 0)
+// CHECK: = tail call ptr @llvm.returnaddress.p0(i32 0)
 // CHECK: ret ptr
 
 #if defined(__i386__) || defined(__x86_64__) || defined (__aarch64__)
@@ -227,7 +227,7 @@ void *test_InterlockedCompareExchangePointer(void * volatile *Destination,
 }
 
 // CHECK: define{{.*}}ptr @test_InterlockedCompareExchangePointer(ptr {{[a-z_ ]*}}%Destination, ptr {{[a-z_ ]*}}%Exchange, ptr {{[a-z_ ]*}}%Comparand){{.*}}{
-// CHECK:   %[[EXCHANGE:[0-9]+]] = ptrtoint ptr %Exchange to [[iPTR]]
+// CHECK:   %[[EXCHANGE:[0-9]+]] = ptrtoint ptr %Exchange to [[iPTR:i32|i64]]
 // CHECK:   %[[COMPARAND:[0-9]+]] = ptrtoint ptr %Comparand to [[iPTR]]
 // CHECK:   %[[XCHG:[0-9]+]] = cmpxchg volatile ptr %[[DEST:.+]], [[iPTR]] %[[COMPARAND:[0-9]+]], [[iPTR]] %[[EXCHANGE:[0-9]+]] seq_cst seq_cst, align {{4|8}}
 // CHECK:   %[[EXTRACT:[0-9]+]] = extractvalue { [[iPTR]], i1 } %[[XCHG]], 0

@@ -497,6 +497,9 @@ namespace llvm {
   /// This pass frees the memory occupied by the MachineFunction.
   FunctionPass *createFreeMachineFunctionPass();
 
+  /// This pass logs information on generated CSetBounds calls
+  FunctionPass *createLogCheriSetBoundsPass();
+
   /// This pass performs outlining on machine instructions directly before
   /// printing assembly.
   ModulePass *createMachineOutlinerPass(bool RunOnAllFunctions = true);
@@ -544,6 +547,15 @@ namespace llvm {
 
   /// Create Hardware Loop pass. \see HardwareLoops.cpp
   FunctionPass *createHardwareLoopsLegacyPass();
+
+  /// Create CHERI pass to bound alloca.s
+  ModulePass *createCheriBoundAllocasPass();
+
+  /// Create CHERI pass to remove capability address reading instructions.
+  FunctionPass *createCheriGetAddressElimPass();
+
+  /// Create CHERIoT pass to zero on-stack returns in cross-compartment calls.
+  FunctionPass *createCheriotZeroSRetPass();
 
   /// This pass inserts pseudo probe annotation for callsite profiling.
   FunctionPass *createPseudoProbeInserter();

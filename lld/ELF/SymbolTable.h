@@ -60,11 +60,17 @@ public:
   // Set of .so files to not link the same shared object file more than once.
   llvm::DenseMap<llvm::CachedHashStringRef, SharedFile *> soNames;
 
+  // This is a workaround for CHERI to add local symbols to .dynsym for relocations
+  Defined *ensureSymbolWillBeInDynsym(Symbol* original);
+
   // Comdat groups define "link once" sections. If two comdat groups have the
   // same name, only one of them is linked, and the other is ignored. This map
   // is used to uniquify them.
   llvm::DenseMap<llvm::CachedHashStringRef, const InputFile *> comdatGroups;
 
+  // Removed upstream, needed for CHERI
+  SmallVector<Symbol *, 0> &getSymbols() { return symVector; }
+  
   // The Map of __acle_se_<sym>, <sym> pairs found in the input objects.
   // Key is the <sym> name.
   llvm::SmallMapVector<StringRef, ArmCmseEntryFunction, 1> cmseSymMap;
@@ -93,6 +99,7 @@ private:
   // when cross linking.
   llvm::DenseMap<llvm::CachedHashStringRef, int> symMap;
   SmallVector<Symbol *, 0> symVector;
+  llvm::DenseMap<Symbol *, Defined *> localSymbolsForDynsym;
 
   // A map from demangled symbol names to their symbol objects.
   // This mapping is 1:N because two symbols with different versions

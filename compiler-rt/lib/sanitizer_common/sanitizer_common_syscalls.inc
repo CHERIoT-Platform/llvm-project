@@ -191,13 +191,13 @@ POST_SYSCALL(recvmmsg)
   }
 }
 
-PRE_SYSCALL(read)(long fd, void *buf, uptr count) {
+PRE_SYSCALL(read)(long fd, void *buf, usize count) {
   if (buf) {
     PRE_WRITE(buf, count);
   }
 }
 
-POST_SYSCALL(read)(long res, long fd, void *buf, uptr count) {
+POST_SYSCALL(read)(long res, long fd, void *buf, usize count) {
   if (res > 0 && buf) {
     POST_WRITE(buf, res);
   }

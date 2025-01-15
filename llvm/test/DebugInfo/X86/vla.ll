@@ -31,7 +31,7 @@ entry:
   call void @llvm.dbg.declare(metadata ptr %n.addr, metadata !15, metadata !DIExpression()), !dbg !16
   %0 = load i32, ptr %n.addr, align 4, !dbg !17
   %1 = zext i32 %0 to i64, !dbg !17
-  %2 = call ptr @llvm.stacksave(), !dbg !17
+  %2 = call ptr @llvm.stacksave.p0(), !dbg !17
   store ptr %2, ptr %saved_stack, !dbg !17
   %vla = alloca i32, i64 %1, align 16, !dbg !17
   call void @llvm.dbg.declare(metadata ptr %vla, metadata !18, metadata !DIExpression(DW_OP_deref)), !dbg !17
@@ -43,7 +43,7 @@ entry:
   %4 = load i32, ptr %arrayidx1, align 4, !dbg !23
   store i32 1, ptr %cleanup.dest.slot
   %5 = load ptr, ptr %saved_stack, !dbg !24
-  call void @llvm.stackrestore(ptr %5), !dbg !24
+  call void @llvm.stackrestore.p0(ptr %5), !dbg !24
   ret i32 %4, !dbg !23
 }
 
@@ -51,10 +51,10 @@ entry:
 declare void @llvm.dbg.declare(metadata, metadata, metadata) nounwind readnone
 
 ; Function Attrs: nounwind
-declare ptr @llvm.stacksave() nounwind
+declare ptr @llvm.stacksave.p0() nounwind
 
 ; Function Attrs: nounwind
-declare void @llvm.stackrestore(ptr) nounwind
+declare void @llvm.stackrestore.p0(ptr) nounwind
 
 ; Function Attrs: nounwind ssp uwtable
 define i32 @main(i32 %argc, ptr %argv) nounwind ssp uwtable !dbg !9 {

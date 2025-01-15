@@ -1,4 +1,8 @@
 include(HandleLitArguments)
+set(LIBCXX_TEST_LINKER_FLAGS "" CACHE STRING
+    "Additonal linker flags to pass when compiling the tests")
+set(LIBCXX_TEST_COMPILER_FLAGS "" CACHE STRING
+    "Additonal linker flags to pass when compiling the tests")
 add_subdirectory(tools)
 
 # By default, libcxx and libcxxabi share a library directory.
@@ -29,6 +33,10 @@ if (CMAKE_CXX_COMPILER_TARGET)
   serialize_lit_string_param(SERIALIZED_LIT_PARAMS target_triple "${CMAKE_CXX_COMPILER_TARGET}")
 else()
   serialize_lit_string_param(SERIALIZED_LIT_PARAMS target_triple "${LLVM_DEFAULT_TARGET_TRIPLE}")
+endif()
+
+if (LIBCXX_TEST_TARGET_FLAGS)
+  serialize_lit_string_param(SERIALIZED_LIT_PARAMS target_flags "${LIBCXX_TEST_TARGET_FLAGS}")
 endif()
 
 if (LLVM_USE_SANITIZER)

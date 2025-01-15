@@ -18,8 +18,8 @@ entry:
 }
 
 
-declare void @llvm.va_start(ptr) nounwind
-declare void @llvm.va_end(ptr) nounwind
+declare void @llvm.va_start.p0(ptr) nounwind
+declare void @llvm.va_end.p0(ptr) nounwind
 declare void @f(i32) nounwind
 define void @test_vararg(...) nounwind {
 entry:
@@ -33,7 +33,7 @@ entry:
 ; CHECK: ldaw r0, sp[3]
 ; CHECK: stw r0, sp[2]
   %list = alloca ptr, align 4
-  call void @llvm.va_start(ptr %list)
+  call void @llvm.va_start.p0(ptr %list)
   br label %for.cond
 
 ; CHECK-LABEL: .LBB1_1
@@ -48,7 +48,7 @@ for.cond:
   call void @f(i32 %0)
   br label %for.cond
 
-  call void @llvm.va_end(ptr %list)
+  call void @llvm.va_end.p0(ptr %list)
   ret void
 }
 

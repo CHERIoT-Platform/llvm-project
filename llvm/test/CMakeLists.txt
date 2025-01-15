@@ -88,7 +88,6 @@ set(LLVM_TEST_DEPENDS
           llvm-dwarfdump
           llvm-dwarfutil
           llvm-dwp
-          llvm-exegesis
           llvm-extract
           llvm-gsymutil
           llvm-isel-fuzzer
@@ -102,7 +101,6 @@ set(LLVM_TEST_DEPENDS
           llvm-locstats
           llvm-lto2
           llvm-mc
-          llvm-mca
           llvm-ml
           llvm-modextract
           llvm-mt
@@ -116,7 +114,6 @@ set(LLVM_TEST_DEPENDS
           llvm-profdata
           llvm-profgen
           llvm-ranlib
-          llvm-rc
           llvm-readobj
           llvm-readelf
           llvm-reduce
@@ -133,7 +130,6 @@ set(LLVM_TEST_DEPENDS
           llvm-readtapi
           llvm-tli-checker
           llvm-undname
-          llvm-windres
           llvm-xray
           not
           obj2yaml
@@ -145,6 +141,16 @@ set(LLVM_TEST_DEPENDS
           yaml-bench
           yaml2obj
         )
+
+if (TARGET llvm-mca)
+  list(APPEND LLVM_TEST_DEPENDS llvm-mca)
+endif()
+if (TARGET llvm-rc)
+  list(APPEND LLVM_TEST_DEPENDS llvm-rc llvm-windres)
+endif()
+if (TARGET llvm-exegesis)
+  list(APPEND LLVM_TEST_DEPENDS llvm-exegesis)
+endif()
 
 if(TARGET llvm-lto)
   set(LLVM_TEST_DEPENDS ${LLVM_TEST_DEPENDS} llvm-lto)
@@ -237,7 +243,7 @@ else()
   set(exclude_from_check_all "EXCLUDE_FROM_CHECK_ALL")
 endif()
 
-add_lit_testsuite(check-llvm "Running the LLVM regression tests"
+add_lit_testsuite_with_cheri_selectors(check-llvm "Running the LLVM regression tests"
   ${CMAKE_CURRENT_BINARY_DIR}
   ${exclude_from_check_all}
   DEPENDS ${LLVM_TEST_DEPENDS}

@@ -181,7 +181,7 @@ static bool isFallThruRelocation(InputSection &is, InputFile *file,
 
   uint64_t addrLoc = is.getOutputSection()->addr + is.outSecOff + r.offset;
   uint64_t targetOffset = InputSectionBase::getRelocTargetVA(
-      file, r.type, r.addend, addrLoc, *r.sym, r.expr);
+      file, r.type, r.addend, addrLoc, *r.sym, r.expr, &is, r.offset);
 
   // If this jmp is a fall thru, the target offset is the beginning of the
   // next section.
@@ -331,7 +331,7 @@ bool X86_64::relaxOnce(int pass) const {
         uint64_t v = sec->getRelocTargetVA(sec->file, rel.type, rel.addend,
                                            sec->getOutputSection()->addr +
                                                sec->outSecOff + rel.offset,
-                                           *rel.sym, rel.expr);
+                                           *rel.sym, rel.expr, sec, rel.offset);
         if (isInt<32>(v))
           continue;
         if (rel.sym->auxIdx == 0) {
@@ -801,6 +801,7 @@ void X86_64::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
   case R_X86_64_GOTOFF64:
   case R_X86_64_GOTPC64:
   case R_X86_64_PLTOFF64:
+  case R_X86_64_RELATIVE:
     write64le(loc, val);
     break;
   case R_X86_64_GOTPCRELX:
@@ -1041,7 +1042,7 @@ void X86_64::relocateAlloc(InputSectionBase &sec, uint8_t *buf) const {
     uint8_t *loc = buf + rel.offset;
     const uint64_t val =
         sec.getRelocTargetVA(sec.file, rel.type, rel.addend,
-                             secAddr + rel.offset, *rel.sym, rel.expr);
+                             secAddr + rel.offset, *rel.sym, rel.expr, &sec, rel.offset);
     relocate(loc, rel, val);
   }
   if (sec.jumpInstrMod) {

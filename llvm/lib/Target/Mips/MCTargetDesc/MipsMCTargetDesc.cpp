@@ -53,6 +53,10 @@ StringRef MIPS_MC::selectMipsCPU(const Triple &TT, StringRef CPU) {
         CPU = "mips32r6";
       else
         CPU = "mips64r6";
+    } else if (TT.getSubArch() == Triple::MipsSubArch_cheri128) {
+      CPU = "cheri128";
+    } else if (TT.getEnvironment() == Triple::CheriPurecap) {
+      CPU = "cheri128";
     } else {
       if (TT.isMIPS32())
         CPU = "mips32";
@@ -69,9 +73,11 @@ static MCInstrInfo *createMipsMCInstrInfo() {
   return X;
 }
 
-static MCRegisterInfo *createMipsMCRegisterInfo(const Triple &TT) {
+static MCRegisterInfo *
+createMipsMCRegisterInfo(const Triple &TT, const MCTargetOptions &Options) {
   MCRegisterInfo *X = new MCRegisterInfo();
-  InitMipsMCRegisterInfo(X, Mips::RA);
+  const bool IsPurecap = TT.getEnvironment() == Triple::CheriPurecap || Options.ABIName == "purecap";
+  InitMipsMCRegisterInfo(X, IsPurecap ? Mips::C17 : Mips::RA);
   return X;
 }
 
@@ -86,7 +92,8 @@ static MCAsmInfo *createMipsMCAsmInfo(const MCRegisterInfo &MRI,
                                       const MCTargetOptions &Options) {
   MCAsmInfo *MAI = new MipsMCAsmInfo(TT, Options);
 
-  unsigned SP = MRI.getDwarfRegNum(Mips::SP, true);
+  const bool IsPurecap = TT.getEnvironment() == Triple::CheriPurecap || Options.ABIName == "purecap";
+  unsigned SP = MRI.getDwarfRegNum(IsPurecap ? Mips::C11 : Mips::SP, true);
   MCCFIInstruction Inst = MCCFIInstruction::createDefCfaRegister(nullptr, SP);
   MAI->addInitialFrameState(Inst);
 
@@ -159,6 +166,25 @@ public:
     default:
       return false;
     }
+  }
+
+  virtual bool isCapTableLoad(const MCInst &Inst,
+                              int64_t &Offset) const override {
+    // cap table loads have a zero register offset and are relative to $c26
+    if (Inst.getOpcode() == Mips::LOADCAP &&
+        (Inst.getOperand(1).getReg() == Mips::ZERO_64 ||
+         Inst.getOperand(1).getReg() == Mips::ZERO) &&
+        Inst.getOperand(3).getReg() == Mips::C26) {
+      // For classic clc it register has to be $zero (mxcaptable not handled yet)
+      // TODO: can I somehow handle the mxcaptable case by inferring the value of $at?
+      Offset = Inst.getOperand(2).getImm();
+      return true;
+    } else if (Inst.getOpcode() == Mips::LOADCAP_BigImm &&
+               Inst.getOperand(2).getReg() == Mips::C26) {
+      Offset = Inst.getOperand(1).getImm();
+      return true;
+    }
+    return false;
   }
 };
 }

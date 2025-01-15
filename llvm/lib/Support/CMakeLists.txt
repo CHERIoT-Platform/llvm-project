@@ -153,6 +153,7 @@ add_llvm_component_library(LLVMSupport
   CachePruning.cpp
   Caching.cpp
   circular_raw_ostream.cpp
+  CheriSetBounds.cpp
   Chrono.cpp
   COM.cpp
   CodeGenCoverage.cpp

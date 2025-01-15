@@ -53,6 +53,7 @@
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalValue.h"
 #include "llvm/IR/Metadata.h"
@@ -68,7 +69,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
-#include "llvm/TargetParser/Triple.h"
+#include "llvm/Transforms/Utils/CheriSetBounds.h"
 #include "llvm/Transforms/Utils/SizeOpts.h"
 #include <algorithm>
 #include <cassert>
@@ -597,7 +598,7 @@ static ISD::CondCode getSetCCInverseImpl(ISD::CondCode Op, bool isIntegerLike) {
 }
 
 ISD::CondCode ISD::getSetCCInverse(ISD::CondCode Op, EVT Type) {
-  return getSetCCInverseImpl(Op, Type.isInteger());
+  return getSetCCInverseImpl(Op, Type.isInteger() || Type.isFatPointer());
 }
 
 ISD::CondCode ISD::GlobalISel::getSetCCInverse(ISD::CondCode Op,
@@ -626,8 +627,8 @@ static int isSignedOp(ISD::CondCode Opcode) {
 
 ISD::CondCode ISD::getSetCCOrOperation(ISD::CondCode Op1, ISD::CondCode Op2,
                                        EVT Type) {
-  bool IsInteger = Type.isInteger();
-  if (IsInteger && (isSignedOp(Op1) | isSignedOp(Op2)) == 3)
+  bool IsIntegerLike = Type.isInteger() || Type.isFatPointer();
+  if (IsIntegerLike && (isSignedOp(Op1) | isSignedOp(Op2)) == 3)
     // Cannot fold a signed integer setcc with an unsigned integer setcc.
     return ISD::SETCC_INVALID;
 
@@ -639,7 +640,7 @@ ISD::CondCode ISD::getSetCCOrOperation(ISD::CondCode Op1, ISD::CondCode Op2,
     Op &= ~16;     // Clear the U bit if the N bit is set.
 
   // Canonicalize illegal integer setcc's.
-  if (IsInteger && Op == ISD::SETUNE)  // e.g. SETUGT | SETULT
+  if (IsIntegerLike && Op == ISD::SETUNE)  // e.g. SETUGT | SETULT
     Op = ISD::SETNE;
 
   return ISD::CondCode(Op);
@@ -647,8 +648,8 @@ ISD::CondCode ISD::getSetCCOrOperation(ISD::CondCode Op1, ISD::CondCode Op2,
 
 ISD::CondCode ISD::getSetCCAndOperation(ISD::CondCode Op1, ISD::CondCode Op2,
                                         EVT Type) {
-  bool IsInteger = Type.isInteger();
-  if (IsInteger && (isSignedOp(Op1) | isSignedOp(Op2)) == 3)
+  bool IsIntegerLike = Type.isInteger() || Type.isFatPointer();
+  if (IsIntegerLike && (isSignedOp(Op1) | isSignedOp(Op2)) == 3)
     // Cannot fold a signed setcc with an unsigned setcc.
     return ISD::SETCC_INVALID;
 
@@ -656,7 +657,7 @@ ISD::CondCode ISD::getSetCCAndOperation(ISD::CondCode Op1, ISD::CondCode Op2,
   ISD::CondCode Result = ISD::CondCode(Op1 & Op2);
 
   // Canonicalize illegal integer setcc's.
-  if (IsInteger) {
+  if (IsIntegerLike) {
     switch (Result) {
     default: break;
     case ISD::SETUO : Result = ISD::SETFALSE; break;  // SETUGT & SETULT
@@ -1598,6 +1599,10 @@ SDValue SelectionDAG::getBoolConstant(bool V, const SDLoc &DL, EVT VT,
   llvm_unreachable("Unexpected boolean content enum!");
 }
 
+SDValue SelectionDAG::getNullCapability(const SDLoc &DL) {
+  return getConstant(0, DL, TLI->cheriCapabilityType());
+}
+
 SDValue SelectionDAG::getConstant(uint64_t Val, const SDLoc &DL, EVT VT,
                                   bool isT, bool isO) {
   EVT EltVT = VT.getScalarType();
@@ -1614,6 +1619,20 @@ SDValue SelectionDAG::getConstant(const APInt &Val, const SDLoc &DL, EVT VT,
 
 SDValue SelectionDAG::getConstant(const ConstantInt &Val, const SDLoc &DL,
                                   EVT VT, bool isT, bool isO) {
+  if (VT.isFatPointer()) {
+    unsigned AddrBitWidth = getDataLayout().getPointerSizeInBits(0);
+    APInt Int = Val.getValue();
+    if (Int.getBitWidth() > AddrBitWidth)
+      Int = Int.trunc(AddrBitWidth);
+    assert(APInt::isSameValue(Int, Val.getValue()));
+    assert(!isT && "Cannot create INTTOPTR targetconstant");
+    MVT IntVT = MVT::getIntegerVT(AddrBitWidth);
+    // XXXAR: If this is actually needed somewhere we should add a
+    // DAG.getIntCapConstant() helper function.
+    assert(Int.isZero() && "Should not create non-zero capability "
+                                "constants with SelectionDAG::getConstant()");
+    return getNode(ISD::INTTOPTR, DL, VT, getConstant(Int, DL, IntVT));
+  }
   assert(VT.isInteger() && "Cannot create FP integer constant!");
 
   EVT EltVT = VT.getScalarType();
@@ -1725,7 +1744,8 @@ SDValue SelectionDAG::getConstant(const ConstantInt &Val, const SDLoc &DL,
 
 SDValue SelectionDAG::getIntPtrConstant(uint64_t Val, const SDLoc &DL,
                                         bool isTarget) {
-  return getConstant(Val, DL, TLI->getPointerTy(getDataLayout()), isTarget);
+  return getConstant(Val, DL, TLI->getPointerRangeTy(getDataLayout()),
+                     isTarget);
 }
 
 SDValue SelectionDAG::getShiftAmountConstant(uint64_t Val, EVT VT,
@@ -1864,7 +1884,8 @@ SDValue SelectionDAG::getJumpTable(int JTI, EVT VT, bool isTarget,
 
 SDValue SelectionDAG::getJumpTableDebugInfo(int JTI, SDValue Chain,
                                             const SDLoc &DL) {
-  EVT PTy = getTargetLoweringInfo().getPointerTy(getDataLayout());
+  EVT PTy = getTargetLoweringInfo().getPointerTy(getDataLayout(),
+    getDataLayout().getGlobalsAddressSpace());
   return getNode(ISD::JUMP_TABLE_DEBUG_INFO, DL, MVT::Glue, Chain,
                  getTargetConstant(static_cast<uint64_t>(JTI), DL, PTy, true));
 }
@@ -1959,6 +1980,11 @@ SDValue SelectionDAG::getExternalSymbol(const char *Sym, EVT VT) {
   return SDValue(N, 0);
 }
 
+SDValue SelectionDAG::getExternalFunctionSymbol(const char *Sym) {
+  auto AddrSpace = getDataLayout().getProgramAddressSpace();
+  return getExternalSymbol(Sym, TLI->getPointerTy(getDataLayout(), AddrSpace));
+}
+
 SDValue SelectionDAG::getMCSymbol(MCSymbol *Sym, EVT VT) {
   SDNode *&N = MCSymbols[Sym];
   if (N)
@@ -1976,6 +2002,14 @@ SDValue SelectionDAG::getTargetExternalSymbol(const char *Sym, EVT VT,
   N = newSDNode<ExternalSymbolSDNode>(true, Sym, TargetFlags, VT);
   InsertNode(N);
   return SDValue(N, 0);
+}
+
+SDValue
+SelectionDAG::getTargetExternalFunctionSymbol(const char *Sym,
+                                              unsigned TargetFlags) {
+  auto AddrSpace = getDataLayout().getProgramAddressSpace();
+  return getTargetExternalSymbol(
+      Sym, TLI->getPointerTy(getDataLayout(), AddrSpace), TargetFlags);
 }
 
 SDValue SelectionDAG::getCondCode(ISD::CondCode Cond) {
@@ -2379,8 +2413,9 @@ SDValue SelectionDAG::expandVAArg(SDNode *Node) {
   SDValue Tmp2 = Node->getOperand(1);
   const MaybeAlign MA(Node->getConstantOperandVal(3));
 
-  SDValue VAListLoad = getLoad(TLI.getPointerTy(getDataLayout()), dl, Tmp1,
-                               Tmp2, MachinePointerInfo(V));
+  SDValue VAListLoad = getLoad(
+      TLI.getPointerTy(getDataLayout(), getDataLayout().getAllocaAddrSpace()),
+      dl, Tmp1, Tmp2, MachinePointerInfo(V));
   SDValue VAList = VAListLoad;
 
   if (MA && *MA > TLI.getMinStackArgumentAlignment()) {
@@ -2411,9 +2446,9 @@ SDValue SelectionDAG::expandVACopy(SDNode *Node) {
   // output, returning the chain.
   const Value *VD = cast<SrcValueSDNode>(Node->getOperand(3))->getValue();
   const Value *VS = cast<SrcValueSDNode>(Node->getOperand(4))->getValue();
-  SDValue Tmp1 =
-      getLoad(TLI.getPointerTy(getDataLayout()), dl, Node->getOperand(0),
-              Node->getOperand(2), MachinePointerInfo(VS));
+  SDValue Tmp1 = getLoad(
+      TLI.getPointerTy(getDataLayout(), getDataLayout().getAllocaAddrSpace()),
+      dl, Node->getOperand(0), Node->getOperand(2), MachinePointerInfo(VS));
   return getStore(Tmp1.getValue(1), dl, Tmp1, Node->getOperand(1),
                   MachinePointerInfo(VD));
 }
@@ -5090,9 +5125,16 @@ bool SelectionDAG::isADDLike(SDValue Op) const {
 }
 
 bool SelectionDAG::isBaseWithConstantOffset(SDValue Op) const {
-  if ((Op.getOpcode() != ISD::ADD && Op.getOpcode() != ISD::OR) ||
-      !isa<ConstantSDNode>(Op.getOperand(1)))
+  switch (Op.getOpcode()) {
+  case ISD::ADD:
+  case ISD::OR:
+  case ISD::PTRADD:
+    if (isa<ConstantSDNode>(Op.getOperand(1)))
+      break;
+    LLVM_FALLTHROUGH;
+  default:
     return false;
+  }
 
   if (Op.getOpcode() == ISD::OR &&
       !MaskedValueIsZero(Op.getOperand(0), Op.getConstantOperandAPInt(1)))
@@ -6600,6 +6642,16 @@ SDValue SelectionDAG::getNode(unsigned Opcode, const SDLoc &DL, EVT VT,
       return V;
     break;
   }
+  case ISD::PTRADD:
+    assert(VT.isFatPointer() && "PTRADD result must be a capability type!");
+    assert(N1.getValueType().isFatPointer() &&
+           "First PTRADD argument must be a capability type!");
+    assert(N2.getValueType().isInteger() &&
+           "Second PTRADD argument must be an integer type!");
+    // ptradd(X, 0) -> X.
+    if (N2C && N2C->isZero())
+      return N1;
+    break;
   case ISD::AND:
     assert(VT.isInteger() && "This operator does not apply to FP types!");
     assert(N1.getValueType() == N2.getValueType() &&
@@ -6615,6 +6667,8 @@ SDValue SelectionDAG::getNode(unsigned Opcode, const SDLoc &DL, EVT VT,
   case ISD::XOR:
   case ISD::ADD:
   case ISD::SUB:
+    assert(!VT.isFatPointer() &&
+           "This operator does not apply to capability types!");
     assert(VT.isInteger() && "This operator does not apply to FP types!");
     assert(N1.getValueType() == N2.getValueType() &&
            N1.getValueType() == VT && "Binary operator types must match!");
@@ -7281,7 +7335,7 @@ static SDValue getMemsetValue(SDValue Value, EVT VT, SelectionDAG &DAG,
   if (ConstantSDNode *C = dyn_cast<ConstantSDNode>(Value)) {
     assert(C->getAPIntValue().getBitWidth() == 8);
     APInt Val = APInt::getSplat(NumBits, C->getAPIntValue());
-    if (VT.isInteger()) {
+    if (VT.isInteger() || VT.isFatPointer()) {
       bool IsOpaque = VT.getSizeInBits() > 64 ||
           !DAG.getTargetLoweringInfo().isLegalStoreImmediate(C->getSExtValue());
       return DAG.getConstant(Val, dl, VT, false, IsOpaque);
@@ -7320,6 +7374,8 @@ static SDValue getMemsetStringVal(EVT VT, const SDLoc &dl, SelectionDAG &DAG,
                                   const ConstantDataArraySlice &Slice) {
   // Handle vector with all elements zero.
   if (Slice.Array == nullptr) {
+    if (VT.isFatPointer())
+      return DAG.getNullCapability(dl);
     if (VT.isInteger())
       return DAG.getConstant(0, dl, VT);
     if (VT == MVT::f32 || VT == MVT::f64 || VT == MVT::f128)
@@ -7360,7 +7416,16 @@ static SDValue getMemsetStringVal(EVT VT, const SDLoc &dl, SelectionDAG &DAG,
 SDValue SelectionDAG::getMemBasePlusOffset(SDValue Base, TypeSize Offset,
                                            const SDLoc &DL,
                                            const SDNodeFlags Flags) {
+  if (Offset.isZero())
+    return Base;
+
+  // For integer pointers the offset and pointer type must be identical
+  // (otherwise we assert later). For CHERI capabilities we use the the pointer
+  // range type as the offset type.
   EVT VT = Base.getValueType();
+  if (Base.getValueType().isFatPointer()) {
+    VT = TLI->getPointerRangeTy(getDataLayout());
+  }
   SDValue Index;
 
   if (Offset.isScalable())
@@ -7377,7 +7442,14 @@ SDValue SelectionDAG::getMemBasePlusOffset(SDValue Ptr, SDValue Offset,
                                            const SDLoc &DL,
                                            const SDNodeFlags Flags) {
   assert(Offset.getValueType().isInteger());
+  if (auto *Constant = dyn_cast<ConstantSDNode>(Offset.getNode())) {
+    if (Constant->isZero())
+      return Ptr;
+  }
   EVT BasePtrVT = Ptr.getValueType();
+  if (BasePtrVT.isFatPointer()) {
+    return getNode(ISD::PTRADD, DL, BasePtrVT, Ptr, Offset, Flags);
+  }
   return getNode(ISD::ADD, DL, BasePtrVT, Ptr, Offset, Flags);
 }
 
@@ -7387,7 +7459,7 @@ static bool isMemSrcFromConstant(SDValue Src, ConstantDataArraySlice &Slice) {
   GlobalAddressSDNode *G = nullptr;
   if (Src.getOpcode() == ISD::GlobalAddress)
     G = cast<GlobalAddressSDNode>(Src);
-  else if (Src.getOpcode() == ISD::ADD &&
+  else if ((Src.getOpcode() == ISD::ADD || Src.getOpcode() == ISD::PTRADD) &&
            Src.getOperand(0).getOpcode() == ISD::GlobalAddress &&
            Src.getOperand(1).getOpcode() == ISD::Constant) {
     G = cast<GlobalAddressSDNode>(Src.getOperand(0));
@@ -7434,13 +7506,34 @@ static void chainLoadsAndStoresForMemcpy(SelectionDAG &DAG, const SDLoc &dl,
   }
 }
 
-static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
-                                       SDValue Chain, SDValue Dst, SDValue Src,
-                                       uint64_t Size, Align Alignment,
-                                       bool isVol, bool AlwaysInline,
-                                       MachinePointerInfo DstPtrInfo,
-                                       MachinePointerInfo SrcPtrInfo,
-                                       const AAMDNodes &AAInfo, AAResults *AA) {
+static void
+diagnoseInefficientCheriMemOp(SelectionDAG &DAG, const DiagnosticLocation &Loc,
+                              const Twine &MemOp, CodeGenOptLevel OptLevel,
+                              StringRef Type, unsigned Align, uint64_t Size,
+                              uint64_t CapSize) {
+  assert(Align < CapSize);
+  assert(Size >= CapSize);
+  if (OptLevel == CodeGenOptLevel::None)
+    return; // Don't bother warning about inefficient code at -O0
+  // Skip the memcpy/memmove diag if we have already diagnosed something else
+  if (Type == "!!<CHERI-NODIAG>!!")
+    return;
+
+  DiagnosticInfoCheriInefficient Warning(
+      DAG.getMachineFunction().getFunction(), Loc,
+      MemOp + " operation with capability argument " + Type +
+          " and underaligned destination (aligned to " + Twine(Align) +
+          " bytes) may be inefficient or result in CHERI tags bits being "
+          "stripped");
+  DAG.getContext()->diagnose(Warning);
+}
+
+static SDValue getMemcpyLoadsAndStores(
+    SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Dst, SDValue Src,
+    uint64_t Size, Align Alignment, bool isVol, bool AlwaysInline,
+    PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
+    MachinePointerInfo SrcPtrInfo, const AAMDNodes &AAInfo, AAResults *AA,
+    StringRef CopyTy, CodeGenOptLevel OptLevel) {
   // Turn a memcpy of undef to nop.
   // FIXME: We need to honor volatile even is Src is undef.
   if (Src.isUndef())
@@ -7470,19 +7563,53 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
   bool CopyFromConstant = !isVol && isMemSrcFromConstant(Src, Slice);
   bool isZeroConstant = CopyFromConstant && Slice.Array == nullptr;
   unsigned Limit = AlwaysInline ? ~0U : TLI.getMaxStoresPerMemcpy(OptSize);
-  const MemOp Op = isZeroConstant
-                       ? MemOp::Set(Size, DstAlignCanChange, Alignment,
-                                    /*IsZeroMemset*/ true, isVol)
-                       : MemOp::Copy(Size, DstAlignCanChange, Alignment,
-                                     *SrcAlign, isVol, CopyFromConstant);
-  if (!TLI.findOptimalMemOpLowering(
-          MemOps, Limit, Op, DstPtrInfo.getAddrSpace(),
-          SrcPtrInfo.getAddrSpace(), MF.getFunction().getAttributes()))
+  const MemOp Op =
+      isZeroConstant
+          ? MemOp::Set(Size, DstAlignCanChange, Alignment,
+                       /*IsZeroMemset*/ true, isVol)
+          : MemOp::Copy(Size, DstAlignCanChange, Alignment, *SrcAlign, isVol,
+                        PreserveTags, CopyFromConstant);
+  bool ReachedLimit;
+  const bool FoundLowering = TLI.findOptimalMemOpLowering(
+      MemOps, Limit, Op, DstPtrInfo.getAddrSpace(), SrcPtrInfo.getAddrSpace(),
+      MF.getFunction().getAttributes(), &ReachedLimit);
+  // Don't warn about inefficient memcpy if we reached the inline memcpy limit
+  // Also don't warn about copies of less than CapSize
+  // TODO: the frontend/optimization passes probably shouldn't emit
+  //  must-preserve-tags for such small memcpys
+  auto CapTy = TLI.cheriCapabilityType();
+  if (CapTy.isValid() && !Op.isMemset()) {
+    const uint64_t CapSize = CapTy.getStoreSize();
+    if (PreserveTags == PreserveCheriTags::Required && !ReachedLimit &&
+        Size >= CapSize && (!FoundLowering || !MemOps[0].isFatPointer())) {
+      LLVM_DEBUG(dbgs() << " memcpy must preserve tags but value is not"
+                           " statically known to be sufficiently aligned ->"
+                           " using memcpy() call\n");
+      if (AlwaysInline) {
+        report_fatal_error("PreserveCheriTags::Required and AlwaysInline set "
+                           "but operation cannot be lowered to loads+stores!");
+      }
+      diagnoseInefficientCheriMemOp(
+          DAG, dl.getDebugLoc(), "memcpy", OptLevel,
+          CopyTy.empty() ? "<unknown type>" : CopyTy,
+          std::max((uint64_t)1, std::min(Alignment, *SrcAlign).value()), Size,
+          CapSize);
+      return SDValue();
+    }
+  }
+  if (!FoundLowering)
     return SDValue();
 
   if (DstAlignCanChange) {
     Type *Ty = MemOps[0].getTypeForEVT(C);
+    LLVM_DEBUG(dbgs() << " DstAlignCanChange -> using type "; Ty->dump());
     Align NewAlign = DL.getABITypeAlign(Ty);
+    LLVM_DEBUG(dbgs() << "\t->NewAlign = " << NewAlign.value() << ", stack alignment="
+                      << DL.getStackAlignment().value() << "\n");
+    if (MemOps[0].isFatPointer()) {
+      assert(!DL.exceedsNaturalStackAlignment(NewAlign) &&
+             "Stack not capability-aligned?");
+    }
 
     // Don't promote to an alignment that would require dynamic stack
     // realignment which may conflict with optimizations such as tail call
@@ -7492,6 +7619,10 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
       while (NewAlign > Alignment && DL.exceedsNaturalStackAlignment(NewAlign))
         NewAlign = NewAlign.previous();
 
+    if (MemOps[0].isFatPointer()) {
+      assert(NewAlign == DL.getABITypeAlign(Ty) &&
+             "Stack not capability-aligned?");
+    }
     if (NewAlign > Alignment) {
       // Give the stack frame object a larger alignment if needed.
       if (MFI.getObjectAlign(FI->getIndex()) < NewAlign)
@@ -7637,13 +7768,12 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
   return DAG.getNode(ISD::TokenFactor, dl, MVT::Other, OutChains);
 }
 
-static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
-                                        SDValue Chain, SDValue Dst, SDValue Src,
-                                        uint64_t Size, Align Alignment,
-                                        bool isVol, bool AlwaysInline,
-                                        MachinePointerInfo DstPtrInfo,
-                                        MachinePointerInfo SrcPtrInfo,
-                                        const AAMDNodes &AAInfo) {
+static SDValue getMemmoveLoadsAndStores(
+    SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Dst, SDValue Src,
+    uint64_t Size, Align Alignment, bool isVol, bool AlwaysInline,
+    PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
+    MachinePointerInfo SrcPtrInfo, const AAMDNodes &AAInfo, StringRef MoveTy,
+    CodeGenOptLevel OptLevel) {
   // Turn a memmove of undef to nop.
   // FIXME: We need to honor volatile even is Src is undef.
   if (Src.isUndef())
@@ -7667,17 +7797,48 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
     SrcAlign = Alignment;
   assert(SrcAlign && "SrcAlign must be set");
   unsigned Limit = AlwaysInline ? ~0U : TLI.getMaxStoresPerMemmove(OptSize);
-  if (!TLI.findOptimalMemOpLowering(
-          MemOps, Limit,
-          MemOp::Copy(Size, DstAlignCanChange, Alignment, *SrcAlign,
-                      /*IsVolatile*/ true),
-          DstPtrInfo.getAddrSpace(), SrcPtrInfo.getAddrSpace(),
-          MF.getFunction().getAttributes()))
+  bool ReachedLimit;
+  const bool FoundLowering = TLI.findOptimalMemOpLowering(
+      MemOps, Limit,
+      MemOp::Copy(Size, DstAlignCanChange, Alignment, *SrcAlign,
+                  /*IsVolatile*/ true, PreserveTags),
+      DstPtrInfo.getAddrSpace(), SrcPtrInfo.getAddrSpace(),
+      MF.getFunction().getAttributes(), &ReachedLimit);
+
+  // Don't warn about inefficient memcpy if we reached the inline memmove limit
+  // Also don't warn about copies of less than CapSize
+  // TODO: the frontend probably shouldn't emit must-preserve-tags for such
+  // small memcpys
+  auto CapTy = TLI.cheriCapabilityType();
+  if (CapTy.isValid()) {
+    const uint64_t CapSize = CapTy.getStoreSize();
+    if (PreserveTags == PreserveCheriTags::Required && !ReachedLimit &&
+        Size >= CapSize && (!FoundLowering || !MemOps[0].isFatPointer())) {
+      LLVM_DEBUG(dbgs() << " memmove must preserve tags but value is not"
+                           " statically known to be sufficiently aligned ->"
+                           " using memmove() call\n");
+      if (AlwaysInline) {
+        report_fatal_error("PreserveCheriTags::Required and AlwaysInline set "
+                           "but operation cannot be lowered to loads+stores!");
+      }
+      diagnoseInefficientCheriMemOp(
+          DAG, dl.getDebugLoc(), "memmove", OptLevel,
+          MoveTy.empty() ? "<unknown type>" : MoveTy,
+          std::max(Align(1), std::min(Alignment, *SrcAlign)).value(), Size,
+          CapSize);
+      return SDValue();
+    }
+  }
+  if (!FoundLowering)
     return SDValue();
 
   if (DstAlignCanChange) {
     Type *Ty = MemOps[0].getTypeForEVT(C);
     Align NewAlign = DL.getABITypeAlign(Ty);
+    if (MemOps[0].isFatPointer()) {
+      assert(!DL.exceedsNaturalStackAlignment(NewAlign) &&
+             "Stack not capability-aligned?");
+    }
 
     // Don't promote to an alignment that would require dynamic stack
     // realignment which may conflict with optimizations such as tail call
@@ -7796,6 +7957,10 @@ static SDValue getMemsetStores(SelectionDAG &DAG, const SDLoc &dl,
     Type *Ty = MemOps[0].getTypeForEVT(*DAG.getContext());
     const DataLayout &DL = DAG.getDataLayout();
     Align NewAlign = DL.getABITypeAlign(Ty);
+    if (MemOps[0].isFatPointer()) {
+      assert(!DL.exceedsNaturalStackAlignment(NewAlign) &&
+             "Stack not capability-aligned?");
+    }
 
     // Don't promote to an alignment that would require dynamic stack
     // realignment which may conflict with optimizations such as tail call
@@ -7878,6 +8043,32 @@ static SDValue getMemsetStores(SelectionDAG &DAG, const SDLoc &dl,
   return DAG.getNode(ISD::TokenFactor, dl, MVT::Other, OutChains);
 }
 
+SDValue SelectionDAG::getCSetBounds(SDValue Val, const SDLoc &DL,
+                                    SDValue Length, Align Alignment,
+                                    StringRef Pass,
+                                    cheri::SetBoundsPointerSource Kind,
+                                    const Twine &Details, std::string SrcLoc) {
+  if (cheri::ShouldCollectCSetBoundsStats) {
+    std::optional<uint64_t> SizeConst;
+    if (ConstantSDNode *Constant = dyn_cast<ConstantSDNode>(Length.getNode())) {
+      SizeConst = Constant->getZExtValue();
+    }
+    if (SrcLoc.empty()) {
+      SrcLoc = cheri::inferSourceLocation(DL.getDebugLoc(),
+                                          getMachineFunction().getName());
+    }
+    cheri::CSetBoundsStats->add(Alignment, SizeConst, Pass, Kind, Details,
+                                SrcLoc);
+  }
+  Intrinsic::ID SetBounds = Intrinsic::cheri_cap_bounds_set;
+  // Using the bounded stack cap intrinisic allows reuse of the same register:
+  if (isa<FrameIndexSDNode>(Val.getNode()))
+    SetBounds = Intrinsic::cheri_bounded_stack_cap;
+  MVT SizeVT = MVT::getIntegerVT(getDataLayout().getPointerSizeInBits(0));
+  return getNode(ISD::INTRINSIC_WO_CHAIN, DL, Val.getValueType(),
+                 getConstant(SetBounds, DL, SizeVT), Val, Length);
+}
+
 static void checkAddrSpaceIsValidForLibcall(const TargetLowering *TLI,
                                             unsigned AS) {
   // Lowering memcpy / memset / memmove intrinsics to calls is only valid if all
@@ -7891,12 +8082,19 @@ static void checkAddrSpaceIsValidForLibcall(const TargetLowering *TLI,
 SDValue SelectionDAG::getMemcpy(SDValue Chain, const SDLoc &dl, SDValue Dst,
                                 SDValue Src, SDValue Size, Align Alignment,
                                 bool isVol, bool AlwaysInline, bool isTailCall,
+                                PreserveCheriTags PreserveTags,
                                 MachinePointerInfo DstPtrInfo,
                                 MachinePointerInfo SrcPtrInfo,
-                                const AAMDNodes &AAInfo, AAResults *AA) {
+                                const AAMDNodes &AAInfo, AAResults *AA,
+                                StringRef CopyType) {
+  LLVM_DEBUG(dbgs() << "DAG.getMemcpy() align=" << Alignment.value()
+                    << " size=";
+             Size.dump(););
   // Check to see if we should lower the memcpy to loads and stores first.
   // For cases within the target-specified limits, this is the best choice.
   ConstantSDNode *ConstantSize = dyn_cast<ConstantSDNode>(Size);
+  if (PreserveTags == PreserveCheriTags::Required)
+    assert(TLI->cheriCapabilityType().isValid());
   if (ConstantSize) {
     // Memcpy with size zero? Just return the original chain.
     if (ConstantSize->isZero())
@@ -7904,7 +8102,8 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, const SDLoc &dl, SDValue Dst,
 
     SDValue Result = getMemcpyLoadsAndStores(
         *this, dl, Chain, Dst, Src, ConstantSize->getZExtValue(), Alignment,
-        isVol, false, DstPtrInfo, SrcPtrInfo, AAInfo, AA);
+        isVol, false, PreserveTags, DstPtrInfo, SrcPtrInfo, AAInfo, AA,
+        CopyType, OptLevel);
     if (Result.getNode())
       return Result;
   }
@@ -7914,7 +8113,7 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, const SDLoc &dl, SDValue Dst,
   if (TSI) {
     SDValue Result = TSI->EmitTargetCodeForMemcpy(
         *this, dl, Chain, Dst, Src, Size, Alignment, isVol, AlwaysInline,
-        DstPtrInfo, SrcPtrInfo);
+        PreserveTags, DstPtrInfo, SrcPtrInfo);
     if (Result.getNode())
       return Result;
   }
@@ -7923,9 +8122,10 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, const SDLoc &dl, SDValue Dst,
   // use a (potentially long) sequence of loads and stores.
   if (AlwaysInline) {
     assert(ConstantSize && "AlwaysInline requires a constant size!");
-    return getMemcpyLoadsAndStores(
-        *this, dl, Chain, Dst, Src, ConstantSize->getZExtValue(), Alignment,
-        isVol, true, DstPtrInfo, SrcPtrInfo, AAInfo, AA);
+    return getMemcpyLoadsAndStores(*this, dl, Chain, Dst, Src,
+                                   ConstantSize->getZExtValue(), Alignment,
+                                   isVol, true, PreserveTags, DstPtrInfo,
+                                   SrcPtrInfo, AAInfo, AA, CopyType, OptLevel);
   }
 
   checkAddrSpaceIsValidForLibcall(TLI, DstPtrInfo.getAddrSpace());
@@ -7940,8 +8140,9 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, const SDLoc &dl, SDValue Dst,
   // Emit a library call.
   TargetLowering::ArgListTy Args;
   TargetLowering::ArgListEntry Entry;
-  Entry.Ty = PointerType::getUnqual(*getContext());
+  Entry.Ty = Dst.getValueType().getTypeForEVT(*getContext());
   Entry.Node = Dst; Args.push_back(Entry);
+  Entry.Ty = Src.getValueType().getTypeForEVT(*getContext());
   Entry.Node = Src; Args.push_back(Entry);
 
   Entry.Ty = getDataLayout().getIntPtrType(*getContext());
@@ -7950,11 +8151,11 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, const SDLoc &dl, SDValue Dst,
   TargetLowering::CallLoweringInfo CLI(*this);
   CLI.setDebugLoc(dl)
       .setChain(Chain)
-      .setLibCallee(TLI->getLibcallCallingConv(RTLIB::MEMCPY),
-                    Dst.getValueType().getTypeForEVT(*getContext()),
-                    getExternalSymbol(TLI->getLibcallName(RTLIB::MEMCPY),
-                                      TLI->getPointerTy(getDataLayout())),
-                    std::move(Args))
+      .setLibCallee(
+          TLI->getLibcallCallingConv(RTLIB::MEMCPY),
+          Dst.getValueType().getTypeForEVT(*getContext()),
+          getExternalFunctionSymbol(TLI->getLibcallName(RTLIB::MEMCPY)),
+          std::move(Args))
       .setDiscardResult()
       .setTailCall(isTailCall);
 
@@ -7992,8 +8193,7 @@ SDValue SelectionDAG::getAtomicMemcpy(SDValue Chain, const SDLoc &dl,
       .setChain(Chain)
       .setLibCallee(TLI->getLibcallCallingConv(LibraryCall),
                     Type::getVoidTy(*getContext()),
-                    getExternalSymbol(TLI->getLibcallName(LibraryCall),
-                                      TLI->getPointerTy(getDataLayout())),
+                    getExternalFunctionSymbol(TLI->getLibcallName(LibraryCall)),
                     std::move(Args))
       .setDiscardResult()
       .setTailCall(isTailCall);
@@ -8005,9 +8205,11 @@ SDValue SelectionDAG::getAtomicMemcpy(SDValue Chain, const SDLoc &dl,
 SDValue SelectionDAG::getMemmove(SDValue Chain, const SDLoc &dl, SDValue Dst,
                                  SDValue Src, SDValue Size, Align Alignment,
                                  bool isVol, bool isTailCall,
+                                 PreserveCheriTags PreserveTags,
                                  MachinePointerInfo DstPtrInfo,
                                  MachinePointerInfo SrcPtrInfo,
-                                 const AAMDNodes &AAInfo, AAResults *AA) {
+                                 const AAMDNodes &AAInfo, AAResults *AA,
+                                 StringRef MoveType) {
   // Check to see if we should lower the memmove to loads and stores first.
   // For cases within the target-specified limits, this is the best choice.
   ConstantSDNode *ConstantSize = dyn_cast<ConstantSDNode>(Size);
@@ -8018,7 +8220,8 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, const SDLoc &dl, SDValue Dst,
 
     SDValue Result = getMemmoveLoadsAndStores(
         *this, dl, Chain, Dst, Src, ConstantSize->getZExtValue(), Alignment,
-        isVol, false, DstPtrInfo, SrcPtrInfo, AAInfo);
+        isVol, false, PreserveTags, DstPtrInfo, SrcPtrInfo, AAInfo, MoveType,
+        OptLevel);
     if (Result.getNode())
       return Result;
   }
@@ -8026,9 +8229,9 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, const SDLoc &dl, SDValue Dst,
   // Then check to see if we should lower the memmove with target-specific
   // code. If the target chooses to do this, this is the next best.
   if (TSI) {
-    SDValue Result =
-        TSI->EmitTargetCodeForMemmove(*this, dl, Chain, Dst, Src, Size,
-                                      Alignment, isVol, DstPtrInfo, SrcPtrInfo);
+    SDValue Result = TSI->EmitTargetCodeForMemmove(
+        *this, dl, Chain, Dst, Src, Size, Alignment, isVol, PreserveTags,
+        DstPtrInfo, SrcPtrInfo);
     if (Result.getNode())
       return Result;
   }
@@ -8042,8 +8245,9 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, const SDLoc &dl, SDValue Dst,
   // Emit a library call.
   TargetLowering::ArgListTy Args;
   TargetLowering::ArgListEntry Entry;
-  Entry.Ty = PointerType::getUnqual(*getContext());
+  Entry.Ty = Dst.getValueType().getTypeForEVT(*getContext());
   Entry.Node = Dst; Args.push_back(Entry);
+  Entry.Ty = Src.getValueType().getTypeForEVT(*getContext());
   Entry.Node = Src; Args.push_back(Entry);
 
   Entry.Ty = getDataLayout().getIntPtrType(*getContext());
@@ -8052,11 +8256,11 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, const SDLoc &dl, SDValue Dst,
   TargetLowering::CallLoweringInfo CLI(*this);
   CLI.setDebugLoc(dl)
       .setChain(Chain)
-      .setLibCallee(TLI->getLibcallCallingConv(RTLIB::MEMMOVE),
-                    Dst.getValueType().getTypeForEVT(*getContext()),
-                    getExternalSymbol(TLI->getLibcallName(RTLIB::MEMMOVE),
-                                      TLI->getPointerTy(getDataLayout())),
-                    std::move(Args))
+      .setLibCallee(
+          TLI->getLibcallCallingConv(RTLIB::MEMMOVE),
+          Dst.getValueType().getTypeForEVT(*getContext()),
+          getExternalFunctionSymbol(TLI->getLibcallName(RTLIB::MEMMOVE)),
+          std::move(Args))
       .setDiscardResult()
       .setTailCall(isTailCall);
 
@@ -8094,8 +8298,7 @@ SDValue SelectionDAG::getAtomicMemmove(SDValue Chain, const SDLoc &dl,
       .setChain(Chain)
       .setLibCallee(TLI->getLibcallCallingConv(LibraryCall),
                     Type::getVoidTy(*getContext()),
-                    getExternalSymbol(TLI->getLibcallName(LibraryCall),
-                                      TLI->getPointerTy(getDataLayout())),
+                    getExternalFunctionSymbol(TLI->getLibcallName(LibraryCall)),
                     std::move(Args))
       .setDiscardResult()
       .setTailCall(isTailCall);
@@ -8169,21 +8372,21 @@ SDValue SelectionDAG::getMemset(SDValue Chain, const SDLoc &dl, SDValue Dst,
   // If zeroing out and bzero is present, use it.
   if (isNullConstant(Src) && BzeroName) {
     TargetLowering::ArgListTy Args;
-    Args.push_back(CreateEntry(Dst, PointerType::getUnqual(Ctx)));
+    Args.push_back(CreateEntry(Dst, Dst.getValueType().getTypeForEVT(Ctx)));
     Args.push_back(CreateEntry(Size, DL.getIntPtrType(Ctx)));
     CLI.setLibCallee(
         TLI->getLibcallCallingConv(RTLIB::BZERO), Type::getVoidTy(Ctx),
-        getExternalSymbol(BzeroName, TLI->getPointerTy(DL)), std::move(Args));
+        getExternalFunctionSymbol(BzeroName), std::move(Args));
   } else {
     TargetLowering::ArgListTy Args;
-    Args.push_back(CreateEntry(Dst, PointerType::getUnqual(Ctx)));
+    Args.push_back(CreateEntry(Dst, Dst.getValueType().getTypeForEVT(Ctx)));
     Args.push_back(CreateEntry(Src, Src.getValueType().getTypeForEVT(Ctx)));
     Args.push_back(CreateEntry(Size, DL.getIntPtrType(Ctx)));
-    CLI.setLibCallee(TLI->getLibcallCallingConv(RTLIB::MEMSET),
-                     Dst.getValueType().getTypeForEVT(Ctx),
-                     getExternalSymbol(TLI->getLibcallName(RTLIB::MEMSET),
-                                       TLI->getPointerTy(DL)),
-                     std::move(Args));
+    CLI.setLibCallee(
+        TLI->getLibcallCallingConv(RTLIB::MEMSET),
+        Dst.getValueType().getTypeForEVT(Ctx),
+        getExternalFunctionSymbol(TLI->getLibcallName(RTLIB::MEMSET)),
+        std::move(Args));
   }
 
   CLI.setDiscardResult().setTailCall(isTailCall);
@@ -8222,8 +8425,7 @@ SDValue SelectionDAG::getAtomicMemset(SDValue Chain, const SDLoc &dl,
       .setChain(Chain)
       .setLibCallee(TLI->getLibcallCallingConv(LibraryCall),
                     Type::getVoidTy(*getContext()),
-                    getExternalSymbol(TLI->getLibcallName(LibraryCall),
-                                      TLI->getPointerTy(getDataLayout())),
+                    getExternalFunctionSymbol(TLI->getLibcallName(LibraryCall)),
                     std::move(Args))
       .setDiscardResult()
       .setTailCall(isTailCall);
@@ -12227,7 +12429,7 @@ MaybeAlign SelectionDAG::InferPtrAlign(SDValue Ptr) const {
   const GlobalValue *GV = nullptr;
   int64_t GVOffset = 0;
   if (TLI->isGAPlusOffset(Ptr.getNode(), GV, GVOffset)) {
-    unsigned PtrWidth = getDataLayout().getPointerTypeSizeInBits(GV->getType());
+    unsigned PtrWidth = getDataLayout().getIndexTypeSizeInBits(GV->getType());
     KnownBits Known(PtrWidth);
     llvm::computeKnownBits(GV, Known, getDataLayout());
     unsigned AlignBits = Known.countMinTrailingZeros();
@@ -12893,8 +13095,7 @@ SDValue SelectionDAG::makeStateFunctionCall(unsigned LibFunc, SDValue Ptr,
   Entry.Ty = Ptr.getValueType().getTypeForEVT(*getContext());
   Args.push_back(Entry);
   RTLIB::Libcall LC = static_cast<RTLIB::Libcall>(LibFunc);
-  SDValue Callee = getExternalSymbol(TLI->getLibcallName(LC),
-                                     TLI->getPointerTy(getDataLayout()));
+  SDValue Callee = getExternalFunctionSymbol(TLI->getLibcallName(LC));
   TargetLowering::CallLoweringInfo CLI(*this);
   CLI.setDebugLoc(DLoc).setChain(InChain).setLibCallee(
       TLI->getLibcallCallingConv(LC), Type::getVoidTy(*getContext()), Callee,

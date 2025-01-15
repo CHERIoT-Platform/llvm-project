@@ -16,13 +16,13 @@
 
 namespace __ubsan {
 
-typedef uptr HashValue;
+typedef uword HashValue;
 
 /// \brief Information about the dynamic type of an object (extracted from its
 /// vptr).
 class DynamicTypeInfo {
   const char *MostDerivedTypeName;
-  sptr Offset;
+  ptrdiff Offset;
   const char *SubobjectTypeName;
 
 public:
@@ -34,7 +34,7 @@ public:
   /// Get the name of the most-derived type of the object.
   const char *getMostDerivedTypeName() const { return MostDerivedTypeName; }
   /// Get the offset from the most-derived type to this base class.
-  sptr getOffset() const { return Offset; }
+  ptrdiff getOffset() const { return Offset; }
   /// Get the name of the most-derived type at the specified offset.
   const char *getSubobjectTypeName() const { return SubobjectTypeName; }
 };

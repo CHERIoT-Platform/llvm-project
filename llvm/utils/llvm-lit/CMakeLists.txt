@@ -27,19 +27,20 @@ if (${file_last} GREATER -1)
   endforeach()
 endif()
 
+function(create_llvm_lit _output_file)
+  configure_file(
+    llvm-lit.in
+    ${_output_file}
+  )
+endfunction()
+
 if(NOT "${CMAKE_CFG_INTDIR}" STREQUAL ".")
   foreach(BUILD_MODE ${CMAKE_CONFIGURATION_TYPES})
     string(REPLACE ${CMAKE_CFG_INTDIR} ${BUILD_MODE} bi ${LIT_BASE_DIR})
     set(bi "${bi}/${LIT_FILE_NAME}")
-    configure_file(
-      llvm-lit.in
-      ${bi}
-      )
+    create_llvm_lit(${bi})
   endforeach()
 else()
   set(BUILD_MODE .)
-  configure_file(
-    llvm-lit.in
-    ${LIT_BASE_DIR}/${LIT_FILE_NAME}
-    )
+  create_llvm_lit(${LIT_BASE_DIR}/${LIT_FILE_NAME})
 endif()

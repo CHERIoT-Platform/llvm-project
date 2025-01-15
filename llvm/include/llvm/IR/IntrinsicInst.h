@@ -974,6 +974,20 @@ public:
   }
 };
 
+static inline PreserveCheriTags shouldPreserveTags(const CallInst *CI) {
+  if (CI->hasFnAttr(Attribute::MustPreserveCheriTags))
+    return PreserveCheriTags::Required;
+  if (CI->hasFnAttr(Attribute::NoPreserveCheriTags))
+    return PreserveCheriTags::Unnecessary;
+  return PreserveCheriTags::Unknown;
+}
+
+/// Out-of-line to allow counting statistics. This is only possible in source
+/// files and MemTransferBase is templated so moving it out-of-line is more
+/// awkward.
+void setPreserveCheriTags(IntrinsicInst *I, PreserveCheriTags NewValue,
+                          const DataLayout &DL);
+
 /// Common base class for all memory transfer intrinsics. Simply provides
 /// common methods.
 template <class BaseCL> class MemTransferBase : public BaseCL {
@@ -1029,6 +1043,18 @@ public:
     BaseCL::removeParamAttr(ARG_SOURCE, Attribute::Alignment);
     BaseCL::addParamAttr(ARG_SOURCE, Attribute::getWithAlignment(
                                          BaseCL::getContext(), Alignment));
+  }
+
+  PreserveCheriTags shouldPreserveCheriTags() const {
+    return shouldPreserveTags(this);
+  }
+
+  StringRef getFrontendCopyType() const {
+    return BaseCL::getFnAttr("frontend-memtransfer-type").getValueAsString();
+  }
+
+  void setPreserveCheriTags(PreserveCheriTags NewValue, const DataLayout &DL) {
+    llvm::setPreserveCheriTags(this, NewValue, DL);
   }
 };
 

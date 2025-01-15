@@ -12,6 +12,7 @@
 #include "clang/Driver/DriverDiagnostic.h"
 #include "clang/Driver/Options.h"
 #include "llvm/ADT/StringSwitch.h"
+#include "llvm/Config/config.h"
 #include "llvm/Option/ArgList.h"
 
 using namespace clang::driver;
@@ -25,6 +26,7 @@ void mips::getMipsCPUAndABI(const ArgList &Args, const llvm::Triple &Triple,
                             StringRef &CPUName, StringRef &ABIName) {
   const char *DefMips32CPU = "mips32r2";
   const char *DefMips64CPU = "mips64r2";
+  const char *CHERICPU = "cheri128";
 
   // MIPS32r6 is the default for mips(el)?-img-linux-gnu and MIPS64r6 is the
   // default for mips64(el)?-img-linux-gnu.
@@ -32,6 +34,16 @@ void mips::getMipsCPUAndABI(const ArgList &Args, const llvm::Triple &Triple,
       Triple.isGNUEnvironment()) {
     DefMips32CPU = "mips32r6";
     DefMips64CPU = "mips64r6";
+  }
+  if (Arg *A = Args.getLastArg(options::OPT_cheri, options::OPT_cheri_EQ)) {
+    if (A->getOption().matches(options::OPT_cheri))
+      CHERICPU = "cheri128";
+    else
+      CHERICPU = llvm::StringSwitch<const char *>(A->getValue())
+                     .Case("64", "cheri64")
+                     .Case("128", "cheri128")
+                     .Case("256", "cheri256")
+                     .Default("cheri128");
   }
 
   if (Triple.getSubArch() == llvm::Triple::MipsSubArch_r6) {
@@ -64,6 +76,22 @@ void mips::getMipsCPUAndABI(const ArgList &Args, const llvm::Triple &Triple,
                   .Default(ABIName);
   }
 
+  if (ABIName.empty() && (Triple.getEnvironment() == llvm::Triple::CheriPurecap))
+    ABIName = "purecap";
+  else if (ABIName.empty() && (Triple.getEnvironment() == llvm::Triple::GNUABIN32))
+    ABIName = "n32";
+  else if (ABIName.empty() && (Triple.getEnvironment() == llvm::Triple::GNUABI64))
+    ABIName = "n64";
+
+  if (ABIName == "purecap" ||
+      Triple.getEnvironment() == llvm::Triple::CheriPurecap ||
+      Triple.getSubArch() == llvm::Triple::MipsSubArch_cheri64 ||
+      Triple.getSubArch() == llvm::Triple::MipsSubArch_cheri128 ||
+      Triple.getSubArch() == llvm::Triple::MipsSubArch_cheri256) {
+    DefMips32CPU = CHERICPU;
+    DefMips64CPU = CHERICPU;
+  }
+
   // Setup default CPU and ABI names.
   if (CPUName.empty() && ABIName.empty()) {
     switch (Triple.getArch()) {
@@ -79,9 +107,6 @@ void mips::getMipsCPUAndABI(const ArgList &Args, const llvm::Triple &Triple,
       break;
     }
   }
-
-  if (ABIName.empty() && (Triple.getEnvironment() == llvm::Triple::GNUABIN32))
-    ABIName = "n32";
 
   if (ABIName.empty() &&
       (Triple.getVendor() == llvm::Triple::MipsTechnologies ||
@@ -117,8 +142,15 @@ void mips::getMipsCPUAndABI(const ArgList &Args, const llvm::Triple &Triple,
     CPUName = llvm::StringSwitch<const char *>(ABIName)
                   .Case("o32", DefMips32CPU)
                   .Cases("n32", "n64", DefMips64CPU)
+                  .Case("purecap", CHERICPU)
                   .Default("");
   }
+
+  // change CPU from cheri to cheri128 if -mllvm -cheri128 was passed
+  if (CPUName == CHERICPU)
+    for (const Arg *A : Args.filtered(options::OPT_mllvm))
+        if (StringRef(A->getValue(0)) == "-cheri128")
+          CPUName = "cheri128";
 
   // FIXME: Warn on inconsistent use of -march and -mabi.
 }
@@ -189,6 +221,9 @@ void mips::getMIPSTargetFeatures(const Driver &D, const llvm::Triple &Triple,
   StringRef ABIName;
   getMipsCPUAndABI(Args, Triple, CPUName, ABIName);
   ABIName = getGnuCompatibleMipsABIName(ABIName);
+  if (ABIName == "purecap" && !Triple.isMIPS64())
+    D.Diag(diag::err_drv_argument_not_allowed_with) << "-mabi=purecap"
+      << Triple.str();
 
   // Historically, PIC code for MIPS was associated with -mabicalls, a.k.a
   // SVR4 abicalls. Static code does not use SVR4 calling sequences. An ABI
@@ -373,6 +408,23 @@ void mips::getMIPSTargetFeatures(const Driver &D, const llvm::Triple &Triple,
                    "virt");
   AddTargetFeature(Args, Features, options::OPT_mginv, options::OPT_mno_ginv,
                    "ginv");
+
+  if (Arg *A = Args.getLastArg(options::OPT_cheri, options::OPT_cheri_EQ)) {
+    if (A->getOption().matches(options::OPT_cheri))
+      Features.push_back("+cheri128");
+    else {
+      auto SizeFeature = llvm::StringSwitch<const char *>(A->getValue())
+                             .Case("64", "+cheri64")
+                             .Case("128", "+cheri128")
+                             .Case("256", "+cheri256")
+                             .Default(nullptr);
+      if (SizeFeature)
+        Features.push_back(SizeFeature);
+      else
+        D.Diag(diag::err_drv_unsupported_option_argument)
+            << A->getOption().getName() << A->getValue();
+    }
+  }
 
   if (Arg *A = Args.getLastArg(options::OPT_mindirect_jump_EQ)) {
     StringRef Val = StringRef(A->getValue());

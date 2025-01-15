@@ -64,6 +64,14 @@ static llvm::Constant *buildDisposeHelper(CodeGenModule &CGM,
   return CodeGenFunction(CGM).GenerateDestroyHelperFunction(blockInfo);
 }
 
+static llvm::Value *getFunctionPointer(CodeGenFunction &CGF, llvm::Value *V) {
+  if (CGF.getContext().getTargetInfo().areAllPointersCapabilities()) {
+    assert(V->getType()->getPointerAddressSpace() ==
+        CGF.CGM.getTargetCodeGenInfo().getCHERICapabilityAS());
+  }
+  return V;
+}
+
 namespace {
 
 enum class CaptureStrKind {
@@ -214,7 +222,7 @@ static llvm::Constant *buildBlockDescriptor(CodeGenModule &CGM,
   else
     elements.addNullPointer(i8p);
 
-  unsigned AddrSpace = 0;
+  unsigned AddrSpace = CGM.getTargetCodeGenInfo().getDefaultAS();
   if (C.getLangOpts().OpenCL)
     AddrSpace = C.getTargetAddressSpace(LangAS::opencl_constant);
 
@@ -241,7 +249,7 @@ static llvm::Constant *buildBlockDescriptor(CodeGenModule &CGM,
     global->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
   }
 
-  return global;
+  return llvm::ConstantExpr::getPointerBitCastOrAddrSpaceCast(global, CGM.getBlockDescriptorType());
 }
 
 /*
@@ -1001,7 +1009,8 @@ llvm::Value *CodeGenFunction::EmitBlockLiteral(const CGBlockInfo &blockInfo) {
                           type, VK_LValue, SourceLocation());
 
       ImplicitCastExpr l2r(ImplicitCastExpr::OnStack, type, CK_LValueToRValue,
-                           &declRef, VK_PRValue, FPOptionsOverride());
+                           &declRef, VK_PRValue, FPOptionsOverride(),
+                           getContext());
       // FIXME: Pass a specific location for the expr init so that the store is
       // attributed to a reasonable location - otherwise it may be attributed to
       // locations of subexpressions in the initialization.
@@ -1072,7 +1081,7 @@ llvm::Value *CodeGenFunction::EmitBlockLiteral(const CGBlockInfo &blockInfo) {
 
   // Cast to the converted block-pointer type, which happens (somewhat
   // unfortunately) to be a pointer to function type.
-  llvm::Value *result = Builder.CreatePointerCast(
+  llvm::Value *result = Builder.CreatePointerBitCastOrAddrSpaceCast(
       blockAddr.getPointer(), ConvertType(blockInfo.getBlockExpr()->getType()));
 
   if (IsOpenCL) {
@@ -1109,7 +1118,7 @@ llvm::Type *CodeGenModule::getBlockDescriptorType() {
       "struct.__block_descriptor", UnsignedLongTy, UnsignedLongTy);
 
   // Now form a pointer to that.
-  unsigned AddrSpace = 0;
+  unsigned AddrSpace = getTargetCodeGenInfo().getDefaultAS();
   if (getLangOpts().OpenCL)
     AddrSpace = getContext().getTargetAddressSpace(LangAS::opencl_constant);
   BlockDescriptorType = llvm::PointerType::get(BlockDescriptorType, AddrSpace);
@@ -1205,6 +1214,12 @@ RValue CodeGenFunction::EmitBlockCallExpr(const CallExpr *E,
   const FunctionType *FuncTy = FnType->castAs<FunctionType>();
   const CGFunctionInfo &FnInfo =
     CGM.getTypes().arrangeBlockFunctionCall(Args, FuncTy);
+
+  // Cast the function pointer to the right type.
+  llvm::Type *BlockFTy = CGM.getTypes().GetFunctionType(FnInfo);
+
+  llvm::Type *BlockFTyPtr = llvm::PointerType::get(BlockFTy, CGM.getTargetCodeGenInfo().getDefaultAS());
+  Func = Builder.CreatePointerCast(Func, BlockFTyPtr);
 
   // Prepare the callee.
   CGCallee Callee(CGCalleeInfo(), Func);
@@ -1397,9 +1412,9 @@ void CodeGenFunction::setBlockContextParameter(const ImplicitParamDecl *D,
       arg,
       llvm::PointerType::get(
           getLLVMContext(),
-          getContext().getLangOpts().OpenCL
-              ? getContext().getTargetAddressSpace(LangAS::opencl_generic)
-              : 0),
+          getContext().getTargetAddressSpace(getContext().getLangOpts().OpenCL
+                                                 ? LangAS::opencl_generic
+                                                 : LangAS::Default)),
       "block");
 }
 
@@ -2585,7 +2600,8 @@ const BlockByrefInfo &CodeGenFunction::getBlockByrefInfo(const VarDecl *D) {
   size += getPointerSize();
 
   // void *__forwarding;
-  types.push_back(VoidPtrTy);
+  types.push_back(llvm::PointerType::get(byrefType,
+              CGM.getTargetCodeGenInfo().getDefaultAS()));
   size += getPointerSize();
 
   // int32_t __flags;
@@ -2595,6 +2611,8 @@ const BlockByrefInfo &CodeGenFunction::getBlockByrefInfo(const VarDecl *D) {
   // int32_t __size;
   types.push_back(Int32Ty);
   size += CharUnits::fromQuantity(4);
+  // If the pointer size is over 64 bits, there is padding after these.
+  size = size.alignTo(getPointerAlign());
 
   // Note that this must match *exactly* the logic in buildByrefHelpers.
   bool hasCopyAndDispose = getContext().BlockRequiresCopying(Ty, D);
@@ -2747,10 +2765,10 @@ void CodeGenFunction::emitByrefStructureInit(const AutoVarEmission &emission) {
   storeHeaderField(V, getIntSize(), "byref.size");
 
   if (helpers) {
-    storeHeaderField(helpers->CopyHelper, getPointerSize(),
-                     "byref.copyHelper");
-    storeHeaderField(helpers->DisposeHelper, getPointerSize(),
-                     "byref.disposeHelper");
+    storeHeaderField(getFunctionPointer(*this, helpers->CopyHelper),
+                     getPointerSize(), "byref.copyHelper");
+    storeHeaderField(getFunctionPointer(*this, helpers->DisposeHelper),
+                     getPointerSize(), "byref.disposeHelper");
   }
 
   if (ByRefHasLifetime && HasByrefExtendedLayout) {

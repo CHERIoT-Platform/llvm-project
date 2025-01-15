@@ -12,14 +12,21 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "MCTargetDesc/RISCVBaseInfo.h"
+#include "MCTargetDesc/RISCVMCTargetDesc.h"
 #include "RISCV.h"
 #include "RISCVInstrInfo.h"
 #include "RISCVTargetMachine.h"
 
 #include "llvm/CodeGen/LivePhysRegs.h"
+#include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineFunctionPass.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
+#include "llvm/CodeGen/MachineOperand.h"
+#include "llvm/IR/CallingConv.h"
 #include "llvm/MC/MCContext.h"
+#include "llvm/Support/Compiler.h"
+#include "llvm/Support/Debug.h"
 
 using namespace llvm;
 
@@ -33,8 +40,10 @@ public:
   const RISCVSubtarget *STI;
   const RISCVInstrInfo *TII;
   static char ID;
+  CHERIoTImportedFunctionSet &ImportedFunctions;
 
-  RISCVExpandPseudo() : MachineFunctionPass(ID) {}
+  RISCVExpandPseudo(CHERIoTImportedFunctionSet &CHERIoTImports)
+      : MachineFunctionPass(ID), ImportedFunctions(CHERIoTImports) { }
 
   bool runOnMachineFunction(MachineFunction &MF) override;
 
@@ -44,6 +53,29 @@ private:
   bool expandMBB(MachineBasicBlock &MBB);
   bool expandMI(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
                 MachineBasicBlock::iterator &NextMBBI);
+  bool expandAuipccInstPair(MachineBasicBlock &MBB,
+                            MachineBasicBlock::iterator MBBI,
+                            MachineBasicBlock::iterator &NextMBBI,
+                            unsigned FlagsHi, unsigned SecondOpcode,
+                            bool InBounds = false);
+  bool expandAuicgpInstPair(MachineBasicBlock &MBB,
+                            MachineBasicBlock::iterator MBBI,
+                            MachineBasicBlock::iterator &NextMBBI,
+                            unsigned SecondOpcode, bool InBounds = false);
+  bool expandCapLoadLocalCap(MachineBasicBlock &MBB,
+                             MachineBasicBlock::iterator MBBI,
+                             MachineBasicBlock::iterator &NextMBBI,
+                             bool InBounds);
+  bool expandCapLoadGlobalCap(MachineBasicBlock &MBB,
+                              MachineBasicBlock::iterator MBBI,
+                              MachineBasicBlock::iterator &NextMBBI);
+  bool expandCapLoadTLSIEAddress(MachineBasicBlock &MBB,
+                                 MachineBasicBlock::iterator MBBI,
+                                 MachineBasicBlock::iterator &NextMBBI);
+  bool expandCapLoadTLSGDCap(MachineBasicBlock &MBB,
+                             MachineBasicBlock::iterator MBBI,
+                             MachineBasicBlock::iterator &NextMBBI);
+  bool expandCGetAddr(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI);
   bool expandCCOp(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
                   MachineBasicBlock::iterator &NextMBBI);
   bool expandVSetVL(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI);
@@ -53,6 +85,41 @@ private:
                             MachineBasicBlock::iterator MBBI);
   bool expandRV32ZdinxLoad(MachineBasicBlock &MBB,
                            MachineBasicBlock::iterator MBBI);
+  bool expandVSPILL(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI);
+  bool expandVRELOAD(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI);
+  /// Expand a CHERIoT cross-compartment call into a call to the switcher using
+  /// an import-table entry.
+  bool expandCompartmentCall(MachineBasicBlock &MBB,
+                             MachineBasicBlock::iterator MBBI,
+                             MachineBasicBlock::iterator &NextMBBI);
+  /// Expand a CHERIoT cross-library call into a call via an import-table entry.
+  bool expandLibraryCall(MachineBasicBlock &MBB,
+                         MachineBasicBlock::iterator MBBI,
+                         MachineBasicBlock::iterator &NextMBBI);
+  /**
+   * Helper that inserts a load of the import table for `Fn` at `MBBI`.  This
+   * inserts an AUIPCC and so will split `MBB`.  Calls the result if
+   * `CallImportTarget` is true. `TreatAsLibrary` should be set if the exported
+   * function is / may be exported from this compartment but, at this call site,
+   * should be treated as a library call.
+   */
+  MachineBasicBlock *insertLoadOfImportTable(MachineBasicBlock &MBB,
+                                             MachineBasicBlock::iterator MBBI,
+                                             const Function *Fn,
+                                             Register DestReg,
+                                             bool TreatAsLibrary = false,
+                                             bool CallImportTarget = false);
+  /**
+   * Helper that inserts a load from the import table identified by an import
+   * and export table entry symbol.
+   *
+   * Calls the result if `CallImportTarget` is true.
+   */
+  MachineBasicBlock *insertLoadOfImportTable(
+      MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+      MCSymbol *ImportSymbol, MCSymbol *ExportSymbol, Register DestReg,
+      bool IsLibrary, bool IsPublic, bool CallImportTarget);
+
 #ifndef NDEBUG
   unsigned getInstSizeInBytes(const MachineFunction &MF) const {
     unsigned Size = 0;
@@ -101,10 +168,24 @@ bool RISCVExpandPseudo::expandMBB(MachineBasicBlock &MBB) {
 bool RISCVExpandPseudo::expandMI(MachineBasicBlock &MBB,
                                  MachineBasicBlock::iterator MBBI,
                                  MachineBasicBlock::iterator &NextMBBI) {
+  bool InBounds = true;
   // RISCVInstrInfo::getInstSizeInBytes expects that the total size of the
   // expanded instructions for each pseudo is correct in the Size field of the
   // tablegen definition for the pseudo.
   switch (MBBI->getOpcode()) {
+  case RISCV::PseudoCGetAddr:
+    return expandCGetAddr(MBB, MBBI);
+  case RISCV::PseudoCLLC:
+    InBounds = false;
+    LLVM_FALLTHROUGH;
+  case RISCV::PseudoCLLCInbounds:
+    return expandCapLoadLocalCap(MBB, MBBI, NextMBBI, InBounds);
+  case RISCV::PseudoCLGC:
+    return expandCapLoadGlobalCap(MBB, MBBI, NextMBBI);
+  case RISCV::PseudoCLA_TLS_IE:
+    return expandCapLoadTLSIEAddress(MBB, MBBI, NextMBBI);
+  case RISCV::PseudoCLC_TLS_GD:
+    return expandCapLoadTLSGDCap(MBB, MBBI, NextMBBI);
   case RISCV::PseudoRV32ZdinxSD:
     return expandRV32ZdinxStore(MBB, MBBI);
   case RISCV::PseudoRV32ZdinxLD:
@@ -161,9 +242,416 @@ bool RISCVExpandPseudo::expandMI(MachineBasicBlock &MBB,
   case RISCV::PseudoVMSET_M_B64:
     // vmset.m vd => vmxnor.mm vd, vd, vd
     return expandVMSET_VMCLR(MBB, MBBI, RISCV::VMXNOR_MM);
+  case RISCV::PseudoCompartmentCall:
+    return expandCompartmentCall(MBB, MBBI, NextMBBI);
+  case RISCV::PseudoLibraryCall:
+    return expandLibraryCall(MBB, MBBI, NextMBBI);
   }
 
   return false;
+}
+
+MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+    const Function *Fn, Register DestReg, bool TreatAsLibrary,
+    bool CallImportTarget) {
+  auto *MF = MBB.getParent();
+  const StringRef ImportName = Fn->getName();
+  // We can hit this code path if we need to do a library-style import
+  // for a local exported function.
+  CallingConv::ID CC = Fn->getCallingConv();
+  bool IsLibrary = CC == CallingConv::CHERI_LibCall;
+  const StringRef CompartmentName =
+      IsLibrary ? "libcalls"
+                : Fn->getFnAttribute("cheri-compartment").getValueAsString();
+  // Is this actually a compartment call that is locally imported?
+
+  auto ImportEntryName = getImportExportTableName(
+      CompartmentName, ImportName,
+      TreatAsLibrary ? CallingConv::CHERI_LibCall : Fn->getCallingConv(),
+      /*IsImport*/ true);
+  // If this isn't really a library call then the export symbol will be
+  // different.
+  auto ExportEntryName = getImportExportTableName(CompartmentName, ImportName,
+                                                  Fn->getCallingConv(),
+                                                  /*IsImport*/ false);
+  // Create the symbol for the import entry.  We don't use this symbol
+  // directly (yet) but we need to allocate storage for the string where
+  // it will remain valid for the duration of codegen.
+  MCSymbol *ImportSymbol = MF->getContext().getOrCreateSymbol(ImportEntryName);
+  MCSymbol *ExportSymbol = MF->getContext().getOrCreateSymbol(ExportEntryName);
+  return insertLoadOfImportTable(MBB, MBBI, ImportSymbol, ExportSymbol, DestReg,
+                                 IsLibrary || TreatAsLibrary,
+                                 Fn->hasExternalLinkage(), CallImportTarget);
+}
+
+MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+    MCSymbol *ImportSymbol, MCSymbol *ExportSymbol, Register DestReg,
+    bool IsLibrary, bool IsPublic, bool CallImportTarget) {
+  auto *MF = MBB.getParent();
+  const DebugLoc DL = MBBI->getDebugLoc();
+  MachineBasicBlock *NewMBB =
+      MBB.getParent()->CreateMachineBasicBlock(MBB.getBasicBlock());
+
+  // Tell AsmPrinter that we unconditionally want the symbol of this
+  // label to be emitted.
+  NewMBB->setLabelMustBeEmitted();
+
+  MF->insert(++MBB.getIterator(), NewMBB);
+
+  BuildMI(NewMBB, DL, TII->get(RISCV::AUIPCC), DestReg)
+      .addExternalSymbol(ImportSymbol->getName().data(),
+                         RISCVII::MO_CHERIOT_COMPARTMENT_HI);
+  BuildMI(NewMBB, DL, TII->get(RISCV::CLC_64), DestReg)
+      .addReg(DestReg, RegState::Kill)
+      .addMBB(NewMBB, RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
+
+  if (CallImportTarget)
+    BuildMI(NewMBB, DL, TII->get(RISCV::C_CJALR))
+        .addReg(DestReg, RegState::Kill);
+
+  NewMBB->splice(NewMBB->end(), &MBB, std::next(MBBI), MBB.end());
+  // Update machine-CFG edges.
+  NewMBB->transferSuccessorsAndUpdatePHIs(&MBB);
+  // Make the original basic block fall-through to the new.
+  MBB.addSuccessor(NewMBB);
+
+  ImportedFunctions.insert(
+      {ImportSymbol->getName(), ExportSymbol->getName(), IsLibrary, IsPublic});
+  LivePhysRegs LiveRegs;
+  computeAndAddLiveIns(LiveRegs, *NewMBB);
+  return NewMBB;
+}
+
+bool RISCVExpandPseudo::expandCompartmentCall(MachineBasicBlock &MBB,
+    MachineBasicBlock::iterator MBBI,
+    MachineBasicBlock::iterator &NextMBBI) {
+
+  const MachineOperand Callee = MBBI->getOperand(0);
+  MachineInstr &MI = *MBBI;
+  const DebugLoc DL = MBBI->getDebugLoc();
+  auto *MF = MBB.getParent();
+  if (Callee.isGlobal()) {
+    // If this is a global, check if it's in the same compartment.  If so, we
+    // want to lower as a direct ccall.
+    auto *Fn = cast<Function>(Callee.getGlobal());
+    if (MF->getFunction().hasFnAttribute("cheri-compartment") &&
+        (Fn->getFnAttribute("cheri-compartment").getValueAsString() ==
+         MF->getFunction()
+             .getFnAttribute("cheri-compartment")
+             .getValueAsString())) {
+      if (isSafeToDirectCall(MF->getFunction(), *Fn)) {
+        MI.setDesc(TII->get(RISCV::PseudoCCALL));
+        return true;
+      }
+      // If this is within the same compartment but must be called via an import
+      // table entry, then expand it as a library call.
+      return expandLibraryCall(MBB, MBBI, NextMBBI);
+    }
+  }
+  // Expand a cross-compartment call into a auipcc + clc to get the compartment
+  // switcher, followed by a compressed cjalr to invoke it.  This is running
+  // post-RA, but the ABI guarantees that C7 is not required to be preserved
+  // here and so we can use it.
+  // FIXME: This copies and pastes a lot of code from expandAuipccInstPair.
+
+  const MachineOperand Switcher =
+      MachineOperand::CreateES(".compartment_switcher", 0);
+
+  auto *NewMBB = MBB.getParent()->CreateMachineBasicBlock(MBB.getBasicBlock());
+
+  // Tell AsmPrinter that we unconditionally want the symbol of this label to be
+  // emitted.
+  NewMBB->setLabelMustBeEmitted();
+
+  MF->insert(++MBB.getIterator(), NewMBB);
+
+  BuildMI(NewMBB, DL, TII->get(RISCV::AUIPCC), RISCV::C7)
+      .addDisp(Switcher, 0, RISCVII::MO_CHERIOT_COMPARTMENT_HI);
+  BuildMI(NewMBB, DL, TII->get(RISCV::CLC_64), RISCV::C7)
+      .addReg(RISCV::C7, RegState::Kill)
+      .addMBB(NewMBB, RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
+  BuildMI(NewMBB, DL, TII->get(RISCV::C_CJALR))
+      .addReg(RISCV::C7, RegState::Kill);
+
+  // Move all the rest of the instructions to NewMBB.
+  NewMBB->splice(NewMBB->end(), &MBB, std::next(MBBI), MBB.end());
+  // Update machine-CFG edges.
+  NewMBB->transferSuccessorsAndUpdatePHIs(&MBB);
+  // Make the original basic block fall-through to the new.
+  MBB.addSuccessor(NewMBB);
+
+  // Make sure live-ins are correctly attached to this new basic block.
+  LivePhysRegs LiveRegs;
+  computeAndAddLiveIns(LiveRegs, *NewMBB);
+
+  if (Callee.isGlobal()) {
+    auto *Fn = cast<Function>(Callee.getGlobal());
+    insertLoadOfImportTable(MBB, MBBI, Fn, RISCV::C6);
+  } else {
+    assert(Callee.isReg() && "Expected register operand");
+    if (Callee.getReg() != RISCV::C6) {
+      BuildMI(&MBB, DL, TII->get(RISCV::CMove)).addReg(RISCV::C6).add(Callee);
+    }
+  }
+
+  NextMBBI = MBB.end();
+  MI.eraseFromParent();
+  return true;
+}
+
+bool RISCVExpandPseudo::expandLibraryCall(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+    MachineBasicBlock::iterator &NextMBBI) {
+  // Expand a cross-library call into a auipcc + clc to get the import table
+  // entry , followed by a compressed cjalr to invoke it.  This is running
+  // post-RA, but the ABI guarantees that C7 is not required to be preserved
+  // here and so we can use it.
+  const MachineOperand Callee = MBBI->getOperand(0);
+  MachineInstr &MI = *MBBI;
+  auto *MF = MBB.getParent();
+  if (Callee.isGlobal()) {
+    auto *Fn = cast<Function>(Callee.getGlobal());
+    // If this is a global, check if it's defined in the same module and has a
+    // compatible interrupt status.  If so, we want to lower as a direct ccall.
+    if (!Fn->isDeclaration() && isSafeToDirectCall(MF->getFunction(), *Fn)) {
+      MI.setDesc(TII->get(RISCV::PseudoCCALL));
+      return true;
+    }
+    insertLoadOfImportTable(MBB, MBBI, Fn, RISCV::C7, true, true);
+
+    NextMBBI = MBB.end();
+  } else if (Callee.isSymbol()) {
+    // We can see symbols here from calls to runtime functions that are
+    // inserted by the back end, for example memcpy expanded from the LLVM
+    // intrinsic.  These don't have accompanying LLVM functions and so we just
+    // need to treat them as an external library call.
+    const auto &STI = MF->getSubtarget<RISCVSubtarget>();
+    if (STI.getTargetABI() == RISCVABI::ABI_CHERIOT_BAREMETAL) {
+      // If baremetal just blindly use a direct call
+      DEBUG_WITH_TYPE("baremetal", llvm::dbgs() <<
+        "baremetal library call of " << Callee.getSymbolName() << "\n");
+      MI.setDesc(TII->get(RISCV::PseudoCCALL));
+      return true;
+    }
+    auto ImportEntryName = getImportExportTableName(
+        "libcalls", Callee.getSymbolName(), CallingConv::CHERI_LibCall,
+        /*IsImport*/ true);
+    auto ExportEntryName = getImportExportTableName(
+        "libcalls", Callee.getSymbolName(), CallingConv::CHERI_LibCall,
+        /*IsImport*/ false);
+    // Create the symbol for the import entry.  We don't use this symbol
+    // directly (yet) but we need to allocate storage for the string where
+    // it will remain valid for the duration of codegen.
+    MCSymbol *ImportSymbol =
+        MF->getContext().getOrCreateSymbol(ImportEntryName);
+    MCSymbol *ExportSymbol =
+        MF->getContext().getOrCreateSymbol(ExportEntryName);
+    insertLoadOfImportTable(MBB, MBBI, ImportSymbol, ExportSymbol, RISCV::C7,
+                            true, true, true);
+
+    NextMBBI = MBB.end();
+  } else {
+    assert(Callee.isReg() && "Expected register operand");
+    // Indirect library calls are just cjalr instructions.
+    BuildMI(&MBB, MI.getDebugLoc(), TII->get(RISCV::C_CJALR)).add(Callee);
+  }
+  MI.eraseFromParent();
+  return true;
+}
+
+bool RISCVExpandPseudo::expandAuicgpInstPair(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+    MachineBasicBlock::iterator &NextMBBI, unsigned SecondOpcode,
+    bool InBounds) {
+  MachineInstr &MI = *MBBI;
+  DebugLoc DL = MI.getDebugLoc();
+  auto *MF = MBB.getParent();
+
+  assert(MI.getNumOperands() <= 2);
+  Register DestReg = MI.getOperand(0).getReg();
+  const MachineOperand &Symbol = MI.getOperand(1);
+
+  auto *NewMBB = MBB.getParent()->CreateMachineBasicBlock(MBB.getBasicBlock());
+
+  // Tell AsmPrinter that we unconditionally want the symbol of this label to be
+  // emitted.
+  NewMBB->setLabelMustBeEmitted();
+
+  MF->insert(++MBB.getIterator(), NewMBB);
+
+  BuildMI(NewMBB, DL, TII->get(RISCV::AUICGP), DestReg)
+      .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_HI);
+  BuildMI(NewMBB, DL, TII->get(SecondOpcode), DestReg)
+      .addReg(DestReg, RegState::Kill)
+      .addMBB(NewMBB, RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
+
+  if (!InBounds)
+    BuildMI(NewMBB, DL, TII->get(RISCV::CSetBoundsImm), DestReg)
+        .addReg(DestReg, RegState::Kill)
+        .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_SIZE);
+
+  // Move all the rest of the instructions to NewMBB.
+  NewMBB->splice(NewMBB->end(), &MBB, std::next(MBBI), MBB.end());
+  // Update machine-CFG edges.
+  NewMBB->transferSuccessorsAndUpdatePHIs(&MBB);
+  // Make the original basic block fall-through to the new.
+  MBB.addSuccessor(NewMBB);
+
+  // Make sure live-ins are correctly attached to this new basic block.
+  LivePhysRegs LiveRegs;
+  computeAndAddLiveIns(LiveRegs, *NewMBB);
+
+  NextMBBI = MBB.end();
+  MI.eraseFromParent();
+  return true;
+}
+
+bool RISCVExpandPseudo::expandAuipccInstPair(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+    MachineBasicBlock::iterator &NextMBBI, unsigned FlagsHi,
+    unsigned SecondOpcode, bool InBounds) {
+  auto ABI = MBB.getParent()->getSubtarget<RISCVSubtarget>().getTargetABI();
+  bool IsCheriot = ABI == RISCVABI::ABI_CHERIOT ||
+                   ABI == RISCVABI::ABI_CHERIOT_BAREMETAL;
+  MachineFunction *MF = MBB.getParent();
+  MachineInstr &MI = *MBBI;
+  DebugLoc DL = MI.getDebugLoc();
+
+  bool HasTmpReg = MI.getNumOperands() > 2;
+  Register DestReg = MI.getOperand(0).getReg();
+  Register TmpReg = MI.getOperand(HasTmpReg ? 1 : 0).getReg();
+  const MachineOperand &Symbol = MI.getOperand(HasTmpReg ? 2 : 1);
+  if (Symbol.getTargetFlags() & RISCVII::MO_JUMP_TABLE_BASE)
+    FlagsHi |= RISCVII::MO_JUMP_TABLE_BASE;
+
+  MachineBasicBlock *NewMBB = MF->CreateMachineBasicBlock(MBB.getBasicBlock());
+
+  // Tell AsmPrinter that we unconditionally want the symbol of this label to be
+  // emitted.
+  NewMBB->setLabelMustBeEmitted();
+
+  MF->insert(++MBB.getIterator(), NewMBB);
+
+  BuildMI(NewMBB, DL, TII->get(RISCV::AUIPCC), TmpReg)
+      .addDisp(Symbol, 0, FlagsHi);
+  BuildMI(NewMBB, DL, TII->get(SecondOpcode), DestReg)
+      .addReg(TmpReg)
+      .addMBB(NewMBB, IsCheriot ? RISCVII::MO_CHERIOT_COMPARTMENT_LO_I
+                                : RISCVII::MO_PCREL_LO);
+  if (!InBounds && MF->getSubtarget<RISCVSubtarget>().isRV32E() &&
+      Symbol.isGlobal() && isa<GlobalVariable>(Symbol.getGlobal()) &&
+      (cast<GlobalVariable>(Symbol.getGlobal())->getSection() !=
+       ".compartment_imports"))
+    BuildMI(NewMBB, DL, TII->get(RISCV::CSetBoundsImm), DestReg)
+        .addReg(DestReg)
+        .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_SIZE);
+
+  // Move all the rest of the instructions to NewMBB.
+  NewMBB->splice(NewMBB->end(), &MBB, std::next(MBBI), MBB.end());
+  // Update machine-CFG edges.
+  NewMBB->transferSuccessorsAndUpdatePHIs(&MBB);
+  // Make the original basic block fall-through to the new.
+  MBB.addSuccessor(NewMBB);
+
+  // Make sure live-ins are correctly attached to this new basic block.
+  LivePhysRegs LiveRegs;
+  computeAndAddLiveIns(LiveRegs, *NewMBB);
+
+  NextMBBI = MBB.end();
+  MI.eraseFromParent();
+  return true;
+}
+
+bool RISCVExpandPseudo::expandCapLoadLocalCap(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+    MachineBasicBlock::iterator &NextMBBI, bool InBounds) {
+  auto ABI = MBB.getParent()->getSubtarget<RISCVSubtarget>().getTargetABI();
+  if (ABI == RISCVABI::ABI_CHERIOT || ABI == RISCVABI::ABI_CHERIOT_BAREMETAL) {
+    const DebugLoc DL = MBBI->getDebugLoc();
+    const MachineOperand &Symbol = MBBI->getOperand(1);
+    if (!Symbol.isGlobal() ||
+        Symbol.getTargetFlags() == RISCVII::MO_JUMP_TABLE_BASE)
+      return expandAuipccInstPair(MBB, MBBI, NextMBBI,
+                                  RISCVII::MO_CHERIOT_COMPARTMENT_HI,
+                                  RISCV::CIncOffsetImm);
+
+    const GlobalValue *GV = Symbol.getGlobal();
+    if (!isa<Function>(GV) && !cast<GlobalVariable>(GV)->isConstant())
+      return expandAuicgpInstPair(MBB, MBBI, NextMBBI, RISCV::CIncOffsetImm,
+                                  InBounds);
+
+    auto *Fn = dyn_cast<Function>(GV);
+    if (!Fn)
+      return expandAuipccInstPair(MBB, MBBI, NextMBBI,
+                            RISCVII::MO_CHERIOT_COMPARTMENT_HI,
+                            RISCV::CIncOffsetImm, InBounds);
+
+    auto CC = Fn->getCallingConv();
+    if ((getInterruptStatus(*Fn) != Interrupts::Inherit) ||
+        (CC == CallingConv::CHERI_CCall) ||
+        (CC == CallingConv::CHERI_CCallee)) {
+      insertLoadOfImportTable(MBB, MBBI, Fn, MBBI->getOperand(0).getReg(),
+        /*TreatAsLibrary*/CC == CallingConv::C);
+      NextMBBI = MBB.end();
+      MBBI->eraseFromParent();
+      return true;
+    }
+
+    return expandAuipccInstPair(MBB, MBBI, NextMBBI,
+                                RISCVII::MO_CHERIOT_COMPARTMENT_HI,
+                                RISCV::CIncOffsetImm, InBounds);
+  }
+
+  return expandAuipccInstPair(MBB, MBBI, NextMBBI, RISCVII::MO_PCREL_HI,
+                              RISCV::CIncOffsetImm);
+}
+
+bool RISCVExpandPseudo::expandCapLoadGlobalCap(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+    MachineBasicBlock::iterator &NextMBBI) {
+  MachineFunction *MF = MBB.getParent();
+
+  const auto &STI = MF->getSubtarget<RISCVSubtarget>();
+  unsigned SecondOpcode = STI.is64Bit() ? RISCV::CLC_128 : RISCV::CLC_64;
+  return expandAuipccInstPair(MBB, MBBI, NextMBBI, RISCVII::MO_CAPTAB_PCREL_HI,
+                              SecondOpcode);
+}
+
+bool RISCVExpandPseudo::expandCapLoadTLSIEAddress(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+    MachineBasicBlock::iterator &NextMBBI) {
+  MachineFunction *MF = MBB.getParent();
+
+  const auto &STI = MF->getSubtarget<RISCVSubtarget>();
+  unsigned SecondOpcode = STI.is64Bit() ? RISCV::CLD : RISCV::CLW;
+  return expandAuipccInstPair(MBB, MBBI, NextMBBI,
+                              RISCVII::MO_TLS_IE_CAPTAB_PCREL_HI,
+                              SecondOpcode);
+}
+
+bool RISCVExpandPseudo::expandCapLoadTLSGDCap(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+    MachineBasicBlock::iterator &NextMBBI) {
+  return expandAuipccInstPair(MBB, MBBI, NextMBBI,
+                              RISCVII::MO_TLS_GD_CAPTAB_PCREL_HI,
+                              RISCV::CIncOffsetImm);
+}
+
+bool RISCVExpandPseudo::expandCGetAddr(MachineBasicBlock &MBB,
+                                       MachineBasicBlock::iterator MBBI) {
+  const auto &STI = MBB.getParent()->getSubtarget<RISCVSubtarget>();
+  DebugLoc DL = MBBI->getDebugLoc();
+  const TargetRegisterInfo *TRI = STI.getRegisterInfo();
+  // TODO: We could replace this pseudo with a subregister read if none of the
+  // readers can end up leaking the capability privileges.
+  BuildMI(MBB, MBBI, DL, TII->get(RISCV::ADDI), MBBI->getOperand(0).getReg())
+      .addReg(TRI->getSubReg(MBBI->getOperand(1).getReg(), RISCV::sub_cap_addr),
+              getRegState(MBBI->getOperand(1)))
+      .addImm(0);
+  MBBI->eraseFromParent(); // The pseudo instruction is gone now.
+  return true;
 }
 
 bool RISCVExpandPseudo::expandCCOp(MachineBasicBlock &MBB,
@@ -601,15 +1089,24 @@ bool RISCVPreRAExpandPseudo::expandLoadTLSDescAddress(
 
 } // end of anonymous namespace
 
+namespace llvm {
+
+template <> Pass *callDefaultCtor<RISCVExpandPseudo>() {
+  static CHERIoTImportedFunctionSet CHERIoTImports;
+  return new RISCVExpandPseudo(CHERIoTImports);
+}
+
+FunctionPass *
+createRISCVExpandPseudoPass(CHERIoTImportedFunctionSet &CHERIoTImports) {
+  return new RISCVExpandPseudo(CHERIoTImports);
+}
+
+FunctionPass *createRISCVPreRAExpandPseudoPass() { return new RISCVPreRAExpandPseudo(); }
+
+} // end of namespace llvm
+
 INITIALIZE_PASS(RISCVExpandPseudo, "riscv-expand-pseudo",
                 RISCV_EXPAND_PSEUDO_NAME, false, false)
 
 INITIALIZE_PASS(RISCVPreRAExpandPseudo, "riscv-prera-expand-pseudo",
                 RISCV_PRERA_EXPAND_PSEUDO_NAME, false, false)
-
-namespace llvm {
-
-FunctionPass *createRISCVExpandPseudoPass() { return new RISCVExpandPseudo(); }
-FunctionPass *createRISCVPreRAExpandPseudoPass() { return new RISCVPreRAExpandPseudo(); }
-
-} // end of namespace llvm

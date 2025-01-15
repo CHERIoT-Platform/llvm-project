@@ -173,7 +173,6 @@ private:
     int64_t ImmVal;          // For MO_Immediate.
     const uint32_t *RegMask; // For MO_RegisterMask and MO_RegisterLiveOut.
     const MDNode *MD;        // For MO_Metadata.
-    MCSymbol *Sym;           // For MO_MCSymbol.
     unsigned CFIIndex;       // For MO_CFI.
     Intrinsic::ID IntrinsicID; // For MO_IntrinsicID.
     unsigned Pred;           // For MO_Predicate
@@ -195,6 +194,7 @@ private:
     struct {
       union {
         int Index;                // For MO_*Index - The index itself.
+        MCSymbol *Sym;            // For MO_MCSymbol.
         const char *SymbolName;   // For MO_ExternalSymbol.
         const GlobalValue *GV;    // For MO_GlobalAddress.
         const BlockAddress *BA;   // For MO_BlockAddress.
@@ -457,6 +457,40 @@ public:
     return IsDebug;
   }
 
+  /// Whether this operand could be a sealed capability.
+  /// Note: this is very conservative and callers should look at the
+  /// instructions definition for register operands.
+  bool maybeSealed() const {
+    if (isReg())
+      return true; // Note: this is very conservative.
+    if (isFI())
+      return false; // FrameIndexes are always unsealed.
+    if (isCPI() || isTargetIndex() || isGlobal() || isBlockAddress() || isJTI())
+      return true; // Addresses of globals could be sealed.
+    llvm_unreachable("Wrong MachineOperand accessor for maybeSealed");
+    return true;
+  }
+  /// Whether this operand could be an untagged capability.
+  /// Note: this is very conservative and callers should look at the
+  /// instructions definition for register operands.
+  bool maybeUntagged() const {
+    if (isReg())
+      return true;
+    if (isFI() || isBlockAddress())
+      return false; // FrameIndexes and block addresses are always tagged.
+    if (isCPI() || isTargetIndex() || isGlobal() || isJTI())
+      return false;
+    if (isSymbol() || isMCSymbol()) {
+      // TODO: what about these? Are they always valid capabilities? Can they be
+      // used as operands for CHERI instructions? I don't think so, but let's
+      // add an explicit assertion message.
+      llvm_unreachable("maybeUntagged should not be used for is(MC)Symbol()");
+      return true;
+    }
+    llvm_unreachable("Wrong MachineOperand accessor for maybeUntagged");
+    return true;
+  }
+
   /// readsReg - Returns true if this operand reads the previous value of its
   /// register.  A use operand with the <undef> flag set doesn't read its
   /// register.  A sub-register def implicitly reads the other parts of the
@@ -591,7 +625,7 @@ public:
 
   MCSymbol *getMCSymbol() const {
     assert(isMCSymbol() && "Wrong MachineOperand accessor");
-    return Contents.Sym;
+    return Contents.OffsetedInfo.Val.Sym;
   }
 
   unsigned getInstrRefInstrIndex() const {
@@ -950,7 +984,7 @@ public:
   static MachineOperand CreateMCSymbol(MCSymbol *Sym,
                                        unsigned TargetFlags = 0) {
     MachineOperand Op(MachineOperand::MO_MCSymbol);
-    Op.Contents.Sym = Sym;
+    Op.Contents.OffsetedInfo.Val.Sym = Sym;
     Op.setOffset(0);
     Op.setTargetFlags(TargetFlags);
     return Op;

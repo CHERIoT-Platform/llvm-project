@@ -283,6 +283,7 @@ public:
   static const TST TST_char32 = clang::TST_char32;
   static const TST TST_int = clang::TST_int;
   static const TST TST_int128 = clang::TST_int128;
+  static const TST TST_intcap = clang::TST_intcap;
   static const TST TST_bitint = clang::TST_bitint;
   static const TST TST_half = clang::TST_half;
   static const TST TST_BFloat16 = clang::TST_BFloat16;
@@ -354,6 +355,8 @@ private:
   /*SCS*/unsigned StorageClassSpec : 3;
   /*TSCS*/unsigned ThreadStorageClassSpec : 2;
   unsigned SCS_extern_in_linkage_spec : 1;
+  unsigned TQ_cheri_output : 1;
+  unsigned TQ_cheri_input : 1;
 
   // type-specifier
   /*TypeSpecifierWidth*/ unsigned TypeSpecWidth : 2;
@@ -457,7 +460,8 @@ public:
   DeclSpec(AttributeFactory &attrFactory)
       : StorageClassSpec(SCS_unspecified),
         ThreadStorageClassSpec(TSCS_unspecified),
-        SCS_extern_in_linkage_spec(false),
+        SCS_extern_in_linkage_spec(false), TQ_cheri_output(false),
+        TQ_cheri_input(false),
         TypeSpecWidth(static_cast<unsigned>(TypeSpecifierWidth::Unspecified)),
         TypeSpecComplex(TSC_unspecified),
         TypeSpecSign(static_cast<unsigned>(TypeSpecifierSign::Unspecified)),
@@ -493,6 +497,10 @@ public:
     StorageClassSpecLoc        = SourceLocation();
     ThreadStorageClassSpecLoc  = SourceLocation();
   }
+  bool HasOutput() const { return TQ_cheri_output; }
+  bool SetOutput(const char *&PrevSpec, unsigned &DiagID);
+  bool HasInput() const { return TQ_cheri_input; }
+  bool SetInput(const char *&PrevSpec, unsigned &DiagID);
 
   void ClearTypeSpecType() {
     TypeSpecType = DeclSpec::TST_unspecified;

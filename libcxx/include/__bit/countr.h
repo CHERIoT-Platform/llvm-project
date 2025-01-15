@@ -42,11 +42,11 @@ _LIBCPP_NODISCARD_EXT _LIBCPP_HIDE_FROM_ABI constexpr int countr_zero(_Tp __t) n
   if (__t == 0)
     return numeric_limits<_Tp>::digits;
 
-  if (sizeof(_Tp) <= sizeof(unsigned int))
+  if constexpr (sizeof(_Tp) <= sizeof(unsigned int))
     return std::__libcpp_ctz(static_cast<unsigned int>(__t));
-  else if (sizeof(_Tp) <= sizeof(unsigned long))
+  else if constexpr (sizeof(_Tp) <= sizeof(unsigned long))
     return std::__libcpp_ctz(static_cast<unsigned long>(__t));
-  else if (sizeof(_Tp) <= sizeof(unsigned long long))
+  else if constexpr (sizeof(_Tp) <= sizeof(unsigned long long))
     return std::__libcpp_ctz(static_cast<unsigned long long>(__t));
   else {
     int __ret                      = 0;
@@ -58,6 +58,13 @@ _LIBCPP_NODISCARD_EXT _LIBCPP_HIDE_FROM_ABI constexpr int countr_zero(_Tp __t) n
     return __ret + std::__libcpp_ctz(static_cast<unsigned long long>(__t));
   }
 }
+
+#if __has_feature(capabilities)
+template<>
+_LIBCPP_HIDE_FROM_ABI constexpr inline int countr_zero(unsigned __intcap __t) noexcept {
+    return std::countr_zero(static_cast<ptraddr_t>(__t));
+}
+#endif
 
 template <__libcpp_unsigned_integer _Tp>
 _LIBCPP_NODISCARD_EXT _LIBCPP_HIDE_FROM_ABI constexpr int countr_one(_Tp __t) noexcept {

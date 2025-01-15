@@ -586,6 +586,11 @@ function(cxx_add_exception_flags target)
   endif()
 endfunction()
 
+# Static build flags 
+if (LIBCXX_ENABLE_STATIC)
+  add_definitions(-D_LIBCPP_BUILD_STATIC)
+endif()
+
 # RTTI flags ==================================================================
 function(cxx_add_rtti_flags target)
   if (NOT LIBCXX_ENABLE_RTTI)

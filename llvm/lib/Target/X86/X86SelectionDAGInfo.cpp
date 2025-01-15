@@ -67,7 +67,7 @@ SDValue X86SelectionDAGInfo::EmitTargetCodeForMemset(
   // The libc version is likely to be faster for these cases. It can use the
   // address value and run time information about the CPU.
   if (Alignment < Align(4) || !ConstantSize ||
-      ConstantSize->getZExtValue() > Subtarget.getMaxInlineSizeThreshold()) 
+      ConstantSize->getZExtValue() > Subtarget.getMaxInlineSizeThreshold())
     return SDValue();
 
   uint64_t SizeVal = ConstantSize->getZExtValue();
@@ -254,14 +254,16 @@ static SDValue emitConstantSizeRepmov(
       DAG.getNode(ISD::ADD, dl, SrcVT, Src, DAG.getConstant(Offset, dl, SrcVT)),
       DAG.getConstant(BytesLeft, dl, SizeVT), Alignment, isVolatile,
       /*AlwaysInline*/ true, /*isTailCall*/ false,
-      DstPtrInfo.getWithOffset(Offset), SrcPtrInfo.getWithOffset(Offset)));
+      PreserveCheriTags::Unnecessary, DstPtrInfo.getWithOffset(Offset),
+      SrcPtrInfo.getWithOffset(Offset)));
   return DAG.getNode(ISD::TokenFactor, dl, MVT::Other, Results);
 }
 
 SDValue X86SelectionDAGInfo::EmitTargetCodeForMemcpy(
     SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Dst, SDValue Src,
     SDValue Size, Align Alignment, bool isVolatile, bool AlwaysInline,
-    MachinePointerInfo DstPtrInfo, MachinePointerInfo SrcPtrInfo) const {
+    PreserveCheriTags /*PreserveTags*/, MachinePointerInfo DstPtrInfo,
+    MachinePointerInfo SrcPtrInfo) const {
   // If to a segment-relative address space, use the default lowering.
   if (DstPtrInfo.getAddrSpace() >= 256 || SrcPtrInfo.getAddrSpace() >= 256)
     return SDValue();

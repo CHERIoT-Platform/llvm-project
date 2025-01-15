@@ -73,6 +73,7 @@ public:
     AsLongLong,   // 'll'
     AsQuad,       // 'q' (BSD, deprecated, for 64-bit integer types)
     AsIntMax,     // 'j'
+    AsIntPtr,     // 'P'
     AsSizeT,      // 'z'
     AsPtrDiff,    // 't'
     AsInt32,      // 'I32' (MSVCRT, like __int32)
@@ -157,6 +158,7 @@ public:
 
     sArg,
     pArg,
+    CHERIpArg,
     nArg,
     PercentArg,
     CArg,
@@ -254,7 +256,7 @@ protected:
 class ArgType {
 public:
   enum Kind { UnknownTy, InvalidTy, SpecificTy, ObjCPointerTy, CPointerTy,
-              AnyCharTy, CStrTy, WCStrTy, WIntTy };
+              CCapabilityTy, AnyCharTy, CStrTy, WCStrTy, WIntTy };
 
   /// How well a given conversion specifier matches its argument.
   enum MatchKind {

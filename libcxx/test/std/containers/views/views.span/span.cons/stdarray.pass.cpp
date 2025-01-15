@@ -26,6 +26,7 @@
 #include <string>
 
 #include "test_macros.h"
+TEST_CHERI_NO_SUBOBJECT_WARNING
 
 void checkCV()
 {

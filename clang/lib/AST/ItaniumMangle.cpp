@@ -75,6 +75,7 @@ class ItaniumMangleContextImpl : public ItaniumMangleContext {
   llvm::DenseMap<const NamedDecl*, unsigned> Uniquifier;
   const DiscriminatorOverrideTy DiscriminatorOverride = nullptr;
   NamespaceDecl *StdNamespace = nullptr;
+  bool AllPointersAreCapabilities;
 
   bool NeedsUniqueInternalLinkageNames = false;
 
@@ -83,12 +84,17 @@ public:
       ASTContext &Context, DiagnosticsEngine &Diags,
       DiscriminatorOverrideTy DiscriminatorOverride, bool IsAux = false)
       : ItaniumMangleContext(Context, Diags, IsAux),
-        DiscriminatorOverride(DiscriminatorOverride) {}
+        DiscriminatorOverride(DiscriminatorOverride) {
+    AllPointersAreCapabilities =
+        Context.getTargetInfo().areAllPointersCapabilities();
+  }
 
   /// @name Mangler Entry Points
   /// @{
-
   bool shouldMangleCXXName(const NamedDecl *D) override;
+  // We only want to mangle the __capability qualifier if this is not the
+  // default representation of pointers, i.e. only in the hybrid ABI.
+  bool shouldMangleCapabilityQualifier() { return !AllPointersAreCapabilities; };
   bool shouldMangleStringLiteral(const StringLiteral *) override {
     return false;
   }
@@ -744,6 +750,28 @@ bool ItaniumMangleContextImpl::shouldMangleCXXName(const NamedDecl *D) {
     // Overloadable functions need mangling.
     if (FD->hasAttr<OverloadableAttr>())
       return true;
+
+    // CHERI cross-compartment calls need mangling.
+    if (FD->hasAttr<CHERICompartmentNameAttr>() ||
+        FD->hasAttr<CHERILibCallAttr>()) {
+      assert(getASTContext().getTargetInfo().getTargetOpts().ABI != "cheriot-baremetal");
+      return llvm::StringSwitch<bool>(FD->getName())
+        .Case("memcpy", false)
+        .Case("memmove", false)
+        .Case("memset", false)
+        .Case("memcmp", false)
+        .Default(true);
+    }
+
+    if (FD->getType()->castAs<FunctionType>()->getCallConv() == CC_CHERILibCall) {
+      assert(getASTContext().getTargetInfo().getTargetOpts().ABI != "cheriot-baremetal");
+      return llvm::StringSwitch<bool>(FD->getName())
+        .Case("memcpy", false)
+        .Case("memmove", false)
+        .Case("memset", false)
+        .Case("memcmp", false)
+        .Default(true);
+    }
 
     // "main" is not mangled.
     if (FD->isMain())
@@ -2408,6 +2436,7 @@ bool CXXNameMangler::mangleUnresolvedTypeOrSimpleId(QualType Ty,
   case Type::VariableArray:
   case Type::DependentSizedArray:
   case Type::DependentAddressSpace:
+  case Type::DependentPointer:
   case Type::DependentVector:
   case Type::DependentSizedExtVector:
   case Type::Vector:
@@ -3344,6 +3373,12 @@ void CXXNameMangler::mangleType(const BuiltinType *T) {
   case BuiltinType::ObjCSel:
     Out << "13objc_selector";
     break;
+  case BuiltinType::IntCap:
+    Out << "u10__intcap_t";
+    break;
+  case BuiltinType::UIntCap:
+    Out << "u11__uintcap_t";
+    break;
 #define IMAGE_TYPE(ImgType, Id, SingletonId, Access, Suffix) \
   case BuiltinType::Id: \
     type_name = "ocl_" #ImgType "_" #Suffix; \
@@ -3442,6 +3477,8 @@ StringRef CXXNameMangler::getCallingConvQualifierName(CallingConv CC) {
   case CC_PreserveMost:
   case CC_PreserveAll:
   case CC_M68kRTD:
+  case CC_CHERICCallee:
+  case CC_CHERILibCall:
     // FIXME: we should be mangling all of the above.
     return "";
 
@@ -3465,6 +3502,9 @@ StringRef CXXNameMangler::getCallingConvQualifierName(CallingConv CC) {
     return "swiftcall";
   case CC_SwiftAsync:
     return "swiftasynccall";
+  case CC_CHERICCall:
+  case CC_CHERICCallback:
+    return "chericcall";
   }
   llvm_unreachable("bad calling convention");
 }
@@ -3731,6 +3771,8 @@ void CXXNameMangler::mangleType(const SubstTemplateTypeParmPackType *T) {
 
 // <type> ::= P <type>   # pointer-to
 void CXXNameMangler::mangleType(const PointerType *T) {
+  if (Context.shouldMangleCapabilityQualifier() && T->isCHERICapability())
+    Out << "U12__capability";
   Out << 'P';
   mangleType(T->getPointeeType());
 }
@@ -3741,12 +3783,16 @@ void CXXNameMangler::mangleType(const ObjCObjectPointerType *T) {
 
 // <type> ::= R <type>   # reference-to
 void CXXNameMangler::mangleType(const LValueReferenceType *T) {
+  if (Context.shouldMangleCapabilityQualifier() && T->isCHERICapability())
+    Out << "U12__capability";
   Out << 'R';
   mangleType(T->getPointeeType());
 }
 
 // <type> ::= O <type>   # rvalue reference-to (C++0x)
 void CXXNameMangler::mangleType(const RValueReferenceType *T) {
+  if (Context.shouldMangleCapabilityQualifier() && T->isCHERICapability())
+    Out << "U12__capability";
   Out << 'O';
   mangleType(T->getPointeeType());
 }
@@ -4194,6 +4240,12 @@ void CXXNameMangler::mangleType(const DependentAddressSpaceType *T) {
   SplitQualType split = T->getPointeeType().split();
   mangleQualifiers(split.Quals, T);
   mangleType(QualType(split.Ty, 0));
+}
+
+void CXXNameMangler::mangleType(const DependentPointerType *T) {
+  if (Context.shouldMangleCapabilityQualifier() && T->isCHERICapability())
+    Out << "U12__capability";
+  mangleType(T->getPointerType());
 }
 
 void CXXNameMangler::mangleType(const PackExpansionType *T) {
@@ -5381,6 +5433,7 @@ recurse:
   }
 
   case Expr::ParenExprClass:
+  case Expr::NoChangeBoundsExprClass:
     E = cast<ParenExpr>(E)->getSubExpr();
     goto recurse;
 

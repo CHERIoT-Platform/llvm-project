@@ -108,6 +108,8 @@ unsigned AsmPrinter::GetSizeOfEncodedValue(unsigned Encoding) const {
   default:
     llvm_unreachable("Invalid encoded value.");
   case dwarf::DW_EH_PE_absptr:
+    assert(!MF->getDataLayout().isFatPointer(0u) &&
+           "Should not use GetSizeOfEncodedValue when emitting capabilities");
     return MAI->getCodePointerSize();
   case dwarf::DW_EH_PE_udata2:
     return 2;
@@ -197,6 +199,25 @@ void AsmPrinter::emitCallSiteValue(uint64_t Value, unsigned Encoding) const {
     emitULEB128(Value);
   else
     OutStreamer->emitIntValue(Value, GetSizeOfEncodedValue(Encoding));
+}
+
+void AsmPrinter::emitCallSiteCheriCapability(const MCSymbol *Hi,
+                                             const MCSymbol *Lo) const {
+  // Note: we cannot use Lo here since that is an assembler-local symbol and
+  // this would result in EmitCheriCapability() creating a relocation against
+  // section plus offset rather than function + offset. We need the right
+  // bounds and permissions info and need to use a non-preemptible alias.
+  assert(CurrentFnBeginLocal && "Missing local function entry alias for EH!");
+  // Ensure that CurrentFnBeginLocal ends up in the symbol table so that ld.lld
+  // can find the surrounding function even if the actual function is not used.
+  // This happens with weak functions where the unused function's landing pads
+  // would otherwise no longer have a valid surrounding symbol. While this does
+  // not matter as they are unused, it does trigger ld.lld warnings. Always
+  // emitting the local symbol also ensures we can find a valid surrounding and
+  // non-preemptible symbol with a size set.
+  CurrentFnBeginLocal->setUsedInReloc();
+  OutStreamer->EmitCheriCapability(
+      Hi, (int64_t)0, getObjFileLowering().getCheriCapabilitySize(TM));
 }
 
 //===----------------------------------------------------------------------===//

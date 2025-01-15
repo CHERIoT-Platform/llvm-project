@@ -1,4 +1,4 @@
-; RUN: llc -mtriple mips64-unknown-linux -mcpu=mips64r5 -mattr=+msa < %s | FileCheck %s
+; RUN: llc -mtriple mips64-unknown-linux -mcpu=mips64r5 -mattr=+msa -verify-machineinstrs  < %s | FileCheck %s
 
 ; The fcmp fast flag will result in conversion from
 ; setolt, setoeq, setole, setone to

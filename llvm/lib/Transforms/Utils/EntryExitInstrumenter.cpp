@@ -34,7 +34,7 @@ static void insertCall(Function &CurFn, StringRef Func,
       Func == "__cyg_profile_func_enter_bare") {
     Triple TargetTriple(M.getTargetTriple());
     if (TargetTriple.isOSAIX() && Func == "__mcount") {
-      Type *SizeTy = M.getDataLayout().getIntPtrType(C);
+      Type *SizeTy = M.getDataLayout().getIntPtrType(C, M.getDataLayout().getProgramAddressSpace());
       Type *SizePtrTy = PointerType::getUnqual(C);
       GlobalVariable *GV = new GlobalVariable(M, SizeTy, /*isConstant=*/false,
                                               GlobalValue::InternalLinkage,
@@ -54,18 +54,21 @@ static void insertCall(Function &CurFn, StringRef Func,
   }
 
   if (Func == "__cyg_profile_func_enter" || Func == "__cyg_profile_func_exit") {
-    Type *ArgTypes[] = {PointerType::getUnqual(C), PointerType::getUnqual(C)};
+    auto ProgASPtr =
+        PointerType::get(C, M.getDataLayout().getProgramAddressSpace());
+    Type *ArgTypes[] = {ProgASPtr, ProgASPtr};
 
     FunctionCallee Fn = M.getOrInsertFunction(
         Func, FunctionType::get(Type::getVoidTy(C), ArgTypes, false));
 
     Instruction *RetAddr = CallInst::Create(
-        Intrinsic::getDeclaration(&M, Intrinsic::returnaddress),
+        Intrinsic::getDeclaration(&M, Intrinsic::returnaddress, {ProgASPtr}),
         ArrayRef<Value *>(ConstantInt::get(Type::getInt32Ty(C), 0)), "",
         InsertionPt);
     RetAddr->setDebugLoc(DL);
 
-    Value *Args[] = {&CurFn, RetAddr};
+    Value *Args[] = {ConstantExpr::getBitCast(&CurFn, ProgASPtr), RetAddr};
+
     CallInst *Call =
         CallInst::Create(Fn, ArrayRef<Value *>(Args), "", InsertionPt);
     Call->setDebugLoc(DL);

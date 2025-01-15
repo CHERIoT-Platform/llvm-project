@@ -25,6 +25,8 @@ template <class ELFT> class MIPS final : public TargetInfo {
 public:
   MIPS();
   uint32_t calcEFlags() const override;
+  bool calcIsCheriAbi() const override;
+  int getCapabilitySize() const override;
   RelExpr getRelExpr(RelType type, const Symbol &s,
                      const uint8_t *loc) const override;
   int64_t getImplicitAddend(const uint8_t *buf, RelType type) const override;
@@ -49,6 +51,8 @@ template <class ELFT> MIPS<ELFT>::MIPS() {
   pltHeaderSize = 32;
   copyRel = R_MIPS_COPY;
   pltRel = R_MIPS_JUMP_SLOT;
+  cheriCapRel = R_MIPS_CHERI_CAPABILITY;
+  cheriCapCallRel = R_MIPS_CHERI_CAPABILITY_CALL;
   needsThunks = true;
 
   // Set `sigrie 1` as a trap instruction.
@@ -60,17 +64,40 @@ template <class ELFT> MIPS<ELFT>::MIPS() {
     tlsGotRel = R_MIPS_TLS_TPREL64;
     tlsModuleIndexRel = R_MIPS_TLS_DTPMOD64;
     tlsOffsetRel = R_MIPS_TLS_DTPREL64;
+    absPointerRel = (R_MIPS_64 << 8) | R_MIPS_CHERI_ABSPTR;
+    sizeRel = (R_MIPS_64 << 8) | R_MIPS_CHERI_SIZE;
   } else {
     relativeRel = R_MIPS_REL32;
     symbolicRel = R_MIPS_32;
     tlsGotRel = R_MIPS_TLS_TPREL32;
     tlsModuleIndexRel = R_MIPS_TLS_DTPMOD32;
     tlsOffsetRel = R_MIPS_TLS_DTPREL32;
+    absPointerRel = R_MIPS_CHERI_ABSPTR;
+    sizeRel = R_MIPS_CHERI_SIZE;
   }
 }
 
 template <class ELFT> uint32_t MIPS<ELFT>::calcEFlags() const {
   return calcMipsEFlags<ELFT>();
+}
+
+template <class ELFT> bool MIPS<ELFT>::calcIsCheriAbi() const {
+  bool isCheriAbi = (config->eflags & EF_MIPS_ABI) == EF_MIPS_ABI_CHERIABI;
+
+  if (config->isCheriAbi && !ctx.objectFiles.empty() && !isCheriAbi)
+    error(toString(ctx.objectFiles.front()) +
+          ": object file is non-CheriABI but emulation forces it");
+
+  return isCheriAbi;
+}
+
+template <class ELFT> int MIPS<ELFT>::getCapabilitySize() const {
+  // Compute the size of a CHERI capability based on the MIPS ABI flags:
+  if ((config->eflags & EF_MIPS_MACH) == EF_MIPS_MACH_CHERI128)
+    return 16;
+  if ((config->eflags & EF_MIPS_MACH) == EF_MIPS_MACH_CHERI256)
+    return 32;
+  return 0;
 }
 
 template <class ELFT>
@@ -106,6 +133,8 @@ RelExpr MIPS<ELFT>::getRelExpr(RelType type, const Symbol &s,
   case R_MICROMIPS_GPREL16:
   case R_MICROMIPS_GPREL7_S2:
     return R_MIPS_GOTREL;
+  case R_MIPS_CHERI_CAPTABLEREL16:
+    return R_CHERI_CAPABILITY_TABLE_REL;
   case R_MIPS_26:
   case R_MICROMIPS_26_S1:
     return R_PLT;
@@ -190,6 +219,29 @@ RelExpr MIPS<ELFT>::getRelExpr(RelType type, const Symbol &s,
     return R_MIPS_TLSLD;
   case R_MIPS_NONE:
     return R_NONE;
+  case R_MIPS_CHERI_CAPABILITY:
+    return R_CHERI_CAPABILITY;
+  case R_MIPS_CHERI_CAPTAB_LO16:
+  case R_MIPS_CHERI_CAPTAB_HI16:
+    return R_CHERI_CAPABILITY_TABLE_INDEX;
+  case R_MIPS_CHERI_CAPCALL_LO16:
+  case R_MIPS_CHERI_CAPCALL_HI16:
+    return R_CHERI_CAPABILITY_TABLE_INDEX_CALL;
+  case R_MIPS_CHERI_CAPTAB_CLC11:
+  case R_MIPS_CHERI_CAPTAB20:
+    return R_CHERI_CAPABILITY_TABLE_INDEX_SMALL_IMMEDIATE;
+  case R_MIPS_CHERI_CAPCALL_CLC11:
+  case R_MIPS_CHERI_CAPCALL20:
+    return R_CHERI_CAPABILITY_TABLE_INDEX_CALL_SMALL_IMMEDIATE;
+  case R_MIPS_CHERI_CAPTAB_TLS_GD_LO16:
+  case R_MIPS_CHERI_CAPTAB_TLS_GD_HI16:
+    return R_MIPS_CHERI_CAPTAB_TLSGD;
+  case R_MIPS_CHERI_CAPTAB_TLS_LDM_LO16:
+  case R_MIPS_CHERI_CAPTAB_TLS_LDM_HI16:
+    return R_MIPS_CHERI_CAPTAB_TLSLD;
+  case R_MIPS_CHERI_CAPTAB_TLS_TPREL_LO16:
+  case R_MIPS_CHERI_CAPTAB_TLS_TPREL_HI16:
+    return R_MIPS_CHERI_CAPTAB_TPREL;
   default:
     error(getErrorLocation(loc) + "unknown relocation (" + Twine(type) +
           ") against symbol " + toString(s));
@@ -463,6 +515,10 @@ int64_t MIPS<ELFT>::getImplicitAddend(const uint8_t *buf, RelType type) const {
   case R_MIPS_TLS_DTPREL64:
   case R_MIPS_TLS_TPREL64:
   case (R_MIPS_64 << 8) | R_MIPS_REL32:
+  case (R_MIPS_64 << 8) | R_MIPS_CHERI_ABSPTR:
+  case (R_MIPS_64 << 8) | R_MIPS_CHERI_SIZE:
+  case R_MIPS_CHERI_CAPABILITY:
+  case R_MIPS_CHERI_CAPABILITY_CALL:
     return read64(buf);
   case R_MIPS_COPY:
     return config->is64 ? read64(buf) : read32(buf);
@@ -576,13 +632,15 @@ void MIPS<ELFT>::relocate(uint8_t *loc, const Relocation &rel,
   // Detect cross-mode jump/branch and fix instruction.
   val = fixupCrossModeJump<ELFT>(loc, type, val);
 
-  // Thread pointer and DRP offsets from the start of TLS data area.
-  // https://www.linux-mips.org/wiki/NPTL
-  if (type == R_MIPS_TLS_DTPREL_HI16 || type == R_MIPS_TLS_DTPREL_LO16 ||
-      type == R_MIPS_TLS_DTPREL32 || type == R_MIPS_TLS_DTPREL64 ||
-      type == R_MICROMIPS_TLS_DTPREL_HI16 ||
-      type == R_MICROMIPS_TLS_DTPREL_LO16) {
-    val -= 0x8000;
+  if (!config->isCheriAbi) {
+    // Thread pointer and DRP offsets from the start of TLS data area.
+    // https://www.linux-mips.org/wiki/NPTL
+    if (type == R_MIPS_TLS_DTPREL_HI16 || type == R_MIPS_TLS_DTPREL_LO16 ||
+        type == R_MIPS_TLS_DTPREL32 || type == R_MIPS_TLS_DTPREL64 ||
+        type == R_MICROMIPS_TLS_DTPREL_HI16 ||
+        type == R_MICROMIPS_TLS_DTPREL_LO16) {
+      val -= 0x8000;
+    }
   }
 
   switch (type) {
@@ -635,6 +693,11 @@ void MIPS<ELFT>::relocate(uint8_t *loc, const Relocation &rel,
   case R_MIPS_PCLO16:
   case R_MIPS_TLS_DTPREL_LO16:
   case R_MIPS_TLS_TPREL_LO16:
+  case R_MIPS_CHERI_CAPTAB_LO16:
+  case R_MIPS_CHERI_CAPCALL_LO16:
+  case R_MIPS_CHERI_CAPTAB_TLS_GD_LO16:
+  case R_MIPS_CHERI_CAPTAB_TLS_LDM_LO16:
+  case R_MIPS_CHERI_CAPTAB_TLS_TPREL_LO16:
     writeValue(loc, val, 16, 0);
     break;
   case R_MICROMIPS_GPREL16:
@@ -661,7 +724,30 @@ void MIPS<ELFT>::relocate(uint8_t *loc, const Relocation &rel,
   case R_MIPS_PCHI16:
   case R_MIPS_TLS_DTPREL_HI16:
   case R_MIPS_TLS_TPREL_HI16:
+  case R_MIPS_CHERI_CAPTAB_HI16:
+  case R_MIPS_CHERI_CAPCALL_HI16:
+  case R_MIPS_CHERI_CAPTAB_TLS_GD_HI16:
+  case R_MIPS_CHERI_CAPTAB_TLS_LDM_HI16:
+  case R_MIPS_CHERI_CAPTAB_TLS_TPREL_HI16:
     writeValue(loc, val + 0x8000, 16, 16);
+    break;
+  case R_MIPS_CHERI_CAPTAB_CLC11:
+  case R_MIPS_CHERI_CAPCALL_CLC11:
+    // The clc relocations have a signed 15 bit range (11 bit immediate shifted
+    // by 4). This is the same for 128 and 256 even though they have different
+    // capability sizes
+    assert((val & 0xf) == 0 && "Bottom 4 bits should always be zero!");
+    checkInt(loc, val >> 4, 11, rel);
+    writeValue(loc, val, 11, 4);
+    break;
+  case R_MIPS_CHERI_CAPTAB20:
+  case R_MIPS_CHERI_CAPCALL20:
+    // The new clc instruction has a 20 bit signed range (16 bit immediate
+    // shifted by 4). This is the same for 128 and 256 even though they have
+    // different capability sizes
+    assert((val & 0xf) == 0 && "Bottom 4 bits should always be zero!");
+    checkInt(loc, val >> 4, 16, rel);
+    writeValue(loc, val, 16, 4);
     break;
   case R_MICROMIPS_CALL_HI16:
   case R_MICROMIPS_GOT_HI16:
@@ -750,6 +836,8 @@ void MIPS<ELFT>::relocate(uint8_t *loc, const Relocation &rel,
     checkInt(loc, val, 25, rel);
     writeShuffleValue<e>(loc, val, 23, 2);
     break;
+  case R_MIPS_CHERI_CAPABILITY:
+    llvm_unreachable("R_MIPS_CHERI_CAPABILITY should never be handled here!");
   default:
     llvm_unreachable("unknown relocation");
   }

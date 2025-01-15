@@ -6423,6 +6423,11 @@ bool UnnamedLocalNoLinkageFinder::VisitDependentAddressSpaceType(
   return Visit(T->getPointeeType());
 }
 
+bool UnnamedLocalNoLinkageFinder::VisitDependentPointerType(
+    const DependentPointerType *T) {
+  return Visit(T->getPointeeType());
+}
+
 bool UnnamedLocalNoLinkageFinder::VisitVectorType(const VectorType* T) {
   return Visit(T->getElementType());
 }
@@ -8108,7 +8113,10 @@ static Expr *BuildExpressionFromIntegralTemplateArgumentValue(
   } else if (T->isBooleanType()) {
     E = CXXBoolLiteralExpr::Create(S.Context, Int.getBoolValue(), T, Loc);
   } else {
-    E = IntegerLiteral::Create(S.Context, Int, T, Loc);
+    auto IntValue = Int;
+    if (T->isIntCapType())
+      IntValue = IntValue.extOrTrunc(S.Context.getIntRange(T));
+    E = IntegerLiteral::Create(S.Context, IntValue, T, Loc);
   }
 
   if (OrigT->isEnumeralType()) {

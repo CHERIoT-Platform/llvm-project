@@ -898,7 +898,7 @@ handler:
 
 ; "foo_vararg" is a function that takes a swifterror parameter, it also has
 ; variable number of arguments.
-declare void @llvm.va_start(ptr) nounwind
+declare void @llvm.va_start.p0(ptr) nounwind
 define float @foo_vararg(ptr swifterror %error_ptr_ref, ...) {
 ; CHECK-APPLE-AARCH64-LABEL: foo_vararg:
 ; CHECK-APPLE-AARCH64:       ; %bb.0: ; %entry
@@ -1051,7 +1051,7 @@ entry:
   %a10 = alloca i32, align 4
   %a11 = alloca i32, align 4
   %a12 = alloca i32, align 4
-  call void @llvm.va_start(ptr %args)
+  call void @llvm.va_start.p0(ptr %args)
   %v11 = va_arg ptr %args, i32
   store i32 %v11, ptr %a10, align 4
   %v12 = va_arg ptr %args, i32

@@ -23,7 +23,7 @@ void HasEHCleanup() {
 // WIN32:   invoke void @"?getA@@YA?AUA@@XZ"(ptr dead_on_unwind writable sret(%struct.A) align 4 %{{.*}})
 //    If this call throws, we have to cleanup the stacksave.
 // WIN32:   call noundef i32 @"?TakesTwo@@YAHUA@@0@Z"
-// WIN32:   call void @llvm.stackrestore
+// WIN32:   call void @llvm.stackrestore.p0(
 // WIN32:   ret void
 //
 //    There should be one dtor call for unwinding from the second getA.
@@ -45,7 +45,7 @@ void HasEHCleanupNoexcept() noexcept {
 // WIN32:   invoke void @"?getA@@YA?AUA@@XZ"(ptr dead_on_unwind writable sret(%struct.A) align 4 %{{.*}})
 // WIN32:   invoke void @"?getA@@YA?AUA@@XZ"(ptr dead_on_unwind writable sret(%struct.A) align 4 %{{.*}})
 // WIN32:   invoke noundef i32 @"?TakesTwo@@YAHUA@@0@Z"
-// WIN32:   call void @llvm.stackrestore
+// WIN32:   call void @llvm.stackrestore.p0(
 // WIN32:   ret void
 //
 //    Since all the calls terminate, there should be no dtors on the unwind
@@ -103,7 +103,7 @@ int HasConditionalCleanup(bool cond) {
 // WIN32:   invoke x86_thiscallcc noundef ptr @"??0A@@QAE@XZ"(ptr {{[^,]*}} %{{.*}})
 // WIN32:   call noundef i32 @"?TakesTwo@@YAHUA@@0@Z"
 //
-// WIN32:   call void @llvm.stackrestore
+// WIN32:   call void @llvm.stackrestore.p0
 //
 // WIN32:   call noundef i32 @"?CouldThrow@@YAHXZ"()
 //

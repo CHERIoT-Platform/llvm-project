@@ -28,6 +28,7 @@
 #include "clang/Basic/Specifiers.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Lex/Preprocessor.h"
+#include "clang/Parse/ParseDiagnostic.h"
 #include "clang/Sema/DeclSpec.h"
 #include "clang/Sema/DelayedDiagnostic.h"
 #include "clang/Sema/Lookup.h"
@@ -120,6 +121,11 @@ static void diagnoseBadTypeAttribute(Sema &S, const ParsedAttr &attr,
 // Calling convention attributes.
 #define CALLING_CONV_ATTRS_CASELIST                                            \
   case ParsedAttr::AT_CDecl:                                                   \
+  case ParsedAttr::AT_CHERICCall:                                              \
+  case ParsedAttr::AT_CHERICCallee:                                            \
+  case ParsedAttr::AT_CHERICCallback:                                          \
+  case ParsedAttr::AT_CHERILibCall:                                            \
+  case ParsedAttr::AT_CHERICompartmentName:                                    \
   case ParsedAttr::AT_FastCall:                                                \
   case ParsedAttr::AT_StdCall:                                                 \
   case ParsedAttr::AT_ThisCall:                                                \
@@ -1523,6 +1529,15 @@ static QualType ConvertDeclSpecToType(TypeProcessingState &state) {
     else
       Result = Context.Int128Ty;
     break;
+  case DeclSpec::TST_intcap:
+    if (!S.Context.getTargetInfo().SupportsCapabilities())
+      S.Diag(DS.getTypeSpecTypeLoc(), diag::err_type_unsupported)
+        << "__intcap";
+    if (DS.getTypeSpecSign() == TypeSpecifierSign::Unsigned)
+      Result = Context.UnsignedIntCapTy;
+    else
+      Result = Context.IntCapTy;
+    break;
   case DeclSpec::TST_float16:
     // CUDA host and device may have different _Float16 support, therefore
     // do not diagnose _Float16 usage to avoid false alarm.
@@ -1924,6 +1939,16 @@ static QualType ConvertDeclSpecToType(TypeProcessingState &state) {
     else
       Result = Qualified;
   }
+  if (DS.HasOutput()) {
+    Qualifiers Quals;
+    Quals.addOutput();
+    Result = Context.getQualifiedType(Result, Quals);
+  }
+  if (DS.HasInput()) {
+    Qualifiers Quals;
+    Quals.addInput();
+    Result = Context.getQualifiedType(Result, Quals);
+  }
 
   assert(!Result.isNull() && "This function should not return a null type");
   return Result;
@@ -2182,8 +2207,9 @@ static QualType deduceOpenCLPointeeAddrSpace(Sema &S, QualType PointeeType) {
 ///
 /// \returns A suitable pointer type, if there are no
 /// errors. Otherwise, returns a NULL type.
-QualType Sema::BuildPointerType(QualType T,
-                                SourceLocation Loc, DeclarationName Entity) {
+QualType Sema::BuildPointerType(QualType T, PointerInterpretationKind PIK,
+                                SourceLocation Loc, DeclarationName Entity,
+                                bool* ValidPointer) {
   if (T->isReferenceType()) {
     // C++ 8.3.2p4: There shall be no ... pointers to references ...
     Diag(Loc, diag::err_illegal_decl_pointer_to_reference)
@@ -2215,6 +2241,19 @@ QualType Sema::BuildPointerType(QualType T,
   if (getLangOpts().OpenCL)
     T = deduceOpenCLPointeeAddrSpace(*this, T);
 
+  // If we are in purecap ABI turn pointers marked as using an integer
+  // representation into a plain pointer-range-sized integer
+  if (PIK == PIK_Integer
+      && Context.getTargetInfo().areAllPointersCapabilities()) {
+    // This is not a real pointer type in the purecap ABI
+    // ptrdiff_t will be the same size as a plain mips pointer
+    // FIXME: this ValidPointer approach is a HACK to ensure that we return
+    // getTrivialTypeSourceInfo(T) later, need to do something better
+    if (ValidPointer)
+      *ValidPointer = false;
+    return Context.getPointerDiffType();
+  }
+
   // In WebAssembly, pointers to reference types and pointers to tables are
   // illegal.
   if (getASTContext().getTargetInfo().getTriple().isWasm()) {
@@ -2231,7 +2270,9 @@ QualType Sema::BuildPointerType(QualType T,
   }
 
   // Build the pointer type.
-  return Context.getPointerType(T);
+  if (ValidPointer)
+    *ValidPointer = true;
+  return Context.getPointerType(T, PIK);
 }
 
 /// Build a reference type.
@@ -2479,7 +2520,8 @@ bool Sema::checkArrayElementAlignment(QualType EltTy, SourceLocation Loc) {
 /// returns a NULL type.
 QualType Sema::BuildArrayType(QualType T, ArraySizeModifier ASM,
                               Expr *ArraySize, unsigned Quals,
-                              SourceRange Brackets, DeclarationName Entity) {
+                              SourceRange Brackets, DeclarationName Entity,
+                              std::optional<PointerInterpretationKind> PIK) {
 
   SourceLocation Loc = Brackets.getBegin();
   if (getLangOpts().CPlusPlus) {
@@ -2635,6 +2677,14 @@ QualType Sema::BuildArrayType(QualType T, ArraySizeModifier ASM,
     VLAIsError = false;
   }
 
+  // The array size type can be an intcap/uintcap. In this case we will perform
+  // an implicit conversion to an integer type.
+  if (ArraySize)
+    if (ArraySize->getType()->isSpecificBuiltinType(BuiltinType::UIntCap) ||
+        ArraySize->getType()->isSpecificBuiltinType(BuiltinType::IntCap))
+      ArraySize = ImpCastExprToType(ArraySize, Context.UnsignedLongTy,
+                                    CK_IntegralCast).get();
+
   llvm::APSInt ConstVal(Context.getTypeSize(Context.getSizeType()));
   if (!ArraySize) {
     if (ASM == ArraySizeModifier::Star) {
@@ -2642,12 +2692,13 @@ QualType Sema::BuildArrayType(QualType T, ArraySizeModifier ASM,
       if (VLAIsError)
         return QualType();
 
-      T = Context.getVariableArrayType(T, nullptr, ASM, Quals, Brackets);
+      T = Context.getVariableArrayType(T, nullptr, ASM, Quals, Brackets, PIK);
     } else {
-      T = Context.getIncompleteArrayType(T, ASM, Quals);
+      T = Context.getIncompleteArrayType(T, ASM, Quals, PIK);
     }
   } else if (ArraySize->isTypeDependent() || ArraySize->isValueDependent()) {
-    T = Context.getDependentSizedArrayType(T, ArraySize, ASM, Quals, Brackets);
+    T = Context.getDependentSizedArrayType(T, ArraySize, ASM, Quals, Brackets,
+                                           PIK);
   } else {
     ExprResult R =
         checkArraySize(*this, ArraySize, ConstVal, VLADiag, VLAIsError);
@@ -2658,7 +2709,8 @@ QualType Sema::BuildArrayType(QualType T, ArraySizeModifier ASM,
       // C99: an array with a non-ICE size is a VLA. We accept any expression
       // that we can fold to a non-zero positive value as a non-VLA as an
       // extension.
-      T = Context.getVariableArrayType(T, ArraySize, ASM, Quals, Brackets);
+      T = Context.getVariableArrayType(T, ArraySize, ASM, Quals, Brackets,
+                                       PIK);
     } else if (!T->isDependentType() && !T->isIncompleteType() &&
                !T->isConstantSizeType()) {
       // C99: an array with an element type that has a non-constant-size is a
@@ -2667,7 +2719,8 @@ QualType Sema::BuildArrayType(QualType T, ArraySizeModifier ASM,
       Diag(Loc, VLADiag);
       if (VLAIsError)
         return QualType();
-      T = Context.getVariableArrayType(T, ArraySize, ASM, Quals, Brackets);
+      T = Context.getVariableArrayType(T, ArraySize, ASM, Quals, Brackets,
+                                       PIK);
     } else {
       // C99 6.7.5.2p1: If the expression is a constant expression, it shall
       // have a value greater than zero.
@@ -2704,7 +2757,8 @@ QualType Sema::BuildArrayType(QualType T, ArraySizeModifier ASM,
         return QualType();
       }
 
-      T = Context.getConstantArrayType(T, ConstVal, ArraySize, ASM, Quals);
+      T = Context.getConstantArrayType(T, ConstVal, ArraySize, ASM, Quals,
+                                       PIK);
     }
   }
 
@@ -4701,6 +4755,7 @@ static TypeSourceInfo *GetFullTypeForDeclarator(TypeProcessingState &state,
   Sema &S = state.getSema();
   ASTContext &Context = S.Context;
   const LangOptions &LangOpts = S.getLangOpts();
+  bool IsIntegerPointerInPureCapABI = false;
 
   // The name we're declaring, if any.
   DeclarationName Name;
@@ -5107,7 +5162,7 @@ static TypeSourceInfo *GetFullTypeForDeclarator(TypeProcessingState &state,
         T = S.BuildQualifiedType(T, DeclType.Loc, DeclType.Cls.TypeQuals);
       }
       break;
-    case DeclaratorChunk::Pointer:
+    case DeclaratorChunk::Pointer: {
       // Verify that we're not building a pointer to pointer to function with
       // exception specification.
       if (LangOpts.CPlusPlus && S.CheckDistantExceptionSpec(T)) {
@@ -5138,11 +5193,15 @@ static TypeSourceInfo *GetFullTypeForDeclarator(TypeProcessingState &state,
           D.setInvalidType(true);
         }
       }
-
-      T = S.BuildPointerType(T, DeclType.Loc, Name);
-      if (DeclType.Ptr.TypeQuals)
+      bool ValidPointer = false;
+      T = S.BuildPointerType(T, S.PointerInterpretation, DeclType.Loc, Name,
+                             &ValidPointer);
+      if (!ValidPointer) {
+        IsIntegerPointerInPureCapABI = true;  // FIXME: is this correct?
+      } else if (DeclType.Ptr.TypeQuals)
         T = S.BuildQualifiedType(T, DeclType.Loc, DeclType.Ptr.TypeQuals);
       break;
+    }
     case DeclaratorChunk::Reference: {
       // Verify that we're not building a reference to pointer to function with
       // exception specification.
@@ -5234,8 +5293,17 @@ static TypeSourceInfo *GetFullTypeForDeclarator(TypeProcessingState &state,
         checkNullabilityConsistency(S, SimplePointerKind::Array, DeclType.Loc);
       }
 
+      // Array parameters have an interpretation based on the qualifiers
+      // (deferred until attribute parsing) and default interpretation. All
+      // other arrays are implicit based on their container (if any).
+      std::optional<PointerInterpretationKind> PIK = std::nullopt;
+      if (D.isPrototypeContext() &&
+          !hasOuterPointerLikeChunk(D, chunkIndex))
+        PIK = Context.getDefaultPointerInterpretation();
+
       T = S.BuildArrayType(T, ASM, ArraySize, ATI.TypeQuals,
-                           SourceRange(DeclType.Loc, DeclType.EndLoc), Name);
+                           SourceRange(DeclType.Loc, DeclType.EndLoc), Name,
+                           PIK);
       break;
     }
     case DeclaratorChunk::Function: {
@@ -5492,7 +5560,16 @@ static TypeSourceInfo *GetFullTypeForDeclarator(TypeProcessingState &state,
       // OpenCL disallows functions without a prototype, but it doesn't enforce
       // strict prototypes as in C23 because it allows a function definition to
       // have an identifier list. See OpenCL 3.0 6.11/g for more details.
+      //
+      // In some ABIs (currently, just cheriot), treat functions with no
+      // parameters as void (as C23 and C++ do).
+      // FIXME: Clang 16 defaults to this behaviour, this special case can be
+      // removed on the next upstream merge.
+      bool TargetC23Prototypes =
+        S.getASTContext().getTargetInfo().areEmptyParameterListsVoid();
+
       if (!FTI.NumParams && !FTI.isVariadic &&
+          !TargetC23Prototypes &&
           !LangOpts.requiresStrictPrototypes() && !LangOpts.OpenCL) {
         // Simple void foo(), where the incoming T is the result type.
         T = Context.getFunctionNoProtoType(T, EI);
@@ -6060,7 +6137,7 @@ static TypeSourceInfo *GetFullTypeForDeclarator(TypeProcessingState &state,
   }
 
   assert(!T.isNull() && "T must not be null at the end of this function");
-  if (!AreDeclaratorChunksValid)
+  if (!AreDeclaratorChunksValid || IsIntegerPointerInPureCapABI)
     return Context.getTrivialTypeSourceInfo(T);
   return GetTypeSourceInfoForDeclarator(state, T, TInfo);
 }
@@ -6637,6 +6714,19 @@ fillDependentAddressSpaceTypeLoc(DependentAddressSpaceTypeLoc DASTL,
       "no address_space attribute found at the expected location!");
 }
 
+static void
+fillDependentPointerTypeLoc(DependentPointerTypeLoc DPTL,
+                            const ParsedAttributesView &Attrs) {
+  for (const ParsedAttr &AL : Attrs) {
+    if (AL.getKind() == ParsedAttr::AT_CHERICapability) {
+      DPTL.setQualifierLoc(AL.getLoc());
+      return;
+    }
+  }
+
+  llvm_unreachable("no __capability qualifier found at the expected location!");
+}
+
 /// Create and instantiate a TypeSourceInfo with type source information.
 ///
 /// \param T QualType referring to the type as written in source code.
@@ -6703,6 +6793,13 @@ GetTypeSourceInfoForDeclarator(TypeProcessingState &State,
         fillDependentAddressSpaceTypeLoc(TL, D.getTypeObject(i).getAttrs());
         CurrTL = TL.getPointeeTypeLoc().getUnqualifiedLoc();
         break;
+      }
+
+      case TypeLoc::DependentPointer: {
+          auto TL = CurrTL.castAs<DependentPointerTypeLoc>();
+          fillDependentPointerTypeLoc(TL, D.getTypeObject(i).getAttrs());
+          CurrTL = TL.getPointerTypeLoc().getUnqualifiedLoc();
+          break;
       }
 
       default:
@@ -6906,7 +7003,10 @@ static void HandleAddressSpaceTypeAttribute(QualType &Type,
 
   // ISO/IEC TR 18037 S5.3 (amending C99 6.7.3): "A function type shall not be
   // qualified by an address-space qualifier."
-  if (Type->isFunctionType()) {
+  if (Type->isFunctionType() && !S.Context.getTargetInfo().SupportsCapabilities()) {
+    // FIXME: We should only allow function pointers to be qualified with an AS
+    // if it's the capability AS, but for now allow them to be any AS when the
+    // target supports capabilities.
     S.Diag(Attr.getLoc(), diag::err_attribute_address_function_type);
     Attr.setInvalid();
     return;
@@ -7881,6 +7981,23 @@ static Attr *getCCTypeAttr(ASTContext &Ctx, ParsedAttr &Attr) {
       llvm_unreachable("already validated the attribute");
     return ::new (Ctx) PcsAttr(Ctx, Attr, Type);
   }
+  case ParsedAttr::AT_CHERICCall:
+    return createSimpleAttr<CHERICCallAttr>(Ctx, Attr);
+  case ParsedAttr::AT_CHERICCallee:
+    return createSimpleAttr<CHERICCalleeAttr>(Ctx, Attr);
+  case ParsedAttr::AT_CHERICCallback:
+    return createSimpleAttr<CHERICCallAttr>(Ctx, Attr);
+  case ParsedAttr::AT_CHERILibCall:
+    assert(Ctx.getTargetInfo().getTargetOpts().ABI != "cheriot-baremetal");
+    return createSimpleAttr<CHERILibCallAttr>(Ctx, Attr);
+  case ParsedAttr::AT_CHERICompartmentName: {
+    StringRef Str;
+    if (Attr.isArgExpr(0))
+      Str = cast<StringLiteral>(Attr.getArgAsExpr(0))->getString();
+    else
+      Str = Attr.getArgAsIdent(0)->Ident->getName();
+    return ::new (Ctx) CHERICompartmentNameAttr(Ctx, Attr, Str);
+  }
   case ParsedAttr::AT_IntelOclBicc:
     return createSimpleAttr<IntelOclBiccAttr>(Ctx, Attr);
   case ParsedAttr::AT_MSABI:
@@ -8728,6 +8845,223 @@ static void HandleOpenCLAccessAttr(QualType &CurType, const ParsedAttr &Attr,
   }
 }
 
+QualType Sema::BuildPointerInterpretationAttr(QualType T,
+                                              PointerInterpretationKind PIK,
+                                              SourceLocation QualifierLoc) {
+  if (T->isPointerType() || T->isReferenceType()) {
+    // preserve existing qualifiers on T
+    Qualifiers Qs = T.getQualifiers();
+
+    if (const PointerType *PT = T->getAs<PointerType>())
+      T = Context.getPointerType(PT->getPointeeType(), PIK);
+    else if (const LValueReferenceType *LRT = T->getAs<LValueReferenceType>())
+      T = Context.getLValueReferenceType(LRT->getPointeeType(), true, PIK);
+    else if (const RValueReferenceType *RRT = T->getAs<RValueReferenceType>())
+      T = Context.getRValueReferenceType(RRT->getPointeeType(), PIK);
+    else
+      llvm_unreachable("Don't know how to set the interpretation for T");
+
+    if (Qs.hasQualifiers())
+      T = Context.getQualifiedType(T, Qs);
+  } else if (T->isArrayType()) {
+    // preserve existing qualifiers on T
+    Qualifiers Qs = T.getQualifiers();
+
+    const auto *AT = T->getAsArrayTypeUnsafe();
+
+    QualType EltTy = AT->getElementType();
+    ArraySizeModifier ASM = AT->getSizeModifier();
+    unsigned IndexTypeQuals = AT->getIndexTypeCVRQualifiers();
+
+    if (const auto *VAT = dyn_cast<VariableArrayType>(T))
+      T = Context.getVariableArrayType(EltTy, VAT->getSizeExpr(), ASM,
+                                       IndexTypeQuals,
+                                       VAT->getBracketsRange(), PIK);
+    else if (const auto *DSAT = dyn_cast<DependentSizedArrayType>(T))
+      T = Context.getDependentSizedArrayType(EltTy, DSAT->getSizeExpr(), ASM,
+                                             IndexTypeQuals,
+                                             DSAT->getBracketsRange(), PIK);
+    else if (isa<IncompleteArrayType>(T))
+      T = Context.getIncompleteArrayType(EltTy, ASM, IndexTypeQuals, PIK);
+    else if (const auto *CAT = dyn_cast<ConstantArrayType>(T))
+      T = Context.getConstantArrayType(EltTy, CAT->getSize(),
+                                       CAT->getSizeExpr(), ASM,
+                                       IndexTypeQuals, PIK);
+    else
+      llvm_unreachable("Don't know how to set the interpretation for T");
+
+    if (Qs.hasQualifiers())
+      T = Context.getQualifiedType(T, Qs);
+  } else if (T->isDependentType()) {
+    T = Context.getDependentPointerType(T, PIK, QualifierLoc);
+  } else {
+    Diag(QualifierLoc, diag::err_cheri_capability_qualifier_pointers_only) << T;
+  }
+
+  return T;
+}
+
+/// HandleCHERICapabilityQualifier - Process the __capability qualifier. It is
+/// only applicable to pointer and reference types and specifies that this
+/// pointer/reference should be treated as a capability.
+static void HandleCHERICapabilityQualifier(QualType &CurType,
+                                           TypeProcessingState &state,
+                                           TypeAttrLocation TAL,
+                                           ParsedAttr &attr) {
+  Declarator &declarator = state.getDeclarator();
+  Sema& S = state.getSema();
+  std::string Name = attr.getAttrName()->getName().str();
+
+  switch (TAL) {
+  case TAL_DeclSpec:
+    // Possible deprecated use; move to the outermost pointer declarator,
+    // unless this is a typedef'd pointer type or similar where we instead
+    // create a new instance of this type with a memory capability as the
+    // underlying type.
+    if (CurType->isPointerType() || CurType->isReferenceType()) {
+      // typedef'd types/typeof/decltype are special: a __capability qualifier
+      // before/after transforms the underlying type to the capability
+      // equivalent rather than pushing the capability qualifier to the
+      // outermost pointer type.
+      // So in `typedef int *intptr; __capability intptr *foo`, foo will be of
+      // type `int * __capability *` rather than `int **__capability`.
+      break;
+    }
+    for (unsigned i = state.getCurrentChunkIndex(); i != 0; --i) {
+      DeclaratorChunk &chunk = declarator.getTypeObject(i - 1);
+      switch (chunk.Kind) {
+      case DeclaratorChunk::Pointer: {
+        // Check for an ambiguous use where this is more than one pointer
+        // level, like __capability T **. We do this by checking that the next
+        // chunk isn't a pointer without the attribute.
+        if (i > 1) {
+          DeclaratorChunk &nextChunk = declarator.getTypeObject(i - 2);
+          if (nextChunk.Kind == DeclaratorChunk::Pointer) {
+            auto Attr = nextChunk.getAttrs();
+            if (!Attr.hasAttribute(ParsedAttr::AT_CHERICapability)) {
+              S.Diag(nextChunk.Loc,
+                     diag::err_cheri_capability_qualifier_ambiguous);
+              return;
+            }
+          }
+        }
+
+        // Output a deprecated usage warning with a FixItHint
+        S.Diag(chunk.Loc, diag::warn_cheri_capability_qualifier_location)
+            << FixItHint::CreateRemoval(attr.getRange())
+            << FixItHint::CreateInsertion(chunk.Loc.getLocWithOffset(1),
+                                          " " + Name + " ");
+
+        // Put this attribute in the right place after the next pointer
+        // chunk so we are called again with the parsed pointer type.
+        ParsedAttr *attrCopy = declarator.getAttributePool().create(
+            const_cast<IdentifierInfo *>(attr.getAttrName()), attr.getRange(),
+            const_cast<IdentifierInfo *>(attr.getScopeName()),
+            attr.getScopeLoc(), nullptr, 0, attr.getForm());
+        chunk.getAttrs().addAtEnd(attrCopy);
+        return;
+      }
+      case DeclaratorChunk::BlockPointer:
+      case DeclaratorChunk::Paren:
+      case DeclaratorChunk::Array:
+      case DeclaratorChunk::Function:
+      case DeclaratorChunk::Reference:
+      case DeclaratorChunk::Pipe:
+        continue;
+      case DeclaratorChunk::MemberPointer:
+        llvm_unreachable("Should this be handled?");
+        continue;
+      }
+    }
+
+    break;
+
+  case TAL_DeclChunk: {
+    unsigned chunkIndex = state.getCurrentChunkIndex();
+    DeclaratorChunk &chunk = declarator.getTypeObject(chunkIndex);
+
+    if (chunk.Kind == DeclaratorChunk::Array) {
+      bool InvalidArrayQualifier = false;
+
+      // C99 6.7.5.2p1: The optional type qualifiers and the keyword static
+      // shall appear only in a declaration of a function parameter with an
+      // array type, ...
+      if (!(declarator.isPrototypeContext() ||
+            declarator.getContext() == DeclaratorContext::KNRTypeList)) {
+        S.Diag(attr.getLoc(), diag::err_array_static_outside_prototype) <<
+            "'" + Name + "'";
+        InvalidArrayQualifier = true;
+      }
+
+      // C99 6.7.5.2p1: ... and then only in the outermost array type
+      // derivation.
+      if (hasOuterPointerLikeChunk(declarator, chunkIndex)) {
+        S.Diag(attr.getLoc(), diag::err_array_static_not_outermost) <<
+            "'" + Name + "'";
+        InvalidArrayQualifier = true;
+      }
+
+      if (InvalidArrayQualifier)
+        return;
+    }
+    break;
+  }
+
+  case TAL_DeclName:
+    llvm_unreachable(
+        "Keyword attribute should never be parsed after declaration's name");
+  }
+
+  assert(S.Context.getTargetInfo().SupportsCapabilities());
+  CurType = S.BuildPointerInterpretationAttr(CurType, PIK_Capability,
+                                             attr.getLoc());
+}
+
+static void handleCheriNoProvenanceAttr(QualType &T, TypeProcessingState &State,
+                                        TypeAttrLocation TAL,
+                                        ParsedAttr &Attr) {
+  Sema &S = State.getSema();
+  Attr.setUsedAsTypeAttr();
+  if (!T->isIntCapType()) {
+    S.Diag(Attr.getLoc(), diag::err_attribute_wrong_decl_type_str)
+        << Attr.getAttrName() << Attr.isRegularKeywordAttribute()
+        << "capability types";
+    return;
+  }
+  if (T->hasAttr(attr::CHERINoProvenance))
+    S.Diag(Attr.getLoc(), diag::warn_duplicate_attribute_exact)
+        << Attr.getAttrName();
+  T = State.getAttributedType(createSimpleAttr<CHERINoProvenanceAttr>(S.Context, Attr), T, T);
+}
+
+static bool HandleMemoryAddressAttr(QualType &T, TypeProcessingState &State,
+                                    TypeAttrLocation TAL, ParsedAttr& Attr) {
+  Sema &S = State.getSema();
+  assert(Attr.getKind() == ParsedAttr::AT_MemoryAddress);
+  // XXXAR: FIXME: Why do I get an assertion later if I don't error out here?
+  if (TAL == TAL_DeclName) {
+    StringRef Name = Attr.getAttrName()->getName();
+    S.Diag(Attr.getLoc(), diag::err_attr_wrong_position) << Name
+        << FixItHint::CreateRemoval(Attr.getLoc())
+        << FixItHint::CreateInsertion(State.getDeclarator().getDeclSpec().getBeginLoc(), Name);
+    return true;
+  }
+
+  if (!T->isIntegerType() || T->isCHERICapabilityType(S.Context)) {
+    S.Diag(Attr.getLoc(), diag::err_attribute_address_integers_only)
+      << Attr.getAttrName() << T;
+    return true;
+  }
+
+  // llvm::errs() << __func__ << ": hasAttr():" << T->hasAttr(attr::MemoryAddress) <<  " dump: "; T.dump();
+  if (T->hasAttr(attr::MemoryAddress))
+    S.Diag(Attr.getLoc(), diag::warn_duplicate_attribute_exact) << Attr.getAttrName();
+  T = State.getAttributedType(
+      createSimpleAttr<MemoryAddressAttr>(State.getSema().Context, Attr), T, T);
+  // llvm::errs() << __func__ << ": modified type: "; T.dump();
+  return false;
+}
+
 /// HandleMatrixTypeAttr - "matrix_type" attribute, like ext_vector_type
 static void HandleMatrixTypeAttr(QualType &CurType, const ParsedAttr &Attr,
                                  Sema &S) {
@@ -9019,7 +9353,7 @@ static void processTypeAttrs(TypeProcessingState &state, QualType &type,
       case TAL_DeclChunk:
       case TAL_DeclName:
         state.getSema().Diag(attr.getLoc(),
-                             diag::err_objc_kindof_wrong_position)
+                             diag::err_attr_wrong_position) << "__kindof"
             << FixItHint::CreateRemoval(attr.getLoc())
             << FixItHint::CreateInsertion(
                    state.getDeclarator().getDeclSpec().getBeginLoc(),
@@ -9061,6 +9395,31 @@ static void processTypeAttrs(TypeProcessingState &state, QualType &type,
       else if (!handleFunctionTypeAttr(state, attr, type, CFT))
         distributeFunctionTypeAttr(state, attr, type);
       break;
+
+    case ParsedAttr::AT_CHERICapability:
+      attr.setUsedAsTypeAttr();
+      HandleCHERICapabilityQualifier(type, state, TAL, attr);
+      break;
+    case ParsedAttr::AT_CHERINoSubobjectBounds:
+      attr.setUsedAsTypeAttr();
+      if (type->hasAttr(attr::CHERINoSubobjectBounds))
+        state.getSema().Diag(attr.getLoc(),
+                             diag::warn_duplicate_attribute_exact)
+            << attr.getAttrName();
+      type =
+          state.getAttributedType(createSimpleAttr<CHERINoSubobjectBoundsAttr>(
+                                      state.getSema().Context, attr),
+                                  type, type);
+      break;
+    case ParsedAttr::AT_CHERINoProvenance:
+      handleCheriNoProvenanceAttr(type, state, TAL, attr);
+      break;
+    case ParsedAttr::AT_MemoryAddress:
+      if (!HandleMemoryAddressAttr(type, state, TAL, attr)) {
+        attr.setUsedAsTypeAttr();
+      }
+      break;
+
     case ParsedAttr::AT_AcquireHandle: {
       if (!type->isFunctionType())
         return;
@@ -9833,8 +10192,9 @@ QualType Sema::BuiltinEnumUnderlyingType(QualType BaseType,
 
 QualType Sema::BuiltinAddPointer(QualType BaseType, SourceLocation Loc) {
   QualType Pointer = BaseType.isReferenceable() || BaseType->isVoidType()
-                         ? BuildPointerType(BaseType.getNonReferenceType(), Loc,
-                                            DeclarationName())
+                         ? BuildPointerType(BaseType.getNonReferenceType(),
+                                            PointerInterpretation, Loc,
+                                            DeclarationName(), nullptr)
                          : BaseType;
 
   return Pointer.isNull() ? QualType() : Pointer;

@@ -22,6 +22,7 @@
 #include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/Analysis/AssumeBundleQueries.h"
 #include "llvm/Analysis/AssumptionCache.h"
+#include "llvm/Analysis/CheriBounds.h"
 #include "llvm/Analysis/InstructionSimplify.h"
 #include "llvm/Analysis/Loads.h"
 #include "llvm/Analysis/MemoryBuiltins.h"
@@ -156,7 +157,20 @@ Instruction *InstCombinerImpl::SimplifyAnyMemTransfer(AnyMemTransferInst *MI) {
   uint64_t Size = MemOpLength->getLimitedValue();
   assert(Size && "0-sized memory transferring should be removed already.");
 
-  if (Size > 8 || (Size&(Size-1)))
+  Type *CpyTy = nullptr;
+  // Special case pointer sized and aligned things for CHERI.
+  if (DL.isFatPointer(200) && Size == DL.getPointerSize(200) &&
+      MI->shouldPreserveCheriTags() != PreserveCheriTags::Unnecessary) {
+    // May contain a capability
+    Align PtrCpyAlign = DL.getPointerPrefAlignment(200);
+    if (CopyDstAlign && *CopyDstAlign >= PtrCpyAlign &&
+        CopySrcAlign && *CopySrcAlign >= PtrCpyAlign)
+      CpyTy = PointerType::get(MI->getContext(), 200);
+    else
+      return nullptr;
+  }
+
+  if (!CpyTy && (Size > 8 || (Size&(Size-1))))
     return nullptr;  // If not 1/2/4/8 bytes, exit.
 
   // If it is an atomic and alignment is less than the size then we will
@@ -168,7 +182,15 @@ Instruction *InstCombinerImpl::SimplifyAnyMemTransfer(AnyMemTransferInst *MI) {
       return nullptr;
 
   // Use an integer load+store unless we can find something better.
-  IntegerType* IntType = IntegerType::get(MI->getContext(), Size<<3);
+  unsigned SrcAddrSp =
+    cast<PointerType>(MI->getArgOperand(1)->getType())->getAddressSpace();
+  unsigned DstAddrSp =
+    cast<PointerType>(MI->getArgOperand(0)->getType())->getAddressSpace();
+
+  if (!CpyTy)
+    CpyTy = IntegerType::get(MI->getContext(), Size<<3);
+  Type *NewSrcPtrTy = PointerType::get(CpyTy, SrcAddrSp);
+  Type *NewDstPtrTy = PointerType::get(CpyTy, DstAddrSp);
 
   // If the memcpy has metadata describing the members, see if we can get the
   // TBAA tag describing our copy.
@@ -187,9 +209,9 @@ Instruction *InstCombinerImpl::SimplifyAnyMemTransfer(AnyMemTransferInst *MI) {
       AACopyMD.TBAA = cast<MDNode>(M->getOperand(2));
   }
 
-  Value *Src = MI->getArgOperand(1);
-  Value *Dest = MI->getArgOperand(0);
-  LoadInst *L = Builder.CreateLoad(IntType, Src);
+  Value *Src = Builder.CreateBitCast(MI->getArgOperand(1), NewSrcPtrTy);
+  Value *Dest = Builder.CreateBitCast(MI->getArgOperand(0), NewDstPtrTy);
+  LoadInst *L = Builder.CreateLoad(CpyTy, Src);
   // Alignment from the mem intrinsic will be better, so use it.
   L->setAlignment(*CopySrcAlign);
   L->setAAMetadata(AACopyMD);
@@ -834,6 +856,171 @@ InstCombinerImpl::foldIntrinsicWithOverflowCommon(IntrinsicInst *II) {
   if (OptimizeOverflowCheck(WO->getBinaryOp(), WO->isSigned(), WO->getLHS(),
                             WO->getRHS(), *WO, OperationResult, OverflowResult))
     return createOverflowTuple(WO, OperationResult, OverflowResult);
+  return nullptr;
+}
+
+template <Intrinsic::ID GetIntrinsic, Intrinsic::ID SetIntrinsic>
+Instruction *foldSetOffsetOrAddress(InstCombiner *IC, IntrinsicInst *II) {
+  // We can ignore any other set_addr/set_offset instructons since the final
+  // setaddr will override those. For setoffset we have to be a bit more
+  // conservative since a setoffset/incoffset/setaddr could have caused the
+  // value to become unrepresetable.
+  Value *Op0 = II->getArgOperand(0);
+  Value *Op1 = II->getArgOperand(1);
+  // If the input argument to setaddr/setoffset is another setoffset/setaddr,
+  // we can use the base argument of that setoffset/setaddr.
+  // Replace set{offset,addr}(set{offset,addr}(C, A), B) with
+  // set{offset,addr}(C, B). Must come before the setoffset to
+  // incoffset transformation in case C is an add.
+  Value *Base = Op0->stripPointerCastsSameRepresentation();
+  if (auto *II0 = dyn_cast<IntrinsicInst>(Base)) {
+    // Note: I'm not sure this is always beneficial, so let's do a one-use
+    // check be sure that the original one can be removed
+    if (II0->hasOneUse() &&
+        (II0->getIntrinsicID() == Intrinsic::cheri_cap_offset_set ||
+         II0->getIntrinsicID() == Intrinsic::cheri_cap_address_set)) {
+      Value *PreviousSetBase = II0->getArgOperand(0);
+      LLVM_DEBUG(dbgs() << "II->setOperand(0) -> "; PreviousSetBase->dump());
+      if (isa<ConstantPointerNull>(PreviousSetBase))
+        II->removeParamAttr(0, Attribute::NonNull);
+      return IC->replaceOperand(*II, 0, PreviousSetBase);
+    }
+  }
+
+  // setaddr(arg, getaddr(arg)) -> arg
+  // setoffset(arg, getoffset(arg)) -> arg
+  Value *LHS, *RHS;
+  if (match(Op1, m_Intrinsic<GetIntrinsic>(m_Value(RHS)))) {
+    if (RHS->stripPointerCastsSameRepresentation() ==
+        Op0->stripPointerCastsSameRepresentation()) {
+      return IC->replaceInstUsesWith(*II, Op0);
+    }
+  }
+
+  // If the value is derived from NULL, we can always optimize it to a single
+  // GEP (either constant or non-constant).
+  // Note: the same value will be used in assembly for constants that are
+  // expensive to synthesize. Small integers are rematerialized since the
+  // backend handles them in isTriviallyReMaterializable and friends.
+  Value *BaseBeforePointerArith =
+      getBasePtrIgnoringCapabilityAddressManipulation(Op0, IC->getDataLayout());
+  if (auto *Null = dyn_cast<ConstantPointerNull>(BaseBeforePointerArith)) {
+    Value *Op1 = II->getArgOperand(1);
+    if (auto ConstOp1 = dyn_cast<Constant>(Op1)) {
+      if (ConstOp1->isZeroValue())
+        return IC->replaceInstUsesWith(*II, Null);
+      return IC->replaceInstUsesWith(
+          *II, ConstantExpr::getGetElementPtr(Type::getInt8Ty(II->getContext()),
+                                              Null, ConstOp1));
+    } else {
+      return GetElementPtrInst::Create(Type::getInt8Ty(II->getContext()), Null,
+                                       Op1);
+    }
+  }
+
+  // fold chains of set{offset,addr}, (inc-offset/GEP)+ into a single
+  // set-{offset,addr} If there is only a single use of the set{offset,address}
+  // result, we might be able to fold it into a single setoffset. For example:
+  // GEP(setaddr(A, 100), 50) -> setaddr(A, 150)
+  // FIXME: is this fold really beneficial? Maybe we should change it to
+  //   GEP(set{offset,addr}(A, 100), 50) -> GEP(set{offset,addr}(A, 0), 150)?
+  //   Although that should probably only happy in the backend.
+
+  // XXXAR: Should this be a cl::opt so we can compare codegen?
+  bool FoldSingleUseGEPIntoArg = true;
+  if (FoldSingleUseGEPIntoArg && isa<ConstantInt>(Op1)) {
+    auto ConstOp1 = cast<ConstantInt>(Op1);
+    Use *OnlyUse = II->getSingleUndroppableUse();
+    bool MadeChange = false;
+    while (OnlyUse) {
+      User *OnlyUser = OnlyUse->getUser();
+      if (ConstOp1->isZero()) {
+        // Don't do this simplification for a set{addr,offset}(A, 0), since
+        // All CHERI targets can perform those operations without sythesizing a
+        // constant by using the zero register (and the GEP offset can often be
+        // folded into a load/store immediate operand)
+        // TODO: this decision should probably be made later on during codegen
+        // and not here. But for now it improves code generation, so keep it
+        // here
+        break;
+      }
+      // Look through bitcasts and add a new bitcast instruction
+      if (auto BC = dyn_cast<BitCastOperator>(OnlyUser)) {
+        OnlyUse = BC->getSingleUndroppableUse();
+        continue;
+      }
+      if (GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(OnlyUser)) {
+        APInt Offset(Op1->getType()->getIntegerBitWidth(), 0);
+        if (GEP->accumulateConstantOffset(IC->getDataLayout(), Offset)) {
+          LLVM_DEBUG(dbgs() << "Folding constant GEP into set: "; GEP->dump());
+          IC->replaceOperand(*II, 1,
+                             ConstantInt::get(ConstOp1->getType(),
+                                              ConstOp1->getValue() + Offset));
+          // Add back the bitcasts if necessary
+          if (II->getType() == GEP->getType()) {
+            IC->replaceInstUsesWith(*GEP, II);
+          } else {
+            auto *NewI = new BitCastInst(II, GEP->getType());
+            IC->InsertNewInstWith(NewI, GEP->getIterator());
+            NewI->takeName(GEP);
+            IC->replaceInstUsesWith(*GEP, NewI);
+          }
+          ConstOp1 = cast<ConstantInt>(II->getArgOperand(1));
+          MadeChange = true;
+          LLVM_DEBUG(dbgs() << "Result= "; II->dump());
+          OnlyUse = II->getSingleUndroppableUse();
+          continue;
+        }
+      }
+      // TODO: should we also try to fold non-constant values?
+#if 0 // from CheriFoldCapIntrinsics, not ported yet.
+    Value* Arg = nullptr;
+    if (Value *Increment = getOffsetIncrement(OnlyUser, &Arg)) {
+      assert(Arg == CI);
+      Instruction *ReplacedInstr = cast<Instruction>(OnlyUser);
+      IRBuilder<> B(ReplacedInstr);
+      Value *NewOffset = B.CreateAdd(CI->getOperand(1), Increment);
+      LLVM_DEBUG(dbgs() << "CI->setOperand(1) -> "; NewOffset->dump());
+      CI->setOperand(1, NewOffset);
+      LLVM_DEBUG(dbgs() << "New CI: "; CI->dump());
+      // We have to move this instruction after the offset instruction
+      // because otherwise we use a value that has not yet been defined
+      CI->moveAfter(ReplacedInstr);
+      // Keep doing this transformation for incoffset chains with only a
+      // single user:
+      OnlyUser = ReplacedInstr->hasOneUse() ? *ReplacedInstr->user_begin() : nullptr;
+      LLVM_DEBUG(dbgs() << "Replacing all uses: "; ReplacedInstr->dump();
+                     dbgs() << "New replacement: "; CI->dump(););
+      ReplacedInstr->replaceAllUsesWith(CI);
+      // erasing here can cause a crash -> add to list so that caller can remove it
+      // ReplacedInstr->eraseFromParent();
+      ToErase.insert(ReplacedInstr);
+      assert(OnlyUser != ReplacedInstr && "Should not cause an infinite loop!");
+      Modified = true;
+      if (!OnlyUser)
+        break;
+    }
+#endif
+      // No change made -> exit loop
+      break;
+    }
+    if (MadeChange)
+      return II;
+  }
+
+  // TODO: handle more complex cases with more than one add.
+  if (match(Op1, m_Add(m_Value(LHS), m_Value(RHS)))) {
+    Value *Add = nullptr;
+    if (match(LHS, m_Intrinsic<GetIntrinsic>(m_Specific(Base))))
+      Add = RHS;
+    else if (match(RHS, m_Intrinsic<GetIntrinsic>(m_Specific(Base))))
+      Add = LHS;
+    if (Add) {
+      // TODO: BinaryOperator::Create()
+      return GetElementPtrInst::Create(Type::getInt8Ty(II->getContext()), Base,
+                                       Add);
+    }
+  }
   return nullptr;
 }
 
@@ -2020,7 +2207,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
     break;
   }
   case Intrinsic::ptrmask: {
-    unsigned BitWidth = DL.getPointerTypeSizeInBits(II->getType());
+    unsigned BitWidth = DL.getPointerAddrSizeInBits(II->getType());
     KnownBits Known(BitWidth);
     if (SimplifyDemandedInstructionBits(*II, Known))
       return II;
@@ -2511,6 +2698,147 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
     }
     break;
   }
+
+  // csetbounds(csetbounds(x, len), len) -> csetbounds(x, len)
+  // This can happen with subobject bounds
+  case Intrinsic::cheri_bounded_stack_cap:
+  case Intrinsic::cheri_bounded_stack_cap_dynamic:
+  case Intrinsic::cheri_cap_bounds_set:
+  case Intrinsic::cheri_cap_bounds_set_exact: {
+    // The following happens quite often with sub-object bounds since we set
+    // bounds on array decay and on array subscripts -> two setbounds with
+    // identical arguments that can be folded to a single one
+    auto Op0 = II->getArgOperand(0)->stripPointerCastsSameRepresentation();
+    auto Op1 = II->getArgOperand(1);
+    if (auto *M0 = dyn_cast<IntrinsicInst>(Op0)) {
+      auto InputIID = M0->getIntrinsicID();
+      // If the input is the same intrinsic we can just return that
+      // For setbounds on a setboundsexact we can use the setboundsexact
+      // csetbounds(csetboundsexact(x, len), len) -> csetboundsexact(x, len)
+      if ((InputIID == IID ||
+           ((InputIID == Intrinsic::cheri_bounded_stack_cap ||
+             InputIID == Intrinsic::cheri_bounded_stack_cap_dynamic) &&
+            IID == Intrinsic::cheri_cap_bounds_set) ||
+           InputIID == Intrinsic::cheri_cap_bounds_set_exact) &&
+          M0->getOperand(1) == Op1) {
+        return replaceInstUsesWith(CI, M0);
+      } else if (InputIID == Intrinsic::cheri_cap_bounds_set &&
+                 M0->getOperand(1) == Op1) {
+        assert(IID == Intrinsic::cheri_cap_bounds_set_exact);
+        // csetboundsexact(csetbounds(x, len), len) -> csetboundsexact(x, len)
+        // Update csetboundsexact to use the input argument of csetbounds.
+        // If M0 is dead after this it will also be removed here.
+        return replaceOperand(*II, 0, M0->getArgOperand(0));
+      }
+    }
+    // Check if we can completely omit the setbounds (all uses are known to be
+    // in bounds and we know that the current source value grants access to the
+    // same range
+    // We don't do this analysis for cheri_bounded_stack_cap(_dynamic) since it
+    // should already have been done when creating the bounded_stack_cap
+    // TODO: can do this for csetboundsexact if size < minimum exactly representable size
+    if (IID == Intrinsic::cheri_cap_bounds_set_exact) {
+      LLVM_DEBUG(dbgs() << " Can't optimize away setbounds exact uses since "
+                           "size might not be representable: ";
+                 CI.dump());
+      break;
+    }
+    if (!isa<ConstantInt>(Op1))
+      break; // Can't perform this optimization for non-constant sizes
+    uint64_t SetBoundsSize = cast<ConstantInt>(Op1)->getZExtValue();
+    // TODO: do it for non-alloca insts
+    // Infer the minimum accessible bytes:
+    std::optional<uint64_t> MinAccessibleBytes;
+    if (auto AI = dyn_cast<AllocaInst>(Op0)) {
+      auto AllocaSizeBits = AI->getAllocationSizeInBits(DL);
+      if (!AllocaSizeBits)
+        break; // Unknown size of alloca -> can't optimize
+      MinAccessibleBytes = *AllocaSizeBits / 8;
+    }
+    if (auto SrcII = dyn_cast<IntrinsicInst>(Op0)) {
+      // If the source was a csetbounds(x, len), we know that at least len bytes
+      // will be accessible since otherwise the csetbounds would have trapped.
+      if (SrcII->getIntrinsicID() == Intrinsic::cheri_bounded_stack_cap ||
+          SrcII->getIntrinsicID() == Intrinsic::cheri_bounded_stack_cap_dynamic ||
+          SrcII->getIntrinsicID() == Intrinsic::cheri_cap_bounds_set_exact ||
+          SrcII->getIntrinsicID() == Intrinsic::cheri_cap_bounds_set) {
+        if (auto SrcSize = dyn_cast<ConstantInt>(SrcII->getArgOperand(1))) {
+          MinAccessibleBytes = SrcSize->getZExtValue();
+        }
+      }
+      // Otherwise we don't know anything about the minimum size
+      // TODO: could look through GEPs, cheri intrinsics, etc. to compute the
+      // actual minimum size but I'm not sure this is a big performance win.
+    }
+    if (!MinAccessibleBytes || SetBoundsSize > *MinAccessibleBytes) {
+      LLVM_DEBUG(dbgs() << " Can't optimize away potentially trapping setbounds: "; CI.dump());
+      break;
+    }
+    CheriNeedBoundsChecker C(II, SetBoundsSize, DL);
+    bool AllUsesRemoved = true;
+    bool Changed = false;
+    llvm::SmallVector<Use*, 4> UsesToReplace;
+    for (Use &U : II->uses()) {
+      LLVM_DEBUG(dbgs() << " checking if use needs bounds: " << *U.getUser() << "\n");
+      if (C.check(U)) {
+        LLVM_DEBUG(dbgs() << " setbounds use needs bounds -> can't remove: " << *U.getUser() << "\n");
+        AllUsesRemoved = false;
+      } else {
+        UsesToReplace.push_back(&U);
+        Changed = true;
+      }
+    }
+    if (AllUsesRemoved) {
+      LLVM_DEBUG(dbgs() << " No uses need bounds, will remove: "; CI.dump());
+      // Note: we fetch the operand here again, since Op0 might have a different
+      // pointer type than i8*. Unnecessary casts will be removed later.
+      return replaceInstUsesWith(CI, II->getArgOperand(0));
+    } else if (Changed) {
+      for (Use* U : UsesToReplace) {
+        // Note: we fetch the operand here again, since Op0 might have a different
+        // pointer type than i8*. Unnecessary casts will be removed later.
+        LLVM_DEBUG(dbgs() << "IC: Replacing setbounds use" << *U->getUser() << "\n");
+        replaceUse(*U, II->getArgOperand(0));
+        LLVM_DEBUG(dbgs() << "    with " << *U->getUser() << '\n');
+      }
+      MadeIRChange = true;
+      return II;
+    }
+    break;
+  }
+  case Intrinsic::cheri_cap_offset_set:
+    if (Instruction *I =
+            foldSetOffsetOrAddress<Intrinsic::cheri_cap_offset_get,
+                                   Intrinsic::cheri_cap_offset_set>(this, II))
+      return I;
+    break;
+  case Intrinsic::cheri_cap_address_set:
+    if (Instruction *I =
+            foldSetOffsetOrAddress<Intrinsic::cheri_cap_address_get,
+                                   Intrinsic::cheri_cap_address_set>(this, II))
+      return I;
+    break;
+
+  case Intrinsic::cheri_cap_perms_and: {
+    // When a when perms_and is applied to another perms_and, both with constant
+    // perms operands, we can constant fold them together.
+    auto C1 = dyn_cast<ConstantInt>(II->getArgOperand(1));
+    Value *Cap;
+    ConstantInt *C2;
+    if (C1 &&
+        match(II->getArgOperand(0), m_Intrinsic<Intrinsic::cheri_cap_perms_and>(
+                                        m_Value(Cap), m_ConstantInt(C2)))) {
+      if (C1->getType() == C2->getType()) {
+        auto C3 = ConstantFoldBinaryOpOperands(Instruction::And, C1, C2, DL);
+        replaceUse(II->getOperandUse(0), Cap);
+        replaceUse(II->getOperandUse(1), C3);
+        return II;
+      }
+    }
+
+    break;
+  }
+
   case Intrinsic::ldexp: {
     // ldexp(ldexp(x, a), b) -> ldexp(x, a + b)
     //

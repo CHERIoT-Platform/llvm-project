@@ -88,6 +88,7 @@
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	3                               // 0x3
+; CHECK-BE-NEXT: 	.size   .LCPI0_0, 16
 ; CHECK-BE-NEXT: .LCPI0_1:
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
@@ -105,6 +106,7 @@
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	7                               // 0x7
+; CHECK-BE-NEXT: 	.size   .LCPI0_1, 16
 ; CHECK-BE-NEXT: .LCPI0_2:
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
@@ -122,6 +124,7 @@
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	11                              // 0xb
+; CHECK-BE-NEXT: 	.size   .LCPI0_2, 16
 ; CHECK-BE-NEXT: .LCPI0_3:
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
@@ -600,6 +603,7 @@ exit:
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	3                               // 0x3
+; CHECK-BE-NEXT: 	.size   .LCPI6_0, 16
 ; CHECK-BE-NEXT: .LCPI6_1:
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
@@ -1117,6 +1121,7 @@ exit:
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	3                               // 0x3
+; CHECK-BE-NEXT: 	.size .LCPI12_0, 16
 ; CHECK-BE-NEXT: .LCPI12_1:
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
@@ -1134,6 +1139,7 @@ exit:
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	7                               // 0x7
+; CHECK-BE-NEXT: 	.size .LCPI12_1, 16
 ; CHECK-BE-NEXT: .LCPI12_2:
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
 ; CHECK-BE-NEXT: 	.byte	255                             // 0xff
@@ -2118,6 +2124,7 @@ exit:
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
+; CHECK-BE-NEXT: 	.size .LCPI20_0, 16
 ; CHECK-BE-NEXT:  .LCPI20_1:
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
@@ -2135,6 +2142,7 @@ exit:
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	4                               // 0x4
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
+; CHECK-BE-NEXT: 	.size .LCPI20_1, 16
 ; CHECK-BE-NEXT:  .LCPI20_2:
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	5                               // 0x5
@@ -2152,6 +2160,7 @@ exit:
 ; CHECK-BE-NEXT:  	.byte	9                               // 0x9
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
+; CHECK-BE-NEXT: 	.size .LCPI20_2, 16
 ; CHECK-BE-NEXT:  .LCPI20_3:
 ; CHECK-BE-NEXT:  	.byte	10                              // 0xa
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
@@ -2395,6 +2404,7 @@ exit:
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
+; CHECK-BE-NEXT:  	.size .LCPI21_0, 16
 ; CHECK-BE-NEXT:  .LCPI21_1:
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
@@ -2412,6 +2422,7 @@ exit:
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
+; CHECK-BE-NEXT:  	.size .LCPI21_1, 16
 ; CHECK-BE-NEXT:  .LCPI21_2:
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	2                               // 0x2
@@ -2429,6 +2440,7 @@ exit:
 ; CHECK-BE-NEXT:  	.byte	4                               // 0x4
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
+; CHECK-BE-NEXT:  	.size .LCPI21_2, 16
 ; CHECK-BE-NEXT:  .LCPI21_3:
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
@@ -2446,6 +2458,7 @@ exit:
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	7                               // 0x7
+; CHECK-BE-NEXT:  	.size .LCPI21_3, 16
 ; CHECK-BE-NEXT:  .LCPI21_4:
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
@@ -2463,6 +2476,7 @@ exit:
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
+; CHECK-BE-NEXT:  	.size .LCPI21_4, 16
 ; CHECK-BE-NEXT:  .LCPI21_5:
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	10                              // 0xa
@@ -2480,6 +2494,7 @@ exit:
 ; CHECK-BE-NEXT:  	.byte	12                              // 0xc
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
+; CHECK-BE-NEXT:  	.size .LCPI21_5, 16
 ; CHECK-BE-NEXT:  .LCPI21_6:
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff
 ; CHECK-BE-NEXT:  	.byte	255                             // 0xff

@@ -729,7 +729,7 @@ static bool relax(InputSection &sec) {
     // Decrease their st_value and update their st_size.
     for (; sa.size() && sa[0].offset <= r.offset; sa = sa.slice(1)) {
       if (sa[0].end)
-        sa[0].d->size = sa[0].offset - delta - sa[0].d->value;
+        sa[0].d->setSize(sa[0].offset - delta - sa[0].d->value);
       else
         sa[0].d->value = sa[0].offset - delta;
     }
@@ -742,7 +742,7 @@ static bool relax(InputSection &sec) {
 
   for (const SymbolAnchor &a : sa) {
     if (a.end)
-      a.d->size = a.offset - delta - a.d->value;
+      a.d->setSize(a.offset - delta - a.d->value);
     else
       a.d->value = a.offset - delta;
   }

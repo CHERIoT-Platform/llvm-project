@@ -26,50 +26,50 @@ namespace __sanitizer {
 
 // I/O
 // Don't use directly, use __sanitizer::OpenFile() instead.
-uptr internal_open(const char *filename, int flags);
-uptr internal_open(const char *filename, int flags, u32 mode);
-uptr internal_close(fd_t fd);
+fd_t internal_open(const char *filename, int flags);
+fd_t internal_open(const char *filename, int flags, u32 mode);
+usize internal_close(fd_t fd);
 
-uptr internal_read(fd_t fd, void *buf, uptr count);
-uptr internal_write(fd_t fd, const void *buf, uptr count);
+usize internal_read(fd_t fd, void *buf, usize count);
+usize internal_write(fd_t fd, const void *buf, usize count);
 
 // Memory
-uptr internal_mmap(void *addr, uptr length, int prot, int flags,
+uptr internal_mmap(void *addr, usize length, int prot, int flags,
                    int fd, u64 offset);
-uptr internal_munmap(void *addr, uptr length);
+uptr internal_munmap(void *addr, usize length);
 #if SANITIZER_LINUX
-uptr internal_mremap(void *old_address, uptr old_size, uptr new_size, int flags,
+uptr internal_mremap(void *old_address, usize old_size, usize new_size, int flags,
                      void *new_address);
 #endif
-int internal_mprotect(void *addr, uptr length, int prot);
-int internal_madvise(uptr addr, uptr length, int advice);
+int internal_mprotect(void *addr, usize length, int prot);
+int internal_madvise(uptr addr, usize length, int advice);
 
 // OS
-uptr internal_filesize(fd_t fd);  // -1 on error.
-uptr internal_stat(const char *path, void *buf);
-uptr internal_lstat(const char *path, void *buf);
-uptr internal_fstat(fd_t fd, void *buf);
-uptr internal_dup(int oldfd);
-uptr internal_dup2(int oldfd, int newfd);
-uptr internal_readlink(const char *path, char *buf, uptr bufsize);
-uptr internal_unlink(const char *path);
-uptr internal_rename(const char *oldpath, const char *newpath);
-uptr internal_lseek(fd_t fd, OFF_T offset, int whence);
+usize internal_filesize(fd_t fd);  // -1 on error.
+usize internal_stat(const char *path, void *buf);
+usize internal_lstat(const char *path, void *buf);
+usize internal_fstat(fd_t fd, void *buf);
+usize internal_dup(int oldfd);
+usize internal_dup2(int oldfd, int newfd);
+usize internal_readlink(const char *path, char *buf, usize bufsize);
+usize internal_unlink(const char *path);
+usize internal_rename(const char *oldpath, const char *newpath);
+usize internal_lseek(fd_t fd, OFF_T offset, int whence);
 
 #if SANITIZER_NETBSD
-uptr internal_ptrace(int request, int pid, void *addr, int data);
+usize internal_ptrace(int request, int pid, void *addr, int data);
 #else
-uptr internal_ptrace(int request, int pid, void *addr, void *data);
+usize internal_ptrace(int request, int pid, void *addr, void *data);
 #endif
-uptr internal_waitpid(int pid, int *status, int options);
+usize internal_waitpid(int pid, int *status, int options);
 
 int internal_fork();
 fd_t internal_spawn(const char *argv[], const char *envp[], pid_t *pid);
 
 int internal_sysctl(const int *name, unsigned int namelen, void *oldp,
-                    uptr *oldlenp, const void *newp, uptr newlen);
-int internal_sysctlbyname(const char *sname, void *oldp, uptr *oldlenp,
-                          const void *newp, uptr newlen);
+                    usize *oldlenp, const void *newp, usize newlen);
+int internal_sysctlbyname(const char *sname, void *oldp, usize *oldlenp,
+                          const void *newp, usize newlen);
 
 // These functions call appropriate pthread_ functions directly, bypassing
 // the interceptor. They are weak and may not be present in some tools.
@@ -90,7 +90,7 @@ int real_pthread_join(void *th, void **ret);
   }                                                                            \
   }  // namespace __sanitizer
 
-int internal_pthread_attr_getstack(void *attr, void **addr, uptr *size);
+int internal_pthread_attr_getstack(void *attr, void **addr, usize *size);
 
 // A routine named real_sigaction() must be implemented by each sanitizer in
 // order for internal_sigaction() to bypass interceptors.
@@ -99,7 +99,7 @@ void internal_sigfillset(__sanitizer_sigset_t *set);
 void internal_sigemptyset(__sanitizer_sigset_t *set);
 bool internal_sigismember(__sanitizer_sigset_t *set, int signum);
 
-uptr internal_execve(const char *filename, char *const argv[],
+usize internal_execve(const char *filename, char *const argv[],
                      char *const envp[]);
 
 bool IsStateDetached(int state);
@@ -110,15 +110,15 @@ fd_t ReserveStandardFds(fd_t fd);
 bool ShouldMockFailureToOpen(const char *path);
 
 // Create a non-file mapping with a given /proc/self/maps name.
-uptr MmapNamed(void *addr, uptr length, int prot, int flags, const char *name);
+uptr MmapNamed(void *addr, usize length, int prot, int flags, const char *name);
 
 // Platforms should implement at most one of these.
 // 1. Provide a pre-decorated file descriptor to use instead of an anonymous
 // mapping.
-int GetNamedMappingFd(const char *name, uptr size, int *flags);
+int GetNamedMappingFd(const char *name, usize size, int *flags);
 // 2. Add name to an existing anonymous mapping. The caller must keep *name
 // alive at least as long as the mapping exists.
-void DecorateMapping(uptr addr, uptr size, const char *name);
+void DecorateMapping(uptr addr, usize size, const char *name);
 
 #  if !SANITIZER_FREEBSD
 #    define __sanitizer_dirsiz(dp) ((dp)->d_reclen)

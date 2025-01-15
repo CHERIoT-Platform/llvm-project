@@ -74,11 +74,11 @@ private:
   ScopedHTType::ScopeTy *HTScope;
 };
 
-class OptimizePICCall : public MachineFunctionPass {
+class MipsOptimizePICCall : public MachineFunctionPass {
 public:
-  OptimizePICCall() : MachineFunctionPass(ID) {}
+  MipsOptimizePICCall() : MachineFunctionPass(ID) {}
 
-  StringRef getPassName() const override { return "Mips OptimizePICCall"; }
+  StringRef getPassName() const override { return "Mips MipsOptimizePICCall"; }
 
   bool runOnMachineFunction(MachineFunction &F) override;
 
@@ -111,13 +111,13 @@ private:
   void incCntAndSetReg(ValueType Entry, unsigned Reg);
 
   ScopedHTType ScopedHT;
-
+public:
   static char ID;
 };
 
 } // end of anonymous namespace
 
-char OptimizePICCall::ID = 0;
+char MipsOptimizePICCall::ID = 0;
 
 /// Return the first MachineOperand of MI if it is a used virtual register.
 static MachineOperand *getCallTargetRegOpnd(MachineInstr &MI) {
@@ -152,6 +152,8 @@ static void setCallTargetReg(MachineBasicBlock *MBB,
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
   Register SrcReg = I->getOperand(0).getReg();
   unsigned DstReg = getRegTy(SrcReg, MF) == MVT::i32 ? Mips::T9 : Mips::T9_64;
+  if (MVT(getRegTy(SrcReg, MF)).isFatPointer())
+    DstReg = Mips::C12;
   BuildMI(*MBB, I, I->getDebugLoc(), TII.get(TargetOpcode::COPY), DstReg)
       .addReg(SrcReg);
   I->getOperand(0).setReg(DstReg);
@@ -174,7 +176,7 @@ static void eraseGPOpnd(MachineInstr &MI) {
     }
   }
 
-  llvm_unreachable(nullptr);
+  // If compiling with -mx-got, we can fail to remove the GP register.
 }
 
 MBBInfo::MBBInfo(MachineDomTreeNode *N) : Node(N), HTScope(nullptr) {}
@@ -191,8 +193,8 @@ void MBBInfo::postVisit() {
   delete HTScope;
 }
 
-// OptimizePICCall methods.
-bool OptimizePICCall::runOnMachineFunction(MachineFunction &F) {
+// MipsOptimizePICCall methods.
+bool MipsOptimizePICCall::runOnMachineFunction(MachineFunction &F) {
   if (F.getSubtarget<MipsSubtarget>().inMips16Mode())
     return false;
 
@@ -223,7 +225,7 @@ bool OptimizePICCall::runOnMachineFunction(MachineFunction &F) {
   return Changed;
 }
 
-bool OptimizePICCall::visitNode(MBBInfo &MBBI) {
+bool MipsOptimizePICCall::visitNode(MBBInfo &MBBI) {
   bool Changed = false;
   MachineBasicBlock *MBB = MBBI.getNode()->getBlock();
 
@@ -261,7 +263,7 @@ bool OptimizePICCall::visitNode(MBBInfo &MBBI) {
   return Changed;
 }
 
-bool OptimizePICCall::isCallViaRegister(MachineInstr &MI, unsigned &Reg,
+bool MipsOptimizePICCall::isCallViaRegister(MachineInstr &MI, unsigned &Reg,
                                         ValueType &Val) const {
   if (!MI.isCall())
     return false;
@@ -298,22 +300,25 @@ bool OptimizePICCall::isCallViaRegister(MachineInstr &MI, unsigned &Reg,
   return true;
 }
 
-unsigned OptimizePICCall::getCount(ValueType Entry) {
+unsigned MipsOptimizePICCall::getCount(ValueType Entry) {
   return ScopedHT.lookup(Entry).first;
 }
 
-unsigned OptimizePICCall::getReg(ValueType Entry) {
+unsigned MipsOptimizePICCall::getReg(ValueType Entry) {
   unsigned Reg = ScopedHT.lookup(Entry).second;
   assert(Reg);
   return Reg;
 }
 
-void OptimizePICCall::incCntAndSetReg(ValueType Entry, unsigned Reg) {
+void MipsOptimizePICCall::incCntAndSetReg(ValueType Entry, unsigned Reg) {
   CntRegP P = ScopedHT.lookup(Entry);
   ScopedHT.insert(Entry, std::make_pair(P.first + 1, Reg));
 }
 
 /// Return an OptimizeCall object.
 FunctionPass *llvm::createMipsOptimizePICCallPass() {
-  return new OptimizePICCall();
+  return new MipsOptimizePICCall();
 }
+
+INITIALIZE_PASS(MipsOptimizePICCall, DEBUG_TYPE, "Optimize MIPS PIC calls",
+                false, false)

@@ -208,6 +208,13 @@
 #define TEST_IS_EXECUTED_IN_A_SLOW_ENVIRONMENT
 #endif
 
+// Use a function macro to generate an error if test_macros.h was not included
+#if defined(_LIBCPP_SLOW_TEST_HOST)
+#define TEST_SLOW_HOST() 1
+#else
+#define TEST_SLOW_HOST() 0
+#endif
+
 #if defined(_LIBCPP_NORETURN)
 #define TEST_NORETURN _LIBCPP_NORETURN
 #else
@@ -437,6 +444,12 @@ inline Tp const& DoNotOptimize(Tp const& value) {
 #  define TEST_CLANG_DIAGNOSTIC_IGNORED(str)
 #  define TEST_GCC_DIAGNOSTIC_IGNORED(str)
 #  define TEST_MSVC_DIAGNOSTIC_IGNORED(num)
+#endif
+
+#ifdef __CHERI_PURE_CAPABILITY__
+#define TEST_CHERI_NO_SUBOBJECT_WARNING TEST_CLANG_DIAGNOSTIC_IGNORED("-Wcheri-subobject-bounds-suspicious")
+#else
+#define TEST_CHERI_NO_SUBOBJECT_WARNING
 #endif
 
 #if __has_cpp_attribute(msvc::no_unique_address)

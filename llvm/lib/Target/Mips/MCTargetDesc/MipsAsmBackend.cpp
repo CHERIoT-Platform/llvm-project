@@ -16,6 +16,7 @@
 #include "MCTargetDesc/MipsFixupKinds.h"
 #include "MCTargetDesc/MipsMCExpr.h"
 #include "MCTargetDesc/MipsMCTargetDesc.h"
+#include "MipsTargetStreamer.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/MC/MCAsmBackend.h"
 #include "llvm/MC/MCAssembler.h"
@@ -44,11 +45,17 @@ static unsigned adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
   switch (Kind) {
   default:
     return 0;
+  case Mips::fixup_CHERI_CAPABILITY:
+    // This should never change anything, it is just a marker for the linker
+    return 0;
   case FK_Data_2:
   case Mips::fixup_Mips_LO16:
   case Mips::fixup_Mips_GPREL16:
   case Mips::fixup_Mips_GPOFF_HI:
   case Mips::fixup_Mips_GPOFF_LO:
+  case Mips::fixup_Mips_CAPTABLEREL16:
+  case Mips::fixup_Mips_CAPTABLEOFF_HI:
+  case Mips::fixup_Mips_CAPTABLEOFF_LO:
   case Mips::fixup_Mips_GOT_PAGE:
   case Mips::fixup_Mips_GOT_OFST:
   case Mips::fixup_Mips_GOT_DISP:
@@ -61,6 +68,8 @@ static unsigned adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
   case Mips::fixup_MICROMIPS_GOT_OFST:
   case Mips::fixup_MICROMIPS_GOT_DISP:
   case Mips::fixup_MIPS_PCLO16:
+  case Mips::fixup_CHERI_CAPTABLE_LO16:
+  case Mips::fixup_CHERI_CAPCALL_LO16:
     Value &= 0xffff;
     break;
   case FK_DTPRel_4:
@@ -106,6 +115,8 @@ static unsigned adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
   case Mips::fixup_Mips_CALL_HI16:
   case Mips::fixup_MICROMIPS_HI16:
   case Mips::fixup_MIPS_PCHI16:
+  case Mips::fixup_CHERI_CAPTABLE_HI16:
+  case Mips::fixup_CHERI_CAPCALL_HI16:
     // Get the 2nd 16-bits. Also add 1 if bit 15 is 1.
     Value = ((Value + 0x8000) >> 16) & 0xffff;
     break;
@@ -210,6 +221,30 @@ static unsigned adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
       return 0;
     }
     break;
+  case Mips::fixup_CHERI_CAPTABLE11:
+  case Mips::fixup_CHERI_CAPCALL11:
+    // Forcing a signed division because Value can be negative.
+    Value = (int64_t)Value / 16;
+    // We now check if Value can be encoded as a 11-bit signed immediate.
+    if (!isInt<11>(Value)) {
+      StringRef type = Kind == Mips::fixup_CHERI_CAPTABLE11 ?
+                       "CAPTABLE11" : "CAPCALL11";
+      Ctx.reportError(Fixup.getLoc(), "out of range " + type + " fixup");
+      return 0;
+    }
+    break;
+  case Mips::fixup_CHERI_CAPTABLE20:
+  case Mips::fixup_CHERI_CAPCALL20:
+    // Forcing a signed division because Value can be negative.
+    Value = (int64_t)Value / 16;
+    // We now check if Value can be encoded as a 16-bit signed immediate.
+    if (!isInt<16>(Value)) {
+      StringRef type = Kind == Mips::fixup_CHERI_CAPTABLE20 ?
+                       "CAPTABLE20" : "CAPCALL20";
+      Ctx.reportError(Fixup.getLoc(), "out of range " + type + " fixup");
+      return 0;
+    }
+    break;
   }
 
   return Value;
@@ -268,6 +303,9 @@ void MipsAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
   case FK_Data_8:
   case Mips::fixup_Mips_64:
     FullSize = 8;
+    break;
+  case Mips::fixup_CHERI_CAPABILITY:
+    llvm_unreachable("fixup_CHERI_CAPABILITY shouldn't happen here!");
     break;
   case FK_Data_4:
   default:
@@ -348,6 +386,25 @@ std::optional<MCFixupKind> MipsAsmBackend::getFixupKind(StringRef Name) const {
             (MCFixupKind)Mips::fixup_MICROMIPS_TLS_TPREL_LO16)
       .Case("R_MIPS_JALR", (MCFixupKind)Mips::fixup_Mips_JALR)
       .Case("R_MICROMIPS_JALR", (MCFixupKind)Mips::fixup_MICROMIPS_JALR)
+
+      .Case("R_MIPS_CHERI_CAPABILITY", (MCFixupKind)Mips::fixup_CHERI_CAPABILITY)
+      .Case("R_MIPS_CHERI_CAPCALL11", (MCFixupKind)Mips::fixup_CHERI_CAPCALL11)
+      .Case("R_MIPS_CHERI_CAPCALL20", (MCFixupKind)Mips::fixup_CHERI_CAPCALL20)
+      .Case("R_MIPS_CHERI_CAPCALL_HI16", (MCFixupKind)Mips::fixup_CHERI_CAPCALL_HI16)
+      .Case("R_MIPS_CHERI_CAPCALL_LO16", (MCFixupKind)Mips::fixup_CHERI_CAPCALL_LO16)
+      .Case("R_MIPS_CHERI_CAPTABLE11", (MCFixupKind)Mips::fixup_CHERI_CAPTABLE11)
+      .Case("R_MIPS_CHERI_CAPTABLE20", (MCFixupKind)Mips::fixup_CHERI_CAPTABLE20)
+      .Case("R_MIPS_CHERI_CAPTABLE_HI16", (MCFixupKind)Mips::fixup_CHERI_CAPTABLE_HI16)
+      .Case("R_MIPS_CHERI_CAPTABLE_LO16", (MCFixupKind)Mips::fixup_CHERI_CAPTABLE_LO16)
+      // CHERI TLS:
+      .Case("R_MIPS_CHERI_CAPTAB_TLSGD_HI16", (MCFixupKind)Mips::fixup_CHERI_CAPTAB_TLSGD_HI16)
+      .Case("R_MIPS_CHERI_CAPTAB_TLSGD_LO16", (MCFixupKind)Mips::fixup_CHERI_CAPTAB_TLSGD_LO16)
+      .Case("R_MIPS_CHERI_CAPTAB_TLSDM_HI16", (MCFixupKind)Mips::fixup_CHERI_CAPTAB_TLSLDM_HI16)
+      .Case("R_MIPS_CHERI_CAPTAB_TLSDM_LO16", (MCFixupKind)Mips::fixup_CHERI_CAPTAB_TLSLDM_LO16)
+      .Case("R_MIPS_CHERI_CAPTAB_TPREL_HI16", (MCFixupKind)Mips::fixup_CHERI_CAPTAB_TPREL_HI16)
+      .Case("R_MIPS_CHERI_CAPTAB_TPREL_LO16", (MCFixupKind)Mips::fixup_CHERI_CAPTAB_TPREL_LO16)
+
+
       .Default(MCAsmBackend::getFixupKind(Name));
 }
 
@@ -427,7 +484,29 @@ getFixupKindInfo(MCFixupKind Kind) const {
     { "fixup_Mips_SUB",                  0,     64,   0 },
     { "fixup_MICROMIPS_SUB",             0,     64,   0 },
     { "fixup_Mips_JALR",                 0,     32,   0 },
-    { "fixup_MICROMIPS_JALR",            0,     32,   0 }
+    { "fixup_MICROMIPS_JALR",            0,     32,   0 },
+
+    { "fixup_CHERI_CAPTABLE11",          0,     11,   0 },
+    { "fixup_CHERI_CAPTABLE20",          0,     16,   0 },
+    { "fixup_CHERI_CAPTABLE_HI16",       0,     16,   0 },
+    { "fixup_CHERI_CAPTABLE_LO16",       0,     16,   0 },
+    { "fixup_CHERI_CAPCALL11",           0,     11,   0 },
+    { "fixup_CHERI_CAPCALL20",           0,     16,   0 },
+    { "fixup_CHERI_CAPCALL_HI16",        0,     16,   0 },
+    { "fixup_CHERI_CAPCALL_LO16",        0,     16,   0 },
+    { "fixup_CHERI_CAPABILITY",          0,  0xdead,   0 },
+
+    { "fixup_Mips_CAPTABLEREL16",        0,     16,   0 }, // like GPREL16
+    { "fixup_Mips_CAPTABLEREL_HI",       0,     16,   0 }, // like GPOFF_HI
+    { "fixup_Mips_CAPTABLEREL_LO",       0,     16,   0 }, // like GPOFF_LO
+
+    { "fixup_CHERI_CAPTAB_TLSGD_HI16",   0,     16,   0 },
+    { "fixup_CHERI_CAPTAB_TLSGD_LO16",   0,     16,   0 },
+    { "fixup_CHERI_CAPTAB_TLSLDM_HI16",  0,     16,   0 },
+    { "fixup_CHERI_CAPTAB_TLSLDM_LO16",  0,     16,   0 },
+    { "fixup_CHERI_CAPTAB_TPREL_HI16",   0,     16,   0 },
+    { "fixup_CHERI_CAPTAB_TPREL_LO16",   0,     16,   0 },
+
   };
   static_assert(std::size(LittleEndianInfos) == Mips::NumTargetFixupKinds,
                 "Not all MIPS little endian fixup kinds added!");
@@ -506,7 +585,29 @@ getFixupKindInfo(MCFixupKind Kind) const {
     { "fixup_Mips_SUB",                   0,     64,   0 },
     { "fixup_MICROMIPS_SUB",              0,     64,   0 },
     { "fixup_Mips_JALR",                  0,     32,   0 },
-    { "fixup_MICROMIPS_JALR",             0,     32,   0 }
+    { "fixup_MICROMIPS_JALR",             0,     32,   0 },
+
+    { "fixup_CHERI_CAPTABLE11",    21,    11,   0 },
+    { "fixup_CHERI_CAPTABLE20",    16,    16,   0 },
+    { "fixup_CHERI_CAPTABLE_HI16", 16,    16,   0 },
+    { "fixup_CHERI_CAPTABLE_LO16", 16,    16,   0 },
+    { "fixup_CHERI_CAPCALL11",     21,    11,   0 },
+    { "fixup_CHERI_CAPCALL20",     16,    16,   0 },
+    { "fixup_CHERI_CAPCALL_HI16",  16,    16,   0 },
+    { "fixup_CHERI_CAPCALL_LO16",  16,    16,   0 },
+    { "fixup_CHERI_CAPABILITY",     0,0xdead,   0 },
+
+    { "fixup_Mips_CAPTABLEREL16",  16,    16,   0 }, // like GPREL16
+    { "fixup_Mips_CAPTABLEREL_HI", 16,    16,   0 }, // like GPOFF_HI
+    { "fixup_Mips_CAPTABLEREL_LO", 16,    16,   0 }, // like GPOFF_LO
+
+    { "fixup_CHERI_CAPTAB_TLSGD_HI16",  16,     16,   0 },
+    { "fixup_CHERI_CAPTAB_TLSGD_LO16",  16,     16,   0 },
+    { "fixup_CHERI_CAPTAB_TLSLDM_HI16", 16,     16,   0 },
+    { "fixup_CHERI_CAPTAB_TLSLDM_LO16", 16,     16,   0 },
+    { "fixup_CHERI_CAPTAB_TPREL_HI16",  16,     16,   0 },
+    { "fixup_CHERI_CAPTAB_TPREL_LO16",  16,     16,   0 },
+
   };
   static_assert(std::size(BigEndianInfos) == Mips::NumTargetFixupKinds,
                 "Not all MIPS big endian fixup kinds added!");
@@ -518,6 +619,8 @@ getFixupKindInfo(MCFixupKind Kind) const {
 
   assert(unsigned(Kind - FirstTargetFixupKind) < getNumFixupKinds() &&
           "Invalid kind!");
+
+  assert(Kind - FirstTargetFixupKind != Mips::fixup_CHERI_CAPABILITY);
 
   if (Endian == llvm::endianness::little)
     return LittleEndianInfos[Kind - FirstTargetFixupKind];
@@ -584,6 +687,12 @@ bool MipsAsmBackend::shouldForceRelocation(const MCAssembler &Asm,
   case Mips::fixup_MICROMIPS_TLS_TPREL_HI16:
   case Mips::fixup_MICROMIPS_TLS_TPREL_LO16:
   case Mips::fixup_MICROMIPS_JALR:
+  case Mips::fixup_CHERI_CAPTAB_TLSGD_HI16:
+  case Mips::fixup_CHERI_CAPTAB_TLSGD_LO16:
+  case Mips::fixup_CHERI_CAPTAB_TLSLDM_HI16:
+  case Mips::fixup_CHERI_CAPTAB_TLSLDM_LO16:
+  case Mips::fixup_CHERI_CAPTAB_TPREL_HI16:
+  case Mips::fixup_CHERI_CAPTAB_TPREL_LO16:
     return true;
   }
 }

@@ -18,6 +18,7 @@
 #include "llvm/ADT/Twine.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Cheri.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
@@ -681,10 +682,18 @@ void CallInst::init(FunctionType *FTy, Value *Func, ArrayRef<Value *> Args,
           (FTy->isVarArg() && Args.size() > FTy->getNumParams())) &&
          "Calling a function with bad signature!");
 
-  for (unsigned i = 0; i != Args.size(); ++i)
-    assert((i >= FTy->getNumParams() ||
-            FTy->getParamType(i) == Args[i]->getType()) &&
-           "Calling a function with a bad signature!");
+  for (unsigned i = 0; i != Args.size(); ++i) {
+    if (i < FTy->getNumParams() && FTy->getParamType(i) != Args[i]->getType()) {
+      errs() << "FTy->getNumParams() = " << FTy->getNumParams() << "\n";
+      errs() << "FTy->getParamType(" << i << ") = ";
+      FTy->getParamType(i)->dump();
+      errs() << "Args[" << i << "]->getType() = ";
+      Args[i]->getType()->dump();
+      errs() << "FTy = ";
+      FTy->dump();
+      llvm_unreachable("Calling a function with a bad signature!");
+    }
+  }
 #endif
 
   // Set operands in order of their index to match use-list-order
@@ -3074,6 +3083,13 @@ bool CastInst::isNoopCast(Instruction::CastOps Opcode,
                           Type *DestTy,
                           const DataLayout &DL) {
   assert(castIsValid(Opcode, SrcTy, DestTy) && "method precondition");
+  auto isNoopPtrIntCast = [](Type *PtrOpTy, const DataLayout &DL) {
+    if (DL.getPointerSize(PtrOpTy->getPointerAddressSpace()) !=
+        DL.getPointerBaseSize(PtrOpTy->getPointerAddressSpace()))
+      return false;
+    return true;
+  };
+
   switch (Opcode) {
     default: llvm_unreachable("Invalid CastOp");
     case Instruction::Trunc:
@@ -3091,9 +3107,13 @@ bool CastInst::isNoopCast(Instruction::CastOps Opcode,
     case Instruction::BitCast:
       return true;  // BitCast never modifies bits.
     case Instruction::PtrToInt:
+      if (!isNoopPtrIntCast(SrcTy, DL))
+        return false;
       return DL.getIntPtrType(SrcTy)->getScalarSizeInBits() ==
              DestTy->getScalarSizeInBits();
     case Instruction::IntToPtr:
+      if (!isNoopPtrIntCast(DestTy, DL))
+        return false;
       return DL.getIntPtrType(DestTy)->getScalarSizeInBits() ==
              SrcTy->getScalarSizeInBits();
   }
@@ -3330,9 +3350,25 @@ unsigned CastInst::isEliminableCastPair(
   }
 }
 
+#if !defined(NDEBUG)
+#define assertCastIsValid(op, S, Ty, msg)                                      \
+  do {                                                                         \
+    if (LLVM_UNLIKELY(!castIsValid((op), (S), (Ty)))) {                        \
+      errs() << msg << ": op=" << ((int)op) << " S = ";                        \
+      (S)->getType()->dump();                                                  \
+      errs() << "Ty = ";                                                       \
+      (Ty)->dump();                                                            \
+      assert(false && msg);                                                    \
+    }                                                                          \
+  } while (false)
+#else
+#define assertCastIsValid(op, S, Ty, msg)                                      \
+  assert(castIsValid((op), (S), (Ty)) && msg)
+#endif
+
 CastInst *CastInst::Create(Instruction::CastOps op, Value *S, Type *Ty,
   const Twine &Name, Instruction *InsertBefore) {
-  assert(castIsValid(op, S, Ty) && "Invalid cast!");
+  assertCastIsValid(op, S, Ty, "Invalid cast!");
   // Construct and return the appropriate CastInst subclass
   switch (op) {
   case Trunc:         return new TruncInst         (S, Ty, Name, InsertBefore);
@@ -3354,7 +3390,7 @@ CastInst *CastInst::Create(Instruction::CastOps op, Value *S, Type *Ty,
 
 CastInst *CastInst::Create(Instruction::CastOps op, Value *S, Type *Ty,
   const Twine &Name, BasicBlock *InsertAtEnd) {
-  assert(castIsValid(op, S, Ty) && "Invalid cast!");
+  assertCastIsValid(op, S, Ty, "Invalid cast!");
   // Construct and return the appropriate CastInst subclass
   switch (op) {
   case Trunc:         return new TruncInst         (S, Ty, Name, InsertAtEnd);
@@ -3593,14 +3629,23 @@ bool CastInst::isBitCastable(Type *SrcTy, Type *DestTy) {
 bool CastInst::isBitOrNoopPointerCastable(Type *SrcTy, Type *DestTy,
                                           const DataLayout &DL) {
   // ptrtoint and inttoptr are not allowed on non-integral pointers
+  // XXXAR: Have to return false here for casts between i128/i8 addrspace(200)*
+  // On CHERI these are not noop casts since we currently can't use capability
+  // registers as a i128/i256 registers. Returning false here ensures that
+  // we don't assert during code generation when we encounter an invalid pattern
+  // It seems to happen a lot when compiling C code using __int128_t and we
+  // replace memcpy intrinsics with addrspace(200) loads.
+  // TODO: Can we allow this cast some times? See InstCombineLoadStoreAlloca.cpp
+  // and FindAvailablePtrLoadStore().
+  // This makes some code generation involving structs with i128/i256 members worse
   if (auto *PtrTy = dyn_cast<PointerType>(SrcTy))
     if (auto *IntTy = dyn_cast<IntegerType>(DestTy))
       return (IntTy->getBitWidth() == DL.getPointerTypeSizeInBits(PtrTy) &&
-              !DL.isNonIntegralPointerType(PtrTy));
+              !DL.isNonIntegralPointerType(PtrTy) && !DL.isFatPointer(PtrTy));
   if (auto *PtrTy = dyn_cast<PointerType>(DestTy))
     if (auto *IntTy = dyn_cast<IntegerType>(SrcTy))
       return (IntTy->getBitWidth() == DL.getPointerTypeSizeInBits(PtrTy) &&
-              !DL.isNonIntegralPointerType(PtrTy));
+              !DL.isNonIntegralPointerType(PtrTy) && !DL.isFatPointer(PtrTy));
 
   return isBitCastable(SrcTy, DestTy);
 }
@@ -3817,156 +3862,182 @@ CastInst::castIsValid(Instruction::CastOps op, Type *SrcTy, Type *DstTy) {
 TruncInst::TruncInst(
   Value *S, Type *Ty, const Twine &Name, Instruction *InsertBefore
 ) : CastInst(Ty, Trunc, S, Name, InsertBefore) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal Trunc");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal Trunc");
 }
 
 TruncInst::TruncInst(
   Value *S, Type *Ty, const Twine &Name, BasicBlock *InsertAtEnd
 ) : CastInst(Ty, Trunc, S, Name, InsertAtEnd) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal Trunc");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal Trunc");
 }
 
 ZExtInst::ZExtInst(
   Value *S, Type *Ty, const Twine &Name, Instruction *InsertBefore
 )  : CastInst(Ty, ZExt, S, Name, InsertBefore) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal ZExt");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal ZExt");
 }
 
 ZExtInst::ZExtInst(
   Value *S, Type *Ty, const Twine &Name, BasicBlock *InsertAtEnd
 )  : CastInst(Ty, ZExt, S, Name, InsertAtEnd) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal ZExt");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal ZExt");
 }
 SExtInst::SExtInst(
   Value *S, Type *Ty, const Twine &Name, Instruction *InsertBefore
 ) : CastInst(Ty, SExt, S, Name, InsertBefore) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal SExt");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal SExt");
 }
 
 SExtInst::SExtInst(
   Value *S, Type *Ty, const Twine &Name, BasicBlock *InsertAtEnd
 )  : CastInst(Ty, SExt, S, Name, InsertAtEnd) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal SExt");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal SExt");
 }
 
 FPTruncInst::FPTruncInst(
   Value *S, Type *Ty, const Twine &Name, Instruction *InsertBefore
 ) : CastInst(Ty, FPTrunc, S, Name, InsertBefore) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal FPTrunc");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal FPTrunc");
 }
 
 FPTruncInst::FPTruncInst(
   Value *S, Type *Ty, const Twine &Name, BasicBlock *InsertAtEnd
 ) : CastInst(Ty, FPTrunc, S, Name, InsertAtEnd) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal FPTrunc");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal FPTrunc");
 }
 
 FPExtInst::FPExtInst(
   Value *S, Type *Ty, const Twine &Name, Instruction *InsertBefore
 ) : CastInst(Ty, FPExt, S, Name, InsertBefore) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal FPExt");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal FPExt");
 }
 
 FPExtInst::FPExtInst(
   Value *S, Type *Ty, const Twine &Name, BasicBlock *InsertAtEnd
 ) : CastInst(Ty, FPExt, S, Name, InsertAtEnd) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal FPExt");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal FPExt");
 }
 
 UIToFPInst::UIToFPInst(
   Value *S, Type *Ty, const Twine &Name, Instruction *InsertBefore
 ) : CastInst(Ty, UIToFP, S, Name, InsertBefore) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal UIToFP");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal UIToFP");
 }
 
 UIToFPInst::UIToFPInst(
   Value *S, Type *Ty, const Twine &Name, BasicBlock *InsertAtEnd
 ) : CastInst(Ty, UIToFP, S, Name, InsertAtEnd) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal UIToFP");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal UIToFP");
 }
 
 SIToFPInst::SIToFPInst(
   Value *S, Type *Ty, const Twine &Name, Instruction *InsertBefore
 ) : CastInst(Ty, SIToFP, S, Name, InsertBefore) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal SIToFP");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal SIToFP");
 }
 
 SIToFPInst::SIToFPInst(
   Value *S, Type *Ty, const Twine &Name, BasicBlock *InsertAtEnd
 ) : CastInst(Ty, SIToFP, S, Name, InsertAtEnd) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal SIToFP");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal SIToFP");
 }
 
 FPToUIInst::FPToUIInst(
   Value *S, Type *Ty, const Twine &Name, Instruction *InsertBefore
 ) : CastInst(Ty, FPToUI, S, Name, InsertBefore) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal FPToUI");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal FPToUI");
 }
 
 FPToUIInst::FPToUIInst(
   Value *S, Type *Ty, const Twine &Name, BasicBlock *InsertAtEnd
 ) : CastInst(Ty, FPToUI, S, Name, InsertAtEnd) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal FPToUI");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal FPToUI");
 }
 
 FPToSIInst::FPToSIInst(
   Value *S, Type *Ty, const Twine &Name, Instruction *InsertBefore
 ) : CastInst(Ty, FPToSI, S, Name, InsertBefore) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal FPToSI");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal FPToSI");
 }
 
 FPToSIInst::FPToSIInst(
   Value *S, Type *Ty, const Twine &Name, BasicBlock *InsertAtEnd
 ) : CastInst(Ty, FPToSI, S, Name, InsertAtEnd) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal FPToSI");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal FPToSI");
+}
+
+static void checkCheriPtrToInt(const DataLayout *DL, Type* SrcTy, Type* Dst) {
+  // Catch things that are always an error like CHERI ptr -> i128/i256
+  if (isCheriPointer(SrcTy, DL)) {
+    // FIXME: hardcoded 64 is wrong for CHERI64
+    unsigned ValidBitWidth = DL ? DL->getIndexTypeSizeInBits(SrcTy) : 64;
+    assert(cast<IntegerType>(Dst)->getIntegerBitWidth() <= ValidBitWidth &&
+           "Bad ptrtoint for Cheri capabilities!");
+    (void)ValidBitWidth;
+  }
+}
+
+static void checkCheriIntToPtr(const DataLayout *DL, Type* SrcTy, Type* Dst) {
+  // Catch things that are always an error like i128/i256 -> CHERI ptr
+  if (isCheriPointer(Dst, DL)) {
+    // FIXME: hardcoded 64 is wrong for CHERI64
+    unsigned ValidBitWidth = DL ? DL->getIndexTypeSizeInBits(Dst) : 64;
+    assert(cast<IntegerType>(SrcTy)->getIntegerBitWidth() <= ValidBitWidth &&
+           "Bad inttoptr for Cheri capabilities!");
+    (void)ValidBitWidth;
+  }
 }
 
 PtrToIntInst::PtrToIntInst(
   Value *S, Type *Ty, const Twine &Name, Instruction *InsertBefore
 ) : CastInst(Ty, PtrToInt, S, Name, InsertBefore) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal PtrToInt");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal PtrToInt");
+  checkCheriPtrToInt(getDataLayoutOrNull(InsertBefore), S->getType(), Ty);
 }
 
 PtrToIntInst::PtrToIntInst(
   Value *S, Type *Ty, const Twine &Name, BasicBlock *InsertAtEnd
 ) : CastInst(Ty, PtrToInt, S, Name, InsertAtEnd) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal PtrToInt");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal PtrToInt");
+  checkCheriPtrToInt(getDataLayoutOrNull(InsertAtEnd), S->getType(), Ty);
 }
 
 IntToPtrInst::IntToPtrInst(
   Value *S, Type *Ty, const Twine &Name, Instruction *InsertBefore
 ) : CastInst(Ty, IntToPtr, S, Name, InsertBefore) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal IntToPtr");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal IntToPtr");
+  checkCheriIntToPtr(getDataLayoutOrNull(InsertBefore), S->getType(), Ty);
 }
 
 IntToPtrInst::IntToPtrInst(
   Value *S, Type *Ty, const Twine &Name, BasicBlock *InsertAtEnd
 ) : CastInst(Ty, IntToPtr, S, Name, InsertAtEnd) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal IntToPtr");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal IntToPtr");
+  checkCheriIntToPtr(getDataLayoutOrNull(InsertAtEnd), S->getType(), Ty);
 }
 
 BitCastInst::BitCastInst(
   Value *S, Type *Ty, const Twine &Name, Instruction *InsertBefore
 ) : CastInst(Ty, BitCast, S, Name, InsertBefore) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal BitCast");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal BitCast");
 }
 
 BitCastInst::BitCastInst(
   Value *S, Type *Ty, const Twine &Name, BasicBlock *InsertAtEnd
 ) : CastInst(Ty, BitCast, S, Name, InsertAtEnd) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal BitCast");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal BitCast");
 }
 
 AddrSpaceCastInst::AddrSpaceCastInst(
   Value *S, Type *Ty, const Twine &Name, Instruction *InsertBefore
 ) : CastInst(Ty, AddrSpaceCast, S, Name, InsertBefore) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal AddrSpaceCast");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal AddrSpaceCast");
 }
 
 AddrSpaceCastInst::AddrSpaceCastInst(
   Value *S, Type *Ty, const Twine &Name, BasicBlock *InsertAtEnd
 ) : CastInst(Ty, AddrSpaceCast, S, Name, InsertAtEnd) {
-  assert(castIsValid(getOpcode(), S, Ty) && "Illegal AddrSpaceCast");
+  assertCastIsValid(getOpcode(), S, Ty, "Illegal AddrSpaceCast");
 }
 
 //===----------------------------------------------------------------------===//

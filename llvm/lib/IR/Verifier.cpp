@@ -69,6 +69,7 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/CallingConv.h"
+#include "llvm/IR/Cheri.h"
 #include "llvm/IR/Comdat.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/ConstantRange.h"
@@ -548,7 +549,7 @@ private:
   void visitExtractElementInst(ExtractElementInst &EI);
   void visitInsertElementInst(InsertElementInst &EI);
   void visitShuffleVectorInst(ShuffleVectorInst &EI);
-  void visitVAArgInst(VAArgInst &VAA) { visitInstruction(VAA); }
+  void visitVAArgInst(VAArgInst &VAA);
   void visitCallInst(CallInst &CI);
   void visitInvokeInst(InvokeInst &II);
   void visitGetElementPtrInst(GetElementPtrInst &GEP);
@@ -671,6 +672,13 @@ static void forEachUser(const Value *User,
     if (Callback(Cur))
       append_range(WorkList, Cur->materialized_users());
   }
+}
+
+void Verifier::visitVAArgInst(VAArgInst &VAA) {
+  Check(VAA.getPointerOperand()->getType()->getPointerAddressSpace() ==
+            DL.getAllocaAddrSpace(),
+        "va_arg not in alloca AS?", &VAA);
+  visitInstruction(VAA);
 }
 
 void Verifier::visitGlobalValue(const GlobalValue &GV) {
@@ -797,12 +805,22 @@ void Verifier::visitGlobalVariable(const GlobalVariable &GV) {
     // visitGlobalValue will complain on appending non-array.
     if (ArrayType *ATy = dyn_cast<ArrayType>(GV.getValueType())) {
       StructType *STy = dyn_cast<StructType>(ATy->getElementType());
+      // For initializers/destructors the code pointer is in the program address space
+      auto CtorPointerAS = DL.getProgramAddressSpace();
       PointerType *FuncPtrTy =
           PointerType::get(Context, DL.getProgramAddressSpace());
       Check(STy && (STy->getNumElements() == 2 || STy->getNumElements() == 3) &&
-                STy->getTypeAtIndex(0u)->isIntegerTy(32) &&
-                STy->getTypeAtIndex(1) == FuncPtrTy,
+                STy->getTypeAtIndex(0u)->isIntegerTy(32),
             "wrong type for intrinsic global variable", &GV);
+      Check(STy->getTypeAtIndex(1)->isPointerTy() &&
+                STy->getTypeAtIndex(1)->getPointerAddressSpace() ==
+                    CtorPointerAS,
+            "llvm.global_ctors/llvm.global_dtors second parameter must be a "
+            "pointer in the program addres space",
+            &GV);
+      Check(STy->getTypeAtIndex(1) == FuncPtrTy,
+            "wrong type for llvm.global_ctors/llvm.global_dtors parameter 2",
+            STy->getTypeAtIndex(1));
       Check(STy->getNumElements() == 3,
             "the third field of the element type is mandatory, "
             "specify ptr null to migrate from the obsoleted 2-field form");
@@ -4190,10 +4208,10 @@ void Verifier::visitAtomicRMWInst(AtomicRMWInst &RMWI) {
               " operand must have floating point type!",
           &RMWI, ElTy);
   } else {
-    Check(ElTy->isIntegerTy(),
-          "atomicrmw " + AtomicRMWInst::getOperationName(Op) +
-              " operand must have integer type!",
-          &RMWI, ElTy);
+    Check(ElTy->isIntegerTy() || ElTy->isPointerTy(), "atomicrmw " +
+           AtomicRMWInst::getOperationName(Op) +
+           " operand must have integer or pointer type!",
+           &RMWI, ElTy);
   }
   checkAtomicMemAccessSize(ElTy, &RMWI);
   Check(AtomicRMWInst::FIRST_BINOP <= Op && Op <= AtomicRMWInst::LAST_BINOP,
@@ -5645,6 +5663,17 @@ void Verifier::visitIntrinsicCall(Intrinsic::ID ID, CallBase &Call) {
     Check(Call.countOperandBundlesOfType(LLVMContext::OB_deopt) == 1,
           "experimental_guard must have exactly one "
           "\"deopt\" operand bundle");
+    break;
+  }
+
+  case Intrinsic::vastart:
+  case Intrinsic::vacopy:
+  case Intrinsic::vaend: {
+    Check(isa<CallInst>(Call), "variadic argument intrinsics cannot be invoked",
+          Call);
+    Value *Val = Call.getArgOperand(0);
+    Check(Val->getType()->getPointerAddressSpace() == DL.getAllocaAddrSpace(),
+          "variadic argument intrinsics must be in alloca address space", Call);
     break;
   }
 

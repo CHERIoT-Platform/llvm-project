@@ -226,7 +226,7 @@ void MachineOperand::ChangeToMCSymbol(MCSymbol *Sym, unsigned TargetFlags) {
   removeRegFromUses();
 
   OpKind = MO_MCSymbol;
-  Contents.Sym = Sym;
+  Contents.OffsetedInfo.Val.Sym = Sym;
   setTargetFlags(TargetFlags);
 }
 
@@ -1072,6 +1072,10 @@ MachinePointerInfo MachinePointerInfo::getGOT(MachineFunction &MF) {
   return MachinePointerInfo(MF.getPSVManager().getGOT());
 }
 
+MachinePointerInfo MachinePointerInfo::getCapTable(MachineFunction &MF) {
+  return MachinePointerInfo(MF.getPSVManager().getCapTable());
+}
+
 MachinePointerInfo MachinePointerInfo::getStack(MachineFunction &MF,
                                                 int64_t Offset, uint8_t ID) {
   return MachinePointerInfo(MF.getPSVManager().getStack(), Offset, ID);
@@ -1198,6 +1202,9 @@ void MachineMemOperand::print(raw_ostream &OS, ModuleSlotTracker &MST,
       break;
     case PseudoSourceValue::GOT:
       OS << "got";
+      break;
+    case PseudoSourceValue::CapTable:
+      OS << "cap-table";
       break;
     case PseudoSourceValue::JumpTable:
       OS << "jump-table";

@@ -85,6 +85,8 @@ CodeGenIntrinsic::CodeGenIntrinsic(Record *R,
   if (R->getValue(
           "ClangBuiltinName")) // Ignore a missing ClangBuiltinName field.
     ClangBuiltinName = std::string(R->getValueAsString("ClangBuiltinName"));
+  if (R->getValue("GCCBuiltinAliasName"))  // Ignore a missing GCCBuiltinAliasName field.
+    GCCBuiltinAliasName = std::string(R->getValueAsString("GCCBuiltinAliasName"));
   if (R->getValue("MSBuiltinName")) // Ignore a missing MSBuiltinName field.
     MSBuiltinName = std::string(R->getValueAsString("MSBuiltinName"));
 
@@ -249,7 +251,8 @@ bool CodeGenIntrinsic::isParamAPointer(unsigned ParamIdx) const {
   if (ParamIdx >= IS.ParamTys.size())
     return false;
   return (IS.ParamTys[ParamIdx]->isSubClassOf("LLVMQualPointerType") ||
-          IS.ParamTys[ParamIdx]->isSubClassOf("LLVMAnyPointerType"));
+          IS.ParamTys[ParamIdx]->isSubClassOf("LLVMAnyPointerType") ||
+          IS.ParamTys[ParamIdx]->isSubClassOf("LLVMCapabilityType"));
 }
 
 bool CodeGenIntrinsic::isParamImmArg(unsigned ParamIdx) const {

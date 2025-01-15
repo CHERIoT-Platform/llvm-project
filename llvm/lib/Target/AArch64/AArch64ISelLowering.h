@@ -573,6 +573,11 @@ public:
     return MVT::getIntegerVT(64);
   }
 
+  MVT getPointerRangeTy(const DataLayout &DL, uint32_t AS = 0) const override {
+    // See getPointerTy above.
+    return MVT::getIntegerVT(64);
+  }
+
   bool targetShrinkDemandedConstant(SDValue Op, const APInt &DemandedBits,
                                     const APInt &DemandedElts,
                                     TargetLoweringOpt &TLO) const override;
@@ -916,7 +921,7 @@ public:
   bool enableAggressiveFMAFusion(EVT VT) const override;
 
   /// Returns the size of the platform's va_list object.
-  unsigned getVaListSizeInBits(const DataLayout &DL) const override;
+  unsigned getVaListSizeInBits(const DataLayout &DL, unsigned AS) const override;
 
   /// Returns true if \p VecTy is a legal interleaved access type. This
   /// function checks the vector element type and the overall width of the

@@ -945,3 +945,5 @@ class HYPCALL_FM<bits<6> op> : StdArch {
   let Inst{20-11} = code_;
   let Inst{5-0}   = op;
 }
+
+include "MipsInstrFormatsCheri.td"

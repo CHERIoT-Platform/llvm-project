@@ -318,7 +318,7 @@ namespace test5 {
   // CHECK5v11-NEXT: call   void @_ZN5test51AD1Ev(ptr {{[^,]*}} [[ELT]])
   // CHECK5:      [[T0:%.*]] = icmp eq ptr [[ELT]], [[BEGIN]]
   // CHECK5-NEXT: br i1 [[T0]],
-  // CHECK5:      call void @llvm.lifetime.end
+  // CHECK5:      call void @llvm.lifetime.end.p0
   // CHECK5-NEXT: ret void
   // lpad
   // CHECK5v03:      [[EMPTY:%.*]] = icmp eq ptr [[BEGIN]], [[ELT]]
@@ -472,7 +472,7 @@ namespace test10 {
 #if __cplusplus >= 201103L
 namespace test11 {
 
-// Check that lifetime.end is emitted in the landing pad.
+// Check that lifetime.end.p0i8 is emitted in the landing pad.
 
 // CHECK6-LABEL: define{{.*}} void @_ZN6test1115testLifetimeEndEi(
 // CHECK6: entry:

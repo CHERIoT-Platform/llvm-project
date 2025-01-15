@@ -16,6 +16,7 @@
 #include <cassert>
 
 #include "test_macros.h"
+TEST_CHERI_NO_SUBOBJECT_WARNING
 
 template <class S>
 void test(S s) {

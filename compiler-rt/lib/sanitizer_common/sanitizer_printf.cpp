@@ -171,7 +171,7 @@ int VSNPrintf(char *buff, int buff_length,
     switch (*cur) {
       case 'd': {
         s64 dval = have_ll  ? va_arg(args, s64)
-                   : have_z ? va_arg(args, sptr)
+                   : have_z ? va_arg(args, ssize)
                    : have_l ? va_arg(args, long)
                             : va_arg(args, int);
         result += AppendSignedDecimal(&buff, buff_end, dval, width,
@@ -182,7 +182,7 @@ int VSNPrintf(char *buff, int buff_length,
       case 'x':
       case 'X': {
         u64 uval = have_ll  ? va_arg(args, u64)
-                   : have_z ? va_arg(args, uptr)
+                   : have_z ? va_arg(args, usize)
                    : have_l ? va_arg(args, unsigned long)
                             : va_arg(args, unsigned);
         bool uppercase = (*cur == 'X');
@@ -329,7 +329,7 @@ void Report(const char *format, ...) {
 // Returns the number of symbols that should have been written to buffer
 // (not including trailing '\0'). Thus, the string is truncated
 // iff return value is not less than "length".
-int internal_snprintf(char *buffer, uptr length, const char *format, ...) {
+int internal_snprintf(char *buffer, usize length, const char *format, ...) {
   va_list args;
   va_start(args, format);
   int needed_length = VSNPrintf(buffer, length, format, args);

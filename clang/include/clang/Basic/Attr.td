@@ -902,6 +902,30 @@ def AnnotateType : TypeAttr {
   let Documentation = [AnnotateTypeDocs];
 }
 
+def MinimumStack : InheritableAttr, TargetSpecificAttr<TargetRISCV> {
+  let Spellings = [CXX11<"cheriot", "minimum_stack">,
+                   C23<"cheriot", "minimum_stack">,
+                   GNU<"cheriot_minimum_stack">];
+  let Args = [IntArgument<"Size">];
+  let Subjects = SubjectList<[Function]>;
+  let Documentation = [Undocumented];
+}
+
+def InterruptState : InheritableAttr, TargetSpecificAttr<TargetRISCV> {
+  let Spellings = [CXX11<"cheriot", "interrupt_state">,
+                   C23<"cheriot", "interrupt_state">,
+                   GNU<"cheriot_interrupt_state">,
+                   CXX11<"cheri", "interrupt_state">,
+                   C23<"cheri", "interrupt_state">,
+                   GNU<"cheri_interrupt_state">];
+  let Args = [EnumArgument<"State", "InterruptState",
+                           ["enabled", "disabled", "inherit"],
+                           ["Enabled", "Disabled", "Inherit"],
+                           1>];
+  let Subjects = SubjectList<[Function,CXXMethod]>;
+  let Documentation = [Undocumented];
+}
+
 def ARMInterrupt : InheritableAttr, TargetSpecificAttr<TargetARM> {
   // NOTE: If you add any additional spellings, M68kInterrupt's,
   // MSP430Interrupt's, MipsInterrupt's and AnyX86Interrupt's spellings
@@ -2507,6 +2531,92 @@ def Packed : InheritableAttr {
   let Documentation = [Undocumented];
 }
 
+// CHERI-related attributes
+
+def CHERICapability : TypeAttr {
+  let Spellings = [CustomKeyword<"__capability">];
+  let Documentation = [Undocumented];
+}
+def MemoryAddress : TypeAttr {
+  let Spellings = [GNU<"memory_address">, CXX11<"cheri","memory_address">];
+  let Documentation = [Undocumented];
+}
+
+def PointerInterpretationCaps : DeclOrTypeAttr { // InheritableAttr {
+  let Spellings = [GNU<"pointer_interpretation_capabilities">];
+  let Documentation = [Undocumented];
+}
+
+def CHERICCall : DeclOrTypeAttr { // InheritableAttr {
+  let Spellings = [GNU<"cheri_ccall">];
+  let Documentation = [Undocumented];
+}
+
+def CHERICCallee : DeclOrTypeAttr { // InheritableAttr {
+  let Spellings = [GNU<"cheri_ccallee">];
+  let Subjects = SubjectList<[Function], ErrorDiag>;
+  let Documentation = [Undocumented];
+}
+
+def CHERICCallback : DeclOrTypeAttr { // InheritableAttr {
+  let Spellings = [GNU<"cheri_ccallback">];
+  let Documentation = [Undocumented];
+}
+
+def CHERIMethodSuffix : DeclOrTypeAttr { // InheritableAttr {
+  let Spellings = [GNU<"cheri_method_suffix">];
+  let Documentation = [Undocumented];
+  let Args = [StringArgument<"Suffix">];
+}
+def CHERIMethodClass : DeclOrTypeAttr { // InheritableAttr {
+  let Spellings = [GNU<"cheri_method_class">];
+  let Documentation = [Undocumented];
+  let Args = [IdentifierArgument<"DefaultClass">];
+}
+
+def CHERICompartmentName : DeclOrTypeAttr {
+  let Spellings = [GNU<"cheri_compartment">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function], ErrorDiag>;
+  let Args = [StringArgument<"CompartmentName">];
+}
+
+def CHERILibCall : DeclOrTypeAttr {
+  let Spellings = [GNU<"cheri_libcall">];
+  let Documentation = [Undocumented];
+  let Subjects = SubjectList<[Function], ErrorDiag>;
+}
+
+
+def CHERINoSubobjectBounds : DeclOrTypeAttr {
+  let Spellings = [GNU<"cheri_no_subobject_bounds">,
+                   CXX11<"cheri","no_subobject_bounds">,
+                   C23<"cheri", "no_subobject_bounds">];
+  let Documentation = [Undocumented];
+}
+
+// For pre-C99 variable length arrays or variable legnth arrays that have a
+// maximum size.
+def CHERISubobjectBoundsUseRemainingSize : InheritableAttr {
+  let Spellings = [GNU<"cheri_subobject_bounds_use_remaining_size">,
+                   CXX11<"cheri","subobject_bounds_use_remaining_size">,
+                   C23<"cheri", "subobject_bounds_use_remaining_size">];
+  // TODO: allow this to be a reference to another field in the structure
+  let Args = [UnsignedArgument<"MaxSize", /*Optional=*/1>];
+  let Subjects = SubjectList<[Field, Record /* TODO:, TypedefName*/]>;
+  let Documentation = [Undocumented];
+}
+
+// Attributes for __uintcap_t/__intcap_t to indicate whether
+// they carry provenance or not (to avoid the LHS carries
+// provenance rule that we were using before).
+def CHERINoProvenance : TypeAttr {
+  let Spellings = [GNU<"cheri_no_provenance">,
+                   CXX11<"cheri","no_provenance">,
+                   C23<"cheri", "no_provenance">];
+  let Documentation = [Undocumented]; // FIXME
+}
+
 def IntelOclBicc : DeclOrTypeAttr {
   let Spellings = [Clang<"intel_ocl_bicc", 0>];
 //  let Subjects = [Function, ObjCMethod];
@@ -2828,6 +2938,11 @@ def Sentinel : InheritableAttr {
   let Args = [DefaultIntArgument<"Sentinel", 0>,
               DefaultIntArgument<"NullPos", 0>];
 //  let Subjects = SubjectList<[Function, ObjCMethod, Block, Var]>;
+  let Documentation = [Undocumented];
+}
+
+def Sensitive : InheritableAttr {
+  let Spellings = [GNU<"sensitive">];
   let Documentation = [Undocumented];
 }
 

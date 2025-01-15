@@ -186,9 +186,9 @@ struct __sanitizer___sysctl_args {
   int *name;
   int nlen;
   void *oldval;
-  uptr *oldlenp;
+  usize *oldlenp;
   void *newval;
-  uptr newlen;
+  usize newlen;
   unsigned long ___unused[4];
 };
 
@@ -264,30 +264,30 @@ struct __sanitizer_shmid_ds {
   unsigned long __glibc_reserved2;
 #else
 #ifndef __powerpc__
-  uptr shm_segsz;
+  usize shm_segsz;
 #elif !defined(__powerpc64__)
-  uptr __unused0;
+  usize __unused0;
 #endif
 #if defined(__x86_64__) && !defined(_LP64)
   u64 shm_atime;
   u64 shm_dtime;
   u64 shm_ctime;
 #else
-  uptr shm_atime;
+  usize shm_atime;
 #if !defined(_LP64) && !defined(__mips__)
-  uptr __unused1;
+  usize __unused1;
 #endif
-  uptr shm_dtime;
+  usize shm_dtime;
 #if !defined(_LP64) && !defined(__mips__)
-  uptr __unused2;
+  usize __unused2;
 #endif
-  uptr shm_ctime;
+  usize shm_ctime;
 #if !defined(_LP64) && !defined(__mips__)
-  uptr __unused3;
+  usize __unused3;
 #endif
 #endif
 #ifdef __powerpc__
-  uptr shm_segsz;
+  usize shm_segsz;
 #endif
   int shm_cpid;
   int shm_lpid;
@@ -296,9 +296,9 @@ struct __sanitizer_shmid_ds {
   u64 __unused4;
   u64 __unused5;
 #else
-  uptr shm_nattch;
-  uptr __unused4;
-  uptr __unused5;
+  usize shm_nattch;
+  usize __unused4;
+  usize __unused5;
 #endif
 #endif
 };
@@ -313,7 +313,7 @@ extern unsigned struct_statvfs_sz;
 
 struct __sanitizer_iovec {
   void *iov_base;
-  uptr iov_len;
+  usize iov_len;
 };
 
 #if !SANITIZER_ANDROID
@@ -463,13 +463,13 @@ struct __sanitizer_msghdr {
   void *msg_name;
   unsigned msg_namelen;
   struct __sanitizer_iovec *msg_iov;
-  uptr msg_iovlen;
+  usize msg_iovlen;
   void *msg_control;
-  uptr msg_controllen;
+  usize msg_controllen;
   int msg_flags;
 };
 struct __sanitizer_cmsghdr {
-  uptr cmsg_len;
+  usize cmsg_len;
   int cmsg_level;
   int cmsg_type;
 };
@@ -499,8 +499,8 @@ struct __sanitizer_dirent {
 };
 #  else
 struct __sanitizer_dirent {
-  uptr d_ino;
-  uptr d_off;
+  usize d_ino;
+  usize d_off;
   unsigned short d_reclen;
   // more fields that we don't care about
 };
@@ -573,7 +573,7 @@ typedef unsigned __sanitizer_sigset_t;
 #elif SANITIZER_LINUX
 struct __sanitizer_sigset_t {
   // The size is determined by looking at sizeof of real sigset_t on linux.
-  uptr val[128 / sizeof(uptr)];
+  usize val[128 / sizeof(usize)];
 };
 #endif
 
@@ -639,7 +639,7 @@ struct __sanitizer_sigaction {
     __sanitizer_sighandler_ptr handler;
   };
   __sanitizer_sigset_t sa_mask;
-  uptr sa_flags;
+  usize sa_flags;
   void (*sa_restorer)();
 };
 #else // !SANITIZER_ANDROID
@@ -697,7 +697,7 @@ struct __sanitizer_sigaction {
 #endif
 
 struct __sanitizer_kernel_sigset_t {
-  uptr sig[__SANITIZER_KERNEL_NSIG / (sizeof(uptr) * 8)];
+  usize sig[__SANITIZER_KERNEL_NSIG / (sizeof(usize) * 8)];
 };
 
 // Linux system headers define the 'sa_handler' and 'sa_sigaction' macros.
@@ -734,7 +734,7 @@ extern int e_tabsz;
 
 extern int af_inet;
 extern int af_inet6;
-uptr __sanitizer_in_addr_sz(int af);
+usize __sanitizer_in_addr_sz(int af);
 
 #if SANITIZER_LINUX
 struct __sanitizer_dl_phdr_info {
@@ -826,9 +826,9 @@ extern const int wordexp_wrde_dooffs;
 #  endif  // !SANITIZER_ANDROID
 
 struct __sanitizer_wordexp_t {
-  uptr we_wordc;
+  usize we_wordc;
   char **we_wordv;
-  uptr we_offs;
+  usize we_offs;
 };
 
 #if SANITIZER_LINUX && !SANITIZER_ANDROID
@@ -926,9 +926,9 @@ struct __sanitizer_obstack {
   uptr more_fields[7];
 };
 
-typedef uptr (*__sanitizer_cookie_io_read)(void *cookie, char *buf, uptr size);
-typedef uptr (*__sanitizer_cookie_io_write)(void *cookie, const char *buf,
-                                            uptr size);
+typedef usize (*__sanitizer_cookie_io_read)(void *cookie, char *buf, usize size);
+typedef usize (*__sanitizer_cookie_io_write)(void *cookie, const char *buf,
+                                            usize size);
 typedef int (*__sanitizer_cookie_io_seek)(void *cookie, u64 *offset,
                                           int whence);
 typedef int (*__sanitizer_cookie_io_close)(void *cookie);

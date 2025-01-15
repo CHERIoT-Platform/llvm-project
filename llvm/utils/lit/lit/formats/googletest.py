@@ -10,6 +10,7 @@ import lit.Test
 import lit.TestRunner
 import lit.util
 from .base import TestFormat
+from lit.TestRunner import CheriTestMode
 
 kIsWindows = sys.platform in ["win32", "cygwin"]
 
@@ -175,6 +176,13 @@ class GoogleTest(TestFormat):
         cmd = self.prepareCmd(cmd)
         if litConfig.useValgrind:
             cmd = litConfig.valgrindArgs + cmd
+
+        # XXXAR: HACK: assume that no gtest tests are Cheri tests:
+        if litConfig.cheri_test_mode == CheriTestMode.ONLY:
+            #  litConfig.note(
+            #      "Skipping gtests because cheri-tests-filter=" +
+            #      litConfig.cheri_test_mode)
+            return lit.Test.SKIPPED, "Skipping gtests because cheri-tests-filter=" + litConfig.cheri_test_mode
 
         if litConfig.noExecute:
             return lit.Test.PASS, ""

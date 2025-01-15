@@ -56,15 +56,15 @@ uptr GetThreadSelf() {
 }
 
 void ReleaseMemoryPagesToOS(uptr beg, uptr end) {
-  uptr page_size = GetPageSizeCached();
-  uptr beg_aligned = RoundUpTo(beg, page_size);
-  uptr end_aligned = RoundDownTo(end, page_size);
+  usize page_size = GetPageSizeCached();
+  char *beg_aligned = (char *)RoundUpTo(beg, page_size);
+  char *end_aligned = (char *)RoundDownTo(end, page_size);
   if (beg_aligned < end_aligned)
-    internal_madvise(beg_aligned, end_aligned - beg_aligned,
+    internal_madvise((uptr)beg_aligned, end_aligned - beg_aligned,
                      SANITIZER_MADVISE_DONTNEED);
 }
 
-void SetShadowRegionHugePageMode(uptr addr, uptr size) {
+void SetShadowRegionHugePageMode(uptr addr, usize size) {
 #ifdef MADV_NOHUGEPAGE  // May not be defined on old systems.
   if (common_flags()->no_huge_pages_for_shadow)
     internal_madvise(addr, size, MADV_NOHUGEPAGE);
@@ -73,7 +73,7 @@ void SetShadowRegionHugePageMode(uptr addr, uptr size) {
 #endif  // MADV_NOHUGEPAGE
 }
 
-bool DontDumpShadowMemory(uptr addr, uptr length) {
+bool DontDumpShadowMemory(uptr addr, usize length) {
 #if defined(MADV_DONTDUMP)
   return internal_madvise(addr, length, MADV_DONTDUMP) == 0;
 #elif defined(MADV_NOCORE)
@@ -113,7 +113,7 @@ bool StackSizeIsUnlimited() {
   return (stack_size == RLIM_INFINITY);
 }
 
-void SetStackSizeLimitInBytes(uptr limit) {
+void SetStackSizeLimitInBytes(usize limit) {
   setlim(RLIMIT_STACK, (rlim_t)limit);
   CHECK(!StackSizeIsUnlimited());
 }
@@ -159,7 +159,7 @@ bool SupportsColoredOutput(fd_t fd) {
 
 #if !SANITIZER_GO
 // TODO(glider): different tools may require different altstack size.
-static uptr GetAltStackSize() {
+static usize GetAltStackSize() {
   // Note: since GLIBC_2.31, SIGSTKSZ may be a function call, so this may be
   // more costly that you think. However GetAltStackSize is only call 2-3 times
   // per thread so don't cache the evaluation.
@@ -268,14 +268,14 @@ bool SignalContext::IsStackOverflow() const {
 
 #endif  // SANITIZER_GO
 
-bool IsAccessibleMemoryRange(uptr beg, uptr size) {
-  uptr page_size = GetPageSizeCached();
+bool IsAccessibleMemoryRange(uptr beg, usize size) {
+  usize page_size = GetPageSizeCached();
   // Checking too large memory ranges is slow.
   CHECK_LT(size, page_size * 10);
   int sock_pair[2];
   if (pipe(sock_pair))
     return false;
-  uptr bytes_written =
+  usize bytes_written =
       internal_write(sock_pair[1], reinterpret_cast<void *>(beg), size);
   int write_errno;
   bool result;
@@ -298,7 +298,7 @@ void PlatformPrepareForSandboxing(void *args) {
   MemoryMappingLayout::CacheMemoryMappings();
 }
 
-static bool MmapFixed(uptr fixed_addr, uptr size, int additional_flags,
+static bool MmapFixed(uptr fixed_addr, usize size, int additional_flags,
                       const char *name) {
   size = RoundUpTo(size, GetPageSizeCached());
   fixed_addr = RoundDownTo(fixed_addr, GetPageSizeCached());
@@ -316,11 +316,11 @@ static bool MmapFixed(uptr fixed_addr, uptr size, int additional_flags,
   return true;
 }
 
-bool MmapFixedNoReserve(uptr fixed_addr, uptr size, const char *name) {
+bool MmapFixedNoReserve(uptr fixed_addr, usize size, const char *name) {
   return MmapFixed(fixed_addr, size, MAP_NORESERVE, name);
 }
 
-bool MmapFixedSuperNoReserve(uptr fixed_addr, uptr size, const char *name) {
+bool MmapFixedSuperNoReserve(uptr fixed_addr, usize size, const char *name) {
 #if SANITIZER_FREEBSD
   if (common_flags()->no_huge_pages_for_shadow)
     return MmapFixedNoReserve(fixed_addr, size, name);
@@ -334,7 +334,7 @@ bool MmapFixedSuperNoReserve(uptr fixed_addr, uptr size, const char *name) {
 #endif
 }
 
-uptr ReservedAddressRange::Init(uptr size, const char *name, uptr fixed_addr) {
+uptr ReservedAddressRange::Init(usize size, const char *name, uptr fixed_addr) {
   base_ = fixed_addr ? MmapFixedNoAccess(fixed_addr, size, name)
                      : MmapNoAccess(size);
   size_ = size;
@@ -345,17 +345,17 @@ uptr ReservedAddressRange::Init(uptr size, const char *name, uptr fixed_addr) {
 
 // Uses fixed_addr for now.
 // Will use offset instead once we've implemented this function for real.
-uptr ReservedAddressRange::Map(uptr fixed_addr, uptr size, const char *name) {
+uptr ReservedAddressRange::Map(uptr fixed_addr, usize size, const char *name) {
   return reinterpret_cast<uptr>(
       MmapFixedOrDieOnFatalError(fixed_addr, size, name));
 }
 
-uptr ReservedAddressRange::MapOrDie(uptr fixed_addr, uptr size,
+uptr ReservedAddressRange::MapOrDie(uptr fixed_addr, usize size,
                                     const char *name) {
   return reinterpret_cast<uptr>(MmapFixedOrDie(fixed_addr, size, name));
 }
 
-void ReservedAddressRange::Unmap(uptr addr, uptr size) {
+void ReservedAddressRange::Unmap(uptr addr, usize size) {
   CHECK_LE(size, size_);
   if (addr == reinterpret_cast<uptr>(base_))
     // If we unmap the whole range, just null out the base.
@@ -366,13 +366,13 @@ void ReservedAddressRange::Unmap(uptr addr, uptr size) {
   UnmapOrDie(reinterpret_cast<void*>(addr), size);
 }
 
-void *MmapFixedNoAccess(uptr fixed_addr, uptr size, const char *name) {
+void *MmapFixedNoAccess(uptr fixed_addr, usize size, const char *name) {
   return (void *)MmapNamed((void *)fixed_addr, size, PROT_NONE,
                            MAP_PRIVATE | MAP_FIXED | MAP_NORESERVE | MAP_ANON,
                            name);
 }
 
-void *MmapNoAccess(uptr size) {
+void *MmapNoAccess(usize size) {
   unsigned flags = MAP_PRIVATE | MAP_ANON | MAP_NORESERVE;
   return (void *)internal_mmap(nullptr, size, PROT_NONE, flags, -1, 0);
 }
@@ -383,7 +383,7 @@ SANITIZER_WEAK_ATTRIBUTE int
 real_pthread_attr_getstack(void *attr, void **addr, size_t *size);
 } // extern "C"
 
-int internal_pthread_attr_getstack(void *attr, void **addr, uptr *size) {
+int internal_pthread_attr_getstack(void *attr, void **addr, usize *size) {
 #if !SANITIZER_GO && !SANITIZER_APPLE
   if (&real_pthread_attr_getstack)
     return real_pthread_attr_getstack((pthread_attr_t *)attr, addr,
@@ -396,13 +396,13 @@ int internal_pthread_attr_getstack(void *attr, void **addr, uptr *size) {
 void AdjustStackSize(void *attr_) {
   pthread_attr_t *attr = (pthread_attr_t *)attr_;
   uptr stackaddr = 0;
-  uptr stacksize = 0;
+  usize stacksize = 0;
   internal_pthread_attr_getstack(attr, (void **)&stackaddr, &stacksize);
   // GLibC will return (0 - stacksize) as the stack address in the case when
   // stacksize is set, but stackaddr is not.
   bool stack_set = (stackaddr != 0) && (stackaddr + stacksize != 0);
   // We place a lot of tool data into TLS, account for that.
-  const uptr minstacksize = GetTlsSize() + 128*1024;
+  const usize minstacksize = GetTlsSize() + 128*1024;
   if (stacksize < minstacksize) {
     if (!stack_set) {
       if (stacksize != 0) {
@@ -474,7 +474,7 @@ pid_t StartSubprocess(const char *program, const char *const argv[],
 
 bool IsProcessRunning(pid_t pid) {
   int process_status;
-  uptr waitpid_status = internal_waitpid(pid, &process_status, WNOHANG);
+  usize waitpid_status = internal_waitpid(pid, &process_status, WNOHANG);
   int local_errno;
   if (internal_iserror(waitpid_status, &local_errno)) {
     VReport(1, "Waiting on the process failed (errno %d).\n", local_errno);
@@ -485,7 +485,7 @@ bool IsProcessRunning(pid_t pid) {
 
 int WaitForProcess(pid_t pid) {
   int process_status;
-  uptr waitpid_status = internal_waitpid(pid, &process_status, 0);
+  usize waitpid_status = internal_waitpid(pid, &process_status, 0);
   int local_errno;
   if (internal_iserror(waitpid_status, &local_errno)) {
     VReport(1, "Waiting on the process failed (errno %d).\n", local_errno);

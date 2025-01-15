@@ -102,12 +102,14 @@ bool RecordStreamer::emitSymbolAttribute(MCSymbol *Symbol,
 
 void RecordStreamer::emitZerofill(MCSection *Section, MCSymbol *Symbol,
                                   uint64_t Size, Align ByteAlignment,
-                                  SMLoc Loc) {
+                                  TailPaddingAmount TailPadding, SMLoc Loc) {
   markDefined(*Symbol);
 }
 
 void RecordStreamer::emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
-                                      Align ByteAlignment) {
+                                      Align ByteAlignment,
+                                      TailPaddingAmount TailPadding) {
+  assert(TailPadding == TailPaddingAmount::None && "Not supported yet");
   markDefined(*Symbol);
 }
 

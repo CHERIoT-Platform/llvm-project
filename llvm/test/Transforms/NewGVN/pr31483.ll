@@ -41,7 +41,7 @@ define signext i32 @ham(ptr %arg, ptr %arg1) #0 {
 ; CHECK:       bb22:
 ; CHECK-NEXT:    br label %bb2
 ; CHECK:       bb23:
-; CHECK-NEXT:    call void @llvm.va_end(ptr [[TMP]])
+; CHECK-NEXT:    call void @llvm.va_end.p0(ptr [[TMP]])
 ; CHECK-NEXT:    ret i32 undef
 ;
 bb:
@@ -85,14 +85,14 @@ bb22:                                             ; preds = %bb16, %bb10, %bb6
   br label %bb2
 
 bb23:                                             ; preds = %bb2
-  call void @llvm.va_end(ptr %tmp)
+  call void @llvm.va_end.p0(ptr %tmp)
   ret i32 undef
 }
 
 declare signext i32 @zot(ptr, ...) #1
 
 ; Function Attrs: nounwind
-declare void @llvm.va_end(ptr) #2
+declare void @llvm.va_end.p0(ptr) #2
 
 attributes #0 = { nounwind "disable-tail-calls"="false" "less-precise-fpmad"="false" "frame-pointer"="all" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="ppc64" "target-features"="+altivec,-bpermd,-crypto,-direct-move,-extdiv,-power8-vector,-vsx" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { "disable-tail-calls"="false" "less-precise-fpmad"="false" "frame-pointer"="all" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="ppc64" "target-features"="+altivec,-bpermd,-crypto,-direct-move,-extdiv,-power8-vector,-vsx" "unsafe-fp-math"="false" "use-soft-float"="false" }

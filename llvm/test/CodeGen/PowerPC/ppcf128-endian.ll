@@ -191,7 +191,7 @@ entry:
   ret double %conv
 }
 
-declare void @llvm.va_start(ptr)
+declare void @llvm.va_start.p0(ptr)
 
 define double @vararg(i32 %a, ...) {
 ; CHECK-LABEL: vararg:
@@ -213,7 +213,7 @@ define double @vararg(i32 %a, ...) {
 ; CHECK-NEXT:    blr
 entry:
   %va = alloca ptr, align 8
-  call void @llvm.va_start(ptr %va)
+  call void @llvm.va_start.p0(ptr %va)
   %arg = va_arg ptr %va, ppc_fp128
   %conv = fptrunc ppc_fp128 %arg to double
   ret double %conv

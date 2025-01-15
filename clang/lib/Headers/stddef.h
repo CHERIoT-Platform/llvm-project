@@ -34,16 +34,18 @@
     defined(__need_rsize_t) || defined(__need_wchar_t) ||                      \
     defined(__need_NULL) || defined(__need_nullptr_t) ||                       \
     defined(__need_unreachable) || defined(__need_max_align_t) ||              \
-    defined(__need_offsetof) || defined(__need_wint_t)
+    defined(__need_offsetof) || defined(__need_wint_t) ||                          \
+    defined(__need_ptraddr_t)
 
 #if !defined(__need_ptrdiff_t) && !defined(__need_size_t) &&                   \
     !defined(__need_rsize_t) && !defined(__need_wchar_t) &&                    \
     !defined(__need_NULL) && !defined(__need_nullptr_t) &&                     \
     !defined(__need_unreachable) && !defined(__need_max_align_t) &&            \
-    !defined(__need_offsetof) && !defined(__need_wint_t)
+    !defined(__need_offsetof) && !defined(__need_wint_t) && !defined(__need_ptraddr_t)
 #define __STDDEF_H
 #define __need_ptrdiff_t
 #define __need_size_t
+#define __need_ptraddr_t
 /* ISO9899:2011 7.20 (C11 Annex K): Define rsize_t if __STDC_WANT_LIB_EXT1__ is
  * enabled. */
 #if defined(__STDC_WANT_LIB_EXT1__) && __STDC_WANT_LIB_EXT1__ >= 1
@@ -77,6 +79,19 @@
 #include <__stddef_size_t.h>
 #undef __need_size_t
 #endif /*defined(__need_size_t) */
+
+#if defined(__need_ptraddr_t)
+#if !(defined(_PTRADDR_T) || defined(_PTRADDR_T_DECLARED)) ||                  \
+    __has_feature(modules)
+/* Always define ptraddr_t when modules are available. */
+#if !__has_feature(modules)
+#define _PTRADDR_T
+#define _PTRADDR_T_DECLARED /* FreeBSD */
+#endif
+typedef __PTRADDR_TYPE__ ptraddr_t;
+#endif
+#undef __need_ptraddr_t
+#endif /*defined(__need_ptraddr_t) */
 
 #if defined(__need_rsize_t)
 #include <__stddef_rsize_t.h>

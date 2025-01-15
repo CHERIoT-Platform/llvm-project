@@ -44,6 +44,26 @@ public:
     MEK_TLSLDM,
     MEK_TPREL_HI,
     MEK_TPREL_LO,
+    MEK_CAPTABLE11,
+    MEK_CAPTABLE_HI16,
+    MEK_CAPTABLE_LO16,
+    MEK_CAPTABLE20,
+    MEK_CAPCALL11,
+    MEK_CAPCALL_HI16,
+    MEK_CAPCALL_LO16,
+    MEK_CAPCALL20,
+
+    MEK_CHERI_CAP,
+    // Like GPREL but the offset from _CHERI_CAPABILITY_TABLE_ to symbol
+    MEK_CAPTABLEREL,
+
+    MEK_CAPTAB_TLSGD_HI16,
+    MEK_CAPTAB_TLSGD_LO16,
+    MEK_CAPTAB_TLSLDM_HI16,
+    MEK_CAPTAB_TLSLDM_LO16,
+    MEK_CAPTAB_TPREL_HI16,
+    MEK_CAPTAB_TPREL_LO16,
+
     MEK_Special,
   };
 
@@ -59,6 +79,8 @@ public:
                                   MCContext &Ctx);
   static const MipsMCExpr *createGpOff(MipsExprKind Kind, const MCExpr *Expr,
                                        MCContext &Ctx);
+ static const MipsMCExpr *createCaptableOff(MipsExprKind Kind,
+                                            const MCExpr *Expr, MCContext &Ctx);
 
   /// Get the kind of this expression.
   MipsExprKind getKind() const { return Kind; }
@@ -81,11 +103,18 @@ public:
     return E->getKind() == MCExpr::Target;
   }
 
-  bool isGpOff(MipsExprKind &Kind) const;
+  bool isGpOff(MipsExprKind &Kind) const { return isOffImpl(Kind, MEK_GPREL); }
   bool isGpOff() const {
     MipsExprKind Kind;
     return isGpOff(Kind);
   }
+
+  bool isCaptableOff() const {
+    MipsExprKind Kind;
+    return isOffImpl(Kind, MEK_CAPTABLEREL);
+  }
+private:
+  bool isOffImpl(MipsExprKind &Kind, MipsExprKind Expected) const;
 };
 
 } // end namespace llvm

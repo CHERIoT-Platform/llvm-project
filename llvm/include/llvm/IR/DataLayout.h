@@ -92,11 +92,12 @@ struct PointerAlignElem {
   uint32_t TypeBitWidth;
   uint32_t AddressSpace;
   uint32_t IndexBitWidth;
+  bool IsFatPointer;
 
   /// Initializer
   static PointerAlignElem getInBits(uint32_t AddressSpace, Align ABIAlign,
                                     Align PrefAlign, uint32_t TypeBitWidth,
-                                    uint32_t IndexBitWidth);
+                                    uint32_t IndexBitWidth, bool IsFatPointer);
 
   bool operator==(const PointerAlignElem &rhs) const;
 };
@@ -118,6 +119,7 @@ public:
 private:
   /// Defaults to false.
   bool BigEndian;
+  bool HasCheriCapabilities = false;
 
   unsigned AllocaAddrSpace;
   MaybeAlign StackNaturalAlign;
@@ -173,7 +175,7 @@ private:
   /// Returns an error description on failure.
   Error setPointerAlignmentInBits(uint32_t AddrSpace, Align ABIAlign,
                                   Align PrefAlign, uint32_t TypeBitWidth,
-                                  uint32_t IndexBitWidth);
+                                  uint32_t IndexBitWidth, bool IsFatPointer);
 
   /// Internal helper to get alignment for integer of given bitwidth.
   Align getIntegerAlignment(uint32_t BitWidth, bool abi_or_pref) const;
@@ -219,6 +221,7 @@ public:
     StructAlignment = DL.StructAlignment;
     Pointers = DL.Pointers;
     NonIntegralAddressSpaces = DL.NonIntegralAddressSpaces;
+    HasCheriCapabilities = DL.HasCheriCapabilities;
     return *this;
   }
 
@@ -274,6 +277,8 @@ public:
   }
 
   unsigned getAllocaAddrSpace() const { return AllocaAddrSpace; }
+  /// Sets the address space used for allocas
+  void setAllocaAS(unsigned AS) { AllocaAddrSpace = AS; }
 
   PointerType *getAllocaPtrType(LLVMContext &Ctx) const {
     return PointerType::get(Ctx, AllocaAddrSpace);
@@ -294,6 +299,8 @@ public:
   unsigned getDefaultGlobalsAddressSpace() const {
     return DefaultGlobalsAddrSpace;
   }
+  // TODO: remove this and use the upstreamed version
+  unsigned getGlobalsAddressSpace() const { return DefaultGlobalsAddrSpace; }
 
   bool hasMicrosoftFastStdCallMangling() const {
     return ManglingMode == MM_WinCOFFX86;
@@ -369,13 +376,42 @@ public:
   /// Return target's alignment for stack-based pointers
   /// FIXME: The defaults need to be removed once all of
   /// the backends/clients are updated.
-  Align getPointerPrefAlignment(unsigned AS = 0) const;
+  Align getPointerPrefAlignment(LLVM_DEFAULT_AS_PARAM(AS)) const;
+
+  /// Get the size of the base address component of a pointer.
+  /// For pointers that are simple integer representations this returns the
+  /// size of the pointer.  For fat pointers, it returns the size of the base
+  /// component of the pointer, ignoring the length, permissions and so on
+  /// components.
+  unsigned getPointerBaseSize(unsigned AS) const {
+    return getIndexSize(AS);
+  };
+
+  bool isFatPointer(unsigned AS) const;
+
+  unsigned isFatPointer(const Type *Ty) const {
+    return Ty->isPointerTy() && isFatPointer(Ty->getPointerAddressSpace());
+  }
+
+  bool hasCheriCapabilities() const { return HasCheriCapabilities; }
+
+  unsigned getPointerAddrSizeInBits(unsigned AS) const {
+    // For CHERI the address range is the same as the IndexSize.
+    // For other targets (other than those using non-integral pointers), we
+    // assume that the pointer bit width is the same as the address range.
+    if (isFatPointer(AS) || isNonIntegralAddressSpace(AS))
+      return getIndexSizeInBits(AS);
+    return getPointerSizeInBits(AS);
+  }
+  unsigned getPointerAddrSizeInBits(Type *Ty) const {
+    return getPointerAddrSizeInBits(Ty->getPointerAddressSpace());
+  }
 
   /// Layout pointer size in bytes, rounded up to a whole
   /// number of bytes.
   /// FIXME: The defaults need to be removed once all of
   /// the backends/clients are updated.
-  unsigned getPointerSize(unsigned AS = 0) const;
+  unsigned getPointerSize(LLVM_DEFAULT_AS_PARAM(AS)) const;
 
   /// Returns the maximum index size over all address spaces.
   unsigned getMaxIndexSize() const;
@@ -407,7 +443,7 @@ public:
   /// Layout pointer size, in bits
   /// FIXME: The defaults need to be removed once all of
   /// the backends/clients are updated.
-  unsigned getPointerSizeInBits(unsigned AS = 0) const {
+  unsigned getPointerSizeInBits(LLVM_DEFAULT_AS_PARAM(AS)) const {
     return getPointerAlignElem(AS).TypeBitWidth;
   }
 
@@ -434,6 +470,12 @@ public:
 
   unsigned getPointerTypeSize(Type *Ty) const {
     return getPointerTypeSizeInBits(Ty) / 8;
+  }
+
+  unsigned getTypeIntegerRangeInBits(Type *Ty) const {
+    if (isa<PointerType>(Ty))
+      return getPointerAddrSizeInBits(Ty->getPointerAddressSpace());
+    return getTypeSizeInBits(Ty);
   }
 
   /// Size examples:
@@ -550,7 +592,8 @@ public:
 
   /// Returns an integer type with size at least as big as that of a
   /// pointer in the given address space.
-  IntegerType *getIntPtrType(LLVMContext &C, unsigned AddressSpace = 0) const;
+  IntegerType *getIntPtrType(LLVMContext &C,
+                             LLVM_DEFAULT_AS_PARAM(AddressSpace)) const;
 
   /// Returns an integer (vector of integer) type with size at least as
   /// big as that of a pointer of the given pointer (vector of pointer) type.
@@ -712,6 +755,8 @@ inline TypeSize DataLayout::getTypeSizeInBits(Type *Ty) const {
                        getTypeSizeInBits(VTy->getElementType()).getFixedValue();
     return TypeSize(MinBits, EltCnt.isScalable());
   }
+  case Type::SizedCapabilityTyID:
+    return TypeSize::getFixed(cast<SizedCapabilityType>(Ty)->getBitWidth());
   case Type::TargetExtTyID: {
     Type *LayoutTy = cast<TargetExtType>(Ty)->getLayoutType();
     return getTypeSizeInBits(LayoutTy);

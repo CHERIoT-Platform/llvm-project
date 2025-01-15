@@ -489,7 +489,7 @@ void X86::relocateAlloc(InputSectionBase &sec, uint8_t *buf) const {
     uint8_t *loc = buf + rel.offset;
     const uint64_t val = SignExtend64(
         sec.getRelocTargetVA(sec.file, rel.type, rel.addend,
-                             secAddr + rel.offset, *rel.sym, rel.expr),
+                             secAddr + rel.offset, *rel.sym, rel.expr, &sec, rel.offset),
         32);
     switch (rel.expr) {
     case R_RELAX_TLS_GD_TO_IE_GOTPLT:

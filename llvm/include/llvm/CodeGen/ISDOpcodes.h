@@ -1296,6 +1296,13 @@ enum NodeType {
   LIFETIME_START,
   LIFETIME_END,
 
+  /// Converts from an integer to a fat pointer.  This is only required for
+  /// pointers that are not represented purely by numeric value of the base
+  /// address.
+  PTRTOINT,
+  INTTOPTR,
+  PTRADD,
+
   /// GC_TRANSITION_START/GC_TRANSITION_END - These operators mark the
   /// beginning and end of GC transition  sequence, and carry arbitrary
   /// information that target might need for lowering.  The first operand is

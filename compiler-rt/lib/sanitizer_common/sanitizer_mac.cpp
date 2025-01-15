@@ -127,7 +127,7 @@ extern "C" int __munmap(void *, size_t) SANITIZER_WEAK_ATTRIBUTE;
 static size_t kXnuFastMmapThreshold = 2 << 30; // 2 GB
 static bool use_xnu_fast_mmap = false;
 
-uptr internal_mmap(void *addr, size_t length, int prot, int flags,
+uptr internal_mmap(void *addr, usize length, int prot, int flags,
                    int fd, u64 offset) {
   if (fd == -1) {
     fd = VM_MAKE_TAG(VM_MEMORY_SANITIZER);
@@ -139,12 +139,12 @@ uptr internal_mmap(void *addr, size_t length, int prot, int flags,
   return (uptr)mmap(addr, length, prot, flags, fd, offset);
 }
 
-uptr internal_munmap(void *addr, uptr length) {
+usize internal_munmap(void *addr, usize length) {
   if (&__munmap) return __munmap(addr, length);
   return munmap(addr, length);
 }
 
-uptr internal_mremap(void *old_address, uptr old_size, uptr new_size, int flags,
+uptr internal_mremap(void *old_address, usize old_size, usize new_size, int flags,
                      void *new_address) {
   CHECK(false && "internal_mremap is unimplemented on Mac");
   return 0;
@@ -154,66 +154,66 @@ int internal_mprotect(void *addr, uptr length, int prot) {
   return mprotect(addr, length, prot);
 }
 
-int internal_madvise(uptr addr, uptr length, int advice) {
+int internal_madvise(uptr addr, usize length, int advice) {
   return madvise((void *)addr, length, advice);
 }
 
-uptr internal_close(fd_t fd) {
+usize internal_close(fd_t fd) {
   return close(fd);
 }
 
-uptr internal_open(const char *filename, int flags) {
+fd_t internal_open(const char *filename, int flags) {
   return open(filename, flags);
 }
 
-uptr internal_open(const char *filename, int flags, u32 mode) {
+fd_t internal_open(const char *filename, int flags, u32 mode) {
   return open(filename, flags, mode);
 }
 
-uptr internal_read(fd_t fd, void *buf, uptr count) {
+usize internal_read(fd_t fd, void *buf, usize count) {
   return read(fd, buf, count);
 }
 
-uptr internal_write(fd_t fd, const void *buf, uptr count) {
+usize internal_write(fd_t fd, const void *buf, usize count) {
   return write(fd, buf, count);
 }
 
-uptr internal_stat(const char *path, void *buf) {
+usize internal_stat(const char *path, void *buf) {
   return stat(path, (struct stat *)buf);
 }
 
-uptr internal_lstat(const char *path, void *buf) {
+usize internal_lstat(const char *path, void *buf) {
   return lstat(path, (struct stat *)buf);
 }
 
-uptr internal_fstat(fd_t fd, void *buf) {
+usize internal_fstat(fd_t fd, void *buf) {
   return fstat(fd, (struct stat *)buf);
 }
 
-uptr internal_filesize(fd_t fd) {
+usize internal_filesize(fd_t fd) {
   struct stat st;
   if (internal_fstat(fd, &st))
     return -1;
-  return (uptr)st.st_size;
+  return (usize)st.st_size;
 }
 
-uptr internal_dup(int oldfd) {
+usize internal_dup(int oldfd) {
   return dup(oldfd);
 }
 
-uptr internal_dup2(int oldfd, int newfd) {
+usize internal_dup2(int oldfd, int newfd) {
   return dup2(oldfd, newfd);
 }
 
-uptr internal_readlink(const char *path, char *buf, uptr bufsize) {
+usize internal_readlink(const char *path, char *buf, usize bufsize) {
   return readlink(path, buf, bufsize);
 }
 
-uptr internal_unlink(const char *path) {
+usize internal_unlink(const char *path) {
   return unlink(path);
 }
 
-uptr internal_sched_yield() {
+usize internal_sched_yield() {
   return sched_yield();
 }
 
@@ -223,7 +223,7 @@ void internal__exit(int exitcode) {
 
 void internal_usleep(u64 useconds) { usleep(useconds); }
 
-uptr internal_getpid() {
+pid_t internal_getpid() {
   return getpid();
 }
 
@@ -238,7 +238,7 @@ int internal_sigaction(int signum, const void *act, void *oldact) {
 
 void internal_sigfillset(__sanitizer_sigset_t *set) { sigfillset(set); }
 
-uptr internal_sigprocmask(int how, __sanitizer_sigset_t *set,
+usize internal_sigprocmask(int how, __sanitizer_sigset_t *set,
                           __sanitizer_sigset_t *oldset) {
   // Don't use sigprocmask here, because it affects all threads.
   return pthread_sigmask(how, set, oldset);
@@ -254,13 +254,13 @@ int internal_fork() {
 }
 
 int internal_sysctl(const int *name, unsigned int namelen, void *oldp,
-                    uptr *oldlenp, const void *newp, uptr newlen) {
+                    usize *oldlenp, const void *newp, usize newlen) {
   return sysctl(const_cast<int *>(name), namelen, oldp, (size_t *)oldlenp,
                 const_cast<void *>(newp), (size_t)newlen);
 }
 
-int internal_sysctlbyname(const char *sname, void *oldp, uptr *oldlenp,
-                          const void *newp, uptr newlen) {
+int internal_sysctlbyname(const char *sname, void *oldp, usize *oldlenp,
+                          const void *newp, usize newlen) {
   return sysctlbyname(sname, oldp, (size_t *)oldlenp, const_cast<void *>(newp),
                       (size_t)newlen);
 }
@@ -366,20 +366,20 @@ fd_t internal_spawn(const char *argv[], const char *envp[], pid_t *pid) {
   return fd;
 }
 
-uptr internal_rename(const char *oldpath, const char *newpath) {
+usize internal_rename(const char *oldpath, const char *newpath) {
   return rename(oldpath, newpath);
 }
 
-uptr internal_ftruncate(fd_t fd, uptr size) {
+usize internal_ftruncate(fd_t fd, usize size) {
   return ftruncate(fd, size);
 }
 
-uptr internal_execve(const char *filename, char *const argv[],
+usize internal_execve(const char *filename, char *const argv[],
                      char *const envp[]) {
   return execve(filename, argv, envp);
 }
 
-uptr internal_waitpid(int pid, int *status, int options) {
+usize internal_waitpid(int pid, int *status, int options) {
   return waitpid(pid, status, options);
 }
 
@@ -411,7 +411,7 @@ void GetThreadStackTopAndBottom(bool at_initialization, uptr *stack_top,
                                 uptr *stack_bottom) {
   CHECK(stack_top);
   CHECK(stack_bottom);
-  uptr stacksize = pthread_get_stacksize_np(pthread_self());
+  usize stacksize = pthread_get_stacksize_np(pthread_self());
   // pthread_get_stacksize_np() returns an incorrect stack size for the main
   // thread on Mavericks. See
   // https://github.com/google/sanitizers/issues/261
@@ -447,9 +447,9 @@ char **GetEnviron() {
 
 const char *GetEnv(const char *name) {
   char **env = GetEnviron();
-  uptr name_len = internal_strlen(name);
+  usize name_len = internal_strlen(name);
   while (*env != 0) {
-    uptr len = internal_strlen(*env);
+    usize len = internal_strlen(*env);
     if (len > name_len) {
       const char *p = *env;
       if (!internal_memcmp(p, name, name_len) &&
@@ -462,7 +462,7 @@ const char *GetEnv(const char *name) {
   return 0;
 }
 
-uptr ReadBinaryName(/*out*/char *buf, uptr buf_len) {
+usize ReadBinaryName(/*out*/char *buf, usize buf_len) {
   CHECK_LE(kMaxPathLength, buf_len);
 
   // On OS X the executable path is saved to the stack by dyld. Reading it
@@ -477,7 +477,7 @@ uptr ReadBinaryName(/*out*/char *buf, uptr buf_len) {
   return 0;
 }
 
-uptr ReadLongProcessName(/*out*/char *buf, uptr buf_len) {
+usize ReadLongProcessName(/*out*/char *buf, usize buf_len) {
   return ReadBinaryName(buf, buf_len);
 }
 
@@ -493,7 +493,7 @@ void CheckMPROTECT() {
   // Do nothing
 }
 
-uptr GetPageSize() {
+usize GetPageSize() {
   return sysconf(_SC_PAGESIZE);
 }
 
@@ -541,7 +541,7 @@ u64 MonotonicNanoTime() {
   return (mach_absolute_time() * timebase_info.numer) / timebase_info.denom;
 }
 
-uptr GetTlsSize() {
+usize GetTlsSize() {
   return 0;
 }
 
@@ -564,7 +564,7 @@ uptr TlsBaseAddr() {
 // The size of the tls on darwin does not appear to be well documented,
 // however the vm memory map suggests that it is 1024 uptrs in size,
 // with a size of 0x2000 bytes on x86_64 and 0x1000 bytes on i386.
-uptr TlsSize() {
+usize TlsSize() {
 #if defined(__x86_64__) || defined(__i386__)
   return 1024 * sizeof(uptr);
 #else
@@ -572,8 +572,8 @@ uptr TlsSize() {
 #endif
 }
 
-void GetThreadStackAndTls(bool main, uptr *stk_addr, uptr *stk_size,
-                          uptr *tls_addr, uptr *tls_size) {
+void GetThreadStackAndTls(bool main, uptr *stk_addr, usize *stk_size,
+                          uptr *tls_addr, usize *tls_size) {
 #if !SANITIZER_GO
   uptr stack_top, stack_bottom;
   GetThreadStackTopAndBottom(main, &stack_top, &stack_bottom);
@@ -753,7 +753,7 @@ DarwinKernelVersion GetDarwinKernelVersion() {
   return DarwinKernelVersion(major, minor);
 }
 
-uptr GetRSS() {
+usize GetRSS() {
   struct task_basic_info info;
   unsigned count = TASK_BASIC_INFO_COUNT;
   kern_return_t result =
@@ -1006,9 +1006,9 @@ static void VerifyInterceptorsWorking() {
 // |name_value|.
 static void LeakyResetEnv(const char *name, const char *name_value) {
   char **env = GetEnviron();
-  uptr name_len = internal_strlen(name);
+  usize name_len = internal_strlen(name);
   while (*env != 0) {
-    uptr len = internal_strlen(*env);
+    usize len = internal_strlen(*env);
     if (len > name_len) {
       const char *p = *env;
       if (!internal_memcmp(p, name, name_len) && p[name_len] == '=') {
@@ -1070,12 +1070,12 @@ static void StripEnv() {
     if (piece_start[0] == ':') piece_start++;
     piece_end = internal_strchr(piece_start, ':');
     if (!piece_end) piece_end = dyld_insert_libraries + old_env_len;
-    if ((uptr)(piece_start - dyld_insert_libraries) > old_env_len) break;
-    uptr piece_len = piece_end - piece_start;
+    if ((usize)(piece_start - dyld_insert_libraries) > old_env_len) break;
+    usize piece_len = piece_end - piece_start;
 
     char *filename_start =
         (char *)internal_memrchr(piece_start, '/', piece_len);
-    uptr filename_len = piece_len;
+    usize filename_len = piece_len;
     if (filename_start) {
       filename_start += 1;
       filename_len = piece_len - (filename_start - piece_start);
@@ -1142,15 +1142,15 @@ struct __sanitizer_task_vm_info {
 #define __SANITIZER_TASK_VM_INFO_COUNT ((mach_msg_type_number_t) \
     (sizeof(__sanitizer_task_vm_info) / sizeof(natural_t)))
 
-static uptr GetTaskInfoMaxAddress() {
+static vaddr GetTaskInfoMaxAddress() {
   __sanitizer_task_vm_info vm_info = {} /* zero initialize */;
   mach_msg_type_number_t count = __SANITIZER_TASK_VM_INFO_COUNT;
   int err = task_info(mach_task_self(), TASK_VM_INFO, (int *)&vm_info, &count);
   return err ? 0 : vm_info.max_address;
 }
 
-uptr GetMaxUserVirtualAddress() {
-  static uptr max_vm = GetTaskInfoMaxAddress();
+vaddr GetMaxUserVirtualAddress() {
+  static vaddr max_vm = GetTaskInfoMaxAddress();
   if (max_vm != 0) {
     const uptr ret_value = max_vm - 1;
     CHECK_LE(ret_value, SANITIZER_MMAP_RANGE_SIZE);
@@ -1170,7 +1170,7 @@ uptr GetMaxUserVirtualAddress() {
 
 #else // !SANITIZER_IOS
 
-uptr GetMaxUserVirtualAddress() {
+vaddr GetMaxUserVirtualAddress() {
 # if SANITIZER_WORDSIZE == 64
   constexpr uptr max_vm = (1ULL << 47) - 1;  // 0x00007fffffffffffUL;
 # else // SANITIZER_WORDSIZE == 32
@@ -1183,7 +1183,7 @@ uptr GetMaxUserVirtualAddress() {
 }
 #endif
 
-uptr GetMaxVirtualAddress() {
+vaddr GetMaxVirtualAddress() {
   return GetMaxUserVirtualAddress();
 }
 
@@ -1235,13 +1235,13 @@ uptr MapDynamicShadow(uptr shadow_size_bytes, uptr shadow_scale,
   return shadow_start;
 }
 
-uptr MapDynamicShadowAndAliases(uptr shadow_size, uptr alias_size,
-                                uptr num_aliases, uptr ring_buffer_size) {
+uptr MapDynamicShadowAndAliases(usize shadow_size, usize alias_size,
+                                usize num_aliases, usize ring_buffer_size) {
   CHECK(false && "HWASan aliasing is unimplemented on Mac");
   return 0;
 }
 
-uptr FindAvailableMemoryRange(uptr size, uptr alignment, uptr left_padding,
+uptr FindAvailableMemoryRange(usize size, usize alignment, usize left_padding,
                               uptr *largest_gap_found,
                               uptr *max_occupied_addr) {
   typedef vm_region_submap_short_info_data_64_t RegionInfo;
@@ -1275,7 +1275,7 @@ uptr FindAvailableMemoryRange(uptr size, uptr alignment, uptr left_padding,
       // We found a free region [free_begin..address-1].
       uptr gap_start = RoundUpTo((uptr)free_begin + left_padding, alignment);
       uptr gap_end = RoundDownTo((uptr)Min(address, max_vm_address), alignment);
-      uptr gap_size = gap_end > gap_start ? gap_end - gap_start : 0;
+      usize gap_size = gap_end > gap_start ? gap_end - gap_start : 0;
       if (size < gap_size) {
         return gap_start;
       }
@@ -1294,7 +1294,7 @@ uptr FindAvailableMemoryRange(uptr size, uptr alignment, uptr left_padding,
 }
 
 // FIXME implement on this platform.
-void GetMemoryProfile(fill_profile_f cb, uptr *stats) {}
+void GetMemoryProfile(fill_profile_f cb, usize *stats) {}
 
 void SignalContext::DumpAllRegisters(void *context) {
   Report("Register values:\n");
@@ -1353,7 +1353,7 @@ static inline bool CompareBaseAddress(const LoadedModule &a,
   return a.base_address() < b.base_address();
 }
 
-void FormatUUID(char *out, uptr size, const u8 *uuid) {
+void FormatUUID(char *out, usize size, const u8 *uuid) {
   internal_snprintf(out, size,
                     "<%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-"
                     "%02X%02X%02X%02X%02X%02X>",
@@ -1369,7 +1369,7 @@ void DumpProcessMap() {
   modules.reserve(128);
   memory_mapping.DumpListOfModules(&modules);
   Sort(modules.data(), modules.size(), CompareBaseAddress);
-  for (uptr i = 0; i < modules.size(); ++i) {
+  for (usize i = 0; i < modules.size(); ++i) {
     char uuid_str[128];
     FormatUUID(uuid_str, sizeof(uuid_str), modules[i].uuid());
     Printf("0x%zx-0x%zx %s (%s) %s\n", modules[i].base_address(),
@@ -1383,7 +1383,7 @@ void CheckNoDeepBind(const char *filename, int flag) {
   // Do nothing.
 }
 
-bool GetRandom(void *buffer, uptr length, bool blocking) {
+bool GetRandom(void *buffer, usize length, bool blocking) {
   if (!buffer || !length || length > 256)
     return false;
   // arc4random never fails.

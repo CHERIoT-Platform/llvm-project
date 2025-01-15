@@ -39,6 +39,7 @@ using namespace lld;
 using namespace lld::elf;
 
 uint8_t *Out::bufferStart;
+size_t Out::bufferSize;
 PhdrEntry *Out::tlsPhdr;
 OutputSection *Out::elfHeader;
 OutputSection *Out::programHeaders;
@@ -89,7 +90,7 @@ OutputSection::OutputSection(StringRef name, uint32_t type, uint64_t flags)
 static bool canMergeToProgbits(unsigned type) {
   return type == SHT_NOBITS || type == SHT_PROGBITS || type == SHT_INIT_ARRAY ||
          type == SHT_PREINIT_ARRAY || type == SHT_FINI_ARRAY ||
-         type == SHT_NOTE ||
+         type == SHT_NOTE || type == SHT_MIPS_DWARF ||  // XXXAR: Old GCC emits SHT_MIPS_DWARF this for .debug_* sections...
          (type == SHT_X86_64_UNWIND && config->emachine == EM_X86_64);
 }
 

@@ -80,6 +80,8 @@ using EnableIfCallable = std::enable_if_t<std::disjunction<
 template <typename ReturnT, typename... ParamTs> class UniqueFunctionBase {
 protected:
   static constexpr size_t InlineStorageSize = sizeof(void *) * 3;
+  static constexpr size_t CallbackAlign =
+    alignof(void (*)(void)) > 8 ? alignof(void (*)(void)) : 8;
 
   template <typename T, class = void>
   struct IsSizeLessThanThresholdT : std::false_type {};
@@ -125,13 +127,13 @@ protected:
 
   /// A struct to hold a single trivial callback with sufficient alignment for
   /// our bitpacking.
-  struct alignas(8) TrivialCallback {
+  struct alignas(CallbackAlign) TrivialCallback {
     CallPtrT CallPtr;
   };
 
   /// A struct we use to aggregate three callbacks when we need full set of
   /// operations.
-  struct alignas(8) NonTrivialCallbacks {
+  struct alignas(CallbackAlign) NonTrivialCallbacks {
     CallPtrT CallPtr;
     MovePtrT MovePtr;
     DestroyPtrT DestroyPtr;

@@ -9,6 +9,8 @@
 #include "clang/Driver/ToolChain.h"
 #include "ToolChains/Arch/AArch64.h"
 #include "ToolChains/Arch/ARM.h"
+#include "ToolChains/Arch/Mips.h"
+#include "ToolChains/Arch/RISCV.h"
 #include "ToolChains/Clang.h"
 #include "ToolChains/CommonArgs.h"
 #include "ToolChains/Flang.h"
@@ -92,6 +94,14 @@ ToolChain::ToolChain(const Driver &D, const llvm::Triple &T,
     getFilePaths().push_back(*Path);
   for (const auto &Path : getArchSpecificLibPaths())
     addIfExists(getFilePaths(), Path);
+
+  IsCheriPurecap = Triple.getEnvironment() == llvm::Triple::CheriPurecap;
+  if (Triple.isMIPS() && tools::mips::hasMipsAbiArg(Args, "purecap"))
+    IsCheriPurecap = true;
+  if (Triple.isRISCV() && tools::riscv::isCheriPurecap(Args, Triple))
+    IsCheriPurecap = true;
+
+  // FIXME: Should we update triple enviroment to purecap? Or will that break RISCV?
 }
 
 llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>>
@@ -169,6 +179,11 @@ bool ToolChain::useIntegratedBackend() const {
 
 bool ToolChain::useRelaxRelocations() const {
   return ENABLE_X86_RELAX_RELOCATIONS;
+}
+
+bool ToolChain::isCheriPurecap() const {
+  return IsCheriPurecap ||
+         EffectiveTriple.getEnvironment() == llvm::Triple::CheriPurecap;
 }
 
 bool ToolChain::defaultToIEEELongDouble() const {
@@ -1327,6 +1342,12 @@ SanitizerMask ToolChain::getSupportedSanitizers() const {
     Res |= SanitizerKind::ShadowCallStack;
   if (getTriple().isAArch64(64))
     Res |= SanitizerKind::MemTag;
+  // TODO: SanitizerKind::CHERI should depend on CHERI support being present
+  // and not whether we are compiling for CHERI purecap. We could either add a
+  // function to detect CHERI support or allow it on all architectures that
+  // might have CHERI available.
+  if (isCheriPurecap())
+    Res |= SanitizerKind::CHERI;
   return Res;
 }
 

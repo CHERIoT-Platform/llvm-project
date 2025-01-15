@@ -38,6 +38,8 @@ add_clang_unittest(ASTTests
   TemplateNameTest.cpp
   TypePrinterTest.cpp
   UnresolvedSetTest.cpp
+
+  cheri/AttrTest.cpp
   )
 
 clang_target_link_libraries(ASTTests

@@ -25,9 +25,9 @@
 
 // These typedefs should be used only in the interceptor definitions to replace
 // the standard system types (e.g. SSIZE_T instead of ssize_t)
-typedef __sanitizer::uptr    SIZE_T;
-typedef __sanitizer::sptr    SSIZE_T;
-typedef __sanitizer::sptr    PTRDIFF_T;
+typedef __sanitizer::usize   SIZE_T;
+typedef __sanitizer::ssize   SSIZE_T;
+typedef __sanitizer::ptrdiff PTRDIFF_T;
 typedef __sanitizer::s64     INTMAX_T;
 typedef __sanitizer::u64     UINTMAX_T;
 typedef __sanitizer::OFF_T   OFF_T;
@@ -343,7 +343,9 @@ const interpose_substitution substitution_##func_name[]             \
 // challenging, as we don't even pass function type to
 // INTERCEPT_FUNCTION macro, only its name.
 namespace __interception {
-#if defined(_WIN64)
+#if defined(__UINTPTR_TYPE__)
+typedef __UINTPTR_TYPE__ uptr;
+#elif defined(_WIN64)
 typedef unsigned long long uptr;
 #else
 typedef unsigned long uptr;

@@ -19,6 +19,9 @@ def all : FF<"all", "Equivalent to setting: --file-header, --program-headers, --
              "--section-groups and --histogram">;
 def arch_specific : FF<"arch-specific", "Display architecture-specific information">;
 def bb_addr_map : FF<"bb-addr-map", "Display the BB address map section">;
+def cap_relocs : FF<"cap-relocs", "Display the CHERI __cap_relocs section">;
+def cap_table : FF<"cap-table", "Display the CHERI .captable section">;
+def cap_table_mapping : FF<"cap-table-mapping", "Display the CHERI .captable_mapping section">;
 def cg_profile : FF<"cg-profile", "Display call graph profile section">;
 def decompress : FF<"decompress", "Dump decompressed section content when used with -x or -p">;
 defm demangle : BB<"demangle", "Demangle symbol names", "Do not demangle symbol names (default)">;

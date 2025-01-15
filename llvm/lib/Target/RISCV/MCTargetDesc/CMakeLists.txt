@@ -1,6 +1,7 @@
 add_llvm_component_library(LLVMRISCVDesc
   RISCVAsmBackend.cpp
   RISCVBaseInfo.cpp
+  RISCVCompressedCap.cpp
   RISCVELFObjectWriter.cpp
   RISCVInstPrinter.cpp
   RISCVMCAsmInfo.cpp

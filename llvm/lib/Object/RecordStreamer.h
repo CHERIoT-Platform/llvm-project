@@ -49,9 +49,9 @@ public:
   void emitAssignment(MCSymbol *Symbol, const MCExpr *Value) override;
   bool emitSymbolAttribute(MCSymbol *Symbol, MCSymbolAttr Attribute) override;
   void emitZerofill(MCSection *Section, MCSymbol *Symbol, uint64_t Size,
-                    Align ByteAlignment, SMLoc Loc = SMLoc()) override;
-  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
-                        Align ByteAlignment) override;
+                    Align ByteAlignment, TailPaddingAmount TailPadding, SMLoc Loc = SMLoc()) override;
+  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size, Align ByteAlignment,
+                        TailPaddingAmount TailPadding) override;
 
   // Ignore COFF-specific directives; we do not need any information from them,
   // but the default implementation of these methods crashes, so we override

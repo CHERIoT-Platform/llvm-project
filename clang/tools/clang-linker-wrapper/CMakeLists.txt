@@ -41,3 +41,6 @@ target_link_libraries(clang-linker-wrapper
   PRIVATE
   ${CLANG_LINKER_WRAPPER_LIB_DEPS}
   )
+
+# TODO: port this to remove getUnqual
+remove_definitions(-DLLVM_NO_DEFAULT_ADDRESS_SPACE)

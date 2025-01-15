@@ -13,7 +13,7 @@ declare ptr @__cxa_begin_catch(ptr)
 declare void @__cxa_end_catch()
 declare i32 @llvm.eh.typeid.for(ptr)
 declare ptr @llvm.frameaddress(i32)
-declare ptr @llvm.stacksave()
+declare ptr @llvm.stacksave.p0()
 @_ZTIPKc = external constant ptr
 
 ; CHECK-LABEL: foobar
@@ -96,7 +96,7 @@ catch:
   store volatile i32 0, ptr @g, align 4
   %5 = tail call ptr @llvm.frameaddress(i32 0)
   store ptr %5, ptr %buf, align 16
-  %6 = tail call ptr @llvm.stacksave()
+  %6 = tail call ptr @llvm.stacksave.p0()
   %7 = getelementptr [5 x ptr], ptr %buf, i64 0, i64 2
   store ptr %6, ptr %7, align 16
   %8 = call i32 @llvm.eh.sjlj.setjmp(ptr %buf)

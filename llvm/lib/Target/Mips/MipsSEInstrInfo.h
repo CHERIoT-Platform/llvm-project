@@ -78,6 +78,7 @@ public:
                          unsigned *NewImm) const;
 
 protected:
+  bool isReallyTriviallyReMaterializable(const MachineInstr &MI) const override;
   /// If the specific machine instruction is a instruction that moves/copies
   /// value from one register to another register return destination and source
   /// registers as machine operands.
@@ -122,6 +123,10 @@ private:
                           bool FP64) const;
   void expandEhReturn(MachineBasicBlock &MBB,
                       MachineBasicBlock::iterator I) const;
+  void expandCPSETUP(MachineBasicBlock &MBB,
+                     MachineBasicBlock::iterator I) const;
+  void expandCCallPseudo(MachineBasicBlock &MBB,
+                         MachineBasicBlock::iterator I) const;
 };
 
 }

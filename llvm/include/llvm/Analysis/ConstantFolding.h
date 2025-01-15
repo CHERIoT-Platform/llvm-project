@@ -40,7 +40,7 @@ class Type;
 /// If the global is part of a dso_local_equivalent constant, return it through
 /// `Equiv` if it is provided.
 bool IsConstantOffsetFromGlobal(Constant *C, GlobalValue *&GV, APInt &Offset,
-                                const DataLayout &DL,
+                                const DataLayout &DL, bool LookThroughAddrSpaces,
                                 DSOLocalEquivalent **DSOEquiv = nullptr);
 
 /// ConstantFoldInstruction - Try to constant fold the specified instruction.

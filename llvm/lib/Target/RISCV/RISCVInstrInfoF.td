@@ -292,14 +292,14 @@ class PseudoFROUND<DAGOperand Ty, ValueType vt>
 // Instructions
 //===----------------------------------------------------------------------===//
 
-let Predicates = [HasStdExtF] in {
+let Predicates = [HasStdExtF, NotCapMode] in {
 def FLW : FPLoad_r<0b010, "flw", FPR32, WriteFLD32>;
 
 // Operands for stores are in the order srcreg, base, offset rather than
 // reflecting the order these fields are specified in the instruction
 // encoding.
 def FSW : FPStore_r<0b010, "fsw", FPR32, WriteFST32>;
-} // Predicates = [HasStdExtF]
+} // Predicates = [HasStdExtF, NotCapMode]
 
 foreach Ext = FExts in {
   let SchedRW = [WriteFMA32, ReadFMA32, ReadFMA32, ReadFMA32Addend] in {
@@ -395,10 +395,12 @@ def FMV_W_X : FPUnaryOp_r<0b1111000, 0b00000, 0b000, FPR32, GPR, "fmv.w.x">,
 // Assembler Pseudo Instructions (User-Level ISA, Version 2.2, Chapter 20)
 //===----------------------------------------------------------------------===//
 
-let Predicates = [HasStdExtF] in {
+let Predicates = [HasStdExtF, NotCapMode] in {
 def : InstAlias<"flw $rd, (${rs1})",  (FLW FPR32:$rd,  GPR:$rs1, 0), 0>;
 def : InstAlias<"fsw $rs2, (${rs1})", (FSW FPR32:$rs2, GPR:$rs1, 0), 0>;
+} // Predicates = [HasStdExtF, NotCapMode]
 
+let Predicates = [HasStdExtF] in {
 def : InstAlias<"fmv.s $rd, $rs",  (FSGNJ_S  FPR32:$rd, FPR32:$rs, FPR32:$rs)>;
 def : InstAlias<"fabs.s $rd, $rs", (FSGNJX_S FPR32:$rd, FPR32:$rs, FPR32:$rs)>;
 def : InstAlias<"fneg.s $rd, $rs", (FSGNJN_S FPR32:$rd, FPR32:$rs, FPR32:$rs)>;
@@ -439,14 +441,16 @@ def : InstAlias<"fsflagsi $imm",      (CSRRWI      X0, SysRegFFLAGS.Encoding, ui
 // spellings should be supported by standard tools.
 def : MnemonicAlias<"fmv.s.x", "fmv.w.x">;
 def : MnemonicAlias<"fmv.x.s", "fmv.x.w">;
+} // Predicates = [HasStdExtF]
 
+let Predicates = [HasStdExtF, NotCapMode] in {
 def PseudoFLW  : PseudoFloatLoad<"flw", FPR32>;
 def PseudoFSW  : PseudoStore<"fsw", FPR32>;
 let usesCustomInserter = 1 in {
 def PseudoQuietFLE_S : PseudoQuietFCMP<FPR32>;
 def PseudoQuietFLT_S : PseudoQuietFCMP<FPR32>;
 }
-} // Predicates = [HasStdExtF]
+} // Predicates = [HasStdExtF, NotCapMode]
 
 let Predicates = [HasStdExtZfinx] in {
 def : InstAlias<"fabs.s $rd, $rs", (FSGNJX_S_INX FPR32INX:$rd, FPR32INX:$rs, FPR32INX:$rs)>;
@@ -655,6 +659,9 @@ let Predicates = [HasStdExtF] in {
 defm Select_FPR32 : SelectCC_GPR_rrirr<FPR32, f32>;
 
 def PseudoFROUND_S : PseudoFROUND<FPR32, f32>;
+} // Predicates = [HasStdExtF]
+
+let Predicates = [HasStdExtF, NotCapMode] in {
 
 /// Loads
 
@@ -664,7 +671,7 @@ def : LdPat<load, FLW, f32>;
 
 def : StPat<store, FSW, FPR32, f32>;
 
-} // Predicates = [HasStdExtF]
+} // Predicates = [HasStdExtF, NotCapMode]
 
 let Predicates = [HasStdExtZfinx] in {
 defm Select_FPR32INX : SelectCC_GPR_rrirr<FPR32INX, f32>;

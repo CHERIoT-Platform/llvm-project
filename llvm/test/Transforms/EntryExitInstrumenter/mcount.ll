@@ -13,9 +13,9 @@ entry:
 ; CHECK-LABEL: define void @leaf_function()
 ; CHECK: entry:
 ; CHECK-NEXT: call void @mcount()
-; CHECK-NEXT: %0 = call ptr @llvm.returnaddress(i32 0)
+; CHECK-NEXT: %0 = call ptr @llvm.returnaddress.p0(i32 0)
 ; CHECK-NEXT: call void @__cyg_profile_func_enter(ptr @leaf_function, ptr %0)
-; CHECK-NEXT: %1 = call ptr @llvm.returnaddress(i32 0)
+; CHECK-NEXT: %1 = call ptr @llvm.returnaddress.p0(i32 0)
 ; CHECK-NEXT: call void @__cyg_profile_func_exit(ptr @leaf_function, ptr %1)
 ; CHECK-NEXT: ret void
 }
@@ -30,15 +30,15 @@ entry:
 ; CHECK: entry:
 ; CHECK-NEXT: call void @mcount()
 
-; CHECK-NEXT: %0 = call ptr @llvm.returnaddress(i32 0)
+; CHECK-NEXT: %0 = call ptr @llvm.returnaddress.p0(i32 0)
 ; CHECK-NEXT: call void @__cyg_profile_func_enter(ptr @root_function, ptr %0)
 
 ; Entry and exit calls, inlined from @leaf_function()
-; CHECK-NEXT: %1 = call ptr @llvm.returnaddress(i32 0)
+; CHECK-NEXT: %1 = call ptr @llvm.returnaddress.p0(i32 0)
 ; CHECK-NEXT: call void @__cyg_profile_func_enter(ptr @leaf_function, ptr %1)
-; CHECK-NEXT: %2 = call ptr @llvm.returnaddress(i32 0)
+; CHECK-NEXT: %2 = call ptr @llvm.returnaddress.p0(i32 0)
 ; CHECK-NEXT: call void @__cyg_profile_func_exit(ptr @leaf_function, ptr %2)
-; CHECK-NEXT: %3 = call ptr @llvm.returnaddress(i32 0)
+; CHECK-NEXT: %3 = call ptr @llvm.returnaddress.p0(i32 0)
 
 ; CHECK-NEXT: call void @__cyg_profile_func_exit(ptr @root_function, ptr %3)
 ; CHECK-NEXT: ret void

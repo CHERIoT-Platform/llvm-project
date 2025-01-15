@@ -147,9 +147,13 @@ inline Expr *IgnoreParensOnlySingleStep(Expr *E) {
   return E;
 }
 
-inline Expr *IgnoreParensSingleStep(Expr *E) {
-  if (auto *PE = dyn_cast<ParenExpr>(E))
-    return PE->getSubExpr();
+inline Expr *IgnoreParensSingleStepImpl(Expr *E, bool IgnoreNoBounds) {
+  if (auto *PE = dyn_cast<ParenExpr>(E)) {
+    // XXXAR: also look through __builtin_no_change_bounds() if IgnoreNoBounds
+    // is set
+    if (IgnoreNoBounds || !isa<NoChangeBoundsExpr>(E))
+      return PE->getSubExpr();
+  }
 
   if (auto *UO = dyn_cast<UnaryOperator>(E)) {
     if (UO->getOpcode() == UO_Extension)
@@ -172,6 +176,14 @@ inline Expr *IgnoreParensSingleStep(Expr *E) {
   }
 
   return E;
+}
+
+inline Expr *IgnoreParensSingleStep(Expr *E) {
+  return IgnoreParensSingleStepImpl(E, /*IgnoreNoBounds=*/true);
+}
+
+inline Expr *IgnoreParensExceptForNoChangeBoundsSingleStep(Expr *E) {
+  return IgnoreParensSingleStepImpl(E, /*IgnoreNoBounds=*/false);
 }
 
 } // namespace clang

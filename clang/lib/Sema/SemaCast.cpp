@@ -2792,12 +2792,6 @@ static TryCastResult TryReinterpretCast(Sema &Self, ExprResult &SrcExpr,
     bool SrcIsCapPtr = SrcType->isCapabilityPointerType();
     bool DestIsCapPtr = DestType->isCapabilityPointerType();
 
-    if (SrcIsCapPtr && DestIsCapPtr) {
-      if (SrcType->getAs<PointerType>()->getPointerInterpretation() !=
-          DestType->getAs<PointerType>()->getPointerInterpretation())
-        return TC_NotApplicable;
-    }
-
     if (!SrcIsCapPtr && DestIsCapPtr) {
       checkNonCapToCapCast(OpRange, SrcExpr.get(), DestType, Self, SrcType);
       Kind = CK_PointerToCHERICapability;
@@ -3239,25 +3233,6 @@ void CastOperation::CheckCapabilityConversions() {
       DestType->dump();
 #endif
       llvm_unreachable("Invalid cap <-> non-cap cast!");
-    }
-  }
-
-  if (SrcIsCap && DestIsCap) {
-    auto SrcInterp = SrcType->getAs<PointerType>()->getPointerInterpretation();
-    auto DestInterp =
-        DestType->getAs<PointerType>()->getPointerInterpretation();
-    if (SrcInterp != DestInterp) {
-      if (SrcInterp == PIK_SealedCapability) {
-        Self.Diag(SrcExpr.get()->getBeginLoc(),
-                  diag::err_typecheck_convert_sealed_to_ptr)
-            << SrcType << DestType << false;
-      } else {
-        Self.Diag(SrcExpr.get()->getBeginLoc(),
-                  diag::err_typecheck_convert_ptr_to_sealed)
-            << SrcType << DestType << false;
-      }
-      SrcExpr = ExprError();
-      return;
     }
   }
 

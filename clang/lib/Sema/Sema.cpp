@@ -760,7 +760,7 @@ ExprResult Sema::ImpCastExprToType(Expr *E, QualType Ty,
       auto FromInterp =
           ExprTy->getAs<PointerType>()->getPointerInterpretation();
       auto ToInterp = TypeTy->getAs<PointerType>()->getPointerInterpretation();
-      if (FromInterp != ToInterp) {
+      if ((FromInterp != ToInterp) && !TypeTy->isVoidPointerType()) {
         return ExprError(Diag(E->getBeginLoc(),
                               (FromInterp == PIK_SealedCapability)
                                   ? diag::err_typecheck_convert_sealed_to_ptr

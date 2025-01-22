@@ -239,7 +239,8 @@ static bool SemaBuiltinCHERICapCreate(Sema &S, CallExpr *TheCall) {
 /// Check that argument \p ArgIndex is a capability type (or an array/function
 /// that decays to a capability type.
 static bool checkCapArg(Sema &S, CallExpr *TheCall, unsigned ArgIndex,
-                        QualType *ResultingSrcTy = nullptr) {
+                        QualType *ResultingSrcTy = nullptr,
+                        bool AllowSealed = false) {
   clang::Expr *Source = TheCall->getArg(ArgIndex);
   ASTContext &Ctx = S.Context;
   QualType SrcTy = Source->getType();
@@ -260,7 +261,7 @@ static bool checkCapArg(Sema &S, CallExpr *TheCall, unsigned ArgIndex,
         << SrcTy;
     return true;
   }
-  if (SrcTy->isCHERISealedCapabilityType(Ctx)) {
+  if (!AllowSealed && SrcTy->isCHERISealedCapabilityType(Ctx)) {
     S.Diag(Source->getExprLoc(), diag::err_typecheck_expect_unsealed_operand)
         << SrcTy;
     return true;
@@ -2739,7 +2740,8 @@ Sema::CheckBuiltinFunctionCall(FunctionDecl *FDecl, unsigned BuiltinID,
     // a second argument.
     QualType SrcTy;
     if (checkArgCount(*this, TheCall, 1) ||
-        checkCapArg(*this, TheCall, 0, &SrcTy))
+        checkCapArg(*this, TheCall, 0, &SrcTy,
+                    (BuiltinID == Builtin::BI__builtin_cheri_tag_clear)))
       return ExprError();
     TheCall->setType(SrcTy);
     break;
@@ -2749,8 +2751,9 @@ Sema::CheckBuiltinFunctionCall(FunctionDecl *FDecl, unsigned BuiltinID,
   case Builtin::BI__builtin_cheri_type_check: {
     // For subset testing and type checking we allow any capability type for
     // both arguments.
-    if (checkArgCount(*this, TheCall, 2) || checkCapArg(*this, TheCall, 0) ||
-        checkCapArg(*this, TheCall, 1))
+    if (checkArgCount(*this, TheCall, 2) ||
+        checkCapArg(*this, TheCall, 0, nullptr, true) ||
+        checkCapArg(*this, TheCall, 1, nullptr, true))
       return ExprError();
     break;
   }
@@ -2767,7 +2770,8 @@ Sema::CheckBuiltinFunctionCall(FunctionDecl *FDecl, unsigned BuiltinID,
   case Builtin::BI__builtin_cheri_type_get: {
     // The CHERI accessors should accept both capability pointer types and
     // (u)intcap_t arguments.
-    if (checkArgCount(*this, TheCall, 1) || checkCapArg(*this, TheCall, 0))
+    if (checkArgCount(*this, TheCall, 1) ||
+        checkCapArg(*this, TheCall, 0, nullptr, true))
       return ExprError();
     break;
   }

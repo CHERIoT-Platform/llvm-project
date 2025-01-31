@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -triple riscv32cheriot -verify %s
+// RUN: %clang_cc1 -triple riscv32cheriot -target-abi cheriot-baremetal -verify %s
 
 int * __sealed_capability test1(int * __sealed_capability a) {
     return a; // no error
@@ -23,7 +23,7 @@ int test5(test_struct * __sealed_capability a) {
 }
 
 int test6(int (* __sealed_capability myfun)()) {
-    return myfun(); // expected-error{{sealed type 'int (* __sealed_capability)()' cannot be called}}
+    return myfun(); // expected-error{{sealed type 'int (* __sealed_capability)(void)' cannot be called}}
 }
 
 int test7(int * __sealed_capability a) {
@@ -32,11 +32,12 @@ int test7(int * __sealed_capability a) {
 }
 
 int test8(int * __sealed_capability a) {
-    int *b = (int*)a; // expected-error{{cast from  'int * __sealed_capability' to 'int *' changes sealed qualifier}}
+    int *b = (int*)a; // no error (*explicit* cast allowed)
     return *b;
 }
 
 extern int deref(int *);
+extern void opaque(void*);
 
 int test9(int * __sealed_capability a) {
     return deref(a); // expected-error{{converting sealed type 'int * __sealed_capability' to non-sealed type 'int *' without an explicit unsealing}}
@@ -46,3 +47,8 @@ extern int test9(int * __sealed_capability);
 int test10(int *a) {
     return test9(a); // expected-error{{converting unsealed type 'int *' to sealed type 'int * __sealed_capability' without an explicit sealing}}
 }
+
+void test11(int * __sealed_capability x) {
+	opaque(x); // No error (cast to void permitted)
+}
+

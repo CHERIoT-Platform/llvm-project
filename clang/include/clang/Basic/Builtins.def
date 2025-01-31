@@ -72,6 +72,7 @@
 // D -> volatile
 // R -> restrict
 // m -> memory capability
+// l -> sealed capability
 
 // The third value provided to the macro specifies information about attributes
 // of the function.  These must be kept in sync with the predicates in the
@@ -1699,9 +1700,9 @@ BUILTIN(__builtin_cheri_offset_set, "v*mvC*mY", "nct")
 BUILTIN(__builtin_cheri_perms_and, "v*mvC*mz", "nct")
 BUILTIN(__builtin_cheri_perms_check, "vvC*mCz", "nct")
 BUILTIN(__builtin_cheri_perms_get, "zvC*m", "nct")
-BUILTIN(__builtin_cheri_seal, "v*mvC*mvC*m", "nct")
-BUILTIN(__builtin_cheri_seal_entry, "v*mvC*m", "nct")
-BUILTIN(__builtin_cheri_sealed_get, "bvC*m", "nct")
+BUILTIN(__builtin_cheri_seal, "v*lvC*mvC*m", "nct")
+BUILTIN(__builtin_cheri_seal_entry, "v*lvC*m", "nct")
+BUILTIN(__builtin_cheri_sealed_get, "bvC*l", "nct")
 BUILTIN(__builtin_cheri_subset_test, "bvC*mvC*m", "nct")
 BUILTIN(__builtin_cheri_tag_clear, "v*mvC*m", "nct")
 BUILTIN(__builtin_cheri_tag_get, "bvC*m", "nct")
@@ -1709,7 +1710,7 @@ BUILTIN(__builtin_cheri_tag_get_temporal, "bvC*m", "nct")
 BUILTIN(__builtin_cheri_top_get, "zvC*m", "nct")
 BUILTIN(__builtin_cheri_type_check, "vvC*mvC*m", "nct")
 BUILTIN(__builtin_cheri_type_get, "YvC*m", "nct")
-BUILTIN(__builtin_cheri_unseal, "v*mvC*mvC*m", "nct")
+BUILTIN(__builtin_cheri_unseal, "v*mvC*lvC*m", "nct")
 
 BUILTIN(__builtin_cheri_callback_create, "v.", "nct")
 

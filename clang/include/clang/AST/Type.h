@@ -1565,6 +1565,9 @@ enum PointerInterpretationKind {
 
   /// The pointer should always be interpreted as an integer.
   PIK_Integer,
+
+  /// The pointer should be interpreted as a sealed capability.
+  PIK_SealedCapability,
 };
 
 /// The base class of the type hierarchy.
@@ -1663,7 +1666,7 @@ protected:
 
     /// The interpretation (PointerInterpretationKind) to use for this array.
     /// For function parameters only.
-    unsigned PIK : 1;
+    unsigned PIK : 2;
 
     /// Whether the pointer interpretation for this array is set.
     unsigned HasPIK : 1;
@@ -1672,7 +1675,7 @@ protected:
   class ConstantArrayTypeBitfields {
     friend class ConstantArrayType;
 
-    unsigned : NumTypeBits + 3 + 3 + 2;
+    unsigned : NumTypeBits + 3 + 3 + 3;
 
     /// Whether we have a stored size expression.
     unsigned HasStoredSizeExpr : 1;
@@ -1759,7 +1762,7 @@ protected:
     unsigned : NumTypeBits;
 
     /// The interpretation (PointerInterpretationKind) to use for this pointer.
-    unsigned PIK : 1;
+    unsigned PIK : 2;
   };
 
   class DependentPointerTypeBitfields {
@@ -1768,7 +1771,7 @@ protected:
     unsigned : NumTypeBits;
 
     /// The interpretation (PointerInterpretationKind) to use for this pointer.
-    unsigned PIK : 1;
+    unsigned PIK : 2;
   };
 
   class ReferenceTypeBitfields {
@@ -1778,7 +1781,7 @@ protected:
 
     /// The interpretation (PointerInterpretationKind) to use for the pointer
     /// backing this reference type.
-    unsigned PIK : 1;
+    unsigned PIK : 2;
 
     /// True if the type was originally spelled with an lvalue sigil.
     /// This is never true of rvalue references but can also be false
@@ -2239,6 +2242,9 @@ public:
   /// pointers.
   bool isCHERICapabilityType(const ASTContext &Context,
                              bool IncludeIntCap = true) const;
+
+  /// Returns true if this type is a Cheriot sealed capability.
+  bool isCHERISealedCapabilityType(const ASTContext &Context) const;
   /// Returns true for __uintcap_t or __intcap_t (and enums/_Atomic with that
   /// underlying type)
   bool isIntCapType() const;
@@ -2898,7 +2904,8 @@ protected:
 
 public:
   bool isCHERICapability() const {
-    return getPointerInterpretation() == PIK_Capability;
+    return getPointerInterpretation() == PIK_Capability ||
+           getPointerInterpretation() == PIK_SealedCapability;
   }
 
   PointerInterpretationKind getPointerInterpretation() const {
@@ -2914,7 +2921,8 @@ protected:
 
 public:
   bool isCHERICapability() const {
-    return getPointerInterpretation() == PIK_Capability;
+    return getPointerInterpretation() == PIK_Capability ||
+           getPointerInterpretation() == PIK_SealedCapability;
   }
 
   std::optional<PointerInterpretationKind> getPointerInterpretation() const {

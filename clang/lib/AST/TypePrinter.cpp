@@ -353,20 +353,27 @@ void TypePrinter::printBefore(const Type *T,Qualifiers Quals, raw_ostream &OS) {
   }
 
   // Print __capability
-  if (!Policy.SuppressCapabilityQualifier) {
-    if (const PointerType *PTy = dyn_cast<PointerType>(T)) {
-      if (PTy->getPointerInterpretation() == PIK_Capability) {
-        OS << " __capability";
-        if (hasAfterQuals || !PrevPHIsEmpty.get())
-          OS << " ";
-      }
+  if (const PointerType *PTy = dyn_cast<PointerType>(T)) {
+    if (PTy->getPointerInterpretation() == PIK_Capability &&
+        !Policy.SuppressCapabilityQualifier) {
+      OS << " __capability";
+      if (hasAfterQuals || !PrevPHIsEmpty.get())
+        OS << " ";
+    } else if (PTy->getPointerInterpretation() == PIK_SealedCapability) {
+      OS << " __sealed_capability";
+      if (hasAfterQuals || !PrevPHIsEmpty.get())
+        OS << " ";
     }
-    else if (const ReferenceType *RTy = dyn_cast<ReferenceType>(T)) {
-      if (RTy->getPointerInterpretation() == PIK_Capability) {
-        OS << " __capability";
-        if (hasAfterQuals || !PrevPHIsEmpty.get())
-          OS << " ";
-      }
+  } else if (const ReferenceType *RTy = dyn_cast<ReferenceType>(T)) {
+    if (RTy->getPointerInterpretation() == PIK_Capability &&
+        !Policy.SuppressCapabilityQualifier) {
+      OS << " __capability";
+      if (hasAfterQuals || !PrevPHIsEmpty.get())
+        OS << " ";
+    } else if (RTy->getPointerInterpretation() == PIK_SealedCapability) {
+      OS << " __sealed_capability";
+      if (hasAfterQuals || !PrevPHIsEmpty.get())
+        OS << " ";
     }
   }
 
@@ -651,10 +658,11 @@ void TypePrinter::printDependentPointerBefore(
 
 void TypePrinter::printDependentPointerAfter(
     const DependentPointerType *T, raw_ostream &OS) {
-  if (!Policy.SuppressCapabilityQualifier) {
-    if (T->getPointerInterpretation() == PIK_Capability) {
-      OS << " __capability";
-    }
+  if (T->getPointerInterpretation() == PIK_Capability &&
+      !Policy.SuppressCapabilityQualifier) {
+    OS << " __capability";
+  } else if (T->getPointerInterpretation() == PIK_SealedCapability) {
+    OS << " __sealed_capability";
   }
   printAfter(T->getPointerType(), OS);
 }
@@ -1858,6 +1866,7 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   case attr::SPtr:
   case attr::UPtr:
   case attr::CHERICapability:
+  case attr::CHERISealedCapability:
   case attr::AddressSpace:
   case attr::CmseNSCall:
   case attr::AnnotateType:

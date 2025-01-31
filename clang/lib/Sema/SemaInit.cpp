@@ -9861,8 +9861,16 @@ bool InitializationSequence::Diagnose(Sema &S,
     bool PrintRefInMessage = false;
     // Failure == FK_ConversionFromCapabilityFailed
     bool PtrToCap = DestType->isCHERICapabilityType(S.getASTContext());
-    unsigned DiagID = PtrToCap ? diag::err_typecheck_convert_ptr_to_cap
-                               : diag::err_typecheck_convert_cap_to_ptr;
+    unsigned DiagID;
+
+    if (DestType->isCHERISealedCapabilityType(S.getASTContext()) ||
+        FromType->isCHERISealedCapabilityType(S.getASTContext())) {
+      DiagID = PtrToCap ? diag::err_typecheck_convert_ptr_to_sealed
+                        : diag::err_typecheck_convert_sealed_to_ptr;
+    } else {
+      DiagID = PtrToCap ? diag::err_typecheck_convert_ptr_to_cap
+                        : diag::err_typecheck_convert_cap_to_ptr;
+    }
     if (Failure == FK_ReferenceInitChangesCapabilityQualifier) {
       PrintRefInMessage = !FromType->isReferenceType();
     }

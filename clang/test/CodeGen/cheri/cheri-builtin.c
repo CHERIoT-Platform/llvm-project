@@ -3,6 +3,7 @@
 // RUN: %cheri128_cc1 -o - -O0 -emit-llvm %s | FileCheck %s --check-prefixes=CHECK
 // RUN: %cheri128_cc1 -o - -O0 -S %s | FileCheck %s -check-prefixes=ASM
 void * __capability results[12];
+void * __sealed_capability results_sealed[12];
 
 long long testDeprecated(void * __capability foo)
 {
@@ -13,7 +14,7 @@ long long testDeprecated(void * __capability foo)
 	__builtin_mips_cheri_set_cause(42);
 	return x & __builtin_mips_cheri_get_cause();
 }
-long long test(void* __capability foo)
+long long test(void* __capability foo, void* __sealed_capability foo_sealed)
 {
   // CHECK-LABEL: @test(
   // ASM-LABEL: test:
@@ -51,10 +52,10 @@ long long test(void* __capability foo)
   results[1] = __builtin_cheri_perms_and(foo, 12);
   // CHECK: call ptr addrspace(200) @llvm.cheri.cap.perms.and.i64
   // ASM: candperm $c{{[0-9]+}}, $c{{[0-9]+}}, ${{[0-9]+}}
-  results[4] = __builtin_cheri_seal(foo, foo);
+  results_sealed[4] = __builtin_cheri_seal(foo, foo);
   // CHECK: call ptr addrspace(200) @llvm.cheri.cap.seal
   // ASM: cseal $c{{[0-9]+}}, $c{{[0-9]+}}, $c{{[0-9]+}}
-  results[5] = __builtin_cheri_unseal(foo, foo);
+  results[5] = __builtin_cheri_unseal(foo_sealed, foo);
   // CHECK: call ptr addrspace(200) @llvm.cheri.cap.unseal
   // ASM: cunseal $c{{[0-9]+}}, $c{{[0-9]+}}, $c{{[0-9]+}}
   results[6] = __builtin_cheri_bounds_set(foo, 42);
@@ -92,7 +93,7 @@ void buildcap(void * __capability auth, __intcap_t bits) {
   // ASM: cbuildcap $c{{[0-9]+}}, $c{{[0-9]+}}, $c{{[0-9]+}}
   void * __capability unseal_auth = __builtin_cheri_cap_type_copy(auth, bits);
   // ASM: ccopytype $c{{[0-9]+}}, $c{{[0-9]+}}, $c{{[0-9]+}}
-  void * __capability condseal = __builtin_cheri_conditional_seal(tagged, unseal_auth);
+  void * __sealed_capability condseal = __builtin_cheri_conditional_seal(tagged, unseal_auth);
   // ASM: ccseal $c{{[0-9]+}}, $c{{[0-9]+}}, $c{{[0-9]+}}
 }
 

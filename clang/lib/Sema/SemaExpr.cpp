@@ -5090,6 +5090,10 @@ ExprResult Sema::ActOnArraySubscriptExpr(Scope *S, Expr *base,
     return ExprError();
   }
 
+  // No subscripting allowed on sealed pointers.
+  if (base->getType()->isCHERISealedCapabilityType(Context))
+    Diag(lbLoc, diag::err_sealed_bad_operator) << base->getType();
+
   // Handle any non-overload placeholder types in the base and index
   // expressions.  We can't handle overloads here because the other
   // operand might be an overloadable type, in which case the overload
@@ -7243,6 +7247,10 @@ ExprResult Sema::BuildCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
     if (result.isInvalid()) return ExprError();
     Fn = result.get();
   }
+
+  if (Fn->getType()->isCHERISealedCapabilityType(Context))
+    return ExprError(Diag(Fn->getBeginLoc(), diag::err_sealed_func_pointer)
+                     << Fn->getType());
 
   Expr *NakedFn = Fn->IgnoreParens();
 
@@ -11968,6 +11976,10 @@ QualType Sema::CheckAdditionOperands(ExprResult &LHS, ExprResult &RHS,
   // note that we bias towards the LHS being the pointer.
   Expr *PExp = LHS.get(), *IExp = RHS.get();
 
+  // Addition is not allowed on sealed pointers.
+  if (PExp->getType()->isCHERISealedCapabilityType(Context))
+    return InvalidOperands(Loc, LHS, RHS);
+
   bool isObjCPointer;
   if (PExp->getType()->isPointerType()) {
     isObjCPointer = false;
@@ -12078,6 +12090,12 @@ QualType Sema::CheckSubtractionOperands(ExprResult &LHS, ExprResult &RHS,
   // Either ptr - int   or   ptr - ptr.
   if (LHS.get()->getType()->isAnyPointerType()) {
     QualType lpointee = LHS.get()->getType()->getPointeeType();
+
+    // Subtraction is not allowed on sealed pointers.
+    if (LHS.get()->getType()->isCHERISealedCapabilityType(Context))
+      return InvalidOperands(Loc, LHS, RHS);
+    if (RHS.get()->getType()->isCHERISealedCapabilityType(Context))
+      return InvalidOperands(Loc, LHS, RHS);
 
     // Diagnose bad cases where we step over interface counts.
     if (LHS.get()->getType()->isObjCObjectPointerType() &&
@@ -16460,6 +16478,12 @@ ExprResult Sema::CreateBuiltinUnaryOp(SourceLocation OpLoc,
     if (Opc == UO_Deref)
       return ExprError(Diag(OpLoc, diag::err_hlsl_operator_unsupported) << 1);
   }
+
+  // The only unary operator that can apply to a sealed capability is AddrOf.
+  auto *PtrInput = InputExpr->getType()->getAs<PointerType>();
+  if (Opc != UO_AddrOf && PtrInput &&
+      InputExpr->getType()->isCHERISealedCapabilityType(Context))
+    Diag(OpLoc, diag::err_sealed_bad_operator) << InputExpr->getType();
 
   switch (Opc) {
   case UO_PreInc:

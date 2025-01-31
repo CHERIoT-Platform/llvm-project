@@ -6027,6 +6027,11 @@ QualType Sema::CheckPointerToMemberOperands(ExprResult &LHS, ExprResult &RHS,
   }
 
   QualType Class(MemPtr->getClass(), 0);
+  QualType LHSType = LHS.get()->getType();
+
+  // Pointer-to-member is not allowed on sealed pointers
+  if (LHSType->isCHERISealedCapabilityType(Context))
+    return QualType();
 
   // Note: C++ [expr.mptr.oper]p2-3 says that the class type into which the
   // member pointer points must be completely-defined. However, there is no
@@ -6038,7 +6043,6 @@ QualType Sema::CheckPointerToMemberOperands(ExprResult &LHS, ExprResult &RHS,
   //   [...] to its first operand, which shall be of class T or of a class of
   //   which T is an unambiguous and accessible base class. [p3: a pointer to
   //   such a class]
-  QualType LHSType = LHS.get()->getType();
   if (isIndirect) {
     if (const PointerType *Ptr = LHSType->getAs<PointerType>())
       LHSType = Ptr->getPointeeType();

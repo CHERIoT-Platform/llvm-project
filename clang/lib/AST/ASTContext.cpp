@@ -11768,14 +11768,15 @@ static QualType DecodeTypeFromStr(const char *&Str, const ASTContext &Context,
     case 'R':
       Type = Type.withRestrict();
       break;
+    case 'l':
     case 'm': {
       Qualifiers Qs = Type.getQualifiers();
       if (const auto *PT = Type->getAs<PointerType>())
         Type = Context.getPointerType(PT->getPointeeType(), PIK_Capability);
       else if (const auto *LRT = Type->getAs<LValueReferenceType>())
-        Type = Context.getLValueReferenceType(LRT->getPointeeTypeAsWritten(),
-                                              LRT->isSpelledAsLValue(),
-                                              PIK_Capability);
+        Type = Context.getLValueReferenceType(
+            LRT->getPointeeTypeAsWritten(), LRT->isSpelledAsLValue(),
+            c == 'l' ? PIK_SealedCapability : PIK_Capability);
       else {
         const auto *BT = Type->getAs<BuiltinType>();
         assert(BT &&

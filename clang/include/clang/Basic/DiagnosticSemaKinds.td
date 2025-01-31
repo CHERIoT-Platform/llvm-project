@@ -1336,10 +1336,22 @@ def note_cheri_func_decl_add_types : Note<
 def err_cheri_capability_qualifier_not_supported : Error<
   "use of __capability is not supported without CHERI; "
   "specify an appropriate -march= or -mcpu=">;
-def err_cheri_capability_qualifier_ambiguous : Error<
-  "use of __capability is ambiguous">;
-def err_cheri_capability_qualifier_pointers_only : Error<
-  "__capability only applies to pointers; type here is %0">;
+def err_cheri_sealed_qualifier_not_supported : Error<
+  "use of __sealed_capability is not supported without CHERI; "
+  "specify an appropriate -march= or -mcpu=">;
+def err_cheri_qualifier_ambiguous : Error<
+  "use of %0 is ambiguous">;
+def err_cheri_qualifier_pointers_only : Error<
+  "%0 only applies to pointers; type here is %1">;
+def err_bad_cxx_cast_sealed_qualifier : Error<
+  "%select{const_cast|static_cast|reinterpret_cast|dynamic_cast|C-style cast|"
+  "functional-style cast|addrspace_cast}0 from %1 to %2 changes sealed qualifier">;
+def err_sealed_pointer_cast : Error<
+  "cast from  %0 to %1 changes sealed qualifier">;
+def err_typecheck_expect_sealed_operand : Error<
+  "operand of type %0 where sealed capability is required">;
+def err_typecheck_expect_unsealed_operand : Error<
+  "operand of type %0 where unsealed capability is required">;
 
 def err_objc_var_decl_inclass :
     Error<"cannot declare variable inside @interface or @protocol">;
@@ -7305,6 +7317,20 @@ def err_typecheck_convert_ptr_to_cap: Error<"converting non-capability"
 def err_typecheck_convert_ptr_to_cap_unrelated_type: Error<"cannot implicitly "
   "or explicitly convert non-capability%select{| reference to}2 type %0 to "
   "unrelated capability type %1">;
+
+def err_typecheck_convert_sealed_to_ptr: Error<"converting sealed"
+  "%select{| reference to}2 type %0 to non-sealed type %1 without "
+  "an explicit unsealing">;
+def err_typecheck_convert_ptr_to_sealed: Error<"converting unsealed"
+  "%select{| reference to}2 type %0 to sealed type %1 without "
+  "an explicit sealing">;
+def err_sealed_reference: Error<"reference type %0 cannot be sealed">;
+def err_sealed_bad_operator: Error<"invalid operator applied to sealed type %0">;
+def err_sealed_this_pointer: Error<"sealed type %0 cannot be used as 'this' pointer for non-static method calls">;
+def err_sealed_func_pointer: Error<"sealed type %0 cannot be called">;
+def err_sealed_member_access: Error<"cannot access members of sealed type %0">;
+
+
 
 def warn_uintcap_bitwise_and : Warning<
   "using bitwise and on a capability type may give surprising results; "

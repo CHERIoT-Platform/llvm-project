@@ -761,6 +761,10 @@ Sema::BuildMemberReferenceExpr(Expr *Base, QualType BaseType,
 
   LookupResult R(*this, NameInfo, LookupMemberName);
 
+  // Member accesses are not allowed on sealed capabilities.
+  if (BaseType->isCHERISealedCapabilityType(Context))
+    return ExprError(Diag(OpLoc, diag::err_sealed_member_access) << BaseType);
+
   // Implicit member accesses.
   if (!Base) {
     TypoExpr *TE = nullptr;

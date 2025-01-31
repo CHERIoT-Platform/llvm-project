@@ -48,6 +48,7 @@ typedef __uintcap_t uintcap_t;
 typedef __INTPTR_TYPE__ intcap_t;
 typedef __UINTPTR_TYPE__ uintcap_t;
 #define __capability
+#define __sealed_capability
 #ifdef WANT_CHERI_QUALIFIER_MACROS
 #define capability
 #define output
@@ -95,15 +96,13 @@ void * __capability cheri_tag_clear(void * __capability __cap) {
   return __IF_CAPS(__builtin_cheri_tag_clear(__cap), (void*)__cap);
 }
 
-static inline
-void * __capability cheri_seal(void * __capability __cap,
-                               const void * __capability __type) {
+static inline void *__sealed_capability
+cheri_seal(void *__capability __cap, const void *__capability __type) {
   return __IF_CAPS(__builtin_cheri_seal(__cap, __type), (void*)__cap);
 }
 
-static inline
-void * __capability cheri_unseal(void * __capability __cap,
-                                 const void * __capability __type) {
+static inline void *__capability cheri_unseal(void *__sealed_capability __cap,
+                                              const void *__capability __type) {
   return __IF_CAPS(__builtin_cheri_unseal(__cap, __type), (void*)__cap);
 }
 

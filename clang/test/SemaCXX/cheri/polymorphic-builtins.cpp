@@ -27,7 +27,6 @@ void test_good(Cap x) {
   static_assert(__is_same(decltype(__builtin_cheri_offset_get(x)), size_t), "");
   static_assert(__is_same(decltype(__builtin_cheri_perms_and(x, 1)), T), "");
   static_assert(__is_same(decltype(__builtin_cheri_perms_get(x)), size_t), "");
-  static_assert(__is_same(decltype(__builtin_cheri_seal(x, nullptr)), T), "");
   static_assert(__is_same(decltype(__builtin_cheri_seal_entry(x)), T), "");
   static_assert(__is_same(decltype(__builtin_cheri_sealed_get(x)), bool), "");
   static_assert(__is_same(decltype(__builtin_cheri_subset_test(x, x)), bool), "");
@@ -35,8 +34,6 @@ void test_good(Cap x) {
   static_assert(__is_same(decltype(__builtin_cheri_tag_get(x)), bool), "");
   static_assert(__is_same(decltype(__builtin_cheri_tag_get_temporal(x)), bool), "");
   static_assert(__is_same(decltype(__builtin_cheri_type_get(x)), long), "");
-  static_assert(__is_same(decltype(__builtin_cheri_unseal(x, nullptr)), T), "");
-  static_assert(__is_same(decltype(__builtin_cheri_conditional_seal(x, nullptr)), T), "");
   static_assert(__is_same(decltype(__builtin_cheri_cap_type_copy(x, nullptr)), T), "");
   static_assert(__is_same(decltype(__builtin_cheri_perms_check(x, 1)), void), "");
   static_assert(__is_same(decltype(__builtin_cheri_type_check(x, x)), void), "");
@@ -276,7 +273,7 @@ void test_bad() {
   (void)__builtin_cheri_tag_get(x);             // expected-error{{operand of type 'long' where capability is required}}
   (void)__builtin_cheri_tag_get_temporal(x);    // expected-error{{operand of type 'long' where capability is required}}
   (void)__builtin_cheri_type_get(x);            // expected-error{{operand of type 'long' where capability is required}}
-  (void)__builtin_cheri_unseal(x, NULL);        // expected-error{{operand of type 'long' where capability is required}}
+  (void)__builtin_cheri_unseal(x, NULL);        // expected-error{{operand of type 'long' where sealed capability is required}}
 
   // Check that we don't promote integer constants
   (void)__builtin_cheri_address_get(123);         // expected-error{{operand of type 'int' where capability is required}}
@@ -301,7 +298,7 @@ void test_bad() {
   (void)__builtin_cheri_tag_get(123);             // expected-error{{operand of type 'int' where capability is required}}
   (void)__builtin_cheri_tag_get_temporal(123);    // expected-error{{operand of type 'int' where capability is required}}
   (void)__builtin_cheri_type_get(123);            // expected-error{{operand of type 'int' where capability is required}}
-  (void)__builtin_cheri_unseal(123, NULL);        // expected-error{{operand of type 'int' where capability is required}}
+  (void)__builtin_cheri_unseal(123, NULL);        // expected-error{{operand of type 'int' where sealed capability is required}}
   // or floating-point ones
   (void)__builtin_cheri_address_get(1.0f);         // expected-error{{operand of type 'float' where capability is required}}
   (void)__builtin_cheri_address_set(1.0f, 1);      // expected-error{{operand of type 'float' where capability is required}}
@@ -325,5 +322,5 @@ void test_bad() {
   (void)__builtin_cheri_tag_get(1.0f);             // expected-error{{operand of type 'float' where capability is required}}
   (void)__builtin_cheri_tag_get_temporal(1.0f);    // expected-error{{operand of type 'float' where capability is required}}
   (void)__builtin_cheri_type_get(1.0f);            // expected-error{{operand of type 'float' where capability is required}}
-  (void)__builtin_cheri_unseal(1.0f, NULL);        // expected-error{{operand of type 'float' where capability is required}}
+  (void)__builtin_cheri_unseal(1.0f, NULL);        // expected-error{{operand of type 'float' where sealed capability is required}}
 }

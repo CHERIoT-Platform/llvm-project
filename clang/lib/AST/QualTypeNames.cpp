@@ -379,12 +379,11 @@ QualType getFullyQualifiedType(QualType QT, const ASTContext &Ctx,
                                bool WithGlobalNsPrefix) {
   // In case of myType* we need to strip the pointer first, fully
   // qualify and attach the pointer once again.
-  if (isa<PointerType>(QT.getTypePtr())) {
+  if (const auto *PT = dyn_cast<PointerType>(QT.getTypePtr())) {
     // Get the qualifiers.
     Qualifiers Quals = QT.getQualifiers();
     QT = getFullyQualifiedType(QT->getPointeeType(), Ctx, WithGlobalNsPrefix);
-    QT = Ctx.getPointerType(QT, QT->isCHERICapabilityType(Ctx)
-                                    ? PIK_Capability : PIK_Integer);
+    QT = Ctx.getPointerType(QT, PT->getPointerInterpretation());
     // Add back the qualifiers.
     QT = Ctx.getQualifiedType(QT, Quals);
     return QT;

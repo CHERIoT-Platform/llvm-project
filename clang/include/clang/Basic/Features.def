@@ -245,6 +245,8 @@ FEATURE(experimental_library, LangOpts.ExperimentalLibrary)
 FEATURE(capabilities, PP.getTargetInfo().SupportsCapabilities())
 FEATURE(pointer_interpretation, PP.getTargetInfo().SupportsCapabilities())
 FEATURE(cheri_casts, PP.getTargetInfo().SupportsCapabilities())
+// CHERI typed sealed pointers
+EXTENSION(cheri_sealed_pointers, PP.getTargetInfo().SupportsCapabilities())
 
 // C11 features supported by other languages as extensions.
 EXTENSION(c_alignas, true)

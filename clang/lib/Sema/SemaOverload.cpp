@@ -2533,7 +2533,9 @@ BuildSimilarlyQualifiedPointerType(const Type *FromPtr,
     return ToType.getUnqualifiedType();
 
   const bool FromIsCap = FromPtr->isCHERICapabilityType(Context);
-  PointerInterpretationKind PIK = FromIsCap ? PIK_Capability : PIK_Integer;
+  PointerInterpretationKind PIK =
+      FromIsCap ? FromPtr->getAs<PointerType>()->getPointerInterpretation()
+                : PIK_Integer;
   QualType CanonFromPointee
     = Context.getCanonicalType(FromPtr->getPointeeType());
   QualType CanonToPointee = Context.getCanonicalType(ToPointee);
@@ -5794,6 +5796,14 @@ ExprResult Sema::PerformImplicitObjectArgumentInitialization(
     CXXMethodDecl *Method) {
   QualType FromRecordType, DestType;
   QualType ImplicitParamRecordType = Method->getFunctionObjectParameterType();
+
+  if (const auto *FromPtrTy = From->getType()->getAs<PointerType>()) {
+    const auto *ThisPtrTy = Method->getThisType()->getAs<PointerType>();
+    if (ThisPtrTy->getPointerInterpretation() != FromPtrTy->getPointerInterpretation()) {
+      return Diag(From->getBeginLoc(), diag::err_sealed_this_pointer)
+            << From->getType() << From->getSourceRange();
+    }
+  }
 
   Expr::Classification FromClassification;
   if (const PointerType *PT = From->getType()->getAs<PointerType>()) {

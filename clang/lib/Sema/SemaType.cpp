@@ -8895,19 +8895,23 @@ QualType Sema::BuildPointerInterpretationAttr(QualType T,
   } else if (T->isDependentType()) {
     T = Context.getDependentPointerType(T, PIK, QualifierLoc);
   } else {
-    Diag(QualifierLoc, diag::err_cheri_capability_qualifier_pointers_only) << T;
+    Diag(QualifierLoc, diag::err_cheri_qualifier_pointers_only)
+        << ((PIK == PIK_Capability) ? "__capability" : "__sealed_capability")
+        << T;
   }
 
   return T;
 }
 
-/// HandleCHERICapabilityQualifier - Process the __capability qualifier. It is
-/// only applicable to pointer and reference types and specifies that this
-/// pointer/reference should be treated as a capability.
-static void HandleCHERICapabilityQualifier(QualType &CurType,
-                                           TypeProcessingState &state,
-                                           TypeAttrLocation TAL,
-                                           ParsedAttr &attr) {
+/// HandleCHERIPointerQualifier - Process the __capability or
+/// __sealed_capability
+// qualifiers. It is only applicable to pointer and reference types and
+// specifies
+/// that this pointer/reference should be treated as a [sealed] capability.
+static bool HandleCHERIPointerQualifier(QualType &CurType,
+                                        TypeProcessingState &state,
+                                        TypeAttrLocation TAL,
+                                        ParsedAttr &attr) {
   Declarator &declarator = state.getDeclarator();
   Sema& S = state.getSema();
   std::string Name = attr.getAttrName()->getName().str();
@@ -8939,16 +8943,16 @@ static void HandleCHERICapabilityQualifier(QualType &CurType,
           if (nextChunk.Kind == DeclaratorChunk::Pointer) {
             auto Attr = nextChunk.getAttrs();
             if (!Attr.hasAttribute(ParsedAttr::AT_CHERICapability)) {
-              S.Diag(nextChunk.Loc,
-                     diag::err_cheri_capability_qualifier_ambiguous);
-              return;
+              S.Diag(nextChunk.Loc, diag::err_cheri_qualifier_ambiguous)
+                  << Name;
+              return false;
             }
           }
         }
 
         // Output a deprecated usage warning with a FixItHint
-        S.Diag(chunk.Loc, diag::warn_cheri_capability_qualifier_location)
-            << FixItHint::CreateRemoval(attr.getRange())
+        S.Diag(chunk.Loc, diag::warn_cheri_qualifier_location)
+            << Name << FixItHint::CreateRemoval(attr.getRange())
             << FixItHint::CreateInsertion(chunk.Loc.getLocWithOffset(1),
                                           " " + Name + " ");
 
@@ -8959,7 +8963,7 @@ static void HandleCHERICapabilityQualifier(QualType &CurType,
             const_cast<IdentifierInfo *>(attr.getScopeName()),
             attr.getScopeLoc(), nullptr, 0, attr.getForm());
         chunk.getAttrs().addAtEnd(attrCopy);
-        return;
+        return false;
       }
       case DeclaratorChunk::BlockPointer:
       case DeclaratorChunk::Paren:
@@ -9002,7 +9006,7 @@ static void HandleCHERICapabilityQualifier(QualType &CurType,
       }
 
       if (InvalidArrayQualifier)
-        return;
+        return false;
     }
     break;
   }
@@ -9012,9 +9016,7 @@ static void HandleCHERICapabilityQualifier(QualType &CurType,
         "Keyword attribute should never be parsed after declaration's name");
   }
 
-  assert(S.Context.getTargetInfo().SupportsCapabilities());
-  CurType = S.BuildPointerInterpretationAttr(CurType, PIK_Capability,
-                                             attr.getLoc());
+  return true;
 }
 
 static void handleCheriNoProvenanceAttr(QualType &T, TypeProcessingState &State,
@@ -9396,9 +9398,24 @@ static void processTypeAttrs(TypeProcessingState &state, QualType &type,
         distributeFunctionTypeAttr(state, attr, type);
       break;
 
+    case ParsedAttr::AT_CHERISealedCapability:
+      attr.setUsedAsTypeAttr();
+      if (HandleCHERIPointerQualifier(type, state, TAL, attr)) {
+        assert(state.getSema().Context.getTargetInfo().SupportsCapabilities());
+        type = state.getSema().BuildPointerInterpretationAttr(
+            type, PIK_SealedCapability, attr.getLoc());
+        if (type->isReferenceType())
+          state.getSema().Diag(attr.getLoc(), diag::err_sealed_reference)
+              << type;
+      }
+      break;
     case ParsedAttr::AT_CHERICapability:
       attr.setUsedAsTypeAttr();
-      HandleCHERICapabilityQualifier(type, state, TAL, attr);
+      if (HandleCHERIPointerQualifier(type, state, TAL, attr)) {
+        assert(state.getSema().Context.getTargetInfo().SupportsCapabilities());
+        type = state.getSema().BuildPointerInterpretationAttr(
+            type, PIK_Capability, attr.getLoc());
+      }
       break;
     case ParsedAttr::AT_CHERINoSubobjectBounds:
       attr.setUsedAsTypeAttr();

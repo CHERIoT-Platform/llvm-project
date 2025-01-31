@@ -951,8 +951,13 @@ void CastOperation::CheckDynamicCast() {
   }
   if (!DestReference && SrcType->isCHERICapabilityType(Self.Context) !=
                             DestType->isCHERICapabilityType(Self.Context)) {
-    Self.Diag(OpRange.getBegin(), diag::err_bad_cxx_cast_capability_qualifier)
-        << CT_Dynamic << SrcType << DestType;
+    if (SrcType->isCHERISealedCapabilityType(Self.Context) ||
+        DestType->isCHERISealedCapabilityType(Self.Context))
+      Self.Diag(OpRange.getBegin(), diag::err_bad_cxx_cast_sealed_qualifier)
+          << CT_Dynamic << SrcType << DestType;
+    else
+      Self.Diag(OpRange.getBegin(), diag::err_bad_cxx_cast_capability_qualifier)
+          << CT_Dynamic << SrcType << DestType;
     SrcExpr = ExprError();
     return;
   }
@@ -1515,8 +1520,13 @@ static TryCastResult TryStaticCast(Sema &Self, ExprResult &SrcExpr,
         DestType->isCHERICapabilityType(Self.Context)) {
       // Changing the capability qualifier is not possible with static_cast.
       // Return a more specific message than "is not allowed" for pointer casts.
-      if (DestType->isAnyPointerType())
-        msg = diag::err_bad_cxx_cast_capability_qualifier;
+      if (DestType->isAnyPointerType()) {
+        if (SrcPointer->isCHERISealedCapabilityType(Self.Context) ||
+            DestType->isCHERISealedCapabilityType(Self.Context))
+          msg = diag::err_bad_cxx_cast_sealed_qualifier;
+        else
+          msg = diag::err_bad_cxx_cast_capability_qualifier;
+      }
       return TC_NotApplicable;
     }
 
@@ -2249,6 +2259,13 @@ CastKind CastOperation::checkCapabilityToIntCast() {
   }
 
   if (DestType->isPointerType() || DestType->isReferenceType()) {
+    if (DestType->isCHERISealedCapabilityType(Self.Context) ||
+        SrcType->isCHERISealedCapabilityType(Self.Context)) {
+      Self.Diag(OpRange.getBegin(), diag::err_sealed_pointer_cast)
+          << SrcType << DestType;
+      return CK_NoOp;
+    }
+
     Self.Diag(OpRange.getBegin(), diag::warn_capability_pointer_cast)
         << SrcType << DestType << OpRange
         << FixItHint::CreateReplacement(OpRange, "__cheri_fromcap " +
@@ -2782,6 +2799,7 @@ static TryCastResult TryReinterpretCast(Sema &Self, ExprResult &SrcExpr,
   } else {
     bool SrcIsCapPtr = SrcType->isCapabilityPointerType();
     bool DestIsCapPtr = DestType->isCapabilityPointerType();
+
     if (!SrcIsCapPtr && DestIsCapPtr) {
       checkNonCapToCapCast(OpRange, SrcExpr.get(), DestType, Self, SrcType);
       Kind = CK_PointerToCHERICapability;
@@ -3915,7 +3933,8 @@ bool Sema::CheckCHERIAssignCompatible(QualType LHS, QualType RHS,
         bool RHSIsCap = RHS->isCHERICapabilityType(Context, false);
         QualType BitCastTy = Context.getPointerType(
             LHS->getAs<PointerType>()->getPointeeType(),
-            RHSIsCap ? PIK_Capability : PIK_Integer);
+            RHSIsCap ? RHS->getAs<PointerType>()->getPointerInterpretation()
+                     : PIK_Integer);
         RHSExpr = ImplicitCastExpr::Create(Context, BitCastTy, CK_BitCast,
                                            RHSExpr, nullptr, VK_PRValue,
                                            CurFPFeatureOverrides());

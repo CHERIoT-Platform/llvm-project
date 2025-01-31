@@ -657,7 +657,9 @@ public:
     return isOneOf(tok::kw_const, tok::kw_restrict, tok::kw_volatile,
                    tok::kw__Nonnull, tok::kw__Nullable,
                    tok::kw__Null_unspecified, tok::kw___ptr32, tok::kw___ptr64,
-                   tok::kw___capability, tok::kw___funcref) ||
+                   tok::kw___capability, tok::kw___funcref,
+                   tok::kw___sealed_capability
+                  ) ||
            isAttribute();
   }
 

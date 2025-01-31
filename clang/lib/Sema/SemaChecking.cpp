@@ -240,7 +240,8 @@ static bool SemaBuiltinCHERICapCreate(Sema &S, CallExpr *TheCall) {
 /// Check that argument \p ArgIndex is a capability type (or an array/function
 /// that decays to a capability type.
 static bool checkCapArg(Sema &S, CallExpr *TheCall, unsigned ArgIndex,
-                        QualType *ResultingSrcTy = nullptr) {
+                        QualType *ResultingSrcTy = nullptr,
+                        bool AllowSealed = false) {
   clang::Expr *Source = TheCall->getArg(ArgIndex);
   ASTContext &Ctx = S.Context;
   QualType SrcTy = Source->getType();
@@ -258,6 +259,43 @@ static bool checkCapArg(Sema &S, CallExpr *TheCall, unsigned ArgIndex,
     *ResultingSrcTy = SrcTy;
   if (!SrcTy->isCapabilityPointerType() && !SrcTy->isIntCapType()) {
     S.Diag(Source->getExprLoc(), diag::err_typecheck_expect_capability_operand)
+        << SrcTy;
+    return true;
+  }
+  if (!AllowSealed && SrcTy->isCHERISealedCapabilityType(Ctx)) {
+    S.Diag(Source->getExprLoc(), diag::err_typecheck_expect_unsealed_operand)
+        << SrcTy;
+    return true;
+  }
+  ExprResult SrcArg = S.PerformCopyInitialization(
+      InitializedEntity::InitializeParameter(Ctx, SrcTy, false),
+      SourceLocation(), Source);
+  if (SrcArg.isInvalid())
+    return true;
+  TheCall->setArg(ArgIndex, SrcArg.get());
+  return false;
+}
+
+/// Check that argument \p ArgIndex is a sealed capability type (or an
+/// array/function that decays to a capability type.
+static bool checkSealedCapArg(Sema &S, CallExpr *TheCall, unsigned ArgIndex,
+                              QualType *ResultingSrcTy = nullptr) {
+  clang::Expr *Source = TheCall->getArg(ArgIndex);
+  ASTContext &Ctx = S.Context;
+  QualType SrcTy = Source->getType();
+  // We should also be able to use it with arrays/functions
+  if (SrcTy->canDecayToPointerType())
+    SrcTy = Ctx.getDecayedType(SrcTy);
+
+  if (ResultingSrcTy)
+    *ResultingSrcTy = SrcTy;
+  if (!SrcTy->isCapabilityPointerType() && !SrcTy->isIntCapType()) {
+    S.Diag(Source->getExprLoc(), diag::err_typecheck_expect_sealed_operand)
+        << SrcTy;
+    return true;
+  }
+  if (!SrcTy->isCHERISealedCapabilityType(Ctx)) {
+    S.Diag(Source->getExprLoc(), diag::err_typecheck_expect_sealed_operand)
         << SrcTy;
     return true;
   }
@@ -2724,13 +2762,34 @@ Sema::CheckBuiltinFunctionCall(FunctionDecl *FDecl, unsigned BuiltinID,
     }
     break;
   }
+  // Seal works in almost same way as the setters: value to be
+  // unsealed/sealed comes first and should therefore be the result type,
+  // second argument is overloaded to be any capability type.
   case Builtin::BI__builtin_cheri_seal:
-  case Builtin::BI__builtin_cheri_unseal:
-  case Builtin::BI__builtin_cheri_conditional_seal:
+  case Builtin::BI__builtin_cheri_conditional_seal: {
+    QualType SrcTy;
+    if (checkArgCount(*this, TheCall, 2) ||
+        checkCapArg(*this, TheCall, 0, &SrcTy) ||
+        checkCapArg(*this, TheCall, 1))
+      return ExprError();
+    if (SrcTy->isIntCapType())
+      TheCall->setType(SrcTy);
+    else
+      TheCall->setType(Context.getPointerType(SrcTy->getPointeeType(),
+                                              PIK_SealedCapability));
+    break;
+  }
+  case Builtin::BI__builtin_cheri_unseal: {
+    QualType SrcTy;
+    if (checkArgCount(*this, TheCall, 2) ||
+        checkSealedCapArg(*this, TheCall, 0, &SrcTy) ||
+        checkCapArg(*this, TheCall, 1))
+      return ExprError();
+    TheCall->setType(
+        Context.getPointerType(SrcTy->getPointeeType(), PIK_Capability));
+    break;
+  }
   case Builtin::BI__builtin_cheri_cap_type_copy: {
-    // Seal/unseal work in almost same way as the setters: value to be
-    // unsealed/sealed comes first and should therefore be the result type,
-    // second argument is overloaded to be any capability type.
     QualType SrcTy;
     if (checkArgCount(*this, TheCall, 2) ||
         checkCapArg(*this, TheCall, 0, &SrcTy) ||
@@ -2766,7 +2825,8 @@ Sema::CheckBuiltinFunctionCall(FunctionDecl *FDecl, unsigned BuiltinID,
     // a second argument.
     QualType SrcTy;
     if (checkArgCount(*this, TheCall, 1) ||
-        checkCapArg(*this, TheCall, 0, &SrcTy))
+        checkCapArg(*this, TheCall, 0, &SrcTy,
+                    (BuiltinID == Builtin::BI__builtin_cheri_tag_clear)))
       return ExprError();
     TheCall->setType(SrcTy);
     break;
@@ -2776,8 +2836,9 @@ Sema::CheckBuiltinFunctionCall(FunctionDecl *FDecl, unsigned BuiltinID,
   case Builtin::BI__builtin_cheri_type_check: {
     // For subset testing and type checking we allow any capability type for
     // both arguments.
-    if (checkArgCount(*this, TheCall, 2) || checkCapArg(*this, TheCall, 0) ||
-        checkCapArg(*this, TheCall, 1))
+    if (checkArgCount(*this, TheCall, 2) ||
+        checkCapArg(*this, TheCall, 0, nullptr, true) ||
+        checkCapArg(*this, TheCall, 1, nullptr, true))
       return ExprError();
     break;
   }
@@ -2794,7 +2855,8 @@ Sema::CheckBuiltinFunctionCall(FunctionDecl *FDecl, unsigned BuiltinID,
   case Builtin::BI__builtin_cheri_type_get: {
     // The CHERI accessors should accept both capability pointer types and
     // (u)intcap_t arguments.
-    if (checkArgCount(*this, TheCall, 1) || checkCapArg(*this, TheCall, 0))
+    if (checkArgCount(*this, TheCall, 1) ||
+        checkCapArg(*this, TheCall, 0, nullptr, true))
       return ExprError();
     break;
   }

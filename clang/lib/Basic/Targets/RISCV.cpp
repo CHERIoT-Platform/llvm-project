@@ -515,7 +515,6 @@ bool RISCVTargetInfo::hasFeature(StringRef Feature) const {
                     .Case("32bit", !Is64Bit)
                     .Case("64bit", Is64Bit)
                     .Case("experimental", HasExperimental)
-                    .Case("xcheri", HasCheri)
                     .Default(std::nullopt);
   if (Result)
     return *Result;

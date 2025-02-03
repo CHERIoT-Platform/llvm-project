@@ -162,12 +162,59 @@ void riscv::getRISCVTargetFeatures(const Driver &D, const llvm::Triple &Triple,
     Features.push_back("-relax");
   }
 
+  // If -mstrict-align, -mno-strict-align, -mscalar-strict-align, or
+  // -mno-scalar-strict-align is passed, use it. Otherwise, the
+  // unaligned-scalar-mem is enabled if the CPU supports it or the target is
+  // Android.
+  if (const Arg *A = Args.getLastArg(
+          options::OPT_mno_strict_align, options::OPT_mscalar_strict_align,
+          options::OPT_mstrict_align, options::OPT_mno_scalar_strict_align)) {
+    if (A->getOption().matches(options::OPT_mno_strict_align) ||
+        A->getOption().matches(options::OPT_mno_scalar_strict_align)) {
+      Features.push_back("+unaligned-scalar-mem");
+    } else {
+      Features.push_back("-unaligned-scalar-mem");
+    }
+  } else if (CPUFastScalarUnaligned || Triple.isAndroid()) {
+    Features.push_back("+unaligned-scalar-mem");
+  }
+
+  // If -mstrict-align, -mno-strict-align, -mvector-strict-align, or
+  // -mno-vector-strict-align is passed, use it. Otherwise, the
+  // unaligned-vector-mem is enabled if the CPU supports it or the target is
+  // Android.
+  if (const Arg *A = Args.getLastArg(
+          options::OPT_mno_strict_align, options::OPT_mvector_strict_align,
+          options::OPT_mstrict_align, options::OPT_mno_vector_strict_align)) {
+    if (A->getOption().matches(options::OPT_mno_strict_align) ||
+        A->getOption().matches(options::OPT_mno_vector_strict_align)) {
+      Features.push_back("+unaligned-vector-mem");
+    } else {
+      Features.push_back("-unaligned-vector-mem");
+    }
+  } else if (CPUFastVectorUnaligned || Triple.isAndroid()) {
+    Features.push_back("+unaligned-vector-mem");
+  }
+
+  // Now add any that the user explicitly requested on the command line,
+  // which may override the defaults.
+  handleTargetFeaturesGroup(D, Triple, Args, Features,
+                            options::OPT_m_riscv_Features_Group);
+
   if (Arg *A = Args.getLastArg(options::OPT_mabi_EQ)) {
     bool IsPureCapability = isCheriPurecapABIName(A->getValue());
     if (IsPureCapability) {
-      if (llvm::find(Features, "+xcheri") == Features.end()) {
-        D.Diag(diag::err_riscv_invalid_abi) << A->getValue()
-          << "pure capability ABI requires xcheri extension to be specified";
+      auto ISAInfo = llvm::RISCVISAInfo::parseFeatures(
+          Triple.isArch32Bit() ? 32 : 64,
+          std::vector<std::string>(Features.begin(), Features.end()));
+      if (!ISAInfo) {
+        handleAllErrors(ISAInfo.takeError(), [&](llvm::StringError &ErrMsg) {
+          D.Diag(diag::err_invalid_feature_combination) << ErrMsg.getMessage();
+        });
+      } else if (!(*ISAInfo)->hasExtension("xcheri")) {
+        D.Diag(diag::err_riscv_invalid_abi)
+            << A->getValue()
+            << "pure capability ABI requires xcheri extension to be specified";
         return;
       }
       Features.push_back("+cap-mode");

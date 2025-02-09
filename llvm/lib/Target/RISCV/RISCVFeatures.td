@@ -1635,20 +1635,6 @@ def RV64           : HwMode<"+64bit", [IsRV64]>;
 def IsRVE : Predicate<"Subtarget->isRVE()">,
             AssemblerPredicate<(all_of FeatureStdExtE)>;
 
-// TODO: Once all supported CheriBSD branches are ready for the new semantics
-// this feature should be enabled automatically.
-def FeatureCheriISAV9Semantics
-    : SubtargetFeature<"xcheri-v9-semantics", "HasCheriISAv9Semantics", "true",
-                       "CHERI ISAv9 semantics (tag-clearing, no relocation)">;
-def HasCheriISAv9
-    : Predicate<"Subtarget->hasCheriISAv9Semantics()">,
-                AssemblerPredicate<(all_of FeatureCheriISAV9Semantics),
-                "CHERI ISAv9 semantics (tag-clearing, no relocation)">;
-def NotCheriISAv9
-    : Predicate<"!Subtarget->hasCheriISAv9Semantics()">,
-                AssemblerPredicate<(all_of (not FeatureCheriISAV9Semantics)),
-                "CHERI ISAv8 semantics (trapping, DDC/PCC relocation)">;
-
 def FeatureVendorXCheri : RISCVExtension<0, 0, "Implements CHERI extension">;
 
 def HasCheri : Predicate<"Subtarget->hasVendorXCheri()">,

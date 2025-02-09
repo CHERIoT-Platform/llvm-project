@@ -179,7 +179,6 @@
 ; CHECK-NEXT:   xandesvpackfph                   - 'XAndesVPackFPH' (Andes Vector Packed FP16 Extension).
 ; CHECK-NEXT:   xcheri                           - 'XCheri' (Implements CHERI extension).
 ; CHECK-NEXT:   xcheri-norvc                     - Disable CHERI RVC Instructions..
-; CHECK-NEXT:   xcheri-v9-semantics              - CHERI ISAv9 semantics (tag-clearing, no relocation).
 ; CHECK-NEXT:   xcheriot                         - 'XCheriot' (Implements XCheriot extension).
 ; CHECK-NEXT:   xcvalu                           - 'XCValu' (CORE-V ALU Operations).
 ; CHECK-NEXT:   xcvbi                            - 'XCVbi' (CORE-V Immediate Branching).

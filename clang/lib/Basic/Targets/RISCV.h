@@ -73,7 +73,6 @@ protected:
   std::unique_ptr<llvm::RISCVISAInfo> ISAInfo;
   int CapSize = -1;
   bool HasCheri = false;
-  bool HasCheriISAv9Semantics = false;
   bool IsABICHERIoT = false;
   bool IsABICHERIoTBareMetal = false;
   void setCapabilityABITypes() {

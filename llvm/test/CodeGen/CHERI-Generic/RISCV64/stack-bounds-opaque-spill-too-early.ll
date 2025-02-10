@@ -48,7 +48,7 @@ define dso_local void @lazy_bind_args() addrspace(200) nounwind {
 ; ASM-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
 ; ASM-NEXT:    cincoffset csp, csp, 32
 ; ASM-NEXT:    cret
-; CHECK-LABEL: define {{[^@]+}}@lazy_bind_args
+; CHECK-LABEL: define dso_local void @lazy_bind_args
 ; CHECK-SAME: () addrspace(200) #[[ATTR2:[0-9]+]] {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[CAP:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)

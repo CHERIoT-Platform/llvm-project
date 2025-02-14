@@ -498,6 +498,21 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     int64_t hi = SignExtend64(val + 0x800, bits) >> 12;
     checkInt(loc, hi, 20, rel);
     if (isInt<20>(hi)) {
+      // FIXME: Is there a better way to test for cheriot here?
+      if (rel.type == R_RISCV_CHERI_CCALL && config->isCheriAbi &&
+          config->emachine == EM_RISCV && config->capabilitySize == 8) {
+        // CHERIOT uses an 11-bit shift on AUIPCC, requiring special handling.
+        relocate(loc,
+                 Relocation{rel.expr, R_RISCV_CHERIOT_COMPARTMENT_HI,
+                            rel.offset, rel.addend, rel.sym},
+                 val);
+        relocate(loc + 4,
+                 Relocation{rel.expr, R_RISCV_CHERIOT_COMPARTMENT_LO_I,
+                            rel.offset, rel.addend, rel.sym},
+                 val);
+        return;
+      }
+
       relocateNoSym(loc, R_RISCV_PCREL_HI20, val);
       relocateNoSym(loc + 4, R_RISCV_PCREL_LO12_I, val);
     }

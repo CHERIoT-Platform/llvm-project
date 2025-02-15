@@ -320,8 +320,8 @@
 // Check for CHERIoT-specific defines
 // RUN: %clang_cc1 %s -o - "-triple" "riscv32-unknown-unknown" "-emit-llvm" "-mframe-pointer=none" "-mcmodel=small" "-target-cpu" "cheriot" "-target-feature" "+xcheri" "-target-feature" "-64bit" "-target-feature" "-relax" "-target-feature" "-xcheri-rvc" "-target-feature" "-save-restore" "-target-abi" "cheriot" -E -dM < /dev/null | FileCheck -check-prefix CHERIOT %s
 // RUN: %clang_cc1 %s -o - "-triple" "riscv32-unknown-unknown" "-emit-llvm" "-mframe-pointer=none" "-mcmodel=small" "-target-cpu" "cheriot" "-target-feature" "+xcheri" "-target-feature" "-64bit" "-target-feature" "-relax" "-target-feature" "-xcheri-rvc" "-target-feature" "-save-restore" "-target-abi" "cheriot-baremetal" -E -dM < /dev/null | FileCheck -check-prefixes CHERIOT,CHERIOT-BAREMETAL %s
-// CHERIOT-BAREMETAL: #define __CHERIOT_BAREMETAL__ 20250113
-// CHERIOT: #define __CHERIOT__ 20250113
+// CHERIOT-BAREMETAL: #define __CHERIOT_BAREMETAL__ 20250215
+// CHERIOT: #define __CHERIOT__ 20250215
 
 
 // RUN: %cheri128_cc1 -fgnuc-version=4.2.1 -E -dM -ffreestanding < /dev/null | FileCheck -check-prefixes CHERI-COMMON,CHERI-MIPS,CHERI128 %s

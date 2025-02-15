@@ -13,6 +13,7 @@
 #include "llvm/MC/MCELFObjectWriter.h"
 #include "llvm/MC/MCFixup.h"
 #include "llvm/MC/MCObjectWriter.h"
+#include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/MCValue.h"
 #include "llvm/Support/ErrorHandling.h"
 
@@ -97,8 +98,13 @@ unsigned RISCVELFObjectWriter::getRelocType(MCContext &Ctx,
       return ELF::R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20;
     case RISCV::fixup_riscv_cjal:
       return ELF::R_RISCV_CHERI_CJAL;
-    case RISCV::fixup_riscv_ccall:
+    case RISCV::fixup_riscv_ccall: {
+      const auto *STI = Ctx.getSubtargetInfo();
+      if (STI->getCPU() == "cheriot" || STI->getTargetTriple().getSubArch() ==
+                                            Triple::RISCV32SubArch_cheriot_v1)
+        return ELF::R_RISCV_CHERIOT_CCALL;
       return ELF::R_RISCV_CHERI_CCALL;
+    }
     case RISCV::fixup_riscv_rvc_cjump:
       return ELF::R_RISCV_CHERI_RVC_CJUMP;
     case RISCV::fixup_riscv_add_8:

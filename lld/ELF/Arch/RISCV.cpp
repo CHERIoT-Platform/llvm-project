@@ -367,6 +367,7 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
   case R_RISCV_CALL:
   case R_RISCV_CALL_PLT:
   case R_RISCV_CHERI_CCALL:
+  case R_RISCV_CHERIOT_CCALL:
   case R_RISCV_PLT32:
     return R_PLT_PC;
   case R_RISCV_GOT_HI20:
@@ -519,6 +520,24 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     if (isInt<20>(hi)) {
       relocateNoSym(loc, R_RISCV_PCREL_HI20, val);
       relocateNoSym(loc + 4, R_RISCV_PCREL_LO12_I, val);
+    }
+    return;
+  }
+
+  case R_RISCV_CHERIOT_CCALL: {
+    // Cheriot uses an 11-bit shift on AUIPCC, requiring different relocation
+    // compared to R_RISCV_CHERI_CCALL.
+    int64_t hi = SignExtend64(val + 0x800, bits) >> 12;
+    checkInt(loc, hi, 20, rel);
+    if (isInt<20>(hi)) {
+      relocate(loc,
+               Relocation{rel.expr, R_RISCV_CHERIOT_COMPARTMENT_HI, rel.offset,
+                          rel.addend, rel.sym},
+               val);
+      relocate(loc + 4,
+               Relocation{rel.expr, R_RISCV_CHERIOT_COMPARTMENT_LO_I,
+                          rel.offset, rel.addend, rel.sym},
+               val);
     }
     return;
   }
@@ -895,15 +914,15 @@ void elf::initSymbolAnchors() {
 }
 
 // Relax R_RISCV_CALL/R_RISCV_CALL_PLT auipc+jalr to c.j, c.jal, or jal.
-// Relax R_RISCV_CHERI_CCALL auipcc+cjalr to c.cj, c.cjal, or cjal.
+// Relax R_RISCV_CHERI[OT]_CCALL auipcc+cjalr to c.cj, c.cjal, or cjal.
 static void relaxCall(const InputSection &sec, size_t i, uint64_t loc,
                       Relocation &r, uint32_t &remove) {
   // We need to emit the correct relocations for CHERI, although the instruction
   // encodings are exactly the same with vanilla RISC-V.
-  auto jalRVCType = (r.type == R_RISCV_CHERI_CCALL) ? R_RISCV_CHERI_RVC_CJUMP
-                                                    : R_RISCV_RVC_JUMP;
-  auto jalType = (r.type == R_RISCV_CHERI_CCALL) ? R_RISCV_CHERI_CJAL
-                                                 : R_RISCV_JAL;
+  bool isCCall =
+      (r.type == R_RISCV_CHERI_CCALL) || (r.type == R_RISCV_CHERIOT_CCALL);
+  auto jalRVCType = (isCCall) ? R_RISCV_CHERI_RVC_CJUMP : R_RISCV_RVC_JUMP;
+  auto jalType = (isCCall) ? R_RISCV_CHERI_CJAL : R_RISCV_JAL;
   const bool rvc = getEFlags(sec.file) & EF_RISCV_RVC;
   const Symbol &sym = *r.sym;
   const uint64_t insnPair = read64le(sec.content().data() + r.offset);
@@ -1120,7 +1139,13 @@ static bool relax(InputSection &sec, int pass) {
     case R_RISCV_CALL:
     case R_RISCV_CALL_PLT:
     case R_RISCV_CHERI_CCALL:
+<<<<<<< HEAD
       if (relaxable(relocs, i))
+=======
+    case R_RISCV_CHERIOT_CCALL:
+      if (i + 1 != sec.relocs().size() &&
+          sec.relocs()[i + 1].type == R_RISCV_RELAX)
+>>>>>>> 4feeffbf8ec3 ([cheriot] Add an R_RISCV_CHERIOT_CCALL reloc)
         relaxCall(sec, i, loc, r, remove);
       break;
     case R_RISCV_TPREL_HI20:

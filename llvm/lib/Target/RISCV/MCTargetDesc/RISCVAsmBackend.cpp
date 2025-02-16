@@ -655,7 +655,7 @@ bool RISCVAsmBackend::isPCRelFixupResolved(const MCSymbol *SymA,
     PCRelTemp = getContext().createTempSymbol();
   PCRelTemp->setFragment(const_cast<MCFragment *>(&F));
   MCValue Res;
-  MCExpr::evaluateSymbolicAdd(Asm, false, MCValue::get(SymA),
+  MCExpr::evaluateSymbolicAdd(Asm, false, false, MCValue::get(SymA),
                               MCValue::get(nullptr, PCRelTemp), Res);
   return !Res.getSubSym();
 }
@@ -668,7 +668,7 @@ bool RISCVAsmBackend::isPCRelFixupResolved(const MCSymbol *SymA,
 static const MCFixup *getPCRelHiFixup(const MCSpecifierExpr &Expr,
                                       const MCFragment **DFOut) {
   MCValue AUIPCLoc;
-  if (!Expr.getSubExpr()->evaluateAsRelocatable(AUIPCLoc, nullptr))
+  if (!Expr.getSubExpr()->evaluateAsRelocatable(AUIPCLoc, nullptr, false))
     return nullptr;
 
   const MCSymbol *AUIPCSymbol = AUIPCLoc.getAddSym();
@@ -735,7 +735,8 @@ std::optional<bool> RISCVAsmBackend::evaluateFixup(const MCFragment &,
     // MCAssembler::evaluateFixup will emit an error for this case when it sees
     // the %pcrel_hi, so don't duplicate it when also seeing the %pcrel_lo.
     const MCExpr *AUIPCExpr = AUIPCFixup->getValue();
-    if (!AUIPCExpr->evaluateAsRelocatable(AUIPCTarget, Asm))
+    if (!AUIPCExpr->evaluateAsRelocatable(AUIPCTarget, Asm,
+                                          fixupNeedsProvenance(&Fixup)))
       return true;
     break;
   }
@@ -850,6 +851,17 @@ bool RISCVAsmBackend::addReloc(const MCFragment &F, const MCFixup &Fixup,
       TA = ELF::R_RISCV_SET_ULEB128;
       TB = ELF::R_RISCV_SUB_ULEB128;
       break;
+    case RISCV::fixup_riscv_capability:
+      if (auto *RefB = Target.getSubSym()) {
+        const auto &SymB = cast<MCSymbol>(*RefB);
+        if (SymB.isUndefined()) {
+          getContext().reportError(
+              Fixup.getLoc(),
+              Twine("symbol '") + SymB.getName() +
+                  "' can not be undefined in a subtraction expression");
+        }
+      }
+      return false;
     default:
       llvm_unreachable("unsupported fixup size");
     }

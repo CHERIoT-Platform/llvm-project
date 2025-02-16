@@ -187,10 +187,6 @@ static void printImpl(const MCAsmInfo &MAI, raw_ostream &OS,
   case Mips::S_CAPCALL_LO16:
     OS << "%capcall_lo";
     break;
-  case Mips::S_CHERI_CAP:
-    // FIXME: should we really end up here?
-    OS << "%chericap";
-    break;
   case Mips::S_CAPTABLEREL:
     OS << "%captab_rel";
     break;
@@ -255,14 +251,14 @@ static bool evaluate(const MCSpecifierExpr &Expr, MCValue &Res,
         cast<MCSpecifierExpr>(
             cast<MCSpecifierExpr>(Expr.getSubExpr())->getSubExpr())
             ->getSubExpr();
-    if (!SubExpr->evaluateAsRelocatable(Res, Asm))
+    if (!SubExpr->evaluateAsRelocatable(Res, Asm, false))
       return false;
 
     Res.setSpecifier(Mips::S_Special);
     return true;
   }
 
-  if (!Expr.getSubExpr()->evaluateAsRelocatable(Res, Asm))
+  if (!Expr.getSubExpr()->evaluateAsRelocatable(Res, Asm, false))
     return false;
   Res.setSpecifier(Expr.getSpecifier());
   return !Res.getSubSym();

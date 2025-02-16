@@ -3120,7 +3120,8 @@ bool AsmParser::parseDirectiveReloc(SMLoc DirectiveLoc) {
       return true;
 
     MCValue Value;
-    if (!Expr->evaluateAsRelocatable(Value, nullptr))
+    if (!Expr->evaluateAsRelocatable(Value, nullptr,
+                                     /*FixupNeedsProvenance=*/false))
       return Error(ExprLoc, "expression must be relocatable");
   }
 
@@ -5835,27 +5836,28 @@ bool AsmParser::parseDirectiveAddrsigSym() {
 }
 
 /// parseDirectiveCheriCap
-///  ::= .chericap sym[+off]
+///  ::= .chericap expression
 bool AsmParser::parseDirectiveCheriCap(SMLoc DirectiveLoc) {
-  const MCExpr *SymExpr;
+  const MCExpr *Expr;
   SMLoc ExprLoc = getLexer().getLoc();
 
   if (!getTargetParser().isCheri())
     return Error(DirectiveLoc, "'.chericap' requires CHERI");
 
-  if (parseExpression(SymExpr))
+  if (parseExpression(Expr))
     return true;
 
-  int64_t Offset = 0;
+  int64_t Value;
   unsigned CapSize = getTargetParser().getCheriCapabilitySize();
   // Allow .chericap 0x123456 to create an untagged uintcap_t
-  if (SymExpr->evaluateAsAbsolute(Offset, getStreamer().getAssemblerPtr()))
-    getStreamer().emitCheriIntcap(Offset, CapSize, ExprLoc);
+  if (Expr->evaluateAsAbsolute(Value, getStreamer().getAssemblerPtr()))
+    getStreamer().emitCheriIntcap(Value, CapSize, ExprLoc);
   else
-    getStreamer().emitCheriCapability(SymExpr, CapSize, ExprLoc);
+    getStreamer().emitCheriCapability(Expr, CapSize, ExprLoc);
 
   if (parseToken(AsmToken::EndOfStatement, "expected end of statement"))
     return true;
+
   return false;
 }
 

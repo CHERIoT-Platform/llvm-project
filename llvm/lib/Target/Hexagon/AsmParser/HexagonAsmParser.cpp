@@ -1255,7 +1255,7 @@ bool HexagonAsmParser::parseInstruction(OperandVector &Operands) {
               Expr, MCConstantExpr::create(0xffff, Context), Context);
       } else {
         MCValue Value;
-        if (Expr->evaluateAsRelocatable(Value, nullptr)) {
+        if (Expr->evaluateAsRelocatable(Value, nullptr, false)) {
           if (!Value.isAbsolute()) {
             switch (HexagonMCExpr::VariantKind(Value.getSpecifier())) {
             case HexagonMCExpr::VK_TPREL:

@@ -626,7 +626,8 @@ getOffsetAndDataFragment(const MCSymbol &Symbol, uint32_t &RelocOffset,
   if (Symbol.isVariable()) {
     const MCExpr *SymbolExpr = Symbol.getVariableValue();
     MCValue OffsetVal;
-    if (!SymbolExpr->evaluateAsRelocatable(OffsetVal, nullptr))
+    if (!SymbolExpr->evaluateAsRelocatable(OffsetVal, nullptr,
+                                           /*FixupNeedsProvenance=*/false))
       return std::make_pair(false,
                             std::string("symbol in .reloc offset is not "
                                         "relocatable"));
@@ -700,7 +701,8 @@ MCObjectStreamer::emitRelocDirective(const MCExpr &Offset, StringRef Name,
 
   MCDataFragment *DF = getOrCreateDataFragment(&STI);
   MCValue OffsetVal;
-  if (!Offset.evaluateAsRelocatable(OffsetVal, nullptr))
+  if (!Offset.evaluateAsRelocatable(OffsetVal, nullptr,
+                                    /*FixupNeedsProvenance=*/false))
     return std::make_pair(false,
                           std::string(".reloc offset is not relocatable"));
   if (OffsetVal.isAbsolute()) {

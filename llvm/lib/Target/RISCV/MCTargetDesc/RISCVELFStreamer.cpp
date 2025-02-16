@@ -227,7 +227,7 @@ void RISCVELFStreamer::emitCheriCapability(const MCExpr *Value,
   MCDataFragment *DF = new MCDataFragment();
   insert(DF);
   MCFixup CapFixup =
-      MCFixup::create(0, Value, MCFixupKind(RISCV::fixup_riscv_capability));
+      MCFixup::create(0, Value, MCFixup::getDataKindForSize(CapSize, true));
   DF->addFixup(CapFixup);
   DF->appendContents(CapSize, '\xca');
 }

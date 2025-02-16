@@ -113,7 +113,7 @@ void MipsELFStreamer::emitCheriCapability(const MCExpr *Value, unsigned CapSize,
   MCDataFragment *DF = new MCDataFragment();
   insert(DF);
   MCFixup cheriFixup =
-      MCFixup::create(0, Value, MCFixupKind(Mips::fixup_CHERI_CAPABILITY));
+      MCFixup::create(0, Value, MCFixup::getDataKindForSize(CapSize, true));
   DF->addFixup(cheriFixup);
   DF->appendContents(CapSize, '\xca');
 }

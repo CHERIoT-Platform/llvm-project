@@ -88,8 +88,6 @@ MCFixupKindInfo RISCVAsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
       // Andes fixups
       {"fixup_riscv_nds_branch_10", 0, 32, 0},
 
-      {"fixup_riscv_capability", 0, 0, 0},
-
       {"fixup_riscv_cheriot_compartment_hi", 0, 32, 0},
       {"fixup_riscv_cheriot_compartment_lo_i", 0, 32, 0},
       {"fixup_riscv_cheriot_compartment_lo_s", 0, 32, 0},
@@ -487,7 +485,8 @@ static uint64_t adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
   switch (Fixup.getKind()) {
   default:
     llvm_unreachable("Unknown fixup kind!");
-  case RISCV::fixup_riscv_capability:
+  case FK_Cap_8:
+  case FK_Cap_16:
     llvm_unreachable("Relocation should be unconditionally forced\n");
   case FK_Data_1:
   case FK_Data_2:
@@ -851,7 +850,8 @@ bool RISCVAsmBackend::addReloc(const MCFragment &F, const MCFixup &Fixup,
       TA = ELF::R_RISCV_SET_ULEB128;
       TB = ELF::R_RISCV_SUB_ULEB128;
       break;
-    case RISCV::fixup_riscv_capability:
+    case llvm::FK_Cap_8:
+    case llvm::FK_Cap_16:
       if (auto *RefB = Target.getSubSym()) {
         const auto &SymB = cast<MCSymbol>(*RefB);
         if (SymB.isUndefined()) {

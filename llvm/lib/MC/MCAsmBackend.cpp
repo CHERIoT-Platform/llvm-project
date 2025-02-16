@@ -98,6 +98,8 @@ MCFixupKindInfo MCAsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
       {"FK_SecRel_2", 0, 16, 0},
       {"FK_SecRel_4", 0, 32, 0},
       {"FK_SecRel_8", 0, 64, 0},
+      {"FK_Cap_8", 0, 64, 0},
+      {"FK_Cap_16", 0, 128, 0},
   };
   // clang-format on
 

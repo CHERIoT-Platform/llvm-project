@@ -64,9 +64,6 @@ enum Fixups {
   // 10-bit fixup for symbol references in the xandesperf branch instruction
   fixup_riscv_nds_branch_10,
 
-  // fixup_riscv_capability - CLen-bit fixup corresponding to .chericap
-  fixup_riscv_capability,
-
   // $cgp- or $pcc-relative global, used with auicgp / auipcc instructions
   fixup_riscv_cheriot_compartment_hi,
   // $cgp- or $pcc-relative global, used with RV32 I instructions

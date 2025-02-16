@@ -189,7 +189,7 @@ void MCObjectStreamer::emitValueImpl(const MCExpr *Value, unsigned Size,
     return;
   }
   DF->addFixup(MCFixup::create(DF->getContents().size(), Value,
-                               MCFixup::getDataKindForSize(Size)));
+                               MCFixup::getDataKindForSize(Size, false)));
   DF->appendContents(Size, 0);
 }
 

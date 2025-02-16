@@ -24,7 +24,7 @@ HexagonMCExpr *HexagonMCExpr::create(MCExpr const *Expr, MCContext &Ctx) {
 
 bool HexagonMCExpr::evaluateAsRelocatableImpl(MCValue &Res,
                                               const MCAssembler *Asm) const {
-  return Expr->evaluateAsRelocatable(Res, Asm);
+  return Expr->evaluateAsRelocatable(Res, Asm, /*FixupNeedsProvenance=*/false);
 }
 
 void HexagonMCExpr::visitUsedExpr(MCStreamer &Streamer) const {

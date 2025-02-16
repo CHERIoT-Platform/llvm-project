@@ -897,7 +897,7 @@ void AMDGPUAsmPrinter::emitDVgprSymbol(MachineFunction &MF) {
     unsigned BlockSize = MFI.getDynamicVGPRBlockSize();
     MCValue NumVGPRs;
     if (!CurrentProgramInfo.NumVGPRsForWavesPerEU->evaluateAsRelocatable(
-            NumVGPRs, nullptr) ||
+            NumVGPRs, nullptr, false) ||
         !NumVGPRs.isAbsolute()) {
       llvm_unreachable("unable to resolve NumVGPRs for _dvgpr$ symbol");
     }

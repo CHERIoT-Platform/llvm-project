@@ -123,7 +123,7 @@ bool MCAssembler::isThumbFunc(const MCSymbol *Symbol) const {
   const MCExpr *Expr = Symbol->getVariableValue();
 
   MCValue V;
-  if (!Expr->evaluateAsRelocatable(V, nullptr))
+  if (!Expr->evaluateAsRelocatable(V, nullptr, false))
     return false;
 
   if (V.getSubSym() || V.getSpecifier())
@@ -154,7 +154,8 @@ bool MCAssembler::evaluateFixup(const MCFragment &F, MCFixup &Fixup,
   // further processing from being done.
   const MCExpr *Expr = Fixup.getValue();
   Value = 0;
-  if (!Expr->evaluateAsRelocatable(Target, this)) {
+  if (!Expr->evaluateAsRelocatable(Target, this,
+                                   getBackend().fixupNeedsProvenance(&Fixup))) {
     reportError(Fixup.getLoc(), "expected relocatable expression");
     return true;
   }

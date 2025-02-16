@@ -556,7 +556,7 @@ MCFixupKindInfo MipsAsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
     { "fixup_CHERI_CAPTAB_TLSLDM_LO16",  0,     16,   0 },
     { "fixup_CHERI_CAPTAB_TPREL_HI16",   0,     16,   0 },
     { "fixup_CHERI_CAPTAB_TPREL_LO16",   0,     16,   0 },
-    // clang-format on
+      // clang-format on
   };
   static_assert(std::size(LittleEndianInfos) == Mips::NumTargetFixupKinds,
                 "Not all MIPS little endian fixup kinds added!");
@@ -663,7 +663,7 @@ MCFixupKindInfo MipsAsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
     { "fixup_CHERI_CAPTAB_TLSLDM_LO16", 16,     16,   0 },
     { "fixup_CHERI_CAPTAB_TPREL_HI16",  16,     16,   0 },
     { "fixup_CHERI_CAPTAB_TPREL_LO16",  16,     16,   0 },
-    // clang-format on
+      // clang-format on
   };
   static_assert(std::size(BigEndianInfos) == Mips::NumTargetFixupKinds,
                 "Not all MIPS big endian fixup kinds added!");

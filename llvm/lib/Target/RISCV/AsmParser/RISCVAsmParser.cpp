@@ -3263,14 +3263,14 @@ bool RISCVAsmParser::classifySymbolRef(const MCExpr *Expr,
   }
 
   MCValue Res;
-  if (Expr->evaluateAsRelocatable(Res, nullptr))
+  if (Expr->evaluateAsRelocatable(Res, nullptr, false))
     return Res.getSpecifier() == RISCV::S_None;
   return false;
 }
 
 bool RISCVAsmParser::isSymbolDiff(const MCExpr *Expr) {
   MCValue Res;
-  if (Expr->evaluateAsRelocatable(Res, nullptr)) {
+  if (Expr->evaluateAsRelocatable(Res, nullptr, false)) {
     return Res.getSpecifier() == RISCV::S_None && Res.getAddSym() &&
            Res.getSubSym();
   }

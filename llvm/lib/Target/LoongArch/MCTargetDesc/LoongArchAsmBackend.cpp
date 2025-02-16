@@ -391,7 +391,7 @@ bool LoongArchAsmBackend::isPCRelFixupResolved(const MCSymbol *SymA,
     PCRelTemp = getContext().createTempSymbol();
   PCRelTemp->setFragment(const_cast<MCFragment *>(&F));
   MCValue Res;
-  MCExpr::evaluateSymbolicAdd(Asm, false, MCValue::get(SymA),
+  MCExpr::evaluateSymbolicAdd(Asm, false, false, MCValue::get(SymA),
                               MCValue::get(nullptr, PCRelTemp), Res);
   return !Res.getSubSym();
 }

@@ -47,6 +47,10 @@ public:
 
   bool writeNopData(raw_ostream &OS, uint64_t Count,
                     const MCSubtargetInfo *STI) const override;
+
+  bool fixupNeedsProvenance(const MCFixup *Fixup) const override {
+    return Fixup->getKind() == Mips::fixup_CHERI_CAPABILITY;
+  }
 }; // class MipsAsmBackend
 
 } // namespace

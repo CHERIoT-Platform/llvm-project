@@ -751,10 +751,6 @@ getExprOpValue(const MCExpr *Expr, SmallVectorImpl<MCFixup> &Fixups,
     case Mips::S_CAPTAB_TPREL_LO16:
       FixupKind = Mips::fixup_CHERI_CAPTAB_TPREL_LO16;
       break;
-
-    case Mips::S_CHERI_CAP:
-      FixupKind = Mips::fixup_CHERI_CAPABILITY;
-      break;
     }
     addFixup(Fixups, 0, MipsExpr, MCFixupKind(FixupKind));
     return 0;

@@ -71,7 +71,8 @@ protected:
   }
 
   LLVM_ABI bool evaluateAsRelocatableImpl(MCValue &Res, const MCAssembler *Asm,
-                                          bool InSet) const;
+                                          bool InSet,
+                                          bool FixupNeedsProvenance) const;
 
   unsigned getSubclassData() const { return SubclassData; }
 
@@ -115,8 +116,8 @@ public:
   /// \param Res - The relocatable value, if evaluation succeeds.
   /// \param Asm - The assembler object to use for evaluating values.
   /// \return - True on success.
-  LLVM_ABI bool evaluateAsRelocatable(MCValue &Res,
-                                      const MCAssembler *Asm) const;
+  LLVM_ABI bool evaluateAsRelocatable(MCValue &Res, const MCAssembler *Asm,
+                                      bool FixupNeedsProvenance) const;
 
   /// Try to evaluate the expression to the form (a - b + constant) where
   /// neither a nor b are variables.
@@ -133,7 +134,7 @@ public:
 
   /// @}
 
-  LLVM_ABI static bool evaluateSymbolicAdd(const MCAssembler *, bool,
+  LLVM_ABI static bool evaluateSymbolicAdd(const MCAssembler *, bool, bool,
                                            const MCValue &, const MCValue &,
                                            MCValue &);
 };

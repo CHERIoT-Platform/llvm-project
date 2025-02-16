@@ -8496,7 +8496,7 @@ bool AArch64AsmParser::classifySymbolRef(const MCExpr *Expr,
 
   // Check that it looks like a symbol + an addend
   MCValue Res;
-  bool Relocatable = Expr->evaluateAsRelocatable(Res, nullptr);
+  bool Relocatable = Expr->evaluateAsRelocatable(Res, nullptr, false);
   if (!Relocatable || Res.getSubSym())
     return false;
 

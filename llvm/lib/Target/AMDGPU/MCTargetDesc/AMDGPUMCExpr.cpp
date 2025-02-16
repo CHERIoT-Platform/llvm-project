@@ -105,7 +105,7 @@ bool AMDGPUMCExpr::evaluateExtraSGPRs(MCValue &Res,
                                       const MCAssembler *Asm) const {
   auto TryGetMCExprValue = [&](const MCExpr *Arg, uint64_t &ConstantValue) {
     MCValue MCVal;
-    if (!Arg->evaluateAsRelocatable(MCVal, Asm) || !MCVal.isAbsolute())
+    if (!Arg->evaluateAsRelocatable(MCVal, Asm, false) || !MCVal.isAbsolute())
       return false;
 
     ConstantValue = MCVal.getConstant();
@@ -134,7 +134,7 @@ bool AMDGPUMCExpr::evaluateTotalNumVGPR(MCValue &Res,
                                         const MCAssembler *Asm) const {
   auto TryGetMCExprValue = [&](const MCExpr *Arg, uint64_t &ConstantValue) {
     MCValue MCVal;
-    if (!Arg->evaluateAsRelocatable(MCVal, Asm) || !MCVal.isAbsolute())
+    if (!Arg->evaluateAsRelocatable(MCVal, Asm, false) || !MCVal.isAbsolute())
       return false;
 
     ConstantValue = MCVal.getConstant();
@@ -160,7 +160,7 @@ bool AMDGPUMCExpr::evaluateTotalNumVGPR(MCValue &Res,
 bool AMDGPUMCExpr::evaluateAlignTo(MCValue &Res, const MCAssembler *Asm) const {
   auto TryGetMCExprValue = [&](const MCExpr *Arg, uint64_t &ConstantValue) {
     MCValue MCVal;
-    if (!Arg->evaluateAsRelocatable(MCVal, Asm) || !MCVal.isAbsolute())
+    if (!Arg->evaluateAsRelocatable(MCVal, Asm, false) || !MCVal.isAbsolute())
       return false;
 
     ConstantValue = MCVal.getConstant();
@@ -181,7 +181,7 @@ bool AMDGPUMCExpr::evaluateOccupancy(MCValue &Res,
                                      const MCAssembler *Asm) const {
   auto TryGetMCExprValue = [&](const MCExpr *Arg, uint64_t &ConstantValue) {
     MCValue MCVal;
-    if (!Arg->evaluateAsRelocatable(MCVal, Asm) || !MCVal.isAbsolute())
+    if (!Arg->evaluateAsRelocatable(MCVal, Asm, false) || !MCVal.isAbsolute())
       return false;
 
     ConstantValue = MCVal.getConstant();
@@ -267,12 +267,12 @@ bool AMDGPUMCExpr::evaluateAsRelocatableImpl(MCValue &Res,
     return evaluateOccupancy(Res, Asm);
   case AGVK_Lit:
   case AGVK_Lit64:
-    return Args[0]->evaluateAsRelocatable(Res, Asm);
+    return Args[0]->evaluateAsRelocatable(Res, Asm, false);
   }
 
   for (const MCExpr *Arg : Args) {
     MCValue ArgRes;
-    if (!Arg->evaluateAsRelocatable(ArgRes, Asm) || !ArgRes.isAbsolute())
+    if (!Arg->evaluateAsRelocatable(ArgRes, Asm, false) || !ArgRes.isAbsolute())
       return false;
 
     if (!Total.has_value())

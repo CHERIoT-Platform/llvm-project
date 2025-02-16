@@ -138,7 +138,7 @@ static std::optional<int64_t> evaluateAsInt64(uint16_t specifier,
 bool PPC::evaluateAsConstant(const MCSpecifierExpr &Expr, int64_t &Res) {
   MCValue Value;
 
-  if (!Expr.getSubExpr()->evaluateAsRelocatable(Value, nullptr))
+  if (!Expr.getSubExpr()->evaluateAsRelocatable(Value, nullptr, false))
     return false;
 
   if (!Value.isAbsolute())
@@ -152,7 +152,7 @@ bool PPC::evaluateAsConstant(const MCSpecifierExpr &Expr, int64_t &Res) {
 
 static bool evaluateAsRelocatable(const MCSpecifierExpr &Expr, MCValue &Res,
                                   const MCAssembler *Asm) {
-  if (!Expr.getSubExpr()->evaluateAsRelocatable(Res, Asm))
+  if (!Expr.getSubExpr()->evaluateAsRelocatable(Res, Asm, false))
     return false;
 
   // The signedness of the result is dependent on the instruction operand. E.g.

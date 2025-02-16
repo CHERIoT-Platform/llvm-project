@@ -40,6 +40,9 @@ enum {
   FK_SecRel_2,    ///< A two-byte section relative fixup.
   FK_SecRel_4,    ///< A four-byte section relative fixup.
   FK_SecRel_8,    ///< A eight-byte section relative fixup.
+  FK_Cap_8,       ///< A eight-byte capability fixup.
+  FK_Cap_16,      ///< A sixteen-byte capability fixup.
+  FK_Cap_32,      ///< A thirty-two-byte capability fixup.
 
   FirstTargetFixupKind,
 };
@@ -107,17 +110,26 @@ public:
 
   /// Return the generic fixup kind for a value with the given size. It
   /// is an error to pass an unsupported size.
-  static MCFixupKind getDataKindForSize(unsigned Size) {
+  static MCFixupKind getDataKindForSize(unsigned Size, bool IsCap) {
     switch (Size) {
     default: llvm_unreachable("Invalid generic fixup size!");
     case 1:
+      assert(!IsCap && "Invalid cap fixup size!");
       return FK_Data_1;
     case 2:
+      assert(!IsCap && "Invalid cap fixup size!");
       return FK_Data_2;
     case 4:
+      assert(!IsCap && "Invalid cap fixup size!");
       return FK_Data_4;
     case 8:
-      return FK_Data_8;
+      return IsCap ? FK_Cap_8 : FK_Data_8;
+    case 16:
+      assert(IsCap && "Invalid integer fixup size!");
+      return FK_Cap_16;
+    case 32:
+      assert(IsCap && "Invalid integer fixup size!");
+      return FK_Cap_32;
     }
   }
 

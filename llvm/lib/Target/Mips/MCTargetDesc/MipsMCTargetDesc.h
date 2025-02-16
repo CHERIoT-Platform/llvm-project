@@ -52,7 +52,7 @@ MCStreamer *createMipsWinCOFFStreamer(MCContext &C,
 
 /// Construct a Mips ELF object writer.
 std::unique_ptr<MCObjectTargetWriter>
-createMipsELFObjectWriter(const Triple &TT, bool IsN32);
+createMipsELFObjectWriter(const Triple &TT, bool IsN32, unsigned CapSize);
 /// Construct a Mips Win COFF object writer.
 std::unique_ptr<MCObjectTargetWriter> createMipsWinCOFFObjectWriter();
 

@@ -85,6 +85,10 @@ public:
   /// lifetime management
   virtual void reset() {}
 
+  virtual bool fixupNeedsProvenance(const MCFixup *Fixup) const {
+    return false;
+  }
+
   /// Create a new MCObjectWriter instance for use by the assembler backend to
   /// emit the final object file.
   std::unique_ptr<MCObjectWriter>

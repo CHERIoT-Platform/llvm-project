@@ -532,7 +532,7 @@ void X86MachObjectWriter::RecordX86Relocation(MachObjectWriter *Writer,
     if (A->isVariable()) {
       MCValue Val;
       bool Relocatable =
-          A->getVariableValue()->evaluateAsRelocatable(Val, &Asm);
+          A->getVariableValue()->evaluateAsRelocatable(Val, &Asm, false);
       int64_t Res = Val.getConstant();
       bool isAbs = Val.isAbsolute();
       if (Relocatable && Val.getAddSym() && Val.getSubSym()) {

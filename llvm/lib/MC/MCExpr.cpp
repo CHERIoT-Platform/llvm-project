@@ -262,7 +262,8 @@ bool MCExpr::evaluateAsAbsolute(int64_t &Res, const MCAssembler *Asm,
     return true;
   }
 
-  bool IsRelocatable = evaluateAsRelocatableImpl(Value, Asm, InSet);
+  bool IsRelocatable = evaluateAsRelocatableImpl(
+      Value, Asm, InSet, /*FixupNeedsProvenance=*/false);
   Res = Value.getConstant();
   // Value with RefKind (e.g. %hi(0xdeadbeef) in MIPS) is not considered
   // absolute (the value is unknown at parse time), even if it might be resolved
@@ -274,7 +275,8 @@ bool MCExpr::evaluateAsAbsolute(int64_t &Res, const MCAssembler *Asm,
 static void attemptToFoldSymbolOffsetDifference(const MCAssembler *Asm,
                                                 bool InSet, const MCSymbol *&A,
                                                 const MCSymbol *&B,
-                                                int64_t &Addend) {
+                                                int64_t &Addend,
+                                                bool FixupNeedsProvenance) {
   if (!A || !B)
     return;
 
@@ -309,7 +311,7 @@ static void attemptToFoldSymbolOffsetDifference(const MCAssembler *Asm,
   // linker-relaxable instruction and InSet is false (not expressions in
   // directive like .size/.fill), disable the fast path.
   bool Layout = Asm->hasLayout();
-  if (Layout && (InSet || !SecA.isLinkerRelaxable())) {
+  if (Layout && (InSet || !SecA.isLinkerRelaxable() || FixupNeedsProvenance)) {
     // If both symbols are in the same fragment, return the difference of their
     // offsets. canGetFragmentOffset(FA) may be false.
     if (FA == FB && !SA.isVariable() && !SB.isVariable()) {
@@ -415,8 +417,8 @@ static void attemptToFoldSymbolOffsetDifference(const MCAssembler *Asm,
 // streamer for example) and having the Asm argument lets us avoid relaxations
 // early.
 bool MCExpr::evaluateSymbolicAdd(const MCAssembler *Asm, bool InSet,
-                                 const MCValue &LHS, const MCValue &RHS,
-                                 MCValue &Res) {
+                                 bool FixupNeedsProvenance, const MCValue &LHS,
+                                 const MCValue &RHS, MCValue &Res) {
   const MCSymbol *LHS_A = LHS.getAddSym();
   const MCSymbol *LHS_B = LHS.getSubSym();
   int64_t LHS_Cst = LHS.getConstant();
@@ -430,15 +432,31 @@ bool MCExpr::evaluateSymbolicAdd(const MCAssembler *Asm, bool InSet,
 
   // If we have a layout, we can fold resolved differences.
   if (Asm && !LHS.getSpecifier() && !RHS.getSpecifier()) {
+    // If we have exactly one symbol on one side then that side represents a
+    // pointer, otherwise it represents an integer (a constant and a possible
+    // symbol difference). Similarly, if exactly one side represents a pointer
+    // then the whole addition represents a pointer, otherwise it represents an
+    // integer.
+    bool LHS_Provenance = (LHS_A == nullptr) != (LHS_B == nullptr);
+    bool RHS_Provenance = (RHS_A == nullptr) != (RHS_B == nullptr);
+    bool FoldCrossTerms =
+        !FixupNeedsProvenance || LHS_Provenance == RHS_Provenance;
+
     // While LHS_A-LHS_B and RHS_A-RHS_B from recursive calls have already been
     // folded, reassociating terms in
     //   Result = (LHS_A - LHS_B + LHS_Cst) + (RHS_A - RHS_B + RHS_Cst).
     // might bring more opportunities.
-    if (LHS_A && RHS_B) {
-      attemptToFoldSymbolOffsetDifference(Asm, InSet, LHS_A, RHS_B, Result_Cst);
+    attemptToFoldSymbolOffsetDifference(Asm, InSet, LHS_A, LHS_B, Result_Cst,
+                                        FixupNeedsProvenance);
+    if (FoldCrossTerms && LHS_A && RHS_B) {
+      attemptToFoldSymbolOffsetDifference(Asm, InSet, LHS_A, RHS_B, Result_Cst,
+                                          FixupNeedsProvenance);
     }
-    if (RHS_A && LHS_B) {
-      attemptToFoldSymbolOffsetDifference(Asm, InSet, RHS_A, LHS_B, Result_Cst);
+    attemptToFoldSymbolOffsetDifference(Asm, InSet, RHS_A, LHS_B, Result_Cst,
+                                        FixupNeedsProvenance);
+    if (FoldCrossTerms && RHS_A && LHS_B) {
+      attemptToFoldSymbolOffsetDifference(Asm, InSet, RHS_A, RHS_B, Result_Cst,
+                                          FixupNeedsProvenance);
     }
   }
 
@@ -457,15 +475,17 @@ bool MCExpr::evaluateSymbolicAdd(const MCAssembler *Asm, bool InSet,
   return true;
 }
 
-bool MCExpr::evaluateAsRelocatable(MCValue &Res, const MCAssembler *Asm) const {
-  return evaluateAsRelocatableImpl(Res, Asm, false);
+bool MCExpr::evaluateAsRelocatable(MCValue &Res, const MCAssembler *Asm,
+                                   bool FixupNeedsProvenance) const {
+  return evaluateAsRelocatableImpl(Res, Asm, false, FixupNeedsProvenance);
 }
 bool MCExpr::evaluateAsValue(MCValue &Res, const MCAssembler &Asm) const {
-  return evaluateAsRelocatableImpl(Res, &Asm, true);
+  return evaluateAsRelocatableImpl(Res, &Asm, true, false);
 }
 
 bool MCExpr::evaluateAsRelocatableImpl(MCValue &Res, const MCAssembler *Asm,
-                                       bool InSet) const {
+                                       bool InSet,
+                                       bool FixupNeedsProvenance) const {
   ++stats::MCExprEvaluate;
   switch (getKind()) {
   case Target:
@@ -498,8 +518,8 @@ bool MCExpr::evaluateAsRelocatableImpl(MCValue &Res, const MCAssembler *Asm,
       auto _ = make_scope_exit([&] { Sym.setIsResolving(false); });
       bool IsMachO =
           Asm && Asm->getContext().getAsmInfo()->hasSubsectionsViaSymbols();
-      if (!Sym.getVariableValue()->evaluateAsRelocatableImpl(Res, Asm,
-                                                             InSet || IsMachO))
+      if (!Sym.getVariableValue()->evaluateAsRelocatableImpl(
+              Res, Asm, InSet || IsMachO, FixupNeedsProvenance))
         return false;
       // When generating relocations, if Sym resolves to a symbol relative to a
       // section, relocations are generated against Sym. Treat label differences
@@ -546,7 +566,8 @@ bool MCExpr::evaluateAsRelocatableImpl(MCValue &Res, const MCAssembler *Asm,
     const MCUnaryExpr *AUE = cast<MCUnaryExpr>(this);
     MCValue Value;
 
-    if (!AUE->getSubExpr()->evaluateAsRelocatableImpl(Value, Asm, InSet))
+    if (!AUE->getSubExpr()->evaluateAsRelocatableImpl(Value, Asm, InSet,
+                                                      FixupNeedsProvenance))
       return false;
     switch (AUE->getOpcode()) {
     case MCUnaryExpr::LNot:
@@ -580,8 +601,10 @@ bool MCExpr::evaluateAsRelocatableImpl(MCValue &Res, const MCAssembler *Asm,
     const MCBinaryExpr *ABE = cast<MCBinaryExpr>(this);
     MCValue LHSValue, RHSValue;
 
-    if (!ABE->getLHS()->evaluateAsRelocatableImpl(LHSValue, Asm, InSet) ||
-        !ABE->getRHS()->evaluateAsRelocatableImpl(RHSValue, Asm, InSet)) {
+    if (!ABE->getLHS()->evaluateAsRelocatableImpl(LHSValue, Asm, InSet,
+                                                  FixupNeedsProvenance) ||
+        !ABE->getRHS()->evaluateAsRelocatableImpl(RHSValue, Asm, InSet,
+                                                  FixupNeedsProvenance)) {
       // Check if both are Target Expressions, see if we can compare them.
       if (const MCTargetExpr *L = dyn_cast<MCTargetExpr>(ABE->getLHS())) {
         if (const MCTargetExpr *R = dyn_cast<MCTargetExpr>(ABE->getRHS())) {
@@ -628,7 +651,8 @@ bool MCExpr::evaluateAsRelocatableImpl(MCValue &Res, const MCAssembler *Asm,
           return false;
         if (RHSValue.SymB && RHSValue.Specifier)
           return false;
-        return evaluateSymbolicAdd(Asm, InSet, LHSValue, RHSValue, Res);
+        return evaluateSymbolicAdd(Asm, InSet, FixupNeedsProvenance, LHSValue,
+                                   RHSValue, Res);
       }
     }
 

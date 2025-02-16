@@ -105,7 +105,7 @@ void VEELFMCAsmInfo::printSpecifierExpr(raw_ostream &OS,
 bool VEELFMCAsmInfo::evaluateAsRelocatableImpl(const MCSpecifierExpr &Expr,
                                                MCValue &Res,
                                                const MCAssembler *Asm) const {
-  if (!Expr.getSubExpr()->evaluateAsRelocatable(Res, Asm))
+  if (!Expr.getSubExpr()->evaluateAsRelocatable(Res, Asm, false))
     return false;
   Res.setSpecifier(Expr.getSpecifier());
   return true;

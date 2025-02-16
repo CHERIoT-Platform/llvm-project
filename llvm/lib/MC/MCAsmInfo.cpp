@@ -160,7 +160,7 @@ void MCAsmInfo::printExpr(raw_ostream &OS, const MCExpr &Expr) const {
 bool MCAsmInfo::evaluateAsRelocatableImpl(const MCSpecifierExpr &E,
                                           MCValue &Res,
                                           const MCAssembler *Asm) const {
-  if (!E.getSubExpr()->evaluateAsRelocatable(Res, Asm))
+  if (!E.getSubExpr()->evaluateAsRelocatable(Res, Asm, false))
     return false;
 
   Res.setSpecifier(E.getSpecifier());

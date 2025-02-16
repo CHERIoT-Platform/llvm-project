@@ -121,7 +121,7 @@ StringRef AArch64::getSpecifierName(const MCSpecifierExpr &Expr) {
 
 static bool evaluate(const MCSpecifierExpr &Expr, MCValue &Res,
                      const MCAssembler *Asm) {
-  if (!Expr.getSubExpr()->evaluateAsRelocatable(Res, Asm))
+  if (!Expr.getSubExpr()->evaluateAsRelocatable(Res, Asm, false))
     return false;
   Res.setSpecifier(Expr.getSpecifier());
   return true;

@@ -82,7 +82,6 @@ enum {
   S_CAPCALL_LO16,
   S_CAPCALL20,
 
-  S_CHERI_CAP,
   // Like GPREL but the offset from _CHERI_CAPABILITY_TABLE_ to symbol
   S_CAPTABLEREL,
 

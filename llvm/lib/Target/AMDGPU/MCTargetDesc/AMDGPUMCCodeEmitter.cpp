@@ -709,7 +709,7 @@ void AMDGPUMCCodeEmitter::getMachineOpValueCommon(
     uint32_t Offset = Desc.getSize();
     assert(Offset == 4 || Offset == 8);
     unsigned Size = AMDGPU::getOperandSize(Desc, OpNo);
-    MCFixupKind Kind = MCFixup::getDataKindForSize(Size);
+    MCFixupKind Kind = MCFixup::getDataKindForSize(Size, false);
     addFixup(Fixups, Offset, MO.getExpr(), Kind, PCRel);
   }
 

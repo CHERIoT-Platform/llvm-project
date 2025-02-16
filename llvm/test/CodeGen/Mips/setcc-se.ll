@@ -61,11 +61,11 @@ define void @slti_beq0(i32 %a) {
 ; MMR6:       # %bb.0: # %entry
 ; MMR6-NEXT:    lui $2, %hi(_gp_disp) # <MCInst #[[#MCINST4:]] LUi
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4024,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
 ; MMR6-NEXT:    addiu $2, $2, %lo(_gp_disp) # <MCInst #[[#MCINST5:]] ADDiu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4030,_gp_disp)>>
 ; MMR6-NEXT:    addu $2, $2, $25 # <MCInst #[[#MCINST6:]] ADDu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
@@ -81,7 +81,7 @@ define void @slti_beq0(i32 %a) {
 ; MMR6-NEXT:    lw $2, %got(g1)($2) # <MCInst #[[#MCINST9:]] LW_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4015,g1)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4018,g1)>>
 ; MMR6-NEXT:    sw16 $4, 0($2) # <MCInst #[[#MCINST10:]] SW16_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG2]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
@@ -120,11 +120,11 @@ define void @slti_beq1(i32 %a) {
 ; MMR6:       # %bb.0: # %entry
 ; MMR6-NEXT:    lui $2, %hi(_gp_disp) # <MCInst #[[#MCINST4]] LUi
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4024,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
 ; MMR6-NEXT:    addiu $2, $2, %lo(_gp_disp) # <MCInst #[[#MCINST5]] ADDiu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4030,_gp_disp)>>
 ; MMR6-NEXT:    addu $2, $2, $25 # <MCInst #[[#MCINST6]] ADDu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
@@ -147,7 +147,7 @@ define void @slti_beq1(i32 %a) {
 ; MMR6-NEXT:    lw $2, %got(g1)($2) # <MCInst #[[#MCINST9]] LW_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4015,g1)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4018,g1)>>
 ; MMR6-NEXT:    sw16 $4, 0($2) # <MCInst #[[#MCINST10]] SW16_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG2]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
@@ -184,11 +184,11 @@ define void @slti_beq2(i32 %a) {
 ; MMR6:       # %bb.0: # %entry
 ; MMR6-NEXT:    lui $2, %hi(_gp_disp) # <MCInst #[[#MCINST4]] LUi
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4024,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
 ; MMR6-NEXT:    addiu $2, $2, %lo(_gp_disp) # <MCInst #[[#MCINST5]] ADDiu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4030,_gp_disp)>>
 ; MMR6-NEXT:    addu $2, $2, $25 # <MCInst #[[#MCINST6]] ADDu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
@@ -204,7 +204,7 @@ define void @slti_beq2(i32 %a) {
 ; MMR6-NEXT:    lw $2, %got(g1)($2) # <MCInst #[[#MCINST9]] LW_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4015,g1)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4018,g1)>>
 ; MMR6-NEXT:    sw16 $4, 0($2) # <MCInst #[[#MCINST10]] SW16_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG2]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
@@ -242,11 +242,11 @@ define void @slti_beq3(i32 %a) {
 ; MMR6:       # %bb.0: # %entry
 ; MMR6-NEXT:    lui $2, %hi(_gp_disp) # <MCInst #[[#MCINST4]] LUi
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4024,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
 ; MMR6-NEXT:    addiu $2, $2, %lo(_gp_disp) # <MCInst #[[#MCINST5]] ADDiu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4030,_gp_disp)>>
 ; MMR6-NEXT:    addu $2, $2, $25 # <MCInst #[[#MCINST6]] ADDu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
@@ -266,7 +266,7 @@ define void @slti_beq3(i32 %a) {
 ; MMR6-NEXT:    lw $2, %got(g1)($2) # <MCInst #[[#MCINST9]] LW_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4015,g1)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4018,g1)>>
 ; MMR6-NEXT:    sw16 $4, 0($2) # <MCInst #[[#MCINST10]] SW16_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG2]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
@@ -303,11 +303,11 @@ define void @sltiu_beq0(i32 %a) {
 ; MMR6:       # %bb.0: # %entry
 ; MMR6-NEXT:    lui $2, %hi(_gp_disp) # <MCInst #[[#MCINST4]] LUi
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4024,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
 ; MMR6-NEXT:    addiu $2, $2, %lo(_gp_disp) # <MCInst #[[#MCINST5]] ADDiu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4030,_gp_disp)>>
 ; MMR6-NEXT:    addu $2, $2, $25 # <MCInst #[[#MCINST6]] ADDu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
@@ -323,7 +323,7 @@ define void @sltiu_beq0(i32 %a) {
 ; MMR6-NEXT:    lw $2, %got(g1)($2) # <MCInst #[[#MCINST9]] LW_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4015,g1)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4018,g1)>>
 ; MMR6-NEXT:    sw16 $4, 0($2) # <MCInst #[[#MCINST10]] SW16_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG2]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
@@ -361,11 +361,11 @@ define void @sltiu_beq1(i32 %a) {
 ; MMR6:       # %bb.0: # %entry
 ; MMR6-NEXT:    lui $2, %hi(_gp_disp) # <MCInst #[[#MCINST4]] LUi
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4024,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
 ; MMR6-NEXT:    addiu $2, $2, %lo(_gp_disp) # <MCInst #[[#MCINST5]] ADDiu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4030,_gp_disp)>>
 ; MMR6-NEXT:    addu $2, $2, $25 # <MCInst #[[#MCINST6]] ADDu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
@@ -385,7 +385,7 @@ define void @sltiu_beq1(i32 %a) {
 ; MMR6-NEXT:    lw $2, %got(g1)($2) # <MCInst #[[#MCINST9]] LW_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4015,g1)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4018,g1)>>
 ; MMR6-NEXT:    sw16 $4, 0($2) # <MCInst #[[#MCINST10]] SW16_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG2]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
@@ -422,11 +422,11 @@ define void @sltiu_beq2(i32 %a) {
 ; MMR6:       # %bb.0: # %entry
 ; MMR6-NEXT:    lui $2, %hi(_gp_disp) # <MCInst #[[#MCINST4]] LUi
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4024,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
 ; MMR6-NEXT:    addiu $2, $2, %lo(_gp_disp) # <MCInst #[[#MCINST5]] ADDiu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4030,_gp_disp)>>
 ; MMR6-NEXT:    addu $2, $2, $25 # <MCInst #[[#MCINST6]] ADDu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
@@ -442,7 +442,7 @@ define void @sltiu_beq2(i32 %a) {
 ; MMR6-NEXT:    lw $2, %got(g1)($2) # <MCInst #[[#MCINST9]] LW_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4015,g1)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4018,g1)>>
 ; MMR6-NEXT:    sw16 $4, 0($2) # <MCInst #[[#MCINST10]] SW16_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG2]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
@@ -481,11 +481,11 @@ define void @sltiu_beq3(i32 %a) {
 ; MMR6:       # %bb.0: # %entry
 ; MMR6-NEXT:    lui $2, %hi(_gp_disp) # <MCInst #[[#MCINST4]] LUi
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4024,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
 ; MMR6-NEXT:    addiu $2, $2, %lo(_gp_disp) # <MCInst #[[#MCINST5]] ADDiu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4027,_gp_disp)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4030,_gp_disp)>>
 ; MMR6-NEXT:    addu $2, $2, $25 # <MCInst #[[#MCINST6]] ADDu
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
@@ -508,7 +508,7 @@ define void @sltiu_beq3(i32 %a) {
 ; MMR6-NEXT:    lw $2, %got(g1)($2) # <MCInst #[[#MCINST9]] LW_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>
-; MMR6-NEXT:    # <MCOperand Expr:specifier(4015,g1)>>
+; MMR6-NEXT:    # <MCOperand Expr:specifier(4018,g1)>>
 ; MMR6-NEXT:    sw16 $4, 0($2) # <MCInst #[[#MCINST10]] SW16_MM
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG2]]>
 ; MMR6-NEXT:    # <MCOperand Reg:[[#MCREG1]]>

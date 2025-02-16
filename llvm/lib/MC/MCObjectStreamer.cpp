@@ -222,7 +222,7 @@ void MCObjectStreamer::emitValueImpl(const MCExpr *Value, unsigned Size,
     return;
   }
   ensureHeadroom(Size);
-  addFixup(Value, MCFixup::getDataKindForSize(Size));
+  addFixup(Value, MCFixup::getDataKindForSize(Size, false));
   appendContents(Size, 0);
 }
 

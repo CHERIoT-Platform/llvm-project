@@ -307,7 +307,7 @@ bool LoongArchAsmBackend::relaxDwarfLineAddr(MCFragment &F) const {
 
   F.setVarContents(Data);
   F.setVarFixups({MCFixup::create(Offset, &AddrDelta,
-                                  MCFixup::getDataKindForSize(PCBytes))});
+                                  MCFixup::getDataKindForSize(PCBytes, false))});
   return true;
 }
 

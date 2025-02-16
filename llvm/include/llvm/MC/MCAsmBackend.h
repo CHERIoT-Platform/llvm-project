@@ -83,7 +83,15 @@ public:
   /// lifetime management
   virtual void reset() {}
 
-  virtual bool fixupNeedsProvenance(const MCFixup *Fixup) const {
+  bool fixupNeedsProvenance(const MCFixup *Fixup) const {
+    switch (Fixup->getKind()) {
+    case FK_Cap_8:
+    case FK_Cap_16:
+    case FK_Cap_32:
+      return true;
+    default:
+      return false;
+    }
     return false;
   }
 

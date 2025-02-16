@@ -43,8 +43,11 @@ struct MipsRelocationEntry {
 };
 
 class MipsELFObjectWriter : public MCELFObjectTargetWriter {
+  unsigned CapSize;
+
 public:
-  MipsELFObjectWriter(uint8_t OSABI, bool HasRelocationAddend, bool Is64);
+  MipsELFObjectWriter(uint8_t OSABI, bool HasRelocationAddend, bool Is64,
+                      unsigned CapSize);
 
   ~MipsELFObjectWriter() override = default;
 
@@ -148,8 +151,10 @@ static bool isMatchingReloc(unsigned MatchingType, const ELFRelocationEntry &R,
 }
 
 MipsELFObjectWriter::MipsELFObjectWriter(uint8_t OSABI,
-                                         bool HasRelocationAddend, bool Is64)
-    : MCELFObjectTargetWriter(Is64, OSABI, ELF::EM_MIPS, HasRelocationAddend) {}
+                                         bool HasRelocationAddend, bool Is64,
+                                         unsigned CapSize)
+    : MCELFObjectTargetWriter(Is64, OSABI, ELF::EM_MIPS, HasRelocationAddend),
+      CapSize(CapSize) {}
 
 unsigned MipsELFObjectWriter::getRelocType(const MCFixup &Fixup,
                                            const MCValue &Target,
@@ -374,7 +379,30 @@ unsigned MipsELFObjectWriter::getRelocType(const MCFixup &Fixup,
   case Mips::fixup_CHERI_CAPCALL_HI16:
     return ELF::R_MIPS_CHERI_CAPCALL_HI16;
 
-  case Mips::fixup_CHERI_CAPABILITY: {
+  case FK_Cap_8:
+    if (CapSize != 8) {
+      getContext().reportError(
+          Fixup.getLoc(),
+          "8-byte capability relocations not supported without CHERI64");
+      return ELF::R_MIPS_NONE;
+    }
+    goto fixup_cap;
+  case FK_Cap_16:
+    if (CapSize != 16) {
+      getContext().reportError(
+          Fixup.getLoc(),
+          "16-byte capability relocations not supported without CHERI128");
+      return ELF::R_MIPS_NONE;
+    }
+    goto fixup_cap;
+  case FK_Cap_32:
+    if (CapSize != 32) {
+      getContext().reportError(
+          Fixup.getLoc(),
+          "32-byte capability relocations not supported without CHERI256");
+      return ELF::R_MIPS_NONE;
+    }
+  fixup_cap: {
     const auto ElfSym = static_cast<const MCSymbolELF*>(Target.getAddSym());
     // Assert that we don't create .chericap relocations against temporary
     // symbols since those will result in wrong relocations (against sec+offset)
@@ -685,10 +713,11 @@ bool MipsELFObjectWriter::needsRelocateWithSymbol(const MCValue &V,
 }
 
 std::unique_ptr<MCObjectTargetWriter>
-llvm::createMipsELFObjectWriter(const Triple &TT, bool IsN32) {
+llvm::createMipsELFObjectWriter(const Triple &TT, bool IsN32,
+                                unsigned CapSize) {
   uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(TT.getOS());
   bool IsN64 = TT.isArch64Bit() && !IsN32;
   bool HasRelocationAddend = TT.isArch64Bit();
   return std::make_unique<MipsELFObjectWriter>(OSABI, HasRelocationAddend,
-                                                IsN64);
+                                               IsN64, CapSize);
 }

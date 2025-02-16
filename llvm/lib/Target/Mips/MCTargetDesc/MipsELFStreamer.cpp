@@ -108,7 +108,7 @@ void MipsELFStreamer::emitCheriCapability(const MCExpr *Value, unsigned CapSize,
 
   // Pad to ensure that the capability is aligned
   emitValueToAlignment(Align(CapSize), 0, 1, 0);
-  addFixup(Value, MCFixupKind(Mips::fixup_CHERI_CAPABILITY));
+  addFixup(Value, MCFixup::getDataKindForSize(CapSize, true));
   appendContents(CapSize, '\xca');
 }
 

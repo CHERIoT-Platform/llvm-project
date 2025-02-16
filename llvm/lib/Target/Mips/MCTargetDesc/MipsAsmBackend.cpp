@@ -21,6 +21,7 @@
 #include "llvm/MC/MCAssembler.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCELFObjectWriter.h"
+#include "llvm/MC/MCFixup.h"
 #include "llvm/MC/MCObjectWriter.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/MCTargetOptions.h"
@@ -40,9 +41,6 @@ static unsigned adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
   // Add/subtract and shift
   switch (Kind) {
   default:
-    return 0;
-  case Mips::fixup_CHERI_CAPABILITY:
-    // This should never change anything, it is just a marker for the linker
     return 0;
   case FK_Data_2:
   case Mips::fixup_Mips_LO16:
@@ -253,7 +251,7 @@ static unsigned adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
 
 std::unique_ptr<MCObjectTargetWriter>
 MipsAsmBackend::createObjectTargetWriter() const {
-  return createMipsELFObjectWriter(TheTriple, IsN32);
+  return createMipsELFObjectWriter(TheTriple, IsN32, CapSize);
 }
 
 // Little-endian fixup data byte ordering:
@@ -352,8 +350,10 @@ void MipsAsmBackend::applyFixup(const MCFragment &F, const MCFixup &Fixup,
   case Mips::fixup_Mips_64:
     FullSize = 8;
     break;
-  case Mips::fixup_CHERI_CAPABILITY:
-    llvm_unreachable("fixup_CHERI_CAPABILITY shouldn't happen here!");
+  case FK_Cap_8:
+  case FK_Cap_16:
+  case FK_Cap_32:
+    llvm_unreachable("capability fixups shouldn't happen here!");
     break;
   case FK_Data_4:
   default:
@@ -396,6 +396,10 @@ std::optional<MCFixupKind> MipsAsmBackend::getFixupKind(StringRef Name) const {
   if (Type != -1u)
     return static_cast<MCFixupKind>(FirstLiteralRelocationKind + Type);
 
+  std::optional<MCFixupKind> CapFixup;
+  if (CapSize != 0)
+    CapFixup = MCFixup::getDataKindForSize(CapSize, true);
+
   return StringSwitch<std::optional<MCFixupKind>>(Name)
       .Case("R_MIPS_NONE", FK_NONE)
       .Case("R_MIPS_32", FK_Data_4)
@@ -432,7 +436,7 @@ std::optional<MCFixupKind> MipsAsmBackend::getFixupKind(StringRef Name) const {
       .Case("R_MIPS_JALR", Mips::fixup_Mips_JALR)
       .Case("R_MICROMIPS_JALR", Mips::fixup_MICROMIPS_JALR)
 
-      .Case("R_MIPS_CHERI_CAPABILITY", Mips::fixup_CHERI_CAPABILITY)
+      .Case("R_MIPS_CHERI_CAPABILITY", CapFixup)
       .Case("R_MIPS_CHERI_CAPCALL11", Mips::fixup_CHERI_CAPCALL11)
       .Case("R_MIPS_CHERI_CAPCALL20", Mips::fixup_CHERI_CAPCALL20)
       .Case("R_MIPS_CHERI_CAPCALL_HI16", Mips::fixup_CHERI_CAPCALL_HI16)
@@ -442,13 +446,18 @@ std::optional<MCFixupKind> MipsAsmBackend::getFixupKind(StringRef Name) const {
       .Case("R_MIPS_CHERI_CAPTABLE_HI16", Mips::fixup_CHERI_CAPTABLE_HI16)
       .Case("R_MIPS_CHERI_CAPTABLE_LO16", Mips::fixup_CHERI_CAPTABLE_LO16)
       // CHERI TLS:
-      .Case("R_MIPS_CHERI_CAPTAB_TLSGD_HI16", Mips::fixup_CHERI_CAPTAB_TLSGD_HI16)
-      .Case("R_MIPS_CHERI_CAPTAB_TLSGD_LO16", Mips::fixup_CHERI_CAPTAB_TLSGD_LO16)
-      .Case("R_MIPS_CHERI_CAPTAB_TLSDM_HI16", Mips::fixup_CHERI_CAPTAB_TLSLDM_HI16)
-      .Case("R_MIPS_CHERI_CAPTAB_TLSDM_LO16", Mips::fixup_CHERI_CAPTAB_TLSLDM_LO16)
-      .Case("R_MIPS_CHERI_CAPTAB_TPREL_HI16", Mips::fixup_CHERI_CAPTAB_TPREL_HI16)
-      .Case("R_MIPS_CHERI_CAPTAB_TPREL_LO16", Mips::fixup_CHERI_CAPTAB_TPREL_LO16)
-
+      .Case("R_MIPS_CHERI_CAPTAB_TLSGD_HI16",
+            Mips::fixup_CHERI_CAPTAB_TLSGD_HI16)
+      .Case("R_MIPS_CHERI_CAPTAB_TLSGD_LO16",
+            Mips::fixup_CHERI_CAPTAB_TLSGD_LO16)
+      .Case("R_MIPS_CHERI_CAPTAB_TLSDM_HI16",
+            Mips::fixup_CHERI_CAPTAB_TLSLDM_HI16)
+      .Case("R_MIPS_CHERI_CAPTAB_TLSDM_LO16",
+            Mips::fixup_CHERI_CAPTAB_TLSLDM_LO16)
+      .Case("R_MIPS_CHERI_CAPTAB_TPREL_HI16",
+            Mips::fixup_CHERI_CAPTAB_TPREL_HI16)
+      .Case("R_MIPS_CHERI_CAPTAB_TPREL_LO16",
+            Mips::fixup_CHERI_CAPTAB_TPREL_LO16)
 
       .Default(MCAsmBackend::getFixupKind(Name));
 }
@@ -544,8 +553,7 @@ MCFixupKindInfo MipsAsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
     { "fixup_CHERI_CAPCALL20",           0,     16,   0 },
     { "fixup_CHERI_CAPCALL_HI16",        0,     16,   0 },
     { "fixup_CHERI_CAPCALL_LO16",        0,     16,   0 },
-    { "fixup_CHERI_CAPABILITY",          0,    255,   0 },
-    
+
     { "fixup_Mips_CAPTABLEREL16",        0,     16,   0 }, // like GPREL16
     { "fixup_Mips_CAPTABLEREL_HI",       0,     16,   0 }, // like GPOFF_HI
     { "fixup_Mips_CAPTABLEREL_LO",       0,     16,   0 }, // like GPOFF_LO
@@ -651,8 +659,7 @@ MCFixupKindInfo MipsAsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
     { "fixup_CHERI_CAPCALL20",     16,    16,   0 },
     { "fixup_CHERI_CAPCALL_HI16",  16,    16,   0 },
     { "fixup_CHERI_CAPCALL_LO16",  16,    16,   0 },
-    { "fixup_CHERI_CAPABILITY",     0,   255,   0 },
-    
+
     { "fixup_Mips_CAPTABLEREL16",  16,    16,   0 }, // like GPREL16
     { "fixup_Mips_CAPTABLEREL_HI", 16,    16,   0 }, // like GPOFF_HI
     { "fixup_Mips_CAPTABLEREL_LO", 16,    16,   0 }, // like GPOFF_LO
@@ -675,8 +682,6 @@ MCFixupKindInfo MipsAsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
 
   assert(unsigned(Kind - FirstTargetFixupKind) < Mips::NumTargetFixupKinds &&
          "Invalid kind!");
-
-  assert(Kind - FirstTargetFixupKind != Mips::fixup_CHERI_CAPABILITY);
 
   if (Endian == llvm::endianness::little)
     return LittleEndianInfos[Kind - FirstTargetFixupKind];
@@ -707,7 +712,7 @@ class WindowsMipsAsmBackend : public MipsAsmBackend {
 public:
   WindowsMipsAsmBackend(const Target &T, const MCRegisterInfo &MRI,
                         const MCSubtargetInfo &STI)
-      : MipsAsmBackend(T, MRI, STI.getTargetTriple(), STI.getCPU(), false) {}
+      : MipsAsmBackend(T, MRI, STI.getTargetTriple(), STI.getCPU(), false, 0) {}
 
   std::unique_ptr<MCObjectTargetWriter>
   createObjectTargetWriter() const override {
@@ -725,8 +730,11 @@ MCAsmBackend *llvm::createMipsAsmBackend(const Target &T,
   if (TheTriple.isOSWindows() && TheTriple.isOSBinFormatCOFF())
     return new WindowsMipsAsmBackend(T, MRI, STI);
 
+  unsigned CapSize = STI.getFeatureBits()[Mips::FeatureMipsCheri128]  ? 16
+                     : STI.getFeatureBits()[Mips::FeatureMipsCheri64] ? 8
+                                                                      : 0;
   MipsABIInfo ABI = MipsABIInfo::computeTargetABI(STI.getTargetTriple(),
                                                   Options.getABIName());
   return new MipsAsmBackend(T, MRI, STI.getTargetTriple(), STI.getCPU(),
-                            ABI.IsN32());
+                            ABI.IsN32(), CapSize);
 }

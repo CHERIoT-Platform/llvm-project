@@ -230,7 +230,7 @@ void RISCVELFStreamer::emitCheriCapability(const MCExpr *Value,
 
   // Pad to ensure that the capability is aligned
   emitValueToAlignment(Align(CapSize), 0, 1, 0);
-  addFixup(Value, MCFixupKind(RISCV::fixup_riscv_capability));
+  addFixup(Value, MCFixup::getDataKindForSize(CapSize, true));
   appendContents(CapSize, '\xca');
 }
 

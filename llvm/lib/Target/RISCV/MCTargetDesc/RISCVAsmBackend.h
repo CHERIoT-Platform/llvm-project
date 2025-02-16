@@ -73,10 +73,6 @@ public:
   bool writeNopData(raw_ostream &OS, uint64_t Count,
                     const MCSubtargetInfo *STI) const override;
 
-  bool fixupNeedsProvenance(const MCFixup *Fixup) const override {
-    return Fixup->getKind() == RISCV::fixup_riscv_capability;
-  }
-
   const MCTargetOptions &getTargetOptions() const { return TargetOptions; }
 };
 }

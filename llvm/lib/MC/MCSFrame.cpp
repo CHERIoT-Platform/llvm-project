@@ -137,7 +137,7 @@ struct SFrameFDE {
         MCSymbolRefExpr::create(FRESubSectionStart, C), C);
 
     F->addFixup(MCFixup::create(F->getContents().size(), Diff,
-                                MCFixup::getDataKindForSize(4)));
+                                MCFixup::getDataKindForSize(4, false)));
     S.emitInt32(0);
 
     // sfde_func_num_fres

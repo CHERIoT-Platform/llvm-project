@@ -2564,7 +2564,8 @@ def CHERICCallee : DeclOrTypeAttr { // InheritableAttr {
 }
 
 def CHERICCallback : DeclOrTypeAttr { // InheritableAttr {
-  let Spellings = [GNU<"cheri_ccallback">];
+  let Spellings = [GNU<"cheri_ccallback">,
+                   GNU<"cheriot_ccallback">];
   let Documentation = [Undocumented];
 }
 
@@ -2580,14 +2581,17 @@ def CHERIMethodClass : DeclOrTypeAttr { // InheritableAttr {
 }
 
 def CHERICompartmentName : DeclOrTypeAttr {
-  let Spellings = [GNU<"cheri_compartment">];
+  let Spellings = [GNU<"cheri_compartment">,
+                   GNU<"cheriot_compartment">];
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function], ErrorDiag>;
   let Args = [StringArgument<"CompartmentName">];
 }
 
 def CHERILibCall : DeclOrTypeAttr {
-  let Spellings = [GNU<"cheri_libcall">];
+  let Spellings = [GNU<"cheri_libcall">,
+                   GNU<"cheriot_libcall">
+                   ];
   let Documentation = [Undocumented];
   let Subjects = SubjectList<[Function], ErrorDiag>;
 }

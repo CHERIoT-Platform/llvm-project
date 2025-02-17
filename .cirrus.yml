@@ -26,6 +26,7 @@ pr_task:
     - cd Build
     - export CCACHE_REMOTE_STORAGE="http://${CIRRUS_HTTP_CACHE_HOST}/${CIRRUS_OS}/"
     - export CCACHE_REMOTE_ONLY=1
+    - ccache --trim-dir . --trim-max-size 20G
     - ninja test-depends
   test_script:
     - cd Build
@@ -57,6 +58,7 @@ x86_release_task:
     - cd Build
     - export CCACHE_REMOTE_STORAGE="http://${CIRRUS_HTTP_CACHE_HOST}/release-amd64/${CIRRUS_OS}/"
     - export CCACHE_REMOTE_ONLY=1
+    - ccache --trim-dir . --trim-max-size 20G
     - ninja install-distribution
     - cp ../llvm/LICENSE.TXT install/LLVM-LICENSE.TXT
     # Artefact upload uploads symlinks as copies, so delete all of the clang symlinks
@@ -91,6 +93,7 @@ arm_release_task:
     - cd Build
     - export CCACHE_REMOTE_STORAGE="http://${CIRRUS_HTTP_CACHE_HOST}/release/${CIRRUS_OS}/arm64/"
     - export CCACHE_REMOTE_ONLY=1
+    - ccache --trim-dir . --trim-max-size 20G
     - ninja install-distribution
     - cp ../llvm/LICENSE.TXT install/LLVM-LICENSE.TXT
     # Artefact upload uploads symlinks as copies, so delete all of the clang symlinks

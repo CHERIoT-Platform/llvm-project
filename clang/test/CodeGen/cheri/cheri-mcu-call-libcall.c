@@ -1,5 +1,5 @@
 // RUN: %clang_cc1 %s -o - "-triple" "riscv32cheriot-unknown-cheriotrtos" "-emit-llvm" "-mframe-pointer=none" "-mcmodel=small" "-target-abi" "cheriot" "-Oz" "-Werror" "-cheri-compartment=example" | FileCheck %s
-#define LIBCALL __attribute__((cheri_libcall))
+#define LIBCALL __attribute__((cheriot_libcall))
 
 LIBCALL
 int add(int a, int b);

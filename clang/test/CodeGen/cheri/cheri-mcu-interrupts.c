@@ -37,6 +37,13 @@ void default_enable_callback(void)
 {
 }
 
+// CHECK: define dso_local chericcallcc void @default_enable_callback2() local_unnamed_addr addrspace(200) #[[DEFEN]]
+__attribute__((cheriot_ccallback))
+void default_enable_callback2(void)
+{
+}
+
+
 // Explicitly setting interrupt status should override the default
 
 // CHECK: define dso_local chericcallcce i32 @_Z23explicit_disable_calleev() local_unnamed_addr addrspace(200) #[[EXPDIS:[0-9]]]

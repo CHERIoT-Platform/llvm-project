@@ -17,7 +17,7 @@ void foo(void (*bar)())
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    ret void
 //
-void __attribute__((cheri_libcall)) bar()
+void __attribute__((cheriot_libcall)) bar()
 {
         return;
 }

@@ -11830,10 +11830,11 @@ QualType ASTContext::GetBuiltinType(unsigned Id,
          "'.' should only occur at end of builtin type list!");
 
   bool Variadic = (TypeStr[0] == '.');
-
+  bool IsCheriLibcall = Id != Builtin::BIsetjmp && Id != Builtin::BIlongjmp;
+  IsCheriLibcall &= Target->getTargetOpts().ABI != "cheriot-baremetal";
   FunctionType::ExtInfo EI(getDefaultCallingConvention(
       Variadic, /*IsCXXMethod=*/false, /*IsBuiltin=*/true,
-      /*IsLibcall*/ Target->getTargetOpts().ABI != "cheriot-baremetal"));
+      /*IsLibcall*/ IsCheriLibcall));
   if (BuiltinInfo.isNoReturn(Id)) EI = EI.withNoReturn(true);
 
 

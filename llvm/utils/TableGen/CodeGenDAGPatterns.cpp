@@ -1377,7 +1377,7 @@ std::string TreePredicateFn::getCodeToRunOnSDNode() const {
     if (immCodeUsesAPFloat())
       Result += "cast<ConstantFPSDNode>(Node)->getValueAPF();\n";
     else if (immCodeUsesAPInt())
-      Result += "cast<ConstantSDNode>(Node)->getAPIntValue();\n";
+      Result += "Node->getAsAPIntVal();\n";
     else
       Result += "cast<ConstantSDNode>(Node)->getSExtValue();\n";
     return Result + ImmCode;
@@ -2501,7 +2501,7 @@ bool TreePatternNode::ApplyTypeConstraints(TreePattern &TP, bool NotRegisters) {
       ValueTypeByHwMode VVT = TP.getInfer().getConcrete(Types[0], false);
       for (auto &P : VVT) {
         MVT::SimpleValueType VT = P.second.SimpleTy;
-        if (VT == MVT::iPTR || VT == MVT::iPTRAny)
+        if (VT == MVT::iPTR || VT == MVT::cPTR || VT == MVT::iPTRAny)
           continue;
         unsigned Size = MVT(VT).getFixedSizeInBits();
         // Make sure that the value is representable for this type.

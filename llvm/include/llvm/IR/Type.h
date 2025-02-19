@@ -175,8 +175,8 @@ public:
   bool isPPC_FP128Ty() const { return getTypeID() == PPC_FP128TyID; }
 
   /// Return true if this is a well-behaved IEEE-like type, which has a IEEE
-  /// compatible layout as defined by isIEEE(), and does not have unnormal
-  /// values
+  /// compatible layout as defined by APFloat::isIEEE(), and does not have
+  /// non-IEEE values, such as x86_fp80's unnormal values.
   bool isIEEELikeFPTy() const {
     switch (getTypeID()) {
     case DoubleTyID:
@@ -218,8 +218,7 @@ public:
   /// Return true if this is a target extension type with a scalable layout.
   bool isScalableTargetExtTy() const;
 
-  /// Return true if this is a scalable vector type or a target extension type
-  /// with a scalable layout.
+  /// Return true if this is a type whose size is a known multiple of vscale.
   bool isScalableTy() const;
 
   /// Return true if this is a FP type or a vector of FP.
@@ -495,24 +494,8 @@ public:
   static Type *getFloatingPointTy(LLVMContext &C, const fltSemantics &S);
 
   //===--------------------------------------------------------------------===//
-  // Convenience methods for getting pointer types with one of the above builtin
-  // types as pointee.
+  // Convenience methods for getting pointer types.
   //
-  static PointerType *getHalfPtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
-  static PointerType *getBFloatPtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
-  static PointerType *getFloatPtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
-  static PointerType *getDoublePtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
-  static PointerType *getX86_FP80PtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
-  static PointerType *getFP128PtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
-  static PointerType *getPPC_FP128PtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
-  static PointerType *getX86_MMXPtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
-  static PointerType *getX86_AMXPtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
-  static PointerType *getIntNPtrTy(LLVMContext &C, unsigned N, LLVM_DEFAULT_AS_PARAM(AS));
-  static PointerType *getInt1PtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
-  static PointerType *getInt8PtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
-  static PointerType *getInt16PtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
-  static PointerType *getInt32PtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
-  static PointerType *getInt64PtrTy(LLVMContext &C, LLVM_DEFAULT_AS_PARAM(AS));
   static Type *getWasm_ExternrefTy(LLVMContext &C);
   static Type *getWasm_FuncrefTy(LLVMContext &C);
 

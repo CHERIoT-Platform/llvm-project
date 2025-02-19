@@ -100,6 +100,8 @@ __riscv_restore_0:
 
 # else
 
+#ifndef __riscv_32e
+
   .globl  __riscv_restore_12
   .type   __riscv_restore_12,@function
 __riscv_restore_12:
@@ -163,6 +165,25 @@ __riscv_restore_0:
   lw      ra,  12(sp)
   addi    sp, sp, 16
   ret
+
+#else
+
+  .globl  __riscv_restore_2
+  .type   __riscv_restore_2,@function
+  .globl  __riscv_restore_1
+  .type   __riscv_restore_1,@function
+  .globl  __riscv_restore_0
+  .type   __riscv_restore_0,@function
+__riscv_restore_2:
+__riscv_restore_1:
+__riscv_restore_0:
+  lw      s1,  0(sp)
+  lw      s0,  4(sp)
+  lw      ra,  8(sp)
+  addi    sp, sp, 12
+  ret
+
+#endif
 
 # endif
 
@@ -263,6 +284,8 @@ __riscv_restore_0:
 
 # else
 
+#ifndef __riscv_64e
+
   .globl  __riscv_restore_12
   .type   __riscv_restore_12,@function
 __riscv_restore_12:
@@ -335,6 +358,25 @@ __riscv_restore_0:
   ld      ra,  8(sp)
   addi    sp, sp, 16
   ret
+
+#else
+
+  .globl  __riscv_restore_2
+  .type   __riscv_restore_2,@function
+  .globl  __riscv_restore_1
+  .type   __riscv_restore_1,@function
+  .globl  __riscv_restore_0
+  .type   __riscv_restore_0,@function
+__riscv_restore_2:
+__riscv_restore_1:
+__riscv_restore_0:
+  ld      s1,  0(sp)
+  ld      s0,  8(sp)
+  ld      ra,  16(sp)
+  addi    sp, sp, 24
+  ret
+
+#endif
 
 # endif
 

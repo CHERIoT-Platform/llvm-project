@@ -4,13 +4,13 @@
 ; CHECK-NEXT:  .chericap       _ZN1A7nonvirtEv
 ; CHECK-NEXT:  .8byte  0
 ; CHECK-NEXT:  .space  [[#CAP_SIZE - 8]]
-; CHECK-NEXT:  .size   global_nonvirt_ptr, [[#CAP_SIZE * 2]]
+; CHECK-NEXT:  .size   global_nonvirt_ptr, [[#mul(CAP_SIZE,2)]]
 
 ; CHECK-LABEL: global_virt_ptr:
 ; CHECK-NEXT:  .chericap 0
 ; CHECK-NEXT:  .8byte  1
 ; CHECK-NEXT:  .space  [[#CAP_SIZE - 8]]
-; CHECK-NEXT:  .size   global_virt_ptr, [[#CAP_SIZE * 2]]
+; CHECK-NEXT:  .size   global_virt_ptr, [[#mul(CAP_SIZE,2)]]
 
 ; CHECK-LABEL: global_fn_ptr:
 ; CHECK-NEXT:  .chericap       _Z9global_fnv
@@ -25,7 +25,7 @@
 ; CHECK-NEXT:  .chericap 0
 ; CHECK-NEXT:  .chericap       _ZN1A4virtEv
 ; CHECK-NEXT:  .chericap       _ZN1A5virt2Ev
-; CHECK-NEXT:  .size   _ZTV1A, [[#CAP_SIZE * 4]]
+; CHECK-NEXT:  .size   _ZTV1A, [[#mul(CAP_SIZE,4)]]
 
 @global_nonvirt_ptr = addrspace(200) global { ptr addrspace(200), i64 } { ptr addrspace(200) @_ZN1A7nonvirtEv, i64 0 }, align 32
 @global_virt_ptr = addrspace(200) global { ptr addrspace(200), i64 } { ptr addrspace(200) null, i64 1 }, align 32

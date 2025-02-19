@@ -79,8 +79,8 @@ int atomic(void) {
   // CHECK: atomicrmw nand ptr %valc, i8 6 seq_cst, align 1
  
   __sync_val_compare_and_swap((void **)0, (void *)0, (void *)0);
-  // CHECK: [[PAIR:%[a-z0-9_.]+]] = cmpxchg ptr null, ptr null, ptr null seq_cst seq_cst, align 4
-  // CHECK: extractvalue { ptr, i1 } [[PAIR]], 0
+  // CHECK: [[PAIR:%[a-z0-9_.]+]] = cmpxchg ptr null, i32 0, i32 0 seq_cst seq_cst, align 4
+  // CHECK: extractvalue { i32, i1 } [[PAIR]], 0
 
   if ( __sync_val_compare_and_swap(&valb, 0, 1)) {
     // CHECK: [[PAIR:%[a-z0-9_.]+]] = cmpxchg ptr %valb, i8 0, i8 1 seq_cst seq_cst, align 1
@@ -90,9 +90,8 @@ int atomic(void) {
   }
   
   __sync_bool_compare_and_swap((void **)0, (void *)0, (void *)0);
-  // CHECK: [[PAIR:%[a-z0-9_.]+]] = cmpxchg ptr null, ptr null, ptr null seq_cst seq_cst, align 4
-  // CHECK-NEXT: extractvalue { ptr, i1 } [[PAIR]], 1
-
+  // CHECK: cmpxchg ptr null, i32 0, i32 0 seq_cst seq_cst, align 4
+  
   __sync_lock_release(&val);
   // CHECK: store atomic i32 0, {{.*}} release, align 4
 
@@ -113,7 +112,7 @@ void release_return(int *lock) {
 }
 
 
-// rdar://8461279 - Atomics with address spaces.
+// Atomics with address spaces.
 // CHECK: @addrspace
 void addrspace(int  __attribute__((address_space(256))) * P) {
   __sync_bool_compare_and_swap(P, 0, 1);

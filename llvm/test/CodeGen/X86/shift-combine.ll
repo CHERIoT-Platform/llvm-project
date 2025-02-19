@@ -15,9 +15,8 @@ define dso_local i32 @test_lshr_and(i32 %x) {
 ; X64-LABEL: test_lshr_and:
 ; X64:       # %bb.0:
 ; X64-NEXT:    # kill: def $edi killed $edi def $rdi
-; X64-NEXT:    shrl $2, %edi
-; X64-NEXT:    andl $3, %edi
-; X64-NEXT:    movl array(,%rdi,4), %eax
+; X64-NEXT:    andl $12, %edi
+; X64-NEXT:    movl array(%rdi), %eax
 ; X64-NEXT:    retq
   %tmp2 = lshr i32 %x, 2
   %tmp3 = and i32 %tmp2, 3
@@ -104,8 +103,8 @@ define dso_local ptr @test_exact4(i32 %a, i32 %b, ptr %x)  {
 ; X64:       # %bb.0:
 ; X64-NEXT:    # kill: def $esi killed $esi def $rsi
 ; X64-NEXT:    subl %edi, %esi
-; X64-NEXT:    shrl $3, %esi
-; X64-NEXT:    leaq (%rdx,%rsi,4), %rax
+; X64-NEXT:    shrl %esi
+; X64-NEXT:    leaq (%rsi,%rdx), %rax
 ; X64-NEXT:    retq
   %sub = sub i32 %b, %a
   %shr = lshr exact i32 %sub, 3
@@ -126,8 +125,8 @@ define dso_local ptr @test_exact5(i32 %a, i32 %b, ptr %x)  {
 ; X64:       # %bb.0:
 ; X64-NEXT:    # kill: def $esi killed $esi def $rsi
 ; X64-NEXT:    subl %edi, %esi
-; X64-NEXT:    shrl $3, %esi
-; X64-NEXT:    leaq (%rdx,%rsi,4), %rax
+; X64-NEXT:    shrl %esi
+; X64-NEXT:    leaq (%rsi,%rdx), %rax
 ; X64-NEXT:    retq
   %sub = sub i32 %b, %a
   %shr = lshr exact i32 %sub, 3
@@ -787,4 +786,39 @@ define <4 x i32> @or_tree_with_mismatching_shifts_vec_i32(<4 x i32> %a, <4 x i32
   %or.cd = or <4 x i32> %c.shifted, %d
   %r = or <4 x i32> %or.ab, %or.cd
   ret <4 x i32> %r
+}
+
+; Reproducer for a DAGCombiner::combineShiftOfShiftedLogic bug. DAGCombiner
+; need to check that the sum of the shift amounts fits in i8, which is the
+; legal type used to described X86 shift amounts. Verify that we do not try to
+; create a shift with 130+160 as shift amount, and verify that the stored
+; value do not depend on %a1.
+define void @combineShiftOfShiftedLogic(i128 %a1, i32 %a2, ptr %p) {
+; X86-LABEL: combineShiftOfShiftedLogic:
+; X86:       # %bb.0:
+; X86-NEXT:    movl {{[0-9]+}}(%esp), %eax
+; X86-NEXT:    movl {{[0-9]+}}(%esp), %ecx
+; X86-NEXT:    movl %eax, 20(%ecx)
+; X86-NEXT:    movl $0, 16(%ecx)
+; X86-NEXT:    movl $0, 12(%ecx)
+; X86-NEXT:    movl $0, 8(%ecx)
+; X86-NEXT:    movl $0, 4(%ecx)
+; X86-NEXT:    movl $0, (%ecx)
+; X86-NEXT:    retl
+;
+; X64-LABEL: combineShiftOfShiftedLogic:
+; X64:       # %bb.0:
+; X64-NEXT:    # kill: def $edx killed $edx def $rdx
+; X64-NEXT:    shlq $32, %rdx
+; X64-NEXT:    movq %rdx, 16(%rcx)
+; X64-NEXT:    movq $0, 8(%rcx)
+; X64-NEXT:    movq $0, (%rcx)
+; X64-NEXT:    retq
+  %zext1 = zext i128 %a1 to i192
+  %zext2 = zext i32 %a2 to i192
+  %shl = shl i192 %zext1, 130
+  %or = or i192 %shl, %zext2
+  %res = shl i192 %or, 160
+  store i192 %res, ptr %p, align 8
+  ret void
 }

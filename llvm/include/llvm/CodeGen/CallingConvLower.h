@@ -14,13 +14,13 @@
 #ifndef LLVM_CODEGEN_CALLINGCONVLOWER_H
 #define LLVM_CODEGEN_CALLINGCONVLOWER_H
 
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/CodeGen/Register.h"
 #include "llvm/CodeGen/TargetCallingConv.h"
 #include "llvm/IR/CallingConv.h"
 #include "llvm/Support/Alignment.h"
 #include <variant>
-#include <vector>
 
 namespace llvm {
 
@@ -130,6 +130,7 @@ public:
   unsigned getExtraInfo() const { return std::get<unsigned>(Data); }
 
   MVT getLocVT() const { return LocVT; }
+  void setLocVT(MVT VT) { LocVT = VT; }
 
   LocInfo getLocInfo() const { return HTP; }
   bool isExtInLoc() const {

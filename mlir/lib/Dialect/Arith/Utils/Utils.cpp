@@ -25,25 +25,6 @@ detail::op_matcher<arith::ConstantIndexOp> mlir::matchConstantIndex() {
   return detail::op_matcher<arith::ConstantIndexOp>();
 }
 
-// Returns `success` when any of the elements in `ofrs` was produced by
-// arith::ConstantIndexOp. In that case the constant attribute replaces the
-// Value. Returns `failure` when no folding happened.
-LogicalResult mlir::foldDynamicIndexList(Builder &b,
-                                         SmallVectorImpl<OpFoldResult> &ofrs) {
-  bool valuesChanged = false;
-  for (OpFoldResult &ofr : ofrs) {
-    if (ofr.is<Attribute>())
-      continue;
-    // Newly static, move from Value to constant.
-    if (auto cstOp = llvm::dyn_cast_if_present<Value>(ofr)
-                         .getDefiningOp<arith::ConstantIndexOp>()) {
-      ofr = b.getIndexAttr(cstOp.value());
-      valuesChanged = true;
-    }
-  }
-  return success(valuesChanged);
-}
-
 llvm::SmallBitVector mlir::getPositionsOfShapeOne(unsigned rank,
                                                   ArrayRef<int64_t> shape) {
   llvm::SmallBitVector dimsToProject(shape.size());
@@ -153,7 +134,7 @@ static Value convertScalarToComplexDtype(ImplicitLocOpBuilder &b, Value operand,
     }
   }
 
-  if (auto fromFpType = dyn_cast<FloatType>(operand.getType())) {
+  if (dyn_cast<FloatType>(operand.getType())) {
     FloatType toFpTy = cast<FloatType>(targetType.getElementType());
     auto toBitwidth = toFpTy.getIntOrFloatBitWidth();
     Value from = operand;
@@ -168,7 +149,7 @@ static Value convertScalarToComplexDtype(ImplicitLocOpBuilder &b, Value operand,
     return b.create<complex::CreateOp>(targetType, from, zero);
   }
 
-  if (auto fromIntType = dyn_cast<IntegerType>(operand.getType())) {
+  if (dyn_cast<IntegerType>(operand.getType())) {
     FloatType toFpTy = cast<FloatType>(targetType.getElementType());
     Value from = operand;
     if (isUnsigned) {
@@ -214,6 +195,40 @@ mlir::getValueOrCreateConstantIndexOp(OpBuilder &b, Location loc,
       llvm::map_range(valueOrAttrVec, [&](OpFoldResult value) -> Value {
         return getValueOrCreateConstantIndexOp(b, loc, value);
       }));
+}
+
+Value mlir::createScalarOrSplatConstant(OpBuilder &builder, Location loc,
+                                        Type type, const APInt &value) {
+  TypedAttr attr;
+  if (isa<IntegerType>(type)) {
+    attr = builder.getIntegerAttr(type, value);
+  } else {
+    auto vecTy = cast<ShapedType>(type);
+    attr = SplatElementsAttr::get(vecTy, value);
+  }
+
+  return builder.create<arith::ConstantOp>(loc, attr);
+}
+
+Value mlir::createScalarOrSplatConstant(OpBuilder &builder, Location loc,
+                                        Type type, int64_t value) {
+  unsigned elementBitWidth = 0;
+  if (auto intTy = dyn_cast<IntegerType>(type))
+    elementBitWidth = intTy.getWidth();
+  else
+    elementBitWidth = cast<ShapedType>(type).getElementTypeBitWidth();
+
+  return createScalarOrSplatConstant(builder, loc, type,
+                                     APInt(elementBitWidth, value));
+}
+
+Value mlir::createScalarOrSplatConstant(OpBuilder &builder, Location loc,
+                                        Type type, const APFloat &value) {
+  if (isa<FloatType>(type))
+    return builder.createOrFold<arith::ConstantOp>(
+        loc, type, builder.getFloatAttr(type, value));
+  TypedAttr splat = SplatElementsAttr::get(cast<ShapedType>(type), value);
+  return builder.createOrFold<arith::ConstantOp>(loc, type, splat);
 }
 
 Value ArithBuilder::_and(Value lhs, Value rhs) {

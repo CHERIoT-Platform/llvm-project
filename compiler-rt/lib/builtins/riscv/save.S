@@ -110,6 +110,8 @@ __riscv_save_0:
 
 # else
 
+#ifndef __riscv_32e
+
   .globl  __riscv_save_12
   .type   __riscv_save_12,@function
 __riscv_save_12:
@@ -183,6 +185,25 @@ __riscv_save_0:
   sw      s0,  8(sp)
   sw      ra,  12(sp)
   jr      t0
+
+#else
+
+  .globl  __riscv_save_2
+  .type   __riscv_save_2,@function
+  .globl  __riscv_save_1
+  .type   __riscv_save_1,@function
+  .globl  __riscv_save_0
+  .type   __riscv_save_0,@function
+__riscv_save_2:
+__riscv_save_1:
+__riscv_save_0:
+  addi    sp, sp, -12
+  sw      s1,  0(sp)
+  sw      s0,  4(sp)
+  sw      ra,  8(sp)
+  jr      t0
+
+#endif
 
 # endif
 
@@ -308,6 +329,8 @@ __riscv_save_0:
 
 # else
 
+#ifndef __riscv_64e
+
   .globl  __riscv_save_12
   .type   __riscv_save_12,@function
 __riscv_save_12:
@@ -394,6 +417,25 @@ __riscv_save_0:
   sd     s0, 0(sp)
   sd     ra, 8(sp)
   jr     t0
+
+#else
+
+  .globl  __riscv_save_2
+  .type   __riscv_save_2,@function
+  .globl  __riscv_save_1
+  .type   __riscv_save_1,@function
+  .globl  __riscv_save_0
+  .type   __riscv_save_0,@function
+__riscv_save_2:
+__riscv_save_1:
+__riscv_save_0:
+  addi   sp, sp, -24
+  sd     s1, 0(sp)
+  sd     s0, 8(sp)
+  sd     ra, 16(sp)
+  jr     t0
+
+#endif
 
 # endif
 

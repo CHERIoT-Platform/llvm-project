@@ -33,6 +33,9 @@ struct RISCVOptionArchArg {
 
 class RISCVTargetStreamer : public MCTargetStreamer {
   RISCVABI::ABI TargetABI = RISCVABI::ABI_Unknown;
+  bool HasRVC = false;
+  bool HasTSO = false;
+  bool IsCapMode = false;
 
 public:
   RISCVTargetStreamer(MCStreamer &S);
@@ -60,6 +63,10 @@ public:
   void emitTargetAttributes(const MCSubtargetInfo &STI, bool EmitStackAlign);
   void setTargetABI(RISCVABI::ABI ABI);
   RISCVABI::ABI getTargetABI() const { return TargetABI; }
+  void setFlagsFromFeatures(const MCSubtargetInfo &STI);
+  bool hasRVC() const { return HasRVC; }
+  bool hasTSO() const { return HasTSO; }
+  bool isCapMode() const { return IsCapMode; }
 };
 
 // This part is for ascii assembly output

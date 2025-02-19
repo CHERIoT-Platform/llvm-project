@@ -338,6 +338,7 @@
 // CHERI-MIPS-NEXT:   #define _MIPS_FPSET 32
 // CHERI-MIPS-NEXT:   #define _MIPS_ISA _MIPS_ISA_MIPS64
 // CHERI-MIPS-NEXT:   #define _MIPS_SIM _ABI64
+// CHERI-MIPS-NEXT:   #define _MIPS_SPFPSET 32
 // CHERI-MIPS-NEXT:   #define _MIPS_SZCAP 128
 // CHERI-MIPS-NEXT:   #define _MIPS_SZINT 32
 // CHERI-MIPS-NEXT:   #define _MIPS_SZLONG 64
@@ -1574,6 +1575,13 @@
 // RUN: %clang_cc1 -triple lanai-unknown-unknown -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix LANAI %s
 // LANAI: #define __lanai__ 1
 //
+// RUN: %clang_cc1 -triple=aarch64-unknown-haiku -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix HAIKU %s
+// RUN: %clang_cc1 -triple=arm-unknown-haiku -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix HAIKU %s
+// RUN: %clang_cc1 -triple=riscv64-unknown-haiku -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix HAIKU %s
+// RUN: %clang_cc1 -triple=x86_64-unknown-haiku -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix HAIKU %s
+// RUN: %clang_cc1 -triple=i386-unknown-haiku -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix HAIKU %s
+// HAIKU: #define __HAIKU__ 1
+//
 // RUN: %clang_cc1 -E -dM -ffreestanding -triple=amd64-unknown-openbsd6.1 < /dev/null | FileCheck -match-full-lines -check-prefix OPENBSD %s
 // RUN: %clang_cc1 -E -dM -ffreestanding -triple=aarch64-unknown-openbsd6.1 < /dev/null | FileCheck -match-full-lines -check-prefix OPENBSD %s
 // RUN: %clang_cc1 -E -dM -ffreestanding -triple=arm-unknown-openbsd6.1-gnueabi < /dev/null | FileCheck -match-full-lines -check-prefix OPENBSD %s
@@ -1855,6 +1863,11 @@
 // WEBASSEMBLY64-NEXT:#define __LONG_MAX__ 9223372036854775807L
 // WEBASSEMBLY64-NEXT:#define __LONG_WIDTH__ 64
 // WEBASSEMBLY64-NEXT:#define __LP64__ 1
+// WEBASSEMBLY-NEXT:#define __MEMORY_SCOPE_DEVICE 1 
+// WEBASSEMBLY-NEXT:#define __MEMORY_SCOPE_SINGLE 4 
+// WEBASSEMBLY-NEXT:#define __MEMORY_SCOPE_SYSTEM 0 
+// WEBASSEMBLY-NEXT:#define __MEMORY_SCOPE_WRKGRP 2 
+// WEBASSEMBLY-NEXT:#define __MEMORY_SCOPE_WVFRNT 3 
 // WEBASSEMBLY-NEXT:#define __NO_INLINE__ 1
 // WEBASSEMBLY-NEXT:#define __NO_MATH_ERRNO__ 1
 // WEBASSEMBLY-NEXT:#define __OBJC_BOOL_IS_BOOL 0
@@ -2179,6 +2192,11 @@
 // AVR:#define __LDBL_MIN__ 1.17549435e-38L
 // AVR:#define __LONG_LONG_MAX__ 9223372036854775807LL
 // AVR:#define __LONG_MAX__ 2147483647L
+// AVR:#define __MEMORY_SCOPE_DEVICE 1 
+// AVR:#define __MEMORY_SCOPE_SINGLE 4 
+// AVR:#define __MEMORY_SCOPE_SYSTEM 0 
+// AVR:#define __MEMORY_SCOPE_WRKGRP 2 
+// AVR:#define __MEMORY_SCOPE_WVFRNT 3 
 // AVR:#define __NO_INLINE__ 1
 // AVR:#define __ORDER_BIG_ENDIAN__ 4321
 // AVR:#define __ORDER_LITTLE_ENDIAN__ 1234
@@ -2470,6 +2488,11 @@
 // RISCV32: #define __LITTLE_ENDIAN__ 1
 // RISCV32: #define __LONG_LONG_MAX__ 9223372036854775807LL
 // RISCV32: #define __LONG_MAX__ 2147483647L
+// RISCV32: #define __MEMORY_SCOPE_DEVICE 1 
+// RISCV32: #define __MEMORY_SCOPE_SINGLE 4 
+// RISCV32: #define __MEMORY_SCOPE_SYSTEM 0 
+// RISCV32: #define __MEMORY_SCOPE_WRKGRP 2 
+// RISCV32: #define __MEMORY_SCOPE_WVFRNT 3 
 // RISCV32: #define __NO_INLINE__ 1
 // RISCV32: #define __POINTER_WIDTH__ 32
 // RISCV32: #define __PRAGMA_REDEFINE_EXTNAME 1
@@ -2677,6 +2700,11 @@
 // RISCV64: #define __LONG_LONG_MAX__ 9223372036854775807LL
 // RISCV64: #define __LONG_MAX__ 9223372036854775807L
 // RISCV64: #define __LP64__ 1
+// RISCV64: #define __MEMORY_SCOPE_DEVICE 1 
+// RISCV64: #define __MEMORY_SCOPE_SINGLE 4 
+// RISCV64: #define __MEMORY_SCOPE_SYSTEM 0 
+// RISCV64: #define __MEMORY_SCOPE_WRKGRP 2 
+// RISCV64: #define __MEMORY_SCOPE_WVFRNT 3 
 // RISCV64: #define __NO_INLINE__ 1
 // RISCV64: #define __POINTER_WIDTH__ 64
 // RISCV64: #define __PRAGMA_REDEFINE_EXTNAME 1

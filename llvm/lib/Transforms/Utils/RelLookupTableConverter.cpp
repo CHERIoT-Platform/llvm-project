@@ -165,7 +165,7 @@ static void convertToRelLookupTable(GlobalVariable &LookupTable) {
   Function *LoadRelIntrinsic = llvm::Intrinsic::getDeclaration(
       &M, Intrinsic::load_relative, {Index->getType()});
   Value *Base = Builder.CreateBitCast(
-      RelLookupTable, Builder.getInt8PtrTy(LookupTable.getAddressSpace()));
+      RelLookupTable, Builder.getPtrTy(LookupTable.getAddressSpace()));
 
   // Create a call to load.relative intrinsic that computes the target address
   // by adding base address (lookup table address) and relative offset.
@@ -173,7 +173,7 @@ static void convertToRelLookupTable(GlobalVariable &LookupTable) {
                                      "reltable.intrinsic");
 
   // Create a bitcast instruction if necessary.
-  if (Load->getType() != Builder.getInt8PtrTy(LookupTable.getAddressSpace()))
+  if (Load->getType() != Builder.getPtrTy(LookupTable.getAddressSpace()))
     Result = Builder.CreateBitCast(Result, Load->getType(), "reltable.bitcast");
 
   // Replace load instruction with the new generated instruction sequence.

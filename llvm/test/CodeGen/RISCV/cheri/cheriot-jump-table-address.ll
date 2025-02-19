@@ -16,21 +16,24 @@ define [2 x i32] @foo(i32 %searched) addrspace(200) {
 ; CHECK-NEXT:    bltu a1, a0, .LBB0_2
 ; CHECK-NEXT:  # %bb.1: # %entry
 ; CHECK-NEXT:    slli a0, a0, 2
-; CHECK-NEXT:  .LBB0_3: # %entry
-; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc ca1, %cheriot_compartment_hi(.LJTI0_0)
-; CHECK-NEXT:    cincoffset ca1, ca1, %cheriot_compartment_lo_i(.LBB0_3)
-; CHECK-NEXT:    cincoffset ca0, ca1, a0
-; CHECK-NEXT:    clw a0, 0(ca0)
 ; CHECK-NEXT:  .LBB0_4: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc ca1, %cheriot_compartment_hi(.Lfoo$jump_table_base)
+; CHECK-NEXT:    auipcc ca1, %cheriot_compartment_hi(.LJTI0_0)
 ; CHECK-NEXT:    cincoffset ca1, ca1, %cheriot_compartment_lo_i(.LBB0_4)
 ; CHECK-NEXT:    cincoffset ca0, ca1, a0
-; CHECK-NEXT:    cjr ca0
-; CHECK-NEXT:  .LBB0_2: # %cleanup
+; CHECK-NEXT:    clw a0, 0(ca0)
+; CHECK-NEXT:    li a1, 1
+; CHECK-NEXT:  .LBB0_5: # %entry
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    auipcc ca2, %cheriot_compartment_hi(.Lfoo$jump_table_base)
+; CHECK-NEXT:    cincoffset ca2, ca2, %cheriot_compartment_lo_i(.LBB0_5)
+; CHECK-NEXT:    cincoffset ca2, ca2, a0
+; CHECK-NEXT:    li a0, -1
+; CHECK-NEXT:    cjr ca2
+; CHECK-NEXT:  .LBB0_2: # %sw.epilog
 ; CHECK-NEXT:    li a0, 0
 ; CHECK-NEXT:    li a1, 0
+; CHECK-NEXT:  .LBB0_3: # %cleanup
 ; CHECK-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
 ; CHECK-NEXT:    cincoffset csp, csp, 16
 ; CHECK-NEXT:    cret
@@ -60,5 +63,5 @@ sw.epilog:                                        ; preds = %entry
 
 cleanup:                                          ; preds = %sw.epilog, %sw.bb29, %sw.bb21, %sw.bb13, %sw.bb5, %entry
   %call330.pn = phi [2 x i32] [ zeroinitializer, %sw.epilog ], [ zeroinitializer, %sw.bb5 ], [ zeroinitializer, %sw.bb13 ], [ zeroinitializer, %sw.bb21 ], [ zeroinitializer, %sw.bb29 ], [ [i32 -1, i32 1], %entry ]
-  ret [2 x i32] zeroinitializer
+  ret [2 x i32] %call330.pn
 }

@@ -9,7 +9,7 @@ class CheriTestMode(object):
 
 
 class TestingConfig(object):
-    """ "
+    """
     TestingConfig - Information on the tests inside a suite.
     """
 
@@ -51,6 +51,7 @@ class TestingConfig(object):
             "TSAN_OPTIONS",
             "UBSAN_OPTIONS",
             "ADB",
+            "ADB_SERVER_SOCKET",
             "ANDROID_SERIAL",
             "SSH_AUTH_SOCK",
             "SANITIZER_IGNORE_CVE_2016_2143",

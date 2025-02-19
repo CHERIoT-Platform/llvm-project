@@ -233,7 +233,7 @@ class SelectionDAG {
   MachineFunction *MF;
   Pass *SDAGISelPass = nullptr;
   LLVMContext *Context;
-  CodeGenOpt::Level OptLevel;
+  CodeGenOptLevel OptLevel;
 
   UniformityInfo *UA = nullptr;
   FunctionLoweringInfo * FLI = nullptr;
@@ -449,7 +449,7 @@ public:
   // Maximum depth for recursive analysis such as computeKnownBits, etc.
   static constexpr unsigned MaxRecursionDepth = 6;
 
-  explicit SelectionDAG(const TargetMachine &TM, CodeGenOpt::Level);
+  explicit SelectionDAG(const TargetMachine &TM, CodeGenOptLevel);
   SelectionDAG(const SelectionDAG &) = delete;
   SelectionDAG &operator=(const SelectionDAG &) = delete;
   ~SelectionDAG();
@@ -578,8 +578,7 @@ public:
   /// certain types of nodes together, or eliminating superfluous nodes.  The
   /// Level argument controls whether Combine is allowed to produce nodes and
   /// types that are illegal on the target.
-  void Combine(CombineLevel Level, AAResults *AA,
-               CodeGenOpt::Level OptLevel);
+  void Combine(CombineLevel Level, AAResults *AA, CodeGenOptLevel OptLevel);
 
   /// This transforms the SelectionDAG into a SelectionDAG that
   /// only uses types natively supported by the target.
@@ -735,6 +734,7 @@ public:
   SDValue getTargetJumpTable(int JTI, EVT VT, unsigned TargetFlags = 0) {
     return getJumpTable(JTI, VT, true, TargetFlags);
   }
+  SDValue getJumpTableDebugInfo(int JTI, SDValue Chain, const SDLoc &DL);
   SDValue getConstantPool(const Constant *C, EVT VT,
                           MaybeAlign Align = std::nullopt, int Offs = 0,
                           bool isT = false, unsigned TargetFlags = 0);
@@ -751,8 +751,6 @@ public:
                                 unsigned TargetFlags = 0) {
     return getConstantPool(C, VT, Align, Offset, true, TargetFlags);
   }
-  SDValue getTargetIndex(int Index, EVT VT, int64_t Offset = 0,
-                         unsigned TargetFlags = 0);
   // When generating a branch to a BB, we don't in general know enough
   // to provide debug info for the BB at that time, so keep this one around.
   SDValue getBasicBlock(MachineBasicBlock *MBB);
@@ -956,11 +954,42 @@ public:
   SDValue getZExtOrTrunc(SDValue Op, const SDLoc &DL, EVT VT);
 
   /// Convert Op, which must be of integer type, to the
+  /// integer type VT, by either any/sign/zero-extending (depending on IsAny /
+  /// IsSigned) or truncating it.
+  SDValue getExtOrTrunc(SDValue Op, const SDLoc &DL,
+                        EVT VT, unsigned Opcode) {
+    switch(Opcode) {
+      case ISD::ANY_EXTEND:
+        return getAnyExtOrTrunc(Op, DL, VT);
+      case ISD::ZERO_EXTEND:
+        return getZExtOrTrunc(Op, DL, VT);
+      case ISD::SIGN_EXTEND:
+        return getSExtOrTrunc(Op, DL, VT);
+    }
+    llvm_unreachable("Unsupported opcode");
+  }
+
+  /// Convert Op, which must be of integer type, to the
   /// integer type VT, by either sign/zero-extending (depending on IsSigned) or
   /// truncating it.
   SDValue getExtOrTrunc(bool IsSigned, SDValue Op, const SDLoc &DL, EVT VT) {
     return IsSigned ? getSExtOrTrunc(Op, DL, VT) : getZExtOrTrunc(Op, DL, VT);
   }
+
+  /// Convert Op, which must be of integer type, to the
+  /// integer type VT, by first bitcasting (from potential vector) to
+  /// corresponding scalar type then either any-extending or truncating it.
+  SDValue getBitcastedAnyExtOrTrunc(SDValue Op, const SDLoc &DL, EVT VT);
+
+  /// Convert Op, which must be of integer type, to the
+  /// integer type VT, by first bitcasting (from potential vector) to
+  /// corresponding scalar type then either sign-extending or truncating it.
+  SDValue getBitcastedSExtOrTrunc(SDValue Op, const SDLoc &DL, EVT VT);
+
+  /// Convert Op, which must be of integer type, to the
+  /// integer type VT, by first bitcasting (from potential vector) to
+  /// corresponding scalar type then either zero-extending or truncating it.
+  SDValue getBitcastedZExtOrTrunc(SDValue Op, const SDLoc &DL, EVT VT);
 
   /// Return the expression required to zero extend the Op
   /// value assuming it was the smaller SrcTy value.
@@ -1012,7 +1041,7 @@ public:
   // Unlike getObjectPtrOffset this does not set NoUnsignedWrap by default
   SDValue getPointerAdd(const SDLoc &DL, SDValue Ptr, int64_t Offset,
                         const SDNodeFlags Flags = SDNodeFlags()) {
-    return getMemBasePlusOffset(Ptr, TypeSize::Fixed(Offset), DL, Flags);
+    return getMemBasePlusOffset(Ptr, TypeSize::getFixed(Offset), DL, Flags);
   }
 
   // Unlike getObjectPtrOffset this does not set NoUnsignedWrap by default
@@ -1348,18 +1377,6 @@ public:
                   MachineMemOperand::Flags MMOFlags = MachineMemOperand::MONone,
                   const AAMDNodes &AAInfo = AAMDNodes(),
                   const MDNode *Ranges = nullptr);
-  /// FIXME: Remove once transition to Align is over.
-  LLVM_DEPRECATED("Use the getLoad function that takes a MaybeAlign instead",
-                  "")
-  inline SDValue
-  getLoad(EVT VT, const SDLoc &dl, SDValue Chain, SDValue Ptr,
-          MachinePointerInfo PtrInfo, unsigned Alignment,
-          MachineMemOperand::Flags MMOFlags = MachineMemOperand::MONone,
-          const AAMDNodes &AAInfo = AAMDNodes(),
-          const MDNode *Ranges = nullptr) {
-    return getLoad(VT, dl, Chain, Ptr, PtrInfo, MaybeAlign(Alignment), MMOFlags,
-                   AAInfo, Ranges);
-  }
   SDValue getLoad(EVT VT, const SDLoc &dl, SDValue Chain, SDValue Ptr,
                   MachineMemOperand *MMO);
   SDValue
@@ -1390,19 +1407,6 @@ public:
                    Alignment.value_or(getEVTAlign(MemVT)), MMOFlags, AAInfo,
                    Ranges);
   }
-  /// FIXME: Remove once transition to Align is over.
-  LLVM_DEPRECATED("Use the getLoad function that takes a MaybeAlign instead",
-                  "")
-  inline SDValue
-  getLoad(ISD::MemIndexedMode AM, ISD::LoadExtType ExtType, EVT VT,
-          const SDLoc &dl, SDValue Chain, SDValue Ptr, SDValue Offset,
-          MachinePointerInfo PtrInfo, EVT MemVT, unsigned Alignment,
-          MachineMemOperand::Flags MMOFlags = MachineMemOperand::MONone,
-          const AAMDNodes &AAInfo = AAMDNodes(),
-          const MDNode *Ranges = nullptr) {
-    return getLoad(AM, ExtType, VT, dl, Chain, Ptr, Offset, PtrInfo, MemVT,
-                   MaybeAlign(Alignment), MMOFlags, AAInfo, Ranges);
-  }
   SDValue getLoad(ISD::MemIndexedMode AM, ISD::LoadExtType ExtType, EVT VT,
                   const SDLoc &dl, SDValue Chain, SDValue Ptr, SDValue Offset,
                   EVT MemVT, MachineMemOperand *MMO);
@@ -1426,16 +1430,6 @@ public:
                     Alignment.value_or(getEVTAlign(Val.getValueType())),
                     MMOFlags, AAInfo);
   }
-  /// FIXME: Remove once transition to Align is over.
-  LLVM_DEPRECATED("Use the version that takes a MaybeAlign instead", "")
-  inline SDValue
-  getStore(SDValue Chain, const SDLoc &dl, SDValue Val, SDValue Ptr,
-           MachinePointerInfo PtrInfo, unsigned Alignment,
-           MachineMemOperand::Flags MMOFlags = MachineMemOperand::MONone,
-           const AAMDNodes &AAInfo = AAMDNodes()) {
-    return getStore(Chain, dl, Val, Ptr, PtrInfo, MaybeAlign(Alignment),
-                    MMOFlags, AAInfo);
-  }
   SDValue getStore(SDValue Chain, const SDLoc &dl, SDValue Val, SDValue Ptr,
                    MachineMemOperand *MMO);
   SDValue
@@ -1452,16 +1446,6 @@ public:
     return getTruncStore(Chain, dl, Val, Ptr, PtrInfo, SVT,
                          Alignment.value_or(getEVTAlign(SVT)), MMOFlags,
                          AAInfo);
-  }
-  /// FIXME: Remove once transition to Align is over.
-  LLVM_DEPRECATED("Use the version that takes a MaybeAlign instead", "")
-  inline SDValue
-  getTruncStore(SDValue Chain, const SDLoc &dl, SDValue Val, SDValue Ptr,
-                MachinePointerInfo PtrInfo, EVT SVT, unsigned Alignment,
-                MachineMemOperand::Flags MMOFlags = MachineMemOperand::MONone,
-                const AAMDNodes &AAInfo = AAMDNodes()) {
-    return getTruncStore(Chain, dl, Val, Ptr, PtrInfo, SVT,
-                         MaybeAlign(Alignment), MMOFlags, AAInfo);
   }
   SDValue getTruncStore(SDValue Chain, const SDLoc &dl, SDValue Val,
                         SDValue Ptr, EVT SVT, MachineMemOperand *MMO);
@@ -1970,10 +1954,10 @@ public:
   SDValue FoldConstantArithmetic(unsigned Opcode, const SDLoc &DL, EVT VT,
                                  ArrayRef<SDValue> Ops);
 
-  /// Fold floating-point operations with 2 operands when both operands are
-  /// constants and/or undefined.
+  /// Fold floating-point operations when all operands are constants and/or
+  /// undefined.
   SDValue foldConstantFPMath(unsigned Opcode, const SDLoc &DL, EVT VT,
-                             SDValue N1, SDValue N2);
+                             ArrayRef<SDValue> Ops);
 
   /// Constant fold a setcc to true or false.
   SDValue FoldSetCC(EVT VT, SDValue N1, SDValue N2, ISD::CondCode Cond,
@@ -2047,6 +2031,11 @@ public:
                     : computeOverflowForUnsignedAdd(N0, N1);
   }
 
+  /// Determine if the result of the addition of 2 nodes can never overflow.
+  bool willNotOverflowAdd(bool IsSigned, SDValue N0, SDValue N1) const {
+    return computeOverflowForAdd(IsSigned, N0, N1) == OFK_Never;
+  }
+
   /// Determine if the result of the signed sub of 2 nodes can overflow.
   OverflowKind computeOverflowForSignedSub(SDValue N0, SDValue N1) const;
 
@@ -2058,6 +2047,29 @@ public:
                                      SDValue N1) const {
     return IsSigned ? computeOverflowForSignedSub(N0, N1)
                     : computeOverflowForUnsignedSub(N0, N1);
+  }
+
+  /// Determine if the result of the sub of 2 nodes can never overflow.
+  bool willNotOverflowSub(bool IsSigned, SDValue N0, SDValue N1) const {
+    return computeOverflowForSub(IsSigned, N0, N1) == OFK_Never;
+  }
+
+  /// Determine if the result of the signed mul of 2 nodes can overflow.
+  OverflowKind computeOverflowForSignedMul(SDValue N0, SDValue N1) const;
+
+  /// Determine if the result of the unsigned mul of 2 nodes can overflow.
+  OverflowKind computeOverflowForUnsignedMul(SDValue N0, SDValue N1) const;
+
+  /// Determine if the result of the mul of 2 nodes can overflow.
+  OverflowKind computeOverflowForMul(bool IsSigned, SDValue N0,
+                                     SDValue N1) const {
+    return IsSigned ? computeOverflowForSignedMul(N0, N1)
+                    : computeOverflowForUnsignedMul(N0, N1);
+  }
+
+  /// Determine if the result of the mul of 2 nodes can never overflow.
+  bool willNotOverflowMul(bool IsSigned, SDValue N0, SDValue N1) const {
+    return computeOverflowForMul(IsSigned, N0, N1) == OFK_Never;
   }
 
   /// Test if the given value is known to have exactly one bit set. This differs
@@ -2148,6 +2160,12 @@ public:
   bool canCreateUndefOrPoison(SDValue Op, bool PoisonOnly = false,
                               bool ConsiderFlags = true,
                               unsigned Depth = 0) const;
+
+  /// Return true if the specified operand is an ISD::OR or ISD::XOR node
+  /// that can be treated as an ISD::ADD node.
+  /// or(x,y) == add(x,y) iff haveNoCommonBitsSet(x,y)
+  /// xor(x,y) == add(x,y) iff isMinSignedConstant(y)
+  bool isADDLike(SDValue Op) const;
 
   /// Return true if the specified operand is an ISD::ADD with a ConstantSDNode
   /// on the right-hand side, or if it is an ISD::OR with a ConstantSDNode that

@@ -82,6 +82,9 @@ public:
       CodeGen::CodeGenModule &CGM,
       const llvm::MapVector<GlobalDecl, StringRef> &MangledDeclNames) const {}
 
+  /// Provides a convenient hook to handle extra target-specific globals.
+  virtual void emitTargetGlobals(CodeGen::CodeGenModule &CGM) const {}
+
   /// Any further codegen related checks that need to be done on a function call
   /// in a target specific manner.
   virtual void checkFunctionCallABI(CodeGenModule &CGM, SourceLocation CallLoc,
@@ -554,7 +557,8 @@ createPPC64_SVR4_TargetCodeGenInfo(CodeGenModule &CGM, PPC64_SVR4_ABIKind Kind,
                                    bool SoftFloatABI);
 
 std::unique_ptr<TargetCodeGenInfo>
-createRISCVTargetCodeGenInfo(CodeGenModule &CGM, unsigned XLen, unsigned FLen);
+createRISCVTargetCodeGenInfo(CodeGenModule &CGM, unsigned XLen, unsigned FLen,
+                             bool EABI);
 
 std::unique_ptr<TargetCodeGenInfo>
 createCommonSPIRTargetCodeGenInfo(CodeGenModule &CGM);

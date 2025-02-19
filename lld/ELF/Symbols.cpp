@@ -41,7 +41,7 @@ LLVM_ATTRIBUTE_UNUSED static inline void assertSymbols() {
   AssertSymbol<CommonSymbol>();
   AssertSymbol<Undefined>();
   AssertSymbol<SharedSymbol>();
-  AssertSymbol<LazyObject>();
+  AssertSymbol<LazySymbol>();
 }
 
 // Returns a symbol for an error message.
@@ -58,9 +58,6 @@ std::string lld::toString(const elf::Symbol &sym) {
     ret += suffix;
   return ret;
 }
-
-static std::string getLocationNonTemplate(InputSectionBase *isec,
-                                          uint64_t symOffset);
 
 std::string lld::verboseToString(const Symbol *b, uint64_t symOffset) {
   std::string msg;
@@ -109,7 +106,7 @@ std::string lld::verboseToString(const Symbol *b, uint64_t symOffset) {
   if (name.empty()) {
     if (dr && dr->section) {
       if (isec) {
-        name = getLocationNonTemplate(isec, symOffset);
+        name = isec->getLocation(symOffset);
       } else {
         name = (dr->section->name + "+0x" + utohexstr(symOffset)).str();
       }
@@ -219,7 +216,7 @@ static uint64_t getSymVA(const Symbol &sym, int64_t addend) {
   case Symbol::SharedKind:
   case Symbol::UndefinedKind:
     return 0;
-  case Symbol::LazyObjectKind:
+  case Symbol::LazyKind:
     llvm_unreachable("lazy symbol reached writer");
   case Symbol::CommonKind:
     llvm_unreachable("common symbol reached writer");
@@ -421,12 +418,13 @@ void elf::maybeWarnUnorderableSymbol(const Symbol *sym) {
   if (!config->warnSymbolOrdering)
     return;
 
-  // If UnresolvedPolicy::Ignore is used, no "undefined symbol" error/warning
-  // is emitted. It makes sense to not warn on undefined symbols.
+  // If UnresolvedPolicy::Ignore is used, no "undefined symbol" error/warning is
+  // emitted. It makes sense to not warn on undefined symbols (excluding those
+  // demoted by demoteSymbols).
   //
   // Note, ld.bfd --symbol-ordering-file= does not warn on undefined symbols,
   // but we don't have to be compatible here.
-  if (sym->isUndefined() &&
+  if (sym->isUndefined() && !cast<Undefined>(sym)->discardedSecIdx &&
       config->unresolvedSymbols == UnresolvedPolicy::Ignore)
     return;
 
@@ -435,9 +433,12 @@ void elf::maybeWarnUnorderableSymbol(const Symbol *sym) {
 
   auto report = [&](StringRef s) { warn(toString(file) + s + sym->getName()); };
 
-  if (sym->isUndefined())
-    report(": unable to order undefined symbol: ");
-  else if (sym->isShared())
+  if (sym->isUndefined()) {
+    if (cast<Undefined>(sym)->discardedSecIdx)
+      report(": unable to order discarded symbol: ");
+    else
+      report(": unable to order undefined symbol: ");
+  } else if (sym->isShared())
     report(": unable to order shared symbol: ");
   else if (d && !d->section)
     report(": unable to order absolute symbol: ");
@@ -445,22 +446,6 @@ void elf::maybeWarnUnorderableSymbol(const Symbol *sym) {
     report(": unable to order synthetic symbol: ");
   else if (d && !d->section->isLive())
     report(": unable to order discarded symbol: ");
-}
-
-static std::string getLocationNonTemplate(InputSectionBase *isec,
-                                          uint64_t symOffset) {
-  switch (config->ekind) {
-  default:
-    llvm_unreachable("Invalid kind");
-  case ELF32LEKind:
-    return isec->getLocation<ELF32LE>(symOffset);
-  case ELF32BEKind:
-    return isec->getLocation<ELF32BE>(symOffset);
-  case ELF64LEKind:
-    return isec->getLocation<ELF64LE>(symOffset);
-  case ELF64BEKind:
-    return isec->getLocation<ELF64BE>(symOffset);
-  }
 }
 
 // Returns true if a symbol can be replaced at load-time by a symbol
@@ -486,6 +471,8 @@ bool elf::computeIsPreemptible(const Symbol &sym) {
   // in the dynamic list. -Bsymbolic-non-weak-functions is a non-weak subset of
   // -Bsymbolic-functions.
   if (config->symbolic ||
+      (config->bsymbolic == BsymbolicKind::NonWeak &&
+       sym.binding != STB_WEAK) ||
       (config->bsymbolic == BsymbolicKind::Functions && sym.isFunc()) ||
       (config->bsymbolic == BsymbolicKind::NonWeakFunctions && sym.isFunc() &&
        sym.binding != STB_WEAK))
@@ -738,7 +725,7 @@ void Symbol::resolve(const Defined &other) {
     other.overwrite(*this);
 }
 
-void Symbol::resolve(const LazyObject &other) {
+void Symbol::resolve(const LazySymbol &other) {
   if (isPlaceholder()) {
     other.overwrite(*this);
     return;
@@ -797,4 +784,14 @@ void Symbol::resolve(const SharedSymbol &other) {
     binding = bind;
   } else if (traced)
     printTraceSymbol(other, getName());
+}
+
+void Defined::overwrite(Symbol &sym) const {
+  if (isa_and_nonnull<SharedFile>(sym.file))
+    sym.versionId = VER_NDX_GLOBAL;
+  Symbol::overwrite(sym, DefinedKind);
+  auto &s = static_cast<Defined &>(sym);
+  s.value = value;
+  s.size = size;
+  s.section = section;
 }

@@ -9,7 +9,7 @@ define dso_local chericcallcce i32 @_Z2swi(i32 noundef %v) local_unnamed_addr ad
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:    addi a0, a0, -1
 ; CHECK-NEXT:    li a1, 8
-; CHECK-NEXT:    bltu a1, a0, .LBB0_3
+; CHECK-NEXT:    bltu a1, a0, .LBB0_13
 ; CHECK-NEXT:  # %bb.1: # %entry
 ; CHECK-NEXT:    cincoffset csp, csp, -16
 ; CHECK-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
@@ -28,41 +28,41 @@ define dso_local chericcallcce i32 @_Z2swi(i32 noundef %v) local_unnamed_addr ad
 ; CHECK-NEXT:    cjr ca0
 ; CHECK-NEXT:  .LBB0_2: # %sw.bb
 ; CHECK-NEXT:    ccall a
-; CHECK-NEXT:    j .LBB0_12
-; CHECK-NEXT:  .LBB0_3:
-; CHECK-NEXT:    li a0, 12
-; CHECK-NEXT:    j .LBB0_13
-; CHECK-NEXT:  .LBB0_4: # %sw.bb1
-; CHECK-NEXT:    ccall b
-; CHECK-NEXT:    j .LBB0_12
-; CHECK-NEXT:  .LBB0_5: # %sw.bb4
-; CHECK-NEXT:    ccall c
-; CHECK-NEXT:    j .LBB0_12
-; CHECK-NEXT:  .LBB0_6: # %sw.bb7
-; CHECK-NEXT:    ccall d
-; CHECK-NEXT:    j .LBB0_12
-; CHECK-NEXT:  .LBB0_7: # %sw.bb10
+; CHECK-NEXT:    j .LBB0_11
+; CHECK-NEXT:  .LBB0_3: # %sw.bb10
 ; CHECK-NEXT:    ccall e
-; CHECK-NEXT:    j .LBB0_12
+; CHECK-NEXT:    j .LBB0_11
+; CHECK-NEXT:  .LBB0_4: # %sw.bb4
+; CHECK-NEXT:    ccall c
+; CHECK-NEXT:    j .LBB0_11
+; CHECK-NEXT:  .LBB0_5: # %sw.bb7
+; CHECK-NEXT:    ccall d
+; CHECK-NEXT:    j .LBB0_11
+; CHECK-NEXT:  .LBB0_6: # %sw.bb19
+; CHECK-NEXT:    ccall h
+; CHECK-NEXT:    j .LBB0_11
+; CHECK-NEXT:  .LBB0_7: # %sw.bb1
+; CHECK-NEXT:    ccall b
+; CHECK-NEXT:    j .LBB0_11
 ; CHECK-NEXT:  .LBB0_8: # %sw.bb13
 ; CHECK-NEXT:    ccall f
-; CHECK-NEXT:    j .LBB0_12
+; CHECK-NEXT:    j .LBB0_11
 ; CHECK-NEXT:  .LBB0_9: # %sw.bb16
 ; CHECK-NEXT:    ccall g
-; CHECK-NEXT:    j .LBB0_12
-; CHECK-NEXT:  .LBB0_10: # %sw.bb19
-; CHECK-NEXT:    ccall h
-; CHECK-NEXT:    j .LBB0_12
-; CHECK-NEXT:  .LBB0_11: # %sw.bb22
+; CHECK-NEXT:    j .LBB0_11
+; CHECK-NEXT:  .LBB0_10: # %sw.bb22
 ; CHECK-NEXT:    ccall i
-; CHECK-NEXT:  .LBB0_12:
+; CHECK-NEXT:  .LBB0_11:
 ; CHECK-NEXT:    addi a0, a0, 12
 ; CHECK-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
 ; CHECK-NEXT:    cincoffset csp, csp, 16
-; CHECK-NEXT:  .LBB0_13: # %sw.epilog
+; CHECK-NEXT:  .LBB0_12: # %sw.epilog
 ; CHECK-NEXT:    slli a0, a0, 1
 ; CHECK-NEXT:    li a1, 0
 ; CHECK-NEXT:    cret
+; CHECK-NEXT:  .LBB0_13:
+; CHECK-NEXT:    li a0, 12
+; CHECK-NEXT:    j .LBB0_12
 entry:
   switch i32 %v, label %sw.epilog [
     i32 1, label %sw.bb

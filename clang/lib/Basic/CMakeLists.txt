@@ -3,6 +3,7 @@ set(LLVM_LINK_COMPONENTS
   # FIXME: only needed for MCTargetOptions::cheriCapabilityTableABI
   MC
   TargetParser
+  FrontendOpenMP
   )
 
 # In a standard Clang+LLVM build, we need to generate intrinsics before
@@ -50,6 +51,8 @@ add_custom_command(OUTPUT "${version_inc}"
                            "-DHEADER_FILE=${version_inc}"
                            "-DLLVM_VC_REPOSITORY=${llvm_vc_repository}"
                            "-DLLVM_VC_REVISION=${llvm_vc_revision}"
+                           "-DLLVM_FORCE_VC_REVISION=${LLVM_FORCE_VC_REVISION}"
+                           "-DLLVM_FORCE_VC_REPOSITORY=${LLVM_FORCE_VC_REPOSITORY}"
                            -P "${generate_vcs_version_script}")
 
 # Mark the generated header as being generated.
@@ -94,6 +97,7 @@ add_clang_library(clangBasic
   Sarif.cpp
   SourceLocation.cpp
   SourceManager.cpp
+  SourceMgrAdapter.cpp
   Stack.cpp
   TargetID.cpp
   TargetInfo.cpp
@@ -137,6 +141,7 @@ add_clang_library(clangBasic
   DEPENDS
   ${basic_deps}
   omp_gen
+  ClangDriverOptions
   )
 
 target_link_libraries(clangBasic

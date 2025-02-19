@@ -55,7 +55,7 @@ SymbolAndOffset::fromSectionWithOffset(InputSectionBase *isec, int64_t offset,
   int64_t fallbackOffset = offset;
   // For internal symbols we don't have a matching InputFile, just return
   auto* file = isec->file;
-  if (!file) {
+  if (!file || file->isInternal()) {
     if (Default)
       return *Default;
     return {isec, offset};
@@ -82,7 +82,7 @@ SymbolAndOffset::fromSectionWithOffset(InputSectionBase *isec, int64_t offset,
     // worst case we fall back to the section + offset
     // Don't warn if the relocation is against an anonymous string constant
     // since clang won't emit a symbol (and no size) for those
-    if (!isec->name.startswith(".rodata.str"))
+    if (!isec->name.starts_with(".rodata.str"))
       nonFatalWarning("Could not find a real symbol for " + isec->name +
            "+0x" + utohexstr(offset) + " in " + toString(isec->file));
     // Could not find a symbol -> return section+offset
@@ -425,7 +425,7 @@ static uint64_t getTargetSize(const CheriCapRelocLocation &location,
     if (Defined *definedSym =
       dyn_cast<Defined>(targetSym)) {
       if (definedSym->isSection() &&
-          definedSym->section->name.startswith(".rodata.str")) {
+          definedSym->section->name.starts_with(".rodata.str")) {
         warnAboutUnknownSize = false;
       }
     }
@@ -613,18 +613,7 @@ void CheriCapTableSection::writeTo(uint8_t* buf) {
 
 static Defined *findMatchingFunction(const InputSectionBase *isec,
                                      uint64_t symOffset) {
-  switch (config->ekind) {
-  default:
-    llvm_unreachable("Invalid kind");
-  case ELF32LEKind:
-    return isec->getEnclosingFunction<ELF32LE>(symOffset);
-  case ELF32BEKind:
-    return isec->getEnclosingFunction<ELF32BE>(symOffset);
-  case ELF64LEKind:
-    return isec->getEnclosingFunction<ELF64LE>(symOffset);
-  case ELF64BEKind:
-    return isec->getEnclosingFunction<ELF64BE>(symOffset);
-  }
+  return isec->getEnclosingFunction(symOffset);
 }
 
 CheriCapTableSection::CaptableMap &
@@ -842,7 +831,7 @@ uint64_t CheriCapTableSection::assignIndices(uint64_t startIndex,
     // For now always append .INDEX to local symbols @CAPTABLE names since they
     // might not be unique. If there is a global with the same name we always
     // want the global to have the plain @CAPTABLE name
-    if (name.empty() /* || Name.startswith(".L") */ || targetSym->isLocal())
+    if (name.empty() /* || Name.starts_with(".L") */ || targetSym->isLocal())
       refName = saver().save(name + "@CAPTABLE" + symContext + "." + Twine(index));
     else
       refName = saver().save(name + "@CAPTABLE" + symContext);

@@ -6,7 +6,7 @@ define ptr addrspace(200) @wrap_mempcpy(ptr addrspace(200) %dst, ptr addrspace(2
 ; CHECK:       # %bb.0:
 ; CHECK-NEXT:    cincoffset $c11, $c11, -[[#STACKFRAME_SIZE:]]
 ; CHECK-NEXT:    csd $16, $zero, [[# STACKFRAME_SIZE - 8]]($c11)
-; CHECK-NEXT:    csc $c18, $zero, [[#CAP_SIZE * 1]]($c11)
+; CHECK-NEXT:    csc $c18, $zero, [[#CAP_SIZE]]($c11)
 ; CHECK-NEXT:    csc $c17, $zero, 0($c11)
 ; CHECK-NEXT:    move $16, $4
 ; CHECK-NEXT:    lui $1, %pcrel_hi(_CHERI_CAPABILITY_TABLE_-8)
@@ -17,7 +17,7 @@ define ptr addrspace(200) @wrap_mempcpy(ptr addrspace(200) %dst, ptr addrspace(2
 ; CHECK-NEXT:    cmove $c18, $c3
 ; CHECK-NEXT:    cincoffset $c3, $c18, $16
 ; CHECK-NEXT:    clc $c17, $zero, 0($c11)
-; CHECK-NEXT:    clc $c18, $zero, [[#CAP_SIZE * 1]]($c11)
+; CHECK-NEXT:    clc $c18, $zero, [[#CAP_SIZE]]($c11)
 ; CHECK-NEXT:    cld $16, $zero, [[# STACKFRAME_SIZE - 8]]($c11)
 ; CHECK-NEXT:    cjr $c17
 ; CHECK-NEXT:    cincoffset $c11, $c11, [[#STACKFRAME_SIZE]]

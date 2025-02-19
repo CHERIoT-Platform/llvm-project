@@ -7,7 +7,7 @@
 ; RUN: opt -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+cap-mode,+f,+d -passes=instcombine -S < %s | llc -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+cap-mode,+f,+d | FileCheck %s --check-prefix=PURECAP
 ; RUN: opt -mtriple=riscv64 --relocation-model=pic -target-abi lp64d -mattr=+xcheri,+f,+d -passes=instcombine -S < %s | llc -mtriple=riscv64 --relocation-model=pic -target-abi lp64d -mattr=+xcheri,+f,+d | FileCheck %s --check-prefix=HYBRID
 
-define internal i8 addrspace(200)* @test(i8 addrspace(200)* addrspace(200)* %ptr, i8 addrspace(200)* %cap, i64 %offset) nounwind {
+define internal i8 addrspace(200)* @test(i8 addrspace(200)* addrspace(200)* %ptr, i8 addrspace(200)* %cap, i64 %offset) addrspace(200) nounwind {
 ; PURECAP-LABEL: test:
 ; PURECAP:       # %bb.0: # %entry
 ; PURECAP-NEXT:    cfromptr ca1, ca1, a2
@@ -22,7 +22,7 @@ define internal i8 addrspace(200)* @test(i8 addrspace(200)* addrspace(200)* %ptr
 ; HYBRID-NEXT:    cmove ca0, ca1
 ; HYBRID-NEXT:    ret
 ; CHECK-IR-LABEL: define {{[^@]+}}@test
-; CHECK-IR-SAME: (ptr addrspace(200) [[PTR:%.*]], ptr addrspace(200) [[CAP:%.*]], i64 [[OFFSET:%.*]]) #[[ATTR0:[0-9]+]] {
+; CHECK-IR-SAME: (ptr addrspace(200) [[PTR:%.*]], ptr addrspace(200) [[CAP:%.*]], i64 [[OFFSET:%.*]]) addrspace(200) #[[ATTR0:[0-9]+]] {
 ; CHECK-IR-NEXT:  entry:
 ; CHECK-IR-NEXT:    [[NEW:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.from.pointer.i64(ptr addrspace(200) [[CAP]], i64 [[OFFSET]])
 ; CHECK-IR-NEXT:    store ptr addrspace(200) [[NEW]], ptr addrspace(200) [[PTR]], align 16
@@ -60,7 +60,7 @@ entry:
 }
 
 ;; Check that (int_cheri_cap_from_ptr ddc, x) can use the DDC register directly
-define internal i8 addrspace(200)* @cap_from_ptr_ddc(i8 addrspace(200)* addrspace(200)* %ptr, i64 %offset) nounwind {
+define internal i8 addrspace(200)* @cap_from_ptr_ddc(i8 addrspace(200)* addrspace(200)* %ptr, i64 %offset) addrspace(200) nounwind {
 ; PURECAP-LABEL: cap_from_ptr_ddc:
 ; PURECAP:       # %bb.0: # %entry
 ; PURECAP-NEXT:    cfromptr ca1, ddc, a1
@@ -75,7 +75,7 @@ define internal i8 addrspace(200)* @cap_from_ptr_ddc(i8 addrspace(200)* addrspac
 ; HYBRID-NEXT:    cmove ca0, ca1
 ; HYBRID-NEXT:    ret
 ; CHECK-IR-LABEL: define {{[^@]+}}@cap_from_ptr_ddc
-; CHECK-IR-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[OFFSET:%.*]]) #[[ATTR0]] {
+; CHECK-IR-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[OFFSET:%.*]]) addrspace(200) #[[ATTR0]] {
 ; CHECK-IR-NEXT:  entry:
 ; CHECK-IR-NEXT:    [[DDC:%.*]] = call ptr addrspace(200) @llvm.cheri.ddc.get()
 ; CHECK-IR-NEXT:    [[NEW:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.from.pointer.i64(ptr addrspace(200) [[DDC]], i64 [[OFFSET]])
@@ -90,7 +90,7 @@ entry:
 }
 
 ;; Check that (int_cheri_cap_from_ptr x, 0) -> null has priority over direct DDC usage
-define internal i8 addrspace(200)* @cap_from_ptr_ddc_zero(i8 addrspace(200)* addrspace(200)* %ptr) nounwind {
+define internal i8 addrspace(200)* @cap_from_ptr_ddc_zero(i8 addrspace(200)* addrspace(200)* %ptr) addrspace(200) nounwind {
 ; PURECAP-LABEL: cap_from_ptr_ddc_zero:
 ; PURECAP:       # %bb.0: # %entry
 ; PURECAP-NEXT:    csc cnull, 0(ca0)
@@ -103,7 +103,7 @@ define internal i8 addrspace(200)* @cap_from_ptr_ddc_zero(i8 addrspace(200)* add
 ; HYBRID-NEXT:    cmove ca0, cnull
 ; HYBRID-NEXT:    ret
 ; CHECK-IR-LABEL: define {{[^@]+}}@cap_from_ptr_ddc_zero
-; CHECK-IR-SAME: (ptr addrspace(200) [[PTR:%.*]]) #[[ATTR0]] {
+; CHECK-IR-SAME: (ptr addrspace(200) [[PTR:%.*]]) addrspace(200) #[[ATTR0]] {
 ; CHECK-IR-NEXT:  entry:
 ; CHECK-IR-NEXT:    store ptr addrspace(200) null, ptr addrspace(200) [[PTR]], align 16
 ; CHECK-IR-NEXT:    ret ptr addrspace(200) null
@@ -116,7 +116,7 @@ entry:
 }
 
 ;; Check that (int_cheri_cap_from_ptr null, x) does not use register zero (since that is DDC)
-define internal i8 addrspace(200)* @cap_from_ptr_null(i8 addrspace(200)* addrspace(200)* %ptr, i64 %offset) nounwind {
+define internal i8 addrspace(200)* @cap_from_ptr_null(i8 addrspace(200)* addrspace(200)* %ptr, i64 %offset) addrspace(200) nounwind {
 ; PURECAP-LABEL: cap_from_ptr_null:
 ; PURECAP:       # %bb.0: # %entry
 ; PURECAP-NEXT:    cmove ca2, cnull
@@ -133,7 +133,7 @@ define internal i8 addrspace(200)* @cap_from_ptr_null(i8 addrspace(200)* addrspa
 ; HYBRID-NEXT:    cmove ca0, ca1
 ; HYBRID-NEXT:    ret
 ; CHECK-IR-LABEL: define {{[^@]+}}@cap_from_ptr_null
-; CHECK-IR-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[OFFSET:%.*]]) #[[ATTR0]] {
+; CHECK-IR-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[OFFSET:%.*]]) addrspace(200) #[[ATTR0]] {
 ; CHECK-IR-NEXT:  entry:
 ; CHECK-IR-NEXT:    [[NEW:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.from.pointer.i64(ptr addrspace(200) null, i64 [[OFFSET]])
 ; CHECK-IR-NEXT:    store ptr addrspace(200) [[NEW]], ptr addrspace(200) [[PTR]], align 16

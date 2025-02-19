@@ -218,6 +218,7 @@ llvm::Type* MipsABIInfo::HandleAggregates(QualType Ty, uint64_t TySize) const {
             ArgList.push_back(I64);
           const uint64_t TySize = getContext().getTypeSize(Ty);
           LastOffset = Offset + TySize;
+          (void)CapSize;
           assert(CapSize == TySize || (Ty->isMemberFunctionPointerType() && TySize == 2 * CapSize));
           ArgList.push_back(CGT.ConvertType(Ty));
           continue;

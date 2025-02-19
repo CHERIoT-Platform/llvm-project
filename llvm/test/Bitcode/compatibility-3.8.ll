@@ -332,8 +332,6 @@ declare ghccc void @f.ghccc()
 ; CHECK: declare ghccc void @f.ghccc()
 declare cc11 void @f.cc11()
 ; CHECK: declare cc11 void @f.cc11()
-declare webkit_jscc void @f.webkit_jscc()
-; CHECK: declare webkit_jscc void @f.webkit_jscc()
 declare anyregcc void @f.anyregcc()
 ; CHECK: declare anyregcc void @f.anyregcc()
 declare preserve_mostcc void @f.preserve_mostcc()
@@ -1315,7 +1313,7 @@ define void @intrinsics.codegen() {
 
   %stack = call i8* @llvm.stacksave()
   ; CHECK: %stack = call ptr @llvm.stacksave.p0()
-  call void @llvm.stackrestore.p0i8(i8* %stack)
+  call void @llvm.stackrestore(i8* %stack)
   ; CHECK: call void @llvm.stackrestore.p0(ptr %stack)
 
   call void @llvm.prefetch(i8* %stack, i32 0, i32 3, i32 0)

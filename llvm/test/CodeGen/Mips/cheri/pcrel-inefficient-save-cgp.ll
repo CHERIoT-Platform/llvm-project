@@ -12,7 +12,7 @@ define ptr addrspace(200) @_ZN16QGraphicsWebView8settingsEv(ptr addrspace(200) %
 ; PLT-LABEL: _ZN16QGraphicsWebView8settingsEv:
 ; PLT:       # %bb.0: # %entry
 ; PLT-NEXT:    cincoffset $c11, $c11, -[[STACKFRAME_SIZE:32|64]]
-; PLT-NEXT:    csc $c18, $zero, [[#CAP_SIZE * 1]]($c11)
+; PLT-NEXT:    csc $c18, $zero, [[#CAP_SIZE]]($c11)
 ; PLT-NEXT:    csc $c17, $zero, 0($c11)
 ; PLT-NEXT:    cmove $c18, $c26
 ; PLT-NEXT:    clcbi $c12, %capcall20(_ZN16QGraphicsWebView4pageEv)($c18)
@@ -23,14 +23,14 @@ define ptr addrspace(200) @_ZN16QGraphicsWebView8settingsEv(ptr addrspace(200) %
 ; PLT-NEXT:    cmove $c26, $c18
 ; PLT-NEXT:    cmove $c26, $c18
 ; PLT-NEXT:    clc $c17, $zero, 0($c11)
-; PLT-NEXT:    clc $c18, $zero, [[#CAP_SIZE * 1]]($c11)
+; PLT-NEXT:    clc $c18, $zero, [[#CAP_SIZE]]($c11)
 ; PLT-NEXT:    cjr $c17
 ; PLT-NEXT:    cincoffset $c11, $c11, [[STACKFRAME_SIZE]]
 ;
 ; PCREL-LABEL: _ZN16QGraphicsWebView8settingsEv:
 ; PCREL:       # %bb.0: # %entry
 ; PCREL-NEXT:    cincoffset $c11, $c11, -[[STACKFRAME_SIZE:32|64]]
-; PCREL-NEXT:    csc $c18, $zero, [[#CAP_SIZE * 1]]($c11)
+; PCREL-NEXT:    csc $c18, $zero, [[#CAP_SIZE]]($c11)
 ; PCREL-NEXT:    csc $c17, $zero, 0($c11)
 ; PCREL-NEXT:    lui $1, %pcrel_hi(_CHERI_CAPABILITY_TABLE_-8)
 ; PCREL-NEXT:    daddiu $1, $1, %pcrel_lo(_CHERI_CAPABILITY_TABLE_-4)
@@ -42,7 +42,7 @@ define ptr addrspace(200) @_ZN16QGraphicsWebView8settingsEv(ptr addrspace(200) %
 ; PCREL-NEXT:    cjalr $c12, $c17
 ; PCREL-NEXT:    nop
 ; PCREL-NEXT:    clc $c17, $zero, 0($c11)
-; PCREL-NEXT:    clc $c18, $zero, [[#CAP_SIZE * 1]]($c11)
+; PCREL-NEXT:    clc $c18, $zero, [[#CAP_SIZE]]($c11)
 ; PCREL-NEXT:    cjr $c17
 ; PCREL-NEXT:    cincoffset $c11, $c11, [[STACKFRAME_SIZE]]
 entry:

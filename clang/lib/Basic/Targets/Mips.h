@@ -79,6 +79,7 @@ class LLVM_LIBRARY_VISIBILITY MipsTargetInfo : public TargetInfo {
   bool HasMSA;
   bool DisableMadd4;
   bool UseIndirectJumpHazard;
+  bool NoOddSpreg;
 
 protected:
   enum FPModeEnum { FPXX, FP32, FP64 } FPMode;
@@ -342,12 +343,14 @@ public:
     case 'r': // CPU registers.
     case 'd': // Equivalent to "r" unless generating MIPS16 code.
     case 'y': // Equivalent to "r", backward compatibility only.
-    case 'f': // floating-point registers.
     case 'c': // $25 for indirect jumps
     case 'l': // lo register
     case 'x': // hilo register pair
       Info.setAllowsRegister();
       return true;
+    case 'f': // floating-point registers.
+      Info.setAllowsRegister();
+      return FloatABI != SoftFloat;
     case 'I': // Signed 16-bit constant
     case 'J': // Integer 0
     case 'K': // Unsigned 16-bit constant
@@ -432,6 +435,8 @@ public:
     FloatABI = HardFloat;
     DspRev = NoDSP;
     FPMode = isFP64Default() ? FP64 : FPXX;
+    NoOddSpreg = false;
+    bool OddSpregGiven = false;
     bool CapSizeFeatureFound = false;
 
     for (const auto &Feature : Features) {
@@ -483,7 +488,17 @@ public:
         IsNoABICalls = true;
       else if (Feature == "+use-indirect-jump-hazard")
         UseIndirectJumpHazard = true;
+      else if (Feature == "+nooddspreg") {
+        NoOddSpreg = true;
+        OddSpregGiven = false;
+      } else if (Feature == "-nooddspreg") {
+        NoOddSpreg = false;
+        OddSpregGiven = true;
+      }
     }
+
+    if (FPMode == FPXX && !OddSpregGiven)
+      NoOddSpreg = true;
 
     if (IsCHERI) {
       // If we have an implicit size, assume cheri128

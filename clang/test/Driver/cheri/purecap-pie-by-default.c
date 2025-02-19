@@ -1,8 +1,8 @@
 
-// RUN: %cheri_purecap_clang -### -no-canonical-prefixes %s -pie -shared 2>&1 | FileCheck -check-prefix PIE-AND-SHARED %s
-// RUN: %cheri_purecap_clang -### -no-canonical-prefixes %s -shared -pie 2>&1 | FileCheck -check-prefix PIE-AND-SHARED %s
-// RUN: %cheri_purecap_clang -### -no-canonical-prefixes %s -pie -r 2>&1 | FileCheck -check-prefix PIE-AND-RELOCATABLE %s
-// RUN: %cheri_purecap_clang -### -no-canonical-prefixes %s -r -pie 2>&1 | FileCheck -check-prefix PIE-AND-RELOCATABLE %s
+// RUN: not %cheri_purecap_clang -### -no-canonical-prefixes %s -pie -shared 2>&1 | FileCheck -check-prefix PIE-AND-SHARED %s
+// RUN: not %cheri_purecap_clang -### -no-canonical-prefixes %s -shared -pie 2>&1 | FileCheck -check-prefix PIE-AND-SHARED %s
+// RUN: not %cheri_purecap_clang -### -no-canonical-prefixes %s -pie -r 2>&1 | FileCheck -check-prefix PIE-AND-RELOCATABLE %s
+// RUN: not %cheri_purecap_clang -### -no-canonical-prefixes %s -r -pie 2>&1 | FileCheck -check-prefix PIE-AND-RELOCATABLE %s
 
 // PIE-AND-SHARED: error: invalid argument '-pie' not allowed with '-shared'
 // PIE-AND-RELOCATABLE: error: invalid argument '-pie' not allowed with '-r'
@@ -25,7 +25,7 @@
 // RUN: %cheri_purecap_clang -### -no-canonical-prefixes %s 2>&1 -shared | FileCheck -check-prefix PURECAP-SHARED %s
 // PURECAP-SHARED: "{{.+}}/ld"
 // PURECAP-SHARED-NOT: "-pie"
-// PURECAP-SHARED: "-Bshareable"
+// PURECAP-SHARED: "-shared"
 // PURECAP-SHARED-NOT: "-pie"
 // PURECAP-SHARED: "-o" "a.out" "{{[^"]*}}crtbeginS.o"
 // PURECAP-SHARED-NOT: "-pie"

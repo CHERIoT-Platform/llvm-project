@@ -1225,16 +1225,10 @@ def PseudoCLA_TLS_IE : Pseudo<(outs GPR:$dst, GPCR:$tmp),
                               (ins bare_symbol:$src), [],
                               "cla.tls.ie", "$dst, $src, $tmp">;
 
-def : Pat<(riscv_cla_tls_ie tglobaltlsaddr:$in),
-          (PseudoCLA_TLS_IE  tglobaltlsaddr:$in)>;
-
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0, isCodeGenOnly = 0,
     isAsmParserOnly = 1, Size = 8 in
 def PseudoCLC_TLS_GD : Pseudo<(outs GPCR:$dst), (ins bare_symbol:$src), [],
                               "clc.tls.gd", "$dst, $src">;
-
-def : Pat<(riscv_clc_tls_gd tglobaltlsaddr:$in),
-          (PseudoCLC_TLS_GD  tglobaltlsaddr:$in)>;
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0, isCodeGenOnly = 0 in
 def PseudoCIncOffsetTPRel : Pseudo<(outs GPCR:$rd),
@@ -1671,13 +1665,13 @@ def : StPat<store, SC_128, GPCR, c128>;
 
 let Predicates = [HasCheri, HasStdExtA, IsRV32, NotCapMode] in {
 def : LdPat<atomic_load_cap, LC_64, c64>;
-def : AtomicStPat<atomic_store_cap, SC_64, GPCR, c64>;
+def : StPat<atomic_store_cap, SC_64, GPCR, c64>;
 defm : AMOCapPat<"64", "atomic_swap_cap", "AMOSWAP_C">;
 } // Predicates = [HasCheri, HasStdExtA, IsRV32, NotCapMode]
 
 let Predicates = [HasCheri, HasStdExtA, IsRV64, NotCapMode] in {
 def : LdPat<atomic_load_cap, LC_128, c128>;
-def : AtomicStPat<atomic_store_cap, SC_128, GPCR, c128>;
+def : StPat<atomic_store_cap, SC_128, GPCR, c128>;
 defm : AMOCapPat<"128", "atomic_swap_cap", "AMOSWAP_C">;
 } // Predicates = [HasCheri, HasStdExtA, IsRV64, NotCapMode]
 
@@ -1722,7 +1716,7 @@ multiclass CheriStPat<PatFrag StoreOp, RVInst Inst, RegisterClass StTy, ValueTyp
 }
 
 multiclass CheriAtomicStPat<PatFrag StoreOp, RVInst Inst, RegisterClass StTy, ValueType StoreVt>
-    : CheriStPat<Swap<StoreOp>, Inst, StTy, StoreVt>;
+    : CheriStPat<StoreOp, Inst, StTy, StoreVt>;
 
 multiclass CheriAMOPat<string AtomicOp, string BaseInst> {
   def : PatGpcrGpr<!cast<PatFrag>(AtomicOp#"_monotonic"),
@@ -1796,7 +1790,7 @@ multiclass PseudoCheriCmpXchgPat<string Op, Pseudo CmpXchgInst,
             (CmpXchgInst GPCR:$addr, ValTy:$cmp, ValTy:$new, 6)>;
   def : Pat<(!cast<PatFrag>(Op#"_seq_cst") GPCR:$addr, (vt ValTy:$cmp), (vt ValTy:$new)),
             (CmpXchgInst GPCR:$addr, ValTy:$cmp, ValTy:$new, 7)>;
-}
+} 
 
 multiclass CheriAMOCapPat<string CLenStr, string AtomicOp, string BaseInst> {
   def : PatGpcrGpcr<!cast<PatFrag>(AtomicOp#"_monotonic"),
@@ -2306,3 +2300,4 @@ def PseudoCLLW : Pseudo<(outs GPCR:$dst), (ins bare_symbol:$src), [],
 def : Pat<(load (cPTR (load (iPTR globaladdr:$src)))),
           (PseudoCLLW bare_symbol:$src)>;
 } // Predicates = [HasCheri, IsRV32, IsCapMode, IsRVE]
+ 

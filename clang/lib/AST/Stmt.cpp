@@ -48,9 +48,6 @@
 
 using namespace clang;
 
-static_assert((int)CK_IntToOCLSampler < ((1 << CAST_KIND_BITS) - 1),
-              "Need more cast kind bits");
-
 static struct StmtClassNameTable {
   const char *Name;
   unsigned Counter;
@@ -814,11 +811,12 @@ std::string MSAsmStmt::generateAsmString(const ASTContext &C) const {
     StringRef Instruction = Pieces[I];
     // For vex/vex2/vex3/evex masm style prefix, convert it to att style
     // since we don't support masm style prefix in backend.
-    if (Instruction.startswith("vex "))
+    if (Instruction.starts_with("vex "))
       MSAsmString += '{' + Instruction.substr(0, 3).str() + '}' +
                      Instruction.substr(3).str();
-    else if (Instruction.startswith("vex2 ") ||
-             Instruction.startswith("vex3 ") || Instruction.startswith("evex "))
+    else if (Instruction.starts_with("vex2 ") ||
+             Instruction.starts_with("vex3 ") ||
+             Instruction.starts_with("evex "))
       MSAsmString += '{' + Instruction.substr(0, 4).str() + '}' +
                      Instruction.substr(4).str();
     else

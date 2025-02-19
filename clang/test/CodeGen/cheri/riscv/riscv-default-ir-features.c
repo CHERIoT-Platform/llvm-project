@@ -42,10 +42,10 @@
 
 // RV32-NOCHERI: target datalayout = "e-m:e-p:32:32-i64:64-n32-S128"
 // RV64-NOCHERI: target datalayout = "e-m:e-p:64:64-i64:64-i128:128-n32:64-S128"
-// RV32-XCHERI: target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128"
-// RV64-XCHERI: target datalayout = "e-m:e-pf200:128:128:128:64-p:64:64-i64:64-i128:128-n32:64-S128"
-// RV32-XCHERI-PURECAP: target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G200"
-// RV64-XCHERI-PURECAP: target datalayout = "e-m:e-pf200:128:128:128:64-p:64:64-i64:64-i128:128-n32:64-S128-A200-P200-G200"
+// RV32-XCHERI: target datalayout = "e-m:e-p:32:32-i64:64-n32-S128-pf200:64:64:64:32"
+// RV64-XCHERI: target datalayout = "e-m:e-p:64:64-i64:64-i128:128-n32:64-S128-pf200:128:128:128:64"
+// RV32-XCHERI-PURECAP: target datalayout = "e-m:e-p:32:32-i64:64-n32-S128-pf200:64:64:64:32-A200-P200-G200"
+// RV64-XCHERI-PURECAP: target datalayout = "e-m:e-p:64:64-i64:64-i128:128-n32:64-S128-pf200:128:128:128:64-A200-P200-G200"
 
 // LLVM lists all negative features, so we only check the positive ones and the negative ones we care about here.
 // CHECK: "target-features"="[[FEATURES]],-

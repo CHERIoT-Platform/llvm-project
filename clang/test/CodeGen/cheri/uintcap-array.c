@@ -129,20 +129,20 @@ struct uintptr_struct uintptr_struct_bss;
 // ASM-NEXT: 	.chericap	5246977
 // ASM-NEXT: 	.chericap	uintptr_constant_int
 // ASM-NEXT: 	.chericap	0
-// ASM-NEXT: 	.size	uintptr_array, [[#CAP_SIZE * 4]]
+// ASM-NEXT: 	.size	uintptr_array, [[#mul(CAP_SIZE,4)]]
 
 // ASM-LABEL: uintptr_array_2:
 // ASM-NEXT: 	.chericap	1
 // ASM-NEXT: 	.chericap	0
 // ASM-NEXT: 	.chericap	0
-// ASM-NEXT: 	.size	uintptr_array_2, [[#CAP_SIZE * 3]]
+// ASM-NEXT: 	.size	uintptr_array_2, [[#mul(CAP_SIZE,3)]]
 
 // ASM-LABEL: ptr_array:
 // ASM-NEXT: 	.chericap	3
 // ASM-NEXT: 	.chericap	5246977
 // ASM-NEXT: 	.chericap	uintptr_constant_int
 // ASM-NEXT: 	.chericap	0
-// ASM-NEXT: 	.size	ptr_array, [[#CAP_SIZE * 4]]
+// ASM-NEXT: 	.size	ptr_array, [[#mul(CAP_SIZE,4)]]
 
 // ASM-LABEL: one_uintptr_struct:
 // ASM-NEXT: 	.chericap	123
@@ -153,21 +153,21 @@ struct uintptr_struct uintptr_struct_bss;
 // ASM-NEXT: 	.chericap	5246977
 // ASM-NEXT: 	.chericap	uintptr_constant_int
 // ASM-NEXT: 	.space	[[#CAP_SIZE]]
-// ASM-NEXT: 	.size	uintptr_struct_array, [[#CAP_SIZE * 4]]
+// ASM-NEXT: 	.size	uintptr_struct_array, [[#mul(CAP_SIZE,4)]]
 
 // ASM-LABEL: .L__const.func.uintptr_struct_array:
 // ASM-NEXT: 	.chericap	5246977
 // ASM-NEXT: 	.chericap	uintptr_constant_int
-// ASM-NEXT: 	.size	.L__const.func.uintptr_struct_array, [[#CAP_SIZE * 2]]
+// ASM-NEXT: 	.size	.L__const.func.uintptr_struct_array, [[#mul(CAP_SIZE,2)]]
 
 // ASM-LABEL: .L__const.func.uintptr_array:
 // ASM-NEXT: 	.chericap	3
 // ASM-NEXT: 	.chericap	uintptr_constant_int
-// ASM-NEXT: 	.size	.L__const.func.uintptr_array, [[#CAP_SIZE * 2]]
+// ASM-NEXT: 	.size	.L__const.func.uintptr_array, [[#mul(CAP_SIZE,2)]]
 
 // ASM-LABEL: .type	uintptr_bss,@object
 // ASM-NEXT: .comm	uintptr_bss,[[#CAP_SIZE]],[[#CAP_SIZE]]
 // ASM-NEXT: .type	uintptr_array_bss,@object
-// ASM-NEXT: .comm	uintptr_array_bss,[[#CAP_SIZE * 5]],[[#CAP_SIZE]]
+// ASM-NEXT: .comm	uintptr_array_bss,[[#mul(CAP_SIZE,5)]],[[#CAP_SIZE]]
 // ASM-NEXT: .type	uintptr_struct_bss,@object
 // ASM-NEXT: .comm	uintptr_struct_bss,[[#CAP_SIZE]],[[#CAP_SIZE]]

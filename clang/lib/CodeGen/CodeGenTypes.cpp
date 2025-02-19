@@ -36,6 +36,7 @@ CodeGenTypes::CodeGenTypes(CodeGenModule &cgm)
     Target(cgm.getTarget()), TheCXXABI(cgm.getCXXABI()),
     TheABIInfo(cgm.getTargetCodeGenInfo().getABIInfo()) {
   SkippedLayout = false;
+  LongDoubleReferenced = false;
 }
 
 CodeGenTypes::~CodeGenTypes() {
@@ -417,10 +418,12 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
           Context.getLangOpts().NativeHalfType ||
               !Context.getTargetInfo().useFP16ConversionIntrinsics());
       break;
+    case BuiltinType::LongDouble:
+      LongDoubleReferenced = true;
+      LLVM_FALLTHROUGH;
     case BuiltinType::BFloat16:
     case BuiltinType::Float:
     case BuiltinType::Double:
-    case BuiltinType::LongDouble:
     case BuiltinType::Float128:
     case BuiltinType::Ibm128:
       ResultType = getTypeForFormat(getLLVMContext(),
@@ -430,7 +433,7 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
 
     case BuiltinType::NullPtr:
       // Model std::nullptr_t as i8*
-      ResultType = llvm::Type::getInt8PtrTy(getLLVMContext(),
+      ResultType = llvm::PointerType::get(getLLVMContext(),
         CGM.getTargetCodeGenInfo().getDefaultAS());
       break;
 

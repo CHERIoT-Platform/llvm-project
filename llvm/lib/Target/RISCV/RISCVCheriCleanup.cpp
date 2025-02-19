@@ -124,7 +124,7 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
     // register.
     Register SizeReg;
     const RISCVMatInt::InstSeq Seq = RISCVMatInt::generateInstSeq(
-        SafeSize, MF.getSubtarget().getFeatureBits());
+        SafeSize, MF.getSubtarget());
     for (auto &SeqMI : Seq) {
       const Register Out = MRI.createVirtualRegister(&RISCV::GPRRegClass);
       auto &MID = TII->get(SeqMI.getOpcode());

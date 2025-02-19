@@ -77,7 +77,7 @@
 ; MIPS-RELOCS-NEXT: CHERI __cap_relocs [
 ; MIPS-RELOCS-NEXT:   0x02{{.+}} Base: 0x1{{.+}} (.L_Z4testll$local+128) Length: 160 Perms: Function
 ; MIPS-RELOCS-NEXT:   0x02{{.+}} Base: 0x1{{.+}} (.L_Z4testll$local+96) Length: 160 Perms: Function
-; MIPS-RELOCS-NEXT:   0x02{{.+}} Base: 0x1{{.+}} (.L_Z5test2ll$local+96) Length: 168 Perms: Function
+; MIPS-RELOCS-NEXT:   0x02{{.+}} Base: 0x1{{.+}} (.L_Z5test2ll$local+92) Length: 164 Perms: Function
 ; MIPS-RELOCS-NEXT:   0x02{{.+}} Base: 0x1{{.+}} (.L_Z9test_weakll$local+52) Length: 84 Perms: Function
 ; MIPS-RELOCS-NEXT: ]
 
@@ -101,7 +101,7 @@
 ; RV64-RELOCS: CHERI __cap_relocs [
 ; RV64-RELOCS-NEXT:   0x002{{.+}} Base: 0x[[#%x,TEST_ADDR]] (.L_Z4testll$local+92) Length: 116 Perms: Function
 ; RV64-RELOCS-NEXT:   0x002{{.+}} Base: 0x[[#%x,TEST_ADDR]] (.L_Z4testll$local+72) Length: 116 Perms: Function
-; RV64-RELOCS-NEXT:   0x002{{.+}} Base: 0x[[#%x,TEST2_ADDR]] (.L_Z5test2ll$local+72) Length: 124 Perms: Function
+; RV64-RELOCS-NEXT:   0x002{{.+}} Base: 0x[[#%x,TEST2_ADDR]] (.L_Z5test2ll$local+68) Length: 124 Perms: Function
 ; Next one references the local symbol, and uses that length rather than the override:
 ; RV64-RELOCS-NEXT:   0x002{{.+}} Base: 0x[[#%x,TEST_WEAK_ADDR]] (.L_Z9test_weakll$local+28) Length: 52 Perms: Function
 ; RV64-RELOCS-NEXT: ]

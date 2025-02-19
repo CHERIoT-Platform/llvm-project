@@ -427,7 +427,7 @@ locateASTReferent(SourceLocation CurLoc, const syntax::Token *TouchedIdentifier,
       // Special case: virtual void ^method() = 0: jump to all overrides.
       // FIXME: extend it to ^virtual, unfortunately, virtual location is not
       // saved in the AST.
-      if (CMD->isPure()) {
+      if (CMD->isPureVirtual()) {
         if (TouchedIdentifier && SM.getSpellingLoc(CMD->getLocation()) ==
                                      TouchedIdentifier->location()) {
           VirtualMethods.insert(getSymbolID(CMD));
@@ -1334,22 +1334,16 @@ maybeFindIncludeReferences(ParsedAST &AST, Position Pos,
   if (IncludeOnLine == Includes.end())
     return std::nullopt;
 
-  const auto &Inc = *IncludeOnLine;
   const SourceManager &SM = AST.getSourceManager();
   ReferencesResult Results;
-  auto ConvertedMainFileIncludes = convertIncludes(SM, Includes);
-  auto ReferencedInclude = convertIncludes(SM, Inc);
+  auto Converted = convertIncludes(AST);
   include_cleaner::walkUsed(
       AST.getLocalTopLevelDecls(), collectMacroReferences(AST),
-      AST.getPragmaIncludes().get(), SM,
+      &AST.getPragmaIncludes(), AST.getPreprocessor(),
       [&](const include_cleaner::SymbolReference &Ref,
           llvm::ArrayRef<include_cleaner::Header> Providers) {
-        if (Ref.RT != include_cleaner::RefType::Explicit)
-          return;
-
-        auto Provider =
-            firstMatchedProvider(ConvertedMainFileIncludes, Providers);
-        if (!Provider || ReferencedInclude.match(*Provider).empty())
+        if (Ref.RT != include_cleaner::RefType::Explicit ||
+            !isPreferredProvider(*IncludeOnLine, Converted, Providers))
           return;
 
         auto Loc = SM.getFileLoc(Ref.RefLocation);
@@ -1370,8 +1364,8 @@ maybeFindIncludeReferences(ParsedAST &AST, Position Pos,
 
   // Add the #include line to the references list.
   ReferencesResult::Reference Result;
-  Result.Loc.range =
-      rangeTillEOL(SM.getBufferData(SM.getMainFileID()), Inc.HashOffset);
+  Result.Loc.range = rangeTillEOL(SM.getBufferData(SM.getMainFileID()),
+                                  IncludeOnLine->HashOffset);
   Result.Loc.uri = URIMainFile;
   Results.References.push_back(std::move(Result));
   return Results;
@@ -1857,7 +1851,8 @@ std::vector<const CXXRecordDecl *> findRecordTypeAt(ParsedAST &AST,
 
       if (const VarDecl *VD = dyn_cast<VarDecl>(D)) {
         // If this is a variable, use the type of the variable.
-        Records.push_back(VD->getType().getTypePtr()->getAsCXXRecordDecl());
+        if (const auto *RD = VD->getType().getTypePtr()->getAsCXXRecordDecl())
+          Records.push_back(RD);
         continue;
       }
 

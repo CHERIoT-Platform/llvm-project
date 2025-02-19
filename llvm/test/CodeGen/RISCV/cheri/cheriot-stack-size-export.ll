@@ -33,7 +33,9 @@ define dso_local chericcallcce void @_Z13usesHugeStackv() addrspace(200) #0 {
 ; CHECK-LABEL: _Z13usesHugeStackv
 ; Make sure that we allocate a load of things on the stack, it doesn't matter
 ; if this changes to another large value.
-; CHECK: cincoffset      csp, csp, -2032
+; CHECK: lui a0, 1048574
+; CHECK-NEXT: addi a0, a0, 192
+; CHECK-NEXT: cincoffset csp, csp, a0
 entry:
   %x = alloca [2048 x i32], align 4, addrspace(200)
   %arraydecay = getelementptr inbounds [2048 x i32], [2048 x i32] addrspace(200)* %x, i32 0, i32 0

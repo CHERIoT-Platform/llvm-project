@@ -160,6 +160,7 @@ class MipsAsmParser : public MCTargetAsmParser {
   bool IsPicEnabled;
   bool IsCpRestoreSet;
   bool AreCheriSysRegsAccessible;
+  bool CurForbiddenSlotAttr;
   int CpRestoreOffset;
   unsigned GPReg;
   unsigned CpSaveLocation;
@@ -189,10 +190,9 @@ class MipsAsmParser : public MCTargetAsmParser {
                                bool MatchingInlineAsm) override;
 
   /// Parse a register as used in CFI directives
-  bool parseRegister(MCRegister &RegNo, SMLoc &StartLoc,
-                     SMLoc &EndLoc) override;
-  OperandMatchResultTy tryParseRegister(MCRegister &RegNo, SMLoc &StartLoc,
-                                        SMLoc &EndLoc) override;
+  bool parseRegister(MCRegister &Reg, SMLoc &StartLoc, SMLoc &EndLoc) override;
+  ParseStatus tryParseRegister(MCRegister &Reg, SMLoc &StartLoc,
+                               SMLoc &EndLoc) override;
 
   bool parseParenSuffix(StringRef Name, OperandVector &Operands);
 
@@ -578,6 +578,7 @@ public:
 
     CurrentFn = nullptr;
 
+    CurForbiddenSlotAttr = false;
     IsPicEnabled = getContext().getObjectFileInfo()->isPositionIndependent();
 
     IsCpRestoreSet = false;
@@ -764,6 +765,16 @@ public:
   bool hasGINV() const {
     return getSTI().hasFeature(Mips::FeatureGINV);
   }
+
+  bool hasForbiddenSlot(const MCInstrDesc &MCID) const {
+    return !inMicroMipsMode() && (MCID.TSFlags & MipsII::HasForbiddenSlot);
+  }
+
+  bool SafeInForbiddenSlot(const MCInstrDesc &MCID) const {
+    return !(MCID.TSFlags & MipsII::IsCTI);
+  }
+
+  void onEndOfFile() override;
 
   /// Warn if RegIndex is the same as the current AT.
   void warnIfRegIndexIsAT(unsigned RegIndex, SMLoc Loc);
@@ -2582,7 +2593,41 @@ bool MipsAsmParser::processInstruction(MCInst &Inst, SMLoc IDLoc,
 
   bool FillDelaySlot =
       MCID.hasDelaySlot() && AssemblerOptions.back()->isReorder();
-  if (FillDelaySlot)
+
+  // Get previous instruction`s forbidden slot attribute and
+  // whether set reorder.
+  bool PrevForbiddenSlotAttr = CurForbiddenSlotAttr;
+
+  // Flag represents we set reorder after nop.
+  bool SetReorderAfterNop = false;
+
+  // If previous instruction has forbidden slot and .set reorder
+  // is active and current instruction is CTI.
+  // Then emit a NOP after it.
+  if (PrevForbiddenSlotAttr && !SafeInForbiddenSlot(MCID)) {
+    TOut.emitEmptyDelaySlot(false, IDLoc, STI);
+    // When 'FillDelaySlot' is true, the existing logic will add
+    // noreorder before instruction and reorder after it. So there
+    // need exclude this case avoiding two '.set reorder'.
+    // The format of the first case is:
+    // .set noreorder
+    // bnezc
+    // nop
+    // .set reorder
+    if (AssemblerOptions.back()->isReorder() && !FillDelaySlot) {
+      SetReorderAfterNop = true;
+      TOut.emitDirectiveSetReorder();
+    }
+  }
+
+  // Save current instruction`s forbidden slot and whether set reorder.
+  // This is the judgment condition for whether to add nop.
+  // We would add a couple of '.set noreorder' and '.set reorder' to
+  // wrap the current instruction and the next instruction.
+  CurForbiddenSlotAttr =
+      hasForbiddenSlot(MCID) && AssemblerOptions.back()->isReorder();
+
+  if (FillDelaySlot || CurForbiddenSlotAttr)
     TOut.emitDirectiveSetNoReorder();
 
   MacroExpanderResultTy ExpandResult =
@@ -2597,6 +2642,17 @@ bool MipsAsmParser::processInstruction(MCInst &Inst, SMLoc IDLoc,
     return true;
   }
 
+  // When current instruction was not CTI, recover reorder state.
+  // The format of the second case is:
+  // .set noreoder
+  // bnezc
+  // add
+  // .set reorder
+  if (PrevForbiddenSlotAttr && !SetReorderAfterNop && !FillDelaySlot &&
+      AssemblerOptions.back()->isReorder()) {
+    TOut.emitDirectiveSetReorder();
+  }
+
   // We know we emitted an instruction on the MER_NotAMacro or MER_Success path.
   // If we're in microMIPS mode then we must also set EF_MIPS_MICROMIPS.
   if (inMicroMipsMode()) {
@@ -2606,6 +2662,14 @@ bool MipsAsmParser::processInstruction(MCInst &Inst, SMLoc IDLoc,
 
   // If this instruction has a delay slot and .set reorder is active,
   // emit a NOP after it.
+  // The format of the third case is:
+  // .set noreorder
+  // bnezc
+  // nop
+  // .set noreorder
+  // j
+  // nop
+  // .set reorder
   if (FillDelaySlot) {
     TOut.emitEmptyDelaySlot(hasShortDelaySlot(Inst), IDLoc, STI);
     TOut.emitDirectiveSetReorder();
@@ -2629,6 +2693,17 @@ bool MipsAsmParser::processInstruction(MCInst &Inst, SMLoc IDLoc,
   }
 
   return false;
+}
+
+void MipsAsmParser::onEndOfFile() {
+  MipsTargetStreamer &TOut = getTargetStreamer();
+  SMLoc IDLoc = SMLoc();
+  // If has pending forbidden slot, fill nop and recover reorder.
+  if (CurForbiddenSlotAttr) {
+    TOut.emitEmptyDelaySlot(false, IDLoc, STI);
+    if (AssemblerOptions.back()->isReorder())
+      TOut.emitDirectiveSetReorder();
+  }
 }
 
 MipsAsmParser::MacroExpanderResultTy
@@ -3263,6 +3338,11 @@ bool MipsAsmParser::loadAndAddSymbolAddress(const MCExpr *SymExpr,
         (Res.getSymA()->getSymbol().isELF() &&
          cast<MCSymbolELF>(Res.getSymA()->getSymbol()).getBinding() ==
              ELF::STB_LOCAL);
+    // For O32, "$"-prefixed symbols are recognized as temporary while
+    // .L-prefixed symbols are not (PrivateGlobalPrefix is "$"). Recognize ".L"
+    // manually.
+    if (ABI.IsO32() && Res.getSymA()->getSymbol().getName().starts_with(".L"))
+      IsLocalSym = true;
     bool UseXGOT = STI->hasFeature(Mips::FeatureXGOT) && !IsLocalSym;
 
     // The case where the result register is $25 is somewhat special. If the
@@ -6823,13 +6903,13 @@ int MipsAsmParser::matchCheriRegisterName(StringRef Name,
 
 int MipsAsmParser::matchCheriHWRegsRegisterName(StringRef Name) {
   LLVM_DEBUG(dbgs() << "matchCheriHWRegsRegisterName(" << Name << ")\n");
-  if (!Name.startswith("chwr_"))
+  if (!Name.starts_with("chwr_"))
     return -1;
 
   int Result = -1;
   for (int Reg = Mips::CAPHWR0; Reg <= Mips::CAPHWR31; Reg++) {
     StringRef RegName = MipsInstPrinter::getRegisterName(Reg);
-    if (RegName.startswith("chwr_") && Name == RegName) {
+    if (RegName.starts_with("chwr_") && Name == RegName) {
       Result = Reg - Mips::CAPHWR0;
       LLVM_DEBUG(dbgs() << "-> CheriHWReg " << Result << ")\n");
       break;
@@ -6841,7 +6921,7 @@ int MipsAsmParser::matchCheriHWRegsRegisterName(StringRef Name) {
 
 
 int MipsAsmParser::matchFCCRegisterName(StringRef Name) {
-  if (Name.startswith("fcc")) {
+  if (Name.starts_with("fcc")) {
     StringRef NumString = Name.substr(3);
     unsigned IntVal;
     if (NumString.getAsInteger(10, IntVal))
@@ -6854,7 +6934,7 @@ int MipsAsmParser::matchFCCRegisterName(StringRef Name) {
 }
 
 int MipsAsmParser::matchACRegisterName(StringRef Name) {
-  if (Name.startswith("ac")) {
+  if (Name.starts_with("ac")) {
     StringRef NumString = Name.substr(2);
     unsigned IntVal;
     if (NumString.getAsInteger(10, IntVal))
@@ -6951,7 +7031,7 @@ bool MipsAsmParser::parseOperand(OperandVector &Operands, StringRef Mnemonic) {
       return true;
 
     SMLoc E = SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
-    MCSymbol *Sym = getContext().getOrCreateSymbol("$" + Identifier);
+    MCSymbol *Sym = getContext().getOrCreateSymbol(Identifier);
     // Otherwise create a symbol reference.
     const MCExpr *SymRef =
         MCSymbolRefExpr::create(Sym, MCSymbolRefExpr::VK_None, getContext());
@@ -6976,14 +7056,13 @@ bool MipsAsmParser::parseOperand(OperandVector &Operands, StringRef Mnemonic) {
   return true;
 }
 
-bool MipsAsmParser::parseRegister(MCRegister &RegNo, SMLoc &StartLoc,
+bool MipsAsmParser::parseRegister(MCRegister &Reg, SMLoc &StartLoc,
                                   SMLoc &EndLoc) {
-  return tryParseRegister(RegNo, StartLoc, EndLoc) != MatchOperand_Success;
+  return !tryParseRegister(Reg, StartLoc, EndLoc).isSuccess();
 }
 
-OperandMatchResultTy MipsAsmParser::tryParseRegister(MCRegister &RegNo,
-                                                     SMLoc &StartLoc,
-                                                     SMLoc &EndLoc) {
+ParseStatus MipsAsmParser::tryParseRegister(MCRegister &Reg, SMLoc &StartLoc,
+                                            SMLoc &EndLoc) {
   SmallVector<std::unique_ptr<MCParsedAsmOperand>, 1> Operands;
   ParseStatus Res = parseAnyRegister(Operands);
   if (Res.isSuccess()) {
@@ -6996,22 +7075,21 @@ OperandMatchResultTy MipsAsmParser::tryParseRegister(MCRegister &RegNo,
     // directives.
     // Don't worry about eating tokens before failing. Using an unrecognised
     // register is a parse error.
-    RegNo = -1;
+    Reg = -1;
     if (Operand.isGPRAsmReg()) {
       // Resolve to GPR32 or GPR64 appropriately.
-      RegNo = isGP64bit() ? Operand.getGPR64Reg() : Operand.getGPR32Reg();
+      Reg = isGP64bit() ? Operand.getGPR64Reg() : Operand.getGPR32Reg();
     } else if (Operand.isCheriAsmReg()) {
-      RegNo = Operand.getCheriReg();
+      Reg = Operand.getCheriReg();
     } else {
       llvm_unreachable("Got non-GPR register in .cfi directive!");
     }
 
-    return (RegNo == (unsigned)-1) ? MatchOperand_NoMatch
-                                   : MatchOperand_Success;
+    return (Reg == (unsigned)-1) ? ParseStatus::NoMatch : ParseStatus::Success;
   }
 
   assert(Operands.size() == 0);
-  return (RegNo == (unsigned)-1) ? MatchOperand_NoMatch : MatchOperand_Success;
+  return (Reg == (unsigned)-1) ? ParseStatus::NoMatch : ParseStatus::Success;
 }
 
 bool MipsAsmParser::parseMemOffset(const MCExpr *&Res, bool isParenExpr) {
@@ -7168,7 +7246,7 @@ bool MipsAsmParser::searchSymbolAlias(OperandVector &Operands) {
     if (Expr->getKind() == MCExpr::SymbolRef) {
       const MCSymbolRefExpr *Ref = static_cast<const MCSymbolRefExpr *>(Expr);
       StringRef DefSymbol = Ref->getSymbol().getName();
-      if (DefSymbol.startswith("$")) {
+      if (DefSymbol.starts_with("$")) {
         ParseStatus Res =
             matchAnyRegisterNameWithoutDollar(Operands, DefSymbol.substr(1), S);
         if (Res.isSuccess()) {

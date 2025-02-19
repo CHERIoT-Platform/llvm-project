@@ -26,40 +26,46 @@ namespace targets {
 // RISC-V Target
 class RISCVTargetInfo : public TargetInfo {
   void setDataLayout() {
-    StringRef Layout;
+    std::string Layout;
     IsABICHERIoT = false;
     IsABICHERIoTBareMetal = false;
 
     if (ABI == "ilp32" || ABI == "ilp32f" || ABI == "ilp32d" ||
-        ABI == "ilp32e" ||
         ABI == "cheriot" || ABI == "cheriot-baremetal" ||
         ABI == "il32pc64" || ABI == "il32pc64f" || ABI == "il32pc64d" ||
         ABI == "il32pc64e") {
+      Layout += "e-m:e-p:32:32-i64:64-n32-S128";
       if (HasCheri)
-        Layout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128";
-      else
-        Layout = "e-m:e-p:32:32-i64:64-n32-S128";
-      if (ABI == "cheriot" || ABI == "cheriot-baremetal") {
-        IsABICHERIoT = true;
-        if (ABI == "cheriot-baremetal")
-          IsABICHERIoTBareMetal = true;
-        EmptyParameterListIsVoid = true;
-      }
+        Layout += "-pf200:64:64:64:32";
+    } else if (ABI == "ilp32e") {
+      Layout = "e-m:e-p:32:32-i64:64-n32-S32";
+      if (HasCheri)
+        Layout += "-pf200:64:64:64:32";
     } else if (ABI == "lp64" || ABI == "lp64f" || ABI == "lp64d" ||
-               ABI == "l64pc128" || ABI == "l64pc128f" || ABI == "l64pc128d") {
+               ABI == "l64pc128" || ABI == "l64pc128f" ||
+               ABI == "l64pc128d") {
+      Layout = "e-m:e-p:64:64-i64:64-i128:128-n32:64-S128";
       if (HasCheri)
-        Layout = "e-m:e-pf200:128:128:128:64-p:64:64-i64:64-i128:128-n32:64-S128";
-      else
-        Layout = "e-m:e-p:64:64-i64:64-i128:128-n32:64-S128";
+        Layout += "-pf200:128:128:128:64";
+    } else if (ABI == "lp64e") {
+      Layout = "e-m:e-p:64:64-i64:64-i128:128-n32:64-S64";
+      if (HasCheri)
+        Layout += "-pf200:128:128:128:64";
     } else
       llvm_unreachable("Invalid ABI");
 
-    StringRef PurecapOptions = "";
+    if (ABI == "cheriot" || ABI == "cheriot-baremetal") {
+      IsABICHERIoT = true;
+      if (ABI == "cheriot-baremetal")
+        IsABICHERIoTBareMetal = true;
+      EmptyParameterListIsVoid = true;
+    }
+
     // Only set globals address space to 200 for cap-table mode
     if (CapabilityABI)
-      PurecapOptions = "-A200-P200-G200";
+      Layout += "-A200-P200-G200";
 
-    resetDataLayout((Layout + PurecapOptions).str());
+    resetDataLayout(Layout);
   }
 
 protected:
@@ -74,9 +80,16 @@ protected:
     IntPtrType = TargetInfo::SignedIntCap;
   }
 
+private:
+  bool FastUnalignedAccess;
+  bool HasExperimental = false;
+
 public:
   RISCVTargetInfo(const llvm::Triple &Triple, const TargetOptions &)
       : TargetInfo(Triple) {
+    BFloat16Width = 16;
+    BFloat16Align = 16;
+    BFloat16Format = &llvm::APFloat::BFloat();
     LongDoubleWidth = 128;
     LongDoubleAlign = 128;
     LongDoubleFormat = &llvm::APFloat::IEEEquad();
@@ -181,6 +194,8 @@ public:
 
   bool hasBitIntType() const override { return true; }
 
+  bool hasBFloat16Type() const override { return true; }
+
   bool useFP16ConversionIntrinsics() const override {
     return false;
   }
@@ -189,6 +204,8 @@ public:
   void fillValidCPUList(SmallVectorImpl<StringRef> &Values) const override;
   bool isValidTuneCPUName(StringRef Name) const override;
   void fillValidTuneCPUList(SmallVectorImpl<StringRef> &Values) const override;
+  bool supportsTargetAttributeTune() const override { return true; }
+  ParsedTargetAttr parseTargetAttr(StringRef Str) const override;
 
   CallingConvCheckResult checkCallingConvention(CallingConv CC) const override {
     if ((CC == CallingConv::CC_CHERICCall) ||
@@ -216,6 +233,12 @@ public:
   }
 
   bool setABI(const std::string &Name) override {
+    if (Name == "ilp32e") {
+      ABI = Name;
+      resetDataLayout("e-m:e-p:32:32-i64:64-n32-S32");
+      return true;
+    }
+
     if (Name == "ilp32" || Name == "ilp32f" || Name == "ilp32d") {
       ABI = Name;
       return true;
@@ -249,6 +272,12 @@ public:
   }
 
   bool setABI(const std::string &Name) override {
+    if (Name == "lp64e") {
+      ABI = Name;
+      resetDataLayout("e-m:e-p:64:64-i64:64-i128:128-n32:64-S64");
+      return true;
+    }
+
     if (Name == "lp64" || Name == "lp64f" || Name == "lp64d") {
       ABI = Name;
       return true;

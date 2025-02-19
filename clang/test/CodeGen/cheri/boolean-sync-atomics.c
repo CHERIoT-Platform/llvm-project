@@ -16,11 +16,11 @@ atomic_b_t value;
 // N64-NEXT:    store i8 [[FROMBOOL1]], ptr [[DESIRED_ADDR]], align 1
 // N64-NEXT:    [[TMP0:%.*]] = load i8, ptr [[EXPECTED_ADDR]], align 1
 // N64-NEXT:    [[TOBOOL:%.*]] = trunc i8 [[TMP0]] to i1
+// N64-NEXT:    [[FROMBOOL2:%.*]] = zext i1 [[TOBOOL]] to i8
 // N64-NEXT:    [[TMP1:%.*]] = load i8, ptr [[DESIRED_ADDR]], align 1
-// N64-NEXT:    [[TOBOOL2:%.*]] = trunc i8 [[TMP1]] to i1
-// N64-NEXT:    [[FROMBOOL3:%.*]] = zext i1 [[TOBOOL]] to i8
-// N64-NEXT:    [[FROMBOOL4:%.*]] = zext i1 [[TOBOOL2]] to i8
-// N64-NEXT:    [[TMP2:%.*]] = cmpxchg ptr @value, i8 [[FROMBOOL3]], i8 [[FROMBOOL4]] seq_cst seq_cst, align 1
+// N64-NEXT:    [[TOBOOL3:%.*]] = trunc i8 [[TMP1]] to i1
+// N64-NEXT:    [[FROMBOOL4:%.*]] = zext i1 [[TOBOOL3]] to i8
+// N64-NEXT:    [[TMP2:%.*]] = cmpxchg ptr @value, i8 [[FROMBOOL2]], i8 [[FROMBOOL4]] seq_cst seq_cst, align 1
 // N64-NEXT:    [[TMP3:%.*]] = extractvalue { i8, i1 } [[TMP2]], 0
 // N64-NEXT:    [[TOBOOL5:%.*]] = trunc i8 [[TMP3]] to i1
 // N64-NEXT:    ret i1 [[TOBOOL5]]
@@ -35,11 +35,11 @@ atomic_b_t value;
 // PURECAP-NEXT:    store i8 [[FROMBOOL1]], ptr addrspace(200) [[DESIRED_ADDR]], align 1
 // PURECAP-NEXT:    [[TMP0:%.*]] = load i8, ptr addrspace(200) [[EXPECTED_ADDR]], align 1
 // PURECAP-NEXT:    [[TOBOOL:%.*]] = trunc i8 [[TMP0]] to i1
+// PURECAP-NEXT:    [[FROMBOOL2:%.*]] = zext i1 [[TOBOOL]] to i8
 // PURECAP-NEXT:    [[TMP1:%.*]] = load i8, ptr addrspace(200) [[DESIRED_ADDR]], align 1
-// PURECAP-NEXT:    [[TOBOOL2:%.*]] = trunc i8 [[TMP1]] to i1
-// PURECAP-NEXT:    [[FROMBOOL3:%.*]] = zext i1 [[TOBOOL]] to i8
-// PURECAP-NEXT:    [[FROMBOOL4:%.*]] = zext i1 [[TOBOOL2]] to i8
-// PURECAP-NEXT:    [[TMP2:%.*]] = cmpxchg ptr addrspace(200) @value, i8 [[FROMBOOL3]], i8 [[FROMBOOL4]] seq_cst seq_cst, align 1
+// PURECAP-NEXT:    [[TOBOOL3:%.*]] = trunc i8 [[TMP1]] to i1
+// PURECAP-NEXT:    [[FROMBOOL4:%.*]] = zext i1 [[TOBOOL3]] to i8
+// PURECAP-NEXT:    [[TMP2:%.*]] = cmpxchg ptr addrspace(200) @value, i8 [[FROMBOOL2]], i8 [[FROMBOOL4]] seq_cst seq_cst, align 1
 // PURECAP-NEXT:    [[TMP3:%.*]] = extractvalue { i8, i1 } [[TMP2]], 0
 // PURECAP-NEXT:    [[TOBOOL5:%.*]] = trunc i8 [[TMP3]] to i1
 // PURECAP-NEXT:    ret i1 [[TOBOOL5]]

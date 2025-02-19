@@ -117,7 +117,7 @@ bool Symbolizer::SymbolizeData(vaddr addr, DataInfo *info) {
       return true;
     }
   }
-  return true;
+  return false;
 }
 
 bool Symbolizer::SymbolizeFrame(vaddr addr, FrameInfo *info) {
@@ -133,7 +133,7 @@ bool Symbolizer::SymbolizeFrame(vaddr addr, FrameInfo *info) {
       return true;
     }
   }
-  return true;
+  return false;
 }
 
 bool Symbolizer::GetModuleNameAndOffsetForPC(vaddr pc, const char **module_name,
@@ -159,13 +159,16 @@ void Symbolizer::Flush() {
 }
 
 const char *Symbolizer::Demangle(const char *name) {
+  CHECK(name);
   Lock l(&mu_);
   for (auto &tool : tools_) {
     SymbolizerScope sym_scope(this);
     if (const char *demangled = tool.Demangle(name))
       return demangled;
   }
-  return PlatformDemangle(name);
+  if (const char *demangled = PlatformDemangle(name))
+    return demangled;
+  return name;
 }
 
 bool Symbolizer::FindModuleNameAndOffsetForAddress(vaddr address,
@@ -186,6 +189,13 @@ void Symbolizer::RefreshModules() {
   fallback_modules_.fallbackInit();
   RAW_CHECK(modules_.size() > 0);
   modules_fresh_ = true;
+}
+
+const ListOfModules &Symbolizer::GetRefreshedListOfModules() {
+  if (!modules_fresh_)
+    RefreshModules();
+
+  return modules_;
 }
 
 static const LoadedModule *SearchForModule(const ListOfModules &modules,
@@ -382,8 +392,8 @@ void ParseSymbolizeDataOutput(const char *str, DataInfo *info) {
   str = ExtractUSize(str, "\n", &info->line);
 }
 
-static void ParseSymbolizeFrameOutput(const char *str,
-                                      InternalMmapVector<LocalInfo> *locals) {
+void ParseSymbolizeFrameOutput(const char *str,
+                               InternalMmapVector<LocalInfo> *locals) {
   if (internal_strncmp(str, "??", 2) == 0)
     return;
 

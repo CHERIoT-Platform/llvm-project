@@ -2117,7 +2117,7 @@ bool MasmParser::parseStatement(ParseStatementInfo &Info,
     // Treat ".<number>" as a valid identifier in this context.
     IDVal = getTok().getString();
     Lex(); // always eat a token
-    if (!IDVal.startswith("."))
+    if (!IDVal.starts_with("."))
       return Error(IDLoc, "unexpected token at start of statement");
   } else if (parseIdentifier(IDVal, StartOfStatement)) {
     if (!TheCondState.Ignore) {
@@ -6235,8 +6235,8 @@ bool MasmParser::parseDirectiveIfdef(SMLoc DirectiveLoc, bool expect_defined) {
     bool is_defined = false;
     MCRegister Reg;
     SMLoc StartLoc, EndLoc;
-    is_defined = (getTargetParser().tryParseRegister(Reg, StartLoc, EndLoc) ==
-                  MatchOperand_Success);
+    is_defined =
+        getTargetParser().tryParseRegister(Reg, StartLoc, EndLoc).isSuccess();
     if (!is_defined) {
       StringRef Name;
       if (check(parseIdentifier(Name), "expected identifier after 'ifdef'") ||
@@ -6355,8 +6355,8 @@ bool MasmParser::parseDirectiveElseIfdef(SMLoc DirectiveLoc,
     bool is_defined = false;
     MCRegister Reg;
     SMLoc StartLoc, EndLoc;
-    is_defined = (getTargetParser().tryParseRegister(Reg, StartLoc, EndLoc) ==
-                  MatchOperand_Success);
+    is_defined =
+        getTargetParser().tryParseRegister(Reg, StartLoc, EndLoc).isSuccess();
     if (!is_defined) {
       StringRef Name;
       if (check(parseIdentifier(Name),
@@ -6527,8 +6527,8 @@ bool MasmParser::parseDirectiveErrorIfdef(SMLoc DirectiveLoc,
   bool IsDefined = false;
   MCRegister Reg;
   SMLoc StartLoc, EndLoc;
-  IsDefined = (getTargetParser().tryParseRegister(Reg, StartLoc, EndLoc) ==
-               MatchOperand_Success);
+  IsDefined =
+      getTargetParser().tryParseRegister(Reg, StartLoc, EndLoc).isSuccess();
   if (!IsDefined) {
     StringRef Name;
     if (check(parseIdentifier(Name), "expected identifier after '.errdef'"))
@@ -7191,7 +7191,7 @@ bool MasmParser::parseDirectiveRadix(SMLoc DirectiveLoc) {
 bool MasmParser::parseDirectiveEcho(SMLoc DirectiveLoc) {
   std::string Message = parseStringTo(AsmToken::EndOfStatement);
   llvm::outs() << Message;
-  if (!StringRef(Message).endswith("\n"))
+  if (!StringRef(Message).ends_with("\n"))
     llvm::outs() << '\n';
   return false;
 }

@@ -108,6 +108,7 @@ class LLVMConfig(object):
         # part of the standard header.  But currently they aren't)
         host_triple = getattr(config, "host_triple", None)
         target_triple = getattr(config, "target_triple", None)
+        features.add("host=%s" % host_triple)
         features.add("target=%s" % target_triple)
         if host_triple and host_triple == target_triple:
             features.add("native")
@@ -691,17 +692,23 @@ class LLVMConfig(object):
             self.config.substitutions.append(
                 ('%resource_dir', builtin_include_dir))
 
+        # There will be no default target triple if one was not specifically
+        # set, and the host's architecture is not an enabled target.
         if self.config.target_triple:
             self.config.substitutions.append(
-                ('%itanium_abi_triple', self.make_itanium_abi_triple(self.config.target_triple))
+                (
+                    "%itanium_abi_triple",
+                    self.make_itanium_abi_triple(self.config.target_triple),
+                )
             )
             self.config.substitutions.append(
-                ('%ms_abi_triple', self.make_msabi_triple(self.config.target_triple))
+                ("%ms_abi_triple", self.make_msabi_triple(self.config.target_triple))
             )
         else:
-            self.lit_config.note(
-                "No default target triple was found, some tests may fail as a result."
-            )
+            if not self.lit_config.quiet:
+                self.lit_config.note(
+                    "No default target triple was found, some tests may fail as a result."
+                )
             self.config.substitutions.append(("%itanium_abi_triple", ""))
             self.config.substitutions.append(("%ms_abi_triple", ""))
 

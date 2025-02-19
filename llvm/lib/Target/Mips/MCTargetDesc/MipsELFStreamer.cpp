@@ -113,9 +113,7 @@ void MipsELFStreamer::EmitCheriCapabilityImpl(const MCSymbol *Symbol,
   MCContext &Context = getContext();
   const MCSymbolRefExpr *SRE =
       MCSymbolRefExpr::create(Symbol, MCSymbolRefExpr::VK_None, Context, Loc);
-  const MCBinaryExpr *CapExpr = MCBinaryExpr::createAdd(
-      MipsMCExpr::create(MipsMCExpr::MEK_CHERI_CAP, SRE, Context), Addend,
-      Context);
+  const MCBinaryExpr *CapExpr = MCBinaryExpr::createAdd(SRE, Addend, Context);
 
   // Pad to ensure that the capability is aligned
   emitValueToAlignment(Align(CapSize), 0, 1, 0);

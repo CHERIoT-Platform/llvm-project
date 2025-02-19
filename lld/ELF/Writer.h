@@ -46,6 +46,7 @@ struct PhdrEntry {
 };
 
 void addReservedSymbols();
+bool includeInSymtab(const Symbol &b);
 
 template <class ELFT> uint32_t calcMipsEFlags();
 
@@ -60,6 +61,9 @@ bool isRelroSection(const OutputSection *sec);
 bool isMipsN32Abi(const InputFile *f);
 bool isMicroMips();
 bool isMipsR6();
+
+bool hasMemtag();
+bool canHaveMemtagGlobals();
 
 bool hasDynamicLinker();
 } // namespace lld::elf

@@ -24,7 +24,7 @@ int inherit(void)
 
 // The default for exported functions should be interrupts enabled
 //
-// CHECK: define dso_local chericcallcce i32 @_Z21default_enable_calleev() local_unnamed_addr addrspace(200) #[[DEFEN:[0-9]]]
+// CHECK: define dso_local chericcallcce noundef i32 @_Z21default_enable_calleev() local_unnamed_addr addrspace(200) #[[DEFEN:[0-9]]]
 __attribute__((cheri_compartment("example")))
 int default_enable_callee(void)
 {
@@ -46,7 +46,7 @@ void default_enable_callback2(void)
 
 // Explicitly setting interrupt status should override the default
 
-// CHECK: define dso_local chericcallcce i32 @_Z23explicit_disable_calleev() local_unnamed_addr addrspace(200) #[[EXPDIS:[0-9]]]
+// CHECK: define dso_local chericcallcce noundef i32 @_Z23explicit_disable_calleev() local_unnamed_addr addrspace(200) #[[EXPDIS:[0-9]]]
 __attribute__((cheriot_interrupt_state(disabled)))
 __attribute__((cheri_compartment("example")))
 int explicit_disable_callee(void)
@@ -84,7 +84,7 @@ int inherit1(void)
 	return foo();
 }
 
-// CHECK: define dso_local chericcallcce i32 @_Z24explicit_disable_callee1v() local_unnamed_addr addrspace(200) #[[EXPDIS]]
+// CHECK: define dso_local chericcallcce noundef i32 @_Z24explicit_disable_callee1v() local_unnamed_addr addrspace(200) #[[EXPDIS]]
 __attribute__((cheri_interrupt_state(disabled)))
 __attribute__((cheri_compartment("example")))
 int explicit_disable_callee1(void)

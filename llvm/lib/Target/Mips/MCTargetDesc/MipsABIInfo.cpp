@@ -7,10 +7,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "MipsABIInfo.h"
-#include "MipsRegisterInfo.h"
+#include "Mips.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/CodeGen/LowLevelType.h"
-#include "llvm/CodeGen/MachineMemOperand.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCDwarf.h"
 #include "llvm/MC/MCTargetOptions.h"
@@ -70,14 +69,13 @@ unsigned MipsABIInfo::GetCalleeAllocdArgSizeInBytes(CallingConv::ID CC) const {
 
 MipsABIInfo MipsABIInfo::computeTargetABI(const Triple &TT, StringRef CPU,
                                           const MCTargetOptions &Options) {
-  StringRef ABIName = Options.getABIName();
-  if (ABIName.startswith("o32"))
+  if (Options.getABIName().starts_with("o32"))
     return MipsABIInfo::O32();
-  if (ABIName.startswith("n32"))
+  if (Options.getABIName().starts_with("n32"))
     return MipsABIInfo::N32();
-  if (ABIName.startswith("n64"))
+  if (Options.getABIName().starts_with("n64"))
     return MipsABIInfo::N64();
-  if (ABIName.startswith("purecap"))
+  if (Options.getABIName().starts_with("purecap"))
     return MipsABIInfo::CheriPureCap();
   if (TT.getEnvironment() == llvm::Triple::GNUABIN32)
     return MipsABIInfo::N32();

@@ -18,14 +18,12 @@
 #include "llvm/Target/TargetMachine.h"
 
 namespace llvm {
-class AsmPrinter;
 class FunctionPass;
 class InstructionSelector;
 class MCInst;
 class MCOperand;
 class MachineInstr;
 class MachineOperand;
-// XXX belongs in previous CL
 class ModulePass;
 class PassRegistry;
 class RISCVRegisterBankInfo;
@@ -34,6 +32,12 @@ class RISCVTargetMachine;
 
 FunctionPass *createRISCVCodeGenPreparePass();
 void initializeRISCVCodeGenPreparePass(PassRegistry &);
+
+FunctionPass *createRISCVDeadRegisterDefinitionsPass();
+void initializeRISCVDeadRegisterDefinitionsPass(PassRegistry &);
+
+FunctionPass *createRISCVDeadRegisterDefinitionsPass();
+void initializeRISCVDeadRegisterDefinitionsPass(PassRegistry &);
 
 /// Information about imported functions.
 struct CHERIoTImportedFunction {
@@ -84,19 +88,17 @@ struct CHERIoTImportedFunctionDenseMapInfo {
 using CHERIoTImportedFunctionSet =
     DenseSet<CHERIoTImportedFunction, CHERIoTImportedFunctionDenseMapInfo>;
 
-bool lowerRISCVMachineInstrToMCInst(const MachineInstr *MI, MCInst &OutMI,
-                                    AsmPrinter &AP);
-bool LowerRISCVMachineOperandToMCOperand(const MachineOperand &MO,
-                                         MCOperand &MCOp, const AsmPrinter &AP);
-
 FunctionPass *createRISCVISelDag(RISCVTargetMachine &TM,
-                                 CodeGenOpt::Level OptLevel);
+                                 CodeGenOptLevel OptLevel);
 
 FunctionPass *createRISCVMakeCompressibleOptPass();
 void initializeRISCVMakeCompressibleOptPass(PassRegistry &);
 
 FunctionPass *createRISCVGatherScatterLoweringPass();
 void initializeRISCVGatherScatterLoweringPass(PassRegistry &);
+
+FunctionPass *createRISCVFoldMasksPass();
+void initializeRISCVFoldMasksPass(PassRegistry &);
 
 FunctionPass *createRISCVOptWInstrsPass();
 void initializeRISCVOptWInstrsPass(PassRegistry &);
@@ -116,8 +118,13 @@ void initializeRISCVExpandAtomicPseudoPass(PassRegistry &);
 FunctionPass *createRISCVInsertVSETVLIPass();
 void initializeRISCVInsertVSETVLIPass(PassRegistry &);
 
+FunctionPass *createRISCVPostRAExpandPseudoPass();
+void initializeRISCVPostRAExpandPseudoPass(PassRegistry &);
 FunctionPass *createRISCVInsertReadWriteCSRPass();
 void initializeRISCVInsertReadWriteCSRPass(PassRegistry &);
+
+FunctionPass *createRISCVInsertWriteVXRMPass();
+void initializeRISCVInsertWriteVXRMPass(PassRegistry &);
 
 FunctionPass *createRISCVRedundantCopyEliminationPass();
 void initializeRISCVRedundantCopyEliminationPass(PassRegistry &);
@@ -139,6 +146,15 @@ InstructionSelector *createRISCVInstructionSelector(const RISCVTargetMachine &,
                                                     RISCVSubtarget &,
                                                     RISCVRegisterBankInfo &);
 void initializeRISCVDAGToDAGISelPass(PassRegistry &);
+
+FunctionPass *createRISCVPostLegalizerCombiner();
+void initializeRISCVPostLegalizerCombinerPass(PassRegistry &);
+
+FunctionPass *createRISCVO0PreLegalizerCombiner();
+void initializeRISCVO0PreLegalizerCombinerPass(PassRegistry &);
+
+FunctionPass *createRISCVPreLegalizerCombiner();
+void initializeRISCVPreLegalizerCombinerPass(PassRegistry &);
 
 /// Returns the symbol name for either an import or export table entry.
 inline std::string getImportExportTableName(StringRef Compartment,

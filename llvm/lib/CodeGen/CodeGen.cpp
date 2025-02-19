@@ -20,6 +20,7 @@ using namespace llvm;
 void llvm::initializeCodeGen(PassRegistry &Registry) {
   initializeAssignmentTrackingAnalysisPass(Registry);
   initializeAtomicExpandPass(Registry);
+  initializeBasicBlockPathCloningPass(Registry);
   initializeBasicBlockSectionsPass(Registry);
   initializeBranchFolderPassPass(Registry);
   initializeBranchRelaxationPass(Registry);
@@ -31,7 +32,7 @@ void llvm::initializeCodeGen(PassRegistry &Registry) {
   initializeCheckDebugMachineModulePass(Registry);
   initializeCheriBoundAllocasPass(Registry);
   initializeCheriGetAddressElimPass(Registry);
-  initializeCodeGenPreparePass(Registry);
+  initializeCodeGenPrepareLegacyPassPass(Registry);
   initializeDeadMachineInstructionElimPass(Registry);
   initializeDebugifyMachineModulePass(Registry);
   initializeDetectDeadLanesPass(Registry);
@@ -42,7 +43,7 @@ void llvm::initializeCodeGen(PassRegistry &Registry) {
   initializeEarlyTailDuplicatePass(Registry);
   initializeExpandLargeDivRemLegacyPassPass(Registry);
   initializeExpandLargeFpConvertLegacyPassPass(Registry);
-  initializeExpandMemCmpPassPass(Registry);
+  initializeExpandMemCmpLegacyPassPass(Registry);
   initializeExpandPostRAPass(Registry);
   initializeFEntryInserterPass(Registry);
   initializeFinalizeISelPass(Registry);
@@ -54,7 +55,7 @@ void llvm::initializeCodeGen(PassRegistry &Registry) {
   initializeHardwareLoopsLegacyPass(Registry);
   initializeIfConverterPass(Registry);
   initializeImplicitNullChecksPass(Registry);
-  initializeIndirectBrExpandPassPass(Registry);
+  initializeIndirectBrExpandLegacyPassPass(Registry);
   initializeInterleavedLoadCombinePass(Registry);
   initializeInterleavedAccessPass(Registry);
   initializeJMCInstrumenterPass(Registry);

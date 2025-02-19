@@ -30,7 +30,7 @@ public:
   RISCVDAGToDAGISel() = delete;
 
   explicit RISCVDAGToDAGISel(RISCVTargetMachine &TargetMachine,
-                             CodeGenOpt::Level OptLevel)
+                             CodeGenOptLevel OptLevel)
       : SelectionDAGISel(ID, TargetMachine, OptLevel) {}
 
   bool runOnMachineFunction(MachineFunction &MF) override {
@@ -43,13 +43,15 @@ public:
 
   void Select(SDNode *Node) override;
 
-  bool SelectInlineAsmMemoryOperand(const SDValue &Op, unsigned ConstraintID,
+  bool SelectInlineAsmMemoryOperand(const SDValue &Op,
+                                    InlineAsm::ConstraintCode ConstraintID,
                                     std::vector<SDValue> &OutOps) override;
 
   bool SelectFrameIndexCommon(SDValue Addr, SDValue &Base, SDValue &Offset,
                               EVT PtrVT);
   bool SelectFrameRegImmCommon(SDValue Addr, SDValue &Base, SDValue &Offset,
                                EVT PtrVT);
+  bool SelectAddrFrameIndex(SDValue Addr, SDValue &Base, SDValue &Offset);  
   bool SelectFrameAddrRegImm(SDValue Addr, SDValue &Base, SDValue &Offset);
   bool SelectCapFrameAddrRegImm(SDValue Cap, SDValue &Base, SDValue &Offset);
   bool SelectBase(SDValue Addr, SDValue &Base, EVT PtrVT);
@@ -60,6 +62,8 @@ public:
   bool SelectAddrRegImmINX(SDValue Addr, SDValue &Base, SDValue &Offset) {
     return SelectAddrRegImm(Addr, Base, Offset, true);
   }
+  bool SelectAddrRegImmLsb00000(SDValue Addr, SDValue &Base, SDValue &Offset);
+
   bool SelectCapRegImm(SDValue Addr, SDValue &Base, SDValue &Offset);
 
   bool SelectAddrRegRegScale(SDValue Addr, unsigned MaxShiftAmount,
@@ -142,7 +146,9 @@ public:
   }
   bool selectVSplatSimm5Plus1(SDValue N, SDValue &SplatVal);
   bool selectVSplatSimm5Plus1NonZero(SDValue N, SDValue &SplatVal);
-  bool selectExtOneUseVSplat(SDValue N, SDValue &SplatVal);
+  // Matches the splat of a value which can be extended or truncated, such that
+  // only the bottom 8 bits are preserved.
+  bool selectLow8BitsVSplat(SDValue N, SDValue &SplatVal);
   bool selectFPImm(SDValue N, SDValue &Imm);
 
   bool selectRVVSimm5(SDValue N, unsigned Width, SDValue &Imm);
@@ -191,9 +197,9 @@ public:
 
 private:
   bool doPeepholeSExtW(SDNode *Node);
-  bool doPeepholeMaskedRVV(SDNode *Node);
+  bool doPeepholeMaskedRVV(MachineSDNode *Node);
   bool doPeepholeMergeVVMFold();
-  bool performVMergeToVMv(SDNode *N);
+  bool doPeepholeNoRegPassThru();
   bool performCombineVMergeAndVOps(SDNode *N);
 };
 
@@ -267,6 +273,7 @@ struct RISCVMaskedPseudoInfo {
   uint16_t MaskedPseudo;
   uint16_t UnmaskedPseudo;
   uint8_t MaskOpIdx;
+  uint8_t MaskAffectsResult : 1;
 };
 
 #define GET_RISCVVSSEGTable_DECL

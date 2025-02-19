@@ -15,7 +15,6 @@
 #include "MipsRegisterInfo.h"
 #include "MipsSubtarget.h"
 #include "llvm/ADT/APInt.h"
-#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/CodeGen/CallingConvLower.h"
@@ -1572,7 +1571,7 @@ static SDValue lowerMSABitClearImm(SDValue Op, SelectionDAG &DAG) {
   SDLoc DL(Op);
   EVT ResTy = Op->getValueType(0);
   APInt BitImm = APInt(ResTy.getScalarSizeInBits(), 1)
-                 << cast<ConstantSDNode>(Op->getOperand(2))->getAPIntValue();
+                 << Op->getConstantOperandAPInt(2);
   SDValue BitMask = DAG.getConstant(~BitImm, DL, ResTy);
 
   return DAG.getNode(ISD::AND, DL, ResTy, Op->getOperand(1), BitMask);
@@ -1581,7 +1580,7 @@ static SDValue lowerMSABitClearImm(SDValue Op, SelectionDAG &DAG) {
 SDValue MipsSETargetLowering::lowerINTRINSIC_WO_CHAIN(SDValue Op,
                                                       SelectionDAG &DAG) const {
   SDLoc DL(Op);
-  unsigned Intrinsic = cast<ConstantSDNode>(Op->getOperand(0))->getZExtValue();
+  unsigned Intrinsic = Op->getConstantOperandVal(0);
   switch (Intrinsic) {
   default:
     return SDValue();
@@ -2362,7 +2361,7 @@ static SDValue lowerMSALoadIntr(SDValue Op, SelectionDAG &DAG, unsigned Intr,
 
 SDValue MipsSETargetLowering::lowerINTRINSIC_W_CHAIN(SDValue Op,
                                                      SelectionDAG &DAG) const {
-  unsigned Intr = cast<ConstantSDNode>(Op->getOperand(1))->getZExtValue();
+  unsigned Intr = Op->getConstantOperandVal(1);
   switch (Intr) {
   default:
     return SDValue();
@@ -2437,7 +2436,7 @@ static SDValue lowerMSAStoreIntr(SDValue Op, SelectionDAG &DAG, unsigned Intr,
 
 SDValue MipsSETargetLowering::lowerINTRINSIC_VOID(SDValue Op,
                                                   SelectionDAG &DAG) const {
-  unsigned Intr = cast<ConstantSDNode>(Op->getOperand(1))->getZExtValue();
+  unsigned Intr = Op->getConstantOperandVal(1);
   switch (Intr) {
   default:
     return SDValue();

@@ -256,7 +256,7 @@ void test_P2286() {
   test_P2286_vector_bool<CharT, std::vector<bool, min_allocator<bool>>>();
 }
 
-// Tests volatile quified objects are no longer formattable.
+// Tests volatile qualified objects are no longer formattable.
 template <class CharT>
 void test_LWG3631() {
   assert_is_not_formattable<volatile CharT, CharT>();
@@ -414,6 +414,4 @@ void test() {
   test<char8_t>();
   test<char16_t>();
   test<char32_t>();
-
-  test<int>();
 }

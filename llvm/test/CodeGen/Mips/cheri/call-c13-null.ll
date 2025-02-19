@@ -108,11 +108,11 @@ define void @call_nonvariadic_many_args(ptr addrspace(200) %in_arg1) addrspace(2
 ; CHECK-NEXT:    cincoffset $c13, $c3, 107
 ; CHECK-NEXT:    cincoffset $c14, $c3, 117
 ; CHECK-NEXT:    cincoffset $c3, $c3, 127
-; CHECK-NEXT:    csc $c12, $zero, [[#CAP_SIZE * 0]]($c11)
-; CHECK-NEXT:    csc $c3, $zero, [[#CAP_SIZE * 3]]($c11)
-; CHECK-NEXT:    csc $c14, $zero, [[#CAP_SIZE * 2]]($c11)
-; CHECK-NEXT:    csc $c13, $zero, [[#CAP_SIZE * 1]]($c11)
-; CHECK-NEXT:    csetbounds $c[[C13_TEMP:[0-9]+]], $c11, [[#CAP_SIZE * 4]]
+; CHECK-NEXT:    csc $c12, $zero, [[#mul(CAP_SIZE,0)]]($c11)
+; CHECK-NEXT:    csc $c3, $zero, [[#mul(CAP_SIZE,3)]]($c11)
+; CHECK-NEXT:    csc $c14, $zero, [[#mul(CAP_SIZE,2)]]($c11)
+; CHECK-NEXT:    csc $c13, $zero, [[#mul(CAP_SIZE,1)]]($c11)
+; CHECK-NEXT:    csetbounds $c[[C13_TEMP:[0-9]+]], $c11, [[#mul(CAP_SIZE,4)]]
 ; CHECK-NEXT:    clcbi $c12, %capcall20(many_cap_args)($c2)
 ; CHECK-NEXT:    ori $1, $zero, 65495
 ; CHECK-NEXT:    candperm $c13, $c[[C13_TEMP]], $1

@@ -551,7 +551,7 @@ TEST_F(MDNodeTest, UniquedOnDeletedOperand) {
 
 TEST_F(MDNodeTest, DistinctOnDeletedValueOperand) {
   // i1* @GV
-  Type *Ty = Type::getInt1PtrTy(Context);
+  Type *Ty = PointerType::getUnqual(Context);
   std::unique_ptr<GlobalVariable> GV(
       new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage, nullptr, "",
                          GlobalVariable::NotThreadLocal, 0));
@@ -791,7 +791,7 @@ TEST_F(MDNodeTest, replaceWithUniquedResolvingOperand) {
 
 TEST_F(MDNodeTest, replaceWithUniquedDeletedOperand) {
   // i1* @GV
-  Type *Ty = Type::getInt1PtrTy(Context);
+  Type *Ty = PointerType::getUnqual(Context);
   std::unique_ptr<GlobalVariable> GV(
       new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage, nullptr, "",
                          GlobalVariable::NotThreadLocal, 0));
@@ -815,7 +815,7 @@ TEST_F(MDNodeTest, replaceWithUniquedDeletedOperand) {
 
 TEST_F(MDNodeTest, replaceWithUniquedChangedOperand) {
   // i1* @GV
-  Type *Ty = Type::getInt1PtrTy(Context);
+  Type *Ty = PointerType::getUnqual(Context);
   std::unique_ptr<GlobalVariable> GV(
       new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage, nullptr, "",
                          GlobalVariable::NotThreadLocal, 0));
@@ -3715,7 +3715,7 @@ TEST_F(MetadataAsValueTest, MDNodeConstant) {
 typedef MetadataTest ValueAsMetadataTest;
 
 TEST_F(ValueAsMetadataTest, UpdatesOnRAUW) {
-  Type *Ty = Type::getInt1PtrTy(Context);
+  Type *Ty = PointerType::getUnqual(Context);
   std::unique_ptr<GlobalVariable> GV0(
       new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage, nullptr, "",
                          GlobalVariable::NotThreadLocal, 0));
@@ -3728,6 +3728,25 @@ TEST_F(ValueAsMetadataTest, UpdatesOnRAUW) {
                          GlobalVariable::NotThreadLocal, 0));
   GV0->replaceAllUsesWith(GV1.get());
   EXPECT_TRUE(MD->getValue() == GV1.get());
+}
+
+TEST_F(ValueAsMetadataTest, handleRAUWWithTypeChange) {
+  // Test that handleRAUW supports type changes.
+  // This is helpful in cases where poison values are used to encode
+  // types in metadata, e.g. in type annotations.
+  // Changing the type stored in metadata requires to change the type of
+  // the stored poison value.
+  auto *I32Poison = PoisonValue::get(Type::getInt32Ty(Context));
+  auto *I64Poison = PoisonValue::get(Type::getInt64Ty(Context));
+  auto *MD = ConstantAsMetadata::get(I32Poison);
+
+  EXPECT_EQ(MD->getValue(), I32Poison);
+  EXPECT_NE(MD->getValue(), I64Poison);
+
+  ValueAsMetadata::handleRAUW(I32Poison, I64Poison);
+
+  EXPECT_NE(MD->getValue(), I32Poison);
+  EXPECT_EQ(MD->getValue(), I64Poison);
 }
 
 TEST_F(ValueAsMetadataTest, TempTempReplacement) {
@@ -3789,7 +3808,7 @@ TEST_F(DIArgListTest, get) {
 }
 
 TEST_F(DIArgListTest, UpdatesOnRAUW) {
-  Type *Ty = Type::getInt1PtrTy(Context);
+  Type *Ty = PointerType::getUnqual(Context);
   ConstantAsMetadata *CI =
       ConstantAsMetadata::get(ConstantInt::get(Context, APInt(8, 0)));
   std::unique_ptr<GlobalVariable> GV0(
@@ -3814,7 +3833,7 @@ TEST_F(DIArgListTest, UpdatesOnRAUW) {
 typedef MetadataTest TrackingMDRefTest;
 
 TEST_F(TrackingMDRefTest, UpdatesOnRAUW) {
-  Type *Ty = Type::getInt1PtrTy(Context);
+  Type *Ty = PointerType::getUnqual(Context);
   std::unique_ptr<GlobalVariable> GV0(
       new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage, nullptr, "",
                          GlobalVariable::NotThreadLocal, 0));
@@ -3833,7 +3852,7 @@ TEST_F(TrackingMDRefTest, UpdatesOnRAUW) {
 }
 
 TEST_F(TrackingMDRefTest, UpdatesOnDeletion) {
-  Type *Ty = Type::getInt1PtrTy(Context);
+  Type *Ty = PointerType::getUnqual(Context);
   std::unique_ptr<GlobalVariable> GV(
       new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage, nullptr, "",
                          GlobalVariable::NotThreadLocal, 0));

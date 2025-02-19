@@ -23,6 +23,7 @@
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/ExprCXX.h"
 #include "clang/Basic/PrettyStackTrace.h"
+#include "clang/Lex/LiteralSupport.h"
 #include "clang/Parse/Parser.h"
 #include "clang/Parse/RAIIObjectsForParser.h"
 #include "clang/Sema/DeclSpec.h"
@@ -217,6 +218,15 @@ ExprResult Parser::ParseConstantExpression() {
   // C++98 and C++11 have no such rule, but this is only a defect in C++98.
   EnterExpressionEvaluationContext ConstantEvaluated(
       Actions, Sema::ExpressionEvaluationContext::ConstantEvaluated);
+  return ParseConstantExpressionInExprEvalContext(NotTypeCast);
+}
+
+ExprResult Parser::ParseArrayBoundExpression() {
+  EnterExpressionEvaluationContext ConstantEvaluated(
+      Actions, Sema::ExpressionEvaluationContext::ConstantEvaluated);
+  // If we parse the bound of a VLA... we parse a non-constant
+  // constant-expression!
+  Actions.ExprEvalContexts.back().InConditionallyConstantEvaluateContext = true;
   return ParseConstantExpressionInExprEvalContext(NotTypeCast);
 }
 
@@ -1010,7 +1020,7 @@ ExprResult Parser::ParseCastExpression(CastParseKind ParseKind,
     if (getLangOpts().CPlusPlus)
       Diag(Tok, diag::warn_cxx98_compat_nullptr);
     else
-      Diag(Tok, getLangOpts().C2x ? diag::warn_c2x_compat_keyword
+      Diag(Tok, getLangOpts().C23 ? diag::warn_c23_compat_keyword
                                   : diag::ext_c_nullptr) << Tok.getName();
 
     Res = Actions.ActOnCXXNullPtrLiteral(ConsumeToken());
@@ -1127,6 +1137,8 @@ ExprResult Parser::ParseCastExpression(CastParseKind ParseKind,
           REVERTIBLE_TYPE_TRAIT(__is_unsigned);
           REVERTIBLE_TYPE_TRAIT(__is_void);
           REVERTIBLE_TYPE_TRAIT(__is_volatile);
+          REVERTIBLE_TYPE_TRAIT(__reference_binds_to_temporary);
+          REVERTIBLE_TYPE_TRAIT(__reference_constructs_from_temporary);
 #define TRANSFORM_TYPE_TRAIT_DEF(_, Trait)                                     \
   REVERTIBLE_TYPE_TRAIT(RTT_JOIN(__, Trait));
 #include "clang/Basic/TransformTypeTraits.def"
@@ -1231,8 +1243,7 @@ ExprResult Parser::ParseCastExpression(CastParseKind ParseKind,
 
             Declarator DeclaratorInfo(DS, ParsedAttributesView::none(),
                                       DeclaratorContext::TypeName);
-            TypeResult Ty = Actions.ActOnTypeName(getCurScope(),
-                                                  DeclaratorInfo);
+            TypeResult Ty = Actions.ActOnTypeName(DeclaratorInfo);
             if (Ty.isInvalid())
               break;
 
@@ -1298,9 +1309,17 @@ ExprResult Parser::ParseCastExpression(CastParseKind ParseKind,
   case tok::kw_L__FUNCSIG__:    // primary-expression: L__FUNCSIG__ [MS]
   case tok::kw___PRETTY_FUNCTION__:  // primary-expression: __P..Y_F..N__ [GNU]
   case tok::kw___cheriot_minimum_stack__:
-    Res = Actions.ActOnPredefinedExpr(Tok.getLocation(), SavedKind);
-    ConsumeToken();
-    break;
+    // Function local predefined macros are represented by PredefinedExpr except
+    // when Microsoft extensions are enabled and one of these macros is adjacent
+    // to a string literal or another one of these macros.
+    if (!(getLangOpts().MicrosoftExt &&
+          tokenIsLikeStringLiteral(Tok, getLangOpts()) &&
+          tokenIsLikeStringLiteral(NextToken(), getLangOpts()))) {
+      Res = Actions.ActOnPredefinedExpr(Tok.getLocation(), SavedKind);
+      ConsumeToken();
+      break;
+    }
+    [[fallthrough]]; // treat MS function local macros as concatenable strings
   case tok::string_literal:    // primary-expression: string-literal
   case tok::wide_string_literal:
   case tok::utf8_string_literal:
@@ -1442,9 +1461,13 @@ ExprResult Parser::ParseCastExpression(CastParseKind ParseKind,
                            // unary-expression: '__alignof' '(' type-name ')'
   case tok::kw_sizeof:     // unary-expression: 'sizeof' unary-expression
                            // unary-expression: 'sizeof' '(' type-name ')'
+  // unary-expression: '__datasizeof' unary-expression
+  // unary-expression: '__datasizeof' '(' type-name ')'
+  case tok::kw___datasizeof:
   case tok::kw_vec_step:   // unary-expression: OpenCL 'vec_step' expression
   // unary-expression: '__builtin_omp_required_simd_align' '(' type-name ')'
   case tok::kw___builtin_omp_required_simd_align:
+  case tok::kw___builtin_vectorelements:
     if (NotPrimaryExpression)
       *NotPrimaryExpression = true;
     AllowSuffix = false;
@@ -1516,7 +1539,7 @@ ExprResult Parser::ParseCastExpression(CastParseKind ParseKind,
 
       Declarator DeclaratorInfo(DS, ParsedAttributesView::none(),
                                 DeclaratorContext::TypeName);
-      TypeResult Ty = Actions.ActOnTypeName(getCurScope(), DeclaratorInfo);
+      TypeResult Ty = Actions.ActOnTypeName(DeclaratorInfo);
       if (Ty.isInvalid())
         break;
 
@@ -1556,6 +1579,9 @@ ExprResult Parser::ParseCastExpression(CastParseKind ParseKind,
   case tok::kw_typename:
   case tok::kw_typeof:
   case tok::kw___vector:
+  case tok::kw__Accum:
+  case tok::kw__Fract:
+  case tok::kw__Sat:
 #define GENERIC_IMAGE_TYPE(ImgType, Id) case tok::kw_##ImgType##_t:
 #include "clang/Basic/OpenCLImageTypes.def"
   {
@@ -1950,10 +1976,11 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
       PreferredType.enterSubscript(Actions, Tok.getLocation(), LHS.get());
 
       // We try to parse a list of indexes in all language mode first
-      // and, in we find 0 or one index, we try to parse an OpenMP array
+      // and, in we find 0 or one index, we try to parse an OpenMP/OpenACC array
       // section. This allow us to support C++23 multi dimensional subscript and
-      // OpenMp sections in the same language mode.
-      if (!getLangOpts().OpenMP || Tok.isNot(tok::colon)) {
+      // OpenMP/OpenACC sections in the same language mode.
+      if ((!getLangOpts().OpenMP && !AllowOpenACCArraySections) ||
+          Tok.isNot(tok::colon)) {
         if (!getLangOpts().CPlusPlus23) {
           ExprResult Idx;
           if (getLangOpts().CPlusPlus11 && Tok.is(tok::l_brace)) {
@@ -1977,7 +2004,18 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
         }
       }
 
-      if (ArgExprs.size() <= 1 && getLangOpts().OpenMP) {
+      // Handle OpenACC first, since 'AllowOpenACCArraySections' is only enabled
+      // when actively parsing a 'var' in a 'var-list' during clause/'cache'
+      // parsing, so it is the most specific, and best allows us to handle
+      // OpenACC and OpenMP at the same time.
+      if (ArgExprs.size() <= 1 && AllowOpenACCArraySections) {
+        ColonProtectionRAIIObject RAII(*this);
+        if (Tok.is(tok::colon)) {
+          // Consume ':'
+          ColonLocFirst = ConsumeToken();
+          Length = Actions.CorrectDelayedTyposInExpr(ParseExpression());
+        }
+      } else if (ArgExprs.size() <= 1 && getLangOpts().OpenMP) {
         ColonProtectionRAIIObject RAII(*this);
         if (Tok.is(tok::colon)) {
           // Consume ':'
@@ -2007,6 +2045,12 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
       if (!LHS.isInvalid() && !HasError && !Length.isInvalid() &&
           !Stride.isInvalid() && Tok.is(tok::r_square)) {
         if (ColonLocFirst.isValid() || ColonLocSecond.isValid()) {
+          // FIXME: OpenACC hasn't implemented Sema/Array section handling at a
+          // semantic level yet. For now, just reuse the OpenMP implementation
+          // as it gets the parsing/type management mostly right, and we can
+          // replace this call to ActOnOpenACCArraySectionExpr in the future.
+          // Eventually we'll genericize the OPenMPArraySectionExpr type as
+          // well.
           LHS = Actions.ActOnOMPArraySectionExpr(
               LHS.get(), Loc, ArgExprs.empty() ? nullptr : ArgExprs[0],
               ColonLocFirst, ColonLocSecond, Length.get(), Stride.get(), RLoc);
@@ -2289,6 +2333,8 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
 ///       unary-expression:  [C99 6.5.3]
 ///         'sizeof' unary-expression
 ///         'sizeof' '(' type-name ')'
+/// [Clang] '__datasizeof' unary-expression
+/// [Clang] '__datasizeof' '(' type-name ')'
 /// [GNU]   '__alignof' unary-expression
 /// [GNU]   '__alignof' '(' type-name ')'
 /// [C11]   '_Alignof' '(' type-name ')'
@@ -2298,7 +2344,7 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
 ///           typeof ( expressions )
 ///           typeof ( type-name )
 /// [GNU/C++] typeof unary-expression
-/// [C2x]   typeof-specifier:
+/// [C23]   typeof-specifier:
 ///           typeof '(' typeof-specifier-argument ')'
 ///           typeof_unqual '(' typeof-specifier-argument ')'
 ///
@@ -2317,9 +2363,10 @@ Parser::ParseExprAfterUnaryExprOrTypeTrait(const Token &OpTok,
                                            SourceRange &CastRange) {
 
   assert(OpTok.isOneOf(tok::kw_typeof, tok::kw_typeof_unqual, tok::kw_sizeof,
-                       tok::kw___alignof, tok::kw_alignof, tok::kw__Alignof,
-                       tok::kw_vec_step,
-                       tok::kw___builtin_omp_required_simd_align) &&
+                       tok::kw___datasizeof, tok::kw___alignof, tok::kw_alignof,
+                       tok::kw__Alignof, tok::kw_vec_step,
+                       tok::kw___builtin_omp_required_simd_align,
+                       tok::kw___builtin_vectorelements) &&
          "Not a typeof/sizeof/alignof/vec_step expression!");
 
   ExprResult Operand;
@@ -2328,8 +2375,8 @@ Parser::ParseExprAfterUnaryExprOrTypeTrait(const Token &OpTok,
   if (Tok.isNot(tok::l_paren)) {
     // If construct allows a form without parenthesis, user may forget to put
     // pathenthesis around type name.
-    if (OpTok.isOneOf(tok::kw_sizeof, tok::kw___alignof, tok::kw_alignof,
-                      tok::kw__Alignof)) {
+    if (OpTok.isOneOf(tok::kw_sizeof, tok::kw___datasizeof, tok::kw___alignof,
+                      tok::kw_alignof, tok::kw__Alignof)) {
       if (isTypeIdUnambiguously()) {
         DeclSpec DS(AttrFactory);
         ParseSpecifierQualifierList(DS);
@@ -2432,15 +2479,18 @@ ExprResult Parser::ParseSYCLUniqueStableNameExpression() {
 ///         'sizeof' unary-expression
 ///         'sizeof' '(' type-name ')'
 /// [C++11] 'sizeof' '...' '(' identifier ')'
+/// [Clang] '__datasizeof' unary-expression
+/// [Clang] '__datasizeof' '(' type-name ')'
 /// [GNU]   '__alignof' unary-expression
 /// [GNU]   '__alignof' '(' type-name ')'
 /// [C11]   '_Alignof' '(' type-name ')'
 /// [C++11] 'alignof' '(' type-id ')'
 /// \endverbatim
 ExprResult Parser::ParseUnaryExprOrTypeTraitExpression() {
-  assert(Tok.isOneOf(tok::kw_sizeof, tok::kw___alignof, tok::kw_alignof,
-                     tok::kw__Alignof, tok::kw_vec_step,
-                     tok::kw___builtin_omp_required_simd_align) &&
+  assert(Tok.isOneOf(tok::kw_sizeof, tok::kw___datasizeof, tok::kw___alignof,
+                     tok::kw_alignof, tok::kw__Alignof, tok::kw_vec_step,
+                     tok::kw___builtin_omp_required_simd_align,
+                     tok::kw___builtin_vectorelements) &&
          "Not a sizeof/alignof/vec_step expression!");
   Token OpTok = Tok;
   ConsumeToken();
@@ -2495,8 +2545,8 @@ ExprResult Parser::ParseUnaryExprOrTypeTraitExpression() {
   if (getLangOpts().CPlusPlus &&
       OpTok.isOneOf(tok::kw_alignof, tok::kw__Alignof))
     Diag(OpTok, diag::warn_cxx98_compat_alignof);
-  else if (getLangOpts().C2x && OpTok.is(tok::kw_alignof))
-    Diag(OpTok, diag::warn_c2x_compat_keyword) << OpTok.getName();
+  else if (getLangOpts().C23 && OpTok.is(tok::kw_alignof))
+    Diag(OpTok, diag::warn_c23_compat_keyword) << OpTok.getName();
 
   EnterExpressionEvaluationContext Unevaluated(
       Actions, Sema::ExpressionEvaluationContext::Unevaluated,
@@ -2511,14 +2561,29 @@ ExprResult Parser::ParseUnaryExprOrTypeTraitExpression() {
                                                           CastRange);
 
   UnaryExprOrTypeTrait ExprKind = UETT_SizeOf;
-  if (OpTok.isOneOf(tok::kw_alignof, tok::kw__Alignof))
+  switch (OpTok.getKind()) {
+  case tok::kw_alignof:
+  case tok::kw__Alignof:
     ExprKind = UETT_AlignOf;
-  else if (OpTok.is(tok::kw___alignof))
+    break;
+  case tok::kw___alignof:
     ExprKind = UETT_PreferredAlignOf;
-  else if (OpTok.is(tok::kw_vec_step))
+    break;
+  case tok::kw_vec_step:
     ExprKind = UETT_VecStep;
-  else if (OpTok.is(tok::kw___builtin_omp_required_simd_align))
+    break;
+  case tok::kw___builtin_omp_required_simd_align:
     ExprKind = UETT_OpenMPRequiredSimdAlign;
+    break;
+  case tok::kw___datasizeof:
+    ExprKind = UETT_DataSizeOf;
+    break;
+  case tok::kw___builtin_vectorelements:
+    ExprKind = UETT_VectorElements;
+    break;
+  default:
+    break;
+  }
 
   if (isCastExpr)
     return Actions.ActOnUnaryExprOrTypeTraitExpr(OpTok.getLocation(),
@@ -2812,22 +2877,22 @@ ExprResult Parser::ParseBuiltinPrimaryExpression() {
       SkipUntil(tok::r_paren, StopAtSemi);
       return ExprError();
     }
-    SourceLocExpr::IdentKind Kind = [&] {
+    SourceLocIdentKind Kind = [&] {
       switch (T) {
       case tok::kw___builtin_FILE:
-        return SourceLocExpr::File;
+        return SourceLocIdentKind::File;
       case tok::kw___builtin_FILE_NAME:
-        return SourceLocExpr::FileName;
+        return SourceLocIdentKind::FileName;
       case tok::kw___builtin_FUNCTION:
-        return SourceLocExpr::Function;
+        return SourceLocIdentKind::Function;
       case tok::kw___builtin_FUNCSIG:
-        return SourceLocExpr::FuncSig;
+        return SourceLocIdentKind::FuncSig;
       case tok::kw___builtin_LINE:
-        return SourceLocExpr::Line;
+        return SourceLocIdentKind::Line;
       case tok::kw___builtin_COLUMN:
-        return SourceLocExpr::Column;
+        return SourceLocIdentKind::Column;
       case tok::kw___builtin_source_location:
-        return SourceLocExpr::SourceLocStruct;
+        return SourceLocIdentKind::SourceLocStruct;
       default:
         llvm_unreachable("invalid keyword");
       }
@@ -3065,7 +3130,7 @@ Parser::ParseParenExpression(ParenParseOption &ExprType, bool stopIfCastExpr,
       TypeResult Ty;
       {
         InMessageExpressionRAIIObject InMessage(*this, false);
-        Ty = Actions.ActOnTypeName(getCurScope(), DeclaratorInfo);
+        Ty = Actions.ActOnTypeName(DeclaratorInfo);
       }
       Result = ParseObjCMessageExpressionBody(SourceLocation(),
                                               SourceLocation(),
@@ -3080,7 +3145,7 @@ Parser::ParseParenExpression(ParenParseOption &ExprType, bool stopIfCastExpr,
         TypeResult Ty;
         {
           InMessageExpressionRAIIObject InMessage(*this, false);
-          Ty = Actions.ActOnTypeName(getCurScope(), DeclaratorInfo);
+          Ty = Actions.ActOnTypeName(DeclaratorInfo);
         }
         return ParseCompoundLiteralExpression(Ty.get(), OpenLoc, RParenLoc);
       }
@@ -3092,7 +3157,7 @@ Parser::ParseParenExpression(ParenParseOption &ExprType, bool stopIfCastExpr,
           TypeResult Ty;
           {
             InMessageExpressionRAIIObject InMessage(*this, false);
-            Ty = Actions.ActOnTypeName(getCurScope(), DeclaratorInfo);
+            Ty = Actions.ActOnTypeName(DeclaratorInfo);
           }
           if(Ty.isInvalid())
           {
@@ -3139,7 +3204,7 @@ Parser::ParseParenExpression(ParenParseOption &ExprType, bool stopIfCastExpr,
           TypeResult Ty;
           {
             InMessageExpressionRAIIObject InMessage(*this, false);
-            Ty = Actions.ActOnTypeName(getCurScope(), DeclaratorInfo);
+            Ty = Actions.ActOnTypeName(DeclaratorInfo);
           }
           CastTy = Ty.get();
           return ExprResult();
@@ -3302,16 +3367,18 @@ ExprResult Parser::ParseUnevaluatedStringLiteralExpression() {
 
 ExprResult Parser::ParseStringLiteralExpression(bool AllowUserDefinedLiteral,
                                                 bool Unevaluated) {
-  assert(isTokenStringLiteral() && "Not a string literal!");
+  assert(tokenIsLikeStringLiteral(Tok, getLangOpts()) &&
+         "Not a string-literal-like token!");
 
-  // String concat.  Note that keywords like __func__ and __FUNCTION__ are not
-  // considered to be strings for concatenation purposes.
+  // String concatenation.
+  // Note: some keywords like __FUNCTION__ are not considered to be strings
+  // for concatenation purposes, unless Microsoft extensions are enabled.
   SmallVector<Token, 4> StringToks;
 
   do {
     StringToks.push_back(Tok);
-    ConsumeStringToken();
-  } while (isTokenStringLiteral());
+    ConsumeAnyToken();
+  } while (tokenIsLikeStringLiteral(Tok, getLangOpts()));
 
   if (Unevaluated) {
     assert(!AllowUserDefinedLiteral && "UDL are always evaluated");
@@ -3539,7 +3606,7 @@ bool Parser::ParseExpressionList(SmallVectorImpl<Expr *> &Exprs,
       Expr = Actions.ActOnPackExpansion(Expr.get(), ConsumeToken());
     else if (Tok.is(tok::code_completion)) {
       // There's nothing to suggest in here as we parsed a full expression.
-      // Instead fail and propogate the error since caller might have something
+      // Instead fail and propagate the error since caller might have something
       // the suggest, e.g. signature help in function call. Note that this is
       // performed before pushing the \p Expr, so that signature help can report
       // current argument correctly.

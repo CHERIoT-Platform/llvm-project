@@ -148,10 +148,9 @@ define i32 @bit_ceil_commuted_operands(i32 %x) {
 ; CHECK-LABEL: @bit_ceil_commuted_operands(
 ; CHECK-NEXT:    [[DEC:%.*]] = add i32 [[X:%.*]], -1
 ; CHECK-NEXT:    [[CTLZ:%.*]] = tail call i32 @llvm.ctlz.i32(i32 [[DEC]], i1 false), !range [[RNG0]]
-; CHECK-NEXT:    [[TMP1:%.*]] = sub nsw i32 0, [[CTLZ]]
-; CHECK-NEXT:    [[TMP2:%.*]] = and i32 [[TMP1]], 31
-; CHECK-NEXT:    [[SEL:%.*]] = shl nuw i32 1, [[TMP2]]
-; CHECK-NEXT:    ret i32 [[SEL]]
+; CHECK-NEXT:    [[SUB:%.*]] = sub nuw nsw i32 32, [[CTLZ]]
+; CHECK-NEXT:    [[SHL:%.*]] = shl nuw i32 1, [[SUB]]
+; CHECK-NEXT:    ret i32 [[SHL]]
 ;
   %dec = add i32 %x, -1
   %ctlz = tail call i32 @llvm.ctlz.i32(i32 %dec, i1 false)
@@ -283,6 +282,42 @@ define <4 x i32> @bit_ceil_v4i32(<4 x i32> %x) {
   %ugt = icmp ugt <4 x i32> %x, <i32 1, i32 1, i32 1, i32 1>
   %sel = select <4 x i1> %ugt, <4 x i32> %shl, <4 x i32> <i32 1, i32 1, i32 1, i32 1>
   ret <4 x i32> %sel
+}
+
+define i32 @pr91691(i32 %0) {
+; CHECK-LABEL: @pr91691(
+; CHECK-NEXT:    [[TMP2:%.*]] = sub i32 -2, [[TMP0:%.*]]
+; CHECK-NEXT:    [[TMP3:%.*]] = tail call i32 @llvm.ctlz.i32(i32 [[TMP2]], i1 false), !range [[RNG0]]
+; CHECK-NEXT:    [[TMP4:%.*]] = sub nsw i32 0, [[TMP3]]
+; CHECK-NEXT:    [[TMP5:%.*]] = and i32 [[TMP4]], 31
+; CHECK-NEXT:    [[TMP6:%.*]] = shl nuw i32 1, [[TMP5]]
+; CHECK-NEXT:    ret i32 [[TMP6]]
+;
+  %2 = sub nuw i32 -2, %0
+  %3 = tail call i32 @llvm.ctlz.i32(i32 %2, i1 false)
+  %4 = sub i32 32, %3
+  %5 = shl i32 1, %4
+  %6 = icmp ult i32 %0, -2
+  %7 = select i1 %6, i32 %5, i32 1
+  ret i32 %7
+}
+
+define i32 @pr91691_keep_nsw(i32 %0) {
+; CHECK-LABEL: @pr91691_keep_nsw(
+; CHECK-NEXT:    [[TMP2:%.*]] = sub nsw i32 -2, [[TMP0:%.*]]
+; CHECK-NEXT:    [[TMP3:%.*]] = tail call i32 @llvm.ctlz.i32(i32 [[TMP2]], i1 false), !range [[RNG0]]
+; CHECK-NEXT:    [[TMP4:%.*]] = sub nsw i32 0, [[TMP3]]
+; CHECK-NEXT:    [[TMP5:%.*]] = and i32 [[TMP4]], 31
+; CHECK-NEXT:    [[TMP6:%.*]] = shl nuw i32 1, [[TMP5]]
+; CHECK-NEXT:    ret i32 [[TMP6]]
+;
+  %2 = sub nsw i32 -2, %0
+  %3 = tail call i32 @llvm.ctlz.i32(i32 %2, i1 false)
+  %4 = sub i32 32, %3
+  %5 = shl i32 1, %4
+  %6 = icmp ult i32 %0, -2
+  %7 = select i1 %6, i32 %5, i32 1
+  ret i32 %7
 }
 
 declare i32 @llvm.ctlz.i32(i32, i1 immarg)

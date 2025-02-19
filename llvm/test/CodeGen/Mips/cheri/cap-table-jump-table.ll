@@ -30,12 +30,12 @@ sw.bb1:
 
 
 ; CHECK-LABEL: c:
-; CHECK-LABEL: %bb.0:                                 # %entry
+; CHECK-LABEL: %bb.0: # %entry
 ; CHECK-NEXT:	sltiu	$1, $4, 11
-; CHECK-NEXT:	beqz	$1, .LBB0_3
+; CHECK-NEXT:	beqz	$1, .LBB0_4
 ; CHECK-NEXT:	nop
 
-; CHECK-LABEL: .LBB0_1:                                # %entry
+; CHECK-LABEL: %bb.1:
 ; CHECK-NEXT:	lui	$1, %captab_hi(.LJTI0_0)
 ; CHECK-NEXT:	daddiu	$1, $1, %captab_lo(.LJTI0_0)
 ; CHECK-NEXT:	clc	$c1, $1, 0($c26)
@@ -57,12 +57,12 @@ sw.bb1:
 ; CHECK-LABEL: .LBB0_2:                                # %sw.bb
 ; CHECK-NEXT: 	cjr	$c17
 ; CHECK-NEXT: 	daddiu	$2, $zero, 1
-; CHECK-LABEL: .LBB0_3:                                # %default
-; CHECK-NEXT: 	cjr	$c17
-; CHECK-NEXT: 	daddiu	$2, $zero, 1234
-; CHECK-LABEL: .LBB0_4:                                # %sw.bb1
+; CHECK-LABEL: .LBB0_3:                                # %sw.bb1
 ; CHECK-NEXT: 	cjr	$c17
 ; CHECK-NEXT: 	daddiu	$2, $zero, 0
+; CHECK-LABEL: .LBB0_4:                                # %default
+; CHECK-NEXT: 	cjr	$c17
+; CHECK-NEXT: 	daddiu	$2, $zero, 1234
 ; CHECK-NEXT: 	.set	at
 ; CHECK: 	.end	c
 ; CHECK-LABEL: .Lfunc_end0:
@@ -71,29 +71,29 @@ sw.bb1:
 ; CHECK-NEXT: 	.p2align	2
 ; CHECK-LABEL: .LJTI0_0:
 ; CHECK-NEXT: 	.4byte	.LBB0_2-.LJTI0_0
-; CHECK-NEXT: 	.4byte	.LBB0_3-.LJTI0_0
-; CHECK-NEXT: 	.4byte	.LBB0_3-.LJTI0_0
-; CHECK-NEXT: 	.4byte	.LBB0_2-.LJTI0_0
-; CHECK-NEXT: 	.4byte	.LBB0_3-.LJTI0_0
-; CHECK-NEXT: 	.4byte	.LBB0_2-.LJTI0_0
-; CHECK-NEXT: 	.4byte	.LBB0_3-.LJTI0_0
-; CHECK-NEXT: 	.4byte	.LBB0_3-.LJTI0_0
-; CHECK-NEXT: 	.4byte	.LBB0_3-.LJTI0_0
-; CHECK-NEXT: 	.4byte	.LBB0_3-.LJTI0_0
 ; CHECK-NEXT: 	.4byte	.LBB0_4-.LJTI0_0
+; CHECK-NEXT: 	.4byte	.LBB0_4-.LJTI0_0
+; CHECK-NEXT: 	.4byte	.LBB0_2-.LJTI0_0
+; CHECK-NEXT: 	.4byte	.LBB0_4-.LJTI0_0
+; CHECK-NEXT: 	.4byte	.LBB0_2-.LJTI0_0
+; CHECK-NEXT: 	.4byte	.LBB0_4-.LJTI0_0
+; CHECK-NEXT: 	.4byte	.LBB0_4-.LJTI0_0
+; CHECK-NEXT: 	.4byte	.LBB0_4-.LJTI0_0
+; CHECK-NEXT: 	.4byte	.LBB0_4-.LJTI0_0
+; CHECK-NEXT: 	.4byte	.LBB0_3-.LJTI0_0
 
 
 ; NO-OPT-LABEL: %bb.0:                                 # %entry
-; NO-OPT-NEXT:	cincoffset	$c11, $c11, -[[#CAP_SIZE * 2]]
+; NO-OPT-NEXT:	cincoffset	$c11, $c11, -[[#mul(CAP_SIZE,2)]]
 ; NO-OPT-NEXT:	cmove	$c1,  $c26
 ; NO-OPT-NEXT:	csc	$c1, $zero, 0($c11)    # [[#CAP_SIZE]]-byte Folded Spill
 ; NO-OPT-NEXT:	sltiu	$1, $4, 11
-; NO-OPT-NEXT:	csd	$4, $zero, [[#CAP_SIZE * 2 - 8]]($c11)     # 8-byte Folded Spill
+; NO-OPT-NEXT:	csd	$4, $zero, [[#mul(CAP_SIZE,2) - 8]]($c11)     # 8-byte Folded Spill
 ; NO-OPT-NEXT:	beqz	$1, .LBB0_2
 ; NO-OPT-NEXT:	nop
-; NO-OPT-LABEL: .LBB0_1:                                # %entry
+; NO-OPT-LABEL: %bb.1:
 ; NO-OPT-NEXT:	clc	[[CAPTABLE:\$c[0-9]+]], $zero, 0($c11)    # [[#CAP_SIZE]]-byte Folded Reload
-; NO-OPT-NEXT:	cld	[[JT_INDEX:\$[0-9]+]],  $zero, [[#CAP_SIZE * 2 - 8]]($c11)
+; NO-OPT-NEXT:	cld	[[JT_INDEX:\$[0-9]+]],  $zero, [[#mul(CAP_SIZE,2) - 8]]($c11)
 ; NO-OPT-NEXT:	dsll	[[JT_ENTRY_OFFSET:\$[0-9]+]], [[JT_INDEX]], 2
 ; NO-OPT-NEXT:	lui	[[CAPTABLE_INDEX:\$[0-9]+]], %captab_hi(.LJTI0_0)
 ; NO-OPT-NEXT:	daddiu	[[CAPTABLE_INDEX]], [[CAPTABLE_INDEX]], %captab_lo(.LJTI0_0)

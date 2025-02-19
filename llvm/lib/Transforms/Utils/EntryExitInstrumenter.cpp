@@ -35,7 +35,7 @@ static void insertCall(Function &CurFn, StringRef Func,
     Triple TargetTriple(M.getTargetTriple());
     if (TargetTriple.isOSAIX() && Func == "__mcount") {
       Type *SizeTy = M.getDataLayout().getIntPtrType(C, M.getDataLayout().getProgramAddressSpace());
-      Type *SizePtrTy = SizeTy->getPointerTo();
+      Type *SizePtrTy = PointerType::getUnqual(C);
       GlobalVariable *GV = new GlobalVariable(M, SizeTy, /*isConstant=*/false,
                                               GlobalValue::InternalLinkage,
                                               ConstantInt::get(SizeTy, 0));
@@ -55,7 +55,7 @@ static void insertCall(Function &CurFn, StringRef Func,
 
   if (Func == "__cyg_profile_func_enter" || Func == "__cyg_profile_func_exit") {
     auto ProgASPtr =
-        Type::getInt8PtrTy(C, M.getDataLayout().getProgramAddressSpace());
+        PointerType::get(C, M.getDataLayout().getProgramAddressSpace());
     Type *ArgTypes[] = {ProgASPtr, ProgASPtr};
 
     FunctionCallee Fn = M.getOrInsertFunction(

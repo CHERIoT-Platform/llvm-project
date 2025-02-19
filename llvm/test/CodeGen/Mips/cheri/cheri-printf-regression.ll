@@ -18,28 +18,28 @@ entry:
 ; CHECK-NEXT: 	.loc	1 528 0                 # /exports/users/alr48/sources/cheribsd/lib/libc_cheri/cheri_printf.c:528:0
 ; CHECK-NEXT: 	.cfi_sections .debug_frame
 ; CHECK-NEXT: 	.cfi_startproc
-; CHECK-NEXT: 	.frame	$c24,[[#CAP_SIZE * 2]],$c17
+; CHECK-NEXT: 	.frame	$c24,[[#mul(CAP_SIZE,2)]],$c17
 ; CHECK-NEXT: 	.mask 	0x00000000,0
 ; CHECK-NEXT: 	.fmask	0x00000000,0
 ; CHECK-NEXT: 	.set	noreorder
 ; CHECK-NEXT: 	.set	nomacro
 ; CHECK-NEXT: 	.set	noat
 ; CHECK-NEXT: # %bb.0:                                # %entry
-; CHECK-NEXT: 	cincoffset	$c11, $c11, -[[#CAP_SIZE * 2]]
-; CHECK-NEXT: 	.cfi_def_cfa_offset [[#CAP_SIZE * 2]]
-; CHECK-NEXT: 	csc	$c24, $zero, [[#CAP_SIZE * 1]]($c11)    # [[#CAP_SIZE]]-byte Folded Spill
-; CHECK-NEXT: 	csc	$c17, $zero, [[#CAP_SIZE * 0]]($c11)    # [[#CAP_SIZE]]-byte Folded Spill
-; CHECK-NEXT: 	.cfi_offset 96, -[[#CAP_SIZE * 1]]
-; CHECK-NEXT: 	.cfi_offset 89, -[[#CAP_SIZE * 2]]
+; CHECK-NEXT: 	cincoffset	$c11, $c11, -[[#mul(CAP_SIZE,2)]]
+; CHECK-NEXT: 	.cfi_def_cfa_offset [[#mul(CAP_SIZE,2)]]
+; CHECK-NEXT: 	csc	$c24, $zero, [[#mul(CAP_SIZE,1)]]($c11)    # [[#CAP_SIZE]]-byte Folded Spill
+; CHECK-NEXT: 	csc	$c17, $zero, [[#mul(CAP_SIZE,0)]]($c11)    # [[#CAP_SIZE]]-byte Folded Spill
+; CHECK-NEXT: 	.cfi_offset 96, -[[#mul(CAP_SIZE,1)]]
+; CHECK-NEXT: 	.cfi_offset 89, -[[#mul(CAP_SIZE,2)]]
 ; CHECK-NEXT: 	cincoffset	$c24, $c11, $zero
 ; CHECK-NEXT: 	.cfi_def_cfa_register 96
 ; CHECK-NEXT: .Ltmp1:
 ; CHECK-NEXT: 	.loc	1 531 1 prologue_end    # /exports/users/alr48/sources/cheribsd/lib/libc_cheri/cheri_printf.c:531:1
 ; CHECK-NEXT: 	cincoffset	$c11, $c24, $zero
-; CHECK-NEXT: 	clc	$c17, $zero, [[#CAP_SIZE * 0]]($c11)    # [[#CAP_SIZE]]-byte Folded Reload
-; CHECK-NEXT: 	clc	$c24, $zero, [[#CAP_SIZE * 1]]($c11)    # [[#CAP_SIZE]]-byte Folded Reload
+; CHECK-NEXT: 	clc	$c17, $zero, [[#mul(CAP_SIZE,0)]]($c11)    # [[#CAP_SIZE]]-byte Folded Reload
+; CHECK-NEXT: 	clc	$c24, $zero, [[#mul(CAP_SIZE,1)]]($c11)    # [[#CAP_SIZE]]-byte Folded Reload
 ; CHECK-NEXT: 	cjr	$c17
-; CHECK-NEXT: 	cincoffset	$c11, $c11, [[#CAP_SIZE * 2]]
+; CHECK-NEXT: 	cincoffset	$c11, $c11, [[#mul(CAP_SIZE,2)]]
 ; CHECK-NEXT: .Ltmp2:
 
 !llvm.dbg.cu = !{!0}

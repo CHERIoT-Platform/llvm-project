@@ -47,7 +47,7 @@ using namespace llvm;
 //===----------------------------------------------------------------------===//
 
 StructLayout::StructLayout(StructType *ST, const DataLayout &DL)
-    : StructSize(TypeSize::Fixed(0)) {
+    : StructSize(TypeSize::getFixed(0)) {
   assert(!ST->isOpaque() && "Cannot get layout of opaque structs");
   IsPadded = false;
   NumElements = ST->getNumElements();
@@ -56,7 +56,7 @@ StructLayout::StructLayout(StructType *ST, const DataLayout &DL)
   for (unsigned i = 0, e = NumElements; i != e; ++i) {
     Type *Ty = ST->getElementType(i);
     if (i == 0 && Ty->isScalableTy())
-      StructSize = TypeSize::Scalable(0);
+      StructSize = TypeSize::getScalable(0);
 
     const Align TyAlign = ST->isPacked() ? Align(1) : DL.getABITypeAlign(Ty);
 
@@ -69,7 +69,7 @@ StructLayout::StructLayout(StructType *ST, const DataLayout &DL)
     // contains both fixed size and scalable size data type members).
     if (!StructSize.isScalable() && !isAligned(TyAlign, StructSize)) {
       IsPadded = true;
-      StructSize = TypeSize::Fixed(alignTo(StructSize, TyAlign));
+      StructSize = TypeSize::getFixed(alignTo(StructSize, TyAlign));
     }
 
     // Keep track of maximum alignment constraint.
@@ -84,7 +84,7 @@ StructLayout::StructLayout(StructType *ST, const DataLayout &DL)
   // and all array elements would be aligned correctly.
   if (!StructSize.isScalable() && !isAligned(StructAlignment, StructSize)) {
     IsPadded = true;
-    StructSize = TypeSize::Fixed(alignTo(StructSize, StructAlignment));
+    StructSize = TypeSize::getFixed(alignTo(StructSize, StructAlignment));
   }
 }
 
@@ -94,7 +94,7 @@ unsigned StructLayout::getElementContainingOffset(uint64_t FixedOffset) const {
   assert(!StructSize.isScalable() &&
          "Cannot get element at offset for structure containing scalable "
          "vector types");
-  TypeSize Offset = TypeSize::Fixed(FixedOffset);
+  TypeSize Offset = TypeSize::getFixed(FixedOffset);
   ArrayRef<TypeSize> MemberOffsets = getMemberOffsets();
 
   const auto *SI =
@@ -176,7 +176,7 @@ const char *DataLayout::getManglingComponent(const Triple &T) {
     return "-m:l";
   if (T.isOSBinFormatMachO())
     return "-m:o";
-  if (T.isOSWindows() && T.isOSBinFormatCOFF())
+  if ((T.isOSWindows() || T.isUEFI()) && T.isOSBinFormatCOFF())
     return T.getArch() == Triple::x86 ? "-m:x" : "-m:w";
   if (T.isOSBinFormatXCOFF())
     return "-m:a";
@@ -666,6 +666,8 @@ Error DataLayout::setPointerAlignmentInBits(uint32_t AddrSpace, Align ABIAlign,
   if (PrefAlign < ABIAlign)
     return reportError(
         "Preferred alignment cannot be less than the ABI alignment");
+  if (IndexBitWidth > TypeBitWidth)
+    return reportError("Index width cannot be larger than pointer width");
 
   auto I = lower_bound(Pointers, AddrSpace,
                        [](const PointerAlignElem &A, uint32_t AddressSpace) {
@@ -972,9 +974,8 @@ int64_t DataLayout::getIndexedOffsetInType(Type *ElemTy,
       // Add in the offset, as calculated by the structure layout info...
       Result += Layout->getElementOffset(FieldNo);
     } else {
-      // Get the array index and the size of each array element.
-      if (int64_t arrayIdx = cast<ConstantInt>(Idx)->getSExtValue())
-        Result += arrayIdx * getTypeAllocSize(GTI.getIndexedType());
+      if (int64_t ArrayIdx = cast<ConstantInt>(Idx)->getSExtValue())
+        Result += ArrayIdx * GTI.getSequentialElementStride(*this);
     }
   }
 

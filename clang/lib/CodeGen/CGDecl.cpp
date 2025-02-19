@@ -96,7 +96,6 @@ void CodeGenFunction::EmitDecl(const Decl &D) {
   case Decl::FriendTemplate:
   case Decl::Block:
   case Decl::Captured:
-  case Decl::ClassScopeFunctionSpecialization:
   case Decl::UsingShadow:
   case Decl::ConstructorUsingShadow:
   case Decl::ObjCTypeParam:
@@ -202,7 +201,7 @@ void CodeGenFunction::EmitVarDecl(const VarDecl &D) {
       return;
 
     llvm::GlobalValue::LinkageTypes Linkage =
-        CGM.getLLVMLinkageVarDefinition(&D, /*IsConstant=*/false);
+        CGM.getLLVMLinkageVarDefinition(&D);
 
     // FIXME: We need to force the emission/use of a guard variable for
     // some variables even if we can constant-evaluate them because
@@ -398,7 +397,8 @@ CodeGenFunction::AddInitializerToStaticVarDecl(const VarDecl &D,
   bool NeedsDtor =
       D.needsDestruction(getContext()) == QualType::DK_cxx_destructor;
 
-  GV->setConstant(CGM.isTypeConstant(D.getType(), true, !NeedsDtor));
+  GV->setConstant(
+      D.getType().isConstantStorage(getContext(), true, !NeedsDtor));
   GV->setInitializer(Init);
 
   emitter.finalize(GV);
@@ -579,9 +579,7 @@ namespace {
     bool isRedundantBeforeReturn() override { return true; }
     void Emit(CodeGenFunction &CGF, Flags flags) override {
       llvm::Value *V = CGF.Builder.CreateLoad(Stack);
-      llvm::Function *F = CGF.CGM.getIntrinsic(llvm::Intrinsic::stackrestore,
-          { CGF.Int8PtrTy });
-      CGF.Builder.CreateCall(F, V);
+      CGF.Builder.CreateStackRestore(V);
     }
   };
 
@@ -1263,29 +1261,37 @@ static void emitStoresForConstant(CodeGenModule &CGM, const VarDecl &D,
     return;
   }
 
-  // If the initializer is small, use a handful of stores.
+  // If the initializer is small or trivialAutoVarInit is set, use a handful of
+  // stores.
+  bool IsTrivialAutoVarInitPattern =
+      CGM.getContext().getLangOpts().getTrivialAutoVarInit() ==
+      LangOptions::TrivialAutoVarInitKind::Pattern;
   if (shouldSplitConstantStore(CGM, ConstantSize)) {
     if (auto *STy = dyn_cast<llvm::StructType>(Ty)) {
-      // FIXME: handle the case when STy != Loc.getElementType().
-      if (STy == Loc.getElementType()) {
+      if (STy == Loc.getElementType() ||
+          (STy != Loc.getElementType() && IsTrivialAutoVarInitPattern)) {
+        const llvm::StructLayout *Layout =
+            CGM.getDataLayout().getStructLayout(STy);
         for (unsigned i = 0; i != constant->getNumOperands(); i++) {
-          Address EltPtr = Builder.CreateStructGEP(Loc, i);
-          emitStoresForConstant(
-              CGM, D, EltPtr, isVolatile, Builder,
-              cast<llvm::Constant>(Builder.CreateExtractValue(constant, i)),
-	      ContainsCaps, IsAutoInit);
+          CharUnits CurOff =
+              CharUnits::fromQuantity(Layout->getElementOffset(i));
+          Address EltPtr = Builder.CreateConstInBoundsByteGEP(
+              Loc.withElementType(CGM.Int8Ty), CurOff);
+          emitStoresForConstant(CGM, D, EltPtr, isVolatile, Builder,
+                                constant->getAggregateElement(i),
+                                ContainsCaps, IsAutoInit);
         }
         return;
       }
     } else if (auto *ATy = dyn_cast<llvm::ArrayType>(Ty)) {
-      // FIXME: handle the case when ATy != Loc.getElementType().
-      if (ATy == Loc.getElementType()) {
+      if (ATy == Loc.getElementType() ||
+          (ATy != Loc.getElementType() && IsTrivialAutoVarInitPattern)) {
         for (unsigned i = 0; i != ATy->getNumElements(); i++) {
-          Address EltPtr = Builder.CreateConstArrayGEP(Loc, i);
-          emitStoresForConstant(
-              CGM, D, EltPtr, isVolatile, Builder,
-              cast<llvm::Constant>(Builder.CreateExtractValue(constant, i)),
-	      ContainsCaps, IsAutoInit);
+          Address EltPtr = Builder.CreateConstGEP(
+              Loc.withElementType(ATy->getElementType()), i);
+          emitStoresForConstant(CGM, D, EltPtr, isVolatile, Builder,
+                                constant->getAggregateElement(i),
+                                ContainsCaps, IsAutoInit);
         }
         return;
       }
@@ -1378,7 +1384,6 @@ llvm::Value *CodeGenFunction::EmitLifetimeStart(llvm::TypeSize Size,
          "Pointer should be in alloca address space");
   llvm::Value *SizeV = llvm::ConstantInt::get(
       Int64Ty, Size.isScalable() ? -1 : Size.getFixedValue());
-  Addr = Builder.CreateBitCast(Addr, AllocaInt8PtrTy);
   llvm::CallInst *C =
       Builder.CreateCall(CGM.getLLVMLifetimeStartFn(), {SizeV, Addr});
   C->setDoesNotThrow();
@@ -1389,7 +1394,6 @@ void CodeGenFunction::EmitLifetimeEnd(llvm::Value *Size, llvm::Value *Addr) {
   assert(Addr->getType()->getPointerAddressSpace() ==
              CGM.getDataLayout().getAllocaAddrSpace() &&
          "Pointer should be in alloca address space");
-  Addr = Builder.CreateBitCast(Addr, AllocaInt8PtrTy);
   llvm::CallInst *C =
       Builder.CreateCall(CGM.getLLVMLifetimeEndFn(), {Size, Addr});
   C->setDoesNotThrow();
@@ -1518,7 +1522,8 @@ CodeGenFunction::EmitAutoVarAlloca(const VarDecl &D) {
       if ((!getLangOpts().OpenCL ||
            Ty.getAddressSpace() == LangAS::opencl_constant) &&
           (CGM.getCodeGenOpts().MergeAllConstants && !NRVO &&
-           !isEscapingByRef && CGM.isTypeConstant(Ty, true, !NeedsDtor))) {
+           !isEscapingByRef &&
+           Ty.isConstantStorage(getContext(), true, !NeedsDtor))) {
         EmitStaticVarDecl(D, llvm::GlobalValue::InternalLinkage);
 
         // Signal this condition to later callbacks.
@@ -1552,8 +1557,7 @@ CodeGenFunction::EmitAutoVarAlloca(const VarDecl &D) {
           // applied.
           llvm::Value *Zero = Builder.getFalse();
           Address NRVOFlag =
-              CreateTempAlloca(Zero->getType(), CharUnits::One(), "nrvo",
-                               /*ArraySize=*/nullptr, &AllocaAddr);
+              CreateTempAlloca(Zero->getType(), CharUnits::One(), "nrvo");
           EnsureInsertPoint();
           Builder.CreateStore(Zero, NRVOFlag);
 
@@ -1648,10 +1652,10 @@ CodeGenFunction::EmitAutoVarAlloca(const VarDecl &D) {
       if (!DidCallStackSave) {
         // Save the stack.
         Address Stack =
-            CreateTempAlloca(Int8PtrTy, getPointerAlign(), "saved_stack");
+            CreateDefaultAlignTempAlloca(AllocaInt8PtrTy, "saved_stack");
 
-        llvm::Function *F = CGM.getIntrinsic(llvm::Intrinsic::stacksave, { Int8PtrTy });
-        llvm::Value *V = Builder.CreateCall(F);
+        llvm::Value *V = Builder.CreateStackSave();
+        assert(V->getType() == AllocaInt8PtrTy);
         Builder.CreateStore(V, Stack);
 
         DidCallStackSave = true;
@@ -1788,19 +1792,33 @@ void CodeGenFunction::emitZeroOrPatternForAutoVarInit(QualType type,
                                                       const VarDecl &D,
                                                       Address Loc) {
   auto trivialAutoVarInit = getContext().getLangOpts().getTrivialAutoVarInit();
+  auto trivialAutoVarInitMaxSize =
+      getContext().getLangOpts().TrivialAutoVarInitMaxSize;
   CharUnits Size = getContext().getTypeSizeInChars(type);
   bool isVolatile = type.isVolatileQualified();
   if (!Size.isZero()) {
+    // We skip auto-init variables by their alloc size. Take this as an example:
+    // "struct Foo {int x; char buff[1024];}" Assume the max-size flag is 1023.
+    // All Foo type variables will be skipped. Ideally, we only skip the buff
+    // array and still auto-init X in this example.
+    // TODO: Improve the size filtering to by member size.
+    auto allocSize = CGM.getDataLayout().getTypeAllocSize(Loc.getElementType());
     switch (trivialAutoVarInit) {
     case LangOptions::TrivialAutoVarInitKind::Uninitialized:
       llvm_unreachable("Uninitialized handled by caller");
     case LangOptions::TrivialAutoVarInitKind::Zero:
       if (CGM.stopAutoInit())
         return;
+      if (trivialAutoVarInitMaxSize > 0 &&
+          allocSize > trivialAutoVarInitMaxSize)
+        return;
       emitStoresForZeroInit(CGM, D, Loc, isVolatile, Builder);
       break;
     case LangOptions::TrivialAutoVarInitKind::Pattern:
       if (CGM.stopAutoInit())
+        return;
+      if (trivialAutoVarInitMaxSize > 0 &&
+          allocSize > trivialAutoVarInitMaxSize)
         return;
       emitStoresForPatternInit(CGM, D, Loc, isVolatile, Builder);
       break;
@@ -2549,7 +2567,7 @@ void CodeGenFunction::EmitParmDecl(const VarDecl &D, ParamValue Arg,
     // Suppressing debug info for ThreadPrivateVar parameters, else it hides
     // debug info of TLS variables.
     NoDebugInfo =
-        (IPD->getParameterKind() == ImplicitParamDecl::ThreadPrivateVar);
+        (IPD->getParameterKind() == ImplicitParamKind::ThreadPrivateVar);
   }
 
   Address DeclPtr = Address::invalid();

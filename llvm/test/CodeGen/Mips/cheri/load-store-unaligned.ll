@@ -21,8 +21,8 @@ define ptr addrspace(200) @load_unaligned(ptr addrspace(200) %unaligned) local_u
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:    cincoffset $c11, $c11, -[[STACKFRAME_SIZE:32|64]]
 ; CHECK-NEXT:    .cfi_def_cfa_offset [[STACKFRAME_SIZE]]
-; CHECK-NEXT:    csc $c17, $zero, [[#CAP_SIZE * 1]]($c11)
-; CHECK-NEXT:    .cfi_offset 89, -[[#CAP_SIZE * 1]]
+; CHECK-NEXT:    csc $c17, $zero, [[#mul(CAP_SIZE,1)]]($c11)
+; CHECK-NEXT:    .cfi_offset 89, -[[#mul(CAP_SIZE,1)]]
 ; CHECK-NEXT:    lui $1, %pcrel_hi(_CHERI_CAPABILITY_TABLE_-8)
 ; CHECK-NEXT:    daddiu $1, $1, %pcrel_lo(_CHERI_CAPABILITY_TABLE_-4)
 ; CHECK-NEXT:    cgetpccincoffset $c1, $1
@@ -33,7 +33,7 @@ define ptr addrspace(200) @load_unaligned(ptr addrspace(200) %unaligned) local_u
 ; CHECK-NEXT:    cjalr $c12, $c17
 ; CHECK-NEXT:    daddiu $4, $zero, [[#CAP_SIZE]]
 ; CHECK-NEXT:    clc $c3, $zero, 0($c11)
-; CHECK-NEXT:    clc $c17, $zero, [[#CAP_SIZE * 1]]($c11)
+; CHECK-NEXT:    clc $c17, $zero, [[#mul(CAP_SIZE,1)]]($c11)
 ; CHECK-NEXT:    cjr $c17
 ; CHECK-NEXT:    cincoffset $c11, $c11, [[STACKFRAME_SIZE]]
 
@@ -57,8 +57,8 @@ define void @store_unaligned(ptr addrspace(200) %unused, ptr addrspace(200) %una
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:    cincoffset $c11, $c11, -[[STACKFRAME_SIZE:32|64]]
 ; CHECK-NEXT:    .cfi_def_cfa_offset [[STACKFRAME_SIZE]]
-; CHECK-NEXT:    csc $c17, $zero, [[#CAP_SIZE * 1]]($c11)
-; CHECK-NEXT:    .cfi_offset 89, -[[#CAP_SIZE * 1]]
+; CHECK-NEXT:    csc $c17, $zero, [[#mul(CAP_SIZE,1)]]($c11)
+; CHECK-NEXT:    .cfi_offset 89, -[[#mul(CAP_SIZE,1)]]
 ; CHECK-NEXT:    lui $1, %pcrel_hi(_CHERI_CAPABILITY_TABLE_-8)
 ; CHECK-NEXT:    daddiu $1, $1, %pcrel_lo(_CHERI_CAPABILITY_TABLE_-4)
 ; CHECK-NEXT:    cgetpccincoffset $c1, $1
@@ -69,7 +69,7 @@ define void @store_unaligned(ptr addrspace(200) %unused, ptr addrspace(200) %una
 ; CHECK-NEXT:    csetbounds $c4, $c11, [[#CAP_SIZE]]
 ; CHECK-NEXT:    cjalr $c12, $c17
 ; CHECK-NEXT:    daddiu $4, $zero, [[#CAP_SIZE]]
-; CHECK-NEXT:    clc $c17, $zero, [[#CAP_SIZE * 1]]($c11)
+; CHECK-NEXT:    clc $c17, $zero, [[#mul(CAP_SIZE,1)]]($c11)
 ; CHECK-NEXT:    cjr $c17
 ; CHECK-NEXT:    cincoffset $c11, $c11, [[STACKFRAME_SIZE]]
 

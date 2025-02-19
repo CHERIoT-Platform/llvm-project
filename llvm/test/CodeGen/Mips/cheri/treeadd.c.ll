@@ -17,19 +17,19 @@ define signext i32 @TreeAdd(ptr addrspace(200) readonly %t) local_unnamed_addr a
 ; CHECK-NEXT:    csc $c19, $zero, [[#C19_SAVE_OFFSET:]]($c11)
 ; CHECK-NEXT:    csc $c18, $zero, [[#C18_SAVE_OFFSET:]]($c11)
 ; CHECK-NEXT:    csc $c17, $zero, [[#C17_SAVE_OFFSET:]]($c11)
-; CHECK-NEXT:    cmove $c18, $c3
-; CHECK-NEXT:    clc $c3, $zero, [[#CAP_SIZE]]($c3)
+; CHECK-NEXT:    clc $c1, $zero, [[#CAP_SIZE]]($c3)
 ; CHECK-NEXT:    lui $1, %pcrel_hi(_CHERI_CAPABILITY_TABLE_-8)
 ; CHECK-NEXT:    daddiu $1, $1, %pcrel_lo(_CHERI_CAPABILITY_TABLE_-4)
-; CHECK-NEXT:    cgetpccincoffset $c19, $1
-; CHECK-NEXT:    clcbi $c12, %capcall20(TreeAdd)($c19)
+; CHECK-NEXT:    cgetpccincoffset $c18, $1
+; CHECK-NEXT:    clcbi $c12, %capcall20(TreeAdd)($c18)
+; CHECK-NEXT:    cmove $c19, $c3
 ; CHECK-NEXT:    cjalr $c12, $c17
-; CHECK-NEXT:    nop
-; CHECK-NEXT:    clc $c3, $zero, [[#CAP_SIZE * 2]]($c18)
-; CHECK-NEXT:    clcbi $c12, %capcall20(TreeAdd)($c19)
+; CHECK-NEXT:    cmove $c3, $c1
+; CHECK-NEXT:    clc $c3, $zero, [[#mul(CAP_SIZE,2)]]($c19)
+; CHECK-NEXT:    clcbi $c12, %capcall20(TreeAdd)($c18)
 ; CHECK-NEXT:    cjalr $c12, $c17
 ; CHECK-NEXT:    move $16, $2
-; CHECK-NEXT:    clw $1, $zero, 0($c18)
+; CHECK-NEXT:    clw $1, $zero, 0($c19)
 ; CHECK-NEXT:    addu $2, $2, $16
 ; CHECK-NEXT:    addu $2, $2, $1
 ; CHECK-NEXT:    clc $c17, $zero, [[#C17_SAVE_OFFSET]]($c11)

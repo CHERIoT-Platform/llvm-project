@@ -13,14 +13,14 @@
 // RISCV32-LABEL: @get_uninitialised_cap(
 // RISCV32-NEXT:  entry:
 // RISCV32-NEXT:    [[CAP:%.*]] = alloca ptr addrspace(200), align 8
-// RISCV32-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i32 -1), ptr [[CAP]], align 8, !annotation !4
+// RISCV32-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i32 -1), ptr [[CAP]], align 8, !annotation !6
 // RISCV32-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr [[CAP]], align 8
 // RISCV32-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 // RISCV64-LABEL: @get_uninitialised_cap(
 // RISCV64-NEXT:  entry:
 // RISCV64-NEXT:    [[CAP:%.*]] = alloca ptr addrspace(200), align 16
-// RISCV64-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 -6148914691236517206), ptr [[CAP]], align 16, !annotation !4
+// RISCV64-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 -6148914691236517206), ptr [[CAP]], align 16, !annotation !6
 // RISCV64-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr [[CAP]], align 16
 // RISCV64-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
@@ -57,24 +57,24 @@ struct S {
 // RISCV32-NEXT:  entry:
 // RISCV32-NEXT:    [[RESULT_PTR:%.*]] = alloca ptr, align 4
 // RISCV32-NEXT:    store ptr [[AGG_RESULT:%.*]], ptr [[RESULT_PTR]], align 4
-// RISCV32-NEXT:    call void @llvm.memcpy.p0.p0.i32(ptr align 8 [[AGG_RESULT]], ptr align 8 @__const.get_uninitialised_struct.s, i32 32, i1 false), !annotation !4
+// RISCV32-NEXT:    call void @llvm.memcpy.p0.p0.i32(ptr align 8 [[AGG_RESULT]], ptr align 8 @__const.get_uninitialised_struct.s, i32 32, i1 false), !annotation !6
 // RISCV32-NEXT:    ret void
 //
 // RISCV64-LABEL: @get_uninitialised_struct(
 // RISCV64-NEXT:  entry:
 // RISCV64-NEXT:    [[RESULT_PTR:%.*]] = alloca ptr, align 8
 // RISCV64-NEXT:    store ptr [[AGG_RESULT:%.*]], ptr [[RESULT_PTR]], align 8
-// RISCV64-NEXT:    call void @llvm.memset.p0.i64(ptr align 16 [[AGG_RESULT]], i8 0, i64 64, i1 false), !annotation !4
+// RISCV64-NEXT:    call void @llvm.memset.p0.i64(ptr align 16 [[AGG_RESULT]], i8 0, i64 64, i1 false), !annotation !6
 // RISCV64-NEXT:    [[TMP0:%.*]] = getelementptr inbounds [[STRUCT_S:%.*]], ptr [[AGG_RESULT]], i32 0, i32 0
-// RISCV64-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 -6148914691236517206), ptr [[TMP0]], align 16, !annotation !4
+// RISCV64-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 -6148914691236517206), ptr [[TMP0]], align 16, !annotation !6
 // RISCV64-NEXT:    [[TMP1:%.*]] = getelementptr inbounds [[STRUCT_S]], ptr [[AGG_RESULT]], i32 0, i32 1
 // RISCV64-NEXT:    [[TMP2:%.*]] = getelementptr inbounds [2 x ptr addrspace(200)], ptr [[TMP1]], i32 0, i32 0
-// RISCV64-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 -6148914691236517206), ptr [[TMP2]], align 16, !annotation !4
+// RISCV64-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 -6148914691236517206), ptr [[TMP2]], align 16, !annotation !6
 // RISCV64-NEXT:    [[TMP3:%.*]] = getelementptr inbounds [2 x ptr addrspace(200)], ptr [[TMP1]], i32 0, i32 1
-// RISCV64-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 -6148914691236517206), ptr [[TMP3]], align 16, !annotation !4
+// RISCV64-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 -6148914691236517206), ptr [[TMP3]], align 16, !annotation !6
 // RISCV64-NEXT:    [[TMP4:%.*]] = getelementptr inbounds [[STRUCT_S]], ptr [[AGG_RESULT]], i32 0, i32 2
 // RISCV64-NEXT:    [[TMP5:%.*]] = getelementptr inbounds [[UNION_ANON:%.*]], ptr [[TMP4]], i32 0, i32 0
-// RISCV64-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 -6148914691236517206), ptr [[TMP5]], align 16, !annotation !4
+// RISCV64-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 -6148914691236517206), ptr [[TMP5]], align 16, !annotation !6
 // RISCV64-NEXT:    ret void
 //
 struct S get_uninitialised_struct(void) {

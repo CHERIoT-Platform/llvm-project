@@ -127,7 +127,7 @@ static void EmitDeclDestroy(CodeGenFunction &CGF, const VarDecl &D,
           CGM.getLLVMContext(), CGM.getContext().getTargetAddressSpace(DestAS));
       auto SrcAS = D.getType().getQualifiers().getAddressSpace();
       if (DestAS == SrcAS)
-        Argument = llvm::ConstantExpr::getBitCast(Addr.getPointer(), DestTy);
+        Argument = Addr.getPointer();
       else
         // FIXME: On addr space mismatch we are passing NULL. The generation
         // of the global destructor function should be adjusted accordingly.
@@ -171,8 +171,7 @@ void CodeGenFunction::EmitInvariantStart(llvm::Constant *Addr, CharUnits Size) {
 
   // Emit a call with the size in bytes of the object.
   uint64_t Width = Size.getQuantity();
-  llvm::Value *Args[2] = { llvm::ConstantInt::getSigned(Int64Ty, Width),
-                           llvm::ConstantExpr::getBitCast(Addr, Int8PtrTy)};
+  llvm::Value *Args[2] = {llvm::ConstantInt::getSigned(Int64Ty, Width), Addr};
   Builder.CreateCall(InvariantStart, Args);
 }
 
@@ -226,7 +225,7 @@ void CodeGenFunction::EmitCXXGlobalVarDeclInit(const VarDecl &D,
         D.needsDestruction(getContext()) == QualType::DK_cxx_destructor;
     if (PerformInit)
       EmitDeclInit(*this, D, DeclAddr);
-    if (CGM.isTypeConstant(D.getType(), true, !NeedsDtor))
+    if (D.getType().isConstantStorage(getContext(), true, !NeedsDtor))
       EmitDeclInvariant(*this, D, DeclPtr);
     else
       EmitDeclDestroy(*this, D, DeclAddr);
@@ -288,8 +287,8 @@ llvm::Function *CodeGenFunction::createTLSAtExitStub(
   }
 
   const CGFunctionInfo &FI = CGM.getTypes().arrangeLLVMFunctionInfo(
-      getContext().IntTy, /*instanceMethod=*/false, /*chainCall=*/false,
-      {getContext().IntTy}, FunctionType::ExtInfo(), {}, RequiredArgs::All);
+      getContext().IntTy, FnInfoOpts::None, {getContext().IntTy},
+      FunctionType::ExtInfo(), {}, RequiredArgs::All);
 
   // Get the stub function type, int(*)(int,...).
   llvm::FunctionType *StubTy =
@@ -302,7 +301,7 @@ llvm::Function *CodeGenFunction::createTLSAtExitStub(
 
   FunctionArgList Args;
   ImplicitParamDecl IPD(CGM.getContext(), CGM.getContext().IntTy,
-                        ImplicitParamDecl::Other);
+                        ImplicitParamKind::Other);
   Args.push_back(&IPD);
   QualType ResTy = CGM.getContext().IntTy;
 
@@ -335,6 +334,15 @@ void CodeGenFunction::registerGlobalDtorWithAtExit(const VarDecl &VD,
   // Create a function which calls the destructor.
   llvm::Constant *dtorStub = createAtExitStub(VD, dtor, addr);
   registerGlobalDtorWithAtExit(dtorStub);
+}
+
+/// Register a global destructor using the LLVM 'llvm.global_dtors' global.
+void CodeGenFunction::registerGlobalDtorWithLLVM(const VarDecl &VD,
+                                                 llvm::FunctionCallee Dtor,
+                                                 llvm::Constant *Addr) {
+  // Create a function which calls the destructor.
+  llvm::Function *dtorStub = createAtExitStub(VD, Dtor, Addr);
+  CGM.AddGlobalDtor(dtorStub);
 }
 
 void CodeGenFunction::registerGlobalDtorWithAtExit(llvm::Constant *dtorStub) {
@@ -529,10 +537,6 @@ CodeGenModule::EmitCXXGlobalVarDeclInitFunc(const VarDecl *D,
        D->hasAttr<CUDASharedAttr>()))
     return;
 
-  if (getLangOpts().OpenMP &&
-      getOpenMPRuntime().emitDeclareTargetVarDefinition(D, Addr, PerformInit))
-    return;
-
   // Check if we've already initialized this decl.
   auto I = DelayedCXXInitPosition.find(D);
   if (I != DelayedCXXInitPosition.end() && I->second == ~0U)
@@ -664,6 +668,10 @@ void CodeGenModule::EmitCXXThreadLocalInitFunc() {
 */
 
 void CodeGenModule::EmitCXXModuleInitFunc(Module *Primary) {
+  assert(Primary->isInterfaceOrPartition() &&
+         "The function should only be called for C++20 named module interface"
+         " or partition.");
+
   while (!CXXGlobalInits.empty() && !CXXGlobalInits.back())
     CXXGlobalInits.pop_back();
 
@@ -671,19 +679,35 @@ void CodeGenModule::EmitCXXModuleInitFunc(Module *Primary) {
   // Module initializers for imported modules are emitted first.
 
   // Collect all the modules that we import
-  SmallVector<Module *> AllImports;
+  llvm::SmallSetVector<Module *, 8> AllImports;
   // Ones that we export
   for (auto I : Primary->Exports)
-    AllImports.push_back(I.getPointer());
+    AllImports.insert(I.getPointer());
   // Ones that we only import.
   for (Module *M : Primary->Imports)
-    AllImports.push_back(M);
+    AllImports.insert(M);
+  // Ones that we import in the global module fragment or the private module
+  // fragment.
+  for (Module *SubM : Primary->submodules()) {
+    assert((SubM->isGlobalModule() || SubM->isPrivateModule()) &&
+           "The sub modules of C++20 module unit should only be global module "
+           "fragments or private module framents.");
+    assert(SubM->Exports.empty() &&
+           "The global mdoule fragments and the private module fragments are "
+           "not allowed to export import modules.");
+    for (Module *M : SubM->Imports)
+      AllImports.insert(M);
+  }
 
   SmallVector<llvm::Function *, 8> ModuleInits;
   for (Module *M : AllImports) {
     // No Itanium initializer in header like modules.
     if (M->isHeaderLikeModule())
       continue; // TODO: warn of mixed use of module map modules and C++20?
+    // We're allowed to skip the initialization if we are sure it doesn't
+    // do any thing.
+    if (!M->isNamedModuleInterfaceHasInit())
+      continue;
     llvm::FunctionType *FTy = llvm::FunctionType::get(VoidTy, false);
     SmallString<256> FnName;
     {
@@ -740,8 +764,7 @@ void CodeGenModule::EmitCXXModuleInitFunc(Module *Primary) {
     // If we have a completely empty initializer then we do not want to create
     // the guard variable.
     ConstantAddress GuardAddr = ConstantAddress::invalid();
-    if (!AllImports.empty() || !PrioritizedCXXGlobalInits.empty() ||
-        !CXXGlobalInits.empty()) {
+    if (!ModuleInits.empty()) {
       // Create the guard var.
       llvm::GlobalVariable *Guard = new llvm::GlobalVariable(
           getModule(), Int8Ty, /*isConstant=*/false,
@@ -1129,7 +1152,7 @@ llvm::Function *CodeGenFunction::generateDestroyHelper(
     bool useEHCleanupForArray, const VarDecl *VD) {
   FunctionArgList args;
   ImplicitParamDecl Dst(getContext(), getContext().VoidPtrTy,
-                        ImplicitParamDecl::Other);
+                        ImplicitParamKind::Other);
   args.push_back(&Dst);
 
   const CGFunctionInfo &FI =

@@ -11,11 +11,11 @@ define i32 @a() {
 ; CHECK-NEXT:    cincoffset $c11, $c11, -[[#STACKFRAME_SIZE:]]
 ; CHECK-NEXT:    .cfi_def_cfa_offset [[#STACKFRAME_SIZE]]
 ; CHECK-NEXT:    csd $16, $zero, [[#STACKFRAME_SIZE - 8]]($c11)
-; CHECK-NEXT:    csc $c18, $zero, [[#CAP_SIZE * 1]]($c11)
+; CHECK-NEXT:    csc $c18, $zero, [[#CAP_SIZE]]($c11)
 ; CHECK-NEXT:    csc $c17, $zero, 0($c11)
 ; CHECK-NEXT:    .cfi_offset 16, -8
-; CHECK-NEXT:    .cfi_offset 90, -[[#CAP_SIZE * 2]]
-; CHECK-NEXT:    .cfi_offset 89, -[[#CAP_SIZE * 3]]
+; CHECK-NEXT:    .cfi_offset 90, -[[#mul(CAP_SIZE,2)]]
+; CHECK-NEXT:    .cfi_offset 89, -[[#mul(CAP_SIZE,3)]]
 ; CHECK-NEXT:    cmove $c18, $c26
 ; CHECK-NEXT:    clcbi $c12, %capcall20(external_fn1)($c18)
 ; CHECK-NEXT:    cjalr $c12, $c17
@@ -29,7 +29,7 @@ define i32 @a() {
 ; restore $cgp after return from potential external call
 ; CHECK-NEXT:    cmove $c26, $c18
 ; CHECK-NEXT:    clc $c17, $zero, 0($c11)
-; CHECK-NEXT:    clc $c18, $zero, [[#CAP_SIZE * 1]]($c11)
+; CHECK-NEXT:    clc $c18, $zero, [[#CAP_SIZE]]($c11)
 ; CHECK-NEXT:    cld $16, $zero, [[#STACKFRAME_SIZE - 8]]($c11)
 ; CHECK-NEXT:    cjr $c17
 ; CHECK-NEXT:    cincoffset $c11, $c11, [[#STACKFRAME_SIZE]]

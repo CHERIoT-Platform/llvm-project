@@ -12,11 +12,11 @@ define ptr addrspace(200) @test(ptr addrspace(200) readnone %inCap, i32 signext 
 ; CHECK-NEXT:    csc $c24, $zero, [[#STACKFRAME_SIZE - CAP_SIZE]]($c11)
 ; CHECK-NEXT:    csc $c17, $zero, 0($c11)
 ; CHECK-NEXT:    .cfi_offset 96, -[[#STACKFRAME_SIZE - CAP_SIZE]]
-; CHECK-NEXT:    .cfi_offset 89, -[[#CAP_SIZE * 2]]
+; CHECK-NEXT:    .cfi_offset 89, -[[#mul(CAP_SIZE,2)]]
 ; CHECK-NEXT:    cincoffset $c24, $c11, $zero
 ; CHECK-NEXT:    .cfi_def_cfa_register 96
-; CHECK-NEXT:    addiu $1, $5, 4
-; CHECK-NEXT:    dsll $1, $1, 2
+; CHECK-NEXT:    dsll $1, $5, 2
+; CHECK-NEXT:    daddiu $1, $1, 16
 ; CHECK-NEXT:    cincoffset $c1, $c3, $1
 ; CHECK-NEXT:    cmovz $c1, $c3, $4
 ; CHECK-NEXT:    cmove $c3, $c1

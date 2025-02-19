@@ -43,7 +43,6 @@
 
 #include "AMDGPU.h"
 #include "Utils/AMDGPUBaseInfo.h"
-#include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/MemoryDependenceAnalysis.h"
 #include "llvm/IR/AttributeMask.h"
@@ -314,8 +313,9 @@ bool AMDGPURewriteOutArguments::runOnFunction(Function &F) {
 
   LLVM_DEBUG(dbgs() << "Computed new return type: " << *NewRetTy << '\n');
 
-  Function *NewFunc = Function::CreateBefore(
-      F, NewFuncTy, Function::PrivateLinkage, F.getName() + ".body");
+  Function *NewFunc = Function::Create(NewFuncTy, Function::PrivateLinkage,
+                                       F.getName() + ".body");
+  F.getParent()->getFunctionList().insert(F.getIterator(), NewFunc);
   NewFunc->copyAttributesFrom(&F);
   NewFunc->setComdat(F.getComdat());
 
@@ -329,6 +329,8 @@ bool AMDGPURewriteOutArguments::runOnFunction(Function &F) {
   RetAttrs.addAttribute(Attribute::NoAlias);
   NewFunc->removeRetAttrs(RetAttrs);
   // TODO: How to preserve metadata?
+
+  NewFunc->setIsNewDbgInfoFormat(F.IsNewDbgInfoFormat);
 
   // Move the body of the function into the new rewritten function, and replace
   // this function with a stub.

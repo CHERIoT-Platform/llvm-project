@@ -23,9 +23,9 @@ define void @fn1() addrspace(200) noinline nounwind optnone {
 ; ASM:       # %bb.0: # %entry
 ; ASM-NEXT:    daddiu $1, $zero, -[[#STACKFRAME_SIZE:]]
 ; ASM-NEXT:    cincoffset $c11, $c11, $1
-; ASM-NEXT:    csc $c19, $zero, [[#STACKFRAME_SIZE - (1 * CAP_SIZE)]]($c11)
-; ASM-NEXT:    csc $c18, $zero, [[#STACKFRAME_SIZE - (2 * CAP_SIZE)]]($c11)
-; ASM-NEXT:    csc $c17, $zero, [[#STACKFRAME_SIZE - (3 * CAP_SIZE)]]($c11)
+; ASM-NEXT:    csc $c19, $zero, [[#STACKFRAME_SIZE - (mul(1,CAP_SIZE))]]($c11)
+; ASM-NEXT:    csc $c18, $zero, [[#STACKFRAME_SIZE - (mul(2,CAP_SIZE))]]($c11)
+; ASM-NEXT:    csc $c17, $zero, [[#STACKFRAME_SIZE - (mul(3,CAP_SIZE))]]($c11)
 ; ASM-NEXT:    lui $1, %pcrel_hi(_CHERI_CAPABILITY_TABLE_-8)
 ; ASM-NEXT:    daddiu $1, $1, %pcrel_lo(_CHERI_CAPABILITY_TABLE_-4)
 ; ASM-NEXT:    cgetpccincoffset $c19, $1
@@ -40,9 +40,9 @@ define void @fn1() addrspace(200) noinline nounwind optnone {
 ; ASM-NEXT:    clcbi $c12, %capcall20(fn2)($c19)
 ; ASM-NEXT:    cjalr $c12, $c17
 ; ASM-NEXT:    cmove $c3, $c18
-; ASM-NEXT:    clc $c17, $zero, [[#STACKFRAME_SIZE - (3 * CAP_SIZE)]]($c11)
-; ASM-NEXT:    clc $c18, $zero, [[#STACKFRAME_SIZE - (2 * CAP_SIZE)]]($c11)
-; ASM-NEXT:    clc $c19, $zero, [[#STACKFRAME_SIZE - (1 * CAP_SIZE)]]($c11)
+; ASM-NEXT:    clc $c17, $zero, [[#STACKFRAME_SIZE - (mul(3,CAP_SIZE))]]($c11)
+; ASM-NEXT:    clc $c18, $zero, [[#STACKFRAME_SIZE - (mul(2,CAP_SIZE))]]($c11)
+; ASM-NEXT:    clc $c19, $zero, [[#STACKFRAME_SIZE - (mul(1,CAP_SIZE))]]($c11)
 ; ASM-NEXT:    daddiu $1, $zero, [[#STACKFRAME_SIZE]]
 ; ASM-NEXT:    cjr $c17
 ; ASM-NEXT:    cincoffset $c11, $c11, $1
@@ -75,8 +75,8 @@ define void @small_stack_fn1() addrspace(200) noinline nounwind optnone {
 ; ASM-LABEL: small_stack_fn1:
 ; ASM:       # %bb.0: # %entry
 ; ASM-NEXT:    cincoffset $c11, $c11, -[[#STACKFRAME_SIZE:]]
-; ASM-NEXT:    csc $c18, $zero, [[#STACKFRAME_SIZE - (1 * CAP_SIZE)]]($c11)
-; ASM-NEXT:    csc $c17, $zero, [[#STACKFRAME_SIZE - (2 * CAP_SIZE)]]($c11)
+; ASM-NEXT:    csc $c18, $zero, [[#STACKFRAME_SIZE - (mul(1,CAP_SIZE))]]($c11)
+; ASM-NEXT:    csc $c17, $zero, [[#STACKFRAME_SIZE - (mul(2,CAP_SIZE))]]($c11)
 ; ASM-NEXT:    lui $1, %pcrel_hi(_CHERI_CAPABILITY_TABLE_-8)
 ; ASM-NEXT:    daddiu $1, $1, %pcrel_lo(_CHERI_CAPABILITY_TABLE_-4)
 ; ASM-NEXT:    cgetpccincoffset $c18, $1
@@ -90,8 +90,8 @@ define void @small_stack_fn1() addrspace(200) noinline nounwind optnone {
 ; ASM-NEXT:    cincoffset $c3, $c11, [[#CAP_SIZE]]
 ; ASM-NEXT:    cjalr $c12, $c17
 ; ASM-NEXT:    csetbounds $c3, $c3, 512
-; ASM-NEXT:    clc $c17, $zero, [[#STACKFRAME_SIZE - (2 * CAP_SIZE)]]($c11)
-; ASM-NEXT:    clc $c18, $zero, [[#STACKFRAME_SIZE - (1 * CAP_SIZE)]]($c11)
+; ASM-NEXT:    clc $c17, $zero, [[#STACKFRAME_SIZE - (mul(2,CAP_SIZE))]]($c11)
+; ASM-NEXT:    clc $c18, $zero, [[#STACKFRAME_SIZE - (mul(1,CAP_SIZE))]]($c11)
 ; ASM-NEXT:    cjr $c17
 ; ASM-NEXT:    cincoffset $c11, $c11, [[#STACKFRAME_SIZE]]
 entry:

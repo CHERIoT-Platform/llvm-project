@@ -21,7 +21,7 @@
 # CHECK-NEXT:    ]
 # CHECK-NEXT:    Address: 0x0
 # CHECK-NEXT:    Offset: 0x
-# CHECK-NEXT:    Size: [[#CAP_SIZE * 4]]
+# CHECK-NEXT:    Size: [[#mul(CAP_SIZE,4)]]
 # CHECK-NEXT:    Link: 0
 # CHECK-NEXT:    Info: 0
 # CHECK-NEXT:    AddressAlignment: [[#CAP_SIZE]]
@@ -46,7 +46,7 @@
 # CHECK-NEXT:    ]
 # CHECK-NEXT:    Address: 0x0
 # CHECK-NEXT:    Offset:
-# CHECK-NEXT:    Size: [[#CAP_SIZE * 3]]
+# CHECK-NEXT:    Size: [[#mul(CAP_SIZE,3)]]
 # CHECK-NEXT:    Link: 0
 # CHECK-NEXT:    Info: 0
 # CHECK-NEXT:    AddressAlignment: [[#CAP_SIZE]]

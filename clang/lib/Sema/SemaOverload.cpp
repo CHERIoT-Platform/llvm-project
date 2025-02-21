@@ -5800,17 +5800,9 @@ ExprResult Sema::PerformImplicitObjectArgumentInitialization(
   if (const auto *FromPtrTy = From->getType()->getAs<PointerType>()) {
     const auto *ThisPtrTy = Method->getThisType()->getAs<PointerType>();
     if (ThisPtrTy->getPointerInterpretation() != FromPtrTy->getPointerInterpretation()) {
-      return Diag(From->getBeginLoc(), diag::err_sealed_this_pointer)
-            << From->getType() << From->getSourceRange();
+      Diag(From->getBeginLoc(), diag::err_sealed_this_pointer)
+          << From->getType() << From->getSourceRange();
     }
-  }
-
-  const auto *ThisPtrTy = Method->getThisType()->getAs<PointerType>();
-  const auto *FromPtrTy = From->getType()->getAs<PointerType>();
-  if (FromPtrTy && ThisPtrTy->getPointerInterpretation() !=
-                       FromPtrTy->getPointerInterpretation()) {
-    return Diag(From->getBeginLoc(), diag::err_sealed_this_pointer)
-           << From->getType() << From->getSourceRange();
   }
 
   Expr::Classification FromClassification;

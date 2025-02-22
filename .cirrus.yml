@@ -7,7 +7,7 @@ pr_task:
     image_project: ubuntu-os-cloud
     image_family: ubuntu-2404-lts-arm64
     architecture: arm64
-    zone: us-central1-a
+    zone: europe-west4-b
     type: c4a-standard-8
     disk: 60
     preemptible: true

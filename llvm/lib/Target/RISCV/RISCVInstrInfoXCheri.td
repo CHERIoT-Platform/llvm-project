@@ -2011,44 +2011,44 @@ defm : CheriAtomicStPat<atomic_store_32, CSW, GPR, XLenVT>;
 
 /// AMOs
 
-defm : CheriAMOPat<"atomic_swap_32", "CAMOSWAP_W">;
-defm : CheriAMOPat<"atomic_load_add_32", "CAMOADD_W">;
-defm : CheriAMOSubPat<"atomic_load_sub_32", "CAMOADD_W">;
-defm : CheriAMOPat<"atomic_load_and_32", "CAMOAND_W">;
-defm : CheriAMOPat<"atomic_load_or_32", "CAMOOR_W">;
-defm : CheriAMOPat<"atomic_load_xor_32", "CAMOXOR_W">;
-defm : CheriAMOPat<"atomic_load_max_32", "CAMOMAX_W">;
-defm : CheriAMOPat<"atomic_load_min_32", "CAMOMIN_W">;
-defm : CheriAMOPat<"atomic_load_umax_32", "CAMOMAXU_W">;
-defm : CheriAMOPat<"atomic_load_umin_32", "CAMOMINU_W">;
+defm : CheriAMOPat<"atomic_swap_i32", "CAMOSWAP_W">;
+defm : CheriAMOPat<"atomic_load_add_i32", "CAMOADD_W">;
+defm : CheriAMOSubPat<"atomic_load_sub_i32", "CAMOADD_W">;
+defm : CheriAMOPat<"atomic_load_and_i32", "CAMOAND_W">;
+defm : CheriAMOPat<"atomic_load_or_i32", "CAMOOR_W">;
+defm : CheriAMOPat<"atomic_load_xor_i32", "CAMOXOR_W">;
+defm : CheriAMOPat<"atomic_load_max_i32", "CAMOMAX_W">;
+defm : CheriAMOPat<"atomic_load_min_i32", "CAMOMIN_W">;
+defm : CheriAMOPat<"atomic_load_umax_i32", "CAMOMAXU_W">;
+defm : CheriAMOPat<"atomic_load_umin_i32", "CAMOMINU_W">;
 
 /// Pseudo AMOs
 
-defm : PseudoCheriAMOPat<"atomic_swap_8", PseudoCheriAtomicSwap8>;
-defm : PseudoCheriAMOPat<"atomic_load_add_8", PseudoCheriAtomicLoadAdd8>;
-defm : PseudoCheriAMOPat<"atomic_load_sub_8", PseudoCheriAtomicLoadSub8>;
-defm : PseudoCheriAMOPat<"atomic_load_and_8", PseudoCheriAtomicLoadAnd8>;
-defm : PseudoCheriAMOPat<"atomic_load_or_8", PseudoCheriAtomicLoadOr8>;
-defm : PseudoCheriAMOPat<"atomic_load_xor_8", PseudoCheriAtomicLoadXor8>;
-defm : PseudoCheriAMOPat<"atomic_load_max_8", PseudoCheriAtomicLoadMax8>;
-defm : PseudoCheriAMOPat<"atomic_load_min_8", PseudoCheriAtomicLoadMin8>;
-defm : PseudoCheriAMOPat<"atomic_load_umax_8", PseudoCheriAtomicLoadUMax8>;
-defm : PseudoCheriAMOPat<"atomic_load_umin_8", PseudoCheriAtomicLoadUMin8>;
-defm : PseudoCheriAMOPat<"atomic_load_nand_8", PseudoCheriAtomicLoadNand8>;
+defm : PseudoCheriAMOPat<"atomic_swap_i8", PseudoCheriAtomicSwap8>;
+defm : PseudoCheriAMOPat<"atomic_load_add_i8", PseudoCheriAtomicLoadAdd8>;
+defm : PseudoCheriAMOPat<"atomic_load_sub_i8", PseudoCheriAtomicLoadSub8>;
+defm : PseudoCheriAMOPat<"atomic_load_and_i8", PseudoCheriAtomicLoadAnd8>;
+defm : PseudoCheriAMOPat<"atomic_load_or_i8", PseudoCheriAtomicLoadOr8>;
+defm : PseudoCheriAMOPat<"atomic_load_xor_i8", PseudoCheriAtomicLoadXor8>;
+defm : PseudoCheriAMOPat<"atomic_load_max_i8", PseudoCheriAtomicLoadMax8>;
+defm : PseudoCheriAMOPat<"atomic_load_min_i8", PseudoCheriAtomicLoadMin8>;
+defm : PseudoCheriAMOPat<"atomic_load_umax_i8", PseudoCheriAtomicLoadUMax8>;
+defm : PseudoCheriAMOPat<"atomic_load_umin_i8", PseudoCheriAtomicLoadUMin8>;
+defm : PseudoCheriAMOPat<"atomic_load_nand_i8", PseudoCheriAtomicLoadNand8>;
 
-defm : PseudoCheriAMOPat<"atomic_swap_16", PseudoCheriAtomicSwap16>;
-defm : PseudoCheriAMOPat<"atomic_load_add_16", PseudoCheriAtomicLoadAdd16>;
-defm : PseudoCheriAMOPat<"atomic_load_sub_16", PseudoCheriAtomicLoadSub16>;
-defm : PseudoCheriAMOPat<"atomic_load_and_16", PseudoCheriAtomicLoadAnd16>;
-defm : PseudoCheriAMOPat<"atomic_load_or_16", PseudoCheriAtomicLoadOr16>;
-defm : PseudoCheriAMOPat<"atomic_load_xor_16", PseudoCheriAtomicLoadXor16>;
-defm : PseudoCheriAMOPat<"atomic_load_max_16", PseudoCheriAtomicLoadMax16>;
-defm : PseudoCheriAMOPat<"atomic_load_min_16", PseudoCheriAtomicLoadMin16>;
-defm : PseudoCheriAMOPat<"atomic_load_umax_16", PseudoCheriAtomicLoadUMax16>;
-defm : PseudoCheriAMOPat<"atomic_load_umin_16", PseudoCheriAtomicLoadUMin16>;
-defm : PseudoCheriAMOPat<"atomic_load_nand_16", PseudoCheriAtomicLoadNand16>;
+defm : PseudoCheriAMOPat<"atomic_swap_i16", PseudoCheriAtomicSwap16>;
+defm : PseudoCheriAMOPat<"atomic_load_add_i16", PseudoCheriAtomicLoadAdd16>;
+defm : PseudoCheriAMOPat<"atomic_load_sub_i16", PseudoCheriAtomicLoadSub16>;
+defm : PseudoCheriAMOPat<"atomic_load_and_i16", PseudoCheriAtomicLoadAnd16>;
+defm : PseudoCheriAMOPat<"atomic_load_or_i16", PseudoCheriAtomicLoadOr16>;
+defm : PseudoCheriAMOPat<"atomic_load_xor_i16", PseudoCheriAtomicLoadXor16>;
+defm : PseudoCheriAMOPat<"atomic_load_max_i16", PseudoCheriAtomicLoadMax16>;
+defm : PseudoCheriAMOPat<"atomic_load_min_i16", PseudoCheriAtomicLoadMin16>;
+defm : PseudoCheriAMOPat<"atomic_load_umax_i16", PseudoCheriAtomicLoadUMax16>;
+defm : PseudoCheriAMOPat<"atomic_load_umin_i16", PseudoCheriAtomicLoadUMin16>;
+defm : PseudoCheriAMOPat<"atomic_load_nand_i16", PseudoCheriAtomicLoadNand16>;
 
-defm : PseudoCheriAMOPat<"atomic_load_nand_32", PseudoCheriAtomicLoadNand32>;
+defm : PseudoCheriAMOPat<"atomic_load_nand_i32", PseudoCheriAtomicLoadNand32>;
 
 defm : PseudoCheriAMOPat<"atomic_load_add_cap", PseudoCheriAtomicLoadAddCap, GPCR>;
 defm : PseudoCheriAMOPat<"atomic_load_sub_cap", PseudoCheriAtomicLoadSubCap, GPCR>;
@@ -2063,9 +2063,9 @@ defm : PseudoCheriAMOPat<"atomic_load_nand_cap", PseudoCheriAtomicLoadNandCap, G
 
 /// Compare and exchange
 
-defm : PseudoCheriCmpXchgPat<"atomic_cmp_swap_8", PseudoCheriCmpXchg8>;
-defm : PseudoCheriCmpXchgPat<"atomic_cmp_swap_16", PseudoCheriCmpXchg16>;
-defm : PseudoCheriCmpXchgPat<"atomic_cmp_swap_32", PseudoCheriCmpXchg32>;
+defm : PseudoCheriCmpXchgPat<"atomic_cmp_swap_i8", PseudoCheriCmpXchg8>;
+defm : PseudoCheriCmpXchgPat<"atomic_cmp_swap_i16", PseudoCheriCmpXchg16>;
+defm : PseudoCheriCmpXchgPat<"atomic_cmp_swap_i32", PseudoCheriCmpXchg32>;
 
 defm : PseudoCheriCmpXchgPat<"atomic_cmp_swap_cap", PseudoCheriCmpXchgCap, GPCR>;
 
@@ -2082,24 +2082,24 @@ defm : CheriAtomicStPat<atomic_store_64, CSD, GPR, XLenVT>;
 
 /// 64-bit AMOs
 
-defm : CheriAMOPat<"atomic_swap_64", "CAMOSWAP_D">;
-defm : CheriAMOPat<"atomic_load_add_64", "CAMOADD_D">;
-defm : CheriAMOSubPat<"atomic_load_sub_64", "CAMOADD_D">;
-defm : CheriAMOPat<"atomic_load_and_64", "CAMOAND_D">;
-defm : CheriAMOPat<"atomic_load_or_64", "CAMOOR_D">;
-defm : CheriAMOPat<"atomic_load_xor_64", "CAMOXOR_D">;
-defm : CheriAMOPat<"atomic_load_max_64", "CAMOMAX_D">;
-defm : CheriAMOPat<"atomic_load_min_64", "CAMOMIN_D">;
-defm : CheriAMOPat<"atomic_load_umax_64", "CAMOMAXU_D">;
-defm : CheriAMOPat<"atomic_load_umin_64", "CAMOMINU_D">;
+defm : CheriAMOPat<"atomic_swap_i64", "CAMOSWAP_D">;
+defm : CheriAMOPat<"atomic_load_add_i64", "CAMOADD_D">;
+defm : CheriAMOSubPat<"atomic_load_sub_i64", "CAMOADD_D">;
+defm : CheriAMOPat<"atomic_load_and_i64", "CAMOAND_D">;
+defm : CheriAMOPat<"atomic_load_or_i64", "CAMOOR_D">;
+defm : CheriAMOPat<"atomic_load_xor_i64", "CAMOXOR_D">;
+defm : CheriAMOPat<"atomic_load_max_i64", "CAMOMAX_D">;
+defm : CheriAMOPat<"atomic_load_min_i64", "CAMOMIN_D">;
+defm : CheriAMOPat<"atomic_load_umax_i64", "CAMOMAXU_D">;
+defm : CheriAMOPat<"atomic_load_umin_i64", "CAMOMINU_D">;
 
 /// 64-bit pseudo AMOs
 
-defm : PseudoCheriAMOPat<"atomic_load_nand_64", PseudoCheriAtomicLoadNand64>;
+defm : PseudoCheriAMOPat<"atomic_load_nand_i64", PseudoCheriAtomicLoadNand64>;
 
 /// 64-bit compare and exchange
 
-defm : PseudoCheriCmpXchgPat<"atomic_cmp_swap_64", PseudoCheriCmpXchg64>;
+defm : PseudoCheriCmpXchgPat<"atomic_cmp_swap_i64", PseudoCheriCmpXchg64>;
 
 } // Predicates = [HasCheri, HasStdExtA, IsRV64, IsCapMode]
 

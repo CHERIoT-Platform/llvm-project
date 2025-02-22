@@ -11,14 +11,14 @@ define ptr addrspace(200) @test(ptr %call) {
 ; CHECK128-NEXT:  entry:
 ; CHECK128-NEXT:    [[TMP0:%.*]] = addrspacecast ptr [[CALL:%.*]] to ptr addrspace(200)
 ; CHECK128-NEXT:    call void @use(ptr addrspace(200) [[TMP0]])
-; CHECK128-NEXT:    [[ADD_PTR:%.*]] = getelementptr inbounds i32, ptr addrspace(200) [[TMP0]], i64 41
+; CHECK128-NEXT:    [[ADD_PTR:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[TMP0]], i64 164
 ; CHECK128-NEXT:    ret ptr addrspace(200) [[ADD_PTR]]
 ;
 ; CHECK256-LABEL: @test(
 ; CHECK256-NEXT:  entry:
 ; CHECK256-NEXT:    [[TMP0:%.*]] = addrspacecast ptr [[CALL:%.*]] to ptr addrspace(200)
 ; CHECK256-NEXT:    call void @use(ptr addrspace(200) [[TMP0]])
-; CHECK256-NEXT:    [[ADD_PTR:%.*]] = getelementptr inbounds i32, ptr addrspace(200) [[TMP0]], i128 41
+; CHECK256-NEXT:    [[ADD_PTR:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[TMP0]], i128 164
 ; CHECK256-NEXT:    ret ptr addrspace(200) [[ADD_PTR]]
 ;
 entry:

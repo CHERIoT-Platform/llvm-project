@@ -8,7 +8,7 @@
 
 // CHECK-LABEL: @test_basic(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds [[STRUCT_LIKESTRUCTDIRENT:%.*]], ptr addrspace(200) [[DATA:%.*]], i64 0, i32 1
+// CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[DATA:%.*]], i64 4
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 255)
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
@@ -23,7 +23,7 @@ void *test_basic(void *data, long index) {
 
 // CHECK-LABEL: @test_opt_out(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds [[STRUCT_LIKESTRUCTDIRENTOPTOUT:%.*]], ptr addrspace(200) [[DATA:%.*]], i64 0, i32 1
+// CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[DATA:%.*]], i64 4
 // CHECK-NEXT:    ret ptr addrspace(200) [[DATA1]]
 //
 void *test_opt_out(void *data, long index) {
@@ -37,7 +37,7 @@ void *test_opt_out(void *data, long index) {
 
 // CHECK-LABEL: @test_remaining_size(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds [[STRUCT_LIKESTRUCTDIRENTREMAININGSIZE:%.*]], ptr addrspace(200) [[DATA:%.*]], i64 0, i32 1
+// CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[DATA:%.*]], i64 4
 // CHECK-NEXT:    [[CUR_OFFSET:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) nonnull [[DATA1]])
 // CHECK-NEXT:    [[CUR_LEN:%.*]] = tail call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) nonnull [[DATA1]])
 // CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]
@@ -55,7 +55,7 @@ void *test_remaining_size(void *data, long index) {
 
 // CHECK-LABEL: @test_remaining_size_not_array(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[F:%.*]] = getelementptr inbounds [[STRUCT_REMAININGSIZENOTARRAY:%.*]], ptr addrspace(200) [[DATA:%.*]], i64 0, i32 1
+// CHECK-NEXT:    [[F:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[DATA:%.*]], i64 4
 // CHECK-NEXT:    [[CUR_OFFSET:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) nonnull [[F]])
 // CHECK-NEXT:    [[CUR_LEN:%.*]] = tail call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) nonnull [[F]])
 // CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]
@@ -78,13 +78,13 @@ void *test_remaining_size_not_array(void *data, long index) {
 
 // CHECK-LABEL: @test_remaining_size_on_type(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds [[STRUCT_WITHREMAININGSIZE:%.*]], ptr addrspace(200) [[DATA:%.*]], i64 0, i32 1
+// CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[DATA:%.*]], i64 4
 // CHECK-NEXT:    [[CUR_OFFSET:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) nonnull [[DATA1]])
 // CHECK-NEXT:    [[CUR_LEN:%.*]] = tail call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) nonnull [[DATA1]])
 // CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]
-// CHECK-NEXT:    [[TMP0:%.*]] = tail call i64 @llvm.umin.i64(i64 [[REMAINING_BYTES]], i64 16)
-// CHECK-NEXT:    [[TMP1:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 [[TMP0]])
-// CHECK-NEXT:    ret ptr addrspace(200) [[TMP1]]
+// CHECK-NEXT:    [[BOUNDED_REMAINING_SIZE:%.*]] = tail call i64 @llvm.umin.i64(i64 [[REMAINING_BYTES]], i64 16)
+// CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 [[BOUNDED_REMAINING_SIZE]])
+// CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 void *test_remaining_size_on_type(void *data, long index) {
   struct UseRemaining {
@@ -101,7 +101,7 @@ void *test_remaining_size_on_type(void *data, long index) {
 // TODO: would be nice to support it on typedefs too, but attributes with arguments don't seem to work very well.
 // CHECK-LABEL: @test_remaining_size_ignored_on_typedef(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds [[STRUCT_WITHREMAININGSIZE_0:%.*]], ptr addrspace(200) [[DATA:%.*]], i64 0, i32 2
+// CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[DATA:%.*]], i64 8
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 4)
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
@@ -123,13 +123,13 @@ void *test_remaining_size_ignored_on_typedef(void *data, long index) {
 
 // CHECK-LABEL: @test_remaining_size_maximum(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds [[STRUCT_LIKESTRUCTDIRENTREMAININGSIZEWITHMAX:%.*]], ptr addrspace(200) [[DATA:%.*]], i64 0, i32 1
+// CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[DATA:%.*]], i64 4
 // CHECK-NEXT:    [[CUR_OFFSET:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) nonnull [[DATA1]])
 // CHECK-NEXT:    [[CUR_LEN:%.*]] = tail call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) nonnull [[DATA1]])
 // CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]
-// CHECK-NEXT:    [[TMP0:%.*]] = tail call i64 @llvm.umin.i64(i64 [[REMAINING_BYTES]], i64 127)
-// CHECK-NEXT:    [[TMP1:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 [[TMP0]])
-// CHECK-NEXT:    ret ptr addrspace(200) [[TMP1]]
+// CHECK-NEXT:    [[BOUNDED_REMAINING_SIZE:%.*]] = tail call i64 @llvm.umin.i64(i64 [[REMAINING_BYTES]], i64 127)
+// CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 [[BOUNDED_REMAINING_SIZE]])
+// CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 void *test_remaining_size_maximum(void *data, long index) {
   struct LikeStructDirentRemainingSizeWithMax {
@@ -142,7 +142,7 @@ void *test_remaining_size_maximum(void *data, long index) {
 
 // CHECK-LABEL: @test_vla(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[VLA:%.*]] = getelementptr inbounds [[STRUCT_VLA:%.*]], ptr addrspace(200) [[DATA:%.*]], i64 0, i32 1
+// CHECK-NEXT:    [[VLA:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[DATA:%.*]], i64 4
 // CHECK-NEXT:    [[CUR_OFFSET:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) nonnull [[VLA]])
 // CHECK-NEXT:    [[CUR_LEN:%.*]] = tail call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) nonnull [[VLA]])
 // CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]

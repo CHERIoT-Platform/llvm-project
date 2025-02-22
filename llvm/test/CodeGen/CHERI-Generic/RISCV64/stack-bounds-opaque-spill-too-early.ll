@@ -4,7 +4,7 @@
 ;; miscompilations in the stack bounding pass (the unbounded value was used instead of
 ;; the bounded one due to the removal of the bitcast instructions).
 ; REQUIRES: asserts
-; RUN: opt -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+cap-mode,+f,+d -cheri-bound-allocas -o - -S %s -debug-only=cheri-bound-allocas 2>%t.dbg| FileCheck %s
+; RUN: opt -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+cap-mode,+f,+d -passes=cheri-bound-allocas -o - -S %s -debug-only=cheri-bound-allocas 2>%t.dbg| FileCheck %s
 ; RUN: FileCheck %s -input-file=%t.dbg -check-prefix DBG
 ; RUN: llc -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+cap-mode,+f,+d %s -o - | FileCheck %s -check-prefix ASM
 target datalayout = "e-m:e-pf200:128:128:128:64-p:64:64-i64:64-i128:128-n64-S128-A200-P200-G200"

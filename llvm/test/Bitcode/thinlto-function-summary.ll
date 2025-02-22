@@ -26,7 +26,7 @@
 ; BC-NEXT: <ALIAS {{.*}} op0=6 op1=0 op2=3
 ; BC-NEXT: </GLOBALVAL_SUMMARY_BLOCK
 ; BC: <STRTAB_BLOCK
-; BC-NEXT: blob data = 'hfoobaranon.{{................................}}.0variadicllvm.va_start.p0f{{.*}}'
+; BC-NEXT: blob data = 'hfoobaranon.{{................................}}.0variadicllvm.va_start.p{{[0-9]+}}f{{.*}}'
 
 
 ; RUN: opt -passes=name-anon-globals -module-summary < %s | llvm-dis | FileCheck %s

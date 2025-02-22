@@ -125,8 +125,8 @@ __intcap global_intcap_data_default = (__intcap)&extern_data;
 // PURECAP-NEXT: @global_intcap_data_default = addrspace(200) global ptr addrspace(200) @extern_data, align 16
 /// Same for one-past-end and OOB values:
 __intcap global_intcap_data_one_past_end_default = (__intcap)(&extern_data + 1);
-// HYBRID-NEXT: @global_intcap_data_one_past_end_default = global ptr addrspace(200) addrspacecast (ptr getelementptr inbounds (i8, ptr @extern_data, i64 1) to ptr addrspace(200)), align 16
-// PURECAP-NEXT: @global_intcap_data_one_past_end_default = addrspace(200) global ptr addrspace(200) getelementptr inbounds (i8, ptr addrspace(200) @extern_data, i64 1), align 16
+// HYBRID-NEXT: @global_intcap_data_one_past_end_default = global ptr addrspace(200) addrspacecast (ptr getelementptr (i8, ptr @extern_data, i64 1) to ptr addrspace(200)), align 16
+// PURECAP-NEXT: @global_intcap_data_one_past_end_default = addrspace(200) global ptr addrspace(200) getelementptr (i8, ptr addrspace(200) @extern_data, i64 1), align 16
 __intcap global_intcap_data_plus_two_default = (__intcap)(&extern_data + 2);
 // HYBRID-NEXT: @global_intcap_data_plus_two_default = global ptr addrspace(200) addrspacecast (ptr getelementptr (i8, ptr @extern_data, i64 2) to ptr addrspace(200)), align 16
 // PURECAP-NEXT: @global_intcap_data_plus_two_default = addrspace(200) global ptr addrspace(200) getelementptr (i8, ptr addrspace(200) @extern_data, i64 2), align 16
@@ -136,8 +136,8 @@ __intcap global_intcap_data_addr_cast_long = (__cheri_addr long)&extern_data;
 // HYBRID-NEXT: @global_intcap_data_addr_cast_long = global ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 ptrtoint (ptr @extern_data to i64)), align 16
 // PURECAP-NEXT: @global_intcap_data_addr_cast_long = addrspace(200) global ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 ptrtoint (ptr addrspace(200) @extern_data to i64)), align 16
 __intcap global_intcap_data_one_past_end_addr_cast_long = (__cheri_addr long)(&extern_data + 1);
-// HYBRID-NEXT: @global_intcap_data_one_past_end_addr_cast_long = global ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 ptrtoint (ptr getelementptr inbounds (i8, ptr @extern_data, i64 1) to i64)), align 16
-// PURECAP-NEXT: @global_intcap_data_one_past_end_addr_cast_long = addrspace(200) global ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 ptrtoint (ptr addrspace(200) getelementptr inbounds (i8, ptr addrspace(200) @extern_data, i64 1) to i64)), align 16
+// HYBRID-NEXT: @global_intcap_data_one_past_end_addr_cast_long = global ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 ptrtoint (ptr getelementptr (i8, ptr @extern_data, i64 1) to i64)), align 16
+// PURECAP-NEXT: @global_intcap_data_one_past_end_addr_cast_long = addrspace(200) global ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 ptrtoint (ptr addrspace(200) getelementptr (i8, ptr addrspace(200) @extern_data, i64 1) to i64)), align 16
 __intcap global_intcap_data_plus_two_addr_cast_long = (__cheri_addr long)(&extern_data + 2);
 // HYBRID-NEXT: @global_intcap_data_plus_two_addr_cast_long = global ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 ptrtoint (ptr getelementptr (i8, ptr @extern_data, i64 2) to i64)), align 16
 // PURECAP-NEXT: @global_intcap_data_plus_two_addr_cast_long = addrspace(200) global ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 ptrtoint (ptr addrspace(200) getelementptr (i8, ptr addrspace(200) @extern_data, i64 2) to i64)), align 16
@@ -167,12 +167,12 @@ __intcap global_intcap_fn_plus_two_intcap_tocap = (__intcap)(__cheri_tocap char 
 /// These should warn since they are NULL-derived pointers in purecap, but be valid capabilities in hybrid:
 char *__capability global_cap_data_addr_cast_long_one_past_end = (char *__capability)(__cheri_addr long)(&extern_data + 1);
 // purecap-warning@-1{{cast from provenance-free integer type to pointer type will give pointer that can not be dereferenced}}
-// HYBRID-NEXT: @global_cap_data_addr_cast_long_one_past_end = global ptr addrspace(200) addrspacecast (ptr getelementptr inbounds (i8, ptr @extern_data, i64 1) to ptr addrspace(200)), align 16
-// PURECAP-NEXT: @global_cap_data_addr_cast_long_one_past_end = addrspace(200) global ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 ptrtoint (ptr addrspace(200) getelementptr inbounds (i8, ptr addrspace(200) @extern_data, i64 1) to i64)), align 16
+// HYBRID-NEXT: @global_cap_data_addr_cast_long_one_past_end = global ptr addrspace(200) addrspacecast (ptr getelementptr (i8, ptr @extern_data, i64 1) to ptr addrspace(200)), align 16
+// PURECAP-NEXT: @global_cap_data_addr_cast_long_one_past_end = addrspace(200) global ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 ptrtoint (ptr addrspace(200) getelementptr (i8, ptr addrspace(200) @extern_data, i64 1) to i64)), align 16
 char *__capability global_cap_data_tocap_one_past_end = (__cheri_tocap char *__capability)(char *)(__cheri_addr long)(&extern_data + 1);
 // purecap-warning@-1{{cast from provenance-free integer type to pointer type will give pointer that can not be dereferenced}}
-// HYBRID-NEXT: @global_cap_data_tocap_one_past_end = global ptr addrspace(200) addrspacecast (ptr getelementptr inbounds (i8, ptr @extern_data, i64 1) to ptr addrspace(200)), align 16
-// PURECAP-NEXT: @global_cap_data_tocap_one_past_end = addrspace(200) global ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 ptrtoint (ptr addrspace(200) getelementptr inbounds (i8, ptr addrspace(200) @extern_data, i64 1) to i64)), align 16
+// HYBRID-NEXT: @global_cap_data_tocap_one_past_end = global ptr addrspace(200) addrspacecast (ptr getelementptr (i8, ptr @extern_data, i64 1) to ptr addrspace(200)), align 16
+// PURECAP-NEXT: @global_cap_data_tocap_one_past_end = addrspace(200) global ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 ptrtoint (ptr addrspace(200) getelementptr (i8, ptr addrspace(200) @extern_data, i64 1) to i64)), align 16
 
 // HYBRID-EMPTY:
 // PURECAP-EMPTY:

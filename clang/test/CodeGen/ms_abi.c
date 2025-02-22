@@ -68,8 +68,8 @@ void __attribute__((ms_abi)) f4(int a, ...) {
   // WIN64: %[[AP_VAL:.*]] = load ptr, ptr %[[AP]]
   // WIN64-NEXT: store ptr %[[AP_VAL]], ptr %[[AP2:.*]]
   __builtin_ms_va_end(ap);
-  // FREEBSD: call void @llvm.va_end.p0
-  // WIN64: call void @llvm.va_end.p0
+  // FREEBSD: call void @llvm.va_end
+  // WIN64: call void @llvm.va_end
 }
 
 // Let's verify that normal va_lists work right on Win64, too.
@@ -93,9 +93,9 @@ void f5(int a, ...) {
   // WIN64-NEXT: store ptr %[[AP_NEXT3]], ptr %[[AP]]
   __builtin_va_list ap2;
   __builtin_va_copy(ap2, ap);
-  // WIN64: call void @llvm.va_copy.p0.p0
+  // WIN64: call void @llvm.va_copy
   __builtin_va_end(ap);
-  // WIN64: call void @llvm.va_end.p0
+  // WIN64: call void @llvm.va_end
 }
 
 // Verify that using a Win64 va_list from a System V function works.

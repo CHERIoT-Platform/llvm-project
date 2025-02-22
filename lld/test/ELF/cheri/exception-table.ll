@@ -17,10 +17,10 @@
 ; RV64-OBJ-RELOCS-NEXT:   0x20 R_RISCV_CHERI_CAPABILITY .Llpad0 0x0{{$}}
 ; RV64-OBJ-RELOCS-NEXT:   0x40 R_RISCV_CHERI_CAPABILITY .Llpad1 0x0{{$}}
 ; RV64-OBJ-RELOCS-NEXT:   0x80 R_RISCV_CHERI_CAPABILITY .Llpad2 0x0{{$}}
-; RV64-OBJ-RELOCS-NEXT:   0x95 R_RISCV_ADD32 <null> 0x0
-; RV64-OBJ-RELOCS-NEXT:   0x95 R_RISCV_SUB32 <null> 0x0
+; RV64-OBJ-RELOCS-NEXT:   0x95 R_RISCV_ADD32 .L0 0x0
+; RV64-OBJ-RELOCS-NEXT:   0x95 R_RISCV_SUB32 .L0 0x0
 ; RV64-OBJ-RELOCS-NEXT:   0xA4 R_RISCV_ADD32 .L_ZTIl.DW.stub 0x0
-; RV64-OBJ-RELOCS-NEXT:   0xA4 R_RISCV_SUB32 <null> 0x0
+; RV64-OBJ-RELOCS-NEXT:   0xA4 R_RISCV_SUB32 .L0 0x0
 ; RV64-OBJ-RELOCS-NEXT:   0xC0 R_RISCV_CHERI_CAPABILITY .Llpad3 0x0{{$}}
 ; RV64-OBJ-RELOCS-NEXT: }
 
@@ -33,7 +33,7 @@
 ; RUN: ld.lld -shared %t/mips.o %t/mips-override.o -o %t/mips.so 
 ; RUN: llvm-readelf -r --section-mapping --sections --program-headers --cap-relocs  %t/mips.so | FileCheck %s --check-prefixes=HEADERS,MIPS-RELOCS
 
-; HEADERS-LABEL: There are 10 program headers, starting at
+; HEADERS-LABEL: There are 8 program headers, starting at
 ; HEADERS-EMPTY:
 ; HEADERS-NEXT: Program Headers:
 ; HEADERS-NEXT: Type           Offset   VirtAddr PhysAddr FileSiz  MemSiz   Flg Align
@@ -41,9 +41,7 @@
 ; HEADERS-NEXT: LOAD           0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} R   0x10000
 ; HEADERS-NEXT: LOAD           0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} R E 0x10000
 ; HEADERS-NEXT: LOAD           0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} RW  0x10000
-; HEADERS-NEXT: LOAD           0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} RW  0x10000
 ; HEADERS-NEXT: DYNAMIC        0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} R   0x8
-; HEADERS-NEXT: GNU_RELRO      0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} R   0x1
 ; HEADERS-NEXT: GNU_STACK      0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} RW  0x0
 ; HEADERS-NEXT: OPTIONS        0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} R   0x8
 ; HEADERS-NEXT: ABIFLAGS       0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} 0x{{.+}} R   0x8
@@ -53,13 +51,11 @@
 ; HEADERS-NEXT: 00
 ; HEADERS-NEXT: 01     .MIPS.abiflags .MIPS.options .dynsym .hash .dynamic .dynstr .rel.dyn .rel.plt .eh_frame __cap_relocs {{$}}
 ; HEADERS-NEXT: 02     .text
-; HEADERS-NEXT: 03     .gcc_except_table
-; HEADERS-NEXT: 04     .data .captable .got
-; HEADERS-NEXT: 05     .dynamic
-; HEADERS-NEXT: 06     .gcc_except_table
-; HEADERS-NEXT: 07
-; HEADERS-NEXT: 08     .MIPS.options
-; HEADERS-NEXT: 09     .MIPS.abiflags
+; HEADERS-NEXT: 03     .gcc_except_table .data .captable .got
+; HEADERS-NEXT: 04     .dynamic
+; HEADERS-NEXT: 05
+; HEADERS-NEXT: 06     .MIPS.options
+; HEADERS-NEXT: 07     .MIPS.abiflags
 ; HEADERS-NEXT: None   .bss .mdebug.abi64 .pdr .comment .symtab .shstrtab .strtab
 
 ; MIPS-RELOCS-LABEL:      Relocation section '.rel.dyn' {{.+}} contains 2 entries:
@@ -99,11 +95,11 @@
 ; RV64-RELOCS-OVERRIDE: [[#%.16x,TEST_WEAK_OVERRIDE_ADDR:]] 8 FUNC    GLOBAL   DEFAULT     8 _Z9test_weakll{{$}}
 
 ; RV64-RELOCS: CHERI __cap_relocs [
-; RV64-RELOCS-NEXT:   0x002{{.+}} Base: 0x[[#%x,TEST_ADDR]] (.L_Z4testll$local+92) Length: 116 Perms: Function
-; RV64-RELOCS-NEXT:   0x002{{.+}} Base: 0x[[#%x,TEST_ADDR]] (.L_Z4testll$local+72) Length: 116 Perms: Function
-; RV64-RELOCS-NEXT:   0x002{{.+}} Base: 0x[[#%x,TEST2_ADDR]] (.L_Z5test2ll$local+68) Length: 124 Perms: Function
+; RV64-RELOCS-NEXT:   0x003{{.+}} Base: 0x[[#%x,TEST_ADDR]] (.L_Z4testll$local+92) Length: 116 Perms: Function
+; RV64-RELOCS-NEXT:   0x003{{.+}} Base: 0x[[#%x,TEST_ADDR]] (.L_Z4testll$local+72) Length: 116 Perms: Function
+; RV64-RELOCS-NEXT:   0x003{{.+}} Base: 0x[[#%x,TEST2_ADDR]] (.L_Z5test2ll$local+68) Length: 124 Perms: Function
 ; Next one references the local symbol, and uses that length rather than the override:
-; RV64-RELOCS-NEXT:   0x002{{.+}} Base: 0x[[#%x,TEST_WEAK_ADDR]] (.L_Z9test_weakll$local+28) Length: 52 Perms: Function
+; RV64-RELOCS-NEXT:   0x003{{.+}} Base: 0x[[#%x,TEST_WEAK_ADDR]] (.L0 +28) Length: 52 Perms: Function
 ; RV64-RELOCS-NEXT: ]
 
 ; IR was generated from the following code:

@@ -64,9 +64,9 @@
 # CHERI-PREEMPTIBLE-NEXT: ]
 # RUN: llvm-objdump --section=.data -s %t-cheri.so | FileCheck %s --check-prefix CHERI-PREEMPTIBLE-ADDEND
 # CHERI-PREEMPTIBLE-ADDEND-LABEL: Contents of section .data:
-# CHERI-PREEMPTIBLE-ADDEND-NEXT:  30600 cacacaca cacacaca cacacaca cacacaca  ................
-# CHERI-PREEMPTIBLE-ADDEND-NEXT:  30610 cacacaca cacacaca cacacaca cacacaca  ................
-# CHERI-PREEMPTIBLE-ADDEND-NEXT:  30620 cacacaca cacacaca cacacaca cacacaca  ................
+# CHERI-PREEMPTIBLE-ADDEND-NEXT:  20500 cacacaca cacacaca cacacaca cacacaca  ................
+# CHERI-PREEMPTIBLE-ADDEND-NEXT:  20510 cacacaca cacacaca cacacaca cacacaca  ................
+# CHERI-PREEMPTIBLE-ADDEND-NEXT:  20520 cacacaca cacacaca cacacaca cacacaca  ................
 
 
 # RUN: ld.lld %t-mips.o -shared -Bsymbolic -o %t-mips-symbolic.so
@@ -104,17 +104,17 @@
 
 # In the case of CHERI we have the addend in the offset field of the cap reloc:
 # CHERI-BSYMBOLIC-LABEL: CHERI __cap_relocs [
-# CHERI-BSYMBOLIC-NEXT:    0x0305c0 (funcptr)       Base: 0x10530 (foo+0) Length: 16 Perms: Function
-# CHERI-BSYMBOLIC-NEXT:    0x0305d0 (intptr)        Base: 0x305f0 (bar+0) Length: 4 Perms: Object
-# CHERI-BSYMBOLIC-NEXT:    0x0305e0 (shortptr)      Base: 0x30600 (baz+7) Length: 32 Perms: Object
+# CHERI-BSYMBOLIC-NEXT:    0x020500 (funcptr)       Base: 0x104c0 (foo+0) Length: 16 Perms: Function
+# CHERI-BSYMBOLIC-NEXT:    0x020510 (intptr)        Base: 0x20530 (bar+0) Length: 4 Perms: Object
+# CHERI-BSYMBOLIC-NEXT:    0x020520 (shortptr)      Base: 0x20540 (baz+7) Length: 32 Perms: Object
 #                                                            ^---- All values filled in (but the +7 is in the offset field!)
 # CHERI-BSYMBOLIC-NEXT: ]
 # and .data only contains three uninitialized capabilities since it will be filled in by __cap_relocs processing:
 # CHERI-BSYMBOLIC-ADDEND-LABEL: Contents of section .data:
-# CHERI-BSYMBOLIC-ADDEND-NEXT:  305c0 cacacaca cacacaca cacacaca cacacaca
-# CHERI-BSYMBOLIC-ADDEND-NEXT:  305d0 cacacaca cacacaca cacacaca cacacaca
-# CHERI-BSYMBOLIC-ADDEND-NEXT:  305e0 cacacaca cacacaca cacacaca cacacaca
-# CHERI-BSYMBOLIC-ADDEND-NEXT:  305f0 0000002a 00000000 00000000 00000000
+# CHERI-BSYMBOLIC-ADDEND-NEXT:  20500 cacacaca cacacaca cacacaca cacacaca
+# CHERI-BSYMBOLIC-ADDEND-NEXT:  20510 cacacaca cacacaca cacacaca cacacaca
+# CHERI-BSYMBOLIC-ADDEND-NEXT:  20520 cacacaca cacacaca cacacaca cacacaca
+# CHERI-BSYMBOLIC-ADDEND-NEXT:  20530 0000002a 00000000 00000000 00000000
 
 # TODO: check -Bsymbolic-functions as well?
 

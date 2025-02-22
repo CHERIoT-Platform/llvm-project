@@ -51,5 +51,5 @@ void __start(void) {
 // EMPTY-CTORS-NOT: .ctors
 // EMPTY-CTORS-LABEL: SYMBOL TABLE:
 // EMPTY-CTORS:  0000000000000000 l df    *ABS* 0000000000000000 ctors-dtors-start.c
-// EMPTY-CTORS:  [[#%x,CTORS_START:]] l  .text 0000000000000000 .hidden __ctors_start
-// EMPTY-CTORS:  [[#%x,CTORS_START]] l    .text 0000000000000000 .hidden __ctors_end
+// EMPTY-CTORS:  [[#%x,CTORS_START:]] l  .MIPS.abiflags 0000000000000000 .hidden __ctors_start
+// EMPTY-CTORS:  [[#%x,CTORS_START]] l    .MIPS.abiflags 0000000000000000 .hidden __ctors_end

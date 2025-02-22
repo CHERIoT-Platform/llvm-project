@@ -2,7 +2,7 @@
 ; This IR (reduced from compiling libkscreen) resulted in an invalid PHI node being generated
 ; in the CheriBoundAllocas pass. We now ensure that multiple uses within the same instruction
 ; reuse the same intrinsic call to avoid this problem.
-; RUN: opt -instsimplify -cheri-bound-allocas -S < %s | FileCheck %s --check-prefix=OPAQUE
+; RUN: opt -passes="function(instsimplify),cheri-bound-allocas" -S < %s | FileCheck %s --check-prefix=OPAQUE
 target datalayout = "e-m:e-pf200:128:128:128:64-p:64:64-i64:64-i128:128-n64-S128-A200-P200-G200"
 target triple = "riscv64-unknown-freebsd13"
 

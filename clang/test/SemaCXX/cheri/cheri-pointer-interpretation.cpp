@@ -1,7 +1,7 @@
 // RUN: %cheri_purecap_cc1 -fsyntax-only %s -std=c++11 -verify -ast-dump | FileCheck %s
 
 
-struct foo_cap { // expected-note {{Add __attribute__((aligned(16))) to ensure sufficient alignment}}
+struct foo_cap { // expected-note {{add __attribute__((aligned(16))) to ensure sufficient alignment}}
 	void *a; // expected-warning {{capability field at offset 0 in packed structure will trap if structure is used in an array}}
 	long d;
 	int e;

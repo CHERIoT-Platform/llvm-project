@@ -14,13 +14,15 @@
 #ifndef LLVM_CLANG_LIB_CODEGEN_TARGETINFO_H
 #define LLVM_CLANG_LIB_CODEGEN_TARGETINFO_H
 
+#include "ABIInfo.h"
 #include "CGBuilder.h"
-#include "CodeGenModule.h"
 #include "CGValue.h"
+#include "CodeGenModule.h"
 #include "clang/AST/Type.h"
 #include "clang/AST/Expr.h"
 #include "clang/Basic/LLVM.h"
 #include "clang/Basic/SyncScope.h"
+#include "clang/Basic/TargetInfo.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringRef.h"
 
@@ -85,12 +87,18 @@ public:
   /// Provides a convenient hook to handle extra target-specific globals.
   virtual void emitTargetGlobals(CodeGen::CodeGenModule &CGM) const {}
 
+  /// Any further codegen related checks that need to be done on a function
+  /// signature in a target specific manner.
+  virtual void checkFunctionABI(CodeGenModule &CGM,
+                                const FunctionDecl *Decl) const {}
+
   /// Any further codegen related checks that need to be done on a function call
   /// in a target specific manner.
   virtual void checkFunctionCallABI(CodeGenModule &CGM, SourceLocation CallLoc,
                                     const FunctionDecl *Caller,
                                     const FunctionDecl *Callee,
-                                    const CallArgList &Args) const {}
+                                    const CallArgList &Args,
+                                    QualType ReturnType) const {}
 
   /// Determines the size of struct _Unwind_Exception on this platform,
   /// in 8-bit units.  The Itanium ABI defines this as:
@@ -271,13 +279,10 @@ public:
                                        llvm::SmallString<32> &Opt) const {}
 
   virtual unsigned getDefaultAS() const {
-#if 0
     // For e.g. AMDGPU this should not return 0 but instead whatever LangAS::Default maps to
-    return getABIInfo().getContext().getTargetAddressSpace(LangAS::Default, nullptr);
-#else
-    return 0; // XXXAR: to keep code the same as upstream
-#endif
+    return getABIInfo().getContext().getTargetAddressSpace(LangAS::Default);
   }
+
   /// The address space for thead_local variables in the IR. This should be the
   /// same as getDefaultAS() but for CHERI we still place TLS vars in AS0 when
   /// using the legacy TLS ABI.
@@ -350,6 +355,11 @@ public:
 
   /// Get the AST address space for alloca.
   virtual LangAS getASTAllocaAddressSpace() const { return LangAS::Default; }
+
+  Address performAddrSpaceCast(CodeGen::CodeGenFunction &CGF, Address Addr,
+                               LangAS SrcAddr, LangAS DestAddr,
+                               llvm::Type *DestTy,
+                               bool IsNonNull = false) const;
 
   /// Perform address space cast of an expression of pointer type.
   /// \param V is the LLVM value to be casted to another address space.
@@ -463,6 +473,17 @@ public:
     return nullptr;
   }
 
+  // Set the Branch Protection Attributes of the Function accordingly to the
+  // BPI. Remove attributes that contradict with current BPI.
+  static void
+  setBranchProtectionFnAttributes(const TargetInfo::BranchProtectionInfo &BPI,
+                                  llvm::Function &F);
+
+  // Add the Branch Protection Attributes of the FuncAttrs.
+  static void
+  initBranchProtectionFnAttributes(const TargetInfo::BranchProtectionInfo &BPI,
+                                   llvm::AttrBuilder &FuncAttrs);
+
 protected:
   static std::string qualifyWindowsLibrary(StringRef Lib);
 
@@ -477,6 +498,8 @@ enum class AArch64ABIKind {
   AAPCS = 0,
   DarwinPCS,
   Win64,
+  AAPCSSoft,
+  PAuthTest,
 };
 
 std::unique_ptr<TargetCodeGenInfo>

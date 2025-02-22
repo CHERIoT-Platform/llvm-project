@@ -19,7 +19,7 @@ int *y;
 // CHECK-LABEL: define {{[^@]+}}@foo
 // CHECK-SAME: (ptr addrspace(200) readnone [[M_COERCE:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @x, align 16, !tbaa [[TBAA4:![0-9]+]]
+// CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @x, align 16, !tbaa [[TBAA6:![0-9]+]]
 // CHECK-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[TMP0]], [[M_COERCE]]
 // CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) @y, align 16
 // CHECK-NEXT:    [[RETVAL_0:%.*]] = select i1 [[CMP]], ptr addrspace(200) [[TMP1]], ptr addrspace(200) [[M_COERCE]]
@@ -37,9 +37,9 @@ int *foo(union u1 m)
 // CHECK-LABEL: define {{[^@]+}}@bar
 // CHECK-SAME: (ptr addrspace(200) nocapture noundef readonly [[M:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR1:[0-9]+]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[Z:%.*]] = getelementptr inbounds [[STRUCT_ANON:%.*]], ptr addrspace(200) [[M]], i64 0, i32 4
-// CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[Z]], align 16, !tbaa [[TBAA8:![0-9]+]]
-// CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) @x, align 16, !tbaa [[TBAA4]]
+// CHECK-NEXT:    [[Z:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[M]], i64 16
+// CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[Z]], align 16, !tbaa [[TBAA10:![0-9]+]]
+// CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) @x, align 16, !tbaa [[TBAA6]]
 // CHECK-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[TMP0]], [[TMP1]]
 // CHECK-NEXT:    [[TMP2:%.*]] = load ptr addrspace(200), ptr addrspace(200) @y, align 16
 // CHECK-NEXT:    [[RETVAL_0:%.*]] = select i1 [[CMP]], ptr addrspace(200) [[TMP2]], ptr addrspace(200) [[TMP0]]

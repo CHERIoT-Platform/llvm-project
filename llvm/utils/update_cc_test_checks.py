@@ -280,8 +280,8 @@ def get_function_body(builder, args, filename, clang_pipeline: 'list[Command]',
     raw_tool_output = results[-1].stdout.replace('\r\n', '\n')
     if '-emit-llvm' in clang_pipeline[0].args:
         builder.process_run_line(
-                common.OPT_FUNCTION_RE, common.scrub_body, raw_tool_output,
-                prefixes, False)
+            common.OPT_FUNCTION_RE, common.scrub_body, raw_tool_output, prefixes
+        )
         builder.processed_prefixes(prefixes)
     else:
         print('The clang command line should include -emit-llvm as asm tests '
@@ -389,8 +389,13 @@ def main():
 
         # Store only filechecked runlines.
         filecheck_run_list = [i for i in run_list if i[0]]
+        ginfo = common.make_ir_generalizer(version=ti.args.version)
         builder = common.FunctionTestBuilder(
-            run_list=filecheck_run_list, flags=ti.args, scrubber_args=[], path=ti.path
+            run_list=filecheck_run_list,
+            flags=ti.args,
+            scrubber_args=[],
+            path=ti.path,
+            ginfo=ginfo,
         )
 
         for prefixes, pipeline, triple_in_cmd in run_list:
@@ -440,19 +445,18 @@ def main():
 
               # Now generate all the checks.
             def check_generator(my_output_lines, prefixes, func):
-                if '-emit-llvm' in pipeline.commands[0].args:
-                    return common.add_ir_checks(my_output_lines, '//',
-                                                prefixes,
-                                                func_dict, func, False,
-                                                ti.args.function_signature,
-                                                ti.args.version,
-                                                global_vars_seen_dict,
-                                                is_filtered=builder.is_filtered())
-                else:
-                    return asm.add_checks(my_output_lines, '//',
-                                          prefixes,
-                                          func_dict, func, global_vars_seen_dict,
-                                          is_filtered=builder.is_filtered())
+                return common.add_ir_checks(
+                    my_output_lines,
+                    "//",
+                    prefixes,
+                    func_dict,
+                    func,
+                    False,
+                    ti.args.function_signature,
+                    ginfo,
+                    global_vars_seen_dict,
+                    is_filtered=builder.is_filtered(),
+                )
 
             if ti.args.check_globals != 'none':
                 generated_prefixes.extend(
@@ -461,6 +465,7 @@ def main():
                         "//",
                         run_list,
                         output_lines,
+                        ginfo,
                         global_vars_seen_dict,
                         False,
                         True,
@@ -521,6 +526,7 @@ def main():
                                         "//",
                                         run_list,
                                         output_lines,
+                                        ginfo,
                                         global_vars_seen_dict,
                                         False,
                                         True,
@@ -540,7 +546,7 @@ def main():
                                     mangled,
                                     False,
                                     args.function_signature,
-                                    args.version,
+                                    ginfo,
                                     global_vars_seen_dict,
                                     is_filtered=builder.is_filtered(),
                                 )
@@ -558,6 +564,7 @@ def main():
                     "//",
                     run_list,
                     output_lines,
+                    ginfo,
                     global_vars_seen_dict,
                     False,
                     False,

@@ -16,7 +16,7 @@ struct padded_cap padded_cap_global;
 // CHECK: @padded_cap_global = addrspace(200) global %struct.padded_cap zeroinitializer, align [[#CAP_SIZE]]
 
 struct packed_cap { // expected-warning{{alignment (1) of 'struct packed_cap' is less than the required capability alignment}}
-  // expected-note@-1{{If you are certain that this is correct you can silence the warning by adding __attribute__((annotate("underaligned_capability")))}}
+  // expected-note@-1{{if you are certain that this is correct you can silence the warning by adding __attribute__((annotate("underaligned_capability")))}}
   int i;
   void* __capability cap;  // expected-warning {{under aligned capability field at offset 4 in packed structure will trap if accessed}}
 } __attribute__((packed));
@@ -31,7 +31,7 @@ struct padded_cap_struct padded_cap_struct_global;
 // CHECK: @padded_cap_struct_global = addrspace(200) global %struct.padded_cap_struct zeroinitializer, align [[#CAP_SIZE]]
 
 struct packed_cap_struct { // expected-warning{{alignment (1) of 'struct packed_cap_struct' is less than the required capability alignment}}
-  // expected-note@-1{{If you are certain that this is correct you can silence the warning by adding __attribute__((annotate("underaligned_capability")))}}
+  // expected-note@-1{{if you are certain that this is correct you can silence the warning by adding __attribute__((annotate("underaligned_capability")))}}
   int i;
   struct cap_struct cap;  // expected-warning {{under aligned structure field at offset 4 in packed structure containing capabilities will trap if capability field is accessed}}
 } __attribute__((packed));
@@ -69,7 +69,7 @@ struct correct_when_used_in_array_but_bad_alignof {
 struct correct_when_used_in_array_but_bad_alignof correct_when_used_in_array_but_bad_alignof_global;
 // CHECK: @correct_when_used_in_array_but_bad_alignof_global = addrspace(200) global %struct.correct_when_used_in_array_but_bad_alignof zeroinitializer, align 1
 
-struct bad_uintptr_array_1 { // expected-note-re {{Add __attribute__((aligned({{16|32}}))) to ensure sufficient alignment}}
+struct bad_uintptr_array_1 { // expected-note-re {{add __attribute__((aligned({{16|32}}))) to ensure sufficient alignment}}
   char before[sizeof(void*)];
   __UINTPTR_TYPE__ cap; // expected-warning-re {{capability field at offset {{16|32}} in packed structure will trap if structure is used in an array}}
   char after[1];
@@ -77,8 +77,8 @@ struct bad_uintptr_array_1 { // expected-note-re {{Add __attribute__((aligned({{
 struct bad_uintptr_array_1 bad_uintptr_array_1_global;
 // CHECK: @bad_uintptr_array_1_global = addrspace(200) global %struct.bad_uintptr_array_1 zeroinitializer, align 1
 
-struct bad_uintptr_array_2 { // expected-note-re {{Add __attribute__((aligned({{16|32}}))) to ensure sufficient alignment}} expected-warning-re{{alignment (8) of 'struct bad_uintptr_array_2' is less than the required capability alignment ({{16|32}})}}
-  // expected-note@-1{{If you are certain that this is correct you can silence the warning by adding __attribute__((annotate("underaligned_capability")))}}
+struct bad_uintptr_array_2 { // expected-note-re {{add __attribute__((aligned({{16|32}}))) to ensure sufficient alignment}} expected-warning-re{{alignment (8) of 'struct bad_uintptr_array_2' is less than the required capability alignment ({{16|32}})}}
+  // expected-note@-1{{if you are certain that this is correct you can silence the warning by adding __attribute__((annotate("underaligned_capability")))}}
   char before[sizeof(void*)];
   __UINTPTR_TYPE__ cap; // expected-warning-re {{capability field at offset {{16|32}} in packed structure will trap if structure is used in an array}}
   char after[1];
@@ -95,7 +95,7 @@ struct good_uintptr_array good_uintptr_array_global;
 // CHECK: @good_uintptr_array_global = addrspace(200) global %struct.good_uintptr_array zeroinitializer, align 32
 
 // same again but the member is a struct containing a capability
-struct bad_cap_struct_array_1 { // expected-note-re{{Add __attribute__((aligned({{16|32}}))) to ensure sufficient alignment}}
+struct bad_cap_struct_array_1 { // expected-note-re{{add __attribute__((aligned({{16|32}}))) to ensure sufficient alignment}}
   char before[sizeof(void*)];
   struct cap_struct cap; // expected-warning-re {{capability field at offset {{16|32}} in packed structure will trap if structure is used in an array}}
   char after[1];
@@ -103,8 +103,8 @@ struct bad_cap_struct_array_1 { // expected-note-re{{Add __attribute__((aligned(
 struct bad_cap_struct_array_1 bad_cap_struct_array_1_global;
 // CHECK: @bad_cap_struct_array_1_global = addrspace(200) global %struct.bad_cap_struct_array_1 zeroinitializer, align 1
 
-struct bad_cap_struct_array_2 { // expected-note-re{{Add __attribute__((aligned({{16|32}}))) to ensure sufficient alignment}} expected-warning-re{{alignment (8) of 'struct bad_cap_struct_array_2' is less than the required capability alignment ({{16|32}})}}
-  // expected-note@-1{{If you are certain that this is correct you can silence the warning by adding __attribute__((annotate("underaligned_capability")))}}
+struct bad_cap_struct_array_2 { // expected-note-re{{add __attribute__((aligned({{16|32}}))) to ensure sufficient alignment}} expected-warning-re{{alignment (8) of 'struct bad_cap_struct_array_2' is less than the required capability alignment ({{16|32}})}}
+  // expected-note@-1{{if you are certain that this is correct you can silence the warning by adding __attribute__((annotate("underaligned_capability")))}}
   char before[sizeof(void*)];
   struct cap_struct cap; // expected-warning-re {{capability field at offset {{16|32}} in packed structure will trap if structure is used in an array}}
   char after[1];

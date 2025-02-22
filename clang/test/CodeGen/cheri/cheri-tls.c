@@ -3,8 +3,8 @@
 // RUN: %cheri_purecap_cc1 -emit-llvm -mrelocation-model pic -ftls-model=local-exec -o - %s | FileCheck %s -check-prefix IR-PURECAP
 // RUN: %cheri_cc1 -emit-llvm -mrelocation-model pic -ftls-model=local-exec -o - %s | FileCheck %s -check-prefix IR-MIPS
 // Check that compiling it to an object doesn't crash
-// RUN: %cheri_purecap_cc1 -emit-obj -mrelocation-model pic -O2 -std=gnu99 -ftls-model=local-exec -x c -o - -S %s | FileCheck %s -check-prefix ASM-PURECAP
-// RUN: %cheri_cc1 -emit-obj -mrelocation-model pic -O2 -std=gnu99 -ftls-model=local-exec -x c -o - -S %s | FileCheck %s -check-prefix ASM-MIPS
+// RUN: %cheri_purecap_cc1 -mrelocation-model pic -O2 -std=gnu99 -ftls-model=local-exec -x c -o - -S %s | FileCheck %s -check-prefix ASM-PURECAP
+// RUN: %cheri_cc1 -mrelocation-model pic -O2 -std=gnu99 -ftls-model=local-exec -x c -o - -S %s | FileCheck %s -check-prefix ASM-MIPS
 
 _Thread_local int dtors;
 // IR-PURECAP: @dtors = thread_local(localexec) addrspace(200) global i32 0, align 4

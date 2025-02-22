@@ -86,6 +86,9 @@ namespace CallingConv {
     /// their stack.
     SwiftTail = 20,
 
+    /// Used for runtime calls that preserves none general registers.
+    PreserveNone = 21,
+
     /// This is the start of the target-specific calling conventions, e.g.
     /// fastcall and thiscall on X86.
     FirstTargetCC = 64,
@@ -261,16 +264,22 @@ namespace CallingConv {
     /// except that the first parameter is mapped to x9.
     ARM64EC_Thunk_Native = 109,
 
+    /// Calling convention used for RISC-V V-extension.
+    RISCV_VectorCall = 110,
+
+    /// Preserve X1-X15, X19-X29, SP, Z0-Z31, P0-P15.
+    AArch64_SME_ABI_Support_Routines_PreserveMost_From_X1 = 111,
+
     /// CHERI_CCall - Calling convention used for CHERI when crossing a
     /// protection boundary.
-    CHERI_CCall = 110,
+    CHERI_CCall = 112,
     /// CHERI_CCallee - Calling convention used for the callee of CHERI_CCall.
     /// Ignores the first two capability arguments and the first integer
     /// argument, zeroes all unused return registers on return.
-    CHERI_CCallee = 111,
+    CHERI_CCallee = 113,
     /// CHERI_LibCalL - Calling convention used for cross-library calls to a
     /// stateless compartment.
-    CHERI_LibCall = 112,
+    CHERI_LibCall = 114,
 
     /// The highest possible ID. Must be some 2^k - 1.
     MaxID = 1023

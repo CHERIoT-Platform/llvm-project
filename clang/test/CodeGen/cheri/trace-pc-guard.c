@@ -75,7 +75,7 @@ int main(void) {
 // MIPS-NEXT:    [[CMP:%.*]] = icmp slt i32 [[TMP0]], 100
 // MIPS-NEXT:    br i1 [[CMP]], label [[IF_THEN:%.*]], label [[IF_ELSE:%.*]]
 // MIPS:       if.then:
-// MIPS-NEXT:    call void @__sanitizer_cov_trace_pc_guard(ptr getelementptr inbounds ([4 x i32], ptr @__sancov_gen_.1, i32 0, i64 1)) #[[ATTR3]]
+// MIPS-NEXT:    call void @__sanitizer_cov_trace_pc_guard(ptr getelementptr ([4 x i32], ptr @__sancov_gen_.1, i32 0, i64 1)) #[[ATTR3]]
 // MIPS-NEXT:    [[CALL:%.*]] = call signext i32 @fail1()
 // MIPS-NEXT:    store i32 [[CALL]], ptr [[RETVAL]], align 4
 // MIPS-NEXT:    br label [[RETURN:%.*]]
@@ -84,14 +84,14 @@ int main(void) {
 // MIPS-NEXT:    [[CMP1:%.*]] = icmp slt i32 [[TMP1]], 200
 // MIPS-NEXT:    br i1 [[CMP1]], label [[IF_THEN2:%.*]], label [[IF_END:%.*]]
 // MIPS:       if.then2:
-// MIPS-NEXT:    call void @__sanitizer_cov_trace_pc_guard(ptr getelementptr inbounds ([4 x i32], ptr @__sancov_gen_.1, i32 0, i64 2)) #[[ATTR3]]
+// MIPS-NEXT:    call void @__sanitizer_cov_trace_pc_guard(ptr getelementptr ([4 x i32], ptr @__sancov_gen_.1, i32 0, i64 2)) #[[ATTR3]]
 // MIPS-NEXT:    [[CALL3:%.*]] = call signext i32 @fail2()
 // MIPS-NEXT:    store i32 [[CALL3]], ptr [[RETVAL]], align 4
 // MIPS-NEXT:    br label [[RETURN]]
 // MIPS:       if.end:
 // MIPS-NEXT:    br label [[IF_END4:%.*]]
 // MIPS:       if.end4:
-// MIPS-NEXT:    call void @__sanitizer_cov_trace_pc_guard(ptr getelementptr inbounds ([4 x i32], ptr @__sancov_gen_.1, i32 0, i64 3)) #[[ATTR3]]
+// MIPS-NEXT:    call void @__sanitizer_cov_trace_pc_guard(ptr getelementptr ([4 x i32], ptr @__sancov_gen_.1, i32 0, i64 3)) #[[ATTR3]]
 // MIPS-NEXT:    [[TMP2:%.*]] = load i32, ptr [[I_ADDR]], align 4
 // MIPS-NEXT:    [[ADD:%.*]] = add nsw i32 [[TMP2]], 1
 // MIPS-NEXT:    store i32 [[ADD]], ptr [[RETVAL]], align 4
@@ -111,7 +111,7 @@ int main(void) {
 // PURECAP-NEXT:    [[CMP:%.*]] = icmp slt i32 [[TMP0]], 100
 // PURECAP-NEXT:    br i1 [[CMP]], label [[IF_THEN:%.*]], label [[IF_ELSE:%.*]]
 // PURECAP:       if.then:
-// PURECAP-NEXT:    call void @__sanitizer_cov_trace_pc_guard(ptr addrspace(200) getelementptr inbounds ([4 x i32], ptr addrspace(200) @__sancov_gen_.1, i32 0, i64 1)) #[[ATTR3]]
+// PURECAP-NEXT:    call void @__sanitizer_cov_trace_pc_guard(ptr addrspace(200) getelementptr ([4 x i32], ptr addrspace(200) @__sancov_gen_.1, i32 0, i64 1)) #[[ATTR3]]
 // PURECAP-NEXT:    [[CALL:%.*]] = call signext i32 @fail1()
 // PURECAP-NEXT:    store i32 [[CALL]], ptr addrspace(200) [[RETVAL]], align 4
 // PURECAP-NEXT:    br label [[RETURN:%.*]]
@@ -120,14 +120,14 @@ int main(void) {
 // PURECAP-NEXT:    [[CMP1:%.*]] = icmp slt i32 [[TMP1]], 200
 // PURECAP-NEXT:    br i1 [[CMP1]], label [[IF_THEN2:%.*]], label [[IF_END:%.*]]
 // PURECAP:       if.then2:
-// PURECAP-NEXT:    call void @__sanitizer_cov_trace_pc_guard(ptr addrspace(200) getelementptr inbounds ([4 x i32], ptr addrspace(200) @__sancov_gen_.1, i32 0, i64 2)) #[[ATTR3]]
+// PURECAP-NEXT:    call void @__sanitizer_cov_trace_pc_guard(ptr addrspace(200) getelementptr ([4 x i32], ptr addrspace(200) @__sancov_gen_.1, i32 0, i64 2)) #[[ATTR3]]
 // PURECAP-NEXT:    [[CALL3:%.*]] = call signext i32 @fail2()
 // PURECAP-NEXT:    store i32 [[CALL3]], ptr addrspace(200) [[RETVAL]], align 4
 // PURECAP-NEXT:    br label [[RETURN]]
 // PURECAP:       if.end:
 // PURECAP-NEXT:    br label [[IF_END4:%.*]]
 // PURECAP:       if.end4:
-// PURECAP-NEXT:    call void @__sanitizer_cov_trace_pc_guard(ptr addrspace(200) getelementptr inbounds ([4 x i32], ptr addrspace(200) @__sancov_gen_.1, i32 0, i64 3)) #[[ATTR3]]
+// PURECAP-NEXT:    call void @__sanitizer_cov_trace_pc_guard(ptr addrspace(200) getelementptr ([4 x i32], ptr addrspace(200) @__sancov_gen_.1, i32 0, i64 3)) #[[ATTR3]]
 // PURECAP-NEXT:    [[TMP2:%.*]] = load i32, ptr addrspace(200) [[I_ADDR]], align 4
 // PURECAP-NEXT:    [[ADD:%.*]] = add nsw i32 [[TMP2]], 1
 // PURECAP-NEXT:    store i32 [[ADD]], ptr addrspace(200) [[RETVAL]], align 4

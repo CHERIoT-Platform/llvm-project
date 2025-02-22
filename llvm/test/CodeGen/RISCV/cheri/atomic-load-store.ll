@@ -712,6 +712,7 @@ define void @atomic_store_i8_seq_cst(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV32IAXCHERI:       # %bb.0:
 ; RV32IAXCHERI-NEXT:    fence rw, w
 ; RV32IAXCHERI-NEXT:    csb a1, 0(ca0)
+; RV32IAXCHERI-NEXT:    fence rw, rw
 ; RV32IAXCHERI-NEXT:    cret
 ;
 ; RV64IXCHERI-LABEL: atomic_store_i8_seq_cst:
@@ -728,6 +729,7 @@ define void @atomic_store_i8_seq_cst(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV64IAXCHERI:       # %bb.0:
 ; RV64IAXCHERI-NEXT:    fence rw, w
 ; RV64IAXCHERI-NEXT:    csb a1, 0(ca0)
+; RV64IAXCHERI-NEXT:    fence rw, rw
 ; RV64IAXCHERI-NEXT:    cret
   store atomic i8 %b, i8 addrspace(200)* %a seq_cst, align 1
   ret void
@@ -852,6 +854,7 @@ define void @atomic_store_i16_seq_cst(i16 addrspace(200)* %a, i16 %b) nounwind {
 ; RV32IAXCHERI:       # %bb.0:
 ; RV32IAXCHERI-NEXT:    fence rw, w
 ; RV32IAXCHERI-NEXT:    csh a1, 0(ca0)
+; RV32IAXCHERI-NEXT:    fence rw, rw
 ; RV32IAXCHERI-NEXT:    cret
 ;
 ; RV64IXCHERI-LABEL: atomic_store_i16_seq_cst:
@@ -868,6 +871,7 @@ define void @atomic_store_i16_seq_cst(i16 addrspace(200)* %a, i16 %b) nounwind {
 ; RV64IAXCHERI:       # %bb.0:
 ; RV64IAXCHERI-NEXT:    fence rw, w
 ; RV64IAXCHERI-NEXT:    csh a1, 0(ca0)
+; RV64IAXCHERI-NEXT:    fence rw, rw
 ; RV64IAXCHERI-NEXT:    cret
   store atomic i16 %b, i16 addrspace(200)* %a seq_cst, align 2
   ret void
@@ -992,6 +996,7 @@ define void @atomic_store_i32_seq_cst(i32 addrspace(200)* %a, i32 %b) nounwind {
 ; RV32IAXCHERI:       # %bb.0:
 ; RV32IAXCHERI-NEXT:    fence rw, w
 ; RV32IAXCHERI-NEXT:    csw a1, 0(ca0)
+; RV32IAXCHERI-NEXT:    fence rw, rw
 ; RV32IAXCHERI-NEXT:    cret
 ;
 ; RV64IXCHERI-LABEL: atomic_store_i32_seq_cst:
@@ -1008,6 +1013,7 @@ define void @atomic_store_i32_seq_cst(i32 addrspace(200)* %a, i32 %b) nounwind {
 ; RV64IAXCHERI:       # %bb.0:
 ; RV64IAXCHERI-NEXT:    fence rw, w
 ; RV64IAXCHERI-NEXT:    csw a1, 0(ca0)
+; RV64IAXCHERI-NEXT:    fence rw, rw
 ; RV64IAXCHERI-NEXT:    cret
   store atomic i32 %b, i32 addrspace(200)* %a seq_cst, align 4
   ret void
@@ -1166,6 +1172,7 @@ define void @atomic_store_i64_seq_cst(i64 addrspace(200)* %a, i64 %b) nounwind {
 ; RV64IAXCHERI:       # %bb.0:
 ; RV64IAXCHERI-NEXT:    fence rw, w
 ; RV64IAXCHERI-NEXT:    csd a1, 0(ca0)
+; RV64IAXCHERI-NEXT:    fence rw, rw
 ; RV64IAXCHERI-NEXT:    cret
   store atomic i64 %b, i64 addrspace(200)* %a seq_cst, align 8
   ret void

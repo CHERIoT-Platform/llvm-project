@@ -28,7 +28,7 @@ void do_stuff_with_ptr(Nested* nptr);
 
 // CHECK-LABEL: @_Z18test_subobject_refR10WithNested(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[N:%.*]] = getelementptr inbounds [[STRUCT_WITHNESTED:%.*]], ptr addrspace(200) [[S:%.*]], i64 0, i32 1
+// CHECK-NEXT:    [[N:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[S:%.*]], i64 4
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[N]], i64 8)
 // CHECK-NEXT:    tail call void @_Z17do_stuff_with_refR6Nested(ptr addrspace(200) noundef nonnull align 4 dereferenceable(8) [[TMP0]]) #[[ATTR3:[0-9]+]]
 // CHECK-NEXT:    [[TMP1:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[N]], i64 4)
@@ -39,7 +39,7 @@ void do_stuff_with_ptr(Nested* nptr);
 //
 // HYBRID-LABEL: @_Z18test_subobject_refR10WithNested(
 // HYBRID-NEXT:  entry:
-// HYBRID-NEXT:    [[N:%.*]] = getelementptr inbounds [[STRUCT_WITHNESTED:%.*]], ptr [[S:%.*]], i64 0, i32 1
+// HYBRID-NEXT:    [[N:%.*]] = getelementptr inbounds i8, ptr [[S:%.*]], i64 4
 // HYBRID-NEXT:    tail call void @_Z17do_stuff_with_refR6Nested(ptr noundef nonnull align 4 dereferenceable(8) [[N]]) #[[ATTR2:[0-9]+]]
 // HYBRID-NEXT:    tail call void @_Z17do_stuff_with_refRi(ptr noundef nonnull align 4 dereferenceable(4) [[N]]) #[[ATTR2]]
 // HYBRID-NEXT:    tail call void @_Z17do_stuff_with_refRf(ptr noundef nonnull align 4 dereferenceable(4) [[S]]) #[[ATTR2]]
@@ -53,13 +53,13 @@ void test_subobject_ref(WithNested& s) {
 
 // CHECK-LABEL: @_Z18test_subobject_ptrR10WithNested(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[N:%.*]] = getelementptr inbounds [[STRUCT_WITHNESTED:%.*]], ptr addrspace(200) [[S:%.*]], i64 0, i32 1
+// CHECK-NEXT:    [[N:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[S:%.*]], i64 4
 // CHECK-NEXT:    tail call void @_Z17do_stuff_with_ptrP6Nested(ptr addrspace(200) noundef nonnull [[N]]) #[[ATTR3]]
 // CHECK-NEXT:    ret void
 //
 // HYBRID-LABEL: @_Z18test_subobject_ptrR10WithNested(
 // HYBRID-NEXT:  entry:
-// HYBRID-NEXT:    [[N:%.*]] = getelementptr inbounds [[STRUCT_WITHNESTED:%.*]], ptr [[S:%.*]], i64 0, i32 1
+// HYBRID-NEXT:    [[N:%.*]] = getelementptr inbounds i8, ptr [[S:%.*]], i64 4
 // HYBRID-NEXT:    tail call void @_Z17do_stuff_with_ptrP6Nested(ptr noundef nonnull [[N]]) #[[ATTR2]]
 // HYBRID-NEXT:    ret void
 //

@@ -2,21 +2,21 @@
 ;; NB: We set -cheri-stack-bounds-single-intrinsic-threshold=1 so optnone
 ;; generates the same IR as its -cheri-stack-bounds-analysis equivalent.
 ; RUN: sed 's/@ATTRS@//g' %s | opt -mtriple=riscv64 -S \
-; RUN:   -cheri-bound-allocas \
+; RUN:   -passes=cheri-bound-allocas \
 ; RUN:   -cheri-stack-bounds-single-intrinsic-threshold=1 \
 ; RUN:   -cheri-stack-bounds-analysis=full \
 ; RUN:   | FileCheck %s --check-prefix=FULL-OPAQUE
 ; RUN: sed 's/@ATTRS@//g' %s | opt -mtriple=riscv64 -S \
-; RUN:   -cheri-bound-allocas \
+; RUN:   -passes=cheri-bound-allocas \
 ; RUN:   -cheri-stack-bounds-single-intrinsic-threshold=1 \
 ; RUN:   | FileCheck %s --check-prefixes=OPTNONE-OPAQUE
 ; RUN: sed 's/@ATTRS@//g' %s | opt -mtriple=riscv64 -S \
-; RUN:   -cheri-bound-allocas \
+; RUN:   -passes=cheri-bound-allocas \
 ; RUN:   -cheri-stack-bounds-single-intrinsic-threshold=1 \
 ; RUN:   -cheri-stack-bounds-analysis=simple \
 ; RUN:   | FileCheck %s --check-prefix=SIMPLE-OPAQUE
 ; RUN: sed 's/@ATTRS@//g' %s | opt -mtriple=riscv64 -S \
-; RUN:   -cheri-bound-allocas \
+; RUN:   -passes=cheri-bound-allocas \
 ; RUN:   -cheri-stack-bounds-single-intrinsic-threshold=1 \
 ; RUN:   -cheri-stack-bounds-analysis=none \
 ; RUN:   | FileCheck %s --check-prefix=NONE-OPAQUE

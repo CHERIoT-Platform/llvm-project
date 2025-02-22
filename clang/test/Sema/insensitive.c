@@ -4,6 +4,6 @@ int insecure();
 __attribute__((sensitive))
 int doSomethingCrazy(int * a)
 {
-  return *a + insecure(); // expected-warning {{Calling non-sensitive function}}
+  return *a + insecure(); // expected-warning {{calling non-sensitive function}}
 }
 

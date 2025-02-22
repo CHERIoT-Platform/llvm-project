@@ -1066,10 +1066,10 @@ define void @instructions.va_arg(i8* %v, ...) {
   va_arg i8* %ap2, i32
   ; CHECK: va_arg ptr %ap2, i32
 
-  call void @llvm.va_copy.p0.p0(i8* %v, i8* %ap2)
-  ; CHECK: call void @llvm.va_copy.p0.p0(ptr %v, ptr %ap2)
+  call void @llvm.va_copy(i8* %v, i8* %ap2)
+  ; CHECK: call void @llvm.va_copy.p0(ptr %v, ptr %ap2)
 
-  call void @llvm.va_end.p0(i8* %ap2)
+  call void @llvm.va_end(i8* %ap2)
   ; CHECK: call void @llvm.va_end.p0(ptr %ap2)
 
   ret void

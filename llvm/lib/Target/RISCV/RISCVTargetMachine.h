@@ -65,6 +65,7 @@ public:
                                 PerFunctionMIParsingState &PFS,
                                 SMDiagnostic &Error,
                                 SMRange &SourceRange) const override;
+  void registerPassBuilderCallbacks(PassBuilder &PB) override;
 
   /// The set of functions imported from this compilation unit.
   CHERIoTImportedFunctionSet ImportedFunctions;

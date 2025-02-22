@@ -75,7 +75,7 @@ fn_reloc1:
 # OBJ-RELOCS-NEXT:   }
 # LLD-OUTPUT-NEXT: Found better match for capability relocation against .Lfirst_fn_target+0: fn1+8
 # EXE-RELOCS-LABEL:    Location: 0x3440 (fn_reloc1)
-# EXE-RELOCS-NEXT:     Base: $x.0 (0x1338)
+# EXE-RELOCS-NEXT:     Base: $x (0x1338)
 # EXE-RELOCS-NEXT:     Offset: 8
 # EXE-RELOCS-NEXT:     Length: 12
 # EXE-RELOCS-NEXT:     Permissions: Function (0x8000000000000000)

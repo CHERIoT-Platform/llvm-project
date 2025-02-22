@@ -60,7 +60,7 @@ struct option options_table[] = {
 // STATIC-NEXT:   SHF_MERGE (0x10)
 // STATIC-NEXT:   SHF_STRINGS (0x20)
 // STATIC-NEXT: ]
-// STATIC-NEXT: Address: 0x[[#%x,RODATA:0x10278]]
+// STATIC-NEXT: Address: 0x[[#%x,RODATA:0x10208]]
 
 // STATIC-LABEL: CHERI __cap_relocs [
 // STATIC-NEXT:    Base: 0x[[#RODATA + 7]] (<unknown symbol>+0) Length: 6 Perms: Constant
@@ -78,7 +78,7 @@ struct option options_table[] = {
 // DYNAMIC-NEXT:   SHF_MERGE (0x10)
 // DYNAMIC-NEXT:   SHF_STRINGS (0x20)
 // DYNAMIC-NEXT: ]
-// DYNAMIC-NEXT: Address: 0x[[#%X,RODATA:0x490]]
+// DYNAMIC-NEXT: Address: 0x[[#%X,RODATA:0x420]]
 
 // PIE exe amd shlib should have a dynamic relocations and only have the offset+length values filled in:
 // DYNAMIC-LABEL: CHERI __cap_relocs [

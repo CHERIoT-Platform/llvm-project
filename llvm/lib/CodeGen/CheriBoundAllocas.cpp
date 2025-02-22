@@ -1,3 +1,4 @@
+#include "llvm/CodeGen/CheriBoundAllocas.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Analysis/CheriBounds.h"
@@ -96,20 +97,16 @@ STATISTIC(NumUsesWithBounds, "Number of alloca uses that had CHERI bounds added"
 STATISTIC(NumUsesWithoutBounds, "Number of alloca uses that did not needed CHERI bounds");
 STATISTIC(NumSingleIntrin, "Number of times that a single intrinisic was used instead of per-use");
 
-class CheriBoundAllocas : public ModulePass, public InstVisitor<CheriBoundAllocas> {
+class CheriBoundAllocasImpl : public InstVisitor<CheriBoundAllocasImpl> {
   Module *M;
   llvm::SmallVector<AllocaInst *, 16> Allocas;
   Type *I8CapTy;
   Type *SizeTy;
 
 public:
-  static char ID;
-  CheriBoundAllocas() : ModulePass(ID) {
-    initializeCheriBoundAllocasPass(*PassRegistry::getPassRegistry());
-  }
-  StringRef getPassName() const override { return "CHERI bound stack allocations"; }
+  StringRef getPassName() const { return "CHERI bound stack allocations"; }
   void visitAllocaInst(AllocaInst &AI) { Allocas.push_back(&AI); }
-  bool runOnModule(Module &Mod) override {
+  bool runOnModule(Module &Mod, const TargetMachine &TM) {
     M = &Mod;
     const DataLayout &DL = Mod.getDataLayout();
     unsigned AllocaAS = DL.getAllocaAddrSpace();
@@ -124,17 +121,15 @@ public:
 
     bool Modified = false;
     for (Function &F : Mod)
-      Modified |= runOnFunction(F);
+      Modified |= runOnFunction(F, TM);
 
     return Modified;
   }
 
-  bool runOnFunction(Function &F) {
+  bool runOnFunction(Function &F, const TargetMachine &TM) {
     // always set bounds with optnone
     bool IsOptNone = F.hasFnAttribute(Attribute::OptimizeNone);
     // FIXME: should still ignore lifetime-start + lifetime-end intrinsics even at -O0
-    const TargetPassConfig &TPC = getAnalysis<TargetPassConfig>();
-    const TargetMachine &TM = TPC.getTM<TargetMachine>();
     const TargetLowering *TLI = TM.getSubtargetImpl(F)->getTargetLowering();
 
     LLVMContext &C = M->getContext();
@@ -384,7 +379,24 @@ public:
     }
     return true;
   }
+};
 
+class CheriBoundAllocasLegacy : public ModulePass {
+public:
+  static char ID; // Pass identification, replacement for typeid
+
+  CheriBoundAllocasLegacy() : ModulePass(ID) {
+    initializeCheriBoundAllocasLegacyPass(*PassRegistry::getPassRegistry());
+  }
+
+  bool runOnModule(Module &M) override {
+    auto *TPC = getAnalysisIfAvailable<TargetPassConfig>();
+    if (!TPC)
+      return false;
+    auto &TM = TPC->getTM<TargetMachine>();
+    CheriBoundAllocasImpl CBA;
+    return CBA.runOnModule(M, TM);
+  }
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.addRequired<TargetPassConfig>();
     AU.setPreservesCFG();
@@ -393,10 +405,16 @@ public:
 
 } // anonymous namespace
 
-char CheriBoundAllocas::ID;
-INITIALIZE_PASS(CheriBoundAllocas, DEBUG_TYPE,
+ModulePass *llvm::createCheriBoundAllocasLegacyPass(void) {
+  return new CheriBoundAllocasLegacy();
+}
+
+char CheriBoundAllocasLegacy::ID = 0;
+INITIALIZE_PASS(CheriBoundAllocasLegacy, DEBUG_TYPE,
                 "CHERI add bounds to alloca instructions", false, false)
 
-ModulePass *llvm::createCheriBoundAllocasPass(void) {
-  return new CheriBoundAllocas();
+PreservedAnalyses llvm::CheriBoundAllocasPass::run(Module &M, ModuleAnalysisManager &AM) {
+  CheriBoundAllocasImpl CBA;
+  CBA.runOnModule(M, *TM);
+  return PreservedAnalyses::allInSet<CFGAnalyses>();
 }

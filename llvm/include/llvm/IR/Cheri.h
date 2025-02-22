@@ -37,6 +37,9 @@ inline const DataLayout *getDataLayoutOrNull(const BasicBlock *BBForDL) {
 inline const DataLayout *getDataLayoutOrNull(const Instruction *InstForDL) {
   return InstForDL ? getDataLayoutOrNull(InstForDL->getParent()) : nullptr;
 }
+inline const DataLayout *getDataLayoutOrNull(InsertPosition InstPt) {
+  return InstPt.isValid() ? getDataLayoutOrNull(InstPt.getBasicBlock()) : nullptr;
+}
 
 /// This function can be used if there is no DataLayout available and will
 /// in that case assume that AS200 is only used for CHERI

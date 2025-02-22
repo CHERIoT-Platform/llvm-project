@@ -6,6 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+// TODO: __builtin_popcountg is available since Clang 19 and GCC 14. When support for older versions is dropped, we can
+//  refactor this code to exclusively use __builtin_popcountg.
+
 #ifndef _LIBCPP___BIT_POPCOUNT_H
 #define _LIBCPP___BIT_POPCOUNT_H
 
@@ -38,8 +41,11 @@ inline _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR int __libcpp_popcount(unsigned lo
 #if _LIBCPP_STD_VER >= 20
 
 template <__libcpp_unsigned_integer _Tp>
-_LIBCPP_NODISCARD_EXT _LIBCPP_HIDE_FROM_ABI constexpr int popcount(_Tp __t) noexcept {
-  if constexpr (sizeof(_Tp) <= sizeof(unsigned int))
+[[nodiscard]] _LIBCPP_HIDE_FROM_ABI constexpr int popcount(_Tp __t) noexcept {
+#  if __has_builtin(__builtin_popcountg)
+  return __builtin_popcountg(__t);
+#  else  // __has_builtin(__builtin_popcountg)
+  if (sizeof(_Tp) <= sizeof(unsigned int))
     return std::__libcpp_popcount(static_cast<unsigned int>(__t));
   else if constexpr (sizeof(_Tp) <= sizeof(unsigned long))
     return std::__libcpp_popcount(static_cast<unsigned long>(__t));
@@ -53,6 +59,7 @@ _LIBCPP_NODISCARD_EXT _LIBCPP_HIDE_FROM_ABI constexpr int popcount(_Tp __t) noex
     }
     return __ret;
   }
+#  endif // __has_builtin(__builtin_popcountg)
 }
 
 #if __has_feature(capabilities)

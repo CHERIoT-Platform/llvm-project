@@ -79,7 +79,7 @@ void __start(void) {}
 // DUMP-CAPRELOCS-LABEL: CHERI __cap_relocs [
 // STATIC:                     0x040{{.+}} (__error_selector) Base: 0x20{{.+}} (__error_unthreaded+0) Length: 24 Perms: Function
 // PIE exe and shlib should have dynamic relocations and only the offset values
-// DYNAMIC:                    0x030{{.+}} (__error_selector) Base: 0x10{{.+}} (__error_unthreaded+0) Length: 24 Perms: Function
-// SHLIB:                      0x030{{.+}} (__error_selector) Base: 0x10{{.+}} (__error_unthreaded+0) Length: 24 Perms: Function
+// DYNAMIC:                    0x020{{.+}} (__error_selector) Base: 0x10{{.+}} (__error_unthreaded+0) Length: 24 Perms: Function
+// SHLIB:                      0x020{{.+}} (__error_selector) Base: 0x10{{.+}} (__error_unthreaded+0) Length: 24 Perms: Function
 // DUMP-CAPRELOCS: ]
 

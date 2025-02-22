@@ -1148,7 +1148,7 @@ entry:
 
 attributes #0 = { nounwind }
 
-; AIXDATA: .csect L..__ModuleStringPool[RO],2
+; AIXDATA: .csect L..__ModuleStringPool[RO],3
 ; AIXDATA:       .align  3                               # @__ModuleStringPool
 ; AIXDATA:       .vbyte  4, 5                            # 0x5
 ; AIXDATA:       .vbyte  4, 7                            # 0x7

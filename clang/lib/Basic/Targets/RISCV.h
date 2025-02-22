@@ -16,7 +16,7 @@
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Basic/TargetOptions.h"
 #include "llvm/Support/Compiler.h"
-#include "llvm/Support/RISCVISAInfo.h"
+#include "llvm/TargetParser/RISCVISAInfo.h"
 #include "llvm/TargetParser/Triple.h"
 #include <optional>
 
@@ -81,7 +81,7 @@ protected:
   }
 
 private:
-  bool FastUnalignedAccess;
+  bool FastScalarUnalignedAccess;
   bool HasExperimental = false;
 
 public:
@@ -196,6 +196,8 @@ public:
 
   bool hasBFloat16Type() const override { return true; }
 
+  CallingConvCheckResult checkCallingConvention(CallingConv CC) const override;
+
   bool useFP16ConversionIntrinsics() const override {
     return false;
   }
@@ -207,16 +209,8 @@ public:
   bool supportsTargetAttributeTune() const override { return true; }
   ParsedTargetAttr parseTargetAttr(StringRef Str) const override;
 
-  CallingConvCheckResult checkCallingConvention(CallingConv CC) const override {
-    if ((CC == CallingConv::CC_CHERICCall) ||
-        (CC == CallingConv::CC_CHERICCallee) ||
-        (CC == CallingConv::CC_CHERICCallback) ||
-        (CC == CallingConv::CC_CHERILibCall)) {
-      // NB: with cheriot-baremetal the caller will generate a warning
-      //   and downgrade to the default target CC
-      return ABI == "cheriot" ? CCCR_OK : CCCR_Warning;
-    }
-    return TargetInfo::checkCallingConvention(CC);
+  std::pair<unsigned, unsigned> hardwareInterferenceSizes() const override {
+    return std::make_pair(32, 32);
   }
 
   CheriCCallbackABIKind cheriCallbackKind() const override {

@@ -48,13 +48,13 @@ FunctionPass *createCheriLoopPointerDecanonicalize();
 
 MachineFunctionPass *createCheriAddressingModeFolder();
 MachineFunctionPass *createCheri128FailHardPass();
-InstructionSelector *createMipsInstructionSelector(const MipsTargetMachine &,
-                                                   MipsSubtarget &,
-                                                   MipsRegisterBankInfo &);
+InstructionSelector *
+createMipsInstructionSelector(const MipsTargetMachine &, const MipsSubtarget &,
+                              const MipsRegisterBankInfo &);
 
 void initializeMicroMipsSizeReducePass(PassRegistry &);
 void initializeMipsBranchExpansionPass(PassRegistry &);
-void initializeMipsDAGToDAGISelPass(PassRegistry &);
+void initializeMipsDAGToDAGISelLegacyPass(PassRegistry &);
 void initializeMipsDelaySlotFillerPass(PassRegistry &);
 void initializeMipsMulMulBugFixPass(PassRegistry &);
 void initializeMipsOptimizePICCallPass(PassRegistry &);

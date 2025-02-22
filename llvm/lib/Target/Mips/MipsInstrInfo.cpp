@@ -631,7 +631,7 @@ bool MipsInstrInfo::SafeInLoadDelaySlot(const MachineInstr &MIInSlot,
     return false;
 
   return !llvm::any_of(LoadMI.defs(), [&](const MachineOperand &Op) {
-    return Op.isReg() && MIInSlot.readsRegister(Op.getReg());
+    return Op.isReg() && MIInSlot.readsRegister(Op.getReg(), /*TRI=*/nullptr);
   });
 }
 
@@ -711,7 +711,7 @@ MipsInstrInfo::genInstrWithNewOpc(unsigned NewOpc,
   bool BranchWithZeroOperand = false;
   if (I->isBranch() && !I->isPseudo()) {
     auto TRI = I->getParent()->getParent()->getSubtarget().getRegisterInfo();
-    ZeroOperandPosition = I->findRegisterUseOperandIdx(Mips::ZERO, false, TRI);
+    ZeroOperandPosition = I->findRegisterUseOperandIdx(Mips::ZERO, TRI, false);
     BranchWithZeroOperand = ZeroOperandPosition != -1;
   }
 
@@ -925,7 +925,7 @@ bool MipsInstrInfo::verifyInstruction(const MachineInstr &MI,
             Mips::CapJumpLinkPseudo) // Op2 here is implicitly c17:
           assert(OutputOp.isReg() && OutputOp.getReg() == Mips::C17);
         auto DelaySlotInstr = MI.getNextNode();
-        if (DelaySlotInstr->readsRegister(Mips::C17)) {
+        if (DelaySlotInstr->readsRegister(Mips::C17, nullptr)) {
           ErrInfo = "Filled CapJumpLinkPseudo delay slot with a read of $c17 "
                     "(which will have been clobbered!)";
           return false;

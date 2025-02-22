@@ -39,11 +39,11 @@ int main() {
   ptr_fn(&a);
   val_fn(a);
   varargs_fn(a); // expected-warning{{call to function 'varargs_fn' with no prototype may lead to run-time stack corruption}}
-  // expected-note@-1{{Calling functions without prototypes is dangerous}}
+  // expected-note@-1{{calling functions without prototypes is dangerous}}
   // expected-warning@-2{{passing arguments to 'varargs_fn' without a prototype is deprecated in all versions of C and is not supported in C23}}
   undefined_fn(a); // expected-warning{{call to undeclared function 'undefined_fn'; ISO C99 and later do not support implicit function declarations}}
   // expected-warning@-1{{call to function 'undefined_fn' with no prototype may lead to run-time stack corruption}}
-  // expected-note@-2{{Calling functions without prototypes is dangerous}}
+  // expected-note@-2{{calling functions without prototypes is dangerous}}
   // expected-note@-3{{candidate function declaration needs parameter types}}
 
   return 0;

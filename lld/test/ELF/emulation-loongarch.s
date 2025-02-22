@@ -25,8 +25,8 @@
 # LA32-NEXT:   Entry:
 # LA32-NEXT:   ProgramHeaderOffset: 0x34
 # LA32-NEXT:   SectionHeaderOffset:
-# LA32-NEXT:   Flags [ (0x43)
-# LA32-NEXT:     EF_LOONGARCH_ABI_DOUBLE_FLOAT (0x3)
+# LA32-NEXT:   Flags [ (0x41)
+# LA32-NEXT:     EF_LOONGARCH_ABI_SOFT_FLOAT (0x1)
 # LA32-NEXT:     EF_LOONGARCH_OBJABI_V1 (0x40)
 # LA32-NEXT:   ]
 # LA32-NEXT:   HeaderSize: 52
@@ -37,7 +37,7 @@
 # LA32-NEXT:   StringTableSectionIndex:
 # LA32-NEXT: }
 
-# RUN: llvm-mc -filetype=obj -triple=loongarch64 %s -o %t.o
+# RUN: llvm-mc -filetype=obj -triple=loongarch64 -mattr=+d %s -o %t.o
 # RUN: ld.lld %t.o -o %t
 # RUN: llvm-readobj --file-headers %t | FileCheck --check-prefix=LA64 %s
 # RUN: ld.lld -m elf64loongarch %t.o -o %t

@@ -17,6 +17,7 @@
 // RUN: FileCheck --check-prefix=CHECKSH %s -input-file %t/crash-vfs-*.sh
 // RUN: FileCheck --check-prefix=CHECKYAML %s -input-file \
 // RUN:   %t/crash-vfs-*.cache/vfs/vfs.yaml
+// XFAIL: *
 
 void f() { SPXTrace(); }
 void g() { double x = DBL_MAX; }

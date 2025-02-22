@@ -15,7 +15,7 @@
 // RUN: %cheri_purecap_clang -o - -O0 -S %s | FileCheck %s -implicit-check-not .ctors -implicit-check-not .dtors
 // RUN: %cheri_purecap_cc1 -o - -O0 -S %s | FileCheck %s -implicit-check-not .ctors -implicit-check-not .dtors
 // RUN: %cheri_purecap_cc1 -fno-use-init-array -o /dev/null -O0 -S %s 2>&1 | FileCheck %s -check-prefix WARN
-// WARN: warning: The CHERI RTLD does not support .ctors. Passing -fno-use-init-array will probably create broken binaries.
+// WARN: warning: the CHERI RTLD does not support .ctors. Passing -fno-use-init-array will probably create broken binaries
 // Check that we don't produce the warning when invoking cheri_purecap_cc1 without the -fuse-init-array option:
 // RUN: %cheri_purecap_cc1 -o - -O0 -S %s 2>&1 | FileCheck %s -check-prefix NOWARN -implicit-check-not warning
 // NOWARN: .text

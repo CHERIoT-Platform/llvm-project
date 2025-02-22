@@ -4,7 +4,7 @@
 ; we were moving the allocation of the register that is only used later to the beginning
 
 ; REQUIRES: asserts
-; RUN: %cheri_purecap_opt -instsimplify -cheri-bound-allocas %s -o - -S -cheri-stack-bounds=if-needed -debug-only=cheri-bound-allocas 2>%t.dbg | FileCheck %s
+; RUN: %cheri_purecap_opt -passes="function(instsimplify),cheri-bound-allocas" %s -o - -S -cheri-stack-bounds=if-needed -debug-only=cheri-bound-allocas 2>%t.dbg | FileCheck %s
 ; RUN: FileCheck %s -input-file=%t.dbg --check-prefix=DBG
 
 target datalayout = "Eme-pf200:128:128:128:64-A200-P200-G200"

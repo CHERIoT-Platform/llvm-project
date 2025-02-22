@@ -1,4 +1,4 @@
-; RUN: %riscv64_cheri_purecap_opt -instsimplify -cheri-bound-allocas %s -o - -S | FileCheck %s
+; RUN: %riscv64_cheri_purecap_opt -passes="function(instsimplify),cheri-bound-allocas" %s -o - -S | FileCheck %s
 target datalayout = "E-m:m-pf200:128:128:128:64-i8:8:32-i16:16:32-i64:64-n32:64-S128-A200-P200-G200"
 declare i32 @use32(ptr addrspace(200)) addrspace(200)
 declare i32 @use8(ptr addrspace(200)) addrspace(200)

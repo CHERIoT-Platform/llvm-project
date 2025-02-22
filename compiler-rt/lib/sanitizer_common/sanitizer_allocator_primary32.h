@@ -278,7 +278,7 @@ class SizeClassAllocator32 {
   static const usize kRegionSize = 1 << kRegionSizeLog;
   static const usize kNumPossibleRegions = kSpaceSize / kRegionSize;
 
-  struct ALIGNED(SANITIZER_CACHE_LINE_SIZE) SizeClassInfo {
+  struct alignas(SANITIZER_CACHE_LINE_SIZE) SizeClassInfo {
     StaticSpinMutex mutex;
     IntrusiveList<TransferBatch> free_list;
     u32 rand_state;

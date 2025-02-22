@@ -321,23 +321,23 @@ class TwoLevelBitVector {
   };
 
  private:
-  void check(usize idx) const { CHECK_LE(idx, size()); }
+  void check(usize idx) const { CHECK_LT(idx, size()); }
 
   usize idx0(usize idx) const {
     usize res = idx / (BV::kSize * BV::kSize);
-    CHECK_LE(res, kLevel1Size);
+    CHECK_LT(res, kLevel1Size);
     return res;
   }
 
   usize idx1(usize idx) const {
     usize res = (idx / BV::kSize) % BV::kSize;
-    CHECK_LE(res, BV::kSize);
+    CHECK_LT(res, BV::kSize);
     return res;
   }
 
   usize idx2(usize idx) const {
     usize res = idx % BV::kSize;
-    CHECK_LE(res, BV::kSize);
+    CHECK_LT(res, BV::kSize);
     return res;
   }
 

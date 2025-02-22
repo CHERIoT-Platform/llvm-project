@@ -4,10 +4,10 @@
 ; we were moving the allocation of the register that is only used later to the beginning
 
 ; REQUIRES: asserts
-; RUN: %cheri_purecap_opt -instsimplify -cheri-bound-allocas %s -o - -S | FileCheck %s -check-prefix DEFAULT-OPAQUE
-; RUN: %cheri_purecap_opt -instsimplify -cheri-bound-allocas %s -o - -S -cheri-stack-bounds-single-intrinsic-threshold=0 -cheri-stack-bounds=if-needed | FileCheck %s -check-prefix IF-NEEDED-SINGLE-OPAQUE
-; RUN: %cheri_purecap_opt -instsimplify -cheri-bound-allocas %s -o - -S -cheri-stack-bounds-single-intrinsic-threshold=10 -cheri-stack-bounds=if-needed | FileCheck %s -check-prefix IF-NEEDED-PER-USE-OPAQUE
-; RUN: %cheri_purecap_opt -instsimplify -cheri-bound-allocas %s -o - -S -cheri-stack-bounds-single-intrinsic-threshold=10 -cheri-stack-bounds=all-or-none | FileCheck %s -check-prefix ALL-OR-NONE-PER-USE-OPAQUE
+; RUN: %cheri_purecap_opt -passes="function(instsimplify),cheri-bound-allocas" %s -o - -S | FileCheck %s -check-prefix DEFAULT-OPAQUE
+; RUN: %cheri_purecap_opt -passes="function(instsimplify),cheri-bound-allocas" %s -o - -S -cheri-stack-bounds-single-intrinsic-threshold=0 -cheri-stack-bounds=if-needed | FileCheck %s -check-prefix IF-NEEDED-SINGLE-OPAQUE
+; RUN: %cheri_purecap_opt -passes="function(instsimplify),cheri-bound-allocas" %s -o - -S -cheri-stack-bounds-single-intrinsic-threshold=10 -cheri-stack-bounds=if-needed | FileCheck %s -check-prefix IF-NEEDED-PER-USE-OPAQUE
+; RUN: %cheri_purecap_opt -passes="function(instsimplify),cheri-bound-allocas" %s -o - -S -cheri-stack-bounds-single-intrinsic-threshold=10 -cheri-stack-bounds=all-or-none | FileCheck %s -check-prefix ALL-OR-NONE-PER-USE-OPAQUE
 
 target datalayout = "Eme-pf200:128:128:128:64-A200-P200-G200"
 

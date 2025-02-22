@@ -132,25 +132,6 @@ except_table:
 
 # CHECK:   Section {
 # CHECK:      Index:
-# CHECK:      Name: .gcc_except_table
-# CHECK:      SectionData (
-# CHECK-NEXT:   0000: 00000000 00010{{.+}} 00000000 00000000
-# CHECK-NEXT:   0010: CACACACA CACACACA CACACACA CACACACA
-##                            ^^ no addend since __cap_relocs is used (hidden_local_func)
-# CHECK-NEXT:   0020: CACACACA CACACACA CACACACA CACACACA
-##                            ^^ no addend since __cap_relocs is used (protected_local_func)
-# CHECK-NEXT:   0030: 00000000 00000012 CACACACA CACACACA
-##                            ^^ addend 0x12 (exported_local_func)
-# CHECK-NEXT:   0040: 00000000 00000013 CACACACA CACACACA
-##                            ^^ addend 0x13 (external_func)
-# CHECK-NEXT:   0050: 00000000 00000014 CACACACA CACACACA
-##                            ^^ addend 0x14 (undef_func)
-# CHECK-NEXT:   0060: 00000000 00000015 CACACACA CACACACA
-##                            ^^ addend 0x15 (weak_exported_local_func)
-# CHECK-NEXT: )
-
-# CHECK:   Section {
-# CHECK:      Index:
 # CHECK:      Name: .data
 # CHECK:      SectionData (
 # CHECK-NEXT:    0000: 00000000 00010{{.+}} 00000000 00000000  |
@@ -168,26 +149,45 @@ except_table:
 ##                            ^^ addend 0x6 (weak_exported_local_func)
 # CHECK-NEXT: )
 
+# CHECK:   Section {
+# CHECK:      Index:
+# CHECK:      Name: .gcc_except_table
+# CHECK:      SectionData (
+# CHECK-NEXT:   0000: 00000000 00010{{.+}} 00000000 00000000
+# CHECK-NEXT:   0010: CACACACA CACACACA CACACACA CACACACA
+##                            ^^ no addend since __cap_relocs is used (hidden_local_func)
+# CHECK-NEXT:   0020: CACACACA CACACACA CACACACA CACACACA
+##                            ^^ no addend since __cap_relocs is used (protected_local_func)
+# CHECK-NEXT:   0030: 00000000 00000012 CACACACA CACACACA
+##                            ^^ addend 0x12 (exported_local_func)
+# CHECK-NEXT:   0040: 00000000 00000013 CACACACA CACACACA
+##                            ^^ addend 0x13 (external_func)
+# CHECK-NEXT:   0050: 00000000 00000014 CACACACA CACACACA
+##                            ^^ addend 0x14 (undef_func)
+# CHECK-NEXT:   0060: 00000000 00000015 CACACACA CACACACA
+##                            ^^ addend 0x15 (weak_exported_local_func)
+# CHECK-NEXT: )
+
 
 # CHECK-LABEL:  Relocations [
 # CHECK-NEXT:    Section ({{.+}}) .rel.dyn {
 # CHECK-NEXT:      0x20{{.+}} R_MIPS_REL32/R_MIPS_64/R_MIPS_NONE -{{$}}
-# CHECK-NEXT:      0x30{{.+}} R_MIPS_REL32/R_MIPS_64/R_MIPS_NONE -{{$}}
+# CHECK-NEXT:      0x20{{.+}} R_MIPS_REL32/R_MIPS_64/R_MIPS_NONE -{{$}}
 # CHECK-NEXT:      0x20{{.+}} R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE undef_func{{$}}
-# CHECK-NEXT:      0x30{{.+}} R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE undef_func{{$}}
+# CHECK-NEXT:      0x20{{.+}} R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE undef_func{{$}}
 # CHECK-NEXT:      0x20{{.+}} R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE exported_local_func{{$}}
-# CHECK-NEXT:      0x30{{.+}} R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE exported_local_func{{$}}
+# CHECK-NEXT:      0x20{{.+}} R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE exported_local_func{{$}}
 # CHECK-NEXT:      0x20{{.+}} R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE weak_exported_local_func{{$}}
-# CHECK-NEXT:      0x30{{.+}} R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE weak_exported_local_func{{$}}
+# CHECK-NEXT:      0x20{{.+}} R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE weak_exported_local_func{{$}}
 # CHECK-NEXT:      0x20{{.+}} R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE external_func{{$}}
-# CHECK-NEXT:      0x30{{.+}} R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE external_func{{$}}
+# CHECK-NEXT:      0x20{{.+}} R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE external_func{{$}}
 # CHECK-NEXT:    }
 # CHECK-NEXT:  ]
 
 # CHECK-LABEL: CHERI __cap_relocs [
 ## First the three .eh_frame relocations, including the fake symbol that was added to avoid relocations:
+# CHECK-NEXT:    0x02{{.+}} Base: 0x{{.+}} (hidden_local_func+1) Length: 4 Perms: Function
+# CHECK-NEXT:    0x02{{.+}} Base: 0x{{.+}} (protected_local_func+2) Length: 4 Perms: Function
 # CHECK-NEXT:    0x02{{.+}} Base: 0x{{.+}} (hidden_local_func+16) Length: 4 Perms: Function
 # CHECK-NEXT:    0x02{{.+}} Base: 0x{{.+}} (protected_local_func+17) Length: 4 Perms: Function
-# CHECK-NEXT:    0x03{{.+}} Base: 0x{{.+}} (hidden_local_func+1) Length: 4 Perms: Function
-# CHECK-NEXT:    0x03{{.+}} Base: 0x{{.+}} (protected_local_func+2) Length: 4 Perms: Function
 # CHECK-NEXT: ]

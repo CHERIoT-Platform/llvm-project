@@ -1,4 +1,4 @@
-; RUN: %riscv64_cheri_purecap_opt -cheri-bound-allocas %s -o - -S -debug-only="cheri-bound-allocas" 2>&1 | %cheri_FileCheck %s -check-prefix DBG
+; RUN: %riscv64_cheri_purecap_opt -passes=cheri-bound-allocas %s -o - -S -debug-only="cheri-bound-allocas" 2>&1 | %cheri_FileCheck %s -check-prefix DBG
 ; REQUIRES: asserts
 ; This crash was found compiling postgres (due to a missing depth limitation in CheriPurecapABI.cpp)
 

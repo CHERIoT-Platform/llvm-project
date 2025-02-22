@@ -20,7 +20,7 @@ define ptr addrspace(200) @return_member_function_1() addrspace(200) {
 ; PURECAP-NEXT:    ret ptr addrspace(200) @member_function_1
 ;
 call_member_fn_ptr.exit:
-  %memptr.virtualfn.i = load ptr addrspace(200), ptr addrspace(200) getelementptr (i8, ptr addrspace(200) getelementptr inbounds ({ [4 x ptr addrspace(200)] }, ptr addrspace(200) @_ZTV1A, i64 0, inrange i32 0, i64 2), i64 add (i64 ptrtoint (ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1) to i64), i64 -1)), align 16
+  %memptr.virtualfn.i = load ptr addrspace(200), ptr addrspace(200) getelementptr (i8, ptr addrspace(200) getelementptr inbounds ({ [4 x ptr addrspace(200)] }, ptr addrspace(200) @_ZTV1A, i64 0, i32 0, i64 2), i64 add (i64 ptrtoint (ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1) to i64), i64 -1)), align 16
   ret ptr addrspace(200) %memptr.virtualfn.i
 }
 

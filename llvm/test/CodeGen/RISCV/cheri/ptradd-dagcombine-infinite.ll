@@ -71,12 +71,12 @@ declare void @llvm.memcpy.p200i8.p200i8.i64(i8 addrspace(200)* noalias nocapture
 define i8 addrspace(200)* @reassociated_node_reuses_other_node(i64 %arg1, %struct.bar addrspace(200)* %arg2) nounwind {
 ; CHECK-LABEL: reassociated_node_reuses_other_node:
 ; CHECK:       # %bb.0: # %bb
-; CHECK-NEXT:    slli a0, a0, 5
-; CHECK-NEXT:    addi a2, a0, 16
+; CHECK-NEXT:    slli a2, a0, 5
+; CHECK-NEXT:    cincoffset ca0, ca1, a2
 ; CHECK-NEXT:    clc ca3, 0(ca1)
+; CHECK-NEXT:    addi a2, a2, 16
 ; CHECK-NEXT:    cincoffset ca2, ca1, a2
 ; CHECK-NEXT:    csc cnull, 0(ca2)
-; CHECK-NEXT:    cincoffset ca0, ca1, a0
 ; CHECK-NEXT:    csc ca3, 0(ca0)
 ; CHECK-NEXT:    clc ca1, 16(ca1)
 ; CHECK-NEXT:    csc ca1, 16(ca0)

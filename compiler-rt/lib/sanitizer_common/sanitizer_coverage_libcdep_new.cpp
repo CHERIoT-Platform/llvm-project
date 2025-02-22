@@ -75,7 +75,8 @@ static void SanitizerDumpCoverage(const vaddr* unsorted_pcs, usize len) {
     if (!pc) continue;
 
     if (!GetModuleAndOffsetForPc(pc, nullptr, 0, &pcs[i])) {
-      Printf("ERROR: unknown pc 0x%zx (may happen if dlclose is used)\n", pc);
+      Printf("ERROR: unknown pc %p (may happen if dlclose is used)\n",
+             (void*)pc);
       continue;
     }
     vaddr module_base = pc - pcs[i];

@@ -34,15 +34,13 @@ extern int foo(std::initializer_list<int>& l);
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[L1:%.*]] = alloca %"class.std::initializer_list", align 16, addrspace(200)
 // CHECK-NEXT:    [[REF_TMP:%.*]] = alloca [3 x i32], align 4, addrspace(200)
-// CHECK-NEXT:    [[ARRAYINIT_BEGIN:%.*]] = getelementptr inbounds [3 x i32], ptr addrspace(200) [[REF_TMP]], i64 0, i64 0
-// CHECK-NEXT:    store i32 1, ptr addrspace(200) [[ARRAYINIT_BEGIN]], align 4
-// CHECK-NEXT:    [[ARRAYINIT_ELEMENT:%.*]] = getelementptr inbounds i32, ptr addrspace(200) [[ARRAYINIT_BEGIN]], i64 1
+// CHECK-NEXT:    store i32 1, ptr addrspace(200) [[REF_TMP]], align 4
+// CHECK-NEXT:    [[ARRAYINIT_ELEMENT:%.*]] = getelementptr inbounds i32, ptr addrspace(200) [[REF_TMP]], i64 1
 // CHECK-NEXT:    store i32 2, ptr addrspace(200) [[ARRAYINIT_ELEMENT]], align 4
-// CHECK-NEXT:    [[ARRAYINIT_ELEMENT1:%.*]] = getelementptr inbounds i32, ptr addrspace(200) [[ARRAYINIT_ELEMENT]], i64 1
+// CHECK-NEXT:    [[ARRAYINIT_ELEMENT1:%.*]] = getelementptr inbounds i32, ptr addrspace(200) [[REF_TMP]], i64 2
 // CHECK-NEXT:    store i32 3, ptr addrspace(200) [[ARRAYINIT_ELEMENT1]], align 4
 // CHECK-NEXT:    [[__BEGIN_:%.*]] = getelementptr inbounds %"class.std::initializer_list", ptr addrspace(200) [[L1]], i32 0, i32 0
-// CHECK-NEXT:    [[ARRAYSTART:%.*]] = getelementptr inbounds [3 x i32], ptr addrspace(200) [[REF_TMP]], i64 0, i64 0
-// CHECK-NEXT:    store ptr addrspace(200) [[ARRAYSTART]], ptr addrspace(200) [[__BEGIN_]], align 16
+// CHECK-NEXT:    store ptr addrspace(200) [[REF_TMP]], ptr addrspace(200) [[__BEGIN_]], align 16
 // CHECK-NEXT:    [[__SIZE_:%.*]] = getelementptr inbounds %"class.std::initializer_list", ptr addrspace(200) [[L1]], i32 0, i32 1
 // CHECK-NEXT:    store i64 3, ptr addrspace(200) [[__SIZE_]], align 16
 // CHECK-NEXT:    [[CALL:%.*]] = call noundef signext i32 @_Z3fooRSt16initializer_listIiE(ptr addrspace(200) noundef nonnull align 16 dereferenceable(24) [[L1]])
@@ -58,3 +56,16 @@ int main() {
   MAYBE_STATIC std::initializer_list<int> l1 = {1, 2, 3};
   foo(l1);
 }
+//.
+// CHECK: attributes #[[ATTR0]] = { mustprogress noinline norecurse nounwind optnone "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheri128" "target-features"="+cheri128,+chericap" }
+// CHECK: attributes #[[ATTR1:[0-9]+]] = { "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheri128" "target-features"="+cheri128,+chericap" }
+//.
+// STATIC: attributes #[[ATTR0]] = { mustprogress noinline norecurse nounwind optnone "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheri128" "target-features"="+cheri128,+chericap" }
+// STATIC: attributes #[[ATTR1:[0-9]+]] = { "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheri128" "target-features"="+cheri128,+chericap" }
+//.
+// CHECK: [[META0:![0-9]+]] = !{i32 1, !"wchar_size", i32 4}
+// CHECK: [[META1:![0-9]+]] = !{!"{{.*}}clang version {{.*}}"}
+//.
+// STATIC: [[META0:![0-9]+]] = !{i32 1, !"wchar_size", i32 4}
+// STATIC: [[META1:![0-9]+]] = !{!"{{.*}}clang version {{.*}}"}
+//.

@@ -51,29 +51,17 @@ struct ShortDataLong {
 // CHECK-NEXT:    store i64 [[F]], ptr addrspace(200) [[F_ADDR]], align 8
 // CHECK-NEXT:    [[TMP0:%.*]] = load i64, ptr addrspace(200) [[F_ADDR]], align 8
 // CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[DATA_ADDR]], align 16
-// CHECK-NEXT:    [[TMP2:%.*]] = zext i64 [[TMP0]] to i128
-// CHECK-NEXT:    [[BF_LOAD:%.*]] = load i128, ptr addrspace(200) [[TMP1]], align 8
-// CHECK-NEXT:    [[BF_VALUE:%.*]] = and i128 [[TMP2]], 1329227995784915872903807060280344575
-// CHECK-NEXT:    [[BF_SHL:%.*]] = shl i128 [[BF_VALUE]], 8
-// CHECK-NEXT:    [[BF_CLEAR:%.*]] = and i128 [[BF_LOAD]], 255
-// CHECK-NEXT:    [[BF_SET:%.*]] = or i128 [[BF_CLEAR]], [[BF_SHL]]
-// CHECK-NEXT:    store i128 [[BF_SET]], ptr addrspace(200) [[TMP1]], align 8
+// CHECK-NEXT:    [[TMP2:%.*]] = zext i64 [[TMP0]] to i120
+// CHECK-NEXT:    store i120 [[TMP2]], ptr addrspace(200) [[TMP1]], align 8
 // CHECK-NEXT:    [[TMP3:%.*]] = load i64, ptr addrspace(200) [[F_ADDR]], align 8
 // CHECK-NEXT:    [[TMP4:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[TMP3]]
 // CHECK-NEXT:    [[TMP5:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP4]])
 // CHECK-NEXT:    [[TMP6:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[DATA_ADDR]], align 16
-// CHECK-NEXT:    [[TMP7:%.*]] = zext i64 [[TMP5]] to i128
-// CHECK-NEXT:    [[BF_LOAD1:%.*]] = load i128, ptr addrspace(200) [[TMP6]], align 8
-// CHECK-NEXT:    [[BF_VALUE2:%.*]] = and i128 [[TMP7]], 1329227995784915872903807060280344575
-// CHECK-NEXT:    [[BF_SHL3:%.*]] = shl i128 [[BF_VALUE2]], 8
-// CHECK-NEXT:    [[BF_CLEAR4:%.*]] = and i128 [[BF_LOAD1]], 255
-// CHECK-NEXT:    [[BF_SET5:%.*]] = or i128 [[BF_CLEAR4]], [[BF_SHL3]]
-// CHECK-NEXT:    store i128 [[BF_SET5]], ptr addrspace(200) [[TMP6]], align 8
+// CHECK-NEXT:    [[TMP7:%.*]] = zext i64 [[TMP5]] to i120
+// CHECK-NEXT:    store i120 [[TMP7]], ptr addrspace(200) [[TMP6]], align 8
 // CHECK-NEXT:    [[TMP8:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[DATA_ADDR]], align 16
-// CHECK-NEXT:    [[BF_LOAD6:%.*]] = load i128, ptr addrspace(200) [[TMP8]], align 8
-// CHECK-NEXT:    [[BF_CLEAR7:%.*]] = and i128 [[BF_LOAD6]], -256
-// CHECK-NEXT:    [[BF_SET8:%.*]] = or i128 [[BF_CLEAR7]], 24
-// CHECK-NEXT:    store i128 [[BF_SET8]], ptr addrspace(200) [[TMP8]], align 8
+// CHECK-NEXT:    [[STATUS:%.*]] = getelementptr inbounds [[STRUCT_SHORTDATALONG:%.*]], ptr addrspace(200) [[TMP8]], i32 0, i32 1
+// CHECK-NEXT:    store i8 24, ptr addrspace(200) [[STATUS]], align 1
 // CHECK-NEXT:    ret void
 //
 extern "C" void setMsecsLong(ShortDataLong *data, long f) {

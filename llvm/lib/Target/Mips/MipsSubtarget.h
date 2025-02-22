@@ -218,6 +218,9 @@ class MipsSubtarget : public MipsGenSubtargetInfo {
   // Assume 32-bit GOT.
   bool UseXGOT = false;
 
+  // Disable unaligned load store for r6.
+  bool StrictAlign;
+
   /// The minimum alignment known to hold of the stack frame on
   /// entry to the function and which must be maintained by every function.
   Align stackAlignment;
@@ -433,7 +436,9 @@ public:
   /// specify which component of the system provides it. Hardware, software, and
   /// hybrid implementations are all valid.
   bool systemSupportsUnalignedAccess(unsigned AS = 0) const {
-    return hasMips32r6();
+   
+    return hasMips32r6() && !StrictAlign;
+ 
   }
 
   // Set helper classes

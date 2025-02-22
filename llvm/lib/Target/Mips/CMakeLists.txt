@@ -86,7 +86,6 @@ add_llvm_target(MipsCodeGen
   Support
   Target
   TargetParser
-  ScalarOpts
   TransformUtils
 
   ADD_TO_COMPONENT

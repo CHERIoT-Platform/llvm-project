@@ -52,9 +52,9 @@ extern int fail2(void);
 // MIPS-SAME: () #[[ATTR0:[0-9]+]] comdat {
 // MIPS-NEXT:  entry:
 // MIPS-NEXT:    [[FOO:%.*]] = alloca [10 x i8], align 1
-// MIPS-NEXT:    [[TMP0:%.*]] = load i8, ptr @__sancov_gen_, align 1, !nosanitize !5
+// MIPS-NEXT:    [[TMP0:%.*]] = load i8, ptr @__sancov_gen_, align 1, !nosanitize [[META5:![0-9]+]]
 // MIPS-NEXT:    [[TMP1:%.*]] = add i8 [[TMP0]], 1
-// MIPS-NEXT:    store i8 [[TMP1]], ptr @__sancov_gen_, align 1, !nosanitize !5
+// MIPS-NEXT:    store i8 [[TMP1]], ptr @__sancov_gen_, align 1, !nosanitize [[META5]]
 // MIPS-NEXT:    [[ARRAYDECAY:%.*]] = getelementptr inbounds [10 x i8], ptr [[FOO]], i64 0, i64 0
 // MIPS-NEXT:    [[CALL:%.*]] = call ptr @gets(ptr noundef [[ARRAYDECAY]]) #[[ATTR3:[0-9]+]]
 // MIPS-NEXT:    [[ARRAYDECAY1:%.*]] = getelementptr inbounds [10 x i8], ptr [[FOO]], i64 0, i64 0
@@ -65,9 +65,9 @@ extern int fail2(void);
 // PURECAP-SAME: () addrspace(200) #[[ATTR0:[0-9]+]] comdat {
 // PURECAP-NEXT:  entry:
 // PURECAP-NEXT:    [[FOO:%.*]] = alloca [10 x i8], align 1, addrspace(200)
-// PURECAP-NEXT:    [[TMP0:%.*]] = load i8, ptr addrspace(200) @__sancov_gen_, align 1, !nosanitize !5
+// PURECAP-NEXT:    [[TMP0:%.*]] = load i8, ptr addrspace(200) @__sancov_gen_, align 1, !nosanitize [[META5:![0-9]+]]
 // PURECAP-NEXT:    [[TMP1:%.*]] = add i8 [[TMP0]], 1
-// PURECAP-NEXT:    store i8 [[TMP1]], ptr addrspace(200) @__sancov_gen_, align 1, !nosanitize !5
+// PURECAP-NEXT:    store i8 [[TMP1]], ptr addrspace(200) @__sancov_gen_, align 1, !nosanitize [[META5]]
 // PURECAP-NEXT:    [[ARRAYDECAY:%.*]] = getelementptr inbounds [10 x i8], ptr addrspace(200) [[FOO]], i64 0, i64 0
 // PURECAP-NEXT:    [[CALL:%.*]] = call ptr addrspace(200) @gets(ptr addrspace(200) noundef [[ARRAYDECAY]]) #[[ATTR3:[0-9]+]]
 // PURECAP-NEXT:    [[ARRAYDECAY1:%.*]] = getelementptr inbounds [10 x i8], ptr addrspace(200) [[FOO]], i64 0, i64 0
@@ -85,18 +85,18 @@ int main(void) {
 // MIPS-NEXT:  entry:
 // MIPS-NEXT:    [[RETVAL:%.*]] = alloca i32, align 4
 // MIPS-NEXT:    [[I_ADDR:%.*]] = alloca i32, align 4
-// MIPS-NEXT:    [[TMP0:%.*]] = load i8, ptr @__sancov_gen_.2, align 1, !nosanitize !5
+// MIPS-NEXT:    [[TMP0:%.*]] = load i8, ptr @__sancov_gen_.2, align 1, !nosanitize [[META5]]
 // MIPS-NEXT:    [[TMP1:%.*]] = add i8 [[TMP0]], 1
-// MIPS-NEXT:    store i8 [[TMP1]], ptr @__sancov_gen_.2, align 1, !nosanitize !5
+// MIPS-NEXT:    store i8 [[TMP1]], ptr @__sancov_gen_.2, align 1, !nosanitize [[META5]]
 // MIPS-NEXT:    store i32 [[I]], ptr [[I_ADDR]], align 4
 // MIPS-NEXT:    [[TMP2:%.*]] = load i32, ptr [[I_ADDR]], align 4
 // MIPS-NEXT:    call void @__sanitizer_cov_trace_const_cmp4(i32 100, i32 [[TMP2]])
 // MIPS-NEXT:    [[CMP:%.*]] = icmp slt i32 [[TMP2]], 100
 // MIPS-NEXT:    br i1 [[CMP]], label [[IF_THEN:%.*]], label [[IF_ELSE:%.*]]
 // MIPS:       if.then:
-// MIPS-NEXT:    [[TMP3:%.*]] = load i8, ptr getelementptr inbounds ([4 x i8], ptr @__sancov_gen_.2, i64 0, i64 1), align 1, !nosanitize !5
+// MIPS-NEXT:    [[TMP3:%.*]] = load i8, ptr getelementptr ([4 x i8], ptr @__sancov_gen_.2, i64 0, i64 1), align 1, !nosanitize [[META5]]
 // MIPS-NEXT:    [[TMP4:%.*]] = add i8 [[TMP3]], 1
-// MIPS-NEXT:    store i8 [[TMP4]], ptr getelementptr inbounds ([4 x i8], ptr @__sancov_gen_.2, i64 0, i64 1), align 1, !nosanitize !5
+// MIPS-NEXT:    store i8 [[TMP4]], ptr getelementptr ([4 x i8], ptr @__sancov_gen_.2, i64 0, i64 1), align 1, !nosanitize [[META5]]
 // MIPS-NEXT:    [[CALL:%.*]] = call signext i32 @fail1() #[[ATTR3]]
 // MIPS-NEXT:    store i32 [[CALL]], ptr [[RETVAL]], align 4
 // MIPS-NEXT:    br label [[RETURN:%.*]]
@@ -106,18 +106,18 @@ int main(void) {
 // MIPS-NEXT:    [[CMP1:%.*]] = icmp slt i32 [[TMP5]], 200
 // MIPS-NEXT:    br i1 [[CMP1]], label [[IF_THEN2:%.*]], label [[IF_END:%.*]]
 // MIPS:       if.then2:
-// MIPS-NEXT:    [[TMP6:%.*]] = load i8, ptr getelementptr inbounds ([4 x i8], ptr @__sancov_gen_.2, i64 0, i64 2), align 1, !nosanitize !5
+// MIPS-NEXT:    [[TMP6:%.*]] = load i8, ptr getelementptr ([4 x i8], ptr @__sancov_gen_.2, i64 0, i64 2), align 1, !nosanitize [[META5]]
 // MIPS-NEXT:    [[TMP7:%.*]] = add i8 [[TMP6]], 1
-// MIPS-NEXT:    store i8 [[TMP7]], ptr getelementptr inbounds ([4 x i8], ptr @__sancov_gen_.2, i64 0, i64 2), align 1, !nosanitize !5
+// MIPS-NEXT:    store i8 [[TMP7]], ptr getelementptr ([4 x i8], ptr @__sancov_gen_.2, i64 0, i64 2), align 1, !nosanitize [[META5]]
 // MIPS-NEXT:    [[CALL3:%.*]] = call signext i32 @fail2() #[[ATTR3]]
 // MIPS-NEXT:    store i32 [[CALL3]], ptr [[RETVAL]], align 4
 // MIPS-NEXT:    br label [[RETURN]]
 // MIPS:       if.end:
 // MIPS-NEXT:    br label [[IF_END4:%.*]]
 // MIPS:       if.end4:
-// MIPS-NEXT:    [[TMP8:%.*]] = load i8, ptr getelementptr inbounds ([4 x i8], ptr @__sancov_gen_.2, i64 0, i64 3), align 1, !nosanitize !5
+// MIPS-NEXT:    [[TMP8:%.*]] = load i8, ptr getelementptr ([4 x i8], ptr @__sancov_gen_.2, i64 0, i64 3), align 1, !nosanitize [[META5]]
 // MIPS-NEXT:    [[TMP9:%.*]] = add i8 [[TMP8]], 1
-// MIPS-NEXT:    store i8 [[TMP9]], ptr getelementptr inbounds ([4 x i8], ptr @__sancov_gen_.2, i64 0, i64 3), align 1, !nosanitize !5
+// MIPS-NEXT:    store i8 [[TMP9]], ptr getelementptr ([4 x i8], ptr @__sancov_gen_.2, i64 0, i64 3), align 1, !nosanitize [[META5]]
 // MIPS-NEXT:    [[TMP10:%.*]] = load i32, ptr [[I_ADDR]], align 4
 // MIPS-NEXT:    [[ADD:%.*]] = add nsw i32 [[TMP10]], 1
 // MIPS-NEXT:    store i32 [[ADD]], ptr [[RETVAL]], align 4
@@ -131,18 +131,18 @@ int main(void) {
 // PURECAP-NEXT:  entry:
 // PURECAP-NEXT:    [[RETVAL:%.*]] = alloca i32, align 4, addrspace(200)
 // PURECAP-NEXT:    [[I_ADDR:%.*]] = alloca i32, align 4, addrspace(200)
-// PURECAP-NEXT:    [[TMP0:%.*]] = load i8, ptr addrspace(200) @__sancov_gen_.2, align 1, !nosanitize !5
+// PURECAP-NEXT:    [[TMP0:%.*]] = load i8, ptr addrspace(200) @__sancov_gen_.2, align 1, !nosanitize [[META5]]
 // PURECAP-NEXT:    [[TMP1:%.*]] = add i8 [[TMP0]], 1
-// PURECAP-NEXT:    store i8 [[TMP1]], ptr addrspace(200) @__sancov_gen_.2, align 1, !nosanitize !5
+// PURECAP-NEXT:    store i8 [[TMP1]], ptr addrspace(200) @__sancov_gen_.2, align 1, !nosanitize [[META5]]
 // PURECAP-NEXT:    store i32 [[I]], ptr addrspace(200) [[I_ADDR]], align 4
 // PURECAP-NEXT:    [[TMP2:%.*]] = load i32, ptr addrspace(200) [[I_ADDR]], align 4
 // PURECAP-NEXT:    call void @__sanitizer_cov_trace_const_cmp4(i32 100, i32 [[TMP2]])
 // PURECAP-NEXT:    [[CMP:%.*]] = icmp slt i32 [[TMP2]], 100
 // PURECAP-NEXT:    br i1 [[CMP]], label [[IF_THEN:%.*]], label [[IF_ELSE:%.*]]
 // PURECAP:       if.then:
-// PURECAP-NEXT:    [[TMP3:%.*]] = load i8, ptr addrspace(200) getelementptr inbounds ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 1), align 1, !nosanitize !5
+// PURECAP-NEXT:    [[TMP3:%.*]] = load i8, ptr addrspace(200) getelementptr ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 1), align 1, !nosanitize [[META5]]
 // PURECAP-NEXT:    [[TMP4:%.*]] = add i8 [[TMP3]], 1
-// PURECAP-NEXT:    store i8 [[TMP4]], ptr addrspace(200) getelementptr inbounds ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 1), align 1, !nosanitize !5
+// PURECAP-NEXT:    store i8 [[TMP4]], ptr addrspace(200) getelementptr ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 1), align 1, !nosanitize [[META5]]
 // PURECAP-NEXT:    [[CALL:%.*]] = call signext i32 @fail1() #[[ATTR3]]
 // PURECAP-NEXT:    store i32 [[CALL]], ptr addrspace(200) [[RETVAL]], align 4
 // PURECAP-NEXT:    br label [[RETURN:%.*]]
@@ -152,18 +152,18 @@ int main(void) {
 // PURECAP-NEXT:    [[CMP1:%.*]] = icmp slt i32 [[TMP5]], 200
 // PURECAP-NEXT:    br i1 [[CMP1]], label [[IF_THEN2:%.*]], label [[IF_END:%.*]]
 // PURECAP:       if.then2:
-// PURECAP-NEXT:    [[TMP6:%.*]] = load i8, ptr addrspace(200) getelementptr inbounds ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 2), align 1, !nosanitize !5
+// PURECAP-NEXT:    [[TMP6:%.*]] = load i8, ptr addrspace(200) getelementptr ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 2), align 1, !nosanitize [[META5]]
 // PURECAP-NEXT:    [[TMP7:%.*]] = add i8 [[TMP6]], 1
-// PURECAP-NEXT:    store i8 [[TMP7]], ptr addrspace(200) getelementptr inbounds ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 2), align 1, !nosanitize !5
+// PURECAP-NEXT:    store i8 [[TMP7]], ptr addrspace(200) getelementptr ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 2), align 1, !nosanitize [[META5]]
 // PURECAP-NEXT:    [[CALL3:%.*]] = call signext i32 @fail2() #[[ATTR3]]
 // PURECAP-NEXT:    store i32 [[CALL3]], ptr addrspace(200) [[RETVAL]], align 4
 // PURECAP-NEXT:    br label [[RETURN]]
 // PURECAP:       if.end:
 // PURECAP-NEXT:    br label [[IF_END4:%.*]]
 // PURECAP:       if.end4:
-// PURECAP-NEXT:    [[TMP8:%.*]] = load i8, ptr addrspace(200) getelementptr inbounds ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 3), align 1, !nosanitize !5
+// PURECAP-NEXT:    [[TMP8:%.*]] = load i8, ptr addrspace(200) getelementptr ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 3), align 1, !nosanitize [[META5]]
 // PURECAP-NEXT:    [[TMP9:%.*]] = add i8 [[TMP8]], 1
-// PURECAP-NEXT:    store i8 [[TMP9]], ptr addrspace(200) getelementptr inbounds ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 3), align 1, !nosanitize !5
+// PURECAP-NEXT:    store i8 [[TMP9]], ptr addrspace(200) getelementptr ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 3), align 1, !nosanitize [[META5]]
 // PURECAP-NEXT:    [[TMP10:%.*]] = load i32, ptr addrspace(200) [[I_ADDR]], align 4
 // PURECAP-NEXT:    [[ADD:%.*]] = add nsw i32 [[TMP10]], 1
 // PURECAP-NEXT:    store i32 [[ADD]], ptr addrspace(200) [[RETVAL]], align 4

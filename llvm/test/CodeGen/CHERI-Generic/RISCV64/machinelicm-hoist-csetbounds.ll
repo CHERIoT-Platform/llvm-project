@@ -70,7 +70,7 @@ define dso_local void @hoist_csetbounds(i32 signext %cond, ptr addrspace(200) %f
 ; HOIST-OPT-NEXT:    [[TOBOOL:%.*]] = icmp eq ptr addrspace(200) [[F]], null
 ; HOIST-OPT-NEXT:    br i1 [[TOBOOL]], label [[FOR_COND_CLEANUP:%.*]], label [[ENTRY_SPLIT:%.*]]
 ; HOIST-OPT:       entry.split:
-; HOIST-OPT-NEXT:    [[DST:%.*]] = getelementptr inbounds [[STRUCT_FOO:%.*]], ptr addrspace(200) [[F]], i64 0, i32 1
+; HOIST-OPT-NEXT:    [[DST:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[F]], i64 4
 ; HOIST-OPT-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[F]], i64 4)
 ; HOIST-OPT-NEXT:    [[TMP1:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DST]], i64 4)
 ; HOIST-OPT-NEXT:    br label [[FOR_BODY:%.*]]

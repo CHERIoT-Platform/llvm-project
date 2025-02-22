@@ -6,8 +6,8 @@
 // RUN: %clang -target mips64-none-elf -fPIC -mabi=purecap %s -o %t -### 2>&1 | FileCheck %s -check-prefixes CHECK,CHERIABI
 // RUN: %clangxx -xc++ -target mips64-none-elf -fPIC -mabi=purecap %s -o %t -### 2>&1 | FileCheck %s -check-prefixes CHECK,CHERIABI
 
-// N64: "-cc1" "-triple" "{{(mips64|mips64c128)}}-none-unknown-elf" "-emit-obj"
-// CHERIABI: "-cc1" "-triple" "mips64-none-unknown-purecap" "-emit-obj"
+// N64: "-cc1" "-triple" "{{(mips64|mips64c128)}}-unknown-none-elf" "-emit-obj"
+// CHERIABI: "-cc1" "-triple" "mips64-unknown-none-purecap" "-emit-obj"
 // CHECK-NOT: "-no-integrated-as"
 // CHECK-SAME: "-target-abi" "[[ABI:(n64|purecap)]]"
 // CHECK-SAME: "-resource-dir" "[[RESOURCE_DIR:[^"]+]]"
@@ -23,5 +23,5 @@
 // CHERIABI-SAME: "-L{{.+}}/lib/clang-runtimes/mips64-none-elf/lib"
 // CXX-SAME: "-lc++" "-lc++abi" "-lunwind"
 // CHECK-SAME: "-lc" "-lm"
-// CHECK-SAME: "-lclang_rt.builtins-mips64"
+// CHECK-SAME: libclang_rt.builtins.a
 // CHECK-SAME: "-o" "{{.+}}/mips-baremetal.c.tmp"

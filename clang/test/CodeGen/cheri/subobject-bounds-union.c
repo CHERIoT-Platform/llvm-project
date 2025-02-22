@@ -83,7 +83,7 @@ union WithNestedStruct {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 4)
 // CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
-// CHECK-NEXT:    [[B:%.*]] = getelementptr inbounds [[STRUCT_ANON:%.*]], ptr addrspace(200) [[UN]], i64 0, i32 1
+// CHECK-NEXT:    [[B:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[UN]], i64 4
 // CHECK-NEXT:    [[TMP1:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[B]], i64 4)
 // CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP1]]) #[[ATTR3]]
 // CHECK-NEXT:    [[TMP2:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 64)
@@ -96,7 +96,7 @@ union WithNestedStruct {
 // VERY-AGGRESSIVE-NEXT:  entry:
 // VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 4)
 // VERY-AGGRESSIVE-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
-// VERY-AGGRESSIVE-NEXT:    [[B:%.*]] = getelementptr inbounds [[STRUCT_ANON:%.*]], ptr addrspace(200) [[UN]], i64 0, i32 1
+// VERY-AGGRESSIVE-NEXT:    [[B:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[UN]], i64 4
 // VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[B]], i64 4)
 // VERY-AGGRESSIVE-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP1]]) #[[ATTR3]]
 // VERY-AGGRESSIVE-NEXT:    [[TMP2:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 8)
@@ -208,7 +208,7 @@ struct StructWithNestedUnion {
 // CHECK-LABEL: define {{[^@]+}}@rmlock_regression
 // CHECK-SAME: (ptr addrspace(200) noundef [[S:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[NESTED:%.*]] = getelementptr inbounds [[STRUCT_STRUCTWITHNESTEDUNION:%.*]], ptr addrspace(200) [[S]], i64 0, i32 1
+// CHECK-NEXT:    [[NESTED:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[S]], i64 80
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[NESTED]], i64 32)
 // CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
 // CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
@@ -217,7 +217,7 @@ struct StructWithNestedUnion {
 // VERY-AGGRESSIVE-LABEL: define {{[^@]+}}@rmlock_regression
 // VERY-AGGRESSIVE-SAME: (ptr addrspace(200) noundef [[S:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // VERY-AGGRESSIVE-NEXT:  entry:
-// VERY-AGGRESSIVE-NEXT:    [[NESTED:%.*]] = getelementptr inbounds [[STRUCT_STRUCTWITHNESTEDUNION:%.*]], ptr addrspace(200) [[S]], i64 0, i32 1
+// VERY-AGGRESSIVE-NEXT:    [[NESTED:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[S]], i64 80
 // VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[NESTED]], i64 32)
 // VERY-AGGRESSIVE-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
 // VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[NESTED]], i64 16)

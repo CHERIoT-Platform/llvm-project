@@ -10,17 +10,14 @@ int d();
 int e();
 // PCREL-LABEL: @b(
 // PCREL-NEXT:  entry:
-// PCREL-NEXT:    br i1 icmp ne (ptr addrspace(200) @a, ptr addrspace(200) null), label [[IF_THEN:%.*]], label [[IF_END:%.*]]
-// PCREL:       if.then:
-// PCREL-NEXT:    [[CALL:%.*]] = tail call signext i32 @d() #[[ATTR2:[0-9]+]]
-// PCREL-NEXT:    br label [[IF_END]]
-// PCREL:       if.end:
-// PCREL-NEXT:    br i1 icmp eq (ptr addrspace(200) @a, ptr addrspace(200) null), label [[CLEANUP:%.*]], label [[IF_END2:%.*]]
+// PCREL-NEXT:    [[TOBOOL_NOT:%.*]] = icmp eq ptr addrspace(200) @a, null
+// PCREL-NEXT:    br i1 [[TOBOOL_NOT]], label [[CLEANUP:%.*]], label [[IF_END2:%.*]]
 // PCREL:       if.end2:
+// PCREL-NEXT:    [[CALL:%.*]] = tail call signext i32 @d() #[[ATTR2:[0-9]+]]
 // PCREL-NEXT:    [[CALL3:%.*]] = tail call signext i32 @e() #[[ATTR2]]
 // PCREL-NEXT:    br label [[CLEANUP]]
 // PCREL:       cleanup:
-// PCREL-NEXT:    [[RETVAL_0:%.*]] = phi ptr addrspace(200) [ @a, [[IF_END2]] ], [ null, [[IF_END]] ]
+// PCREL-NEXT:    [[RETVAL_0:%.*]] = phi ptr addrspace(200) [ @a, [[IF_END2]] ], [ null, [[ENTRY:%.*]] ]
 // PCREL-NEXT:    ret ptr addrspace(200) [[RETVAL_0]]
 //
 int *b() {

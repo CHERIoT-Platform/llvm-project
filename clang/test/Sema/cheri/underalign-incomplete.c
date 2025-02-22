@@ -16,7 +16,7 @@ struct {
 
 struct {
   __intcap a __attribute__((packed, __aligned__(2))); // expected-warning{{alignment (2) of '__intcap' is less than the required capability alignment}}
-  // expected-note@-1{{If you are certain that this is correct you can silence the warning by adding __attribute__((annotate("underaligned_capability")))}}
+  // expected-note@-1{{if you are certain that this is correct you can silence the warning by adding __attribute__((annotate("underaligned_capability")))}}
 } c1;
 
 // no warning without packed

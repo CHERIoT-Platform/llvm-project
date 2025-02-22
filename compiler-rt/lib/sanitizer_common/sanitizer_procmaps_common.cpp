@@ -145,8 +145,8 @@ void MemoryMappingLayout::DumpListOfModules(
   }
 }
 
-#if SANITIZER_LINUX || SANITIZER_ANDROID || SANITIZER_SOLARIS || SANITIZER_NETBSD
-void GetMemoryProfile(fill_profile_f cb, usize *stats) {
+#if SANITIZER_LINUX || SANITIZER_ANDROID || SANITIZER_SOLARIS
+void GetMemoryProfile(fill_profile_f cb, uptr *stats) {
   char *smaps = nullptr;
   usize smaps_cap = 0;
   usize smaps_len = 0;

@@ -13,7 +13,7 @@ extern int store_char();
 
 void pappend(char c) {
   do_append(c); // expected-warning {{call to function 'do_append' with no prototype may lead to run-time stack corruption}}
-  // expected-note@-1{{Calling functions without prototypes is dangerous because on some architectures (e.g. pure-capability MIPS) integer and pointer arguments are passed in different registers. If the call includes a parameter that does not match the function definition, the function will read uninitialized values from the argument registers.}}
+  // expected-note@-1{{calling functions without prototypes is dangerous because on some architectures (e.g. pure-capability MIPS) integer and pointer arguments are passed in different registers. If the call includes a parameter that does not match the function definition, the function will read uninitialized values from the argument registers}}
   //expected-warning@-2{{passing arguments to 'do_append' without a prototype is deprecated in all versions of C and is not supported in C23}}
 }
 

@@ -45,7 +45,7 @@ define void @no_fold_nonconstant_offset_gep_one(ptr addrspace(200) %arg, i64 %of
 ; CHECK-SAME: (ptr addrspace(200) [[ARG:%.*]], i64 [[OFFSET:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-NEXT:  bb:
 ; CHECK-NEXT:    [[TMP:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) nonnull @foo, i64 [[OFFSET]])
-; CHECK-NEXT:    [[TMP5:%.*]] = getelementptr inbounds [[STRUCT_PLUTO:%.*]], ptr addrspace(200) [[TMP]], i64 0, i32 1
+; CHECK-NEXT:    [[TMP5:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[TMP]], i64 16
 ; CHECK-NEXT:    store ptr addrspace(200) [[ARG]], ptr addrspace(200) [[TMP5]], align 16
 ; CHECK-NEXT:    ret void
 ;
@@ -80,7 +80,7 @@ define void @no_fold_zero_offset_gep_one(ptr addrspace(200) %arg) addrspace(200)
 ; CHECK-SAME: (ptr addrspace(200) [[ARG:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-NEXT:  bb:
 ; CHECK-NEXT:    [[TMP:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) nonnull @foo, i64 0)
-; CHECK-NEXT:    [[TMP5:%.*]] = getelementptr inbounds [[STRUCT_PLUTO:%.*]], ptr addrspace(200) [[TMP]], i64 0, i32 1
+; CHECK-NEXT:    [[TMP5:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[TMP]], i64 16
 ; CHECK-NEXT:    store ptr addrspace(200) [[ARG]], ptr addrspace(200) [[TMP5]], align 16
 ; CHECK-NEXT:    ret void
 ;

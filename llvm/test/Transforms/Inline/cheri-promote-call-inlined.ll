@@ -55,7 +55,7 @@ define dso_local i64 @call_f1_via_member_ptr() addrspace(200) {
 ; INLINE-ONLY-NEXT:  entry:
 ; INLINE-ONLY-NEXT:    [[A:%.*]] = alloca [[STRUCT_A:%.*]], align 16, addrspace(200)
 ; INLINE-ONLY-NEXT:    [[INDIRECT_ARG_TEMP:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
-; INLINE-ONLY-NEXT:    store ptr addrspace(200) getelementptr inbounds ({ [4 x ptr addrspace(200)] }, ptr addrspace(200) @_ZTV1A, i32 0, inrange i32 0, i32 2), ptr addrspace(200) [[A]], align 16
+; INLINE-ONLY-NEXT:    store ptr addrspace(200) getelementptr inbounds ({ [4 x ptr addrspace(200)] }, ptr addrspace(200) @_ZTV1A, i32 0, i32 0, i32 2), ptr addrspace(200) [[A]], align 16
 ; INLINE-ONLY-NEXT:    store { ptr addrspace(200), i64 } { ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1), i64 0 }, ptr addrspace(200) [[INDIRECT_ARG_TEMP]], align 16
 ; INLINE-ONLY-NEXT:    [[FP_I:%.*]] = load { ptr addrspace(200), i64 }, ptr addrspace(200) [[INDIRECT_ARG_TEMP]], align 16
 ; INLINE-ONLY-NEXT:    [[MEMPTR_ADJ_I:%.*]] = extractvalue { ptr addrspace(200), i64 } [[FP_I]], 1
@@ -98,7 +98,7 @@ define dso_local i64 @call_f2_via_member_ptr() addrspace(200) {
 ; INLINE-ONLY-NEXT:  entry:
 ; INLINE-ONLY-NEXT:    [[A:%.*]] = alloca [[STRUCT_A:%.*]], align 16, addrspace(200)
 ; INLINE-ONLY-NEXT:    [[INDIRECT_ARG_TEMP:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
-; INLINE-ONLY-NEXT:    store ptr addrspace(200) getelementptr inbounds ({ [4 x ptr addrspace(200)] }, ptr addrspace(200) @_ZTV1A, i32 0, inrange i32 0, i32 2), ptr addrspace(200) [[A]], align 16
+; INLINE-ONLY-NEXT:    store ptr addrspace(200) getelementptr inbounds ({ [4 x ptr addrspace(200)] }, ptr addrspace(200) @_ZTV1A, i32 0, i32 0, i32 2), ptr addrspace(200) [[A]], align 16
 ; INLINE-ONLY-NEXT:    store { ptr addrspace(200), i64 } { ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 17), i64 0 }, ptr addrspace(200) [[INDIRECT_ARG_TEMP]], align 16
 ; INLINE-ONLY-NEXT:    [[FP_I:%.*]] = load { ptr addrspace(200), i64 }, ptr addrspace(200) [[INDIRECT_ARG_TEMP]], align 16
 ; INLINE-ONLY-NEXT:    [[MEMPTR_ADJ_I:%.*]] = extractvalue { ptr addrspace(200), i64 } [[FP_I]], 1
@@ -171,13 +171,13 @@ define dso_local i64 @call_f1_via_member_ptr_direct_arg() addrspace(200) {
 ; INLINE-ONLY-LABEL: define {{[^@]+}}@call_f1_via_member_ptr_direct_arg() addrspace(200) {
 ; INLINE-ONLY-NEXT:  entry:
 ; INLINE-ONLY-NEXT:    [[A:%.*]] = alloca [[STRUCT_A:%.*]], align 16, addrspace(200)
-; INLINE-ONLY-NEXT:    store ptr addrspace(200) getelementptr inbounds ({ [4 x ptr addrspace(200)] }, ptr addrspace(200) @_ZTV1A, i32 0, inrange i32 0, i32 2), ptr addrspace(200) [[A]], align 16
+; INLINE-ONLY-NEXT:    store ptr addrspace(200) getelementptr inbounds ({ [4 x ptr addrspace(200)] }, ptr addrspace(200) @_ZTV1A, i32 0, i32 0, i32 2), ptr addrspace(200) [[A]], align 16
 ; INLINE-ONLY-NEXT:    [[VTABLE_I:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[A]], align 16
 ; INLINE-ONLY-NEXT:    [[MEMPTR_VIRTUALFN_I:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[VTABLE_I]], align 16
 ; INLINE-ONLY-NEXT:    ret i64 1
 ;
 ; FULL-LABEL: define {{[^@]+}}@call_f1_via_member_ptr_direct_arg
-; FULL-SAME: () local_unnamed_addr addrspace(200) #[[ATTR1:[0-9]+]] {
+; FULL-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
 ; FULL-NEXT:  entry:
 ; FULL-NEXT:    ret i64 1
 ;
@@ -192,14 +192,14 @@ define dso_local i64 @call_f2_via_member_ptr_direct_arg() addrspace(200) {
 ; INLINE-ONLY-LABEL: define {{[^@]+}}@call_f2_via_member_ptr_direct_arg() addrspace(200) {
 ; INLINE-ONLY-NEXT:  entry:
 ; INLINE-ONLY-NEXT:    [[A:%.*]] = alloca [[STRUCT_A:%.*]], align 16, addrspace(200)
-; INLINE-ONLY-NEXT:    store ptr addrspace(200) getelementptr inbounds ({ [4 x ptr addrspace(200)] }, ptr addrspace(200) @_ZTV1A, i32 0, inrange i32 0, i32 2), ptr addrspace(200) [[A]], align 16
+; INLINE-ONLY-NEXT:    store ptr addrspace(200) getelementptr inbounds ({ [4 x ptr addrspace(200)] }, ptr addrspace(200) @_ZTV1A, i32 0, i32 0, i32 2), ptr addrspace(200) [[A]], align 16
 ; INLINE-ONLY-NEXT:    [[VTABLE_I:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[A]], align 16
 ; INLINE-ONLY-NEXT:    [[TMP0:%.*]] = getelementptr i8, ptr addrspace(200) [[VTABLE_I]], i64 16
 ; INLINE-ONLY-NEXT:    [[MEMPTR_VIRTUALFN_I:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[TMP0]], align 16
 ; INLINE-ONLY-NEXT:    ret i64 2
 ;
 ; FULL-LABEL: define {{[^@]+}}@call_f2_via_member_ptr_direct_arg
-; FULL-SAME: () local_unnamed_addr addrspace(200) #[[ATTR1]] {
+; FULL-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
 ; FULL-NEXT:  entry:
 ; FULL-NEXT:    ret i64 2
 ;
@@ -213,7 +213,7 @@ entry:
 define internal void @_ZN1AC2Ev(ptr addrspace(200) nonnull align 16 dereferenceable(16) %this) addrspace(200) {
 entry:
   %0 = bitcast ptr addrspace(200) %this to ptr addrspace(200)
-  store ptr addrspace(200) getelementptr inbounds ({ [4 x ptr addrspace(200)] }, ptr addrspace(200) @_ZTV1A, i32 0, inrange i32 0, i32 2), ptr addrspace(200) %0, align 16
+  store ptr addrspace(200) getelementptr inbounds ({ [4 x ptr addrspace(200)] }, ptr addrspace(200) @_ZTV1A, i32 0, i32 0, i32 2), ptr addrspace(200) %0, align 16
   ret void
 }
 

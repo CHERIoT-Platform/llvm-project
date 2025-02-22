@@ -26,6 +26,19 @@ def CSR_ILP32D_LP64D
     : CalleeSavedRegs<(add CSR_ILP32_LP64,
                        F8_D, F9_D, (sequence "F%u_D", 18, 27))>;
 
+defvar CSR_V = (add (sequence "V%u", 1, 7), (sequence "V%u", 24, 31),
+                     V2M2, V4M2, V6M2, V24M2, V26M2, V28M2, V30M2,
+                     V4M4, V24M4, V28M4, V24M8);
+
+def CSR_ILP32_LP64_V
+    : CalleeSavedRegs<(add CSR_ILP32_LP64, CSR_V)>;
+
+def CSR_ILP32F_LP64F_V
+    : CalleeSavedRegs<(add CSR_ILP32F_LP64F, CSR_V)>;
+
+def CSR_ILP32D_LP64D_V
+    : CalleeSavedRegs<(add CSR_ILP32D_LP64D, CSR_V)>;
+
 def CSR_IL32PC64_L64PC128
     : CalleeSavedRegs<(add X1, X3, X4, X8, X9, (sequence "X%u", 18, 27),
                            C1, C3, C4, C8, C9, (sequence "C%u", 18, 27))>;

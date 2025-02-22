@@ -22,7 +22,7 @@
 // RUN:   -Wno-error=mips-cheri-bugs %s 2>&1 | FileCheck --check-prefix=PURECAP_FNOPIC_WARNING %s
 
 
-// PURECAP_FNOPIC: error: Using -fno-pic with the purecap ABI will generate completely broken code.  [-Wmips-cheri-bugs]
+// PURECAP_FNOPIC: error: using -fno-pic with the purecap ABI will generate completely broken code.  [-Wmips-cheri-bugs]
 // PREPROCESS_FNOPIC-NOT: error:
 // PURECAP_ASM_FNOPIC-NOT: error:
-// PURECAP_FNOPIC_WARNING: warning: Using -fno-pic with the purecap ABI will generate completely broken code.  [-Wmips-cheri-bugs]
+// PURECAP_FNOPIC_WARNING: warning: using -fno-pic with the purecap ABI will generate completely broken code.  [-Wmips-cheri-bugs]

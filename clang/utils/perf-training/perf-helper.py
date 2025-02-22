@@ -36,7 +36,7 @@ def clean(args):
             + "\tRemoves all files with extension from <path>."
         )
         return 1
-    for path in args[1:-1]:
+    for path in args[0:-1]:
         for filename in findFilesWithExtension(path, args[-1]):
             os.remove(filename)
     return 0
@@ -66,6 +66,62 @@ def merge_fdata(args):
     cmd = [args[0], "-o", args[1]]
     cmd.extend(findFilesWithExtension(args[2], "fdata"))
     subprocess.check_call(cmd)
+    return 0
+
+
+def perf(args):
+    parser = argparse.ArgumentParser(
+        prog="perf-helper perf", description="perf wrapper for BOLT profile collection"
+    )
+    parser.add_argument(
+        "--lbr", action="store_true", help="Use perf with branch stacks"
+    )
+    parser.add_argument("cmd", nargs=argparse.REMAINDER, help="")
+
+    opts = parser.parse_args(args)
+    cmd = opts.cmd[1:]
+
+    perf_args = [
+        "perf",
+        "record",
+        "--event=cycles:u",
+        "--freq=max",
+        "--output=%d.perf.data" % os.getpid(),
+    ]
+    if opts.lbr:
+        perf_args += ["--branch-filter=any,u"]
+    perf_args.extend(cmd)
+
+    start_time = time.time()
+    subprocess.check_call(perf_args)
+
+    elapsed = time.time() - start_time
+    print("... data collection took %.4fs" % elapsed)
+    return 0
+
+
+def perf2bolt(args):
+    parser = argparse.ArgumentParser(
+        prog="perf-helper perf2bolt",
+        description="perf2bolt conversion wrapper for perf.data files",
+    )
+    parser.add_argument("bolt", help="Path to llvm-bolt")
+    parser.add_argument("path", help="Path containing perf.data files")
+    parser.add_argument("binary", help="Input binary")
+    parser.add_argument("--lbr", action="store_true", help="Use LBR perf2bolt mode")
+    opts = parser.parse_args(args)
+
+    p2b_args = [
+        opts.bolt,
+        opts.binary,
+        "--aggregate-only",
+        "--profile-format=yaml",
+    ]
+    if not opts.lbr:
+        p2b_args += ["-nl"]
+    p2b_args += ["-p"]
+    for filename in findFilesWithExtension(opts.path, "perf.data"):
+        subprocess.check_call(p2b_args + [filename, "-o", filename + ".fdata"])
     return 0
 
 
@@ -509,6 +565,8 @@ commands = {
     "cc1": cc1,
     "gen-order-file": genOrderFile,
     "merge-fdata": merge_fdata,
+    "perf": perf,
+    "perf2bolt": perf2bolt,
 }
 
 

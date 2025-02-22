@@ -1336,7 +1336,7 @@ define void @instructions.va_arg(i8* %v, ...) {
   ; CHECK: va_arg ptr %ap2, i32
 
   call void @llvm.va_copy(i8* %v, i8* %ap2)
-  ; CHECK: call void @llvm.va_copy.p0.p0(ptr %v, ptr %ap2)
+  ; CHECK: call void @llvm.va_copy.p0(ptr %v, ptr %ap2)
 
   call void @llvm.va_end(i8* %ap2)
   ; CHECK: call void @llvm.va_end.p0(ptr %ap2)
@@ -1624,7 +1624,7 @@ declare void @f.speculatable() speculatable
 ;; Constant Expressions
 
 define i8** @constexpr() {
-  ; CHECK: ret ptr getelementptr inbounds ({ [4 x ptr], [4 x ptr] }, ptr null, i32 0, inrange i32 1, i32 2)
+  ; CHECK: ret ptr getelementptr inbounds ({ [4 x ptr], [4 x ptr] }, ptr null, i32 0, i32 1, i32 2)
   ret i8** getelementptr inbounds ({ [4 x i8*], [4 x i8*] }, { [4 x i8*], [4 x i8*] }* null, i32 0, inrange i32 1, i32 2)
 }
 

@@ -264,7 +264,7 @@ static bool IsSmallObject(const GlobalValue *GV, const XCoreTargetLowering &XTL)
   if (!ObjType->isSized())
     return false;
 
-  auto &DL = GV->getParent()->getDataLayout();
+  auto &DL = GV->getDataLayout();
   unsigned ObjSize = DL.getTypeAllocSize(ObjType);
   return ObjSize < CodeModelLargeSize && ObjSize != 0;
 }
@@ -971,8 +971,7 @@ static SDValue LowerCallResult(SDValue Chain, SDValue InGlue,
                                SmallVectorImpl<SDValue> &InVals) {
   SmallVector<std::pair<int, unsigned>, 4> ResultMemLocs;
   // Copy results out of physical registers.
-  for (unsigned i = 0, e = RVLocs.size(); i != e; ++i) {
-    const CCValAssign &VA = RVLocs[i];
+  for (const CCValAssign &VA : RVLocs) {
     if (VA.isRegLoc()) {
       Chain = DAG.getCopyFromReg(Chain, dl, VA.getLocReg(), VA.getValVT(),
                                  InGlue).getValue(1);
@@ -1300,7 +1299,8 @@ SDValue XCoreTargetLowering::LowerCCCArguments(
       InVals.push_back(FIN);
       MemOps.push_back(DAG.getMemcpy(
           Chain, dl, FIN, ArgDI.SDV, DAG.getConstant(Size, dl, MVT::i32),
-          Alignment, false, false, false, PreserveCheriTags::TODO,
+          Alignment, false, false, /*CI=*/nullptr, std::nullopt,
+          PreserveCheriTags::Unnecessary,
           MachinePointerInfo(), MachinePointerInfo()));
     } else {
       InVals.push_back(ArgDI.SDV);
@@ -1703,9 +1703,9 @@ SDValue XCoreTargetLowering::PerformDAGCombine(SDNode *N,
         bool isTail = isInTailCallPosition(DAG, ST, Chain);
         return DAG.getMemmove(Chain, dl, ST->getBasePtr(), LD->getBasePtr(),
                               DAG.getConstant(StoreBits / 8, dl, MVT::i32),
-                              Alignment, false, isTail,
-                              PreserveCheriTags::TODO, ST->getPointerInfo(),
-                              LD->getPointerInfo());
+                              Alignment, false, nullptr, isTail,
+                              PreserveCheriTags::Unnecessary,
+                              ST->getPointerInfo(), LD->getPointerInfo());
       }
     }
     break;

@@ -9,8 +9,7 @@
 
 #
 # This used to cause LLD to create a symbol table with invalid entries
-# Since the __cap_relocs section is empty it does not get added to the output
-# file so the __start and __stop symbols reference an invalid section
+# LLD now outputs an empty section with valid start/stop symbols
 
 .text
 .global __start
@@ -20,9 +19,9 @@ __start:
   dla $a1, __stop___cap_relocs
   
 # CHECK-LABEL: Sections:
-# CHECK-NOT: __cap_relocs
+# CHECK:  3 __cap_relocs   00000000 [[VMA:[0-9a-f]+]] DATA
 # CHECK-LABEL: SYMBOL TABLE:
 # CHECK-NEXT: 0{{[0-9a-f]+}} l       .got		0000000000000000 .hidden _gp
 # CHECK-NEXT: 0{{[0-9a-f]+}} g       .text	0000000000000000 __start
-# CHECK-NEXT: 0000000000000000 g       *ABS*	0000000000000000 .protected __start___cap_relocs
-# CHECK-NEXT: 0000000000000000 g       *ABS*	0000000000000000 .protected __stop___cap_relocs
+# CHECK-NEXT: [[VMA]] g       __cap_relocs   0000000000000000 .protected __start___cap_relocs
+# CHECK-NEXT: [[VMA]] g       __cap_relocs   0000000000000000 .protected __stop___cap_relocs

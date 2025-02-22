@@ -21,13 +21,17 @@ using namespace llvm::ELF;
 namespace lld {
 namespace elf {
 
+bool hasDynamicLinker() {
+  return config->shared || config->pie || !ctx.sharedFiles.empty();
+}
+
 // See CheriBSD crt_init_globals()
 template <class ELFT> struct InMemoryCapRelocEntry {
   static constexpr size_t fieldSize = ELFT::Is64Bits ? 8 : 4;
   static constexpr size_t relocSize = fieldSize * 5;
   using NativeUint = typename ELFT::uint;
   using CapRelocUint = llvm::support::detail::packed_endian_specific_integral<
-      NativeUint, ELFT::TargetEndianness, llvm::support::aligned>;
+      NativeUint, ELFT::Endianness, llvm::support::aligned>;
   InMemoryCapRelocEntry(NativeUint loc, NativeUint obj, NativeUint off,
                         NativeUint s, NativeUint perms)
       : capability_location(loc), object(obj), offset(off), size(s),

@@ -114,7 +114,7 @@ let hasDelaySlot=1, isTerminator=1 in {
 let isBranch=1, Defs = [AT] in {
 def CBTS : CheriFmtCBT<0x0a, (outs), (ins CheriOpnd:$cb, brtarget:$offset),
                         "cbts\t$cb, $offset",
-                        [(brcond (i32 (setne (assertzext (CapTagGet CheriOpnd:$cb)), (i64 0))), bb:$offset)]>;
+                        [(brcond (i32 (trunc (assertzext (CapTagGet CheriOpnd:$cb)))), bb:$offset)]>;
 def CBTU : CheriFmtCBT<0x09, (outs), (ins CheriOpnd:$cb, brtarget:$offset),
                         "cbtu\t$cb, $offset",
                         [(brcond (i32 (seteq (assertzext (CapTagGet CheriOpnd:$cb)), (i64 0))), bb:$offset)]>;
@@ -705,57 +705,57 @@ class CapAtomicCmpSwap<PatFrag Op, RegisterOperand ValOpnd> :
 
 
 let usesCustomInserter = 1 in {
-  def CAP_ATOMIC_LOAD_ADD_I8   : CapAtomic2Ops<atomic_load_add_8, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_ADD_I16  : CapAtomic2Ops<atomic_load_add_16, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_ADD_I32  : CapAtomic2Ops<atomic_load_add_32, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_SUB_I8   : CapAtomic2Ops<atomic_load_sub_8, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_SUB_I16  : CapAtomic2Ops<atomic_load_sub_16, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_SUB_I32  : CapAtomic2Ops<atomic_load_sub_32, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_AND_I8   : CapAtomic2Ops<atomic_load_and_8, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_AND_I16  : CapAtomic2Ops<atomic_load_and_16, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_AND_I32  : CapAtomic2Ops<atomic_load_and_32, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_OR_I8    : CapAtomic2Ops<atomic_load_or_8, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_OR_I16   : CapAtomic2Ops<atomic_load_or_16, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_OR_I32   : CapAtomic2Ops<atomic_load_or_32, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_XOR_I8   : CapAtomic2Ops<atomic_load_xor_8, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_XOR_I16  : CapAtomic2Ops<atomic_load_xor_16, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_XOR_I32  : CapAtomic2Ops<atomic_load_xor_32, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_NAND_I8  : CapAtomic2Ops<atomic_load_nand_8, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_NAND_I16 : CapAtomic2Ops<atomic_load_nand_16, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_NAND_I32 : CapAtomic2Ops<atomic_load_nand_32, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_ADD_I8   : CapAtomic2Ops<atomic_load_add_i8, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_ADD_I16  : CapAtomic2Ops<atomic_load_add_i16, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_ADD_I32  : CapAtomic2Ops<atomic_load_add_i32, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_SUB_I8   : CapAtomic2Ops<atomic_load_sub_i8, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_SUB_I16  : CapAtomic2Ops<atomic_load_sub_i16, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_SUB_I32  : CapAtomic2Ops<atomic_load_sub_i32, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_AND_I8   : CapAtomic2Ops<atomic_load_and_i8, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_AND_I16  : CapAtomic2Ops<atomic_load_and_i16, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_AND_I32  : CapAtomic2Ops<atomic_load_and_i32, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_OR_I8    : CapAtomic2Ops<atomic_load_or_i8, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_OR_I16   : CapAtomic2Ops<atomic_load_or_i16, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_OR_I32   : CapAtomic2Ops<atomic_load_or_i32, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_XOR_I8   : CapAtomic2Ops<atomic_load_xor_i8, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_XOR_I16  : CapAtomic2Ops<atomic_load_xor_i16, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_XOR_I32  : CapAtomic2Ops<atomic_load_xor_i32, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_NAND_I8  : CapAtomic2Ops<atomic_load_nand_i8, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_NAND_I16 : CapAtomic2Ops<atomic_load_nand_i16, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_NAND_I32 : CapAtomic2Ops<atomic_load_nand_i32, GPR32Opnd>;
 
-  def CAP_ATOMIC_LOAD_MIN_I8  : CapAtomic2Ops<atomic_load_min_8, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_MIN_I16 : CapAtomic2Ops<atomic_load_min_16, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_MIN_I32 : CapAtomic2Ops<atomic_load_min_32, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_MAX_I8  : CapAtomic2Ops<atomic_load_max_8, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_MAX_I16 : CapAtomic2Ops<atomic_load_max_16, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_MAX_I32 : CapAtomic2Ops<atomic_load_max_32, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_UMIN_I8  : CapAtomic2Ops<atomic_load_umin_8, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_UMIN_I16 : CapAtomic2Ops<atomic_load_umin_16, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_UMIN_I32 : CapAtomic2Ops<atomic_load_umin_32, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_UMAX_I8  : CapAtomic2Ops<atomic_load_umax_8, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_UMAX_I16 : CapAtomic2Ops<atomic_load_umax_16, GPR32Opnd>;
-  def CAP_ATOMIC_LOAD_UMAX_I32 : CapAtomic2Ops<atomic_load_umax_32, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_MIN_I8  : CapAtomic2Ops<atomic_load_min_i8, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_MIN_I16 : CapAtomic2Ops<atomic_load_min_i16, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_MIN_I32 : CapAtomic2Ops<atomic_load_min_i32, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_MAX_I8  : CapAtomic2Ops<atomic_load_max_i8, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_MAX_I16 : CapAtomic2Ops<atomic_load_max_i16, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_MAX_I32 : CapAtomic2Ops<atomic_load_max_i32, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_UMIN_I8  : CapAtomic2Ops<atomic_load_umin_i8, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_UMIN_I16 : CapAtomic2Ops<atomic_load_umin_i16, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_UMIN_I32 : CapAtomic2Ops<atomic_load_umin_i32, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_UMAX_I8  : CapAtomic2Ops<atomic_load_umax_i8, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_UMAX_I16 : CapAtomic2Ops<atomic_load_umax_i16, GPR32Opnd>;
+  def CAP_ATOMIC_LOAD_UMAX_I32 : CapAtomic2Ops<atomic_load_umax_i32, GPR32Opnd>;
 
-  def CAP_ATOMIC_SWAP_I8       : CapAtomic2Ops<atomic_swap_8, GPR32Opnd>;
-  def CAP_ATOMIC_SWAP_I16      : CapAtomic2Ops<atomic_swap_16, GPR32Opnd>;
-  def CAP_ATOMIC_SWAP_I32      : CapAtomic2Ops<atomic_swap_32, GPR32Opnd>;
-  def CAP_ATOMIC_CMP_SWAP_I8   : CapAtomicCmpSwap<atomic_cmp_swap_8, GPR32Opnd>;
-  def CAP_ATOMIC_CMP_SWAP_I16  : CapAtomicCmpSwap<atomic_cmp_swap_16, GPR32Opnd>;
-  def CAP_ATOMIC_CMP_SWAP_I32  : CapAtomicCmpSwap<atomic_cmp_swap_32, GPR32Opnd>;
+  def CAP_ATOMIC_SWAP_I8       : CapAtomic2Ops<atomic_swap_i8, GPR32Opnd>;
+  def CAP_ATOMIC_SWAP_I16      : CapAtomic2Ops<atomic_swap_i16, GPR32Opnd>;
+  def CAP_ATOMIC_SWAP_I32      : CapAtomic2Ops<atomic_swap_i32, GPR32Opnd>;
+  def CAP_ATOMIC_CMP_SWAP_I8   : CapAtomicCmpSwap<atomic_cmp_swap_i8, GPR32Opnd>;
+  def CAP_ATOMIC_CMP_SWAP_I16  : CapAtomicCmpSwap<atomic_cmp_swap_i16, GPR32Opnd>;
+  def CAP_ATOMIC_CMP_SWAP_I32  : CapAtomicCmpSwap<atomic_cmp_swap_i32, GPR32Opnd>;
 
-  def CAP_ATOMIC_LOAD_ADD_I64  : CapAtomic2Ops<atomic_load_add_64, GPR64Opnd>;
-  def CAP_ATOMIC_LOAD_SUB_I64  : CapAtomic2Ops<atomic_load_sub_64, GPR64Opnd>;
-  def CAP_ATOMIC_LOAD_AND_I64  : CapAtomic2Ops<atomic_load_and_64, GPR64Opnd>;
-  def CAP_ATOMIC_LOAD_OR_I64   : CapAtomic2Ops<atomic_load_or_64, GPR64Opnd>;
-  def CAP_ATOMIC_LOAD_XOR_I64  : CapAtomic2Ops<atomic_load_xor_64, GPR64Opnd>;
-  def CAP_ATOMIC_LOAD_NAND_I64 : CapAtomic2Ops<atomic_load_nand_64, GPR64Opnd>;
-  def CAP_ATOMIC_SWAP_I64      : CapAtomic2Ops<atomic_swap_64, GPR64Opnd>;
-  def CAP_ATOMIC_CMP_SWAP_I64  : CapAtomicCmpSwap<atomic_cmp_swap_64, GPR64Opnd>;
-  def CAP_ATOMIC_LOAD_MIN_I64  : CapAtomic2Ops<atomic_load_min_64, GPR64Opnd>;
-  def CAP_ATOMIC_LOAD_MAX_I64  : CapAtomic2Ops<atomic_load_max_64, GPR64Opnd>;
-  def CAP_ATOMIC_LOAD_UMIN_I64 : CapAtomic2Ops<atomic_load_umin_64, GPR64Opnd>;
-  def CAP_ATOMIC_LOAD_UMAX_I64 : CapAtomic2Ops<atomic_load_umax_64, GPR64Opnd>;
+  def CAP_ATOMIC_LOAD_ADD_I64  : CapAtomic2Ops<atomic_load_add_i64, GPR64Opnd>;
+  def CAP_ATOMIC_LOAD_SUB_I64  : CapAtomic2Ops<atomic_load_sub_i64, GPR64Opnd>;
+  def CAP_ATOMIC_LOAD_AND_I64  : CapAtomic2Ops<atomic_load_and_i64, GPR64Opnd>;
+  def CAP_ATOMIC_LOAD_OR_I64   : CapAtomic2Ops<atomic_load_or_i64, GPR64Opnd>;
+  def CAP_ATOMIC_LOAD_XOR_I64  : CapAtomic2Ops<atomic_load_xor_i64, GPR64Opnd>;
+  def CAP_ATOMIC_LOAD_NAND_I64 : CapAtomic2Ops<atomic_load_nand_i64, GPR64Opnd>;
+  def CAP_ATOMIC_SWAP_I64      : CapAtomic2Ops<atomic_swap_i64, GPR64Opnd>;
+  def CAP_ATOMIC_CMP_SWAP_I64  : CapAtomicCmpSwap<atomic_cmp_swap_i64, GPR64Opnd>;
+  def CAP_ATOMIC_LOAD_MIN_I64  : CapAtomic2Ops<atomic_load_min_i64, GPR64Opnd>;
+  def CAP_ATOMIC_LOAD_MAX_I64  : CapAtomic2Ops<atomic_load_max_i64, GPR64Opnd>;
+  def CAP_ATOMIC_LOAD_UMIN_I64 : CapAtomic2Ops<atomic_load_umin_i64, GPR64Opnd>;
+  def CAP_ATOMIC_LOAD_UMAX_I64 : CapAtomic2Ops<atomic_load_umax_i64, GPR64Opnd>;
 
   // Capability atomics:
   // FIXME: this seems wrong it should be CheriGPROrCNULL

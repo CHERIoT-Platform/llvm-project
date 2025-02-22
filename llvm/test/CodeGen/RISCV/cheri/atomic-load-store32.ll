@@ -156,6 +156,7 @@ define void @atomic_store_cap_seq_cst(i8 addrspace(200)* addrspace(200)* %a, i8 
 ; RV32IAXCHERI:       # %bb.0:
 ; RV32IAXCHERI-NEXT:    fence rw, w
 ; RV32IAXCHERI-NEXT:    csc ca1, 0(ca0)
+; RV32IAXCHERI-NEXT:    fence rw, rw
 ; RV32IAXCHERI-NEXT:    cret
   store atomic i8 addrspace(200)* %b, i8 addrspace(200)* addrspace(200)* %a seq_cst, align 8
   ret void

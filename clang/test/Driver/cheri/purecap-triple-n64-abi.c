@@ -4,10 +4,10 @@
 // First check that -cc1 gives errors:
 // RUN: not %clang -cc1 -triple cheri-unknown-freebsd-purecap -cheri-size 128 -target-cpu mips4 -target-abi n64 %s -emit-llvm -o - 2>&1 | FileCheck %s --check-prefix N64-ABI-WITH-PURECAP-TRIPLE
 // RUN: not %clang -cc1as -triple cheri-unknown-freebsd-purecap -cheri-size 128 -target-cpu mips4 -target-abi n64 %s -o - 2>&1 | FileCheck %s --check-prefix N64-ABI-WITH-PURECAP-TRIPLE
-// N64-ABI-WITH-PURECAP-TRIPLE: error: ABI 'n64' is incompatible with target triple 'mips64c128-unknown-freebsd-purecap'
+// N64-ABI-WITH-PURECAP-TRIPLE: error: 'n64' ABI is incompatible with target triple 'mips64c128-unknown-freebsd-purecap'
 // RUN: not %clang -cc1 -triple cheri-unknown-freebsd-gnuabi64 -cheri-size 128 -target-cpu mips4 -target-abi purecap %s -emit-llvm -o - 2>&1 | FileCheck %s --check-prefix PURECAP-ABI-WITH-N64-TRIPLE
 // RUN: not %clang -cc1as -triple cheri-unknown-freebsd-gnuabi64 -cheri-size 128 -target-cpu mips4 -target-abi purecap %s -o - 2>&1 | FileCheck %s --check-prefix PURECAP-ABI-WITH-N64-TRIPLE
-// PURECAP-ABI-WITH-N64-TRIPLE: error: ABI 'purecap' is incompatible with target triple 'mips64c128-unknown-freebsd-gnuabi64'
+// PURECAP-ABI-WITH-N64-TRIPLE: error: 'purecap' ABI is incompatible with target triple 'mips64c128-unknown-freebsd-gnuabi64'
 
 // These ones are fine:
 // RUN: %clang -cc1 -triple cheri-unknown-freebsd -cheri-size 128 -target-cpu mips4 -target-abi purecap %s -emit-llvm -o /dev/null

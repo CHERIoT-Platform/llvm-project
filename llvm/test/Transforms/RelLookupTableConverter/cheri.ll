@@ -30,7 +30,7 @@ define ptr addrspace(200) @load_from_string_table(i64 %idx) addrspace(200) {
 ; RISCV64-SAME: (i64 [[IDX:%.*]]) {
 ; RISCV64-NEXT:  bb:
 ; RISCV64-NEXT:    [[RELTABLE_SHIFT:%.*]] = shl i64 [[IDX]], 2
-; RISCV64-NEXT:    [[RELTABLE_INTRINSIC:%.*]] = call ptr @llvm.load.relative.i64(ptr @reltable.load_from_string_table, i64 [[RELTABLE_SHIFT]])
+; RISCV64-NEXT:    [[RELTABLE_INTRINSIC:%.*]] = call ptr @llvm.load.relative.i64(ptr @global.rel, i64 [[RELTABLE_SHIFT]])
 ; RISCV64-NEXT:    ret ptr [[RELTABLE_INTRINSIC]]
 ;
 ; PURECAP-LABEL: define {{[^@]+}}@load_from_string_table
@@ -53,7 +53,7 @@ define ptr addrspace(200) @load_from_string_table(i64 %idx) addrspace(200) {
 ; RISCV64-ASM-REL:       # %bb.0: # %bb
 ; RISCV64-ASM-REL-NEXT:    slli a0, a0, 2
 ; RISCV64-ASM-REL-NEXT:  .Lpcrel_hi0:
-; RISCV64-ASM-REL-NEXT:    auipc a1, %pcrel_hi(reltable.load_from_string_table)
+; RISCV64-ASM-REL-NEXT:    auipc a1, %pcrel_hi(global.rel)
 ; RISCV64-ASM-REL-NEXT:    addi a1, a1, %pcrel_lo(.Lpcrel_hi0)
 ; RISCV64-ASM-REL-NEXT:    add a0, a1, a0
 ; RISCV64-ASM-REL-NEXT:    lw a0, 0(a0)

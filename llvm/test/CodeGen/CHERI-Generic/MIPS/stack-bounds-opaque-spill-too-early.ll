@@ -4,7 +4,7 @@
 ;; miscompilations in the stack bounding pass (the unbounded value was used instead of
 ;; the bounded one due to the removal of the bitcast instructions).
 ; REQUIRES: asserts
-; RUN: opt -mtriple=mips64 -mcpu=cheri128 -mattr=+cheri128 --relocation-model=pic -target-abi purecap -cheri-bound-allocas -o - -S %s -debug-only=cheri-bound-allocas 2>%t.dbg| FileCheck %s
+; RUN: opt -mtriple=mips64 -mcpu=cheri128 -mattr=+cheri128 --relocation-model=pic -target-abi purecap -passes=cheri-bound-allocas -o - -S %s -debug-only=cheri-bound-allocas 2>%t.dbg| FileCheck %s
 ; RUN: FileCheck %s -input-file=%t.dbg -check-prefix DBG
 ; RUN: llc -mtriple=mips64 -mcpu=cheri128 -mattr=+cheri128 --relocation-model=pic -target-abi purecap %s -o - | FileCheck %s -check-prefix ASM
 target datalayout = "E-m:e-pf200:128:128:128:64-i8:8:32-i16:16:32-i64:64-n32:64-S128-A200-P200-G200"

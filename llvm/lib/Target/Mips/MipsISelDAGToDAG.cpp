@@ -49,11 +49,11 @@ using namespace llvm;
 // instructions for SelectionDAG operations.
 //===----------------------------------------------------------------------===//
 
-void MipsDAGToDAGISel::getAnalysisUsage(AnalysisUsage &AU) const {
+void MipsDAGToDAGISelLegacy::getAnalysisUsage(AnalysisUsage &AU) const {
   // There are multiple MipsDAGToDAGISel instances added to the pass pipeline.
   // We need to preserve StackProtector for the next one.
   AU.addPreserved<StackProtector>();
-  SelectionDAGISel::getAnalysisUsage(AU);
+  SelectionDAGISelLegacy::getAnalysisUsage(AU);
 }
 
 bool MipsDAGToDAGISel::runOnMachineFunction(MachineFunction &MF) {
@@ -228,6 +228,10 @@ bool MipsDAGToDAGISel::selectVSplatMaskR(SDValue N, SDValue &Imm) const {
   return false;
 }
 
+bool MipsDAGToDAGISel::selectVSplatImmEq1(SDValue N) const {
+  llvm_unreachable("Unimplemented function.");
+}
+
 /// Convert vector addition with vector subtraction if that allows to encode
 /// constant as an immediate and thus avoid extra 'ldi' instruction.
 /// add X, <-1, -1...> --> sub X, <1, 1...>
@@ -352,6 +356,10 @@ bool MipsDAGToDAGISel::isUnneededShiftMask(SDNode *N,
   return (Known.Zero | RHS).countr_one() >= ShAmtBits;
 }
 
-char MipsDAGToDAGISel::ID = 0;
+char MipsDAGToDAGISelLegacy::ID = 0;
 
-INITIALIZE_PASS(MipsDAGToDAGISel, DEBUG_TYPE, PASS_NAME, false, false)
+MipsDAGToDAGISelLegacy::MipsDAGToDAGISelLegacy(
+    std::unique_ptr<SelectionDAGISel> S)
+    : SelectionDAGISelLegacy(ID, std::move(S)) {}
+
+INITIALIZE_PASS(MipsDAGToDAGISelLegacy, DEBUG_TYPE, PASS_NAME, false, false)

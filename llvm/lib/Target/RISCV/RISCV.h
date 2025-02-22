@@ -15,6 +15,8 @@
 #define LLVM_LIB_TARGET_RISCV_RISCV_H
 
 #include "MCTargetDesc/RISCVBaseInfo.h"
+#include "llvm/ADT/SetVector.h"
+#include "llvm/IR/Function.h"
 #include "llvm/Target/TargetMachine.h"
 
 namespace llvm {
@@ -85,8 +87,9 @@ struct CHERIoTImportedFunctionDenseMapInfo {
 };
 
 /// The set of functions imported from this compilation unit.
-using CHERIoTImportedFunctionSet =
-    DenseSet<CHERIoTImportedFunction, CHERIoTImportedFunctionDenseMapInfo>;
+using CHERIoTImportedFunctionSet = SetVector<
+    CHERIoTImportedFunction, std::vector<CHERIoTImportedFunction>,
+    DenseSet<CHERIoTImportedFunction, CHERIoTImportedFunctionDenseMapInfo>>;
 
 FunctionPass *createRISCVISelDag(RISCVTargetMachine &TM,
                                  CodeGenOptLevel OptLevel);
@@ -97,8 +100,8 @@ void initializeRISCVMakeCompressibleOptPass(PassRegistry &);
 FunctionPass *createRISCVGatherScatterLoweringPass();
 void initializeRISCVGatherScatterLoweringPass(PassRegistry &);
 
-FunctionPass *createRISCVFoldMasksPass();
-void initializeRISCVFoldMasksPass(PassRegistry &);
+FunctionPass *createRISCVVectorPeepholePass();
+void initializeRISCVVectorPeepholePass(PassRegistry &);
 
 FunctionPass *createRISCVOptWInstrsPass();
 void initializeRISCVOptWInstrsPass(PassRegistry &);
@@ -117,6 +120,7 @@ void initializeRISCVExpandAtomicPseudoPass(PassRegistry &);
 
 FunctionPass *createRISCVInsertVSETVLIPass();
 void initializeRISCVInsertVSETVLIPass(PassRegistry &);
+extern char &RISCVInsertVSETVLIID;
 
 FunctionPass *createRISCVPostRAExpandPseudoPass();
 void initializeRISCVPostRAExpandPseudoPass(PassRegistry &);
@@ -129,10 +133,6 @@ void initializeRISCVInsertWriteVXRMPass(PassRegistry &);
 FunctionPass *createRISCVRedundantCopyEliminationPass();
 void initializeRISCVRedundantCopyEliminationPass(PassRegistry &);
 
-FunctionPass *createRISCVInitUndefPass();
-void initializeRISCVInitUndefPass(PassRegistry &);
-extern char &RISCVInitUndefID;
-
 FunctionPass *createRISCVMoveMergePass();
 void initializeRISCVMoveMergePass(PassRegistry &);
 
@@ -142,10 +142,11 @@ void initializeRISCVPushPopOptPass(PassRegistry &);
 FunctionPass *createRISCVCheriCleanupOptPass();
 void initializeRISCVCheriCleanupOptPass(PassRegistry &);
 
-InstructionSelector *createRISCVInstructionSelector(const RISCVTargetMachine &,
-                                                    RISCVSubtarget &,
-                                                    RISCVRegisterBankInfo &);
-void initializeRISCVDAGToDAGISelPass(PassRegistry &);
+InstructionSelector *
+createRISCVInstructionSelector(const RISCVTargetMachine &,
+                               const RISCVSubtarget &,
+                               const RISCVRegisterBankInfo &);
+void initializeRISCVDAGToDAGISelLegacyPass(PassRegistry &);
 
 FunctionPass *createRISCVPostLegalizerCombiner();
 void initializeRISCVPostLegalizerCombinerPass(PassRegistry &);

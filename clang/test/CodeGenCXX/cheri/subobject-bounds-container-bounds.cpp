@@ -14,9 +14,9 @@ extern "C" void call_ref(int &i);
 
 // CHECK-LABEL: @test(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[BUFFER:%.*]] = getelementptr inbounds [[STRUCT_FOO:%.*]], ptr addrspace(200) [[F:%.*]], i64 0, i32 1
+// CHECK-NEXT:    [[BUFFER:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[F:%.*]], i64 4
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[BUFFER]], i64 256)
-// CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [64 x i32], ptr addrspace(200) [[TMP0]], i64 0, i64 64
+// CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[TMP0]], i64 256
 // CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef nonnull [[ARRAYIDX]]) #[[ATTR3:[0-9]+]]
 // CHECK-NEXT:    ret void
 //
@@ -27,9 +27,9 @@ extern "C" void test(struct Foo *f) {
 }
 // CHECK-LABEL: @test2(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[BUFFER:%.*]] = getelementptr inbounds [[STRUCT_FOO:%.*]], ptr addrspace(200) [[F:%.*]], i64 0, i32 1
+// CHECK-NEXT:    [[BUFFER:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[F:%.*]], i64 4
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[BUFFER]], i64 256)
-// CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [64 x i32], ptr addrspace(200) [[TMP0]], i64 0, i64 64
+// CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[TMP0]], i64 256
 // CHECK-NEXT:    [[TMP1:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[ARRAYIDX]], i64 4)
 // CHECK-NEXT:    tail call void @call_ref(ptr addrspace(200) noundef nonnull align 4 dereferenceable(4) [[TMP1]]) #[[ATTR3]]
 // CHECK-NEXT:    ret void
@@ -76,7 +76,7 @@ struct WithNestedUnion {
 
 // CHECK-LABEL: @test5(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[U:%.*]] = getelementptr inbounds [[STRUCT_WITHNESTEDUNION:%.*]], ptr addrspace(200) [[W:%.*]], i64 0, i32 2
+// CHECK-NEXT:    [[U:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[W:%.*]], i64 8
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[U]], i64 264)
 // CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
 // CHECK-NEXT:    ret void
@@ -88,7 +88,7 @@ extern "C" void test5(struct WithNestedUnion *w) {
 
 // CHECK-LABEL: @test6(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[U:%.*]] = getelementptr inbounds [[STRUCT_WITHNESTEDUNION:%.*]], ptr addrspace(200) [[W:%.*]], i64 0, i32 2
+// CHECK-NEXT:    [[U:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[W:%.*]], i64 8
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[U]], i64 264)
 // CHECK-NEXT:    tail call void @call_ref(ptr addrspace(200) noundef nonnull align 4 dereferenceable(4) [[TMP0]]) #[[ATTR3]]
 // CHECK-NEXT:    ret void
@@ -108,7 +108,7 @@ extern "C" void do_stuff(void *);
 // CHECK-LABEL: @clearcmentry(
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull @_ZL8cmdtable, i64 496)
-// CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [31 x ptr addrspace(200)], ptr addrspace(200) [[TMP0]], i64 0, i64 31
+// CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[TMP0]], i64 496
 // CHECK-NEXT:    tail call void @do_stuff(ptr addrspace(200) noundef nonnull [[ARRAYIDX]]) #[[ATTR3]]
 // CHECK-NEXT:    ret void
 //
@@ -135,7 +135,7 @@ extern "C" void clearcmentry2() {
 // CHECK-LABEL: @clearcmentry3(
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull @_ZL8cmdtable, i64 496)
-// CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [31 x ptr addrspace(200)], ptr addrspace(200) [[TMP0]], i64 0, i64 1
+// CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[TMP0]], i64 16
 // CHECK-NEXT:    tail call void @do_stuff(ptr addrspace(200) noundef nonnull [[ARRAYIDX]]) #[[ATTR3]]
 // CHECK-NEXT:    ret void
 //

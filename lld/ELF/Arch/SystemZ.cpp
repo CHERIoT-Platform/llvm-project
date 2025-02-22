@@ -446,9 +446,10 @@ bool SystemZ::relaxOnce(int pass) const {
         if (rel.expr != R_RELAX_GOT_PC)
           continue;
 
-        uint64_t v = sec->getRelocTargetVA(
-            sec->file, rel.type, rel.addend,
-            sec->getOutputSection()->addr + rel.offset, *rel.sym, rel.expr, sec, rel.offset);
+        uint64_t v =
+            sec->getRelocTargetVA(sec->file, rel.type, rel.addend,
+                                  sec->getOutputSection()->addr + rel.offset,
+                                  *rel.sym, rel.expr, sec, rel.offset);
         if (isInt<33>(v) && !(v & 1))
           continue;
         if (rel.sym->auxIdx == 0) {

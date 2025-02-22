@@ -40,7 +40,7 @@ int call_not_inlined(void) {
 }
 
 // This function must be inlined even at -O0
-// CHECK-LABEL: define dso_local signext i32 @call_not_inlined()
+// CHECK-LABEL: define {{.*}} i32 @call_not_inlined()
 // CHECK-NEXT: entry:
 // OPT-NEXT:                    [[CALL:%.+]] = {{(tail )?}}call signext i32 @not_inlined(i32 noundef signext 0)
 // N64-NOOPT-NEXT:              [[CALL:%.+]] = {{(tail )?}}call signext i32 @not_inlined(i32 noundef signext 0)

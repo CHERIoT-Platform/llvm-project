@@ -50,8 +50,8 @@
 // RUN: not %riscv64_cheri_clang -no-canonical-prefixes %s -fsanitize=fuzzer \
 // RUN:   --sysroot=%S/Inputs/basic_cheribsd_libcompat_tree -### 2>&1 | FileCheck --check-prefix=CHECK-FUZZER-RISCV64 %s
 
-// CHECK-FUZZER-MIPS64: "--whole-archive" "{{.+}}/lib/freebsd/libclang_rt.fuzzer-mips64.a" "--no-whole-archive"
-// CHECK-FUZZER-MIPS64: "--whole-archive" "{{.+}}/lib/freebsd/libclang_rt.ubsan_standalone-mips64.a" "--no-whole-archive"
+// CHECK-FUZZER-MIPS64: "--whole-archive" "{{.+}}/lib/mips64-unknown-freebsd/libclang_rt.fuzzer.a" "--no-whole-archive"
+// CHECK-FUZZER-MIPS64: "--whole-archive" "{{.+}}/lib/mips64-unknown-freebsd/libclang_rt.ubsan_standalone.a" "--no-whole-archive"
 
 // CHECK-FUZZER-RISCV64: error: unsupported option '-fsanitize=fuzzer' for target 'riscv64-unknown-freebsd'
 // TODO-CHECK-FUZZER-RISCV64: "--whole-archive" "{{.+}}/lib/freebsd/libclang_rt.fuzzer-riscv64.a" "--no-whole-archive"

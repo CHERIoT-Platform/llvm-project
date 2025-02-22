@@ -2,7 +2,7 @@
 ; DO NOT EDIT -- This file was generated from test/CodeGen/CHERI-Generic/Inputs/subobject-bounds-redundant-setbounds.c.ll
 ; REQUIRES: asserts
 ; RUN: rm -f %t.dbg-opt %t.dbg-llc
-; RUN: opt -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+cap-mode,+f -cheri-bound-allocas -debug-only=cheri-bound-allocas -S -o - %s 2>%t.dbg-opt | FileCheck %s
+; RUN: opt -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+cap-mode,+f -passes=cheri-bound-allocas -debug-only=cheri-bound-allocas -S -o - %s 2>%t.dbg-opt | FileCheck %s
 ; RUN: FileCheck %s -input-file=%t.dbg-opt -check-prefix DBG
 ; RUN: llc -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+cap-mode,+f -debug-only=cheri-bound-allocas -o - %s 2>%t.dbg-llc | FileCheck %s -check-prefix ASM
 ; RUN: FileCheck %s -input-file=%t.dbg-llc -check-prefix DBG

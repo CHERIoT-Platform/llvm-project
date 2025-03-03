@@ -292,35 +292,37 @@ constexpr auto concat(L1, L2) -> concat_t<L1, L2>
     return {};
 }
 
-auto all_signed = type_list<
-    char,
-    signed char,
-    short,
-    int,
-    long,
-    long long
+auto all_signed =
+    type_list< char,
+               signed char,
+               short,
+               int,
+               long,
+               long long
 #ifndef TEST_HAS_NO_INT128
-    ,
-    __int128_t
+               ,
+               __int128_t
 #endif
-#if __has_feature(capabilities)
-    , __intcap
+#if __has_feature(cheri)
+               ,
+               __intcap
 #endif
-    >();
-auto all_unsigned = type_list<
-    unsigned char,
-    unsigned short,
-    unsigned int,
-    unsigned long,
-    unsigned long long
+               >();
+auto all_unsigned =
+    type_list< unsigned char,
+               unsigned short,
+               unsigned int,
+               unsigned long,
+               unsigned long long
 #ifndef TEST_HAS_NO_INT128
-    ,
-    __uint128_t
+               ,
+               __uint128_t
 #endif
-#if __has_feature(capabilities)
-    , unsigned __intcap
+#if __has_feature(cheri)
+               ,
+               unsigned __intcap
 #endif
-    >();
+               >();
 auto integrals = concat(all_signed, all_unsigned);
 
 auto all_floats = type_list< float, double >(); //TODO: Add long double

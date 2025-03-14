@@ -27,7 +27,8 @@ using namespace llvm::opt;
 // Returns false if an error is diagnosed.
 static bool getArchFeatures(const Driver &D, StringRef Arch,
                             std::vector<StringRef> &Features,
-                            const ArgList &Args) {
+                            const ArgList &Args,
+                            std::unique_ptr<llvm::RISCVISAInfo> &ISAInfoOut) {
   bool EnableExperimentalExtensions =
       Args.hasArg(options::OPT_menable_experimental_extensions);
   auto ISAInfo =
@@ -48,6 +49,7 @@ static bool getArchFeatures(const Driver &D, StringRef Arch,
   if (EnableExperimentalExtensions)
     Features.push_back(Args.MakeArgString("+experimental"));
 
+  ISAInfoOut = std::move(*ISAInfo);
   return true;
 }
 
@@ -92,8 +94,9 @@ void riscv::getRISCVTargetFeatures(const Driver &D, const llvm::Triple &Triple,
                                    const ArgList &Args,
                                    std::vector<StringRef> &Features) {
   std::string MArch = getRISCVArch(Args, Triple);
+  std::unique_ptr<llvm::RISCVISAInfo> ISAInfo;
 
-  if (!getArchFeatures(D, MArch, Features, Args))
+  if (!getArchFeatures(D, MArch, Features, Args, ISAInfo))
     return;
 
   bool CPUFastScalarUnaligned = false;
@@ -210,14 +213,7 @@ void riscv::getRISCVTargetFeatures(const Driver &D, const llvm::Triple &Triple,
       // +xcheriot implies both +xcheri and +xcheripurecap
       Features.push_back("+xcheriot");
     } else if (IsPureCapability) {
-      auto ISAInfo = llvm::RISCVISAInfo::parseFeatures(
-          Triple.isArch32Bit() ? 32 : 64,
-          std::vector<std::string>(Features.begin(), Features.end()));
-      if (!ISAInfo) {
-        handleAllErrors(ISAInfo.takeError(), [&](llvm::StringError &ErrMsg) {
-          D.Diag(diag::err_invalid_feature_combination) << ErrMsg.getMessage();
-        });
-      } else if (!(*ISAInfo)->hasExtension("xcheri")) {
+      if (!ISAInfo->hasExtension("xcheri")) {
         D.Diag(diag::err_riscv_invalid_abi)
             << A->getValue()
             << "pure capability ABI requires xcheri extension to be specified";

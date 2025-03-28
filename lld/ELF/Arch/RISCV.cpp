@@ -695,7 +695,7 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
       warn("R_RISCV_CHERIOT_COMPARTMENT_HI relocation applied to instruction "
            "with unexpected opcode " +
            Twine(existingOpcode));
-    checkInt(loc, val, 20, rel);
+    checkInt(loc, SignExtend64(val + 0x800, bits) >> 12, 20, rel);
     // Preserve the target register.  We will rewrite the opcode (source
     // register) to either AUICGP or AUIPCC and set the immediate field.
     uint32_t insn = read32le(loc) & 0x00000f80;

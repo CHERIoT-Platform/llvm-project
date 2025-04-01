@@ -55,9 +55,9 @@ void var_annotation(void) {
 // CHECK-SAME: () addrspace(200)
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[VAR:%.*]] = alloca [[STRUCT_ANON:%.*]], align 4, addrspace(200)
-// CHECK-NEXT:    [[U:%.*]] = getelementptr inbounds [[STRUCT_ANON]], ptr addrspace(200) [[VAR]], i32 0, i32 0
+// CHECK-NEXT:    [[U:%.*]] = getelementptr inbounds nuw [[STRUCT_ANON]], ptr addrspace(200) [[VAR]], i32 0, i32 0
 // CHECK-NEXT:    store i32 0, ptr addrspace(200) [[U]], align 4
-// CHECK-NEXT:    [[V:%.*]] = getelementptr inbounds [[STRUCT_ANON]], ptr addrspace(200) [[VAR]], i32 0, i32 1
+// CHECK-NEXT:    [[V:%.*]] = getelementptr inbounds nuw [[STRUCT_ANON]], ptr addrspace(200) [[VAR]], i32 0, i32 1
 // CHECK-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.ptr.annotation.p200.p200(ptr addrspace(200) [[V]],
 // CHECK-SAME:      ptr addrspace(200) @.str.3,
 // CHECK-SAME:      ptr addrspace(200) @.str.1,
@@ -69,9 +69,9 @@ void var_annotation(void) {
 // HYBRID-SAME: ()
 // HYBRID-NEXT:  entry:
 // HYBRID-NEXT:    [[VAR:%.*]] = alloca [[STRUCT_ANON:%.*]], align 4
-// HYBRID-NEXT:    [[U:%.*]] = getelementptr inbounds [[STRUCT_ANON]], ptr [[VAR]], i32 0, i32 0
+// HYBRID-NEXT:    [[U:%.*]] = getelementptr inbounds nuw [[STRUCT_ANON]], ptr [[VAR]], i32 0, i32 0
 // HYBRID-NEXT:    store i32 0, ptr [[U]], align 4
-// HYBRID-NEXT:    [[V:%.*]] = getelementptr inbounds [[STRUCT_ANON]], ptr [[VAR]], i32 0, i32 1
+// HYBRID-NEXT:    [[V:%.*]] = getelementptr inbounds nuw [[STRUCT_ANON]], ptr [[VAR]], i32 0, i32 1
 // HYBRID-NEXT:    [[TMP1:%.*]] = call ptr @llvm.ptr.annotation.p0.p0(ptr [[V]],
 // HYBRID-SAME:      ptr @.str.3,
 // HYBRID-SAME:      ptr @.str.1,

@@ -115,14 +115,14 @@ class CheriLoopPointerDecanonicalize : public FunctionPass {
       auto *StepValue = std::get<4>(R);
       auto *StartValue = std::get<5>(R);
       auto *PHI = PHINode::Create(GEP.getType(), 2,
-        "decanonicalized_ptr", &*Header->begin());
+        "decanonicalized_ptr", Header->begin());
       auto *NewGEP =
         GetElementPtrInst::Create(GEP.getResultElementType(), PHI, {
-            StepValue }, "decanonicalized", &GEP);
+            StepValue }, "decanonicalized", BasicBlock::iterator(GEP));
       PHI->addIncoming(NewGEP, BackBB);
       auto *StartGEP =
         GetElementPtrInst::Create(GEP.getResultElementType(), GEP.getOperand(0), {
-            StartValue }, "decanonicalized_start", &*(--(Preheader->end())));
+            StartValue }, "decanonicalized_start", std::prev(Preheader->end()));
       PHI->addIncoming(StartGEP, Preheader);
       GEP.replaceAllUsesWith(PHI);
       Modified = true;

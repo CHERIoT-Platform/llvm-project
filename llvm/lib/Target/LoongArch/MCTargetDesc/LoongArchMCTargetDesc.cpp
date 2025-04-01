@@ -11,7 +11,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "LoongArchMCTargetDesc.h"
-#include "LoongArchBaseInfo.h"
 #include "LoongArchELFStreamer.h"
 #include "LoongArchInstPrinter.h"
 #include "LoongArchMCAsmInfo.h"
@@ -67,7 +66,7 @@ static MCAsmInfo *createLoongArchMCAsmInfo(const MCRegisterInfo &MRI,
   MCAsmInfo *MAI = new LoongArchMCAsmInfo(TT);
 
   // Initial state of the frame pointer is sp(r3).
-  MCRegister SP = MRI.getDwarfRegNum(LoongArch::R3, true);
+  unsigned SP = MRI.getDwarfRegNum(LoongArch::R3, true);
   MCCFIInstruction Inst = MCCFIInstruction::cfiDefCfa(nullptr, SP, 0);
   MAI->addInitialFrameState(Inst);
 
@@ -87,6 +86,12 @@ createLoongArchObjectTargetStreamer(MCStreamer &S, const MCSubtargetInfo &STI) {
   return STI.getTargetTriple().isOSBinFormatELF()
              ? new LoongArchTargetELFStreamer(S, STI)
              : nullptr;
+}
+
+static MCTargetStreamer *
+createLoongArchAsmTargetStreamer(MCStreamer &S, formatted_raw_ostream &OS,
+                                 MCInstPrinter *InstPrint) {
+  return new LoongArchTargetAsmStreamer(S, OS);
 }
 
 namespace {
@@ -214,5 +219,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeLoongArchTargetMC() {
     TargetRegistry::RegisterELFStreamer(*T, createLoongArchELFStreamer);
     TargetRegistry::RegisterObjectTargetStreamer(
         *T, createLoongArchObjectTargetStreamer);
+    TargetRegistry::RegisterAsmTargetStreamer(*T,
+                                              createLoongArchAsmTargetStreamer);
   }
 }

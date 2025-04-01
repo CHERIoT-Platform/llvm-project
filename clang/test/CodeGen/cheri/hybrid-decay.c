@@ -29,7 +29,7 @@ struct S {
 
 // CHECK-LABEL: @arrow(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
+// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds nuw [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
 // CHECK-NEXT:    [[ARRAYDECAY:%.*]] = getelementptr inbounds [1 x i8], ptr addrspace(200) [[BUF]], i64 0, i64 0
 // CHECK-NEXT:    ret ptr addrspace(200) [[ARRAYDECAY]]
 //
@@ -58,7 +58,7 @@ char * __capability sub(char (* __capability p)[1]) {
 
 // CHECK-LABEL: @arrow_plus_1(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
+// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds nuw [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
 // CHECK-NEXT:    [[ARRAYDECAY:%.*]] = getelementptr inbounds [1 x i8], ptr addrspace(200) [[BUF]], i64 0, i64 0
 // CHECK-NEXT:    [[ADD_PTR:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARRAYDECAY]], i64 1
 // CHECK-NEXT:    ret ptr addrspace(200) [[ADD_PTR]]
@@ -90,7 +90,7 @@ char * __capability sub_plus_1(char (* __capability p)[1]) {
 
 // CHECK-LABEL: @arrow_imp_cast(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
+// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds nuw [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
 // CHECK-NEXT:    [[ARRAYDECAY:%.*]] = getelementptr inbounds [1 x i8], ptr addrspace(200) [[BUF]], i64 0, i64 0
 // CHECK-NEXT:    ret ptr addrspace(200) [[ARRAYDECAY]]
 //
@@ -119,7 +119,7 @@ void * __capability sub_imp_cast(char (* __capability p)[1]) {
 
 // CHECK-LABEL: @arrow_plus_1_imp_cast(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
+// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds nuw [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
 // CHECK-NEXT:    [[ARRAYDECAY:%.*]] = getelementptr inbounds [1 x i8], ptr addrspace(200) [[BUF]], i64 0, i64 0
 // CHECK-NEXT:    [[ADD_PTR:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARRAYDECAY]], i64 1
 // CHECK-NEXT:    ret ptr addrspace(200) [[ADD_PTR]]
@@ -151,7 +151,7 @@ void * __capability sub_plus_1_imp_cast(char (* __capability p)[1]) {
 
 // CHECK-LABEL: @arrow_paren(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
+// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds nuw [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
 // CHECK-NEXT:    [[ARRAYDECAY:%.*]] = getelementptr inbounds [1 x i8], ptr addrspace(200) [[BUF]], i64 0, i64 0
 // CHECK-NEXT:    ret ptr addrspace(200) [[ARRAYDECAY]]
 //
@@ -180,7 +180,7 @@ char * __capability sub_paren(char (* __capability p)[1]) {
 
 // CHECK-LABEL: @arrow_paren_plus_1(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
+// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds nuw [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
 // CHECK-NEXT:    [[ARRAYDECAY:%.*]] = getelementptr inbounds [1 x i8], ptr addrspace(200) [[BUF]], i64 0, i64 0
 // CHECK-NEXT:    [[ADD_PTR:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARRAYDECAY]], i64 1
 // CHECK-NEXT:    ret ptr addrspace(200) [[ADD_PTR]]
@@ -212,7 +212,7 @@ char * __capability sub_paren_plus_1(char (* __capability p)[1]) {
 
 // CHECK-LABEL: @arrow_paren_imp_cast(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
+// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds nuw [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
 // CHECK-NEXT:    [[ARRAYDECAY:%.*]] = getelementptr inbounds [1 x i8], ptr addrspace(200) [[BUF]], i64 0, i64 0
 // CHECK-NEXT:    ret ptr addrspace(200) [[ARRAYDECAY]]
 //
@@ -241,7 +241,7 @@ void * __capability sub_paren_imp_cast(char (* __capability p)[1]) {
 
 // CHECK-LABEL: @arrow_paren_plus_1_imp_cast(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
+// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds nuw [[STRUCT_S:%.*]], ptr addrspace(200) [[P:%.*]], i32 0, i32 0
 // CHECK-NEXT:    [[ARRAYDECAY:%.*]] = getelementptr inbounds [1 x i8], ptr addrspace(200) [[BUF]], i64 0, i64 0
 // CHECK-NEXT:    [[ADD_PTR:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARRAYDECAY]], i64 1
 // CHECK-NEXT:    ret ptr addrspace(200) [[ADD_PTR]]

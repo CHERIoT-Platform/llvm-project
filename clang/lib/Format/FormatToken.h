@@ -25,6 +25,7 @@ namespace clang {
 namespace format {
 
 #define LIST_TOKEN_TYPES                                                       \
+  TYPE(AfterPPDirective)                                                       \
   TYPE(ArrayInitializerLSquare)                                                \
   TYPE(ArraySubscriptLSquare)                                                  \
   TYPE(AttributeColon)                                                         \
@@ -44,6 +45,7 @@ namespace format {
   TYPE(CastRParen)                                                             \
   TYPE(ClassLBrace)                                                            \
   TYPE(ClassRBrace)                                                            \
+  TYPE(CompoundRequirementLBrace)                                              \
   /* ternary ?: expression */                                                  \
   TYPE(ConditionalExpr)                                                        \
   /* the condition in an if statement */                                       \
@@ -103,6 +105,7 @@ namespace format {
   TYPE(JsTypeOperator)                                                         \
   TYPE(JsTypeOptionalQuestion)                                                 \
   TYPE(LambdaArrow)                                                            \
+  TYPE(LambdaDefinitionLParen)                                                 \
   TYPE(LambdaLBrace)                                                           \
   TYPE(LambdaLSquare)                                                          \
   TYPE(LeadingJavaAnnotation)                                                  \
@@ -178,12 +181,14 @@ namespace format {
   TYPE(TrailingReturnArrow)                                                    \
   TYPE(TrailingUnaryOperator)                                                  \
   TYPE(TypeDeclarationParen)                                                   \
+  TYPE(TemplateName)                                                           \
   TYPE(TypeName)                                                               \
   TYPE(TypenameMacro)                                                          \
   TYPE(UnaryOperator)                                                          \
   TYPE(UnionLBrace)                                                            \
   TYPE(UnionRBrace)                                                            \
   TYPE(UntouchableMacroFunc)                                                   \
+  TYPE(VariableTemplate)                                                       \
   /* Like in 'assign x = 0, y = 1;' . */                                       \
   TYPE(VerilogAssignComma)                                                     \
   /* like in begin : block */                                                  \
@@ -583,6 +588,9 @@ public:
 
   /// Might be function declaration open/closing paren.
   bool MightBeFunctionDeclParen = false;
+
+  /// Has "\n\f\n" or "\n\f\r\n" before TokenText.
+  bool HasFormFeedBefore = false;
 
   /// Number of optional braces to be inserted after this token:
   ///   -1: a single left brace
@@ -1993,6 +2001,9 @@ inline bool continuesLineComment(const FormatToken &FormatTok,
          isLineComment(*Previous) &&
          FormatTok.OriginalColumn >= MinContinueColumn;
 }
+
+// Returns \c true if \c Current starts a new parameter.
+bool startsNextParameter(const FormatToken &Current, const FormatStyle &Style);
 
 } // namespace format
 } // namespace clang

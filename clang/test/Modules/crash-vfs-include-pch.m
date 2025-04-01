@@ -10,14 +10,13 @@
 
 // RUN: env FORCE_CLANG_DIAGNOSTICS_CRASH= TMPDIR=%t TEMP=%t TMP=%t \
 // RUN: not %clang %s -E -include-pch %t/out/pch-used.h.pch -fmodules -nostdlibinc \
-// RUN:     -fimplicit-module-maps -fbuiltin-headers-in-system-modules \
+// RUN:     -fimplicit-module-maps -Xclang -fbuiltin-headers-in-system-modules \
 // RUN:     -fmodules-cache-path=%t/cache -O0 -Xclang -fno-validate-pch \
 // RUN:     -isystem %S/Inputs/System/usr/include -o %t/output.E 2>&1 | FileCheck %s
 
 // RUN: FileCheck --check-prefix=CHECKSH %s -input-file %t/crash-vfs-*.sh
 // RUN: FileCheck --check-prefix=CHECKYAML %s -input-file \
 // RUN:   %t/crash-vfs-*.cache/vfs/vfs.yaml
-// XFAIL: *
 
 void f() { SPXTrace(); }
 void g() { double x = DBL_MAX; }

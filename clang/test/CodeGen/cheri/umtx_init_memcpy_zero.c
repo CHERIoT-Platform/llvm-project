@@ -19,9 +19,8 @@ struct umutex {
 	__uint32_t		m_pad;
 	__uint32_t		m_spare[2];
 };
-// CHECK: %struct.umutex = type { i32, i32, [2 x i32], ptr addrspace(200), i32, [2 x i32] }
 
-// CHECK: @_thr_umutex_init.default_mtx = internal addrspace(200) constant %struct.umutex zeroinitializer, align 16
+// CHECK: @_thr_umutex_init.default_mtx = internal addrspace(200) constant { i32, i32, [2 x i32], ptr addrspace(200), i32, [2 x i32], [4 x i8] } zeroinitializer, align 16
 
 // CHECK-LABEL: define {{[^@]+}}@_thr_umutex_init
 // CHECK-SAME: (ptr addrspace(200) noundef [[MTX:%.*]]) addrspace(200)

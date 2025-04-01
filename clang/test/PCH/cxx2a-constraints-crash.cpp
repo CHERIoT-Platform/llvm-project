@@ -31,6 +31,6 @@ namespace GH99036 {
 template <typename T>
 concept C; // expected-error {{expected '='}}
 
-template <C U> void f(); // expected-error {{unknown type name 'C'}}
+template <C U> void f();
 
 } // namespace GH99036

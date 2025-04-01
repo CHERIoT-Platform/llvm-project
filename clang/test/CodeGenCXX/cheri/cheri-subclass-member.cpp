@@ -25,7 +25,7 @@ const s2 *__capability c_s2;
 // CHECK-SAME: () #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr @c_s2, align 16
-// CHECK-NEXT:    [[SIZE:%.*]] = getelementptr inbounds [[STRUCT_S1:%.*]], ptr addrspace(200) [[TMP0]], i32 0, i32 0
+// CHECK-NEXT:    [[SIZE:%.*]] = getelementptr inbounds nuw [[STRUCT_S1:%.*]], ptr addrspace(200) [[TMP0]], i32 0, i32 0
 // CHECK-NEXT:    ret ptr addrspace(200) [[SIZE]]
 //
 const long &__capability func() {

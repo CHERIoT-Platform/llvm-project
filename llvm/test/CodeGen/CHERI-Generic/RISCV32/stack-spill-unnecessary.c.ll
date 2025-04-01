@@ -22,9 +22,9 @@ define void @use_after_call() addrspace(200) nounwind {
 ; CHECK-NEXT:    csc cra, 24(csp) # 8-byte Folded Spill
 ; CHECK-NEXT:    csc cs0, 16(csp) # 8-byte Folded Spill
 ; CHECK-NEXT:    cincoffset ca0, csp, 12
+; CHECK-NEXT:    li a1, 123
 ; CHECK-NEXT:    csetbounds cs0, ca0, 4
-; CHECK-NEXT:    li a0, 123
-; CHECK-NEXT:    csw a0, 12(csp)
+; CHECK-NEXT:    csw a1, 12(csp)
 ; CHECK-NEXT:    ccall foo
 ; CHECK-NEXT:    cmove ca0, cs0
 ; CHECK-NEXT:    ccall one_arg
@@ -60,9 +60,9 @@ define void @use_after_call_no_store() addrspace(200) nounwind {
 ; CHECK-NEXT:    csc cs0, 16(csp) # 8-byte Folded Spill
 ; CHECK-NEXT:    csc cs1, 8(csp) # 8-byte Folded Spill
 ; CHECK-NEXT:    cincoffset ca0, csp, 4
+; CHECK-NEXT:    cincoffset ca1, csp, 0
 ; CHECK-NEXT:    csetbounds cs0, ca0, 4
-; CHECK-NEXT:    cincoffset ca0, csp, 0
-; CHECK-NEXT:    csetbounds cs1, ca0, 4
+; CHECK-NEXT:    csetbounds cs1, ca1, 4
 ; CHECK-NEXT:    ccall foo
 ; CHECK-NEXT:    cmove ca0, cs0
 ; CHECK-NEXT:    ccall one_arg
@@ -102,9 +102,9 @@ define void @multi_use() addrspace(200) nounwind {
 ; CHECK-NEXT:    csc cs0, 16(csp) # 8-byte Folded Spill
 ; CHECK-NEXT:    csc cs1, 8(csp) # 8-byte Folded Spill
 ; CHECK-NEXT:    cincoffset ca0, csp, 4
+; CHECK-NEXT:    cincoffset ca1, csp, 0
 ; CHECK-NEXT:    csetbounds cs0, ca0, 4
-; CHECK-NEXT:    cincoffset ca0, csp, 0
-; CHECK-NEXT:    csetbounds cs1, ca0, 4
+; CHECK-NEXT:    csetbounds cs1, ca1, 4
 ; CHECK-NEXT:    ccall foo
 ; CHECK-NEXT:    cincoffset ca1, cs1, 4
 ; CHECK-NEXT:    cincoffset ca2, cs1, 1

@@ -14,7 +14,9 @@ define i64 @foo(double %x) {
 ; CHECK-NEXT:    li a2, 0
 ; CHECK-NEXT:    call __adddf3
 ; CHECK-NEXT:    lw ra, 12(sp) # 4-byte Folded Reload
+; CHECK-NEXT:    .cfi_restore ra
 ; CHECK-NEXT:    addi sp, sp, 16
+; CHECK-NEXT:    .cfi_def_cfa_offset 0
 ; CHECK-NEXT:    ret
   %a = fadd double %x, 1.0
   %b = bitcast double %a to i64

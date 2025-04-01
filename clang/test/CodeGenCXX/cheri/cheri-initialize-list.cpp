@@ -39,9 +39,9 @@ extern int foo(std::initializer_list<int>& l);
 // CHECK-NEXT:    store i32 2, ptr addrspace(200) [[ARRAYINIT_ELEMENT]], align 4
 // CHECK-NEXT:    [[ARRAYINIT_ELEMENT1:%.*]] = getelementptr inbounds i32, ptr addrspace(200) [[REF_TMP]], i64 2
 // CHECK-NEXT:    store i32 3, ptr addrspace(200) [[ARRAYINIT_ELEMENT1]], align 4
-// CHECK-NEXT:    [[__BEGIN_:%.*]] = getelementptr inbounds %"class.std::initializer_list", ptr addrspace(200) [[L1]], i32 0, i32 0
+// CHECK-NEXT:    [[__BEGIN_:%.*]] = getelementptr inbounds nuw %"class.std::initializer_list", ptr addrspace(200) [[L1]], i32 0, i32 0
 // CHECK-NEXT:    store ptr addrspace(200) [[REF_TMP]], ptr addrspace(200) [[__BEGIN_]], align 16
-// CHECK-NEXT:    [[__SIZE_:%.*]] = getelementptr inbounds %"class.std::initializer_list", ptr addrspace(200) [[L1]], i32 0, i32 1
+// CHECK-NEXT:    [[__SIZE_:%.*]] = getelementptr inbounds nuw %"class.std::initializer_list", ptr addrspace(200) [[L1]], i32 0, i32 1
 // CHECK-NEXT:    store i64 3, ptr addrspace(200) [[__SIZE_]], align 16
 // CHECK-NEXT:    [[CALL:%.*]] = call noundef signext i32 @_Z3fooRSt16initializer_listIiE(ptr addrspace(200) noundef nonnull align 16 dereferenceable(24) [[L1]])
 // CHECK-NEXT:    ret i32 0

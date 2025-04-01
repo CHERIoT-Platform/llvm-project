@@ -83,8 +83,8 @@ int TgKill(pid_t pid, tid_t tid, int sig);
 uptr GetThreadSelf();
 void GetThreadStackTopAndBottom(bool at_initialization, uptr *stack_top,
                                 uptr *stack_bottom);
-void GetThreadStackAndTls(bool main, uptr *stk_addr, usize *stk_size,
-                          uptr *tls_addr, usize *tls_size);
+void GetThreadStackAndTls(bool main, uptr *stk_begin, usize *stk_end,
+                          uptr *tls_begin, usize *tls_end);
 
 // Memory management
 void *MmapOrDie(usize size, const char *mem_type, bool raw_report = false);
@@ -239,13 +239,15 @@ void RemoveANSIEscapeSequencesFromString(char *buffer);
 void Printf(const char *format, ...) FORMAT(1, 2);
 void Report(const char *format, ...) FORMAT(1, 2);
 void SetPrintfAndReportCallback(void (*callback)(const char *));
-#define VReport(level, ...)                                              \
-  do {                                                                   \
-    if ((usize)Verbosity() >= (level)) Report(__VA_ARGS__); \
+#define VReport(level, ...)                     \
+  do {                                          \
+    if (UNLIKELY((usize)Verbosity() >= (level))) \
+      Report(__VA_ARGS__);                      \
   } while (0)
-#define VPrintf(level, ...)                                              \
-  do {                                                                   \
-    if ((usize)Verbosity() >= (level)) Printf(__VA_ARGS__); \
+#define VPrintf(level, ...)                     \
+  do {                                          \
+    if (UNLIKELY((usize)Verbosity() >= (level))) \
+      Printf(__VA_ARGS__);                      \
   } while (0)
 
 // Lock sanitizer error reporting and protects against nested errors.
@@ -266,7 +268,15 @@ class ScopedErrorReportLock {
 extern pid_t stoptheworld_tracer_pid;
 extern pid_t stoptheworld_tracer_ppid;
 
+// Returns true if the entire range can be read.
 bool IsAccessibleMemoryRange(uptr beg, usize size);
+// Attempts to copy `n` bytes from memory range starting at `src` to `dest`.
+// Returns true if the entire range can be read. Returns `false` if any part of
+// the source range cannot be read, in which case the contents of `dest` are
+// undefined.
+bool TryMemCpy(void *dest, const void *src, usize n);
+// Copies accessible memory, and zero fill inaccessible.
+void MemCpyAccessible(void *dest, const void *src, usize n);
 
 // Error report formatting.
 const char *StripPathPrefix(const char *filepath,
@@ -975,7 +985,6 @@ typedef void (*RangeIteratorCallback)(vaddr begin, vaddr end, void *arg);
 
 enum AndroidApiLevel {
   ANDROID_NOT_ANDROID = 0,
-  ANDROID_KITKAT = 19,
   ANDROID_LOLLIPOP_MR1 = 22,
   ANDROID_POST_LOLLIPOP = 23
 };

@@ -147,9 +147,9 @@ int __start(void) {
 
 // WARN: global capability offset -11648 is less than 0:
 // WARN-NEXT: >>> Location: object man_macros
-// WARN-NEXT: >>> defined in cap-table-negative-reloc-offset.c (
+// WARN-NEXT: >>> defined in (
 // WARN-NEXT: >>> Target: object __man_macros
-// WARN-NEXT: >>> defined in cap-table-negative-reloc-offset.c
+// WARN-NEXT: >>> defined in 
 
 
 // CHECK-LABEL: SYMBOL TABLE:

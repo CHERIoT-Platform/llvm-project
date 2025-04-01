@@ -12,7 +12,7 @@ define i1 @get_next_format(i32 %arg) #0 {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[TMP0:%.*]] = and i32 [[ARG:%.*]], 255
 ; CHECK-NEXT:    [[TMP1:%.*]] = zext nneg i32 [[TMP0]] to i64
-; CHECK-NEXT:    [[MEMCHR_BOUNDS:%.*]] = icmp ult i32 [[TMP0]], 64
+; CHECK-NEXT:    [[MEMCHR_BOUNDS:%.*]] = icmp samesign ult i32 [[TMP0]], 64
 ; CHECK-NEXT:    [[TMP2:%.*]] = shl nuw i64 1, [[TMP1]]
 ; CHECK-NEXT:    [[TMP3:%.*]] = and i64 [[TMP2]], 326043852341249
 ; CHECK-NEXT:    [[MEMCHR_BITS:%.*]] = icmp ne i64 [[TMP3]], 0

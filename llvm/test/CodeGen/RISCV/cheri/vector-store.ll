@@ -7,10 +7,10 @@
 define <4 x i32> @vec_load(ptr addrspace(200) %src) addrspace(200) nounwind {
 ; HYBRID-LABEL: vec_load:
 ; HYBRID:       # %bb.0:
-; HYBRID-NEXT:    ld a2, 8(a1)
-; HYBRID-NEXT:    ld a1, 0(a1)
-; HYBRID-NEXT:    sd a2, 8(a0)
-; HYBRID-NEXT:    sd a1, 0(a0)
+; HYBRID-NEXT:    ld a2, 0(a1)
+; HYBRID-NEXT:    ld a1, 8(a1)
+; HYBRID-NEXT:    sd a2, 0(a0)
+; HYBRID-NEXT:    sd a1, 8(a0)
 ; HYBRID-NEXT:    ret
 ;
 ; PURECAP-LABEL: vec_load:
@@ -32,8 +32,8 @@ define <4 x i32> @vec_load(ptr addrspace(200) %src) addrspace(200) nounwind {
 define void @vec_store(i32 %0, ptr addrspace(200) %dst) addrspace(200) nounwind {
 ; HYBRID-LABEL: vec_store:
 ; HYBRID:       # %bb.0:
-; HYBRID-NEXT:    sw a0, 4(a1)
 ; HYBRID-NEXT:    sw zero, 0(a1)
+; HYBRID-NEXT:    sw a0, 4(a1)
 ; HYBRID-NEXT:    sd zero, 8(a1)
 ; HYBRID-NEXT:    ret
 ;

@@ -23,9 +23,9 @@ struct S {
 // CHECK-LABEL: @sub(
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[S:%.*]] = alloca [[STRUCT_S:%.*]], align 16
-// CHECK-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds [[STRUCT_S]], ptr [[S]], i32 0, i32 0
+// CHECK-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds nuw [[STRUCT_S]], ptr [[S]], i32 0, i32 0
 // CHECK-NEXT:    store ptr addrspace(200) [[S_COERCE:%.*]], ptr [[COERCE_DIVE]], align 16
-// CHECK-NEXT:    [[P:%.*]] = getelementptr inbounds [[STRUCT_S]], ptr [[S]], i32 0, i32 0
+// CHECK-NEXT:    [[P:%.*]] = getelementptr inbounds nuw [[STRUCT_S]], ptr [[S]], i32 0, i32 0
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr [[P]], align 16
 // CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[TMP0]], i64 0
 // CHECK-NEXT:    [[ARRAYIDX_ASCAST:%.*]] = addrspacecast ptr addrspace(200) [[ARRAYIDX]] to ptr

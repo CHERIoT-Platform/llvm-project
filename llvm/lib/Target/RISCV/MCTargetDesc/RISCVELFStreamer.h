@@ -15,7 +15,7 @@
 #include "llvm/MC/MCELFStreamer.h"
 #include "llvm/MC/MCObjectWriter.h"
 
-using namespace llvm;
+namespace llvm {
 
 class RISCVELFStreamer : public MCELFStreamer {
   void reset() override;
@@ -46,8 +46,6 @@ protected:
   void EmitCheriCapabilityImpl(const MCSymbol *Symbol, const MCExpr *Addend,
                                unsigned CapSize, SMLoc Loc) override;
 };
-
-namespace llvm {
 
 class RISCVTargetELFStreamer : public RISCVTargetStreamer {
 private:
@@ -86,5 +84,6 @@ MCELFStreamer *createRISCVELFStreamer(MCContext &C,
                                       std::unique_ptr<MCAsmBackend> MAB,
                                       std::unique_ptr<MCObjectWriter> MOW,
                                       std::unique_ptr<MCCodeEmitter> MCE);
-}
-#endif
+} // namespace llvm
+
+#endif // LLVM_LIB_TARGET_RISCV_MCTARGETDESC_RISCVELFSTREAMER_H

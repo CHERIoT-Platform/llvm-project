@@ -12,7 +12,6 @@
 
 #include "RISCVRegisterInfo.h"
 #include "RISCV.h"
-#include "RISCVMachineFunctionInfo.h"
 #include "RISCVSubtarget.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/BinaryFormat/Dwarf.h"
@@ -65,16 +64,16 @@ RISCVRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
     return CSR_NoRegs_SaveList;
   if (MF->getFunction().hasFnAttribute("interrupt")) {
     if (Subtarget.hasStdExtD())
-      return Subtarget.hasCheri() ? CSR_XLEN_CLEN_F64_Interrupt_SaveList
+      return Subtarget.hasVendorXCheri() ? CSR_XLEN_CLEN_F64_Interrupt_SaveList
                                   : CSR_XLEN_F64_Interrupt_SaveList;
     if (Subtarget.hasStdExtF()) {
-      if (Subtarget.hasCheri())
+      if (Subtarget.hasVendorXCheri())
         return CSR_XLEN_CLEN_F32_Interrupt_SaveList;
       return Subtarget.hasStdExtE() ? CSR_XLEN_F32_Interrupt_RVE_SaveList
                                     : CSR_XLEN_F32_Interrupt_SaveList;
     }
     
-    if (Subtarget.hasCheri())
+    if (Subtarget.hasVendorXCheri())
       return CSR_XLEN_CLEN_Interrupt_SaveList;
     return Subtarget.hasStdExtE() ? CSR_Interrupt_RVE_SaveList
                                   : CSR_Interrupt_SaveList;
@@ -137,12 +136,12 @@ BitVector RISCVRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   }
 
   // Use markSuperRegs to ensure any register aliases are also reserved
-  markSuperRegs(Reserved, RISCV::X2); // sp
-  markSuperRegs(Reserved, RISCV::X3); // gp
+  markSuperRegs(Reserved, RISCV::X2_H); // sp
+  markSuperRegs(Reserved, RISCV::X3_H); // gp
   if (STI.getTargetABI() != RISCVABI::ABI_CHERIOT && STI.getTargetABI() != RISCVABI::ABI_CHERIOT_BAREMETAL)
-    markSuperRegs(Reserved, RISCV::X4); // tp
+    markSuperRegs(Reserved, RISCV::X4_H); // tp
   if (TFI->hasFP(MF))
-    markSuperRegs(Reserved, RISCV::X8); // fp
+    markSuperRegs(Reserved, RISCV::X8_H); // fp
   // Reserve the base register if we need to realign the stack and allocate
   // variable-sized objects at runtime.
   if (TFI->hasBP(MF))
@@ -166,7 +165,7 @@ BitVector RISCVRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
 
   // There are only 16 GPRs for RVE.
   if (Subtarget.hasStdExtE())
-    for (MCPhysReg Reg = RISCV::X16; Reg <= RISCV::X31; Reg++)
+    for (MCPhysReg Reg = RISCV::X16_H; Reg <= RISCV::X31_H; Reg++)
       markSuperRegs(Reserved, Reg);
 
   // V registers for code generation. We handle them manually.
@@ -180,13 +179,13 @@ BitVector RISCVRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   markSuperRegs(Reserved, RISCV::FFLAGS);
 
   // SiFive VCIX state registers.
-  markSuperRegs(Reserved, RISCV::VCIX_STATE);
+  markSuperRegs(Reserved, RISCV::SF_VCIX_STATE);
 
   if (MF.getFunction().getCallingConv() == CallingConv::GRAAL) {
     if (Subtarget.hasStdExtE())
       report_fatal_error("Graal reserved registers do not exist in RVE");
-    markSuperRegs(Reserved, RISCV::X23);
-    markSuperRegs(Reserved, RISCV::X27);
+    markSuperRegs(Reserved, RISCV::X23_H);
+    markSuperRegs(Reserved, RISCV::X27_H);
   }
 
   // Shadow stack pointer.
@@ -198,7 +197,7 @@ BitVector RISCVRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
 
 bool RISCVRegisterInfo::isAsmClobberable(const MachineFunction &MF,
                                          MCRegister PhysReg) const {
-  return !MF.getSubtarget<RISCVSubtarget>().isRegisterReservedByUser(PhysReg);
+  return !MF.getSubtarget().isRegisterReservedByUser(PhysReg);
 }
 
 const uint32_t *RISCVRegisterInfo::getNoPreservedMask() const {
@@ -219,6 +218,23 @@ void RISCVRegisterInfo::adjustReg(MachineBasicBlock &MBB,
   MachineRegisterInfo &MRI = MF.getRegInfo();
   const RISCVSubtarget &ST = MF.getSubtarget<RISCVSubtarget>();
   const RISCVInstrInfo *TII = ST.getInstrInfo();
+
+  // Optimize compile time offset case
+  if (Offset.getScalable()) {
+    if (auto VLEN = ST.getRealVLen()) {
+      // 1. Multiply the number of v-slots by the (constant) length of register
+      const int64_t VLENB = *VLEN / 8;
+      assert(Offset.getScalable() % (RISCV::RVVBitsPerBlock / 8) == 0 &&
+             "Reserve the stack by the multiple of one vector size.");
+      const int64_t NumOfVReg = Offset.getScalable() / 8;
+      const int64_t FixedOffset = NumOfVReg * VLENB;
+      if (!isInt<32>(FixedOffset)) {
+        report_fatal_error(
+            "Frame size outside of the signed 32-bit range not supported");
+      }
+      Offset = StackOffset::getFixed(FixedOffset + Offset.getFixed());
+    }
+  }
 
   bool KillSrcReg = false;
 
@@ -246,11 +262,11 @@ void RISCVRegisterInfo::adjustReg(MachineBasicBlock &MBB,
       ScratchReg = MRI.createVirtualRegister(&RISCV::GPRRegClass);
 
     assert(ScalableValue > 0 && "There is no need to get VLEN scaled value.");
-    assert(ScalableValue % 8 == 0 &&
+    assert(ScalableValue % (RISCV::RVVBitsPerBlock / 8) == 0 &&
            "Reserve the stack by the multiple of one vector size.");
-    assert(isInt<32>(ScalableValue / 8) &&
+    assert(isInt<32>(ScalableValue / (RISCV::RVVBitsPerBlock / 8)) &&
            "Expect the number of vector registers within 32-bits.");
-    uint32_t NumOfVReg = ScalableValue / 8;
+    uint32_t NumOfVReg = ScalableValue / (RISCV::RVVBitsPerBlock / 8);
     BuildMI(MBB, II, DL, TII->get(RISCV::PseudoReadVLENB), ScratchReg)
         .setMIFlag(Flag);
 
@@ -513,19 +529,6 @@ bool RISCVRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   if (!IsRVVSpill)
     Offset += StackOffset::getFixed(MI.getOperand(FIOperandNum + 1).getImm());
 
-  if (Offset.getScalable() &&
-      ST.getRealMinVLen() == ST.getRealMaxVLen()) {
-    // For an exact VLEN value, scalable offsets become constant and thus
-    // can be converted entirely into fixed offsets.
-    int64_t FixedValue = Offset.getFixed();
-    int64_t ScalableValue = Offset.getScalable();
-    assert(ScalableValue % 8 == 0 &&
-           "Scalable offset is not a multiple of a single vector size.");
-    int64_t NumOfVReg = ScalableValue / 8;
-    int64_t VLENB = ST.getRealMinVLen() / 8;
-    Offset = StackOffset::getFixed(FixedValue + NumOfVReg * VLENB);
-  }
-
   if (!isInt<32>(Offset.getFixed())) {
     report_fatal_error(
         "Frame offsets outside of the signed 32-bit range not supported");
@@ -774,6 +777,12 @@ Register RISCVRegisterInfo::getFrameRegister(const MachineFunction &MF) const {
   return TFI->hasFP(MF) ? TFI->getFPReg() : TFI->getSPReg();
 }
 
+StringRef RISCVRegisterInfo::getRegAsmName(MCRegister Reg) const {
+  if (Reg == RISCV::SF_VCIX_STATE)
+    return "sf.vcix_state";
+  return TargetRegisterInfo::getRegAsmName(Reg);
+}
+
 const uint32_t *
 RISCVRegisterInfo::getCallPreservedMask(const MachineFunction & MF,
                                         CallingConv::ID CC) const {
@@ -988,6 +997,26 @@ bool RISCVRegisterInfo::getRegAllocationHints(
       } else if (MI.isCommutable() && OpIdx == 2 &&
                  (!NeedGPRC || isCompressibleOpnd(MI.getOperand(1)))) {
         tryAddHint(MO, MI.getOperand(0), NeedGPRC);
+      }
+    }
+
+    // Add a hint if it would allow auipc/lui+addi(w) fusion.
+    if ((MI.getOpcode() == RISCV::ADDIW || MI.getOpcode() == RISCV::ADDI) &&
+        MI.getOperand(1).isReg()) {
+      const MachineBasicBlock &MBB = *MI.getParent();
+      MachineBasicBlock::const_iterator I = MI.getIterator();
+      // Is the previous instruction a LUI or AUIPC that can be fused?
+      if (I != MBB.begin()) {
+        I = skipDebugInstructionsBackward(std::prev(I), MBB.begin());
+        if (((I->getOpcode() == RISCV::LUI && Subtarget.hasLUIADDIFusion()) ||
+             (I->getOpcode() == RISCV::AUIPC &&
+              Subtarget.hasAUIPCADDIFusion())) &&
+            I->getOperand(0).getReg() == MI.getOperand(1).getReg()) {
+          if (OpIdx == 0)
+            tryAddHint(MO, MI.getOperand(1), /*NeedGPRC=*/false);
+          else
+            tryAddHint(MO, MI.getOperand(0), /*NeedGPRC=*/false);
+        }
       }
     }
   }

@@ -73,11 +73,17 @@ SANITIZER("fuzzer", Fuzzer)
 // libFuzzer-required instrumentation, no linking.
 SANITIZER("fuzzer-no-link", FuzzerNoLink)
 
+// TypeSanitizer
+SANITIZER("type", Type)
+
 // ThreadSanitizer
 SANITIZER("thread", Thread)
 
 // Numerical stability sanitizer.
 SANITIZER("numerical", NumericalStability)
+
+// RealtimeSanitizer
+SANITIZER("realtime", Realtime)
 
 // LeakSanitizer
 SANITIZER("leak", Leak)
@@ -139,11 +145,6 @@ SANITIZER("safe-stack", SafeStack)
 // Shadow Call Stack
 SANITIZER("shadow-call-stack", ShadowCallStack)
 
-// -fsanitize=cheri includes all the sanitizers that make use of capability
-// metadata and don't have any ABI implications.
-SANITIZER("cheri-unrepresentable", CheriUnrepresentable)
-SANITIZER_GROUP("cheri", CHERI, CheriUnrepresentable)
-
 // -fsanitize=undefined includes all the sanitizers which have low overhead, no
 // ABI or address space layout implications, and only catch undefined behavior.
 SANITIZER_GROUP("undefined", Undefined,
@@ -194,6 +195,11 @@ SANITIZER_GROUP("bounds", Bounds, ArrayBounds | LocalBounds)
 
 // Scudo hardened allocator
 SANITIZER("scudo", Scudo)
+
+// -fsanitize=cheri includes all the sanitizers that make use of capability
+// metadata and don't have any ABI implications.
+SANITIZER("cheri-unrepresentable", CheriUnrepresentable)
+SANITIZER_GROUP("cheri", CHERI, CheriUnrepresentable)
 
 // Magic group, containing all sanitizers. For example, "-fno-sanitize=all"
 // can be used to disable all the sanitizers.

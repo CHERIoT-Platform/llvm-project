@@ -334,10 +334,11 @@ public:
                                      Address This, llvm::Type *Ty,
                                      SourceLocation Loc) override;
 
-  llvm::Value *EmitVirtualDestructorCall(CodeGenFunction &CGF,
-                                         const CXXDestructorDecl *Dtor,
-                                         CXXDtorType DtorType, Address This,
-                                         DeleteOrMemberCallExpr E) override;
+  llvm::Value *
+  EmitVirtualDestructorCall(CodeGenFunction &CGF, const CXXDestructorDecl *Dtor,
+                            CXXDtorType DtorType, Address This,
+                            DeleteOrMemberCallExpr E,
+                            llvm::CallBase **CallOrInvoke) override;
 
   void adjustCallArgsForDestructorThunk(CodeGenFunction &CGF, GlobalDecl GD,
                                         CallArgList &CallArgs) override {
@@ -430,6 +431,7 @@ public:
   bool usesThreadWrapperFunction(const VarDecl *VD) const override {
     return getContext().getLangOpts().isCompatibleWithMSVC(
                LangOptions::MSVC2019_5) &&
+           CGM.getCodeGenOpts().TlsGuards &&
            (!isEmittedWithConstantInitializer(VD) || mayNeedDestruction(VD));
   }
   LValue EmitThreadLocalVarDeclLValue(CodeGenFunction &CGF, const VarDecl *VD,
@@ -517,8 +519,9 @@ public:
         CGM.IntTy,
         CGM.IntTy,
         CGM.IntTy,
-        getImageRelativeType(getClassHierarchyDescriptorType()->getPointerTo(
-          CGM.getTargetCodeGenInfo().getDefaultAS())),
+        getImageRelativeType(
+            llvm::PointerType::get(getClassHierarchyDescriptorType(),
+                                   CGM.getTargetCodeGenInfo().getDefaultAS())),
     };
     BaseClassDescriptorType = llvm::StructType::create(
         CGM.getLLVMContext(), FieldTypes, "rtti.BaseClassDescriptor");
@@ -537,7 +540,7 @@ public:
         CGM.IntTy,
         CGM.IntTy,
         getImageRelativeType(
-            getBaseClassDescriptorType()->getPointerTo(AS)->getPointerTo(AS)),
+            llvm::PointerType::get(getBaseClassDescriptorType(), AS)),
     };
     ClassHierarchyDescriptorType->setBody(FieldTypes);
     return ClassHierarchyDescriptorType;
@@ -546,21 +549,21 @@ public:
   llvm::StructType *getCompleteObjectLocatorType() {
     if (CompleteObjectLocatorType)
       return CompleteObjectLocatorType;
-    CompleteObjectLocatorType = llvm::StructType::create(
-        CGM.getLLVMContext(), "rtti.CompleteObjectLocator");
     llvm::Type *FieldTypes[] = {
         CGM.IntTy,
         CGM.IntTy,
         CGM.IntTy,
         getImageRelativeType(CGM.Int8PtrTy),
-        getImageRelativeType(getClassHierarchyDescriptorType()->getPointerTo(
-          CGM.getTargetCodeGenInfo().getDefaultAS())),
+        getImageRelativeType(
+            llvm::PointerType::get(getClassHierarchyDescriptorType(),
+                                   CGM.getTargetCodeGenInfo().getDefaultAS())),
         getImageRelativeType(CompleteObjectLocatorType),
     };
     llvm::ArrayRef<llvm::Type *> FieldTypesRef(FieldTypes);
     if (!isImageRelative())
       FieldTypesRef = FieldTypesRef.drop_back();
-    CompleteObjectLocatorType->setBody(FieldTypesRef);
+    CompleteObjectLocatorType =
+        llvm::StructType::create(FieldTypesRef, "rtti.CompleteObjectLocator");
     return CompleteObjectLocatorType;
   }
 
@@ -752,8 +755,8 @@ public:
     llvm::SmallString<23> CTATypeName("eh.CatchableTypeArray.");
     CTATypeName += llvm::utostr(NumEntries);
     unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
-    llvm::Type *CTType =
-        getImageRelativeType(getCatchableTypeType()->getPointerTo(DefaultAS));
+    llvm::Type *CTType = getImageRelativeType(
+        llvm::PointerType::get(getCatchableTypeType(), DefaultAS));
     llvm::Type *FieldTypes[] = {
         CGM.IntTy,                               // NumEntries
         llvm::ArrayType::get(CTType, NumEntries) // CatchableTypes
@@ -783,7 +786,7 @@ public:
     unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
     llvm::Type *Args[] = {
       CGM.Int8PtrTy,
-      getThrowInfoType()->getPointerTo(DefaultAS)
+      llvm::PointerType::get(getThrowInfoType(), DefaultAS)
     };
     llvm::FunctionType *FTy =
         llvm::FunctionType::get(CGM.VoidTy, Args, /*isVarArg=*/false);
@@ -909,16 +912,17 @@ void MicrosoftCXXABI::emitVirtualObjectDelete(CodeGenFunction &CGF,
   // CXXMemberCallExpr for dtor call.
   bool UseGlobalDelete = DE->isGlobalDelete();
   CXXDtorType DtorType = UseGlobalDelete ? Dtor_Complete : Dtor_Deleting;
-  llvm::Value *MDThis = EmitVirtualDestructorCall(CGF, Dtor, DtorType, Ptr, DE);
+  llvm::Value *MDThis = EmitVirtualDestructorCall(CGF, Dtor, DtorType, Ptr, DE,
+                                                  /*CallOrInvoke=*/nullptr);
   if (UseGlobalDelete)
     CGF.EmitDeleteCall(DE->getOperatorDelete(), MDThis, ElementType);
 }
 
 void MicrosoftCXXABI::emitRethrow(CodeGenFunction &CGF, bool isNoReturn) {
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
-  llvm::Value *Args[] = {
-      llvm::ConstantPointerNull::get(CGM.Int8PtrTy),
-      llvm::ConstantPointerNull::get(getThrowInfoType()->getPointerTo(DefaultAS))};
+  auto PtrTy = llvm::PointerType::get(CGM.UnqualPtrTy, DefaultAS);
+  llvm::Value *Args[] = {llvm::ConstantPointerNull::get(PtrTy),
+                         llvm::ConstantPointerNull::get(PtrTy)};
   llvm::FunctionCallee Fn = getThrowFn();
   if (isNoReturn)
     CGF.EmitNoreturnRuntimeCallOrInvoke(Fn, Args);
@@ -933,7 +937,7 @@ void MicrosoftCXXABI::emitBeginCatch(CodeGenFunction &CGF,
   VarDecl *CatchParam = S->getExceptionDecl();
   llvm::BasicBlock *CatchPadBB = CGF.Builder.GetInsertBlock();
   llvm::CatchPadInst *CPI =
-      cast<llvm::CatchPadInst>(CatchPadBB->getFirstNonPHI());
+      cast<llvm::CatchPadInst>(CatchPadBB->getFirstNonPHIIt());
   CGF.CurrentFuncletPad = CPI;
 
   // If this is a catch-all or the catch parameter is unnamed, we don't need to
@@ -1694,7 +1698,7 @@ void MicrosoftCXXABI::EmitDestructorCall(CodeGenFunction &CGF,
   CGF.EmitCXXDestructorCall(GD, Callee, CGF.getAsNaturalPointerTo(This, ThisTy),
                             ThisTy,
                             /*ImplicitParam=*/Implicit,
-                            /*ImplicitParamTy=*/QualType(), nullptr);
+                            /*ImplicitParamTy=*/QualType(), /*E=*/nullptr);
   if (BaseDtorEndBB) {
     // Complete object handler should continue to be the remaining
     CGF.Builder.CreateBr(BaseDtorEndBB);
@@ -1966,13 +1970,14 @@ CGCallee MicrosoftCXXABI::getVirtualFunctionPointer(CodeGenFunction &CGF,
   CGBuilderTy &Builder = CGF.Builder;
 
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
-  Ty = Ty->getPointerTo(DefaultAS);
+  auto DefaultPtrTy = llvm::PointerType::get(CGF.UnqualPtrTy, DefaultAS);
+  Ty = DefaultPtrTy;
   Address VPtr =
       adjustThisArgumentForVirtualFunctionCall(CGF, GD, This, true);
 
   auto *MethodDecl = cast<CXXMethodDecl>(GD.getDecl());
-  llvm::Value *VTable = CGF.GetVTablePtr(VPtr, Ty->getPointerTo(DefaultAS),
-                                         MethodDecl->getParent());
+  llvm::Value *VTable =
+      CGF.GetVTablePtr(VPtr, DefaultPtrTy, MethodDecl->getParent());
 
   MicrosoftVTableContext &VFTContext = CGM.getMicrosoftVTableContext();
   MethodVFTableLocation ML = VFTContext.getMethodVFTableLocation(GD);
@@ -2011,7 +2016,7 @@ CGCallee MicrosoftCXXABI::getVirtualFunctionPointer(CodeGenFunction &CGF,
 
 llvm::Value *MicrosoftCXXABI::EmitVirtualDestructorCall(
     CodeGenFunction &CGF, const CXXDestructorDecl *Dtor, CXXDtorType DtorType,
-    Address This, DeleteOrMemberCallExpr E) {
+    Address This, DeleteOrMemberCallExpr E, llvm::CallBase **CallOrInvoke) {
   auto *CE = E.dyn_cast<const CXXMemberCallExpr *>();
   auto *D = E.dyn_cast<const CXXDeleteExpr *>();
   assert((CE != nullptr) ^ (D != nullptr));
@@ -2041,7 +2046,7 @@ llvm::Value *MicrosoftCXXABI::EmitVirtualDestructorCall(
   This = adjustThisArgumentForVirtualFunctionCall(CGF, GD, This, true);
   RValue RV =
       CGF.EmitCXXDestructorCall(GD, Callee, This.emitRawPointer(CGF), ThisTy,
-                                ImplicitParam, Context.IntTy, CE);
+                                ImplicitParam, Context.IntTy, CE, CallOrInvoke);
   return RV.getScalarVal();
 }
 
@@ -2134,9 +2139,10 @@ MicrosoftCXXABI::EmitVirtualMemPtrThunk(const CXXMethodDecl *MD,
   // Load the vfptr and then callee from the vftable.  The callee should have
   // adjusted 'this' so that the vfptr is at offset zero.
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
-  llvm::Type *ThunkPtrTy = ThunkTy->getPointerTo(DefaultAS);
-  llvm::Value *VTable = CGF.GetVTablePtr(
-      getThisAddress(CGF), ThunkPtrTy->getPointerTo(DefaultAS), MD->getParent());
+  auto DefaultPtrTy = llvm::PointerType::get(CGF.UnqualPtrTy, DefaultAS);
+  llvm::Type *ThunkPtrTy = DefaultPtrTy;
+  llvm::Value *VTable =
+      CGF.GetVTablePtr(getThisAddress(CGF), DefaultPtrTy, MD->getParent());
 
   llvm::Value *VFuncPtr = CGF.Builder.CreateConstInBoundsGEP1_64(
       ThunkPtrTy, VTable, ML.Index, "vfn");
@@ -2559,9 +2565,10 @@ static ConstantAddress getInitThreadEpochPtr(CodeGenModule &CGM) {
 
 static llvm::FunctionCallee getInitThreadHeaderFn(CodeGenModule &CGM) {
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
+  auto DefaultPtrTy = llvm::PointerType::get(CGM.IntTy, DefaultAS);
   llvm::FunctionType *FTy =
       llvm::FunctionType::get(llvm::Type::getVoidTy(CGM.getLLVMContext()),
-                              CGM.IntTy->getPointerTo(DefaultAS), /*isVarArg=*/false);
+                              DefaultPtrTy, /*isVarArg=*/false);
   return CGM.CreateRuntimeFunction(
       FTy, "_Init_thread_header",
       llvm::AttributeList::get(CGM.getLLVMContext(),
@@ -2574,7 +2581,7 @@ static llvm::FunctionCallee getInitThreadFooterFn(CodeGenModule &CGM) {
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
   llvm::FunctionType *FTy =
       llvm::FunctionType::get(llvm::Type::getVoidTy(CGM.getLLVMContext()),
-                              CGM.IntTy->getPointerTo(DefaultAS), /*isVarArg=*/false);
+                              llvm::PointerType::get(CGM.IntTy, DefaultAS), /*isVarArg=*/false);
   return CGM.CreateRuntimeFunction(
       FTy, "_Init_thread_footer",
       llvm::AttributeList::get(CGM.getLLVMContext(),
@@ -2585,9 +2592,9 @@ static llvm::FunctionCallee getInitThreadFooterFn(CodeGenModule &CGM) {
 
 static llvm::FunctionCallee getInitThreadAbortFn(CodeGenModule &CGM) {
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
-  llvm::FunctionType *FTy =
-      llvm::FunctionType::get(llvm::Type::getVoidTy(CGM.getLLVMContext()),
-                              CGM.IntTy->getPointerTo(DefaultAS), /*isVarArg=*/false);
+  llvm::FunctionType *FTy = llvm::FunctionType::get(
+      llvm::Type::getVoidTy(CGM.getLLVMContext()),
+      llvm::PointerType::get(CGM.IntTy, DefaultAS), /*isVarArg=*/false);
   return CGM.CreateRuntimeFunction(
       FTy, "_Init_thread_abort",
       llvm::AttributeList::get(CGM.getLLVMContext(),
@@ -3169,8 +3176,8 @@ MicrosoftCXXABI::GetVBaseOffsetFromVBPtr(CodeGenFunction &CGF,
     VBPtrAlign = CGF.getPointerAlign();
   }
 
-  llvm::Value *VBTable = Builder.CreateAlignedLoad(
-      CGM.Int32Ty->getPointerTo(0), VBPtr, VBPtrAlign, "vbtable");
+  llvm::Value *VBTable =
+      Builder.CreateAlignedLoad(CGM.UnqualPtrTy, VBPtr, VBPtrAlign, "vbtable");
 
   // Translate from byte offset to table index. It improves analyzability.
   llvm::Value *VBTableIndex = Builder.CreateAShr(
@@ -3474,7 +3481,7 @@ llvm::Value *MicrosoftCXXABI::EmitNonNullMemberPointerConversion(
   if (inheritanceModelHasOnlyOneField(IsFunc, DstInheritance)) {
     Dst = FirstField;
   } else {
-    Dst = llvm::UndefValue::get(ConvertMemberPointerType(DstTy));
+    Dst = llvm::PoisonValue::get(ConvertMemberPointerType(DstTy));
     unsigned Idx = 0;
     Dst = Builder.CreateInsertValue(Dst, FirstField, Idx++);
     if (inheritanceModelHasNVOffsetField(IsFunc, DstInheritance))
@@ -3831,7 +3838,7 @@ MSRTTIBuilder::getBaseClassArray(SmallVectorImpl<MSRTTIClass> &Classes) {
   // marked pick-any so it shouldn't matter.
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
   llvm::Type *PtrType = ABI.getImageRelativeType(
-      ABI.getBaseClassDescriptorType()->getPointerTo(DefaultAS));
+      llvm::PointerType::get(ABI.getBaseClassDescriptorType(), DefaultAS));
   auto *ArrType = llvm::ArrayType::get(PtrType, Classes.size() + 1);
   auto *BCA =
       new llvm::GlobalVariable(Module, ArrType,
@@ -4379,7 +4386,7 @@ llvm::GlobalVariable *MicrosoftCXXABI::getCatchableTypeArray(QualType T) {
   uint32_t NumEntries = CatchableTypes.size();
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
   llvm::Type *CTType =
-      getImageRelativeType(getCatchableTypeType()->getPointerTo(DefaultAS));
+      getImageRelativeType(llvm::PointerType::get(getCatchableTypeType(), DefaultAS));
   llvm::ArrayType *AT = llvm::ArrayType::get(CTType, NumEntries);
   llvm::StructType *CTAType = getCatchableTypeArrayType(NumEntries);
   llvm::Constant *Fields[] = {

@@ -76,8 +76,16 @@ define void @test() nounwind {
 ; CHECK-O2-LABEL: define {{[^@]+}}@test
 ; CHECK-O2-SAME: () local_unnamed_addr addrspace(200) #[[ATTR1:[0-9]+]] {
 ; CHECK-O2-NEXT:  bb:
+; CHECK-O2-NEXT:    [[H_SROA_7_SROA_0:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
+; CHECK-O2-NEXT:    [[H_SROA_7_SROA_2_SROA_0:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 ; CHECK-O2-NEXT:    [[H_D_BYVAL:%.*]] = alloca [[STRUCT_C:%.*]], align 16, addrspace(200)
-; CHECK-O2-NEXT:    call void @llvm.memset.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(32) [[H_D_BYVAL]], i8 1, i64 32, i1 false)
+; CHECK-O2-NEXT:    call void @llvm.memset.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[H_SROA_7_SROA_0]], i8 1, i64 16, i1 false)
+; CHECK-O2-NEXT:    call void @llvm.memset.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[H_SROA_7_SROA_2_SROA_0]], i8 1, i64 16, i1 false)
+; CHECK-O2-NEXT:    [[H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_0_SROA_0_0_COPYLOAD:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[H_SROA_7_SROA_0]], align 16
+; CHECK-O2-NEXT:    [[H_SROA_7_SROA_2_SROA_0_0_H_SROA_7_SROA_2_SROA_0_0_H_SROA_7_SROA_2_SROA_0_0_H_SROA_7_SROA_2_SROA_0_0_:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[H_SROA_7_SROA_2_SROA_0]], align 16
+; CHECK-O2-NEXT:    store ptr addrspace(200) [[H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_0_SROA_0_0_COPYLOAD]], ptr addrspace(200) [[H_D_BYVAL]], align 16
+; CHECK-O2-NEXT:    [[H_SROA_0_SROA_5_0_H_D_BYVAL_SROA_IDX:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[H_D_BYVAL]], i64 16
+; CHECK-O2-NEXT:    store ptr addrspace(200) [[H_SROA_7_SROA_2_SROA_0_0_H_SROA_7_SROA_2_SROA_0_0_H_SROA_7_SROA_2_SROA_0_0_H_SROA_7_SROA_2_SROA_0_0_]], ptr addrspace(200) [[H_SROA_0_SROA_5_0_H_D_BYVAL_SROA_IDX]], align 16
 ; CHECK-O2-NEXT:    call void @read(ptr addrspace(200) nonnull [[H_D_BYVAL]])
 ; CHECK-O2-NEXT:    ret void
 ;
@@ -119,6 +127,12 @@ bb:
 ; Make sure that processing strict align slices works properly.
 
 ; CHECK-SLICES:      [SROA] Strict align slice [0, 16] (writes tags)
+; CHECK-SLICES-NEXT: [SROA] Strict align slice [16, 32] (writes tags)
+; CHECK-SLICES-NEXT: [SROA] Finding pair of strict align slice [0, 16] (writes tags)
+; CHECK-SLICES-NEXT: [SROA]        Could not find pair
+; CHECK-SLICES-NEXT: [SROA] Finding pair of strict align slice [16, 32] (writes tags)
+; CHECK-SLICES-NEXT: [SROA]        Could not find pair
+; CHECK-SLICES-NEXT: [SROA] Strict align slice [0, 16] (writes tags)
 ; CHECK-SLICES-NEXT: [SROA] Strict align slice [0, 16] (reads tags)
 ; CHECK-SLICES-NEXT: [SROA] Strict align slice [16, 32] (writes tags)
 ; CHECK-SLICES-NEXT: [SROA] Strict align slice [16, 32] (reads tags)
@@ -171,4 +185,7 @@ bb:
 ; CHECK-SLICES-NEXT: [SROA] Finding pair of strict align slice [0, 16] (writes tags)
 ; CHECK-SLICES-NEXT: [SROA]        [0, 16] (reads tags)
 ; CHECK-SLICES-NEXT: [SROA] Finding pair of strict align slice [0, 16] (reads tags)
-; CHECK-SLICES-NEXt; [SROA]        [0, 16] (writes tags)
+; CHECK-SLICES-NEXT: [SROA]        [0, 16] (writes tags)
+; CHECK-SLICES-NEXT: [SROA] Strict align slice [16, 32] (writes tags)
+; CHECK-SLICES-NEXT: [SROA] Finding pair of strict align slice [16, 32] (writes tags)
+; CHECK-SLICES-NEXT: [SROA]        Could not find pair

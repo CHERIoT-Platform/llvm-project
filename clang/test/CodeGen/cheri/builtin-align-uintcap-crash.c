@@ -45,7 +45,7 @@ int a() { return ((int *)0)[__builtin_align_up((long)0, 16) / 1]; }
 // CHECK-NEXT:    [[DIV:%.*]] = udiv i64 [[TMP0]], [[TMP1]]
 // CHECK-NEXT:    [[TMP2:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[DIV]]
 // CHECK-NEXT:    [[TMP3:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP2]])
-// CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds i32, ptr addrspace(200) null, i64 [[TMP3]]
+// CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds nuw i32, ptr addrspace(200) null, i64 [[TMP3]]
 // CHECK-NEXT:    [[TMP4:%.*]] = load i32, ptr addrspace(200) [[ARRAYIDX]], align 4
 // CHECK-NEXT:    ret i32 [[TMP4]]
 //

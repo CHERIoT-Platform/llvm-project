@@ -33,7 +33,7 @@ void *baz(void*, void*);
 // CHECK-NEXT:    [[TMP1:%.*]] = load ptr, ptr [[B_ADDR]], align 8
 // CHECK-NEXT:    [[TMP2:%.*]] = load i64, ptr @__cheri_method.def.baz, align 8, !invariant.load !2
 // CHECK-NEXT:    [[TMP3:%.*]] = load ptr addrspace(200), ptr @def, align 16
-// CHECK-NEXT:    [[TMP4:%.*]] = load ptr addrspace(200), ptr getelementptr inbounds ([[STRUCT_CHERI_CLASS:%.*]], ptr @def, i32 0, i32 1), align 16
+// CHECK-NEXT:    [[TMP4:%.*]] = load ptr addrspace(200), ptr getelementptr inbounds nuw ([[STRUCT_CHERI_CLASS:%.*]], ptr @def, i32 0, i32 1), align 16
 // CHECK-NEXT:    [[CALL:%.*]] = call chericcallcc ptr @cheri_invoke(ptr addrspace(200) noundef [[TMP3]], ptr addrspace(200) noundef [[TMP4]], i64 noundef zeroext [[TMP2]], ptr noundef [[TMP0]], ptr noundef [[TMP1]])
 // CHECK-NEXT:    [[TMP5:%.*]] = load ptr, ptr [[A_ADDR]], align 8
 // CHECK-NEXT:    [[TMP6:%.*]] = addrspacecast ptr [[TMP5]] to ptr addrspace(200)
@@ -41,7 +41,7 @@ void *baz(void*, void*);
 // CHECK-NEXT:    [[TMP8:%.*]] = addrspacecast ptr [[TMP7]] to ptr addrspace(200)
 // CHECK-NEXT:    [[TMP9:%.*]] = load i64, ptr @__cheri_method.def.foo, align 8, !invariant.load !2
 // CHECK-NEXT:    [[TMP10:%.*]] = load ptr addrspace(200), ptr @def, align 16
-// CHECK-NEXT:    [[TMP11:%.*]] = load ptr addrspace(200), ptr getelementptr inbounds ([[STRUCT_CHERI_CLASS]], ptr @def, i32 0, i32 1), align 16
+// CHECK-NEXT:    [[TMP11:%.*]] = load ptr addrspace(200), ptr getelementptr inbounds nuw ([[STRUCT_CHERI_CLASS]], ptr @def, i32 0, i32 1), align 16
 // CHECK-NEXT:    [[CALL1:%.*]] = call chericcallcc ptr addrspace(200) @cheri_invoke(ptr addrspace(200) noundef [[TMP10]], ptr addrspace(200) noundef [[TMP11]], i64 noundef zeroext [[TMP9]], ptr addrspace(200) noundef [[TMP6]], ptr addrspace(200) noundef [[TMP8]])
 // CHECK-NEXT:    [[CALL1_ASCAST:%.*]] = addrspacecast ptr addrspace(200) [[CALL1]] to ptr
 // CHECK-NEXT:    ret ptr [[CALL1_ASCAST]]

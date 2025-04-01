@@ -60,7 +60,7 @@ struct ShortDataLong {
 // CHECK-NEXT:    [[TMP7:%.*]] = zext i64 [[TMP5]] to i120
 // CHECK-NEXT:    store i120 [[TMP7]], ptr addrspace(200) [[TMP6]], align 8
 // CHECK-NEXT:    [[TMP8:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[DATA_ADDR]], align 16
-// CHECK-NEXT:    [[STATUS:%.*]] = getelementptr inbounds [[STRUCT_SHORTDATALONG:%.*]], ptr addrspace(200) [[TMP8]], i32 0, i32 1
+// CHECK-NEXT:    [[STATUS:%.*]] = getelementptr inbounds nuw [[STRUCT_SHORTDATALONG:%.*]], ptr addrspace(200) [[TMP8]], i32 0, i32 1
 // CHECK-NEXT:    store i8 24, ptr addrspace(200) [[STATUS]], align 1
 // CHECK-NEXT:    ret void
 //

@@ -36,10 +36,10 @@ extern int procctl(idtype_t, pid_t, int, void *);
 // CHECK-NEXT:    call void @llvm.memset.p200.i64(ptr addrspace(200) align 4 [[ARRAYDECAY]], i8 0, i64 720, i1 false)
 // CHECK-NEXT:    [[TMP0:%.*]] = load i32, ptr addrspace(200) [[PARENT_ADDR]], align 4
 // CHECK-NEXT:    call void @llvm.memset.p200.i64(ptr addrspace(200) align 16 [[DOTCOMPOUNDLITERAL]], i8 0, i64 80, i1 false)
-// CHECK-NEXT:    [[RP_COUNT:%.*]] = getelementptr inbounds [[STRUCT_PROCCTL_REAPER_PIDS]], ptr addrspace(200) [[DOTCOMPOUNDLITERAL]], i32 0, i32 0
+// CHECK-NEXT:    [[RP_COUNT:%.*]] = getelementptr inbounds nuw [[STRUCT_PROCCTL_REAPER_PIDS]], ptr addrspace(200) [[DOTCOMPOUNDLITERAL]], i32 0, i32 0
 // CHECK-NEXT:    store i32 10, ptr addrspace(200) [[RP_COUNT]], align 16
-// CHECK-NEXT:    [[RP_PAD0:%.*]] = getelementptr inbounds [[STRUCT_PROCCTL_REAPER_PIDS]], ptr addrspace(200) [[DOTCOMPOUNDLITERAL]], i32 0, i32 1
-// CHECK-NEXT:    [[RP_PIDS:%.*]] = getelementptr inbounds [[STRUCT_PROCCTL_REAPER_PIDS]], ptr addrspace(200) [[DOTCOMPOUNDLITERAL]], i32 0, i32 2
+// CHECK-NEXT:    [[RP_PAD0:%.*]] = getelementptr inbounds nuw [[STRUCT_PROCCTL_REAPER_PIDS]], ptr addrspace(200) [[DOTCOMPOUNDLITERAL]], i32 0, i32 1
+// CHECK-NEXT:    [[RP_PIDS:%.*]] = getelementptr inbounds nuw [[STRUCT_PROCCTL_REAPER_PIDS]], ptr addrspace(200) [[DOTCOMPOUNDLITERAL]], i32 0, i32 2
 // CHECK-NEXT:    [[ARRAYDECAY1:%.*]] = getelementptr inbounds [10 x %struct.procctl_reaper_pidinfo], ptr addrspace(200) [[INFO]], i64 0, i64 0
 // CHECK-NEXT:    store ptr addrspace(200) [[ARRAYDECAY1]], ptr addrspace(200) [[RP_PIDS]], align 16
 // CHECK-NEXT:    [[CALL:%.*]] = call signext i32 @procctl(i32 noundef signext 0, i32 noundef signext [[TMP0]], i32 noundef signext 22, ptr addrspace(200) noundef [[DOTCOMPOUNDLITERAL]])

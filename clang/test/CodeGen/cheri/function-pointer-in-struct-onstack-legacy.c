@@ -32,7 +32,7 @@ void do_stuff(ns_dtab *tab);
 // PCREL-NEXT:    [[TMP2:%.*]] = load i32, ptr addrspace(200) [[I]], align 4
 // PCREL-NEXT:    [[IDXPROM:%.*]] = sext i32 [[TMP2]] to i64
 // PCREL-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [2 x %struct._ns_dtab], ptr addrspace(200) [[DTAB]], i64 0, i64 [[IDXPROM]]
-// PCREL-NEXT:    [[MDATA2:%.*]] = getelementptr inbounds [[STRUCT__NS_DTAB:%.*]], ptr addrspace(200) [[ARRAYIDX]], i32 0, i32 2
+// PCREL-NEXT:    [[MDATA2:%.*]] = getelementptr inbounds nuw [[STRUCT__NS_DTAB:%.*]], ptr addrspace(200) [[ARRAYIDX]], i32 0, i32 2
 // PCREL-NEXT:    store ptr addrspace(200) [[TMP1]], ptr addrspace(200) [[MDATA2]], align 16
 // PCREL-NEXT:    br label [[FOR_INC:%.*]]
 // PCREL:       for.inc:

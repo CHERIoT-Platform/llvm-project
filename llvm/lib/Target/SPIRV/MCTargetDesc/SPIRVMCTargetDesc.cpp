@@ -39,7 +39,8 @@ static MCInstrInfo *createSPIRVMCInstrInfo() {
   return X;
 }
 
-static MCRegisterInfo *createSPIRVMCRegisterInfo(const Triple &TT) {
+static MCRegisterInfo *createSPIRVMCRegisterInfo(
+    const Triple &TT, const MCTargetOptions &Options) {
   MCRegisterInfo *X = new MCRegisterInfo();
   return X;
 }

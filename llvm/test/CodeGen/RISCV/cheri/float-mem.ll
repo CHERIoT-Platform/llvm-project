@@ -120,11 +120,11 @@ define dso_local void @ddc_fsw(float* %a, float %b, float %c) nounwind {
 ; CHECK-IL32PC64:       # %bb.0:
 ; CHECK-IL32PC64-NEXT:    fmv.w.x fa5, a2
 ; CHECK-IL32PC64-NEXT:    fmv.w.x fa4, a1
+; CHECK-IL32PC64-NEXT:    addi a1, a0, 32
 ; CHECK-IL32PC64-NEXT:    fadd.s fa5, fa4, fa5
-; CHECK-IL32PC64-NEXT:    fmv.x.w a1, fa5
-; CHECK-IL32PC64-NEXT:    sw.ddc a1, (a0)
-; CHECK-IL32PC64-NEXT:    addi a0, a0, 32
-; CHECK-IL32PC64-NEXT:    sw.ddc a1, (a0)
+; CHECK-IL32PC64-NEXT:    fmv.x.w a2, fa5
+; CHECK-IL32PC64-NEXT:    sw.ddc a2, (a0)
+; CHECK-IL32PC64-NEXT:    sw.ddc a2, (a1)
 ; CHECK-IL32PC64-NEXT:    cret
 ;
 ; CHECK-IL32PC64F-LABEL: ddc_fsw:
@@ -156,11 +156,11 @@ define dso_local void @ddc_fsw(float* %a, float %b, float %c) nounwind {
 ; CHECK-L64PC128:       # %bb.0:
 ; CHECK-L64PC128-NEXT:    fmv.w.x fa5, a2
 ; CHECK-L64PC128-NEXT:    fmv.w.x fa4, a1
+; CHECK-L64PC128-NEXT:    addi a1, a0, 32
 ; CHECK-L64PC128-NEXT:    fadd.s fa5, fa4, fa5
-; CHECK-L64PC128-NEXT:    fmv.x.w a1, fa5
-; CHECK-L64PC128-NEXT:    sw.ddc a1, (a0)
-; CHECK-L64PC128-NEXT:    addi a0, a0, 32
-; CHECK-L64PC128-NEXT:    sw.ddc a1, (a0)
+; CHECK-L64PC128-NEXT:    fmv.x.w a2, fa5
+; CHECK-L64PC128-NEXT:    sw.ddc a2, (a0)
+; CHECK-L64PC128-NEXT:    sw.ddc a2, (a1)
 ; CHECK-L64PC128-NEXT:    cret
 ;
 ; CHECK-L64PC128F-LABEL: ddc_fsw:
@@ -266,11 +266,11 @@ define dso_local void @cap_fsw(float addrspace(200)* %a, float %b, float %c) nou
 ; CHECK-ILP32:       # %bb.0:
 ; CHECK-ILP32-NEXT:    fmv.w.x fa5, a2
 ; CHECK-ILP32-NEXT:    fmv.w.x fa4, a1
+; CHECK-ILP32-NEXT:    cincoffset ca1, ca0, 32
 ; CHECK-ILP32-NEXT:    fadd.s fa5, fa4, fa5
-; CHECK-ILP32-NEXT:    fmv.x.w a1, fa5
-; CHECK-ILP32-NEXT:    sw.cap a1, (ca0)
-; CHECK-ILP32-NEXT:    cincoffset ca0, ca0, 32
-; CHECK-ILP32-NEXT:    sw.cap a1, (ca0)
+; CHECK-ILP32-NEXT:    fmv.x.w a2, fa5
+; CHECK-ILP32-NEXT:    sw.cap a2, (ca0)
+; CHECK-ILP32-NEXT:    sw.cap a2, (ca1)
 ; CHECK-ILP32-NEXT:    ret
 ;
 ; CHECK-ILP32F-LABEL: cap_fsw:
@@ -302,11 +302,11 @@ define dso_local void @cap_fsw(float addrspace(200)* %a, float %b, float %c) nou
 ; CHECK-LP64:       # %bb.0:
 ; CHECK-LP64-NEXT:    fmv.w.x fa5, a2
 ; CHECK-LP64-NEXT:    fmv.w.x fa4, a1
+; CHECK-LP64-NEXT:    cincoffset ca1, ca0, 32
 ; CHECK-LP64-NEXT:    fadd.s fa5, fa4, fa5
-; CHECK-LP64-NEXT:    fmv.x.w a1, fa5
-; CHECK-LP64-NEXT:    sw.cap a1, (ca0)
-; CHECK-LP64-NEXT:    cincoffset ca0, ca0, 32
-; CHECK-LP64-NEXT:    sw.cap a1, (ca0)
+; CHECK-LP64-NEXT:    fmv.x.w a2, fa5
+; CHECK-LP64-NEXT:    sw.cap a2, (ca0)
+; CHECK-LP64-NEXT:    sw.cap a2, (ca1)
 ; CHECK-LP64-NEXT:    ret
 ;
 ; CHECK-LP64F-LABEL: cap_fsw:

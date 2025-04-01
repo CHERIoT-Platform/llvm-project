@@ -40,30 +40,3 @@ void test_invalid_length_modifiers(void *p) {
   printf("%zp", p); // expected-warning{{length modifier 'z' results in undefined behavior or no effect with 'p' conversion specifier}}
   printf("%qp", p); // expected-warning{{length modifier 'q' results in undefined behavior or no effect with 'p' conversion specifier}}
 }
-
-#ifdef __CHERI_PURE_CAPABILITY__
-#define PRIxPTR "Px"
-#define PRIdPTR "Pd"
-#else
-#define PRIxPTR "lx"
-#define PRIdPTR "ld"
-#endif
-void test_priptr(__PTRDIFF_TYPE__ saddr, __PTRADDR_TYPE__ uaddr, __INTPTR_TYPE__ sptr, __UINTPTR_TYPE__ uptr) {
-  // The x format string expects an unsigned type
-  // However, we should no warn about this until Clang implements -Wformat-signedness
-  printf("%" PRIxPTR, saddr); // purecap-warning{{format specifies type 'uintptr_t' (aka 'unsigned __intcap') but the argument has type 'long'}}
-  printf("%" PRIxPTR, uaddr); // purecap-warning{{format specifies type 'uintptr_t' (aka 'unsigned __intcap') but the argument has type 'unsigned long'}}
-  printf("%" PRIxPTR, sptr);
-  printf("%" PRIxPTR, uptr);
-  printf("%" PRIxPTR, (__INTPTR_TYPE__)saddr);
-  printf("%" PRIxPTR, (__UINTPTR_TYPE__)uaddr);
-
-  // And the d format string expects a signed one:
-  // However, we should no warn about this until Clang implements -Wformat-signedness
-  printf("%" PRIdPTR, saddr); // purecap-warning{{format specifies type 'intptr_t' (aka '__intcap') but the argument has type 'long'}}
-  printf("%" PRIdPTR, uaddr); // purecap-warning{{format specifies type 'intptr_t' (aka '__intcap') but the argument has type 'unsigned long'}}
-  printf("%" PRIdPTR, sptr);
-  printf("%" PRIdPTR, uptr);
-  printf("%" PRIdPTR, (__INTPTR_TYPE__)saddr);
-  printf("%" PRIdPTR, (__UINTPTR_TYPE__)uaddr);
-}

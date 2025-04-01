@@ -50,14 +50,13 @@ public:
   bool SelectFrameRegImmCommon(SDValue Addr, SDValue &Base, SDValue &Offset,
                                EVT PtrVT);
   bool SelectAddrFrameIndex(SDValue Addr, SDValue &Base, SDValue &Offset);  
-  bool SelectFrameAddrRegImm(SDValue Addr, SDValue &Base, SDValue &Offset);
   bool SelectCapFrameAddrRegImm(SDValue Cap, SDValue &Base, SDValue &Offset);
   bool SelectBase(SDValue Addr, SDValue &Base, EVT PtrVT);
   bool SelectRegImmCommon(SDValue Addr, SDValue &Base, SDValue &Offset,
                           EVT PtrVT, bool IsINX);
   bool SelectAddrRegImm(SDValue Addr, SDValue &Base, SDValue &Offset,
-                        bool IsINX = false);
-  bool SelectAddrRegImmINX(SDValue Addr, SDValue &Base, SDValue &Offset) {
+                        bool IsRV32Zdinx = false);
+  bool SelectAddrRegImmRV32Zdinx(SDValue Addr, SDValue &Base, SDValue &Offset) {
     return SelectAddrRegImm(Addr, Base, Offset, true);
   }
   bool SelectAddrRegImmLsb00000(SDValue Addr, SDValue &Base, SDValue &Offset);
@@ -129,6 +128,8 @@ public:
     return selectSHXADD_UWOp(N, ShAmt, Val);
   }
 
+  bool selectInvLogicImm(SDValue N, SDValue &Val);
+
   bool hasAllNBitUsers(SDNode *Node, unsigned Bits,
                        const unsigned Depth = 0) const;
   bool hasAllBUsers(SDNode *Node) const { return hasAllNBitUsers(Node, 8); }
@@ -150,7 +151,7 @@ public:
   // Matches the splat of a value which can be extended or truncated, such that
   // only the bottom 8 bits are preserved.
   bool selectLow8BitsVSplat(SDValue N, SDValue &SplatVal);
-  bool selectFPImm(SDValue N, SDValue &Imm);
+  bool selectScalarFPAsInt(SDValue N, SDValue &Imm);
 
   bool selectRVVSimm5(SDValue N, unsigned Width, SDValue &Imm);
   template <unsigned Width> bool selectRVVSimm5(SDValue N, SDValue &Imm) {
@@ -163,11 +164,11 @@ public:
                                   SmallVectorImpl<SDValue> &Operands,
                                   bool IsLoad = false, MVT *IndexVT = nullptr);
 
-  void selectVLSEG(SDNode *Node, bool IsMasked, bool IsStrided);
-  void selectVLSEGFF(SDNode *Node, bool IsMasked);
-  void selectVLXSEG(SDNode *Node, bool IsMasked, bool IsOrdered);
-  void selectVSSEG(SDNode *Node, bool IsMasked, bool IsStrided);
-  void selectVSXSEG(SDNode *Node, bool IsMasked, bool IsOrdered);
+  void selectVLSEG(SDNode *Node, unsigned NF, bool IsMasked, bool IsStrided);
+  void selectVLSEGFF(SDNode *Node, unsigned NF, bool IsMasked);
+  void selectVLXSEG(SDNode *Node, unsigned NF, bool IsMasked, bool IsOrdered);
+  void selectVSSEG(SDNode *Node, unsigned NF, bool IsMasked, bool IsStrided);
+  void selectVSXSEG(SDNode *Node, unsigned NF, bool IsMasked, bool IsOrdered);
 
   void selectVSETVLI(SDNode *Node);
 

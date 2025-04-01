@@ -59,6 +59,7 @@ add_llvm_target(MipsCodeGen
   MipsSEISelDAGToDAG.cpp
   MipsSEISelLowering.cpp
   MipsSERegisterInfo.cpp
+  MipsSelectionDAGInfo.cpp
   MipsSubtarget.cpp
   MipsTargetMachine.cpp
   MipsTargetObjectFile.cpp

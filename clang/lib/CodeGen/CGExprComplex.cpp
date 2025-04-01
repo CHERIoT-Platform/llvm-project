@@ -15,12 +15,10 @@
 #include "CodeGenModule.h"
 #include "ConstantEmitter.h"
 #include "clang/AST/StmtVisitor.h"
-#include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/MDBuilder.h"
 #include "llvm/IR/Metadata.h"
-#include <algorithm>
 using namespace clang;
 using namespace CodeGen;
 
@@ -295,28 +293,15 @@ public:
   ComplexPairTy EmitComplexBinOpLibCall(StringRef LibCallName,
                                         const BinOpInfo &Op);
 
-  QualType GetHigherPrecisionFPType(QualType ElementType) {
-    const auto *CurrentBT = cast<BuiltinType>(ElementType);
-    switch (CurrentBT->getKind()) {
-    case BuiltinType::Kind::Float16:
-      return CGF.getContext().FloatTy;
-    case BuiltinType::Kind::Float:
-    case BuiltinType::Kind::BFloat16:
-      return CGF.getContext().DoubleTy;
-    case BuiltinType::Kind::Double:
-      return CGF.getContext().LongDoubleTy;
-    default:
-      return ElementType;
-    }
-  }
-
   QualType HigherPrecisionTypeForComplexArithmetic(QualType ElementType,
                                                    bool IsDivOpCode) {
-    QualType HigherElementType = GetHigherPrecisionFPType(ElementType);
+    ASTContext &Ctx = CGF.getContext();
+    const QualType HigherElementType =
+        Ctx.GetHigherPrecisionFPType(ElementType);
     const llvm::fltSemantics &ElementTypeSemantics =
-        CGF.getContext().getFloatTypeSemantics(ElementType);
+        Ctx.getFloatTypeSemantics(ElementType);
     const llvm::fltSemantics &HigherElementTypeSemantics =
-        CGF.getContext().getFloatTypeSemantics(HigherElementType);
+        Ctx.getFloatTypeSemantics(HigherElementType);
     // Check that the promoted type can handle the intermediate values without
     // overflowing. This can be interpreted as:
     // (SmallerType.LargestFiniteVal * SmallerType.LargestFiniteVal) * 2 <=
@@ -327,10 +312,10 @@ public:
     if (llvm::APFloat::semanticsMaxExponent(ElementTypeSemantics) * 2 + 1 <=
         llvm::APFloat::semanticsMaxExponent(HigherElementTypeSemantics)) {
       FPHasBeenPromoted = true;
-      return CGF.getContext().getComplexType(HigherElementType);
+      return Ctx.getComplexType(HigherElementType);
     } else {
-      DiagnosticsEngine &Diags = CGF.CGM.getDiags();
-      Diags.Report(diag::warn_next_larger_fp_type_same_size_than_fp);
+      // The intermediate values can't be represented in the promoted type
+      // without overflowing.
       return QualType();
     }
   }
@@ -493,7 +478,7 @@ ComplexPairTy ComplexExprEmitter::VisitExpr(Expr *E) {
   CGF.ErrorUnsupported(E, "complex expression");
   llvm::Type *EltTy =
     CGF.ConvertType(getComplexType(E->getType())->getElementType());
-  llvm::Value *U = llvm::UndefValue::get(EltTy);
+  llvm::Value *U = llvm::PoisonValue::get(EltTy);
   return ComplexPairTy(U, U);
 }
 
@@ -660,7 +645,6 @@ ComplexPairTy ComplexExprEmitter::EmitCast(CastKind CK, Expr *Op,
 
 ComplexPairTy ComplexExprEmitter::VisitUnaryPlus(const UnaryOperator *E,
                                                  QualType PromotionType) {
-  E->hasStoredFPFeatures();
   QualType promotionTy =
       PromotionType.isNull()
           ? getPromotionType(E->getStoredFPFeaturesOrDefault(),
@@ -1476,7 +1460,7 @@ ComplexPairTy ComplexExprEmitter::VisitVAArgExpr(VAArgExpr *E) {
     CGF.ErrorUnsupported(E, "complex va_arg expression");
     llvm::Type *EltTy =
       CGF.ConvertType(E->getType()->castAs<ComplexType>()->getElementType());
-    llvm::Value *U = llvm::UndefValue::get(EltTy);
+    llvm::Value *U = llvm::PoisonValue::get(EltTy);
     return ComplexPairTy(U, U);
   }
 

@@ -17,7 +17,6 @@
 #include "MipsSubtarget.h"
 #include "MipsTargetMachine.h"
 #include "llvm/ADT/BitVector.h"
-#include "llvm/ADT/STLExtras.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstr.h"
@@ -26,7 +25,6 @@
 #include "llvm/CodeGen/TargetRegisterInfo.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/IR/Function.h"
-#include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
@@ -51,7 +49,9 @@ Cheri8("cheri8", cl::NotHidden,
 
 MipsRegisterInfo::MipsRegisterInfo(const MipsSubtarget &STI) :
   MipsGenRegisterInfo(STI.isABI_CheriPureCap() ?
-          Mips::C17 : Mips::RA, 0, 0, 0, STI.getHwMode()) {}
+          Mips::C17 : Mips::RA, 0, 0, 0, STI.getHwMode()) {
+  MIPS_MC::initLLVMToCVRegMapping(this);
+}
 
 unsigned MipsRegisterInfo::getPICCallReg() { return Mips::T9; }
 

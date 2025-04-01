@@ -308,7 +308,8 @@ APValue::UnionData::~UnionData () {
   delete Value;
 }
 
-APValue::APValue(const APValue &RHS) : Kind(None) {
+APValue::APValue(const APValue &RHS)
+    : Kind(None), AllowConstexprUnknown(RHS.AllowConstexprUnknown) {
   switch (RHS.getKind()) {
   case None:
   case Indeterminate:
@@ -381,7 +382,9 @@ APValue::APValue(const APValue &RHS) : Kind(None) {
 }
 
 APValue::APValue(APValue &&RHS)
-    : Kind(RHS.Kind), MustBeNullDerivedCap(RHS.MustBeNullDerivedCap),
+   
+    : Kind(RHS.Kind), AllowConstexprUnknown(RHS.AllowConstexprUnknown),
+      MustBeNullDerivedCap(RHS.MustBeNullDerivedCap),
       Data(RHS.Data) {
   RHS.Kind = None;
 }
@@ -389,6 +392,8 @@ APValue::APValue(APValue &&RHS)
 APValue &APValue::operator=(const APValue &RHS) {
   if (this != &RHS)
     *this = APValue(RHS);
+
+  AllowConstexprUnknown = RHS.AllowConstexprUnknown;
   return *this;
 }
 
@@ -398,6 +403,7 @@ APValue &APValue::operator=(APValue &&RHS) {
       DestroyDataAndMakeUninit();
     Kind = RHS.Kind;
     Data = RHS.Data;
+    AllowConstexprUnknown = RHS.AllowConstexprUnknown;
     MustBeNullDerivedCap = RHS.MustBeNullDerivedCap;
     RHS.Kind = None;
   }
@@ -430,6 +436,7 @@ void APValue::DestroyDataAndMakeUninit() {
   else if (Kind == AddrLabelDiff)
     ((AddrLabelDiffData *)(char *)&Data)->~AddrLabelDiffData();
   Kind = None;
+  AllowConstexprUnknown = false;
 }
 
 bool APValue::needsCleanup() const {
@@ -473,6 +480,10 @@ void APValue::swap(APValue &RHS) {
   std::swap(Kind, RHS.Kind);
   std::swap(MustBeNullDerivedCap, RHS.MustBeNullDerivedCap);
   std::swap(Data, RHS.Data);
+  // We can't use std::swap w/ bit-fields
+  bool tmp = AllowConstexprUnknown;
+  AllowConstexprUnknown = RHS.AllowConstexprUnknown;
+  RHS.AllowConstexprUnknown = tmp;
 }
 
 /// Profile the value of an APInt, excluding its bit-width.
@@ -952,7 +963,6 @@ std::string APValue::getAsString(const ASTContext &Ctx, QualType Ty) const {
   std::string Result;
   llvm::raw_string_ostream Out(Result);
   printPretty(Out, Ctx, Ty);
-  Out.flush();
   return Result;
 }
 
@@ -1095,10 +1105,6 @@ void APValue::MakeArray(unsigned InitElts, unsigned Size) {
   new ((void *)(char *)&Data) Arr(InitElts, Size);
   Kind = Array;
 }
-
-MutableArrayRef<APValue::LValuePathEntry>
-setLValueUninit(APValue::LValueBase B, const CharUnits &O, unsigned Size,
-                bool OnePastTheEnd, bool IsNullPtr);
 
 MutableArrayRef<const CXXRecordDecl *>
 APValue::setMemberPointerUninit(const ValueDecl *Member, bool IsDerivedMember,

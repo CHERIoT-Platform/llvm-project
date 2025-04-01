@@ -2,7 +2,7 @@
 ; TODO: %cheri_opt -passes=sroa -o - -S -O2 %s
 ; ModuleID = '/Users/alex/cheri/build/llvm-clion-build/libcxx-filesystem-crash.cpp-reduce.ll-reduced-simplified.bc'
 source_filename = "/Users/alex/cheri/llvm/tools/clang/test/CodeGen/cheri/libcxx-filesystem-crash.cpp-reduce.ll"
-target datalayout = "Eme-pf200:128:128:128:64-i8:8:32-i16:16:32-i64:64-n32:64-S128"
+target datalayout = "E-m:e-pf200:128:128:128:64-i8:8:32-i16:16:32-i64:64-n32:64-S128"
 target triple = "x86_64-apple-darwin18.2.0"
 
 %class.duration.i128 = type { i128 }

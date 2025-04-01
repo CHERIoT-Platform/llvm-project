@@ -140,6 +140,11 @@ namespace MipsII {
     // (Initial Exec TLS).
     MO_CAPTAB_TPREL_HI16,
     MO_CAPTAB_TPREL_LO16,
+
+    /// MO_DLLIMPORT - On a symbol operand "FOO", this indicates that the
+    /// reference is actually to the "__imp_FOO" symbol.  This is used for
+    /// dllimport linkage on windows.
+    MO_DLLIMPORT = 0x80,
   };
 
   enum {

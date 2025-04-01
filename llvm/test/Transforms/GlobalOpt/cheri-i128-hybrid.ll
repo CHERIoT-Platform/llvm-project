@@ -4,7 +4,7 @@
 ; Assertion failed: (C->getType()->getIntegerBitWidth() <= 64)
 ; Check that we don't attempt to optimize stores of non-zero i128s to capabilities (but it is valid for plain pointers)
 ; After globalopt only the @bitcast_nonzero_i128_to_cap function should remain.
-target datalayout = "eme-pf200:128:128:128:64-p:64:64-i64:64-i128:128-n64-S128"
+target datalayout = "e-pf200:128:128:128:64-p:64:64-i64:64-i128:128-n64-S128"
 
 define internal void @bitcast_zero_i128_to_cap() {
 entry:

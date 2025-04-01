@@ -162,7 +162,7 @@ static void convertToRelLookupTable(GlobalVariable &LookupTable) {
   // GEP might not be immediately followed by a LOAD, like it can be hoisted
   // outside the loop or another instruction might be inserted them in between.
   Builder.SetInsertPoint(Load);
-  Function *LoadRelIntrinsic = llvm::Intrinsic::getDeclaration(
+  Function *LoadRelIntrinsic = llvm::Intrinsic::getOrInsertDeclaration(
       &M, Intrinsic::load_relative, {Index->getType()});
   Value *Base = Builder.CreateBitCast(
       RelLookupTable, Builder.getPtrTy(LookupTable.getAddressSpace()));

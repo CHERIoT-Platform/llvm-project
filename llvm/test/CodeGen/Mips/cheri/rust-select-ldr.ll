@@ -12,13 +12,13 @@ define internal void @_ZN4main4main17hfe98083a4c87500fE() unnamed_addr addrspace
 ; MIPS:       # %bb.0: # %start
 ; MIPS-NEXT:    daddiu $sp, $sp, -64
 ; MIPS-NEXT:    sd $ra, 56($sp) # 8-byte Folded Spill
-; MIPS-NEXT:    daddiu $4, $sp, 8
+; MIPS-NEXT:    daddiu $4, $sp, 0
 ; MIPS-NEXT:    daddiu $5, $sp, 32
 ; MIPS-NEXT:    jal _ZN63_$LT$main..Counter$u20$as$u20$lib..iter..iterator..Iterator$GT$4next17h229c875ab7438d23E
 ; MIPS-NEXT:    nop
 ; MIPS-NEXT:    ld $6, 24($sp)
 ; MIPS-NEXT:    ld $5, 16($sp)
-; MIPS-NEXT:    ld $4, 8($sp)
+; MIPS-NEXT:    ld $4, 0($sp)
 ; MIPS-NEXT:    jal _ZN3lib6option15Option$LT$T$GT$6unwrap17h50e7a820126dcfe5E
 ; MIPS-NEXT:    nop
 ; MIPS-NEXT:    ld $ra, 56($sp) # 8-byte Folded Reload
@@ -37,13 +37,13 @@ define internal void @_ZN4main4main17hfe98083a4c87500fE() unnamed_addr addrspace
 ; PURECAP-NEXT:    cincoffset $c4, $c11, 48
 ; PURECAP-NEXT:    csetbounds $c4, $c4, 16
 ; PURECAP-NEXT:    clcbi $c12, %capcall20(_ZN63_$LT$main..Counter$u20$as$u20$lib..iter..iterator..Iterator$GT$4next17h229c875ab7438d23E)($c1)
-; PURECAP-NEXT:    cincoffset $c3, $c11, 24
+; PURECAP-NEXT:    cincoffset $c3, $c11, 16
 ; PURECAP-NEXT:    cjalr $c12, $c17
 ; PURECAP-NEXT:    nop
 ; PURECAP-NEXT:    clc $c1, $zero, 0($c11) # 16-byte Folded Reload
 ; PURECAP-NEXT:    cld $6, $zero, 40($c11)
 ; PURECAP-NEXT:    cld $5, $zero, 32($c11)
-; PURECAP-NEXT:    cld $4, $zero, 24($c11)
+; PURECAP-NEXT:    cld $4, $zero, 16($c11)
 ; PURECAP-NEXT:    clcbi $c12, %capcall20(_ZN3lib6option15Option$LT$T$GT$6unwrap17h50e7a820126dcfe5E)($c1)
 ; PURECAP-NEXT:    cjalr $c12, $c17
 ; PURECAP-NEXT:    nop

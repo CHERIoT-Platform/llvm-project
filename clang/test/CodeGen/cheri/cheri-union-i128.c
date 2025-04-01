@@ -21,7 +21,7 @@ extern union u64 global64;
 // CHECK-32-SAME: (ptr addrspace(200) [[U_COERCE:%.*]]) addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-32-NEXT:  entry:
 // CHECK-32-NEXT:    [[U:%.*]] = alloca [[UNION_U64:%.*]], align 8, addrspace(200)
-// CHECK-32-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds [[UNION_U64]], ptr addrspace(200) [[U]], i32 0, i32 0
+// CHECK-32-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds nuw [[UNION_U64]], ptr addrspace(200) [[U]], i32 0, i32 0
 // CHECK-32-NEXT:    store ptr addrspace(200) [[U_COERCE]], ptr addrspace(200) [[COERCE_DIVE]], align 8
 // CHECK-32-NEXT:    [[TMP0:%.*]] = load i64, ptr addrspace(200) [[U]], align 8
 // CHECK-32-NEXT:    ret i64 [[TMP0]]
@@ -30,7 +30,7 @@ extern union u64 global64;
 // CHECK-64-SAME: (ptr addrspace(200) [[U_COERCE:%.*]]) addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-64-NEXT:  entry:
 // CHECK-64-NEXT:    [[U:%.*]] = alloca [[UNION_U64:%.*]], align 16, addrspace(200)
-// CHECK-64-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds [[UNION_U64]], ptr addrspace(200) [[U]], i32 0, i32 0
+// CHECK-64-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds nuw [[UNION_U64]], ptr addrspace(200) [[U]], i32 0, i32 0
 // CHECK-64-NEXT:    store ptr addrspace(200) [[U_COERCE]], ptr addrspace(200) [[COERCE_DIVE]], align 16
 // CHECK-64-NEXT:    [[TMP0:%.*]] = load i64, ptr addrspace(200) [[U]], align 16
 // CHECK-64-NEXT:    ret i64 [[TMP0]]
@@ -94,7 +94,7 @@ extern union u128 global128;
 // CHECK-64-SAME: (ptr addrspace(200) [[U_COERCE:%.*]]) addrspace(200) #[[ATTR0]] {
 // CHECK-64-NEXT:  entry:
 // CHECK-64-NEXT:    [[U:%.*]] = alloca [[UNION_U128:%.*]], align 16, addrspace(200)
-// CHECK-64-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds [[UNION_U128]], ptr addrspace(200) [[U]], i32 0, i32 0
+// CHECK-64-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds nuw [[UNION_U128]], ptr addrspace(200) [[U]], i32 0, i32 0
 // CHECK-64-NEXT:    store ptr addrspace(200) [[U_COERCE]], ptr addrspace(200) [[COERCE_DIVE]], align 16
 // CHECK-64-NEXT:    [[TMP0:%.*]] = load i128, ptr addrspace(200) [[U]], align 16
 // CHECK-64-NEXT:    ret i128 [[TMP0]]
@@ -163,7 +163,7 @@ extern union nested global_nested;
 // CHECK-32-NEXT:  entry:
 // CHECK-32-NEXT:    [[U_INDIRECT_ADDR:%.*]] = alloca ptr addrspace(200), align 8, addrspace(200)
 // CHECK-32-NEXT:    store ptr addrspace(200) [[U]], ptr addrspace(200) [[U_INDIRECT_ADDR]], align 8
-// CHECK-32-NEXT:    [[E:%.*]] = getelementptr inbounds [[STRUCT_ANON_0:%.*]], ptr addrspace(200) [[U]], i32 0, i32 1
+// CHECK-32-NEXT:    [[E:%.*]] = getelementptr inbounds nuw [[STRUCT_ANON_0:%.*]], ptr addrspace(200) [[U]], i32 0, i32 1
 // CHECK-32-NEXT:    [[TMP0:%.*]] = load i32, ptr addrspace(200) [[E]], align 8
 // CHECK-32-NEXT:    ret i32 [[TMP0]]
 //
@@ -172,7 +172,7 @@ extern union nested global_nested;
 // CHECK-64-NEXT:  entry:
 // CHECK-64-NEXT:    [[U_INDIRECT_ADDR:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // CHECK-64-NEXT:    store ptr addrspace(200) [[U]], ptr addrspace(200) [[U_INDIRECT_ADDR]], align 16
-// CHECK-64-NEXT:    [[E:%.*]] = getelementptr inbounds [[STRUCT_ANON_0:%.*]], ptr addrspace(200) [[U]], i32 0, i32 1
+// CHECK-64-NEXT:    [[E:%.*]] = getelementptr inbounds nuw [[STRUCT_ANON_0:%.*]], ptr addrspace(200) [[U]], i32 0, i32 1
 // CHECK-64-NEXT:    [[TMP0:%.*]] = load i32, ptr addrspace(200) [[E]], align 16
 // CHECK-64-NEXT:    ret i32 [[TMP0]]
 //

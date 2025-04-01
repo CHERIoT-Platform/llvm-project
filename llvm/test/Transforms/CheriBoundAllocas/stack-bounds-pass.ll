@@ -9,7 +9,7 @@
 ; RUN: %cheri_purecap_opt -passes="function(instsimplify),cheri-bound-allocas" %s -o - -S -cheri-stack-bounds-single-intrinsic-threshold=10 -cheri-stack-bounds=if-needed | FileCheck %s -check-prefix IF-NEEDED-PER-USE-OPAQUE
 ; RUN: %cheri_purecap_opt -passes="function(instsimplify),cheri-bound-allocas" %s -o - -S -cheri-stack-bounds-single-intrinsic-threshold=10 -cheri-stack-bounds=all-or-none | FileCheck %s -check-prefix ALL-OR-NONE-PER-USE-OPAQUE
 
-target datalayout = "Eme-pf200:128:128:128:64-A200-P200-G200"
+target datalayout = "E-pf200:128:128:128:64-A200-P200-G200"
 
 declare void @foo() addrspace(200)
 

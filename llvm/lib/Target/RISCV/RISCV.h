@@ -38,8 +38,11 @@ void initializeRISCVCodeGenPreparePass(PassRegistry &);
 FunctionPass *createRISCVDeadRegisterDefinitionsPass();
 void initializeRISCVDeadRegisterDefinitionsPass(PassRegistry &);
 
-FunctionPass *createRISCVDeadRegisterDefinitionsPass();
-void initializeRISCVDeadRegisterDefinitionsPass(PassRegistry &);
+FunctionPass *createRISCVIndirectBranchTrackingPass();
+void initializeRISCVIndirectBranchTrackingPass(PassRegistry &);
+
+FunctionPass *createRISCVLandingPadSetupPass();
+void initializeRISCVLandingPadSetupPass(PassRegistry &);
 
 /// Information about imported functions.
 struct CHERIoTImportedFunction {
@@ -138,6 +141,11 @@ void initializeRISCVMoveMergePass(PassRegistry &);
 
 FunctionPass *createRISCVPushPopOptimizationPass();
 void initializeRISCVPushPopOptPass(PassRegistry &);
+FunctionPass *createRISCVLoadStoreOptPass();
+void initializeRISCVLoadStoreOptPass(PassRegistry &);
+
+FunctionPass *createRISCVZacasABIFixPass();
+void initializeRISCVZacasABIFixPass(PassRegistry &);
 
 FunctionPass *createRISCVCheriCleanupOptPass();
 void initializeRISCVCheriCleanupOptPass(PassRegistry &);
@@ -156,6 +164,9 @@ void initializeRISCVO0PreLegalizerCombinerPass(PassRegistry &);
 
 FunctionPass *createRISCVPreLegalizerCombiner();
 void initializeRISCVPreLegalizerCombinerPass(PassRegistry &);
+
+FunctionPass *createRISCVVLOptimizerPass();
+void initializeRISCVVLOptimizerPass(PassRegistry &);
 
 /// Returns the symbol name for either an import or export table entry.
 inline std::string getImportExportTableName(StringRef Compartment,

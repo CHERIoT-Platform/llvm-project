@@ -13,7 +13,7 @@
 ; RUN: llc --mtriple=loongarch32 -mattr=+d --filetype=obj %s --target-abi=ilp32d -o %t-ilp32d
 ; RUN: llvm-readelf -h %t-ilp32d | FileCheck %s --check-prefixes=ILP32,ABI-D --match-full-lines
 
-; RUN: llc --mtriple=loongarch64 -mattr=+d --filetype=obj %s -o %t-la64d
+; RUN: llc --mtriple=loongarch64 --filetype=obj %s -o %t-la64d
 ; RUN: llvm-readelf -h %t-la64d | FileCheck %s --check-prefixes=LP64,ABI-D --match-full-lines
 
 ; RUN: llc --mtriple=loongarch64 -mattr=+d --filetype=obj %s -o %t-la64

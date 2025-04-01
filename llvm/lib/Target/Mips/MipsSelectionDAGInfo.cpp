@@ -1,21 +1,24 @@
-//===-- MipsSelectionDAGInfo.cpp - Mips SelectionDAG Info -----------------===//
-//
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
-//
 //===----------------------------------------------------------------------===//
 //
-// This file implements the MipsSelectionDAGInfo class.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-#include "MipsTargetMachine.h"
+#include "MipsSelectionDAGInfo.h"
+#include "MipsISelLowering.h"
 #include "MipsSubtarget.h"
+
 using namespace llvm;
 
-#define DEBUG_TYPE "mips-selectiondag-info"
+MipsSelectionDAGInfo::~MipsSelectionDAGInfo() = default;
+
+bool MipsSelectionDAGInfo::isTargetMemoryOpcode(unsigned Opcode) const {
+  return Opcode >= MipsISD::FIRST_MEMORY_OPCODE &&
+         Opcode <= MipsISD::LAST_MEMORY_OPCODE;
+}
+
 
 namespace {
 
@@ -87,9 +90,6 @@ SDValue EmitTargetCodeForMemOp(SelectionDAG &DAG, const SDLoc &dl,
     (STI.isABI_CheriPureCap() ?  "memmove" : "memmove_c");
   return callFunction(DAG, dl, Chain, memFnName, Dst, Src, Size);
 }
-}
-
-MipsSelectionDAGInfo::~MipsSelectionDAGInfo() {
 }
 
 SDValue MipsSelectionDAGInfo::EmitTargetCodeForMemcpy(

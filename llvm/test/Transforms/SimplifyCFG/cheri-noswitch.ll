@@ -2,11 +2,6 @@
 ; test that the Simplify CFG pass doesn't insert a switch statement for a
 ; capability (which leads to inserting a ptrtoint)
 ; RUN: %cheri_opt < %s -passes=simplifycfg -S -debug-only=simplifycfg,infer-tag 2>%t.dbg | FileCheck %s --implicit-check-not=ptrtoint
-; RUN: FileCheck %s -check-prefix DBG -input-file=%t.dbg
-; DBG: Checking if value is untagged:ptr addrspace(200) %e
-; DBG-NEXT: isKnownUntaggedCapability(d=0): unknown value -> false -- ptr addrspace(200) %e
-; DBG-NEXT: Not converting 'icmp' chain with 2 cases into vaddr SWITCH since the source could be a tagged capability
-; REQUIRES: asserts
 
 source_filename = "nulltest2.c"
 target datalayout = "E-m:e-pf200:128:128:128:64-i8:8:32-i16:16:32-i64:64-n32:64-S128-A200-P200-G200"

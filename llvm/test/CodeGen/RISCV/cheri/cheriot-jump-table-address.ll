@@ -35,7 +35,9 @@ define [2 x i32] @foo(i32 %searched) addrspace(200) {
 ; CHECK-NEXT:    li a1, 0
 ; CHECK-NEXT:  .LBB0_3: # %cleanup
 ; CHECK-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
+; CHECK-NEXT:    .cfi_restore ra
 ; CHECK-NEXT:    cincoffset csp, csp, 16
+; CHECK-NEXT:    .cfi_def_cfa_offset 0
 ; CHECK-NEXT:    cret
 entry:
   switch i32 %searched, label %sw.epilog [

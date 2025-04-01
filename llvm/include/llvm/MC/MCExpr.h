@@ -86,6 +86,10 @@ public:
              bool InParens = false) const;
   void dump() const;
 
+  /// Returns whether the given symbol is used anywhere in the expression or
+  /// subexpressions.
+  bool isSymbolUsedInExpression(const MCSymbol *Sym) const;
+
   /// @}
   /// \name Expression Evaluation
   /// @{
@@ -193,6 +197,7 @@ public:
     VK_Invalid,
 
     VK_GOT,
+    VK_GOTENT,
     VK_GOTOFF,
     VK_GOTREL,
     VK_PCREL,
@@ -663,6 +668,9 @@ public:
                                          const MCFixup *Fixup) const = 0;
   // allow Target Expressions to be checked for equality
   virtual bool isEqualTo(const MCExpr *x) const { return false; }
+  virtual bool isSymbolUsedInExpression(const MCSymbol *Sym) const {
+    return false;
+  }
   // This should be set when assigned expressions are not valid ".set"
   // expressions, e.g. registers, and must be inlined.
   virtual bool inlineAssignedExpr() const { return false; }

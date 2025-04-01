@@ -143,10 +143,9 @@ MCSymbol *TargetLoweringObjectFile::getCFIPersonalitySymbol(
   return TM.getSymbol(GV);
 }
 
-void TargetLoweringObjectFile::emitPersonalityValue(MCStreamer &Streamer,
-                                                    const DataLayout &,
-                                                    const MCSymbol *Sym) const {
-}
+void TargetLoweringObjectFile::emitPersonalityValue(
+    MCStreamer &Streamer, const DataLayout &, const MCSymbol *Sym,
+    const MachineModuleInfo *MMI) const {}
 
 // TODO: these functions should move somewhere else
 static bool isCapabilityType(const Type* T, const DataLayout& DL) {

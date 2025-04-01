@@ -10,8 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_UTILS_TABLEGEN_CODEGENINSTRUCTION_H
-#define LLVM_UTILS_TABLEGEN_CODEGENINSTRUCTION_H
+#ifndef LLVM_UTILS_TABLEGEN_COMMON_CODEGENINSTRUCTION_H
+#define LLVM_UTILS_TABLEGEN_COMMON_CODEGENINSTRUCTION_H
 
 #include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/StringMap.h"
@@ -73,7 +73,7 @@ public:
   struct OperandInfo {
     /// Rec - The definition this operand is declared as.
     ///
-    Record *Rec;
+    const Record *Rec;
 
     /// Name - If this operand was assigned a symbolic name, this is it,
     /// otherwise, it's empty.
@@ -110,7 +110,7 @@ public:
 
     /// MIOperandInfo - Default MI operand type. Note an operand may be made
     /// up of multiple MI operands.
-    DagInit *MIOperandInfo;
+    const DagInit *MIOperandInfo;
 
     /// Constraint info for this operand.  This operand can have pieces, so we
     /// track constraint info for each.
@@ -119,9 +119,9 @@ public:
     /// The instruction may trap if this operand is a sealed capability.
     bool TrapsIfSealedCapability = false;
 
-    OperandInfo(Record *R, const std::string &N, const std::string &PMN,
+    OperandInfo(const Record *R, const std::string &N, const std::string &PMN,
                 const std::string &OT, unsigned MION, unsigned MINO,
-                DagInit *MIOI)
+                const DagInit *MIOI)
         : Rec(R), Name(N), SubOpNames(MINO), PrinterMethodName(PMN),
           EncoderMethodNames(MINO), OperandType(OT), MIOperandNo(MION),
           MINumOperands(MINO), DoNotEncode(MINO), MIOperandInfo(MIOI),
@@ -139,9 +139,9 @@ public:
     }
   };
 
-  CGIOperandList(Record *D);
+  CGIOperandList(const Record *D);
 
-  Record *TheDef; // The actual record containing this OperandList.
+  const Record *TheDef; // The actual record containing this OperandList.
 
   /// NumDefs - Number of def operands declared, this is the number of
   /// elements in the instruction's (outs) list.
@@ -207,7 +207,7 @@ public:
     for (unsigned i = 0;; ++i) {
       assert(i < OperandList.size() && "Invalid flat operand #");
       if (OperandList[i].MIOperandNo + OperandList[i].MINumOperands > Op)
-        return std::pair(i, Op - OperandList[i].MIOperandNo);
+        return {i, Op - OperandList[i].MIOperandNo};
     }
   }
 
@@ -225,8 +225,8 @@ public:
 
 class CodeGenInstruction {
 public:
-  Record *TheDef;      // The actual record defining this instruction.
-  StringRef Namespace; // The namespace the instruction is in.
+  const Record *TheDef; // The actual record defining this instruction.
+  StringRef Namespace;  // The namespace the instruction is in.
 
   /// AsmString - The format string used to emit a .s file for the
   /// instruction.
@@ -238,7 +238,7 @@ public:
 
   /// ImplicitDefs/ImplicitUses - These are lists of registers that are
   /// implicitly defined and used by the instruction.
-  std::vector<Record *> ImplicitDefs, ImplicitUses;
+  std::vector<const Record *> ImplicitDefs, ImplicitUses;
 
   // Various boolean values we track for the instruction.
   bool isPreISelOpcode : 1;
@@ -303,12 +303,12 @@ public:
 
   // The record used to infer instruction flags, or NULL if no flag values
   // have been inferred.
-  Record *InferredFrom;
+  const Record *InferredFrom;
 
   // The enum value assigned by CodeGenTarget::computeInstrsByEnum.
   mutable unsigned EnumVal = 0;
 
-  CodeGenInstruction(Record *R);
+  CodeGenInstruction(const Record *R);
 
   /// HasOneImplicitDefWithKnownVT - If the instruction has at least one
   /// implicit def and it has a known VT, return the VT, otherwise return
@@ -350,4 +350,4 @@ private:
 };
 } // namespace llvm
 
-#endif
+#endif // LLVM_UTILS_TABLEGEN_COMMON_CODEGENINSTRUCTION_H

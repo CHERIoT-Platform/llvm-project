@@ -19,7 +19,7 @@ typedef struct {
 // CHECK-LABEL: define {{[^@]+}}@test_struct_member_decay
 // CHECK-SAME: (ptr addrspace(200) noundef [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[S]], i64 8
+// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[S]], i64 8
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[BUF]], i64 40)
 // CHECK-NEXT:    tail call void @overflow_buffer(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR5:[0-9]+]]
 // CHECK-NEXT:    ret void
@@ -114,7 +114,7 @@ struct vla_struct {
 // CHECK-LABEL: define {{[^@]+}}@test_vla_struct_member_decay
 // CHECK-SAME: (ptr addrspace(200) noundef [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[VLA:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[S]], i64 4
+// CHECK-NEXT:    [[VLA:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[S]], i64 4
 // CHECK-NEXT:    [[CUR_OFFSET:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) nonnull [[VLA]])
 // CHECK-NEXT:    [[CUR_LEN:%.*]] = tail call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) nonnull [[VLA]])
 // CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]
@@ -134,7 +134,7 @@ struct fake_vla_struct {
 // CHECK-LABEL: define {{[^@]+}}@test_fake_vla_struct_member_decay
 // CHECK-SAME: (ptr addrspace(200) noundef [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[FAKE_VLA:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[S]], i64 4
+// CHECK-NEXT:    [[FAKE_VLA:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[S]], i64 4
 // CHECK-NEXT:    [[CUR_OFFSET:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) nonnull [[FAKE_VLA]])
 // CHECK-NEXT:    [[CUR_LEN:%.*]] = tail call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) nonnull [[FAKE_VLA]])
 // CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]
@@ -154,7 +154,7 @@ struct fake_vla_struct2 {
 // CHECK-LABEL: define {{[^@]+}}@test_fake_vla_struct2_member_decay
 // CHECK-SAME: (ptr addrspace(200) noundef [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[FAKE_VLA2:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[S]], i64 4
+// CHECK-NEXT:    [[FAKE_VLA2:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[S]], i64 4
 // CHECK-NEXT:    [[CUR_OFFSET:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) nonnull [[FAKE_VLA2]])
 // CHECK-NEXT:    [[CUR_LEN:%.*]] = tail call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) nonnull [[FAKE_VLA2]])
 // CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]

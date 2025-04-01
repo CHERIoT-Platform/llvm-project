@@ -85,9 +85,6 @@ SDValue EmitTargetCodeForMemOp(SelectionDAG &DAG, const SDLoc &dl,
 }
 }
 
-RISCVSelectionDAGInfo::~RISCVSelectionDAGInfo() {
-}
-
 SDValue RISCVSelectionDAGInfo::EmitTargetCodeForMemcpy(
     SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Dst, SDValue Src,
     SDValue Size, Align Alignment, bool isVolatile, bool AlwaysInline,
@@ -211,4 +208,16 @@ SDValue RISCVSelectionDAGInfo::EmitTargetCodeForMemset(
   const char *memFnName =
       RISCVABI::isCheriPureCapABI(STI.getTargetABI()) ? "memset" : "memset_c";
   return callFunction(DAG, dl, Chain, memFnName, Dst, Src, Size);
+}
+
+RISCVSelectionDAGInfo::~RISCVSelectionDAGInfo() = default;
+
+bool RISCVSelectionDAGInfo::isTargetMemoryOpcode(unsigned Opcode) const {
+  return Opcode >= RISCVISD::FIRST_MEMORY_OPCODE &&
+         Opcode <= RISCVISD::LAST_MEMORY_OPCODE;
+}
+
+bool RISCVSelectionDAGInfo::isTargetStrictFPOpcode(unsigned Opcode) const {
+  return Opcode >= RISCVISD::FIRST_STRICTFP_OPCODE &&
+         Opcode <= RISCVISD::LAST_STRICTFP_OPCODE;
 }

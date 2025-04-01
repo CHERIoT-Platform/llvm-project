@@ -13,6 +13,7 @@
 #ifndef LLVM_CLANG_LIB_BASIC_TARGETS_MIPS_H
 #define LLVM_CLANG_LIB_BASIC_TARGETS_MIPS_H
 
+#include "OSTargets.h"
 #include "llvm/Config/config.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Basic/TargetOptions.h"
@@ -34,21 +35,21 @@ class LLVM_LIBRARY_VISIBILITY MipsTargetInfo : public TargetInfo {
       if (IsCHERI)
         llvm::report_fatal_error(Twine("Cannot use CHERI with ") + ABI + " ABI");
     } else if (ABI == "n32") {
-      Layout = "m:e-p:32:32-i8:8:32-i16:16:32-i64:64-n32:64-S128";
+      Layout = "m:e-p:32:32-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128";
       if (IsCHERI)
         llvm::report_fatal_error(Twine("Cannot use CHERI with ") + ABI + " ABI");
     } else if (ABI == "n64") {
       if (IsCHERI) {
         if (CapSize == 64) {
-          Layout = "m:e-pf200:64:64:64:32-i8:8:32-i16:16:32-i64:64-n32:64-S128";
+          Layout = "m:e-pf200:64:64:64:32-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128";
         } else if (CapSize == 128) {
-          Layout = "m:e-pf200:128:128:128:64-i8:8:32-i16:16:32-i64:64-n32:64-S128";
+          Layout = "m:e-pf200:128:128:128:64-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128";
         } else {
           assert(CapSize == 256);
-          Layout = "m:e-pf200:256:256:256:64-i8:8:32-i16:16:32-i64:64-n32:64-S256";
+          Layout = "m:e-pf200:256:256:256:64-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S256";
         }
       } else
-        Layout = "m:e-i8:8:32-i16:16:32-i64:64-n32:64-S128";
+        Layout = "m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128";
     } else
       llvm_unreachable("Invalid ABI");
 
@@ -107,7 +108,7 @@ public:
       setABI("purecap");
     else if (Triple.isMIPS32())
       setABI("o32");
-    else if (Triple.getEnvironment() == llvm::Triple::GNUABIN32)
+    else if (Triple.isABIN32())
       setABI("n32");
     else
       setABI("n64");
@@ -621,6 +622,42 @@ public:
   std::pair<unsigned, unsigned> hardwareInterferenceSizes() const override {
     return std::make_pair(32, 32);
   }
+};
+
+class LLVM_LIBRARY_VISIBILITY WindowsMipsTargetInfo
+    : public WindowsTargetInfo<MipsTargetInfo> {
+  const llvm::Triple Triple;
+
+public:
+  WindowsMipsTargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts);
+
+  void getVisualStudioDefines(const LangOptions &Opts,
+                              MacroBuilder &Builder) const;
+
+  BuiltinVaListKind getBuiltinVaListKind() const override;
+
+  CallingConvCheckResult checkCallingConvention(CallingConv CC) const override;
+};
+
+// Windows MIPS, MS (C++) ABI
+class LLVM_LIBRARY_VISIBILITY MicrosoftMipsTargetInfo
+    : public WindowsMipsTargetInfo {
+public:
+  MicrosoftMipsTargetInfo(const llvm::Triple &Triple,
+                          const TargetOptions &Opts);
+
+  void getTargetDefines(const LangOptions &Opts,
+                        MacroBuilder &Builder) const override;
+};
+
+// MIPS MinGW target
+class LLVM_LIBRARY_VISIBILITY MinGWMipsTargetInfo
+    : public WindowsMipsTargetInfo {
+public:
+  MinGWMipsTargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts);
+
+  void getTargetDefines(const LangOptions &Opts,
+                        MacroBuilder &Builder) const override;
 };
 } // namespace targets
 } // namespace clang

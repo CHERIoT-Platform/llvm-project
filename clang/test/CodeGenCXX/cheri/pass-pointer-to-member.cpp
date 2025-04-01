@@ -44,7 +44,7 @@ long use_p2m_impl(A *a, long (A::*fp)());
 // RISCV64-PURECAP-NEXT:    [[FP_FCA_1_EXTRACT:%.*]] = extractvalue { ptr addrspace(200), i64 } [[FP]], 1
 // RISCV64-PURECAP-NEXT:    call void @llvm.lifetime.start.p200(i64 32, ptr addrspace(200) nonnull [[BYVAL_TEMP]]) #[[ATTR4:[0-9]+]]
 // RISCV64-PURECAP-NEXT:    store ptr addrspace(200) [[FP_FCA_0_EXTRACT]], ptr addrspace(200) [[BYVAL_TEMP]], align 16, !tbaa [[TBAA6]]
-// RISCV64-PURECAP-NEXT:    [[DOTFCA_1_GEP:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[BYVAL_TEMP]], i64 16
+// RISCV64-PURECAP-NEXT:    [[DOTFCA_1_GEP:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[BYVAL_TEMP]], i64 16
 // RISCV64-PURECAP-NEXT:    store i64 [[FP_FCA_1_EXTRACT]], ptr addrspace(200) [[DOTFCA_1_GEP]], align 16, !tbaa [[TBAA6]]
 // RISCV64-PURECAP-NEXT:    [[CALL:%.*]] = call noundef i64 @_Z12use_p2m_implP1AMS_FlvE(ptr addrspace(200) noundef [[A]], ptr addrspace(200) noundef nonnull [[BYVAL_TEMP]]) #[[ATTR4]]
 // RISCV64-PURECAP-NEXT:    call void @llvm.lifetime.end.p200(i64 32, ptr addrspace(200) nonnull [[BYVAL_TEMP]]) #[[ATTR4]]
@@ -65,7 +65,7 @@ long use_p2m_impl(A *a, long (A::*fp)());
 // RISCV32-PURECAP-NEXT:    [[FP_FCA_1_EXTRACT:%.*]] = extractvalue { ptr addrspace(200), i32 } [[FP]], 1
 // RISCV32-PURECAP-NEXT:    call void @llvm.lifetime.start.p200(i64 16, ptr addrspace(200) nonnull [[BYVAL_TEMP]]) #[[ATTR4:[0-9]+]]
 // RISCV32-PURECAP-NEXT:    store ptr addrspace(200) [[FP_FCA_0_EXTRACT]], ptr addrspace(200) [[BYVAL_TEMP]], align 8, !tbaa [[TBAA6]]
-// RISCV32-PURECAP-NEXT:    [[DOTFCA_1_GEP:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[BYVAL_TEMP]], i32 8
+// RISCV32-PURECAP-NEXT:    [[DOTFCA_1_GEP:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[BYVAL_TEMP]], i32 8
 // RISCV32-PURECAP-NEXT:    store i32 [[FP_FCA_1_EXTRACT]], ptr addrspace(200) [[DOTFCA_1_GEP]], align 8, !tbaa [[TBAA6]]
 // RISCV32-PURECAP-NEXT:    [[CALL:%.*]] = call noundef i32 @_Z12use_p2m_implP1AMS_FlvE(ptr addrspace(200) noundef [[A]], ptr addrspace(200) noundef nonnull [[BYVAL_TEMP]]) #[[ATTR4]]
 // RISCV32-PURECAP-NEXT:    call void @llvm.lifetime.end.p200(i64 16, ptr addrspace(200) nonnull [[BYVAL_TEMP]]) #[[ATTR4]]
@@ -98,7 +98,7 @@ __attribute__((noinline)) long use_p2m(A *a, long (A::*fp)()) {
 // RISCV64-PURECAP-NEXT:    [[BYVAL_TEMP:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
 // RISCV64-PURECAP-NEXT:    call void @llvm.lifetime.start.p200(i64 32, ptr addrspace(200) nonnull [[BYVAL_TEMP]]) #[[ATTR4]]
 // RISCV64-PURECAP-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 17), ptr addrspace(200) [[BYVAL_TEMP]], align 16, !tbaa [[TBAA6]]
-// RISCV64-PURECAP-NEXT:    [[DOTFCA_1_GEP:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[BYVAL_TEMP]], i64 16
+// RISCV64-PURECAP-NEXT:    [[DOTFCA_1_GEP:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[BYVAL_TEMP]], i64 16
 // RISCV64-PURECAP-NEXT:    store i64 0, ptr addrspace(200) [[DOTFCA_1_GEP]], align 16, !tbaa [[TBAA6]]
 // RISCV64-PURECAP-NEXT:    [[CALL:%.*]] = call noundef i64 @_Z7use_p2mP1AMS_FlvE(ptr addrspace(200) noundef null, ptr addrspace(200) noundef nonnull [[BYVAL_TEMP]])
 // RISCV64-PURECAP-NEXT:    call void @llvm.lifetime.end.p200(i64 32, ptr addrspace(200) nonnull [[BYVAL_TEMP]]) #[[ATTR4]]
@@ -116,7 +116,7 @@ __attribute__((noinline)) long use_p2m(A *a, long (A::*fp)()) {
 // RISCV32-PURECAP-NEXT:    [[BYVAL_TEMP:%.*]] = alloca { ptr addrspace(200), i32 }, align 8, addrspace(200)
 // RISCV32-PURECAP-NEXT:    call void @llvm.lifetime.start.p200(i64 16, ptr addrspace(200) nonnull [[BYVAL_TEMP]]) #[[ATTR4]]
 // RISCV32-PURECAP-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i32 9), ptr addrspace(200) [[BYVAL_TEMP]], align 8, !tbaa [[TBAA6]]
-// RISCV32-PURECAP-NEXT:    [[DOTFCA_1_GEP:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[BYVAL_TEMP]], i32 8
+// RISCV32-PURECAP-NEXT:    [[DOTFCA_1_GEP:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[BYVAL_TEMP]], i32 8
 // RISCV32-PURECAP-NEXT:    store i32 0, ptr addrspace(200) [[DOTFCA_1_GEP]], align 8, !tbaa [[TBAA6]]
 // RISCV32-PURECAP-NEXT:    [[CALL:%.*]] = call noundef i32 @_Z7use_p2mP1AMS_FlvE(ptr addrspace(200) noundef null, ptr addrspace(200) noundef nonnull [[BYVAL_TEMP]])
 // RISCV32-PURECAP-NEXT:    call void @llvm.lifetime.end.p200(i64 16, ptr addrspace(200) nonnull [[BYVAL_TEMP]]) #[[ATTR4]]

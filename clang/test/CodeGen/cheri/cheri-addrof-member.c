@@ -10,7 +10,7 @@ struct S {
 // CHECK-LABEL: define {{[^@]+}}@struct_member
 // CHECK-SAME: (ptr addrspace(200) noundef [[S:%.*]]) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[C:%.*]] = getelementptr inbounds [[STRUCT_S:%.*]], ptr addrspace(200) [[S]], i32 0, i32 1
+// CHECK-NEXT:    [[C:%.*]] = getelementptr inbounds nuw [[STRUCT_S:%.*]], ptr addrspace(200) [[S]], i32 0, i32 1
 // CHECK-NEXT:    ret ptr addrspace(200) [[C]]
 //
 char * __capability struct_member(struct S * __capability s) {
@@ -50,7 +50,7 @@ void typeof_arg(void * __capability p) {
 // CHECK-LABEL: define {{[^@]+}}@fromcap_member
 // CHECK-SAME: (ptr addrspace(200) noundef [[S:%.*]]) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds [[STRUCT_S:%.*]], ptr addrspace(200) [[S]], i32 0, i32 0
+// CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds nuw [[STRUCT_S:%.*]], ptr addrspace(200) [[S]], i32 0, i32 0
 // CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [1 x i8], ptr addrspace(200) [[BUF]], i64 0, i64 0
 // CHECK-NEXT:    [[ARRAYIDX_ASCAST:%.*]] = addrspacecast ptr addrspace(200) [[ARRAYIDX]] to ptr
 // CHECK-NEXT:    ret ptr [[ARRAYIDX_ASCAST]]

@@ -130,7 +130,7 @@ data_reloc2:
 # OBJ-RELOCS-NEXT:     Addend: 0x0
 # OBJ-RELOCS-NEXT:   }
 # LLD-OUTPUT-NEXT: warning: could not determine size of cap reloc against local object obj2_subobject1
-# LLD-OUTPUT-NEXT: >>> defined in {{.+}}caprelocs-surrounding-symbol.s.tmp.o:(obj2))
+# LLD-OUTPUT-NEXT: >>> defined in {{.+}}caprelocs-surrounding-symbol.s.tmp.o:(object obj2{{.+}}))
 # LLD-OUTPUT-NEXT: >>> referenced by local <unknown kind> data_reloc2
 # LLD-OUTPUT-NEXT: >>> defined in {{.+}}caprelocs-surrounding-symbol.s.tmp.o:(.relocs_section+0x30))
 # LLD-OUTPUT-EMPTY:

@@ -23,8 +23,6 @@ struct mem_fn_ptr {
 void func(void);
 mem_fn_ptr virt = {(void *)32, 1};
 mem_fn_ptr nonvirt = {(void *)&func, 1};
-// CHECK: @virt = addrspace(200) global { ptr addrspace(200), i64 } { ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 32), i64 1 }, align 16
-// CHECK: @nonvirt = addrspace(200) global { ptr addrspace(200), i64 } { ptr addrspace(200) @_Z4funcv, i64 1 }, align 16
 
 // now the real thing
 typedef int (A::*AMemberFuncPtr)();
@@ -54,7 +52,7 @@ AMemberFuncPtr global_virt_func_ptr = &A::bar_virtual;
 // CHECK-NEXT:    [[VIRTUAL_FUNC_PTR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
 // CHECK-NEXT:    [[VIRTUAL_FUNC_PTR_2:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
 // CHECK-NEXT:    store i32 0, ptr addrspace(200) [[RETVAL]], align 4
-// CHECK-NEXT:    call void @_ZN1AC1Ev(ptr addrspace(200) noundef nonnull align 16 dereferenceable(24) [[A]]) #[[ATTR7:[0-9]+]]
+// CHECK-NEXT:    call void @_ZN1AC1Ev(ptr addrspace(200) noundef nonnull align 16 dereferenceable(24) [[A]]) #[[ATTR6:[0-9]+]]
 // CHECK-NEXT:    store i64 -1, ptr addrspace(200) [[NULL_DATA_PTR]], align 8
 // CHECK-NEXT:    store i64 16, ptr addrspace(200) [[DATA_PTR]], align 8
 // CHECK-NEXT:    store i64 20, ptr addrspace(200) [[DATA_PTR_2]], align 8
@@ -207,9 +205,9 @@ int data_ptr_dereferece(A *a, int A::*ptr) {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[PTR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
 // CHECK-NEXT:    [[PTR_ADDR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
-// CHECK-NEXT:    [[TMP0:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 0
+// CHECK-NEXT:    [[TMP0:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 0
 // CHECK-NEXT:    store ptr addrspace(200) [[PTR_COERCE0]], ptr addrspace(200) [[TMP0]], align 16
-// CHECK-NEXT:    [[TMP1:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 1
+// CHECK-NEXT:    [[TMP1:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 1
 // CHECK-NEXT:    store i64 [[PTR_COERCE1]], ptr addrspace(200) [[TMP1]], align 16
 // CHECK-NEXT:    [[PTR1:%.*]] = load { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], align 16
 // CHECK-NEXT:    store { ptr addrspace(200), i64 } [[PTR1]], ptr addrspace(200) [[PTR_ADDR]], align 16
@@ -227,8 +225,8 @@ int data_ptr_dereferece(A *a, int A::*ptr) {
 // N64-NEXT:  entry:
 // N64-NEXT:    [[MEMPTR_VIRTUALBIT:%.*]] = and i64 [[PTR_COERCE1]], 1
 // N64-NEXT:    [[TMP0:%.*]] = or i64 [[MEMPTR_VIRTUALBIT]], [[PTR_COERCE0]]
-// N64-NEXT:    [[TMP1:%.*]] = icmp ne i64 [[TMP0]], 0
-// N64-NEXT:    ret i1 [[TMP1]]
+// N64-NEXT:    [[MEMPTR_ISNONNULL:%.*]] = icmp ne i64 [[TMP0]], 0
+// N64-NEXT:    ret i1 [[MEMPTR_ISNONNULL]]
 //
 bool func_ptr_is_nonnull(AMemberFuncPtr ptr) {
   return static_cast<bool>(ptr);
@@ -239,9 +237,9 @@ bool func_ptr_is_nonnull(AMemberFuncPtr ptr) {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[PTR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
 // CHECK-NEXT:    [[PTR_ADDR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
-// CHECK-NEXT:    [[TMP0:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 0
+// CHECK-NEXT:    [[TMP0:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 0
 // CHECK-NEXT:    store ptr addrspace(200) [[PTR_COERCE0]], ptr addrspace(200) [[TMP0]], align 16
-// CHECK-NEXT:    [[TMP1:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 1
+// CHECK-NEXT:    [[TMP1:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 1
 // CHECK-NEXT:    store i64 [[PTR_COERCE1]], ptr addrspace(200) [[TMP1]], align 16
 // CHECK-NEXT:    [[PTR1:%.*]] = load { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], align 16
 // CHECK-NEXT:    store { ptr addrspace(200), i64 } [[PTR1]], ptr addrspace(200) [[PTR_ADDR]], align 16
@@ -260,8 +258,8 @@ bool func_ptr_is_nonnull(AMemberFuncPtr ptr) {
 // N64-NEXT:  entry:
 // N64-NEXT:    [[MEMPTR_VIRTUALBIT:%.*]] = and i64 [[PTR_COERCE1]], 1
 // N64-NEXT:    [[TMP0:%.*]] = or i64 [[MEMPTR_VIRTUALBIT]], [[PTR_COERCE0]]
-// N64-NEXT:    [[DOTNOT:%.*]] = icmp eq i64 [[TMP0]], 0
-// N64-NEXT:    ret i1 [[DOTNOT]]
+// N64-NEXT:    [[MEMPTR_ISNONNULL_NOT:%.*]] = icmp eq i64 [[TMP0]], 0
+// N64-NEXT:    ret i1 [[MEMPTR_ISNONNULL_NOT]]
 //
 bool func_ptr_is_null(AMemberFuncPtr ptr) {
   return !ptr;
@@ -274,14 +272,14 @@ bool func_ptr_is_null(AMemberFuncPtr ptr) {
 // CHECK-NEXT:    [[PTR2:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
 // CHECK-NEXT:    [[PTR1_ADDR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
 // CHECK-NEXT:    [[PTR2_ADDR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
-// CHECK-NEXT:    [[TMP0:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR1]], i32 0, i32 0
+// CHECK-NEXT:    [[TMP0:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR1]], i32 0, i32 0
 // CHECK-NEXT:    store ptr addrspace(200) [[PTR1_COERCE0]], ptr addrspace(200) [[TMP0]], align 16
-// CHECK-NEXT:    [[TMP1:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR1]], i32 0, i32 1
+// CHECK-NEXT:    [[TMP1:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR1]], i32 0, i32 1
 // CHECK-NEXT:    store i64 [[PTR1_COERCE1]], ptr addrspace(200) [[TMP1]], align 16
 // CHECK-NEXT:    [[PTR11:%.*]] = load { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR1]], align 16
-// CHECK-NEXT:    [[TMP2:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR2]], i32 0, i32 0
+// CHECK-NEXT:    [[TMP2:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR2]], i32 0, i32 0
 // CHECK-NEXT:    store ptr addrspace(200) [[PTR2_COERCE0]], ptr addrspace(200) [[TMP2]], align 16
-// CHECK-NEXT:    [[TMP3:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR2]], i32 0, i32 1
+// CHECK-NEXT:    [[TMP3:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR2]], i32 0, i32 1
 // CHECK-NEXT:    store i64 [[PTR2_COERCE1]], ptr addrspace(200) [[TMP3]], align 16
 // CHECK-NEXT:    [[PTR22:%.*]] = load { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR2]], align 16
 // CHECK-NEXT:    store { ptr addrspace(200), i64 } [[PTR11]], ptr addrspace(200) [[PTR1_ADDR]], align 16
@@ -327,14 +325,14 @@ bool func_ptr_equal(AMemberFuncPtr ptr1, AMemberFuncPtr ptr2) {
 // CHECK-NEXT:    [[PTR2:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
 // CHECK-NEXT:    [[PTR1_ADDR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
 // CHECK-NEXT:    [[PTR2_ADDR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
-// CHECK-NEXT:    [[TMP0:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR1]], i32 0, i32 0
+// CHECK-NEXT:    [[TMP0:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR1]], i32 0, i32 0
 // CHECK-NEXT:    store ptr addrspace(200) [[PTR1_COERCE0]], ptr addrspace(200) [[TMP0]], align 16
-// CHECK-NEXT:    [[TMP1:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR1]], i32 0, i32 1
+// CHECK-NEXT:    [[TMP1:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR1]], i32 0, i32 1
 // CHECK-NEXT:    store i64 [[PTR1_COERCE1]], ptr addrspace(200) [[TMP1]], align 16
 // CHECK-NEXT:    [[PTR11:%.*]] = load { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR1]], align 16
-// CHECK-NEXT:    [[TMP2:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR2]], i32 0, i32 0
+// CHECK-NEXT:    [[TMP2:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR2]], i32 0, i32 0
 // CHECK-NEXT:    store ptr addrspace(200) [[PTR2_COERCE0]], ptr addrspace(200) [[TMP2]], align 16
-// CHECK-NEXT:    [[TMP3:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR2]], i32 0, i32 1
+// CHECK-NEXT:    [[TMP3:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR2]], i32 0, i32 1
 // CHECK-NEXT:    store i64 [[PTR2_COERCE1]], ptr addrspace(200) [[TMP3]], align 16
 // CHECK-NEXT:    [[PTR22:%.*]] = load { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR2]], align 16
 // CHECK-NEXT:    store { ptr addrspace(200), i64 } [[PTR11]], ptr addrspace(200) [[PTR1_ADDR]], align 16
@@ -379,9 +377,9 @@ bool func_ptr_not_equal(AMemberFuncPtr ptr1, AMemberFuncPtr ptr2) {
 // CHECK-NEXT:    [[PTR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
 // CHECK-NEXT:    [[A_ADDR:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // CHECK-NEXT:    [[PTR_ADDR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
-// CHECK-NEXT:    [[TMP0:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 0
+// CHECK-NEXT:    [[TMP0:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 0
 // CHECK-NEXT:    store ptr addrspace(200) [[PTR_COERCE0]], ptr addrspace(200) [[TMP0]], align 16
-// CHECK-NEXT:    [[TMP1:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 1
+// CHECK-NEXT:    [[TMP1:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 1
 // CHECK-NEXT:    store i64 [[PTR_COERCE1]], ptr addrspace(200) [[TMP1]], align 16
 // CHECK-NEXT:    [[PTR1:%.*]] = load { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], align 16
 // CHECK-NEXT:    store ptr addrspace(200) [[A]], ptr addrspace(200) [[A_ADDR]], align 16
@@ -398,8 +396,8 @@ bool func_ptr_not_equal(AMemberFuncPtr ptr1, AMemberFuncPtr ptr2) {
 // CHECK:       memptr.virtual:
 // CHECK-NEXT:    [[VTABLE:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[TMP4]], align 16
 // CHECK-NEXT:    [[MEMPTR_VTABLE_OFFSET:%.*]] = ptrtoint ptr addrspace(200) [[MEMPTR_PTR]] to i64
-// CHECK-NEXT:    [[TMP6:%.*]] = getelementptr i8, ptr addrspace(200) [[VTABLE]], i64 [[MEMPTR_VTABLE_OFFSET]], !nosanitize !2
-// CHECK-NEXT:    [[MEMPTR_VIRTUALFN:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[TMP6]], align 16, !nosanitize !2
+// CHECK-NEXT:    [[TMP6:%.*]] = getelementptr i8, ptr addrspace(200) [[VTABLE]], i64 [[MEMPTR_VTABLE_OFFSET]], !nosanitize [[META2:![0-9]+]]
+// CHECK-NEXT:    [[MEMPTR_VIRTUALFN:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[TMP6]], align 16, !nosanitize [[META2]]
 // CHECK-NEXT:    br label [[MEMPTR_END:%.*]]
 // CHECK:       memptr.nonvirtual:
 // CHECK-NEXT:    br label [[MEMPTR_END]]
@@ -418,8 +416,8 @@ bool func_ptr_not_equal(AMemberFuncPtr ptr1, AMemberFuncPtr ptr2) {
 // N64-NEXT:    br i1 [[MEMPTR_ISVIRTUAL_NOT]], label [[MEMPTR_NONVIRTUAL:%.*]], label [[MEMPTR_VIRTUAL:%.*]]
 // N64:       memptr.virtual:
 // N64-NEXT:    [[VTABLE:%.*]] = load ptr, ptr [[TMP0]], align 8, !tbaa [[TBAA6:![0-9]+]]
-// N64-NEXT:    [[TMP2:%.*]] = getelementptr i8, ptr [[VTABLE]], i64 [[PTR_COERCE0]], !nosanitize !8
-// N64-NEXT:    [[MEMPTR_VIRTUALFN:%.*]] = load ptr, ptr [[TMP2]], align 8, !nosanitize !8
+// N64-NEXT:    [[TMP2:%.*]] = getelementptr i8, ptr [[VTABLE]], i64 [[PTR_COERCE0]], !nosanitize [[META8:![0-9]+]]
+// N64-NEXT:    [[MEMPTR_VIRTUALFN:%.*]] = load ptr, ptr [[TMP2]], align 8, !nosanitize [[META8]]
 // N64-NEXT:    br label [[MEMPTR_END:%.*]]
 // N64:       memptr.nonvirtual:
 // N64-NEXT:    [[MEMPTR_NONVIRTUALFN:%.*]] = inttoptr i64 [[PTR_COERCE0]] to ptr
@@ -453,9 +451,9 @@ AMemberFuncPtr return_func_ptr() {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[PTR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
 // CHECK-NEXT:    [[PTR_ADDR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
-// CHECK-NEXT:    [[TMP0:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 0
+// CHECK-NEXT:    [[TMP0:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 0
 // CHECK-NEXT:    store ptr addrspace(200) [[PTR_COERCE0]], ptr addrspace(200) [[TMP0]], align 16
-// CHECK-NEXT:    [[TMP1:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 1
+// CHECK-NEXT:    [[TMP1:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 1
 // CHECK-NEXT:    store i64 [[PTR_COERCE1]], ptr addrspace(200) [[TMP1]], align 16
 // CHECK-NEXT:    [[PTR1:%.*]] = load { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], align 16
 // CHECK-NEXT:    store { ptr addrspace(200), i64 } [[PTR1]], ptr addrspace(200) [[PTR_ADDR]], align 16
@@ -474,9 +472,9 @@ void take_func_ptr(AMemberFuncPtr ptr) {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[PTR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
 // CHECK-NEXT:    [[PTR_ADDR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
-// CHECK-NEXT:    [[TMP0:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 0
+// CHECK-NEXT:    [[TMP0:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 0
 // CHECK-NEXT:    store ptr addrspace(200) [[PTR_COERCE0]], ptr addrspace(200) [[TMP0]], align 16
-// CHECK-NEXT:    [[TMP1:%.*]] = getelementptr inbounds { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 1
+// CHECK-NEXT:    [[TMP1:%.*]] = getelementptr inbounds nuw { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], i32 0, i32 1
 // CHECK-NEXT:    store i64 [[PTR_COERCE1]], ptr addrspace(200) [[TMP1]], align 16
 // CHECK-NEXT:    [[PTR1:%.*]] = load { ptr addrspace(200), i64 }, ptr addrspace(200) [[PTR]], align 16
 // CHECK-NEXT:    store { ptr addrspace(200), i64 } [[PTR1]], ptr addrspace(200) [[PTR_ADDR]], align 16
@@ -513,11 +511,11 @@ struct C {
 // CHECK-NEXT:    [[AGG_TMP_ENSURED:%.*]] = alloca %"struct.PR7556::A", align 1, addrspace(200)
 // CHECK-NEXT:    [[AGG_TMP_ENSURED1:%.*]] = alloca %"struct.PR7556::B", align 4, addrspace(200)
 // CHECK-NEXT:    [[AGG_TMP_ENSURED2:%.*]] = alloca %"struct.PR7556::C", align 8, addrspace(200)
-// CHECK-NEXT:    call void @_ZN6PR75561AD1Ev(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[AGG_TMP_ENSURED]]) #[[ATTR7]]
+// CHECK-NEXT:    call void @_ZN6PR75561AD1Ev(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[AGG_TMP_ENSURED]]) #[[ATTR6]]
 // CHECK-NEXT:    call void @llvm.memset.p200.i64(ptr addrspace(200) align 4 [[AGG_TMP_ENSURED1]], i8 0, i64 4, i1 false)
-// CHECK-NEXT:    call void @_ZN6PR75561BD1Ev(ptr addrspace(200) noundef nonnull align 4 dereferenceable(4) [[AGG_TMP_ENSURED1]]) #[[ATTR7]]
+// CHECK-NEXT:    call void @_ZN6PR75561BD1Ev(ptr addrspace(200) noundef nonnull align 4 dereferenceable(4) [[AGG_TMP_ENSURED1]]) #[[ATTR6]]
 // CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 8 [[AGG_TMP_ENSURED2]], ptr addrspace(200) align 8 @[[GLOB0:[0-9]+]], i64 8, i1 false)
-// CHECK-NEXT:    call void @_ZN6PR75561CD1Ev(ptr addrspace(200) noundef nonnull align 8 dereferenceable(8) [[AGG_TMP_ENSURED2]]) #[[ATTR7]]
+// CHECK-NEXT:    call void @_ZN6PR75561CD1Ev(ptr addrspace(200) noundef nonnull align 8 dereferenceable(8) [[AGG_TMP_ENSURED2]]) #[[ATTR6]]
 // CHECK-NEXT:    ret void
 //
 // N64-LABEL: define {{[^@]+}}@_ZN6PR75563fooEv

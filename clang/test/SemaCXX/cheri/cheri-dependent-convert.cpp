@@ -6,7 +6,7 @@
 // instantiating it then gives the expected warnings and errors for the
 // specific instantiations.
 
-template <typename T, T>
+template <typename T, T> // expected-note{{template parameter is declared here}}
 struct SameType;
 
 template <typename T>

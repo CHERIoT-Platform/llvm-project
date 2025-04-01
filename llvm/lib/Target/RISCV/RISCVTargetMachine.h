@@ -17,13 +17,12 @@
 #include "RISCVSubtarget.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/CodeGen/SelectionDAGTargetInfo.h"
+#include "llvm/CodeGen/CodeGenTargetMachineImpl.h"
 #include "llvm/IR/DataLayout.h"
-#include "llvm/Target/TargetMachine.h"
 #include <optional>
 
 namespace llvm {
-class RISCVTargetMachine : public LLVMTargetMachine {
+class RISCVTargetMachine : public CodeGenTargetMachineImpl {
   std::unique_ptr<TargetLoweringObjectFile> TLOF;
   mutable StringMap<std::unique_ptr<RISCVSubtarget>> SubtargetMap;
 
@@ -70,6 +69,10 @@ public:
   /// The set of functions imported from this compilation unit.
   CHERIoTImportedFunctionSet ImportedFunctions;
 };
+
+std::unique_ptr<ScheduleDAGMutation>
+createRISCVVectorMaskDAGMutation(const TargetRegisterInfo *TRI);
+
 } // namespace llvm
 
 #endif

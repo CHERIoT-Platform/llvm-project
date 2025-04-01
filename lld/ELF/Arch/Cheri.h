@@ -25,21 +25,20 @@ public:
   SymbolAndOffset(const SymbolAndOffset &) = default;
   SymbolAndOffset &operator=(const SymbolAndOffset &) = default;
 
-  inline std::string verboseToString() const {
+  inline std::string verboseToString(Ctx &ctx) const {
     assert(!symOrSec.isNull());
-    SymbolAndOffset resolved = findRealSymbol();
-    if (resolved.symOrSec.is<Symbol *>())
-      return lld::verboseToString(resolved.symOrSec.get<Symbol *>(), offset);
-    return resolved.symOrSec.get<InputSectionBase *>()->getObjMsg(offset);
+    SymbolAndOffset resolved = findRealSymbol(ctx);
+    if (auto *S = dyn_cast<Symbol*>(resolved.symOrSec))
+      return lld::elf::verboseToString(ctx, S, offset);
+    return cast<InputSectionBase *>(resolved.symOrSec)->getLocation(offset);
   }
   // for __cap_relocs against local symbols clang emits section+offset instead
   // of the local symbol so that it still works even if the local symbol table
   // is stripped. This function tries to find the local symbol to a better match
-  SymbolAndOffset findRealSymbol() const;
-  SymbolAndOffset findSymbolForCapabilityRelocation() const;
+  SymbolAndOffset findRealSymbol(Ctx &ctx) const;
+  SymbolAndOffset findSymbolForCapabilityRelocation(Ctx &ctx) const;
   Symbol *sym() const {
-    assert(symOrSec.is<Symbol *>());
-    return symOrSec.get<Symbol *>();
+    return cast<Symbol*>(symOrSec);
   }
   bool operator==(const SymbolAndOffset &other) const {
     return symOrSec == other.symOrSec && offset == other.offset;
@@ -49,7 +48,7 @@ public:
   int64_t offset = 0;
 private:
   static SymbolAndOffset
-  fromSectionWithOffset(InputSectionBase *isec, int64_t offset,
+  fromSectionWithOffset(Ctx &ctx, InputSectionBase *isec, int64_t offset,
                         const SymbolAndOffset *Default = nullptr);
 };
 
@@ -59,7 +58,7 @@ struct CheriCapRelocLocation {
   bool operator==(const CheriCapRelocLocation &other) const {
     return section == other.section && offset == other.offset;
   }
-  std::string toString() const;
+  std::string toString(Ctx &ctx) const;
 };
 
 struct CheriCapReloc {
@@ -78,7 +77,7 @@ struct CheriCapReloc {
 // FIXME: should de-template this class properly
 class CheriCapRelocsSection : public SyntheticSection {
 public:
-  CheriCapRelocsSection();
+  CheriCapRelocsSection(Ctx &ctx);
   // Add a __cap_relocs section from in input object file
   template <class ELFT>
   void addSection(InputSectionBase *s);
@@ -97,12 +96,12 @@ private:
     auto it = relocsMap.insert(std::make_pair(loc, relocation));
     // assert(it.first->second == Relocation);
     if (!(it.first->second == relocation)) {
-      error("Newly inserted relocation at " + loc.toString() +
+      error("Newly inserted relocation at " + loc.toString(ctx) +
             " does not match existing one:\n>   Existing: " +
-            it.first->second.target.verboseToString() +
+            it.first->second.target.verboseToString(ctx) +
             ", cap offset=" + Twine(it.first->second.capabilityOffset) +
             ", dyn=" + Twine(it.first->second.needsDynReloc) +
-            "\n>   New:     " + relocation.target.verboseToString() +
+            "\n>   New:     " + relocation.target.verboseToString(ctx) +
             ", cap offset=" + Twine(relocation.capabilityOffset) +
             ", dyn=" + Twine(relocation.needsDynReloc));
     }
@@ -189,7 +188,7 @@ private:
 
 class CheriCapTableSection : public SyntheticSection {
 public:
-  CheriCapTableSection();
+  CheriCapTableSection(Ctx &ctx);
   // InputFile and Offset is needed in order to implement per-file/per-function
   // tables
   void addEntry(Symbol &sym, RelExpr expr, InputSectionBase *isec,
@@ -211,13 +210,13 @@ public:
   size_t getSize() const override {
     size_t nonTlsEntries = nonTlsEntryCount();
     if (nonTlsEntries > 0 || !tlsEntries.empty() || !dynTlsEntries.empty()) {
-      assert(config->capabilitySize > 0 &&
+      assert(ctx.arg.capabilitySize > 0 &&
              "Cap table entries present but cap size unknown???");
     }
     size_t bytes =
-        nonTlsEntryCount() * config->capabilitySize +
-        (dynTlsEntries.size() * 2 + tlsEntries.size()) * config->wordsize;
-    return llvm::alignTo(bytes, config->capabilitySize);
+        nonTlsEntryCount() * ctx.arg.capabilitySize +
+        (dynTlsEntries.size() * 2 + tlsEntries.size()) * ctx.arg.wordsize;
+    return llvm::alignTo(bytes, ctx.arg.capabilitySize);
   }
 private:
   struct CapTableIndex {
@@ -248,7 +247,7 @@ private:
                                               uint64_t offset);
   size_t nonTlsEntryCount() const {
     size_t totalCount = globalEntries.size();
-    if (LLVM_LIKELY(config->capTableScope == CapTableScopePolicy::All)) {
+    if (LLVM_LIKELY(ctx.arg.capTableScope == CapTableScopePolicy::All)) {
       assert(perFileEntries.empty() && perFunctionEntries.empty());
     } else {
       // Add all the per-file and per-function entries
@@ -283,11 +282,11 @@ struct CaptableMappingEntry {
 // trampolines to initialize $cgp to the correct subset
 class CheriCapTableMappingSection : public SyntheticSection {
 public:
-  CheriCapTableMappingSection();
+  CheriCapTableMappingSection(Ctx &ctx);
   bool isNeeded() const override {
-    if (config->capTableScope == CapTableScopePolicy::All)
+    if (ctx.arg.capTableScope == CapTableScopePolicy::All)
       return false;
-    return in.cheriCapTable && in.cheriCapTable->isNeeded();
+    return ctx.in.cheriCapTable && ctx.in.cheriCapTable->isNeeded();
   }
   void writeTo(uint8_t *buf) override;
   size_t getSize() const override;
@@ -312,19 +311,20 @@ inline bool isSectionStartSymbol(StringRef name) {
          name == "_DYNAMIC";
 }
 
-inline void readOnlyCapRelocsError(Symbol &sym, const Twine &sourceMsg) {
-  error("attempting to add a capability relocation against " +
-        (sym.getName().empty() ? "local symbol" : "symbol " + toString(sym)) +
-        " in a read-only section; pass -Wl,-z,notext if you really want to do "
-        "this" +
-        sourceMsg);
+inline void readOnlyCapRelocsError(Ctx &ctx, Symbol &sym, const Twine &sourceMsg) {
+  auto diag = Err(ctx);
+  diag << "attempting to add a capability relocation against "
+       << (sym.getName().empty() ? "local symbol" : "symbol ") << toStr(ctx, sym)
+       << " in a read-only section; pass -Wl,-z,notext if you really want to "
+          "do this"
+       << sourceMsg;
 }
 
 // For CHERIoT compartments, the $cgp register points to the middle of the
 // globals section for a given compartment, with bounds set to include all of
 // that compartment's globals.  Calculate the address of the symbol relative
 // to the middle of $cgp.
-inline uint64_t getBiasedCGPOffset(const Symbol &sym)
+inline uint64_t getBiasedCGPOffset(Ctx &ctx, const Symbol &sym)
 {
   auto *OutputSection = sym.getOutputSection();
   if (!OutputSection)
@@ -332,39 +332,41 @@ inline uint64_t getBiasedCGPOffset(const Symbol &sym)
           " against symbol " + sym.getName() +
           " which does not appear in any section");
   uint64_t CGP = OutputSection->addr + OutputSection->size / 2;
-  return sym.getVA() - CGP;
+  return sym.getVA(ctx) - CGP;
 }
 
 /// CHERIoT relocations apply differently depending on whether the target is
 /// accessed via PCC or CGP.  This returns true if the target is PCC-relative,
 /// false otherwise.  The relocation must be against a defined symbol in a
 /// known section.
-inline bool isPCCRelative(const uint8_t *loc, const Symbol *sym) {
+inline bool isPCCRelative(Ctx &ctx, const uint8_t *loc, const Symbol *sym) {
   auto *def = dyn_cast<Defined>(sym);
-  if (!def)
-    fatal(getErrorLocation(loc) + "relocation against symbol " +
-          toString(*sym) + " which is not defined");
+  if (!def) {
+    Fatal(ctx) << getErrorLoc(ctx, loc) << "relocation against symbol "
+               << toStr(ctx, *sym) << " which is not defined";
+  }
   auto *outputSection =
       def->section ? def->section->getOutputSection() : nullptr;
-  if (outputSection == nullptr)
-    fatal(getErrorLocation(loc) + "relocation against symbol " +
-          toString(*sym) + " which is not in any output section");
+  if (outputSection == nullptr) {
+    Fatal(ctx) << getErrorLoc(ctx, loc) << "relocation against symbol "
+               << toStr(ctx, *sym) << " which is not in any output section";
+  }
   return outputSection->flags & llvm::ELF::SHF_EXECINSTR;
 }
 
 // Same with getBiasedCGPOffset(), but we only care about the bottom 12 bits
 // to be used by COMPARTMENT_CGPREL_LO
-inline uint64_t getBiasedCGPOffsetLo12(const Symbol &sym)
+inline uint64_t getBiasedCGPOffsetLo12(Ctx &ctx, const Symbol &sym)
 {
-  int64_t Displacement = getBiasedCGPOffset(sym);
+  int64_t Displacement = getBiasedCGPOffset(ctx, sym);
   uint64_t mask = Displacement < 0 ? -1 : 0;
   return (mask << 11) | (Displacement & ((1L << 11) - 1));
 }
 
 template <typename ELFT>
-void addCapabilityRelocation(Symbol *sym, RelType type, InputSectionBase *sec,
-                             uint64_t offset, RelExpr expr, int64_t addend,
-                             bool isCallExpr,
+void addCapabilityRelocation(Ctx &ctx, Symbol *sym, RelType type,
+                             InputSectionBase *sec, uint64_t offset,
+                             RelExpr expr, int64_t addend, bool isCallExpr,
                              llvm::function_ref<std::string()> referencedBy,
                              RelocationBaseSection *dynRelSec = nullptr);
 } // namespace elf

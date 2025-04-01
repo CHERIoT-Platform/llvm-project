@@ -72,11 +72,11 @@ define i32 @call() addrspace(200) #0 {
 ; CHECK-NEXT:    c.cincoffset16csp csp, -{{0x70|0x90}}
 ; CHECK-NEXT:    c.csccsp cra, {{0x68|0x80}}(csp)
 ; CHECK-NEXT:    c.cincoffset4cspn ca0, csp, 0x40
+; CHECK-NEXT:    cincoffset ca1, csp, 0x0
 ; CHECK-NEXT:    csetbounds ca0, ca0, {{0x20|0x40}}
+; CHECK-NEXT:    csetbounds ca2, ca1, 0x40
 ; CHECK-NEXT:    cincoffset ca1, ca0, {{0x18|0x30}}
-; CHECK-NEXT:    cincoffset ca0, csp, 0x0
-; CHECK-NEXT:    csetbounds ca0, ca0, 0x40
-; CHECK-NEXT:    cincoffset ca0, ca0, 0xc
+; CHECK-NEXT:    cincoffset ca0, ca2, 0xc
 ; CHECK-NEXT:    auipcc cra, 0x0
 ; CHECK-NEXT:    cjalr cra, 0x0(cra)
 ; CHECK-NEXT:    c.clccsp cra, {{0x68|0x80}}(csp)
@@ -86,11 +86,11 @@ define i32 @call() addrspace(200) #0 {
 ; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset csp, csp, -0x90
 ; CHECK-NORVC-NEXT:  {{[^a-z.]}}csc cra, 0x80(csp)
 ; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset ca0, csp, 0x40
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset ca1, csp, 0x0
 ; CHECK-NORVC-NEXT:  {{[^a-z.]}}csetbounds ca0, ca0, 0x40
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}csetbounds ca2, ca1, 0x40
 ; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset ca1, ca0, 0x30
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset ca0, csp, 0x0
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}csetbounds ca0, ca0, 0x40
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset ca0, ca0, 0xc
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset ca0, ca2, 0xc
 ; CHECK-NORVC-NEXT:  {{[^a-z.]}}auipcc cra, 0x0
 ; CHECK-NORVC-NEXT:  {{[^a-z.]}}cjalr cra, 0x0(cra)
 ; CHECK-NORVC-NEXT:  {{[^a-z.]}}clc cra, 0x80(csp)

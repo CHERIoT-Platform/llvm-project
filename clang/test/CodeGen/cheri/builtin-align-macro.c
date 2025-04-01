@@ -133,7 +133,7 @@ int *align_up_inline(int *ptr, ptraddr_t align) {
 // HYBRID-NEXT:    [[SUB:%.*]] = add nsw i64 [[ALIGN]], -1
 // HYBRID-NEXT:    [[AND:%.*]] = and i64 [[SUB]], [[TMP0]]
 // HYBRID-NEXT:    [[CMP:%.*]] = icmp eq i64 [[AND]], 0
-// HYBRID-NEXT:    [[SUB1:%.*]] = add i64 [[TMP0]], [[ALIGN]]
+// HYBRID-NEXT:    [[SUB1:%.*]] = add i64 [[ALIGN]], [[TMP0]]
 // HYBRID-NEXT:    [[ADD:%.*]] = sub i64 [[SUB1]], [[AND]]
 // HYBRID-NEXT:    [[TMP1:%.*]] = inttoptr i64 [[ADD]] to ptr
 // HYBRID-NEXT:    [[COND:%.*]] = select i1 [[CMP]], ptr [[PTR]], ptr [[TMP1]]
@@ -293,14 +293,14 @@ int *align_down_builtin(int *ptr, ptraddr_t align) {
 // PURECAP-SAME: (i64 noundef signext [[ADDR:%.*]], i64 noundef signext [[ALIGN:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR4]] {
 // PURECAP-NEXT:  entry:
 // PURECAP-NEXT:    [[SUB_NOT:%.*]] = sub i64 0, [[ALIGN]]
-// PURECAP-NEXT:    [[SUB1:%.*]] = and i64 [[SUB_NOT]], [[ADDR]]
+// PURECAP-NEXT:    [[SUB1:%.*]] = and i64 [[ADDR]], [[SUB_NOT]]
 // PURECAP-NEXT:    ret i64 [[SUB1]]
 //
 // HYBRID-LABEL: define {{[^@]+}}@align_down_macro_int_type
 // HYBRID-SAME: (i64 noundef signext [[ADDR:%.*]], i64 noundef signext [[ALIGN:%.*]]) local_unnamed_addr #[[ATTR0]] {
 // HYBRID-NEXT:  entry:
 // HYBRID-NEXT:    [[SUB_NOT:%.*]] = sub i64 0, [[ALIGN]]
-// HYBRID-NEXT:    [[SUB1:%.*]] = and i64 [[SUB_NOT]], [[ADDR]]
+// HYBRID-NEXT:    [[SUB1:%.*]] = and i64 [[ADDR]], [[SUB_NOT]]
 // HYBRID-NEXT:    ret i64 [[SUB1]]
 //
 ptraddr_t align_down_macro_int_type(ptraddr_t addr, ptraddr_t align) {
@@ -311,14 +311,14 @@ ptraddr_t align_down_macro_int_type(ptraddr_t addr, ptraddr_t align) {
 // PURECAP-SAME: (i64 noundef signext [[ADDR:%.*]], i64 noundef signext [[ALIGN:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR4]] {
 // PURECAP-NEXT:  entry:
 // PURECAP-NEXT:    [[INVERTED_MASK:%.*]] = sub i64 0, [[ALIGN]]
-// PURECAP-NEXT:    [[ALIGNED_RESULT:%.*]] = and i64 [[INVERTED_MASK]], [[ADDR]]
+// PURECAP-NEXT:    [[ALIGNED_RESULT:%.*]] = and i64 [[ADDR]], [[INVERTED_MASK]]
 // PURECAP-NEXT:    ret i64 [[ALIGNED_RESULT]]
 //
 // HYBRID-LABEL: define {{[^@]+}}@align_down_builtin_int_type
 // HYBRID-SAME: (i64 noundef signext [[ADDR:%.*]], i64 noundef signext [[ALIGN:%.*]]) local_unnamed_addr #[[ATTR0]] {
 // HYBRID-NEXT:  entry:
 // HYBRID-NEXT:    [[INVERTED_MASK:%.*]] = sub i64 0, [[ALIGN]]
-// HYBRID-NEXT:    [[ALIGNED_RESULT:%.*]] = and i64 [[INVERTED_MASK]], [[ADDR]]
+// HYBRID-NEXT:    [[ALIGNED_RESULT:%.*]] = and i64 [[ADDR]], [[INVERTED_MASK]]
 // HYBRID-NEXT:    ret i64 [[ALIGNED_RESULT]]
 //
 ptraddr_t align_down_builtin_int_type(ptraddr_t addr, ptraddr_t align) {

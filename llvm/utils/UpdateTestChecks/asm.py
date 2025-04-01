@@ -52,6 +52,7 @@ ASM_FUNCTION_AARCH64_RE = re.compile(
 
 ASM_FUNCTION_AMDGPU_RE = re.compile(
     r"\.type\s+_?(?P<func>[^,\n]+),@function\n"
+    r"(^\s*\.amdgpu_hsa_kernel (?P=func)\n)?"
     r'^_?(?P=func):(?:[ \t]*;+[ \t]*@"?(?P=func)"?)?\n'
     r"(?P<body>.*?)\n"  # (body of the function)
     # This list is incomplete
@@ -85,8 +86,6 @@ ASM_FUNCTION_M68K_RE = re.compile(
 
 ASM_FUNCTION_MIPS_RE = re.compile(
     r'^_?(?P<func>[^:]+):[ \t]*#+[ \t]*@"?(?P=func)"?\n[^:]*?'  # f: (name of func)
-    r"(?:\s*\.?L(?P=func)\$local:\n)?"  # optional .L<func>$local: due to -fno-semantic-interposition
-    r"(?:\s*\.type\s+\.?L(?P=func)\$local,@function\n)?"  # optional .type .L<func>$local
     r"(?:\s*\.?Ltmp[^:\n]*:\n)?[^:]*?"  # optional .Ltmp<N> for EH
     r"(?:^[ \t]+\.(frame|f?mask|set).*?\n)+"  # Mips+LLVM standard asm prologue
     r"(?P<body>.*?)\n"  # (body of the function)
@@ -221,6 +220,11 @@ ASM_FUNCTION_VE_RE = re.compile(
     r"(?:\s*\.?Lfunc_begin[^:\n]*:\n)?[^:]*?"
     r"(?P<body>^##?[ \t]+[^:]+:.*?)\s*"
     r".Lfunc_end[0-9]+:\n",
+    flags=(re.M | re.S),
+)
+
+ASM_FUNCTION_XTENSA_RE = re.compile(
+    r"^(?P<func>[^:]+): +# @(?P=func)\n(?P<body>.*?)\n\.Lfunc_end\d+:\n",
     flags=(re.M | re.S),
 )
 
@@ -606,6 +610,17 @@ def scrub_asm_ve(asm, args):
     return asm
 
 
+def scrub_asm_xtensa(asm, args):
+    # Scrub runs of whitespace out of the assembly, but leave the leading
+    # whitespace in place.
+    asm = common.SCRUB_WHITESPACE_RE.sub(r" ", asm)
+    # Expand the tabs used for indentation.
+    asm = string.expandtabs(asm, 2)
+    # Strip trailing whitespace.
+    asm = common.SCRUB_TRAILING_WHITESPACE_RE.sub(r"", asm)
+    return asm
+
+
 def scrub_asm_csky(asm, args):
     # Scrub runs of whitespace out of the assembly, but leave the leading
     # whitespace in place.
@@ -691,6 +706,7 @@ def get_run_handler(triple):
         "wasm32": (scrub_asm_wasm, ASM_FUNCTION_WASM_RE),
         "wasm64": (scrub_asm_wasm, ASM_FUNCTION_WASM_RE),
         "ve": (scrub_asm_ve, ASM_FUNCTION_VE_RE),
+        "xtensa": (scrub_asm_xtensa, ASM_FUNCTION_XTENSA_RE),
         "csky": (scrub_asm_csky, ASM_FUNCTION_CSKY_RE),
         "nvptx": (scrub_asm_nvptx, ASM_FUNCTION_NVPTX_RE),
         "loongarch32": (scrub_asm_loongarch, ASM_FUNCTION_LOONGARCH_RE),

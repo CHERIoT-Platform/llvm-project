@@ -77,12 +77,13 @@ protected:
   }
 
 private:
-  llvm::GlobalVariable *
-  createGlobal(llvm::Constant *initializer, const llvm::Twine &name,
-               CharUnits alignment, bool constant = false,
-               llvm::GlobalValue::LinkageTypes linkage =
-                   llvm::GlobalValue::InternalLinkage,
-               std::optional<unsigned> addressSpace = std::nullopt);
+  llvm::GlobalVariable *createGlobal(llvm::Constant *initializer,
+                                     const llvm::Twine &name,
+                                     CharUnits alignment,
+                                     bool constant = false,
+                                     llvm::GlobalValue::LinkageTypes linkage
+                                       = llvm::GlobalValue::InternalLinkage,
+                                     std::optional<unsigned> addressSpace = std::nullopt);
 
   ConstantInitFuture createFuture(llvm::Constant *initializer);
 

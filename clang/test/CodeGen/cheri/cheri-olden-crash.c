@@ -8,7 +8,7 @@ typedef struct a { struct a * __capability b; } * c;
 // CHECK-NEXT:    [[E:%.*]] = alloca ptr, align 8
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr, ptr [[E]], align 8
 // CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr [[TMP0]], align 16
-// CHECK-NEXT:    [[B:%.*]] = getelementptr inbounds [[STRUCT_A:%.*]], ptr addrspace(200) [[TMP1]], i32 0, i32 0
+// CHECK-NEXT:    [[B:%.*]] = getelementptr inbounds nuw [[STRUCT_A:%.*]], ptr addrspace(200) [[TMP1]], i32 0, i32 0
 // CHECK-NEXT:    [[B_ASCAST:%.*]] = addrspacecast ptr addrspace(200) [[B]] to ptr
 // CHECK-NEXT:    store ptr [[B_ASCAST]], ptr [[E]], align 8
 // CHECK-NEXT:    [[TMP2:%.*]] = load ptr, ptr [[E]], align 8

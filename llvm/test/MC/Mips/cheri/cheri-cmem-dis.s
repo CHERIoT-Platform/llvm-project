@@ -2,8 +2,7 @@
 #
 # Check that the disassembler is able to handle capability memory instructions.
 #
-# CHECK-LABEL: .text
-# CHECK-NEXT: csc	$cnull, $13, 48($c1)
+# CHECK:      csc   $cnull, $13, 48($c1)
 0xf8,0x01,0x68,0x03
 # CHECK-NEXT: clc	$cnull, $13, 48($c1)
 0xd8,0x01,0x68,0x03

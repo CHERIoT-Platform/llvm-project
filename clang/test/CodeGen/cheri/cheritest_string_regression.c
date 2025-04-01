@@ -10,7 +10,7 @@ struct a {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[FIRST:%.*]] = alloca [[STRUCT_A:%.*]], align 16, addrspace(200)
 // CHECK-NEXT:    [[SECOND:%.*]] = alloca [[STRUCT_A]], align 16, addrspace(200)
-// CHECK-NEXT:    [[PTR:%.*]] = getelementptr inbounds [[STRUCT_A]], ptr addrspace(200) [[FIRST]], i32 0, i32 0
+// CHECK-NEXT:    [[PTR:%.*]] = getelementptr inbounds nuw [[STRUCT_A]], ptr addrspace(200) [[FIRST]], i32 0, i32 0
 // CHECK-NEXT:    store ptr addrspace(200) [[SECOND]], ptr addrspace(200) [[PTR]], align 16
 // CHECK-NEXT:    ret void
 //

@@ -26,14 +26,14 @@
 // RUN: ld.lld %t.o %t-shlib.so -o %t.exe --verbose-cap-relocs 2>&1 | FileCheck %s -check-prefixes VERBOSE-MSG,EXE-MSG
 // RUN: llvm-readobj --dyn-symbols --dyn-relocations --cap-relocs --cap-table %t.exe | FileCheck %s --check-prefixes CHECK,CHECK-NODYN
 // VERBOSE-MSG:      Using trampoline for function pointer against local function return1
-// VERBOSE-MSG-NEXT: >>> defined in local-fn-ptr-in-plt-abi.c ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(return1))
+// VERBOSE-MSG-NEXT: >>> defined in ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(function return1{{.+}}))
 // VERBOSE-MSG-NEXT: Adding new symbol __cheri_fnptr_return1 to allow relocation against local function return1
-// VERBOSE-MSG-NEXT: >>> defined in local-fn-ptr-in-plt-abi.c ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(return1))
+// VERBOSE-MSG-NEXT: >>> defined in ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(function return1{{.+}}))
 // VERBOSE-MSG-NEXT: Using trampoline for function pointer against function global_return2
-// VERBOSE-MSG-NEXT: >>> defined in local-fn-ptr-in-plt-abi.c
+// VERBOSE-MSG-NEXT: >>> defined in 
 // For executables without --export-dynamic we add a new STV_HIDDEN symbol:
 // EXE-MSG-NEXT: Adding new symbol __cheri_fnptr_global_return2 to allow relocation against function global_return2
-// EXE-MSG-NEXT: >>> defined in local-fn-ptr-in-plt-abi.c ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(global_return2))
+// EXE-MSG-NEXT: >>> defined in ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(function global_return2{{.+}}))
 // VERBOSE-MSG-EMPTY:
 
 // CHECK-LABEL: Dynamic Relocations {
@@ -132,21 +132,21 @@
 // Should not build as RTLD (due to the R_CHERI_CAPABILITY relocation)
 // RUN: not ld.lld -Bsymbolic -shared --building-freebsd-rtld %t.o %t-shlib.o --verbose-cap-relocs -o /dev/null 2>&1 | FileCheck %s -check-prefix RTLD-ERROR
 // RTLD-ERROR:      Using trampoline for function pointer against local function return1
-// RTLD-ERROR-NEXT: >>> defined in local-fn-ptr-in-plt-abi.c ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(return1))
+// RTLD-ERROR-NEXT: >>> defined in ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(function return1{{.+}}))
 // RTLD-ERROR-NEXT: ld.lld: error: relocation R_MIPS_CHERI_CAPABILITY against local function return1
-// RTLD-ERROR-NEXT: >>> defined in local-fn-ptr-in-plt-abi.c ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(return1)) cannot be using when building FreeBSD RTLD
+// RTLD-ERROR-NEXT: >>> defined in ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(function return1{{.+}})) cannot be using when building FreeBSD RTLD
 // RTLD-ERROR-NEXT: >>> referenced by return1@CAPTABLE.0
 // RTLD-ERROR-NEXT: >>> first used in function __start
-// RTLD-ERROR-NEXT: >>> defined in local-fn-ptr-in-plt-abi.c ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(__start))
+// RTLD-ERROR-NEXT: >>> defined in ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(function __start{{.+}}))
 
 // RTLD-ERROR-NEXT: Using trampoline for function pointer against function global_return2
-// RTLD-ERROR-NEXT: >>> defined in local-fn-ptr-in-plt-abi.c ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(global_return2))
+// RTLD-ERROR-NEXT: >>> defined in ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(function global_return2{{.+}}))
 // RTLD-ERROR-EMPTY:
 // RTLD-ERROR-NEXT: ld.lld: error: relocation R_MIPS_CHERI_CAPABILITY against function global_return2
-// RTLD-ERROR-NEXT: >>> defined in local-fn-ptr-in-plt-abi.c ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(global_return2)) cannot be using when building FreeBSD RTLD
+// RTLD-ERROR-NEXT: >>> defined in ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(function global_return2{{.+}})) cannot be using when building FreeBSD RTLD
 // RTLD-ERROR-NEXT: >>> referenced by global_return2@CAPTABLE
 // RTLD-ERROR-NEXT: >>> first used in function __start
-// RTLD-ERROR-NEXT: >>> defined in local-fn-ptr-in-plt-abi.c ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(__start))
+// RTLD-ERROR-NEXT: >>> defined in ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(function __start{{.+}}))
 // RTLD-ERROR-EMPTY:
 
 // Check that we don't crash when a version script marks a symbol as non-preemptible:

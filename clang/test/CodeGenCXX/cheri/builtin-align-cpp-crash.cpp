@@ -17,7 +17,7 @@ extern "C" char* test1(char* c, int b) {
 // CHECK-LABEL: define {{[^@]+}}@test2
 // CHECK-SAME: (ptr addrspace(200) noundef readnone [[VALUE:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[OVER_BOUNDARY:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[VALUE]], i64 3
+// CHECK-NEXT:    [[OVER_BOUNDARY:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[VALUE]], i64 3
 // CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = tail call align 4 ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) nonnull [[OVER_BOUNDARY]], i64 -4)
 // CHECK-NEXT:    ret ptr addrspace(200) [[ALIGNED_RESULT]]
 //

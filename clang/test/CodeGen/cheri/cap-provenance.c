@@ -208,7 +208,7 @@ void test_cg_unary_plus(uintptr_t arg, char *arg_ptr) {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[TMP0:%.*]] = getelementptr i8, ptr addrspace(200) [[ARG:%.*]], i64 1
 // CHECK-NEXT:    call void @check(ptr addrspace(200) noundef [[TMP0]]) #4
-// CHECK-NEXT:    [[INCDEC_PTR:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARG_PTR:%.*]], i64 1
+// CHECK-NEXT:    [[INCDEC_PTR:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[ARG_PTR:%.*]], i64 1
 // CHECK-NEXT:    call void @check(ptr addrspace(200) noundef nonnull [[INCDEC_PTR]]) #4
 // CHECK-NEXT:    call void @check(ptr addrspace(200) noundef [[TMP0]]) #4
 // CHECK-NEXT:    call void @check(ptr addrspace(200) noundef nonnull [[INCDEC_PTR]]) #4
@@ -226,7 +226,7 @@ void test_cg_preinc(uintptr_t arg, char *arg_ptr) {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[TMP0:%.*]] = getelementptr i8, ptr addrspace(200) [[ARG:%.*]], i64 1
 // CHECK-NEXT:    call void @check(ptr addrspace(200) noundef [[ARG]]) #4
-// CHECK-NEXT:    [[INCDEC_PTR:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARG_PTR:%.*]], i64 1
+// CHECK-NEXT:    [[INCDEC_PTR:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[ARG_PTR:%.*]], i64 1
 // CHECK-NEXT:    call void @check(ptr addrspace(200) noundef [[ARG_PTR]]) #4
 // CHECK-NEXT:    call void @check(ptr addrspace(200) noundef [[TMP0]]) #4
 // CHECK-NEXT:    call void @check(ptr addrspace(200) noundef nonnull [[INCDEC_PTR]]) #4

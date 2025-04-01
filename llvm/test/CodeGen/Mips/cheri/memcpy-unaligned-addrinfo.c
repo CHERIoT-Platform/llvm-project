@@ -21,7 +21,7 @@ struct addrinfo {
 // OPTNONE-NEXT:    store ptr addrspace(200) [[A]], ptr addrspace(200) [[A_ADDR]], align 16
 // OPTNONE-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[A_ADDR]], align 16
 // OPTNONE-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[RETVAL]], ptr addrspace(200) align 1 [[TMP0]], i64 16, i1 false)
-// OPTNONE-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds [[STRUCT_ADDRINFO]], ptr addrspace(200) [[RETVAL]], i32 0, i32 0
+// OPTNONE-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds nuw [[STRUCT_ADDRINFO]], ptr addrspace(200) [[RETVAL]], i32 0, i32 0
 // OPTNONE-NEXT:    [[TMP1:%.*]] = load { ptr addrspace(200) }, ptr addrspace(200) [[COERCE_DIVE]], align 16
 // OPTNONE-NEXT:    ret { ptr addrspace(200) } [[TMP1]]
 //
@@ -105,7 +105,7 @@ void copy_group(const char *a) {
 // OPTNONE-NEXT:    ret void
 //
 // CHECK-LABEL: define {{[^@]+}}@copy_group2
-// CHECK-SAME: (ptr addrspace(200) noundef [[A:%.*]], ptr addrspace(200) noundef [[BUFFER:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2]] {
+// CHECK-SAME: (ptr addrspace(200) noundef [[A:%.*]], ptr addrspace(200) noundef initializes((0, 16)) [[BUFFER:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    store ptr addrspace(200) [[A]], ptr addrspace(200) [[BUFFER]], align 1
 // CHECK-NEXT:    tail call void @do_stuff(ptr addrspace(200) noundef nonnull [[BUFFER]]) #[[ATTR5]]
@@ -129,7 +129,7 @@ void copy_group2(const char *a, char *buffer) {
 // OPTNONE-NEXT:    [[BUFFER_ADDR:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // OPTNONE-NEXT:    [[SIZE_ADDR:%.*]] = alloca i64, align 8, addrspace(200)
 // OPTNONE-NEXT:    [[G:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
-// OPTNONE-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds [[STRUCT_GROUP]], ptr addrspace(200) [[A]], i32 0, i32 0
+// OPTNONE-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds nuw [[STRUCT_GROUP]], ptr addrspace(200) [[A]], i32 0, i32 0
 // OPTNONE-NEXT:    store ptr addrspace(200) [[A_COERCE]], ptr addrspace(200) [[COERCE_DIVE]], align 16
 // OPTNONE-NEXT:    store ptr addrspace(200) [[BUFFER]], ptr addrspace(200) [[BUFFER_ADDR]], align 16
 // OPTNONE-NEXT:    store i64 [[SIZE]], ptr addrspace(200) [[SIZE_ADDR]], align 8

@@ -53,7 +53,7 @@ class CheriRangeChecker : public FunctionPass,
     unsigned OpNo;
     User *Origin;
   };
-  std::unique_ptr<DataLayout> TD;
+  const DataLayout *TD;
   Module *M;
   IntegerType *SizeTy;
   PointerType *CapPtrTy;
@@ -153,7 +153,7 @@ public:
   StringRef getPassName() const override { return "CHERI range checker"; }
   bool doInitialization(Module &Mod) override {
     M = &Mod;
-    TD = std::make_unique<DataLayout>(M);
+    TD = &M->getDataLayout();
     SizeTy = IntegerType::get(M->getContext(), TD->getIndexSizeInBits(200));
     CapPtrTy = PointerType::get(IntegerType::get(M->getContext(), 8), 200);
     return true;
@@ -169,7 +169,7 @@ public:
 
   User *testI2P(User &I2P) {
     PointerType *DestTy = dyn_cast<PointerType>(I2P.getType());
-    if (DestTy && isCheriPointer(DestTy, TD.get())) {
+    if (DestTy && isCheriPointer(DestTy, TD)) {
       if (checkOpcode(I2P.getOperand(0), Instruction::PtrToInt)) {
         User *P2I = cast<User>(I2P.getOperand(0));
         PointerType *SrcTy =
@@ -191,7 +191,7 @@ public:
     PointerType *SrcTy = dyn_cast<PointerType>(ASC.getOperand(0)->getType());
     LLVM_DEBUG(dbgs() << "Visiting address space cast: "; ASC.dump());
 
-    if ((DestTy && isCheriPointer(DestTy, TD.get())) &&
+    if ((DestTy && isCheriPointer(DestTy, TD)) &&
         (SrcTy && SrcTy->getAddressSpace() == 0)) {
       auto Src = getValueSource(ASC.getOperand(0));
       if (GlobalVariable *GV = dyn_cast<GlobalVariable>(Src.Base)) {
@@ -246,7 +246,7 @@ public:
 
     if (!(Casts.empty() && ConstantCasts.empty())) {
       Intrinsic::ID SetLength = Intrinsic::cheri_cap_bounds_set;
-      SetLengthFn = Intrinsic::getDeclaration(M, SetLength, SizeTy);
+      SetLengthFn = Intrinsic::getOrInsertDeclaration(M, SetLength, SizeTy);
       Value *BitCast = 0;
 
       for (auto *i = Casts.begin(), *e = Casts.end(); i != e; ++i) {

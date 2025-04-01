@@ -13,7 +13,7 @@ entry:
 }
 
 ; CHECK-LABEL: libcheri_printf_putchar:
-; CHECK-NEXT: .Ltmp0:
+; CHECK:      .Ltmp0:
 ; CHECK-NEXT: .set .Lfunc_begin0, .Ltmp0
 ; CHECK-NEXT: 	.loc	1 528 0                 # /exports/users/alr48/sources/cheribsd/lib/libc_cheri/cheri_printf.c:528:0
 ; CHECK-NEXT: 	.cfi_sections .debug_frame

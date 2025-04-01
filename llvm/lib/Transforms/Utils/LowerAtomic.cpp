@@ -26,17 +26,28 @@ bool llvm::lowerAtomicCmpXchgInst(AtomicCmpXchgInst *CXI) {
   Value *Cmp = CXI->getCompareOperand();
   Value *Val = CXI->getNewValOperand();
 
-  LoadInst *Orig = Builder.CreateLoad(Val->getType(), Ptr);
-  Value *Equal = Builder.CreateICmpEQ(Orig, Cmp);
-  Value *Res = Builder.CreateSelect(Equal, Val, Orig);
-  Builder.CreateStore(Res, Ptr);
+  auto [Orig, Equal] =
+      buildCmpXchgValue(Builder, Ptr, Cmp, Val, CXI->getAlign());
 
-  Res = Builder.CreateInsertValue(PoisonValue::get(CXI->getType()), Orig, 0);
+  Value *Res =
+      Builder.CreateInsertValue(PoisonValue::get(CXI->getType()), Orig, 0);
   Res = Builder.CreateInsertValue(Res, Equal, 1);
 
   CXI->replaceAllUsesWith(Res);
   CXI->eraseFromParent();
   return true;
+}
+
+std::pair<Value *, Value *> llvm::buildCmpXchgValue(IRBuilderBase &Builder,
+                                                    Value *Ptr, Value *Cmp,
+                                                    Value *Val,
+                                                    Align Alignment) {
+  LoadInst *Orig = Builder.CreateAlignedLoad(Val->getType(), Ptr, Alignment);
+  Value *Equal = Builder.CreateICmpEQ(Orig, Cmp);
+  Value *Res = Builder.CreateSelect(Equal, Val, Orig);
+  Builder.CreateAlignedStore(Res, Ptr, Alignment);
+
+  return {Orig, Equal};
 }
 
 Value *llvm::buildAtomicRMWValue(AtomicRMWInst::BinOp Op,
@@ -58,9 +69,9 @@ Value *llvm::buildAtomicRMWValue(AtomicRMWInst::BinOp Op,
       unsigned AS = Loaded->getType()->getPointerAddressSpace();
       Type *I8CapTy = PointerType::get(C, AS);
       Type *SizeTy = Type::getIntNTy(C, DL.getIndexSizeInBits(AS));
-      Function *GetAddress = Intrinsic::getDeclaration(
+      Function *GetAddress = Intrinsic::getOrInsertDeclaration(
           M, Intrinsic::cheri_cap_address_get, SizeTy);
-      Function *SetAddress = Intrinsic::getDeclaration(
+      Function *SetAddress = Intrinsic::getOrInsertDeclaration(
           M, Intrinsic::cheri_cap_address_set, SizeTy);
       Value *LoadedI8Cap = Builder.CreateBitCast(Loaded, I8CapTy);
       Value *LoadedInt = Builder.CreateCall(GetAddress, {LoadedI8Cap});
@@ -136,6 +147,14 @@ Value *llvm::buildAtomicRMWValue(AtomicRMWInst::BinOp Op,
     Value *Or = Builder.CreateOr(CmpEq0, CmpOldGtVal);
     return Builder.CreateSelect(Or, Val, Dec, "new");
   }
+  case AtomicRMWInst::USubCond: {
+    Value *Cmp = Builder.CreateICmpUGE(Loaded, Val);
+    Value *Sub = Builder.CreateSub(Loaded, Val);
+    return Builder.CreateSelect(Cmp, Sub, Loaded, "new");
+  }
+  case AtomicRMWInst::USubSat:
+    return Builder.CreateIntrinsic(Intrinsic::usub_sat, Loaded->getType(),
+                                   {Loaded, Val}, nullptr, "new");
   default:
     llvm_unreachable("Unknown atomic op");
   }

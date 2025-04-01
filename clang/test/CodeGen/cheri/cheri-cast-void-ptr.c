@@ -9,7 +9,7 @@ struct a {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[FIRST:%.*]] = alloca [[STRUCT_A:%.*]], align 16, addrspace(200)
 // CHECK-NEXT:    [[SECOND:%.*]] = alloca [[STRUCT_A]], align 16, addrspace(200)
-// CHECK-NEXT:    [[PTR:%.*]] = getelementptr inbounds [[STRUCT_A]], ptr addrspace(200) [[FIRST]], i32 0, i32 0
+// CHECK-NEXT:    [[PTR:%.*]] = getelementptr inbounds nuw [[STRUCT_A]], ptr addrspace(200) [[FIRST]], i32 0, i32 0
 // CHECK-NEXT:    store ptr addrspace(200) [[SECOND]], ptr addrspace(200) [[PTR]], align 16
 // CHECK-NEXT:    ret void
 //
@@ -18,7 +18,7 @@ struct a {
 // HYBRID-NEXT:    [[FIRST:%.*]] = alloca [[STRUCT_A:%.*]], align 16
 // HYBRID-NEXT:    [[SECOND:%.*]] = alloca [[STRUCT_A]], align 16
 // HYBRID-NEXT:    [[SECOND_ASCAST:%.*]] = addrspacecast ptr [[SECOND]] to ptr addrspace(200)
-// HYBRID-NEXT:    [[PTR:%.*]] = getelementptr inbounds [[STRUCT_A]], ptr [[FIRST]], i32 0, i32 0
+// HYBRID-NEXT:    [[PTR:%.*]] = getelementptr inbounds nuw [[STRUCT_A]], ptr [[FIRST]], i32 0, i32 0
 // HYBRID-NEXT:    store ptr addrspace(200) [[SECOND_ASCAST]], ptr [[PTR]], align 16
 // HYBRID-NEXT:    ret void
 //

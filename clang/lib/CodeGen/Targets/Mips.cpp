@@ -131,6 +131,23 @@ public:
     return 200;
   }
 };
+
+class WindowsMIPSTargetCodeGenInfo : public MIPSTargetCodeGenInfo {
+public:
+  WindowsMIPSTargetCodeGenInfo(CodeGenTypes &CGT, bool IsO32)
+      : MIPSTargetCodeGenInfo(CGT, IsO32, CGT.getCGM()) {}
+
+  void getDependentLibraryOption(llvm::StringRef Lib,
+                                 llvm::SmallString<24> &Opt) const override {
+    Opt = "/DEFAULTLIB:";
+    Opt += qualifyWindowsLibrary(Lib);
+  }
+
+  void getDetectMismatchOption(llvm::StringRef Name, llvm::StringRef Value,
+                               llvm::SmallString<32> &Opt) const override {
+    Opt = "/FAILIFMISMATCH:\"" + Name.str() + "=" + Value.str() + "\"";
+  }
+};
 }
 
 void MipsABIInfo::CoerceToIntArgs(
@@ -169,8 +186,8 @@ llvm::Type* MipsABIInfo::HandleAggregates(QualType Ty, uint64_t TySize) const {
   if (RT &&
       (RT->isUnionType() && getContext().containsCapabilities(RT->getDecl()))
       && getTarget().SupportsCapabilities())
-    return llvm::Type::getInt8Ty(getVMContext())->getPointerTo(
-                            CGM.getTargetCodeGenInfo().getCHERICapabilityAS());
+    return llvm::PointerType::get(
+        getVMContext(), CGM.getTargetCodeGenInfo().getCHERICapabilityAS());
 
   // Unions/vectors are passed in integer registers.
   if (!RT || !RT->isStructureOrClassType()) {
@@ -699,4 +716,9 @@ MIPSTargetCodeGenInfo::initDwarfEHRegSizeTable(CodeGen::CodeGenFunction &CGF,
 std::unique_ptr<TargetCodeGenInfo>
 CodeGen::createMIPSTargetCodeGenInfo(CodeGenModule &CGM, bool IsOS32) {
   return std::make_unique<MIPSTargetCodeGenInfo>(CGM.getTypes(), IsOS32, CGM);
+}
+
+std::unique_ptr<TargetCodeGenInfo>
+CodeGen::createWindowsMIPSTargetCodeGenInfo(CodeGenModule &CGM, bool IsOS32) {
+  return std::make_unique<WindowsMIPSTargetCodeGenInfo>(CGM.getTypes(), IsOS32);
 }

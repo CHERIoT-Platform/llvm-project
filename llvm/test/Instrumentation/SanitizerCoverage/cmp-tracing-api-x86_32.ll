@@ -14,6 +14,7 @@ entry:
   ret i32 0
 }
 
+; UTC_ARGS: --disable
 ; CHECK-DAG: declare void @__sanitizer_cov_trace_pc_indir(i32)
 ; CHECK-DAG: declare void @__sanitizer_cov_trace_cmp1(i8 zeroext, i8 zeroext)
 ; CHECK-DAG: declare void @__sanitizer_cov_trace_cmp2(i16 zeroext, i16 zeroext)

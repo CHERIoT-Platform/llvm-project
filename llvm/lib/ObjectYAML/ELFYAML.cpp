@@ -135,6 +135,8 @@ void ScalarEnumerationTraits<ELFYAML::ELF_NT>::enumeration(
   ECase(NT_ARM_SSVE);
   ECase(NT_ARM_ZA);
   ECase(NT_ARM_ZT);
+  ECase(NT_ARM_FPMR);
+  ECase(NT_ARM_GCS);
   ECase(NT_FILE);
   ECase(NT_PRXFPREG);
   ECase(NT_SIGINFO);
@@ -498,6 +500,7 @@ void ScalarBitSetTraits<ELFYAML::ELF_EF>::bitset(IO &IO,
     BCaseMask(EF_HEXAGON_MACH_V71, EF_HEXAGON_MACH);
     BCaseMask(EF_HEXAGON_MACH_V71T, EF_HEXAGON_MACH);
     BCaseMask(EF_HEXAGON_MACH_V73, EF_HEXAGON_MACH);
+    BCaseMask(EF_HEXAGON_MACH_V75, EF_HEXAGON_MACH);
     BCaseMask(EF_HEXAGON_ISA_V2, EF_HEXAGON_ISA);
     BCaseMask(EF_HEXAGON_ISA_V3, EF_HEXAGON_ISA);
     BCaseMask(EF_HEXAGON_ISA_V4, EF_HEXAGON_ISA);
@@ -512,6 +515,7 @@ void ScalarBitSetTraits<ELFYAML::ELF_EF>::bitset(IO &IO,
     BCaseMask(EF_HEXAGON_ISA_V69, EF_HEXAGON_ISA);
     BCaseMask(EF_HEXAGON_ISA_V71, EF_HEXAGON_ISA);
     BCaseMask(EF_HEXAGON_ISA_V73, EF_HEXAGON_ISA);
+    BCaseMask(EF_HEXAGON_ISA_V75, EF_HEXAGON_ISA);
     break;
   case ELF::EM_AVR:
     BCaseMask(EF_AVR_ARCH_AVR1, EF_AVR_ARCH_MASK);
@@ -551,6 +555,20 @@ void ScalarBitSetTraits<ELFYAML::ELF_EF>::bitset(IO &IO,
     BCase(EF_RISCV_TSO);
     BCase(EF_RISCV_CHERIABI);
     BCase(EF_RISCV_CAP_MODE);
+    break;
+  case ELF::EM_SPARC32PLUS:
+    BCase(EF_SPARC_32PLUS);
+    BCase(EF_SPARC_SUN_US1);
+    BCase(EF_SPARC_SUN_US3);
+    BCase(EF_SPARC_HAL_R1);
+    break;
+  case ELF::EM_SPARCV9:
+    BCase(EF_SPARC_SUN_US1);
+    BCase(EF_SPARC_SUN_US3);
+    BCase(EF_SPARC_HAL_R1);
+    BCaseMask(EF_SPARCV9_RMO, EF_SPARCV9_MM);
+    BCaseMask(EF_SPARCV9_PSO, EF_SPARCV9_MM);
+    BCaseMask(EF_SPARCV9_TSO, EF_SPARCV9_MM);
     break;
   case ELF::EM_XTENSA:
     BCase(EF_XTENSA_XT_INSN);
@@ -600,6 +618,7 @@ void ScalarBitSetTraits<ELFYAML::ELF_EF>::bitset(IO &IO,
     BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX940, EF_AMDGPU_MACH);
     BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX941, EF_AMDGPU_MACH);
     BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX942, EF_AMDGPU_MACH);
+    BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX950, EF_AMDGPU_MACH);
     BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX1010, EF_AMDGPU_MACH);
     BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX1011, EF_AMDGPU_MACH);
     BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX1012, EF_AMDGPU_MACH);
@@ -618,9 +637,11 @@ void ScalarBitSetTraits<ELFYAML::ELF_EF>::bitset(IO &IO,
     BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX1150, EF_AMDGPU_MACH);
     BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX1151, EF_AMDGPU_MACH);
     BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX1152, EF_AMDGPU_MACH);
+    BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX1153, EF_AMDGPU_MACH);
     BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX1200, EF_AMDGPU_MACH);
     BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX1201, EF_AMDGPU_MACH);
     BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX9_GENERIC, EF_AMDGPU_MACH);
+    BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX9_4_GENERIC, EF_AMDGPU_MACH);
     BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX10_1_GENERIC, EF_AMDGPU_MACH);
     BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX10_3_GENERIC, EF_AMDGPU_MACH);
     BCaseMask(EF_AMDGPU_MACH_AMDGCN_GFX11_GENERIC, EF_AMDGPU_MACH);
@@ -1580,7 +1601,7 @@ static bool isInteger(StringRef Val) {
 
 void MappingTraits<std::unique_ptr<ELFYAML::Chunk>>::mapping(
     IO &IO, std::unique_ptr<ELFYAML::Chunk> &Section) {
-  ELFYAML::ELF_SHT Type;
+  ELFYAML::ELF_SHT Type = ELF::SHT_NULL;
   StringRef TypeStr;
   if (IO.outputting()) {
     if (auto *S = dyn_cast<ELFYAML::Section>(Section.get()))
@@ -1739,7 +1760,9 @@ void MappingTraits<std::unique_ptr<ELFYAML::Chunk>>::mapping(
 std::string MappingTraits<std::unique_ptr<ELFYAML::Chunk>>::validate(
     IO &io, std::unique_ptr<ELFYAML::Chunk> &C) {
   if (const auto *F = dyn_cast<ELFYAML::Fill>(C.get())) {
-    if (F->Pattern && F->Pattern->binary_size() != 0 && !F->Size)
+    // Can't check the `Size`, as it's required and may be left uninitialized by
+    // previous error.
+    if (!io.error() && F->Pattern && F->Pattern->binary_size() != 0 && !F->Size)
       return "\"Size\" can't be 0 when \"Pattern\" is not empty";
     return "";
   }
@@ -1918,6 +1941,7 @@ void MappingTraits<ELFYAML::VerdefEntry>::mapping(IO &IO,
   IO.mapOptional("Flags", E.Flags);
   IO.mapOptional("VersionNdx", E.VersionNdx);
   IO.mapOptional("Hash", E.Hash);
+  IO.mapOptional("VDAux", E.VDAux);
   IO.mapRequired("Names", E.VerNames);
 }
 

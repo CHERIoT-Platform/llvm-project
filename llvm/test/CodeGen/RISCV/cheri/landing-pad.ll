@@ -32,7 +32,9 @@ define void @test() addrspace(200) personality i8 addrspace(200)* bitcast (i32 (
 ; RV32IXCHERI-NEXT:    j .LBB0_2
 ; RV32IXCHERI-NEXT:  .LBB0_2: # %try.cont
 ; RV32IXCHERI-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    .cfi_restore ra
 ; RV32IXCHERI-NEXT:    cincoffset csp, csp, 16
+; RV32IXCHERI-NEXT:    .cfi_def_cfa_offset 0
 ; RV32IXCHERI-NEXT:    cret
 ;
 ; RV64IXCHERI-LABEL: test:
@@ -52,7 +54,9 @@ define void @test() addrspace(200) personality i8 addrspace(200)* bitcast (i32 (
 ; RV64IXCHERI-NEXT:    j .LBB0_2
 ; RV64IXCHERI-NEXT:  .LBB0_2: # %try.cont
 ; RV64IXCHERI-NEXT:    clc cra, 0(csp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    .cfi_restore ra
 ; RV64IXCHERI-NEXT:    cincoffset csp, csp, 16
+; RV64IXCHERI-NEXT:    .cfi_def_cfa_offset 0
 ; RV64IXCHERI-NEXT:    cret
 entry:
   invoke void @throw_exception() to label %try.cont unwind label %lpad

@@ -56,7 +56,7 @@ llvm::Constant *clang::CodeGen::initializationPatternFor(CodeGenModule &CGM,
         llvm_unreachable("pattern initialization of unsupported pointer range");
 
       llvm::Type *I8Ty = llvm::Type::getInt8Ty(CGM.getLLVMContext());
-      llvm::Type *NullPtrTy = I8Ty->getPointerTo(PtrTy->getAddressSpace());
+      llvm::Type *NullPtrTy = llvm::PointerType::get(I8Ty, PtrTy->getAddressSpace());
       llvm::Type *IntTy = llvm::IntegerType::get(CGM.getLLVMContext(), PtrRange);
 
       llvm::Constant *NullPtr = llvm::Constant::getNullValue(NullPtrTy);

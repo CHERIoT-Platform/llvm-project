@@ -56,7 +56,7 @@ define void @test_simplify3(ptr %dst) {
 define void @test_simplify4(ptr %dst) {
 ; CHECK-LABEL: @test_simplify4(
 ; CHECK-NEXT:    store i8 104, ptr [[DST:%.*]], align 1
-; CHECK-NEXT:    [[NUL:%.*]] = getelementptr inbounds i8, ptr [[DST]], i32 1
+; CHECK-NEXT:    [[NUL:%.*]] = getelementptr inbounds nuw i8, ptr [[DST]], i32 1
 ; CHECK-NEXT:    store i8 0, ptr [[NUL]], align 1
 ; CHECK-NEXT:    ret void
 ;
@@ -113,7 +113,7 @@ define i32 @test_simplify7(ptr %dst, ptr %str) {
 ; Check sprintf(dst, "%s", str) -> llvm.memcpy(dest, str, strlen(str) + 1, 1).
 define i32 @test_simplify8(ptr %dst) {
 ; CHECK-LABEL: @test_simplify8(
-; CHECK-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr noundef nonnull align 1 dereferenceable(13) [[DST:%.*]], ptr noundef nonnull align 1 dereferenceable(13) @hello_world, i64 13, i1 false)
+; CHECK-NEXT:    call void @llvm.memcpy.p0.p0.i32(ptr noundef nonnull align 1 dereferenceable(13) [[DST:%.*]], ptr noundef nonnull align 1 dereferenceable(13) @hello_world, i32 13, i1 false)
 ; CHECK-NEXT:    ret i32 12
 ;
   %r = call i32 (ptr, ptr, ...) @sprintf(ptr %dst, ptr @percent_s, ptr @hello_world)

@@ -112,7 +112,7 @@ register int cnull_bad1 __asm__("cnull");
 int get_cnull_bad1(void) { return cnull_bad1; }
 register long cnull_bad2 __asm__("cnull");
 long get_cnull_bad2(void) { return cnull_bad2; }
-register float cnull_bad3 __asm__("cnull"); // expected-error{{bad type for named register variable}}
+register float cnull_bad3 __asm__("cnull"); // expected-error{{unsupported type for named register variable}}
 float get_cnull_bad3(void) { return cnull_bad3; }
 // FIXME: Should warn about this and suggest using ctp/emit an error
 register __uintcap_t bad_tp __asm__("tp");

@@ -201,25 +201,25 @@ define i32 addrspace(200)* @atomic_cap_ptr_add(i32 addrspace(200)* addrspace(200
 ; PURECAP-LIBCALLS-NEXT:    csc cs0, 32(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs1, 24(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs2, 16(csp) # 8-byte Folded Spill
-; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca0
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 0(ca0)
-; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca1
+; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca1
+; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca0
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 0(ca0)
 ; PURECAP-LIBCALLS-NEXT:    cincoffset ca0, csp, 8
 ; PURECAP-LIBCALLS-NEXT:    csetbounds cs0, ca0, 8
 ; PURECAP-LIBCALLS-NEXT:  .LBB6_1: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # =>This Inner Loop Header: Depth=1
-; PURECAP-LIBCALLS-NEXT:    add a0, a3, s1
-; PURECAP-LIBCALLS-NEXT:    csetaddr ca2, ca3, a0
-; PURECAP-LIBCALLS-NEXT:    csc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    add a0, a1, s2
+; PURECAP-LIBCALLS-NEXT:    csetaddr ca2, ca1, a0
+; PURECAP-LIBCALLS-NEXT:    csc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    li a3, 5
 ; PURECAP-LIBCALLS-NEXT:    li a4, 5
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs2
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs1
 ; PURECAP-LIBCALLS-NEXT:    cmove ca1, cs0
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_cap
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    beqz a0, .LBB6_1
 ; PURECAP-LIBCALLS-NEXT:  # %bb.2: # %atomicrmw.end
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca3
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca1
 ; PURECAP-LIBCALLS-NEXT:    clc cra, 40(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs0, 32(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs1, 24(csp) # 8-byte Folded Reload
@@ -276,25 +276,25 @@ define i32 addrspace(200)* @atomic_cap_ptr_sub(i32 addrspace(200)* addrspace(200
 ; PURECAP-LIBCALLS-NEXT:    csc cs0, 32(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs1, 24(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs2, 16(csp) # 8-byte Folded Spill
-; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca0
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 0(ca0)
-; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca1
+; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca1
+; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca0
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 0(ca0)
 ; PURECAP-LIBCALLS-NEXT:    cincoffset ca0, csp, 8
 ; PURECAP-LIBCALLS-NEXT:    csetbounds cs0, ca0, 8
 ; PURECAP-LIBCALLS-NEXT:  .LBB7_1: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # =>This Inner Loop Header: Depth=1
-; PURECAP-LIBCALLS-NEXT:    sub a0, a3, s1
-; PURECAP-LIBCALLS-NEXT:    csetaddr ca2, ca3, a0
-; PURECAP-LIBCALLS-NEXT:    csc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    sub a0, a1, s2
+; PURECAP-LIBCALLS-NEXT:    csetaddr ca2, ca1, a0
+; PURECAP-LIBCALLS-NEXT:    csc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    li a3, 5
 ; PURECAP-LIBCALLS-NEXT:    li a4, 5
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs2
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs1
 ; PURECAP-LIBCALLS-NEXT:    cmove ca1, cs0
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_cap
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    beqz a0, .LBB7_1
 ; PURECAP-LIBCALLS-NEXT:  # %bb.2: # %atomicrmw.end
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca3
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca1
 ; PURECAP-LIBCALLS-NEXT:    clc cra, 40(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs0, 32(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs1, 24(csp) # 8-byte Folded Reload
@@ -351,25 +351,25 @@ define i32 addrspace(200)* @atomic_cap_ptr_and(i32 addrspace(200)* addrspace(200
 ; PURECAP-LIBCALLS-NEXT:    csc cs0, 32(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs1, 24(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs2, 16(csp) # 8-byte Folded Spill
-; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca0
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 0(ca0)
-; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca1
+; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca1
+; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca0
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 0(ca0)
 ; PURECAP-LIBCALLS-NEXT:    cincoffset ca0, csp, 8
 ; PURECAP-LIBCALLS-NEXT:    csetbounds cs0, ca0, 8
 ; PURECAP-LIBCALLS-NEXT:  .LBB8_1: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # =>This Inner Loop Header: Depth=1
-; PURECAP-LIBCALLS-NEXT:    and a0, a3, s1
-; PURECAP-LIBCALLS-NEXT:    csetaddr ca2, ca3, a0
-; PURECAP-LIBCALLS-NEXT:    csc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    and a0, a1, s2
+; PURECAP-LIBCALLS-NEXT:    csetaddr ca2, ca1, a0
+; PURECAP-LIBCALLS-NEXT:    csc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    li a3, 5
 ; PURECAP-LIBCALLS-NEXT:    li a4, 5
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs2
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs1
 ; PURECAP-LIBCALLS-NEXT:    cmove ca1, cs0
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_cap
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    beqz a0, .LBB8_1
 ; PURECAP-LIBCALLS-NEXT:  # %bb.2: # %atomicrmw.end
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca3
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca1
 ; PURECAP-LIBCALLS-NEXT:    clc cra, 40(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs0, 32(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs1, 24(csp) # 8-byte Folded Reload
@@ -427,26 +427,26 @@ define i32 addrspace(200)* @atomic_cap_ptr_nand(i32 addrspace(200)* addrspace(20
 ; PURECAP-LIBCALLS-NEXT:    csc cs0, 32(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs1, 24(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs2, 16(csp) # 8-byte Folded Spill
-; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca0
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 0(ca0)
-; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca1
+; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca1
+; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca0
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 0(ca0)
 ; PURECAP-LIBCALLS-NEXT:    cincoffset ca0, csp, 8
 ; PURECAP-LIBCALLS-NEXT:    csetbounds cs0, ca0, 8
 ; PURECAP-LIBCALLS-NEXT:  .LBB9_1: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # =>This Inner Loop Header: Depth=1
-; PURECAP-LIBCALLS-NEXT:    and a0, a3, s1
+; PURECAP-LIBCALLS-NEXT:    and a0, a1, s2
 ; PURECAP-LIBCALLS-NEXT:    not a0, a0
-; PURECAP-LIBCALLS-NEXT:    csetaddr ca2, ca3, a0
-; PURECAP-LIBCALLS-NEXT:    csc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    csetaddr ca2, ca1, a0
+; PURECAP-LIBCALLS-NEXT:    csc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    li a3, 5
 ; PURECAP-LIBCALLS-NEXT:    li a4, 5
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs2
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs1
 ; PURECAP-LIBCALLS-NEXT:    cmove ca1, cs0
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_cap
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    beqz a0, .LBB9_1
 ; PURECAP-LIBCALLS-NEXT:  # %bb.2: # %atomicrmw.end
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca3
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca1
 ; PURECAP-LIBCALLS-NEXT:    clc cra, 40(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs0, 32(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs1, 24(csp) # 8-byte Folded Reload
@@ -504,25 +504,25 @@ define i32 addrspace(200)* @atomic_cap_ptr_or(i32 addrspace(200)* addrspace(200)
 ; PURECAP-LIBCALLS-NEXT:    csc cs0, 32(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs1, 24(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs2, 16(csp) # 8-byte Folded Spill
-; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca0
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 0(ca0)
-; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca1
+; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca1
+; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca0
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 0(ca0)
 ; PURECAP-LIBCALLS-NEXT:    cincoffset ca0, csp, 8
 ; PURECAP-LIBCALLS-NEXT:    csetbounds cs0, ca0, 8
 ; PURECAP-LIBCALLS-NEXT:  .LBB10_1: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # =>This Inner Loop Header: Depth=1
-; PURECAP-LIBCALLS-NEXT:    or a0, a3, s1
-; PURECAP-LIBCALLS-NEXT:    csetaddr ca2, ca3, a0
-; PURECAP-LIBCALLS-NEXT:    csc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    or a0, a1, s2
+; PURECAP-LIBCALLS-NEXT:    csetaddr ca2, ca1, a0
+; PURECAP-LIBCALLS-NEXT:    csc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    li a3, 5
 ; PURECAP-LIBCALLS-NEXT:    li a4, 5
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs2
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs1
 ; PURECAP-LIBCALLS-NEXT:    cmove ca1, cs0
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_cap
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    beqz a0, .LBB10_1
 ; PURECAP-LIBCALLS-NEXT:  # %bb.2: # %atomicrmw.end
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca3
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca1
 ; PURECAP-LIBCALLS-NEXT:    clc cra, 40(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs0, 32(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs1, 24(csp) # 8-byte Folded Reload
@@ -579,25 +579,25 @@ define i32 addrspace(200)* @atomic_cap_ptr_xor(i32 addrspace(200)* addrspace(200
 ; PURECAP-LIBCALLS-NEXT:    csc cs0, 32(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs1, 24(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs2, 16(csp) # 8-byte Folded Spill
-; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca0
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 0(ca0)
-; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca1
+; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca1
+; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca0
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 0(ca0)
 ; PURECAP-LIBCALLS-NEXT:    cincoffset ca0, csp, 8
 ; PURECAP-LIBCALLS-NEXT:    csetbounds cs0, ca0, 8
 ; PURECAP-LIBCALLS-NEXT:  .LBB11_1: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # =>This Inner Loop Header: Depth=1
-; PURECAP-LIBCALLS-NEXT:    xor a0, a3, s1
-; PURECAP-LIBCALLS-NEXT:    csetaddr ca2, ca3, a0
-; PURECAP-LIBCALLS-NEXT:    csc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    xor a0, a1, s2
+; PURECAP-LIBCALLS-NEXT:    csetaddr ca2, ca1, a0
+; PURECAP-LIBCALLS-NEXT:    csc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    li a3, 5
 ; PURECAP-LIBCALLS-NEXT:    li a4, 5
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs2
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs1
 ; PURECAP-LIBCALLS-NEXT:    cmove ca1, cs0
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_cap
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    beqz a0, .LBB11_1
 ; PURECAP-LIBCALLS-NEXT:  # %bb.2: # %atomicrmw.end
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca3
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca1
 ; PURECAP-LIBCALLS-NEXT:    clc cra, 40(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs0, 32(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs1, 24(csp) # 8-byte Folded Reload
@@ -657,32 +657,32 @@ define i32 addrspace(200)* @atomic_cap_ptr_max(i32 addrspace(200)* addrspace(200
 ; PURECAP-LIBCALLS-NEXT:    csc cs0, 32(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs1, 24(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs2, 16(csp) # 8-byte Folded Spill
+; PURECAP-LIBCALLS-NEXT:    cmove cs0, ca1
 ; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca0
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 0(ca0)
-; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca1
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 0(ca0)
 ; PURECAP-LIBCALLS-NEXT:    cincoffset ca0, csp, 8
-; PURECAP-LIBCALLS-NEXT:    csetbounds cs0, ca0, 8
+; PURECAP-LIBCALLS-NEXT:    csetbounds cs1, ca0, 8
 ; PURECAP-LIBCALLS-NEXT:    j .LBB12_2
 ; PURECAP-LIBCALLS-NEXT:  .LBB12_1: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # in Loop: Header=BB12_2 Depth=1
-; PURECAP-LIBCALLS-NEXT:    csc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    csc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    li a3, 5
 ; PURECAP-LIBCALLS-NEXT:    li a4, 5
 ; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs2
-; PURECAP-LIBCALLS-NEXT:    cmove ca1, cs0
+; PURECAP-LIBCALLS-NEXT:    cmove ca1, cs1
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_cap
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    bnez a0, .LBB12_4
 ; PURECAP-LIBCALLS-NEXT:  .LBB12_2: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # =>This Inner Loop Header: Depth=1
-; PURECAP-LIBCALLS-NEXT:    cmove ca2, ca3
-; PURECAP-LIBCALLS-NEXT:    blt s1, a3, .LBB12_1
+; PURECAP-LIBCALLS-NEXT:    cmove ca2, ca1
+; PURECAP-LIBCALLS-NEXT:    blt s0, a1, .LBB12_1
 ; PURECAP-LIBCALLS-NEXT:  # %bb.3: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # in Loop: Header=BB12_2 Depth=1
-; PURECAP-LIBCALLS-NEXT:    cmove ca2, cs1
+; PURECAP-LIBCALLS-NEXT:    cmove ca2, cs0
 ; PURECAP-LIBCALLS-NEXT:    j .LBB12_1
 ; PURECAP-LIBCALLS-NEXT:  .LBB12_4: # %atomicrmw.end
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca3
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca1
 ; PURECAP-LIBCALLS-NEXT:    clc cra, 40(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs0, 32(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs1, 24(csp) # 8-byte Folded Reload
@@ -749,32 +749,32 @@ define i32 addrspace(200)* @atomic_cap_ptr_min(i32 addrspace(200)* addrspace(200
 ; PURECAP-LIBCALLS-NEXT:    csc cs0, 32(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs1, 24(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs2, 16(csp) # 8-byte Folded Spill
+; PURECAP-LIBCALLS-NEXT:    cmove cs0, ca1
 ; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca0
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 0(ca0)
-; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca1
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 0(ca0)
 ; PURECAP-LIBCALLS-NEXT:    cincoffset ca0, csp, 8
-; PURECAP-LIBCALLS-NEXT:    csetbounds cs0, ca0, 8
+; PURECAP-LIBCALLS-NEXT:    csetbounds cs1, ca0, 8
 ; PURECAP-LIBCALLS-NEXT:    j .LBB13_2
 ; PURECAP-LIBCALLS-NEXT:  .LBB13_1: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # in Loop: Header=BB13_2 Depth=1
-; PURECAP-LIBCALLS-NEXT:    csc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    csc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    li a3, 5
 ; PURECAP-LIBCALLS-NEXT:    li a4, 5
 ; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs2
-; PURECAP-LIBCALLS-NEXT:    cmove ca1, cs0
+; PURECAP-LIBCALLS-NEXT:    cmove ca1, cs1
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_cap
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    bnez a0, .LBB13_4
 ; PURECAP-LIBCALLS-NEXT:  .LBB13_2: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # =>This Inner Loop Header: Depth=1
-; PURECAP-LIBCALLS-NEXT:    cmove ca2, ca3
-; PURECAP-LIBCALLS-NEXT:    bge s1, a3, .LBB13_1
+; PURECAP-LIBCALLS-NEXT:    cmove ca2, ca1
+; PURECAP-LIBCALLS-NEXT:    bge s0, a1, .LBB13_1
 ; PURECAP-LIBCALLS-NEXT:  # %bb.3: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # in Loop: Header=BB13_2 Depth=1
-; PURECAP-LIBCALLS-NEXT:    cmove ca2, cs1
+; PURECAP-LIBCALLS-NEXT:    cmove ca2, cs0
 ; PURECAP-LIBCALLS-NEXT:    j .LBB13_1
 ; PURECAP-LIBCALLS-NEXT:  .LBB13_4: # %atomicrmw.end
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca3
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca1
 ; PURECAP-LIBCALLS-NEXT:    clc cra, 40(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs0, 32(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs1, 24(csp) # 8-byte Folded Reload
@@ -841,32 +841,32 @@ define i32 addrspace(200)* @atomic_cap_ptr_umax(i32 addrspace(200)* addrspace(20
 ; PURECAP-LIBCALLS-NEXT:    csc cs0, 32(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs1, 24(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs2, 16(csp) # 8-byte Folded Spill
+; PURECAP-LIBCALLS-NEXT:    cmove cs0, ca1
 ; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca0
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 0(ca0)
-; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca1
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 0(ca0)
 ; PURECAP-LIBCALLS-NEXT:    cincoffset ca0, csp, 8
-; PURECAP-LIBCALLS-NEXT:    csetbounds cs0, ca0, 8
+; PURECAP-LIBCALLS-NEXT:    csetbounds cs1, ca0, 8
 ; PURECAP-LIBCALLS-NEXT:    j .LBB14_2
 ; PURECAP-LIBCALLS-NEXT:  .LBB14_1: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # in Loop: Header=BB14_2 Depth=1
-; PURECAP-LIBCALLS-NEXT:    csc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    csc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    li a3, 5
 ; PURECAP-LIBCALLS-NEXT:    li a4, 5
 ; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs2
-; PURECAP-LIBCALLS-NEXT:    cmove ca1, cs0
+; PURECAP-LIBCALLS-NEXT:    cmove ca1, cs1
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_cap
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    bnez a0, .LBB14_4
 ; PURECAP-LIBCALLS-NEXT:  .LBB14_2: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # =>This Inner Loop Header: Depth=1
-; PURECAP-LIBCALLS-NEXT:    cmove ca2, ca3
-; PURECAP-LIBCALLS-NEXT:    bltu s1, a3, .LBB14_1
+; PURECAP-LIBCALLS-NEXT:    cmove ca2, ca1
+; PURECAP-LIBCALLS-NEXT:    bltu s0, a1, .LBB14_1
 ; PURECAP-LIBCALLS-NEXT:  # %bb.3: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # in Loop: Header=BB14_2 Depth=1
-; PURECAP-LIBCALLS-NEXT:    cmove ca2, cs1
+; PURECAP-LIBCALLS-NEXT:    cmove ca2, cs0
 ; PURECAP-LIBCALLS-NEXT:    j .LBB14_1
 ; PURECAP-LIBCALLS-NEXT:  .LBB14_4: # %atomicrmw.end
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca3
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca1
 ; PURECAP-LIBCALLS-NEXT:    clc cra, 40(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs0, 32(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs1, 24(csp) # 8-byte Folded Reload
@@ -933,32 +933,32 @@ define i32 addrspace(200)* @atomic_cap_ptr_umin(i32 addrspace(200)* addrspace(20
 ; PURECAP-LIBCALLS-NEXT:    csc cs0, 32(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs1, 24(csp) # 8-byte Folded Spill
 ; PURECAP-LIBCALLS-NEXT:    csc cs2, 16(csp) # 8-byte Folded Spill
+; PURECAP-LIBCALLS-NEXT:    cmove cs0, ca1
 ; PURECAP-LIBCALLS-NEXT:    cmove cs2, ca0
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 0(ca0)
-; PURECAP-LIBCALLS-NEXT:    cmove cs1, ca1
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 0(ca0)
 ; PURECAP-LIBCALLS-NEXT:    cincoffset ca0, csp, 8
-; PURECAP-LIBCALLS-NEXT:    csetbounds cs0, ca0, 8
+; PURECAP-LIBCALLS-NEXT:    csetbounds cs1, ca0, 8
 ; PURECAP-LIBCALLS-NEXT:    j .LBB15_2
 ; PURECAP-LIBCALLS-NEXT:  .LBB15_1: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # in Loop: Header=BB15_2 Depth=1
-; PURECAP-LIBCALLS-NEXT:    csc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    csc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    li a3, 5
 ; PURECAP-LIBCALLS-NEXT:    li a4, 5
 ; PURECAP-LIBCALLS-NEXT:    cmove ca0, cs2
-; PURECAP-LIBCALLS-NEXT:    cmove ca1, cs0
+; PURECAP-LIBCALLS-NEXT:    cmove ca1, cs1
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_cap
-; PURECAP-LIBCALLS-NEXT:    clc ca3, 8(csp)
+; PURECAP-LIBCALLS-NEXT:    clc ca1, 8(csp)
 ; PURECAP-LIBCALLS-NEXT:    bnez a0, .LBB15_4
 ; PURECAP-LIBCALLS-NEXT:  .LBB15_2: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # =>This Inner Loop Header: Depth=1
-; PURECAP-LIBCALLS-NEXT:    cmove ca2, ca3
-; PURECAP-LIBCALLS-NEXT:    bgeu s1, a3, .LBB15_1
+; PURECAP-LIBCALLS-NEXT:    cmove ca2, ca1
+; PURECAP-LIBCALLS-NEXT:    bgeu s0, a1, .LBB15_1
 ; PURECAP-LIBCALLS-NEXT:  # %bb.3: # %atomicrmw.start
 ; PURECAP-LIBCALLS-NEXT:    # in Loop: Header=BB15_2 Depth=1
-; PURECAP-LIBCALLS-NEXT:    cmove ca2, cs1
+; PURECAP-LIBCALLS-NEXT:    cmove ca2, cs0
 ; PURECAP-LIBCALLS-NEXT:    j .LBB15_1
 ; PURECAP-LIBCALLS-NEXT:  .LBB15_4: # %atomicrmw.end
-; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca3
+; PURECAP-LIBCALLS-NEXT:    cmove ca0, ca1
 ; PURECAP-LIBCALLS-NEXT:    clc cra, 40(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs0, 32(csp) # 8-byte Folded Reload
 ; PURECAP-LIBCALLS-NEXT:    clc cs1, 24(csp) # 8-byte Folded Reload

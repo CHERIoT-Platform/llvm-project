@@ -155,9 +155,9 @@ define signext i32 @stack_int_inlined() local_unnamed_addr addrspace(200) nounwi
 ; ASM:       # %bb.0:
 ; ASM-NEXT:    cincoffset csp, csp, -16
 ; ASM-NEXT:    li a0, 1
+; ASM-NEXT:    cincoffset ca1, csp, 12
 ; ASM-NEXT:    csw a0, 12(csp)
-; ASM-NEXT:    cincoffset ca0, csp, 12
-; ASM-NEXT:    csetbounds ca0, ca0, 4
+; ASM-NEXT:    csetbounds ca0, ca1, 4
 ; ASM-NEXT:    li a1, 2
 ; ASM-NEXT:    csw a1, 0(ca0)
 ; ASM-NEXT:    clw a0, 12(csp)

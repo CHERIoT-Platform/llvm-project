@@ -12,7 +12,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "RISCVBaseInfo.h"
-#include "llvm/ADT/ArrayRef.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
@@ -61,7 +60,7 @@ ABI computeTargetABI(const Triple &TT, const FeatureBitset &FeatureBits,
               "target-abi)\n";
     TargetABI = ABI_Unknown;
   } else if ((ABIName.starts_with("il32pc") || ABIName.starts_with("l64pc")) &&
-             !FeatureBits[RISCV::FeatureCheri]) {
+             !FeatureBits[RISCV::FeatureVendorXCheri]) {
     errs() << "Pure-capability ABI can't be used for a target that "
               "doesn't support the XCheri instruction set extension (ignoring "
               "target-abi)\n";

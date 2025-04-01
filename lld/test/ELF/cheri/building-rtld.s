@@ -18,7 +18,7 @@ test:
 # CHECK:      ld.lld: error: relocation R_MIPS_CHERI_CAPABILITY against <undefined> foo2 cannot be using when building FreeBSD RTLD
 # CHECK-NEXT: >>> referenced by foo2@CAPTABLE
 # CHECK-NEXT: >>> first used in function test
-# CHECK-NEXT: >>> defined in  ({{.+}}building-rtld.s.tmp.o:(test))
+# CHECK-NEXT: >>> defined in {{.+}}building-rtld.s.tmp.o
 # CHECK-EMPTY:
 # CHECK-NEXT: ld.lld: error: relocation R_MIPS_TLS_DTPMOD64 against foo cannot be using when building FreeBSD RTLD
 # CHECK-NEXT: >>> defined in {{.+}}building-rtld.s.tmp.o

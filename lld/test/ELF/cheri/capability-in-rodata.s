@@ -44,11 +44,11 @@ bar:
 .size bar, .Lend_bar - bar
 # CHECK: error: attempting to add a capability relocation against symbol __start in a read-only section; pass -Wl,-z,notext if you really want to do this
 # CHECK-NEXT: >>> referenced by object foo
-# CHECK-NEXT: >>> defined in  ({{.+}}capability-in-rodata.s.tmp.o:(foo))
+# CHECK-NEXT: >>> defined in  ({{.+}}capability-in-rodata.s.tmp.o:(object foo: .rodata+0x20))
 # CHECK-EMPTY:
 # CHECK: error: attempting to add a capability relocation against symbol foo in a read-only section; pass -Wl,-z,notext if you really want to do this
 # CHECK-NEXT: >>> referenced by object bar
-# CHECK-NEXT: >>> defined in  ({{.+}}capability-in-rodata.s.tmp.o:(bar))
+# CHECK-NEXT: >>> defined in  ({{.+}}capability-in-rodata.s.tmp.o:(object bar: .rodata+0x40))
 # CHECK-EMPTY:
 
 # EXE: CHERI __cap_relocs [

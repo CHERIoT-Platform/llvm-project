@@ -19,11 +19,7 @@ define dso_local void @bar() addrspace(200) nounwind {
 ; RV32IXCHERI-IL32PC64-NEXT:    cincoffset ca1, csp, 512
 ; RV32IXCHERI-IL32PC64-NEXT:    csetbounds ca0, ca1, a0
 ; RV32IXCHERI-IL32PC64-NEXT:    ccall foo
-; RV32IXCHERI-IL32PC64-NEXT:    li a0, -5
-; RV32IXCHERI-IL32PC64-NEXT:    slli a0, a0, 10
-; RV32IXCHERI-IL32PC64-NEXT:    cincoffset csp, cs0, a0
-; RV32IXCHERI-IL32PC64-NEXT:    cincoffset csp, csp, 2032
-; RV32IXCHERI-IL32PC64-NEXT:    cincoffset csp, csp, 1056
+; RV32IXCHERI-IL32PC64-NEXT:    cincoffset csp, cs0, -2032
 ; RV32IXCHERI-IL32PC64-NEXT:    clc cra, 2024(csp) # 8-byte Folded Reload
 ; RV32IXCHERI-IL32PC64-NEXT:    clc cs0, 2016(csp) # 8-byte Folded Reload
 ; RV32IXCHERI-IL32PC64-NEXT:    cincoffset csp, csp, 2032

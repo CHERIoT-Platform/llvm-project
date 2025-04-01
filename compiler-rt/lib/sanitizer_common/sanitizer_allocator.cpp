@@ -60,7 +60,7 @@ static void *RawInternalAlloc(usize size, InternalAllocatorCache *cache,
 
 static void *RawInternalRealloc(void *ptr, usize size,
                                 InternalAllocatorCache *cache) {
-  usize alignment = InternalDefaultAlign;
+  constexpr usize alignment = Max<usize>(8, sizeof(void *));
   if (cache == 0) {
     SpinMutexLock l(&internal_allocator_cache_mu);
     return internal_allocator()->Reallocate(&internal_allocator_cache, ptr,
@@ -138,7 +138,8 @@ void InternalAllocatorUnlock() SANITIZER_NO_THREAD_SAFETY_ANALYSIS {
 }
 
 // LowLevelAllocator
-constexpr usize kLowLevelAllocatorDefaultAlignment = InternalDefaultAlign;
+constexpr usize kLowLevelAllocatorDefaultAlignment =
+    Max<usize>(8, sizeof(void *));
 constexpr uptr kMinNumPagesRounded = 16;
 constexpr uptr kMinRoundedSize = 65536;
 static usize low_level_alloc_min_alignment = kLowLevelAllocatorDefaultAlignment;

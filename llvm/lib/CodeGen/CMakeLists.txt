@@ -74,6 +74,7 @@ add_llvm_component_library(LLVMCodeGen
   GCMetadataPrinter.cpp
   GCRootLowering.cpp
   GlobalMerge.cpp
+  GlobalMergeFunctions.cpp
   HardwareLoops.cpp
   IfConversion.cpp
   ImplicitNullChecks.cpp
@@ -102,7 +103,7 @@ add_llvm_component_library(LLVMCodeGen
   LiveRegUnits.cpp
   LiveStacks.cpp
   LiveVariables.cpp
-  LLVMTargetMachine.cpp
+  CodeGenTargetMachineImpl.cpp
   LocalStackSlotAllocation.cpp
   LoopTraversal.cpp
   LowLevelTypeUtils.cpp
@@ -203,6 +204,7 @@ add_llvm_component_library(LLVMCodeGen
   RegisterUsageInfo.cpp
   RegUsageInfoCollector.cpp
   RegUsageInfoPropagate.cpp
+  RemoveLoadsIntoFakeUses.cpp
   ReplaceWithVeclib.cpp
   ResetMachineFunctionPass.cpp
   RegisterBank.cpp
@@ -227,6 +229,7 @@ add_llvm_component_library(LLVMCodeGen
   StackMaps.cpp
   StackProtector.cpp
   StackSlotColoring.cpp
+  StaticDataSplitter.cpp
   SwiftErrorValueTracking.cpp
   SwitchLoweringUtils.cpp
   TailDuplication.cpp
@@ -264,12 +267,14 @@ add_llvm_component_library(LLVMCodeGen
 
   DEPENDS
   intrinsics_gen
+  vt_gen
   ${MLDeps}
 
   LINK_COMPONENTS
   Analysis
   BitReader
   BitWriter
+  CGData
   CodeGenTypes
   Core
   MC

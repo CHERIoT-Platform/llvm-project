@@ -3,7 +3,7 @@
 
 // CHECK-LABEL: @add_invalid_ptr(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    ret ptr addrspace(200) getelementptr inbounds (i8, ptr addrspace(200) inttoptr (i64 100 to ptr addrspace(200)), i64 924)
+// CHECK-NEXT:    ret ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) inttoptr (i64 100 to ptr addrspace(200)), i64 924)
 //
 void *__capability add_invalid_ptr(void) {
   // This cannot return a valid tagged capability:
@@ -14,7 +14,7 @@ void *__capability add_invalid_ptr(void) {
 
 // CHECK-LABEL: @add_valid_ptr(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    ret ptr addrspace(200) getelementptr inbounds (i8, ptr addrspace(200) addrspacecast (ptr inttoptr (i64 100 to ptr) to ptr addrspace(200)), i64 924)
+// CHECK-NEXT:    ret ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) addrspacecast (ptr inttoptr (i64 100 to ptr) to ptr addrspace(200)), i64 924)
 //
 void *__capability add_valid_ptr(void) {
   // This can return a valid tagged capability:

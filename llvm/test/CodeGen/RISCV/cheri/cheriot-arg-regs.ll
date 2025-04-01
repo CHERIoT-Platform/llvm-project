@@ -24,7 +24,6 @@ entry:
   %add8 = add nsw i32 %add7, %a9
   %add9 = add nsw i32 %add8, %a10
   ; Check that we at least got the right number of arguments
-  ; Check that we at least got the right number of arguments
   ; CHECK: add
   ; CHECK: add
   ; CHECK: add

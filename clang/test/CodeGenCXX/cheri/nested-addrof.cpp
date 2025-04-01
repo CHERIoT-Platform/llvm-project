@@ -24,9 +24,9 @@ struct S {
 // CHECK-LABEL: @dot(
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[S:%.*]] = alloca [[STRUCT_S:%.*]], align 16
-// CHECK-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds [[STRUCT_S]], ptr [[S]], i32 0, i32 0
+// CHECK-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds nuw [[STRUCT_S]], ptr [[S]], i32 0, i32 0
 // CHECK-NEXT:    store ptr addrspace(200) [[S_COERCE:%.*]], ptr [[COERCE_DIVE]], align 16
-// CHECK-NEXT:    [[P:%.*]] = getelementptr inbounds [[STRUCT_S]], ptr [[S]], i32 0, i32 0
+// CHECK-NEXT:    [[P:%.*]] = getelementptr inbounds nuw [[STRUCT_S]], ptr [[S]], i32 0, i32 0
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr [[P]], align 16
 // CHECK-NEXT:    [[TMP1:%.*]] = addrspacecast ptr addrspace(200) [[TMP0]] to ptr
 // CHECK-NEXT:    ret ptr [[TMP1]]
@@ -37,7 +37,7 @@ char *dot(struct S s) {
 
 // CHECK-LABEL: @arrow(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[P:%.*]] = getelementptr inbounds [[STRUCT_S:%.*]], ptr [[S:%.*]], i32 0, i32 0
+// CHECK-NEXT:    [[P:%.*]] = getelementptr inbounds nuw [[STRUCT_S:%.*]], ptr [[S:%.*]], i32 0, i32 0
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr [[P]], align 16
 // CHECK-NEXT:    [[TMP1:%.*]] = addrspacecast ptr addrspace(200) [[TMP0]] to ptr
 // CHECK-NEXT:    ret ptr [[TMP1]]
@@ -48,7 +48,7 @@ char *arrow(struct S *s) {
 
 // CHECK-LABEL: @ref_dot(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[P:%.*]] = getelementptr inbounds [[STRUCT_S:%.*]], ptr [[S:%.*]], i32 0, i32 0
+// CHECK-NEXT:    [[P:%.*]] = getelementptr inbounds nuw [[STRUCT_S:%.*]], ptr [[S:%.*]], i32 0, i32 0
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr [[P]], align 16
 // CHECK-NEXT:    [[TMP1:%.*]] = addrspacecast ptr addrspace(200) [[TMP0]] to ptr
 // CHECK-NEXT:    ret ptr [[TMP1]]

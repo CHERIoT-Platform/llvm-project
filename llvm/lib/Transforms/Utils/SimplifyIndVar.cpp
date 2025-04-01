@@ -168,8 +168,8 @@ Value *SimplifyIndvar::foldIVUser(Instruction *UseInst, Instruction *IVOperand) 
       D = ConstantInt::get(UseInst->getContext(),
                            APInt::getOneBitSet(BitWidth, D->getZExtValue()));
     }
-    const auto *LHS = SE->getSCEV(IVSrc);
-    const auto *RHS = SE->getSCEV(D);
+    const SCEV *LHS = SE->getSCEV(IVSrc);
+    const SCEV *RHS = SE->getSCEV(D);
     FoldedExpr = SE->getUDivExpr(LHS, RHS);
     // We might have 'exact' flag set at this point which will no longer be
     // correct after we make the replacement.
@@ -298,8 +298,8 @@ void SimplifyIndvar::eliminateIVComparison(ICmpInst *ICmp,
 
 bool SimplifyIndvar::eliminateSDiv(BinaryOperator *SDiv) {
   // Get the SCEVs for the ICmp operands.
-  auto *N = SE->getSCEV(SDiv->getOperand(0));
-  auto *D = SE->getSCEV(SDiv->getOperand(1));
+  const SCEV *N = SE->getSCEV(SDiv->getOperand(0));
+  const SCEV *D = SE->getSCEV(SDiv->getOperand(1));
 
   // Simplify unnecessary loops away.
   const Loop *L = LI->getLoopFor(SDiv->getParent());
@@ -398,7 +398,7 @@ void SimplifyIndvar::simplifyIVRemainder(BinaryOperator *Rem,
     }
 
     auto *T = Rem->getType();
-    const auto *NLessOne = SE->getMinusSCEV(N, SE->getOne(T));
+    const SCEV *NLessOne = SE->getMinusSCEV(N, SE->getOne(T));
     if (SE->isKnownPredicate(LT, NLessOne, D)) {
       replaceRemWithNumeratorOrZero(Rem);
       return;
@@ -1025,7 +1025,7 @@ bool simplifyLoopIVs(Loop *L, ScalarEvolution *SE, DominatorTree *DT,
                      LoopInfo *LI, const TargetTransformInfo *TTI,
                      SmallVectorImpl<WeakTrackingVH> &Dead) {
   SCEVExpander Rewriter(*SE, SE->getDataLayout(), "indvars");
-#ifndef NDEBUG
+#if LLVM_ENABLE_ABI_BREAKING_CHECKS
   Rewriter.setDebugType(DEBUG_TYPE);
 #endif
   bool Changed = false;
@@ -1104,10 +1104,8 @@ class WidenIV {
 
   void updatePostIncRangeInfo(Value *Def, Instruction *UseI, ConstantRange R) {
     DefUserPair Key(Def, UseI);
-    auto It = PostIncRangeInfos.find(Key);
-    if (It == PostIncRangeInfos.end())
-      PostIncRangeInfos.insert({Key, R});
-    else
+    auto [It, Inserted] = PostIncRangeInfos.try_emplace(Key, R);
+    if (!Inserted)
       It->second = R.intersectWith(It->second);
   }
 
@@ -2167,16 +2165,14 @@ void WidenIV::calculatePostIncRange(Instruction *NarrowDef,
       !NarrowDefRHS->isNonNegative())
     return;
 
-  auto UpdateRangeFromCondition = [&] (Value *Condition,
-                                       bool TrueDest) {
-    CmpInst::Predicate Pred;
+  auto UpdateRangeFromCondition = [&](Value *Condition, bool TrueDest) {
+    CmpPredicate Pred;
     Value *CmpRHS;
     if (!match(Condition, m_ICmp(Pred, m_Specific(NarrowDefLHS),
                                  m_Value(CmpRHS))))
       return;
 
-    CmpInst::Predicate P =
-            TrueDest ? Pred : CmpInst::getInversePredicate(Pred);
+    CmpPredicate P = TrueDest ? Pred : ICmpInst::getInverseCmpPredicate(Pred);
 
     auto CmpRHSRange = SE->getSignedRange(SE->getSCEV(CmpRHS));
     auto CmpConstrainedLHSRange =

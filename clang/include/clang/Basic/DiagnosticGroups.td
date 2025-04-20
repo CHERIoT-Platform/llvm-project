@@ -1337,6 +1337,8 @@ def MicrosoftStaticAssert : DiagGroup<"microsoft-static-assert">;
 def MicrosoftInitFromPredefined : DiagGroup<"microsoft-init-from-predefined">;
 def MicrosoftStringLiteralFromPredefined : DiagGroup<
     "microsoft-string-literal-from-predefined">;
+def MicrosoftInlineOnNonFunction : DiagGroup<
+    "microsoft-inline-on-non-function">;
 
 // Aliases.
 def : DiagGroup<"msvc-include", [MicrosoftInclude]>;
@@ -1355,7 +1357,7 @@ def Microsoft : DiagGroup<"microsoft",
      MicrosoftConstInit, MicrosoftVoidPseudoDtor, MicrosoftAnonTag,
      MicrosoftCommentPaste, MicrosoftEndOfFile, MicrosoftStaticAssert,
      MicrosoftInitFromPredefined, MicrosoftStringLiteralFromPredefined,
-     MicrosoftInconsistentDllImport]>;
+     MicrosoftInconsistentDllImport, MicrosoftInlineOnNonFunction]>;
 
 def ClangClPch : DiagGroup<"clang-cl-pch">;
 

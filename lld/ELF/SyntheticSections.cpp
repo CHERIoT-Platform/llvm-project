@@ -4859,7 +4859,7 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
     // XXXAR: also add the RLD_MAP dynamic tags to rtld so that we can use
     // gdb with rtld direct exec mode.
     // TODO: should probably try to build rtld as PIE instead?
-    if ((!ctx.arg.shared || ctx.arg.buildingFreeBSDRtld) && ctx.arg.hasDynSymTab) {
+    if ((!ctx.arg.shared || ctx.arg.buildingFreeBSDRtld) && ctx.hasDynsym) {
       ctx.in.mipsRldMap = std::make_unique<MipsRldMapSection>(ctx);
       add(*ctx.in.mipsRldMap);
     }
@@ -4895,8 +4895,8 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
       add(*part.buildId);
     }
 
-    // dynSymTab is always present to simplify sym->includeInDynsym(ctx) in
-    // finalizeSections.
+    // dynSymTab is always present to simplify several finalizeSections
+    // functions.
     part.dynStrTab = std::make_unique<StringTableSection>(ctx, ".dynstr", true);
     part.dynSymTab =
         std::make_unique<SymbolTableSection<ELFT>>(ctx, *part.dynStrTab);
@@ -4922,7 +4922,7 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
       part.relaDyn = std::make_unique<RelocationSection<ELFT>>(
           ctx, relaDynName, ctx.arg.zCombreloc, threadCount);
 
-    if (ctx.arg.hasDynSymTab) {
+    if (ctx.hasDynsym) {
       add(*part.dynSymTab);
 
       part.verSym = std::make_unique<VersionTableSection>(ctx);

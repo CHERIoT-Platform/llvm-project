@@ -2424,6 +2424,16 @@ static bool CheckLValueConstantExpression(EvalInfo &Info, SourceLocation Loc,
           LVal.getLValueCallIndex() == 0) &&
          "have call index for global lvalue");
 
+  if (LVal.allowConstexprUnknown()) {
+    if (BaseVD) {
+      Info.FFDiag(Loc, diag::note_constexpr_var_init_non_constant, 1) << BaseVD;
+      NoteLValueLocation(Info, Base);
+    } else {
+      Info.FFDiag(Loc);
+    }
+    return false;
+  }
+
   if (Base.is<DynamicAllocLValue>()) {
     Info.FFDiag(Loc, diag::note_constexpr_dynamic_alloc)
         << IsReferenceType << !Designator.Entries.empty();
@@ -3602,7 +3612,8 @@ static bool evaluateVarDeclInit(EvalInfo &Info, const Expr *E,
   // expressions here; doing so would regress diagnostics for things like
   // reading from a volatile constexpr variable.
   if ((Info.getLangOpts().CPlusPlus && !VD->hasConstantInitialization() &&
-       VD->mightBeUsableInConstantExpressions(Info.Ctx)) ||
+       VD->mightBeUsableInConstantExpressions(Info.Ctx) &&
+       !AllowConstexprUnknown) ||
       ((Info.getLangOpts().CPlusPlus || Info.getLangOpts().OpenCL) &&
        !Info.getLangOpts().CPlusPlus11 && !VD->hasICEInitializer(Info.Ctx))) {
     if (Init) {
@@ -3633,8 +3644,6 @@ static bool evaluateVarDeclInit(EvalInfo &Info, const Expr *E,
   if (AllowConstexprUnknown) {
     if (!Result)
       Result = &Info.CurrentCall->createConstexprUnknownAPValues(VD, Base);
-    else
-      Result->setConstexprUnknown();
   }
   return true;
 }

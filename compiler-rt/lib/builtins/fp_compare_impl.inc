@@ -15,7 +15,7 @@
 #ifdef __aarch64__
 // AArch64 GCC overrides libgcc_cmp_return to use int instead of long.
 typedef int CMP_RESULT;
-#elif __SIZEOF_POINTER__ == 8 && __SIZEOF_LONG__ == 4
+#elif __SIZEOF_POINTER__ == 8 && __SIZEOF_LONG__ == 4 && !defined(__CHERI__)
 // LLP64 ABIs use long long instead of long.
 typedef long long CMP_RESULT;
 #elif __AVR__

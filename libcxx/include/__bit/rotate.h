@@ -52,7 +52,6 @@ _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR_SINCE_CXX14 _Tp __rotr(_Tp __x, int __s)
 
   return (__x << -__r) | (__x >> (__n + __r));
 }
-#endif
 
 #if _LIBCPP_STD_VER >= 20
 

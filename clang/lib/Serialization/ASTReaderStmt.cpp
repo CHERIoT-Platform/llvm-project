@@ -2215,6 +2215,16 @@ void ASTStmtReader::VisitPackIndexingExpr(PackIndexingExpr *E) {
     Exprs[I] = Record.readExpr();
 }
 
+void ASTStmtReader::VisitResolvedUnexpandedPackExpr(
+    ResolvedUnexpandedPackExpr *E) {
+  VisitExpr(E);
+  E->NumExprs = Record.readInt();
+  E->BeginLoc = readSourceLocation();
+  auto **Exprs = E->getTrailingObjects<Expr *>();
+  for (unsigned I = 0; I < E->NumExprs; ++I)
+    Exprs[I] = Record.readExpr();
+}
+
 void ASTStmtReader::VisitSubstNonTypeTemplateParmExpr(
                                               SubstNonTypeTemplateParmExpr *E) {
   VisitExpr(E);
@@ -4300,6 +4310,12 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
       S = PackIndexingExpr::CreateDeserialized(
           Context,
           /*TransformedExprs=*/Record[ASTStmtReader::NumExprFields]);
+      break;
+
+    case EXPR_RESOLVED_UNEXPANDED_PACK:
+      S = ResolvedUnexpandedPackExpr::CreateDeserialized(
+          Context,
+          /*NumExprs=*/Record[ASTStmtReader::NumExprFields]);
       break;
 
     case EXPR_SUBST_NON_TYPE_TEMPLATE_PARM:

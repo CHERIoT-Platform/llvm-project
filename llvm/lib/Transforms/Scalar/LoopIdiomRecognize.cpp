@@ -1371,7 +1371,29 @@ bool LoopIdiomRecognize::processLoopStoreOfLoopLoad(
     return Changed;
   }
 
+  bool IsAtomic = TheStore->isAtomic() || TheLoad->isAtomic();
   bool UseMemMove = IsMemCpy ? Verifier.IsSameObject : LoopAccessStore;
+
+  if (IsAtomic) {
+    // For now don't support unordered atomic memmove.
+    if (UseMemMove)
+      return Changed;
+
+    // We cannot allow unaligned ops for unordered load/store, so reject
+    // anything where the alignment isn't at least the element size.
+    assert((StoreAlign && LoadAlign) &&
+           "Expect unordered load/store to have align.");
+    if (*StoreAlign < StoreSize || *LoadAlign < StoreSize)
+      return Changed;
+
+    // If the element.atomic memcpy is not lowered into explicit
+    // loads/stores later, then it will be lowered into an element-size
+    // specific lib call. If the lib call doesn't exist for our store size, then
+    // we shouldn't generate the memcpy.
+    if (StoreSize > TTI->getAtomicMemIntrinsicMaxElementSize())
+      return Changed;
+  }
+
   if (UseMemMove)
     if (!Verifier.loadAndStoreMayFormMemmove(StoreSize, IsNegStride, *TheLoad,
                                              IsMemCpy))
@@ -1400,7 +1422,7 @@ bool LoopIdiomRecognize::processLoopStoreOfLoopLoad(
   // Check whether to generate an unordered atomic memcpy:
   //  If the load or store are atomic, then they must necessarily be unordered
   //  by previous checks.
-  if (!TheStore->isAtomic() && !TheLoad->isAtomic()) {
+  if (!IsAtomic) {
     if (UseMemMove)
       NewCall = Builder.CreateMemMove(
           StoreBasePtr, StoreAlign, LoadBasePtr, LoadAlign, NumBytes, PreserveTags,
@@ -1411,23 +1433,6 @@ bool LoopIdiomRecognize::processLoopStoreOfLoopLoad(
                                NumBytes, PreserveTags, /*isVolatile=*/false, AATags.TBAA,
                                AATags.TBAAStruct, AATags.Scope, AATags.NoAlias);
   } else {
-    // For now don't support unordered atomic memmove.
-    if (UseMemMove)
-      return Changed;
-    // We cannot allow unaligned ops for unordered load/store, so reject
-    // anything where the alignment isn't at least the element size.
-    assert((StoreAlign && LoadAlign) &&
-           "Expect unordered load/store to have align.");
-    if (*StoreAlign < StoreSize || *LoadAlign < StoreSize)
-      return Changed;
-
-    // If the element.atomic memcpy is not lowered into explicit
-    // loads/stores later, then it will be lowered into an element-size
-    // specific lib call. If the lib call doesn't exist for our store size, then
-    // we shouldn't generate the memcpy.
-    if (StoreSize > TTI->getAtomicMemIntrinsicMaxElementSize())
-      return Changed;
-
     // Create the call.
     // Note that unordered atomic loads/stores are *required* by the spec to
     // have an alignment but non-atomic loads/stores may not.

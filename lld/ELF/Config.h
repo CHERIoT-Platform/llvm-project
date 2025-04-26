@@ -280,6 +280,12 @@ struct Config {
   // FreeBSD _rtld_relocate_nonplt_self an error.
   bool buildingFreeBSDRtld;
   CGProfileSortKind callGraphProfileSort;
+  llvm::StringRef irpgoProfilePath;
+  bool bpStartupFunctionSort = false;
+  bool bpCompressionSortStartupFunctions = false;
+  bool bpFunctionOrderForCompression = false;
+  bool bpDataOrderForCompression = false;
+  bool bpVerboseSectionOrderer = false;
   bool checkSections;
   bool checkDynamicRelocs;
   std::optional<llvm::DebugCompressionType> compressDebugSections;

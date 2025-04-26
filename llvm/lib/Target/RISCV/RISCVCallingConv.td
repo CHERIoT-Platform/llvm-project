@@ -58,6 +58,8 @@ def CSR_CHERIOT
 // Needed for implementation of RISCVRegisterInfo::getNoPreservedMask()
 def CSR_NoRegs : CalleeSavedRegs<(add)>;
 
+def CSR_IPRA : CalleeSavedRegs<(add X1)>;
+
 // Interrupt handler needs to save/restore all registers that are used,
 // both Caller and Callee saved registers.
 def CSR_Interrupt : CalleeSavedRegs<(add X1, (sequence "X%u", 5, 31))>;

@@ -380,7 +380,8 @@ setupIndirectCallTable(GenericPluginTy &Plugin, GenericDeviceTy &Device,
       Image.getTgtImage()->EntriesBegin, Image.getTgtImage()->EntriesEnd);
   llvm::SmallVector<std::pair<void *, void *>> IndirectCallTable;
   for (const auto &Entry : Entries) {
-    if (Entry.Size == 0 || !(Entry.Flags & OMP_DECLARE_TARGET_INDIRECT))
+    if (Entry.Kind != object::OffloadKind::OFK_OpenMP || Entry.Size == 0 ||
+        !(Entry.Flags & OMP_DECLARE_TARGET_INDIRECT))
       continue;
 
     assert(Entry.Size == sizeof(void *) && "Global not a function pointer?");
@@ -1057,8 +1058,9 @@ Error GenericDeviceTy::setupRPCServer(GenericPluginTy &Plugin,
   if (auto Err = Server.initDevice(*this, Plugin.getGlobalHandler(), Image))
     return Err;
 
-  if (auto Err = Server.startThread())
-    return Err;
+  if (!Server.Thread->Running.load(std::memory_order_acquire))
+    if (auto Err = Server.startThread())
+      return Err;
 
   RPCServer = &Server;
   DP("Running an RPC server on device %d\n", getDeviceId());
@@ -1633,7 +1635,7 @@ Error GenericPluginTy::deinit() {
   if (GlobalHandler)
     delete GlobalHandler;
 
-  if (RPCServer && RPCServer->Thread->Running.load(std::memory_order_relaxed))
+  if (RPCServer && RPCServer->Thread->Running.load(std::memory_order_acquire))
     if (Error Err = RPCServer->shutDown())
       return Err;
 

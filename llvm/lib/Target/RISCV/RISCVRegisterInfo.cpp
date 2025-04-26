@@ -58,6 +58,11 @@ RISCVRegisterInfo::RISCVRegisterInfo(const RISCVSubtarget &STI)
                            /*PC*/0, STI.getHwMode()) {}
 
 const MCPhysReg *
+RISCVRegisterInfo::getIPRACSRegs(const MachineFunction *MF) const {
+  return CSR_IPRA_SaveList;
+}
+
+const MCPhysReg *
 RISCVRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
   auto &Subtarget = MF->getSubtarget<RISCVSubtarget>();
   if (MF->getFunction().getCallingConv() == CallingConv::GHC)

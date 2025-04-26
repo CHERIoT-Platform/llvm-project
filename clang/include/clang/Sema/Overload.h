@@ -946,7 +946,7 @@ class Sema;
     /// Have we matched any packs on the parameter side, versus any non-packs on
     /// the argument side, in a context where the opposite matching is also
     /// allowed?
-    bool HasMatchedPackOnParmToNonPackOnArg : 1;
+    bool StrictPackMatch : 1;
 
     /// True if the candidate was found using ADL.
     LLVM_PREFERRED_TYPE(CallExpr::ADLCallKind)
@@ -1023,8 +1023,7 @@ class Sema;
     friend class OverloadCandidateSet;
     OverloadCandidate()
         : IsSurrogate(false), IgnoreObjectArgument(false),
-          TookAddressOfOverload(false),
-          HasMatchedPackOnParmToNonPackOnArg(false),
+          TookAddressOfOverload(false), StrictPackMatch(false),
           IsADLCandidate(llvm::to_underlying(CallExpr::NotADL)),
           RewriteKind(CRK_None) {}
   };

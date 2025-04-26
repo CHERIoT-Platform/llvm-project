@@ -65,6 +65,10 @@ public:
                                 SMDiagnostic &Error,
                                 SMRange &SourceRange) const override;
   void registerPassBuilderCallbacks(PassBuilder &PB) override;
+  ScheduleDAGInstrs *
+  createMachineScheduler(MachineSchedContext *C) const override;
+  ScheduleDAGInstrs *
+  createPostMachineScheduler(MachineSchedContext *C) const override;
 
   /// The set of functions imported from this compilation unit.
   CHERIoTImportedFunctionSet ImportedFunctions;

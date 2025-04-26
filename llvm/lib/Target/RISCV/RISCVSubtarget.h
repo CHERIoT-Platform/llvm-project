@@ -247,8 +247,8 @@ public:
            TargetABI == RISCVABI::ABI_ILP32E;
   }
   bool isRegisterReservedByUser(Register i) const override {
-    assert(i < RISCV::NUM_TARGET_REGS && "Register out of range");
-    return UserReservedRegister[i];
+    assert(i.id() < RISCV::NUM_TARGET_REGS && "Register out of range");
+    return UserReservedRegister[i.id()];
   }
   MVT typeForCapabilities() const {
     assert(HasVendorXCheri && "Cannot get capability type for non-CHERI");

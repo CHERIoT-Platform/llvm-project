@@ -14,15 +14,15 @@ target datalayout = "e-m:e-pf200:128:128:128:64-i8:8:32-i16:16:32-i64:64-i128:12
 @cap = unnamed_addr addrspace("G") global [25 x ptr addrspace(200)] zeroinitializer, align 4
 @k = unnamed_addr addrspace("G") global i32 0, align 4
 
-define void @get_state(ptr addrspace("A") nocapture noalias %state) addrspace("P") {
+define void @get_state(ptr addrspace("A") noalias captures(none) %state) addrspace("P") {
 ; HYBRID-LABEL: define {{[^@]+}}@get_state
-; HYBRID-SAME: (ptr noalias nocapture [[STATE:%.*]]) {
+; HYBRID-SAME: (ptr noalias captures(none) [[STATE:%.*]]) {
 ; HYBRID-NEXT:  entry:
 ; HYBRID-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 4 [[STATE]], ptr align 4 @nocap, i64 100, i1 false) #[[ATTR1:[0-9]+]]
 ; HYBRID-NEXT:    ret void
 ;
 ; PURECAP-LABEL: define {{[^@]+}}@get_state
-; PURECAP-SAME: (ptr addrspace(200) noalias nocapture [[STATE:%.*]]) addrspace(200) {
+; PURECAP-SAME: (ptr addrspace(200) noalias captures(none) [[STATE:%.*]]) addrspace(200) {
 ; PURECAP-NEXT:  entry:
 ; PURECAP-NEXT:    br label [[FOR_BODY:%.*]]
 ; PURECAP:       for.body:
@@ -57,15 +57,15 @@ for.end:
   ret void
 }
 
-define void @get_cap_state(ptr addrspace("A") nocapture noalias %state) addrspace("P") {
+define void @get_cap_state(ptr addrspace("A") captures(none) noalias %state) addrspace("P") {
 ; HYBRID-LABEL: define {{[^@]+}}@get_cap_state
-; HYBRID-SAME: (ptr noalias nocapture [[STATE:%.*]]) {
+; HYBRID-SAME: (ptr noalias captures(none) [[STATE:%.*]]) {
 ; HYBRID-NEXT:  entry:
 ; HYBRID-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[STATE]], ptr align 16 @cap, i64 400, i1 false) #[[ATTR2:[0-9]+]]
 ; HYBRID-NEXT:    ret void
 ;
 ; PURECAP-LABEL: define {{[^@]+}}@get_cap_state
-; PURECAP-SAME: (ptr addrspace(200) noalias nocapture [[STATE:%.*]]) addrspace(200) {
+; PURECAP-SAME: (ptr addrspace(200) noalias captures(none) [[STATE:%.*]]) addrspace(200) {
 ; PURECAP-NEXT:  entry:
 ; PURECAP-NEXT:    br label [[FOR_BODY:%.*]]
 ; PURECAP:       for.body:

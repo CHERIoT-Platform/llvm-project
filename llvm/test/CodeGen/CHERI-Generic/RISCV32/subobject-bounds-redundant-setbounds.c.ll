@@ -34,14 +34,14 @@ target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G
 ;}
 
 
-define void @use_inline(ptr addrspace(200) nocapture %arg) local_unnamed_addr addrspace(200) {
+define void @use_inline(ptr addrspace(200) captures(none) %arg) local_unnamed_addr addrspace(200) {
 ; ASM-LABEL: use_inline:
 ; ASM:       # %bb.0:
 ; ASM-NEXT:    li a1, 2
 ; ASM-NEXT:    csw a1, 0(ca0)
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define {{[^@]+}}@use_inline
-; CHECK-SAME: (ptr addrspace(200) nocapture [[ARG:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
+; CHECK-SAME: (ptr addrspace(200) captures(none) [[ARG:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 ; CHECK-NEXT:    store i32 2, ptr addrspace(200) [[ARG]], align 4
 ; CHECK-NEXT:    ret void
 ;
@@ -93,13 +93,13 @@ define signext i32 @stack_array() local_unnamed_addr addrspace(200) nounwind {
 ; DBG-NEXT: cheri-bound-allocas: No need to set bounds on stack alloca  %array = alloca [10 x i32], align 4, addrspace(200)
 ; DBG-EMPTY:
 
-declare void @llvm.lifetime.start.p200(i64 immarg, ptr addrspace(200) nocapture) addrspace(200)
+declare void @llvm.lifetime.start.p200(i64 immarg, ptr addrspace(200) captures(none)) addrspace(200)
 
 declare void @use(ptr addrspace(200)) local_unnamed_addr addrspace(200)
 
 declare ptr addrspace(200) @llvm.cheri.cap.bounds.set.i32(ptr addrspace(200), i32) addrspace(200)
 
-declare void @llvm.lifetime.end.p200(i64 immarg, ptr addrspace(200) nocapture) addrspace(200)
+declare void @llvm.lifetime.end.p200(i64 immarg, ptr addrspace(200) captures(none)) addrspace(200)
 
 define signext i32 @stack_int() local_unnamed_addr addrspace(200) nounwind {
 ; ASM-LABEL: stack_int:

@@ -29,7 +29,7 @@ int test_struct_with_array1(struct_with_array *s, long index) {
 }
 
 // CHECK-LABEL: define {{[^@]+}}@test_struct_with_array2
-// CHECK-SAME: (ptr addrspace(200) dead_on_unwind noalias nocapture writable writeonly sret([[STRUCT_STRUCT_WITH_ARRAY:%.*]]) align 8 initializes((0, 56)) [[AGG_RESULT:%.*]], ptr addrspace(200) nocapture noundef readonly [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2:[0-9]+]] {
+// CHECK-SAME: (ptr addrspace(200) dead_on_unwind noalias writable writeonly sret([[STRUCT_STRUCT_WITH_ARRAY:%.*]]) align 8 captures(none) initializes((0, 56)) [[AGG_RESULT:%.*]], ptr addrspace(200) noundef readonly captures(none) [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [[STRUCT_STRUCT_WITH_ARRAY]], ptr addrspace(200) [[S]], i64 [[INDEX]]
 // CHECK-NEXT:    tail call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 8 dereferenceable(56) [[AGG_RESULT]], ptr addrspace(200) noundef nonnull align 8 dereferenceable(56) [[ARRAYIDX]], i64 56, i1 false), !tbaa.struct [[TBAA_STRUCT6:![0-9]+]]
@@ -47,7 +47,7 @@ typedef struct {
 } struct_with_ptr;
 
 // CHECK-LABEL: define {{[^@]+}}@test_struct_with_ptr1
-// CHECK-SAME: (ptr addrspace(200) nocapture noundef readonly [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR4:[0-9]+]] {
+// CHECK-SAME: (ptr addrspace(200) noundef readonly captures(none) [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR4:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[BUF:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[S]], i64 16
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[BUF]], align 16, !tbaa [[TBAA10:![0-9]+]]
@@ -60,7 +60,7 @@ int test_struct_with_ptr1(struct_with_ptr *s, long index) {
 }
 
 // CHECK-LABEL: define {{[^@]+}}@test_struct_with_ptr2
-// CHECK-SAME: (ptr addrspace(200) dead_on_unwind noalias nocapture writable writeonly sret([[STRUCT_STRUCT_WITH_PTR:%.*]]) align 16 initializes((0, 48)) [[AGG_RESULT:%.*]], ptr addrspace(200) nocapture noundef readonly [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2]] {
+// CHECK-SAME: (ptr addrspace(200) dead_on_unwind noalias writable writeonly sret([[STRUCT_STRUCT_WITH_PTR:%.*]]) align 16 captures(none) initializes((0, 48)) [[AGG_RESULT:%.*]], ptr addrspace(200) noundef readonly captures(none) [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [[STRUCT_STRUCT_WITH_PTR]], ptr addrspace(200) [[S]], i64 [[INDEX]]
 // CHECK-NEXT:    tail call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(48) [[AGG_RESULT]], ptr addrspace(200) noundef nonnull align 16 dereferenceable(48) [[ARRAYIDX]], i64 48, i1 false), !tbaa.struct [[TBAA_STRUCT13:![0-9]+]]
@@ -314,7 +314,7 @@ int test21a(my_struct21 *s, long index) {
   return 0;
 }
 // CHECK-LABEL: define {{[^@]+}}@test21b
-// CHECK-SAME: (ptr addrspace(200) nocapture noundef readnone [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR5]] {
+// CHECK-SAME: (ptr addrspace(200) noundef readnone captures(none) [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR5]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[RETVAL:%.*]] = alloca [[STRUCT_MY_STRUCT21:%.*]], align 8, addrspace(200)
 // CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[RETVAL]], i64 10)
@@ -490,7 +490,7 @@ int test28a(long index) {
 }
 
 // CHECK-LABEL: define {{[^@]+}}@test28b
-// CHECK-SAME: (ptr addrspace(200) nocapture noundef readonly [[ARRAY1:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR11:[0-9]+]] {
+// CHECK-SAME: (ptr addrspace(200) noundef readonly captures(none) [[ARRAY1:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR11:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[ARRAY1]], i64 64
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[ARRAYIDX]], align 16, !tbaa [[TBAA14:![0-9]+]]
@@ -529,7 +529,7 @@ int test28c(long index1, long index2) {
 }
 
 // CHECK-LABEL: define {{[^@]+}}@test28d
-// CHECK-SAME: (ptr addrspace(200) nocapture noundef readonly [[ARRAY1:%.*]], i64 noundef signext [[INDEX1:%.*]], i64 noundef signext [[INDEX2:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR11]] {
+// CHECK-SAME: (ptr addrspace(200) noundef readonly captures(none) [[ARRAY1:%.*]], i64 noundef signext [[INDEX1:%.*]], i64 noundef signext [[INDEX2:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR11]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds ptr addrspace(200), ptr addrspace(200) [[ARRAY1]], i64 [[INDEX1]]
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[ARRAYIDX]], align 16, !tbaa [[TBAA14]]

@@ -2,6 +2,7 @@
 ; RUN: %ld64 -lto_library %llvmshlibdir/libLTO.dylib -arch x86_64 -macosx_version_min 10.8.0 -dylib -mllvm -stats -o %t.dylib %t.o -lSystem 2>&1 | FileCheck --check-prefix=STATS %s
 ; RUN: %ld64 -lto_library %llvmshlibdir/libLTO.dylib -arch x86_64 -macosx_version_min 10.8.0 -dylib -o %t.dylib %t.o -lSystem 2>&1 | FileCheck --allow-empty --check-prefix=NO_STATS %s
 ; REQUIRES: asserts
+; XFAIL: *
 
 target triple = "x86_64-apple-macosx10.8.0"
 

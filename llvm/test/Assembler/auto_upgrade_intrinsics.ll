@@ -233,8 +233,8 @@ define void @tests.stacksave.stackrestore() {
 ; emitted at the end.
 ; CHECK: declare i32 @llvm.objectsize.i32.p0
 
-; CHECK: declare void @llvm.lifetime.start.p0(i64 immarg, ptr nocapture)
-; CHECK: declare void @llvm.lifetime.end.p0(i64 immarg, ptr nocapture)
+; CHECK: declare void @llvm.lifetime.start.p0(i64 immarg, ptr captures(none))
+; CHECK: declare void @llvm.lifetime.end.p0(i64 immarg, ptr captures(none))
 
 ; CHECK: declare ptr addrspace(200) @llvm.stacksave.p200()
 ; CHECK: declare void @llvm.stackrestore.p200(ptr addrspace(200))

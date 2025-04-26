@@ -223,9 +223,9 @@ entry:
   ret void
 }
 
-define internal i64 @member_function_1(ptr addrspace(200) nocapture nonnull readnone align 16 dereferenceable(16) %this) addrspace(200) {
+define internal i64 @member_function_1(ptr addrspace(200) nonnull readnone align 16 captures(none) dereferenceable(16) %this) addrspace(200) {
 ; INLINE-ONLY-LABEL: define {{[^@]+}}@member_function_1
-; INLINE-ONLY-SAME: (ptr addrspace(200) nocapture nonnull readnone align 16 dereferenceable(16) [[THIS:%.*]]) addrspace(200) {
+; INLINE-ONLY-SAME: (ptr addrspace(200) nonnull readnone align 16 captures(none) dereferenceable(16) [[THIS:%.*]]) addrspace(200) {
 ; INLINE-ONLY-NEXT:  entry:
 ; INLINE-ONLY-NEXT:    ret i64 1
 ;
@@ -233,9 +233,9 @@ entry:
   ret i64 1
 }
 
-define internal i64 @member_function_2(ptr addrspace(200) nocapture nonnull readnone align 16 dereferenceable(16) %this) addrspace(200) {
+define internal i64 @member_function_2(ptr addrspace(200) nonnull readnone align 16 captures(none) dereferenceable(16) %this) addrspace(200) {
 ; INLINE-ONLY-LABEL: define {{[^@]+}}@member_function_2
-; INLINE-ONLY-SAME: (ptr addrspace(200) nocapture nonnull readnone align 16 dereferenceable(16) [[THIS:%.*]]) addrspace(200) {
+; INLINE-ONLY-SAME: (ptr addrspace(200) nonnull readnone align 16 captures(none) dereferenceable(16) [[THIS:%.*]]) addrspace(200) {
 ; INLINE-ONLY-NEXT:  entry:
 ; INLINE-ONLY-NEXT:    ret i64 2
 ;

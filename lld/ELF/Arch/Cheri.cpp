@@ -1183,7 +1183,7 @@ void addCapabilityRelocation(Ctx &ctx, Symbol *sym, RelType type,
            << referencedBy();
       return;
     }
-    assert(ctx.arg.hasDynSymTab && "Should have been checked in Driver.cpp");
+    assert(ctx.hasDynsym && "Should have been checked in Driver.cpp");
     // We don't use a R_MIPS_CHERI_CAPABILITY relocation for the input but
     // instead need to use an absolute pointer size relocation to write
     // the offset addend

@@ -1095,6 +1095,15 @@ void CheriCapTableMappingSection::writeTo(uint8_t *buf) {
   memcpy(buf, entries.data(), entries.size() * sizeof(CaptableMappingEntry));
 }
 
+static bool isSymIncludedInDynsym(Ctx &ctx, const Symbol &sym) {
+  if (sym.computeBinding(ctx) == STB_LOCAL) return false;
+  if (!sym.isDefined() && !sym.isCommon()) return true;
+
+  return sym.isExported ||
+         (ctx.arg.exportDynamic && (sym.isUsedInRegularObj || !sym.ltoCanOmit));
+}
+
+
 template <typename ELFT>
 void addCapabilityRelocation(Ctx &ctx, Symbol *sym, RelType type,
                              InputSectionBase *sec, uint64_t offset,
@@ -1185,7 +1194,7 @@ void addCapabilityRelocation(Ctx &ctx, Symbol *sym, RelType type,
       error("R_CHERI_CAPABILITY relocations need a dynamic symbol table");
       return;
     }
-    if (!sym->includeInDynsym(ctx)) {
+    if (!isSymIncludedInDynsym(ctx, *sym)) {
       if (!needTrampoline) {
         error(
             "added a R_CHERI_CAPABILITY relocation but symbol not included "
@@ -1198,7 +1207,7 @@ void addCapabilityRelocation(Ctx &ctx, Symbol *sym, RelType type,
       // TODO: should it be possible to add STB_LOCAL symbols to .dynsymtab?
       Defined *newSym = ctx.symtab->ensureSymbolWillBeInDynsym(sym);
       assert(newSym->isFunc() && "This should only be used for functions");
-      assert(newSym->includeInDynsym(ctx));
+      assert(newSym->isExported);
       assert(newSym->binding == llvm::ELF::STB_GLOBAL);
       assert(newSym->visibility() == llvm::ELF::STV_HIDDEN);
       sym = newSym;  // Make the relocation point to the newly added symbol

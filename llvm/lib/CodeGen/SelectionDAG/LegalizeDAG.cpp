@@ -4027,7 +4027,7 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
     if (Table.getValueType().isFatPointer())
       Addr = DAG.getNode(ISD::PTRADD, dl, Table.getValueType(), Table, Index);
     else
-      Addr = DAG.getNode(ISD::ADD, dl, Table.getValueType(), Index, Table);
+      Addr = DAG.getMemBasePlusOffset(Table, Index, dl);
 
     EVT MemVT = EVT::getIntegerVT(*DAG.getContext(), EntrySize * 8);
     SDValue LD = DAG.getExtLoad(
@@ -4036,14 +4036,14 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
     Addr = LD;
     if (TLI.isJumpTableRelative()) {
       // For PIC, the sequence is:
-      // BRIND(load(Jumptable + index) + RelocBase)
+      // BRIND(RelocBase + load(Jumptable + index))
       // RelocBase can be JumpTable, GOT or some sort of global base.
       SDValue Base = TLI.getPICJumpTableRelocBase(Table, DAG);
       // NB: See table indexing comment
       if (Base.getValueType().isFatPointer())
         Addr = DAG.getNode(ISD::PTRADD, dl, Base.getValueType(), Base, Addr);
       else
-        Addr = DAG.getNode(ISD::ADD, dl, Base.getValueType(), Addr, Base);
+        Addr = DAG.getMemBasePlusOffset(Base, Addr, dl);
     }
 
     Tmp1 = TLI.expandIndirectJTBranch(dl, LD.getValue(1), Addr, JTI, DAG);

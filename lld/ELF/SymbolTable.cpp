@@ -30,7 +30,7 @@ using namespace lld;
 using namespace lld::elf;
 
 Defined *SymbolTable::ensureSymbolWillBeInDynsym(Symbol* original) {
-  assert(!original->includeInDynsym(ctx) && "Already included in dynsym?");
+  assert(!original->isExported && "Already included in dynsym?");
   assert(original->isFunc() && "This should only be used for functions");
   // Hack: Add a new global symbol with a unique name so that we can use
   // a dynamic relocation against it.
@@ -60,7 +60,6 @@ Defined *SymbolTable::ensureSymbolWillBeInDynsym(Symbol* original) {
   newSym->usedByDynReloc = true;
   newSym->isUsedInRegularObj = true;
   newSym->isPreemptible = false;
-  newSym->exportDynamic = true;
   newSym->isExported = true;
   assert(newSym->computeBinding(ctx) == llvm::ELF::STB_GLOBAL);
 
@@ -248,7 +247,7 @@ void SymbolTable::handleDynamicList() {
       syms = findByVersion(ver);
 
     for (Symbol *sym : syms)
-      sym->exportDynamic = sym->inDynamicList = true;
+      sym->isExported = sym->inDynamicList = true;
   }
 }
 
@@ -395,10 +394,8 @@ void SymbolTable::scanVersionScript() {
         assignAsterisk(pat, &v, true);
   }
 
-  // isPreemptible is false at this point. To correctly compute the binding of a
-  // Defined (which is used by includeInDynsym(ctx)), we need to know if it is
-  // VER_NDX_LOCAL or not. Compute symbol versions before handling
-  // --dynamic-list.
+  // Handle --dynamic-list. If a specified symbol is also matched by local: in a
+  // version script, the version script takes precedence.
   handleDynamicList();
 }
 

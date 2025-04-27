@@ -3967,7 +3967,7 @@ QualType ASTContext::getArrayParameterType(QualType Ty) const {
   if (Ty->isArrayParameterType())
     return Ty;
   assert(Ty->isConstantArrayType() && "Ty must be an array type.");
-  const auto *ATy = cast<ConstantArrayType>(Ty);
+  const auto *ATy = cast<ConstantArrayType>(Ty.getDesugaredType(*this));
   llvm::FoldingSetNodeID ID;
   // XXX CHERI: Exclude PointerInterpretation since this is only
   // used by HLSL.

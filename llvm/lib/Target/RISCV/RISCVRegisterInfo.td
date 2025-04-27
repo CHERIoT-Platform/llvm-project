@@ -355,10 +355,25 @@ def GPCRC0IsDDC : RegisterClass<"RISCV", [CLenVT], 64, (add
 }
 
 def GPRX0 : GPRRegisterClass<(add X0)>;
-def GPRX1 : GPRRegisterClass<(add X1)>;
-def GPRX5 : GPRRegisterClass<(add X5)>;
+
+def GPRX1 : GPRRegisterClass<(add X1)> {
+  let DiagnosticType = "InvalidRegClassGPRX1";
+  let DiagnosticString = "register must be ra (x1)";
+}
+
+def GPRX5 : GPRRegisterClass<(add X5)> {
+  let DiagnosticType = "InvalidRegClassGPRX5";
+  let DiagnosticString = "register must be t0 (x5)";
+}
 
 def GPRNoX0 : GPRRegisterClass<(sub GPR, X0)>;
+
+def GPRNoX0X2 : GPRRegisterClass<(sub GPR, X0, X2)> {
+  let DiagnosticType = "InvalidRegClassGPRNoX0X2";
+  let DiagnosticString = "register must be a GPR excluding zero (x0) and sp (x2)";
+}
+
+def GPRX7 : GPRRegisterClass<(add X7)>;
 
 def GPCRNoC0 : RegisterClass<"RISCV", [CLenVT], 64, (sub GPCR, C0)> {
   let RegInfos = CLenRI;
@@ -367,10 +382,6 @@ def GPCRNoC0 : RegisterClass<"RISCV", [CLenVT], 64, (sub GPCR, C0)> {
 def GPCRNoC0C1 : RegisterClass<"RISCV", [CLenVT], 64, (sub GPCRNoC0, C1)> {
   let RegInfos = CLenRI;
 }
-
-def GPRNoX0X2 : GPRRegisterClass<(sub GPR, X0, X2)>;
-
-def GPRX7 : GPRRegisterClass<(add X7)>;
 
 // Don't use X1 or X5 for JALR since that is a hint to pop the return address
 // stack on some microarchitectures. Also remove the reserved registers X0, X2,
@@ -407,7 +418,10 @@ def GPCRTC : RegisterClass<"RISCV", [CLenVT], 64, (add
   let RegInfos = CLenRI;
 }
 
-def SP : GPRRegisterClass<(add X2)>;
+def SP : GPRRegisterClass<(add X2)> {
+  let DiagnosticType = "InvalidRegClassSP";
+  let DiagnosticString = "register must be sp (x2)";
+}
 
 def CSP : RegisterClass<"RISCV", [CLenVT], 64, (add C2)> {
   let RegInfos = CLenRI;
@@ -417,7 +431,10 @@ def CSP : RegisterClass<"RISCV", [CLenVT], 64, (add C2)> {
 def SR07 : GPRRegisterClass<(add (sequence "X%u", 8, 9),
                                  (sequence "X%u", 18, 23))>;
 
-def GPRX1X5 :  GPRRegisterClass<(add X1, X5)>;
+def GPRX1X5 :  GPRRegisterClass<(add X1, X5)> {
+  let DiagnosticType = "InvalidRegClassGPRX1X5";
+  let DiagnosticString = "register must be ra or t0 (x1 or x5)";
+}
 
 //===----------------------------------------------------------------------===//
 // Even-Odd GPR Pairs

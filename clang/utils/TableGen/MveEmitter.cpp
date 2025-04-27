@@ -209,10 +209,7 @@ public:
       Name = "const " + Name;
     return Name + " *";
   }
-  std::string llvmName() const override {
-    // XXXAR: FIXME always AS0?
-    return "llvm::PointerType::get(" + Pointee->llvmName() + ", 0)";
-  }
+  std::string llvmName() const override { return "Builder.getPtrTy()"; }
   const Type *getPointeeType() const { return Pointee; }
 
   static bool classof(const Type *T) {

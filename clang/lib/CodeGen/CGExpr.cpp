@@ -1810,7 +1810,7 @@ void CodeGenFunction::EmitTypeCheck(TypeCheckKind TCK, SourceLocation Loc,
       llvm::Value *TypeHash =
           llvm::ConstantInt::get(Int64Ty, xxh3_64bits(Out.str()));
 
-      llvm::Type *VPtrTy = llvm::PointerType::get(IntPtrTy, 0);
+      llvm::Type *VPtrTy = llvm::PointerType::get(getLLVMContext(), 0);
       Address VPtrAddr(Ptr, IntPtrTy, getPointerAlign());
       llvm::Value *VPtrVal = GetVTablePtr(VPtrAddr, VPtrTy,
                                           Ty->getAsCXXRecordDecl(),
@@ -4034,7 +4034,7 @@ LValue CodeGenFunction::EmitDeclRefLValue(const DeclRefExpr *E) {
                                            getContext().getDeclAlign(VD));
         llvm::Type *VarTy = getTypes().ConvertTypeForMem(VD->getType());
         auto *PTy = llvm::PointerType::get(
-            VarTy, getTypes().getTargetAddressSpace(VD->getType()));
+            getLLVMContext(), getTypes().getTargetAddressSpace(VD->getType()));
         Addr = Builder.CreatePointerBitCastOrAddrSpaceCast(Addr, PTy, VarTy);
       } else {
         const ReferenceType *RT = VD->getType()->getAs<ReferenceType>();

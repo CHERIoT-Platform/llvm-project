@@ -336,12 +336,6 @@ Address HexagonABIInfo::EmitVAArgForHexagonLinux(CodeGenFunction &CGF,
   // Implement the block where argument is in register saved area
   CGF.EmitBlock(InRegBlock);
 
-  llvm::Type *PTy = CGF.ConvertType(Ty);
-  llvm::Value *__saved_reg_area_p = CGF.Builder.CreateBitCast(
-      __current_saved_reg_area_pointer,
-      llvm::PointerType::get(PTy,
-                             CGF.CGM.getDataLayout().getAllocaAddrSpace()));
-
   CGF.Builder.CreateStore(__new_saved_reg_area_pointer,
                           __current_saved_reg_area_pointer_p);
 
@@ -390,23 +384,17 @@ Address HexagonABIInfo::EmitVAArgForHexagonLinux(CodeGenFunction &CGF,
   CGF.Builder.CreateStore(__new_overflow_area_pointer,
                           __current_saved_reg_area_pointer_p);
 
-  // Bitcast the overflow area pointer to the type of argument.
-  llvm::Type *OverflowPTy = CGF.ConvertTypeForMem(Ty);
-  unsigned AllocaAS = CGF.CGM.getDataLayout().getAllocaAddrSpace();
-  llvm::Value *__overflow_area_p = CGF.Builder.CreateBitCast(
-      __overflow_area_pointer, llvm::PointerType::get(OverflowPTy, AllocaAS));
-
   CGF.EmitBranch(ContBlock);
-
   // Get the correct pointer to load the variable argument
   // Implement the ContBlock
   CGF.EmitBlock(ContBlock);
 
   llvm::Type *MemTy = CGF.ConvertTypeForMem(Ty);
-  llvm::Type *MemPTy = llvm::PointerType::get(MemTy, AllocaAS);
-  llvm::PHINode *ArgAddr = CGF.Builder.CreatePHI(MemPTy, 2, "vaarg.addr");
-  ArgAddr->addIncoming(__saved_reg_area_p, InRegBlock);
-  ArgAddr->addIncoming(__overflow_area_p, OnStackBlock);
+  unsigned AllocaAS = CGF.CGM.getDataLayout().getAllocaAddrSpace();
+  llvm::PHINode *ArgAddr = CGF.Builder.CreatePHI(
+      llvm::PointerType::get(MemTy->getContext(), AllocaAS), 2, "vaarg.addr");
+  ArgAddr->addIncoming(__current_saved_reg_area_pointer, InRegBlock);
+  ArgAddr->addIncoming(__overflow_area_pointer, OnStackBlock);
 
   return Address(ArgAddr, MemTy, CharUnits::fromQuantity(ArgAlign));
 }

@@ -14,8 +14,8 @@ define i32 @get_ith_word(i32 signext %i, ...) addrspace(200) nounwind {
 ; CHECK-NEXT:  .LBB0_1: # %while.cond
 ; CHECK-NEXT:    # =>This Inner Loop Header: Depth=1
 ; CHECK-NEXT:    cmove ca2, ca1
-; CHECK-NEXT:    cincoffset ca1, ca1, 4
 ; CHECK-NEXT:    addiw a0, a0, -1
+; CHECK-NEXT:    cincoffset ca1, ca1, 4
 ; CHECK-NEXT:    bgtz a0, .LBB0_1
 ; CHECK-NEXT:  # %bb.2: # %while.end
 ; CHECK-NEXT:    csc ca1, 0(csp)
@@ -60,8 +60,8 @@ define ptr addrspace(200) @get_ith_cap(i32 signext %i, ...) addrspace(200) nounw
 ; CHECK-NEXT:    addi a2, a1, 15
 ; CHECK-NEXT:    andi a2, a2, -16
 ; CHECK-NEXT:    csetaddr ca2, ca1, a2
-; CHECK-NEXT:    cincoffset ca1, ca2, 16
 ; CHECK-NEXT:    addiw a0, a0, -1
+; CHECK-NEXT:    cincoffset ca1, ca2, 16
 ; CHECK-NEXT:    bgtz a0, .LBB1_1
 ; CHECK-NEXT:  # %bb.2: # %while.end
 ; CHECK-NEXT:    csc ca1, 0(csp)
@@ -107,8 +107,8 @@ define void @test_varargs_odd_cap_reg() addrspace(200) nounwind {
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:    cincoffset csp, csp, -32
 ; CHECK-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
-; CHECK-NEXT:    csc cnull, 0(csp)
 ; CHECK-NEXT:    li a0, 1
+; CHECK-NEXT:    csc cnull, 0(csp)
 ; CHECK-NEXT:    ccall varargs
 ; CHECK-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
 ; CHECK-NEXT:    cincoffset csp, csp, 32

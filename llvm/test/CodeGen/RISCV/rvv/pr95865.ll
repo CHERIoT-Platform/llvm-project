@@ -113,8 +113,8 @@ define i32 @main(i1 %arg.1, i64 %arg.2, i1 %arg.3, i64 %arg.4, i1 %arg.5, <vscal
 ; CHECK-NEXT:    addi s8, s8, 4
 ; CHECK-NEXT:    addi s7, s7, 4
 ; CHECK-NEXT:    addi s6, s6, 4
-; CHECK-NEXT:    addi s5, s5, 4
 ; CHECK-NEXT:    andi a0, a2, 1
+; CHECK-NEXT:    addi s5, s5, 4
 ; CHECK-NEXT:    beqz a0, .LBB0_3
 ; CHECK-NEXT:  # %bb.8: # %for.cond.cleanup7.i
 ; CHECK-NEXT:    # in Loop: Header=BB0_2 Depth=2

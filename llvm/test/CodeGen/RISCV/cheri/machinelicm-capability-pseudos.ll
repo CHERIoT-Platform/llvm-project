@@ -12,31 +12,31 @@
 define void @test_clgc(i32 signext %n) {
 ; RV32I-LABEL: test_clgc:
 ; RV32I:       # %bb.0: # %entry
-; RV32I-NEXT:    li a1, 0
 ; RV32I-NEXT:  .LBB0_3: # %entry
 ; RV32I-NEXT:    # Label of block must be emitted
-; RV32I-NEXT:    auipcc ca2, %captab_pcrel_hi(g)
-; RV32I-NEXT:    clc ca2, %pcrel_lo(.LBB0_3)(ca2)
+; RV32I-NEXT:    auipcc ca1, %captab_pcrel_hi(g)
+; RV32I-NEXT:    clc ca1, %pcrel_lo(.LBB0_3)(ca1)
+; RV32I-NEXT:    li a2, 0
 ; RV32I-NEXT:  .LBB0_1: # %loop
 ; RV32I-NEXT:    # =>This Inner Loop Header: Depth=1
-; RV32I-NEXT:    clw zero, 0(ca2)
-; RV32I-NEXT:    addi a1, a1, 1
-; RV32I-NEXT:    blt a1, a0, .LBB0_1
+; RV32I-NEXT:    clw zero, 0(ca1)
+; RV32I-NEXT:    addi a2, a2, 1
+; RV32I-NEXT:    blt a2, a0, .LBB0_1
 ; RV32I-NEXT:  # %bb.2: # %ret
 ; RV32I-NEXT:    cret
 ;
 ; RV64I-LABEL: test_clgc:
 ; RV64I:       # %bb.0: # %entry
-; RV64I-NEXT:    li a1, 0
 ; RV64I-NEXT:  .LBB0_3: # %entry
 ; RV64I-NEXT:    # Label of block must be emitted
-; RV64I-NEXT:    auipcc ca2, %captab_pcrel_hi(g)
-; RV64I-NEXT:    clc ca2, %pcrel_lo(.LBB0_3)(ca2)
+; RV64I-NEXT:    auipcc ca1, %captab_pcrel_hi(g)
+; RV64I-NEXT:    clc ca1, %pcrel_lo(.LBB0_3)(ca1)
+; RV64I-NEXT:    li a2, 0
 ; RV64I-NEXT:  .LBB0_1: # %loop
 ; RV64I-NEXT:    # =>This Inner Loop Header: Depth=1
-; RV64I-NEXT:    clw zero, 0(ca2)
-; RV64I-NEXT:    addiw a1, a1, 1
-; RV64I-NEXT:    blt a1, a0, .LBB0_1
+; RV64I-NEXT:    clw zero, 0(ca1)
+; RV64I-NEXT:    addiw a2, a2, 1
+; RV64I-NEXT:    blt a2, a0, .LBB0_1
 ; RV64I-NEXT:  # %bb.2: # %ret
 ; RV64I-NEXT:    cret
 entry:

@@ -43,8 +43,8 @@ define dso_local double @ddc_fld(double* %a) nounwind {
 ; CHECK-IL32PC64-NEXT:    cincoffset csp, csp, -16
 ; CHECK-IL32PC64-NEXT:    lw.ddc a1, (a0)
 ; CHECK-IL32PC64-NEXT:    addi a2, a0, 4
-; CHECK-IL32PC64-NEXT:    addi a0, a0, 24
 ; CHECK-IL32PC64-NEXT:    lw.ddc a2, (a2)
+; CHECK-IL32PC64-NEXT:    addi a0, a0, 24
 ; CHECK-IL32PC64-NEXT:    csw a1, 8(csp)
 ; CHECK-IL32PC64-NEXT:    addi a1, a0, 4
 ; CHECK-IL32PC64-NEXT:    csw a2, 12(csp)
@@ -66,8 +66,8 @@ define dso_local double @ddc_fld(double* %a) nounwind {
 ; CHECK-IL32PC64D-NEXT:    cincoffset csp, csp, -16
 ; CHECK-IL32PC64D-NEXT:    lw.ddc a1, (a0)
 ; CHECK-IL32PC64D-NEXT:    addi a2, a0, 4
-; CHECK-IL32PC64D-NEXT:    addi a0, a0, 24
 ; CHECK-IL32PC64D-NEXT:    lw.ddc a2, (a2)
+; CHECK-IL32PC64D-NEXT:    addi a0, a0, 24
 ; CHECK-IL32PC64D-NEXT:    csw a1, 8(csp)
 ; CHECK-IL32PC64D-NEXT:    addi a1, a0, 4
 ; CHECK-IL32PC64D-NEXT:    csw a2, 12(csp)
@@ -100,8 +100,8 @@ define dso_local double @ddc_fld(double* %a) nounwind {
 ; CHECK-L64PC128:       # %bb.0:
 ; CHECK-L64PC128-NEXT:    ld.ddc a1, (a0)
 ; CHECK-L64PC128-NEXT:    addi a0, a0, 24
-; CHECK-L64PC128-NEXT:    fmv.d.x fa5, a1
 ; CHECK-L64PC128-NEXT:    ld.ddc a0, (a0)
+; CHECK-L64PC128-NEXT:    fmv.d.x fa5, a1
 ; CHECK-L64PC128-NEXT:    fmv.d.x fa4, a0
 ; CHECK-L64PC128-NEXT:    fadd.d fa5, fa5, fa4
 ; CHECK-L64PC128-NEXT:    fmv.x.d a0, fa5
@@ -111,8 +111,8 @@ define dso_local double @ddc_fld(double* %a) nounwind {
 ; CHECK-L64PC128D:       # %bb.0:
 ; CHECK-L64PC128D-NEXT:    ld.ddc a1, (a0)
 ; CHECK-L64PC128D-NEXT:    addi a0, a0, 24
-; CHECK-L64PC128D-NEXT:    fmv.d.x fa5, a1
 ; CHECK-L64PC128D-NEXT:    ld.ddc a0, (a0)
+; CHECK-L64PC128D-NEXT:    fmv.d.x fa5, a1
 ; CHECK-L64PC128D-NEXT:    fmv.d.x fa4, a0
 ; CHECK-L64PC128D-NEXT:    fadd.d fa0, fa5, fa4
 ; CHECK-L64PC128D-NEXT:    cret
@@ -153,7 +153,6 @@ define dso_local void @ddc_fsd(double* %a, double %b, double %c) nounwind {
 ; CHECK-IL32PC64-NEXT:    cincoffset csp, csp, -16
 ; CHECK-IL32PC64-NEXT:    csw a3, 8(csp)
 ; CHECK-IL32PC64-NEXT:    csw a4, 12(csp)
-; CHECK-IL32PC64-NEXT:    addi a3, a0, 4
 ; CHECK-IL32PC64-NEXT:    cfld fa5, 8(csp)
 ; CHECK-IL32PC64-NEXT:    csw a1, 8(csp)
 ; CHECK-IL32PC64-NEXT:    csw a2, 12(csp)
@@ -162,6 +161,7 @@ define dso_local void @ddc_fsd(double* %a, double %b, double %c) nounwind {
 ; CHECK-IL32PC64-NEXT:    cfsd fa5, 8(csp)
 ; CHECK-IL32PC64-NEXT:    clw a1, 8(csp)
 ; CHECK-IL32PC64-NEXT:    clw a2, 12(csp)
+; CHECK-IL32PC64-NEXT:    addi a3, a0, 4
 ; CHECK-IL32PC64-NEXT:    sw.ddc a1, (a0)
 ; CHECK-IL32PC64-NEXT:    sw.ddc a2, (a3)
 ; CHECK-IL32PC64-NEXT:    cfsd fa5, 8(csp)
@@ -244,8 +244,8 @@ define dso_local double @cap_fld(double addrspace(200)* %a) nounwind {
 ; CHECK-ILP32-NEXT:    addi sp, sp, -16
 ; CHECK-ILP32-NEXT:    lw.cap a1, (ca0)
 ; CHECK-ILP32-NEXT:    cincoffset ca2, ca0, 4
-; CHECK-ILP32-NEXT:    cincoffset ca0, ca0, 24
 ; CHECK-ILP32-NEXT:    lw.cap a2, (ca2)
+; CHECK-ILP32-NEXT:    cincoffset ca0, ca0, 24
 ; CHECK-ILP32-NEXT:    cincoffset ca3, ca0, 4
 ; CHECK-ILP32-NEXT:    sw a1, 8(sp)
 ; CHECK-ILP32-NEXT:    sw a2, 12(sp)
@@ -267,8 +267,8 @@ define dso_local double @cap_fld(double addrspace(200)* %a) nounwind {
 ; CHECK-ILP32D-NEXT:    addi sp, sp, -16
 ; CHECK-ILP32D-NEXT:    lw.cap a1, (ca0)
 ; CHECK-ILP32D-NEXT:    cincoffset ca2, ca0, 4
-; CHECK-ILP32D-NEXT:    cincoffset ca0, ca0, 24
 ; CHECK-ILP32D-NEXT:    lw.cap a2, (ca2)
+; CHECK-ILP32D-NEXT:    cincoffset ca0, ca0, 24
 ; CHECK-ILP32D-NEXT:    cincoffset ca3, ca0, 4
 ; CHECK-ILP32D-NEXT:    sw a1, 8(sp)
 ; CHECK-ILP32D-NEXT:    sw a2, 12(sp)
@@ -305,8 +305,8 @@ define dso_local double @cap_fld(double addrspace(200)* %a) nounwind {
 ; CHECK-LP64:       # %bb.0:
 ; CHECK-LP64-NEXT:    ld.cap a1, (ca0)
 ; CHECK-LP64-NEXT:    cincoffset ca0, ca0, 24
-; CHECK-LP64-NEXT:    fmv.d.x fa5, a1
 ; CHECK-LP64-NEXT:    ld.cap a0, (ca0)
+; CHECK-LP64-NEXT:    fmv.d.x fa5, a1
 ; CHECK-LP64-NEXT:    fmv.d.x fa4, a0
 ; CHECK-LP64-NEXT:    fadd.d fa5, fa5, fa4
 ; CHECK-LP64-NEXT:    fmv.x.d a0, fa5
@@ -316,8 +316,8 @@ define dso_local double @cap_fld(double addrspace(200)* %a) nounwind {
 ; CHECK-LP64D:       # %bb.0:
 ; CHECK-LP64D-NEXT:    ld.cap a1, (ca0)
 ; CHECK-LP64D-NEXT:    cincoffset ca0, ca0, 24
-; CHECK-LP64D-NEXT:    fmv.d.x fa5, a1
 ; CHECK-LP64D-NEXT:    ld.cap a0, (ca0)
+; CHECK-LP64D-NEXT:    fmv.d.x fa5, a1
 ; CHECK-LP64D-NEXT:    fmv.d.x fa4, a0
 ; CHECK-LP64D-NEXT:    fadd.d fa0, fa5, fa4
 ; CHECK-LP64D-NEXT:    ret
@@ -351,7 +351,6 @@ define dso_local void @cap_fsd(double addrspace(200)* %a, double %b, double %c) 
 ; CHECK-ILP32-NEXT:    addi sp, sp, -16
 ; CHECK-ILP32-NEXT:    sw a3, 8(sp)
 ; CHECK-ILP32-NEXT:    sw a4, 12(sp)
-; CHECK-ILP32-NEXT:    cincoffset ca3, ca0, 4
 ; CHECK-ILP32-NEXT:    fld fa5, 8(sp)
 ; CHECK-ILP32-NEXT:    sw a1, 8(sp)
 ; CHECK-ILP32-NEXT:    sw a2, 12(sp)
@@ -360,6 +359,7 @@ define dso_local void @cap_fsd(double addrspace(200)* %a, double %b, double %c) 
 ; CHECK-ILP32-NEXT:    fsd fa5, 8(sp)
 ; CHECK-ILP32-NEXT:    lw a1, 8(sp)
 ; CHECK-ILP32-NEXT:    lw a2, 12(sp)
+; CHECK-ILP32-NEXT:    cincoffset ca3, ca0, 4
 ; CHECK-ILP32-NEXT:    sw.cap a1, (ca0)
 ; CHECK-ILP32-NEXT:    sw.cap a2, (ca3)
 ; CHECK-ILP32-NEXT:    fsd fa5, 8(sp)

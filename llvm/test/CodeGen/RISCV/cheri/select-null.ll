@@ -35,8 +35,8 @@ define i8 addrspace(200)* @eggs(i1 %cond) local_unnamed_addr addrspace(200) #0 {
 ; PURECAP-NEXT:    cincoffset csp, csp, -32
 ; PURECAP-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
 ; PURECAP-NEXT:    csc cs0, 0(csp) # 16-byte Folded Spill
-; PURECAP-NEXT:    cmove cs0, cnull
 ; PURECAP-NEXT:    andi a0, a0, 1
+; PURECAP-NEXT:    cmove cs0, cnull
 ; PURECAP-NEXT:    bnez a0, .LBB0_2
 ; PURECAP-NEXT:  # %bb.1: # %bb
 ; PURECAP-NEXT:    cincoffset cs0, cnull, 32

@@ -17,17 +17,17 @@ define i64 @load_global_i64_align_1(i64 %y) addrspace(200) nounwind {
 ; CHECK-NEXT:    clbu a2, 1(ca0)
 ; CHECK-NEXT:    clbu a3, 2(ca0)
 ; CHECK-NEXT:    clbu a4, 3(ca0)
+; CHECK-NEXT:    clbu a5, 4(ca0)
 ; CHECK-NEXT:    slli a2, a2, 8
 ; CHECK-NEXT:    or a1, a2, a1
-; CHECK-NEXT:    clbu a2, 4(ca0)
+; CHECK-NEXT:    clbu a2, 5(ca0)
 ; CHECK-NEXT:    slli a3, a3, 16
 ; CHECK-NEXT:    slli a4, a4, 24
 ; CHECK-NEXT:    or a3, a4, a3
-; CHECK-NEXT:    clbu a4, 5(ca0)
-; CHECK-NEXT:    slli a4, a4, 8
-; CHECK-NEXT:    or a2, a4, a2
 ; CHECK-NEXT:    clbu a4, 6(ca0)
 ; CHECK-NEXT:    clbu a0, 7(ca0)
+; CHECK-NEXT:    slli a2, a2, 8
+; CHECK-NEXT:    or a2, a2, a5
 ; CHECK-NEXT:    slli a4, a4, 16
 ; CHECK-NEXT:    slli a0, a0, 24
 ; CHECK-NEXT:    or a4, a0, a4
@@ -42,16 +42,16 @@ define i64 @load_global_i64_align_2(i64 %y) addrspace(200) nounwind {
 ; CHECK-LABEL: load_global_i64_align_2:
 ; CHECK:       # %bb.0:
 ; CHECK-NEXT:  .LBB1_1: # Label of block must be emitted
-; CHECK-NEXT:    auipcc ca1, %captab_pcrel_hi(a2)
-; CHECK-NEXT:    clc ca1, %pcrel_lo(.LBB1_1)(ca1)
-; CHECK-NEXT:    clhu a0, 0(ca1)
-; CHECK-NEXT:    clhu a2, 2(ca1)
-; CHECK-NEXT:    slli a2, a2, 16
-; CHECK-NEXT:    or a0, a2, a0
-; CHECK-NEXT:    clhu a2, 6(ca1)
-; CHECK-NEXT:    clhu a1, 4(ca1)
-; CHECK-NEXT:    slli a2, a2, 16
-; CHECK-NEXT:    or a1, a2, a1
+; CHECK-NEXT:    auipcc ca0, %captab_pcrel_hi(a2)
+; CHECK-NEXT:    clc ca0, %pcrel_lo(.LBB1_1)(ca0)
+; CHECK-NEXT:    clhu a1, 2(ca0)
+; CHECK-NEXT:    clhu a2, 0(ca0)
+; CHECK-NEXT:    clhu a3, 6(ca0)
+; CHECK-NEXT:    clhu a4, 4(ca0)
+; CHECK-NEXT:    slli a0, a1, 16
+; CHECK-NEXT:    or a0, a0, a2
+; CHECK-NEXT:    slli a1, a3, 16
+; CHECK-NEXT:    or a1, a1, a4
 ; CHECK-NEXT:    cret
   %ret = load i64, i64 addrspace(200)* @a2, align 2
   ret i64 %ret

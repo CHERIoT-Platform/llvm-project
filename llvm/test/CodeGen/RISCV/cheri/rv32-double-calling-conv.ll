@@ -260,8 +260,8 @@ define void @calls_fixed_soft_split(i32, i32, i32, i32, i32, i32, i32, double %d
 ; RV32IXCHERI-IL32PC64:       # %bb.0:
 ; RV32IXCHERI-IL32PC64-NEXT:    cincoffset csp, csp, -16
 ; RV32IXCHERI-IL32PC64-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
-; RV32IXCHERI-IL32PC64-NEXT:    mv a0, a7
 ; RV32IXCHERI-IL32PC64-NEXT:    clw a1, 16(csp)
+; RV32IXCHERI-IL32PC64-NEXT:    mv a0, a7
 ; RV32IXCHERI-IL32PC64-NEXT:    lui a3, 261888
 ; RV32IXCHERI-IL32PC64-NEXT:    li a2, 0
 ; RV32IXCHERI-IL32PC64-NEXT:    ccall __adddf3
@@ -312,8 +312,8 @@ define void @calls_fixed_soft_split(i32, i32, i32, i32, i32, i32, i32, double %d
 ; RV32IFXCHERI-IL32PC64F:       # %bb.0:
 ; RV32IFXCHERI-IL32PC64F-NEXT:    cincoffset csp, csp, -16
 ; RV32IFXCHERI-IL32PC64F-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
-; RV32IFXCHERI-IL32PC64F-NEXT:    mv a0, a7
 ; RV32IFXCHERI-IL32PC64F-NEXT:    clw a1, 16(csp)
+; RV32IFXCHERI-IL32PC64F-NEXT:    mv a0, a7
 ; RV32IFXCHERI-IL32PC64F-NEXT:    lui a3, 261888
 ; RV32IFXCHERI-IL32PC64F-NEXT:    li a2, 0
 ; RV32IFXCHERI-IL32PC64F-NEXT:    ccall __adddf3

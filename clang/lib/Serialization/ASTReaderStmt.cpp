@@ -2461,6 +2461,10 @@ void ASTStmtReader::VisitOMPTileDirective(OMPTileDirective *D) {
   VisitOMPLoopTransformationDirective(D);
 }
 
+void ASTStmtReader::VisitOMPStripeDirective(OMPStripeDirective *D) {
+  VisitOMPLoopTransformationDirective(D);
+}
+
 void ASTStmtReader::VisitOMPUnrollDirective(OMPUnrollDirective *D) {
   VisitOMPLoopTransformationDirective(D);
 }
@@ -3582,6 +3586,13 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
       unsigned NumLoops = Record[ASTStmtReader::NumStmtFields];
       unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPTileDirective::CreateEmpty(Context, NumClauses, NumLoops);
+      break;
+    }
+
+    case STMP_OMP_STRIPE_DIRECTIVE: {
+      unsigned NumLoops = Record[ASTStmtReader::NumStmtFields];
+      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      S = OMPStripeDirective::CreateEmpty(Context, NumClauses, NumLoops);
       break;
     }
 

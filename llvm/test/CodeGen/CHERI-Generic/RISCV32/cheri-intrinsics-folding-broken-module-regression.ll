@@ -24,14 +24,14 @@ define void @g(i32 %x, i32 %y) addrspace(200) nounwind {
 ; ASM-NEXT:    auipcc ca2, %captab_pcrel_hi(d)
 ; ASM-NEXT:    clc ca2, %pcrel_lo(.LBB0_1)(ca2)
 ; ASM-NEXT:    add a1, a1, a0
-; ASM-NEXT:    cgetoffset a3, ca2
-; ASM-NEXT:    cincoffset ca0, ca2, a0
-; ASM-NEXT:    add a1, a1, a3
-; ASM-NEXT:    csetoffset ca0, ca0, a1
 ; ASM-NEXT:  .LBB0_2: # Label of block must be emitted
-; ASM-NEXT:    auipcc ca1, %captab_pcrel_hi(e)
-; ASM-NEXT:    clc ca1, %pcrel_lo(.LBB0_2)(ca1)
-; ASM-NEXT:    csc ca0, 0(ca1)
+; ASM-NEXT:    auipcc ca3, %captab_pcrel_hi(e)
+; ASM-NEXT:    clc ca3, %pcrel_lo(.LBB0_2)(ca3)
+; ASM-NEXT:    cincoffset ca0, ca2, a0
+; ASM-NEXT:    cgetoffset a2, ca2
+; ASM-NEXT:    add a1, a1, a2
+; ASM-NEXT:    csetoffset ca0, ca0, a1
+; ASM-NEXT:    csc ca0, 0(ca3)
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define void @g
 ; CHECK-SAME: (i32 [[X:%.*]], i32 [[Y:%.*]]) addrspace(200) #[[ATTR0:[0-9]+]] {

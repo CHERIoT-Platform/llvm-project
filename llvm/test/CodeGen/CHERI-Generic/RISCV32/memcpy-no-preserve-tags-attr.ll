@@ -108,14 +108,14 @@ entry:
 define void @memmove_no_preserve(%struct.pair addrspace(200)* %a, %struct.pair addrspace(200)* %b) addrspace(200) nounwind {
 ; CHECK-LABEL: memmove_no_preserve:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    clw a2, 0(ca1)
-; CHECK-NEXT:    clw a3, 4(ca1)
-; CHECK-NEXT:    clw a4, 8(ca1)
-; CHECK-NEXT:    clw a1, 12(ca1)
-; CHECK-NEXT:    csw a1, 12(ca0)
-; CHECK-NEXT:    csw a4, 8(ca0)
-; CHECK-NEXT:    csw a3, 4(ca0)
-; CHECK-NEXT:    csw a2, 0(ca0)
+; CHECK-NEXT:    clw a2, 12(ca1)
+; CHECK-NEXT:    clw a3, 8(ca1)
+; CHECK-NEXT:    clw a4, 4(ca1)
+; CHECK-NEXT:    clw a1, 0(ca1)
+; CHECK-NEXT:    csw a2, 12(ca0)
+; CHECK-NEXT:    csw a3, 8(ca0)
+; CHECK-NEXT:    csw a4, 4(ca0)
+; CHECK-NEXT:    csw a1, 0(ca0)
 ; CHECK-NEXT:    cret
 entry:
   %a_i8 = bitcast %struct.pair addrspace(200)* %a to i8 addrspace(200)*

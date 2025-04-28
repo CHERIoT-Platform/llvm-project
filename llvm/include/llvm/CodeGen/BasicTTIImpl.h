@@ -2104,6 +2104,9 @@ public:
     case Intrinsic::sincos:
       ISD = ISD::FSINCOS;
       break;
+    case Intrinsic::sincospi:
+      ISD = ISD::FSINCOSPI;
+      break;
     case Intrinsic::modf:
       ISD = ISD::FMODF;
       break;

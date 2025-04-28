@@ -7345,7 +7345,7 @@ ParseStatus MipsAsmParser::matchAnyRegisterNameWithoutDollar(
   Index = matchCheriRegisterName(Identifier, Operands);
   if (Index != -1) {
     if (Index == -2)
-      return MatchOperand_ParseFail;
+      return ParseStatus::Failure;
     Operands.push_back(MipsOperand::CreateCheriReg(
         Index, Identifier, getContext().getRegisterInfo(), S, getLexer().getLoc(), *this));
     return ParseStatus::Success;

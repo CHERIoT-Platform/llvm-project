@@ -2214,7 +2214,7 @@ ParseStatus RISCVAsmParser::parseSpecialCapRegister(OperandVector &Operands) {
 
   switch (getLexer().getKind()) {
   default:
-    return MatchOperand_NoMatch;
+    return ParseStatus::NoMatch;
   case AsmToken::LParen:
   case AsmToken::Minus:
   case AsmToken::Plus:

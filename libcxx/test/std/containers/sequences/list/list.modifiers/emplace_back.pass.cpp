@@ -20,24 +20,22 @@
 #include "min_allocator.h"
 TEST_CHERI_NO_SUBOBJECT_WARNING
 
-class A
-{
-    int i_;
-    double d_;
+class A {
+  int i_;
+  double d_;
 
-    A(const A&);
-    A& operator=(const A&);
+  A(const A&);
+  A& operator=(const A&);
+
 public:
-    A(int i, double d)
-        : i_(i), d_(d) {}
+  A(int i, double d) : i_(i), d_(d) {}
 
-    int geti() const {return i_;}
-    double getd() const {return d_;}
+  int geti() const { return i_; }
+  double getd() const { return d_; }
 };
 
-int main(int, char**)
-{
-    {
+int main(int, char**) {
+  {
     std::list<A> c;
 #if TEST_STD_VER > 14
     A& r1 = c.emplace_back(2, 3.5);
@@ -60,8 +58,8 @@ int main(int, char**)
     assert(c.front().getd() == 3.5);
     assert(c.back().geti() == 3);
     assert(c.back().getd() == 4.5);
-    }
-    {
+  }
+  {
     std::list<A, min_allocator<A>> c;
 #if TEST_STD_VER > 14
     A& r1 = c.emplace_back(2, 3.5);
@@ -84,7 +82,7 @@ int main(int, char**)
     assert(c.front().getd() == 3.5);
     assert(c.back().geti() == 3);
     assert(c.back().getd() == 4.5);
-    }
+  }
 
   return 0;
 }

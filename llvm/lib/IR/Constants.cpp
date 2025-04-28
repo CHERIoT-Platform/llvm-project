@@ -2447,10 +2447,10 @@ bool ConstantExpr::isSupportedBinOp(unsigned Opcode) {
   case Instruction::LShr:
   case Instruction::AShr:
   case Instruction::Shl:
+  case Instruction::Mul:
     return false;
   case Instruction::Add:
   case Instruction::Sub:
-  case Instruction::Mul:
   case Instruction::Xor:
     return true;
   default:
@@ -2672,13 +2672,6 @@ Constant *ConstantExpr::getSub(Constant *C1, Constant *C2,
   unsigned Flags = (HasNUW ? OverflowingBinaryOperator::NoUnsignedWrap : 0) |
                    (HasNSW ? OverflowingBinaryOperator::NoSignedWrap   : 0);
   return get(Instruction::Sub, C1, C2, Flags);
-}
-
-Constant *ConstantExpr::getMul(Constant *C1, Constant *C2,
-                               bool HasNUW, bool HasNSW) {
-  unsigned Flags = (HasNUW ? OverflowingBinaryOperator::NoUnsignedWrap : 0) |
-                   (HasNSW ? OverflowingBinaryOperator::NoSignedWrap   : 0);
-  return get(Instruction::Mul, C1, C2, Flags);
 }
 
 Constant *ConstantExpr::getXor(Constant *C1, Constant *C2) {

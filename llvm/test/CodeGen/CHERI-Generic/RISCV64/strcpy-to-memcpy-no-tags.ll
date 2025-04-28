@@ -25,14 +25,14 @@ define void @test_strcpy_to_memcpy(ptr addrspace(200) align 8 %dst) addrspace(20
 ; CHECK-ASM-NEXT:    auipcc ca1, %pcrel_hi(.LCPI0_0)
 ; CHECK-ASM-NEXT:    cincoffset ca1, ca1, %pcrel_lo(.LBB0_1)
 ; CHECK-ASM-NEXT:    cld a1, 0(ca1)
+; CHECK-ASM-NEXT:    csd a1, 8(ca0)
 ; CHECK-ASM-NEXT:  .LBB0_2: # %entry
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
-; CHECK-ASM-NEXT:    auipcc ca2, %pcrel_hi(.LCPI0_1)
-; CHECK-ASM-NEXT:    cincoffset ca2, ca2, %pcrel_lo(.LBB0_2)
-; CHECK-ASM-NEXT:    cld a2, 0(ca2)
-; CHECK-ASM-NEXT:    csd a1, 8(ca0)
+; CHECK-ASM-NEXT:    auipcc ca1, %pcrel_hi(.LCPI0_1)
+; CHECK-ASM-NEXT:    cincoffset ca1, ca1, %pcrel_lo(.LBB0_2)
+; CHECK-ASM-NEXT:    cld a1, 0(ca1)
 ; CHECK-ASM-NEXT:    csb zero, 16(ca0)
-; CHECK-ASM-NEXT:    csd a2, 0(ca0)
+; CHECK-ASM-NEXT:    csd a1, 0(ca0)
 ; CHECK-ASM-NEXT:    cret
 ; CHECK-IR-LABEL: define {{[^@]+}}@test_strcpy_to_memcpy
 ; CHECK-IR-SAME: (ptr addrspace(200) align 8 [[DST:%.*]]) addrspace(200) #[[ATTR1:[0-9]+]] {
@@ -52,14 +52,14 @@ define void @test_stpcpy_to_memcpy(ptr addrspace(200) align 8 %dst) addrspace(20
 ; CHECK-ASM-NEXT:    auipcc ca1, %pcrel_hi(.LCPI1_0)
 ; CHECK-ASM-NEXT:    cincoffset ca1, ca1, %pcrel_lo(.LBB1_1)
 ; CHECK-ASM-NEXT:    cld a1, 0(ca1)
+; CHECK-ASM-NEXT:    csd a1, 8(ca0)
 ; CHECK-ASM-NEXT:  .LBB1_2: # %entry
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
-; CHECK-ASM-NEXT:    auipcc ca2, %pcrel_hi(.LCPI1_1)
-; CHECK-ASM-NEXT:    cincoffset ca2, ca2, %pcrel_lo(.LBB1_2)
-; CHECK-ASM-NEXT:    cld a2, 0(ca2)
-; CHECK-ASM-NEXT:    csd a1, 8(ca0)
+; CHECK-ASM-NEXT:    auipcc ca1, %pcrel_hi(.LCPI1_1)
+; CHECK-ASM-NEXT:    cincoffset ca1, ca1, %pcrel_lo(.LBB1_2)
+; CHECK-ASM-NEXT:    cld a1, 0(ca1)
 ; CHECK-ASM-NEXT:    csb zero, 16(ca0)
-; CHECK-ASM-NEXT:    csd a2, 0(ca0)
+; CHECK-ASM-NEXT:    csd a1, 0(ca0)
 ; CHECK-ASM-NEXT:    cret
 ; CHECK-IR-LABEL: define {{[^@]+}}@test_stpcpy_to_memcpy
 ; CHECK-IR-SAME: (ptr addrspace(200) align 8 [[DST:%.*]]) addrspace(200) #[[ATTR1]] {
@@ -111,14 +111,14 @@ define void @test_strncpy_to_memcpy(ptr addrspace(200) align 8 %dst) addrspace(2
 ; CHECK-ASM-NEXT:    auipcc ca1, %pcrel_hi(.LCPI3_0)
 ; CHECK-ASM-NEXT:    cincoffset ca1, ca1, %pcrel_lo(.LBB3_1)
 ; CHECK-ASM-NEXT:    cld a1, 0(ca1)
+; CHECK-ASM-NEXT:    csd a1, 8(ca0)
 ; CHECK-ASM-NEXT:  .LBB3_2: # %entry
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
-; CHECK-ASM-NEXT:    auipcc ca2, %pcrel_hi(.LCPI3_1)
-; CHECK-ASM-NEXT:    cincoffset ca2, ca2, %pcrel_lo(.LBB3_2)
-; CHECK-ASM-NEXT:    cld a2, 0(ca2)
-; CHECK-ASM-NEXT:    csd a1, 8(ca0)
+; CHECK-ASM-NEXT:    auipcc ca1, %pcrel_hi(.LCPI3_1)
+; CHECK-ASM-NEXT:    cincoffset ca1, ca1, %pcrel_lo(.LBB3_2)
+; CHECK-ASM-NEXT:    cld a1, 0(ca1)
 ; CHECK-ASM-NEXT:    csb zero, 16(ca0)
-; CHECK-ASM-NEXT:    csd a2, 0(ca0)
+; CHECK-ASM-NEXT:    csd a1, 0(ca0)
 ; CHECK-ASM-NEXT:    cret
 ; CHECK-IR-LABEL: define {{[^@]+}}@test_strncpy_to_memcpy
 ; CHECK-IR-SAME: (ptr addrspace(200) align 8 [[DST:%.*]]) addrspace(200) #[[ATTR1]] {
@@ -139,14 +139,14 @@ define void @test_stpncpy_to_memcpy(ptr addrspace(200) align 8 %dst) addrspace(2
 ; CHECK-ASM-NEXT:    auipcc ca1, %pcrel_hi(.LCPI4_0)
 ; CHECK-ASM-NEXT:    cincoffset ca1, ca1, %pcrel_lo(.LBB4_1)
 ; CHECK-ASM-NEXT:    cld a1, 0(ca1)
+; CHECK-ASM-NEXT:    csd a1, 8(ca0)
 ; CHECK-ASM-NEXT:  .LBB4_2: # %entry
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
-; CHECK-ASM-NEXT:    auipcc ca2, %pcrel_hi(.LCPI4_1)
-; CHECK-ASM-NEXT:    cincoffset ca2, ca2, %pcrel_lo(.LBB4_2)
-; CHECK-ASM-NEXT:    cld a2, 0(ca2)
-; CHECK-ASM-NEXT:    csd a1, 8(ca0)
+; CHECK-ASM-NEXT:    auipcc ca1, %pcrel_hi(.LCPI4_1)
+; CHECK-ASM-NEXT:    cincoffset ca1, ca1, %pcrel_lo(.LBB4_2)
+; CHECK-ASM-NEXT:    cld a1, 0(ca1)
 ; CHECK-ASM-NEXT:    csb zero, 16(ca0)
-; CHECK-ASM-NEXT:    csd a2, 0(ca0)
+; CHECK-ASM-NEXT:    csd a1, 0(ca0)
 ; CHECK-ASM-NEXT:    cret
 ; CHECK-IR-LABEL: define {{[^@]+}}@test_stpncpy_to_memcpy
 ; CHECK-IR-SAME: (ptr addrspace(200) align 8 [[DST:%.*]]) addrspace(200) #[[ATTR1]] {

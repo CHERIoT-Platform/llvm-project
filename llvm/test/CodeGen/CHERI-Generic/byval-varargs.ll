@@ -115,8 +115,8 @@ define signext i32 @test_alloca() local_unnamed_addr addrspace(200) nounwind {
 ; PURECAP-RV64-NEXT:    cmove ca0, cs1
 ; PURECAP-RV64-NEXT:    cmove ca1, cs0
 ; PURECAP-RV64-NEXT:    ccall memcpy
-; PURECAP-RV64-NEXT:    li a0, 1024
 ; PURECAP-RV64-NEXT:    csc cs1, 0(csp)
+; PURECAP-RV64-NEXT:    li a0, 1024
 ; PURECAP-RV64-NEXT:    ccall varargs
 ; PURECAP-RV64-NEXT:    cincoffset csp, csp, 96
 ; PURECAP-RV64-NEXT:    clc cra, 2016(csp) # 16-byte Folded Reload
@@ -287,15 +287,15 @@ define signext i32 @test_byval() local_unnamed_addr addrspace(200) nounwind {
 ; PURECAP-RV64-NEXT:    ccall memset
 ; PURECAP-RV64-NEXT:    cmove ca0, cs0
 ; PURECAP-RV64-NEXT:    ccall byref
+; PURECAP-RV64-NEXT:    cincoffset cs1, csp, 32
 ; PURECAP-RV64-NEXT:    cincoffset ca0, csp, 32
 ; PURECAP-RV64-NEXT:    li a2, 1024
-; PURECAP-RV64-NEXT:    cincoffset cs1, csp, 32
 ; PURECAP-RV64-NEXT:    cmove ca1, cs0
 ; Note: no bounds for implicit byval arg memcpy()
 ; TODO: should we add the csetbounds here? Not really necessary if we trust memcpy().
 ; PURECAP-RV64-NEXT:    ccall memcpy
-; PURECAP-RV64-NEXT:    li a0, 1024
 ; PURECAP-RV64-NEXT:    csc cs1, 0(csp)
+; PURECAP-RV64-NEXT:    li a0, 1024
 ; PURECAP-RV64-NEXT:    ccall varargs
 ; PURECAP-RV64-NEXT:    cincoffset csp, csp, 96
 ; PURECAP-RV64-NEXT:    clc cra, 2016(csp) # 16-byte Folded Reload

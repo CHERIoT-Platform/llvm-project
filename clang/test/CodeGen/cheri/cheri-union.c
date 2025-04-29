@@ -17,7 +17,7 @@ int *y;
 
 // Check that unions containing capabilities are passed as capabilities.
 // CHECK-LABEL: define {{[^@]+}}@foo
-// CHECK-SAME: (ptr addrspace(200) readnone [[M_COERCE:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
+// CHECK-SAME: (ptr addrspace(200) readnone captures(address, ret: address, provenance) [[M_COERCE:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @x, align 16, !tbaa [[TBAA6:![0-9]+]]
 // CHECK-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[M_COERCE]], [[TMP0]]

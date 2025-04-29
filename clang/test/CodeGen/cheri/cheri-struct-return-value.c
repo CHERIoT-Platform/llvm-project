@@ -38,7 +38,7 @@ IntptrStruct set_int2(IntptrStruct p) {
 }
 
 // CHECK-LABEL: define {{[^@]+}}@set_int3
-// CHECK-SAME: (ptr addrspace(200) inreg readnone returned [[P_COERCE:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
+// CHECK-SAME: (ptr addrspace(200) inreg readnone returned captures(ret: address, provenance) [[P_COERCE:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    ret ptr addrspace(200) [[P_COERCE]]
 //

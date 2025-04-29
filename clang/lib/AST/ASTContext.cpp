@@ -3963,7 +3963,8 @@ QualType ASTContext::getArrayParameterType(QualType Ty) const {
   if (Ty->isArrayParameterType())
     return Ty;
   assert(Ty->isConstantArrayType() && "Ty must be an array type.");
-  const auto *ATy = cast<ConstantArrayType>(Ty.getDesugaredType(*this));
+  QualType DTy = Ty.getDesugaredType(*this);
+  const auto *ATy = cast<ConstantArrayType>(DTy);
   llvm::FoldingSetNodeID ID;
   // XXX CHERI: Exclude PointerInterpretation since this is only
   // used by HLSL.
@@ -3978,7 +3979,7 @@ QualType ASTContext::getArrayParameterType(QualType Ty) const {
     return QualType(AT, 0);
 
   QualType Canonical;
-  if (!Ty.isCanonical()) {
+  if (!DTy.isCanonical()) {
     Canonical = getArrayParameterType(getCanonicalType(Ty));
 
     // Get the new insert position for the node we care about.

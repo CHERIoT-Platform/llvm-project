@@ -1634,8 +1634,7 @@ void Sema::ActOnEndOfTranslationUnit() {
   }
 
   if (LangOpts.HLSL)
-    HLSL().DiagnoseAvailabilityViolations(
-        getASTContext().getTranslationUnitDecl());
+    HLSL().ActOnEndOfTranslationUnit(getASTContext().getTranslationUnitDecl());
 
   // If there were errors, disable 'unused' warnings since they will mostly be
   // noise. Don't warn for a use from a module: either we should warn on all
@@ -1872,11 +1871,20 @@ void Sema::EmitDiagnostic(unsigned DiagID, const DiagnosticBuilder &DB) {
     }
 
     case DiagnosticIDs::SFINAE_Suppress:
+      if (DiagnosticsEngine::Level Level = getDiagnostics().getDiagnosticLevel(
+              DiagInfo.getID(), DiagInfo.getLocation());
+          Level == DiagnosticsEngine::Ignored)
+        return;
       // Make a copy of this suppressed diagnostic and store it with the
       // template-deduction information;
       if (*Info) {
-        (*Info)->addSuppressedDiagnostic(DiagInfo.getLocation(),
-                       PartialDiagnostic(DiagInfo, Context.getDiagAllocator()));
+        (*Info)->addSuppressedDiagnostic(
+            DiagInfo.getLocation(),
+            PartialDiagnostic(DiagInfo, Context.getDiagAllocator()));
+        if (!Diags.getDiagnosticIDs()->isNote(DiagID))
+          PrintContextStack([Info](SourceLocation Loc, PartialDiagnostic PD) {
+            (*Info)->addSuppressedDiagnostic(Loc, std::move(PD));
+          });
       }
 
       // Suppress this diagnostic.

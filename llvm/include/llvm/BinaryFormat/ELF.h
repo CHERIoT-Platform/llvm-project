@@ -703,6 +703,7 @@ enum : unsigned {
   // CHERI-specific flags
   EF_RISCV_CHERIABI = 0x00010000,
   EF_RISCV_CAP_MODE = 0x00020000,
+  EF_RISCV_CHERIOT = 0x00040000,
 };
 
 // ELF Relocation types for RISC-V

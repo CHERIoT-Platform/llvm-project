@@ -195,6 +195,10 @@ uint32_t RISCV::calcEFlags() const {
     if ((eflags & EF_RISCV_CAP_MODE) != (target & EF_RISCV_CAP_MODE))
       Err(ctx) << f
                << ": cannot link object files with different EF_RISCV_CAP_MODE";
+
+    if ((eflags & EF_RISCV_CHERIOT) != (target & EF_RISCV_CHERIOT))
+      Err(ctx) << f
+               << ": cannot link object files with different EF_RISCV_CHERIOT";
   }
 
   return target;

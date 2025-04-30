@@ -555,6 +555,7 @@ void ScalarBitSetTraits<ELFYAML::ELF_EF>::bitset(IO &IO,
     BCase(EF_RISCV_TSO);
     BCase(EF_RISCV_CHERIABI);
     BCase(EF_RISCV_CAP_MODE);
+    BCase(EF_RISCV_CHERIOT);
     break;
   case ELF::EM_SPARC32PLUS:
     BCase(EF_SPARC_32PLUS);

@@ -203,6 +203,8 @@ public:
     return DL.getPointerSize(DL.getAllocaAddrSpace());
   }
 
+  bool hasCheriCapabilities() const { return DL.hasCheriCapabilities(); }
+
   /// Reset the target options based on the function's attributes.
   // FIXME: Remove TargetOptions that affect per-function code generation
   // from TargetMachine.

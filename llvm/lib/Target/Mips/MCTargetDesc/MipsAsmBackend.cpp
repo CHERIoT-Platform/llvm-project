@@ -69,6 +69,11 @@ static unsigned adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
   case Mips::fixup_CHERI_CAPCALL_LO16:
     Value &= 0xffff;
     break;
+  case Mips::fixup_Mips_AnyImm16:
+    if (!isInt<16>(Value) && !isUInt<16>(Value))
+      Ctx.reportError(Fixup.getLoc(),
+                      "fixup value out of range [-32768, 65535]");
+    break;
   case FK_DTPRel_4:
   case FK_DTPRel_8:
   case FK_TPRel_4:
@@ -408,16 +413,18 @@ std::optional<MCFixupKind> MipsAsmBackend::getFixupKind(StringRef Name) const {
 const MCFixupKindInfo &MipsAsmBackend::
 getFixupKindInfo(MCFixupKind Kind) const {
   const static MCFixupKindInfo LittleEndianInfos[] = {
-    // This table *must* be in same the order of fixup_* kinds in
-    // MipsFixupKinds.h.
-    //
-    // name                    offset  bits  flags
+      // This table *must* be in same the order of fixup_* kinds in
+      // MipsFixupKinds.h.
+      //
+      // name                    offset  bits  flags
+      // clang-format off
     { "fixup_Mips_16",           0,     16,   0 },
     { "fixup_Mips_32",           0,     32,   0 },
     { "fixup_Mips_REL32",        0,     32,   0 },
     { "fixup_Mips_26",           0,     26,   0 },
     { "fixup_Mips_HI16",         0,     16,   0 },
     { "fixup_Mips_LO16",         0,     16,   0 },
+    { "fixup_Mips_AnyImm16",     0,     16,   0 },
     { "fixup_Mips_GPREL16",      0,     16,   0 },
     { "fixup_Mips_LITERAL",      0,     16,   0 },
     { "fixup_Mips_GOT",          0,     16,   0 },
@@ -482,7 +489,7 @@ getFixupKindInfo(MCFixupKind Kind) const {
     { "fixup_MICROMIPS_SUB",             0,     64,   0 },
     { "fixup_Mips_JALR",                 0,     32,   0 },
     { "fixup_MICROMIPS_JALR",            0,     32,   0 },
-
+    
     { "fixup_CHERI_CAPTABLE11",          0,     11,   0 },
     { "fixup_CHERI_CAPTABLE20",          0,     16,   0 },
     { "fixup_CHERI_CAPTABLE_HI16",       0,     16,   0 },
@@ -492,33 +499,35 @@ getFixupKindInfo(MCFixupKind Kind) const {
     { "fixup_CHERI_CAPCALL_HI16",        0,     16,   0 },
     { "fixup_CHERI_CAPCALL_LO16",        0,     16,   0 },
     { "fixup_CHERI_CAPABILITY",          0,  0xdead,   0 },
-
+    
     { "fixup_Mips_CAPTABLEREL16",        0,     16,   0 }, // like GPREL16
     { "fixup_Mips_CAPTABLEREL_HI",       0,     16,   0 }, // like GPOFF_HI
     { "fixup_Mips_CAPTABLEREL_LO",       0,     16,   0 }, // like GPOFF_LO
-
+    
     { "fixup_CHERI_CAPTAB_TLSGD_HI16",   0,     16,   0 },
     { "fixup_CHERI_CAPTAB_TLSGD_LO16",   0,     16,   0 },
     { "fixup_CHERI_CAPTAB_TLSLDM_HI16",  0,     16,   0 },
     { "fixup_CHERI_CAPTAB_TLSLDM_LO16",  0,     16,   0 },
     { "fixup_CHERI_CAPTAB_TPREL_HI16",   0,     16,   0 },
     { "fixup_CHERI_CAPTAB_TPREL_LO16",   0,     16,   0 },
-
+    // clang-format on
   };
   static_assert(std::size(LittleEndianInfos) == Mips::NumTargetFixupKinds,
                 "Not all MIPS little endian fixup kinds added!");
 
   const static MCFixupKindInfo BigEndianInfos[] = {
-    // This table *must* be in same the order of fixup_* kinds in
-    // MipsFixupKinds.h.
-    //
-    // name                    offset  bits  flags
+      // This table *must* be in same the order of fixup_* kinds in
+      // MipsFixupKinds.h.
+      //
+      // name                    offset  bits  flags
+      // clang-format off
     { "fixup_Mips_16",          16,     16,   0 },
     { "fixup_Mips_32",           0,     32,   0 },
     { "fixup_Mips_REL32",        0,     32,   0 },
     { "fixup_Mips_26",           6,     26,   0 },
     { "fixup_Mips_HI16",        16,     16,   0 },
     { "fixup_Mips_LO16",        16,     16,   0 },
+    { "fixup_Mips_AnyImm16",    16,     16,   0 },
     { "fixup_Mips_GPREL16",     16,     16,   0 },
     { "fixup_Mips_LITERAL",     16,     16,   0 },
     { "fixup_Mips_GOT",         16,     16,   0 },
@@ -583,7 +592,7 @@ getFixupKindInfo(MCFixupKind Kind) const {
     { "fixup_MICROMIPS_SUB",              0,     64,   0 },
     { "fixup_Mips_JALR",                  0,     32,   0 },
     { "fixup_MICROMIPS_JALR",             0,     32,   0 },
-
+    
     { "fixup_CHERI_CAPTABLE11",    21,    11,   0 },
     { "fixup_CHERI_CAPTABLE20",    16,    16,   0 },
     { "fixup_CHERI_CAPTABLE_HI16", 16,    16,   0 },
@@ -593,18 +602,18 @@ getFixupKindInfo(MCFixupKind Kind) const {
     { "fixup_CHERI_CAPCALL_HI16",  16,    16,   0 },
     { "fixup_CHERI_CAPCALL_LO16",  16,    16,   0 },
     { "fixup_CHERI_CAPABILITY",     0,0xdead,   0 },
-
+    
     { "fixup_Mips_CAPTABLEREL16",  16,    16,   0 }, // like GPREL16
     { "fixup_Mips_CAPTABLEREL_HI", 16,    16,   0 }, // like GPOFF_HI
     { "fixup_Mips_CAPTABLEREL_LO", 16,    16,   0 }, // like GPOFF_LO
-
+    
     { "fixup_CHERI_CAPTAB_TLSGD_HI16",  16,     16,   0 },
     { "fixup_CHERI_CAPTAB_TLSGD_LO16",  16,     16,   0 },
     { "fixup_CHERI_CAPTAB_TLSLDM_HI16", 16,     16,   0 },
     { "fixup_CHERI_CAPTAB_TLSLDM_LO16", 16,     16,   0 },
     { "fixup_CHERI_CAPTAB_TPREL_HI16",  16,     16,   0 },
     { "fixup_CHERI_CAPTAB_TPREL_LO16",  16,     16,   0 },
-
+    // clang-format on
   };
   static_assert(std::size(BigEndianInfos) == Mips::NumTargetFixupKinds,
                 "Not all MIPS big endian fixup kinds added!");

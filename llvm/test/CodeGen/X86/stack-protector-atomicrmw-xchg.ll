@@ -6,7 +6,7 @@ define void @atomicrmw_xchg(ptr %p) sspstrong {
 ; CHECK-SAME: ptr [[P:%.*]]) #[[ATTR0:[0-9]+]] {
 ; CHECK-NEXT:    [[STACKGUARDSLOT:%.*]] = alloca ptr, align 8
 ; CHECK-NEXT:    [[STACKGUARD:%.*]] = load volatile ptr, ptr addrspace(257) inttoptr (i32 40 to ptr addrspace(257)), align 8
-; CHECK-NEXT:    call void @llvm.stackprotector(ptr [[STACKGUARD]], ptr [[STACKGUARDSLOT]])
+; CHECK-NEXT:    call void @llvm.stackprotector.p0(ptr [[STACKGUARD]], ptr [[STACKGUARDSLOT]])
 ; CHECK-NEXT:    [[A:%.*]] = alloca i64, align 8
 ; CHECK-NEXT:    [[TMP1:%.*]] = atomicrmw xchg ptr [[P]], ptr [[A]] acquire, align 8
 ; CHECK-NEXT:    [[STACKGUARD1:%.*]] = load volatile ptr, ptr addrspace(257) inttoptr (i32 40 to ptr addrspace(257)), align 8

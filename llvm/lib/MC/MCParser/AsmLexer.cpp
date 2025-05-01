@@ -879,62 +879,6 @@ AsmToken AsmLexer::LexToken() {
     if (LexMotorolaIntegers && (*CurPtr == '0' || *CurPtr == '1')) {
       return LexDigit();
     }
-
-    if (MAI.hasMipsExpressions()) {
-      AsmToken::TokenKind Operator;
-      unsigned OperatorLength;
-
-      std::tie(Operator, OperatorLength) =
-          StringSwitch<std::pair<AsmToken::TokenKind, unsigned>>(
-              StringRef(CurPtr))
-              .StartsWith("call16", {AsmToken::PercentCall16, 7})
-              .StartsWith("call_hi", {AsmToken::PercentCall_Hi, 8})
-              .StartsWith("call_lo", {AsmToken::PercentCall_Lo, 8})
-              .StartsWith("dtprel_hi", {AsmToken::PercentDtprel_Hi, 10})
-              .StartsWith("dtprel_lo", {AsmToken::PercentDtprel_Lo, 10})
-              .StartsWith("got_disp", {AsmToken::PercentGot_Disp, 9})
-              .StartsWith("got_hi", {AsmToken::PercentGot_Hi, 7})
-              .StartsWith("got_lo", {AsmToken::PercentGot_Lo, 7})
-              .StartsWith("got_ofst", {AsmToken::PercentGot_Ofst, 9})
-              .StartsWith("got_page", {AsmToken::PercentGot_Page, 9})
-              .StartsWith("gottprel", {AsmToken::PercentGottprel, 9})
-              .StartsWith("got", {AsmToken::PercentGot, 4})
-              .StartsWith("gp_rel", {AsmToken::PercentGp_Rel, 7})
-              .StartsWith("higher", {AsmToken::PercentHigher, 7})
-              .StartsWith("highest", {AsmToken::PercentHighest, 8})
-              .StartsWith("hi", {AsmToken::PercentHi, 3})
-              .StartsWith("lo", {AsmToken::PercentLo, 3})
-              .StartsWith("neg", {AsmToken::PercentNeg, 4})
-              .StartsWith("pcrel_hi", {AsmToken::PercentPcrel_Hi, 9})
-              .StartsWith("pcrel_lo", {AsmToken::PercentPcrel_Lo, 9})
-              .StartsWith("tlsgd", {AsmToken::PercentTlsgd, 6})
-              .StartsWith("tlsldm", {AsmToken::PercentTlsldm, 7})
-              .StartsWith("tprel_hi", {AsmToken::PercentTprel_Hi, 9})
-              .StartsWith("tprel_lo", {AsmToken::PercentTprel_Lo, 9})
-              // CHERI extensions
-              // TODO: captab20 should probably captab in the future
-              .StartsWith("captab_lo", {AsmToken::PercentCapTab_Lo, 10})
-              .StartsWith("captab_hi", {AsmToken::PercentCapTab_Hi, 10})
-              .StartsWith("captab_rel", {AsmToken::PercentCapTab_Rel, 11})
-              .StartsWith("captab20", {AsmToken::PercentCapTab20, 9})
-              .StartsWith("captab_tlsgd_hi", {AsmToken::PercentCapTabTlsgd_Hi, 16})
-              .StartsWith("captab_tlsgd_lo", {AsmToken::PercentCapTabTlsgd_Lo, 16})
-              .StartsWith("captab_tlsldm_hi", {AsmToken::PercentCapTabTlsldm_Hi, 17})
-              .StartsWith("captab_tlsldm_lo", {AsmToken::PercentCapTabTlsldm_Lo, 17})
-              .StartsWith("captab_tprel_hi", {AsmToken::PercentCapTabTprel_Hi, 16})
-              .StartsWith("captab_tprel_lo", {AsmToken::PercentCapTabTprel_Lo, 16})
-              .StartsWith("captab", {AsmToken::PercentCapTab11, 7})
-              .StartsWith("capcall_hi", {AsmToken::PercentCapTabCall_Hi, 11})
-              .StartsWith("capcall_lo", {AsmToken::PercentCapTabCall_Lo, 11})
-              .StartsWith("capcall20", {AsmToken::PercentCapTabCall20, 10})
-              .StartsWith("capcall", {AsmToken::PercentCapTabCall11, 8})
-            .Default({AsmToken::Percent, 1});
-
-      if (Operator != AsmToken::Percent) {
-        CurPtr += OperatorLength - 1;
-        return AsmToken(Operator, StringRef(TokStart, OperatorLength));
-      }
-    }
     return AsmToken(AsmToken::Percent, StringRef(TokStart, 1));
   case '/':
     IsAtStartOfStatement = OldIsAtStartOfStatement;

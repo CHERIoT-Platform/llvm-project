@@ -52,22 +52,6 @@ public:
     Amp, AmpAmp, Exclaim, ExclaimEqual, Percent, Hash,
     Less, LessEqual, LessLess, LessGreater,
     Greater, GreaterEqual, GreaterGreater, At, MinusGreater,
-
-    // MIPS unary expression operators such as %neg.
-    PercentCall16, PercentCall_Hi, PercentCall_Lo, PercentDtprel_Hi,
-    PercentDtprel_Lo, PercentGot, PercentGot_Disp, PercentGot_Hi, PercentGot_Lo,
-    PercentGot_Ofst, PercentGot_Page, PercentGottprel, PercentGp_Rel, PercentHi,
-    PercentHigher, PercentHighest, PercentLo, PercentNeg, PercentPcrel_Hi,
-    PercentPcrel_Lo, PercentTlsgd, PercentTlsldm, PercentTprel_Hi,
-    PercentTprel_Lo,
-
-    // CHERI capability relocation expressions:
-    PercentCapTabCall11, PercentCapTabCall_Hi, PercentCapTabCall_Lo,
-    PercentCapTab11, PercentCapTab_Hi, PercentCapTab_Lo,
-    PercentCapTab20, PercentCapTabCall20, PercentCapTab_Rel,
-    PercentCapTabTlsgd_Hi, PercentCapTabTlsgd_Lo,
-    PercentCapTabTlsldm_Hi, PercentCapTabTlsldm_Lo,
-    PercentCapTabTprel_Hi, PercentCapTabTprel_Lo
   };
 
 private:

@@ -80,7 +80,7 @@ void llvm::initializeCodeGen(PassRegistry &Registry) {
   initializeMachineCSELegacyPass(Registry);
   initializeMachineCombinerPass(Registry);
   initializeMachineCopyPropagationLegacyPass(Registry);
-  initializeMachineCycleInfoPrinterPassPass(Registry);
+  initializeMachineCycleInfoPrinterLegacyPass(Registry);
   initializeMachineCycleInfoWrapperPassPass(Registry);
   initializeMachineDominatorTreeWrapperPassPass(Registry);
   initializeMachineFunctionPrinterPassPass(Registry);

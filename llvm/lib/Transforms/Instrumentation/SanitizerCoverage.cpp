@@ -402,7 +402,7 @@ bool ModuleSanitizerCoverage::instrumentModule() {
   DL = &M.getDataLayout();
   CurModule = &M;
   CurModuleUniqueId = getUniqueModuleId(CurModule);
-  TargetTriple = Triple(M.getTargetTriple());
+  TargetTriple = M.getTargetTriple();
   FunctionGuardArray = nullptr;
   Function8bitCounterArray = nullptr;
   FunctionBoolArray = nullptr;

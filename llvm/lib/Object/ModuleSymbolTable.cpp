@@ -78,7 +78,7 @@ initializeRecordStreamer(const Module &M,
 
   std::string Err;
   const Triple TT(M.getTargetTriple());
-  const Target *T = TargetRegistry::lookupTarget(TT.str(), Err);
+  const Target *T = TargetRegistry::lookupTarget(TT, Err);
   assert(T && T->hasMCAsmParser());
 
   MCTargetOptions MCOptions;

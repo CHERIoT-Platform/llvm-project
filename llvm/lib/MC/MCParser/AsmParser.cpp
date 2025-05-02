@@ -1191,8 +1191,7 @@ bool AsmParser::parsePrimaryExpr(const MCExpr *&Res, SMLoc &EndLoc,
         // Emit a temporary label to the streamer and refer to it.
         MCSymbol *Sym = Ctx.createTempSymbol();
         Out.emitLabel(Sym);
-        Res = MCSymbolRefExpr::create(Sym, MCSymbolRefExpr::VK_None,
-                                      getContext());
+        Res = MCSymbolRefExpr::create(Sym, getContext());
         EndLoc = FirstTokenLoc;
         return false;
       }
@@ -1319,7 +1318,7 @@ bool AsmParser::parsePrimaryExpr(const MCExpr *&Res, SMLoc &EndLoc,
     // temporary label to the streamer and refer to it.
     MCSymbol *Sym = Ctx.createTempSymbol();
     Out.emitLabel(Sym);
-    Res = MCSymbolRefExpr::create(Sym, MCSymbolRefExpr::VK_None, getContext());
+    Res = MCSymbolRefExpr::create(Sym, getContext());
     EndLoc = Lexer.getTok().getEndLoc();
     Lex(); // Eat identifier.
     return false;

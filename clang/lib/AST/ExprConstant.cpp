@@ -3633,8 +3633,6 @@ static bool evaluateVarDeclInit(EvalInfo &Info, const Expr *E,
   if (AllowConstexprUnknown) {
     if (!Result)
       Result = &Info.CurrentCall->createConstexprUnknownAPValues(VD, Base);
-    else
-      Result->setConstexprUnknown();
   }
   return true;
 }
@@ -15716,16 +15714,11 @@ bool FloatExprEvaluator::VisitCallExpr(const CallExpr *E) {
   case Builtin::BI__builtin_fmaxl:
   case Builtin::BI__builtin_fmaxf16:
   case Builtin::BI__builtin_fmaxf128: {
-    // TODO: Handle sNaN.
     APFloat RHS(0.);
     if (!EvaluateFloat(E->getArg(0), Result, Info) ||
         !EvaluateFloat(E->getArg(1), RHS, Info))
       return false;
-    // When comparing zeroes, return +0.0 if one of the zeroes is positive.
-    if (Result.isZero() && RHS.isZero() && Result.isNegative())
-      Result = RHS;
-    else if (Result.isNaN() || RHS > Result)
-      Result = RHS;
+    Result = maxnum(Result, RHS);
     return true;
   }
 
@@ -15734,16 +15727,11 @@ bool FloatExprEvaluator::VisitCallExpr(const CallExpr *E) {
   case Builtin::BI__builtin_fminl:
   case Builtin::BI__builtin_fminf16:
   case Builtin::BI__builtin_fminf128: {
-    // TODO: Handle sNaN.
     APFloat RHS(0.);
     if (!EvaluateFloat(E->getArg(0), Result, Info) ||
         !EvaluateFloat(E->getArg(1), RHS, Info))
       return false;
-    // When comparing zeroes, return -0.0 if one of the zeroes is negative.
-    if (Result.isZero() && RHS.isZero() && RHS.isNegative())
-      Result = RHS;
-    else if (Result.isNaN() || RHS < Result)
-      Result = RHS;
+    Result = minnum(Result, RHS);
     return true;
   }
 
@@ -17134,6 +17122,18 @@ bool Expr::EvaluateAsInitializer(APValue &Value, const ASTContext &Ctx,
 
     if (!Info.discardCleanups())
       llvm_unreachable("Unhandled cleanup; missing full expression marker?");
+
+    if (Value.allowConstexprUnknown()) {
+      assert(Value.isLValue() && "Expected an lvalue");
+      auto Base = Value.getLValueBase();
+      const auto *NewVD = Base.dyn_cast<const ValueDecl *>();
+      if (!NewVD)
+        NewVD = VD;
+      Info.FFDiag(getExprLoc(), diag::note_constexpr_var_init_non_constant, 1)
+          << NewVD;
+      NoteLValueLocation(Info, Base);
+      return false;
+    }
   }
 
   return CheckConstantExpression(Info, DeclLoc, DeclTy, Value,

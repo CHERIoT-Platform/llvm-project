@@ -1141,6 +1141,7 @@ void ASTWriter::WriteBlockInfoBlock() {
   RECORD(DECL_OMP_ALLOCATE);
   RECORD(DECL_HLSL_BUFFER);
   RECORD(DECL_OPENACC_DECLARE);
+  RECORD(DECL_OPENACC_ROUTINE);
 
   // Statements and Exprs can occur in the Decls and Types block.
   AddStmtsExprs(Stream, Record);
@@ -8787,6 +8788,7 @@ void ASTRecordWriter::writeOpenACCClause(const OpenACCClause *C) {
   }
   case OpenACCClauseKind::Seq:
   case OpenACCClauseKind::Independent:
+  case OpenACCClauseKind::NoHost:
   case OpenACCClauseKind::Auto:
   case OpenACCClauseKind::Finalize:
   case OpenACCClauseKind::IfPresent:
@@ -8847,7 +8849,6 @@ void ASTRecordWriter::writeOpenACCClause(const OpenACCClause *C) {
     return;
   }
 
-  case OpenACCClauseKind::NoHost:
   case OpenACCClauseKind::Bind:
   case OpenACCClauseKind::Invalid:
     llvm_unreachable("Clause serialization not yet implemented");

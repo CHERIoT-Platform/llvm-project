@@ -5259,6 +5259,10 @@ bool Type::hasSizedVLAType() const {
   return false;
 }
 
+bool Type::isHLSLResourceRecord() const {
+  return HLSLAttributedResourceType::findHandleTypeOnResource(this) != nullptr;
+}
+
 bool Type::isHLSLIntangibleType() const {
   const Type *Ty = getUnqualifiedDesugaredType();
 

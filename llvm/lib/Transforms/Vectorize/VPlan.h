@@ -1273,12 +1273,6 @@ public:
                          !Attrs.hasFnAttr(Attribute::WillReturn);
   }
 
-  VPWidenIntrinsicRecipe(Intrinsic::ID VectorIntrinsicID,
-                         std::initializer_list<VPValue *> CallArguments,
-                         Type *Ty, DebugLoc DL = {})
-      : VPWidenIntrinsicRecipe(VectorIntrinsicID,
-                               ArrayRef<VPValue *>(CallArguments), Ty, DL) {}
-
   ~VPWidenIntrinsicRecipe() override = default;
 
   VPWidenIntrinsicRecipe *clone() override {
@@ -1932,11 +1926,16 @@ public:
 /// exactly 2 incoming values, the first from the predecessor of the region and
 /// the second from the exiting block of the region.
 class VPWidenPHIRecipe : public VPSingleDefRecipe {
+  /// Name to use for the generated IR instruction for the widened phi.
+  std::string Name;
+
 public:
   /// Create a new VPWidenPHIRecipe for \p Phi with start value \p Start and
   /// debug location \p DL.
-  VPWidenPHIRecipe(PHINode *Phi, VPValue *Start = nullptr, DebugLoc DL = {})
-      : VPSingleDefRecipe(VPDef::VPWidenPHISC, ArrayRef<VPValue *>(), Phi, DL) {
+  VPWidenPHIRecipe(PHINode *Phi, VPValue *Start = nullptr, DebugLoc DL = {},
+                   const Twine &Name = "")
+      : VPSingleDefRecipe(VPDef::VPWidenPHISC, ArrayRef<VPValue *>(), Phi, DL),
+        Name(Name.str()) {
     if (Start)
       addOperand(Start);
   }

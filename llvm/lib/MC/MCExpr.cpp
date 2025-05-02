@@ -38,6 +38,9 @@ STATISTIC(MCExprEvaluate, "Number of MCExpr evaluations");
 } // end namespace stats
 } // end anonymous namespace
 
+// VariantKind printing and formatting utilize MAI. operator<< (dump and some
+// target code) specifies MAI as nullptr and should be avoided when MAI is
+// needed.
 void MCExpr::print(raw_ostream &OS, const MCAsmInfo *MAI, bool InParens) const {
   switch (getKind()) {
   case MCExpr::Target:
@@ -87,7 +90,9 @@ void MCExpr::print(raw_ostream &OS, const MCAsmInfo *MAI, bool InParens) const {
 
     const MCSymbolRefExpr::VariantKind Kind = SRE.getKind();
     if (Kind != MCSymbolRefExpr::VK_None) {
-      if (MAI->useParensForSymbolVariant()) // ARM
+      if (!MAI) // should only be used by dump()
+        OS << "@<variant " << Kind << '>';
+      else if (MAI->useParensForSymbolVariant()) // ARM
         OS << '(' << MAI->getVariantKindName(Kind) << ')';
       else
         OS << '@' << MAI->getVariantKindName(Kind);

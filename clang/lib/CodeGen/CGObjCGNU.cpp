@@ -2291,6 +2291,9 @@ CGObjCGNU::CGObjCGNU(CodeGenModule &cgm, unsigned runtimeABIVersion,
   BoolTy = CGM.getTypes().ConvertType(CGM.getContext().BoolTy);
 
   Int8Ty = llvm::Type::getInt8Ty(VMContext);
+
+  PtrTy = llvm::PointerType::getUnqual(cgm.getLLVMContext());
+  PtrToIntTy = PtrTy;
   // C string type.  Used in lots of places.
   PtrToInt8Ty = llvm::PointerType::get(Int8Ty, AS);
   ProtocolPtrTy = llvm::PointerType::get(

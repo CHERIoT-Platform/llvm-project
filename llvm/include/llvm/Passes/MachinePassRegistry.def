@@ -175,6 +175,7 @@ MACHINE_FUNCTION_PASS("reg-usage-collector", RegUsageInfoCollectorPass())
 MACHINE_FUNCTION_PASS("reg-usage-propagation", RegUsageInfoPropagationPass())
 MACHINE_FUNCTION_PASS("register-coalescer", RegisterCoalescerPass())
 MACHINE_FUNCTION_PASS("rename-independent-subregs", RenameIndependentSubregsPass())
+MACHINE_FUNCTION_PASS("remove-redundant-debug-values", RemoveRedundantDebugValuesPass())
 MACHINE_FUNCTION_PASS("require-all-machine-function-properties",
                       RequireAllMachineFunctionPropertiesPass())
 MACHINE_FUNCTION_PASS("stack-coloring", StackColoringPass())
@@ -190,6 +191,13 @@ MACHINE_FUNCTION_PASS("verify<machine-trace-metrics>", MachineTraceMetricsVerifi
 #define MACHINE_FUNCTION_PASS_WITH_PARAMS(NAME, CLASS, CREATE_PASS, PARSER,    \
                                           PARAMS)
 #endif
+MACHINE_FUNCTION_PASS_WITH_PARAMS(
+    "machine-sink", "MachineSinkingPass",
+    [](bool EnableSinkAndFold) {
+      return MachineSinkingPass(EnableSinkAndFold);
+    },
+    parseMachineSinkingPassOptions, "enable-sink-fold")
+
 MACHINE_FUNCTION_PASS_WITH_PARAMS(
     "regallocfast", "RegAllocFastPass",
     [](RegAllocFastPass::Options Opts) { return RegAllocFastPass(Opts); },
@@ -258,7 +266,6 @@ DUMMY_MACHINE_FUNCTION_PASS("machine-combiner", MachineCombinerPass)
 DUMMY_MACHINE_FUNCTION_PASS("static-data-splitter", StaticDataSplitter)
 DUMMY_MACHINE_FUNCTION_PASS("machine-function-splitter", MachineFunctionSplitterPass)
 DUMMY_MACHINE_FUNCTION_PASS("machine-sanmd", MachineSanitizerBinaryMetadata)
-DUMMY_MACHINE_FUNCTION_PASS("machine-sink", MachineSinkingPass)
 DUMMY_MACHINE_FUNCTION_PASS("machine-uniformity", MachineUniformityInfoWrapperPass)
 DUMMY_MACHINE_FUNCTION_PASS("machineinstr-printer", MachineFunctionPrinterPass)
 DUMMY_MACHINE_FUNCTION_PASS("mirfs-discriminators", MIRAddFSDiscriminatorsPass)
@@ -275,7 +282,6 @@ DUMMY_MACHINE_FUNCTION_PASS("regalloc", RegAllocPass)
 DUMMY_MACHINE_FUNCTION_PASS("regallocscoringpass", RegAllocScoringPass)
 DUMMY_MACHINE_FUNCTION_PASS("regbankselect", RegBankSelectPass)
 DUMMY_MACHINE_FUNCTION_PASS("remove-loads-into-fake-uses", RemoveLoadsIntoFakeUsesPass)
-DUMMY_MACHINE_FUNCTION_PASS("removeredundantdebugvalues", RemoveRedundantDebugValuesPass)
 DUMMY_MACHINE_FUNCTION_PASS("reset-machine-function", ResetMachineFunctionPass)
 DUMMY_MACHINE_FUNCTION_PASS("shrink-wrap", ShrinkWrapPass)
 DUMMY_MACHINE_FUNCTION_PASS("stack-frame-layout", StackFrameLayoutAnalysisPass)

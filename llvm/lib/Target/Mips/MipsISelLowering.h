@@ -874,6 +874,8 @@ extern bool LargeCapTable;
                       bool ForCodeSize) const override;
 
     unsigned getJumpTableEncoding() const override;
+    SDValue getPICJumpTableRelocBase(SDValue Table,
+                                     SelectionDAG &DAG) const override;
     bool useSoftFloat() const override;
 
     bool shouldInsertFencesForAtomic(const Instruction *I) const override {

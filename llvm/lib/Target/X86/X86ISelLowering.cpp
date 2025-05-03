@@ -56377,6 +56377,7 @@ static SDValue combineGatherScatter(SDNode *N, SelectionDAG &DAG,
   SDValue Index = GorS->getIndex();
   SDValue Base = GorS->getBasePtr();
   SDValue Scale = GorS->getScale();
+  EVT IndexVT = Index.getValueType();
   const TargetLowering &TLI = DAG.getTargetLoweringInfo();
 
   if (DCI.isBeforeLegalize()) {
@@ -56392,7 +56393,7 @@ static SDValue combineGatherScatter(SDNode *N, SelectionDAG &DAG,
     if (auto *BV = dyn_cast<BuildVectorSDNode>(Index)) {
       if (BV->isConstant() && IndexWidth > 32 &&
           DAG.ComputeNumSignBits(Index) > (IndexWidth - 32)) {
-        EVT NewVT = Index.getValueType().changeVectorElementType(MVT::i32);
+        EVT NewVT = IndexVT.changeVectorElementType(MVT::i32);
         Index = DAG.getNode(ISD::TRUNCATE, DL, NewVT, Index);
         return rebuildGatherScatter(GorS, Index, Base, Scale, DAG);
       }
@@ -56406,7 +56407,7 @@ static SDValue combineGatherScatter(SDNode *N, SelectionDAG &DAG,
         IndexWidth > 32 &&
         Index.getOperand(0).getScalarValueSizeInBits() <= 32 &&
         DAG.ComputeNumSignBits(Index) > (IndexWidth - 32)) {
-      EVT NewVT = Index.getValueType().changeVectorElementType(MVT::i32);
+      EVT NewVT = IndexVT.changeVectorElementType(MVT::i32);
       Index = DAG.getNode(ISD::TRUNCATE, DL, NewVT, Index);
       return rebuildGatherScatter(GorS, Index, Base, Scale, DAG);
     }
@@ -56418,8 +56419,7 @@ static SDValue combineGatherScatter(SDNode *N, SelectionDAG &DAG,
   // this when index element type is the same as the pointer type.
   // Otherwise we need to be sure the math doesn't wrap before the scale.
   if (Index.getOpcode() == ISD::ADD &&
-      Index.getValueType().getVectorElementType() == PtrVT &&
-      isa<ConstantSDNode>(Scale)) {
+      IndexVT.getVectorElementType() == PtrVT && isa<ConstantSDNode>(Scale)) {
     uint64_t ScaleAmt = Scale->getAsZExtVal();
     if (auto *BV = dyn_cast<BuildVectorSDNode>(Index.getOperand(1))) {
       BitVector UndefElts;
@@ -56440,13 +56440,11 @@ static SDValue combineGatherScatter(SDNode *N, SelectionDAG &DAG,
       // replace it with 0 and move the displacement into the index.
       if (BV->isConstant() && isa<ConstantSDNode>(Base) &&
           isOneConstant(Scale)) {
-        SDValue Splat = DAG.getSplatBuildVector(Index.getValueType(), DL, Base);
+        SDValue Splat = DAG.getSplatBuildVector(IndexVT, DL, Base);
         // Combine the constant build_vector and the constant base.
-        Splat = DAG.getNode(ISD::ADD, DL, Index.getValueType(),
-                            Index.getOperand(1), Splat);
+        Splat = DAG.getNode(ISD::ADD, DL, IndexVT, Index.getOperand(1), Splat);
         // Add to the LHS of the original Index add.
-        Index = DAG.getNode(ISD::ADD, DL, Index.getValueType(),
-                            Index.getOperand(0), Splat);
+        Index = DAG.getNode(ISD::ADD, DL, IndexVT, Index.getOperand(0), Splat);
         Base = DAG.getConstant(0, DL, Base.getValueType());
         return rebuildGatherScatter(GorS, Index, Base, Scale, DAG);
       }
@@ -56459,7 +56457,7 @@ static SDValue combineGatherScatter(SDNode *N, SelectionDAG &DAG,
     // Make sure the index is either i32 or i64
     if (IndexWidth != 32 && IndexWidth != 64) {
       MVT EltVT = IndexWidth > 32 ? MVT::i64 : MVT::i32;
-      EVT IndexVT = Index.getValueType().changeVectorElementType(EltVT);
+      IndexVT = IndexVT.changeVectorElementType(EltVT);
       Index = DAG.getSExtOrTrunc(Index, DL, IndexVT);
       return rebuildGatherScatter(GorS, Index, Base, Scale, DAG);
     }
@@ -57984,10 +57982,14 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
 
     switch (Op0.getOpcode()) {
     case ISD::VECTOR_SHUFFLE: {
-      // TODO: Relax VBMI requirement for repeated shuffle ops - currently
-      // limited to targets that should always have good cross lane shuffles.
-      if (!IsSplat && NumOps == 2 && VT.is256BitVector() &&
-          (EltSizeInBits >= 32 || Subtarget.hasInt256())) {
+      // TODO: Generalize NumOps support.
+      if (!IsSplat && NumOps == 2 &&
+          ((VT.is256BitVector() &&
+            (EltSizeInBits >= 32 || Subtarget.hasInt256())) ||
+           (VT.is512BitVector() && Subtarget.useAVX512Regs() &&
+            (EltSizeInBits >= 32 || Subtarget.hasVBMI2())))) {
+        // TODO: Relax VBMI requirement for repeated shuffle ops - currently
+        // limited to targets that should always have good cross lane shuffles.
         SDValue Concat0 = CombineSubOperand(VT, Ops, 0);
         SDValue Concat1 = CombineSubOperand(VT, Ops, 1);
         if (Concat0 || Concat1 ||
@@ -58013,6 +58015,7 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
       break;
     }
     case X86ISD::VBROADCAST: {
+      // TODO: 512-bit VBROADCAST concatenation.
       if (!IsSplat && llvm::all_of(Ops, [](SDValue Op) {
             return Op.getOperand(0).getValueType().is128BitVector();
           })) {
@@ -58039,7 +58042,7 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
       break;
     }
     case X86ISD::SHUFP: {
-      // Add SHUFPD support if/when necessary.
+      // TODO: Add SHUFPD support if/when necessary.
       if (!IsSplat &&
           (VT == MVT::v8f32 ||
            (VT == MVT::v16f32 && Subtarget.useAVX512Regs())) &&
@@ -58058,6 +58061,7 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
     }
     case X86ISD::UNPCKH:
     case X86ISD::UNPCKL: {
+      // TODO: UNPCK should use CombineSubOperand
       // Don't concatenate build_vector patterns.
       if (!IsSplat && EltSizeInBits >= 32 &&
           ((VT.is256BitVector() && Subtarget.hasInt256()) ||
@@ -58077,8 +58081,11 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
     case X86ISD::PSHUFHW:
     case X86ISD::PSHUFLW:
     case X86ISD::PSHUFD:
-      if (!IsSplat && NumOps == 2 && VT.is256BitVector() &&
-          Subtarget.hasInt256() && llvm::all_of(Ops, [Op0](SDValue Op) {
+      if (!IsSplat &&
+          ((VT.is256BitVector() && Subtarget.hasInt256()) ||
+           (VT.is512BitVector() && Subtarget.useAVX512Regs() &&
+            (EltSizeInBits >= 32 || Subtarget.useBWIRegs()))) &&
+          llvm::all_of(Ops, [Op0](SDValue Op) {
             return Op.getOperand(1) == Op0.getOperand(1);
           })) {
         return DAG.getNode(Op0.getOpcode(), DL, VT,
@@ -58098,6 +58105,7 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
             DAG.getNode(X86ISD::VPERMILPI, DL, FloatVT, Res, Op0.getOperand(1));
         return DAG.getBitcast(VT, Res);
       }
+      // TODO: v8f64 VPERMILPI concatenation.
       if (!IsSplat && NumOps == 2 && VT == MVT::v4f64) {
         uint64_t Idx0 = Ops[0].getConstantOperandVal(1);
         uint64_t Idx1 = Ops[1].getConstantOperandVal(1);
@@ -58259,7 +58267,7 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
     case ISD::ANY_EXTEND_VECTOR_INREG:
     case ISD::SIGN_EXTEND_VECTOR_INREG:
     case ISD::ZERO_EXTEND_VECTOR_INREG: {
-      // TODO: Handle ANY_EXTEND combos with SIGN/ZERO_EXTEND.
+      // TODO: Handle ANY_EXTEND_INREG combos with SIGN/ZERO_EXTEND_INREG.
       if (!IsSplat && NumOps == 2 &&
           ((VT.is256BitVector() && Subtarget.hasInt256()) ||
            (VT.is512BitVector() && Subtarget.useAVX512Regs() &&
@@ -58285,7 +58293,6 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
     case X86ISD::VSHLI:
     case X86ISD::VSRLI:
       // Special case: SHL/SRL AVX1 V4i64 by 32-bits can lower as a shuffle.
-      // TODO: Move this to LowerShiftByScalarImmediate?
       if (VT == MVT::v4i64 && !Subtarget.hasInt256() &&
           llvm::all_of(Ops, [](SDValue Op) {
             return Op.getConstantOperandAPInt(1) == 32;
@@ -58319,6 +58326,7 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
     case X86ISD::VPERMI:
     case X86ISD::VROTLI:
     case X86ISD::VROTRI:
+      // TODO: 256-bit VROT?I handling
       if (VT.is512BitVector() && Subtarget.useAVX512Regs() &&
           llvm::all_of(Ops, [Op0](SDValue Op) {
             return Op0.getOperand(1) == Op.getOperand(1);
@@ -58335,6 +58343,7 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
       if (!IsSplat && (VT.is256BitVector() ||
                        (VT.is512BitVector() && Subtarget.useAVX512Regs()))) {
         // Don't concatenate root AVX1 NOT patterns.
+        // TODO: Allow NOT folding if Concat0 succeeds.
         if (Op0.getOpcode() == ISD::XOR && Depth == 0 &&
             !Subtarget.hasInt256() && llvm::all_of(Ops, [](SDValue X) {
               return ISD::isBuildVectorAllOnes(X.getOperand(1).getNode());
@@ -58350,6 +58359,7 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
       break;
     case X86ISD::PCMPEQ:
     case X86ISD::PCMPGT:
+      // TODO: 512-bit PCMPEQ/PCMPGT -> VPCMP+VPMOVM2 handling.
       if (!IsSplat && VT.is256BitVector() && Subtarget.hasInt256()) {
         SDValue Concat0 = CombineSubOperand(VT, Ops, 0);
         SDValue Concat1 = CombineSubOperand(VT, Ops, 1);
@@ -58413,6 +58423,7 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
       }
       break;
     case X86ISD::GF2P8AFFINEQB:
+      // TODO: GF2P8AFFINEQB should use CombineSubOperand.
       if (!IsSplat &&
           (VT.is256BitVector() ||
            (VT.is512BitVector() && Subtarget.useAVX512Regs())) &&
@@ -58427,6 +58438,7 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
     case ISD::ADD:
     case ISD::SUB:
     case ISD::MUL:
+      // TODO: Add more integer binops?
       if (!IsSplat && ((VT.is256BitVector() && Subtarget.hasInt256()) ||
                        (VT.is512BitVector() && Subtarget.useAVX512Regs() &&
                         (EltSizeInBits >= 32 || Subtarget.useBWIRegs())))) {
@@ -58510,19 +58522,46 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
       }
       break;
     case X86ISD::BLENDI:
-      if (NumOps == 2 && VT.is512BitVector() && Subtarget.useBWIRegs()) {
-        unsigned NumElts = VT.getVectorNumElements();
-        APInt Mask = getBLENDIBlendMask(Ops[0]).zext(NumElts);
-        Mask.insertBits(getBLENDIBlendMask(Ops[1]), NumElts / 2);
-        MVT MaskSVT = MVT::getIntegerVT(NumElts);
-        MVT MaskVT = MVT::getVectorVT(MVT::i1, NumElts);
-        SDValue Sel =
-            DAG.getBitcast(MaskVT, DAG.getConstant(Mask, DL, MaskSVT));
-        return DAG.getSelect(DL, VT, Sel, ConcatSubOperand(VT, Ops, 1),
-                             ConcatSubOperand(VT, Ops, 0));
+      if (VT.is256BitVector() && NumOps == 2 &&
+          (EltSizeInBits >= 32 ||
+           (Subtarget.hasInt256() &&
+            Ops[0].getOperand(2) == Ops[1].getOperand(2)))) {
+        SDValue Concat0 = CombineSubOperand(VT, Ops, 0);
+        SDValue Concat1 = CombineSubOperand(VT, Ops, 1);
+        if (Concat0 || Concat1) {
+          unsigned NumElts = VT.getVectorNumElements();
+          APInt Mask = getBLENDIBlendMask(Ops[0]).zext(NumElts);
+          Mask.insertBits(getBLENDIBlendMask(Ops[1]), NumElts / 2);
+          Mask = Mask.zextOrTrunc(8);
+          return DAG.getNode(Op0.getOpcode(), DL, VT,
+                             Concat0 ? Concat0 : ConcatSubOperand(VT, Ops, 0),
+                             Concat1 ? Concat1 : ConcatSubOperand(VT, Ops, 1),
+                             DAG.getTargetConstant(Mask, DL, MVT::i8));
+        }
+      }
+      // TODO: BWI targets should only use CombineSubOperand.
+      if (((VT.is256BitVector() && Subtarget.hasVLX()) ||
+           (VT.is512BitVector() && Subtarget.useAVX512Regs())) &&
+          (EltSizeInBits >= 32 || Subtarget.useBWIRegs())) {
+        SDValue Concat0 = CombineSubOperand(VT, Ops, 0);
+        SDValue Concat1 = CombineSubOperand(VT, Ops, 1);
+        if (Concat0 || Concat1 || Subtarget.useBWIRegs()) {
+          unsigned NumElts = VT.getVectorNumElements();
+          APInt Mask = getBLENDIBlendMask(Ops[0]).zext(NumElts);
+          for (unsigned I = 1; I != NumOps; ++I)
+            Mask.insertBits(getBLENDIBlendMask(Ops[I]), I * (NumElts / NumOps));
+          MVT MaskSVT = MVT::getIntegerVT(NumElts);
+          MVT MaskVT = MVT::getVectorVT(MVT::i1, NumElts);
+          SDValue Sel =
+              DAG.getBitcast(MaskVT, DAG.getConstant(Mask, DL, MaskSVT));
+          Concat0 = Concat0 ? Concat0 : ConcatSubOperand(VT, Ops, 0);
+          Concat1 = Concat1 ? Concat1 : ConcatSubOperand(VT, Ops, 1);
+          return DAG.getSelect(DL, VT, Sel, Concat1, Concat0);
+        }
       }
       break;
     case ISD::VSELECT:
+      // TODO: VSELECT should use CombineSubOperand.
       if (!IsSplat && Subtarget.hasAVX512() &&
           (VT.is256BitVector() ||
            (VT.is512BitVector() && Subtarget.useAVX512Regs())) &&
@@ -58540,6 +58579,7 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
       }
       [[fallthrough]];
     case X86ISD::BLENDV:
+        // TODO: BLENDV should use CombineSubOperand.
       if (!IsSplat && VT.is256BitVector() && NumOps == 2 &&
           (EltSizeInBits >= 32 || Subtarget.hasInt256()) &&
           IsConcatFree(VT, Ops, 1) && IsConcatFree(VT, Ops, 2)) {

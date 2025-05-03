@@ -810,7 +810,8 @@ void DwarfStreamer::emitDwarfDebugLocListsTableFragment(
 
 void DwarfStreamer::emitLineTableForUnit(
     const DWARFDebugLine::LineTable &LineTable, const CompileUnit &Unit,
-    OffsetsStringPool &DebugStrPool, OffsetsStringPool &DebugLineStrPool) {
+    OffsetsStringPool &DebugStrPool, OffsetsStringPool &DebugLineStrPool,
+    std::vector<uint64_t> *RowOffsets) {
   // Switch to the section where the table will be emitted into.
   MS->switchSection(MC->getObjectFileInfo()->getDwarfLineSection());
 
@@ -831,7 +832,7 @@ void DwarfStreamer::emitLineTableForUnit(
 
   // Emit rows.
   emitLineTableRows(LineTable, LineEndSym,
-                    Unit.getOrigUnit().getAddressByteSize());
+                    Unit.getOrigUnit().getAddressByteSize(), RowOffsets);
 }
 
 void DwarfStreamer::emitLineTablePrologue(const DWARFDebugLine::Prologue &P,
@@ -1037,7 +1038,7 @@ void DwarfStreamer::emitLineTableProloguePayload(
 
 void DwarfStreamer::emitLineTableRows(
     const DWARFDebugLine::LineTable &LineTable, MCSymbol *LineEndSym,
-    unsigned AddressByteSize) {
+    unsigned AddressByteSize, std::vector<uint64_t> *RowOffsets) {
 
   MCDwarfLineTableParams Params;
   Params.DWARF2LineOpcodeBase = LineTable.Prologue.OpcodeBase;
@@ -1069,6 +1070,11 @@ void DwarfStreamer::emitLineTableRows(
   unsigned RowsSinceLastSequence = 0;
 
   for (const DWARFDebugLine::Row &Row : LineTable.Rows) {
+    // If we're tracking row offsets, record the current section size as the
+    // offset of this row.
+    if (RowOffsets)
+      RowOffsets->push_back(LineSectionSize);
+
     int64_t AddressDelta;
     if (Address == -1ULL) {
       MS->emitIntValue(dwarf::DW_LNS_extended_op, 1);

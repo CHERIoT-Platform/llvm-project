@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "MCTargetDesc/MipsFixupKinds.h"
+#include "MCTargetDesc/MipsMCExpr.h"
 #include "MCTargetDesc/MipsMCTargetDesc.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -161,6 +162,28 @@ unsigned MipsELFObjectWriter::getRelocType(MCContext &Ctx,
   unsigned Kind = Fixup.getTargetKind();
   if (Kind >= FirstLiteralRelocationKind)
     return Kind - FirstLiteralRelocationKind;
+
+  switch (Target.getRefKind()) {
+  case MipsMCExpr::MEK_DTPREL:
+  case MipsMCExpr::MEK_DTPREL_HI:
+  case MipsMCExpr::MEK_DTPREL_LO:
+  case MipsMCExpr::MEK_TLSLDM:
+  case MipsMCExpr::MEK_TLSGD:
+  case MipsMCExpr::MEK_GOTTPREL:
+  case MipsMCExpr::MEK_TPREL_HI:
+  case MipsMCExpr::MEK_TPREL_LO:
+  case MipsMCExpr::MEK_CAPTAB_TLSGD_HI16:
+  case MipsMCExpr::MEK_CAPTAB_TLSGD_LO16:
+  case MipsMCExpr::MEK_CAPTAB_TLSLDM_HI16:
+  case MipsMCExpr::MEK_CAPTAB_TLSLDM_LO16:
+  case MipsMCExpr::MEK_CAPTAB_TPREL_HI16:
+  case MipsMCExpr::MEK_CAPTAB_TPREL_LO16:
+    if (auto *S = Target.getSymA())
+      cast<MCSymbolELF>(S->getSymbol()).setType(ELF::STT_TLS);
+    break;
+  default:
+    break;
+  }
 
   switch (Kind) {
   case FK_NONE:

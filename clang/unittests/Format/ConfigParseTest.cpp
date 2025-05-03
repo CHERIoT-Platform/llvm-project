@@ -910,6 +910,11 @@ TEST(ConfigParseTest, ParsesConfiguration) {
   CHECK_PARSE(
       "BasedOnStyle: LLVM", AttributeMacros,
       std::vector<std::string>({"__capability", "__sealed_capability"}));
+  CHECK_PARSE(
+      "BasedOnStyle: Google", AttributeMacros,
+      std::vector<std::string>({"__capability", "absl_nonnull", "absl_nullable",
+                                "absl_nullability_unknown"}));
+  Style.AttributeMacros.clear();
   CHECK_PARSE("AttributeMacros: [attr1, attr2]", AttributeMacros,
               std::vector<std::string>({"attr1", "attr2"}));
 

@@ -79,6 +79,8 @@ C++2c Feature Support
 
 - Implemented `P1061R10 Structured Bindings can introduce a Pack <https://wg21.link/P1061R10>`_.
 
+- Implemented `P0963R3 Structured binding declaration as a condition <https://wg21.link/P0963R3>`_.
+
 C++23 Feature Support
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -241,6 +243,9 @@ Improvements to Clang's diagnostics
   as function arguments or return value respectively. Note that
   :doc:`ThreadSafetyAnalysis` still does not perform alias analysis. The
   feature will be default-enabled with ``-Wthread-safety`` in a future release.
+- The ``-Wsign-compare`` warning now treats expressions with bitwise not(~) and minus(-) as signed integers 
+  except for the case where the operand is an unsigned integer
+  and throws warning if they are compared with unsigned integers (##18878).
 
 - Improve the diagnostics for chained comparisons to report actual expressions and operators (#GH129069).
 
@@ -295,6 +300,11 @@ Bug Fixes to C++ Support
   direct-list-initialized from an array is corrected to direct-initialization.
 - Clang no longer crashes when a coroutine is declared ``[[noreturn]]``. (#GH127327)
 - Clang now uses the parameter location for abbreviated function templates in ``extern "C"``. (#GH46386)
+- Clang will emit an error instead of crash when use co_await or co_yield in
+  C++26 braced-init-list template parameter initialization. (#GH78426)
+- Fixes matching of nested template template parameters. (#GH130362)
+- Correctly diagnoses template template paramters which have a pack parameter
+  not in the last position.
 - Clang now correctly parses ``if constexpr`` expressions in immediate function context. (#GH123524)
 
 Bug Fixes to AST Handling

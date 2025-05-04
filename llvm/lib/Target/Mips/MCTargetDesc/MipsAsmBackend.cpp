@@ -631,8 +631,8 @@ getFixupKindInfo(MCFixupKind Kind) const {
   if (Kind < FirstTargetFixupKind)
     return MCAsmBackend::getFixupKindInfo(Kind);
 
-  assert(unsigned(Kind - FirstTargetFixupKind) < getNumFixupKinds() &&
-          "Invalid kind!");
+  assert(unsigned(Kind - FirstTargetFixupKind) < Mips::NumTargetFixupKinds &&
+         "Invalid kind!");
 
   assert(Kind - FirstTargetFixupKind != Mips::fixup_CHERI_CAPABILITY);
 
@@ -662,10 +662,7 @@ bool MipsAsmBackend::writeNopData(raw_ostream &OS, uint64_t Count,
 bool MipsAsmBackend::shouldForceRelocation(const MCAssembler &Asm,
                                            const MCFixup &Fixup,
                                            const MCValue &Target,
-                                           const uint64_t,
                                            const MCSubtargetInfo *STI) {
-  if (Fixup.getKind() >= FirstLiteralRelocationKind)
-    return true;
   const unsigned FixupKind = Fixup.getKind();
   switch (FixupKind) {
   default:

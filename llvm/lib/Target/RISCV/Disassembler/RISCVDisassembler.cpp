@@ -740,12 +740,10 @@ static constexpr DecoderListEntry DecoderList32[]{
     {DecoderTableXCV32, XCVFeatureGroup, "CORE-V extensions"},
     {DecoderTableXqci32, XqciFeatureGroup, "Qualcomm uC Extensions"},
     {DecoderTableXRivos32, XRivosFeatureGroup, "Rivos"},
-    {DecoderTable32, {}, "RISCV32"},
-    {DecoderTableRV32GPRPair32, {}, "RV32GPRPair (rv32 and GPR pairs)"},
+    {DecoderTable32, {}, "standard 32-bit instructions"},
+    {DecoderTableRV32Only32, {}, "RV32-only standard 32-bit instructions"},
     {DecoderTableZfinx32, {}, "Zfinx (Float in Integer)"},
-    {DecoderTableZdinxRV32GPRPair32,
-     {},
-     "ZdinxRV32GPRPair (rv32 and Double in Integer)"},
+    {DecoderTableZdinxRV32Only32, {}, "RV32-only Zdinx (Double in Integer)"},
 };
 
 static constexpr DecoderListEntry DecoderList32_Not64Bit[]{
@@ -784,7 +782,7 @@ DecodeStatus RISCVDisassembler::getInstruction32(MCInst &MI, uint64_t &Size,
     if (!Entry.haveContainedFeatures(STI.getFeatureBits()))
       continue;
 
-    LLVM_DEBUG(dbgs() << "Trying " << Entry.Desc << "table:\n");
+    LLVM_DEBUG(dbgs() << "Trying " << Entry.Desc << " table:\n");
     DecodeStatus Result =
         decodeInstruction(Entry.Table, MI, Insn, Address, this, STI);
     if (Result == MCDisassembler::Fail)
@@ -798,7 +796,7 @@ DecodeStatus RISCVDisassembler::getInstruction32(MCInst &MI, uint64_t &Size,
 
 static constexpr DecoderListEntry DecoderList16[]{
     // Vendor Extensions
-    {DecoderTableXqci16, XqciFeatureGroup, "Qualcomm uC 16bit"},
+    {DecoderTableXqci16, XqciFeatureGroup, "Qualcomm uC 16-bit"},
     {DecoderTableXqccmp16,
      {RISCV::FeatureVendorXqccmp},
      "Xqccmp (Qualcomm 16-bit Push/Pop & Double Move Instructions)"},
@@ -806,9 +804,9 @@ static constexpr DecoderListEntry DecoderList16[]{
     {DecoderTableCapModeOnly_16, {}, "RISCV32Only_16"},
     // Standard Extensions
     // DecoderTableZicfiss16 must be checked before DecoderTable16.
-    {DecoderTableZicfiss16, {}, "RVZicfiss (Shadow Stack)"},
-    {DecoderTable16, {}, "RISCV_C (16-bit Instruction)"},
-    {DecoderTableRISCV32Only_16, {}, "RISCV32Only_16 (16-bit Instruction)"},
+    {DecoderTableZicfiss16, {}, "Zicfiss (Shadow Stack 16-bit)"},
+    {DecoderTable16, {}, "standard 16-bit instructions"},
+    {DecoderTableRV32Only16, {}, "RV32-only 16-bit instructions"},
     // Zc* instructions incompatible with Zcf or Zcd
     {DecoderTableZcOverlap16,
      {},
@@ -817,7 +815,6 @@ static constexpr DecoderListEntry DecoderList16[]{
 
 static constexpr DecoderListEntry DecoderList16_Not64Bit[]{
   {DecoderTableRISCV32CapModeOnly_16, {RISCV::FeatureCapMode}, "RISCV32CapModeOnly_16"},
-  {DecoderTableRISCV32Only_16, {}, "RISCV32Only_16"},
 };
 
 DecodeStatus RISCVDisassembler::getInstruction16(MCInst &MI, uint64_t &Size,

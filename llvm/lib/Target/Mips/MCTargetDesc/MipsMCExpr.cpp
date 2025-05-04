@@ -185,9 +185,6 @@ void MipsMCExpr::printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const {
 
 bool MipsMCExpr::evaluateAsRelocatableImpl(MCValue &Res, const MCAssembler *Asm,
                                            const MCFixup *Fixup) const {
-  bool isCapTableOff = isCaptableOff();
-  if (!Asm)
-    return false;
   // Look for the %hi(%neg(%gp_rel(X))) and %lo(%neg(%gp_rel(X))) special cases.
   if (isGpOff() || isCaptableOff()) {
     const MCExpr *SubExpr =

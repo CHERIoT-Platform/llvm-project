@@ -3132,7 +3132,7 @@ bool AsmParser::parseDirectiveReloc(SMLoc DirectiveLoc) {
       return true;
 
     MCValue Value;
-    if (!Expr->evaluateAsRelocatable(Value, nullptr, nullptr))
+    if (!Expr->evaluateAsRelocatable(Value, nullptr))
       return Error(ExprLoc, "expression must be relocatable");
   }
 

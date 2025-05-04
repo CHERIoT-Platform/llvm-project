@@ -610,7 +610,7 @@ public:
     if (!EmitJalrReloc)
       return false;
     MCValue Res;
-    if (!JalExpr->evaluateAsRelocatable(Res, nullptr, nullptr))
+    if (!JalExpr->evaluateAsRelocatable(Res, nullptr))
       return false;
     if (Res.getSymB() != nullptr)
       return false;
@@ -1403,7 +1403,7 @@ public:
          isShiftedInt<Bits, ShiftAmount>(getConstantMemOff())))
       return true;
     MCValue Res;
-    bool IsReloc = getMemOff()->evaluateAsRelocatable(Res, nullptr, nullptr);
+    bool IsReloc = getMemOff()->evaluateAsRelocatable(Res, nullptr);
     return IsReloc && isShiftedInt<Bits, ShiftAmount>(Res.getConstant());
   }
 
@@ -1417,7 +1417,7 @@ public:
         (isConstantMemOff() && isIntN(PtrBits, getConstantMemOff())))
       return true;
     MCValue Res;
-    bool IsReloc = getMemOff()->evaluateAsRelocatable(Res, nullptr, nullptr);
+    bool IsReloc = getMemOff()->evaluateAsRelocatable(Res, nullptr);
     return IsReloc && isIntN(PtrBits, Res.getConstant());
   }
 
@@ -1461,7 +1461,7 @@ public:
     MCValue Res;
     // FIXME: it would be nice to somehow get at the MCFixup here and check the
     // size using MCAsmBackend::getFixupKindInfo()
-    bool Success = getImm()->evaluateAsRelocatable(Res, nullptr, nullptr);
+    bool Success = getImm()->evaluateAsRelocatable(Res, nullptr);
     // FIXME: how can we get at the MCFixup object (to check size generically)?
     if (auto Expr = dyn_cast<MipsMCExpr>(getImm())) {
       // HACK: Check that only %captab and %capcall are allowed in clc / csc
@@ -3247,7 +3247,7 @@ bool MipsAsmParser::loadAndAddSymbolAddress(const MCExpr *SymExpr,
 
   if (inPicMode()) {
     MCValue Res;
-    if (!SymExpr->evaluateAsRelocatable(Res, nullptr, nullptr)) {
+    if (!SymExpr->evaluateAsRelocatable(Res, nullptr)) {
       Error(IDLoc, "expected relocatable expression");
       return true;
     }
@@ -4110,7 +4110,7 @@ void MipsAsmParser::expandMem16Inst(MCInst &Inst, SMLoc IDLoc, MCStreamer &Out,
       //    of R_MIPS_GOT_DISP in appropriate cases to reduce number
       //    of GOT entries.
       MCValue Res;
-      if (!OffsetOp.getExpr()->evaluateAsRelocatable(Res, nullptr, nullptr)) {
+      if (!OffsetOp.getExpr()->evaluateAsRelocatable(Res, nullptr)) {
         Error(IDLoc, "expected relocatable expression");
         return;
       }

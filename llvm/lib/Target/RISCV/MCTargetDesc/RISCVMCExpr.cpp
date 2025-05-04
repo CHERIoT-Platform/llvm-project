@@ -34,8 +34,8 @@ const RISCVMCExpr *RISCVMCExpr::create(const MCExpr *Expr, VariantKind Kind,
 
 void RISCVMCExpr::printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const {
   VariantKind Kind = getKind();
-  bool HasVariant = ((Kind != VK_RISCV_None) && (Kind != VK_RISCV_CALL) &&
-                     (Kind != VK_RISCV_CALL_PLT) && (Kind != VK_RISCV_CCALL));
+  bool HasVariant =
+      ((Kind != VK_None) && (Kind != VK_CALL) && (Kind != VK_CALL_PLT) && (Kind != VK_CCALL));
 
   if (HasVariant)
     OS << '%' << getVariantKindName(getKind()) << '(';
@@ -99,7 +99,7 @@ bool RISCVMCExpr::evaluateAsRelocatableImpl(MCValue &Res,
   Res =
       MCValue::get(Res.getSymA(), Res.getSymB(), Res.getConstant(), getKind());
   // Custom fixup types are not valid with symbol difference expressions.
-  return Res.getSymB() ? getKind() == VK_RISCV_None : true;
+  return Res.getSymB() ? getKind() == VK_None : true;
 }
 
 void RISCVMCExpr::visitUsedExpr(MCStreamer &Streamer) const {
@@ -108,87 +108,87 @@ void RISCVMCExpr::visitUsedExpr(MCStreamer &Streamer) const {
 
 RISCVMCExpr::VariantKind RISCVMCExpr::getVariantKindForName(StringRef name) {
   return StringSwitch<RISCVMCExpr::VariantKind>(name)
-      .Case("lo", VK_RISCV_LO)
-      .Case("hi", VK_RISCV_HI)
-      .Case("pcrel_lo", VK_RISCV_PCREL_LO)
-      .Case("pcrel_hi", VK_RISCV_PCREL_HI)
-      .Case("got_pcrel_hi", VK_RISCV_GOT_HI)
-      .Case("tprel_lo", VK_RISCV_TPREL_LO)
-      .Case("tprel_hi", VK_RISCV_TPREL_HI)
-      .Case("tprel_add", VK_RISCV_TPREL_ADD)
-      .Case("tls_ie_pcrel_hi", VK_RISCV_TLS_GOT_HI)
-      .Case("tls_gd_pcrel_hi", VK_RISCV_TLS_GD_HI)
-      .Case("tlsdesc_hi", VK_RISCV_TLSDESC_HI)
-      .Case("tlsdesc_load_lo", VK_RISCV_TLSDESC_LOAD_LO)
-      .Case("tlsdesc_add_lo", VK_RISCV_TLSDESC_ADD_LO)
-      .Case("tlsdesc_call", VK_RISCV_TLSDESC_CALL)
-      .Case("captab_pcrel_hi", VK_RISCV_CAPTAB_PCREL_HI)
-      .Case("tprel_cincoffset", VK_RISCV_TPREL_CINCOFFSET)
-      .Case("tls_ie_captab_pcrel_hi", VK_RISCV_TLS_IE_CAPTAB_PCREL_HI)
-      .Case("tls_gd_captab_pcrel_hi", VK_RISCV_TLS_GD_CAPTAB_PCREL_HI)
-      .Case("cheriot_compartment_hi", VK_RISCV_CHERIOT_COMPARTMENT_HI)
-      .Case("cheriot_compartment_lo_i", VK_RISCV_CHERIOT_COMPARTMENT_LO_I)
-      .Case("cheriot_compartment_lo_s", VK_RISCV_CHERIOT_COMPARTMENT_LO_S)
-      .Case("cheriot_compartment_size", VK_RISCV_CHERIOT_COMPARTMENT_SIZE)
-      .Default(VK_RISCV_Invalid);
+      .Case("lo", VK_LO)
+      .Case("hi", VK_HI)
+      .Case("pcrel_lo", VK_PCREL_LO)
+      .Case("pcrel_hi", VK_PCREL_HI)
+      .Case("got_pcrel_hi", VK_GOT_HI)
+      .Case("tprel_lo", VK_TPREL_LO)
+      .Case("tprel_hi", VK_TPREL_HI)
+      .Case("tprel_add", VK_TPREL_ADD)
+      .Case("tls_ie_pcrel_hi", VK_TLS_GOT_HI)
+      .Case("tls_gd_pcrel_hi", VK_TLS_GD_HI)
+      .Case("tlsdesc_hi", VK_TLSDESC_HI)
+      .Case("tlsdesc_load_lo", VK_TLSDESC_LOAD_LO)
+      .Case("tlsdesc_add_lo", VK_TLSDESC_ADD_LO)
+      .Case("tlsdesc_call", VK_TLSDESC_CALL)
+      .Case("captab_pcrel_hi", VK_CAPTAB_PCREL_HI)
+      .Case("tprel_cincoffset", VK_TPREL_CINCOFFSET)
+      .Case("tls_ie_captab_pcrel_hi", VK_TLS_IE_CAPTAB_PCREL_HI)
+      .Case("tls_gd_captab_pcrel_hi", VK_TLS_GD_CAPTAB_PCREL_HI)
+      .Case("cheriot_compartment_hi", VK_CHERIOT_COMPARTMENT_HI)
+      .Case("cheriot_compartment_lo_i", VK_CHERIOT_COMPARTMENT_LO_I)
+      .Case("cheriot_compartment_lo_s", VK_CHERIOT_COMPARTMENT_LO_S)
+      .Case("cheriot_compartment_size", VK_CHERIOT_COMPARTMENT_SIZE)
+      .Default(VK_Invalid);
 }
 
 StringRef RISCVMCExpr::getVariantKindName(VariantKind Kind) {
   switch (Kind) {
-  case VK_RISCV_Invalid:
-  case VK_RISCV_None:
+  case VK_Invalid:
+  case VK_None:
     llvm_unreachable("Invalid ELF symbol kind");
-  case VK_RISCV_LO:
+  case VK_LO:
     return "lo";
-  case VK_RISCV_HI:
+  case VK_HI:
     return "hi";
-  case VK_RISCV_PCREL_LO:
+  case VK_PCREL_LO:
     return "pcrel_lo";
-  case VK_RISCV_PCREL_HI:
+  case VK_PCREL_HI:
     return "pcrel_hi";
-  case VK_RISCV_GOT_HI:
+  case VK_GOT_HI:
     return "got_pcrel_hi";
-  case VK_RISCV_TPREL_LO:
+  case VK_TPREL_LO:
     return "tprel_lo";
-  case VK_RISCV_TPREL_HI:
+  case VK_TPREL_HI:
     return "tprel_hi";
-  case VK_RISCV_TPREL_ADD:
+  case VK_TPREL_ADD:
     return "tprel_add";
-  case VK_RISCV_TLS_GOT_HI:
+  case VK_TLS_GOT_HI:
     return "tls_ie_pcrel_hi";
-  case VK_RISCV_TLSDESC_HI:
+  case VK_TLSDESC_HI:
     return "tlsdesc_hi";
-  case VK_RISCV_TLSDESC_LOAD_LO:
+  case VK_TLSDESC_LOAD_LO:
     return "tlsdesc_load_lo";
-  case VK_RISCV_TLSDESC_ADD_LO:
+  case VK_TLSDESC_ADD_LO:
     return "tlsdesc_add_lo";
-  case VK_RISCV_TLSDESC_CALL:
+  case VK_TLSDESC_CALL:
     return "tlsdesc_call";
-  case VK_RISCV_TLS_GD_HI:
+  case VK_TLS_GD_HI:
     return "tls_gd_pcrel_hi";
-  case VK_RISCV_CAPTAB_PCREL_HI:
+  case VK_CAPTAB_PCREL_HI:
     return "captab_pcrel_hi";
-  case VK_RISCV_TPREL_CINCOFFSET:
+  case VK_TPREL_CINCOFFSET:
     return "tprel_cincoffset";
-  case VK_RISCV_TLS_IE_CAPTAB_PCREL_HI:
+  case VK_TLS_IE_CAPTAB_PCREL_HI:
     return "tls_ie_captab_pcrel_hi";
-  case VK_RISCV_TLS_GD_CAPTAB_PCREL_HI:
+  case VK_TLS_GD_CAPTAB_PCREL_HI:
     return "tls_gd_captab_pcrel_hi";
-  case VK_RISCV_CALL:
+  case VK_CALL:
     return "call";
-  case VK_RISCV_CALL_PLT:
+  case VK_CALL_PLT:
     return "call_plt";
-  case VK_RISCV_CCALL:
+  case VK_CCALL:
     return "ccall";
-  case VK_RISCV_CHERIOT_COMPARTMENT_HI:
+  case VK_CHERIOT_COMPARTMENT_HI:
     return "cheriot_compartment_hi";
-  case VK_RISCV_CHERIOT_COMPARTMENT_LO_I:
+  case VK_CHERIOT_COMPARTMENT_LO_I:
     return "cheriot_compartment_lo_i";
-  case VK_RISCV_CHERIOT_COMPARTMENT_LO_S:
+  case VK_CHERIOT_COMPARTMENT_LO_S:
     return "cheriot_compartment_lo_s";
-  case VK_RISCV_CHERIOT_COMPARTMENT_SIZE:
+  case VK_CHERIOT_COMPARTMENT_SIZE:
     return "cheriot_compartment_size";
-  case VK_RISCV_32_PCREL:
+  case VK_32_PCREL:
     return "32_pcrel";
   }
   llvm_unreachable("Invalid ELF symbol kind");
@@ -196,7 +196,7 @@ StringRef RISCVMCExpr::getVariantKindName(VariantKind Kind) {
 
 bool RISCVMCExpr::evaluateAsConstant(int64_t &Res) const {
   MCValue Value;
-  if (Kind != VK_RISCV_LO && Kind != VK_RISCV_HI)
+  if (Kind != VK_LO && Kind != VK_HI)
     return false;
 
   if (!getSubExpr()->evaluateAsRelocatable(Value, nullptr))
@@ -213,9 +213,9 @@ int64_t RISCVMCExpr::evaluateAsInt64(int64_t Value) const {
   switch (Kind) {
   default:
     llvm_unreachable("Invalid kind");
-  case VK_RISCV_LO:
+  case VK_LO:
     return SignExtend64<12>(Value);
-  case VK_RISCV_HI:
+  case VK_HI:
     // Add 1 if bit 11 is 1, to compensate for low 12 bits being negative.
     return ((Value + 0x800) >> 12) & 0xfffff;
   }

@@ -232,7 +232,7 @@ void RISCVMCCodeEmitter::expandAddTPRel(const MCInst &MI,
          "Expected expression as third input to TP-relative add");
 
   const RISCVMCExpr *Expr = dyn_cast<RISCVMCExpr>(SrcSymbol.getExpr());
-  assert(Expr && Expr->getKind() == RISCVMCExpr::VK_RISCV_TPREL_ADD &&
+  assert(Expr && Expr->getKind() == RISCVMCExpr::VK_TPREL_ADD &&
          "Expected tprel_add relocation on TP-relative symbol");
 
   // Emit the correct tprel_add relocation for the symbol.
@@ -271,7 +271,7 @@ void RISCVMCCodeEmitter::expandCIncOffsetTPRel(
          "Expected expression as third input to CTP-relative cincoffset");
 
   const RISCVMCExpr *Expr = dyn_cast<RISCVMCExpr>(SrcSymbol.getExpr());
-  assert(Expr && Expr->getKind() == RISCVMCExpr::VK_RISCV_TPREL_CINCOFFSET &&
+  assert(Expr && Expr->getKind() == RISCVMCExpr::VK_TPREL_CINCOFFSET &&
          "Expected tprel_cincoffset relocation on CTP-relative symbol");
 
   // Emit the correct tprel_cincoffset relocation for the symbol.
@@ -525,117 +525,115 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
     const RISCVMCExpr *RVExpr = cast<RISCVMCExpr>(Expr);
 
     switch (RVExpr->getKind()) {
-    case RISCVMCExpr::VK_RISCV_None:
-    case RISCVMCExpr::VK_RISCV_Invalid:
-    case RISCVMCExpr::VK_RISCV_32_PCREL:
+    case RISCVMCExpr::VK_None:
+    case RISCVMCExpr::VK_Invalid:
+    case RISCVMCExpr::VK_32_PCREL:
       llvm_unreachable("Unhandled fixup kind!");
-    case RISCVMCExpr::VK_RISCV_TPREL_ADD:
+    case RISCVMCExpr::VK_TPREL_ADD:
       // tprel_add is only used to indicate that a relocation should be emitted
       // for an add instruction used in TP-relative addressing. It should not be
       // expanded as if representing an actual instruction operand and so to
       // encounter it here is an error.
       llvm_unreachable(
-          "VK_RISCV_TPREL_ADD should not represent an instruction operand");
-    case RISCVMCExpr::VK_RISCV_LO:
+          "VK_TPREL_ADD should not represent an instruction operand");
+    case RISCVMCExpr::VK_LO:
       if (MIFrm == RISCVII::InstFormatI)
         FixupKind = RISCV::fixup_riscv_lo12_i;
       else if (MIFrm == RISCVII::InstFormatS)
         FixupKind = RISCV::fixup_riscv_lo12_s;
       else
-        llvm_unreachable("VK_RISCV_LO used with unexpected instruction format");
+        llvm_unreachable("VK_LO used with unexpected instruction format");
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_HI:
+    case RISCVMCExpr::VK_HI:
       FixupKind = RISCV::fixup_riscv_hi20;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_PCREL_LO:
+    case RISCVMCExpr::VK_PCREL_LO:
       if (MIFrm == RISCVII::InstFormatI)
         FixupKind = RISCV::fixup_riscv_pcrel_lo12_i;
       else if (MIFrm == RISCVII::InstFormatS)
         FixupKind = RISCV::fixup_riscv_pcrel_lo12_s;
       else
-        llvm_unreachable(
-            "VK_RISCV_PCREL_LO used with unexpected instruction format");
+        llvm_unreachable("VK_PCREL_LO used with unexpected instruction format");
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_PCREL_HI:
+    case RISCVMCExpr::VK_PCREL_HI:
       FixupKind = RISCV::fixup_riscv_pcrel_hi20;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_GOT_HI:
+    case RISCVMCExpr::VK_GOT_HI:
       FixupKind = RISCV::fixup_riscv_got_hi20;
       break;
-    case RISCVMCExpr::VK_RISCV_TPREL_LO:
+    case RISCVMCExpr::VK_TPREL_LO:
       if (MIFrm == RISCVII::InstFormatI)
         FixupKind = RISCV::fixup_riscv_tprel_lo12_i;
       else if (MIFrm == RISCVII::InstFormatS)
         FixupKind = RISCV::fixup_riscv_tprel_lo12_s;
       else
-        llvm_unreachable(
-            "VK_RISCV_TPREL_LO used with unexpected instruction format");
+        llvm_unreachable("VK_TPREL_LO used with unexpected instruction format");
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_TPREL_HI:
+    case RISCVMCExpr::VK_TPREL_HI:
       FixupKind = RISCV::fixup_riscv_tprel_hi20;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_TLS_GOT_HI:
+    case RISCVMCExpr::VK_TLS_GOT_HI:
       FixupKind = RISCV::fixup_riscv_tls_got_hi20;
       break;
-    case RISCVMCExpr::VK_RISCV_TLS_GD_HI:
+    case RISCVMCExpr::VK_TLS_GD_HI:
       FixupKind = RISCV::fixup_riscv_tls_gd_hi20;
       break;
-    case RISCVMCExpr::VK_RISCV_CALL:
+    case RISCVMCExpr::VK_CALL:
       FixupKind = RISCV::fixup_riscv_call;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_CALL_PLT:
+    case RISCVMCExpr::VK_CALL_PLT:
       FixupKind = RISCV::fixup_riscv_call_plt;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_TLSDESC_HI:
+    case RISCVMCExpr::VK_TLSDESC_HI:
       FixupKind = RISCV::fixup_riscv_tlsdesc_hi20;
       break;
-    case RISCVMCExpr::VK_RISCV_TLSDESC_LOAD_LO:
+    case RISCVMCExpr::VK_TLSDESC_LOAD_LO:
       FixupKind = RISCV::fixup_riscv_tlsdesc_load_lo12;
       break;
-    case RISCVMCExpr::VK_RISCV_TLSDESC_ADD_LO:
+    case RISCVMCExpr::VK_TLSDESC_ADD_LO:
       FixupKind = RISCV::fixup_riscv_tlsdesc_add_lo12;
       break;
-    case RISCVMCExpr::VK_RISCV_TLSDESC_CALL:
+    case RISCVMCExpr::VK_TLSDESC_CALL:
       FixupKind = RISCV::fixup_riscv_tlsdesc_call;
       break;
-    case RISCVMCExpr::VK_RISCV_CAPTAB_PCREL_HI:
+    case RISCVMCExpr::VK_CAPTAB_PCREL_HI:
       FixupKind = RISCV::fixup_riscv_captab_pcrel_hi20;
       break;
-    case RISCVMCExpr::VK_RISCV_TPREL_CINCOFFSET:
-      // See VK_RISCV_TPREL_ADD.
+    case RISCVMCExpr::VK_TPREL_CINCOFFSET:
+      // See VK_TPREL_ADD.
       llvm_unreachable(
-          "VK_RISCV_TPREL_CINCOFFSET should not represent an instruction operand");
-    case RISCVMCExpr::VK_RISCV_TLS_IE_CAPTAB_PCREL_HI:
+          "VK_TPREL_CINCOFFSET should not represent an instruction operand");
+    case RISCVMCExpr::VK_TLS_IE_CAPTAB_PCREL_HI:
       FixupKind = RISCV::fixup_riscv_tls_ie_captab_pcrel_hi20;
       break;
-    case RISCVMCExpr::VK_RISCV_TLS_GD_CAPTAB_PCREL_HI:
+    case RISCVMCExpr::VK_TLS_GD_CAPTAB_PCREL_HI:
       FixupKind = RISCV::fixup_riscv_tls_gd_captab_pcrel_hi20;
       break;
-    case RISCVMCExpr::VK_RISCV_CCALL:
+    case RISCVMCExpr::VK_CCALL:
       FixupKind = RISCV::fixup_riscv_ccall;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_HI:
+    case RISCVMCExpr::VK_CHERIOT_COMPARTMENT_HI:
       FixupKind = RISCV::fixup_riscv_cheriot_compartment_hi;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_LO_I:
+    case RISCVMCExpr::VK_CHERIOT_COMPARTMENT_LO_I:
       FixupKind = RISCV::fixup_riscv_cheriot_compartment_lo_i;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_LO_S:
+    case RISCVMCExpr::VK_CHERIOT_COMPARTMENT_LO_S:
       FixupKind = RISCV::fixup_riscv_cheriot_compartment_lo_s;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_RISCV_CHERIOT_COMPARTMENT_SIZE:
+    case RISCVMCExpr::VK_CHERIOT_COMPARTMENT_SIZE:
       FixupKind = RISCV::fixup_riscv_cheriot_compartment_size;
       break;
     }

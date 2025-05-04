@@ -23,34 +23,34 @@ class StringRef;
 class RISCVMCExpr : public MCTargetExpr {
 public:
   enum VariantKind {
-    VK_RISCV_None,
-    VK_RISCV_LO,
-    VK_RISCV_HI,
-    VK_RISCV_PCREL_LO,
-    VK_RISCV_PCREL_HI,
-    VK_RISCV_GOT_HI,
-    VK_RISCV_TPREL_LO,
-    VK_RISCV_TPREL_HI,
-    VK_RISCV_TPREL_ADD,
-    VK_RISCV_TLS_GOT_HI,
-    VK_RISCV_TLS_GD_HI,
-    VK_RISCV_CALL,
-    VK_RISCV_CALL_PLT,
-    VK_RISCV_32_PCREL,
-    VK_RISCV_TLSDESC_HI,
-    VK_RISCV_TLSDESC_LOAD_LO,
-    VK_RISCV_TLSDESC_ADD_LO,
-    VK_RISCV_TLSDESC_CALL,
-    VK_RISCV_CAPTAB_PCREL_HI,
-    VK_RISCV_TPREL_CINCOFFSET,
-    VK_RISCV_TLS_IE_CAPTAB_PCREL_HI,
-    VK_RISCV_TLS_GD_CAPTAB_PCREL_HI,
-    VK_RISCV_CCALL,
-    VK_RISCV_CHERIOT_COMPARTMENT_HI,
-    VK_RISCV_CHERIOT_COMPARTMENT_LO_I,
-    VK_RISCV_CHERIOT_COMPARTMENT_LO_S,
-    VK_RISCV_CHERIOT_COMPARTMENT_SIZE,
-    VK_RISCV_Invalid // Must be the last item
+    VK_None,
+    VK_LO,
+    VK_HI,
+    VK_PCREL_LO,
+    VK_PCREL_HI,
+    VK_GOT_HI,
+    VK_TPREL_LO,
+    VK_TPREL_HI,
+    VK_TPREL_ADD,
+    VK_TLS_GOT_HI,
+    VK_TLS_GD_HI,
+    VK_CALL,
+    VK_CALL_PLT,
+    VK_32_PCREL,
+    VK_TLSDESC_HI,
+    VK_TLSDESC_LOAD_LO,
+    VK_TLSDESC_ADD_LO,
+    VK_TLSDESC_CALL,
+    VK_CAPTAB_PCREL_HI,
+    VK_TPREL_CINCOFFSET,
+    VK_TLS_IE_CAPTAB_PCREL_HI,
+    VK_TLS_GD_CAPTAB_PCREL_HI,
+    VK_CCALL,
+    VK_CHERIOT_COMPARTMENT_HI,
+    VK_CHERIOT_COMPARTMENT_LO_I,
+    VK_CHERIOT_COMPARTMENT_LO_S,
+    VK_CHERIOT_COMPARTMENT_SIZE,
+    VK_Invalid // Must be the last item
   };
 
 private:
@@ -70,10 +70,10 @@ public:
 
   const MCExpr *getSubExpr() const { return Expr; }
 
-  /// Get the corresponding PC-relative HI fixup that a VK_RISCV_PCREL_LO
+  /// Get the corresponding PC-relative HI fixup that a VK_PCREL_LO
   /// points to, and optionally the fragment containing it.
   ///
-  /// \returns nullptr if this isn't a VK_RISCV_PCREL_LO pointing to a
+  /// \returns nullptr if this isn't a VK_PCREL_LO pointing to a
   /// known PC-relative HI fixup.
   const MCFixup *getPCRelHiFixup(const MCFragment **DFOut) const;
 

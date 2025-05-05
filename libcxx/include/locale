@@ -3158,7 +3158,7 @@ public:
   }
   _LIBCPP_HIDE_FROM_ABI wide_string from_bytes(const char* __first, const char* __last);
 
-  _LIBCPP_HIDE_FROM_ABI byte_string to_bytes(_Elem __wchar) { return to_bytes(&__wchar, &__wchar + 1); }
+  _LIBCPP_HIDE_FROM_ABI byte_string to_bytes(_Elem __wchar) { return to_bytes(std::addressof(__wchar), std::addressof(__wchar) + 1); }
   _LIBCPP_HIDE_FROM_ABI byte_string to_bytes(const _Elem* __wptr) {
     return to_bytes(__wptr, __wptr + char_traits<_Elem>::length(__wptr));
   }
@@ -3431,7 +3431,7 @@ typename wbuffer_convert<_Codecvt, _Elem, _Tr>::int_type wbuffer_convert<_Codecv
   bool __initial = __read_mode();
   char_type __1buf;
   if (this->gptr() == 0)
-    this->setg(&__1buf, &__1buf + 1, &__1buf + 1);
+    this->setg(std::addressof(__1buf), std::addressof(__1buf) + 1, std::addressof(__1buf) + 1);
   const size_t __unget_sz = __initial ? 0 : std::min<size_t>((this->egptr() - this->eback()) / 2, 4);
   int_type __c            = traits_type::eof();
   if (this->gptr() == this->egptr()) {
@@ -3473,7 +3473,7 @@ typename wbuffer_convert<_Codecvt, _Elem, _Tr>::int_type wbuffer_convert<_Codecv
     }
   } else
     __c = *this->gptr();
-  if (this->eback() == &__1buf)
+  if (this->eback() == std::addressof(__1buf))
     this->setg(0, 0, 0);
   return __c;
 }
@@ -3509,7 +3509,7 @@ typename wbuffer_convert<_Codecvt, _Elem, _Tr>::int_type wbuffer_convert<_Codecv
   char_type* __epb_save = this->epptr();
   if (!traits_type::eq_int_type(__c, traits_type::eof())) {
     if (this->pptr() == 0)
-      this->setp(&__1buf, &__1buf + 1);
+      this->setp(std::addressof(__1buf), std::addressof(__1buf) + 1);
     *this->pptr() = traits_type::to_char_type(__c);
     this->pbump(1);
   }

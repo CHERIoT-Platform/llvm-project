@@ -746,7 +746,7 @@ Error RISCVISAInfo::checkDependency() {
   static constexpr StringLiteral XqciExts[] = {
       {"xqcia"},   {"xqciac"}, {"xqcibi"},  {"xqcibm"},  {"xqcicli"},
       {"xqcicm"},  {"xqcics"}, {"xqcicsr"}, {"xqciint"}, {"xqcili"},
-      {"xqcilia"}, {"xqcilo"}, {"xqcilsm"}, {"xqcisls"}};
+      {"xqcilia"}, {"xqcilo"}, {"xqcilsm"}, {"xqcisim"}, {"xqcisls"}};
   static constexpr StringLiteral ZcdOverlaps[] = {
       {"zcmt"}, {"zcmp"}, {"xqccmp"}, {"xqciac"}, {"xqcicm"}};
 
@@ -778,6 +778,14 @@ Error RISCVISAInfo::checkDependency() {
 
     if (Exts.count("zcb") != 0)
       return getIncompatibleError("xwchc", "zcb");
+  }
+
+  if (Exts.count("zclsd") != 0) {
+    if (XLen != 32)
+      return getError("'zclsd' is only supported for 'rv32'");
+
+    if (Exts.count("zcf") != 0)
+      return getIncompatibleError("zclsd", "zcf");
   }
 
   for (auto Ext : XqciExts)

@@ -542,6 +542,18 @@ public:
                Reg.RegNum);
   }
 
+  bool isGPRPairC() const {
+    return Kind == KindTy::Register &&
+           RISCVMCRegisterClasses[RISCV::GPRPairCRegClassID].contains(
+               Reg.RegNum);
+  }
+
+  bool isGPRPairNoX0() const {
+    return Kind == KindTy::Register &&
+           RISCVMCRegisterClasses[RISCV::GPRPairNoX0RegClassID].contains(
+               Reg.RegNum);
+  }
+
   bool isGPRF16() const {
     return Kind == KindTy::Register &&
            RISCVMCRegisterClasses[RISCV::GPRF16RegClassID].contains(Reg.RegNum);
@@ -3206,6 +3218,13 @@ bool RISCVAsmParser::parseInstruction(ParseInstructionInfo &Info,
       MAB.setForceRelocs();
     }
   }
+
+  // Apply mnemonic aliases because the destination mnemonic may have require
+  // custom operand parsing. The generic tblgen'erated code does this later, at
+  // the start of MatchInstructionImpl(), but that's too late for custom
+  // operand parsing.
+  const FeatureBitset &AvailableFeatures = getAvailableFeatures();
+  applyMnemonicAliases(Name, AvailableFeatures, 0);
 
   // First operand is token for instruction
   Operands.push_back(RISCVOperand::createToken(Name, NameLoc));

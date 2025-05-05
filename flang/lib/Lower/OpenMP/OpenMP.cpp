@@ -408,8 +408,7 @@ extractOmpDirective(const parser::OpenMPConstruct &ompConstruct) {
             return common::visit(
                 common::visitors{
                     [](const parser::OpenMPSimpleStandaloneConstruct &c) {
-                      return std::get<parser::OmpSimpleStandaloneDirective>(c.t)
-                          .v;
+                      return c.v.DirId();
                     },
                     [](const parser::OpenMPFlushConstruct &c) {
                       return llvm::omp::OMPD_flush;
@@ -763,7 +762,8 @@ static void threadPrivatizeVars(lower::AbstractConverter &converter,
         commonSyms.insert(common);
       }
       symThreadprivateValue = lower::genCommonBlockMember(
-          converter, currentLocation, *sym, commonThreadprivateValue);
+          converter, currentLocation, sym->GetUltimate(),
+          commonThreadprivateValue);
     } else {
       symThreadprivateValue = genThreadprivateOp(*sym);
     }
@@ -2249,6 +2249,16 @@ genTargetOp(lower::AbstractConverter &converter, lower::SymMap &symTable,
       fir::ExtendedValue dataExv = converter.getSymbolExtendedValue(sym);
       name << sym.name().ToString();
 
+      mlir::FlatSymbolRefAttr mapperId;
+      if (sym.GetType()->category() == semantics::DeclTypeSpec::TypeDerived) {
+        auto &typeSpec = sym.GetType()->derivedTypeSpec();
+        std::string mapperIdName = typeSpec.name().ToString() + ".default";
+        mapperIdName = converter.mangleName(mapperIdName, *typeSpec.GetScope());
+        if (converter.getModuleOp().lookupSymbol(mapperIdName))
+          mapperId = mlir::FlatSymbolRefAttr::get(&converter.getMLIRContext(),
+                                                  mapperIdName);
+      }
+
       fir::factory::AddrAndBoundsInfo info =
           Fortran::lower::getDataOperandBaseAddr(
               converter, firOpBuilder, sym, converter.getCurrentLocation());
@@ -2307,7 +2317,7 @@ genTargetOp(lower::AbstractConverter &converter, lower::SymMap &symTable,
           static_cast<
               std::underlying_type_t<llvm::omp::OpenMPOffloadMappingFlags>>(
               mapFlag),
-          captureKind, baseOp.getType());
+          captureKind, baseOp.getType(), /*partialMap=*/false, mapperId);
 
       clauseOps.mapVars.push_back(mapOp);
       mapSyms.push_back(&sym);
@@ -2549,7 +2559,7 @@ static void genStandaloneDistribute(lower::AbstractConverter &converter,
 
   DataSharingProcessor dsp(converter, semaCtx, item->clauses, eval,
                            /*shouldCollectPreDeterminedSymbols=*/true,
-                           enableDelayedPrivatizationStaging, symTable);
+                           enableDelayedPrivatization, symTable);
   dsp.processStep1(&distributeClauseOps);
 
   mlir::omp::LoopNestOperands loopNestClauseOps;
@@ -3286,14 +3296,12 @@ static void genOMP(lower::AbstractConverter &converter, lower::SymMap &symTable,
 // OpenMPStandaloneConstruct visitors
 //===----------------------------------------------------------------------===//
 
-static void genOMP(
-    lower::AbstractConverter &converter, lower::SymMap &symTable,
-    semantics::SemanticsContext &semaCtx, lower::pft::Evaluation &eval,
-    const parser::OpenMPSimpleStandaloneConstruct &simpleStandaloneConstruct) {
-  const auto &directive = std::get<parser::OmpSimpleStandaloneDirective>(
-      simpleStandaloneConstruct.t);
-  List<Clause> clauses = makeClauses(
-      std::get<parser::OmpClauseList>(simpleStandaloneConstruct.t), semaCtx);
+static void genOMP(lower::AbstractConverter &converter, lower::SymMap &symTable,
+                   semantics::SemanticsContext &semaCtx,
+                   lower::pft::Evaluation &eval,
+                   const parser::OpenMPSimpleStandaloneConstruct &construct) {
+  const auto &directive = std::get<parser::OmpDirectiveName>(construct.v.t);
+  List<Clause> clauses = makeClauses(construct.v.Clauses(), semaCtx);
   mlir::Location currentLocation = converter.genLocation(directive.source);
 
   ConstructQueue queue{

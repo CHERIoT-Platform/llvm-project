@@ -211,7 +211,7 @@ public:
     }
     case RISCV::AUIPC:
       setGPRState(Inst.getOperand(0).getReg(),
-                  Addr + (Inst.getOperand(1).getImm() << 12));
+                  Addr + SignExtend64<32>(Inst.getOperand(1).getImm() << 12));
       break;
     }
   }

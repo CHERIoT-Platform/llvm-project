@@ -616,6 +616,11 @@ public:
     }
   }
 
+  unsigned getVectorIdxWidth(const DataLayout &DL) const override {
+    // The VectorIdx type is i64, with both normal and ilp32.
+    return 64;
+  }
+
   MVT getPointerRangeTy(const DataLayout &DL, uint32_t AS = 0) const override {
     // See getPointerTy above.
     return MVT::getIntegerVT(64);

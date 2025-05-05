@@ -3176,7 +3176,7 @@ bool IRTranslator::translateInsertElement(const User &U,
   Register Res = getOrCreateVReg(U);
   Register Val = getOrCreateVReg(*U.getOperand(0));
   Register Elt = getOrCreateVReg(*U.getOperand(1));
-  unsigned PreferredVecIdxWidth = TLI->getVectorIdxTy(*DL).getSizeInBits();
+  unsigned PreferredVecIdxWidth = TLI->getVectorIdxWidth(*DL);
   Register Idx;
   if (auto *CI = dyn_cast<ConstantInt>(U.getOperand(2))) {
     if (CI->getBitWidth() != PreferredVecIdxWidth) {
@@ -3202,7 +3202,7 @@ bool IRTranslator::translateInsertVector(const User &U,
   Register Elt = getOrCreateVReg(*U.getOperand(1));
 
   ConstantInt *CI = cast<ConstantInt>(U.getOperand(2));
-  unsigned PreferredVecIdxWidth = TLI->getVectorIdxTy(*DL).getSizeInBits();
+  unsigned PreferredVecIdxWidth = TLI->getVectorIdxWidth(*DL);
 
   // Resize Index to preferred index width.
   if (CI->getBitWidth() != PreferredVecIdxWidth) {
@@ -3257,7 +3257,7 @@ bool IRTranslator::translateExtractElement(const User &U,
 
   Register Res = getOrCreateVReg(U);
   Register Val = getOrCreateVReg(*U.getOperand(0));
-  unsigned PreferredVecIdxWidth = TLI->getVectorIdxTy(*DL).getSizeInBits();
+  unsigned PreferredVecIdxWidth = TLI->getVectorIdxWidth(*DL);
   Register Idx;
   if (auto *CI = dyn_cast<ConstantInt>(U.getOperand(1))) {
     if (CI->getBitWidth() != PreferredVecIdxWidth) {
@@ -3281,7 +3281,7 @@ bool IRTranslator::translateExtractVector(const User &U,
   Register Res = getOrCreateVReg(U);
   Register Vec = getOrCreateVReg(*U.getOperand(0));
   ConstantInt *CI = cast<ConstantInt>(U.getOperand(1));
-  unsigned PreferredVecIdxWidth = TLI->getVectorIdxTy(*DL).getSizeInBits();
+  unsigned PreferredVecIdxWidth = TLI->getVectorIdxWidth(*DL);
 
   // Resize Index to preferred index width.
   if (CI->getBitWidth() != PreferredVecIdxWidth) {

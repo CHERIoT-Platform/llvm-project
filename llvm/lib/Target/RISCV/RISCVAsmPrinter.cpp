@@ -1102,7 +1102,7 @@ void RISCVAsmPrinter::EmitHwasanMemaccessSymbols(Module &M) {
 static MCOperand lowerSymbolOperand(const MachineOperand &MO, MCSymbol *Sym,
                                     const AsmPrinter &AP) {
   MCContext &Ctx = AP.OutContext;
-  RISCVMCExpr::VariantKind Kind;
+  RISCVMCExpr::Specifier Kind;
 
   switch (MO.getTargetFlags() & ~RISCVII::MO_JUMP_TABLE_BASE) {
   default:

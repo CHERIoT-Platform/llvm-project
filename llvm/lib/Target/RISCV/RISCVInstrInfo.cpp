@@ -100,13 +100,13 @@ MCInst RISCVInstrInfo::getNop() const {
 
 Register RISCVInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
                                              int &FrameIndex) const {
-  unsigned Dummy;
+  TypeSize Dummy = TypeSize::getZero();
   return isLoadFromStackSlot(MI, FrameIndex, Dummy);
 }
 
 Register RISCVInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
                                              int &FrameIndex,
-                                             unsigned &MemBytes) const {
+                                             TypeSize &MemBytes) const {
   switch (MI.getOpcode()) {
   default:
     return 0;
@@ -114,7 +114,7 @@ Register RISCVInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
   case RISCV::LBU:
   case RISCV::CLB:
   case RISCV::CLBU:
-    MemBytes = 1;
+    MemBytes = TypeSize::getFixed(1);
     break;
   case RISCV::LH:
   case RISCV::LH_INX:
@@ -122,7 +122,7 @@ Register RISCVInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
   case RISCV::FLH:
   case RISCV::CLH:
   case RISCV::CLHU:
-    MemBytes = 2;
+    MemBytes = TypeSize::getFixed(2);
     break;
   case RISCV::LW:
   case RISCV::LW_INX:
@@ -131,7 +131,7 @@ Register RISCVInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
   case RISCV::CLW:
   case RISCV::CFLW:
   case RISCV::CLWU:
-    MemBytes = 4;
+    MemBytes = TypeSize::getFixed(4);
     break;
   case RISCV::LD:
   case RISCV::FLD:
@@ -139,7 +139,7 @@ Register RISCVInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
   case RISCV::CLD:
   case RISCV::CFLD:
   case RISCV::CLC_64:
-    MemBytes = 8;
+    MemBytes = TypeSize::getFixed(8);
     break;
   case RISCV::CLC_128:
   case RISCV::LC_128:
@@ -158,32 +158,32 @@ Register RISCVInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
 
 Register RISCVInstrInfo::isStoreToStackSlot(const MachineInstr &MI,
                                             int &FrameIndex) const {
-  unsigned Dummy;
+  TypeSize Dummy = TypeSize::getZero();
   return isStoreToStackSlot(MI, FrameIndex, Dummy);
 }
 
 Register RISCVInstrInfo::isStoreToStackSlot(const MachineInstr &MI,
                                             int &FrameIndex,
-                                            unsigned &MemBytes) const {
+                                            TypeSize &MemBytes) const {
   switch (MI.getOpcode()) {
   default:
     return 0;
   case RISCV::SB:
   case RISCV::CSB:
-    MemBytes = 1;
+    MemBytes = TypeSize::getFixed(1);
     break;
   case RISCV::SH:
   case RISCV::SH_INX:
   case RISCV::FSH:
   case RISCV::CSH:
-    MemBytes = 2;
+    MemBytes = TypeSize::getFixed(2);
     break;
   case RISCV::SW:
   case RISCV::SW_INX:
   case RISCV::FSW:
   case RISCV::CSW:
   case RISCV::CFSW:
-    MemBytes = 4;
+    MemBytes = TypeSize::getFixed(4);
     break;
   case RISCV::SD:
   case RISCV::FSD:
@@ -191,12 +191,12 @@ Register RISCVInstrInfo::isStoreToStackSlot(const MachineInstr &MI,
   case RISCV::CSD:
   case RISCV::CFSD:
   case RISCV::CSC_64:
-    MemBytes = 8;
+    MemBytes = TypeSize::getFixed(8);
     break;
   case RISCV::SC_128:
   case RISCV::CSC_128:
-      MemBytes = 16;
-      break;
+    MemBytes = TypeSize::getFixed(16);;
+    break;
   }
 
   if (MI.getOperand(1).isFI() && MI.getOperand(2).isImm() &&

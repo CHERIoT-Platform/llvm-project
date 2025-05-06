@@ -31,6 +31,7 @@
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/Support/BranchProbability.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/TypeSize.h"
 #include <array>
 #include <cassert>
 #include <cstddef>
@@ -320,8 +321,8 @@ public:
   /// what the load does.
   virtual Register isLoadFromStackSlot(const MachineInstr &MI,
                                        int &FrameIndex,
-                                       unsigned &MemBytes) const {
-    MemBytes = 0;
+                                       TypeSize &MemBytes) const {
+    MemBytes = TypeSize::getZero();
     return isLoadFromStackSlot(MI, FrameIndex);
   }
 
@@ -358,8 +359,8 @@ public:
   /// what the store does.
   virtual Register isStoreToStackSlot(const MachineInstr &MI,
                                       int &FrameIndex,
-                                      unsigned &MemBytes) const {
-    MemBytes = 0;
+                                      TypeSize &MemBytes) const {
+    MemBytes = TypeSize::getZero();
     return isStoreToStackSlot(MI, FrameIndex);
   }
 

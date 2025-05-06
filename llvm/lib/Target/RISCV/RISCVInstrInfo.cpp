@@ -143,7 +143,7 @@ Register RISCVInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
     break;
   case RISCV::CLC_128:
   case RISCV::LC_128:
-    MemBytes = 16;
+    MemBytes = TypeSize::getFixed(16);
     break;
   }
 

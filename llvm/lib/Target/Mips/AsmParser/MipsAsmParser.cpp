@@ -1056,7 +1056,7 @@ private:
 public:
   /// Coerce the register to Cheri capability register and return the real
   /// register for the current target.
-  unsigned getCheriReg() const {
+  MCRegister getCheriReg() const {
     assert(isRegIdx() && (RegIdx.Kind & RegKind_Cheri) && "Invalid access!");
     unsigned ClassID = Mips::CheriGPROrCNullRegClassID;
     assert(

@@ -10836,7 +10836,8 @@ void ASTReader::FinishedDeserializing() {
     {
       // Guard variable to avoid recursively entering the process of passing
       // decls to consumer.
-      SaveAndRestore GuardPassingDeclsToConsumer(CanPassDeclsToConsumer, false);
+      SaveAndRestore GuardPassingDeclsToConsumer(CanPassDeclsToConsumer,
+                                                 /*NewValue=*/false);
 
       // Propagate exception specification and deduced type updates along
       // redeclaration chains.

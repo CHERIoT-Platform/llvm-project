@@ -16,7 +16,7 @@ namespace llvm {
 
 class MipsMCExpr : public MCTargetExpr {
 public:
-  enum MipsExprKind {
+  enum Specifier {
     MEK_None,
     MEK_CALL_HI16,
     MEK_CALL_LO16,
@@ -67,22 +67,21 @@ public:
   };
 
 private:
-  const MipsExprKind Kind;
+  const Specifier specifier;
   const MCExpr *Expr;
 
-  explicit MipsMCExpr(MipsExprKind Kind, const MCExpr *Expr)
-      : Kind(Kind), Expr(Expr) {}
+  explicit MipsMCExpr(Specifier S, const MCExpr *Expr)
+      : specifier(S), Expr(Expr) {}
 
 public:
-  static const MipsMCExpr *create(MipsExprKind Kind, const MCExpr *Expr,
+  static const MipsMCExpr *create(Specifier S, const MCExpr *Expr,
                                   MCContext &Ctx);
-  static const MipsMCExpr *createGpOff(MipsExprKind Kind, const MCExpr *Expr,
+  static const MipsMCExpr *createGpOff(Specifier S, const MCExpr *Expr,
                                        MCContext &Ctx);
- static const MipsMCExpr *createCaptableOff(MipsExprKind Kind,
+ static const MipsMCExpr *createCaptableOff(Specifier Kind,
                                             const MCExpr *Expr, MCContext &Ctx);
 
-  /// Get the kind of this expression.
-  MipsExprKind getKind() const { return Kind; }
+  Specifier getSpecifier() const { return specifier; }
 
   /// Get the child of this expression.
   const MCExpr *getSubExpr() const { return Expr; }
@@ -100,18 +99,18 @@ public:
     return E->getKind() == MCExpr::Target;
   }
 
-  bool isGpOff(MipsExprKind &Kind) const { return isOffImpl(Kind, MEK_GPREL); }
+  bool isGpOff(Specifier &S) const { return isOffImpl(S, MEK_GPREL); }
   bool isGpOff() const {
-    MipsExprKind Kind;
-    return isGpOff(Kind);
+    Specifier S;
+    return isGpOff(S);
   }
 
   bool isCaptableOff() const {
-    MipsExprKind Kind;
-    return isOffImpl(Kind, MEK_CAPTABLEREL);
+    Specifier S;
+    return isOffImpl(S, MEK_CAPTABLEREL);
   }
 private:
-  bool isOffImpl(MipsExprKind &Kind, MipsExprKind Expected) const;
+  bool isOffImpl(Specifier &Kind, Specifier Expected) const;
 };
 
 } // end namespace llvm

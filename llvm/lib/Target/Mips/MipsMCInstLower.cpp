@@ -35,8 +35,7 @@ void MipsMCInstLower::Initialize(MCContext *C) {
 MCOperand MipsMCInstLower::LowerSymbolOperand(const MachineOperand &MO,
                                               MachineOperandType MOTy,
                                               int64_t Offset) const {
-  MCSymbolRefExpr::VariantKind Kind = MCSymbolRefExpr::VK_None;
-  MipsMCExpr::MipsExprKind TargetKind = MipsMCExpr::MEK_None;
+  MipsMCExpr::Specifier TargetKind = MipsMCExpr::MEK_None;
   bool IsGpOff = false;
   bool IsCapTableOff = false;
   const MCSymbol *Symbol;
@@ -224,7 +223,7 @@ MCOperand MipsMCInstLower::LowerSymbolOperand(const MachineOperand &MO,
     llvm_unreachable("<unknown operand type>");
   }
 
-  const MCExpr *Expr = MCSymbolRefExpr::create(Symbol, Kind, *Ctx);
+  const MCExpr *Expr = MCSymbolRefExpr::create(Symbol, *Ctx);
 
   if (Offset) {
     // Note: Offset can also be negative
@@ -271,7 +270,7 @@ MCOperand MipsMCInstLower::LowerOperand(const MachineOperand &MO,
 
 MCOperand MipsMCInstLower::createSub(MachineBasicBlock *BB1,
                                      MachineBasicBlock *BB2,
-                                     MipsMCExpr::MipsExprKind Kind) const {
+                                     MipsMCExpr::Specifier Kind) const {
   const MCSymbolRefExpr *Sym1 = MCSymbolRefExpr::create(BB1->getSymbol(), *Ctx);
   const MCSymbolRefExpr *Sym2 = MCSymbolRefExpr::create(BB2->getSymbol(), *Ctx);
   const MCBinaryExpr *Sub = MCBinaryExpr::createSub(Sym1, Sym2, *Ctx);
@@ -286,20 +285,20 @@ lowerLongBranchLUi(const MachineInstr *MI, MCInst &OutMI) const {
   // Lower register operand.
   OutMI.addOperand(LowerOperand(MI->getOperand(0)));
 
-  MipsMCExpr::MipsExprKind Kind;
+  MipsMCExpr::Specifier Spec;
   unsigned TargetFlags = MI->getOperand(1).getTargetFlags();
   switch (TargetFlags) {
   case MipsII::MO_HIGHEST:
-    Kind = MipsMCExpr::MEK_HIGHEST;
+    Spec = MipsMCExpr::MEK_HIGHEST;
     break;
   case MipsII::MO_HIGHER:
-    Kind = MipsMCExpr::MEK_HIGHER;
+    Spec = MipsMCExpr::MEK_HIGHER;
     break;
   case MipsII::MO_ABS_HI:
-    Kind = MipsMCExpr::MEK_HI;
+    Spec = MipsMCExpr::MEK_HI;
     break;
   case MipsII::MO_ABS_LO:
-    Kind = MipsMCExpr::MEK_LO;
+    Spec = MipsMCExpr::MEK_LO;
     break;
   default:
     report_fatal_error("Unexpected flags for lowerLongBranchLUi");
@@ -308,12 +307,12 @@ lowerLongBranchLUi(const MachineInstr *MI, MCInst &OutMI) const {
   if (MI->getNumOperands() == 2) {
     const MCExpr *Expr =
         MCSymbolRefExpr::create(MI->getOperand(1).getMBB()->getSymbol(), *Ctx);
-    const MipsMCExpr *MipsExpr = MipsMCExpr::create(Kind, Expr, *Ctx);
+    const MipsMCExpr *MipsExpr = MipsMCExpr::create(Spec, Expr, *Ctx);
     OutMI.addOperand(MCOperand::createExpr(MipsExpr));
   } else if (MI->getNumOperands() == 3) {
     // Create %hi($tgt-$baltgt).
     OutMI.addOperand(createSub(MI->getOperand(1).getMBB(),
-                               MI->getOperand(2).getMBB(), Kind));
+                               MI->getOperand(2).getMBB(), Spec));
   }
 }
 
@@ -321,20 +320,20 @@ void MipsMCInstLower::lowerLongBranchADDiu(const MachineInstr *MI,
                                            MCInst &OutMI, int Opcode) const {
   OutMI.setOpcode(Opcode);
 
-  MipsMCExpr::MipsExprKind Kind;
+  MipsMCExpr::Specifier Spec;
   unsigned TargetFlags = MI->getOperand(2).getTargetFlags();
   switch (TargetFlags) {
   case MipsII::MO_HIGHEST:
-    Kind = MipsMCExpr::MEK_HIGHEST;
+    Spec = MipsMCExpr::MEK_HIGHEST;
     break;
   case MipsII::MO_HIGHER:
-    Kind = MipsMCExpr::MEK_HIGHER;
+    Spec = MipsMCExpr::MEK_HIGHER;
     break;
   case MipsII::MO_ABS_HI:
-    Kind = MipsMCExpr::MEK_HI;
+    Spec = MipsMCExpr::MEK_HI;
     break;
   case MipsII::MO_ABS_LO:
-    Kind = MipsMCExpr::MEK_LO;
+    Spec = MipsMCExpr::MEK_LO;
     break;
   default:
     report_fatal_error("Unexpected flags for lowerLongBranchADDiu");
@@ -350,12 +349,12 @@ void MipsMCInstLower::lowerLongBranchADDiu(const MachineInstr *MI,
     // Lower register operand.
     const MCExpr *Expr =
         MCSymbolRefExpr::create(MI->getOperand(2).getMBB()->getSymbol(), *Ctx);
-    const MipsMCExpr *MipsExpr = MipsMCExpr::create(Kind, Expr, *Ctx);
+    const MipsMCExpr *MipsExpr = MipsMCExpr::create(Spec, Expr, *Ctx);
     OutMI.addOperand(MCOperand::createExpr(MipsExpr));
   } else if (MI->getNumOperands() == 4) {
     // Create %lo($tgt-$baltgt) or %hi($tgt-$baltgt).
     OutMI.addOperand(createSub(MI->getOperand(2).getMBB(),
-                               MI->getOperand(3).getMBB(), Kind));
+                               MI->getOperand(3).getMBB(), Spec));
   }
 }
 

@@ -1467,12 +1467,12 @@ public:
       // HACK: Check that only %captab and %capcall are allowed in clc / csc
       if (ShiftLeftAmount == 4) {
         if (Bits == 11) {
-          if (Expr->getKind() != MipsMCExpr::MEK_CAPTABLE11 &&
-              Expr->getKind() != MipsMCExpr::MEK_CAPCALL11)
+          if (Expr->getSpecifier() != MipsMCExpr::MEK_CAPTABLE11 &&
+              Expr->getSpecifier() != MipsMCExpr::MEK_CAPCALL11)
             return false;
         } else if (Bits == 16) {
-          if (Expr->getKind() != MipsMCExpr::MEK_CAPTABLE20 &&
-              Expr->getKind() != MipsMCExpr::MEK_CAPCALL20)
+          if (Expr->getSpecifier() != MipsMCExpr::MEK_CAPTABLE20 &&
+              Expr->getSpecifier() != MipsMCExpr::MEK_CAPCALL20)
             return false;
         }
       }
@@ -2491,8 +2491,8 @@ bool MipsAsmParser::processInstruction(MCInst &Inst, SMLoc IDLoc,
     if (Opnd.isExpr()) {
       ErrLoc = Opnd.getExpr()->getLoc();
       if (auto Expr = dyn_cast<MipsMCExpr>(Opnd.getExpr()))
-        ValidRelocation = Expr->getKind() == MipsMCExpr::MEK_CAPTABLE11 ||
-                          Expr->getKind() == MipsMCExpr::MEK_CAPCALL11;
+        ValidRelocation = Expr->getSpecifier() == MipsMCExpr::MEK_CAPTABLE11 ||
+                          Expr->getSpecifier() == MipsMCExpr::MEK_CAPCALL11;
     }
     if (!ValidRelocation && !Opnd.isImm())
       return Error(ErrLoc,
@@ -2507,8 +2507,8 @@ bool MipsAsmParser::processInstruction(MCInst &Inst, SMLoc IDLoc,
     if (Opnd.isExpr()) {
       ErrLoc = Opnd.getExpr()->getLoc();
       if (auto Expr = dyn_cast<MipsMCExpr>(Opnd.getExpr()))
-        ValidRelocation = Expr->getKind() == MipsMCExpr::MEK_CAPTABLE20 ||
-                          Expr->getKind() == MipsMCExpr::MEK_CAPCALL20;
+        ValidRelocation = Expr->getSpecifier() == MipsMCExpr::MEK_CAPTABLE20 ||
+                          Expr->getSpecifier() == MipsMCExpr::MEK_CAPCALL20;
     }
     if (!ValidRelocation && !Opnd.isImm())
       return Error(ErrLoc,
@@ -6915,7 +6915,7 @@ MCRegister MipsAsmParser::getReg(int RC, int RegNo) {
 // e.g. "%lo foo", "(%lo(foo))", "%lo(foo)+1".
 const MCExpr *MipsAsmParser::parseRelocExpr() {
   auto getOp = [](StringRef Op) {
-    return StringSwitch<MipsMCExpr::MipsExprKind>(Op)
+    return StringSwitch<MipsMCExpr::Specifier>(Op)
         .Case("call16", MipsMCExpr::MEK_GOT_CALL)
         .Case("call_hi", MipsMCExpr::MEK_CALL_HI16)
         .Case("call_lo", MipsMCExpr::MEK_CALL_LO16)
@@ -6964,7 +6964,7 @@ const MCExpr *MipsAsmParser::parseRelocExpr() {
   MCAsmParser &Parser = getParser();
   StringRef Name;
   const MCExpr *Res = nullptr;
-  SmallVector<MipsMCExpr::MipsExprKind, 0> Ops;
+  SmallVector<MipsMCExpr::Specifier, 0> Ops;
   while (parseOptionalToken(AsmToken::Percent)) {
     if (Parser.parseIdentifier(Name) ||
         Parser.parseToken(AsmToken::LParen, "expected '('"))

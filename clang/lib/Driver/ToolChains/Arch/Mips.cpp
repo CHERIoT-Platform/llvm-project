@@ -128,6 +128,8 @@ void mips::getMipsCPUAndABI(const ArgList &Args, const llvm::Triple &Triple,
                   .Case("mips64r6", "n64")
                   .Case("octeon", "n64")
                   .Case("p5600", "o32")
+                  .Case("i6400", "n64")
+                  .Case("i6500", "n64")
                   .Default("");
   }
 
@@ -565,5 +567,7 @@ bool mips::supportsIndirectJumpHazardBarrier(StringRef &CPU) {
       .Case("mips64r6", true)
       .Case("octeon", true)
       .Case("p5600", true)
+      .Case("i6400", true)
+      .Case("i6500", true)
       .Default(false);
 }

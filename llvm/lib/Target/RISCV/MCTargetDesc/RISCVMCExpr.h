@@ -50,7 +50,6 @@ public:
     VK_CHERIOT_COMPARTMENT_LO_I,
     VK_CHERIOT_COMPARTMENT_LO_S,
     VK_CHERIOT_COMPARTMENT_SIZE,
-    VK_Invalid // Must be the last item
   };
 
 private:
@@ -91,7 +90,7 @@ public:
     return E->getKind() == MCExpr::Target;
   }
 
-  static Specifier getSpecifierForName(StringRef name);
+  static std::optional<Specifier> getSpecifierForName(StringRef name);
   static StringRef getSpecifierName(Specifier Kind);
 };
 

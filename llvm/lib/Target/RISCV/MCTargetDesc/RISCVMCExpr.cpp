@@ -105,8 +105,9 @@ void RISCVMCExpr::visitUsedExpr(MCStreamer &Streamer) const {
   Streamer.visitUsedExpr(*getSubExpr());
 }
 
-RISCVMCExpr::Specifier RISCVMCExpr::getSpecifierForName(StringRef name) {
-  return StringSwitch<RISCVMCExpr::Specifier>(name)
+std::optional<RISCVMCExpr::Specifier>
+RISCVMCExpr::getSpecifierForName(StringRef name) {
+  return StringSwitch<std::optional<RISCVMCExpr::Specifier>>(name)
       .Case("lo", VK_LO)
       .Case("hi", VK_HI)
       .Case("pcrel_lo", VK_PCREL_LO)
@@ -129,12 +130,11 @@ RISCVMCExpr::Specifier RISCVMCExpr::getSpecifierForName(StringRef name) {
       .Case("cheriot_compartment_lo_i", VK_CHERIOT_COMPARTMENT_LO_I)
       .Case("cheriot_compartment_lo_s", VK_CHERIOT_COMPARTMENT_LO_S)
       .Case("cheriot_compartment_size", VK_CHERIOT_COMPARTMENT_SIZE)
-      .Default(VK_Invalid);
+      .Default(std::nullopt);
 }
 
 StringRef RISCVMCExpr::getSpecifierName(Specifier S) {
   switch (S) {
-  case VK_Invalid:
   case VK_None:
     llvm_unreachable("Invalid ELF symbol kind");
   case VK_LO:

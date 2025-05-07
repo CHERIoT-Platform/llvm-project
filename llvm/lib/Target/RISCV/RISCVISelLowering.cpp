@@ -881,6 +881,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
 
       setOperationAction(ISD::EXPERIMENTAL_VP_SPLICE, VT, Custom);
       setOperationAction(ISD::EXPERIMENTAL_VP_REVERSE, VT, Custom);
+      setOperationAction(ISD::EXPERIMENTAL_VP_SPLAT, VT, Custom);
 
       setOperationPromotedToType(
           ISD::VECTOR_SPLICE, VT,
@@ -13086,8 +13087,26 @@ SDValue RISCVTargetLowering::lowerVPSplatExperimental(SDValue Op,
     Mask = convertToScalableVector(MaskVT, Mask, DAG, Subtarget);
   }
 
-  SDValue Result =
-      lowerScalarSplat(SDValue(), Val, VL, ContainerVT, DL, DAG, Subtarget);
+  SDValue Result;
+  if (VT.getScalarType() == MVT::i1) {
+    if (auto *C = dyn_cast<ConstantSDNode>(Val)) {
+      Result =
+          DAG.getNode(C->isZero() ? RISCVISD::VMCLR_VL : RISCVISD::VMSET_VL, DL,
+                      ContainerVT, VL);
+    } else {
+      MVT WidenVT = ContainerVT.changeVectorElementType(MVT::i8);
+      SDValue LHS =
+          DAG.getNode(RISCVISD::VMV_V_X_VL, DL, WidenVT, DAG.getUNDEF(WidenVT),
+                      DAG.getZExtOrTrunc(Val, DL, Subtarget.getXLenVT()), VL);
+      SDValue RHS = DAG.getConstant(0, DL, WidenVT);
+      Result = DAG.getNode(RISCVISD::SETCC_VL, DL, ContainerVT,
+                           {LHS, RHS, DAG.getCondCode(ISD::SETNE),
+                            DAG.getUNDEF(ContainerVT), Mask, VL});
+    }
+  } else {
+    Result =
+        lowerScalarSplat(SDValue(), Val, VL, ContainerVT, DL, DAG, Subtarget);
+  }
 
   if (!VT.isFixedLengthVector())
     return Result;
@@ -24072,8 +24091,7 @@ bool RISCVTargetLowering::lowerInterleaveIntrinsicToStore(
         SI->getModule(), FixedVssegIntrIds[Factor - 2],
         {InVTy, SI->getPointerOperandType(), XLenTy});
 
-    SmallVector<Value *, 10> Ops(InterleaveValues.begin(),
-                                 InterleaveValues.end());
+    SmallVector<Value *, 10> Ops(InterleaveValues);
     Value *VL = ConstantInt::get(XLenTy, FVTy->getNumElements());
     Ops.append({SI->getPointerOperand(), VL});
 

@@ -11042,7 +11042,7 @@ void ARMTargetLowering::EmitSjLjDispatchBlock(MachineInstr &MI,
     SmallVectorImpl<MachineBasicBlock*> &MBBList = CallSiteNumToLPad[I];
     for (MachineBasicBlock *MBB : MBBList) {
       LPadList.push_back(MBB);
-      InvokeBBs.insert(MBB->pred_begin(), MBB->pred_end());
+      InvokeBBs.insert_range(MBB->predecessors());
     }
   }
 

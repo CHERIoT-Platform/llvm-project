@@ -88,7 +88,7 @@ def TPRelCIncOffsetSymbol : AsmOperandClass {
   let Name = "TPRelCIncOffsetSymbol";
   let RenderMethod = "addImmOperands";
   let DiagnosticType = "InvalidTPRelCIncOffsetSymbol";
-  let ParserMethod = "parseOperandWithModifier";
+  let ParserMethod = "parseOperandWithSpecifier";
 }
 
 // A bare symbol with the %tprel_add variant.

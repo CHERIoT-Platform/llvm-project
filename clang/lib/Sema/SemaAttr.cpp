@@ -1271,7 +1271,7 @@ void Sema::ActOnPragmaMSFunction(
     return;
   }
 
-  MSFunctionNoBuiltins.insert(NoBuiltins.begin(), NoBuiltins.end());
+  MSFunctionNoBuiltins.insert_range(NoBuiltins);
 }
 
 void Sema::AddRangeBasedOptnone(FunctionDecl *FD) {

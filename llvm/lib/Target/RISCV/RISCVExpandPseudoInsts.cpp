@@ -89,6 +89,8 @@ private:
                             MachineBasicBlock::iterator MBBI);
   bool expandRV32ZdinxLoad(MachineBasicBlock &MBB,
                            MachineBasicBlock::iterator MBBI);
+  bool expandPseudoReadVLENBViaVSETVLIX0(MachineBasicBlock &MBB,
+                                         MachineBasicBlock::iterator MBBI);
   bool expandVSPILL(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI);
   bool expandVRELOAD(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI);
   /// Expand a CHERIoT cross-compartment call into a call to the switcher using
@@ -246,6 +248,8 @@ bool RISCVExpandPseudo::expandMI(MachineBasicBlock &MBB,
   case RISCV::PseudoVMSET_M_B64:
     // vmset.m vd => vmxnor.mm vd, vd, vd
     return expandVMSET_VMCLR(MBB, MBBI, RISCV::VMXNOR_MM);
+  case RISCV::PseudoReadVLENBViaVSETVLIX0:
+    return expandPseudoReadVLENBViaVSETVLIX0(MBB, MBBI);
   case RISCV::PseudoCompartmentCall:
     return expandCompartmentCall(MBB, MBBI, NextMBBI);
   case RISCV::PseudoLibraryCall:
@@ -899,6 +903,24 @@ bool RISCVExpandPseudo::expandRV32ZdinxLoad(MachineBasicBlock &MBB,
   }
   MIBLo.setMemRefs(NewLoMMOs);
   MIBHi.setMemRefs(NewHiMMOs);
+
+  MBBI->eraseFromParent();
+  return true;
+}
+
+bool RISCVExpandPseudo::expandPseudoReadVLENBViaVSETVLIX0(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) {
+  DebugLoc DL = MBBI->getDebugLoc();
+  Register Dst = MBBI->getOperand(0).getReg();
+  unsigned Mul = MBBI->getOperand(1).getImm();
+  RISCVVType::VLMUL VLMUL = RISCVVType::encodeLMUL(Mul, /*Fractional=*/false);
+  unsigned VTypeImm = RISCVVType::encodeVTYPE(
+      VLMUL, /*SEW=*/8, /*TailAgnostic=*/true, /*MaskAgnostic=*/true);
+
+  BuildMI(MBB, MBBI, DL, TII->get(RISCV::PseudoVSETVLIX0))
+      .addReg(Dst, RegState::Define)
+      .addReg(RISCV::X0, RegState::Kill)
+      .addImm(VTypeImm);
 
   MBBI->eraseFromParent();
   return true;

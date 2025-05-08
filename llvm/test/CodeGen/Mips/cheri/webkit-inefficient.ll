@@ -4,7 +4,7 @@
 ; RUNNOT: %cheri128_purecap_llc %s -O2 -o - -filetype=obj | llvm-objdump -d - -no-show-raw-insn | FileCheck %s -check-prefix DUMP
 ; RUN: %cheri128_purecap_llc -frame-pointer=all %s -O2 -o - -filetype=obj | llvm-objdump -t - | FileCheck %s -check-prefix SYMBOLS
 ; Check the size of the generated function:
-; SYMBOLS: 0000000000000000 g     F .text		 00000000000002ac .hidden _ZN7WebCore67jsInternalSettingsGeneratedPrototypeFunctionSetCaretBrowsingEnabledEPN3JSC9ExecStateE
+; SYMBOLS: 0000000000000000 g     F .text		 00000000000002a4 .hidden _ZN7WebCore67jsInternalSettingsGeneratedPrototypeFunctionSetCaretBrowsingEnabledEPN3JSC9ExecStateE
 
 source_filename = "DerivedSources/WebCore/JSInternalSettingsGenerated.cpp"
 
@@ -729,11 +729,9 @@ define hidden ptr addrspace(200) @_ZN7WebCore67jsInternalSettingsGeneratedProtot
 ; CHECK-NEXT:    sltu $2, $zero, $1
 ; CHECK-NEXT:  .LBB0_16: # %if.end.i
 ; CHECK-NEXT:    daddu $16, $2, $3
-; CHECK-NEXT:    daddiu $1, $zero, 32767
-; CHECK-NEXT:    dsll $1, $1, 49
-; CHECK-NEXT:    daddiu $1, $1, -1
-; CHECK-NEXT:    sltu $1, $1, $16
-; CHECK-NEXT:    bnez $1, .LBB0_18
+; CHECK-NEXT:    dsrl $1, $16, 49
+; CHECK-NEXT:    sltiu $1, $1, 32767
+; CHECK-NEXT:    beqz $1, .LBB0_18
 ; CHECK-NEXT:    nop
 ; CHECK-NEXT:  # %bb.17: # %if.then4.i
 ; CHECK-NEXT:    clcbi $c12, %capcall20(__eqdf2)($c19)

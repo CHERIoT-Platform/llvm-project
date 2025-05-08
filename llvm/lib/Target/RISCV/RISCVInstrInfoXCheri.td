@@ -1068,7 +1068,7 @@ def C_CSD : CCheriStore_rri<0b111, "c.csd", GPRC, uimm8_lsb000> {
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0, isCall = 1,
     DecoderNamespace = "RISCV32CapModeOnly_", Defs = [C1],
     Predicates = [HasCheri, HasCheriRVC, HasStdExtC, IsRV32, IsCapMode]  in
-def C_CJAL : RVInst16CJ<0b001, 0b01, (outs), (ins simm12_lsb0:$offset),
+def C_CJAL : RVInst16CJ<0b001, 0b01, (outs), (ins bare_simm12_lsb0:$offset),
                         "c.cjal", "$offset">;
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
@@ -1441,7 +1441,7 @@ class CheriBccPat<PatFrag CondOp, RVInstB Inst>
           (Inst
             (XLenVT (EXTRACT_SUBREG GPCR:$rs1, sub_cap_addr)),
             (XLenVT (EXTRACT_SUBREG GPCR:$rs2, sub_cap_addr)),
-            simm13_lsb0:$imm12)>;
+            bare_simm13_lsb0:$imm12)>;
 
 def : CheriBccPat<seteq, BEQ>;
 def : CheriBccPat<setne, BNE>;
@@ -1455,7 +1455,7 @@ class CheriBccSwapPat<PatFrag CondOp, RVInst InstBcc>
           (InstBcc
             (XLenVT (EXTRACT_SUBREG GPCR:$rs2, sub_cap_addr)),
             (XLenVT (EXTRACT_SUBREG GPCR:$rs1, sub_cap_addr)),
-            simm13_lsb0:$imm12)>;
+            bare_simm13_lsb0:$imm12)>;
 
 def : CheriBccSwapPat<setgt, BLT>;
 def : CheriBccSwapPat<setle, BGE>;
@@ -2217,8 +2217,8 @@ def : CompressPat<(CSD GPRC:$rs2, GPCRC:$rs1, uimm8_lsb000:$imm),
 
 // Quadrant 1
 let Predicates = [HasCheri, HasCheriRVC, HasStdExtC, IsRV32, IsCapMode] in {
-def : CompressPat<(CJAL C1, simm12_lsb0:$offset),
-                  (C_CJAL simm12_lsb0:$offset)>;
+def : CompressPat<(CJAL C1, bare_simm12_lsb0:$offset),
+                  (C_CJAL bare_simm12_lsb0:$offset)>;
 } // Predicates = [HasCheri, HasCheriRVC, HasStdExtC, IsRV32, IsCapMode]
 
 let Predicates = [HasCheri, HasCheriRVC, HasStdExtC, IsCapMode] in {
@@ -2227,8 +2227,8 @@ def : CompressPat<(CIncOffsetImm C2, C2, simm10_lsb0000nonzero:$imm),
 } // Predicates = [HasCheri, HasCheriRVC, HasStdExtC, IsCapMode]
 
 let Predicates = [HasCheri, HasCheriRVC, HasStdExtC, IsCapMode] in {
-def : CompressPat<(CJAL C0, simm12_lsb0:$offset),
-                  (C_J simm12_lsb0:$offset)>;
+def : CompressPat<(CJAL C0, bare_simm12_lsb0:$offset),
+                  (C_J bare_simm12_lsb0:$offset)>;
 } // Predicates = [HasCheri, HasCheriRVC, HasStdExtC, IsCapMode]
 
 // Quadrant 2

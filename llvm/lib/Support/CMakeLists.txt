@@ -208,6 +208,7 @@ add_llvm_component_library(LLVMSupport
   IntervalMap.cpp
   JSON.cpp
   KnownBits.cpp
+  KnownFPClass.cpp
   LEB128.cpp
   LineIterator.cpp
   Locale.cpp

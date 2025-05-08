@@ -135,12 +135,12 @@ declare void @foo11()
 ;
 ; SUCCBB-LABEL:      succbbs_loop1:
 ; SUCCBB:      blez $5, $BB
-; SUCCBB-NEXT: addiu
-; SUCCBB:      bnez ${{[0-9]+}}, $BB
-; This is quite fragile.  The exact instruction can change, but there's no
-; NOT-NEXT option for FileCheck so we can't just say 'this has to not be a
-; nop,' which is what we actually care about.
-; SUCCBB-NEXT: addiu	$5, $5, -1
+; SUCCBB-NEXT: sll
+; SUCCBB-NEXT: # %bb
+; SUCCBB-NEXT: addu
+; SUCCBB:      addiu ${{[0-9]+}}, ${{[0-9]+}}, 4
+; SUCCBB-NEXT: bne ${{[0-9]+}}, ${{[0-9]+}}, $BB
+; SUCCBB-NEXT: nop
 
 define i32 @succbbs_loop1(ptr nocapture %a, i32 %n) {
 entry:

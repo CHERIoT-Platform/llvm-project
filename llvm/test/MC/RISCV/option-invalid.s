@@ -53,7 +53,7 @@
 # CHECK: :[[#@LINE+1]]:13: error: expected newline
 .option rvc foo
 
-# CHECK: :[[#@LINE+1]]:12: warning: unknown option, expected 'push', 'pop', 'rvc', 'norvc', 'arch', 'relax', 'norelax', 'capmode' or 'nocapmode'
+# CHECK: :[[#@LINE+1]]:12: warning: unknown option, expected 'push', 'pop', 'rvc', 'norvc', 'arch', 'relax', 'norelax', 'exact', 'noexact', 'capmode' or 'nocapmode'
 .option bar
 
 # CHECK: :[[#@LINE+1]]:12: error: .option pop with no .option push

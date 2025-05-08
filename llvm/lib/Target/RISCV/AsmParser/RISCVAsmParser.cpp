@@ -3488,6 +3488,26 @@ bool RISCVAsmParser::parseDirectiveOption() {
     return false;
   }
 
+  if (Option == "exact") {
+    if (Parser.parseEOL())
+      return true;
+
+    getTargetStreamer().emitDirectiveOptionExact();
+    setFeatureBits(RISCV::FeatureExactAssembly, "exact-asm");
+    clearFeatureBits(RISCV::FeatureRelax, "relax");
+    return false;
+  }
+
+  if (Option == "noexact") {
+    if (Parser.parseEOL())
+      return true;
+
+    getTargetStreamer().emitDirectiveOptionNoExact();
+    clearFeatureBits(RISCV::FeatureExactAssembly, "exact-asm");
+    setFeatureBits(RISCV::FeatureRelax, "relax");
+    return false;
+  }
+
   if (Option == "rvc") {
     if (Parser.parseEOL())
       return true;
@@ -3570,9 +3590,10 @@ bool RISCVAsmParser::parseDirectiveOption() {
   }
 
   // Unknown option.
-  Warning(Parser.getTok().getLoc(), "unknown option, expected 'push', 'pop', "
-                                    "'rvc', 'norvc', 'arch', 'relax', "
-                                    "'norelax', 'capmode' or 'nocapmode'");
+  Warning(Parser.getTok().getLoc(),
+          "unknown option, expected 'push', 'pop', "
+          "'rvc', 'norvc', 'arch', 'relax', 'norelax', "
+          "'exact', 'noexact', 'capmode' or 'nocapmode'");
   Parser.eatToEndOfStatement();
   return false;
 }
@@ -3782,10 +3803,13 @@ bool RISCVAsmParser::parseDirectiveVariantCC() {
 
 void RISCVAsmParser::emitToStreamer(MCStreamer &S, const MCInst &Inst) {
   MCInst CInst;
-  bool Res = RISCVRVC::compress(CInst, Inst, getSTI());
+  bool Res = false;
+  const MCSubtargetInfo &STI = getSTI();
+  if (!STI.hasFeature(RISCV::FeatureExactAssembly))
+    Res = RISCVRVC::compress(CInst, Inst, STI);
   if (Res)
     ++RISCVNumInstrsCompressed;
-  S.emitInstruction((Res ? CInst : Inst), getSTI());
+  S.emitInstruction((Res ? CInst : Inst), STI);
 }
 
 void RISCVAsmParser::emitLoadImm(MCRegister DestReg, int64_t Value,

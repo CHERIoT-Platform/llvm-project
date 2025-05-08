@@ -65,14 +65,16 @@ public:
   RISCVELFStreamer &getStreamer();
   RISCVTargetELFStreamer(MCStreamer &S, const MCSubtargetInfo &STI);
 
-  void emitDirectiveOptionPush() override;
-  void emitDirectiveOptionPop() override;
+  void emitDirectiveOptionExact() override;
+  void emitDirectiveOptionNoExact() override;
   void emitDirectiveOptionPIC() override;
   void emitDirectiveOptionNoPIC() override;
-  void emitDirectiveOptionRVC() override;
-  void emitDirectiveOptionNoRVC() override;
+  void emitDirectiveOptionPop() override;
+  void emitDirectiveOptionPush() override;
   void emitDirectiveOptionRelax() override;
   void emitDirectiveOptionNoRelax() override;
+  void emitDirectiveOptionRVC() override;
+  void emitDirectiveOptionNoRVC() override;
   void emitDirectiveOptionCapMode() override;
   void emitDirectiveOptionNoCapMode() override;
   void emitDirectiveVariantCC(MCSymbol &Symbol) override;

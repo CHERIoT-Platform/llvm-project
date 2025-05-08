@@ -443,14 +443,14 @@ struct RISCVOperand final : public MCParsedAsmOperand {
     RegOp Reg;
     ImmOp Imm;
     FPImmOp FPImm;
-    struct SysRegOp SysReg;
+    SysRegOp SysReg;
     struct SpecialCapRegOp SpecialCapReg;
-    struct VTypeOp VType;
-    struct FRMOp FRM;
-    struct FenceOp Fence;
-    struct RlistOp Rlist;
-    struct SpimmOp Spimm;
-    struct RegRegOp RegReg;
+    VTypeOp VType;
+    FRMOp FRM;
+    FenceOp Fence;
+    RlistOp Rlist;
+    SpimmOp Spimm;
+    RegRegOp RegReg;
   };
 
   RISCVOperand(KindTy K) : Kind(K) {}
@@ -1443,7 +1443,7 @@ public:
   static std::unique_ptr<RISCVOperand>
   createReg(MCRegister Reg, SMLoc S, SMLoc E, bool IsGPRAsFPR = false) {
     auto Op = std::make_unique<RISCVOperand>(KindTy::Register);
-    Op->Reg.RegNum = Reg.id();
+    Op->Reg.RegNum = Reg;
     Op->Reg.IsGPRAsFPR = IsGPRAsFPR;
     Op->StartLoc = S;
     Op->EndLoc = E;
@@ -1525,8 +1525,8 @@ public:
   static std::unique_ptr<RISCVOperand> createRegReg(MCRegister Reg1,
                                                     MCRegister Reg2, SMLoc S) {
     auto Op = std::make_unique<RISCVOperand>(KindTy::RegReg);
-    Op->RegReg.Reg1 = Reg1.id();
-    Op->RegReg.Reg2 = Reg2.id();
+    Op->RegReg.Reg1 = Reg1;
+    Op->RegReg.Reg2 = Reg2;
     Op->StartLoc = S;
     Op->EndLoc = S;
     return Op;

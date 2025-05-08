@@ -768,9 +768,11 @@ void RISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
   }
 
   if (IsScalableVector) {
+    LocationSize LocSize =
+        LocationSize::precise(TypeSize::getScalable(MFI.getObjectSize(FI)));
     MachineMemOperand *MMO = MF->getMachineMemOperand(
         MachinePointerInfo::getFixedStack(*MF, FI), MachineMemOperand::MOStore,
-        LocationSize::beforeOrAfterPointer(), MFI.getObjectAlign(FI));
+        LocSize, MFI.getObjectAlign(FI));
 
     MFI.setStackID(FI, TargetStackID::ScalableVector);
     BuildMI(MBB, I, DebugLoc(), get(Opcode))
@@ -885,9 +887,11 @@ void RISCVInstrInfo::loadRegFromStackSlot(
   }
 
   if (IsScalableVector) {
+    LocationSize LocSize =
+        LocationSize::precise(TypeSize::getScalable(MFI.getObjectSize(FI)));
     MachineMemOperand *MMO = MF->getMachineMemOperand(
         MachinePointerInfo::getFixedStack(*MF, FI), MachineMemOperand::MOLoad,
-        LocationSize::beforeOrAfterPointer(), MFI.getObjectAlign(FI));
+        LocSize, MFI.getObjectAlign(FI));
 
     MFI.setStackID(FI, TargetStackID::ScalableVector);
     BuildMI(MBB, I, DL, get(Opcode), DstReg)

@@ -2917,8 +2917,8 @@ bool RISCVDAGToDAGISel::SelectAddrRegReg(SDValue Addr, SDValue &Base,
   if (isa<ConstantSDNode>(Addr.getOperand(1)))
     return false;
 
-  Base = Addr.getOperand(1);
-  Offset = Addr.getOperand(0);
+  Base = Addr.getOperand(0);
+  Offset = Addr.getOperand(1);
   return true;
 }
 

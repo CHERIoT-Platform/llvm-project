@@ -349,6 +349,8 @@ KEYWORD(__func__                    , KEYALL)
 KEYWORD(__objc_yes                  , KEYALL)
 KEYWORD(__objc_no                   , KEYALL)
 
+// C2y
+UNARY_EXPR_OR_TYPE_TRAIT(_Countof, CountOf, KEYNOCXX)
 // CHERI C: Qualifiers.
 KEYWORD(__capability                , KEYALL)
 KEYWORD(__cheri_output              , KEYALL)

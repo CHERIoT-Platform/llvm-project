@@ -97,6 +97,9 @@ using CHERIoTImportedFunctionSet = SetVector<
 FunctionPass *createRISCVISelDag(RISCVTargetMachine &TM,
                                  CodeGenOptLevel OptLevel);
 
+FunctionPass *createRISCVLateBranchOptPass();
+void initializeRISCVLateBranchOptPass(PassRegistry &);
+
 FunctionPass *createRISCVMakeCompressibleOptPass();
 void initializeRISCVMakeCompressibleOptPass(PassRegistry &);
 

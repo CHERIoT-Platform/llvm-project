@@ -2317,6 +2317,7 @@ static void writeDICompositeType(raw_ostream &Out, const DICompositeType *N,
     Printer.printDwarfEnum("enumKind", *EnumKind, dwarf::EnumKindString,
                            /*ShouldSkipZero=*/false);
 
+  Printer.printMetadata("bitStride", N->getRawBitStride());
   Out << ")";
 }
 

@@ -15,6 +15,8 @@
 // CHERI CSR (control and status register read/write) instruction options.
 //===----------------------------------------------------------------------===//
 
+let FeaturesRequired = [{ {RISCV::FeatureVendorXCheri} }] in {
+
 //===--------------------------
 // User Trap Handling
 //===--------------------------
@@ -29,6 +31,8 @@ def : SysReg<"sccsr", 0x9C0>;
 // Machine Trap Handling
 //===--------------------------
 def : SysReg<"mccsr", 0xBC0>;
+
+}
 
 //===----------------------------------------------------------------------===//
 // CHERI SCR (special capability register read/write) instruction options.

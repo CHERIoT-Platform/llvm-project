@@ -52,15 +52,17 @@ do.end:                                           ; preds = %do.body
 define void @doLoop_ptr(ptr nocapture readonly %in, ptr nocapture %out, i32 signext %i) local_unnamed_addr norecurse nounwind {
 ; CHECK-LABEL: doLoop_ptr:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    daddiu $2, $zero, -1
+; CHECK-NEXT:    daddiu $2, $6, 1
+; CHECK-NEXT:    daddu $3, $5, $6
+; CHECK-NEXT:    daddu $4, $4, $6
 ; CHECK-NEXT:  .LBB1_1: # %do.body
 ; CHECK-NEXT:    # =>This Inner Loop Header: Depth=1
-; CHECK-NEXT:    daddu $1, $4, $6
-; CHECK-NEXT:    lb $1, 0($1)
-; CHECK-NEXT:    daddu $3, $5, $6
-; CHECK-NEXT:    daddiu $6, $6, -1
-; CHECK-NEXT:    bne $6, $2, .LBB1_1
+; CHECK-NEXT:    lb $1, 0($4)
 ; CHECK-NEXT:    sb $1, 0($3)
+; CHECK-NEXT:    daddiu $2, $2, -1
+; CHECK-NEXT:    daddiu $3, $3, -1
+; CHECK-NEXT:    bnez $2, .LBB1_1
+; CHECK-NEXT:    daddiu $4, $4, -1
 ; CHECK-NEXT:  # %bb.2: # %do.end
 ; CHECK-NEXT:    jr $ra
 ; CHECK-NEXT:    nop

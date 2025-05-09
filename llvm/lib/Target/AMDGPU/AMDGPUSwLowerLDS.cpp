@@ -787,9 +787,9 @@ void AMDGPUSwLowerLDS::lowerKernelLDSAccesses(Function *Func,
   DebugLoc FirstDL =
       getOrCreateDebugLoc(&*PrevEntryBlock->begin(), Func->getSubprogram());
   IRB.SetCurrentDebugLocation(FirstDL);
-  Value *WIdx = IRB.CreateIntrinsic(Intrinsic::amdgcn_workitem_id_x, {}, {});
-  Value *WIdy = IRB.CreateIntrinsic(Intrinsic::amdgcn_workitem_id_y, {}, {});
-  Value *WIdz = IRB.CreateIntrinsic(Intrinsic::amdgcn_workitem_id_z, {}, {});
+  Value *WIdx = IRB.CreateIntrinsic(Intrinsic::amdgcn_workitem_id_x, {});
+  Value *WIdy = IRB.CreateIntrinsic(Intrinsic::amdgcn_workitem_id_y, {});
+  Value *WIdz = IRB.CreateIntrinsic(Intrinsic::amdgcn_workitem_id_z, {});
   Value *XYOr = IRB.CreateOr(WIdx, WIdy);
   Value *XYZOr = IRB.CreateOr(XYOr, WIdz);
   Value *WIdzCond = IRB.CreateICmpEQ(XYZOr, IRB.getInt32(0));
@@ -854,7 +854,7 @@ void AMDGPUSwLowerLDS::lowerKernelLDSAccesses(Function *Func,
           "Dynamic LDS size query is only supported for CO V5 and later.");
     // Get size from hidden dyn_lds_size argument of kernel
     Value *ImplicitArg =
-        IRB.CreateIntrinsic(Intrinsic::amdgcn_implicitarg_ptr, {}, {});
+        IRB.CreateIntrinsic(Intrinsic::amdgcn_implicitarg_ptr, {});
     Value *HiddenDynLDSSize = IRB.CreateInBoundsGEP(
         ImplicitArg->getType(), ImplicitArg,
         {ConstantInt::get(Int64Ty, COV5_HIDDEN_DYN_LDS_SIZE_ARG)});
@@ -897,7 +897,7 @@ void AMDGPUSwLowerLDS::lowerKernelLDSAccesses(Function *Func,
   XYZCondPhi->addIncoming(IRB.getInt1(0), WIdBlock);
   XYZCondPhi->addIncoming(IRB.getInt1(1), MallocBlock);
 
-  IRB.CreateIntrinsic(Intrinsic::amdgcn_s_barrier, {}, {});
+  IRB.CreateIntrinsic(Intrinsic::amdgcn_s_barrier, {});
 
   // Load malloc pointer from Sw LDS.
   Value *LoadMallocPtr =
@@ -926,7 +926,7 @@ void AMDGPUSwLowerLDS::lowerKernelLDSAccesses(Function *Func,
 
   // Cond Free Block
   IRB.SetInsertPoint(CondFreeBlock, CondFreeBlock->begin());
-  IRB.CreateIntrinsic(Intrinsic::amdgcn_s_barrier, {}, {});
+  IRB.CreateIntrinsic(Intrinsic::amdgcn_s_barrier, {});
   IRB.CreateCondBr(XYZCondPhi, FreeBlock, EndBlock);
 
   // Free Block
@@ -1072,7 +1072,7 @@ void AMDGPUSwLowerLDS::lowerNonKernelLDSAccesses(
   SetVector<Instruction *> LDSInstructions;
   getLDSMemoryInstructions(Func, LDSInstructions);
 
-  auto *KernelId = IRB.CreateIntrinsic(Intrinsic::amdgcn_lds_kernel_id, {}, {});
+  auto *KernelId = IRB.CreateIntrinsic(Intrinsic::amdgcn_lds_kernel_id, {});
   GlobalVariable *LDSBaseTable = NKLDSParams.LDSBaseTable;
   GlobalVariable *LDSOffsetTable = NKLDSParams.LDSOffsetTable;
   auto &OrdereLDSGlobals = NKLDSParams.OrdereLDSGlobals;

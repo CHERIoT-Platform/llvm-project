@@ -497,6 +497,7 @@ enum Kind {
   DwarfCC,          // DW_CC_foo
   EmissionKind,     // lineTablesOnly
   NameTableKind,    // GNU
+  FixedPointKind,   // Fixed point
   DwarfOp,          // DW_OP_foo
   DIFlag,           // DIFlagFoo
   DISPFlag,         // DISPFlagFoo

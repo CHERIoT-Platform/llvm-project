@@ -4182,7 +4182,7 @@ private:
       for (Instruction *I : FakeUses) {
         IRB.SetInsertPoint(I);
         for (auto *V : Components)
-          IRB.CreateIntrinsic(Intrinsic::fake_use, {}, {V});
+          IRB.CreateIntrinsic(Intrinsic::fake_use, {V});
         I->eraseFromParent();
       }
     }

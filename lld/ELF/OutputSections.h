@@ -102,6 +102,8 @@ public:
   bool expressionsUseSymbols = false;
   bool usedInExpression = false;
   bool inOverlay = false;
+  bool firstInOverlay = false;
+
   /// Set to true if this section should have its start and end alignment
   /// rounded up so that it can be represented by a single capability on the
   /// target platform.  This has no effect on non-CHERI targets.

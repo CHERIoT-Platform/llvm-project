@@ -557,7 +557,7 @@ static Value *getStackGuard(const TargetLoweringBase *TLI, Module *M,
   if (SupportsSelectionDAGSP)
     *SupportsSelectionDAGSP = true;
   TLI->insertSSPDeclarations(*M);
-  return B.CreateIntrinsic(Intrinsic::stackguard, {}, {});
+  return B.CreateIntrinsic(Intrinsic::stackguard, {});
 }
 
 /// Insert code into the entry block that stores the stack guard

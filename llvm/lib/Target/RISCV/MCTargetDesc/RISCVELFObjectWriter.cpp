@@ -51,16 +51,13 @@ unsigned RISCVELFObjectWriter::getRelocType(MCContext &Ctx,
                                             const MCValue &Target,
                                             const MCFixup &Fixup,
                                             bool IsPCRel) const {
-  assert((!Target.getSymA() ||
-          Target.getSymA()->getKind() == MCSymbolRefExpr::VK_None) &&
-         "sym@specifier should have been rejected");
   const MCExpr *Expr = Fixup.getValue();
   // Determine the type of the relocation
   unsigned Kind = Fixup.getTargetKind();
   if (Kind >= FirstLiteralRelocationKind)
     return Kind - FirstLiteralRelocationKind;
 
-  auto Spec = RISCVMCExpr::Specifier(Target.getRefKind());
+  auto Spec = RISCVMCExpr::Specifier(Target.getSpecifier());
   switch (Spec) {
   case RISCVMCExpr::VK_TPREL_HI:
   case RISCVMCExpr::VK_TLS_GOT_HI:
@@ -68,8 +65,8 @@ unsigned RISCVELFObjectWriter::getRelocType(MCContext &Ctx,
   case RISCVMCExpr::VK_TLSDESC_HI:
   case RISCVMCExpr::VK_TLS_IE_CAPTAB_PCREL_HI:
   case RISCVMCExpr::VK_TLS_GD_CAPTAB_PCREL_HI:
-    if (auto *S = Target.getSymA())
-      cast<MCSymbolELF>(S->getSymbol()).setType(ELF::STT_TLS);
+    if (auto *SA = Target.getAddSym())
+      cast<MCSymbolELF>(SA)->setType(ELF::STT_TLS);
     break;
   case RISCVMCExpr::VK_PLTPCREL:
   case RISCVMCExpr::VK_GOTPCREL:

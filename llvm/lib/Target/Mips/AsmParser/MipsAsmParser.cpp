@@ -3186,7 +3186,7 @@ bool MipsAsmParser::expandLoadImm(MCInst &Inst, bool Is32BitImm, SMLoc IDLoc,
   int64_t Imm = 0;
   if (ImmOp.isExpr()) {
     const MCExpr *Expr = ImmOp.getExpr();
-    if (!Expr->evaluateAsAbsolute(Imm, Out)) {
+    if (!Expr->evaluateAsAbsolute(Imm, Out.getAssemblerPtr())) {
       Out.getTargetStreamer();
       return Error(IDLoc, "could not evaluate operand as immediate");
     }
@@ -3258,15 +3258,13 @@ bool MipsAsmParser::loadAndAddSymbolAddress(const MCExpr *SymExpr,
 
     bool IsPtr64 = ABI.ArePtrs64bit();
     bool IsLocalSym =
-        Res.getSymA()->getSymbol().isInSection() ||
-        Res.getSymA()->getSymbol().isTemporary() ||
-        (Res.getSymA()->getSymbol().isELF() &&
-         cast<MCSymbolELF>(Res.getSymA()->getSymbol()).getBinding() ==
-             ELF::STB_LOCAL);
+        Res.getAddSym()->isInSection() || Res.getAddSym()->isTemporary() ||
+        (Res.getAddSym()->isELF() &&
+         cast<MCSymbolELF>(Res.getAddSym())->getBinding() == ELF::STB_LOCAL);
     // For O32, "$"-prefixed symbols are recognized as temporary while
     // .L-prefixed symbols are not (PrivateGlobalPrefix is "$"). Recognize ".L"
     // manually.
-    if (ABI.IsO32() && Res.getSymA()->getSymbol().getName().starts_with(".L"))
+    if (ABI.IsO32() && Res.getAddSym()->getName().starts_with(".L"))
       IsLocalSym = true;
     bool UseXGOT = STI->hasFeature(Mips::FeatureXGOT) && !IsLocalSym;
 
@@ -3324,7 +3322,7 @@ bool MipsAsmParser::loadAndAddSymbolAddress(const MCExpr *SymExpr,
       const MCExpr *CallHiExpr =
           MipsMCExpr::create(MipsMCExpr::MEK_GOT_HI16, SymExpr, getContext());
       const MCExpr *CallLoExpr = MipsMCExpr::create(
-          MipsMCExpr::MEK_GOT_LO16, Res.getSymA(), getContext());
+          Res.getAddSym(), MipsMCExpr::MEK_GOT_LO16, getContext());
 
       TOut.emitRX(Mips::LUi, TmpReg, MCOperand::createExpr(CallHiExpr), IDLoc,
                   STI);
@@ -3355,7 +3353,7 @@ bool MipsAsmParser::loadAndAddSymbolAddress(const MCExpr *SymExpr,
       // The daddiu's marked with a '>' may be omitted if they are redundant. If
       // this happens then the last instruction must use $rd as the result
       // register.
-      GotExpr = MipsMCExpr::create(MipsMCExpr::MEK_GOT_DISP, Res.getSymA(),
+      GotExpr = MipsMCExpr::create(Res.getAddSym(), MipsMCExpr::MEK_GOT_DISP,
                                    getContext());
       if (Res.getConstant() != 0) {
         // Symbols fully resolve with just the %got_disp(symbol) but we
@@ -3390,7 +3388,7 @@ bool MipsAsmParser::loadAndAddSymbolAddress(const MCExpr *SymExpr,
         // External symbols fully resolve the symbol with just the %got(symbol)
         // but we must still account for any offset to the symbol for
         // expressions like symbol+8.
-        GotExpr = MipsMCExpr::create(MipsMCExpr::MEK_GOT, Res.getSymA(),
+        GotExpr = MipsMCExpr::create(Res.getAddSym(), MipsMCExpr::MEK_GOT,
                                      getContext());
         if (Res.getConstant() != 0)
           LoExpr = MCConstantExpr::create(Res.getConstant(), getContext());
@@ -4119,8 +4117,9 @@ void MipsAsmParser::expandMem16Inst(MCInst &Inst, SMLoc IDLoc, MCStreamer &Out,
         return;
       }
 
-      loadAndAddSymbolAddress(Res.getSymA(), TmpReg, BaseReg,
-                              !ABI.ArePtrs64bit(), IDLoc, Out, STI);
+      loadAndAddSymbolAddress(
+          MCSymbolRefExpr::create(Res.getAddSym(), getContext()), TmpReg,
+          BaseReg, !ABI.ArePtrs64bit(), IDLoc, Out, STI);
       emitInstWithOffset(MCOperand::createImm(int16_t(Res.getConstant())));
     } else {
       // FIXME: Implement 64-bit case.
@@ -7209,7 +7208,7 @@ ParseStatus MipsAsmParser::parseMemOperand(OperandVector &Operands) {
   // Add the memory operand.
   if (const MCBinaryExpr *BE = dyn_cast<MCBinaryExpr>(IdVal)) {
     int64_t Imm;
-    if (IdVal->evaluateAsAbsolute(Imm, getStreamer()))
+    if (IdVal->evaluateAsAbsolute(Imm, getStreamer().getAssemblerPtr()))
       IdVal = MCConstantExpr::create(Imm, getContext());
     else if (BE->getLHS()->getKind() != MCExpr::SymbolRef)
       IdVal = MCBinaryExpr::create(BE->getOpcode(), BE->getRHS(), BE->getLHS(),
@@ -8470,7 +8469,7 @@ bool MipsAsmParser::parseDirectiveCpRestore(SMLoc Loc) {
     return false;
   }
 
-  if (!StackOffset->evaluateAsAbsolute(StackOffsetVal, getStreamer())) {
+  if (!StackOffset->evaluateAsAbsolute(StackOffsetVal, getStreamer().getAssemblerPtr())) {
     reportParseError("stack offset is not an absolute expression");
     return false;
   }
@@ -8528,7 +8527,7 @@ bool MipsAsmParser::parseDirectiveCPSetup() {
     SMLoc ExprLoc = getLexer().getLoc();
 
     if (Parser.parseExpression(OffsetExpr) ||
-        !OffsetExpr->evaluateAsAbsolute(OffsetVal, getStreamer())) {
+        !OffsetExpr->evaluateAsAbsolute(OffsetVal, getStreamer().getAssemblerPtr())) {
       reportParseError(ExprLoc, "expected save register or stack offset");
       return false;
     }
@@ -9303,7 +9302,7 @@ bool MipsAsmParser::ParseDirective(AsmToken DirectiveID) {
         reportParseError("expected number after comma");
         return false;
       }
-      if (!DummyNumber->evaluateAsAbsolute(DummyNumberVal, getStreamer())) {
+      if (!DummyNumber->evaluateAsAbsolute(DummyNumberVal, getStreamer().getAssemblerPtr())) {
         reportParseError("expected an absolute expression after comma");
         return false;
       }
@@ -9387,7 +9386,7 @@ bool MipsAsmParser::ParseDirective(AsmToken DirectiveID) {
       return false;
     }
 
-    if (!FrameSize->evaluateAsAbsolute(FrameSizeVal, getStreamer())) {
+    if (!FrameSize->evaluateAsAbsolute(FrameSizeVal, getStreamer().getAssemblerPtr())) {
       reportParseError("frame size not an absolute expression");
       return false;
     }
@@ -9453,7 +9452,7 @@ bool MipsAsmParser::ParseDirective(AsmToken DirectiveID) {
       return false;
     }
 
-    if (!BitMask->evaluateAsAbsolute(BitMaskVal, getStreamer())) {
+    if (!BitMask->evaluateAsAbsolute(BitMaskVal, getStreamer().getAssemblerPtr())) {
       reportParseError("bitmask not an absolute expression");
       return false;
     }
@@ -9474,7 +9473,7 @@ bool MipsAsmParser::ParseDirective(AsmToken DirectiveID) {
       return false;
     }
 
-    if (!FrameOffset->evaluateAsAbsolute(FrameOffsetVal, getStreamer())) {
+    if (!FrameOffset->evaluateAsAbsolute(FrameOffsetVal, getStreamer().getAssemblerPtr())) {
       reportParseError("frame offset not an absolute expression");
       return false;
     }

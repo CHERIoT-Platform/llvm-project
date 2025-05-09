@@ -685,6 +685,8 @@ public:
 
   /// This constructs a pointer to an object of the specified type in a numbered
   /// address space.
+  [[deprecated("PointerType::get with pointee type is pending removal. Use "
+               "Context overload.")]]
   static PointerType *get(Type *ElementType, unsigned AddressSpace);
   /// This constructs an opaque pointer to an object in a numbered address
   /// space.
@@ -693,6 +695,8 @@ public:
 #ifndef LLVM_NO_DEFAULT_ADDRESS_SPACE
   /// This constructs a pointer to an object of the specified type in the
   /// default address space (address space zero).
+  [[deprecated("PointerType::getUnqual with pointee type is pending removal. "
+               "Use Context overload.")]]
   static PointerType *getUnqual(Type *ElementType) {
     return PointerType::get(ElementType, 0);
   }

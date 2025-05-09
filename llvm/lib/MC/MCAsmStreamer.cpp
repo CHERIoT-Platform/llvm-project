@@ -2552,7 +2552,7 @@ void MCAsmStreamer::EmitCheriCapabilityImpl(const MCSymbol *Symbol,
 void MCAsmStreamer::emitCheriIntcap(const MCExpr *Expr, unsigned CapSize,
                                     SMLoc Loc) {
   int64_t AbsValue;
-  if (Expr->evaluateAsAbsolute(AbsValue, *this)) {
+  if (Expr->evaluateAsAbsolute(AbsValue, getAssemblerPtr())) {
     // XXXAR: always emit as hex?
     // TODO: always use the generic printing once all tests have been updated
     OS << "\t.chericap\t" << AbsValue;

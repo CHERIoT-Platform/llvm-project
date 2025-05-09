@@ -232,7 +232,7 @@ void MCStreamer::emitCheriIntcapGeneric(const MCExpr *Expr, unsigned CapSize,
   // Note: this assumes that capability alignment is the same as the size.
   emitValueToAlignment(Align(CapSize), 0, 1, 0);
   int64_t AbsValue;
-  if (Expr->evaluateAsAbsolute(AbsValue, *this) && AbsValue == 0) {
+  if (Expr->evaluateAsAbsolute(AbsValue, getAssemblerPtr()) && AbsValue == 0) {
     // Emit a single zero-fill block for zero values.
     emitZeros(CapSize);
   } else {

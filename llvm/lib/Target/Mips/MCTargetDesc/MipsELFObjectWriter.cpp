@@ -163,7 +163,7 @@ unsigned MipsELFObjectWriter::getRelocType(MCContext &Ctx,
   if (Kind >= FirstLiteralRelocationKind)
     return Kind - FirstLiteralRelocationKind;
 
-  switch (Target.getRefKind()) {
+  switch (Target.getSpecifier()) {
   case MipsMCExpr::MEK_DTPREL:
   case MipsMCExpr::MEK_DTPREL_HI:
   case MipsMCExpr::MEK_DTPREL_LO:
@@ -178,8 +178,8 @@ unsigned MipsELFObjectWriter::getRelocType(MCContext &Ctx,
   case MipsMCExpr::MEK_CAPTAB_TLSLDM_LO16:
   case MipsMCExpr::MEK_CAPTAB_TPREL_HI16:
   case MipsMCExpr::MEK_CAPTAB_TPREL_LO16:
-    if (auto *S = Target.getSymA())
-      cast<MCSymbolELF>(S->getSymbol()).setType(ELF::STT_TLS);
+    if (auto *SA = Target.getAddSym())
+      cast<MCSymbolELF>(SA)->setType(ELF::STT_TLS);
     break;
   default:
     break;
@@ -383,14 +383,14 @@ unsigned MipsELFObjectWriter::getRelocType(MCContext &Ctx,
     return ELF::R_MIPS_CHERI_CAPCALL_HI16;
 
   case Mips::fixup_CHERI_CAPABILITY: {
-    const auto &ElfSym = cast<const MCSymbolELF>(Target.getSymA()->getSymbol());
+    const auto ElfSym = cast<const MCSymbolELF>(Target.getAddSym());
     // Assert that we don't create .chericap relocations against temporary
     // symbols since those will result in wrong relocations (against sec+offset)
-    if (ElfSym.isDefined() && !ElfSym.getSize() &&
-        !ElfSym.getName().starts_with(".Llpad")) {
+    if (ElfSym->isDefined() && !ElfSym->getSize() &&
+        !ElfSym->getName().starts_with(".Llpad")) {
       Ctx.reportWarning(Fixup.getLoc(),
           "creating a R_MIPS_CHERI_CAPABILITY relocation against an unsized "
-          "defined symbol: " + ElfSym.getName() +
+          "defined symbol: " + ElfSym->getName() +
           ". This will probably result in incorrect values at run time.");
     }
     return ELF::R_MIPS_CHERI_CAPABILITY;

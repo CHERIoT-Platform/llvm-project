@@ -190,8 +190,8 @@ Instruction *InstCombinerImpl::SimplifyAnyMemTransfer(AnyMemTransferInst *MI) {
 
   if (!CpyTy)
     CpyTy = IntegerType::get(MI->getContext(), Size<<3);
-  Type *NewSrcPtrTy = PointerType::get(CpyTy, SrcAddrSp);
-  Type *NewDstPtrTy = PointerType::get(CpyTy, DstAddrSp);
+  Type *NewSrcPtrTy = PointerType::get(MI->getContext(), SrcAddrSp);
+  Type *NewDstPtrTy = PointerType::get(MI->getContext(), DstAddrSp);
 
   // If the memcpy has metadata describing the members, see if we can get the
   // TBAA, scope and noalias tags describing our copy.

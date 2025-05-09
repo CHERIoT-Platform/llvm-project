@@ -370,7 +370,7 @@ public:
     MicrosoftVTableContext &VTContext = CGM.getMicrosoftVTableContext();
     unsigned NumEntries = 1 + SrcRD->getNumVBases();
     SmallVector<llvm::Constant *, 4> Map(NumEntries,
-                                         llvm::UndefValue::get(CGM.IntTy));
+                                         llvm::PoisonValue::get(CGM.IntTy));
     Map[0] = llvm::ConstantInt::get(CGM.IntTy, 0);
     bool AnyDifferent = false;
     for (const auto &I : SrcRD->vbases()) {
@@ -522,7 +522,7 @@ public:
         CGM.IntTy,
         CGM.IntTy,
         getImageRelativeType(
-            llvm::PointerType::get(getClassHierarchyDescriptorType(),
+            llvm::PointerType::get(CGM.getLLVMContext(),
                                    CGM.getTargetCodeGenInfo().getDefaultAS())),
     };
     BaseClassDescriptorType = llvm::StructType::create(
@@ -542,7 +542,7 @@ public:
         CGM.IntTy,
         CGM.IntTy,
         getImageRelativeType(
-            llvm::PointerType::get(getBaseClassDescriptorType(), AS)),
+            llvm::PointerType::get(CGM.getLLVMContext(), AS)),
     };
     ClassHierarchyDescriptorType->setBody(FieldTypes);
     return ClassHierarchyDescriptorType;
@@ -557,7 +557,7 @@ public:
         CGM.IntTy,
         getImageRelativeType(CGM.Int8PtrTy),
         getImageRelativeType(
-            llvm::PointerType::get(getClassHierarchyDescriptorType(),
+            llvm::PointerType::get(CGM.getLLVMContext(),
                                    CGM.getTargetCodeGenInfo().getDefaultAS())),
         getImageRelativeType(CompleteObjectLocatorType),
     };
@@ -758,7 +758,7 @@ public:
     CTATypeName += llvm::utostr(NumEntries);
     unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
     llvm::Type *CTType = getImageRelativeType(
-        llvm::PointerType::get(getCatchableTypeType(), DefaultAS));
+        llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS));
     llvm::Type *FieldTypes[] = {
         CGM.IntTy,                               // NumEntries
         llvm::ArrayType::get(CTType, NumEntries) // CatchableTypes
@@ -788,7 +788,7 @@ public:
     unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
     llvm::Type *Args[] = {
       CGM.Int8PtrTy,
-      llvm::PointerType::get(getThrowInfoType(), DefaultAS)
+      llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS)
     };
     llvm::FunctionType *FTy =
         llvm::FunctionType::get(CGM.VoidTy, Args, /*isVarArg=*/false);
@@ -922,7 +922,7 @@ void MicrosoftCXXABI::emitVirtualObjectDelete(CodeGenFunction &CGF,
 
 void MicrosoftCXXABI::emitRethrow(CodeGenFunction &CGF, bool isNoReturn) {
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
-  auto PtrTy = llvm::PointerType::get(CGM.UnqualPtrTy, DefaultAS);
+  auto PtrTy = llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS);
   llvm::Value *Args[] = {llvm::ConstantPointerNull::get(PtrTy),
                          llvm::ConstantPointerNull::get(PtrTy)};
   llvm::FunctionCallee Fn = getThrowFn();
@@ -1982,7 +1982,7 @@ CGCallee MicrosoftCXXABI::getVirtualFunctionPointer(CodeGenFunction &CGF,
   CGBuilderTy &Builder = CGF.Builder;
 
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
-  auto DefaultPtrTy = llvm::PointerType::get(CGF.UnqualPtrTy, DefaultAS);
+  auto DefaultPtrTy = llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS);
   Ty = DefaultPtrTy;
   Address VPtr =
       adjustThisArgumentForVirtualFunctionCall(CGF, GD, This, true);
@@ -2154,7 +2154,7 @@ MicrosoftCXXABI::EmitVirtualMemPtrThunk(const CXXMethodDecl *MD,
   // Load the vfptr and then callee from the vftable.  The callee should have
   // adjusted 'this' so that the vfptr is at offset zero.
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
-  auto DefaultPtrTy = llvm::PointerType::get(CGF.UnqualPtrTy, DefaultAS);
+  auto DefaultPtrTy = llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS);
   llvm::Type *ThunkPtrTy = DefaultPtrTy;
   llvm::Value *VTable =
       CGF.GetVTablePtr(getThisAddress(CGF), DefaultPtrTy, MD->getParent());
@@ -2580,7 +2580,7 @@ static ConstantAddress getInitThreadEpochPtr(CodeGenModule &CGM) {
 
 static llvm::FunctionCallee getInitThreadHeaderFn(CodeGenModule &CGM) {
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
-  auto DefaultPtrTy = llvm::PointerType::get(CGM.IntTy, DefaultAS);
+  auto DefaultPtrTy = llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS);
   llvm::FunctionType *FTy =
       llvm::FunctionType::get(llvm::Type::getVoidTy(CGM.getLLVMContext()),
                               DefaultPtrTy, /*isVarArg=*/false);
@@ -2596,7 +2596,7 @@ static llvm::FunctionCallee getInitThreadFooterFn(CodeGenModule &CGM) {
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
   llvm::FunctionType *FTy =
       llvm::FunctionType::get(llvm::Type::getVoidTy(CGM.getLLVMContext()),
-                              llvm::PointerType::get(CGM.IntTy, DefaultAS), /*isVarArg=*/false);
+                              llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS), /*isVarArg=*/false);
   return CGM.CreateRuntimeFunction(
       FTy, "_Init_thread_footer",
       llvm::AttributeList::get(CGM.getLLVMContext(),
@@ -2609,7 +2609,7 @@ static llvm::FunctionCallee getInitThreadAbortFn(CodeGenModule &CGM) {
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
   llvm::FunctionType *FTy = llvm::FunctionType::get(
       llvm::Type::getVoidTy(CGM.getLLVMContext()),
-      llvm::PointerType::get(CGM.IntTy, DefaultAS), /*isVarArg=*/false);
+      llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS), /*isVarArg=*/false);
   return CGM.CreateRuntimeFunction(
       FTy, "_Init_thread_abort",
       llvm::AttributeList::get(CGM.getLLVMContext(),
@@ -3853,7 +3853,7 @@ MSRTTIBuilder::getBaseClassArray(SmallVectorImpl<MSRTTIClass> &Classes) {
   // marked pick-any so it shouldn't matter.
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
   llvm::Type *PtrType = ABI.getImageRelativeType(
-      llvm::PointerType::get(ABI.getBaseClassDescriptorType(), DefaultAS));
+      llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS));
   auto *ArrType = llvm::ArrayType::get(PtrType, Classes.size() + 1);
   auto *BCA =
       new llvm::GlobalVariable(Module, ArrType,
@@ -4413,8 +4413,8 @@ llvm::GlobalVariable *MicrosoftCXXABI::getCatchableTypeArray(QualType T) {
 
   uint32_t NumEntries = CatchableTypes.size();
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
-  llvm::Type *CTType =
-      getImageRelativeType(llvm::PointerType::get(getCatchableTypeType(), DefaultAS));
+  llvm::Type *CTType = getImageRelativeType(
+      llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS));
   llvm::ArrayType *AT = llvm::ArrayType::get(CTType, NumEntries);
   llvm::StructType *CTAType = getCatchableTypeArrayType(NumEntries);
   llvm::Constant *Fields[] = {

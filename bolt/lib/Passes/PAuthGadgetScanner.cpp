@@ -443,7 +443,7 @@ protected:
 public:
   std::vector<MCInstReference>
   getLastClobberingInsts(const MCInst &Inst, BinaryFunction &BF,
-                         const ArrayRef<MCPhysReg> UsedDirtyRegs) {
+                         const ArrayRef<MCPhysReg> UsedDirtyRegs) const {
     if (RegsToTrackInstsFor.empty())
       return {};
     auto MaybeState = getStateBefore(Inst);
@@ -498,14 +498,16 @@ static std::shared_ptr<Report>
 shouldReportCallGadget(const BinaryContext &BC, const MCInstReference &Inst,
                        const State &S) {
   static const GadgetKind CallKind("non-protected call found");
-  if (!BC.MIB->isCall(Inst) && !BC.MIB->isBranch(Inst))
+  if (!BC.MIB->isIndirectCall(Inst) && !BC.MIB->isIndirectBranch(Inst))
     return nullptr;
 
   bool IsAuthenticated = false;
-  MCPhysReg DestReg = BC.MIB->getRegUsedAsCallDest(Inst, IsAuthenticated);
-  if (IsAuthenticated || DestReg == BC.MIB->getNoRegister())
+  MCPhysReg DestReg =
+      BC.MIB->getRegUsedAsIndirectBranchDest(Inst, IsAuthenticated);
+  if (IsAuthenticated)
     return nullptr;
 
+  assert(DestReg != BC.MIB->getNoRegister());
   LLVM_DEBUG({
     traceInst(BC, "Found call inst", Inst);
     traceReg(BC, "Call destination reg", DestReg);

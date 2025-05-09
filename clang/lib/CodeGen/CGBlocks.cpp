@@ -2587,7 +2587,7 @@ const BlockByrefInfo &CodeGenFunction::getBlockByrefInfo(const VarDecl *D) {
   size += getPointerSize();
 
   // void *__forwarding;
-  types.push_back(llvm::PointerType::get(VoidPtrTy,
+  types.push_back(llvm::PointerType::get(VoidPtrTy->getContext(),
               CGM.getTargetCodeGenInfo().getDefaultAS()));
   size += getPointerSize();
 

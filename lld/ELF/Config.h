@@ -359,6 +359,7 @@ struct Config {
   bool compartment = false;
   bool sortCapRelocs;
   bool singleRoRx;
+  bool singleXoRx;
   bool shared;
   bool symbolic;
   bool isStatic = false;

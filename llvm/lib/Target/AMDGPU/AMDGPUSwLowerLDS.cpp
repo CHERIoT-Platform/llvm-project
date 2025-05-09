@@ -1267,9 +1267,7 @@ bool AMDGPUSwLowerLDS::run() {
     for (Instruction *Inst : AsanInfo.Instructions) {
       SmallVector<InterestingMemoryOperand, 1> InterestingOperands;
       getInterestingMemoryOperands(M, Inst, InterestingOperands);
-      for (auto &Operand : InterestingOperands) {
-        OperandsToInstrument.push_back(Operand);
-      }
+      llvm::append_range(OperandsToInstrument, InterestingOperands);
     }
     for (auto &Operand : OperandsToInstrument) {
       Value *Addr = Operand.getPtr();

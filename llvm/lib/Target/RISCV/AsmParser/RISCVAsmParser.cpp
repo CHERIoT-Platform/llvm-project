@@ -610,70 +610,76 @@ public:
 
   bool isBareSymbol() const {
     int64_t Imm;
-    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     // Must be of 'immediate' type but not a constant.
     if (!isImm() || evaluateConstantImm(getImm(), Imm))
       return false;
+
+    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
            VK == RISCVMCExpr::VK_None;
   }
 
   bool isCallSymbol() const {
     int64_t Imm;
-    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     // Must be of 'immediate' type but not a constant.
     if (!isImm() || evaluateConstantImm(getImm(), Imm))
       return false;
+
+    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
            (VK == RISCVMCExpr::VK_CALL || VK == RISCVMCExpr::VK_CALL_PLT);
   }
 
   bool isCCallSymbol() const {
     int64_t Imm;
-    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     // Must be of 'immediate' type but not a constant.
     if (!isImm() || evaluateConstantImm(getImm(), Imm))
-      return false;
+    return false;
+    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
            VK == RISCVMCExpr::VK_CCALL;
   }
 
   bool isPseudoJumpSymbol() const {
     int64_t Imm;
-    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     // Must be of 'immediate' type but not a constant.
     if (!isImm() || evaluateConstantImm(getImm(), Imm))
       return false;
+
+    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
            VK == RISCVMCExpr::VK_CALL;
   }
 
   bool isPseudoCJumpSymbol() const {
     int64_t Imm;
-    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     // Must be of 'immediate' type but not a constant.
     if (!isImm() || evaluateConstantImm(getImm(), Imm))
       return false;
+
+    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
            VK == RISCVMCExpr::VK_CCALL;
   }
 
   bool isTPRelAddSymbol() const {
     int64_t Imm;
-    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     // Must be of 'immediate' type but not a constant.
     if (!isImm() || evaluateConstantImm(getImm(), Imm))
       return false;
+
+    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
            VK == RISCVMCExpr::VK_TPREL_ADD;
   }
 
   bool isTLSDESCCallSymbol() const {
     int64_t Imm;
-    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     // Must be of 'immediate' type but not a constant.
     if (!isImm() || evaluateConstantImm(getImm(), Imm))
       return false;
+
+    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
            VK == RISCVMCExpr::VK_TLSDESC_CALL;
   }
@@ -958,23 +964,21 @@ public:
   }
 
   bool isSImm12() const {
-    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
-    int64_t Imm;
-    bool IsValid;
     if (!isImm())
       return false;
-    bool IsConstantImm = evaluateConstantImm(getImm(), Imm);
-    if (!IsConstantImm)
-      IsValid = RISCVAsmParser::classifySymbolRef(getImm(), VK);
-    else
-      IsValid = isInt<12>(fixImmediateForRV32(Imm, isRV64Imm()));
-    return IsValid &&
-           (IsConstantImm || VK == RISCVMCExpr::VK_LO ||
-            VK == RISCVMCExpr::VK_CHERIOT_COMPARTMENT_LO_I ||
-            VK == RISCVMCExpr::VK_CHERIOT_COMPARTMENT_LO_S ||
-            VK == RISCVMCExpr::VK_PCREL_LO || VK == RISCVMCExpr::VK_TPREL_LO ||
+
+    int64_t Imm;
+    if (evaluateConstantImm(getImm(), Imm))
+      return isInt<12>(fixImmediateForRV32(Imm, isRV64Imm()));
+
+    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
+    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+           (VK == RISCVMCExpr::VK_LO || VK == RISCVMCExpr::VK_PCREL_LO ||
+            VK == RISCVMCExpr::VK_TPREL_LO ||
             VK == RISCVMCExpr::VK_TLSDESC_LOAD_LO ||
-            VK == RISCVMCExpr::VK_TLSDESC_ADD_LO);
+            VK == RISCVMCExpr::VK_TLSDESC_ADD_LO ||
+            VK == RISCVMCExpr::VK_CHERIOT_COMPARTMENT_LO_I ||
+            VK == RISCVMCExpr::VK_CHERIOT_COMPARTMENT_LO_S);
   }
 
   bool isSImm12Lsb00000() const {
@@ -995,26 +999,27 @@ public:
   }
 
   bool isUImm20LUI() const {
-    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
-    int64_t Imm;
     if (!isImm())
       return false;
-    bool IsConstantImm = evaluateConstantImm(getImm(), Imm);
-    if (IsConstantImm)
+
+    int64_t Imm;
+    if (evaluateConstantImm(getImm(), Imm))
       return isUInt<20>(Imm);
+
+    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
            (VK == RISCVMCExpr::VK_HI || VK == RISCVMCExpr::VK_TPREL_HI);
   }
 
   bool isUImm20AUIPC() const {
-    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
-    int64_t Imm;
     if (!isImm())
       return false;
-    bool IsConstantImm = evaluateConstantImm(getImm(), Imm);
-    if (IsConstantImm)
+
+    int64_t Imm;
+    if (evaluateConstantImm(getImm(), Imm))
       return isUInt<20>(Imm);
 
+    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
            (VK == RISCVMCExpr::VK_PCREL_HI || VK == RISCVMCExpr::VK_GOT_HI ||
             VK == RISCVMCExpr::VK_TLS_GOT_HI ||
@@ -2379,8 +2384,7 @@ ParseStatus RISCVAsmParser::parsePseudoJumpSymbol(OperandVector &Operands) {
   if (getParser().parseExpression(Res, E))
     return ParseStatus::Failure;
 
-  if (Res->getKind() != MCExpr::ExprKind::SymbolRef ||
-      getSpecifier(cast<MCSymbolRefExpr>(Res)) == RISCVMCExpr::VK_PLTPCREL)
+  if (Res->getKind() != MCExpr::ExprKind::SymbolRef)
     return Error(S, "operand must be a valid jump target");
 
   RISCVMCExpr::Specifier Kind =

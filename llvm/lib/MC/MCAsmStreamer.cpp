@@ -2544,7 +2544,7 @@ void MCAsmStreamer::EmitCheriCapabilityImpl(const MCSymbol *Symbol,
       OS << Offset;
   } else {
     OS << " + ";
-    Addend->print(OS, MAI, /*InParens=*/true);
+    Addend->print(OS, MAI);
   }
   EmitEOL();
 }

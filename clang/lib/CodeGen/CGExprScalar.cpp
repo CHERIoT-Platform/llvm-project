@@ -2600,7 +2600,7 @@ static llvm::Value *createCToPtr(CodeGenFunction &CGF, llvm::Value *Cap,
   assert(llvm::isCheriPointer(Cap->getType(), &CGF.CGM.getDataLayout()));
   assert(LLVMTy->isIntegerTy());
   auto DDC =
-      CGF.Builder.CreateIntrinsic(llvm::Intrinsic::cheri_ddc_get, {}, {});
+      CGF.Builder.CreateIntrinsic(llvm::Intrinsic::cheri_ddc_get, {});
   auto CToPtr = CGF.Builder.CreateIntrinsic(
       llvm::Intrinsic::cheri_cap_to_pointer, CGF.PtrDiffTy,
       {DDC, CGF.Builder.CreatePointerCast(Cap, CGF.Int8CheriCapTy)});
@@ -2840,7 +2840,7 @@ Value *ScalarExprEmitter::VisitCastExpr(CastExpr *CE) {
       //   PCC-relative conversion?
       if (IncludesFunctionType) {
         Value *PCC =
-            Builder.CreateIntrinsic(llvm::Intrinsic::cheri_pcc_get, {}, {});
+            Builder.CreateIntrinsic(llvm::Intrinsic::cheri_pcc_get, {});
         assert(CGF.CGM.getDataLayout().isFatPointer(DestType));
         auto PccDerivedCap = Builder.CreateIntrinsic(
             llvm::Intrinsic::cheri_cap_from_pointer, {CGF.PtrDiffTy},

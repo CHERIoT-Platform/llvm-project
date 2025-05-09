@@ -2055,6 +2055,9 @@ llvm::Value *MicrosoftCXXABI::EmitVirtualDestructorCall(
     ThisTy = D->getDestroyedType();
   }
 
+  while (const ArrayType *ATy = Context.getAsArrayType(ThisTy))
+    ThisTy = ATy->getElementType();
+
   This = adjustThisArgumentForVirtualFunctionCall(CGF, GD, This, true);
   RValue RV =
       CGF.EmitCXXDestructorCall(GD, Callee, This.emitRawPointer(CGF), ThisTy,

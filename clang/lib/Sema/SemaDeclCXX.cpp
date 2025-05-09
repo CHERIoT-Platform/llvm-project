@@ -1660,8 +1660,8 @@ void Sema::CheckCompleteDecompositionDeclaration(DecompositionDecl *DD) {
     DD->setInvalidDecl();
 }
 
-std::optional<unsigned> Sema::GetDecompositionElementCount(QualType T,
-                                                           SourceLocation Loc) {
+UnsignedOrNone Sema::GetDecompositionElementCount(QualType T,
+                                                  SourceLocation Loc) {
   const ASTContext &Ctx = getASTContext();
   assert(!T->isDependentType());
 
@@ -1671,18 +1671,18 @@ std::optional<unsigned> Sema::GetDecompositionElementCount(QualType T,
   T = Context.getQualifiedType(Unqual, Quals);
 
   if (auto *CAT = Ctx.getAsConstantArrayType(T))
-    return CAT->getSize().getZExtValue();
+    return static_cast<unsigned>(CAT->getSize().getZExtValue());
   if (auto *VT = T->getAs<VectorType>())
     return VT->getNumElements();
   if (T->getAs<ComplexType>())
-    return 2;
+    return 2u;
 
   llvm::APSInt TupleSize(Ctx.getTypeSize(Ctx.getSizeType()));
   switch (isTupleLike(*this, Loc, T, TupleSize)) {
   case IsTupleLike::Error:
     return std::nullopt;
   case IsTupleLike::TupleLike:
-    return TupleSize.getExtValue();
+    return static_cast<unsigned>(TupleSize.getExtValue());
   case IsTupleLike::NotTupleLike:
     break;
   }
@@ -9006,8 +9006,7 @@ bool Sema::CheckExplicitlyDefaultedComparison(Scope *S, FunctionDecl *FD,
       return true;
 
     if (llvm::none_of(RD->friends(), [&](const FriendDecl *F) {
-          return FD->getCanonicalDecl() ==
-                 F->getFriendDecl()->getCanonicalDecl();
+          return declaresSameEntity(F->getFriendDecl(), FD);
         })) {
       Diag(FD->getLocation(), diag::err_defaulted_comparison_not_friend)
           << int(DCK) << int(0) << RD;
@@ -17551,16 +17550,17 @@ Decl *Sema::BuildStaticAssertDeclaration(SourceLocation StaticAssertLoc,
       std::string InnerCondDescription;
       std::tie(InnerCond, InnerCondDescription) =
         findFailedBooleanCondition(Converted.get());
-      if (InnerCond && isa<ConceptSpecializationExpr>(InnerCond)) {
+      if (const auto *ConceptIDExpr =
+              dyn_cast_or_null<ConceptSpecializationExpr>(InnerCond)) {
         // Drill down into concept specialization expressions to see why they
         // weren't satisfied.
         Diag(AssertExpr->getBeginLoc(), diag::err_static_assert_failed)
             << !HasMessage << Msg.str() << AssertExpr->getSourceRange();
         ConstraintSatisfaction Satisfaction;
-        if (!CheckConstraintSatisfaction(InnerCond, Satisfaction))
+        if (!CheckConstraintSatisfaction(ConceptIDExpr, Satisfaction))
           DiagnoseUnsatisfiedConstraint(Satisfaction);
-      } else if (InnerCond && !isa<CXXBoolLiteralExpr>(InnerCond)
-                           && !isa<IntegerLiteral>(InnerCond)) {
+      } else if (InnerCond && !isa<CXXBoolLiteralExpr>(InnerCond) &&
+                 !isa<IntegerLiteral>(InnerCond)) {
         Diag(InnerCond->getBeginLoc(),
              diag::err_static_assert_requirement_failed)
             << InnerCondDescription << !HasMessage << Msg.str()
@@ -18995,8 +18995,8 @@ bool Sema::checkThisInStaticMemberFunctionType(CXXMethodDecl *Method) {
     return true;
 
   // Check the trailing requires clause
-  if (Expr *E = Method->getTrailingRequiresClause())
-    if (!Finder.TraverseStmt(E))
+  if (const AssociatedConstraint &TRC = Method->getTrailingRequiresClause())
+    if (!Finder.TraverseStmt(const_cast<Expr *>(TRC.ConstraintExpr)))
       return true;
 
   return checkThisInStaticMemberFunctionAttributes(Method);

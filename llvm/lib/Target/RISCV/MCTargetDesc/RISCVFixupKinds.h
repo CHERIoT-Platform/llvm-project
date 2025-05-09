@@ -77,6 +77,9 @@ enum Fixups {
   fixup_riscv_tlsdesc_load_lo12,
   fixup_riscv_tlsdesc_add_lo12,
   fixup_riscv_tlsdesc_call,
+  // 12-bit fixup for symbol references in the 48-bit Xqcibi branch immediate
+  // instructions
+  fixup_riscv_qc_e_branch,
 
   // fixup_riscv_captab_pcrel_hi20 - 20-bit fixup corresponding to
   // captab_pcrel_hi(foo) for instructions like auipcc

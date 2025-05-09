@@ -1867,7 +1867,7 @@ ParseStatus RISCVAsmParser::parseRegister(OperandVector &Operands,
     if (HadParens)
       Operands.push_back(RISCVOperand::createToken("(", FirstS));
     SMLoc S = getLoc();
-    SMLoc E = SMLoc::getFromPointer(S.getPointer() + Name.size());
+    SMLoc E = getTok().getEndLoc();
     getLexer().Lex();
     Operands.push_back(RISCVOperand::createReg(Reg, S, E));
   }
@@ -2345,27 +2345,28 @@ ParseStatus RISCVAsmParser::parseCallSymbol(OperandVector &Operands) {
 
   if (getLexer().getKind() != AsmToken::Identifier)
     return ParseStatus::NoMatch;
+  std::string Identifier(getTok().getIdentifier());
 
-  // Avoid parsing the register in `call rd, foo` as a call symbol.
-  if (getLexer().peekTok().getKind() != AsmToken::EndOfStatement)
+  if (getLexer().peekTok().is(AsmToken::At)) {
+    Lex();
+    Lex();
+    StringRef PLT;
+    if (getParser().parseIdentifier(PLT) || PLT != "plt")
+      return ParseStatus::Failure;
+  } else if (!getLexer().peekTok().is(AsmToken::EndOfStatement)) {
+    // Avoid parsing the register in `call rd, foo` as a call symbol.
     return ParseStatus::NoMatch;
-
-  StringRef Identifier;
-  if (getParser().parseIdentifier(Identifier))
-    return ParseStatus::Failure;
+  } else {
+    Lex();
+  }
 
   SMLoc E = SMLoc::getFromPointer(S.getPointer() + Identifier.size());
 
   RISCVMCExpr::Specifier Kind;
   if (IsCap) {
     Kind = RISCVMCExpr::VK_CCALL;
-    // Both relocations are the same for RISC-V, so CHERI-RISC-V only provides
-    // a single relocation, but be friendly and permit the redundant suffix.
-    Identifier.consume_back("@plt");
   } else {
     Kind = RISCVMCExpr::VK_CALL_PLT;
-    if (Identifier.consume_back("@plt"))
-      Kind = RISCVMCExpr::VK_CALL_PLT;
   }
 
   MCSymbol *Sym = getContext().getOrCreateSymbol(Identifier);
@@ -2546,7 +2547,7 @@ ParseStatus RISCVAsmParser::parseMaskReg(OperandVector &Operands) {
   if (Reg != RISCV::V0)
     return ParseStatus::NoMatch;
   SMLoc S = getLoc();
-  SMLoc E = SMLoc::getFromPointer(S.getPointer() + Name.size());
+  SMLoc E = getTok().getEndLoc();
   getLexer().Lex();
   Operands.push_back(RISCVOperand::createReg(Reg, S, E));
   return ParseStatus::Success;
@@ -2569,7 +2570,7 @@ ParseStatus RISCVAsmParser::parseGPRAsFPR(OperandVector &Operands) {
   if (!Reg)
     return ParseStatus::NoMatch;
   SMLoc S = getLoc();
-  SMLoc E = SMLoc::getFromPointer(S.getPointer() + Name.size());
+  SMLoc E = getTok().getEndLoc();
   getLexer().Lex();
   Operands.push_back(RISCVOperand::createReg(
       Reg, S, E, !getSTI().hasFeature(RISCV::FeatureStdExtF)));
@@ -2602,7 +2603,7 @@ ParseStatus RISCVAsmParser::parseGPRPairAsFPR64(OperandVector &Operands) {
   }
 
   SMLoc S = getLoc();
-  SMLoc E = SMLoc::getFromPointer(S.getPointer() + Name.size());
+  SMLoc E = getTok().getEndLoc();
   getLexer().Lex();
 
   const MCRegisterInfo *RI = getContext().getRegisterInfo();
@@ -2644,7 +2645,7 @@ ParseStatus RISCVAsmParser::parseGPRPair(OperandVector &Operands,
     return TokError("register must be even");
 
   SMLoc S = getLoc();
-  SMLoc E = SMLoc::getFromPointer(S.getPointer() + Name.size());
+  SMLoc E = getTok().getEndLoc();
   getLexer().Lex();
 
   const MCRegisterInfo *RI = getContext().getRegisterInfo();
@@ -2851,15 +2852,14 @@ ParseStatus RISCVAsmParser::parseRegListCommon(OperandVector &Operands,
   if (parseToken(AsmToken::LCurly, "register list must start with '{'"))
     return ParseStatus::Failure;
 
-  bool IsEABI = isRVE();
+  bool IsRVE = isRVE();
 
   if (getLexer().isNot(AsmToken::Identifier))
     return Error(getLoc(), "register list must start from 'ra' or 'x1'");
 
   StringRef RegName = getLexer().getTok().getIdentifier();
-  MCRegister RegStart = matchRegisterNameHelper(RegName);
-  MCRegister RegEnd;
-  if (RegStart != RISCV::X1)
+  MCRegister RegEnd = matchRegisterNameHelper(RegName);
+  if (RegEnd != RISCV::X1)
     return Error(getLoc(), "register list must start from 'ra' or 'x1'");
   getLexer().Lex();
 
@@ -2880,10 +2880,10 @@ ParseStatus RISCVAsmParser::parseRegListCommon(OperandVector &Operands,
     if (getLexer().isNot(AsmToken::Identifier))
       return Error(getLoc(), "invalid register");
     StringRef RegName = getLexer().getTok().getIdentifier();
-    RegStart = matchRegisterNameHelper(RegName);
-    if (!RegStart)
+    RegEnd = matchRegisterNameHelper(RegName);
+    if (!RegEnd)
       return Error(getLoc(), "invalid register");
-    if (RegStart != RISCV::X8)
+    if (RegEnd != RISCV::X8)
       return Error(getLoc(),
                    "continuous register list must start from 's0' or 'x8'");
     getLexer().Lex(); // eat reg
@@ -2892,44 +2892,41 @@ ParseStatus RISCVAsmParser::parseRegListCommon(OperandVector &Operands,
   // parse case like -s1
   if (parseOptionalToken(AsmToken::Minus)) {
     StringRef EndName = getLexer().getTok().getIdentifier();
-    // FIXME: the register mapping and checks of EABI is wrong
+    // FIXME: the register mapping and checks of RVE is wrong
     RegEnd = matchRegisterNameHelper(EndName);
-    if (!RegEnd)
+    if (!(RegEnd == RISCV::X9 ||
+          (RegEnd >= RISCV::X18 && RegEnd <= RISCV::X27)))
       return Error(getLoc(), "invalid register");
-    if (IsEABI && RegEnd != RISCV::X9)
-      return Error(getLoc(), "contiguous register list of EABI can only be "
-                             "'s0-s1' or 'x8-x9' pair");
     getLexer().Lex();
   }
 
-  if (!IsEABI) {
-    // parse extra part like ', x18[-x20]' for XRegList
-    if (parseOptionalToken(AsmToken::Comma)) {
-      if (RegEnd != RISCV::X9)
-        return Error(
-            getLoc(),
-            "first contiguous registers pair of register list must be 'x8-x9'");
+  // parse extra part like ', x18[-x20]' for XRegList
+  if (parseOptionalToken(AsmToken::Comma)) {
+    if (RegEnd != RISCV::X9)
+      return Error(
+          getLoc(),
+          "first contiguous registers pair of register list must be 'x8-x9'");
 
-      // parse ', x18' for extra part
-      if (getLexer().isNot(AsmToken::Identifier))
+    // parse ', x18' for extra part
+    if (getLexer().isNot(AsmToken::Identifier) || IsRVE)
+      return Error(getLoc(), "invalid register");
+    StringRef EndName = getLexer().getTok().getIdentifier();
+    RegEnd = MatchRegisterName(EndName);
+    if (RegEnd != RISCV::X18)
+      return Error(getLoc(),
+                   "second contiguous registers pair of register list "
+                   "must start from 'x18'");
+    getLexer().Lex();
+
+    // parse '-x20' for extra part
+    if (parseOptionalToken(AsmToken::Minus)) {
+      if (getLexer().isNot(AsmToken::Identifier) || IsRVE)
         return Error(getLoc(), "invalid register");
-      StringRef EndName = getLexer().getTok().getIdentifier();
-      if (MatchRegisterName(EndName) != RISCV::X18)
-        return Error(getLoc(),
-                     "second contiguous registers pair of register list "
-                     "must start from 'x18'");
-      getLexer().Lex();
-
-      // parse '-x20' for extra part
-      if (parseOptionalToken(AsmToken::Minus)) {
-        if (getLexer().isNot(AsmToken::Identifier))
-          return Error(getLoc(), "invalid register");
-        EndName = getLexer().getTok().getIdentifier();
-        if (!MatchRegisterName(EndName))
-          return Error(getLoc(), "invalid register");
-        getLexer().Lex();
-      }
+      EndName = getLexer().getTok().getIdentifier();
       RegEnd = MatchRegisterName(EndName);
+      if (!(RegEnd >= RISCV::X19 && RegEnd <= RISCV::X27))
+        return Error(getLoc(), "invalid register");
+      getLexer().Lex();
     }
   }
 
@@ -2940,10 +2937,7 @@ ParseStatus RISCVAsmParser::parseRegListCommon(OperandVector &Operands,
   if (parseToken(AsmToken::RCurly, "register list must end with '}'"))
     return ParseStatus::Failure;
 
-  if (!RegEnd)
-    RegEnd = RegStart;
-
-  auto Encode = RISCVZC::encodeRlist(RegEnd, IsEABI);
+  auto Encode = RISCVZC::encodeRlist(RegEnd, IsRVE);
   assert(Encode != RISCVZC::INVALID_RLIST);
   if (MustIncludeS0)
     assert(Encode != RISCVZC::RA);

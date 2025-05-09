@@ -94,7 +94,7 @@ void MCExpr::print(raw_ostream &OS, const MCAsmInfo *MAI,
     if (Kind != MCSymbolRefExpr::VK_None) {
       if (!MAI) // should only be used by dump()
         OS << "@<variant " << Kind << '>';
-      else if (MAI->useParensForSymbolVariant()) // ARM
+      else if (MAI->useParensForSpecifier()) // ARM
         OS << '(' << MAI->getSpecifierName(Kind) << ')';
       else
         OS << '@' << MAI->getSpecifierName(Kind);

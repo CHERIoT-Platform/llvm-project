@@ -2542,8 +2542,9 @@ public:
     if (!getLocalData()->QualifierData)
       return NestedNameSpecifierLoc();
 
-    return NestedNameSpecifierLoc(getTypePtr()->getQualifier(),
-                                  getLocalData()->QualifierData);
+    return NestedNameSpecifierLoc(
+        getTypePtr()->getDependentTemplateName().getQualifier(),
+        getLocalData()->QualifierData);
   }
 
   void setQualifierLoc(NestedNameSpecifierLoc QualifierLoc) {
@@ -2556,8 +2557,8 @@ public:
       return;
     }
 
-    assert(QualifierLoc.getNestedNameSpecifier()
-                                        == getTypePtr()->getQualifier() &&
+    assert(QualifierLoc.getNestedNameSpecifier() ==
+               getTypePtr()->getDependentTemplateName().getQualifier() &&
            "Inconsistent nested-name-specifier pointer");
     getLocalData()->QualifierData = QualifierLoc.getOpaqueData();
   }

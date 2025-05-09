@@ -29,6 +29,7 @@ RISCVMCAsmInfo::RISCVMCAsmInfo(const Triple &TT, RISCVABI::ABI ABI) {
   AlignmentIsInBytes = false;
   SupportsDebugInformation = true;
   ExceptionsType = ExceptionHandling::DwarfCFI;
+  UseAtForSpecifier = false;
   Data16bitsDirective = "\t.half\t";
   Data32bitsDirective = "\t.word\t";
 }

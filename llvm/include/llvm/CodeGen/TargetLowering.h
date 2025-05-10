@@ -335,9 +335,6 @@ public:
   };
   using ArgListTy = std::vector<ArgListEntry>;
 
-  virtual void markLibCallAttributes(MachineFunction *MF, unsigned CC,
-                                     ArgListTy &Args) const {};
-
   static ISD::NodeType getExtendForContent(BooleanContent Content) {
     switch (Content) {
     case UndefinedBooleanContent:
@@ -356,7 +353,7 @@ public:
   explicit TargetLoweringBase(const TargetMachine &TM);
   TargetLoweringBase(const TargetLoweringBase &) = delete;
   TargetLoweringBase &operator=(const TargetLoweringBase &) = delete;
-  virtual ~TargetLoweringBase() = default;
+  virtual ~TargetLoweringBase();
 
   /// Return true if the target support strict float operation
   bool isStrictFPEnabled() const {
@@ -3967,6 +3964,7 @@ public:
   TargetLowering &operator=(const TargetLowering &) = delete;
 
   explicit TargetLowering(const TargetMachine &TM);
+  ~TargetLowering() override;
 
   bool isPositionIndependent() const;
 
@@ -4693,6 +4691,9 @@ public:
       SelectionDAG & /*DAG*/, SmallVectorImpl<SDValue> & /*InVals*/) const {
     llvm_unreachable("Not Implemented");
   }
+
+  virtual void markLibCallAttributes(MachineFunction *MF, unsigned CC,
+                                     ArgListTy &Args) const {}
 
   /// This structure contains the information necessary for lowering
   /// pointer-authenticating indirect calls.  It is equivalent to the "ptrauth"

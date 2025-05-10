@@ -75,7 +75,7 @@ void llvm::initializeCodeGen(PassRegistry &Registry) {
   initializeMIRProfileLoaderPassPass(Registry);
   initializeMachineBlockFrequencyInfoWrapperPassPass(Registry);
   initializeMachineBlockPlacementLegacyPass(Registry);
-  initializeMachineBlockPlacementStatsPass(Registry);
+  initializeMachineBlockPlacementStatsLegacyPass(Registry);
   initializeMachineCFGPrinterPass(Registry);
   initializeMachineCSELegacyPass(Registry);
   initializeMachineCombinerPass(Registry);
@@ -142,7 +142,7 @@ void llvm::initializeCodeGen(PassRegistry &Registry) {
   initializeTypePromotionLegacyPass(Registry);
   initializeUnpackMachineBundlesPass(Registry);
   initializeUnreachableBlockElimLegacyPassPass(Registry);
-  initializeUnreachableMachineBlockElimPass(Registry);
+  initializeUnreachableMachineBlockElimLegacyPass(Registry);
   initializeVirtRegMapWrapperLegacyPass(Registry);
   initializeVirtRegRewriterPass(Registry);
   initializeWasmEHPreparePass(Registry);

@@ -344,7 +344,9 @@ def amdgpuBufferFatPointer : ValueType<160, 234>;
 // FIXME: Remove this and the getPointerType() override if MVT::i82 is added.
 def amdgpuBufferStridedPointer : ValueType<192, 235>;
 
-def c64  : VTCapability<64,  !add(amdgpuBufferStridedPointer.Value, 1)>;  // 64-bit capability value
+def aarch64mfp8 : ValueType<8,  236>;  // 8-bit value in FPR (AArch64)
+
+def c64  : VTCapability<64,  !add(aarch64mfp8.Value, 1)>;  // 64-bit capability value
 def c128 : VTCapability<128, !add(c64.Value,   1)>;  // 128-bit capability value
 def c256 : VTCapability<256, !add(c128.Value,  1)>;  // 256-bit capability value
 

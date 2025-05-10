@@ -3961,6 +3961,7 @@ bool TargetLowering::canCreateUndefOrPoisonForTargetNode(
 }
 
 bool TargetLowering::isKnownNeverNaNForTargetNode(SDValue Op,
+                                                  const APInt &DemandedElts,
                                                   const SelectionDAG &DAG,
                                                   bool SNaN,
                                                   unsigned Depth) const {

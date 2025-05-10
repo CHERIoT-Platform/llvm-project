@@ -46,16 +46,16 @@ define dso_local ptr addrspace(200) @retaddr() addrspace(200) nounwind {
 ; PURECAP-LABEL: retaddr:
 ; PURECAP:       # %bb.0: # %entry
 ; PURECAP-NEXT:    cincoffset csp, csp, -16
-; PURECAP-NEXT:    csc cra, 0(csp)
 ; PURECAP-NEXT:    cmove ca0, cra
+; PURECAP-NEXT:    csc cra, 0(csp)
 ; PURECAP-NEXT:    cincoffset csp, csp, 16
 ; PURECAP-NEXT:    cret
 ;
 ; HYBRID-LABEL: retaddr:
 ; HYBRID:       # %bb.0: # %entry
 ; HYBRID-NEXT:    addi sp, sp, -16
-; HYBRID-NEXT:    sd ra, 0(sp)
 ; HYBRID-NEXT:    mv a0, ra
+; HYBRID-NEXT:    sd ra, 0(sp)
 ; HYBRID-NEXT:    addi sp, sp, 16
 ; HYBRID-NEXT:    ret
 entry:

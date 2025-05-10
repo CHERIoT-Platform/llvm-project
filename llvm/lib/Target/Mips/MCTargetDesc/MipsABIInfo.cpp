@@ -48,11 +48,15 @@ ArrayRef<MCPhysReg> MipsABIInfo::GetByValArgRegs() const {
   llvm_unreachable("Unhandled ABI");
 }
 
-ArrayRef<MCPhysReg> MipsABIInfo::GetVarArgRegs() const {
+ArrayRef<MCPhysReg> MipsABIInfo::getVarArgRegs(bool isGP64bit) const {
   if (IsCheriPureCap())
     return ArrayRef(CheriCapArgRegs);
-  if (IsO32())
-    return ArrayRef(O32IntRegs);
+  if (IsO32()) {
+    if (isGP64bit)
+      return ArrayRef(Mips64IntRegs);
+    else
+      return ArrayRef(O32IntRegs);
+  }
   if (IsN32() || IsN64())
     return ArrayRef(Mips64IntRegs);
   llvm_unreachable("Unhandled ABI");

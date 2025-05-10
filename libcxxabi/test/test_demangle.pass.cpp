@@ -30243,6 +30243,9 @@ const char* cases[][2] = {
     {"_Z1fDSDRm", "f(_Sat unsigned long _Fract)"},
 
     {"_Z11bfloat16addDF16bDF16b", "bfloat16add(std::bfloat16_t, std::bfloat16_t)"},
+
+    {"_Z3fooPU9__ptrauthILj3ELb1ELj234EEPi", "foo(int* __ptrauth<3u, true, 234u>*)"},
+    {"_Z3fooIPU9__ptrauthILj1ELb0ELj64EEPiEvT_", "void foo<int* __ptrauth<1u, false, 64u>*>(int* __ptrauth<1u, false, 64u>*)"},
     // clang-format on
 };
 

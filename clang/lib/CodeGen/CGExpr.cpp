@@ -397,55 +397,49 @@ pushTemporaryCleanup(CodeGenFunction &CGF, const MaterializeTemporaryExpr *M,
     }
   }
 
-  CXXDestructorDecl *ReferenceTemporaryDtor = nullptr;
-  if (const RecordType *RT =
-          E->getType()->getBaseElementTypeUnsafe()->getAs<RecordType>()) {
-    // Get the destructor for the reference temporary.
-    auto *ClassDecl = cast<CXXRecordDecl>(RT->getDecl());
-    if (!ClassDecl->hasTrivialDestructor())
-      ReferenceTemporaryDtor = ClassDecl->getDestructor();
-  }
+  QualType::DestructionKind DK = E->getType().isDestructedType();
+  if (DK != QualType::DK_none) {
+    switch (M->getStorageDuration()) {
+    case SD_Static:
+    case SD_Thread: {
+      CXXDestructorDecl *ReferenceTemporaryDtor = nullptr;
+      if (const RecordType *RT =
+              E->getType()->getBaseElementTypeUnsafe()->getAs<RecordType>()) {
+        // Get the destructor for the reference temporary.
+        if (auto *ClassDecl = dyn_cast<CXXRecordDecl>(RT->getDecl());
+            ClassDecl && !ClassDecl->hasTrivialDestructor())
+          ReferenceTemporaryDtor = ClassDecl->getDestructor();
+      }
 
-  if (!ReferenceTemporaryDtor)
-    return;
+      if (!ReferenceTemporaryDtor)
+        return;
 
-  // Call the destructor for the temporary.
-  switch (M->getStorageDuration()) {
-  case SD_Static:
-  case SD_Thread: {
-    llvm::FunctionCallee CleanupFn;
-    llvm::Constant *CleanupArg;
-    if (E->getType()->isArrayType()) {
-      CleanupFn = CodeGenFunction(CGF.CGM).generateDestroyHelper(
-          ReferenceTemporary, E->getType(),
-          CodeGenFunction::destroyCXXObject, CGF.getLangOpts().Exceptions,
-          dyn_cast_or_null<VarDecl>(M->getExtendingDecl()));
-      CleanupArg = llvm::Constant::getNullValue(CGF.Int8PtrTy);
-    } else {
-      CleanupFn = CGF.CGM.getAddrAndTypeOfCXXStructor(
-          GlobalDecl(ReferenceTemporaryDtor, Dtor_Complete));
-      CleanupArg = cast<llvm::Constant>(ReferenceTemporary.emitRawPointer(CGF));
+      llvm::FunctionCallee CleanupFn;
+      llvm::Constant *CleanupArg;
+      if (E->getType()->isArrayType()) {
+        CleanupFn = CodeGenFunction(CGF.CGM).generateDestroyHelper(
+            ReferenceTemporary, E->getType(), CodeGenFunction::destroyCXXObject,
+            CGF.getLangOpts().Exceptions,
+            dyn_cast_or_null<VarDecl>(M->getExtendingDecl()));
+        CleanupArg = llvm::Constant::getNullValue(CGF.Int8PtrTy);
+      } else {
+        CleanupFn = CGF.CGM.getAddrAndTypeOfCXXStructor(
+            GlobalDecl(ReferenceTemporaryDtor, Dtor_Complete));
+        CleanupArg =
+            cast<llvm::Constant>(ReferenceTemporary.emitRawPointer(CGF));
+      }
+      CGF.CGM.getCXXABI().registerGlobalDtor(
+          CGF, *cast<VarDecl>(M->getExtendingDecl()), CleanupFn, CleanupArg);
+    } break;
+    case SD_FullExpression:
+      CGF.pushDestroy(DK, ReferenceTemporary, E->getType());
+      break;
+    case SD_Automatic:
+      CGF.pushLifetimeExtendedDestroy(DK, ReferenceTemporary, E->getType());
+      break;
+    case SD_Dynamic:
+      llvm_unreachable("temporary cannot have dynamic storage duration");
     }
-    CGF.CGM.getCXXABI().registerGlobalDtor(
-        CGF, *cast<VarDecl>(M->getExtendingDecl()), CleanupFn, CleanupArg);
-    break;
-  }
-
-  case SD_FullExpression:
-    CGF.pushDestroy(NormalAndEHCleanup, ReferenceTemporary, E->getType(),
-                    CodeGenFunction::destroyCXXObject,
-                    CGF.getLangOpts().Exceptions);
-    break;
-
-  case SD_Automatic:
-    CGF.pushLifetimeExtendedDestroy(NormalAndEHCleanup,
-                                    ReferenceTemporary, E->getType(),
-                                    CodeGenFunction::destroyCXXObject,
-                                    CGF.getLangOpts().Exceptions);
-    break;
-
-  case SD_Dynamic:
-    llvm_unreachable("temporary cannot have dynamic storage duration");
   }
 }
 
@@ -576,7 +570,7 @@ EmitMaterializeTemporaryExpr(const MaterializeTemporaryExpr *M) {
     llvm::Type *TemporaryType = ConvertTypeForMem(E->getType());
     Object = Address(llvm::ConstantExpr::getPointerBitCastOrAddrSpaceCast(
                          cast<llvm::Constant>(Object.getPointer()),
-                         llvm::PointerType::get(TemporaryType, AS)),
+                         llvm::PointerType::get(CGM.getLLVMContext(), AS)),
                      TemporaryType,
                      Object.getAlignment());
     // If the temporary is a global and has a constant initializer or is a
@@ -3682,7 +3676,7 @@ void CodeGenFunction::EmitStoreThroughGlobalRegLValue(RValue Src, LValue Dst) {
   llvm::Type *OrigTy = CGM.getTypes().ConvertType(Dst.getType());
   llvm::Type *Ty = OrigTy;
   if (CGM.getDataLayout().isFatPointer(OrigTy))
-    Ty = llvm::PointerType::get(CGM.Int8Ty, OrigTy->getPointerAddressSpace());
+    Ty = llvm::PointerType::get(CGM.getLLVMContext(), OrigTy->getPointerAddressSpace());
   else if (OrigTy->isPointerTy())
     Ty = CGM.getTypes().getDataLayout().getIntPtrType(OrigTy);
   llvm::Type *Types[] = { Ty };
@@ -3802,7 +3796,8 @@ EmitBitCastOfLValueToProperType(CodeGenFunction &CGF,
                                 llvm::Value *V, llvm::Type *IRType,
                                 StringRef Name = StringRef()) {
   unsigned AS = cast<llvm::PointerType>(V->getType())->getAddressSpace();
-  return CGF.EmitPointerCast(V, llvm::PointerType::get(IRType, AS));
+  return CGF.EmitPointerCast(V,
+                             llvm::PointerType::get(IRType->getContext(), AS));
 }
 
 static LValue EmitThreadPrivateVarDeclLValue(
@@ -6241,7 +6236,8 @@ std::optional<LValue> HandleConditionalOperatorLValueSimpleCase(
         CGF.EmitCXXThrowExpr(ThrowExpr);
         llvm::Type *ElemTy = CGF.ConvertType(Dead->getType());
         llvm::Type *Ty = llvm::PointerType::get(
-            ElemTy, CGF.CGM.getDataLayout().getDefaultGlobalsAddressSpace());
+            CGF.CGM.getLLVMContext(),
+            CGF.CGM.getDataLayout().getDefaultGlobalsAddressSpace());
         return CGF.MakeAddrLValue(
             Address(llvm::UndefValue::get(Ty), ElemTy, CharUnits::One()),
             Dead->getType());

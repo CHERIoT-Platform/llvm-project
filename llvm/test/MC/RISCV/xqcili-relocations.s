@@ -11,7 +11,7 @@
 .text
 
 qc.li x4, %qc.abs20(foo)
-# RELOC: R_RISCV_CUSTOM192 foo 0x0
+# RELOC: R_RISCV_CHERI_CAPTAB_PCREL_HI20 foo 0x0
 # INSTR: qc.li tp, %qc.abs20(foo)
 # FIXUP: fixup A - offset: 0, value: %qc.abs20(foo), kind: fixup_riscv_qc_abs20_u
 
@@ -22,7 +22,7 @@ qc.e.li x5, foo
 
 # Check that a label in a different section is handled similar to an undefined symbol
 qc.li x9, %qc.abs20(.bar)
-# RELOC: R_RISCV_CUSTOM192 .bar 0x0
+# RELOC: R_RISCV_CHERI_CAPTAB_PCREL_HI20 .bar 0x0
 # INSTR: qc.li s1, %qc.abs20(.bar)
 # FIXUP: fixup A - offset: 0, value: %qc.abs20(.bar), kind: fixup_riscv_qc_abs20_u
 

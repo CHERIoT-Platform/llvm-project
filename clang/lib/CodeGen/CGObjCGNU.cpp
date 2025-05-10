@@ -821,7 +821,7 @@ class CGObjCGNUstep : public CGObjCGNU {
       unsigned AS = CGM.getTargetCodeGenInfo().getDefaultAS();
 
       SlotStructTy = llvm::StructType::get(PtrTy, PtrTy, PtrTy, IntTy, IMPTy);
-      SlotTy = llvm::PointerType::get(SlotStructTy, AS);
+      SlotTy = llvm::PointerType::get(CGM.getLLVMContext(), AS);
       // Slot_t objc_msg_lookup_sender(id *receiver, SEL selector, id sender);
       SlotLookupFn.init(&CGM, "objc_msg_lookup_sender", SlotTy, PtrToIdTy,
                         SelectorTy, IdTy);
@@ -2385,9 +2385,8 @@ CGObjCGNU::CGObjCGNU(CodeGenModule &cgm, unsigned runtimeABIVersion,
   PtrTy = llvm::PointerType::getUnqual(cgm.getLLVMContext());
   PtrToIntTy = PtrTy;
   // C string type.  Used in lots of places.
-  PtrToInt8Ty = llvm::PointerType::get(Int8Ty, AS);
-  ProtocolPtrTy = llvm::PointerType::get(
-      Types.ConvertType(CGM.getContext().getObjCProtoType()), AS);
+  PtrToInt8Ty = llvm::PointerType::get(CGM.getLLVMContext(), AS);
+  ProtocolPtrTy = llvm::PointerType::get(CGM.getLLVMContext(), AS);
 
   Zeros[0] = llvm::ConstantInt::get(LongTy, 0);
   Zeros[1] = Zeros[0];
@@ -2402,7 +2401,7 @@ CGObjCGNU::CGObjCGNU(CodeGenModule &cgm, unsigned runtimeABIVersion,
     SelectorElemTy = CGM.getTypes().ConvertTypeForMem(selTy->getPointeeType());
   }
 
-  PtrToIntTy = llvm::PointerType::get(IntTy, AS);
+  PtrToIntTy = llvm::PointerType::get(VMContext, AS);
   PtrTy = PtrToInt8Ty;
 
   Int32Ty = llvm::Type::getInt32Ty(VMContext);
@@ -2430,7 +2429,7 @@ CGObjCGNU::CGObjCGNU(CodeGenModule &cgm, unsigned runtimeABIVersion,
     IdTy = PtrToInt8Ty;
     IdElemTy = Int8Ty;
   }
-  PtrToIdTy = llvm::PointerType::get(IdTy, AS);
+  PtrToIdTy = llvm::PointerType::get(CGM.getLLVMContext(), AS);
   ProtocolTy = llvm::StructType::get(IdTy,
       PtrToInt8Ty, // name
       PtrToInt8Ty, // protocols
@@ -2458,7 +2457,7 @@ CGObjCGNU::CGObjCGNU(CodeGenModule &cgm, unsigned runtimeABIVersion,
       PtrToInt8Ty, PtrToInt8Ty });
 
   ObjCSuperTy = llvm::StructType::get(IdTy, IdTy);
-  PtrToObjCSuperTy = llvm::PointerType::get(ObjCSuperTy, AS);
+  PtrToObjCSuperTy = llvm::PointerType::get(CGM.getLLVMContext(), AS);
 
   llvm::Type *VoidTy = llvm::Type::getVoidTy(VMContext);
 
@@ -2490,9 +2489,7 @@ CGObjCGNU::CGObjCGNU(CodeGenModule &cgm, unsigned runtimeABIVersion,
                            PtrDiffTy, BoolTy, BoolTy);
 
   // IMP type
-  llvm::Type *IMPArgs[] = { IdTy, SelectorTy };
-  IMPTy = llvm::PointerType::get(llvm::FunctionType::get(IdTy, IMPArgs,
-              true), AS);
+  IMPTy = llvm::PointerType::get(CGM.getLLVMContext(), AS);
 
   const LangOptions &Opts = CGM.getLangOpts();
   if ((Opts.getGC() != LangOptions::NonGC) || Opts.ObjCAutoRefCount)
@@ -3394,10 +3391,9 @@ CGObjCGNU::GenerateProtocolList(ArrayRef<std::string> Protocols) {
 llvm::Value *CGObjCGNU::GenerateProtocolRef(CodeGenFunction &CGF,
                                             const ObjCProtocolDecl *PD) {
   auto protocol = GenerateProtocolRef(PD);
-  llvm::Type *T =
-      CGM.getTypes().ConvertType(CGM.getContext().getObjCProtoType());
   unsigned AS = CGF.CGM.getTargetCodeGenInfo().getDefaultAS();
-  return CGF.Builder.CreateBitCast(protocol, llvm::PointerType::get(T, AS));
+  return CGF.Builder.CreateBitCast(
+      protocol, llvm::PointerType::get(CGF.CGM.getLLVMContext(), AS));
 }
 
 llvm::Constant *CGObjCGNU::GenerateProtocolRef(const ObjCProtocolDecl *PD) {

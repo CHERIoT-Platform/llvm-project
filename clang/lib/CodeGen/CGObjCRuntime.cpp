@@ -191,7 +191,7 @@ void CGObjCRuntime::EmitTryCatchStmt(CodeGenFunction &CGF,
       unsigned AS = CGF.CGM.getTargetCodeGenInfo().getDefaultAS();
       Handler.TypeInfo =
           llvm::ConstantExpr::getPointerBitCastOrAddrSpaceCast(EHType,
-                  llvm::PointerType::get(CGM.Int8Ty, AS));
+                  llvm::PointerType::get(CGM.getLLVMContext(), AS));
     }
 
     EHCatchScope *Catch = CGF.EHStack.pushCatch(Handlers.size());

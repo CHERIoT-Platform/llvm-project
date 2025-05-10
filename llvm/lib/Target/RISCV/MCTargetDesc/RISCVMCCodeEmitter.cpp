@@ -290,7 +290,7 @@ void RISCVMCCodeEmitter::expandCIncOffsetTPRel(
   if (STI.getFeatureBits()[RISCV::FeatureRelax]) {
     const MCConstantExpr *Dummy = MCConstantExpr::create(0, Ctx);
     Fixups.push_back(MCFixup::create(
-        0, Dummy, FirstRelocationKind + ELF::R_RISCV_RELAX, MI.getLoc()));
+        0, Dummy, ELF::R_RISCV_RELAX, MI.getLoc()));
   }
 
   // Emit a normal CIncOffset instruction with the given operands.

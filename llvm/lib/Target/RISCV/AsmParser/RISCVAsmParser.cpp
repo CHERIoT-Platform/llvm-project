@@ -239,7 +239,6 @@ class RISCVAsmParser : public MCTargetAsmParser {
   ParseStatus parseBareSymbol(OperandVector &Operands);
   template <bool IsCap = false>
   ParseStatus parseCallSymbol(OperandVector &Operands);
-  ParseStatus parsePseudoQCJumpSymbol(OperandVector &Operands);
   template <bool IsCap = false>
   ParseStatus parsePseudoJumpSymbol(OperandVector &Operands);
   ParseStatus parseJALOffset(OperandVector &Operands);
@@ -2396,7 +2395,6 @@ ParseStatus RISCVAsmParser::parseCallSymbol(OperandVector &Operands) {
   }
 
   SMLoc E = SMLoc::getFromPointer(S.getPointer() + Identifier.size());
-
   RISCVMCExpr::Specifier Kind;
   if (IsCap) {
     Kind = RISCVMCExpr::VK_CCALL;
@@ -2407,23 +2405,6 @@ ParseStatus RISCVAsmParser::parseCallSymbol(OperandVector &Operands) {
   MCSymbol *Sym = getContext().getOrCreateSymbol(Identifier);
   Res = MCSymbolRefExpr::create(Sym, getContext());
   Res = RISCVMCExpr::create(Res, Kind, getContext());
-  Operands.push_back(RISCVOperand::createImm(Res, S, E, isRV64()));
-  return ParseStatus::Success;
-}
-
-ParseStatus RISCVAsmParser::parsePseudoQCJumpSymbol(OperandVector &Operands) {
-  SMLoc S = getLoc();
-  const MCExpr *Res;
-
-  if (getLexer().getKind() != AsmToken::Identifier)
-    return ParseStatus::NoMatch;
-
-  std::string Identifier(getTok().getIdentifier());
-  SMLoc E = getTok().getEndLoc();
-  Lex();
-
-  MCSymbol *Sym = getContext().getOrCreateSymbol(Identifier);
-  Res = MCSymbolRefExpr::create(Sym, getContext());
   Operands.push_back(RISCVOperand::createImm(Res, S, E, isRV64()));
   return ParseStatus::Success;
 }

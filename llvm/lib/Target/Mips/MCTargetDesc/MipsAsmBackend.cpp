@@ -501,7 +501,7 @@ MCFixupKindInfo MipsAsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
     { "fixup_CHERI_CAPCALL20",           0,     16,   0 },
     { "fixup_CHERI_CAPCALL_HI16",        0,     16,   0 },
     { "fixup_CHERI_CAPCALL_LO16",        0,     16,   0 },
-    { "fixup_CHERI_CAPABILITY",          0,  0xdead,   0 },
+    { "fixup_CHERI_CAPABILITY",          0,    255,   0 },
     
     { "fixup_Mips_CAPTABLEREL16",        0,     16,   0 }, // like GPREL16
     { "fixup_Mips_CAPTABLEREL_HI",       0,     16,   0 }, // like GPOFF_HI
@@ -608,7 +608,7 @@ MCFixupKindInfo MipsAsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
     { "fixup_CHERI_CAPCALL20",     16,    16,   0 },
     { "fixup_CHERI_CAPCALL_HI16",  16,    16,   0 },
     { "fixup_CHERI_CAPCALL_LO16",  16,    16,   0 },
-    { "fixup_CHERI_CAPABILITY",     0,0xdead,   0 },
+    { "fixup_CHERI_CAPABILITY",     0,   255,   0 },
     
     { "fixup_Mips_CAPTABLEREL16",  16,    16,   0 }, // like GPREL16
     { "fixup_Mips_CAPTABLEREL_HI", 16,    16,   0 }, // like GPOFF_HI

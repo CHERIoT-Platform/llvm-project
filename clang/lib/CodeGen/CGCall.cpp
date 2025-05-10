@@ -1457,7 +1457,8 @@ void CodeGenFunction::CreateCoercedStore(llvm::Value *Src, Address Dst,
           if (llvm::PointerType* PTy = dyn_cast<llvm::PointerType>(SrcTy)) {
             unsigned CapAS = CGM.getTargetCodeGenInfo().getCHERICapabilityAS();
             if (PTy->getAddressSpace() == CapAS) {
-              Src = Builder.CreateBitCast(Src, llvm::PointerType::get(DstSTy, CapAS));
+              Src = Builder.CreateBitCast(
+                  Src, llvm::PointerType::get(CGM.getLLVMContext(), CapAS));
               Src =
                   Builder.CreateLoad(Address(Src, DstSTy, Dst.getAlignment()));
               Builder.CreateStore(Src, Dst, DstIsVolatile);
@@ -6185,7 +6186,8 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
                       unsigned CapAS = CGM.getTargetCodeGenInfo().getCHERICapabilityAS();
                       llvm::Function *F =
                           CGM.getIntrinsic(llvm::Intrinsic::cheri_cap_unseal);
-                      llvm::Type *CapPtrTy = llvm::PointerType::get(Int8Ty, CapAS);
+                      llvm::Type *CapPtrTy =
+                          llvm::PointerType::get(CGM.getLLVMContext(), CapAS);
                       V = Builder.CreateCall(F,
                             {Builder.CreateBitCast(V, CapPtrTy),
                               Builder.CreateBitCast(KeyV, CapPtrTy)});

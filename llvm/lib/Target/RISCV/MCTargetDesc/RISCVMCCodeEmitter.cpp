@@ -56,6 +56,10 @@ public:
                           SmallVectorImpl<MCFixup> &Fixups,
                           const MCSubtargetInfo &STI) const;
 
+  void expandQCJump(const MCInst &MI, SmallVectorImpl<char> &CB,
+                    SmallVectorImpl<MCFixup> &Fixups,
+                    const MCSubtargetInfo &STI) const;
+
   void expandTLSDESCCall(const MCInst &MI, SmallVectorImpl<char> &CB,
                          SmallVectorImpl<MCFixup> &Fixups,
                          const MCSubtargetInfo &STI) const;
@@ -202,6 +206,26 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
                   .addImm(0);
   Binary = getBinaryCodeForInstr(TmpInst, Fixups, STI);
   support::endian::write(CB, Binary, llvm::endianness::little);
+}
+
+void RISCVMCCodeEmitter::expandQCJump(const MCInst &MI,
+                                      SmallVectorImpl<char> &CB,
+                                      SmallVectorImpl<MCFixup> &Fixups,
+                                      const MCSubtargetInfo &STI) const {
+  MCOperand Func = MI.getOperand(0);
+  assert(Func.isExpr() && "Expected expression");
+
+  auto Opcode =
+      (MI.getOpcode() == RISCV::PseudoQC_E_J) ? RISCV::QC_E_J : RISCV::QC_E_JAL;
+  MCInst Jump = MCInstBuilder(Opcode).addExpr(Func.getExpr());
+
+  uint64_t Bits = getBinaryCodeForInstr(Jump, Fixups, STI) & 0xffff'ffff'ffffu;
+  SmallVector<char, 8> Encoding;
+  support::endian::write(Encoding, Bits, llvm::endianness::little);
+  assert(Encoding[6] == 0 && Encoding[7] == 0 &&
+         "Unexpected encoding for 48-bit instruction");
+  Encoding.truncate(6);
+  CB.append(Encoding);
 }
 
 void RISCVMCCodeEmitter::expandTLSDESCCall(const MCInst &MI,
@@ -522,6 +546,11 @@ void RISCVMCCodeEmitter::encodeInstruction(const MCInst &MI,
     expandTLSDESCCall(MI, CB, Fixups, STI);
     MCNumEmitted += 1;
     return;
+  case RISCV::PseudoQC_E_J:
+  case RISCV::PseudoQC_E_JAL:
+    expandQCJump(MI, CB, Fixups, STI);
+    MCNumEmitted += 1;
+    return;
   }
 
 
@@ -738,6 +767,9 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
       break;
     case RISCVMCExpr::VK_QC_ABS20:
       FixupKind = RISCV::fixup_riscv_qc_abs20_u;
+      break;
+    case RISCVMCExpr::VK_QC_E_JUMP_PLT:
+      FixupKind = RISCV::fixup_riscv_qc_e_jump_plt;
       break;
     case RISCVMCExpr::VK_CAPTAB_PCREL_HI:
       FixupKind = RISCV::fixup_riscv_captab_pcrel_hi20;

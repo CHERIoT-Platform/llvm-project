@@ -239,6 +239,7 @@ class RISCVAsmParser : public MCTargetAsmParser {
   ParseStatus parseBareSymbol(OperandVector &Operands);
   template <bool IsCap = false>
   ParseStatus parseCallSymbol(OperandVector &Operands);
+  ParseStatus parsePseudoQCJumpSymbol(OperandVector &Operands);
   template <bool IsCap = false>
   ParseStatus parsePseudoJumpSymbol(OperandVector &Operands);
   ParseStatus parseJALOffset(OperandVector &Operands);
@@ -643,6 +644,17 @@ public:
     RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
            (VK == RISCVMCExpr::VK_CALL || VK == RISCVMCExpr::VK_CALL_PLT);
+  }
+
+  bool isPseudoQCJumpSymbol() const {
+    int64_t Imm;
+    // Must be of 'immediate' type but not a constant.
+    if (!isImm() || evaluateConstantImm(getImm(), Imm))
+      return false;
+
+    RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
+    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+           VK == RISCVMCExpr::VK_QC_E_JUMP_PLT;
   }
 
   bool isCCallSymbol() const {
@@ -2400,6 +2412,38 @@ ParseStatus RISCVAsmParser::parseCallSymbol(OperandVector &Operands) {
   } else {
     Kind = RISCVMCExpr::VK_CALL_PLT;
   }
+
+  MCSymbol *Sym = getContext().getOrCreateSymbol(Identifier);
+  Res = MCSymbolRefExpr::create(Sym, getContext());
+  Res = RISCVMCExpr::create(Res, Kind, getContext());
+  Operands.push_back(RISCVOperand::createImm(Res, S, E, isRV64()));
+  return ParseStatus::Success;
+}
+
+ParseStatus RISCVAsmParser::parsePseudoQCJumpSymbol(OperandVector &Operands) {
+  SMLoc S = getLoc();
+  const MCExpr *Res;
+
+  if (getLexer().getKind() != AsmToken::Identifier)
+    return ParseStatus::NoMatch;
+
+  std::string Identifier(getTok().getIdentifier());
+  SMLoc E = getTok().getEndLoc();
+
+  if (getLexer().peekTok().is(AsmToken::At)) {
+    Lex();
+    Lex();
+    SMLoc PLTLoc = getLoc();
+    StringRef PLT;
+    E = getTok().getEndLoc();
+    if (getParser().parseIdentifier(PLT) || PLT != "plt")
+      return Error(PLTLoc,
+                   "'@plt' is the only valid operand for this instruction");
+  } else {
+    Lex();
+  }
+
+  RISCVMCExpr::Specifier Kind = RISCVMCExpr::VK_QC_E_JUMP_PLT;
 
   MCSymbol *Sym = getContext().getOrCreateSymbol(Identifier);
   Res = MCSymbolRefExpr::create(Sym, getContext());

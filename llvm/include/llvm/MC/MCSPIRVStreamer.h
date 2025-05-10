@@ -33,12 +33,9 @@ public:
   bool emitSymbolAttribute(MCSymbol *Symbol, MCSymbolAttr Attribute) override {
     return false;
   }
-  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size, Align ByteAlignment,
+  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
+                        Align ByteAlignment,
                         TailPaddingAmount TailPadding) override {}
-  void emitZerofill(MCSection *Section, MCSymbol *Symbol = nullptr,
-                    uint64_t Size = 0, Align ByteAlignment = Align(1),
-                    TailPaddingAmount TailPadding = TailPaddingAmount::None,
-                    SMLoc Loc = SMLoc()) override {}
 
 private:
   void emitInstToData(const MCInst &Inst, const MCSubtargetInfo &) override;

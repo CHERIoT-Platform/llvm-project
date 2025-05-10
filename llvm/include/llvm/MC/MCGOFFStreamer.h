@@ -31,10 +31,6 @@ public:
                         Align ByteAlignment,
                         TailPaddingAmount TailPadding) override {}
   void emitInstToData(const MCInst &Inst, const MCSubtargetInfo &) override {}
-  void emitZerofill(MCSection *Section, MCSymbol *Symbol = nullptr,
-                    uint64_t Size = 0, Align ByteAlignment = Align(1),
-                    TailPaddingAmount TailPadding = TailPaddingAmount::None,
-                    SMLoc Loc = SMLoc()) override {}
 };
 
 } // end namespace llvm

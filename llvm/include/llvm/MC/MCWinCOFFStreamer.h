@@ -64,11 +64,6 @@ public:
   void emitLocalCommonSymbol(MCSymbol *Symbol, uint64_t Size,
                              Align ByteAlignment, TailPaddingAmount TailPadding) override;
   void emitWeakReference(MCSymbol *Alias, const MCSymbol *Symbol) override;
-  void emitZerofill(MCSection *Section, MCSymbol *Symbol, uint64_t Size,
-                    Align ByteAlignment, TailPaddingAmount TailPadding, SMLoc Loc = SMLoc()) override;
-  void emitTBSSSymbol(MCSection *Section, MCSymbol *Symbol, uint64_t Size,
-                      Align ByteAlignment,
-                      TailPaddingAmount TailPadding) override;
   void emitIdent(StringRef IdentString) override;
   void emitWinEHHandlerData(SMLoc Loc) override;
   void emitCGProfileEntry(const MCSymbolRefExpr *From,

@@ -140,12 +140,6 @@ void MCXCOFFStreamer::emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
   emitZeros(Size);
 }
 
-void MCXCOFFStreamer::emitZerofill(MCSection *Section, MCSymbol *Symbol,
-                                   uint64_t Size, Align ByteAlignment,
-                                   TailPaddingAmount TailPadding, SMLoc Loc) {
-  report_fatal_error("Zero fill not implemented for XCOFF.");
-}
-
 void MCXCOFFStreamer::emitInstToData(const MCInst &Inst,
                                      const MCSubtargetInfo &STI) {
   MCAssembler &Assembler = getAssembler();

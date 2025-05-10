@@ -689,7 +689,7 @@ public:
   virtual void emitZerofill(MCSection *Section, MCSymbol *Symbol = nullptr,
                             uint64_t Size = 0, Align ByteAlignment = Align(1),
                             TailPaddingAmount TailPadding = TailPaddingAmount::None,
-                            SMLoc Loc = SMLoc()) = 0;
+                            SMLoc Loc = SMLoc());
 
   /// Emit a thread local bss (.tbss) symbol.
   ///

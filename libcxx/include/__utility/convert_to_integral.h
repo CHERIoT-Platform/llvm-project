@@ -58,7 +58,7 @@ unsigned __intcap __convert_to_integral(unsigned __intcap __val) { return __val;
 
 template <class _Tp, bool = is_enum<_Tp>::value>
 struct __sfinae_underlying_type {
-  typedef typename underlying_type<_Tp>::type type;
+  using type = __underlying_type_t<_Tp>;
   typedef decltype(((type)1) + 0) __promoted_type;
 };
 

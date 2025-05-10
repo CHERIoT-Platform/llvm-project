@@ -2540,7 +2540,6 @@ bool CXXNameMangler::mangleUnresolvedTypeOrSimpleId(QualType Ty,
   case Type::PackIndexing:
   case Type::TemplateTypeParm:
   case Type::UnaryTransform:
-  case Type::SubstTemplateTypeParm:
   unresolvedType:
     // Some callers want a prefix before the mangled type.
     Out << Prefix;
@@ -2552,6 +2551,16 @@ bool CXXNameMangler::mangleUnresolvedTypeOrSimpleId(QualType Ty,
     // We never want to print 'E' directly after an unresolved-type,
     // so we return directly.
     return true;
+
+  case Type::SubstTemplateTypeParm: {
+    auto *ST = cast<SubstTemplateTypeParmType>(Ty);
+    // If this was replaced from a type alias, this is not substituted
+    // from an outer template parameter, so it's not an unresolved-type.
+    if (auto *TD = dyn_cast<TemplateDecl>(ST->getAssociatedDecl());
+        TD && TD->isTypeAlias())
+      return mangleUnresolvedTypeOrSimpleId(ST->getReplacementType(), Prefix);
+    goto unresolvedType;
+  }
 
   case Type::Typedef:
     mangleSourceNameWithAbiTags(cast<TypedefType>(Ty)->getDecl());
@@ -6102,8 +6111,6 @@ void CXXNameMangler::mangleCXXDtorType(CXXDtorType T) {
   case Dtor_Comdat:
     Out << "D5";
     break;
-  case Dtor_VectorDeleting:
-    llvm_unreachable("Itanium ABI does not use vector deleting dtors");
   }
 }
 

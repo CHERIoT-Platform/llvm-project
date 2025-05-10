@@ -2263,13 +2263,12 @@ QualType Sema::BuildArrayType(QualType T, ArraySizeModifier ASM,
       if (VLAIsError)
         return QualType();
 
-      T = Context.getVariableArrayType(T, nullptr, ASM, Quals, Brackets, PIK);
+      T = Context.getVariableArrayType(T, nullptr, ASM, Quals, PIK);
     } else {
       T = Context.getIncompleteArrayType(T, ASM, Quals, PIK);
     }
   } else if (ArraySize->isTypeDependent() || ArraySize->isValueDependent()) {
-    T = Context.getDependentSizedArrayType(T, ArraySize, ASM, Quals, Brackets,
-                                           PIK);
+    T = Context.getDependentSizedArrayType(T, ArraySize, ASM, Quals, PIK);
   } else {
     ExprResult R =
         checkArraySize(*this, ArraySize, ConstVal, VLADiag, VLAIsError);
@@ -2280,8 +2279,7 @@ QualType Sema::BuildArrayType(QualType T, ArraySizeModifier ASM,
       // C99: an array with a non-ICE size is a VLA. We accept any expression
       // that we can fold to a non-zero positive value as a non-VLA as an
       // extension.
-      T = Context.getVariableArrayType(T, ArraySize, ASM, Quals, Brackets,
-                                       PIK);
+      T = Context.getVariableArrayType(T, ArraySize, ASM, Quals, PIK);
     } else if (!T->isDependentType() && !T->isIncompleteType() &&
                !T->isConstantSizeType()) {
       // C99: an array with an element type that has a non-constant-size is a
@@ -2290,8 +2288,7 @@ QualType Sema::BuildArrayType(QualType T, ArraySizeModifier ASM,
       Diag(Loc, VLADiag);
       if (VLAIsError)
         return QualType();
-      T = Context.getVariableArrayType(T, ArraySize, ASM, Quals, Brackets,
-                                       PIK);
+      T = Context.getVariableArrayType(T, ArraySize, ASM, Quals, PIK);
     } else {
       // C99 6.7.5.2p1: If the expression is a constant expression, it shall
       // have a value greater than zero.
@@ -7047,9 +7044,9 @@ namespace {
 
         if (const auto *VAT = dyn_cast<VariableArrayType>(Old)) {
           QualType New = wrap(C, VAT->getElementType(), I);
-          return C.getVariableArrayType(
-              New, VAT->getSizeExpr(), VAT->getSizeModifier(),
-              VAT->getIndexTypeCVRQualifiers(), VAT->getBracketsRange());
+          return C.getVariableArrayType(New, VAT->getSizeExpr(),
+                                        VAT->getSizeModifier(),
+                                        VAT->getIndexTypeCVRQualifiers());
         }
 
         const auto *IAT = cast<IncompleteArrayType>(Old);
@@ -8707,12 +8704,10 @@ QualType Sema::BuildPointerInterpretationAttr(QualType T,
 
     if (const auto *VAT = dyn_cast<VariableArrayType>(T))
       T = Context.getVariableArrayType(EltTy, VAT->getSizeExpr(), ASM,
-                                       IndexTypeQuals,
-                                       VAT->getBracketsRange(), PIK);
+                                       IndexTypeQuals, PIK);
     else if (const auto *DSAT = dyn_cast<DependentSizedArrayType>(T))
       T = Context.getDependentSizedArrayType(EltTy, DSAT->getSizeExpr(), ASM,
-                                             IndexTypeQuals,
-                                             DSAT->getBracketsRange(), PIK);
+                                             IndexTypeQuals, PIK);
     else if (isa<IncompleteArrayType>(T))
       T = Context.getIncompleteArrayType(EltTy, ASM, IndexTypeQuals, PIK);
     else if (const auto *CAT = dyn_cast<ConstantArrayType>(T))

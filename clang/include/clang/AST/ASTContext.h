@@ -1600,7 +1600,6 @@ public:
   QualType getVariableArrayType(QualType EltTy, Expr *NumElts,
                                 ArraySizeModifier ASM,
                                 unsigned IndexTypeQuals,
-                                SourceRange Brackets,
                                 std::optional<PointerInterpretationKind> PIK = std::nullopt) const;
 
   /// Return a non-unique reference to the type for a dependently-sized
@@ -1611,7 +1610,6 @@ public:
   QualType getDependentSizedArrayType(QualType EltTy, Expr *NumElts,
                                       ArraySizeModifier ASM,
                                       unsigned IndexTypeQuals,
-                                      SourceRange Brackets,
       std::optional<PointerInterpretationKind> PIK = std::nullopt) const;
 
   /// Return a unique reference to the type for an incomplete array of

@@ -291,10 +291,8 @@ QualType ArrayParameterType::getConstantArrayType(const ASTContext &Ctx) const {
 DependentSizedArrayType::DependentSizedArrayType(QualType et, QualType can,
                                                  Expr *e, ArraySizeModifier sm,
                                                  unsigned tq,
-                                                 SourceRange brackets,
                                     std::optional<PointerInterpretationKind> PIK)
-    : ArrayType(DependentSizedArray, et, can, sm, tq, PIK, e), SizeExpr((Stmt *)e),
-      Brackets(brackets) {}
+    : ArrayType(DependentSizedArray, et, can, sm, tq, PIK, e), SizeExpr((Stmt *)e) {}
 
 void DependentSizedArrayType::Profile(
     llvm::FoldingSetNodeID &ID, const ASTContext &Context, QualType ET,
@@ -1222,8 +1220,7 @@ public:
 
     return Ctx.getVariableArrayType(elementType, T->getSizeExpr(),
                                     T->getSizeModifier(),
-                                    T->getIndexTypeCVRQualifiers(),
-                                    T->getBracketsRange());
+                                    T->getIndexTypeCVRQualifiers());
   }
 
   QualType VisitIncompleteArrayType(const IncompleteArrayType *T) {

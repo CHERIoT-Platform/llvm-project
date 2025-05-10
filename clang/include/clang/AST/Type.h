@@ -3991,14 +3991,10 @@ class VariableArrayType : public ArrayType {
   /// a function block.
   Stmt *SizeExpr;
 
-  /// The range spanned by the left and right array brackets.
-  SourceRange Brackets;
-
   VariableArrayType(QualType et, QualType can, Expr *e, ArraySizeModifier sm,
-                    unsigned tq, SourceRange brackets,
+                    unsigned tq,
                     std::optional<PointerInterpretationKind> PIK)
-      : ArrayType(VariableArray, et, can, sm, tq, PIK, e), SizeExpr((Stmt *)e),
-        Brackets(brackets) {}
+      : ArrayType(VariableArray, et, can, sm, tq, PIK, e), SizeExpr((Stmt *)e) {}
 
 public:
   friend class StmtIteratorBase;
@@ -4008,10 +4004,6 @@ public:
     // to have a dependency of Type.h on Stmt.h/Expr.h.
     return (Expr*) SizeExpr;
   }
-
-  SourceRange getBracketsRange() const { return Brackets; }
-  SourceLocation getLBracketLoc() const { return Brackets.getBegin(); }
-  SourceLocation getRBracketLoc() const { return Brackets.getEnd(); }
 
   bool isSugared() const { return false; }
   QualType desugar() const { return QualType(this, 0); }
@@ -4048,12 +4040,8 @@ class DependentSizedArrayType : public ArrayType {
   /// type will have its size deduced from an initializer.
   Stmt *SizeExpr;
 
-  /// The range spanned by the left and right array brackets.
-  SourceRange Brackets;
-
   DependentSizedArrayType(QualType et, QualType can, Expr *e,
                           ArraySizeModifier sm, unsigned tq,
-                          SourceRange brackets,
                           std::optional<PointerInterpretationKind> PIK);
 
 public:
@@ -4064,10 +4052,6 @@ public:
     // to have a dependency of Type.h on Stmt.h/Expr.h.
     return (Expr*) SizeExpr;
   }
-
-  SourceRange getBracketsRange() const { return Brackets; }
-  SourceLocation getLBracketLoc() const { return Brackets.getBegin(); }
-  SourceLocation getRBracketLoc() const { return Brackets.getEnd(); }
 
   bool isSugared() const { return false; }
   QualType desugar() const { return QualType(this, 0); }

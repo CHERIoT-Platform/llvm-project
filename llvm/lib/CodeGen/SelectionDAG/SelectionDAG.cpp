@@ -5423,9 +5423,6 @@ bool SelectionDAG::isGuaranteedNotToBeUndefOrPoison(SDValue Op,
   case ISD::CopyFromReg:
     return true;
 
-  case ISD::POISON:
-    return false;
-
   case ISD::UNDEF:
     return PoisonOnly;
 

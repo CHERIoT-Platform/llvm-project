@@ -4524,7 +4524,8 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
     Value *V = Builder.CreateCall(F, llvm::ConstantInt::get(Int32Ty, Offset));
     unsigned AS = CGM.getTargetCodeGenInfo().getDefaultAS();
     if (AS != 0)
-      V = Builder.CreateAddrSpaceCast(V, llvm::PointerType::get(Int8Ty, AS));
+      V = Builder.CreateAddrSpaceCast(
+          V, llvm::PointerType::get(CGM.getLLVMContext(), AS));
     return RValue::get(V);
   }
   case Builtin::BI__builtin_return_address: {

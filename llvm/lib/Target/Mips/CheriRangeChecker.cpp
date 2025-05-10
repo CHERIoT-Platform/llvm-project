@@ -155,7 +155,7 @@ public:
     M = &Mod;
     TD = &M->getDataLayout();
     SizeTy = IntegerType::get(M->getContext(), TD->getIndexSizeInBits(200));
-    CapPtrTy = PointerType::get(IntegerType::get(M->getContext(), 8), 200);
+    CapPtrTy = PointerType::get(M->getContext(), 200);
     return true;
   }
   virtual ~CheriRangeChecker() {}

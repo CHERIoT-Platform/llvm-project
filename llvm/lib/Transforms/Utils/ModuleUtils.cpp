@@ -29,10 +29,9 @@ using namespace llvm;
 static void appendToGlobalArray(StringRef ArrayName, Module &M, Function *F,
                                 int Priority, Constant *Data) {
   IRBuilder<> IRB(M.getContext());
-  FunctionType *FnTy = FunctionType::get(IRB.getVoidTy(), false);
 
   unsigned CtorPtrAS = M.getDataLayout().getProgramAddressSpace();
-  llvm::Type *CtorPFTy = llvm::PointerType::get(FnTy, CtorPtrAS);
+  llvm::Type *CtorPFTy = llvm::PointerType::get(M.getContext(), CtorPtrAS);
   llvm::Type *ArgTy =
       IRB.getPtrTy(M.getDataLayout().getGlobalsAddressSpace());
 

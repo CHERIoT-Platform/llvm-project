@@ -470,7 +470,7 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     case BuiltinType::IntCap:
     case BuiltinType::UIntCap:
       ResultType =
-          llvm::PointerType::get(llvm::Type::getInt8Ty(getLLVMContext()),
+          llvm::PointerType::get(getLLVMContext(),
               CGM.getTargetCodeGenInfo().getCHERICapabilityAS());
       break;
     case BuiltinType::Float16:

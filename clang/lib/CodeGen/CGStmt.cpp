@@ -1652,7 +1652,7 @@ void CodeGenFunction::EmitReturnStmt(const ReturnStmt &S) {
               unsigned CapAS =
                   CGM.getTargetCodeGenInfo().getCHERICapabilityAS();
               auto *F = CGM.getIntrinsic(llvm::Intrinsic::cheri_cap_seal);
-              llvm::Type *CapPtrTy = llvm::PointerType::get(Int8Ty, CapAS);
+              llvm::Type *CapPtrTy = llvm::PointerType::get(CGM.getLLVMContext(), CapAS);
               Ret = Builder.CreateCall(F,
                                        {Builder.CreateBitCast(Ret, CapPtrTy),
                                         Builder.CreateBitCast(KeyV, CapPtrTy)});

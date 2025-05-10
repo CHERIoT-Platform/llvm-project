@@ -1708,11 +1708,11 @@ llvm::Function *CGOpenMPRuntime::emitThreadPrivateVarDefinition(
     // parameter is always NULL. Otherwise it fires assertion.
     CopyCtor = llvm::Constant::getNullValue(CGM.UnqualPtrTy);
     if (Ctor == nullptr) {
-      auto *CtorTy = llvm::PointerType::get(CGM.VoidPtrTy, DefaultAS);
+      auto *CtorTy = llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS);
       Ctor = llvm::Constant::getNullValue(CtorTy);
     }
     if (Dtor == nullptr) {
-      auto *DtorTy = llvm::PointerType::get(CGM.VoidPtrTy, DefaultAS);
+      auto *DtorTy = llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS);
       Dtor = llvm::Constant::getNullValue(DtorTy);
     }
     if (!CGF) {

@@ -3352,7 +3352,7 @@ RValue CodeGenFunction::EmitLoadOfGlobalRegLValue(LValue LV) {
   // For CHERI capabilities we have to use a pointer-type read, all other
   // architectures read an integer type for pointers
   if (CGM.getDataLayout().isFatPointer(OrigTy))
-    Ty = llvm::PointerType::get(CGM.Int8Ty, OrigTy->getPointerAddressSpace());
+    Ty = llvm::PointerType::get(CGM.getLLVMContext(), OrigTy->getPointerAddressSpace());
   else if (OrigTy->isPointerTy())
     Ty = CGM.getTypes().getDataLayout().getIntPtrType(OrigTy);
   llvm::Type *Types[] = { Ty };
@@ -5933,6 +5933,9 @@ static Address emitAddrOfFieldStorage(CodeGenFunction &CGF, Address base,
   unsigned idx =
     CGF.CGM.getTypes().getCGRecordLayout(rec).getLLVMFieldNo(field);
 
+  if (CGF.getLangOpts().PointerOverflowDefined)
+    return CGF.Builder.CreateConstGEP2_32(base, 0, idx, field->getName());
+
   return CGF.Builder.CreateStructGEP(base, idx, field->getName());
 }
 
@@ -5990,9 +5993,13 @@ LValue CodeGenFunction::EmitLValueForField(LValue base,
     if (!UseVolatile) {
       if (!IsInPreservedAIRegion &&
           (!getDebugInfo() || !rec->hasAttr<BPFPreserveAccessIndexAttr>())) {
-        if (Idx != 0)
+        if (Idx != 0) {
           // For structs, we GEP to the field that the record layout suggests.
-          Addr = Builder.CreateStructGEP(Addr, Idx, field->getName());
+          if (getLangOpts().PointerOverflowDefined)
+            Addr = Builder.CreateConstGEP2_32(Addr, 0, Idx, field->getName());
+          else
+            Addr = Builder.CreateStructGEP(Addr, Idx, field->getName());
+        }
       } else {
         llvm::DIType *DbgInfo = getDebugInfo()->getOrCreateRecordType(
             getContext().getRecordType(rec), rec->getLocation());

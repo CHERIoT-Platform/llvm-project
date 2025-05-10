@@ -80,6 +80,10 @@ enum Fixups {
   // 12-bit fixup for symbol references in the 48-bit Xqcibi branch immediate
   // instructions
   fixup_riscv_qc_e_branch,
+  // 32-bit fixup for symbol references in the 48-bit qc.e.li instruction
+  fixup_riscv_qc_e_32,
+  // 20-bit fixup for symbol references in the 32-bit qc.li instruction
+  fixup_riscv_qc_abs20_u,
 
   // fixup_riscv_captab_pcrel_hi20 - 20-bit fixup corresponding to
   // captab_pcrel_hi(foo) for instructions like auipcc

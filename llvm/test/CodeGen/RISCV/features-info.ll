@@ -171,6 +171,7 @@
 ; CHECK-NEXT:   v                                - 'V' (Vector Extension for Application Processors).
 ; CHECK-NEXT:   ventana-veyron                   - Ventana Veyron-Series processors.
 ; CHECK-NEXT:   vxrm-pipeline-flush              - VXRM writes causes pipeline flush.
+; CHECK-NEXT:   xandesperf                       - 'XAndesPerf' (Andes Performance Extension).
 ; CHECK-NEXT:   xcheri                           - 'XCheri' (Implements CHERI extension).
 ; CHECK-NEXT:   xcheri-norvc                     - Disable CHERI RVC Instructions..
 ; CHECK-NEXT:   xcheri-v9-semantics              - CHERI ISAv9 semantics (tag-clearing, no relocation).

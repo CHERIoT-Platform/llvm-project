@@ -760,6 +760,14 @@ public:
     /// \p minnum matches the behavior of \p llvm.minnum.*.
     FMin,
 
+    /// *p = maximum(old, v)
+    /// \p maximum matches the behavior of \p llvm.maximum.*.
+    FMaximum,
+
+    /// *p = minimum(old, v)
+    /// \p minimum matches the behavior of \p llvm.minimum.*.
+    FMinimum,
+
     /// Increment one up to a maximum value.
     /// *p = (old u>= v) ? 0 : (old + 1)
     UIncWrap,
@@ -821,6 +829,8 @@ public:
     case AtomicRMWInst::FSub:
     case AtomicRMWInst::FMax:
     case AtomicRMWInst::FMin:
+    case AtomicRMWInst::FMaximum:
+    case AtomicRMWInst::FMinimum:
       return true;
     default:
       return false;

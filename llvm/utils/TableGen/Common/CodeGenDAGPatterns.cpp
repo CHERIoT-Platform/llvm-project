@@ -1381,11 +1381,11 @@ std::string TreePredicateFn::getCodeToRunOnSDNode() const {
 
     std::string Result = ("    " + getImmType() + " Imm = ").str();
     if (immCodeUsesAPFloat())
-      Result += "cast<ConstantFPSDNode>(Node)->getValueAPF();\n";
+      Result += "cast<ConstantFPSDNode>(Op.getNode())->getValueAPF();\n";
     else if (immCodeUsesAPInt())
-      Result += "Node->getAsAPIntVal();\n";
+      Result += "Op->getAsAPIntVal();\n";
     else
-      Result += "cast<ConstantSDNode>(Node)->getSExtValue();\n";
+      Result += "cast<ConstantSDNode>(Op.getNode())->getSExtValue();\n";
     return Result + ImmCode;
   }
 
@@ -1416,9 +1416,9 @@ std::string TreePredicateFn::getCodeToRunOnSDNode() const {
 
   std::string Result;
   if (ClassName == "SDNode")
-    Result = "    SDNode *N = Node;\n";
+    Result = "    SDNode *N = Op.getNode();\n";
   else
-    Result = "    auto *N = cast<" + ClassName.str() + ">(Node);\n";
+    Result = "    auto *N = cast<" + ClassName.str() + ">(Op.getNode());\n";
 
   return (Twine(Result) + "    (void)N;\n" + getPredCode()).str();
 }

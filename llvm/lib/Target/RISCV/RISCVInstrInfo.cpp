@@ -89,6 +89,9 @@ RISCVInstrInfo::RISCVInstrInfo(RISCVSubtarget &STI)
                             : RISCV::ADJCALLSTACKUP),
       STI(STI) {}
 
+#define GET_INSTRINFO_HELPERS
+#include "RISCVGenInstrInfo.inc"
+
 MCInst RISCVInstrInfo::getNop() const {
   if (STI.hasStdExtCOrZca())
     return MCInstBuilder(RISCV::C_NOP);
@@ -924,11 +927,11 @@ std::optional<unsigned> getFoldedOpcode(MachineFunction &MF, MachineInstr &MI,
   bool Purecap = RISCVABI::isCheriPureCapABI(ST.getTargetABI());
   switch (MI.getOpcode()) {
   default:
-    if (RISCV::isSEXT_W(MI))
+    if (RISCVInstrInfo::isSEXT_W(MI))
       return Purecap ? RISCV::CLW : RISCV::LW;
-    if (RISCV::isZEXT_W(MI))
+    if (RISCVInstrInfo::isZEXT_W(MI))
       return Purecap ? RISCV::CLWU : RISCV::LWU;
-    if (RISCV::isZEXT_B(MI))
+    if (RISCVInstrInfo::isZEXT_B(MI))
       return Purecap ? RISCV::CLBU : RISCV::LBU;
     break;
   case RISCV::SEXT_H:
@@ -4000,6 +4003,7 @@ bool RISCVInstrInfo::findCommutedOpIndices(const MachineInstr &MI,
   CASE_VFMA_CHANGE_OPCODE_LMULS_MF4(OLDOP, NEWOP, VFPR16, E16)                 \
   CASE_VFMA_CHANGE_OPCODE_LMULS_MF2(OLDOP, NEWOP, VFPR32, E32)                 \
   CASE_VFMA_CHANGE_OPCODE_LMULS_M1(OLDOP, NEWOP, VFPR64, E64)
+// clang-format on
 
 MachineInstr *RISCVInstrInfo::commuteInstructionImpl(MachineInstr &MI,
                                                      bool NewMI,
@@ -4433,24 +4437,6 @@ unsigned RISCVInstrInfo::getTailDuplicateSize(CodeGenOptLevel OptLevel) const {
   return OptLevel >= CodeGenOptLevel::Aggressive
              ? STI.getTailDupAggressiveThreshold()
              : 2;
-}
-
-// Returns true if this is the sext.w pattern, addiw rd, rs1, 0.
-bool RISCV::isSEXT_W(const MachineInstr &MI) {
-  return MI.getOpcode() == RISCV::ADDIW && MI.getOperand(1).isReg() &&
-         MI.getOperand(2).isImm() && MI.getOperand(2).getImm() == 0;
-}
-
-// Returns true if this is the zext.w pattern, adduw rd, rs1, x0.
-bool RISCV::isZEXT_W(const MachineInstr &MI) {
-  return MI.getOpcode() == RISCV::ADD_UW && MI.getOperand(1).isReg() &&
-         MI.getOperand(2).isReg() && MI.getOperand(2).getReg() == RISCV::X0;
-}
-
-// Returns true if this is the zext.b pattern, andi rd, rs1, 255.
-bool RISCV::isZEXT_B(const MachineInstr &MI) {
-  return MI.getOpcode() == RISCV::ANDI && MI.getOperand(1).isReg() &&
-         MI.getOperand(2).isImm() && MI.getOperand(2).getImm() == 255;
 }
 
 bool RISCV::isRVVSpill(const MachineInstr &MI) {

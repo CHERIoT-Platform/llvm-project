@@ -2511,7 +2511,6 @@ SDValue X86DAGToDAGISel::matchIndexRecursively(SDValue N,
 
 bool X86DAGToDAGISel::matchAddressRecursively(SDValue N, X86ISelAddressMode &AM,
                                               unsigned Depth) {
-  SDLoc dl(N);
   LLVM_DEBUG({
     dbgs() << "MatchAddress: ";
     AM.dump(CurDAG);
@@ -2902,7 +2901,6 @@ bool X86DAGToDAGISel::matchAddressBase(SDValue N, X86ISelAddressMode &AM) {
 bool X86DAGToDAGISel::matchVectorAddressRecursively(SDValue N,
                                                     X86ISelAddressMode &AM,
                                                     unsigned Depth) {
-  SDLoc dl(N);
   LLVM_DEBUG({
     dbgs() << "MatchVectorAddress: ";
     AM.dump(CurDAG);

@@ -1823,7 +1823,6 @@ void AggExprEmitter::VisitCXXParenListOrInitListExpr(
 
   // We'll need to enter cleanup scopes in case any of the element
   // initializers throws an exception.
-  SmallVector<EHScopeStack::stable_iterator, 16> cleanups;
   CodeGenFunction::CleanupDeactivationScope DeactivateCleanups(CGF);
 
   unsigned curInitIndex = 0;

@@ -1687,11 +1687,8 @@ processGlobal(GlobalValue &GV,
 /// Walk all of the direct calls of the specified function, changing them to
 /// FastCC.
 static void ChangeCalleesToFastCall(Function *F) {
-  for (User *U : F->users()) {
-    if (isa<BlockAddress>(U))
-      continue;
+  for (User *U : F->users())
     cast<CallBase>(U)->setCallingConv(CallingConv::Fast);
-  }
 }
 
 static AttributeList StripAttr(LLVMContext &C, AttributeList Attrs,
@@ -1705,8 +1702,6 @@ static AttributeList StripAttr(LLVMContext &C, AttributeList Attrs,
 static void RemoveAttribute(Function *F, Attribute::AttrKind A) {
   F->setAttributes(StripAttr(F->getContext(), F->getAttributes(), A));
   for (User *U : F->users()) {
-    if (isa<BlockAddress>(U))
-      continue;
     CallBase *CB = cast<CallBase>(U);
     CB->setAttributes(StripAttr(F->getContext(), CB->getAttributes(), A));
   }
@@ -1731,8 +1726,6 @@ static bool hasChangeableCCImpl(Function *F) {
   // Can't change CC of the function that either has musttail calls, or is a
   // musttail callee itself
   for (User *U : F->users()) {
-    if (isa<BlockAddress>(U))
-      continue;
     CallInst* CI = dyn_cast<CallInst>(U);
     if (!CI)
       continue;
@@ -1781,9 +1774,6 @@ isValidCandidateForColdCC(Function &F,
     return false;
 
   for (User *U : F.users()) {
-    if (isa<BlockAddress>(U))
-      continue;
-
     CallBase &CB = cast<CallBase>(*U);
     Function *CallerFunc = CB.getParent()->getParent();
     BlockFrequencyInfo &CallerBFI = GetBFI(*CallerFunc);
@@ -1796,11 +1786,8 @@ isValidCandidateForColdCC(Function &F,
 }
 
 static void changeCallSitesToColdCC(Function *F) {
-  for (User *U : F->users()) {
-    if (isa<BlockAddress>(U))
-      continue;
+  for (User *U : F->users())
     cast<CallBase>(U)->setCallingConv(CallingConv::Cold);
-  }
 }
 
 // This function iterates over all the call instructions in the input Function
@@ -1841,12 +1828,7 @@ hasOnlyColdCalls(Function &F,
 
 static bool hasMustTailCallers(Function *F) {
   for (User *U : F->users()) {
-    CallBase *CB = dyn_cast<CallBase>(U);
-    if (!CB) {
-      assert(isa<BlockAddress>(U) &&
-             "Expected either CallBase or BlockAddress");
-      continue;
-    }
+    CallBase *CB = cast<CallBase>(U);
     if (CB->isMustTailCall())
       return true;
   }

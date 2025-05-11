@@ -2616,6 +2616,8 @@ llvm::Value* CodeGenFunction::EmitPointerCast(llvm::Value *From,
   if (Target.getTriple().isMIPS()) {
     if (ToAddrSpace != (unsigned)CGM.getTargetCodeGenInfo().getCHERICapabilityAS()) return result;
     unsigned flags = 0xffff;
+    if (auto* AtomicTy = dyn_cast<AtomicType>(ToTy))
+      ToTy = AtomicTy->getValueType();
     // Clear the store and store-capability flags
     if (ToTy->getPointeeType().getQualifiers().hasInput() &&
         !FromTy->getPointeeType().getQualifiers().hasInput())

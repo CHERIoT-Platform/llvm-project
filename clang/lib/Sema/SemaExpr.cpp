@@ -296,7 +296,8 @@ bool Sema::DiagnoseUseOfDecl(NamedDecl *D, ArrayRef<SourceLocation> Locs,
         << D->getDeclName();
     } else {
       Diag(Loc, diag::err_auto_variable_cannot_appear_in_own_initializer)
-        << D->getDeclName() << cast<VarDecl>(D)->getType();
+          << diag::ParsingInitFor::Var << D->getDeclName()
+          << cast<VarDecl>(D)->getType();
     }
     return true;
   }
@@ -4774,6 +4775,10 @@ ExprResult Sema::CreateUnaryExprOrTypeTraitExpr(TypeSourceInfo *TInfo,
       TInfo->getType()->isVariablyModifiedType())
     TInfo = TransformToPotentiallyEvaluated(TInfo);
 
+  // It's possible that the transformation above failed.
+  if (!TInfo)
+    return ExprError();
+
   // C99 6.5.3.4p4: the type (an unsigned integer type) is size_t.
   return new (Context) UnaryExprOrTypeTraitExpr(
       ExprKind, TInfo, Context.getSizeType(), OpLoc, R.getEnd());
@@ -6436,6 +6441,14 @@ static FunctionDecl *rewriteBuiltinFunctionDecl(Sema *Sema, ASTContext &Context,
     Params.push_back(Parm);
   }
   OverloadDecl->setParams(Params);
+  // We cannot merge host/device attributes of redeclarations. They have to
+  // be consistent when created.
+  if (Sema->LangOpts.CUDA) {
+    if (FDecl->hasAttr<CUDAHostAttr>())
+      OverloadDecl->addAttr(CUDAHostAttr::CreateImplicit(Context));
+    if (FDecl->hasAttr<CUDADeviceAttr>())
+      OverloadDecl->addAttr(CUDADeviceAttr::CreateImplicit(Context));
+  }
   Sema->mergeDeclAttributes(OverloadDecl, FDecl);
   return OverloadDecl;
 }
@@ -6632,6 +6645,15 @@ ExprResult Sema::ActOnCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
   return Call;
 }
 
+// Any type that could be used to form a callable expression
+static bool MayBeFunctionType(const ASTContext &Context, QualType T) {
+  return T == Context.BoundMemberTy || T == Context.UnknownAnyTy ||
+         T == Context.BuiltinFnTy || T == Context.OverloadTy ||
+         T->isFunctionType() || T->isFunctionReferenceType() ||
+         T->isMemberFunctionPointerType() || T->isFunctionPointerType() ||
+         T->isBlockPointerType() || T->isRecordType();
+}
+
 ExprResult Sema::BuildCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
                                MultiExprArg ArgExprs, SourceLocation RParenLoc,
                                Expr *ExecConfig, bool IsExecConfig,
@@ -6684,6 +6706,15 @@ ExprResult Sema::BuildCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
         tryImplicitlyCaptureThisIfImplicitMemberFunctionAccessWithDependentArgs(
             *this, dyn_cast<UnresolvedMemberExpr>(Fn->IgnoreParens()),
             Fn->getBeginLoc());
+
+        // If the type of the function itself is not dependent
+        // check that it is a reasonable as a function, as type deduction
+        // later assume the CallExpr has a sensible TYPE.
+        if (!Fn->getType()->isDependentType() &&
+            !MayBeFunctionType(Context, Fn->getType()))
+          return ExprError(
+              Diag(LParenLoc, diag::err_typecheck_call_not_function)
+              << Fn->getType() << Fn->getSourceRange());
 
         return CallExpr::Create(Context, Fn, ArgExprs, Context.DependentTy,
                                 VK_PRValue, RParenLoc, CurFPFeatureOverrides());
@@ -8095,6 +8126,15 @@ ExprResult Sema::ActOnParenListExpr(SourceLocation L,
                                     SourceLocation R,
                                     MultiExprArg Val) {
   return ParenListExpr::Create(Context, L, Val, R);
+}
+
+ExprResult Sema::ActOnCXXParenListInitExpr(ArrayRef<Expr *> Args, QualType T,
+                                           unsigned NumUserSpecifiedExprs,
+                                           SourceLocation InitLoc,
+                                           SourceLocation LParenLoc,
+                                           SourceLocation RParenLoc) {
+  return CXXParenListInitExpr::Create(Context, Args, T, NumUserSpecifiedExprs,
+                                      InitLoc, LParenLoc, RParenLoc);
 }
 
 bool Sema::DiagnoseConditionalForNull(const Expr *LHSExpr, const Expr *RHSExpr,
@@ -9581,7 +9621,7 @@ AssignConvertType Sema::CheckAssignmentConstraints(QualType LHSType,
       if (LHSFnPTy->getCallConv() == CC_CHERICCallback)
         LHSIsCallback = true;
   if (RHSIsCallback != LHSIsCallback)
-    return Incompatible;
+    return AssignConvertType::Incompatible;
 
   // Conversions to normal pointers.
   if (const PointerType *LHSPointer = LHSType->getAs<PointerType>()) {
@@ -9596,8 +9636,9 @@ AssignConvertType Sema::CheckAssignmentConstraints(QualType LHSType,
         // all other implicit casts to and from capabilities are not allowed
         Kind = RHSPointer->isCHERICapability() ? CK_CHERICapabilityToPointer
                                                : CK_PointerToCHERICapability;
-        return RHSPointer->isCHERICapability() ? CHERICapabilityToPointer
-                                               : PointerToCHERICapability;
+        return RHSPointer->isCHERICapability()
+                   ? AssignConvertType::CHERICapabilityToPointer
+                   : AssignConvertType::PointerToCHERICapability;
       } else {
         if (Context.hasCvrSimilarType(RHSType, LHSType))
           Kind = CK_NoOp;
@@ -17596,7 +17637,7 @@ bool Sema::DiagnoseAssignmentResult(AssignConvertType ConvTy,
     break;
   case AssignConvertType::CHERICapabilityToPointer:
   case AssignConvertType::PointerToCHERICapability: {
-    bool PtrToCap = ConvTy == PointerToCHERICapability;
+    bool PtrToCap = ConvTy == AssignConvertType::PointerToCHERICapability;
     if (PtrToCap) {
       // Some implicit conversions are permitted for pointer -> cap
       if (ImpCastPointerToCHERICapability(SrcType, DstType, SrcExpr, false))

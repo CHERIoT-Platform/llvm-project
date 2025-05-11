@@ -177,6 +177,8 @@ void initializeRISCVVLOptimizerPass(PassRegistry &);
 FunctionPass *createRISCVVMV0EliminationPass();
 void initializeRISCVVMV0EliminationPass(PassRegistry &);
 
+void initializeRISCVAsmPrinterPass(PassRegistry &);
+
 /// Returns the symbol name for either an import or export table entry.
 inline std::string getImportExportTableName(StringRef Compartment,
                                             StringRef FnName, int CC,

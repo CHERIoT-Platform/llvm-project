@@ -205,7 +205,7 @@ CallInst *IRBuilderBase::CreateMemSetInline(Value *Dst, MaybeAlign DstAlign,
   CallInst *CI = CreateIntrinsic(Intrinsic::memset_inline, Tys, Ops);
 
   if (DstAlign)
-    cast<MemSetInlineInst>(CI)->setDestAlignment(*DstAlign);
+    cast<MemSetInst>(CI)->setDestAlignment(*DstAlign);
 
   // Set the TBAA info if present.
   if (TBAATag)
@@ -230,7 +230,7 @@ CallInst *IRBuilderBase::CreateElementUnorderedAtomicMemSet(
   CallInst *CI =
       CreateIntrinsic(Intrinsic::memset_element_unordered_atomic, Tys, Ops);
 
-  cast<AtomicMemSetInst>(CI)->setDestAlignment(Alignment);
+  cast<AnyMemSetInst>(CI)->setDestAlignment(Alignment);
 
   // Set the TBAA info if present.
   if (TBAATag)
@@ -299,7 +299,7 @@ CallInst *IRBuilderBase::CreateElementUnorderedAtomicMemCpy(
       CreateIntrinsic(Intrinsic::memcpy_element_unordered_atomic, Tys, Ops);
 
   // Set the alignment of the pointer args.
-  auto *AMCI = cast<AtomicMemCpyInst>(CI);
+  auto *AMCI = cast<AnyMemCpyInst>(CI);
   Module *M = BB->getParent()->getParent();
   if (M->getDataLayout().hasCheriCapabilities())
     AMCI->setPreserveCheriTags(PreserveTags, M->getDataLayout());
@@ -416,8 +416,8 @@ CallInst *IRBuilderBase::CreateElementUnorderedAtomicMemMove(
   CallInst *CI =
       CreateIntrinsic(Intrinsic::memmove_element_unordered_atomic, Tys, Ops);
   if (M->getDataLayout().hasCheriCapabilities())
-    cast<AtomicMemTransferInst>(CI)->setPreserveCheriTags(PreserveTags,
-                                                          M->getDataLayout());
+    cast<AnyMemTransferInst>(CI)->setPreserveCheriTags(PreserveTags,
+                                                       M->getDataLayout());
 
   // Set the alignment of the pointer args.
   CI->addParamAttr(0, Attribute::getWithAlignment(CI->getContext(), DstAlign));

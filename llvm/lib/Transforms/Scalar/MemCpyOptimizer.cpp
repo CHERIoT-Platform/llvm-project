@@ -1212,7 +1212,7 @@ bool MemCpyOptPass::processMemCpyMemCpyDependence(MemCpyInst *M,
     // Don't convert llvm.memcpy.inline into memmove because memmove can be
     // lowered as a call, and that is not allowed for llvm.memcpy.inline (and
     // there is no inline version of llvm.memmove)
-    if (isa<MemCpyInlineInst>(M))
+    if (M->isForceInlined())
       return false;
     UseMemMove = true;
   }
@@ -1230,7 +1230,7 @@ bool MemCpyOptPass::processMemCpyMemCpyDependence(MemCpyInst *M,
         Builder.CreateMemMove(M->getDest(), M->getDestAlign(), CopySource,
                               CopySourceAlign, M->getLength(), M->shouldPreserveCheriTags(),
                                  M->isVolatile());
-  else if (isa<MemCpyInlineInst>(M)) {
+  else if (M->isForceInlined())
     // llvm.memcpy may be promoted to llvm.memcpy.inline, but the converse is
     // never allowed since that would allow the latter to be lowered as a call
     // to an external function.
@@ -1238,11 +1238,12 @@ bool MemCpyOptPass::processMemCpyMemCpyDependence(MemCpyInst *M,
                                       CopySource, CopySourceAlign,
                                       M->getLength(), M->shouldPreserveCheriTags(),
                                       M->isVolatile());
-  } else
-    NewM =
-        Builder.CreateMemCpy(M->getDest(), M->getDestAlign(), CopySource,
-                             CopySourceAlign, M->getLength(), M->shouldPreserveCheriTags(),
+  else
+    NewM = Builder.CreateMemCpy(M->getDest(), M->getDestAlign(), CopySource,
+                                CopySourceAlign, M->getLength(),
+                                M->shouldPreserveCheriTags(),
                              M->isVolatile());
+
   NewM->copyMetadata(*M, LLVMContext::MD_DIAssignID);
 
   assert(isa<MemoryDef>(MSSA->getMemoryAccess(M)));
@@ -1548,7 +1549,6 @@ bool MemCpyOptPass::performStackMoveOptzn(Instruction *Load, Instruction *Store,
         if (!Visited.insert(&U).second)
           continue;
         UseCaptureInfo CI = DetermineUseCaptureKind(U, AI);
-        // TODO(captures): Make this more precise.
         if (capturesAnything(CI.UseCC))
           return false;
 

@@ -772,8 +772,8 @@ CXXStaticCastExpr::Create(const ASTContext &C, QualType T, ExprValueKind VK,
   auto *E = new (Buffer) CXXStaticCastExpr(T, VK, K, Op, PathSize, WrittenTy,
                                            FPO, L, RParenLoc, AngleBrackets, C);
   if (PathSize)
-    std::uninitialized_copy_n(BasePath->data(), BasePath->size(),
-                              E->getTrailingObjects<CXXBaseSpecifier *>());
+    llvm::uninitialized_copy(*BasePath,
+                             E->getTrailingObjects<CXXBaseSpecifier *>());
   return E;
 }
 
@@ -799,8 +799,8 @@ CXXDynamicCastExpr *CXXDynamicCastExpr::Create(const ASTContext &C, QualType T,
   auto *E = new (Buffer) CXXDynamicCastExpr(T, VK, K, Op, PathSize, WrittenTy,
                                             L, RParenLoc, AngleBrackets, C);
   if (PathSize)
-    std::uninitialized_copy_n(BasePath->data(), BasePath->size(),
-                              E->getTrailingObjects<CXXBaseSpecifier *>());
+    llvm::uninitialized_copy(*BasePath,
+                             E->getTrailingObjects<CXXBaseSpecifier *>());
   return E;
 }
 
@@ -861,8 +861,8 @@ CXXReinterpretCastExpr::Create(const ASTContext &C, QualType T,
   auto *E = new (Buffer) CXXReinterpretCastExpr(
       T, VK, K, Op, PathSize, WrittenTy, L, RParenLoc, AngleBrackets, C);
   if (PathSize)
-    std::uninitialized_copy_n(BasePath->data(), BasePath->size(),
-                              E->getTrailingObjects<CXXBaseSpecifier *>());
+    llvm::uninitialized_copy(*BasePath,
+                             E->getTrailingObjects<CXXBaseSpecifier *>());
   return E;
 }
 
@@ -910,8 +910,8 @@ CXXFunctionalCastExpr *CXXFunctionalCastExpr::Create(
   auto *E = new (Buffer)
       CXXFunctionalCastExpr(T, VK, Written, K, Op, PathSize, FPO, L, R, C);
   if (PathSize)
-    std::uninitialized_copy_n(BasePath->data(), BasePath->size(),
-                              E->getTrailingObjects<CXXBaseSpecifier *>());
+    llvm::uninitialized_copy(*BasePath,
+                             E->getTrailingObjects<CXXBaseSpecifier *>());
   return E;
 }
 

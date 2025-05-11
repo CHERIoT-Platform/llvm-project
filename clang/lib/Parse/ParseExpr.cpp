@@ -3219,7 +3219,7 @@ Parser::ParseParenExpression(ParenParseOption &ExprType, bool stopIfCastExpr,
     T.consumeClose();
     ColonProtection.restore();
     RParenLoc = T.getCloseLocation();
-    ExprResult SubExpr = ParseCastExpression(AnyCastExpr);
+    ExprResult SubExpr = ParseCastExpression(CastParseKind::AnyCastExpr);
     if (Ty.isInvalid() || SubExpr.isInvalid())
       return ExprError();
 

@@ -181,9 +181,11 @@ def MIPSCHERIBugs: DiagGroup<"mips-cheri-bugs">;
 def C99Compat : DiagGroup<"c99-compat">;
 def C23Compat : DiagGroup<"c23-compat">;
 def : DiagGroup<"c2x-compat", [C23Compat]>;
-
+def DefaultConstInitUnsafe : DiagGroup<"default-const-init-unsafe">;
+def DefaultConstInit : DiagGroup<"default-const-init", [DefaultConstInitUnsafe]>;
 def ImplicitVoidPtrCast : DiagGroup<"implicit-void-ptr-cast">;
-def CXXCompat: DiagGroup<"c++-compat", [ImplicitVoidPtrCast]>;
+def CXXCompat: DiagGroup<"c++-compat", [ImplicitVoidPtrCast, DefaultConstInit]>;
+
 def ExternCCompat : DiagGroup<"extern-c-compat">;
 def KeywordCompat : DiagGroup<"keyword-compat">;
 def GNUCaseRange : DiagGroup<"gnu-case-range">;

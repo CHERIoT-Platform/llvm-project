@@ -1066,9 +1066,7 @@ TEST_F(FileSystemTest, CreateDir) {
   do {
     LongPathWithUnixSeparators.append("/DirNameWith19Charss");
   } while (LongPathWithUnixSeparators.size() < 260);
-  std::replace(LongPathWithUnixSeparators.begin(),
-               LongPathWithUnixSeparators.end(),
-               '\\', '/');
+  llvm::replace(LongPathWithUnixSeparators, '\\', '/');
   ASSERT_NO_ERROR(fs::create_directories(Twine(LongPathWithUnixSeparators)));
   // cleanup
   ASSERT_NO_ERROR(fs::remove_directories(Twine(TestDirectory) +
@@ -2459,7 +2457,7 @@ TEST_F(FileSystemTest, widenPath) {
   EXPECT_EQ(Result, Expected);
 
   // Check that Unix separators are handled correctly.
-  std::replace(Input.begin(), Input.end(), '\\', '/');
+  llvm::replace(Input, '\\', '/');
   ASSERT_NO_ERROR(windows::widenPath(Input, Result));
   EXPECT_EQ(Result, Expected);
 

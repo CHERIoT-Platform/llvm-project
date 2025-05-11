@@ -60,7 +60,7 @@ void Test(int (&arr)[10]) {
 
   constexpr const int *n = nullptr;
   // CHECK:  | `-VarDecl {{.*}} <col:{{.*}}, col:{{.*}}> col:{{.*}} n 'const int *const' constexpr cinit
-  // CHECK-NEXT:  |   |-value: LValue Base=null, Null=1, Offset=0, HasPath=1, PathLength=0, Path=()
+  // CHECK-NEXT:  |   |-value: LValue Base=null, Null=1, Offset=0, HasPath=1, PathLength=0, Path=() <must-be-null-derived>
 
   constexpr const std::type_info* pti = &typeid(int);
   // CHECK:  | `-VarDecl {{.*}} <col:{{.*}}, col:{{.*}}> col:{{.*}} pti 'const std::type_info *const' constexpr cinit

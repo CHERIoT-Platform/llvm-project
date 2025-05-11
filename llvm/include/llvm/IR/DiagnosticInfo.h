@@ -1118,7 +1118,7 @@ public:
 /// Diagnostic information for MisExpect analysis.
 class DiagnosticInfoMisExpect : public DiagnosticInfoWithLocationBase {
 public:
-  DiagnosticInfoMisExpect(const Instruction *Inst, Twine &Msg);
+  DiagnosticInfoMisExpect(const Instruction *Inst, const Twine &Msg);
 
   /// \see DiagnosticInfo::print.
   void print(DiagnosticPrinter &DP) const override;

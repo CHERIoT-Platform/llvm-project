@@ -5,7 +5,8 @@
 // RUN: not %clang_cc1 -triple riscv32 -target-cpu not-a-cpu -fsyntax-only %s 2>&1 | FileCheck %s --check-prefix RISCV32
 // RISCV32: error: unknown target CPU 'not-a-cpu'
 // RISCV32-NEXT: note: valid target CPU values are:
-// RISCV32-SAME: {{^}} cheriot
+// RISCV32-SAME: {{^}} andes-n45
+// RISCV32-SAME: {{^}}, cheriot
 // RISCV32-SAME: {{^}}, generic-rv32
 // RISCV32-SAME: {{^}}, rocket-rv32
 // RISCV32-SAME: {{^}}, rp2350-hazard3
@@ -25,7 +26,8 @@
 // RUN: not %clang_cc1 -triple riscv64 -target-cpu not-a-cpu -fsyntax-only %s 2>&1 | FileCheck %s --check-prefix RISCV64
 // RISCV64: error: unknown target CPU 'not-a-cpu'
 // RISCV64-NEXT: note: valid target CPU values are:
-// RISCV64-SAME: {{^}} generic-rv64
+// RISCV64-SAME: {{^}} andes-nx45
+// RISCV64-SAME: {{^}}, generic-rv64
 // RISCV64-SAME: {{^}}, mips-p8700
 // RISCV64-SAME: {{^}}, rocket-rv64
 // RISCV64-SAME: {{^}}, sifive-p450
@@ -53,7 +55,8 @@
 // RUN: not %clang_cc1 -triple riscv32 -tune-cpu not-a-cpu -fsyntax-only %s 2>&1 | FileCheck %s --check-prefix TUNE-RISCV32
 // TUNE-RISCV32: error: unknown target CPU 'not-a-cpu'
 // TUNE-RISCV32-NEXT: note: valid target CPU values are:
-// TUNE-RISCV32-SAME: {{^}} cheriot
+// TUNE-RISCV32-SAME: {{^}} andes-n45
+// TUNE-RISCV32-SAME: {{^}}, cheriot
 // TUNE-RISCV32-SAME: {{^}}, generic-rv32
 // TUNE-RISCV32-SAME: {{^}}, rocket-rv32
 // TUNE-RISCV32-SAME: {{^}}, rp2350-hazard3
@@ -77,7 +80,8 @@
 // RUN: not %clang_cc1 -triple riscv64 -tune-cpu not-a-cpu -fsyntax-only %s 2>&1 | FileCheck %s --check-prefix TUNE-RISCV64
 // TUNE-RISCV64: error: unknown target CPU 'not-a-cpu'
 // TUNE-RISCV64-NEXT: note: valid target CPU values are:
-// TUNE-RISCV64-SAME: {{^}} generic-rv64
+// TUNE-RISCV64-SAME: {{^}} andes-nx45
+// TUNE-RISCV64-SAME: {{^}}, generic-rv64
 // TUNE-RISCV64-SAME: {{^}}, mips-p8700
 // TUNE-RISCV64-SAME: {{^}}, rocket-rv64
 // TUNE-RISCV64-SAME: {{^}}, sifive-p450

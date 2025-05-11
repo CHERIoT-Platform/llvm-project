@@ -626,6 +626,32 @@ def RP2350_HAZARD3 : RISCVProcessorModel<"rp2350-hazard3",
                                           FeatureStdExtZcb,
                                           FeatureStdExtZcmp]>;
 
+def ANDES_N45 : RISCVProcessorModel<"andes-n45",
+                                    NoSchedModel,
+                                    [Feature32Bit,
+                                     FeatureStdExtI,
+                                     FeatureStdExtZicsr,
+                                     FeatureStdExtZifencei,
+                                     FeatureStdExtM,
+                                     FeatureStdExtA,
+                                     FeatureStdExtF,
+                                     FeatureStdExtD,
+                                     FeatureStdExtC,
+                                     FeatureStdExtB]>;
+
+def ANDES_NX45 : RISCVProcessorModel<"andes-nx45",
+                                     NoSchedModel,
+                                     [Feature64Bit,
+                                      FeatureStdExtI,
+                                      FeatureStdExtZicsr,
+                                      FeatureStdExtZifencei,
+                                      FeatureStdExtM,
+                                      FeatureStdExtA,
+                                      FeatureStdExtF,
+                                      FeatureStdExtD,
+                                      FeatureStdExtC,
+                                      FeatureStdExtB]>;
+
 // NB: FeatureCheri =>'s RVC (!FeatureCheriNoRVC)
 def CHERIOT : RISCVProcessorModel<"cheriot",
                                    NoSchedModel,

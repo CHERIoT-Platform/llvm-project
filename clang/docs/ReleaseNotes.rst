@@ -728,6 +728,9 @@ X86 Support
 
 Arm and AArch64 Support
 ^^^^^^^^^^^^^^^^^^^^^^^
+
+- Support has been added for the following processors (command-line identifiers in parentheses):
+  - Arm Cortex-A320 (``cortex-a320``)
 - For ARM targets, cc1as now considers the FPU's features for the selected CPU or Architecture.
 - The ``+nosimd`` attribute is now fully supported for ARM. Previously, this had no effect when being used with
   ARM targets, however this will now disable NEON instructions being generated. The ``simd`` option is
@@ -903,6 +906,8 @@ OpenMP Support
 - Added support for 'omp stripe' directive.
 - Fixed a crashing bug with ``omp tile sizes`` if the argument to ``sizes`` was
   an invalid expression. (#GH139073)
+- Fixed a crashing bug with ``omp distribute dist_schedule`` if the argument to
+  ``dist_schedule`` was not strictly positive. (#GH139266)
 
 Improvements
 ^^^^^^^^^^^^

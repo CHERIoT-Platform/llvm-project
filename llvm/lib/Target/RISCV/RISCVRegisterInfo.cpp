@@ -68,9 +68,12 @@ RISCVRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
   if (MF->getFunction().getCallingConv() == CallingConv::GHC)
     return CSR_NoRegs_SaveList;
   if (MF->getFunction().hasFnAttribute("interrupt")) {
-    if (Subtarget.hasStdExtD())
-      return Subtarget.hasVendorXCheri() ? CSR_XLEN_CLEN_F64_Interrupt_SaveList
-                                  : CSR_XLEN_F64_Interrupt_SaveList;
+    if (Subtarget.hasStdExtD()) {
+      if (Subtarget.hasVendorXCheri())
+        return CSR_XLEN_CLEN_F64_Interrupt_SaveList;
+      return Subtarget.hasStdExtE() ? CSR_XLEN_F64_Interrupt_RVE_SaveList
+                                    : CSR_XLEN_F64_Interrupt_SaveList;
+    }
     if (Subtarget.hasStdExtF()) {
       if (Subtarget.hasVendorXCheri())
         return CSR_XLEN_CLEN_F32_Interrupt_SaveList;

@@ -17,7 +17,7 @@ def SDT_RISCVCheriBoolUnary : SDTypeProfile<1, 1, [
   SDTCisInt<0>, SDTCisVT<1, CLenVT>
 ]>;
 
-def SDT_RISCVCheriBoolUnaryChain : SDTypeProfile<2, 2, [
+def SDT_RISCVCheriBoolUnaryChain : SDTypeProfile<1, 1, [
   SDTCisInt<0>, SDTCisVT<2, CLenVT>
 ]>;
 

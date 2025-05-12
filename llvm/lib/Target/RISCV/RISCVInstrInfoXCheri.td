@@ -26,34 +26,34 @@ def SDT_RISCVCheriBoolBinary : SDTypeProfile<1, 2, [
 ]>;
 
 // Target-dependent nodes.
-def riscv_cap_call        : SDNode<"RISCVISD::CAP_CALL", SDT_RISCVCapCall,
+def riscv_cap_call        : RVSDNode<"CAP_CALL", SDT_RISCVCapCall,
                                    [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
                                     SDNPVariadic]>;
-def riscv_cap_compartment_call : SDNode<"RISCVISD::CAP_COMPARTMENT_CALL", SDT_RISCVCapCall,
+def riscv_cap_compartment_call : RVSDNode<"CAP_COMPARTMENT_CALL", SDT_RISCVCapCall,
                                    [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
                                     SDNPVariadic]>;
-def riscv_cap_library_call : SDNode<"RISCVISD::CAP_LIB_CALL", SDT_RISCVCapCall,
+def riscv_cap_library_call : RVSDNode<"CAP_LIB_CALL", SDT_RISCVCapCall,
                                    [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
                                     SDNPVariadic]>;
-def riscv_cap_tail        : SDNode<"RISCVISD::CAP_TAIL", SDT_RISCVCapCall,
+def riscv_cap_tail        : RVSDNode<"CAP_TAIL", SDT_RISCVCapCall,
                                    [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
                                     SDNPVariadic]>;
-def riscv_cap_tag_get     : SDNode<"RISCVISD::CAP_TAG_GET",
+def riscv_cap_tag_get     : RVSDNode<"CAP_TAG_GET",
                                    SDT_RISCVCheriBoolUnaryChain,
                                    [SDNPHasChain]>;
-def riscv_cap_sealed_get  : SDNode<"RISCVISD::CAP_SEALED_GET",
+def riscv_cap_sealed_get  : RVSDNode<"CAP_SEALED_GET",
                                    SDT_RISCVCheriBoolUnary>;
-def riscv_cap_subset_test : SDNode<"RISCVISD::CAP_SUBSET_TEST",
+def riscv_cap_subset_test : RVSDNode<"CAP_SUBSET_TEST",
                                    SDT_RISCVCheriBoolBinary>;
-def riscv_cap_equal_exact : SDNode<"RISCVISD::CAP_EQUAL_EXACT",
+def riscv_cap_equal_exact : RVSDNode<"CAP_EQUAL_EXACT",
                                    SDT_RISCVCheriBoolBinary>;
-def riscv_cllc            : SDNode<"RISCVISD::CLLC", SDT_RISCVSymLoad>;
-def riscv_clgc            : SDNode<"RISCVISD::CLGC", SDT_RISCVSymLoad,
+def riscv_cllc            : RVSDNode<"CLLC", SDT_RISCVSymLoad>;
+def riscv_clgc            : RVSDNode<"CLGC", SDT_RISCVSymLoad,
                                    [SDNPHasChain, SDNPMayLoad, SDNPMemOperand]>;
-def riscv_cla_tls_ie      : SDNode<"RISCVISD::CLA_TLS_IE", SDT_RISCVSymLoad,
+def riscv_cla_tls_ie      : RVSDNode<"CLA_TLS_IE", SDT_RISCVSymLoad,
                                    [SDNPHasChain, SDNPMayLoad, SDNPMemOperand]>;
-def riscv_clc_tls_gd      : SDNode<"RISCVISD::CLC_TLS_GD", SDT_RISCVSymLoad>;
-def riscv_cap_bounds_set  : SDNode<"RISCVISD::BOUNDS_SET",
+def riscv_clc_tls_gd      : RVSDNode<"CLC_TLS_GD", SDT_RISCVSymLoad>;
+def riscv_cap_bounds_set  : RVSDNode<"BOUNDS_SET",
                                    SDTypeProfile<1, 2, [SDTCisVT<0, CLenVT>,
                                                  SDTCisVT<1, CLenVT>,
                                                  SDTCisVT<2, XLenVT>]>>;

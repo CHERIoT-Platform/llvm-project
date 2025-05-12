@@ -1,26 +1,57 @@
-//===-- RISCVSelectionDAGInfo.h - RISCV SelectionDAG Info -------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_LIB_TARGET_RISCV_RISCVSELECTIONDAGINFO_H
 #define LLVM_LIB_TARGET_RISCV_RISCVSELECTIONDAGINFO_H
 
+#include "llvm/CodeGen/SDNodeInfo.h"
 #include "llvm/CodeGen/SelectionDAGTargetInfo.h"
+
+#define GET_SDNODE_ENUM
+#include "RISCVGenSDNodeInfo.inc"
 
 namespace llvm {
 
-class RISCVSelectionDAGInfo : public SelectionDAGTargetInfo {
+namespace RISCVISD {
+// RISCVISD Node TSFlags
+enum : llvm::SDNodeTSFlags {
+  HasPassthruOpMask = 1 << 0,
+  HasMaskOpMask = 1 << 1,
+};
+} // namespace RISCVISD
+
+class RISCVSelectionDAGInfo : public SelectionDAGGenTargetInfo {
 public:
-~RISCVSelectionDAGInfo() override;
+  RISCVSelectionDAGInfo();
 
-bool isTargetMemoryOpcode(unsigned Opcode) const override;
+  ~RISCVSelectionDAGInfo() override;
 
-bool isTargetStrictFPOpcode(unsigned Opcode) const override;
+  bool hasPassthruOp(unsigned Opcode) const {
+    return GenNodeInfo.getDesc(Opcode).TSFlags & RISCVISD::HasPassthruOpMask;
+  }
+
+  bool hasMaskOp(unsigned Opcode) const {
+    return GenNodeInfo.getDesc(Opcode).TSFlags & RISCVISD::HasMaskOpMask;
+  }
+
+  unsigned getMAccOpcode(unsigned MulOpcode) const {
+    switch (static_cast<RISCVISD::GenNodeType>(MulOpcode)) {
+    default:
+      llvm_unreachable("Unexpected opcode");
+    case RISCVISD::VWMUL_VL:
+      return RISCVISD::VWMACC_VL;
+    case RISCVISD::VWMULU_VL:
+      return RISCVISD::VWMACCU_VL;
+    case RISCVISD::VWMULSU_VL:
+      return RISCVISD::VWMACCSU_VL;
+    }
+  }
+
   SDValue EmitTargetCodeForMemcpy(SelectionDAG &DAG, const SDLoc &dl,
                                   SDValue Chain, SDValue Op1, SDValue Op2,
                                   SDValue Op3, Align Alignment, bool isVolatile,
@@ -40,33 +71,6 @@ bool isTargetStrictFPOpcode(unsigned Opcode) const override;
                                   SDValue Op3, Align Alignment, bool isVolatile,
                                   bool AlwaysInline,
                                   MachinePointerInfo DstPtrInfo) const override;
-};
-
-}
-
-#endif
-//===----------------------------------------------------------------------===//
-//
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-//
-//===----------------------------------------------------------------------===//
-
-#ifndef LLVM_LIB_TARGET_RISCV_RISCVSELECTIONDAGINFO_H
-#define LLVM_LIB_TARGET_RISCV_RISCVSELECTIONDAGINFO_H
-
-#include "llvm/CodeGen/SelectionDAGTargetInfo.h"
-
-namespace llvm {
-
-class RISCVSelectionDAGInfo : public SelectionDAGTargetInfo {
-public:
-  ~RISCVSelectionDAGInfo() override;
-
-  bool isTargetMemoryOpcode(unsigned Opcode) const override;
-
-  bool isTargetStrictFPOpcode(unsigned Opcode) const override;
 };
 
 } // namespace llvm

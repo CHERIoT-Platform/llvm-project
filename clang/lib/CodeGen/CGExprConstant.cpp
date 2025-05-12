@@ -2499,6 +2499,11 @@ ConstantEmitter::tryEmitPrivate(const APValue &Value, QualType DestType,
                                  EnablePtrAuthFunctionTypeDiscrimination)
         .tryEmit();
   case APValue::Int: {
+    if (PointerAuthQualifier PointerAuth = DestType.getPointerAuth();
+        PointerAuth &&
+        (PointerAuth.authenticatesNullValues() || Value.getInt() != 0))
+      return nullptr;
+
     // For __uintcap_t and enums whose underlying type is __[u]intcap_t,  we
     // get an APValue::Int but we actually need to emit a i8 addrspace(200)*
     // and not i64 here.

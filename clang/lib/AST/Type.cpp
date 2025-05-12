@@ -5223,6 +5223,12 @@ AttributedType::stripOuterNullability(QualType &T) {
   return std::nullopt;
 }
 
+bool Type::isSignableIntegerType(const ASTContext &Ctx) const {
+  if (!isIntegralType(Ctx) || isEnumeralType())
+    return false;
+  return Ctx.getTypeSize(this) == Ctx.getTypeSize(Ctx.VoidPtrTy);
+}
+
 bool Type::isBlockCompatibleObjCPointerType(ASTContext &ctx) const {
   const auto *objcPtr = getAs<ObjCObjectPointerType>();
   if (!objcPtr)

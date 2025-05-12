@@ -339,10 +339,10 @@ public:
 
       operation.addNumGangsOperands(builder.getContext(), values,
                                     lastDeviceTypeValues);
+    } else if constexpr (isCombinedType<OpTy>) {
+      applyToComputeOp(clause);
     } else {
-      // TODO: When we've implemented this for everything, switch this to an
-      // unreachable. Combined constructs remain.
-      return clauseNotImplemented(clause);
+      llvm_unreachable("Unknown construct kind in VisitNumGangsClause");
     }
   }
 
@@ -360,9 +360,11 @@ public:
         operation.addWaitOperands(builder.getContext(), clause.hasDevNumExpr(),
                                   values, lastDeviceTypeValues);
       }
+    } else if constexpr (isCombinedType<OpTy>) {
+      applyToComputeOp(clause);
     } else {
       // TODO: When we've implemented this for everything, switch this to an
-      // unreachable. Enter data, exit data, update, Combined constructs remain.
+      // unreachable. Enter data, exit data, update constructs remain.
       return clauseNotImplemented(clause);
     }
   }
@@ -465,6 +467,8 @@ public:
       else
         operation.addEmptyWorker(builder.getContext(), lastDeviceTypeValues);
 
+    } else if constexpr (isCombinedType<OpTy>) {
+      applyToLoopOp(clause);
     } else {
       // TODO: When we've implemented this for everything, switch this to an
       // unreachable. Combined constructs remain.
@@ -481,6 +485,8 @@ public:
       else
         operation.addEmptyVector(builder.getContext(), lastDeviceTypeValues);
 
+    } else if constexpr (isCombinedType<OpTy>) {
+      applyToLoopOp(clause);
     } else {
       // TODO: When we've implemented this for everything, switch this to an
       // unreachable. Combined constructs remain.

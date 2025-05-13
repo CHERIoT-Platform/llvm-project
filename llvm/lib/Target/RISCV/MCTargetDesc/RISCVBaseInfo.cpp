@@ -145,6 +145,12 @@ void validate(const Triple &TT, const FeatureBitset &FeatureBits) {
   if (FeatureBits[RISCV::Feature32Bit] &&
       FeatureBits[RISCV::Feature64Bit])
     report_fatal_error("RV32 and RV64 can't be combined");
+  if (FeatureBits[RISCV::FeatureVendorXCheriot1]) {
+    if (!FeatureBits[RISCV::FeatureVendorXCheri])
+      report_fatal_error("XCheriotV1 extension requires XCheri extension");
+    if (!FeatureBits[RISCV::FeatureCapMode])
+      report_fatal_error("XCheriotV1 extension requires CapMode");
+  }
 }
 
 llvm::Expected<std::unique_ptr<RISCVISAInfo>>

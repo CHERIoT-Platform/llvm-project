@@ -597,12 +597,8 @@ def RP2350_HAZARD3 : RISCVProcessorModel<"rp2350-hazard3",
                                           FeatureStdExtZcmp]>;
 
 // NB: FeatureCheri =>'s RVC (!FeatureCheriNoRVC)
-def CHERIOT : RISCVProcessorModel<"cheriot",
-                                   NoSchedModel,
-                                   [Feature32Bit,
-                                    FeatureVendorXCheri,
-                                    FeatureCapMode,
-                                    FeatureStdExtC,
-                                    FeatureStdExtE,
-                                    FeatureStdExtM,
-                                    FeatureUnalignedScalarMem]>;
+def CHERIOT : RISCVProcessorModel<"cheriot", NoSchedModel,
+                                  [Feature32Bit, FeatureVendorXCheri,
+                                   FeatureVendorXCheriot1, FeatureCapMode,
+                                   FeatureStdExtC, FeatureStdExtE,
+                                   FeatureStdExtM, FeatureUnalignedScalarMem]>;

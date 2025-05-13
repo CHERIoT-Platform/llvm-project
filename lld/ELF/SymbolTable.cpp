@@ -73,12 +73,6 @@ Defined *SymbolTable::ensureSymbolWillBeInDynsym(Symbol* original) {
 }
 
 
-void SymbolTable::redirect(Symbol *from, Symbol *to) {
-  int &fromIdx = symMap[CachedHashStringRef(from->getName())];
-  const int toIdx = symMap[CachedHashStringRef(to->getName())];
-  fromIdx = toIdx;
-}
-
 void SymbolTable::wrap(Symbol *sym, Symbol *real, Symbol *wrap) {
   // Redirect __real_foo to the original foo and foo to the original __wrap_foo.
   int &idx1 = symMap[CachedHashStringRef(sym->getName())];

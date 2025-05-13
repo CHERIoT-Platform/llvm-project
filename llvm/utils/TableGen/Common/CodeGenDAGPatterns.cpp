@@ -1155,7 +1155,7 @@ std::string TreePredicateFn::getPredCode() const {
     Code += "if (!N->hasNUsesOfValue(1, 0)) return false;\n";
 
   std::string PredicateCode =
-      std::string(PatFragRec->getRecord()->getValueAsString("PredicateCode"));
+      PatFragRec->getRecord()->getValueAsString("PredicateCode").str();
 
   Code += PredicateCode;
 
@@ -1170,8 +1170,7 @@ bool TreePredicateFn::hasImmCode() const {
 }
 
 std::string TreePredicateFn::getImmCode() const {
-  return std::string(
-      PatFragRec->getRecord()->getValueAsString("ImmediateCode"));
+  return PatFragRec->getRecord()->getValueAsString("ImmediateCode").str();
 }
 
 bool TreePredicateFn::immCodeUsesAPInt() const {
@@ -1292,11 +1291,13 @@ const Record *TreePredicateFn::getScalarMemoryVT() const {
     return nullptr;
   return R->getValueAsDef("ScalarMemoryVT");
 }
+
 bool TreePredicateFn::hasGISelPredicateCode() const {
   return !PatFragRec->getRecord()
               ->getValueAsString("GISelPredicateCode")
               .empty();
 }
+
 std::string TreePredicateFn::getGISelPredicateCode() const {
   return std::string(
       PatFragRec->getRecord()->getValueAsString("GISelPredicateCode"));
@@ -2413,8 +2414,9 @@ TreePatternNode::getComplexPatternInfo(const CodeGenDAGPatterns &CGP) const {
     if (!DI)
       return nullptr;
     Rec = DI->getDef();
-  } else
+  } else {
     Rec = getOperator();
+  }
 
   if (!Rec->isSubClassOf("ComplexPattern"))
     return nullptr;
@@ -2923,7 +2925,7 @@ TreePatternNodePtr TreePattern::ParseTreePattern(const Init *TheInit,
     if (R->getName() == "node" && !OpName.empty()) {
       if (OpName.empty())
         error("'node' argument requires a name to match with operand list");
-      Args.push_back(std::string(OpName));
+      Args.push_back(OpName.str());
     }
 
     Res->setName(OpName);
@@ -2935,7 +2937,7 @@ TreePatternNodePtr TreePattern::ParseTreePattern(const Init *TheInit,
     if (OpName.empty())
       error("'?' argument requires a name to match with operand list");
     TreePatternNodePtr Res = makeIntrusiveRefCnt<TreePatternNode>(TheInit, 1);
-    Args.push_back(std::string(OpName));
+    Args.push_back(OpName.str());
     Res->setName(OpName);
     return Res;
   }
@@ -3175,7 +3177,7 @@ bool TreePattern::InferAllTypes(
       if (InNamedTypes) {
         auto InIter = InNamedTypes->find(Entry.getKey());
         if (InIter == InNamedTypes->end()) {
-          error("Node '" + std::string(Entry.getKey()) +
+          error("Node '" + Entry.getKey().str() +
                 "' in output pattern but not input pattern");
           return true;
         }
@@ -3337,7 +3339,7 @@ void CodeGenDAGPatterns::ParseNodeTransforms() {
        reverse(Records.getAllDerivedDefinitions("SDNodeXForm"))) {
     const Record *SDNode = XFormNode->getValueAsDef("Opcode");
     StringRef Code = XFormNode->getValueAsString("XFormFunction");
-    SDNodeXForms.insert({XFormNode, NodeXForm(SDNode, std::string(Code))});
+    SDNodeXForms.insert({XFormNode, NodeXForm(SDNode, Code.str())});
   }
 }
 
@@ -3396,7 +3398,7 @@ void CodeGenDAGPatterns::ParsePatternFragments(bool OutFrags) {
       if (!OperandsSet.erase(ArgNameStr))
         P->error("'" + ArgNameStr +
                  "' does not occur in pattern or was multiply specified!");
-      Args.push_back(std::string(ArgNameStr));
+      Args.push_back(ArgNameStr.str());
     }
 
     if (!OperandsSet.empty())

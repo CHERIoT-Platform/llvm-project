@@ -2017,9 +2017,10 @@ void TempRegRenderer::emitRenderOpcodes(MatchTable &Table,
   if (SubRegIdx) {
     assert(!IsDef);
     Table << MatchTable::Opcode("GIR_AddTempSubRegister");
-  } else
+  } else {
     Table << MatchTable::Opcode(NeedsFlags ? "GIR_AddTempRegister"
                                            : "GIR_AddSimpleTempRegister");
+  }
 
   Table << MatchTable::Comment("InsnID") << MatchTable::ULEB128Value(InsnID)
         << MatchTable::Comment("TempRegID")
@@ -2037,8 +2038,9 @@ void TempRegRenderer::emitRenderOpcodes(MatchTable &Table,
     if (IsDead)
       RegFlags += "|RegState::Dead";
     Table << MatchTable::NamedValue(2, RegFlags);
-  } else
+  } else {
     Table << MatchTable::IntValue(2, 0);
+  }
 
   if (SubRegIdx)
     Table << MatchTable::NamedValue(2, SubRegIdx->getQualifiedName());
@@ -2066,8 +2068,9 @@ void ImmRenderer::emitRenderOpcodes(MatchTable &Table,
           << MatchTable::ULEB128Value(InsnID) << MatchTable::Comment("Type")
           << *CImmLLT << MatchTable::Comment("Imm")
           << MatchTable::IntValue(8, Imm) << MatchTable::LineBreak;
-  } else
+  } else {
     emitAddImm(Table, Rule, InsnID, Imm);
+  }
 }
 
 //===- SubRegIndexRenderer ------------------------------------------------===//
@@ -2158,8 +2161,9 @@ bool BuildMIAction::canMutate(RuleMatcher &Rule,
       if (Insn != &OM.getInstructionMatcher() ||
           OM.getOpIdx() != Renderer.index())
         return false;
-    } else
+    } else {
       return false;
+    }
   }
 
   return true;

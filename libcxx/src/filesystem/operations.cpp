@@ -17,6 +17,7 @@
 // }
 // CHERI CHANGES END
 
+#include <__algorithm/copy.h>
 #include <__assert>
 #include <__config>
 #include <__utility/unreachable.h>

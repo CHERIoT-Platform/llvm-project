@@ -161,7 +161,7 @@
 // CHECK-NEXT:     xandesvdot           5.0       'XAndesVDot' (Andes Vector Dot Product Extension)
 // CHECK-NEXT:     xandesvpackfph       5.0       'XAndesVPackFPH' (Andes Vector Packed FP16 Extension)
 // CHECK-NEXT:     xcheri               0.0       'XCheri' (Implements CHERI extension)
-// CHECK-NEXT:     xcheriot1            1.0       'XCheriot1' (Implements Cheriot1 extension)
+// CHECK-NEXT:     xcheriot             1.0       'XCheriot' (Implements XCheriot extension)
 // CHECK-NEXT:     xcvalu               1.0       'XCValu' (CORE-V ALU Operations)
 // CHECK-NEXT:     xcvbi                1.0       'XCVbi' (CORE-V Immediate Branching)
 // CHECK-NEXT:     xcvbitmanip          1.0       'XCVbitmanip' (CORE-V Bit Manipulation)

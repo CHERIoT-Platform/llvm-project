@@ -18,7 +18,7 @@ namespace RISCVCompressedCap {
 
 static inline CompressedCapability::CapabilityFormat
 GetCapabilitySize(const MCSubtargetInfo &STI) {
-  if (STI.getCPU() == "cheriot")
+  if (STI.hasFeature(RISCV::FeatureVendorXCheriot))
     return CompressedCapability::Cheriot64;
 
   bool IsRV64 = STI.hasFeature(RISCV::Feature64Bit);

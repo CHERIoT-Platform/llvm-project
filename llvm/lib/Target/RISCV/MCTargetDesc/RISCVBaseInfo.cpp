@@ -172,11 +172,11 @@ void validate(const Triple &TT, const FeatureBitset &FeatureBits) {
   if (FeatureBits[RISCV::Feature32Bit] &&
       FeatureBits[RISCV::Feature64Bit])
     reportError("RV32 and RV64 can't be combined");
-  if (FeatureBits[RISCV::FeatureVendorXCheriot1]) {
+  if (FeatureBits[RISCV::FeatureVendorXCheriot]) {
     if (!FeatureBits[RISCV::FeatureVendorXCheri])
-      report_fatal_error("XCheriotV1 extension requires XCheri extension");
+      report_fatal_error("XCheriot extension requires XCheri extension");
     if (!FeatureBits[RISCV::FeatureCapMode])
-      report_fatal_error("XCheriotV1 extension requires CapMode");
+      report_fatal_error("XCheriot extension requires CapMode");
   }
 }
 

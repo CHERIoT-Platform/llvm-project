@@ -1605,8 +1605,8 @@ def IsPureCapABI
 def NotPureCapABI
     : Predicate<"!RISCVABI::isCheriPureCapABI(Subtarget->getTargetABI())">;
 
-def FeatureVendorXCheriot1
-    : RISCVExtension<1, 0, "Implements Cheriot1 extension">;
+def FeatureVendorXCheriot
+    : RISCVExtension<1, 0, "Implements XCheriot extension">;
 
 def FeatureRelax
     : SubtargetFeature<"relax", "EnableLinkerRelax", "true",

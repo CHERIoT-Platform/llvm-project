@@ -1827,8 +1827,7 @@ bool RISCVAsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
         "%cheri_compartment_cgprel_hi modifier or "
         "an integer in the range");
   case Match_InvalidUImm20AUIPC:
-    // FIXME: This should be keyed off an Xcheriot feature, not a CPU name.
-    if (getSTI().getCPU() == "cheriot")
+    if (getSTI().hasFeature(RISCV::FeatureVendorXCheriot))
       return generateImmOutOfRangeError(
           Operands, ErrorInfo, 0, (1 << 20) - 1,
           "operand must be a symbol with a "

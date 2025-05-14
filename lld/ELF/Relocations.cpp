@@ -761,9 +761,7 @@ static void reportUndefinedSymbol(Ctx &ctx, const UndefinedDiag &undef,
 
   // Provide a spelling-like hint when we fail to resolve a local symbol but
   // find a corresponding export in another compartment.
-  // FIXME: Is there a better way to test for cheriot here?
-  if (ctx.arg.isCheriAbi && ctx.arg.emachine == EM_RISCV &&
-      ctx.arg.capabilitySize == 8) {
+  if (ctx.arg.eflags & EF_RISCV_CHERIOT) {
     StringRef SymName = sym.getName();
     for (auto GlobalSymbol : ctx.symtab->getSymbols()) {
       if (!GlobalSymbol->isGlobal())
@@ -786,39 +784,6 @@ static void reportUndefinedSymbol(Ctx &ctx, const UndefinedDiag &undef,
             << "\" export from compartment \"" << GlobalCompartmentName
             << "\"?\n"
             << "\n>>> defined in: " << toStr(ctx, GlobalSymbol->file) << "\n"
-            << ">>> the declaration may be missing a compartment annotation";
-        break;
-      }
-    }
-  }
-
-  // Provide a spelling-like hint when we fail to resolve a local symbol but
-  // find a corresponding export in another compartment.
-  // FIXME: Is there a better way to test for cheriot here?
-  if (ctx.arg.isCheriAbi && ctx.arg.emachine == EM_RISCV &&
-      ctx.arg.capabilitySize == 8) {
-    StringRef SymName = sym.getName();
-    for (auto GlobalSymbol : ctx.symtab->getSymbols()) {
-      if (!GlobalSymbol->isGlobal())
-        continue;
-      if (!GlobalSymbol->isDefined())
-        continue;
-
-      StringRef GlobalName = GlobalSymbol->getName();
-      if (!GlobalName.consume_front("__export_"))
-        continue;
-      size_t functionNameStart = GlobalName.find("__Z");
-      if (functionNameStart == StringRef::npos)
-        continue;
-
-      StringRef GlobalCompartmentName =
-          GlobalName.take_front(functionNameStart);
-      StringRef GlobalFunctionName = GlobalName.substr(functionNameStart + 1);
-      if (GlobalFunctionName == SymName) {
-        msg << "\n>>> did you mean the \"" << toStr(ctx, sym)
-            << "\" export from compartment \"" << GlobalCompartmentName
-            << "\"?\n"
-            << ">>> defined in: " << toStr(ctx, GlobalSymbol->file) << "\n"
             << ">>> the declaration may be missing a compartment annotation";
         break;
       }

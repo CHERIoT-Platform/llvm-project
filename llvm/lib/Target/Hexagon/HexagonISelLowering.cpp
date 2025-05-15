@@ -1501,8 +1501,9 @@ HexagonTargetLowering::HexagonTargetLowering(const TargetMachine &TM,
   // - indexed loads and stores (pre-/post-incremented),
   // - ANY_EXTEND_VECTOR_INREG, ATOMIC_CMP_SWAP_WITH_SUCCESS, CONCAT_VECTORS,
   //   ConstantFP, FCEIL, FCOPYSIGN, FEXP, FEXP2, FFLOOR, FGETSIGN,
-  //   FLOG, FLOG2, FLOG10, FMAXNUM, FMINNUM, FNEARBYINT, FRINT, FROUND, TRAP,
-  //   FTRUNC, PREFETCH, SIGN_EXTEND_VECTOR_INREG, ZERO_EXTEND_VECTOR_INREG,
+  //   FLOG, FLOG2, FLOG10, FMAXIMUMNUM, FMINIMUMNUM, FNEARBYINT, FRINT, FROUND,
+  //   TRAP, FTRUNC, PREFETCH, SIGN_EXTEND_VECTOR_INREG,
+  //   ZERO_EXTEND_VECTOR_INREG,
   // which default to "expand" for at least one type.
 
   // Misc operations.
@@ -1640,6 +1641,7 @@ HexagonTargetLowering::HexagonTargetLowering(const TargetMachine &TM,
 
   // Set the action for vector operations to "expand", then override it with
   // either "custom" or "legal" for specific cases.
+  // clang-format off
   static const unsigned VectExpOps[] = {
     // Integer arithmetic:
     ISD::ADD,     ISD::SUB,     ISD::MUL,     ISD::SDIV,      ISD::UDIV,
@@ -1654,7 +1656,8 @@ HexagonTargetLowering::HexagonTargetLowering(const TargetMachine &TM,
     ISD::FCOS,    ISD::FPOW,    ISD::FLOG,    ISD::FLOG2,
     ISD::FLOG10,  ISD::FEXP,    ISD::FEXP2,   ISD::FCEIL,   ISD::FTRUNC,
     ISD::FRINT,   ISD::FNEARBYINT,            ISD::FROUND,  ISD::FFLOOR,
-    ISD::FMINNUM, ISD::FMAXNUM, ISD::FSINCOS, ISD::FLDEXP,
+    ISD::FMINIMUMNUM,           ISD::FMAXIMUMNUM,
+    ISD::FSINCOS, ISD::FLDEXP,
     // Misc:
     ISD::BR_CC,   ISD::SELECT_CC,             ISD::ConstantPool,
     // Vector:
@@ -1664,6 +1667,7 @@ HexagonTargetLowering::HexagonTargetLowering(const TargetMachine &TM,
     ISD::CONCAT_VECTORS,        ISD::VECTOR_SHUFFLE,
     ISD::SPLAT_VECTOR,
   };
+  // clang-format on
 
   for (MVT VT : MVT::fixedlen_vector_valuetypes()) {
     for (unsigned VectExpOp : VectExpOps)
@@ -1786,8 +1790,8 @@ HexagonTargetLowering::HexagonTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::FMUL, MVT::f64, Expand);
   setOperationAction(ISD::FDIV, MVT::f32, Custom);
 
-  setOperationAction(ISD::FMINNUM, MVT::f32, Legal);
-  setOperationAction(ISD::FMAXNUM, MVT::f32, Legal);
+  setOperationAction(ISD::FMINIMUMNUM, MVT::f32, Legal);
+  setOperationAction(ISD::FMAXIMUMNUM, MVT::f32, Legal);
 
   setOperationAction(ISD::FP_TO_UINT, MVT::i1,  Promote);
   setOperationAction(ISD::FP_TO_UINT, MVT::i8,  Promote);
@@ -1835,8 +1839,8 @@ HexagonTargetLowering::HexagonTargetLowering(const TargetMachine &TM,
     setOperationAction(ISD::FSUB, MVT::f64, Legal);
   }
   if (Subtarget.hasV67Ops()) {
-    setOperationAction(ISD::FMINNUM, MVT::f64, Legal);
-    setOperationAction(ISD::FMAXNUM, MVT::f64, Legal);
+    setOperationAction(ISD::FMINIMUMNUM, MVT::f64, Legal);
+    setOperationAction(ISD::FMAXIMUMNUM, MVT::f64, Legal);
     setOperationAction(ISD::FMUL,    MVT::f64, Legal);
   }
 

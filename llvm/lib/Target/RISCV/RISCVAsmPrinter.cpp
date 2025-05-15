@@ -30,6 +30,7 @@
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/CodeGen/MachineJumpTableInfo.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
+#include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Module.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCContext.h"
@@ -40,7 +41,6 @@
 #include "llvm/MC/MCSectionELF.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSymbol.h"
-#include "llvm/MC/MCSectionELF.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/TargetParser/RISCVISAInfo.h"
@@ -137,6 +137,7 @@ private:
   void emitAttributes(const MCSubtargetInfo &SubtargetInfo);
 
   void emitNTLHint(const MachineInstr *MI);
+  void emitGlobalVariable(const GlobalVariable *GV) override;
 
   // XRay Support
   void LowerPATCHABLE_FUNCTION_ENTER(const MachineInstr *MI);
@@ -289,6 +290,28 @@ bool RISCVAsmPrinter::EmitToStreamer(MCStreamer &S, const MCInst &Inst,
 // Simple pseudo-instructions have their lowering (with expansion to real
 // instructions) auto-generated.
 #include "RISCVGenMCPseudoLowering.inc"
+
+void RISCVAsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
+  auto CheriotCapImportAttrName =
+      llvm::CHERIoTGlobalCapabilityImportAttr::getAttrName();
+
+  if (GV->hasAttribute(CheriotCapImportAttrName)) {
+    // This global variable refers to an object exported from a different
+    // compartment.
+    //
+    // Nothing has to be emitted here, in this case. The import entry is
+    // properly registered when the variable that has this attribute is used.
+
+    assert(!GV->isLocalLinkage(GV->getLinkage()) &&
+           "Global is defined locally, which is not allowed "
+           "for globals marked with the global_cap_import attribute.");
+
+    return;
+  }
+
+  // Continue through the normal path to emit the global.
+  return AsmPrinter::emitGlobalVariable(GV);
+}
 
 // If the target supports Zihintntl and the instruction has a nontemporal
 // MachineMemOperand, emit an NTLH hint instruction before it.
@@ -693,7 +716,7 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
   }
   // Generate CHERIoT imports if there are any.
   auto &CHERIoTCompartmentImports =
-      static_cast<RISCVTargetMachine &>(TM).ImportedFunctions;
+      static_cast<RISCVTargetMachine &>(TM).ImportedObjects;
   if (!CHERIoTCompartmentImports.empty()) {
     auto &C = OutStreamer->getContext();
 
@@ -704,19 +727,27 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
 
       // Public symbols must be COMDATs so that they can be merged across
       // compilation units.  Private ones must not be.
-      auto *Section =
-          Entry.IsPublic
-              ? C.getELFSection(".compartment_imports", ELF::SHT_PROGBITS,
-                                ELF::SHF_ALLOC | ELF::SHF_GROUP, 0,
-                                Entry.ImportName, true)
-              : C.getELFSection(".compartment_imports", ELF::SHT_PROGBITS,
-                                ELF::SHF_ALLOC);
+      MCSectionELF *Section;
+
+      if (Entry.IsPublic) {
+        Section = C.getELFSection(".compartment_imports." + Entry.Name,
+                                  ELF::SHT_PROGBITS,
+                                  ELF::SHF_ALLOC | ELF::SHF_GROUP |
+                                      (Entry.IsGlobal ? ELF::SHF_WRITE : 0),
+                                  0, Entry.ImportName, true);
+      } else {
+        Section = C.getELFSection(".compartment_imports." + Entry.Name,
+                                  ELF::SHT_PROGBITS, ELF::SHF_ALLOC);
+      }
+
       OutStreamer->switchSection(Section);
-      auto Sym = C.getOrCreateSymbol(Entry.ImportName);
-      auto ExportSym = C.getOrCreateSymbol(Entry.ExportName);
+      auto *Sym = C.getOrCreateSymbol(Entry.ImportName);
+      auto *ExportSym = C.getOrCreateSymbol(Entry.ExportName);
       OutStreamer->emitSymbolAttribute(Sym, MCSA_ELF_TypeObject);
-      if (Entry.IsPublic)
+      if (Entry.IsPublic && !Entry.IsGlobal)
         OutStreamer->emitSymbolAttribute(Sym, MCSA_Weak);
+      if (Entry.IsGlobal)
+        OutStreamer->emitSymbolAttribute(Sym, llvm::MCSA_Global);
       OutStreamer->emitValueToAlignment(Align(8));
       OutStreamer->emitLabel(Sym);
       // Library imports have their low bit set.
@@ -727,7 +758,24 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
             4);
       else
         OutStreamer->emitValue(MCSymbolRefExpr::create(ExportSym, C), 4);
-      OutStreamer->emitIntValue(0, 4);
+      if (!Entry.MaybeSecondWordPermissionsEncoding.has_value())
+        OutStreamer->emitIntValue(0, 4);
+      else {
+        auto PermissionsEncoding =
+            Entry.MaybeSecondWordPermissionsEncoding.value();
+        auto MangledExportNameEnd = Entry.ExportName + "_end";
+        auto *EncodedPermissionsExpr =
+            MCConstantExpr::create(PermissionsEncoding, C);
+        auto *ExportSymRef = MCSymbolRefExpr::create(ExportSym, C);
+        auto *ExportSymEnd = C.getOrCreateSymbol(MangledExportNameEnd);
+        auto *ExportSymEndRef = MCSymbolRefExpr::create(ExportSymEnd, C);
+        auto *ExportLength =
+            MCBinaryExpr::createSub(ExportSymEndRef, ExportSymRef, C);
+        auto *SecondWordValue =
+            MCBinaryExpr::createAdd(ExportLength, EncodedPermissionsExpr, C);
+
+        OutStreamer->emitValue(SecondWordValue, 4);
+      }
       OutStreamer->emitELFSize(Sym, MCConstantExpr::create(8, C));
     }
   }

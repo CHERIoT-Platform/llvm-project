@@ -600,8 +600,8 @@ void RISCVPassConfig::addPreEmitPass2() {
     addPass(createRISCVPushPopOptimizationPass());
   }
   addPass(createRISCVIndirectBranchTrackingPass());
-  addPass(createRISCVExpandPseudoPass(
-      getTM<RISCVTargetMachine>().ImportedFunctions));
+  addPass(
+      createRISCVExpandPseudoPass(getTM<RISCVTargetMachine>().ImportedObjects));
 
   // Schedule the expansion of AMOs at the last possible moment, avoiding the
   // possibility for other passes to break the requirements for forward

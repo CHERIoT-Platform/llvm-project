@@ -61,7 +61,7 @@ bool isKnownUntaggedCapability(const Value* V, const DataLayout* DL);
 
 // User-permissions are shifted by 15 in CAndPerm/CGetPerm
 constexpr unsigned MIPS_UPERMS_SHIFT = 15;
-}
+} // namespace cheri
 
 #if 0
 /// Same again but try to derive the DataLayout from an llvm::Module

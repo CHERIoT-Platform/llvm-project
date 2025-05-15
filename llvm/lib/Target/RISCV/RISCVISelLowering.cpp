@@ -8232,6 +8232,18 @@ SDValue RISCVTargetLowering::lowerGlobalAddress(SDValue Op,
   // another function. Therefore, we always load from the captable for all
   // global variables.
   const GlobalValue *GV = N->getGlobal();
+
+  if (auto *GVar = llvm::dyn_cast<llvm::GlobalVariable>(GV)) {
+    auto AttrName = llvm::CHERIoTGlobalCapabilityImportAttr::getAttrName();
+    if (GVar->hasAttribute(AttrName)) {
+      SDLoc DL(N);
+      SDValue Addr = getTargetNode(N, DL, Ty, DAG, 0);
+      // Force it to be lowered to a `CLLC` regardless what `getAddr` would
+      // produce.
+      return DAG.getNode(RISCVISD::CLLC, DL, Ty, Addr);
+    }
+  }
+
   return getAddr(N, Ty, DAG, GV->isDSOLocal(), /*CanDeriveFromPcc=*/false,
                  GV->hasExternalWeakLinkage());
 }
@@ -20756,7 +20768,6 @@ SDValue RISCVTargetLowering::LowerFormalArguments(
         // the vector itself.
         VT = VA.getLocVT();
       }
- 
       stackArgumentSize =
           std::max(stackArgumentSize, VA.getLocMemOffset() + VT.getStoreSize());
     }

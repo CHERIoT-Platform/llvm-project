@@ -29,6 +29,7 @@
 #include "llvm/MC/MCContext.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Debug.h"
+#include <optional>
 
 using namespace llvm;
 
@@ -42,10 +43,10 @@ public:
   const RISCVSubtarget *STI;
   const RISCVInstrInfo *TII;
   static char ID;
-  CHERIoTImportedFunctionSet &ImportedFunctions;
+  CHERIoTImportedObjectSet &ImportedObjects;
 
-  RISCVExpandPseudo(CHERIoTImportedFunctionSet &CHERIoTImports)
-      : MachineFunctionPass(ID), ImportedFunctions(CHERIoTImports) { }
+  RISCVExpandPseudo(CHERIoTImportedObjectSet &CHERIoTImports)
+      : MachineFunctionPass(ID), ImportedObjects(CHERIoTImports) {}
 
   bool runOnMachineFunction(MachineFunction &MF) override;
 
@@ -120,10 +121,12 @@ private:
    *
    * Calls the result if `CallImportTarget` is true.
    */
-  MachineBasicBlock *insertLoadOfImportTable(
-      MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-      MCSymbol *ImportSymbol, MCSymbol *ExportSymbol, Register DestReg,
-      bool IsLibrary, bool IsPublic, bool CallImportTarget);
+  MachineBasicBlock *
+  insertLoadOfImportTable(MachineBasicBlock &MBB,
+                          MachineBasicBlock::iterator MBBI,
+                          MCSymbol *ImportSymbol, MCSymbol *ExportSymbol,
+                          const StringRef ImportName, Register DestReg,
+                          bool IsLibrary, bool IsPublic, bool CallImportTarget);
 
 #ifndef NDEBUG
   unsigned getInstSizeInBytes(const MachineFunction &MF) const {
@@ -285,9 +288,9 @@ MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
   // it will remain valid for the duration of codegen.
   MCSymbol *ImportSymbol = MF->getContext().getOrCreateSymbol(ImportEntryName);
   MCSymbol *ExportSymbol = MF->getContext().getOrCreateSymbol(ExportEntryName);
-  return insertLoadOfImportTable(MBB, MBBI, ImportSymbol, ExportSymbol, DestReg,
-                                 IsLibrary || TreatAsLibrary,
-                                 Fn->hasExternalLinkage(), CallImportTarget);
+  return insertLoadOfImportTable(
+      MBB, MBBI, ImportSymbol, ExportSymbol, ImportName, DestReg,
+      IsLibrary || TreatAsLibrary, Fn->hasExternalLinkage(), CallImportTarget);
 }
 
 static const GlobalValue *resolveGlobalAlias(const GlobalValue *GV) {
@@ -299,8 +302,8 @@ static const GlobalValue *resolveGlobalAlias(const GlobalValue *GV) {
 
 MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    MCSymbol *ImportSymbol, MCSymbol *ExportSymbol, Register DestReg,
-    bool IsLibrary, bool IsPublic, bool CallImportTarget) {
+    MCSymbol *ImportSymbol, MCSymbol *ExportSymbol, const StringRef ImportName,
+    Register DestReg, bool IsLibrary, bool IsPublic, bool CallImportTarget) {
   auto *MF = MBB.getParent();
   const DebugLoc DL = MBBI->getDebugLoc();
   MachineBasicBlock *NewMBB =
@@ -329,8 +332,9 @@ MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
   // Make the original basic block fall-through to the new.
   MBB.addSuccessor(NewMBB);
 
-  ImportedFunctions.insert(
-      {ImportSymbol->getName(), ExportSymbol->getName(), IsLibrary, IsPublic});
+  ImportedObjects.insert({ImportSymbol->getName().str(),
+                          ExportSymbol->getName().str(), ImportName.str(),
+                          IsLibrary, IsPublic, false, std::nullopt});
   LivePhysRegs LiveRegs;
   computeAndAddLiveIns(LiveRegs, *NewMBB);
   return NewMBB;
@@ -460,8 +464,9 @@ bool RISCVExpandPseudo::expandLibraryCall(
         MF->getContext().getOrCreateSymbol(ImportEntryName);
     MCSymbol *ExportSymbol =
         MF->getContext().getOrCreateSymbol(ExportEntryName);
-    insertLoadOfImportTable(MBB, MBBI, ImportSymbol, ExportSymbol, RISCV::C7,
-                            true, true, true);
+    insertLoadOfImportTable(MBB, MBBI, ImportSymbol, ExportSymbol,
+                            Callee.getSymbolName(), RISCV::C7, true, true,
+                            true);
 
     NextMBBI = MBB.end();
   } else {
@@ -546,14 +551,67 @@ bool RISCVExpandPseudo::expandAuipccInstPair(
 
   MF->insert(++MBB.getIterator(), NewMBB);
 
-  BuildMI(NewMBB, DL, TII->get(RISCV::AUIPCC), TmpReg)
-      .addDisp(Symbol, 0, FlagsHi);
+  auto CheriotCapImportAttrName =
+      llvm::CHERIoTGlobalCapabilityImportAttr::getAttrName();
+  std::optional<Attribute> CheriotCapImportAttr = std::nullopt;
+
+  if (Symbol.isGlobal()) {
+    auto *GV = llvm::dyn_cast<llvm::GlobalVariable>(Symbol.getGlobal());
+    if (GV && GV->hasAttribute(CheriotCapImportAttrName)) {
+      CheriotCapImportAttr.emplace(GV->getAttribute(CheriotCapImportAttrName));
+    }
+  }
+
+  if (CheriotCapImportAttr.has_value()) {
+    MCContext &Ctxt = MF->getContext();
+    llvm::CHERIoTGlobalCapabilityImportAttr CapAttr(
+        CheriotCapImportAttr->getValueAsString());
+
+    // The prefixed name of the import without permissions, e.g. `mem_uart`.
+    std::string PrefixedImportName =
+        (CapAttr.Domain + "_" + CapAttr.ObjectName).str();
+
+    // The prefixed name of the import with permissions, e.g. `mem_uart_RWcm`.
+    std::string PrefixedImportNameWithPermissions =
+        (PrefixedImportName + "_" + CapAttr.Permissions).str();
+
+    // The name of the import without permissions, e.g. `uart`.
+    auto ImportName = CapAttr.ObjectName.str();
+
+    // The permissions of the import, e.g. `RWcm`.
+    auto CapabilityPermissions = CapAttr.Permissions.str();
+
+    std::string ExportPrefix = "";
+
+    // The MMIO kind of imports needs an ad-hoc `export_` prefix.
+    if (CapAttr.ImportKind == llvm::CHERIoTGlobalCapabilityImportAttr::MMIO) {
+      ExportPrefix = "export_";
+    }
+
+    auto MangledExportName = ("__" + ExportPrefix + PrefixedImportName);
+    auto MangledExportNameEnd = MangledExportName + "_end";
+    auto MangledImportName = "__import_" + PrefixedImportNameWithPermissions;
+    MCSymbol *MangledImportSymbol = Ctxt.getOrCreateSymbol(MangledImportName);
+
+    BuildMI(NewMBB, DL, TII->get(RISCV::AUIPCC), TmpReg)
+        .addSym(MangledImportSymbol, FlagsHi);
+
+    auto EncodedPermissions = CapAttr.encodePermissions();
+
+    ImportedObjects.insert({MangledImportName, MangledExportName, ImportName,
+                            false, true, true, EncodedPermissions});
+  } else {
+    BuildMI(NewMBB, DL, TII->get(RISCV::AUIPCC), TmpReg)
+        .addDisp(Symbol, 0, FlagsHi);
+  }
+
   BuildMI(NewMBB, DL, TII->get(SecondOpcode), DestReg)
       .addReg(TmpReg)
       .addMBB(NewMBB, IsCheriot ? RISCVII::MO_CHERIOT_COMPARTMENT_LO_I
                                 : RISCVII::MO_PCREL_LO);
-  if (!InBounds && MF->getSubtarget<RISCVSubtarget>().isRV32E() &&
-      Symbol.isGlobal() && isa<GlobalVariable>(Symbol.getGlobal()) &&
+  if (!CheriotCapImportAttr.has_value() && !InBounds &&
+      MF->getSubtarget<RISCVSubtarget>().isRV32E() && Symbol.isGlobal() &&
+      isa<GlobalVariable>(Symbol.getGlobal()) &&
       (cast<GlobalVariable>(Symbol.getGlobal())->getSection() !=
        ".compartment_imports"))
     BuildMI(NewMBB, DL, TII->get(RISCV::CSetBoundsImm), DestReg)
@@ -590,6 +648,14 @@ bool RISCVExpandPseudo::expandCapLoadLocalCap(
                                   RISCV::CIncOffsetImm);
 
     const GlobalValue *GV = Symbol.getGlobal();
+    auto *GVar = llvm::dyn_cast<GlobalVariable>(GV);
+    if (GVar && GVar->hasAttribute(
+                    llvm::CHERIoTGlobalCapabilityImportAttr::getAttrName())) {
+      return expandAuipccInstPair(MBB, MBBI, NextMBBI,
+                                  RISCVII::MO_CHERIOT_COMPARTMENT_HI,
+                                  RISCV::CLC_64);
+    }
+
     if (!isa<Function>(GV) && !cast<GlobalVariable>(GV)->isConstant())
       return expandAuicgpInstPair(MBB, MBBI, NextMBBI, RISCV::CIncOffsetImm,
                                   InBounds);
@@ -1130,12 +1196,12 @@ bool RISCVPreRAExpandPseudo::expandLoadTLSDescAddress(
 namespace llvm {
 
 template <> Pass *callDefaultCtor<RISCVExpandPseudo>() {
-  static CHERIoTImportedFunctionSet CHERIoTImports;
+  static CHERIoTImportedObjectSet CHERIoTImports;
   return new RISCVExpandPseudo(CHERIoTImports);
 }
 
 FunctionPass *
-createRISCVExpandPseudoPass(CHERIoTImportedFunctionSet &CHERIoTImports) {
+createRISCVExpandPseudoPass(CHERIoTImportedObjectSet &CHERIoTImports) {
   return new RISCVExpandPseudo(CHERIoTImports);
 }
 

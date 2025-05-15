@@ -28,8 +28,10 @@
 #include "clang/Basic/DarwinSDKInfo.h"
 #include "clang/Basic/IdentifierTable.h"
 #include "clang/Basic/LangOptions.h"
+#include "clang/Basic/Linkage.h"
 #include "clang/Basic/SourceLocation.h"
 #include "clang/Basic/SourceManager.h"
+#include "clang/Basic/Specifiers.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Sema/Attr.h"
@@ -61,6 +63,7 @@
 #include "llvm/ADT/STLForwardCompat.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Demangle/Demangle.h"
+#include "llvm/IR/Attributes.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/MC/MCSectionMachO.h"
 #include "llvm/Support/Error.h"
@@ -2101,6 +2104,127 @@ static void handleCHERIMethodSuffix(Sema &S, Decl *D, const ParsedAttr &Attr) {
   if (!S.checkStringLiteralArgumentAttr(Attr, 0, Str, &LiteralLoc))
     return;
   D->addAttr(::new (S.Context) CHERIMethodSuffixAttr(S.Context, Attr, Str));
+}
+
+static void handleCHERIOTMMIODevice(Sema &S, Decl *D, const ParsedAttr &Attr,
+                                    Sema::DeclAttributeLocation DAL) {
+  auto *VD = dyn_cast<VarDecl>(D);
+  if (!VD || !VD->hasGlobalStorage())
+    return;
+
+  if (!VD->hasExternalStorage()) {
+    VD->setStorageClass(clang::SC_Extern);
+  }
+
+  QualType QT = VD->getType();
+  if (!QT.isVolatileQualified()) {
+    S.Diag(Attr.getLoc(), diag::warn_cheriot_global_cap_import_non_volatile)
+        << VD->getName() << Attr.getAttrName();
+  }
+
+  StringRef DeviceName;
+  SourceLocation DeviceNameLiteralLoc;
+  if (!S.checkStringLiteralArgumentAttr(Attr, 0, DeviceName,
+                                        &DeviceNameLiteralLoc))
+    return;
+  StringRef Permissions;
+  SourceLocation PermissionsLiteralLoc;
+
+  if (Attr.getNumArgs() > 1) {
+    S.checkStringLiteralArgumentAttr(Attr, 1, Permissions,
+                                     &PermissionsLiteralLoc);
+  }
+
+  std::string OwnedPermissions = Permissions.str();
+
+  auto DuplicateSymbolCallback = [&Attr, &S,
+                                  Permissions](char DuplicateSymbol) {
+    S.Diag(Attr.getLoc(), diag::warn_cheriot_cap_permissions_duplicate_sym)
+        << Attr.getAttrName() << "'" + std::string({DuplicateSymbol}) + "'"
+        << Permissions;
+  };
+
+  auto ExtraneousSymbolCallback = [&Attr, &S,
+                                   Permissions](StringRef ExtraneousSymbols) {
+    S.Diag(Attr.getLoc(),
+           diag::err_cheriot_malformed_cap_permissions_unknown_sym)
+        << Attr.getAttrName() << ExtraneousSymbols << Permissions;
+  };
+
+  auto FailedSemanticCheckCallback = [&Attr, &S,
+                                      Permissions](StringRef Reason) {
+    S.Diag(Attr.getLoc(),
+           diag::err_cheriot_malformed_cap_permissions_invalid_dep)
+        << Attr.getAttrName() << Reason << Permissions;
+  };
+
+  if (!llvm::CHERIoTGlobalCapabilityImportAttr::checkPermissions(
+          OwnedPermissions, DuplicateSymbolCallback, ExtraneousSymbolCallback,
+          FailedSemanticCheckCallback))
+    return;
+
+  return D->addAttr(::new (S.Context) CHERIOTMMIODeviceAttr(
+      S.Context, Attr, DeviceName, OwnedPermissions));
+}
+
+static void handleCHERIOTSharedObject(Sema &S, Decl *D, const ParsedAttr &Attr,
+                                      Sema::DeclAttributeLocation DAL) {
+  auto *VD = dyn_cast<VarDecl>(D);
+  if (!VD || !VD->hasGlobalStorage())
+    return;
+
+  if (VD->hasInit()) {
+    S.Diag(Attr.getLoc(), diag::err_cheriot_global_cap_import_initialized)
+        << VD->getName() << Attr.getAttrName();
+  }
+
+  if (!VD->hasExternalStorage()) {
+    VD->setStorageClass(clang::SC_Extern);
+  }
+
+  StringRef ObjectName;
+  SourceLocation ObjectNameLiteralLoc;
+  if (!S.checkStringLiteralArgumentAttr(Attr, 0, ObjectName,
+                                        &ObjectNameLiteralLoc))
+    return;
+  StringRef Permissions;
+  SourceLocation PermissionsLiteralLoc;
+
+  if (Attr.getNumArgs() > 1) {
+    S.checkStringLiteralArgumentAttr(Attr, 1, Permissions,
+                                     &PermissionsLiteralLoc);
+  }
+
+  std::string OwnedPermissions = Permissions.str();
+
+  auto DuplicateSymbolCallback = [&Attr, &S,
+                                  Permissions](char DuplicateSymbol) {
+    S.Diag(Attr.getLoc(), diag::warn_cheriot_cap_permissions_duplicate_sym)
+        << Attr.getAttrName() << "'" + std::string({DuplicateSymbol}) + "'"
+        << Permissions;
+  };
+
+  auto ExtraneousSymbolCallback = [&Attr, &S,
+                                   Permissions](StringRef ExtraneousSymbols) {
+    S.Diag(Attr.getLoc(),
+           diag::err_cheriot_malformed_cap_permissions_unknown_sym)
+        << Attr.getAttrName() << ExtraneousSymbols << Permissions;
+  };
+
+  auto FailedSemanticCheckCallback = [&Attr, &S,
+                                      Permissions](StringRef Reason) {
+    S.Diag(Attr.getLoc(),
+           diag::err_cheriot_malformed_cap_permissions_invalid_dep)
+        << Attr.getAttrName() << Reason << Permissions;
+  };
+
+  if (!llvm::CHERIoTGlobalCapabilityImportAttr::checkPermissions(
+          OwnedPermissions, DuplicateSymbolCallback, ExtraneousSymbolCallback,
+          FailedSemanticCheckCallback))
+    return;
+
+  D->addAttr(::new (S.Context) CHERIOTSharedObjectAttr(
+      S.Context, Attr, ObjectName, OwnedPermissions));
 }
 
 static void handleCHERICompartmentName(Sema &S, Decl *D, const ParsedAttr &Attr,
@@ -7349,6 +7473,12 @@ ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D, const ParsedAttr &AL,
     break;
   case ParsedAttr::AT_CHERICompartmentName:
     handleCHERICompartmentName(S, D, AL, DAL);
+    break;
+  case ParsedAttr::AT_CHERIOTMMIODevice:
+    handleCHERIOTMMIODevice(S, D, AL, DAL);
+    break;
+  case ParsedAttr::AT_CHERIOTSharedObject:
+    handleCHERIOTSharedObject(S, D, AL, DAL);
     break;
   case ParsedAttr::AT_InterruptState:
     handleInterruptState(S, D, AL);

@@ -1400,6 +1400,10 @@ def NotPureCapABI
 def FeatureVendorXCheriot
     : RISCVExtension<1, 0, "Implements XCheriot extension">;
 
+def HasCheriot
+    : Predicate<"Subtarget->hasVendorXCheriot()">,
+      AssemblerPredicate<(all_of FeatureVendorXCheriot), "CHERIoT Extension">;
+
 def FeatureRelax
     : SubtargetFeature<"relax", "EnableLinkerRelax", "true",
                        "Enable Linker relaxation.">;

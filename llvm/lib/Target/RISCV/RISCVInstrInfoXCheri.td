@@ -389,6 +389,17 @@ def PseudoCGetAddr : Pseudo<(outs GPR:$rd), (ins GPCR:$cs1), [],
                             "cgetaddr", "$rd, $cs1">;
 }
 
+let Predicates = [HasCheriot] in {
+  def : InstAlias<"ct.cgetperm $rd, $rs1", (CGetPerm GPR:$rd, GPCR:$rs1)>;
+  def : InstAlias<"ct.cgettype $rd, $rs1", (CGetType GPR:$rd, GPCR:$rs1)>;
+  def : InstAlias<"ct.cgetbase $rd, $rs1", (CGetBase GPR:$rd, GPCR:$rs1)>;
+  def : InstAlias<"ct.cgetlen $rd, $rs1", (CGetLen GPR:$rd, GPCR:$rs1)>;
+  def : InstAlias<"ct.cgettag $rd, $rs1", (CGetTag GPR:$rd, GPCR:$rs1)>;
+  def : InstAlias<"ct.cgethigh $rd, $rs1", (CGetHigh GPR:$rd, GPCR:$rs1)>;
+  def : InstAlias<"ct.cgettop $rd, $rs1", (CGetTop GPR:$rd, GPCR:$rs1)>;
+  def : InstAlias<"ct.cgetaddr $rd, $rs1", (PseudoCGetAddr GPR:$rd, GPCR:$rs1)>;
+}
+
 //===----------------------------------------------------------------------===//
 // Capability-Modification Instructions
 //===----------------------------------------------------------------------===//
@@ -434,6 +445,43 @@ def : InstAlias<"csetboundsimm $cd, $cs1, $imm",
                 (CSetBoundsImm GPCR:$cd, GPCR:$cs1, uimm12:$imm), 0>;
 }
 
+let Predicates = [HasCheriot] in {
+  def : InstAlias<"ct.cseal $rd, $rs1, $rs2", (CSeal GPCR:$rd, GPCR:$rs1,
+                                                  GPCR:$rs2)>;
+  def : InstAlias<"ct.cunseal $rd, $rs1, $rs2", (CUnseal GPCR:$rd, GPCR:$rs1,
+                                                    GPCR:$rs2)>;
+  def : InstAlias<"ct.candperm $rd, $rs1, $rs2", (CAndPerm GPCR:$rd, GPCR:$rs1,
+                                                     GPR:$rs2)>;
+  def : InstAlias<"ct.csetaddr $rd, $rs1, $rs2", (CSetAddr GPCR:$rd, GPCR:$rs1,
+                                                     GPR:$rs2)>;
+  def : InstAlias<"ct.csethigh $rd, $rs1, $rs2", (CSetHigh GPCR:$rd, GPCR:$rs1,
+                                                     GPR:$rs2)>;
+  def : InstAlias<"ct.cincaddr $rd, $rs1, $rs2",
+                  (CIncOffset GPCR:$rd, GPCR:$rs1, GPR:$rs2), 0>;
+  def : InstAlias<"ct.cincoffset $rd, $rs1, $rs2", (CIncOffset GPCR:$rd,
+                                                       GPCR:$rs1, GPR:$rs2)>;
+  def : InstAlias<"ct.cincaddr $rd, $rs1, $rs2",
+                  (CIncOffsetImm GPCR:$rd, GPCR:$rs1, simm12:$rs2), 0>;
+  def : InstAlias<"ct.cincoffset $rd, $rs1, $rs2", (CIncOffsetImm GPCR:$rd,
+                                                       GPCR:$rs1, simm12:$rs2)>;
+  def : InstAlias<"ct.csetbounds $rd, $rs1, $rs2", (CSetBounds GPCR:$rd,
+                                                       GPCR:$rs1, GPR:$rs2)>;
+  def : InstAlias<"ct.csetboundsexact $rd, $rs1, $rs2",
+                  (CSetBoundsExact GPCR:$rd, GPCR:$rs1, GPR:$rs2)>;
+  def : InstAlias<"ct.csetbounds $rd, $rs1, $rs2", (CSetBoundsImm GPCR:$rd,
+                                                       GPCR:$rs1, uimm12:$rs2)>;
+  def : InstAlias<"ct.csetboundsrounddown $rd, $rs1, $rs2",
+                  (CSetBoundsRoundDown GPCR:$rd, GPCR:$rs1, GPR:$rs2)>;
+  def : InstAlias<"ct.ccleartag $rd, $rs1", (CClearTag GPCR:$rd, GPCR:$rs1)>;
+
+  def : InstAlias<"ct.cincaddrimm $cd, $cs1, $imm",
+                  (CIncOffsetImm GPCR:$cd, GPCR:$cs1, simm12:$imm), 0>;
+  def : InstAlias<"ct.cincoffsetimm $cd, $cs1, $imm",
+                  (CIncOffsetImm GPCR:$cd, GPCR:$cs1, simm12:$imm), 0>;
+  def : InstAlias<"ct.csetboundsimm $cd, $cs1, $imm",
+                  (CSetBoundsImm GPCR:$cd, GPCR:$cs1, uimm12:$imm), 0>;
+}
+
 //===----------------------------------------------------------------------===//
 // Pointer-Arithmetic Instructions
 //===----------------------------------------------------------------------===//
@@ -450,6 +498,12 @@ def PseudoCSub : Pseudo<(outs GPR:$rd), (ins GPCR:$cs1, GPCR:$cs2), [],
 let isMoveReg = 1, isReMaterializable = 1, isAsCheapAsAMove = 1,
     defsCanBeSealed = 1 in
 def CMove       : Cheri_r<0xa, "cmove", GPCR>;
+}
+
+let Predicates = [HasCheriot] in {
+  def : InstAlias<"ct.cmove $rd, $rs1", (CMove GPCR:$rd, GPCR:$rs1)>;
+  def : InstAlias<"ct.csub $rd, $rs1, $rs2", (PseudoCSub GPR:$rd, GPCR:$rs1,
+                                                 GPCR:$rs2)>;
 }
 
 //===----------------------------------------------------------------------===//
@@ -490,6 +544,15 @@ def CSEQX       : Cheri_rr<0x21, "csetequalexact", GPR, GPCR, GPCR>;
 def : InstAlias<"cseqx $rd, $cs1, $cs2", (CSEQX GPR:$rd, GPCR:$cs1, GPCR:$cs2)>;
 }
 
+let Predicates = [HasCheriot] in {
+  def : InstAlias<"ct.ctestsubset $rd, $rs1, $rs2",
+                  (CTestSubset GPR:$rd, GPCRC0IsDDC:$rs1, GPCR:$rs2)>;
+  def : InstAlias<"ct.csetequalexact $rd, $rs1, $rs2",
+                  (CSEQX GPR:$rd, GPCR:$rs1, GPCR:$rs2), 0>;
+  def : InstAlias<"ct.cseqx $rd, $cs1, $cs2",
+                  (CSEQX GPR:$rd, GPCR:$cs1, GPCR:$cs2), 2>;
+}
+
 //===----------------------------------------------------------------------===//
 // Special Capabilty Register Access Instructions
 //===----------------------------------------------------------------------===//
@@ -504,6 +567,15 @@ def : InstAlias<"cspecialr $cd, $scr",
                 (CSpecialRW GPCR:$cd, special_capreg:$scr,           C0)>;
 def : InstAlias<"cspecialw $scr, $cs",
                 (CSpecialRW       C0, special_capreg:$scr, GPCRNoC0:$cs)>;
+}
+
+let Predicates = [HasCheriot] in {
+  def : InstAlias<"ct.cspecialrw $rd, $imm5, $rs1",
+                  (CSpecialRW GPCR:$rd, special_capreg:$imm5, GPCR:$rs1)>;
+  def : InstAlias<"ct.cspecialr $cd, $scr",
+                  (CSpecialRW GPCR:$cd, special_capreg:$scr, C0), 2>;
+  def : InstAlias<"ct.cspecialw $scr, $cs",
+                  (CSpecialRW C0, special_capreg:$scr, GPCRNoC0:$cs), 2>;
 }
 
 //===----------------------------------------------------------------------===//
@@ -525,6 +597,16 @@ def CRAM : Cheri_r<0x9, "crepresentablealignmentmask", GPR, GPR>;
 
 def : InstAlias<"crrl $rd, $rs1", (CRRL GPR:$rd, GPR:$rs1)>;
 def : InstAlias<"cram $rd, $rs1", (CRAM GPR:$rd, GPR:$rs1)>;
+}
+
+let Predicates = [HasCheriot] in {
+  def : InstAlias<"ct.croundrepresentablelength $rd, $rs1", (CRRL GPR:$rd,
+                                                                GPR:$rs1)>;
+  def : InstAlias<"ct.crepresentablealignmentmask $rd, $rs1", (CRAM GPR:$rd,
+                                                                  GPR:$rs1)>;
+
+  def : InstAlias<"ct.crrl $rd, $rs1", (CRRL GPR:$rd, GPR:$rs1), 2>;
+  def : InstAlias<"ct.cram $rd, $rs1", (CRAM GPR:$rd, GPR:$rs1), 2>;
 }
 
 //===----------------------------------------------------------------------===//
@@ -786,6 +868,36 @@ def : InstAlias<"cjalr $rs, $offset",      (CJALR       C1, GPCR:$rs, simm12:$of
 def : InstAlias<"cjalr $rd, $rs, $offset", (CJALR GPCR:$rd, GPCR:$rs, simm12:$offset), 0>;
 } // Predicates = [HasCheri, IsCapMode]
 
+let Predicates = [HasCheriot] in {
+  def : InstAlias<"ct.auipcc $rd, $imm20", (AUIPCC GPCR:$rd,
+                                               uimm20_auipc:$imm20)>;
+  def : InstAlias<"ct.auicgp $rd, $imm20", (AUICGP GPCR:$rd,
+                                               uimm20_auigp:$imm20)>;
+  def : InstAlias<"ct.cjal $rd, $imm20", (CJAL GPCR:$rd,
+                                             simm21_lsb0_jal:$imm20)>;
+  def : InstAlias<"ct.cjalr $rd, ${imm12}(${rs1})", (CJALR GPCR:$rd, GPCR:$rs1,
+                                                        simm12:$imm12)>;
+
+  def : InstAlias<"ct.cjal $offset", (CJAL C1, simm21_lsb0_jal:$offset), 2>;
+  def : InstAlias<"ct.cj $offset", (CJAL C0, simm21_lsb0_jal:$offset), 0>;
+
+  def : InstAlias<"ct.cjr $rs", (CJALR C0, GPCR:$rs, 0), 8>;
+  def : InstAlias<"ct.cjr ${offset}(${rs})",
+                  (CJALR C0, GPCR:$rs, simm12:$offset), 5>;
+  def : InstAlias<"ct.cjalr $rs", (CJALR C1, GPCR:$rs, 0), 8>;
+  def : InstAlias<"ct.cjalr ${offset}(${rs})",
+                  (CJALR C1, GPCR:$rs, simm12:$offset), 5>;
+  def : InstAlias<"ct.cjalr $rd, $rs", (CJALR GPCR:$rd, GPCR:$rs, 0), 7>;
+  def : InstAlias<"ct.cret", (CJALR C0, C1, 0), 9>;
+
+  def : InstAlias<"ct.cjr $rs, $offset", (CJALR C0, GPCR:$rs, simm12:$offset),
+                  0>;
+  def : InstAlias<"ct.cjalr $rs, $offset", (CJALR C1, GPCR:$rs, simm12:$offset),
+                  0>;
+  def : InstAlias<"ct.cjalr $rd, $rs, $offset",
+                  (CJALR GPCR:$rd, GPCR:$rs, simm12:$offset), 0>;
+}
+
 // Expands to an instruction alias with and without a c prefix for loads/stores
 multiclass CPrefixedInstAlias<string Asm, dag Result> {
   def : InstAlias<"c" # Asm, Result, 0>;
@@ -804,6 +916,26 @@ defm CSB : CheriStore_ri<0b000, "sb">;
 defm CSH : CheriStore_ri<0b001, "sh">;
 defm CSW : CheriStore_ri<0b010, "sw">;
 } // Predicates = [HasCheri, IsCapMode]
+
+let Predicates = [HasCheriot] in {
+  def : InstAlias<"ct.clb $rd, ${imm12}(${rs1})", (CLB GPR:$rd, GPCR:$rs1,
+                                                      simm12:$imm12)>;
+  def : InstAlias<"ct.clh $rd, ${imm12}(${rs1})", (CLH GPR:$rd, GPCR:$rs1,
+                                                      simm12:$imm12)>;
+  def : InstAlias<"ct.clw $rd, ${imm12}(${rs1})", (CLW GPR:$rd, GPCR:$rs1,
+                                                      simm12:$imm12)>;
+  def : InstAlias<"ct.clbu $rd, ${imm12}(${rs1})", (CLBU GPR:$rd, GPCR:$rs1,
+                                                       simm12:$imm12)>;
+  def : InstAlias<"ct.clhu $rd, ${imm12}(${rs1})", (CLHU GPR:$rd, GPCR:$rs1,
+                                                       simm12:$imm12)>;
+
+  def : InstAlias<"ct.csb $rs2, ${imm12}(${rs1})", (CSB GPR:$rs2, GPCR:$rs1,
+                                                       simm12:$imm12)>;
+  def : InstAlias<"ct.csh $rs2, ${imm12}(${rs1})", (CSH GPR:$rs2, GPCR:$rs1,
+                                                       simm12:$imm12)>;
+  def : InstAlias<"ct.csw $rs2, ${imm12}(${rs1})", (CSW GPR:$rs2, GPCR:$rs1,
+                                                       simm12:$imm12)>;
+}
 
 let Predicates = [HasCheri, IsRV64, IsCapMode] in {
 defm CLWU   : CheriLoad_ri<0b110, "lwu">;
@@ -832,6 +964,13 @@ defm : CPrefixedInstAlias<"lc $rd, (${rs1})",
                           (CLC_64  GPCR:$rd, GPCR:$rs1, 0)>;
 defm : CPrefixedInstAlias<"sc $rs2, (${rs1})",
                           (CSC_64  GPCR:$rs2, GPCR:$rs1, 0)>;
+}
+
+let Predicates = [HasCheriot] in {
+  def : InstAlias<"ct.clc $rd, ${imm12}(${rs1})", (CLC_64 GPCR:$rd, GPCR:$rs1,
+                                                      simm12:$imm12)>;
+  def : InstAlias<"ct.csc $rd, ${imm12}(${rs1})", (CSC_64 GPCR:$rd, GPCR:$rs1,
+                                                      simm12:$imm12)>;
 }
 
 let Predicates = [HasCheri, IsRV64, IsCapMode] in {
@@ -1884,6 +2023,12 @@ def PseudoCCALL : Pseudo<(outs), (ins cap_call_symbol:$func), []> {
   let AsmString = "ccall\t$func";
 }
 
+let Predicates = [HasCheriot] in {
+  def : InstAlias<"ct.ccall $rd, $func", (PseudoCCALLReg GPCR:$rd,
+                                             cap_call_symbol:$func)>;
+  def : InstAlias<"ct.ccall $func", (PseudoCCALL cap_call_symbol:$func)>;
+}
+
 // The PseudoCompartmentCall of expands to AUIPCC, CLC_64, C_CJALR (10 bytes),
 // but the setup to obtain the callee capability from an import table can
 // require up to 8 additional bytes.
@@ -1932,6 +2077,10 @@ def PseudoCTAIL : Pseudo<(outs), (ins cap_call_symbol:$dst), []> {
   let AsmString = "ctail\t$dst";
 }
 
+let Predicates = [HasCheriot] in def : InstAlias<
+                                           "ct.ctail $dst",
+                                           (PseudoCTAIL cap_call_symbol:$dst)>;
+
 let Predicates = [HasCheri, IsCapMode, IsPureCapABI],
     isCall = 1, isTerminator = 1, isReturn = 1, isBarrier = 1, Uses = [C2] in
 def PseudoCTAILIndirect : Pseudo<(outs), (ins GPCRNoC0C1:$rs1),
@@ -1952,6 +2101,11 @@ def PseudoCJump : Pseudo<(outs GPCR:$rd),
                          (ins pseudo_cap_jump_symbol:$target), []> {
   let AsmString = "cjump\t$target, $rd";
 }
+
+let Predicates = [HasCheriot] in def : InstAlias<
+                                           "ct.cjump $target, $rd",
+                                           (PseudoCJump GPCR:$rd,
+                                               pseudo_cap_jump_symbol:$target)>;
 
 defm : CheriLdPat<sextloadi8, CLB>, Requires<[HasCheri, IsCapMode]>;
 defm : CheriLdPat<extloadi8, CLB>, Requires<[HasCheri, IsCapMode]>;

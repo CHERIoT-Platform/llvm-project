@@ -689,88 +689,73 @@ void RISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
   MachineFrameInfo &MFI = MF->getFrameInfo();
 
   unsigned Opcode;
-  bool IsScalableVector = true;
   if (RISCVABI::isCheriPureCapABI(STI.getTargetABI())) {
     if (RISCV::GPRRegClass.hasSubClassEq(RC)) {
       Opcode = TRI->getRegSizeInBits(RISCV::GPRRegClass) == 32 ? RISCV::CSW
                                                                : RISCV::CSD;
-      IsScalableVector = false;
     } else if (RISCV::GPCRRegClass.hasSubClassEq(RC)) {
       Opcode = TRI->getRegSizeInBits(RISCV::GPCRRegClass) == 64
                    ? RISCV::CSC_64
                    : RISCV::CSC_128;
-      IsScalableVector = false;
     } else if (RISCV::FPR32RegClass.hasSubClassEq(RC)) {
       Opcode = RISCV::CFSW;
-      IsScalableVector = false;
     } else if (RISCV::FPR64RegClass.hasSubClassEq(RC)) {
       Opcode = RISCV::CFSD;
-      IsScalableVector = false;
     } else {
       llvm_unreachable("Can't store this register to stack slot");
     }
-  } else {
-    if (RISCV::GPRRegClass.hasSubClassEq(RC)) {
-      Opcode = TRI->getRegSizeInBits(RISCV::GPRRegClass) == 32 ?
-               RISCV::SW : RISCV::SD;
-      IsScalableVector = false;
-    } else if (RISCV::GPCRRegClass.hasSubClassEq(RC)) {
+  } else if (RISCV::GPRRegClass.hasSubClassEq(RC)) {
+    Opcode = TRI->getRegSizeInBits(RISCV::GPRRegClass) == 32 ?
+              RISCV::SW : RISCV::SD;
+  } else if (RISCV::GPCRRegClass.hasSubClassEq(RC)) {
       Opcode = TRI->getRegSizeInBits(RISCV::GPCRRegClass) == 64 ? RISCV::SC_64
                                                                 : RISCV::SC_128;
-      IsScalableVector = false;
-    } else if (RISCV::GPRF16RegClass.hasSubClassEq(RC)) {
+  } else if (RISCV::GPRF16RegClass.hasSubClassEq(RC)) {
     Opcode = RISCV::SH_INX;
-    IsScalableVector = false;
   } else if (RISCV::GPRF32RegClass.hasSubClassEq(RC)) {
     Opcode = RISCV::SW_INX;
-    IsScalableVector = false;
   } else if (RISCV::GPRPairRegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::PseudoRV32ZdinxSD;
-      IsScalableVector = false;
+    Opcode = RISCV::PseudoRV32ZdinxSD;
     } else if (RISCV::FPR16RegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::FSH;
-      IsScalableVector = false;
+    Opcode = RISCV::FSH;
     } else if (RISCV::FPR32RegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::FSW;
-      IsScalableVector = false;
+    Opcode = RISCV::FSW;
     } else if (RISCV::FPR64RegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::FSD;
-      IsScalableVector = false;
+    Opcode = RISCV::FSD;
     } else if (RISCV::VRRegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::VS1R_V;
-    } else if (RISCV::VRM2RegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::VS2R_V;
-    } else if (RISCV::VRM4RegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::VS4R_V;
-    } else if (RISCV::VRM8RegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::VS8R_V;
-    } else if (RISCV::VRN2M1RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVSPILL2_M1;
-    else if (RISCV::VRN2M2RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVSPILL2_M2;
-    else if (RISCV::VRN2M4RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVSPILL2_M4;
-    else if (RISCV::VRN3M1RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVSPILL3_M1;
-    else if (RISCV::VRN3M2RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVSPILL3_M2;
-    else if (RISCV::VRN4M1RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVSPILL4_M1;
-    else if (RISCV::VRN4M2RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVSPILL4_M2;
-    else if (RISCV::VRN5M1RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVSPILL5_M1;
-    else if (RISCV::VRN6M1RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVSPILL6_M1;
-    else if (RISCV::VRN7M1RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVSPILL7_M1;
-    else if (RISCV::VRN8M1RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVSPILL8_M1;
-    else
-      llvm_unreachable("Can't store this register to stack slot");
-  }
+    Opcode = RISCV::VS1R_V;
+  } else if (RISCV::VRM2RegClass.hasSubClassEq(RC)) {
+    Opcode = RISCV::VS2R_V;
+  } else if (RISCV::VRM4RegClass.hasSubClassEq(RC)) {
+    Opcode = RISCV::VS4R_V;
+  } else if (RISCV::VRM8RegClass.hasSubClassEq(RC)) {
+    Opcode = RISCV::VS8R_V;
+  } else if (RISCV::VRN2M1RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVSPILL2_M1;
+  else if (RISCV::VRN2M2RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVSPILL2_M2;
+  else if (RISCV::VRN2M4RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVSPILL2_M4;
+  else if (RISCV::VRN3M1RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVSPILL3_M1;
+  else if (RISCV::VRN3M2RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVSPILL3_M2;
+  else if (RISCV::VRN4M1RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVSPILL4_M1;
+  else if (RISCV::VRN4M2RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVSPILL4_M2;
+  else if (RISCV::VRN5M1RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVSPILL5_M1;
+  else if (RISCV::VRN6M1RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVSPILL6_M1;
+  else if (RISCV::VRN7M1RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVSPILL7_M1;
+  else if (RISCV::VRN8M1RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVSPILL8_M1;
+  else
+    llvm_unreachable("Can't store this register to stack slot");
 
-  if (IsScalableVector) {
+  if (RISCVRegisterInfo::isRVVRegClass(RC)) {
     MachineMemOperand *MMO = MF->getMachineMemOperand(
         MachinePointerInfo::getFixedStack(*MF, FI), MachineMemOperand::MOStore,
         TypeSize::getScalable(MFI.getObjectSize(FI)), MFI.getObjectAlign(FI));
@@ -806,88 +791,73 @@ void RISCVInstrInfo::loadRegFromStackSlot(
       Flags & MachineInstr::FrameDestroy ? MBB.findDebugLoc(I) : DebugLoc();
 
   unsigned Opcode;
-  bool IsScalableVector = true;
   if (RISCVABI::isCheriPureCapABI(STI.getTargetABI())) {
     if (RISCV::GPRRegClass.hasSubClassEq(RC)) {
       Opcode = TRI->getRegSizeInBits(RISCV::GPRRegClass) == 32 ? RISCV::CLW
                                                                : RISCV::CLD;
-      IsScalableVector = false;
     } else if (RISCV::GPCRRegClass.hasSubClassEq(RC)) {
       Opcode = TRI->getRegSizeInBits(RISCV::GPCRRegClass) == 64
                    ? RISCV::CLC_64
                    : RISCV::CLC_128;
-      IsScalableVector = false;
     } else if (RISCV::FPR32RegClass.hasSubClassEq(RC)) {
       Opcode = RISCV::CFLW;
-      IsScalableVector = false;
     } else if (RISCV::FPR64RegClass.hasSubClassEq(RC)) {
       Opcode = RISCV::CFLD;
-      IsScalableVector = false;
     } else {
       llvm_unreachable("Can't load this register from stack slot");
     }
-  } else {
-    if (RISCV::GPRRegClass.hasSubClassEq(RC)) {
-      Opcode = TRI->getRegSizeInBits(RISCV::GPRRegClass) == 32 ?
-               RISCV::LW : RISCV::LD;
-      IsScalableVector = false;
-    } else if (RISCV::GPCRRegClass.hasSubClassEq(RC)) {
-      Opcode = TRI->getRegSizeInBits(RISCV::GPCRRegClass) == 64 ? RISCV::LC_64
-                                                                : RISCV::LC_128;
-      IsScalableVector = false;
-    } else if (RISCV::GPRF16RegClass.hasSubClassEq(RC)) {
+  } else if (RISCV::GPRRegClass.hasSubClassEq(RC)) {
+    Opcode = TRI->getRegSizeInBits(RISCV::GPRRegClass) == 32 ?
+              RISCV::LW : RISCV::LD;
+  } else if (RISCV::GPCRRegClass.hasSubClassEq(RC)) {
+    Opcode = TRI->getRegSizeInBits(RISCV::GPCRRegClass) == 64 ? RISCV::LC_64
+                                                              : RISCV::LC_128;
+  } else if (RISCV::GPRF16RegClass.hasSubClassEq(RC)) {
     Opcode = RISCV::LH_INX;
-    IsScalableVector = false;
   } else if (RISCV::GPRF32RegClass.hasSubClassEq(RC)) {
     Opcode = RISCV::LW_INX;
-    IsScalableVector = false;
   } else if (RISCV::GPRPairRegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::PseudoRV32ZdinxLD;
-      IsScalableVector = false;
-    } else if (RISCV::FPR16RegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::FLH;
-      IsScalableVector = false;
-    } else if (RISCV::FPR32RegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::FLW;
-      IsScalableVector = false;
-    } else if (RISCV::FPR64RegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::FLD;
-      IsScalableVector = false;
-    } else if (RISCV::VRRegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::VL1RE8_V;
-    } else if (RISCV::VRM2RegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::VL2RE8_V;
-    } else if (RISCV::VRM4RegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::VL4RE8_V;
-    } else if (RISCV::VRM8RegClass.hasSubClassEq(RC)) {
-      Opcode = RISCV::VL8RE8_V;
-    } else if (RISCV::VRN2M1RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVRELOAD2_M1;
-    else if (RISCV::VRN2M2RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVRELOAD2_M2;
-    else if (RISCV::VRN2M4RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVRELOAD2_M4;
-    else if (RISCV::VRN3M1RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVRELOAD3_M1;
-    else if (RISCV::VRN3M2RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVRELOAD3_M2;
-    else if (RISCV::VRN4M1RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVRELOAD4_M1;
-    else if (RISCV::VRN4M2RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVRELOAD4_M2;
-    else if (RISCV::VRN5M1RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVRELOAD5_M1;
-    else if (RISCV::VRN6M1RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVRELOAD6_M1;
-    else if (RISCV::VRN7M1RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVRELOAD7_M1;
-    else if (RISCV::VRN8M1RegClass.hasSubClassEq(RC))
-      Opcode = RISCV::PseudoVRELOAD8_M1;
-    else
-      llvm_unreachable("Can't load this register from stack slot");
-  }
+    Opcode = RISCV::PseudoRV32ZdinxLD;
+  } else if (RISCV::FPR16RegClass.hasSubClassEq(RC)) {
+    Opcode = RISCV::FLH;
+  } else if (RISCV::FPR32RegClass.hasSubClassEq(RC)) {
+    Opcode = RISCV::FLW;
+  } else if (RISCV::FPR64RegClass.hasSubClassEq(RC)) {
+    Opcode = RISCV::FLD;
+  } else if (RISCV::VRRegClass.hasSubClassEq(RC)) {
+    Opcode = RISCV::VL1RE8_V;
+  } else if (RISCV::VRM2RegClass.hasSubClassEq(RC)) {
+    Opcode = RISCV::VL2RE8_V;
+  } else if (RISCV::VRM4RegClass.hasSubClassEq(RC)) {
+    Opcode = RISCV::VL4RE8_V;
+  } else if (RISCV::VRM8RegClass.hasSubClassEq(RC)) {
+    Opcode = RISCV::VL8RE8_V;
+  } else if (RISCV::VRN2M1RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVRELOAD2_M1;
+  else if (RISCV::VRN2M2RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVRELOAD2_M2;
+  else if (RISCV::VRN2M4RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVRELOAD2_M4;
+  else if (RISCV::VRN3M1RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVRELOAD3_M1;
+  else if (RISCV::VRN3M2RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVRELOAD3_M2;
+  else if (RISCV::VRN4M1RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVRELOAD4_M1;
+  else if (RISCV::VRN4M2RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVRELOAD4_M2;
+  else if (RISCV::VRN5M1RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVRELOAD5_M1;
+  else if (RISCV::VRN6M1RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVRELOAD6_M1;
+  else if (RISCV::VRN7M1RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVRELOAD7_M1;
+  else if (RISCV::VRN8M1RegClass.hasSubClassEq(RC))
+    Opcode = RISCV::PseudoVRELOAD8_M1;
+  else
+    llvm_unreachable("Can't load this register from stack slot");
 
-  if (IsScalableVector) {
+  if (RISCVRegisterInfo::isRVVRegClass(RC)) {
     MachineMemOperand *MMO = MF->getMachineMemOperand(
         MachinePointerInfo::getFixedStack(*MF, FI), MachineMemOperand::MOLoad,
         TypeSize::getScalable(MFI.getObjectSize(FI)), MFI.getObjectAlign(FI));

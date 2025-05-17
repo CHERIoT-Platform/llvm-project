@@ -7557,6 +7557,7 @@ SDValue SelectionDAG::getNode(unsigned Opcode, const SDLoc &DL, EVT VT,
     assert(llvm::to_underlying(NoFPClass) <=
                BitmaskEnumDetail::Mask<FPClassTest>() &&
            "FPClassTest value too large");
+    (void)NoFPClass;
     break;
   }
   case ISD::AssertSext:

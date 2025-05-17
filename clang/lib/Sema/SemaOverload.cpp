@@ -7873,6 +7873,8 @@ static void AddMethodTemplateCandidateImmediately(
           MethodTmpl, ExplicitTemplateArgs, Args, Specialization, Info,
           PartialOverloading, /*AggregateDeductionCandidate=*/false,
           /*PartialOrdering=*/false, ObjectType, ObjectClassification,
+          CandidateSet.getKind() ==
+              clang::OverloadCandidateSet::CSK_AddressOfOverloadSet,
           [&](ArrayRef<QualType> ParamTypes) {
             return S.CheckNonDependentConversions(
                 MethodTmpl, ParamTypes, Args, CandidateSet, Conversions,
@@ -7987,6 +7989,8 @@ static void AddTemplateOverloadCandidateImmediately(
           /*PartialOrdering=*/false,
           /*ObjectType=*/QualType(),
           /*ObjectClassification=*/Expr::Classification(),
+          CandidateSet.getKind() ==
+              OverloadCandidateSet::CSK_AddressOfOverloadSet,
           [&](ArrayRef<QualType> ParamTypes) {
             return S.CheckNonDependentConversions(
                 FunctionTemplate, ParamTypes, Args, CandidateSet, Conversions,

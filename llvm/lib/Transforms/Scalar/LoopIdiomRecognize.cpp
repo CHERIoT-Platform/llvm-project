@@ -1759,6 +1759,7 @@ bool LoopIdiomRecognize::recognizeAndInsertStrLen() {
   }
 
   IRBuilder<> Builder(Preheader->getTerminator());
+  Builder.SetCurrentDebugLocation(CurLoop->getStartLoc());
   SCEVExpander Expander(*SE, Preheader->getModule()->getDataLayout(),
                         "strlen_idiom");
   Value *MaterialzedBase = Expander.expandCodeFor(

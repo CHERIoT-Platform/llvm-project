@@ -2914,11 +2914,7 @@ TreePatternNodePtr TreePattern::ParseTreePattern(const Init *TheInit,
     // TreePatternNode of its own.  For example:
     ///   (foo GPR, imm) -> (foo GPR, (imm))
     if (R->isSubClassOf("SDNode") || R->isSubClassOf("PatFrags"))
-      return ParseTreePattern(
-          DagInit::get(
-              DI, nullptr,
-              std::vector<std::pair<const Init *, const StringInit *>>()),
-          OpName);
+      return ParseTreePattern(DagInit::get(DI, {}), OpName);
 
     // Input argument?
     TreePatternNodePtr Res = makeIntrusiveRefCnt<TreePatternNode>(DI, 1);
@@ -3451,10 +3447,8 @@ void CodeGenDAGPatterns::ParseDefaultOperands() {
 
     // Clone the DefaultInfo dag node, changing the operator from 'ops' to
     // SomeSDnode so that we can parse this.
-    std::vector<std::pair<const Init *, const StringInit *>> Ops;
-    for (unsigned op = 0, e = DefaultInfo->getNumArgs(); op != e; ++op)
-      Ops.emplace_back(DefaultInfo->getArg(op), DefaultInfo->getArgName(op));
-    const DagInit *DI = DagInit::get(SomeSDNode, nullptr, Ops);
+    const DagInit *DI = DagInit::get(SomeSDNode, DefaultInfo->getArgs(),
+                                     DefaultInfo->getArgNames());
 
     // Create a TreePattern to parse this.
     TreePattern P(DefaultOps[i], DI, false, *this);

@@ -2953,7 +2953,7 @@ static SDValue LowerF128Load(SDValue Op, SelectionDAG &DAG)
   LoadSDNode *LdNode = cast<LoadSDNode>(Op.getNode());
   assert(LdNode->getOffset().isUndef() && "Unexpected node type");
 
-  Align Alignment = commonAlignment(LdNode->getOriginalAlign(), 8);
+  Align Alignment = commonAlignment(LdNode->getBaseAlign(), 8);
 
   SDValue Hi64 =
       DAG.getLoad(MVT::f64, dl, LdNode->getChain(), LdNode->getBasePtr(),
@@ -3019,7 +3019,7 @@ static SDValue LowerF128Store(SDValue Op, SelectionDAG &DAG) {
                                     StNode->getValue(),
                                     SubRegOdd);
 
-  Align Alignment = commonAlignment(StNode->getOriginalAlign(), 8);
+  Align Alignment = commonAlignment(StNode->getBaseAlign(), 8);
 
   SDValue OutChains[2];
   OutChains[0] =
@@ -3051,8 +3051,7 @@ static SDValue LowerSTORE(SDValue Op, SelectionDAG &DAG)
     SDValue Val = DAG.getNode(ISD::BITCAST, dl, MVT::v2i32, St->getValue());
     SDValue Chain = DAG.getStore(
         St->getChain(), dl, Val, St->getBasePtr(), St->getPointerInfo(),
-        St->getOriginalAlign(), St->getMemOperand()->getFlags(),
-        St->getAAInfo());
+        St->getBaseAlign(), St->getMemOperand()->getFlags(), St->getAAInfo());
     return Chain;
   }
 
@@ -3538,9 +3537,8 @@ void SparcTargetLowering::ReplaceNodeResults(SDNode *N,
     SDLoc dl(N);
     SDValue LoadRes = DAG.getExtLoad(
         Ld->getExtensionType(), dl, MVT::v2i32, Ld->getChain(),
-        Ld->getBasePtr(), Ld->getPointerInfo(), MVT::v2i32,
-        Ld->getOriginalAlign(), Ld->getMemOperand()->getFlags(),
-        Ld->getAAInfo());
+        Ld->getBasePtr(), Ld->getPointerInfo(), MVT::v2i32, Ld->getBaseAlign(),
+        Ld->getMemOperand()->getFlags(), Ld->getAAInfo());
 
     SDValue Res = DAG.getNode(ISD::BITCAST, dl, MVT::i64, LoadRes);
     Results.push_back(Res);

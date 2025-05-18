@@ -9980,7 +9980,6 @@ static void CheckC23ConstexprInitStringLiteral(const StringLiteral *SE,
       return;
     }
   }
-  return;
 }
 
 //===----------------------------------------------------------------------===//

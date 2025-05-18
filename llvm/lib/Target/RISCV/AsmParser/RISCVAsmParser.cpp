@@ -638,7 +638,7 @@ public:
 
     RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
-           (VK == RISCVMCExpr::VK_CALL || VK == RISCVMCExpr::VK_CALL_PLT);
+           VK == ELF::R_RISCV_CALL_PLT;
   }
 
   bool isCCallSymbol() const {
@@ -659,7 +659,7 @@ public:
 
     RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
-           VK == RISCVMCExpr::VK_CALL;
+           VK == ELF::R_RISCV_CALL_PLT;
   }
 
   bool isPseudoCJumpSymbol() const {
@@ -681,7 +681,7 @@ public:
 
     RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
-           VK == RISCVMCExpr::VK_TPREL_ADD;
+           VK == ELF::R_RISCV_TPREL_ADD;
   }
 
   bool isTLSDESCCallSymbol() const {
@@ -692,7 +692,7 @@ public:
 
     RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
-           VK == RISCVMCExpr::VK_TLSDESC_CALL;
+           VK == ELF::R_RISCV_TLSDESC_CALL;
   }
 
   bool isTPRelCIncOffsetSymbol() const {
@@ -989,8 +989,8 @@ public:
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
            (VK == RISCVMCExpr::VK_LO || VK == RISCVMCExpr::VK_PCREL_LO ||
             VK == RISCVMCExpr::VK_TPREL_LO ||
-            VK == RISCVMCExpr::VK_TLSDESC_LOAD_LO ||
-            VK == RISCVMCExpr::VK_TLSDESC_ADD_LO ||
+            VK == ELF::R_RISCV_TLSDESC_LOAD_LO12 ||
+            VK == ELF::R_RISCV_TLSDESC_ADD_LO12 ||
             VK == RISCVMCExpr::VK_CHERIOT_COMPARTMENT_LO_I ||
             VK == RISCVMCExpr::VK_CHERIOT_COMPARTMENT_LO_S);
   }
@@ -1035,7 +1035,7 @@ public:
 
     RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
-           (VK == RISCVMCExpr::VK_HI || VK == RISCVMCExpr::VK_TPREL_HI);
+           (VK == ELF::R_RISCV_HI20 || VK == ELF::R_RISCV_TPREL_HI20);
   }
 
   bool isUImm20AUIPC() const {
@@ -1048,10 +1048,9 @@ public:
 
     RISCVMCExpr::Specifier VK = RISCVMCExpr::VK_None;
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
-           (VK == RISCVMCExpr::VK_PCREL_HI || VK == RISCVMCExpr::VK_GOT_HI ||
-            VK == RISCVMCExpr::VK_TLS_GOT_HI ||
-            VK == RISCVMCExpr::VK_TLS_GD_HI ||
-            VK == RISCVMCExpr::VK_TLSDESC_HI ||
+           (VK == ELF::R_RISCV_PCREL_HI20 || VK == ELF::R_RISCV_GOT_HI20 ||
+            VK == ELF::R_RISCV_TLS_GOT_HI20 || VK == ELF::R_RISCV_TLS_GD_HI20 ||
+            VK == ELF::R_RISCV_TLSDESC_HI20 ||
             VK == RISCVMCExpr::VK_CHERIOT_COMPARTMENT_HI ||
             VK == RISCVMCExpr::VK_CAPTAB_PCREL_HI ||
             VK == RISCVMCExpr::VK_TLS_IE_CAPTAB_PCREL_HI ||
@@ -2449,7 +2448,7 @@ ParseStatus RISCVAsmParser::parseCallSymbol(OperandVector &Operands) {
   if (IsCap) {
     Kind = RISCVMCExpr::VK_CCALL;
   } else {
-    Kind = RISCVMCExpr::VK_CALL_PLT;
+    Kind = ELF::R_RISCV_CALL_PLT;
   }
 
   MCSymbol *Sym = getContext().getOrCreateSymbol(Identifier);
@@ -2472,7 +2471,7 @@ ParseStatus RISCVAsmParser::parsePseudoJumpSymbol(OperandVector &Operands) {
     return Error(S, "operand must be a valid jump target");
 
   RISCVMCExpr::Specifier Kind =
-      IsCap ? RISCVMCExpr::VK_CCALL : RISCVMCExpr::VK_CALL;
+      IsCap ? RISCVMCExpr::VK_CCALL : ELF::R_RISCV_CALL_PLT;
   Res = RISCVMCExpr::create(Res, Kind, getContext());
   Operands.push_back(RISCVOperand::createImm(Res, S, E, isRV64()));
   return ParseStatus::Success;
@@ -3720,7 +3719,7 @@ void RISCVAsmParser::emitLoadLocalAddress(MCInst &Inst, SMLoc IDLoc,
   //             ADDI rdest, rdest, %pcrel_lo(TmpLabel)
   MCRegister DestReg = Inst.getOperand(0).getReg();
   const MCExpr *Symbol = Inst.getOperand(1).getExpr();
-  emitAuipcInstPair(DestReg, DestReg, Symbol, RISCVMCExpr::VK_PCREL_HI,
+  emitAuipcInstPair(DestReg, DestReg, Symbol, ELF::R_RISCV_PCREL_HI20,
                     RISCV::ADDI, IDLoc, Out);
 }
 
@@ -3735,7 +3734,7 @@ void RISCVAsmParser::emitLoadGlobalAddress(MCInst &Inst, SMLoc IDLoc,
   MCRegister DestReg = Inst.getOperand(0).getReg();
   const MCExpr *Symbol = Inst.getOperand(1).getExpr();
   unsigned SecondOpcode = isRV64() ? RISCV::LD : RISCV::LW;
-  emitAuipcInstPair(DestReg, DestReg, Symbol, RISCVMCExpr::VK_GOT_HI,
+  emitAuipcInstPair(DestReg, DestReg, Symbol, ELF::R_RISCV_GOT_HI20,
                     SecondOpcode, IDLoc, Out);
 }
 
@@ -3765,7 +3764,7 @@ void RISCVAsmParser::emitLoadTLSIEAddress(MCInst &Inst, SMLoc IDLoc,
   MCRegister DestReg = Inst.getOperand(0).getReg();
   const MCExpr *Symbol = Inst.getOperand(1).getExpr();
   unsigned SecondOpcode = isRV64() ? RISCV::LD : RISCV::LW;
-  emitAuipcInstPair(DestReg, DestReg, Symbol, RISCVMCExpr::VK_TLS_GOT_HI,
+  emitAuipcInstPair(DestReg, DestReg, Symbol, ELF::R_RISCV_TLS_GOT_HI20,
                     SecondOpcode, IDLoc, Out);
 }
 
@@ -3779,7 +3778,7 @@ void RISCVAsmParser::emitLoadTLSGDAddress(MCInst &Inst, SMLoc IDLoc,
   //             ADDI rdest, rdest, %pcrel_lo(TmpLabel)
   MCRegister DestReg = Inst.getOperand(0).getReg();
   const MCExpr *Symbol = Inst.getOperand(1).getExpr();
-  emitAuipcInstPair(DestReg, DestReg, Symbol, RISCVMCExpr::VK_TLS_GD_HI,
+  emitAuipcInstPair(DestReg, DestReg, Symbol, ELF::R_RISCV_TLS_GD_HI20,
                     RISCV::ADDI, IDLoc, Out);
 }
 
@@ -3805,7 +3804,7 @@ void RISCVAsmParser::emitLoadStoreSymbol(MCInst &Inst, unsigned Opcode,
   }
 
   const MCExpr *Symbol = Inst.getOperand(SymbolOpIdx).getExpr();
-  emitAuipcInstPair(DestReg, TmpReg, Symbol, RISCVMCExpr::VK_PCREL_HI, Opcode,
+  emitAuipcInstPair(DestReg, TmpReg, Symbol, ELF::R_RISCV_PCREL_HI20, Opcode,
                     IDLoc, Out);
 }
 
@@ -4111,7 +4110,7 @@ void RISCVAsmParser::emitCapLoadLocalCap(MCInst &Inst, SMLoc IDLoc,
   MCOperand DestReg = Inst.getOperand(0);
   const MCExpr *Symbol = Inst.getOperand(1).getExpr();
   emitAuipccInstPair(DestReg, DestReg, Symbol,
-                     RISCVMCExpr::VK_PCREL_HI,
+                     ELF::R_RISCV_PCREL_HI20,
                      RISCV::CIncOffsetImm, IDLoc, Out);
 }
 

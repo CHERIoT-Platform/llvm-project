@@ -245,21 +245,64 @@ void RISCVTargetInfo::getTargetDefines(const LangOptions &Opts,
     }
 
     // Macros for use with the set and get permissions builtins.
-    Builder.defineMacro("__CHERI_CAP_PERMISSION_GLOBAL__", Twine(1<<0));
-    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_EXECUTE__",
-            Twine(1<<1));
-    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_LOAD__", Twine(1<<2));
-    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_STORE__", Twine(1<<3));
-    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_LOAD_CAPABILITY__",
-            Twine(1<<4));
-    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_STORE_CAPABILITY__",
-            Twine(1<<5));
-    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_STORE_LOCAL__",
-            Twine(1<<6));
-    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_SEAL__", Twine(1<<7));
-    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_INVOKE__", Twine(1<<8));
-    Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_UNSEAL__", Twine(1<<9));
-    Builder.defineMacro("__CHERI_CAP_PERMISSION_ACCESS_SYSTEM_REGISTERS__", Twine(1<<10));
+    if (getTriple().getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1) {
+      // Expose CHERI-compatible macros for permissions that overlap with other
+      // CHERI implementations.
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_GLOBAL__", Twine(1 << 0));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_STORE__",
+                          Twine(1 << 2));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_STORE_LOCAL__",
+                          Twine(1 << 4));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_LOAD__",
+                          Twine(1 << 5));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_ACCESS_SYSTEM_REGISTERS__",
+                          Twine(1 << 7));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_EXECUTE__",
+                          Twine(1 << 8));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_UNSEAL__",
+                          Twine(1 << 9));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_SEAL__",
+                          Twine(1 << 10));
+
+      // Expose the full set of permissions in the __CHERIOT prefix with
+      // concise names.
+      Builder.defineMacro("__CHERIOT_PERMISSION_GLOBAL__", Twine(1 << 0));
+      Builder.defineMacro("__CHERIOT_PERMISSION_LOAD_GLOBAL__", Twine(1 << 1));
+      Builder.defineMacro("__CHERIOT_PERMISSION_STORE__", Twine(1 << 2));
+      Builder.defineMacro("__CHERIOT_PERMISSION_LOAD_MUTABLE__", Twine(1 << 3));
+      Builder.defineMacro("__CHERIOT_PERMISSION_STORE_LOCAL__", Twine(1 << 4));
+      Builder.defineMacro("__CHERIOT_PERMISSION_LOAD__", Twine(1 << 5));
+      Builder.defineMacro("__CHERIOT_PERMISSION_LOAD_STORE_CAPABILITY__",
+                          Twine(1 << 6));
+      Builder.defineMacro("__CHERIOT_PERMISSION_ACCESS_SYSTEM_REGISTERS__",
+                          Twine(1 << 7));
+      Builder.defineMacro("__CHERIOT_PERMISSION_EXECUTE__", Twine(1 << 8));
+      Builder.defineMacro("__CHERIOT_PERMISSION_UNSEAL__", Twine(1 << 9));
+      Builder.defineMacro("__CHERIOT_PERMISSION_SEAL__", Twine(1 << 10));
+      Builder.defineMacro("__CHERIOT_PERMISSION_USER_PERM0", Twine(1 << 11));
+    } else {
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_GLOBAL__", Twine(1 << 0));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_EXECUTE__",
+                          Twine(1 << 1));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_LOAD__",
+                          Twine(1 << 2));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_STORE__",
+                          Twine(1 << 3));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_LOAD_CAPABILITY__",
+                          Twine(1 << 4));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_STORE_CAPABILITY__",
+                          Twine(1 << 5));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_STORE_LOCAL__",
+                          Twine(1 << 6));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_SEAL__",
+                          Twine(1 << 7));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_INVOKE__",
+                          Twine(1 << 8));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_PERMIT_UNSEAL__",
+                          Twine(1 << 9));
+      Builder.defineMacro("__CHERI_CAP_PERMISSION_ACCESS_SYSTEM_REGISTERS__",
+                          Twine(1 << 10));
+    }
 
     // Macros for CHERIoT in the default and bare-metal ABIs.
     if (ABI == "cheriot" || ABI == "cheriot-baremetal")

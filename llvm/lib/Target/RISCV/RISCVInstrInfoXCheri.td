@@ -1450,6 +1450,14 @@ def : PatGpcrGpcr<int_cheri_cap_type_copy, CCopyType>;
 def : PatGpcrGpcr<int_cheri_cap_conditional_seal, CCSeal>;
 def : PatGpcr<int_cheri_cap_seal_entry, CSealEntry, CLenVT>;
 
+def uimm12_lt512 : Operand<XLenVT>,
+                   ImmLeaf<XLenVT, "return isUInt<12>(Imm) && (Imm < 512);">;
+
+let Predicates =
+    [HasCheriot] in def : Pat<(int_cheri_cap_bounds_set_exact GPCR:$rs1,
+                                  uimm12_lt512:$imm12),
+                              (CSetBoundsImm GPCR:$rs1, uimm12_lt512:$imm12)>;
+
 // TODO: Make this rematerialisable like MIPS
 def : PatGpcrGpr<int_cheri_bounded_stack_cap, CSetBounds>;
 def : PatGpcrUimm12<int_cheri_bounded_stack_cap, CSetBoundsImm>;

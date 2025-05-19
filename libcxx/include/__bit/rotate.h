@@ -61,12 +61,12 @@ template <__libcpp_unsigned_integer _Tp>
 }
 
 #if __has_feature(capabilities)
-template<>
-_LIBCPP_HIDE_FROM_ABI constexpr inline unsigned __intcap rotl(unsigned __intcap __t, unsigned int __cnt) noexcept {
-    // __builtin_cheri_address_set cannot be used in a constant expression (yet), so we return a null-derived integer.
-    return std::rotl(static_cast<ptraddr_t>(__t), __cnt);
+template <>
+_LIBCPP_HIDE_FROM_ABI constexpr inline unsigned __intcap rotl(unsigned __intcap __t, int __cnt) noexcept {
+  // __builtin_cheri_address_set cannot be used in a constant expression (yet), so we return a null-derived integer.
+  return std::rotl(static_cast<ptraddr_t>(__t), __cnt);
 }
-#endif
+#  endif
 
 template <__libcpp_unsigned_integer _Tp>
 [[nodiscard]] _LIBCPP_HIDE_FROM_ABI constexpr _Tp rotr(_Tp __t, int __cnt) noexcept {

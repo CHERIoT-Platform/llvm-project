@@ -5136,7 +5136,7 @@ public:
     return getTrailingObjects<Expr *>(NumExprs);
   }
 
-  const ArrayRef<Expr *> getInitExprs() const {
+  ArrayRef<Expr *> getInitExprs() const {
     return getTrailingObjects<Expr *>(NumExprs);
   }
 
@@ -5144,7 +5144,7 @@ public:
     return getTrailingObjects<Expr *>(NumUserSpecifiedExprs);
   }
 
-  const ArrayRef<Expr *> getUserSpecifiedInitExprs() const {
+  ArrayRef<Expr *> getUserSpecifiedInitExprs() const {
     return getTrailingObjects<Expr *>(NumUserSpecifiedExprs);
   }
 

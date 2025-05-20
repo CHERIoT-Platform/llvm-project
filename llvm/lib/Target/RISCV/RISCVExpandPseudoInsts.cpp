@@ -24,6 +24,7 @@
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineOperand.h"
 #include "llvm/IR/CallingConv.h"
+#include "llvm/IR/GlobalAlias.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/Support/Compiler.h"
@@ -289,6 +290,13 @@ MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
                                  Fn->hasExternalLinkage(), CallImportTarget);
 }
 
+static const GlobalValue *resolveGlobalAlias(const GlobalValue *GV) {
+  auto *GA = dyn_cast<GlobalAlias>(GV);
+  if (GA)
+    return GA->getAliaseeObject();
+  return GV;
+}
+
 MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
     MCSymbol *ImportSymbol, MCSymbol *ExportSymbol, Register DestReg,
@@ -339,7 +347,7 @@ bool RISCVExpandPseudo::expandCompartmentCall(MachineBasicBlock &MBB,
   if (Callee.isGlobal()) {
     // If this is a global, check if it's in the same compartment.  If so, we
     // want to lower as a direct ccall.
-    auto *Fn = cast<Function>(Callee.getGlobal());
+    auto *Fn = cast<Function>(resolveGlobalAlias(Callee.getGlobal()));
     if (MF->getFunction().hasFnAttribute("cheri-compartment") &&
         (Fn->getFnAttribute("cheri-compartment").getValueAsString() ==
          MF->getFunction()
@@ -391,7 +399,7 @@ bool RISCVExpandPseudo::expandCompartmentCall(MachineBasicBlock &MBB,
   computeAndAddLiveIns(LiveRegs, *NewMBB);
 
   if (Callee.isGlobal()) {
-    auto *Fn = cast<Function>(Callee.getGlobal());
+    auto *Fn = dyn_cast<Function>(resolveGlobalAlias(Callee.getGlobal()));
     insertLoadOfImportTable(MBB, MBBI, Fn, RISCV::C6);
   } else {
     assert(Callee.isReg() && "Expected register operand");
@@ -416,7 +424,7 @@ bool RISCVExpandPseudo::expandLibraryCall(
   MachineInstr &MI = *MBBI;
   auto *MF = MBB.getParent();
   if (Callee.isGlobal()) {
-    auto *Fn = cast<Function>(Callee.getGlobal());
+    auto *Fn = cast<Function>(resolveGlobalAlias(Callee.getGlobal()));
     // If this is a global, check if it's defined in the same module and has a
     // compatible interrupt status.  If so, we want to lower as a direct ccall.
     if (!Fn->isDeclaration() && isSafeToDirectCall(MF->getFunction(), *Fn)) {

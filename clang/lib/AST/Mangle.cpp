@@ -139,7 +139,9 @@ bool MangleContext::shouldMangleDeclName(const NamedDecl *D) {
   // This is necessary because hasAttrs returns false for calling convention
   // attributes.
   if (auto *FD = dyn_cast<FunctionDecl>(D))
-    if (FD->getType()->castAs<FunctionType>()->getCallConv() == CC_CHERILibCall) {
+    if (FD->getType()->castAs<FunctionType>()->getCallConv() ==
+            CC_CHERILibCall &&
+        FD->getDeclName().isIdentifier()) {
       assert(ASTContext.getTargetInfo().getTargetOpts().ABI != "cheriot-baremetal");
       return llvm::StringSwitch<bool>(FD->getName())
         .Case("memcpy", false)

@@ -759,7 +759,9 @@ bool ItaniumMangleContextImpl::shouldMangleCXXName(const NamedDecl *D) {
         .Default(true);
     }
 
-    if (FD->getType()->castAs<FunctionType>()->getCallConv() == CC_CHERILibCall) {
+    if (FD->getType()->castAs<FunctionType>()->getCallConv() ==
+            CC_CHERILibCall &&
+        FD->getDeclName().isIdentifier()) {
       assert(getASTContext().getTargetInfo().getTargetOpts().ABI != "cheriot-baremetal");
       return llvm::StringSwitch<bool>(FD->getName())
         .Case("memcpy", false)

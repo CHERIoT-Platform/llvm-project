@@ -4,6 +4,7 @@ target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G
 target triple = "riscv32-unknown-unknown"
 
 ; Function Attrs: minsize nounwind optsize
+; CHECK-LABEL: callFromNotLibcall:
 define dso_local i32 @callFromNotLibcall() local_unnamed_addr addrspace(200) #0 {
 entry:
 ; Check that these are direct calls via the import table, not going via the
@@ -22,11 +23,27 @@ entry:
   ret i32 %add
 }
 
+; CHECK-LABEL: callViaAlias:
+define dso_local i32 @callViaAlias() local_unnamed_addr addrspace(200) #0 {
+entry:
+; CHECK: ccall bar_alias
+  %call1 = tail call cherilibcallcc i32 @bar_alias() #2
+  ret i32 %call1
+}
+
+define cherilibcallcc i32 @bar() local_unnamed_addr addrspace(200) #0 {
+entry:
+  ret i32 0
+}
+
 ; Function Attrs: minsize optsize
 declare cherilibcallcc i32 @add(i32, i32) local_unnamed_addr addrspace(200) #1
 
 ; Function Attrs: minsize optsize
 declare cherilibcallcc i32 @foo() local_unnamed_addr addrspace(200) #1
+
+; CHECK: .set bar_alias, bar
+@bar_alias = weak_odr dso_local unnamed_addr alias void (), ptr addrspace(200) @bar
 
 attributes #0 = { minsize nounwind optsize "cheri-compartment"="foo" "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+xcheri,-64bit,-relax,-save-restore,-no-rvc-hints" }
 attributes #1 = { minsize optsize "frame-pointer"="none" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+xcheri,-64bit,-relax,-save-restore,+no-rvc-hints" }

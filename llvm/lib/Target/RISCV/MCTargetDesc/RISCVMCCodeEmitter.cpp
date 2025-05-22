@@ -141,6 +141,8 @@ static void addFixup(SmallVectorImpl<MCFixup> &Fixups, uint32_t Offset,
   case RISCV::fixup_riscv_qc_e_branch:
   case RISCV::fixup_riscv_qc_e_call_plt:
   case RISCV::fixup_riscv_nds_branch_10:
+  case ELF::R_RISCV_CHERI_TLS_TGOT_GOT_HI20:
+  case ELF::R_RISCV_CHERI_TLS_TGOT_GD_HI20:
     PCRel = true;
   }
   Fixups.push_back(MCFixup::create(Offset, Value, Kind, PCRel));
@@ -294,13 +296,17 @@ void RISCVMCCodeEmitter::expandCIncOffsetTPRel(
          "Expected expression as third input to CTP-relative cincoffset");
 
   const MCSpecifierExpr *Expr = dyn_cast<MCSpecifierExpr>(SrcSymbol.getExpr());
-  assert(Expr && Expr->getSpecifier() == ELF::R_RISCV_TPREL_ADD &&
-         "Expected tprel_add relocation on CTP-relative symbol");
+  assert(Expr &&
+         (Expr->getSpecifier() == ELF::R_RISCV_TPREL_ADD ||
+          Expr->getSpecifier() == ELF::R_RISCV_CHERI_TLS_TGOT_ADD) &&
+         "Expected tprel_add/tgot_tprel_add relocation on CTP-relative "
+         "symbol");
 
-  // Emit the correct tprel_add relocation for the symbol.
-  addFixup(Fixups, 0, Expr, ELF::R_RISCV_TPREL_ADD);
+  // Emit the correct tprel_add/tgot_tprel_add relocation for the symbol.
+  Fixups.push_back(MCFixup::create(0, Expr, Expr->getSpecifier()));
 
-  // Emit fixup_riscv_relax for tprel_add where the relax feature is enabled.
+  // Emit fixup_riscv_relax for tprel_add/tgot_tprel_add where the relax
+  // feature is enabled.
   if (STI.getFeatureBits()[RISCV::FeatureRelax]) {
     const MCConstantExpr *Dummy = MCConstantExpr::create(0, Ctx);
     Fixups.push_back(MCFixup::create(0, Dummy, ELF::R_RISCV_RELAX));
@@ -744,6 +750,28 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
     case RISCV::S_CHERIOT_COMPARTMENT_LO_S:
       FixupKind = RISCV::fixup_riscv_cheriot_compartment_lo_s;
       RelaxCandidate = true;
+      break;
+    case ELF::R_RISCV_CHERI_TLS_TGOT_LO12_I:
+      if (MIFrm == RISCVII::InstFormatI)
+        FixupKind = ELF::R_RISCV_CHERI_TLS_TGOT_LO12_I;
+      else
+        llvm_unreachable(
+            "VK_RISCV_TGOT_TPREL_LO used with unexpected instruction format");
+      RelaxCandidate = true;
+      break;
+    case ELF::R_RISCV_CHERI_TLS_TGOT_HI20:
+      FixupKind = ELF::R_RISCV_CHERI_TLS_TGOT_HI20;
+      RelaxCandidate = true;
+      break;
+    case ELF::R_RISCV_CHERI_TLS_TGOT_ADD:
+      // See R_RISCV_TPREL_ADD.
+      llvm_unreachable("VK_RISCV_TGOT_TPREL_ADD should not represent an "
+                       "instruction operand");
+    case ELF::R_RISCV_CHERI_TLS_TGOT_GOT_HI20:
+      FixupKind = ELF::R_RISCV_CHERI_TLS_TGOT_GOT_HI20;
+      break;
+    case ELF::R_RISCV_CHERI_TLS_TGOT_GD_HI20:
+      FixupKind = ELF::R_RISCV_CHERI_TLS_TGOT_GD_HI20;
       break;
     case RISCV::S_CHERIOT_COMPARTMENT_SIZE:
       FixupKind = RISCV::fixup_riscv_cheriot_compartment_size;

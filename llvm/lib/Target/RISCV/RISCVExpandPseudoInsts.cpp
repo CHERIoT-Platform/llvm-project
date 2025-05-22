@@ -609,6 +609,14 @@ bool RISCVExpandPseudo::expandAuipccInstPair(
   bool HasTmpReg = MI.getNumOperands() > 2;
   Register DestReg = MI.getOperand(0).getReg();
   Register TmpReg = MI.getOperand(HasTmpReg ? 1 : 0).getReg();
+  if (RISCV::GPRRegClass.contains(TmpReg)) {
+    // When there is no explicit tmp register and the dest is a GPR,
+    // then we need to get the matching cap super register for use
+    // as a cap temporary.
+    const TargetRegisterInfo *TRI = STI->getRegisterInfo();
+    TmpReg = TRI->getMatchingSuperReg(TmpReg, RISCV::sub_cap_addr,
+                                      &RISCV::YGPRRegClass);
+  }
   const MachineOperand &Symbol = MI.getOperand(HasTmpReg ? 2 : 1);
   if (Symbol.getTargetFlags() & RISCVII::MO_JUMP_TABLE_BASE)
     FlagsHi |= RISCVII::MO_JUMP_TABLE_BASE;

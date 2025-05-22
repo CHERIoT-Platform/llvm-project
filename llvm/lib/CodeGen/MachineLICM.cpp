@@ -1005,7 +1005,8 @@ static bool mayLoadFromGOTOrConstantPool(MachineInstr &MI) {
 
   for (MachineMemOperand *MemOp : MI.memoperands())
     if (const PseudoSourceValue *PSV = MemOp->getPseudoValue())
-      if (PSV->isGOT() || PSV->isCapTable() || PSV->isConstantPool())
+      if (PSV->isGOT() || PSV->isTGOT() || PSV->isCapTable() ||
+          PSV->isConstantPool())
         return true;
 
   return false;

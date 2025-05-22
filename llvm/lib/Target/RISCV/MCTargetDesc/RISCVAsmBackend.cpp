@@ -509,6 +509,11 @@ static uint64_t adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
     llvm_unreachable("Unknown fixup kind!");
   case FK_Cap_8:
   case FK_Cap_16:
+  case ELF::R_RISCV_CHERI_TLS_TGOT_HI20:
+  case ELF::R_RISCV_CHERI_TLS_TGOT_LO12_I:
+  case ELF::R_RISCV_CHERI_TLS_TGOT_ADD:
+  case ELF::R_RISCV_CHERI_TLS_TGOT_GOT_HI20:
+  case ELF::R_RISCV_CHERI_TLS_TGOT_GD_HI20:
     llvm_unreachable("Relocation should be unconditionally forced\n");
   case FK_Data_1:
   case FK_Data_2:
@@ -723,6 +728,8 @@ static const MCFixup *getPCRelHiFixup(const MCSpecifierExpr &Expr,
     case ELF::R_RISCV_TLS_GOT_HI20:
     case ELF::R_RISCV_TLS_GD_HI20:
     case ELF::R_RISCV_TLSDESC_HI20:
+    case ELF::R_RISCV_CHERI_TLS_TGOT_GOT_HI20:
+    case ELF::R_RISCV_CHERI_TLS_TGOT_GD_HI20:
       *DFOut = DF;
       return &F;
     }

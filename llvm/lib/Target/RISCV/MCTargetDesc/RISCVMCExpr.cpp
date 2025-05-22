@@ -21,7 +21,8 @@ using namespace llvm;
 
 #define DEBUG_TYPE "riscvmcexpr"
 
-RISCV::Specifier RISCV::parseSpecifierName(StringRef name) {
+RISCV::Specifier RISCV::parseSpecifierName(StringRef name, bool IsPurecap) {
+  bool IsTGOT = IsPurecap && MCTargetOptions::cheriTLSUseTGOT();
   return StringSwitch<RISCV::Specifier>(name)
       .Case("lo", RISCV::S_LO)
       .Case("hi", ELF::R_RISCV_HI20)
@@ -31,8 +32,6 @@ RISCV::Specifier RISCV::parseSpecifierName(StringRef name) {
       .Case("tprel_lo", RISCV::S_TPREL_LO)
       .Case("tprel_hi", ELF::R_RISCV_TPREL_HI20)
       .Case("tprel_add", ELF::R_RISCV_TPREL_ADD)
-      .Case("tls_ie_pcrel_hi", ELF::R_RISCV_TLS_GOT_HI20)
-      .Case("tls_gd_pcrel_hi", ELF::R_RISCV_TLS_GD_HI20)
       .Case("tlsdesc_hi", ELF::R_RISCV_TLSDESC_HI20)
       .Case("tlsdesc_load_lo", ELF::R_RISCV_TLSDESC_LOAD_LO12)
       .Case("tlsdesc_add_lo", ELF::R_RISCV_TLSDESC_ADD_LO12)
@@ -46,6 +45,13 @@ RISCV::Specifier RISCV::parseSpecifierName(StringRef name) {
       .Case("cheriot_compartment_lo_s", RISCV::S_CHERIOT_COMPARTMENT_LO_S)
       .Case("cheriot_compartment_size", RISCV::S_CHERIOT_COMPARTMENT_SIZE)
       .Case("code", ELF::R_RISCV_CHERI_CAPABILITY_CODE)
+      .Case("tls_ie_pcrel_hi", IsTGOT ? ELF::R_RISCV_CHERI_TLS_TGOT_GOT_HI20
+                                      : ELF::R_RISCV_TLS_GOT_HI20)
+      .Case("tls_gd_pcrel_hi", IsTGOT ? ELF::R_RISCV_CHERI_TLS_TGOT_GD_HI20
+                                      : ELF::R_RISCV_TLS_GD_HI20)
+      .Case("tgot_tprel_lo", ELF::R_RISCV_CHERI_TLS_TGOT_LO12_I)
+      .Case("tgot_tprel_hi", ELF::R_RISCV_CHERI_TLS_TGOT_HI20)
+      .Case("tgot_tprel_add", ELF::R_RISCV_CHERI_TLS_TGOT_ADD)
       .Default(0);
 }
 
@@ -70,6 +76,7 @@ StringRef RISCV::getSpecifierName(Specifier S) {
   case ELF::R_RISCV_TPREL_ADD:
     return "tprel_add";
   case ELF::R_RISCV_TLS_GOT_HI20:
+  case ELF::R_RISCV_CHERI_TLS_TGOT_GOT_HI20:
     return "tls_ie_pcrel_hi";
   case ELF::R_RISCV_TLSDESC_HI20:
     return "tlsdesc_hi";
@@ -80,7 +87,14 @@ StringRef RISCV::getSpecifierName(Specifier S) {
   case ELF::R_RISCV_TLSDESC_CALL:
     return "tlsdesc_call";
   case ELF::R_RISCV_TLS_GD_HI20:
+  case ELF::R_RISCV_CHERI_TLS_TGOT_GD_HI20:
     return "tls_gd_pcrel_hi";
+  case ELF::R_RISCV_CHERI_TLS_TGOT_LO12_I:
+    return "tgot_tprel_lo";
+  case ELF::R_RISCV_CHERI_TLS_TGOT_HI20:
+    return "tgot_tprel_hi";
+  case ELF::R_RISCV_CHERI_TLS_TGOT_ADD:
+    return "tgot_tprel_add";
   case ELF::R_RISCV_CALL:
     return "call";
   case ELF::R_RISCV_CALL_PLT:

@@ -57,7 +57,7 @@ enum {
   S_CHERIOT_COMPARTMENT_SIZE,
 };
 
-Specifier parseSpecifierName(StringRef name);
+Specifier parseSpecifierName(StringRef name, bool IsPurecap);
 StringRef getSpecifierName(Specifier Kind);
 } // namespace RISCV
 

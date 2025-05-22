@@ -2031,6 +2031,12 @@ void Clang::AddRISCVTargetArgs(const ArgList &Args,
   CmdArgs.push_back("-target-abi");
   CmdArgs.push_back(ABIName.data());
 
+  if (Args.hasFlag(options::OPT_cheri_tgot_tls, options::OPT_no_cheri_tgot_tls,
+                   false)) {
+    CmdArgs.push_back("-mllvm");
+    CmdArgs.push_back("-cheri-tgot-tls");
+  }
+
   if (Arg *A = Args.getLastArg(options::OPT_G)) {
     CmdArgs.push_back("-msmall-data-limit");
     CmdArgs.push_back(A->getValue());
@@ -8672,6 +8678,12 @@ void ClangAs::AddRISCVTargetArgs(const ArgList &Args,
 
   CmdArgs.push_back("-target-abi");
   CmdArgs.push_back(ABIName.data());
+
+  if (Args.hasFlag(options::OPT_cheri_tgot_tls, options::OPT_no_cheri_tgot_tls,
+                   false)) {
+    CmdArgs.push_back("-mllvm");
+    CmdArgs.push_back("-cheri-tgot-tls");
+  }
 
   if (Args.hasFlag(options::OPT_mdefault_build_attributes,
                    options::OPT_mno_default_build_attributes, true)) {

@@ -9,6 +9,8 @@
 # RUN: llvm-readobj -r %t.32 | FileCheck --check-prefix=RV32-REL %s
 # RUN: llvm-readelf -x .got %t.32 | FileCheck --check-prefix=RV32-GOT %s
 # RUN: llvm-objdump -d --no-show-raw-insn --print-imm-hex=false %t.32 | FileCheck --check-prefix=RV32-DIS %s
+# RUN: llvm-readelf -x .got %t.32 | FileCheck --check-prefix=RV32-GOT %s
+# RUN: llvm-objdump -d --no-show-raw-insn --print-imm-hex=false %t.32 | FileCheck --check-prefix=RV32-DIS %s
 
 # RUN: %riscv32_cheri_purecap_llvm-mc --defsym PIC=1 -filetype=obj %s -o %t.32.pico
 # RUN: ld.lld -shared %t.32.pico %t1.32.so -o %t.32.so

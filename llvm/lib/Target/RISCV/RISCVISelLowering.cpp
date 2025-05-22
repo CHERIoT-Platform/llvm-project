@@ -9168,9 +9168,9 @@ SDValue RISCVTargetLowering::getStaticTLSAddr(GlobalAddressSDNode *N,
           MachineMemOperand::MOLoad | MachineMemOperand::MODereferenceable |
               MachineMemOperand::MOInvariant,
           LLT(Ty.getSimpleVT()), Align(Ty.getFixedSizeInBits() / 8));
-      SDValue Load = SDValue(DAG.getMachineNode(
-          RISCV::PseudoCLA_TLS_IE, DL, XLenVT, Ty, Addr), 0);
-      DAG.setNodeMemRefs(cast<MachineSDNode>(Load.getNode()), {MemOp});
+      SDValue Load = DAG.getMemIntrinsicNode(
+          RISCVISD::CLA_TLS_IE, DL, DAG.getVTList(XLenVT, MVT::Other),
+          {DAG.getEntryNode(), Addr}, Ty, MemOp);
 
       // Add the thread pointer.
       SDValue TPReg = DAG.getRegister(RISCV::X4_Y, Ty);

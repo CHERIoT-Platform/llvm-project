@@ -1416,14 +1416,20 @@ let Predicates = [HasCheri, IsCapMode] in {
   let hasSideEffects = 0, mayLoad = 1, mayStore = 0, isCodeGenOnly = 0,
       isAsmParserOnly = 1,
       Size = 8 in def PseudoCLA_TLS_IE
-      : Pseudo<(outs GPR:$dst, YGPR:$tmp), (ins bare_symbol:$src), [],
-               "cla.tls.ie", "$dst, $src, $tmp">;
+      : Pseudo<(outs GPR:$dst), (ins bare_symbol:$src), [], "cla.tls.ie",
+               "$dst, $src">;
+
+  def : Pat<(riscv_cla_tls_ie tglobaltlsaddr:$in),
+            (PseudoCLA_TLS_IE tglobaltlsaddr:$in)>;
 
   let hasSideEffects = 0, mayLoad = 0, mayStore = 0, isCodeGenOnly = 0,
       isAsmParserOnly = 1,
       Size = 8 in def PseudoCLC_TLS_GD
       : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [], "clc.tls.gd",
                "$dst, $src">;
+
+  def : Pat<(riscv_clc_tls_gd tglobaltlsaddr:$in),
+            (PseudoCLC_TLS_GD tglobaltlsaddr:$in)>;
 
   let hasSideEffects = 0, mayLoad = 0, mayStore = 0,
       isCodeGenOnly = 0 in def PseudoCIncOffsetTPRel

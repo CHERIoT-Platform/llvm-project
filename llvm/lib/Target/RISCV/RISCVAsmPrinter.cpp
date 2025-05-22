@@ -1327,6 +1327,21 @@ static MCOperand lowerSymbolOperand(const MachineOperand &MO, MCSymbol *Sym,
   case RISCVII::MO_CHERIOT_COMPARTMENT_SIZE:
     Kind = RISCV::S_CHERIOT_COMPARTMENT_SIZE;
     break;
+  case RISCVII::MO_TGOT_TPREL_LO:
+    Kind = ELF::R_RISCV_CHERI_TLS_TGOT_LO12_I;
+    break;
+  case RISCVII::MO_TGOT_TPREL_HI:
+    Kind = ELF::R_RISCV_CHERI_TLS_TGOT_HI20;
+    break;
+  case RISCVII::MO_TGOT_TPREL_ADD:
+    Kind = ELF::R_RISCV_CHERI_TLS_TGOT_ADD;
+    break;
+  case RISCVII::MO_TLS_TGOT_GOT_HI:
+    Kind = ELF::R_RISCV_CHERI_TLS_TGOT_GOT_HI20;
+    break;
+  case RISCVII::MO_TLS_TGOT_GD_HI:
+    Kind = ELF::R_RISCV_CHERI_TLS_TGOT_GD_HI20;
+    break;
   }
 
   const MCExpr *ME = MCSymbolRefExpr::create(Sym, Ctx);

@@ -9161,6 +9161,7 @@ SDValue RISCVTargetLowering::getStaticTLSAddr(GlobalAddressSDNode *N,
       // load the address from the GOT and add the thread pointer. This
       // generates the pattern (PseudoCLA_TLS_IE sym), which expands to
       // (cld (auipcc %tls_ie_pcrel_hi(sym)) %pcrel_lo(auipc)).
+      // If using the TGOT, load from this.
       SDValue Addr = DAG.getTargetGlobalAddress(GV, DL, Ty, 0, 0);
       MachineFunction &MF = DAG.getMachineFunction();
       MachineMemOperand *MemOp = MF.getMachineMemOperand(
@@ -9174,7 +9175,52 @@ SDValue RISCVTargetLowering::getStaticTLSAddr(GlobalAddressSDNode *N,
 
       // Add the thread pointer.
       SDValue TPReg = DAG.getRegister(RISCV::X4_Y, Ty);
-      return DAG.getMemBasePlusOffset(TPReg, Load, DL);
+      SDValue Val = DAG.getMemBasePlusOffset(TPReg, Load, DL);
+      if (MCTargetOptions::cheriTLSUseTGOT()) {
+        // Load from the TGOT.
+        MachineMemOperand *MemOpTGOT = MF.getMachineMemOperand(
+            MachinePointerInfo::getTGOT(MF),
+            MachineMemOperand::MOLoad | MachineMemOperand::MODereferenceable |
+                MachineMemOperand::MOInvariant,
+            LLT(Ty.getSimpleVT()), Align(Ty.getFixedSizeInBits() / 8));
+        Val = DAG.getMemIntrinsicNode(
+            RISCVISD::LOAD_TGOT, DL, DAG.getVTList(Ty, MVT::Other),
+            {DAG.getEntryNode(), Val, DAG.getConstant(0, DL, XLenVT)}, Ty,
+            MemOpTGOT);
+      }
+      return Val;
+    }
+
+    if (MCTargetOptions::cheriTLSUseTGOT()) {
+      // Generate a sequence for loading the pointer relative to the thread
+      // pointer, with the appropriate adjustment for the thread pointer
+      // offset. This generates the pattern
+      // (load (ptradd (cincoffset_tprel (lui %tgot_tprel_hi(sym))
+      //                                 ctp %tgot_tprel_add(sym))
+      //               %tgot_tprel_lo(sym))
+      MachineFunction &MF = DAG.getMachineFunction();
+      MachineMemOperand *MemOp = MF.getMachineMemOperand(
+          MachinePointerInfo::getTGOT(MF),
+          MachineMemOperand::MOLoad | MachineMemOperand::MODereferenceable |
+              MachineMemOperand::MOInvariant,
+          LLT(Ty.getSimpleVT()), Align(Ty.getFixedSizeInBits() / 8));
+      SDValue AddrHi = DAG.getTargetGlobalAddress(GV, DL, XLenVT, 0,
+                                                  RISCVII::MO_TGOT_TPREL_HI);
+      SDValue AddrCIncOffset =
+          DAG.getTargetGlobalAddress(GV, DL, Ty, 0, RISCVII::MO_TGOT_TPREL_ADD);
+      SDValue AddrLo = DAG.getTargetGlobalAddress(GV, DL, XLenVT, 0,
+                                                  RISCVII::MO_TGOT_TPREL_LO);
+
+      SDValue MNHi =
+          SDValue(DAG.getMachineNode(RISCV::LUI, DL, XLenVT, AddrHi), 0);
+      SDValue TPReg = DAG.getRegister(RISCV::X4_Y, Ty);
+      SDValue MNAdd =
+          SDValue(DAG.getMachineNode(RISCV::PseudoCIncOffsetTPRel, DL, Ty,
+                                     TPReg, MNHi, AddrCIncOffset),
+                  0);
+      return DAG.getMemIntrinsicNode(
+          RISCVISD::LOAD_TGOT, DL, DAG.getVTList(Ty, MVT::Other),
+          {DAG.getEntryNode(), MNAdd, AddrLo}, Ty, MemOp);
     }
 
     // Generate a sequence for accessing the address relative to the thread

@@ -4175,8 +4175,7 @@ void RISCVAsmParser::emitAuipccInstPair(MCOperand DestReg, MCOperand TmpReg,
   //             OP DestReg, TmpReg, %pcrel_lo(TmpLabel)
   MCContext &Ctx = getContext();
 
-  MCSymbol *TmpLabel =
-      Ctx.createTempSymbol("pcrel_hi", /* AlwaysAddSuffix=*/true);
+  MCSymbol *TmpLabel = Ctx.createNamedTempSymbol("pcrel_hi");
   Out.emitLabel(TmpLabel);
 
   const MCExpr *SymbolHi = MCSpecifierExpr::create(Symbol, VKHi, Ctx);

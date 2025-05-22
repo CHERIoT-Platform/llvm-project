@@ -27,7 +27,8 @@ class TargetMachine;
 /// Manages creation of pseudo source values.
 class PseudoSourceValueManager {
   const TargetMachine &TM;
-  const PseudoSourceValue StackPSV, GOTPSV, CapTablePSV, JumpTablePSV, ConstantPoolPSV;
+  const PseudoSourceValue StackPSV, GOTPSV, TGOTPSV, CapTablePSV, JumpTablePSV,
+      ConstantPoolPSV;
   SmallVector<std::unique_ptr<FixedStackPseudoSourceValue>> FSValues;
   StringMap<std::unique_ptr<const ExternalSymbolPseudoSourceValue>>
       ExternalCallEntries;
@@ -45,6 +46,10 @@ public:
   /// Return a pseudo source value referencing the global offset table
   /// (or something the like).
   LLVM_ABI const PseudoSourceValue *getGOT();
+
+  /// Return a pseudo source value referencing the thread global offset table
+  /// (or something the like).
+  const PseudoSourceValue *getTGOT();
 
   /// Return a pseudo source value referencing the constant pool. Since constant
   /// pools are constant, this doesn't need to identify a specific constant

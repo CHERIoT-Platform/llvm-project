@@ -3533,6 +3533,8 @@ template <class ELFT> void LinkerDriver::link(opt::InputArgList &args) {
     combineEhSections(ctx);
     if (ctx.in.capRelocs)
       ctx.inputSections.push_back(ctx.in.capRelocs.get());
+    if (ctx.in.tgotCapRelocs)
+      ctx.inputSections.push_back(ctx.in.tgotCapRelocs.get());
   }
 
   // Merge .hexagon.attributes sections.

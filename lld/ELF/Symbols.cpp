@@ -26,7 +26,7 @@ using namespace llvm::ELF;
 using namespace lld;
 using namespace lld::elf;
 
-static_assert(sizeof(SymbolUnion) <= 64, "SymbolUnion too large");
+static_assert(sizeof(SymbolUnion) <= 72, "SymbolUnion too large");
 
 template <typename T> struct AssertSymbol {
   static_assert(std::is_trivially_destructible<T>(),
@@ -253,6 +253,14 @@ uint64_t Symbol::getPltVA(Ctx &ctx) const {
   if (ctx.arg.emachine == EM_MIPS && isMicroMips(ctx))
     outVA |= 1;
   return outVA;
+}
+
+uint64_t Symbol::getTgotVA(Ctx &ctx) const {
+  return ctx.in.tgot->getVA() + getTgotOffset(ctx);
+}
+
+uint64_t Symbol::getTgotOffset(Ctx &ctx) const {
+  return getTgotIdx(ctx) * ctx.target->gotEntrySize;
 }
 
 uint64_t Symbol::getMipsCheriCapTableVA(Ctx &ctx, const InputSectionBase *isec,

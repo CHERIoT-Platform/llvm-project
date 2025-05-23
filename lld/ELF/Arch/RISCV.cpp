@@ -148,6 +148,8 @@ RISCV::RISCV(Ctx &ctx) : TargetInfo(ctx) {
 
   // .got[0] = _DYNAMIC
   gotHeaderEntriesNum = 1;
+  if (ctx.arg.isCheriAbi)
+    gotEntrySize = getCapabilitySize();
 
   // .got.plt[0] = _dl_runtime_resolve, .got.plt[1] = link_map
   gotPltHeaderEntriesNum = 2;

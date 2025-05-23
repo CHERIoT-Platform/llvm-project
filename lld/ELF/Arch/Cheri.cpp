@@ -43,8 +43,8 @@ struct InMemoryCapRelocEntry {
   CapRelocUint permissions;
 };
 
-CheriCapRelocsSection::CheriCapRelocsSection(Ctx &ctx)
-    : SyntheticSection(ctx, "__cap_relocs", SHT_PROGBITS,
+CheriCapRelocsSection::CheriCapRelocsSection(Ctx &ctx, StringRef name)
+    : SyntheticSection(ctx, name, SHT_PROGBITS,
                        (ctx.arg.isPic && !ctx.arg.relativeCapRelocsOnly)
                            ? SHF_ALLOC | SHF_WRITE /* XXX: actually RELRO */
                            : SHF_ALLOC,

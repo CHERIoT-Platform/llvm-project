@@ -62,6 +62,7 @@ class BssSection;
 class GdbIndexSection;
 class GotPltSection;
 class GotSection;
+class TgotSection;
 class IBTPltSection;
 class IgotPltSection;
 class InputSection;
@@ -582,6 +583,10 @@ struct SymbolAux {
   uint32_t pltIdx = -1;
   uint32_t tlsDescIdx = -1;
   uint32_t tlsGdIdx = -1;
+  uint32_t tgotIdx = -1;
+  uint32_t tgotTlsDescIdx = -1;
+  uint32_t tgotTlsGdIdx = -1;
+  uint32_t tgotGotIdx = -1;
 };
 
 struct DuplicateSymbol {
@@ -615,8 +620,10 @@ struct InStruct {
   std::unique_ptr<GotPltSection> gotPlt;
   std::unique_ptr<IgotPltSection> igotPlt;
   std::unique_ptr<RelroPaddingSection> relroPadding;
+  std::unique_ptr<TgotSection> tgot;
   std::unique_ptr<MipsCheriCapTableSection> mipsCheriCapTable;
   std::unique_ptr<CheriCapRelocsSection> capRelocs;
+  std::unique_ptr<CheriCapRelocsSection> tgotCapRelocs;
   std::unique_ptr<MipsCheriCapTableMappingSection> mipsCheriCapTableMapping;
   std::unique_ptr<SyntheticSection> armCmseSGSection;
   std::unique_ptr<PPC64LongBranchTargetSection> ppc64LongBranchTarget;
@@ -635,6 +642,7 @@ struct InStruct {
   // Non-SHF_ALLOC sections
   std::unique_ptr<SyntheticSection> debugNames;
   std::unique_ptr<GdbIndexSection> gdbIndex;
+  std::unique_ptr<RelocationBaseSection> relaTgot;
   std::unique_ptr<StringTableSection> shStrTab;
   std::unique_ptr<StringTableSection> strTab;
   std::unique_ptr<SymbolTableBaseSection> symTab;

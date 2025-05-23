@@ -286,8 +286,13 @@ static uint64_t getTargetSize(Ctx &ctx, const CheriCapRelocLocation &location,
       // symbol in that case)
       int64_t offset = std::max((int64_t)0, target.offset);
       uint64_t targetVA = targetSym->getVA(ctx, offset);
-      assert(targetVA >= os->addr);
-      uint64_t offsetInOS = targetVA - os->addr;
+      uint64_t osVA = os->addr;
+      // TLS symbol addresses are relative to the TLS segment. See getSymVA.
+      // Note that tlsPhdr->firstSec must be valid since getVA succeeded.
+      if (def->isTls() && !ctx.arg.relocatable)
+        osVA -= ctx.tlsPhdr->firstSec->addr;
+      assert(targetVA >= osVA);
+      uint64_t offsetInOS = targetVA - osVA;
       // Check this isn't a symbol defined outside a section in a linker script.
       // Use less-or-equal here to account for __end_foo symbols which point 1
       // past the section
@@ -340,8 +345,7 @@ static CapRelocType getTargetType(Ctx &ctx, const SymbolAndOffset &target) {
   if (isGnuIFunc)
     return CapRelocType::IFUNC;
   if (os) {
-    assert(!isTls);
-    if ((os->flags & SHF_WRITE) == 0 || isRelroSection(ctx, os))
+    if ((os->flags & SHF_WRITE) == 0 || (!isTls && isRelroSection(ctx, os)))
       return CapRelocType::RODATA;
     if (os->flags & SHF_EXECINSTR)
       warn("Non-function __cap_reloc against symbol in section with "

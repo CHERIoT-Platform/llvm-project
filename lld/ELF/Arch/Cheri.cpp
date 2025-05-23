@@ -961,7 +961,6 @@ void CheriCapTableSection::assignValuesAndAddCapTableSymbols() {
       this->relocations.push_back(
           {R_TPREL, ctx.target->symbolicRel, offset, 0, s});
     else
-      // FIXME: casting to GotSection here is a massive hack!!
       ctx.mainPart->relaDyn->addAddendOnlyRelocIfNonPreemptible(
           ctx.target->tlsGotRel, *this, offset, *s, ctx.target->symbolicRel);
   }

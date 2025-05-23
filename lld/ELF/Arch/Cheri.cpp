@@ -17,6 +17,17 @@ using namespace llvm::ELF;
 namespace lld {
 namespace elf {
 
+bool isCheriAbi(const InputFile *f) {
+  switch (f->emachine) {
+  case EM_MIPS:
+    return (f->eflags & EF_MIPS_ABI) == EF_MIPS_ABI_CHERIABI;
+  case EM_RISCV:
+    return f->eflags & EF_RISCV_CHERIABI;
+  default:
+    return false;
+  }
+}
+
 bool hasDynamicLinker(Ctx &ctx) {
   return ctx.arg.shared || ctx.arg.pie || !ctx.sharedFiles.empty();
 }

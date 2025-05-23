@@ -741,6 +741,8 @@ void LinkerDriver::linkerMain(ArrayRef<const char *> argsArr) {
       return;
 
     inferMachineType();
+    inferIsCheriAbi();
+    inferIsCheriot();
     setConfigs(ctx, args);
     checkOptions(ctx);
     if (errCount(ctx))
@@ -2330,6 +2332,36 @@ static uint64_t getMaxPageSize(Ctx &ctx, opt::InputArgList &args) {
   return val;
 }
 
+// If -m <machine_type> did not force a CheriABI emulation, infer it from
+// object files.
+void LinkerDriver::inferIsCheriAbi() {
+  if (ctx.arg.isCheriAbi)
+    return;
+
+  for (const auto &f : files) {
+    if (f->ekind == ELFNoneKind)
+      continue;
+    ctx.arg.isCheriAbi = isCheriAbi(f.get());
+    return;
+  }
+}
+
+// If -m <machine_type> did not force CHERIoT, infer it from
+// object files.
+void LinkerDriver::inferIsCheriot() {
+  if (ctx.arg.isCheriot)
+    return;
+  if (!ctx.arg.isCheriAbi)
+    return;
+
+  for (const auto &f : files) {
+    if (f->ekind == ELFNoneKind)
+      continue;
+    ctx.arg.isCheriot = f->eflags & EF_RISCV_CHERIOT;
+    return;
+  }
+}
+
 // Parse -z common-page-size=<value>. The default value is defined by
 // each target.
 static uint64_t getCommonPageSize(Ctx &ctx, opt::InputArgList &args) {
@@ -3495,10 +3527,6 @@ template <class ELFT> void LinkerDriver::link(opt::InputArgList &args) {
   setTarget(ctx);
 
   ctx.arg.eflags = ctx.target->calcEFlags();
-  ctx.arg.isCheriAbi = ctx.target->calcIsCheriAbi();
-  if (ctx.arg.isCheriAbi)
-    ctx.arg.isCheriot = ctx.arg.eflags & EF_RISCV_CHERIOT;
-
   // maxPageSize (sometimes called abi page size) is the maximum page size that
   // the output can be run on. For example if the OS can use 4k or 64k page
   // sizes then maxPageSize must be 64k for the output to be useable on both.

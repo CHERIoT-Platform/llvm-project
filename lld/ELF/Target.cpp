@@ -117,13 +117,6 @@ ErrorPlace elf::getErrorPlace(Ctx &ctx, const uint8_t *loc) {
 
 TargetInfo::~TargetInfo() {}
 
-bool TargetInfo::calcIsCheriAbi() const {
-  if (ctx.arg.isCheriAbi)
-    error("emulation forces CheriABI but not supported for the current target");
-
-  return false;
-}
-
 int64_t TargetInfo::getImplicitAddend(const uint8_t *buf, RelType type) const {
   InternalErr(ctx, buf) << "cannot read addend for relocation " << type;
   return 0;

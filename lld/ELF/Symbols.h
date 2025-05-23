@@ -57,6 +57,10 @@ enum {
   NEEDS_GOT_NONAUTH = 1 << 10,
   NEEDS_TLSDESC_AUTH = 1 << 11,
   NEEDS_TLSDESC_NONAUTH = 1 << 12,
+  NEEDS_TGOT = 1 << 13,
+  NEEDS_TGOT_GOT = 1 << 14,
+  NEEDS_TGOT_TLSGD = 1 << 15,
+  NEEDS_TGOT_TLSDESC = 1 << 16,
 };
 
 // The base class for real symbol classes.
@@ -204,6 +208,16 @@ public:
     return ctx.symAux[auxIdx].tlsDescIdx;
   }
   uint32_t getTlsGdIdx(Ctx &ctx) const { return ctx.symAux[auxIdx].tlsGdIdx; }
+  uint32_t getTgotIdx(Ctx &ctx) const { return ctx.symAux[auxIdx].tgotIdx; }
+  uint32_t getTgotGotIdx(Ctx &ctx) const {
+    return ctx.symAux[auxIdx].tgotGotIdx;
+  }
+  uint32_t getTgotTlsDescIdx(Ctx &ctx) const {
+    return ctx.symAux[auxIdx].tgotTlsDescIdx;
+  }
+  uint32_t getTgotTlsGdIdx(Ctx &ctx) const {
+    return ctx.symAux[auxIdx].tgotTlsGdIdx;
+  }
 
   bool isInGot(Ctx &ctx) const { return getGotIdx(ctx) != uint32_t(-1); }
   bool isInPlt(Ctx &ctx) const { return getPltIdx(ctx) != uint32_t(-1); }
@@ -215,6 +229,8 @@ public:
   uint64_t getGotPltOffset(Ctx &) const;
   uint64_t getGotPltVA(Ctx &) const;
   uint64_t getPltVA(Ctx &) const;
+  uint64_t getTgotOffset(Ctx &) const;
+  uint64_t getTgotVA(Ctx &) const;
   uint64_t getMipsCheriCapTableVA(Ctx &ctx, const InputSectionBase *isec,
 
                                   uint64_t offset) const;
@@ -317,7 +333,7 @@ public:
 
   // Temporary flags used to communicate which symbol entries need PLT and GOT
   // entries during postScanRelocations();
-  std::atomic<uint16_t> flags;
+  std::atomic<uint32_t> flags;
 
   // A ctx.symAux index used to access GOT/PLT entry indexes. This is allocated
   // in postScanRelocations().
@@ -356,7 +372,7 @@ public:
   LLVM_PREFERRED_TYPE(bool)
   uint8_t referencedAfterWrap : 1;
 
-  void setFlags(uint16_t bits) {
+  void setFlags(uint32_t bits) {
     flags.fetch_or(bits, std::memory_order_relaxed);
   }
   bool hasFlag(uint16_t bit) const {
@@ -367,7 +383,8 @@ public:
   bool needsDynReloc() const {
     return flags.load(std::memory_order_relaxed) &
            (NEEDS_COPY | NEEDS_GOT | NEEDS_PLT | NEEDS_TLSDESC | NEEDS_TLSGD |
-            NEEDS_GOT_DTPREL | NEEDS_TLSIE);
+            NEEDS_GOT_DTPREL | NEEDS_TLSIE | NEEDS_TGOT |
+            NEEDS_TGOT_GOT | NEEDS_TGOT_TLSGD | NEEDS_TGOT_TLSDESC);
   }
   void allocateAux(Ctx &ctx) {
     assert(auxIdx == 0);

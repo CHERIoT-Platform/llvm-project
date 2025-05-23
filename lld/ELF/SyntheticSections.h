@@ -121,11 +121,20 @@ public:
   bool addTlsDescEntry(const Symbol &sym);
   void addTlsDescAuthEntry();
   bool addDynTlsEntry(const Symbol &sym);
+  void addTgotEntry(Symbol &sym);
+  void addTgotTlsDescEntry(Symbol &sym);
+  bool addTgotDynTlsEntry(Symbol &sym);
   bool addTlsIndex();
   uint32_t getTlsDescOffset(const Symbol &sym) const;
   uint64_t getTlsDescAddr(const Symbol &sym) const;
   uint64_t getGlobalDynAddr(const Symbol &b) const;
   uint64_t getGlobalDynOffset(const Symbol &b) const;
+  uint64_t getTgotAddr(const Symbol &b) const;
+  uint64_t getTgotOffset(const Symbol &b) const;
+  uint64_t getTgotTlsDescAddr(const Symbol &b) const;
+  uint64_t getTgotTlsDescOffset(const Symbol &b) const;
+  uint64_t getTgotGlobalDynAddr(const Symbol &b) const;
+  uint64_t getTgotGlobalDynOffset(const Symbol &b) const;
 
   uint64_t getTlsIndexVA() { return this->getVA() + tlsIndexOff; }
   uint32_t getTlsIndexOff() const { return tlsIndexOff; }
@@ -393,6 +402,19 @@ private:
 class IgotPltSection final : public SyntheticSection {
 public:
   IgotPltSection(Ctx &);
+  void addEntry(Symbol &sym);
+  size_t getSize() const override;
+  void writeTo(uint8_t *buf) override;
+  bool isNeeded() const override { return !entries.empty(); }
+
+private:
+  SmallVector<const Symbol *, 0> entries;
+};
+
+class TgotSection final : public SyntheticSection {
+public:
+  TgotSection(Ctx &ctx);
+  void addConstant(const Relocation &r);
   void addEntry(Symbol &sym);
   size_t getSize() const override;
   void writeTo(uint8_t *buf) override;

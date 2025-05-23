@@ -93,6 +93,7 @@ private:
   ThunkCreator tc;
 
   void addRelIpltSymbols();
+  void addRelTgotSymbols();
   void addStartEndSymbols();
   void addStartStopSymbols(OutputSection &osec);
 
@@ -1997,6 +1998,8 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
     if (ctx.in.capRelocs) {
       finalizeSynthetic(ctx, ctx.in.capRelocs.get());
     }
+    if (ctx.in.tgotCapRelocs)
+      finalizeSynthetic(ctx, ctx.in.tgotCapRelocs.get());
     if (ctx.in.plt && ctx.in.plt->isNeeded())
       ctx.in.plt->addSymbols();
     if (ctx.in.iplt && ctx.in.iplt->isNeeded())
@@ -2183,7 +2186,9 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
     finalizeSynthetic(ctx, ctx.in.mipsGot.get());
     finalizeSynthetic(ctx, ctx.in.igotPlt.get());
     finalizeSynthetic(ctx, ctx.in.gotPlt.get());
+    finalizeSynthetic(ctx, ctx.in.tgot.get());
     finalizeSynthetic(ctx, ctx.in.relaPlt.get());
+    finalizeSynthetic(ctx, ctx.in.relaTgot.get());
     finalizeSynthetic(ctx, ctx.in.plt.get());
     finalizeSynthetic(ctx, ctx.in.iplt.get());
     finalizeSynthetic(ctx, ctx.in.ppc32Got2.get());
@@ -2556,6 +2561,12 @@ Writer<ELFT>::createPhdrs(Partition &part) {
       tlsHdr->add(sec);
   if (tlsHdr->firstSec)
     ret.push_back(std::move(tlsHdr));
+
+  // Add an entry for .tgot.
+  if (ctx.in.tgot->isNeeded()) {
+    OutputSection *sec = ctx.in.tgot->getParent();
+    addHdr(PT_CHERI_TGOT, sec->getPhdrFlags())->add(sec);
+  }
 
   // Add an entry for .dynamic.
   if (OutputSection *sec = part.dynamic->getParent())

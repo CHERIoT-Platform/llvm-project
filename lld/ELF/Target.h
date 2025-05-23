@@ -152,6 +152,9 @@ public:
   RelType tlsGotRel = 0;
   RelType tlsModuleIndexRel = 0;
   RelType tlsOffsetRel = 0;
+  RelType tgotRel = 0;
+  RelType tgotGotRel = 0;
+  RelType tgotTlsDescRel = 0;
   std::optional<RelType> absPointerRel; // TODO: remove the optional
   std::optional<RelType> sizeRel;
   std::optional<RelType> symbolicCapRel;

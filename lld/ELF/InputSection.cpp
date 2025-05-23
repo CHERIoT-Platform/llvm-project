@@ -781,6 +781,10 @@ static int64_t getTlsTpOffset(Ctx &ctx, const Symbol &s) {
   }
 }
 
+static int64_t getTlsTgotOffset(Ctx &ctx, const Symbol &s) {
+  return s.getTgotOffset(ctx);
+}
+
 uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
                                             uint64_t p) const {
   int64_t a = r.addend;
@@ -1021,6 +1025,22 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
     return ctx.in.got->getTlsIndexOff() + a;
   case R_TLSLD_PC:
     return ctx.in.got->getTlsIndexVA() + a - p;
+  case R_TGOT:
+    return r.sym->getTgotOffset(ctx) + a;
+  case R_TGOT_TP:
+  case R_RELAX_TGOT_TLS_GD_TO_LE:
+  case R_RELAX_TGOT_TLS_IE_TO_LE:
+    return getTlsTgotOffset(ctx, *r.sym) + a;
+  case R_TGOT_GOT:
+  case R_RELAX_TGOT_TLS_GD_TO_IE_ABS:
+    return ctx.in.got->getTgotAddr(*r.sym) + a;
+  case R_TGOT_GOT_PC:
+  case R_RELAX_TGOT_TLS_GD_TO_IE:
+    return ctx.in.got->getTgotAddr(*r.sym) + a - p;
+  case R_TGOT_TLSDESC:
+    return ctx.in.got->getTgotTlsDescAddr(*r.sym) + a;
+  case R_TGOT_TLSGD_PC:
+    return ctx.in.got->getTgotGlobalDynAddr(*r.sym) + a - p;
   case R_ABS_CAP_ADDR:
     return r.sym->getVA(ctx, a);
   case R_ABS_CAP_META:

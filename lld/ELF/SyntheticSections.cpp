@@ -721,6 +721,29 @@ bool GotSection::addDynTlsEntry(const Symbol &sym) {
   return true;
 }
 
+void GotSection::addTgotEntry(Symbol &sym) {
+  assert(sym.auxIdx == ctx.symAux.size() - 1);
+  ctx.symAux.back().tgotGotIdx = numEntries++;
+}
+
+void GotSection::addTgotTlsDescEntry(Symbol &sym) {
+  assert(sym.auxIdx == ctx.symAux.size() - 1);
+  ctx.symAux.back().tgotTlsDescIdx = numEntries;
+  numEntries += 2;
+}
+
+bool GotSection::addTgotDynTlsEntry(Symbol &sym) {
+  assert(sym.auxIdx == ctx.symAux.size() - 1);
+  ctx.symAux.back().tgotTlsGdIdx = numEntries;
+  // Global Dynamic TLS entries take two GOT slots, except on CHERI where they
+  // can be packed into one GOT slot.
+  if (ctx.arg.isCheriAbi)
+    ++numEntries;
+  else
+    numEntries += 2;
+  return true;
+}
+
 // Reserves TLS entries for a TLS module ID and a TLS block offset.
 // In total it takes two GOT slots.
 bool GotSection::addTlsIndex() {
@@ -745,6 +768,30 @@ uint64_t GotSection::getGlobalDynAddr(const Symbol &b) const {
 
 uint64_t GotSection::getGlobalDynOffset(const Symbol &b) const {
   return b.getTlsGdIdx(ctx) * ctx.target->gotEntrySize;
+}
+
+uint64_t GotSection::getTgotOffset(const Symbol &sym) const {
+  return sym.getTgotGotIdx(ctx) * ctx.target->gotEntrySize;
+}
+
+uint64_t GotSection::getTgotAddr(const Symbol &sym) const {
+  return getVA() + getTgotOffset(sym);
+}
+
+uint64_t GotSection::getTgotTlsDescOffset(const Symbol &sym) const {
+  return sym.getTgotTlsDescIdx(ctx) * ctx.target->gotEntrySize;
+}
+
+uint64_t GotSection::getTgotTlsDescAddr(const Symbol &sym) const {
+  return getVA() + getTgotTlsDescOffset(sym);
+}
+
+uint64_t GotSection::getTgotGlobalDynAddr(const Symbol &b) const {
+  return this->getVA() + b.getTgotTlsGdIdx(ctx) * ctx.target->gotEntrySize;
+}
+
+uint64_t GotSection::getTgotGlobalDynOffset(const Symbol &b) const {
+  return b.getTgotTlsGdIdx(ctx) * ctx.target->gotEntrySize;
 }
 
 void GotSection::finalizeContents() {
@@ -1296,6 +1343,25 @@ void IgotPltSection::writeTo(uint8_t *buf) {
   }
 }
 
+TgotSection::TgotSection(Ctx &ctx)
+    : SyntheticSection(ctx, ".tgot", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE,
+                       ctx.target->gotEntrySize) {}
+
+void TgotSection::addConstant(const Relocation &r) { relocations.push_back(r); }
+void TgotSection::addEntry(Symbol &sym) {
+  assert(sym.auxIdx == ctx.symAux.size() - 1);
+  ctx.symAux.back().tgotIdx = entries.size();
+  entries.push_back(&sym);
+}
+
+size_t TgotSection::getSize() const {
+  return entries.size() * ctx.target->gotEntrySize;
+}
+
+void TgotSection::writeTo(uint8_t *buf) {
+  ctx.target->relocateAlloc(*this, buf);
+}
+
 StringTableSection::StringTableSection(Ctx &ctx, StringRef name, bool dynamic)
     : SyntheticSection(ctx, name, SHT_STRTAB, dynamic ? (uint64_t)SHF_ALLOC : 0,
                        1),
@@ -1526,6 +1592,12 @@ DynamicSection<ELFT>::computeContents() {
       break;
     }
     addInt(DT_PLTREL, ctx.arg.isRela ? DT_RELA : DT_REL);
+  }
+
+  if (isMain && ctx.in.relaTgot->isNeeded()) {
+    addInSec(DT_CHERI_TGOTREL, *ctx.in.relaTgot);
+    addInt(DT_CHERI_TGOTRELSZ, ctx.in.relaTgot->getSize());
+    addInt(DT_CHERI_TGOTRELT, ctx.arg.isRela ? DT_RELA : DT_REL);
   }
 
   if (ctx.arg.emachine == EM_AARCH64) {
@@ -1810,6 +1882,10 @@ void RelocationBaseSection::finalizeContents() {
     } else {
       getParent()->info = ctx.in.gotPlt->getParent()->sectionIndex;
     }
+  }
+  if (ctx.in.relaTgot.get() == this && ctx.in.tgot->getParent()) {
+    getParent()->flags |= ELF::SHF_INFO_LINK;
+    getParent()->info = ctx.in.tgot->getParent()->sectionIndex;
   }
   for (auto reloc : relocs) {
     if (ctx.arg.isCheriAbi && reloc.inputSec->name == "__cap_relocs") {
@@ -4838,6 +4914,10 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
     }
   }
 
+  if (ctx.arg.isCheriAbi)
+    ctx.in.tgotCapRelocs =
+        std::make_unique<CheriCapRelocsSection>(ctx, "__tgot_cap_relocs");
+
   // Add MIPS-specific sections.
   if (ctx.arg.emachine == EM_MIPS) {
     if (!ctx.arg.shared && ctx.hasDynsym) {
@@ -5000,6 +5080,9 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
   add(*ctx.in.gotPlt);
   ctx.in.igotPlt = std::make_unique<IgotPltSection>(ctx);
   add(*ctx.in.igotPlt);
+  ctx.in.tgot = std::make_unique<TgotSection>(ctx);
+  add(*ctx.in.tgot);
+
   // Add .relro_padding if DATA_SEGMENT_RELRO_END is used; otherwise, add the
   // section in the absence of PHDRS/SECTIONS commands.
   if (ctx.arg.zRelro &&
@@ -5029,6 +5112,11 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
       ctx, ctx.arg.isRela ? ".rela.plt" : ".rel.plt", /*sort=*/false,
       /*threadCount=*/1);
   add(*ctx.in.relaPlt);
+
+  ctx.in.relaTgot = std::make_unique<RelocationSection<ELFT>>(
+      ctx, ctx.arg.isRela ? ".rela.tgot" : ".rel.tgot", /*sort=*/false,
+      /*threadCount=*/1);
+  add(*ctx.in.relaTgot);
 
   if ((ctx.arg.emachine == EM_386 || ctx.arg.emachine == EM_X86_64) &&
       (ctx.arg.andFeatures & GNU_PROPERTY_X86_FEATURE_1_IBT)) {

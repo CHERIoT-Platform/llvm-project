@@ -9608,7 +9608,7 @@ static void createPHIsForSelects(SmallVector<MachineInstr*, 8> &Selects,
     RegRewriteTable[DestReg] = std::make_pair(TrueReg, FalseReg);
   }
 
-  MF->getProperties().reset(MachineFunctionProperties::Property::NoPHIs);
+  MF->getProperties().resetNoPHIs();
 }
 
 MachineBasicBlock *
@@ -10562,7 +10562,7 @@ SystemZTargetLowering::emitMemMemWrapper(MachineInstr &MI,
           MBB->addLiveIn(SystemZ::CC);
       }
     }
-    MF.getProperties().reset(MachineFunctionProperties::Property::NoPHIs);
+    MF.getProperties().resetNoPHIs();
   }
 
   // Handle any remaining bytes with straight-line code.

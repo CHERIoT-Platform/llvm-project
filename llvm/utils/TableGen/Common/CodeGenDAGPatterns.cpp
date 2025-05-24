@@ -2104,7 +2104,7 @@ void TreePatternNode::RemoveAllTypes() {
 /// SubstituteFormalArguments - Replace the formal arguments in this tree
 /// with actual values specified by ArgMap.
 void TreePatternNode::SubstituteFormalArguments(
-    std::map<std::string, TreePatternNodePtr> &ArgMap) {
+    std::map<StringRef, TreePatternNodePtr> &ArgMap) {
   if (isLeaf())
     return;
 
@@ -2232,7 +2232,7 @@ void TreePatternNode::InlinePatternFragments(
     Scope = TP.getDAGPatterns().allocateScope();
 
   // Compute the map of formal to actual arguments.
-  std::map<std::string, TreePatternNodePtr> ArgMap;
+  std::map<StringRef, TreePatternNodePtr> ArgMap;
   for (unsigned i = 0, e = Frag->getNumArgs(); i != e; ++i) {
     TreePatternNodePtr Child = getChildShared(i);
     if (Scope != 0) {
@@ -3479,7 +3479,7 @@ void CodeGenDAGPatterns::ParseDefaultOperands() {
 /// HandleUse - Given "Pat" a leaf in the pattern, check to see if it is an
 /// instruction input.  Return true if this is a real use.
 static bool HandleUse(TreePattern &I, TreePatternNodePtr Pat,
-                      std::map<std::string, TreePatternNodePtr> &InstInputs) {
+                      std::map<StringRef, TreePatternNodePtr> &InstInputs) {
   // No name -> not interesting.
   if (Pat->getName().empty()) {
     if (Pat->isLeaf()) {
@@ -3533,11 +3533,8 @@ static bool HandleUse(TreePattern &I, TreePatternNodePtr Pat,
 /// part of "I", the instruction), computing the set of inputs and outputs of
 /// the pattern.  Report errors if we see anything naughty.
 void CodeGenDAGPatterns::FindPatternInputsAndOutputs(
-    TreePattern &I, TreePatternNodePtr Pat,
-    std::map<std::string, TreePatternNodePtr> &InstInputs,
-    MapVector<std::string, TreePatternNodePtr, std::map<std::string, unsigned>>
-        &InstResults,
-    std::vector<const Record *> &InstImpResults) {
+    TreePattern &I, TreePatternNodePtr Pat, InstInputsTy &InstInputs,
+    InstResultsTy &InstResults, std::vector<const Record *> &InstImpResults) {
   // The instruction pattern still has unresolved fragments.  For *named*
   // nodes we must resolve those here.  This may not result in multiple
   // alternatives.
@@ -3854,11 +3851,11 @@ void CodeGenDAGPatterns::parseInstructionPattern(CodeGenInstruction &CGI,
 
   // InstInputs - Keep track of all of the inputs of the instruction, along
   // with the record they are declared as.
-  std::map<std::string, TreePatternNodePtr> InstInputs;
+  std::map<StringRef, TreePatternNodePtr> InstInputs;
 
   // InstResults - Keep track of all the virtual registers that are 'set'
   // in the instruction, including what reg class they are.
-  MapVector<std::string, TreePatternNodePtr, std::map<std::string, unsigned>>
+  MapVector<StringRef, TreePatternNodePtr, std::map<StringRef, unsigned>>
       InstResults;
 
   std::vector<const Record *> InstImpResults;
@@ -3900,18 +3897,17 @@ void CodeGenDAGPatterns::parseInstructionPattern(CodeGenInstruction &CGI,
   SmallVector<TreePatternNodePtr, 2> ResNodes;
   for (unsigned i = 0; i != NumResults; ++i) {
     if (i == CGI.Operands.size()) {
-      const std::string &OpName =
-          llvm::find_if(
-              InstResults,
-              [](const std::pair<std::string, TreePatternNodePtr> &P) {
-                return P.second;
-              })
+      StringRef OpName =
+          llvm::find_if(InstResults,
+                        [](const std::pair<StringRef, TreePatternNodePtr> &P) {
+                          return P.second;
+                        })
               ->first;
 
       I.error("'" + OpName + "' set but does not appear in operand list!");
     }
 
-    const std::string &OpName = CGI.Operands[i].Name;
+    StringRef OpName = CGI.Operands[i].Name;
 
     // Check that it exists in InstResults.
     auto InstResultIter = InstResults.find(OpName);
@@ -3944,7 +3940,7 @@ void CodeGenDAGPatterns::parseInstructionPattern(CodeGenInstruction &CGI,
   std::vector<const Record *> Operands;
   for (unsigned i = NumResults, e = CGI.Operands.size(); i != e; ++i) {
     CGIOperandList::OperandInfo &Op = CGI.Operands[i];
-    const std::string &OpName = Op.Name;
+    StringRef OpName = Op.Name;
     if (OpName.empty()) {
       I.error("Operand #" + Twine(i) + " in operands list has no name!");
       continue;
@@ -4088,7 +4084,7 @@ void CodeGenDAGPatterns::ParseInstructions() {
 typedef std::pair<TreePatternNode *, unsigned> NameRecord;
 
 static void FindNames(TreePatternNode &P,
-                      std::map<std::string, NameRecord> &Names,
+                      std::map<StringRef, NameRecord> &Names,
                       TreePattern *PatternTop) {
   if (!P.getName().empty()) {
     NameRecord &Rec = Names[P.getName()];
@@ -4126,7 +4122,7 @@ void CodeGenDAGPatterns::AddPatternToMatch(TreePattern *Pattern,
 
   // Find all of the named values in the input and output, ensure they have the
   // same type.
-  std::map<std::string, NameRecord> SrcNames, DstNames;
+  std::map<StringRef, NameRecord> SrcNames, DstNames;
   FindNames(PTM.getSrcPattern(), SrcNames, Pattern);
   FindNames(PTM.getDstPattern(), DstNames, Pattern);
 
@@ -4447,9 +4443,8 @@ void CodeGenDAGPatterns::ParsePatterns() {
                    "with temporaries yet!");
 
     // Validate that the input pattern is correct.
-    std::map<std::string, TreePatternNodePtr> InstInputs;
-    MapVector<std::string, TreePatternNodePtr, std::map<std::string, unsigned>>
-        InstResults;
+    InstInputsTy InstInputs;
+    InstResultsTy InstResults;
     std::vector<const Record *> InstImpResults;
     for (unsigned j = 0, ee = Pattern.getNumTrees(); j != ee; ++j)
       FindPatternInputsAndOutputs(Pattern, Pattern.getTree(j), InstInputs,

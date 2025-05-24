@@ -247,7 +247,7 @@ void RISCVMCCodeEmitter::expandAddTPRel(const MCInst &MI,
   Fixups.push_back(
       MCFixup::create(0, Expr, ELF::R_RISCV_TPREL_ADD, MI.getLoc()));
   if (STI.hasFeature(RISCV::FeatureRelax))
-    Fixups.back().setNeedsRelax();
+    Fixups.back().setLinkerRelaxable();
 
   // Emit a normal ADD instruction with the given operands.
   MCInst TmpInst = MCInstBuilder(RISCV::ADD)
@@ -774,7 +774,7 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
   // a bit so that if fixup is unresolved, a R_RISCV_RELAX relocation will be
   // appended.
   if (EnableRelax && RelaxCandidate)
-    Fixups.back().setNeedsRelax();
+    Fixups.back().setLinkerRelaxable();
   ++MCNumFixups;
 
   return 0;

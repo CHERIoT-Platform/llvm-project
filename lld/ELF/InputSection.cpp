@@ -713,7 +713,9 @@ static Relocation *getRISCVPCRelHi20(Ctx &ctx, const InputSectionBase *loSec,
         it->type == INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI ||
         it->type == R_RISCV_CHERI_CAPTAB_PCREL_HI20 ||
         it->type == R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20 ||
-        it->type == R_RISCV_CHERI_TLS_IE_CAPTAB_PCREL_HI20)
+        it->type == R_RISCV_CHERI_TLS_IE_CAPTAB_PCREL_HI20 ||
+        it->type == R_RISCV_CHERI_TLS_TGOT_GOT_HI20 ||
+        it->type == R_RISCV_CHERI_TLS_TGOT_GD_HI20)
       return &*it;
 
   Err(ctx) << loSec->getLocation(loReloc.offset)

@@ -134,6 +134,8 @@ RISCV::RISCV(Ctx &ctx) : TargetInfo(ctx) {
   iRelativeRel = R_RISCV_IRELATIVE;
   symbolicCapRel = R_RISCV_CHERI_CAPABILITY;
   symbolicCodeCapRel = R_RISCV_CHERI_CAPABILITY_CODE;
+  tgotRel = R_RISCV_CHERI_TLS_TGOT_SLOT;
+  tgotGotRel = R_RISCV_CHERI_TLS_TGOTREL;
   if (ctx.arg.is64) {
     symbolicRel = R_RISCV_64;
     tlsModuleIndexRel = R_RISCV_TLS_DTPMOD64;
@@ -396,6 +398,7 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
     warnDeprecated();
     [[fallthrough]];
   case R_RISCV_TPREL_ADD:
+  case R_RISCV_CHERI_TLS_TGOT_ADD:
   case R_RISCV_RELAX:
     return ctx.arg.relax ? R_RELAX_HINT : R_NONE;
   case R_RISCV_SET_ULEB128:
@@ -413,6 +416,13 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
   case R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20:
     warnDeprecated();
     return R_TLSGD_PC;
+  case R_RISCV_CHERI_TLS_TGOT_HI20:
+  case R_RISCV_CHERI_TLS_TGOT_LO12_I:
+    return R_TGOT_TP;
+  case R_RISCV_CHERI_TLS_TGOT_GOT_HI20:
+    return R_TGOT_GOT_PC;
+  case R_RISCV_CHERI_TLS_TGOT_GD_HI20:
+    return R_TGOT_TLSGD_PC;
   case INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI:
     return R_PC;
   case R_RISCV_CHERIOT_COMPARTMENT_HI:
@@ -532,6 +542,9 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
   case R_RISCV_CHERI_CAPTAB_PCREL_HI20:
   case R_RISCV_CHERI_TLS_IE_CAPTAB_PCREL_HI20:
   case R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20:
+  case R_RISCV_CHERI_TLS_TGOT_GOT_HI20:
+  case R_RISCV_CHERI_TLS_TGOT_GD_HI20:
+  case R_RISCV_CHERI_TLS_TGOT_HI20:
   case R_RISCV_GOT_HI20:
   case R_RISCV_PCREL_HI20:
   case R_RISCV_TLSDESC_HI20:
@@ -545,6 +558,7 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     return;
   }
 
+  case R_RISCV_CHERI_TLS_TGOT_LO12_I:
   case R_RISCV_PCREL_LO12_I:
   case R_RISCV_TLSDESC_LOAD_LO12:
   case R_RISCV_TLSDESC_ADD_LO12:
@@ -646,6 +660,13 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
       write64le(loc, val);
     else
       write64le(loc, val - dtpOffset);
+    break;
+
+  case R_RISCV_CHERI_TLS_TGOTREL:
+    if (ctx.arg.is64)
+      write64le(loc, val);
+    else
+      write32le(loc, val);
     break;
 
   case R_RISCV_RELAX:

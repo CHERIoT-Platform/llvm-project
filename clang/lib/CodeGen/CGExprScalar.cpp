@@ -1054,6 +1054,7 @@ public:
     return GetBinOpResult(BOP, LHS, RHS, V);
   }
   Value *VisitBinAddAssign(const CompoundAssignOperator *E) {
+    ApplyAtomGroup Grp(CGF.getDebugInfo()); 
     return EmitCompoundAssign(E, &ScalarExprEmitter::EmitAdd);
   }
   Value *VisitBinSub(const BinaryOperator *E) {
@@ -1077,6 +1078,7 @@ public:
     return GetBinOpResult(BOP, LHS, RHS, V);
   }
   Value *VisitBinSubAssign(const CompoundAssignOperator *E) {
+    ApplyAtomGroup Grp(CGF.getDebugInfo()); 
     return EmitCompoundAssign(E, &ScalarExprEmitter::EmitSub);
   }
   HANDLEBINOP(Shl)

@@ -16160,13 +16160,14 @@ Decl *Sema::ActOnStartOfFunctionDef(Scope *FnBodyScope, Decl *D,
     Diag(FD->getLocation(), diag::warn_function_def_in_objc_container);
 
   if (FD->getType()->getAs<FunctionType>()->getCallConv() == CC_CHERILibCall &&
-      !Context.getLangOpts().CheriCompartmentName.empty())
+      !Context.getLangOpts().CheriCompartmentName.empty() && !FD->isInlined())
     Diag(FD->getLocation(),
          diag::err_cheri_libcall_implemented_wrong_compartment)
         << Context.getLangOpts().CheriCompartmentName;
   else if (FD->hasAttr<CHERICompartmentNameAttr>() &&
            (FD->getAttr<CHERICompartmentNameAttr>()->getCompartmentName() !=
-            Context.getLangOpts().CheriCompartmentName))
+            Context.getLangOpts().CheriCompartmentName) &&
+           !FD->isInlined())
     Diag(FD->getLocation(), diag::err_cheri_implemented_wrong_compartment)
         << FD->getAttr<CHERICompartmentNameAttr>()->getCompartmentName()
         << Context.getLangOpts().CheriCompartmentName;

@@ -18,7 +18,7 @@ This test serves two purposes:
 
 The list of warnings below should NEVER grow.  It should gradually shrink to 0.
 
-CHECK: Warnings without flags (61):
+CHECK: Warnings without flags (63):
 
 CHECK-NEXT:   ext_expected_semi_decl_list
 CHECK-NEXT:   ext_missing_whitespace_after_macro_name
@@ -38,6 +38,8 @@ CHECK-NEXT:   warn_c_kext
 CHECK-NEXT:   warn_call_wrong_number_of_arguments
 CHECK-NEXT:   warn_case_empty_range
 CHECK-NEXT:   warn_char_constant_too_large
+CHECK-NEXT:   warn_cheriot_cap_permissions_duplicate_sym
+CHECK-NEXT:   warn_cheriot_global_cap_import_non_volatile
 CHECK-NEXT:   warn_collection_expr_type
 CHECK-NEXT:   warn_conflicting_variadic
 CHECK-NEXT:   warn_delete_array_type

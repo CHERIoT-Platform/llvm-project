@@ -812,6 +812,21 @@ void Verifier::visitGlobalValue(const GlobalValue &GV) {
     Check(!GV.hasSection(), "tagged GlobalValue must not be in section.", &GV);
   }
 
+  /// CHERIoT-specific check. If the global value is:
+  /// 1. a global variable
+  /// 2. has the "global capability import" attribute
+  /// then it must be a reference an external object.
+  const auto CheriAttrName =
+      llvm::CHERIoTGlobalCapabilityImportAttr::getAttrName();
+  auto *GVar = dyn_cast<GlobalVariable>(&GV);
+  if (GVar && GVar->hasAttribute(CheriAttrName)) {
+    Check((GV.isDeclaration() &&
+           (GV.hasExternalLinkage() || GV.hasExternalWeakLinkage())) ||
+              GV.hasAvailableExternallyLinkage(),
+          "Global has the " + CheriAttrName + " attribute, but is not external",
+          &GV);
+  }
+
   forEachUser(&GV, GlobalValueVisited, [&](const Value *V) -> bool {
     if (const Instruction *I = dyn_cast<Instruction>(V)) {
       if (!I->getParent() || !I->getParent()->getParent())

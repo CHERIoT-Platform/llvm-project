@@ -66,7 +66,7 @@ entry:
 }
 
 ; Make sure that the import and export table entries are local for the internal function.
-; CHECK: .section        .compartment_imports,"a",@progbits
+; CHECK: .section        .compartment_imports.cb,"a",@progbits
 ; CHECK-NOT: comdat
 ; CHECK-NOT: .globl __import_comp_cb
 ; CHECK: __import_comp_cb:
@@ -74,7 +74,7 @@ entry:
 ; CHECK-NOT: .globl __export_comp_cb
 ; CHECK-NOT: .globl __export_comp_ecb
 ; Make sure that the import table entry a COMDAT for the external function
-; CHECK:        .section        .compartment_imports,"aG",@progbits,__import_comp_ecb,comdat
+; CHECK:        .section        .compartment_imports.ecb,"aG",@progbits,__import_comp_ecb,comdat
 ; CHECK:        .type   __import_comp_ecb,@object
 ; CHECK:        .weak   __import_comp_ecb
 ; CHECK:        .p2align        3

@@ -45,41 +45,49 @@ FunctionPass *createRISCVLandingPadSetupPass();
 void initializeRISCVLandingPadSetupPass(PassRegistry &);
 
 /// Information about imported functions.
-struct CHERIoTImportedFunction {
+struct CHERIoTImportedObject {
   /// The name of the import symbol.
-  StringRef ImportName;
-  /// The name of the import symbol.
-  StringRef ExportName;
+  std::string ImportName;
+  /// The name of the export symbol.
+  std::string ExportName;
+  /// The name of the used symbol.
+  std::string Name;
   /// Flag indicating whether this is a library or compartment import.
   bool IsLibrary;
   /// Flag indicating that the entry should be public and a COMDAT.
   bool IsPublic;
+  /// Flag indicating that the entry is a global symbol.
+  bool IsGlobal;
+  /// May hold, if the import needs it, the value of the encoded permissions
+  /// that will be used when computing the value of the second word of the
+  /// generated entry.
+  std::optional<int64_t> MaybeSecondWordPermissionsEncoding;
 };
 
 /**
- * Helper class to allow CHERIoTImportedFunction structures to be used in a
+ * Helper class to allow CHERIoTImportedObject structures to be used in a
  * dense map.
  */
-struct CHERIoTImportedFunctionDenseMapInfo {
+struct CHERIoTImportedObjectDenseMapInfo {
   /// Anything with an empty string is invalid, use a canonical zero value.
-  static CHERIoTImportedFunction getEmptyKey() {
-    return {"", "", false, false};
+  static CHERIoTImportedObject getEmptyKey() {
+    return {"", "", "", false, false, false, std::nullopt};
   }
 
   /// Anything with an empty string is invalid, use the IsPublic field to
   /// differentiate from the canonical zero value.
-  static CHERIoTImportedFunction getTombstoneKey() {
-    return {"", "", true, false};
+  static CHERIoTImportedObject getTombstoneKey() {
+    return {"", "", "", true, false, false, std::nullopt};
   }
 
   /// The import name is unique within a compilation unit, use it for the hash.
-  static unsigned getHashValue(const CHERIoTImportedFunction &Val) {
+  static unsigned getHashValue(const CHERIoTImportedObject &Val) {
     return llvm::hash_value(Val.ImportName);
   }
 
   /// Compare for equality.
-  static bool isEqual(const CHERIoTImportedFunction &LHS,
-                      const CHERIoTImportedFunction &RHS) {
+  static bool isEqual(const CHERIoTImportedObject &LHS,
+                      const CHERIoTImportedObject &RHS) {
     // Don't bother comparing export names.  It's an error to have two imports
     // with mismatched export names (two different imports referring to the
     // same export may be permitted).  Similarly, IsPublic depends on the
@@ -90,9 +98,9 @@ struct CHERIoTImportedFunctionDenseMapInfo {
 };
 
 /// The set of functions imported from this compilation unit.
-using CHERIoTImportedFunctionSet = SetVector<
-    CHERIoTImportedFunction, std::vector<CHERIoTImportedFunction>,
-    DenseSet<CHERIoTImportedFunction, CHERIoTImportedFunctionDenseMapInfo>>;
+using CHERIoTImportedObjectSet = SetVector<
+    CHERIoTImportedObject, std::vector<CHERIoTImportedObject>,
+    DenseSet<CHERIoTImportedObject, CHERIoTImportedObjectDenseMapInfo>>;
 
 FunctionPass *createRISCVISelDag(RISCVTargetMachine &TM,
                                  CodeGenOptLevel OptLevel);
@@ -112,7 +120,7 @@ void initializeRISCVOptWInstrsPass(PassRegistry &);
 FunctionPass *createRISCVMergeBaseOffsetOptPass();
 void initializeRISCVMergeBaseOffsetOptPass(PassRegistry &);
 
-FunctionPass *createRISCVExpandPseudoPass(CHERIoTImportedFunctionSet &);
+FunctionPass *createRISCVExpandPseudoPass(CHERIoTImportedObjectSet &);
 void initializeRISCVExpandPseudoPass(PassRegistry &);
 
 FunctionPass *createRISCVPreRAExpandPseudoPass();

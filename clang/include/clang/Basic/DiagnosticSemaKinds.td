@@ -200,6 +200,16 @@ def err_half_const_requires_fp16 : Error<
   "half precision constant requires cl_khr_fp16">;
 def err_cheriot_minstack_without_annotation : Error<
   "__cheriot_minimum_stack__ can only be used in a function with a minimum stack annotation">;
+def err_cheriot_malformed_cap_permissions_unknown_sym : Error<
+  "the permissions in %0 contain unknown permission symbols: '%1' (value: '%2') ">;
+def err_cheriot_malformed_cap_permissions_invalid_dep : Error<
+  "the permissions in %0 contain ill-formed dependencies: %1 (value: '%2') ">;
+def warn_cheriot_cap_permissions_duplicate_sym : Warning<
+  "the permissions in %0 contain a duplicate permission symbol: %1 (value: '%2') ">;
+def warn_cheriot_global_cap_import_non_volatile : Warning<
+  "global variable definition '%0' has attribute %1 but is not qualified as `volatile`">;
+def err_cheriot_global_cap_import_initialized: Error<
+  "global variable definition '%0' with attribute %1 cannot have an initializer">;
 
 // C99 variable-length arrays
 def ext_vla : Extension<"variable length arrays are a C99 feature">,

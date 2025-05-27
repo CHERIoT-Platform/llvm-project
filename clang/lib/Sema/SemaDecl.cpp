@@ -13702,6 +13702,26 @@ void Sema::AddInitializerToDecl(Decl *RealDecl, Expr *Init, bool DirectInit) {
     return;
   }
 
+  // CHERIoT-specific check: if the decl has the `cheriot_mmio` or
+  // `cheriot_shared_object` attributes and also has an explicit definition, an
+  // error must be generated.
+  if (RealDecl->hasAttr<CHERIOTSharedObjectAttr>() ||
+      RealDecl->hasAttr<CHERIOTMMIODeviceAttr>()) {
+    const IdentifierInfo *AttrName;
+
+    if (auto *Attr = RealDecl->getAttr<CHERIOTSharedObjectAttr>())
+      AttrName = Attr->getAttrName();
+    else {
+      AttrName = RealDecl->getAttr<CHERIOTMMIODeviceAttr>()->getAttrName();
+    }
+
+    Diag(RealDecl->getLocation(),
+         diag::err_cheriot_global_cap_import_initialized)
+        << VDecl->getName() << AttrName;
+    VDecl->setInvalidDecl();
+    return;
+  }
+
   // WebAssembly tables can't be used to initialise a variable.
   if (!Init->getType().isNull() && Init->getType()->isWebAssemblyTableType()) {
     Diag(Init->getExprLoc(), diag::err_wasm_table_art) << 0;

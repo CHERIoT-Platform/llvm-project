@@ -2975,6 +2975,19 @@ def CHERILibCall : DeclOrTypeAttr {
   let Subjects = SubjectList<[Function], ErrorDiag>;
 }
 
+def CHERIOTMMIODevice : DeclOrTypeAttr {
+  let Spellings = [GNU<"cheriot_mmio">];
+  let Documentation = [CHERIOTMMIODeviceDocs];
+  let Args = [StringArgument<"DeviceName">, StringArgument<"EncodedPermissions", 1>];
+  let Subjects = SubjectList<[GlobalVar], ErrorDiag>;
+}
+
+def CHERIOTSharedObject : DeclOrTypeAttr {
+  let Spellings = [GNU<"cheriot_shared_object">];
+  let Documentation = [CHERIOTSharedObjectDocs];
+  let Args = [StringArgument<"ObjectName">, StringArgument<"EncodedPermissions", 1>];
+  let Subjects = SubjectList<[GlobalVar], ErrorDiag>;
+}
 
 def CHERINoSubobjectBounds : DeclOrTypeAttr {
   let Spellings = [GNU<"cheri_no_subobject_bounds">,

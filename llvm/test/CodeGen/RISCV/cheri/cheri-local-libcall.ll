@@ -34,7 +34,7 @@ attributes #1 = { minsize mustprogress nofree norecurse nosync nounwind optsize 
 ; CHECK-NEXT:	.byte	0
 ; CHECK-NEXT:	.byte	8
 ; CHECK-NEXT:	.size	__export_hello__Z9say_hellov, 4
-; CHECK-NEXT:	.section	.compartment_imports,"aG",@progbits,__library_import_hello__Z11id_functionv,comdat
+; CHECK-NEXT:	.section	.compartment_imports._Z11id_functionv,"aG",@progbits,__library_import_hello__Z11id_functionv,comdat
 ; CHECK-NEXT:	.type	__library_import_hello__Z11id_functionv,@object
 ; CHECK-NEXT:	.weak	__library_import_hello__Z11id_functionv
 ; CHECK-NEXT:	.p2align	3, 0x0

@@ -70,8 +70,8 @@ public:
   ScheduleDAGInstrs *
   createPostMachineScheduler(MachineSchedContext *C) const override;
 
-  /// The set of functions imported from this compilation unit.
-  CHERIoTImportedFunctionSet ImportedFunctions;
+  /// The set of objects imported from this compilation unit.
+  CHERIoTImportedObjectSet ImportedObjects;
 };
 
 std::unique_ptr<ScheduleDAGMutation>

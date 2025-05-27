@@ -35,6 +35,8 @@
 // CHECK-NEXT: CHERICCallee (SubjectMatchRule_function)
 // CHECK-NEXT: CHERICompartmentName (SubjectMatchRule_function)
 // CHECK-NEXT: CHERILibCall (SubjectMatchRule_function)
+// CHECK-NEXT: CHERIOTMMIODevice (SubjectMatchRule_variable_is_global)
+// CHECK-NEXT: CHERIOTSharedObject (SubjectMatchRule_variable_is_global)
 // CHECK-NEXT: CHERISubobjectBoundsUseRemainingSize (SubjectMatchRule_field, SubjectMatchRule_record)
 // CHECK-NEXT: CPUDispatch (SubjectMatchRule_function)
 // CHECK-NEXT: CPUSpecific (SubjectMatchRule_function)

@@ -7,8 +7,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "ABIInfoImpl.h"
-#include "TargetInfo.h"
 #include "CommonCheriTargetCodeGenInfo.h"
+#include "TargetInfo.h"
 #include "llvm/TargetParser/RISCVTargetParser.h"
 
 using namespace clang;
@@ -864,6 +864,33 @@ public:
 
   void setTargetAttributes(const Decl *D, llvm::GlobalValue *GV,
                            CodeGen::CodeGenModule &CGM) const override {
+    if (const auto *VD = dyn_cast_or_null<VarDecl>(D)) {
+      if (auto *GVar = llvm::dyn_cast<llvm::GlobalVariable>(GV)) {
+
+        // If the clang declaration was annotated with `cheriot_mmio(...)`, we
+        // need to propagate the attribute by translating it to a matching
+        // `cheriot_cap_import` attribute in the generated LLVM IR, so that the
+        // back-end can generate the proper import entries and correctly
+        // translate references to this global.
+        if (VD->hasAttr<CHERIOTMMIODeviceAttr>()) {
+          auto *Attr = D->getAttr<CHERIOTMMIODeviceAttr>();
+          llvm::CHERIoTGlobalCapabilityImportAttr CapImportAttr(
+              llvm::CHERIoTGlobalCapabilityImportAttr::MMIO,
+              Attr->getDeviceName(), Attr->getEncodedPermissions());
+          GVar->addAttribute(CapImportAttr.getAttrName(), CapImportAttr.str());
+        }
+
+        // Same for the `cheriot_shared_object(...)` attribute.
+        if (VD->hasAttr<CHERIOTSharedObjectAttr>()) {
+          auto *Attr = D->getAttr<CHERIOTSharedObjectAttr>();
+          llvm::CHERIoTGlobalCapabilityImportAttr CapImportAttr(
+              llvm::CHERIoTGlobalCapabilityImportAttr::SharedObject,
+              Attr->getObjectName(), Attr->getEncodedPermissions());
+          GVar->addAttribute(CapImportAttr.getAttrName(), CapImportAttr.str());
+        }
+      }
+    }
+
     const auto *FD = dyn_cast_or_null<FunctionDecl>(D);
     if (!FD) return;
 

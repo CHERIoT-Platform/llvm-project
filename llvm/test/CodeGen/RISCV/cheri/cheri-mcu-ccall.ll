@@ -157,7 +157,7 @@ attributes #6 = { minsize nounwind optsize }
 ; CHECK:        .byte   0
 ; CHECK:        .byte   7
 ; CHECK:        .size   __export_example_test8, 4
-; CHECK:        .section        .compartment_imports,"aG",@progbits,__import_other_test8callee,comdat
+; CHECK:        .section        .compartment_imports.test8callee,"aG",@progbits,__import_other_test8callee,comdat
 ; CHECK:        .type   __import_other_test8callee,@object
 ; CHECK:        .weak  __import_other_test8callee
 ; CHECK:        .p2align        3

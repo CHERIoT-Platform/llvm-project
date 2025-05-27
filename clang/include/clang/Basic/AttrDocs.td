@@ -1518,6 +1518,73 @@ Further reading for other annotations:
   }];
 }
 
+def CHERIOTMMIODeviceDocs : Documentation {
+  let Category = DocCatVariable;
+  let Content = [{
+Indicates that the global it refers to must be treated as a cross-compartment
+object. In particular, this attribute indicates that the object is related to
+an MMIO-bound device. The target global must have the `extern` and `volatile`
+qualifiers.
+
+**Usage**: ``__attribute((cheriot_mmio("<device>",
+"<permissions_encoding>")))``, where ``"<device>"`` is the (quoted) identifier
+of the MMIO-bound device. An example of this is ``"uart"``. The
+``"<permissions_encoding>"`` indicates the permissions of the capability
+resulting from the import. The permissions encoding is a string of variable
+length. The symbols allowed in the string are ``R``, ``W``, ``c`` and ``m``,
+whose meaning is explained in the table below.
+
+
+.. csv-table:: Supported Syntaxes
+   :header: "Symbol", "Description", "Meaning", "Depends on"
+
+   "``R``","Load (Read)", "May be used to read.",""
+   "``W``","Store (Write)", "May be used to write.",""
+   "``c``","Load / Store Capability", "May be used to load or store capabilities as well as non-capability data.","``R`` or ``W``"
+   "``m``","Load Mutable", "May be used to load capabilities with write permission.","``R``"
+
+Examples of valid encodings are: ``"RWcm"`` (all permissions), ``"R"`` (read
+only), etc. Note that the order in which symbols appear is not relevant: for
+example, `"RWcm"` and `"mcWR"` are both valid and entail the same permissions.
+
+**Warning**: The ``<permissions_encoding>`` parameter is optional, and if no encoding is given ``"RWcm"`` is assumed.
+  }];
+}
+
+
+def CHERIOTSharedObjectDocs : Documentation {
+  let Category = DocCatVariable;
+  let Content = [{
+Indicates that the global it refers to must be treated as a cross-compartment
+object. In particular, this attribute indicates that the object is a
+cross-compartment shared object. The target global must have the `extern` and
+`volatile` qualifiers.
+
+
+**Usage**: ``__attribute((cheriot_shared_object("<object>",
+"<permissions_encoding>")))``, where ``"<object>"`` is the (quoted) identifier
+of the shared object. The ``"<permissions_encoding>"`` indicates the permissions
+of the capability resulting from the import. The permissions encoding is a
+string of variable length. The symbols allowed in the string are ``R``, ``W``,
+``c`` and ``m``, whose meaning is explained in the table below.
+
+
+.. csv-table:: Supported Syntaxes
+   :header: "Symbol", "Description", "Meaning", "Depends on"
+
+   "``R``","Load (Read)", "May be used to read.",""
+   "``W``","Store (Write)", "May be used to write.",""
+   "``c``","Load / Store Capability", "May be used to load or store capabilities as well as non-capability data.","``R`` or ``W``"
+   "``m``","Load Mutable", "May be used to load capabilities with write permission.","``R``"
+
+Examples of valid encodings are: ``"RWcm"`` (all permissions), ``"R"`` (read
+only), etc. Note that the order in which symbols appear is not relevant: for
+example, `"RWcm"` and `"mcWR"` are both valid and entail the same permissions.
+
+**Warning**: The ``<permissions_encoding>`` parameter is optional, and if no encoding is given ``"RWcm"`` is assumed.
+  }];
+}
+
 def ObjCMethodFamilyDocs : Documentation {
   let Category = DocCatFunction;
   let Content = [{

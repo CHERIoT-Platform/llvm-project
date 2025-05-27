@@ -1362,6 +1362,262 @@ void updateMinLegalVectorWidthAttr(Function &Fn, uint64_t Width);
 
 } // end namespace AttributeFuncs
 
+/// Represents the LLVM-level attribute that is used to signal
+/// cross-compartment imports of global (non-function) objects
+class CHERIoTGlobalCapabilityImportAttr {
+public:
+  /// The kind of object being imported.
+  enum ImportKind {
+    /// An MMIO-bound device.
+    MMIO,
+    /// A generic shared object.
+    SharedObject
+  };
+
+  /// Parses the string value previously constructed into an instance of the
+  /// attribute object. The constructed string must have the following
+  /// structure: `<ImportKindStr>,<ObjectName>,<Permissions>`.
+  ///
+  /// `<ImportKindStr>` is used to uniquely identify the `ImportKind` of this
+  /// global capability import. The valid values are `MmioImportKindStr` and
+  /// `SharedObjectImportKindStr`. Using an unrecognizable value for
+  /// `<ImportKindStr>` triggers a `llvm_unreachable`.
+  ///
+  /// The `<ObjectName>` is the name of the imported object. `<Permissions>` is
+  /// assumed to be a well-formed and normalized permission string: this means
+  /// that it is assumed to be in this form:
+  ///
+  /// ```
+  /// Permissions     := ReadPermission WritePermissions CapPermission
+  /// MutPermission ReadPermission  := `ReadPermissionSymbol` | "-"
+  /// WritePermission := `WritePermissionSymbol` | "-"
+  /// CapPermission   := `CapPermissionSymbol` | "-"
+  /// WritePermission := `WritePermissionSymbol` | "-"
+  /// ```
+  ///
+  /// The resulting `GlobalCapabilityImportAttr` will have the `ImportKind` and
+  /// `Domain` fields derived from `<ImportKindStr>`, `ObjectName` equal to
+  /// `<ObjectName>` and `Permissions` equal to `<Permissions>`.
+  CHERIoTGlobalCapabilityImportAttr(StringRef ValueRef) {
+    size_t NextSubstrStartsAt = 0;
+
+    auto ImportKindStr = ValueRef.substr(
+        NextSubstrStartsAt, ValueRef.find(Separator) - NextSubstrStartsAt);
+
+    if (ImportKindStr == MmioImportKindStr) {
+      ImportKind = ImportKind::MMIO;
+      Domain = MmioImportKindStr;
+    } else if (ImportKindStr == SharedObjectImportKindStr) {
+      ImportKind = ImportKind::SharedObject;
+      Domain = SharedObjectImportKindStr;
+    } else {
+      llvm_unreachable(
+          std::string("unknown import kind: " + ImportKindStr.str()).c_str());
+    }
+
+    NextSubstrStartsAt += ImportKindStr.size() + 1;
+
+    if (NextSubstrStartsAt < ValueRef.size()) {
+      ObjectName = ValueRef.substr(
+          NextSubstrStartsAt,
+          ValueRef.find(Separator, NextSubstrStartsAt) - NextSubstrStartsAt);
+    } else {
+      ObjectName = StringRef();
+    }
+
+    NextSubstrStartsAt += ObjectName.size() + 1;
+    if (NextSubstrStartsAt < ValueRef.size()) {
+      Permissions = ValueRef.substr(NextSubstrStartsAt);
+    } else {
+      Permissions = StringRef();
+    }
+  }
+
+  CHERIoTGlobalCapabilityImportAttr(ImportKind ImportKind, StringRef ObjectName,
+                                    StringRef EncodedPermissions)
+      : ImportKind(ImportKind), ObjectName(ObjectName),
+        Permissions(EncodedPermissions) {
+    switch (ImportKind) {
+    case MMIO:
+      Domain = MmioImportKindStr;
+      break;
+    case SharedObject:
+      Domain = SharedObjectImportKindStr;
+      break;
+    }
+  };
+
+  /// Returns the name of attribute.
+  static const StringRef getAttrName() {
+    return StringRef("cheriot_global_cap_import");
+  }
+
+  /// Returns the string value for this CapabilityImportAttr.
+  std::string str() {
+    std::string ImportKindStr = "";
+    switch (ImportKind) {
+
+    case MMIO:
+      ImportKindStr = MmioImportKindStr;
+      break;
+    case SharedObject:
+      ImportKindStr = SharedObjectImportKindStr;
+      break;
+    }
+    return (ImportKindStr + Separator + ObjectName.str() + Separator +
+            Permissions.str());
+  }
+
+  /// Returns the list of valid permission symbols.
+  static auto getValidPermissionSymbols() { return &ValidSymbols; }
+
+  /// Converts the permissions into an integer.
+  int64_t encodePermissions() {
+    return (((Permissions[0] == *ReadPermissionSymbol) ? (1 << 31) : 0) +
+            ((Permissions[1] == *WritePermissionSymbol) ? (1 << 30) : 0) +
+            ((Permissions[2] == *CapPermissionSymbol) ? (1 << 29) : 0) +
+            ((Permissions[3] == *MutPermissionSymbol) ? (1 << 28) : 0));
+  }
+
+  /// Checks whether a permission encoding respects the semantic constraints.
+  ///
+  /// This function assumes that the encoding is syntactically correct, that is,
+  /// it contains no extraneous symbols.
+  ///
+  /// If successful, this function modifies in-place the given string ref to a
+  /// known format.
+  static bool semanticCheckPermissions(
+      std::string &Permissions,
+      std::function<void(std::string)> FailedSemanticCheckCallback) {
+
+    auto PermissionsRef = StringRef(Permissions);
+    auto HasRead = PermissionsRef.contains(ReadPermissionSymbol);
+    auto HasWrite = PermissionsRef.contains(WritePermissionSymbol);
+    auto HasMut = PermissionsRef.contains(MutPermissionSymbol);
+    auto HasCap = PermissionsRef.contains(CapPermissionSymbol);
+
+    if (!HasRead && !HasWrite) {
+      FailedSemanticCheckCallback(
+          "does not contain either read (" + std::string(ReadPermissionSymbol) +
+          ") or write (" + std::string(WritePermissionSymbol) + ")");
+      return false;
+    }
+
+    if (HasMut && (!HasRead || !HasCap)) {
+      FailedSemanticCheckCallback(
+          "contains mut (" + std::string(MutPermissionSymbol) +
+          ") but does not have both read (" +
+          std::string(ReadPermissionSymbol) + ") and cap (" +
+          std::string(CapPermissionSymbol) + ")");
+      return false;
+    }
+
+    Permissions = (HasRead ? std::string(ReadPermissionSymbol) : "") +
+                  (HasWrite ? std::string(WritePermissionSymbol) : "") +
+                  (HasCap ? std::string(CapPermissionSymbol) : "") +
+                  (HasMut ? std::string(MutPermissionSymbol) : "");
+    return true;
+  }
+
+  /// Checks whether a permission encoding respects the syntactic constraints.
+  static bool syntaxCheckPermissions(
+      std::string &Permissions,
+      std::function<void(char)> DuplicateSymbolCallback,
+      std::function<void(StringRef)> ExtraneousSymbolCallback) {
+
+    const auto ValidSymbolsSize = ValidSymbols.size();
+    std::vector<bool> SymbolsCounter(ValidSymbolsSize, false);
+    std::string ExtraneousSymbols("");
+    const auto *ValidSymbolsBegin = std::begin(ValidSymbols);
+    bool Duplicate;
+
+    for (char C : Permissions) {
+      Duplicate = false;
+
+      const unsigned long Pos =
+          std::find(ValidSymbolsBegin, ValidSymbolsBegin + ValidSymbolsSize,
+                    C) -
+          ValidSymbolsBegin;
+
+      if (Pos < ValidSymbolsSize) {
+        Duplicate = SymbolsCounter[Pos];
+        SymbolsCounter[Pos] = true;
+      } else {
+        ExtraneousSymbols.push_back(C);
+      }
+
+      if (Duplicate)
+        DuplicateSymbolCallback(C);
+    }
+
+    if (!ExtraneousSymbols.empty()) {
+      ExtraneousSymbolCallback(ExtraneousSymbols);
+      return false;
+    }
+
+    return true;
+  }
+
+  static bool checkPermissions(
+      std::string &Permissions,
+      std::function<void(char)> DuplicateSymbolCallback = [](char) {},
+      std::function<void(StringRef)> ExtraneousSymbolCallback =
+          [](StringRef) {},
+      std::function<void(std::string)> FailedSemanticCheckCallback =
+          [](std::string) {}) {
+
+    // If no permissions were set, use the default ones.
+    if (Permissions.empty()) {
+      Permissions = defaultPermissions();
+    }
+
+    // Perform the syntactic checks.
+    if (!syntaxCheckPermissions(Permissions, DuplicateSymbolCallback,
+                                ExtraneousSymbolCallback)) {
+      return false;
+    }
+
+    // Semantics checks.
+    return semanticCheckPermissions(Permissions, FailedSemanticCheckCallback);
+  }
+
+  /// Returns the default permissions.
+  static const std::string defaultPermissions() {
+    return std::string(ReadPermissionSymbol) +
+           std::string(WritePermissionSymbol) +
+           std::string(CapPermissionSymbol) + std::string(MutPermissionSymbol);
+  }
+
+  ImportKind ImportKind;
+  StringRef Domain;
+  StringRef ObjectName;
+  StringRef Permissions;
+
+private:
+  /// The separator used when creating the final string value for the
+  /// attribute.
+  static constexpr const char *Separator = ",";
+
+  /// The symbol for the read permission.
+  static constexpr const char *ReadPermissionSymbol = "R";
+
+  /// The symbol for the write permission.
+  static constexpr const char *WritePermissionSymbol = "W";
+
+  /// The symbol for the cap permission.
+  static constexpr const char *CapPermissionSymbol = "c";
+
+  /// The symbol for the mut permission.
+  static constexpr const char *MutPermissionSymbol = "m";
+
+  static constexpr const std::array<char, 4> ValidSymbols = {
+      ReadPermissionSymbol[0], WritePermissionSymbol[0], CapPermissionSymbol[0],
+      MutPermissionSymbol[0]};
+
+  static constexpr const char *MmioImportKindStr = "mem";
+  static constexpr const char *SharedObjectImportKindStr =
+      "cheriot_shared_object";
+};
 } // end namespace llvm
 
 #endif // LLVM_IR_ATTRIBUTES_H

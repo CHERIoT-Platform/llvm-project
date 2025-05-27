@@ -12,3 +12,9 @@ int shouldBePrototype(void) // libcall-error{{CHERI compartment entry declared f
 {
 	return 1;
 }
+
+__attribute__((cheriot_libcall))
+inline int inlineDefinition(int a, int b)
+{
+	return a+b;
+}

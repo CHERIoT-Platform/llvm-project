@@ -1419,7 +1419,6 @@ enum NodeType {
   /// address.
   PTRTOINT,
   INTTOPTR,
-  PTRADD,
 
   /// GC_TRANSITION_START/GC_TRANSITION_END - These operators mark the
   /// beginning and end of GC transition  sequence, and carry arbitrary
@@ -1517,6 +1516,11 @@ enum NodeType {
   //   <numArgs>, cc, ...
   // Outputs: [rv], output chain, glue
   PATCHPOINT,
+
+  // PTRADD represents pointer arithmetic semantics, for targets that opt in
+  // using shouldPreservePtrArith().
+  // ptr = PTRADD ptr, offset
+  PTRADD,
 
 // Vector Predication
 #define BEGIN_REGISTER_VP_SDNODE(VPSDID, ...) VPSDID,

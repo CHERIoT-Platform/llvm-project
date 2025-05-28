@@ -3753,7 +3753,7 @@ static SDValue createLoadLR(unsigned Opc, SelectionDAG &DAG, LoadSDNode *LD,
   SDVTList VTList = DAG.getVTList(VT, MVT::Other);
 
   if (Offset)
-    Ptr = DAG.getPointerAdd(DL, Ptr, Offset);
+    Ptr = DAG.getMemBasePlusOffset(Ptr, TypeSize::getFixed(Offset), DL);
 
   SDValue Ops[] = { Chain, Ptr, Src };
   return DAG.getMemIntrinsicNode(Opc, DL, VTList, Ops, MemVT,
@@ -3844,7 +3844,7 @@ static SDValue createStoreLR(unsigned Opc, SelectionDAG &DAG, StoreSDNode *SD,
   SDVTList VTList = DAG.getVTList(MVT::Other);
 
   if (Offset)
-    Ptr = DAG.getPointerAdd(DL, Ptr, Offset);
+    Ptr = DAG.getMemBasePlusOffset(Ptr, TypeSize::getFixed(Offset), DL);
 
   SDValue Ops[] = { Chain, Value, Ptr };
   return DAG.getMemIntrinsicNode(Opc, DL, VTList, Ops, MemVT,
@@ -4033,7 +4033,7 @@ SDValue MipsTargetLowering::lowerBR_JT(SDValue Op,
   Index = DAG.getNode(ISD::SHL, dl, MVT::i64, Index,
                       DAG.getConstant(Log2_32(EntrySize), dl, MVT::i64));
   EVT MemVT = EVT::getIntegerVT(*DAG.getContext(), EntrySize * 8);
-  auto LoadAddr = DAG.getPointerAdd(dl, Jumptable, Index);
+  auto LoadAddr = DAG.getMemBasePlusOffset(Jumptable, Index, dl);
   SDValue JTEntryValue = DAG.getExtLoad(
       ISD::SEXTLOAD, dl, MVT::i64, Chain, LoadAddr,
       MachinePointerInfo::getJumpTable(DAG.getMachineFunction()), MemVT);
@@ -4250,7 +4250,8 @@ SDValue MipsTargetLowering::passArgOnStack(SDValue StackPtr, unsigned Offset,
                                            const SDLoc &DL, bool IsTailCall,
                                            SelectionDAG &DAG) const {
   if (!IsTailCall) {
-    SDValue PtrOff = DAG.getPointerAdd(DL, StackPtr, Offset);
+    SDValue PtrOff =
+        DAG.getMemBasePlusOffset(StackPtr, TypeSize::getFixed(Offset), DL);
     return DAG.getStore(Chain, DL, Arg, PtrOff, MachinePointerInfo());
   }
 
@@ -4629,7 +4630,8 @@ MipsTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   }
   if (ABI.IsCheriPureCap()) {
     if (FirstOffset != -1) {
-      SDValue PtrOff = DAG.getPointerAdd(DL, StackPtr, FirstOffset);
+      SDValue PtrOff = DAG.getMemBasePlusOffset(
+          StackPtr, TypeSize::getFixed(FirstOffset), DL);
       std::string BoundsDetails;
       if (cheri::ShouldCollectCSetBoundsStats) {
         StringRef Name = "<unknown function>";
@@ -5163,8 +5165,8 @@ SDValue MipsTargetLowering::LowerFormalArguments(
       SDValue ArgValue;
       if (ABI.IsCheriPureCap()) {
         Register CapArgReg = MF.addLiveIn(Mips::C13, getRegClassFor(CapType));
-        SDValue Addr = DAG.getPointerAdd(DL, DAG.getCopyFromReg(Chain, DL,
-              CapArgReg, CapType), VA.getLocMemOffset());
+        SDValue Addr = DAG.getMemBasePlusOffset(DAG.getCopyFromReg(Chain, DL,
+              CapArgReg, CapType), TypeSize::getFixed(VA.getLocMemOffset()), DL);
         ArgValue = DAG.getLoad(LocVT, DL, Chain, Addr, MachinePointerInfo());
       } else {
         // The stack pointer offset is relative to the caller stack frame.
@@ -5990,7 +5992,8 @@ void MipsTargetLowering::copyByValRegs(
     unsigned ArgReg = ByValArgRegs[FirstReg + I];
     unsigned VReg = addLiveIn(MF, ArgReg, RC);
     unsigned Offset = I * GPRSizeInBytes;
-    SDValue StorePtr = DAG.getPointerAdd(DL, FIN, Offset);
+    SDValue StorePtr =
+        DAG.getMemBasePlusOffset(FIN, TypeSize::getFixed(Offset), DL);
     SDValue Store = DAG.getStore(Chain, DL, DAG.getRegister(VReg, RegTy),
                                  StorePtr, MachinePointerInfo(FuncArg, Offset));
     OutChains.push_back(Store);
@@ -6027,7 +6030,8 @@ void MipsTargetLowering::passByValArg(
 
     // Copy words to registers.
     for (; I < NumRegs - LeftoverBytes; ++I, OffsetInBytes += RegSizeInBytes) {
-      SDValue LoadPtr = DAG.getPointerAdd(DL, Arg, OffsetInBytes);
+      SDValue LoadPtr =
+          DAG.getMemBasePlusOffset(Arg, TypeSize::getFixed(OffsetInBytes), DL);
       SDValue LoadVal = DAG.getLoad(RegTy, DL, Chain, LoadPtr,
                                     MachinePointerInfo(), Alignment);
       MemOpChains.push_back(LoadVal.getValue(1));
@@ -6088,13 +6092,14 @@ void MipsTargetLowering::passByValArg(
 
   // Copy remainder of byval arg to it with memcpy.
   unsigned MemCpySize = ByValSizeInBytes - OffsetInBytes;
-  SDValue Src = DAG.getPointerAdd(DL, Arg, OffsetInBytes);
-  SDValue Dst = DAG.getPointerAdd(DL, StackPtr, VA.getLocMemOffset());
-  Chain = DAG.getMemcpy(Chain, DL, Dst, Src,
-                        DAG.getIntPtrConstant(MemCpySize, DL), Alignment,
-                        /*isVolatile=*/false, /*AlwaysInline=*/false,
-                        /*CI=*/nullptr, std::nullopt, llvm::PreserveCheriTags::Unknown,
-                        MachinePointerInfo(), MachinePointerInfo());
+  SDValue Src = DAG.getMemBasePlusOffset(Arg, TypeSize::getFixed(OffsetInBytes), DL);
+  SDValue Dst = DAG.getMemBasePlusOffset(
+      StackPtr, TypeSize::getFixed(VA.getLocMemOffset()), DL);
+  Chain = DAG.getMemcpy(
+      Chain, DL, Dst, Src, DAG.getIntPtrConstant(MemCpySize, DL), Alignment,
+      /*isVolatile=*/false, /*AlwaysInline=*/false,
+      /*CI=*/nullptr, std::nullopt, llvm::PreserveCheriTags::Unknown,
+      MachinePointerInfo(), MachinePointerInfo());
   MemOpChains.push_back(Chain);
 }
 

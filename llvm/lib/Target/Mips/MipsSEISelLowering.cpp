@@ -1278,7 +1278,7 @@ SDValue MipsSETargetLowering::lowerLOAD(SDValue Op, SelectionDAG &DAG) const {
                            Nd.getAlign(), Nd.getMemOperand()->getFlags());
 
   // i32 load from higher address.
-  Ptr = DAG.getPointerAdd(DL, Ptr, 4);
+  Ptr = DAG.getMemBasePlusOffset(Ptr, TypeSize::getFixed(4), DL);
   SDValue Hi = DAG.getLoad(
       MVT::i32, DL, Lo.getValue(1), Ptr, MachinePointerInfo(),
       commonAlignment(Nd.getAlign(), 4), Nd.getMemOperand()->getFlags());
@@ -1313,7 +1313,7 @@ SDValue MipsSETargetLowering::lowerSTORE(SDValue Op, SelectionDAG &DAG) const {
                        Nd.getMemOperand()->getFlags(), Nd.getAAInfo());
 
   // i32 store to higher address.
-  Ptr = DAG.getPointerAdd(DL, Ptr, 4);
+  Ptr = DAG.getMemBasePlusOffset(Ptr, TypeSize::getFixed(4), DL);
   return DAG.getStore(Chain, DL, Hi, Ptr, MachinePointerInfo(),
                       commonAlignment(Nd.getAlign(), 4),
                       Nd.getMemOperand()->getFlags(), Nd.getAAInfo());

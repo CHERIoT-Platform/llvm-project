@@ -1104,16 +1104,6 @@ public:
                          Alignment, Pass, Kind, Reason, SrcLoc);
   }
 
-  // Unlike getObjectPtrOffset this does not set NoUnsignedWrap by default
-  SDValue getPointerAdd(const SDLoc &DL, SDValue Ptr, int64_t Offset,
-                        const SDNodeFlags Flags = SDNodeFlags());
-
-  // Unlike getObjectPtrOffset this does not set NoUnsignedWrap by default
-  SDValue getPointerAdd(const SDLoc &DL, SDValue Ptr, SDValue Offset,
-                        const SDNodeFlags Flags = SDNodeFlags()) {
-    return getMemBasePlusOffset(Ptr, Offset, DL, Flags);
-  }
-
   /// Convert a vector-predicated Op, which must be an integer vector, to the
   /// vector-type VT, by performing either vector-predicated zext or truncating
   /// it. The Op will be returned as-is if Op and VT are vectors containing

@@ -8826,7 +8826,7 @@ SDValue RISCVTargetLowering::getStaticTLSAddr(GlobalAddressSDNode *N,
 
       // Add the thread pointer.
       SDValue TPReg = DAG.getRegister(RISCV::C4, Ty);
-      return DAG.getPointerAdd(DL, TPReg, Load);
+      return DAG.getMemBasePlusOffset(TPReg, Load, DL);
     }
 
     // Generate a sequence for accessing the address relative to the thread
@@ -9415,7 +9415,9 @@ SDValue RISCVTargetLowering::lowerFRAMEADDR(SDValue Op,
   unsigned Depth = Op.getConstantOperandVal(0);
   while (Depth--) {
     int Offset = -(XLenInBytes * 2);
-    SDValue Ptr = DAG.getPointerAdd(DL, FrameAddr, Offset);
+    EVT OffVT = VT.isFatPointer() ? getPointerRangeTy(DAG.getDataLayout()) : VT;
+    SDValue Ptr = DAG.getMemBasePlusOffset(
+        FrameAddr, DAG.getSignedConstant(Offset, DL, OffVT), DL);
     FrameAddr =
         DAG.getLoad(VT, DL, DAG.getEntryNode(), Ptr, MachinePointerInfo());
   }
@@ -9438,10 +9440,13 @@ SDValue RISCVTargetLowering::lowerRETURNADDR(SDValue Op,
   unsigned Depth = Op.getConstantOperandVal(0);
   if (Depth) {
     int Off = -XLenInBytes;
+    EVT OffVT = VT.isFatPointer() ? getPointerRangeTy(DAG.getDataLayout()) : VT;
     SDValue FrameAddr = lowerFRAMEADDR(Op, DAG);
-    return DAG.getLoad(VT, DL, DAG.getEntryNode(),
-                       DAG.getPointerAdd(DL, FrameAddr, Off),
-                       MachinePointerInfo());
+    return DAG.getLoad(
+        VT, DL, DAG.getEntryNode(),
+        DAG.getMemBasePlusOffset(FrameAddr,
+                                 DAG.getSignedConstant(Off, DL, OffVT), DL),
+        MachinePointerInfo());
   }
 
   // Return the value of the return address register, marking it an implicit
@@ -22227,9 +22232,11 @@ static SDValue unpackFromMemLoc(SelectionDAG &DAG, SDValue Chain,
   }
   if (ViaCap)
     Val = DAG.getExtLoad(
-      ExtType, DL, LocVT, Chain,
-      DAG.getPointerAdd(DL, DAG.getCopyFromReg(Chain, DL, RISCV::C5, MVT::c64), VA.getLocMemOffset()),
-      MachinePointerInfo::getFixedStack(DAG.getMachineFunction(), FI), ValVT);
+        ExtType, DL, LocVT, Chain,
+        DAG.getMemBasePlusOffset(
+            DAG.getCopyFromReg(Chain, DL, RISCV::C5, MVT::c64),
+            TypeSize::getFixed(VA.getLocMemOffset()), DL),
+        MachinePointerInfo::getFixedStack(DAG.getMachineFunction(), FI), ValVT);
   else {
     SDValue FIN = DAG.getFrameIndex(FI, PtrVT);
     Val = DAG.getExtLoad(
@@ -22421,7 +22428,7 @@ SDValue RISCVTargetLowering::LowerFormalArguments(
         SDValue Offset = DAG.getIntPtrConstant(PartOffset, DL);
         if (PartVA.getValVT().isScalableVector())
           Offset = DAG.getNode(ISD::VSCALE, DL, XLenVT, Offset);
-        SDValue Address = DAG.getPointerAdd(DL, ArgValue, Offset);
+        SDValue Address = DAG.getMemBasePlusOffset(ArgValue, Offset, DL);
         InVals.push_back(DAG.getLoad(PartVA.getValVT(), DL, Chain, Address,
                                      MachinePointerInfo()));
         ++i;
@@ -22711,8 +22718,8 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
               DAG.getCopyFromReg(Chain, DL,
                                  getStackPointerRegisterToSaveRestore(),
                                  PtrVT);
-        SDValue Address =
-            DAG.getPointerAdd(DL, StackPtr, HiVA.getLocMemOffset());
+        SDValue Address = DAG.getMemBasePlusOffset(
+            StackPtr, TypeSize::getFixed(HiVA.getLocMemOffset()), DL);
         // Emit the store.
         MemOpChains.push_back(DAG.getStore(
             Chain, DL, Hi, Address,
@@ -22794,8 +22801,8 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
             DAG.getCopyFromReg(Chain, DL,
                                getStackPointerRegisterToSaveRestore(),
                                PtrVT);
-      SDValue Address =
-          DAG.getPointerAdd(DL, StackPtr, VA.getLocMemOffset());
+      SDValue Address = DAG.getMemBasePlusOffset(
+          StackPtr, TypeSize::getFixed(VA.getLocMemOffset()), DL);
 
       // Emit the store.
       MemOpChains.push_back(

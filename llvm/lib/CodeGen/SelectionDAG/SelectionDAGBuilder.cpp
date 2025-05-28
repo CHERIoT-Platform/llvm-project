@@ -8097,7 +8097,7 @@ void SelectionDAGBuilder::visitIntrinsicCall(const CallInst &I,
           Res = Cap;
         } else {
           // SetAddr(null, $addr) -> CIncOffset(null, $addr)
-          Res = DAG.getPointerAdd(sdl, Cap, Addr);
+          Res = DAG.getMemBasePlusOffset(Cap, Addr, sdl);
         }
         setValue(&I, Res);
         return;
@@ -8110,7 +8110,7 @@ void SelectionDAGBuilder::visitIntrinsicCall(const CallInst &I,
         ISD::INTRINSIC_WO_CHAIN, sdl, PtrVT,
         DAG.getConstant(Intrinsic::cheri_cap_address_get, sdl, PtrVT), Cap);
     SDValue Delta = DAG.getNode(ISD::SUB, sdl, PtrVT, Addr, CapAddr);
-    Res = DAG.getPointerAdd(sdl, Cap, Delta);
+    Res = DAG.getMemBasePlusOffset(Cap, Delta, sdl);
     setValue(&I, Res);
     return;
   }

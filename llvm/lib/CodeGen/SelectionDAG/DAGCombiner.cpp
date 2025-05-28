@@ -2714,7 +2714,7 @@ SDValue DAGCombiner::visitPTRADD(SDNode *N) {
         (DAG.isConstantIntBuildVectorOrConstantInt(Y) && N0.hasOneUse()) ||
         (N0.hasOneUse() && Z.hasOneUse() &&
          !DAG.isConstantIntBuildVectorOrConstantInt(Z)))
-      return DAG.getPointerAdd(DL, X, Add);
+      return DAG.getMemBasePlusOffset(X, Add, DL);
   }
 
   return SDValue();
@@ -28698,7 +28698,7 @@ SDValue DAGCombiner::convertSelectOfFPConstantsToLoadOffset(
   AddToWorklist(Cond.getNode());
   SDValue CstOffset = DAG.getSelect(DL, Zero.getValueType(), Cond, One, Zero);
   AddToWorklist(CstOffset.getNode());
-  CPIdx = DAG.getPointerAdd(DL, CPIdx, CstOffset);
+  CPIdx = DAG.getMemBasePlusOffset(CPIdx, CstOffset, DL);
   AddToWorklist(CPIdx.getNode());
   return DAG.getLoad(TV->getValueType(0), DL, DAG.getEntryNode(), CPIdx,
                      MachinePointerInfo::getConstantPool(

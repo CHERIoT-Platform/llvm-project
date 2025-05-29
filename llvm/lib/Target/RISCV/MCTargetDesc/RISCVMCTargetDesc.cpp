@@ -228,24 +228,25 @@ public:
       return true;
     }
 
-    if (Inst.getOpcode() == RISCV::C_JAL || Inst.getOpcode() == RISCV::C_J ||
-        Inst.getOpcode() == RISCV::C_CJAL) {
+    switch (Inst.getOpcode()) {
+    case RISCV::C_J:
+    case RISCV::C_JAL:
+    case RISCV::C_CJAL:
+    case RISCV::QC_E_J:
+    case RISCV::QC_E_JAL:
       Target = Addr + Inst.getOperand(0).getImm();
       return true;
-    }
-
-    if (Inst.getOpcode() == RISCV::JAL || Inst.getOpcode() == RISCV::CJAL) {
+    case RISCV::JAL:
+    case RISCV::CJAL:
       Target = Addr + Inst.getOperand(1).getImm();
       return true;
-    }
-
-    if (Inst.getOpcode() == RISCV::JALR) {
+    case RISCV::JALR: {
       if (auto TargetRegState = getGPRState(Inst.getOperand(1).getReg())) {
         Target = *TargetRegState + Inst.getOperand(2).getImm();
         return true;
       }
-
       return false;
+    }
     }
 
     return false;

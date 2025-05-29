@@ -139,11 +139,14 @@ private:
     uint32_t stackSize = 0;
   };
   SmallVector<CompartmentExport, 1> CompartmentEntries;
+  SmallDenseMap<const Function *, SmallVector<const GlobalAlias *, 1>, 1>
+      CompartmentEntryAliases;
 
   void emitAttributes(const MCSubtargetInfo &SubtargetInfo);
 
   void emitNTLHint(const MachineInstr *MI);
   void emitGlobalVariable(const GlobalVariable *GV) override;
+  void emitGlobalAlias(const Module &M, const GlobalAlias &GV) override;
 
   // XRay Support
   void LowerPATCHABLE_FUNCTION_ENTER(const MachineInstr *MI);
@@ -317,6 +320,17 @@ void RISCVAsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
 
   // Continue through the normal path to emit the global.
   return AsmPrinter::emitGlobalVariable(GV);
+}
+
+void RISCVAsmPrinter::emitGlobalAlias(const Module &M, const GlobalAlias &GA) {
+  AsmPrinter::emitGlobalAlias(M, GA);
+
+  const MCSubtargetInfo &SubtargetInfo = *TM.getMCSubtargetInfo();
+  if (SubtargetInfo.hasFeature(RISCV::FeatureVendorXCheriot)) {
+    if (auto *Fn = dyn_cast<Function>(GA.getAliasee()->stripPointerCasts())) {
+      CompartmentEntryAliases[Fn].push_back(&GA);
+    }
+  }
 }
 
 // If the target supports Zihintntl and the instruction has a nontemporal
@@ -564,7 +578,6 @@ bool RISCVAsmPrinter::runOnMachineFunction(MachineFunction &MF) {
   };
 
   if (Fn.getCallingConv() == CallingConv::CHERI_CCallee) {
-    Function &Fn = MF.getFunction();
     uint32_t stackSize;
     if (Fn.hasFnAttribute("minimum-stack-size")) {
       bool converted =
@@ -717,6 +730,26 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
       OutStreamer->emitIntValue(std::min(uint32_t(255), stackSize), 1);
       OutStreamer->emitIntValue(Entry.LiveIns, 1);
       OutStreamer->emitELFSize(Sym, MCConstantExpr::create(4, C));
+
+      // Emit aliases for this export symbol entry.
+      auto I = CompartmentEntryAliases.find(&Entry.Fn);
+      if (I == CompartmentEntryAliases.end())
+        continue;
+      for (const GlobalAlias *GA : I->second) {
+        std::string AliasExportName = getImportExportTableName(
+            Entry.CompartmentName, GA->getName(), Entry.Fn.getCallingConv(),
+            /*IsImport*/ false);
+        auto AliasExportSym = C.getOrCreateSymbol(AliasExportName);
+
+        // Emit symbol alias in the export table for the alias using the same
+        // attributes, linkage, and size as the primary entry.
+        OutStreamer->emitSymbolAttribute(AliasExportSym, MCSA_ELF_TypeObject);
+        if (GA->hasExternalLinkage() && !Entry.forceLocal)
+          OutStreamer->emitSymbolAttribute(AliasExportSym, MCSA_Global);
+        OutStreamer->emitAssignment(AliasExportSym,
+                                    MCSymbolRefExpr::create(Sym, C));
+        OutStreamer->emitELFSize(AliasExportSym, MCConstantExpr::create(4, C));
+      }
     }
   }
   // Generate CHERIoT imports if there are any.

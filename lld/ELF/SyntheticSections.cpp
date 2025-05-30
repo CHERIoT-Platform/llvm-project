@@ -660,6 +660,9 @@ GotSection::GotSection(Ctx &ctx)
 
 void GotSection::addConstant(const Relocation &r) { relocations.push_back(r); }
 void GotSection::addEntry(const Symbol &sym) {
+  // TODO: Separate out TLS IE entries for CHERI so we can pack them more
+  // efficiently rather than consuming a whole capability-sized slot for an
+  // integer.
   assert(sym.auxIdx == ctx.symAux.size() - 1);
   ctx.symAux.back().gotIdx = numEntries++;
 }
@@ -684,8 +687,12 @@ void GotSection::addTlsDescAuthEntry() {
 bool GotSection::addDynTlsEntry(const Symbol &sym) {
   assert(sym.auxIdx == ctx.symAux.size() - 1);
   ctx.symAux.back().tlsGdIdx = numEntries;
-  // Global Dynamic TLS entries take two GOT slots.
-  numEntries += 2;
+  // Global Dynamic TLS entries take two GOT slots, except on CHERI where they
+  // can be packed into one GOT slot.
+  if (ctx.arg.isCheriAbi)
+    ++numEntries;
+  else
+    numEntries += 2;
   return true;
 }
 

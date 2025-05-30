@@ -999,6 +999,11 @@ Sema::BuildMemberReferenceExpr(Expr *BaseExpr, QualType BaseExprType,
                                     R.getLookupNameInfo(), TemplateArgs);
 
   QualType BaseType = BaseExprType;
+  // CHERIoT-specific check.
+  if (BaseType.hasCHERIoTSealedAttr() && !isUnevaluatedContext()) {
+    return ExprError(Diag(OpLoc, diag::err_cheriot_non_addr_of_expr_on_sealed));
+  }
+
   if (IsArrow) {
     assert(BaseType->isPointerType());
     BaseType = BaseType->castAs<PointerType>()->getPointeeType();

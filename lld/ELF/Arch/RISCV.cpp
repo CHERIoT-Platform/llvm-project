@@ -143,7 +143,10 @@ RISCV::RISCV(Ctx &ctx) : TargetInfo(ctx) {
     tlsOffsetRel = R_RISCV_TLS_DTPREL32;
     tlsGotRel = R_RISCV_TLS_TPREL32;
   }
-  gotRel = symbolicRel;
+  if (ctx.arg.isCheriAbi)
+    gotRel = *cheriCapRel;
+  else
+    gotRel = symbolicRel;
   tlsDescRel = R_RISCV_TLSDESC;
 
   // .got[0] = _DYNAMIC
@@ -307,9 +310,8 @@ void RISCV::writePlt(uint8_t *buf, const Symbol &sym,
   // nop
   uint32_t ptrload = ctx.arg.isCheriAbi ? ctx.arg.is64 ? CLC_128 : CLC_64
                                         : ctx.arg.is64 ? LD : LW;
-  uint32_t entryva = ctx.arg.isCheriAbi
-                         ? sym.getCapTableVA(ctx, ctx.in.plt.get(), 0)
-                         : sym.getGotPltVA(ctx);
+  uint32_t entryva =
+      ctx.arg.isCheriAbi ? sym.getGotVA(ctx) : sym.getGotPltVA(ctx);
   uint32_t offset = entryva - pltEntryAddr;
   write32le(buf + 0, utype(AUIPC, X_T3, hi20(offset)));
   write32le(buf + 4, itype(ptrload, X_T3, X_T3, lo12(offset)));
@@ -393,25 +395,27 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
     return RE_RISCV_LEB128;
     case R_RISCV_CHERI_CAPABILITY:
     return R_CHERI_CAPABILITY;
-  case R_RISCV_CHERI_CAPTAB_PCREL_HI20:
-    return R_CHERI_CAPABILITY_TABLE_ENTRY_PC;
-  case R_RISCV_CHERI_TLS_IE_CAPTAB_PCREL_HI20:
-    return R_CHERI_CAPABILITY_TABLE_TLSIE_ENTRY_PC;
-  case R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20:
-    return R_CHERI_CAPABILITY_TABLE_TLSGD_ENTRY_PC;
-  case R_RISCV_CHERIOT_COMPARTMENT_HI:
-    return isPCCRelative(ctx, loc, &s) ? R_PC : R_CHERIOT_COMPARTMENT_CGPREL_HI;
-  case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
-    return R_CHERIOT_COMPARTMENT_CGPREL_LO_I;
-  case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
-    return R_CHERIOT_COMPARTMENT_CGPREL_LO_S;
-  case R_RISCV_CHERIOT_COMPARTMENT_SIZE:
-    return R_CHERIOT_COMPARTMENT_SIZE;
-  default:
-    Err(ctx) << getErrorLoc(ctx, loc) << "unknown relocation (" << type.v
-             << ") against symbol " << &s;
-    return R_NONE;
-  }
+    // TODO: Deprecate and eventually remove these
+    case R_RISCV_CHERI_CAPTAB_PCREL_HI20:
+      return R_GOT_PC;
+    case R_RISCV_CHERI_TLS_IE_CAPTAB_PCREL_HI20:
+      return R_GOT_PC;
+    case R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20:
+      return R_TLSGD_PC;
+    case R_RISCV_CHERIOT_COMPARTMENT_HI:
+      return isPCCRelative(ctx, loc, &s) ? R_PC
+                                         : R_CHERIOT_COMPARTMENT_CGPREL_HI;
+    case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
+      return R_CHERIOT_COMPARTMENT_CGPREL_LO_I;
+    case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
+      return R_CHERIOT_COMPARTMENT_CGPREL_LO_S;
+    case R_RISCV_CHERIOT_COMPARTMENT_SIZE:
+      return R_CHERIOT_COMPARTMENT_SIZE;
+    default:
+      Err(ctx) << getErrorLoc(ctx, loc) << "unknown relocation (" << type.v
+               << ") against symbol " << &s;
+      return R_NONE;
+    }
 }
 
 void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {

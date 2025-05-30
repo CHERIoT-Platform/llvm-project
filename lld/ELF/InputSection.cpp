@@ -1020,20 +1020,6 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
   case R_CHERI_CAPABILITY_TABLE_INDEX_CALL_SMALL_IMMEDIATE:
     assert(a == 0 && "capability table index relocs should not have addends");
     return r.sym->getCapTableOffset(ctx, this, r.offset);
-  case R_CHERI_CAPABILITY_TABLE_ENTRY_PC: {
-    assert(a == 0 && "capability table entry relocs should not have addends");
-    return r.sym->getCapTableVA(ctx, this, r.offset) - p;
-  }
-  case R_CHERI_CAPABILITY_TABLE_TLSGD_ENTRY_PC: {
-    assert(a == 0 && "capability table index relocs should not have addends");
-    uint64_t capTableOffset = ctx.in.cheriCapTable->getDynTlsOffset(*r.sym);
-    return ctx.sym.cheriCapabilityTable->getVA(ctx) + capTableOffset - p;
-  }
-  case R_CHERI_CAPABILITY_TABLE_TLSIE_ENTRY_PC: {
-    assert(a == 0 && "capability table index relocs should not have addends");
-    uint64_t capTableOffset = ctx.in.cheriCapTable->getTlsOffset(*r.sym);
-    return ctx.sym.cheriCapabilityTable->getVA(ctx) + capTableOffset - p;
-  }
   case R_CHERI_CAPABILITY_TABLE_REL:
     if (!ctx.sym.cheriCapabilityTable) {
       error("cannot compute difference between non-existent "

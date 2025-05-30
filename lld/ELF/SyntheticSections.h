@@ -1402,8 +1402,8 @@ private:
 
 // Can only be forward declared here since it depends on SyntheticSection
 class CheriCapRelocsSection;
-class CheriCapTableSection;
-class CheriCapTableMappingSection;
+class MipsCheriCapTableSection;
+class MipsCheriCapTableMappingSection;
 
 template <typename ELFT>
 class PartitionElfHeaderSection final : public SyntheticSection {

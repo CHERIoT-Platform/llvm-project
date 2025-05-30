@@ -255,16 +255,17 @@ uint64_t Symbol::getPltVA(Ctx &ctx) const {
   return outVA;
 }
 
-uint64_t Symbol::getCapTableVA(Ctx &ctx, const InputSectionBase *isec,
-                               uint64_t offset) const {
-  return ctx.sym.cheriCapabilityTable->getVA(ctx) +
-    getCapTableOffset(ctx, isec, offset);
+uint64_t Symbol::getMipsCheriCapTableVA(Ctx &ctx, const InputSectionBase *isec,
+                                        uint64_t offset) const {
+  return ctx.sym.mipsCheriCapabilityTable->getVA(ctx) +
+         getMipsCheriCapTableOffset(ctx, isec, offset);
 }
 
-uint64_t Symbol::getCapTableOffset(Ctx &ctx, const InputSectionBase *isec,
-                                   uint64_t offset) const {
+uint64_t Symbol::getMipsCheriCapTableOffset(Ctx &ctx,
+                                            const InputSectionBase *isec,
+                                            uint64_t offset) const {
   return ctx.arg.capabilitySize *
-    ctx.in.cheriCapTable->getIndex(*this, isec, offset);
+         ctx.in.mipsCheriCapTable->getIndex(*this, isec, offset);
 }
 
 uint64_t Defined::getSize(Ctx &ctx) const {

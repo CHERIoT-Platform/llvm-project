@@ -130,7 +130,7 @@ RelExpr MIPS<ELFT>::getRelExpr(RelType type, const Symbol &s,
   case R_MICROMIPS_GPREL7_S2:
     return RE_MIPS_GOTREL;
   case R_MIPS_CHERI_CAPTABLEREL16:
-    return R_CHERI_CAPABILITY_TABLE_REL;
+    return R_MIPS_CHERI_CAPTAB_REL;
   case R_MIPS_26:
   case R_MICROMIPS_26_S1:
     return R_PLT;
@@ -219,16 +219,16 @@ RelExpr MIPS<ELFT>::getRelExpr(RelType type, const Symbol &s,
     return R_CHERI_CAPABILITY;
   case R_MIPS_CHERI_CAPTAB_LO16:
   case R_MIPS_CHERI_CAPTAB_HI16:
-    return R_CHERI_CAPABILITY_TABLE_INDEX;
+    return R_MIPS_CHERI_CAPTAB_INDEX;
   case R_MIPS_CHERI_CAPCALL_LO16:
   case R_MIPS_CHERI_CAPCALL_HI16:
-    return R_CHERI_CAPABILITY_TABLE_INDEX_CALL;
+    return R_MIPS_CHERI_CAPTAB_INDEX_CALL;
   case R_MIPS_CHERI_CAPTAB_CLC11:
   case R_MIPS_CHERI_CAPTAB20:
-    return R_CHERI_CAPABILITY_TABLE_INDEX_SMALL_IMMEDIATE;
+    return R_MIPS_CHERI_CAPTAB_INDEX_SMALL_IMMEDIATE;
   case R_MIPS_CHERI_CAPCALL_CLC11:
   case R_MIPS_CHERI_CAPCALL20:
-    return R_CHERI_CAPABILITY_TABLE_INDEX_CALL_SMALL_IMMEDIATE;
+    return R_MIPS_CHERI_CAPTAB_INDEX_CALL_SMALL_IMMEDIATE;
   case R_MIPS_CHERI_CAPTAB_TLS_GD_LO16:
   case R_MIPS_CHERI_CAPTAB_TLS_GD_HI16:
     return R_MIPS_CHERI_CAPTAB_TLSGD;
@@ -722,13 +722,13 @@ void MIPS<ELFT>::scanSectionImpl(InputSectionBase &sec, Relocs<RelTy> rels) {
       ctx.in.mipsGot->addDynTlsEntry(*sec.file, sym);
       sec.addReloc({expr, type, offset, addend, &sym});
     } else if (expr == R_MIPS_CHERI_CAPTAB_TLSLD) {
-      ctx.in.cheriCapTable->addTlsIndex();
+      ctx.in.mipsCheriCapTable->addTlsIndex();
       sec.addReloc({expr, type, offset, addend, &sym});
     } else if (expr == R_MIPS_CHERI_CAPTAB_TLSGD) {
-      ctx.in.cheriCapTable->addDynTlsEntry(sym);
+      ctx.in.mipsCheriCapTable->addDynTlsEntry(sym);
       sec.addReloc({expr, type, offset, addend, &sym});
     } else if (expr == R_MIPS_CHERI_CAPTAB_TPREL) {
-      ctx.in.cheriCapTable->addTlsEntry(sym);
+      ctx.in.mipsCheriCapTable->addTlsEntry(sym);
       sec.addReloc({expr, type, offset, addend, &sym});
     } else {
       if (expr == R_TPREL && rs.checkTlsLe(offset, sym, type))

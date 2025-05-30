@@ -655,7 +655,8 @@ bool elf::isRelroSection(Ctx &ctx, const OutputSection *sec) {
 
   // Similarly the CHERI capability table is also relro since the capabilities
   // in the table need to be initialized at runtime to set the tag bits
-  if (ctx.in.cheriCapTable && sec == ctx.in.cheriCapTable->getParent()) {
+  if (ctx.in.mipsCheriCapTable &&
+      sec == ctx.in.mipsCheriCapTable->getParent()) {
     // Without -z now, the PLT stubs can update the captable entries so we
     // can't mark it as relro. It can also be relro for static binaries:
     return ctx.arg.zNow || !ctx.arg.isPic;
@@ -1924,13 +1925,13 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
       }
     }
 
-    if (ctx.in.cheriCapTable) {
+    if (ctx.arg.emachine == EM_MIPS && ctx.in.mipsCheriCapTable) {
       // When creating relocatable output we should not define the
       // _CHERI_CAPABILITY_TABLE_ symbol because otherwise we get duplicate
       // symbol errors when linking that into a final executable
       if (!ctx.arg.relocatable)
-        ctx.sym.cheriCapabilityTable =
-            addOptionalRegular(ctx, captableSym, ctx.in.cheriCapTable.get(), 0);
+        ctx.sym.mipsCheriCapabilityTable = addOptionalRegular(
+            ctx, captableSym, ctx.in.mipsCheriCapTable.get(), 0);
     }
 
     // This responsible for splitting up .eh_frame section into
@@ -1976,18 +1977,19 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
     // Do the cap table index assignment
     // Must come before CapRelocs->finalizeContents() because it can add
     // __cap_relocs
-    if (ctx.in.cheriCapTable) {
+    if (ctx.in.mipsCheriCapTable) {
       // Ensure that we always have a _CHERI_CAPABILITY_TABLE_ symbol if the
       // cap table exists. This makes llvm-objdump more useful since it can now
       // print the target of a cap table load
-      if (!ctx.sym.cheriCapabilityTable && ctx.in.cheriCapTable->isNeeded()) {
-        ctx.sym.cheriCapabilityTable = cast<Defined>(
-            ctx.symtab->addSymbol(Defined{ctx, nullptr, captableSym, STB_LOCAL,
-              STV_HIDDEN, STT_NOTYPE, 0, 0, ctx.in.cheriCapTable.get()}));
-        ctx.sym.cheriCapabilityTable->isSectionStartSymbol = true;
-        assert(!ctx.sym.cheriCapabilityTable->isPreemptible);
+      if (!ctx.sym.mipsCheriCapabilityTable &&
+          ctx.in.mipsCheriCapTable->isNeeded()) {
+        ctx.sym.mipsCheriCapabilityTable = cast<Defined>(ctx.symtab->addSymbol(
+            Defined{ctx, nullptr, captableSym, STB_LOCAL, STV_HIDDEN,
+                    STT_NOTYPE, 0, 0, ctx.in.mipsCheriCapTable.get()}));
+        ctx.sym.mipsCheriCapabilityTable->isSectionStartSymbol = true;
+        assert(!ctx.sym.mipsCheriCapabilityTable->isPreemptible);
       }
-      ctx.in.cheriCapTable->assignValuesAndAddCapTableSymbols<ELFT>();
+      ctx.in.mipsCheriCapTable->assignValuesAndAddCapTableSymbols<ELFT>();
     }
 
     // Now handle __cap_relocs (must be before RelaDyn because it might
@@ -2380,9 +2382,9 @@ template <class ELFT> void Writer<ELFT>::addStartEndSymbols() {
   define("__fini_array_start", "__fini_array_end", ctx.out.finiArray);
   define("__ctors_start", "__ctors_end", findSection(ctx, ".ctors"));
   define("__dtors_start", "__dtors_end", findSection(ctx, ".dtors"));
-  if (ctx.in.cheriCapTable)
+  if (ctx.in.mipsCheriCapTable)
     define("__cap_table_start", "__cap_table_end",
-           ctx.in.cheriCapTable->getOutputSection());
+           ctx.in.mipsCheriCapTable->getOutputSection());
 
   // As a special case, don't unnecessarily retain .ARM.exidx, which would
   // create an empty PT_ARM_EXIDX.

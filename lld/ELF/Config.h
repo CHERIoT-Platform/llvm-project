@@ -78,9 +78,9 @@ class SymbolTableBaseSection;
 class SymtabShndxSection;
 class SyntheticSection;
 
-class CheriCapTableSection;
+class MipsCheriCapTableSection;
 class CheriCapRelocsSection;
-class CheriCapTableMappingSection;
+class MipsCheriCapTableMappingSection;
 
 enum ELFKind : uint8_t {
   ELFNoneKind,
@@ -624,9 +624,9 @@ struct InStruct {
   std::unique_ptr<GotPltSection> gotPlt;
   std::unique_ptr<IgotPltSection> igotPlt;
   std::unique_ptr<RelroPaddingSection> relroPadding;
-  std::unique_ptr<CheriCapTableSection> cheriCapTable;
+  std::unique_ptr<MipsCheriCapTableSection> mipsCheriCapTable;
   std::unique_ptr<CheriCapRelocsSection> capRelocs;
-  std::unique_ptr<CheriCapTableMappingSection> cheriCapTableMapping;
+  std::unique_ptr<MipsCheriCapTableMappingSection> mipsCheriCapTableMapping;
   std::unique_ptr<SyntheticSection> armCmseSGSection;
   std::unique_ptr<PPC64LongBranchTargetSection> ppc64LongBranchTarget;
   std::unique_ptr<SyntheticSection> mipsAbiFlags;
@@ -713,7 +713,7 @@ struct Ctx : CommonLinkerContext {
     // _TLS_MODULE_BASE_ on targets that support TLSDESC.
     Defined *tlsModuleBase;
 
-    Defined *cheriCapabilityTable;
+    Defined *mipsCheriCapabilityTable;
   };
   ElfSym sym{};
   std::unique_ptr<SymbolTable> symtab;

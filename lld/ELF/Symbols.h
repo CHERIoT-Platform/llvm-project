@@ -215,10 +215,11 @@ public:
   uint64_t getGotPltOffset(Ctx &) const;
   uint64_t getGotPltVA(Ctx &) const;
   uint64_t getPltVA(Ctx &) const;
-  uint64_t getCapTableVA(Ctx &ctx, const InputSectionBase *isec,
-                         uint64_t offset) const;
-  uint64_t getCapTableOffset(Ctx &ctx, const InputSectionBase *isec,
-                             uint64_t offset) const;
+  uint64_t getMipsCheriCapTableVA(Ctx &ctx, const InputSectionBase *isec,
+
+                                  uint64_t offset) const;
+  uint64_t getMipsCheriCapTableOffset(Ctx &ctx, const InputSectionBase *isec,
+                                      uint64_t offset) const;
   uint64_t getSize(Ctx &ctx) const;
   OutputSection *getOutputSection() const;
 

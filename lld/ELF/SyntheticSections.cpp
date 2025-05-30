@@ -1642,14 +1642,17 @@ DynamicSection<ELFT>::computeContents() {
       if (f->isNeeded)
         checkMipsShlibCompatible(ctx, f, f->cheriFlags, targetCheriFlags);
     }
-    if (ctx.in.cheriCapTable && ctx.in.cheriCapTable->isNeeded()) {
-      addInSec(DT_MIPS_CHERI_CAPTABLE, *ctx.in.cheriCapTable);
-      addInt(DT_MIPS_CHERI_CAPTABLESZ, ctx.in.cheriCapTable->getParent()->size);
+    if (ctx.in.mipsCheriCapTable && ctx.in.mipsCheriCapTable->isNeeded()) {
+      addInSec(DT_MIPS_CHERI_CAPTABLE, *ctx.in.mipsCheriCapTable);
+      addInt(DT_MIPS_CHERI_CAPTABLESZ,
+             ctx.in.mipsCheriCapTable->getParent()->size);
     }
-    if (ctx.in.cheriCapTableMapping && ctx.in.cheriCapTableMapping->isNeeded()) {
-      addInSec(DT_MIPS_CHERI_CAPTABLE_MAPPING, *ctx.in.cheriCapTableMapping);
+    if (ctx.in.mipsCheriCapTableMapping &&
+        ctx.in.mipsCheriCapTableMapping->isNeeded()) {
+      addInSec(DT_MIPS_CHERI_CAPTABLE_MAPPING,
+               *ctx.in.mipsCheriCapTableMapping);
       addInt(DT_MIPS_CHERI_CAPTABLE_MAPPINGSZ,
-             ctx.in.cheriCapTableMapping->getParent()->size);
+             ctx.in.mipsCheriCapTableMapping->getParent()->size);
     }
     if (ctx.in.capRelocs && ctx.in.capRelocs->isNeeded()) {
       addInSec(DT_MIPS_CHERI___CAPRELOCS, *ctx.in.capRelocs);
@@ -1798,10 +1801,10 @@ void RelocationBaseSection::finalizeContents() {
   if (ctx.in.relaPlt.get() == this && ctx.in.gotPlt->getParent()) {
     getParent()->flags |= ELF::SHF_INFO_LINK;
     // For CheriABI we use the captable as the sh_info value
-    if (ctx.arg.isCheriAbi && ctx.in.cheriCapTable &&
-        ctx.in.cheriCapTable->isNeeded()) {
-      assert(ctx.in.cheriCapTable->getParent()->sectionIndex != UINT32_MAX);
-      getParent()->info = ctx.in.cheriCapTable->getParent()->sectionIndex;
+    if (ctx.arg.isCheriAbi && ctx.in.mipsCheriCapTable &&
+        ctx.in.mipsCheriCapTable->isNeeded()) {
+      assert(ctx.in.mipsCheriCapTable->getParent()->sectionIndex != UINT32_MAX);
+      getParent()->info = ctx.in.mipsCheriCapTable->getParent()->sectionIndex;
     } else {
       getParent()->info = ctx.in.gotPlt->getParent()->sectionIndex;
     }
@@ -4876,11 +4879,16 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
   if (ctx.arg.capabilitySize > 0) {
     ctx.in.capRelocs =
         std::make_unique<CheriCapRelocsSection>(ctx, "__cap_relocs");
-    ctx.in.cheriCapTable = std::make_unique<CheriCapTableSection>(ctx);
-    add(*ctx.in.cheriCapTable);
-    if (ctx.arg.capTableScope != CapTableScopePolicy::All) {
-      ctx.in.cheriCapTableMapping = std::make_unique<CheriCapTableMappingSection>(ctx);
-      add(*ctx.in.cheriCapTableMapping);
+
+    if (ctx.arg.emachine == EM_MIPS) {
+      ctx.in.mipsCheriCapTable =
+          std::make_unique<MipsCheriCapTableSection>(ctx);
+      add(*ctx.in.mipsCheriCapTable);
+      if (ctx.arg.capTableScope != CapTableScopePolicy::All) {
+        ctx.in.mipsCheriCapTableMapping =
+            std::make_unique<MipsCheriCapTableMappingSection>(ctx);
+        add(*ctx.in.mipsCheriCapTableMapping);
+      }
     }
   }
 

@@ -1014,28 +1014,28 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
     return ctx.in.got->getTlsIndexVA() + a - p;
   case R_CHERI_CAPABILITY:
     llvm_unreachable("R_CHERI_CAPABILITY should not be handled here!");
-  case R_CHERI_CAPABILITY_TABLE_INDEX:
-  case R_CHERI_CAPABILITY_TABLE_INDEX_SMALL_IMMEDIATE:
-  case R_CHERI_CAPABILITY_TABLE_INDEX_CALL:
-  case R_CHERI_CAPABILITY_TABLE_INDEX_CALL_SMALL_IMMEDIATE:
+  case R_MIPS_CHERI_CAPTAB_INDEX:
+  case R_MIPS_CHERI_CAPTAB_INDEX_SMALL_IMMEDIATE:
+  case R_MIPS_CHERI_CAPTAB_INDEX_CALL:
+  case R_MIPS_CHERI_CAPTAB_INDEX_CALL_SMALL_IMMEDIATE:
     assert(a == 0 && "capability table index relocs should not have addends");
-    return r.sym->getCapTableOffset(ctx, this, r.offset);
-  case R_CHERI_CAPABILITY_TABLE_REL:
-    if (!ctx.sym.cheriCapabilityTable) {
+    return r.sym->getMipsCheriCapTableOffset(ctx, this, r.offset);
+  case R_MIPS_CHERI_CAPTAB_REL:
+    if (!ctx.sym.mipsCheriCapabilityTable) {
       error("cannot compute difference between non-existent "
             "CheriCapabilityTable and symbol " + toStr(ctx, *r.sym));
       return r.sym->getVA(ctx, a);
     }
-    return r.sym->getVA(ctx, a) - ctx.sym.cheriCapabilityTable->getVA(ctx);
+    return r.sym->getVA(ctx, a) - ctx.sym.mipsCheriCapabilityTable->getVA(ctx);
   case R_MIPS_CHERI_CAPTAB_TLSGD:
     assert(a == 0 && "capability table index relocs should not have addends");
-    return ctx.in.cheriCapTable->getDynTlsOffset(*r.sym);
+    return ctx.in.mipsCheriCapTable->getDynTlsOffset(*r.sym);
   case R_MIPS_CHERI_CAPTAB_TLSLD:
     assert(a == 0 && "capability table index relocs should not have addends");
-    return ctx.in.cheriCapTable->getTlsIndexOffset();
+    return ctx.in.mipsCheriCapTable->getTlsIndexOffset();
   case R_MIPS_CHERI_CAPTAB_TPREL:
     assert(a == 0 && "capability table index relocs should not have addends");
-    return ctx.in.cheriCapTable->getTlsOffset(*r.sym);
+    return ctx.in.mipsCheriCapTable->getTlsOffset(*r.sym);
   // LO_I is used for both PCC and CGP-relative addresses.  For backwards
   // compatibility, the symbol may be a CGP-relative symbol.  In newer code, it
   // will always be the symbol containing the accompanying HI relocation.

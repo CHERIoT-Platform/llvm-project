@@ -514,30 +514,19 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
   // auipc[c] + [c]jalr pair
   case R_RISCV_CALL:
   case R_RISCV_CALL_PLT:
-  case R_RISCV_CHERI_CCALL: {
-    int64_t hi = SignExtend64(val + 0x800, bits) >> 12;
-    checkInt(ctx, loc, hi, 20, rel);
-    if (isInt<20>(hi)) {
-      relocateNoSym(loc, R_RISCV_PCREL_HI20, val);
-      relocateNoSym(loc + 4, R_RISCV_PCREL_LO12_I, val);
-    }
-    return;
-  }
-
+  case R_RISCV_CHERI_CCALL:
   case R_RISCV_CHERIOT_CCALL: {
-    // Cheriot uses an 11-bit shift on AUIPCC, requiring different relocation
-    // compared to R_RISCV_CHERI_CCALL.
     int64_t hi = SignExtend64(val + 0x800, bits) >> 12;
     checkInt(ctx, loc, hi, 20, rel);
     if (isInt<20>(hi)) {
-      relocate(loc,
-               Relocation{rel.expr, R_RISCV_CHERIOT_COMPARTMENT_HI, rel.offset,
-                          rel.addend, rel.sym},
-               val);
-      relocate(loc + 4,
-               Relocation{rel.expr, R_RISCV_CHERIOT_COMPARTMENT_LO_I,
-                          rel.offset, rel.addend, rel.sym},
-               val);
+      relocateNoSym(loc,
+                    ctx.arg.isCheriot ? R_RISCV_CHERIOT_COMPARTMENT_HI
+                                      : R_RISCV_PCREL_HI20,
+                    val);
+      relocateNoSym(loc + 4,
+                    ctx.arg.isCheriot ? R_RISCV_CHERIOT_COMPARTMENT_LO_I
+                                      : R_RISCV_PCREL_LO12_I,
+                    val);
     }
     return;
   }
@@ -922,10 +911,6 @@ void elf::initSymbolAnchors(Ctx &ctx) {
 // Relax R_RISCV_CALL/R_RISCV_CALL_PLT auipc+jalr to c.j, c.jal, or jal.
 static void relaxCall(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
                       Relocation &r, uint32_t &remove) {
-  bool isCCall =
-      (r.type == R_RISCV_CHERI_CCALL) || (r.type == R_RISCV_CHERIOT_CCALL);
-  auto jalRVCType = (isCCall) ? R_RISCV_CHERI_RVC_CJUMP : R_RISCV_RVC_JUMP;
-  auto jalType = (isCCall) ? R_RISCV_CHERI_CJAL : R_RISCV_JAL;
   const bool rvc = getEFlags(ctx, sec.file) & EF_RISCV_RVC;
   const Symbol &sym = *r.sym;
   const uint64_t insnPair = read64le(sec.content().data() + r.offset);
@@ -937,7 +922,7 @@ static void relaxCall(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
   // When the caller specifies the old value of `remove`, disallow its
   // increment.
   if (remove >= 6 && rvc && isInt<12>(displace) && rd == X_X0) {
-    sec.relaxAux->relocTypes[i] = jalRVCType;
+    sec.relaxAux->relocTypes[i] = R_RISCV_RVC_JUMP;
     sec.relaxAux->writes.push_back(0xa001); // c.[c]j
     remove = 6;
   } else if (remove >= 6 && rvc && isInt<12>(displace) && rd == X_RA &&
@@ -946,7 +931,7 @@ static void relaxCall(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
     sec.relaxAux->writes.push_back(0x2001); // c.jal
     remove = 6;
   } else if (remove >= 4 && isInt<21>(displace)) {
-    sec.relaxAux->relocTypes[i] = jalType;
+    sec.relaxAux->relocTypes[i] = R_RISCV_JAL;
     sec.relaxAux->writes.push_back(0x6f | rd << 7); // [c]jal
     remove = 4;
   } else {

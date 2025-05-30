@@ -62,38 +62,12 @@ def riscv_cap_bounds_set  : RVSDNode<"BOUNDS_SET",
 // Operand and SDNode transformation definitions.
 //===----------------------------------------------------------------------===//
 
-def CCallSymbol : AsmOperandClass {
-  let Name = "CCallSymbol";
-  let RenderMethod = "addImmOperands";
-  let DiagnosticType = "InvalidCCallSymbol";
-  let ParserMethod = "parseCallSymbol<true>";
-}
-
 def cap_call_symbol : Operand<YLenVT> {
-  let ParserMatchClass = CCallSymbol;
-}
-
-def PseudoCJumpSymbol : AsmOperandClass {
-  let Name = "PseudoCJumpSymbol";
-  let RenderMethod = "addImmOperands";
-  let DiagnosticType = "InvalidPseudoCJumpSymbol";
-  let ParserMethod = "parsePseudoJumpSymbol<true>";
+  let ParserMatchClass = CallSymbol;
 }
 
 def pseudo_cap_jump_symbol : Operand<YLenVT> {
-  let ParserMatchClass = PseudoCJumpSymbol;
-}
-
-def TPRelCIncOffsetSymbol : AsmOperandClass {
-  let Name = "TPRelCIncOffsetSymbol";
-  let RenderMethod = "addImmOperands";
-  let DiagnosticType = "InvalidTPRelCIncOffsetSymbol";
-  let ParserMethod = "parseOperandWithSpecifier";
-}
-
-// A bare symbol with the %tprel_add variant.
-def tprel_cincoffset_symbol : Operand<XLenVT> {
-  let ParserMatchClass = TPRelCIncOffsetSymbol;
+  let ParserMatchClass = PseudoJumpSymbol;
 }
 
 def CheriZeroOffsetMemOpOperand : AsmOperandClass {
@@ -1366,8 +1340,8 @@ def PseudoCLC_TLS_GD : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [],
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0, isCodeGenOnly = 0 in
 def PseudoCIncOffsetTPRel : Pseudo<(outs YGPR:$rd),
                                    (ins YGPR:$rs1, GPR:$rs2,
-                                        tprel_cincoffset_symbol:$src), [],
-                                   "cincoffset", "$rd, $rs1, $rs2, $src">;
+                                        tprel_add_symbol:$src), [], "cincoffset",
+                                   "$rd, $rs1, $rs2, $src">;
 }
 
 let Predicates = [HasCheri, HasStdExtD, IsRV32] in {

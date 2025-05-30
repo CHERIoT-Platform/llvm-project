@@ -95,14 +95,7 @@ MCFixupKindInfo RISCVAsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
       // Andes fixups
       {"fixup_riscv_nds_branch_10", 0, 32, 0},
 
-      {"fixup_riscv_captab_pcrel_hi20", 12, 20, 0},
       {"fixup_riscv_capability", 0, 0, 0},
-      {"fixup_riscv_tprel_cincoffset", 0, 0, 0},
-      {"fixup_riscv_tls_ie_captab_pcrel_hi20", 12, 20, 0},
-      {"fixup_riscv_tls_gd_captab_pcrel_hi20", 12, 20, 0},
-      {"fixup_riscv_cjal", 12, 20, 0},
-      {"fixup_riscv_ccall", 0, 64, 0},
-      {"fixup_riscv_rvc_cjump", 2, 11, 0},
 
       {"fixup_riscv_cheriot_compartment_hi", 0, 32, 0},
       {"fixup_riscv_cheriot_compartment_lo_i", 0, 32, 0},
@@ -145,7 +138,6 @@ bool RISCVAsmBackend::fixupNeedsRelaxationAdvanced(const MCFragment &,
     // in the range [-256, 254].
     return Offset > 254 || Offset < -256;
   case RISCV::fixup_riscv_rvc_jump:
-  case RISCV::fixup_riscv_rvc_cjump:
     // For compressed jump instructions the immediate must be
     // in the range [-2048, 2046].
     return Offset > 2046 || Offset < -2048;
@@ -516,10 +508,7 @@ static uint64_t adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
   switch (Fixup.getKind()) {
   default:
     llvm_unreachable("Unknown fixup kind!");
-  case RISCV::fixup_riscv_captab_pcrel_hi20:
   case RISCV::fixup_riscv_capability:
-  case RISCV::fixup_riscv_tls_ie_captab_pcrel_hi20:
-  case RISCV::fixup_riscv_tls_gd_captab_pcrel_hi20:
     llvm_unreachable("Relocation should be unconditionally forced\n");
   case FK_Data_1:
   case FK_Data_2:
@@ -543,8 +532,7 @@ static uint64_t adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
   case RISCV::fixup_riscv_pcrel_hi20:
     // Add 1 if bit 11 is 1, to compensate for low 12 bits being negative.
     return ((Value + 0x800) >> 12) & 0xfffff;
-  case RISCV::fixup_riscv_jal:
-  case RISCV::fixup_riscv_cjal: {
+  case RISCV::fixup_riscv_jal: {
     if (!isInt<21>(Value))
       Ctx.reportError(Fixup.getLoc(), "fixup value out of range");
     if (Value & 0x1)
@@ -581,8 +569,7 @@ static uint64_t adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
     return Value;
   }
   case RISCV::fixup_riscv_call:
-  case RISCV::fixup_riscv_call_plt:
-  case RISCV::fixup_riscv_ccall: {
+  case RISCV::fixup_riscv_call_plt: {
     // Jalr will add UpperImm with the sign-extended 12-bit LowerImm,
     // we need to add 0x800ULL before extract upper bits to reflect the
     // effect of the sign extension.
@@ -590,8 +577,7 @@ static uint64_t adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
     uint64_t LowerImm = Value & 0xfffULL;
     return UpperImm | ((LowerImm << 20) << 32);
   }
-  case RISCV::fixup_riscv_rvc_jump:
-  case RISCV::fixup_riscv_rvc_cjump: {
+  case RISCV::fixup_riscv_rvc_jump: {
     if (!isInt<12>(Value))
       Ctx.reportError(Fixup.getLoc(), "fixup value out of range");
     // Need to produce offset[11|4|9:8|10|6|7|3:1|5] from the 11-bit Value.
@@ -726,10 +712,7 @@ static const MCFixup *getPCRelHiFixup(const MCSpecifierExpr &Expr,
       continue;
     auto Kind = F.getKind();
     if (!mc::isRelocation(F.getKind())) {
-      if (Kind == RISCV::fixup_riscv_pcrel_hi20 ||
-          Kind == RISCV::fixup_riscv_captab_pcrel_hi20 ||
-          Kind == RISCV::fixup_riscv_tls_ie_captab_pcrel_hi20 ||
-          Kind == RISCV::fixup_riscv_tls_gd_captab_pcrel_hi20) {
+      if (Kind == RISCV::fixup_riscv_pcrel_hi20) {
         *DFOut = DF;
         return &F;
       }

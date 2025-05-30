@@ -46,7 +46,7 @@ define linkonce_odr void @copy_from_ptr_constant(ptr addrspace(200) %dst) addrsp
 ; CHECK:       # %bb.0: # %do.body
 ; CHECK-NEXT:  .LBB3_1: # %do.body
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc a1, %captab_pcrel_hi(constant_ptrs)
+; CHECK-NEXT:    auipcc a1, %got_pcrel_hi(constant_ptrs)
 ; CHECK-NEXT:    clc a1, %pcrel_lo(.LBB3_1)(a1)
 ; CHECK-NEXT:    clc a1, 0(a1)
 ; CHECK-NEXT:    csc a1, 0(a0)
@@ -61,7 +61,7 @@ define linkonce_odr void @copy_from_ptr_constant_with_offset(ptr addrspace(200) 
 ; CHECK:       # %bb.0: # %do.body
 ; CHECK-NEXT:  .LBB4_1: # %do.body
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc a1, %captab_pcrel_hi(constant_ptrs)
+; CHECK-NEXT:    auipcc a1, %got_pcrel_hi(constant_ptrs)
 ; CHECK-NEXT:    clc a1, %pcrel_lo(.LBB4_1)(a1)
 ; CHECK-NEXT:    clc a1, 8(a1)
 ; CHECK-NEXT:    csc a1, 0(a0)
@@ -110,7 +110,7 @@ define linkonce_odr void @copy_from_ptr_constant_preserve(ptr addrspace(200) %ds
 ; CHECK:       # %bb.0: # %do.body
 ; CHECK-NEXT:  .LBB8_1: # %do.body
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc a1, %captab_pcrel_hi(constant_ptrs)
+; CHECK-NEXT:    auipcc a1, %got_pcrel_hi(constant_ptrs)
 ; CHECK-NEXT:    clc a1, %pcrel_lo(.LBB8_1)(a1)
 ; CHECK-NEXT:    clc a1, 0(a1)
 ; CHECK-NEXT:    csc a1, 0(a0)
@@ -125,7 +125,7 @@ define linkonce_odr void @copy_from_ptr_constant_with_offset_preserve(ptr addrsp
 ; CHECK:       # %bb.0: # %do.body
 ; CHECK-NEXT:  .LBB9_1: # %do.body
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc a1, %captab_pcrel_hi(constant_ptrs)
+; CHECK-NEXT:    auipcc a1, %got_pcrel_hi(constant_ptrs)
 ; CHECK-NEXT:    clc a1, %pcrel_lo(.LBB9_1)(a1)
 ; CHECK-NEXT:    clc a1, 8(a1)
 ; CHECK-NEXT:    csc a1, 0(a0)

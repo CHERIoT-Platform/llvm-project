@@ -3599,16 +3599,11 @@ RISCVInstrInfo::getSerializableDirectMachineOperandTargetFlags() const {
       {MO_TLSDESC_LOAD_LO, "riscv-tlsdesc-load-lo"},
       {MO_TLSDESC_ADD_LO, "riscv-tlsdesc-add-lo"},
       {MO_TLSDESC_CALL, "riscv-tlsdesc-call"},
-      {MO_CAPTAB_PCREL_HI, "riscv-captab-pcrel-hi"},
-      {MO_TPREL_CINCOFFSET, "riscv-tprel-cincoffset"},
-      {MO_TLS_IE_CAPTAB_PCREL_HI, "riscv-tls-ie-captab-pcrel-hi"},
-      {MO_TLS_GD_CAPTAB_PCREL_HI, "riscv-tls-gd-captab-pcrel-hi"},
-      {MO_CCALL, "riscv-ccall"},
       {MO_CHERIOT_COMPARTMENT_HI, "riscv-cheriot-compartment-hi"},
       {MO_CHERIOT_COMPARTMENT_LO_I, "riscv-cheriot-compartment-lo-i"},
       {MO_CHERIOT_COMPARTMENT_LO_S, "riscv-cheriot-compartment-lo-s"},
       {MO_CHERIOT_COMPARTMENT_SIZE, "riscv-cheriot-compartment-size"},
-    };
+  };
   return ArrayRef(TargetFlags);
 }
 
@@ -3844,21 +3839,18 @@ MachineBasicBlock::iterator RISCVInstrInfo::insertOutlinedCall(
     It = MBB.insert(
         It, BuildMI(MF, DebugLoc(),
                     get(IsPurecap ? RISCV::PseudoCTAIL : RISCV::PseudoTAIL))
-                .addGlobalAddress(
-                    M.getNamedValue(MF.getName()),
-                    /*Offset=*/0,
-                    IsPurecap ? RISCVII::MO_CCALL : RISCVII::MO_CALL));
+                .addGlobalAddress(M.getNamedValue(MF.getName()),
+                                  /*Offset=*/0, RISCVII::MO_CALL));
     return It;
   }
 
   // Add in a call instruction to the outlined function at the given location.
   It = MBB.insert(
-      It,
-      BuildMI(MF, DebugLoc(),
-              get(IsPurecap ? RISCV::PseudoCCALLReg : RISCV::PseudoCALLReg),
-              IsPurecap ? RISCV::X5_Y : RISCV::X5)
-          .addGlobalAddress(M.getNamedValue(MF.getName()), 0,
-                            IsPurecap ? RISCVII::MO_CCALL : RISCVII::MO_CALL));
+      It, BuildMI(MF, DebugLoc(),
+                  get(IsPurecap ? RISCV::PseudoCCALLReg : RISCV::PseudoCALLReg),
+                  IsPurecap ? RISCV::X5_Y : RISCV::X5)
+              .addGlobalAddress(M.getNamedValue(MF.getName()), 0,
+                                RISCVII::MO_CALL));
   return It;
 }
 

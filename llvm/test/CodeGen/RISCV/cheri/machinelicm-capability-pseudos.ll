@@ -14,7 +14,7 @@ define void @test_clgc(i32 signext %n) {
 ; RV32I:       # %bb.0: # %entry
 ; RV32I-NEXT:  .LBB0_3: # %entry
 ; RV32I-NEXT:    # Label of block must be emitted
-; RV32I-NEXT:    auipcc a1, %captab_pcrel_hi(g)
+; RV32I-NEXT:    auipcc a1, %got_pcrel_hi(g)
 ; RV32I-NEXT:    clc a1, %pcrel_lo(.LBB0_3)(a1)
 ; RV32I-NEXT:    li a2, 0
 ; RV32I-NEXT:  .LBB0_1: # %loop
@@ -29,7 +29,7 @@ define void @test_clgc(i32 signext %n) {
 ; RV64I:       # %bb.0: # %entry
 ; RV64I-NEXT:  .LBB0_3: # %entry
 ; RV64I-NEXT:    # Label of block must be emitted
-; RV64I-NEXT:    auipcc a1, %captab_pcrel_hi(g)
+; RV64I-NEXT:    auipcc a1, %got_pcrel_hi(g)
 ; RV64I-NEXT:    clc a1, %pcrel_lo(.LBB0_3)(a1)
 ; RV64I-NEXT:    li a2, 0
 ; RV64I-NEXT:  .LBB0_1: # %loop
@@ -61,7 +61,7 @@ define void @test_cla_tls_ie(i32 signext %n) {
 ; RV32I-NEXT:    li a1, 0
 ; RV32I-NEXT:  .LBB1_3: # %entry
 ; RV32I-NEXT:    # Label of block must be emitted
-; RV32I-NEXT:    auipcc a3, %tls_ie_captab_pcrel_hi(ie)
+; RV32I-NEXT:    auipcc a3, %tls_ie_pcrel_hi(ie)
 ; RV32I-NEXT:    clw a2, %pcrel_lo(.LBB1_3)(a3)
 ; RV32I-NEXT:    cincoffset a2, tp, a2
 ; RV32I-NEXT:  .LBB1_1: # %loop
@@ -77,7 +77,7 @@ define void @test_cla_tls_ie(i32 signext %n) {
 ; RV64I-NEXT:    li a1, 0
 ; RV64I-NEXT:  .LBB1_3: # %entry
 ; RV64I-NEXT:    # Label of block must be emitted
-; RV64I-NEXT:    auipcc a3, %tls_ie_captab_pcrel_hi(ie)
+; RV64I-NEXT:    auipcc a3, %tls_ie_pcrel_hi(ie)
 ; RV64I-NEXT:    cld a2, %pcrel_lo(.LBB1_3)(a3)
 ; RV64I-NEXT:    cincoffset a2, tp, a2
 ; RV64I-NEXT:  .LBB1_1: # %loop
@@ -115,7 +115,7 @@ define void @test_clc_tls_gd(i32 signext %n) nounwind {
 ; RV32I-NEXT:    li s2, 0
 ; RV32I-NEXT:  .LBB2_3: # %entry
 ; RV32I-NEXT:    # Label of block must be emitted
-; RV32I-NEXT:    auipcc s1, %tls_gd_captab_pcrel_hi(gd)
+; RV32I-NEXT:    auipcc s1, %tls_gd_pcrel_hi(gd)
 ; RV32I-NEXT:    cincoffset s1, s1, %pcrel_lo(.LBB2_3)
 ; RV32I-NEXT:  .LBB2_1: # %loop
 ; RV32I-NEXT:    # =>This Inner Loop Header: Depth=1
@@ -143,7 +143,7 @@ define void @test_clc_tls_gd(i32 signext %n) nounwind {
 ; RV64I-NEXT:    li s2, 0
 ; RV64I-NEXT:  .LBB2_3: # %entry
 ; RV64I-NEXT:    # Label of block must be emitted
-; RV64I-NEXT:    auipcc s1, %tls_gd_captab_pcrel_hi(gd)
+; RV64I-NEXT:    auipcc s1, %tls_gd_pcrel_hi(gd)
 ; RV64I-NEXT:    cincoffset s1, s1, %pcrel_lo(.LBB2_3)
 ; RV64I-NEXT:  .LBB2_1: # %loop
 ; RV64I-NEXT:    # =>This Inner Loop Header: Depth=1

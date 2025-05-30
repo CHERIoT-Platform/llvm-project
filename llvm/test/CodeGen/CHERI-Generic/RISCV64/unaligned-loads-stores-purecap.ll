@@ -11,7 +11,7 @@ define i64 @load_global_i64_align_1(i64 %y) addrspace(200) nounwind {
 ; CHECK-LABEL: load_global_i64_align_1:
 ; CHECK:       # %bb.0:
 ; CHECK-NEXT:  .LBB0_1: # Label of block must be emitted
-; CHECK-NEXT:    auipcc a0, %captab_pcrel_hi(a1)
+; CHECK-NEXT:    auipcc a0, %got_pcrel_hi(a1)
 ; CHECK-NEXT:    clc a0, %pcrel_lo(.LBB0_1)(a0)
 ; CHECK-NEXT:    clbu a1, 0(a0)
 ; CHECK-NEXT:    clbu a2, 1(a0)
@@ -44,7 +44,7 @@ define i64 @load_global_i64_align_2(i64 %y) addrspace(200) nounwind {
 ; CHECK-LABEL: load_global_i64_align_2:
 ; CHECK:       # %bb.0:
 ; CHECK-NEXT:  .LBB1_1: # Label of block must be emitted
-; CHECK-NEXT:    auipcc a0, %captab_pcrel_hi(a2)
+; CHECK-NEXT:    auipcc a0, %got_pcrel_hi(a2)
 ; CHECK-NEXT:    clc a0, %pcrel_lo(.LBB1_1)(a0)
 ; CHECK-NEXT:    clhu a1, 2(a0)
 ; CHECK-NEXT:    clhu a2, 0(a0)
@@ -65,7 +65,7 @@ define i64 @load_global_i64_align_4(i64 %y) addrspace(200) nounwind {
 ; CHECK-LABEL: load_global_i64_align_4:
 ; CHECK:       # %bb.0:
 ; CHECK-NEXT:  .LBB2_1: # Label of block must be emitted
-; CHECK-NEXT:    auipcc a0, %captab_pcrel_hi(a4)
+; CHECK-NEXT:    auipcc a0, %got_pcrel_hi(a4)
 ; CHECK-NEXT:    clc a0, %pcrel_lo(.LBB2_1)(a0)
 ; CHECK-NEXT:    clwu a1, 4(a0)
 ; CHECK-NEXT:    clwu a0, 0(a0)
@@ -80,7 +80,7 @@ define i64 @load_global_i64_align_8(i64 %y) addrspace(200) nounwind {
 ; CHECK-LABEL: load_global_i64_align_8:
 ; CHECK:       # %bb.0:
 ; CHECK-NEXT:  .LBB3_1: # Label of block must be emitted
-; CHECK-NEXT:    auipcc a0, %captab_pcrel_hi(a8)
+; CHECK-NEXT:    auipcc a0, %got_pcrel_hi(a8)
 ; CHECK-NEXT:    clc a0, %pcrel_lo(.LBB3_1)(a0)
 ; CHECK-NEXT:    cld a0, 0(a0)
 ; CHECK-NEXT:    cret
@@ -92,7 +92,7 @@ define void @store_global_i64_align_1(i64 %y) addrspace(200) nounwind {
 ; CHECK-LABEL: store_global_i64_align_1:
 ; CHECK:       # %bb.0:
 ; CHECK-NEXT:  .LBB4_1: # Label of block must be emitted
-; CHECK-NEXT:    auipcc a1, %captab_pcrel_hi(a1)
+; CHECK-NEXT:    auipcc a1, %got_pcrel_hi(a1)
 ; CHECK-NEXT:    clc a1, %pcrel_lo(.LBB4_1)(a1)
 ; CHECK-NEXT:    srli a2, a0, 56
 ; CHECK-NEXT:    csb a2, 7(a1)
@@ -118,7 +118,7 @@ define void @store_global_i64_align_2(i64 %y) addrspace(200) nounwind {
 ; CHECK-LABEL: store_global_i64_align_2:
 ; CHECK:       # %bb.0:
 ; CHECK-NEXT:  .LBB5_1: # Label of block must be emitted
-; CHECK-NEXT:    auipcc a1, %captab_pcrel_hi(a2)
+; CHECK-NEXT:    auipcc a1, %got_pcrel_hi(a2)
 ; CHECK-NEXT:    clc a1, %pcrel_lo(.LBB5_1)(a1)
 ; CHECK-NEXT:    srli a2, a0, 48
 ; CHECK-NEXT:    csh a2, 6(a1)
@@ -136,7 +136,7 @@ define void @store_global_i64_align_4(i64 %y) addrspace(200) nounwind {
 ; CHECK-LABEL: store_global_i64_align_4:
 ; CHECK:       # %bb.0:
 ; CHECK-NEXT:  .LBB6_1: # Label of block must be emitted
-; CHECK-NEXT:    auipcc a1, %captab_pcrel_hi(a4)
+; CHECK-NEXT:    auipcc a1, %got_pcrel_hi(a4)
 ; CHECK-NEXT:    clc a1, %pcrel_lo(.LBB6_1)(a1)
 ; CHECK-NEXT:    csw a0, 0(a1)
 ; CHECK-NEXT:    srli a0, a0, 32
@@ -150,7 +150,7 @@ define void @store_global_i64_align_8(i64 %y) addrspace(200) nounwind {
 ; CHECK-LABEL: store_global_i64_align_8:
 ; CHECK:       # %bb.0:
 ; CHECK-NEXT:  .LBB7_1: # Label of block must be emitted
-; CHECK-NEXT:    auipcc a1, %captab_pcrel_hi(a8)
+; CHECK-NEXT:    auipcc a1, %got_pcrel_hi(a8)
 ; CHECK-NEXT:    clc a1, %pcrel_lo(.LBB7_1)(a1)
 ; CHECK-NEXT:    csd a0, 0(a1)
 ; CHECK-NEXT:    cret

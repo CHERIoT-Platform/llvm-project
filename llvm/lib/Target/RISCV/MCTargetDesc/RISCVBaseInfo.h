@@ -352,15 +352,10 @@ enum {
   MO_TLSDESC_LOAD_LO = 14,
   MO_TLSDESC_ADD_LO = 15,
   MO_TLSDESC_CALL = 16,
-  MO_CAPTAB_PCREL_HI = 17,
-  MO_TPREL_CINCOFFSET = 18,
-  MO_TLS_IE_CAPTAB_PCREL_HI = 19,
-  MO_TLS_GD_CAPTAB_PCREL_HI = 20,
-  MO_CCALL = 21,
-  MO_CHERIOT_COMPARTMENT_HI = 22,
-  MO_CHERIOT_COMPARTMENT_LO_I = 23,
-  MO_CHERIOT_COMPARTMENT_LO_S = 24,
-  MO_CHERIOT_COMPARTMENT_SIZE = 25,
+  MO_CHERIOT_COMPARTMENT_HI = 17,
+  MO_CHERIOT_COMPARTMENT_LO_I = 18,
+  MO_CHERIOT_COMPARTMENT_LO_S = 19,
+  MO_CHERIOT_COMPARTMENT_SIZE = 20,
 
   // Used to differentiate between target-specific "direct" flags and "bitmask"
   // flags. A machine operand can only have one "direct" flag, but can have

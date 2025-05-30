@@ -1322,21 +1322,6 @@ static MCOperand lowerSymbolOperand(const MachineOperand &MO, MCSymbol *Sym,
   case RISCVII::MO_TLSDESC_CALL:
     Kind = ELF::R_RISCV_TLSDESC_CALL;
     break;
-  case RISCVII::MO_CAPTAB_PCREL_HI:
-    Kind = RISCV::S_CAPTAB_PCREL_HI;
-    break;
-  case RISCVII::MO_TPREL_CINCOFFSET:
-    Kind = RISCV::S_TPREL_CINCOFFSET;
-    break;
-  case RISCVII::MO_TLS_IE_CAPTAB_PCREL_HI:
-    Kind = RISCV::S_TLS_IE_CAPTAB_PCREL_HI;
-    break;
-  case RISCVII::MO_TLS_GD_CAPTAB_PCREL_HI:
-    Kind = RISCV::S_TLS_GD_CAPTAB_PCREL_HI;
-    break;
-  case RISCVII::MO_CCALL:
-    Kind = RISCV::S_CCALL;
-    break;
   case RISCVII::MO_CHERIOT_COMPARTMENT_HI:
     Kind = RISCV::S_CHERIOT_COMPARTMENT_HI;
     break;

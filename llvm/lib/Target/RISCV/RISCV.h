@@ -18,6 +18,7 @@
 #include "llvm/ADT/SetVector.h"
 #include "llvm/IR/Function.h"
 #include "llvm/Target/TargetMachine.h"
+#include <variant>
 
 namespace llvm {
 class FunctionPass;
@@ -52,16 +53,58 @@ struct CHERIoTImportedObject {
   std::string ExportName;
   /// The name of the used symbol.
   std::string Name;
+
+  enum class LibraryFlagValue : bool { IsNotLibrary = 0, IsLibrary = 1 };
+
   /// Flag indicating whether this is a library or compartment import.
-  bool IsLibrary;
-  /// Flag indicating that the entry should be public and a COMDAT.
-  bool IsPublic;
+  LibraryFlagValue LibraryFlag;
+
+  enum class PublicFlagValue : bool { IsNotPublic = 0, IsPublic = 1 };
+
+  /// Flag indicating that the entry should be public.
+  PublicFlagValue PublicFlag;
+
+  enum class GlobalFlagValue : bool { IsNotGlobal = 0, IsGlobal = 1 };
+
   /// Flag indicating that the entry is a global symbol.
-  bool IsGlobal;
-  /// May hold, if the import needs it, the value of the encoded permissions
-  /// that will be used when computing the value of the second word of the
-  /// generated entry.
-  std::optional<int64_t> MaybeSecondWordPermissionsEncoding;
+  GlobalFlagValue GlobalFlag;
+
+  enum class COMDATFlagValue : bool { IsNotCOMDAT = 0, IsCOMDAT = 1 };
+
+  /// Flag indicating that the symbol is a COMDAT.
+  COMDATFlagValue COMDATFlag;
+
+  enum class WeakFlagValue : bool { IsNotWeak = 0, IsWeak = 1 };
+
+  /// Flag indicating that the symbol has weak linking.
+  WeakFlagValue WeakFlag;
+
+  enum class GroupedFlagValue : bool { IsNotGrouped = 0, IsGrouped = 1 };
+
+  /// Flag indicating that the entry is grouped.
+  GroupedFlagValue GroupedFlag;
+
+  enum class WritableFlagValue : bool { IsNotWritable = 0, IsWritable = 1 };
+
+  /// Flag indicating that the entry needs the write flag set.
+  WritableFlagValue WritableFlag;
+
+  enum class SecondWordKind {
+    /// The second word is zero.
+    EmptySecondWord,
+    /// The second word uses the `SecondWordValue` interpreted as the encoded
+    /// value of permissions of the import.
+    DiffAndPermsSecondWord,
+    /// The second word uses the `SecondWordValue` interpreted as the size of
+    /// the imported type.
+    SizeOfTypeSecondWord
+  };
+
+  /// The kind of the second word.
+  SecondWordKind SecondWord;
+
+  /// The value of the second word.
+  uint32_t SecondWordValue;
 };
 
 /**
@@ -71,13 +114,35 @@ struct CHERIoTImportedObject {
 struct CHERIoTImportedObjectDenseMapInfo {
   /// Anything with an empty string is invalid, use a canonical zero value.
   static CHERIoTImportedObject getEmptyKey() {
-    return {"", "", "", false, false, false, std::nullopt};
+    return {"",
+            "",
+            "",
+            CHERIoTImportedObject::LibraryFlagValue::IsNotLibrary,
+            CHERIoTImportedObject::PublicFlagValue::IsNotPublic,
+            CHERIoTImportedObject::GlobalFlagValue::IsNotGlobal,
+            CHERIoTImportedObject::COMDATFlagValue::IsNotCOMDAT,
+            CHERIoTImportedObject::WeakFlagValue::IsNotWeak,
+            CHERIoTImportedObject::GroupedFlagValue::IsNotGrouped,
+            CHERIoTImportedObject::WritableFlagValue::IsNotWritable,
+            CHERIoTImportedObject::SecondWordKind::EmptySecondWord,
+            0};
   }
 
   /// Anything with an empty string is invalid, use the IsPublic field to
   /// differentiate from the canonical zero value.
   static CHERIoTImportedObject getTombstoneKey() {
-    return {"", "", "", true, false, false, std::nullopt};
+    return {"",
+            "",
+            "",
+            CHERIoTImportedObject::LibraryFlagValue::IsLibrary,
+            CHERIoTImportedObject::PublicFlagValue::IsNotPublic,
+            CHERIoTImportedObject::GlobalFlagValue::IsNotGlobal,
+            CHERIoTImportedObject::COMDATFlagValue::IsNotCOMDAT,
+            CHERIoTImportedObject::WeakFlagValue::IsNotWeak,
+            CHERIoTImportedObject::GroupedFlagValue::IsNotGrouped,
+            CHERIoTImportedObject::WritableFlagValue::IsNotWritable,
+            CHERIoTImportedObject::SecondWordKind::EmptySecondWord,
+            0};
   }
 
   /// The import name is unique within a compilation unit, use it for the hash.
@@ -92,7 +157,7 @@ struct CHERIoTImportedObjectDenseMapInfo {
     // with mismatched export names (two different imports referring to the
     // same export may be permitted).  Similarly, IsPublic depends on the
     // export and so may not differ.
-    return (LHS.IsLibrary == RHS.IsLibrary) &&
+    return (LHS.LibraryFlag == RHS.LibraryFlag) &&
            (LHS.ImportName == RHS.ImportName);
   }
 };

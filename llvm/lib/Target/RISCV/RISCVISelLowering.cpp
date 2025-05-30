@@ -8770,8 +8770,16 @@ SDValue RISCVTargetLowering::lowerGlobalAddress(SDValue Op,
   const GlobalValue *GV = N->getGlobal();
 
   if (auto *GVar = llvm::dyn_cast<llvm::GlobalVariable>(GV)) {
-    auto AttrName = llvm::CHERIoTGlobalCapabilityImportAttr::getAttrName();
-    if (GVar->hasAttribute(AttrName)) {
+
+    // Some CHERIoT-specific tests, in particular check whether the global
+    // variable refers to a global capability import or an imported (or, rather,
+    // must-be-imported) sealed value.
+    auto GlobalCapImportAttrName =
+        llvm::CHERIoTGlobalCapabilityImportAttr::getAttrName();
+    auto GlobalSealedValueAttrName =
+        llvm::CHERIoTSealedValueAttr::getAttrName();
+    if (GVar->hasAttribute(GlobalCapImportAttrName) ||
+        GVar->hasAttribute(GlobalSealedValueAttrName)) {
       SDLoc DL(N);
       SDValue Addr = getTargetNode(N, DL, Ty, DAG, 0);
       // Force it to be lowered to a `CLLC` regardless what `getAddr` would

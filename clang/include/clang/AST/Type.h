@@ -1144,6 +1144,10 @@ public:
   /// Return true if this is a trivially copyable type
   bool isTriviallyCopyConstructibleType(const ASTContext &Context) const;
 
+  /// Return true if this QualType has the attribute signaling that it
+  /// references a sealed type in CHERIoT.
+  bool hasCHERIoTSealedAttr() const;
+
   /// Returns true if it is a class and it might be dynamic.
   bool mayBeDynamicClass() const;
 

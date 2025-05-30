@@ -127,6 +127,29 @@ const IdentifierInfo *QualType::getBaseTypeIdentifier() const {
   return nullptr;
 }
 
+bool QualType::hasCHERIoTSealedAttr() const {
+  if (isNull()) {
+    return false;
+  }
+
+  const auto *T = getTypePtr();
+
+  if (!T) {
+    return false;
+  }
+
+  if (T->hasAttr(attr::Kind::CHERIoTSealedType)) {
+    return true;
+  }
+
+  if (const auto *TT = T->getAs<TagType>()) {
+    auto *Decl = TT->getDecl();
+    return Decl && Decl->hasAttr<CHERIoTSealedTypeAttr>();
+  }
+
+  return false;
+}
+
 bool QualType::mayBeDynamicClass() const {
   const auto *ClassDecl = getTypePtr()->getPointeeCXXRecordDecl();
   return ClassDecl && ClassDecl->mayBeDynamicClass();

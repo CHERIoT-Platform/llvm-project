@@ -2258,6 +2258,30 @@ static void handleCHERIOTSharedObject(Sema &S, Decl *D, const ParsedAttr &Attr,
       S.Context, Attr, ObjectName, OwnedPermissions));
 }
 
+static void handleCHERIoTSealedType(Sema &S, Decl *D, const ParsedAttr &Attr,
+                                    Sema::DeclAttributeLocation DAL) {
+
+  auto *TDecl = dyn_cast<TypeDecl>(D);
+  if (TDecl) {
+    StringRef CompartmentName;
+    SourceLocation CompartmentNameLiteralLoc;
+    if (!S.checkStringLiteralArgumentAttr(Attr, 0, CompartmentName,
+                                          &CompartmentNameLiteralLoc))
+      return;
+    StringRef SealingTypeName;
+    SourceLocation SealingTypeNameLiteralLoc;
+
+    if (!S.checkStringLiteralArgumentAttr(Attr, 1, SealingTypeName,
+                                          &SealingTypeNameLiteralLoc))
+      return;
+
+    // Here we simply copy the attribute.
+    TDecl->addAttr(::new (S.Context) CHERIoTSealedTypeAttr(
+        S.Context, Attr, CompartmentName, SealingTypeName));
+  } else // Ignore if it's not a type definition.
+    S.Diag(Attr.getLoc(), diag::warn_attribute_ignored) << Attr.getAttrName();
+}
+
 static void handleCHERICompartmentName(Sema &S, Decl *D, const ParsedAttr &Attr,
                                        Sema::DeclAttributeLocation DAL) {
   // cheri_compartment is both:
@@ -7807,6 +7831,9 @@ ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D, const ParsedAttr &AL,
     break;
   case ParsedAttr::AT_CHERIOTSharedObject:
     handleCHERIOTSharedObject(S, D, AL, DAL);
+    break;
+  case ParsedAttr::AT_CHERIoTSealedType:
+    handleCHERIoTSealedType(S, D, AL, DAL);
     break;
   case ParsedAttr::AT_InterruptState:
     handleInterruptState(S, D, AL);

@@ -1585,6 +1585,22 @@ example, `"RWcm"` and `"mcWR"` are both valid and entail the same permissions.
   }];
 }
 
+def CHERIoTSealedTypeDocs : Documentation {
+  let Category = DocCatVariable;
+  let Heading = "cheriot_sealed";
+  let Content = [{
+Used to set a type as sealed: this means that values of the attributed type
+will be understood as sealed values. The only operation valid on a sealed value
+is to take its address. Doing so will result in a ``<T> *
+__sealed_capability``, where ``<T>`` is the attributed type.
+
+**Usage**: ``__attribute__((cheriot_sealed("<compartment_name>",
+"<sealing_key_name>")))`` where `"<compartment_name>"` is the name of the
+compartment that is allowed to unseal the value and `<sealing_key_name>` is the
+name of the chosen sealing key exposed from the compartment. The CXX11 and
+C23-style attributes syntax (``[[cheriot::sealed]]``) is valid as well. 
+  }];
+}
 def ObjCMethodFamilyDocs : Documentation {
   let Category = DocCatFunction;
   let Content = [{

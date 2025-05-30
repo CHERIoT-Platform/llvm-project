@@ -5834,6 +5834,93 @@ void CodeGenModule::EmitGlobalVarDefinition(const VarDecl *D,
   }
 
   llvm::Type* InitType = Init->getType();
+  if (ASTTy.hasCHERIoTSealedAttr()) {
+    // In this case, the global variable refers to a to-be-sealed value of type
+    // <T>. We need to:
+    // 1. Get (or create) the type of the sealed pointer, which has a fixed
+    // shape: `__Sealed_<T> {uint32_t sealing_key_ptr; uint32_t padding; <T>
+    // body}`;
+    // 2. Change the type of the global variable to `__Sealed_<T>`;
+    // 3. Create the initializer for the global variable.
+
+    auto *Module = &getModule();
+    auto *Ctxt = &getLLVMContext();
+    auto *Int32Ty = llvm::Type::getInt32Ty(*Ctxt);
+    CHERIoTSealedTypeAttr *Attr = nullptr;
+    std::string TypeName;
+
+    if (auto *TT = ASTTy->getAsTagDecl();
+        TT && TT->hasAttr<CHERIoTSealedTypeAttr>()) {
+      Attr = TT->getAttr<CHERIoTSealedTypeAttr>();
+      TypeName = TT->getNameAsString();
+    }
+
+    if (const auto *TT = ASTTy->getAs<TypedefType>();
+        TT && TT->getDecl() &&
+        TT->getDecl()->hasAttr<CHERIoTSealedTypeAttr>()) {
+      auto *TD = TT->getDecl();
+      Attr = TD->getAttr<CHERIoTSealedTypeAttr>();
+      TypeName = TD->getNameAsString();
+    }
+
+    llvm::Comdat *C = Module->getOrInsertComdat(D->getName());
+    C->setSelectionKind(llvm::Comdat::Any);
+
+    llvm::Type *SealedStructElements[] = {Int32Ty, Int32Ty, Init->getType()};
+    auto *SealedStructType = llvm::StructType::create(
+        *Ctxt, SealedStructElements, ("struct.__Sealed_" + TypeName));
+
+    auto SealingKeyName =
+        ("__export.sealing_type." + Attr->getCompartmentName() + "." +
+         Attr->getSealingTypeName())
+            .str();
+
+    auto *SealingKeyRef = Module->getGlobalVariable(SealingKeyName);
+
+    if (!SealingKeyRef) {
+      llvm::GlobalVariable *SealingKeyVarDef = new llvm::GlobalVariable(
+          *Module, Int32Ty, false, llvm::GlobalValue::ExternalLinkage, nullptr,
+          SealingKeyName);
+      SealingKeyVarDef->setDSOLocal(true);
+      SealingKeyVarDef->setAlignment(llvm::Align(4));
+      SealingKeyRef = Module->getGlobalVariable(SealingKeyName);
+      assert(SealingKeyRef && "is supposed to exist now!");
+    }
+
+    auto *CastedPointer =
+        llvm::ConstantExpr::getPointerCast(SealingKeyRef, Int32Ty);
+
+    llvm::Constant *Values[] = {CastedPointer,
+                                llvm::ConstantInt::get(Int32Ty, 0), Init};
+
+    // Create the initializer.
+    auto *Init = llvm::ConstantStruct::get(SealedStructType, Values);
+
+    llvm::Constant *Entry =
+        GetAddrOfGlobalVar(D, Init->getType(), ForDefinition_t(!IsTentative));
+    auto *GV = dyn_cast<llvm::GlobalVariable>(Entry);
+    GV->setSection(".sealed_objects");
+    GV->setDSOLocal(true);
+    GV->setLinkage(llvm::GlobalValue::LinkOnceODRLinkage);
+    GV->setAlignment(llvm::Align(4));
+    GV->setComdat(C);
+    GV->setInitializer(Init);
+    GV->addAttribute(llvm::CHERIoTSealedValueAttr::getAttrName());
+
+    addCompilerUsedGlobal(GV);
+
+    if (emitter)
+      emitter->finalize(GV);
+
+    SanitizerMD->reportGlobal(GV, *D, NeedsGlobalCtor);
+
+    // Emit global variable debug information.
+    if (CGDebugInfo *DI = getModuleDebugInfo())
+      if (getCodeGenOpts().hasReducedDebugInfo())
+        DI->EmitGlobalVariable(GV, D);
+    return;
+  }
+
   llvm::Constant *Entry =
       GetAddrOfGlobalVar(D, InitType, ForDefinition_t(!IsTentative));
 

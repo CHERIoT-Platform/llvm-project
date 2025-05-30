@@ -706,6 +706,12 @@ ExprResult Sema::DefaultLvalueConversion(Expr *E) {
   QualType T = E->getType();
   assert(!T.isNull() && "r-value conversion on typeless expression?");
 
+  // CHERIoT-specific check.
+  if (T.hasCHERIoTSealedAttr() && !isUnevaluatedContext()) {
+    return ExprError(
+        Diag(E->getExprLoc(), diag::err_cheriot_non_addr_of_expr_on_sealed));
+  }
+
   // lvalue-to-rvalue conversion cannot be applied to types that decay to
   // pointers (i.e. function or array types).
   if (T->canDecayToPointerType())
@@ -5054,6 +5060,11 @@ ExprResult Sema::ActOnArraySubscriptExpr(Scope *S, Expr *base,
                                          MultiExprArg ArgExprs,
                                          SourceLocation rbLoc) {
 
+  // CHERIoT-specific check.
+  if (base->getType().hasCHERIoTSealedAttr() && !isUnevaluatedContext()) {
+    return ExprError(Diag(lbLoc, diag::err_cheriot_non_addr_of_expr_on_sealed));
+  }
+
   if (base && !base->getType().isNull() &&
       base->hasPlaceholderType(BuiltinType::ArraySection)) {
     auto *AS = cast<ArraySectionExpr>(base);
@@ -8748,6 +8759,21 @@ QualType Sema::CheckConditionalOperands(ExprResult &Cond, ExprResult &LHS,
                                         ExprResult &RHS, ExprValueKind &VK,
                                         ExprObjectKind &OK,
                                         SourceLocation QuestionLoc) {
+
+  // CHERIoT-specific check.
+  if (!isUnevaluatedContext()) {
+    if (LHS.get()->getType().hasCHERIoTSealedAttr()) {
+      Diag(LHS.get()->getExprLoc(),
+           diag::err_cheriot_non_addr_of_expr_on_sealed);
+      return QualType();
+    }
+
+    if (RHS.get()->getType().hasCHERIoTSealedAttr()) {
+      Diag(RHS.get()->getExprLoc(),
+           diag::err_cheriot_non_addr_of_expr_on_sealed);
+      return QualType();
+    }
+  }
 
   ExprResult LHSResult = CheckPlaceholderExpr(LHS.get());
   if (!LHSResult.isUsable()) return QualType();
@@ -15057,6 +15083,9 @@ QualType Sema::CheckAddressOfOperand(ExprResult &OrigOp, SourceLocation OpLoc) {
   CheckAddressOfPackedMember(op);
 
   PointerInterpretationKind PIK = PointerInterpretationForBaseExpr(op);
+  if (op->getType().hasCHERIoTSealedAttr()) {
+    PIK = PIK_SealedCapability;
+  }
   return Context.getPointerType(op->getType(), PIK);
 }
 
@@ -15965,6 +15994,19 @@ ExprResult Sema::BuildBinOp(Scope *S, SourceLocation OpLoc,
   LHSExpr = LHS.get();
   RHSExpr = RHS.get();
 
+  // CHERIoT-specific check.
+  if (!isUnevaluatedContext()) {
+    if (LHSExpr->getType().hasCHERIoTSealedAttr()) {
+      return ExprError(Diag(LHS.get()->getExprLoc(),
+                            diag::err_cheriot_non_addr_of_expr_on_sealed));
+    }
+
+    if (RHSExpr->getType().hasCHERIoTSealedAttr()) {
+      return ExprError(Diag(RHS.get()->getExprLoc(),
+                            diag::err_cheriot_non_addr_of_expr_on_sealed));
+    }
+  }
+
   // We want to end up calling one of SemaPseudoObject::checkAssignment
   // (if the LHS is a pseudo-object), BuildOverloadedBinOp (if
   // both expressions are overloadable or either is type-dependent),
@@ -16404,6 +16446,12 @@ bool Sema::isQualifiedMemberAccess(Expr *E) {
 ExprResult Sema::BuildUnaryOp(Scope *S, SourceLocation OpLoc,
                               UnaryOperatorKind Opc, Expr *Input,
                               bool IsAfterAmp) {
+  // CHERIoT-specific check.
+  if (Input->getType().hasCHERIoTSealedAttr() && (Opc != UO_AddrOf) &&
+      !isUnevaluatedContext()) {
+    return ExprError(Diag(OpLoc, diag::err_cheriot_non_addr_of_expr_on_sealed));
+  }
+
   // First things first: handle placeholders so that the
   // overloaded-operator check considers the right type.
   if (const BuiltinType *pty = Input->getType()->getAsPlaceholderType()) {

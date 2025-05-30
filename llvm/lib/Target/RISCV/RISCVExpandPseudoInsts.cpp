@@ -336,9 +336,23 @@ MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
   // Make the original basic block fall-through to the new.
   MBB.addSuccessor(NewMBB);
 
-  ImportedObjects.insert({ImportSymbol->getName().str(),
-                          ExportSymbol->getName().str(), ImportName.str(),
-                          IsLibrary, IsPublic, false, std::nullopt});
+  ImportedObjects.insert(
+      {ImportSymbol->getName().str(), ExportSymbol->getName().str(),
+       ImportName.str(),
+       IsLibrary ? CHERIoTImportedObject::LibraryFlagValue::IsLibrary
+                 : CHERIoTImportedObject::LibraryFlagValue::IsNotLibrary,
+       IsPublic ? CHERIoTImportedObject::PublicFlagValue::IsPublic
+                : CHERIoTImportedObject::PublicFlagValue::IsNotPublic,
+       CHERIoTImportedObject::GlobalFlagValue::IsNotGlobal,
+       IsPublic ? CHERIoTImportedObject::COMDATFlagValue::IsCOMDAT
+                : CHERIoTImportedObject::COMDATFlagValue::IsNotCOMDAT,
+       IsPublic ? CHERIoTImportedObject::WeakFlagValue::IsWeak
+                : CHERIoTImportedObject::WeakFlagValue::IsNotWeak,
+       IsPublic ? CHERIoTImportedObject::GroupedFlagValue::IsGrouped
+                : CHERIoTImportedObject::GroupedFlagValue::IsNotGrouped,
+       CHERIoTImportedObject::WritableFlagValue::IsNotWritable,
+       CHERIoTImportedObject::SecondWordKind::EmptySecondWord, 0});
+
   LivePhysRegs LiveRegs;
   computeAndAddLiveIns(LiveRegs, *NewMBB);
   return NewMBB;
@@ -558,11 +572,17 @@ bool RISCVExpandPseudo::expandAuipccInstPair(
   auto CheriotCapImportAttrName =
       llvm::CHERIoTGlobalCapabilityImportAttr::getAttrName();
   std::optional<Attribute> CheriotCapImportAttr = std::nullopt;
+  auto CheriotSealedValueAttrName = llvm::CHERIoTSealedValueAttr::getAttrName();
+  std::optional<Attribute> CheriotSealedValueAttr = std::nullopt;
 
   if (Symbol.isGlobal()) {
     auto *GV = llvm::dyn_cast<llvm::GlobalVariable>(Symbol.getGlobal());
     if (GV && GV->hasAttribute(CheriotCapImportAttrName)) {
       CheriotCapImportAttr.emplace(GV->getAttribute(CheriotCapImportAttrName));
+    }
+    if (GV && GV->hasAttribute(CheriotSealedValueAttrName)) {
+      CheriotSealedValueAttr.emplace(
+          GV->getAttribute(CheriotSealedValueAttrName));
     }
   }
 
@@ -602,8 +622,47 @@ bool RISCVExpandPseudo::expandAuipccInstPair(
 
     auto EncodedPermissions = CapAttr.encodePermissions();
 
-    ImportedObjects.insert({MangledImportName, MangledExportName, ImportName,
-                            false, true, true, EncodedPermissions});
+    ImportedObjects.insert(
+        {MangledImportName, MangledExportName, ImportName,
+         CHERIoTImportedObject::LibraryFlagValue::IsNotLibrary,
+         CHERIoTImportedObject::PublicFlagValue::IsPublic,
+         CHERIoTImportedObject::GlobalFlagValue::IsGlobal,
+         CHERIoTImportedObject::COMDATFlagValue::IsCOMDAT,
+         CHERIoTImportedObject::WeakFlagValue::IsNotWeak,
+         CHERIoTImportedObject::GroupedFlagValue::IsGrouped,
+         CHERIoTImportedObject::WritableFlagValue::IsWritable,
+         CHERIoTImportedObject::SecondWordKind::DiffAndPermsSecondWord,
+         EncodedPermissions});
+  } else if (CheriotSealedValueAttr.has_value()) {
+    // We can safely assume, here, that GV is not null.
+    auto *GV = llvm::dyn_cast<llvm::GlobalVariable>(Symbol.getGlobal());
+
+    MCContext &Ctxt = MF->getContext();
+    auto SealedObjectName = std::string(GV->getName());
+    auto MangledImportName = "__import.sealed_object." + SealedObjectName;
+    MCSymbol *MangledImportSymbol = Ctxt.getOrCreateSymbol(MangledImportName);
+
+    BuildMI(NewMBB, DL, TII->get(RISCV::AUIPCC), TmpReg)
+        .addSym(MangledImportSymbol, FlagsHi);
+
+    auto DL = MBB.getParent()->getDataLayout();
+
+    assert(DL.getTypeStoreSize(GV->getValueType()) <
+               std::numeric_limits<uint32_t>::max() &&
+           "Size of type should be less than uint32_t::max()");
+
+    uint32_t TypeSize = DL.getTypeStoreSize(GV->getValueType());
+    ImportedObjects.insert(
+        {MangledImportName, SealedObjectName, SealedObjectName,
+         CHERIoTImportedObject::LibraryFlagValue::IsNotLibrary,
+         CHERIoTImportedObject::PublicFlagValue::IsPublic,
+         CHERIoTImportedObject::GlobalFlagValue::IsNotGlobal,
+         CHERIoTImportedObject::COMDATFlagValue::IsNotCOMDAT,
+         CHERIoTImportedObject::WeakFlagValue::IsWeak,
+         CHERIoTImportedObject::GroupedFlagValue::IsGrouped,
+         CHERIoTImportedObject::WritableFlagValue::IsWritable,
+         CHERIoTImportedObject::SecondWordKind::SizeOfTypeSecondWord,
+         TypeSize});
   } else {
     BuildMI(NewMBB, DL, TII->get(RISCV::AUIPCC), TmpReg)
         .addDisp(Symbol, 0, FlagsHi);
@@ -613,7 +672,8 @@ bool RISCVExpandPseudo::expandAuipccInstPair(
       .addReg(TmpReg)
       .addMBB(NewMBB, IsCheriot ? RISCVII::MO_CHERIOT_COMPARTMENT_LO_I
                                 : RISCVII::MO_PCREL_LO);
-  if (!CheriotCapImportAttr.has_value() && !InBounds &&
+  if (!CheriotSealedValueAttr.has_value() &&
+      !CheriotCapImportAttr.has_value() && !InBounds &&
       MF->getSubtarget<RISCVSubtarget>().isRV32E() && Symbol.isGlobal() &&
       isa<GlobalVariable>(Symbol.getGlobal()) &&
       (cast<GlobalVariable>(Symbol.getGlobal())->getSection() !=
@@ -653,8 +713,10 @@ bool RISCVExpandPseudo::expandCapLoadLocalCap(
 
     const GlobalValue *GV = Symbol.getGlobal();
     auto *GVar = llvm::dyn_cast<GlobalVariable>(GV);
-    if (GVar && GVar->hasAttribute(
-                    llvm::CHERIoTGlobalCapabilityImportAttr::getAttrName())) {
+    if (GVar &&
+        (GVar->hasAttribute(
+             llvm::CHERIoTGlobalCapabilityImportAttr::getAttrName()) ||
+         GVar->hasAttribute(llvm::CHERIoTSealedValueAttr::getAttrName()))) {
       return expandAuipccInstPair(MBB, MBBI, NextMBBI,
                                   RISCVII::MO_CHERIOT_COMPARTMENT_HI,
                                   RISCV::CLC_64);

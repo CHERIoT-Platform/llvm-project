@@ -8920,6 +8920,28 @@ static bool HandleCHERIPointerQualifier(QualType &CurType,
   return true;
 }
 
+static Attr *HandleCHERIoTSealedType(QualType &T, TypeProcessingState &State,
+                                     TypeAttrLocation TAL, ParsedAttr &attr) {
+  auto *S = &State.getSema();
+
+  StringRef CompartmentName;
+  SourceLocation CompartmentNameLiteralLoc;
+  if (!S->checkStringLiteralArgumentAttr(attr, 0, CompartmentName,
+                                         &CompartmentNameLiteralLoc))
+    return nullptr;
+
+  StringRef SealingTypeName;
+  SourceLocation SealingTypeNameLiteralLoc;
+
+  if (!S->checkStringLiteralArgumentAttr(attr, 1, SealingTypeName,
+                                         &SealingTypeNameLiteralLoc))
+    return nullptr;
+
+  attr.setUsedAsTypeAttr();
+  return ::new (S->Context)
+      CHERIoTSealedTypeAttr(S->Context, attr, CompartmentName, SealingTypeName);
+}
+
 static void handleCheriNoProvenanceAttr(QualType &T, TypeProcessingState &State,
                                         TypeAttrLocation TAL,
                                         ParsedAttr &Attr) {
@@ -9336,6 +9358,11 @@ static void processTypeAttrs(TypeProcessingState &state, QualType &type,
         if (type->isReferenceType())
           state.getSema().Diag(attr.getLoc(), diag::err_sealed_reference)
               << type;
+      }
+      break;
+    case ParsedAttr::AT_CHERIoTSealedType:
+      if (auto *Attr = HandleCHERIoTSealedType(type, state, TAL, attr)) {
+        type = state.getAttributedType(Attr, type, type);
       }
       break;
     case ParsedAttr::AT_CHERICapability:

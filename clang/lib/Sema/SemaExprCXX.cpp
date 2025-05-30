@@ -5832,6 +5832,21 @@ QualType Sema::CXXCheckConditionalOperands(ExprResult &Cond, ExprResult &LHS,
                                            ExprResult &RHS, ExprValueKind &VK,
                                            ExprObjectKind &OK,
                                            SourceLocation QuestionLoc) {
+  // CHERIoT-specific check.
+  if (!isUnevaluatedContext()) {
+    if (LHS.get()->getType().hasCHERIoTSealedAttr()) {
+      Diag(LHS.get()->getExprLoc(),
+           diag::err_cheriot_non_addr_of_expr_on_sealed);
+      return QualType();
+    }
+
+    if (RHS.get()->getType().hasCHERIoTSealedAttr()) {
+      Diag(RHS.get()->getExprLoc(),
+           diag::err_cheriot_non_addr_of_expr_on_sealed);
+      return QualType();
+    }
+  }
+
   // FIXME: Handle C99's complex types, block pointers and Obj-C++ interface
   // pointers.
 

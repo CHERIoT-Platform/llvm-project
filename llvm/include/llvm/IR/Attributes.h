@@ -1472,7 +1472,7 @@ public:
   static auto getValidPermissionSymbols() { return &ValidSymbols; }
 
   /// Converts the permissions into an integer.
-  int64_t encodePermissions() {
+  uint32_t encodePermissions() {
     return (((Permissions[0] == *ReadPermissionSymbol) ? (1 << 31) : 0) +
             ((Permissions[1] == *WritePermissionSymbol) ? (1 << 30) : 0) +
             ((Permissions[2] == *CapPermissionSymbol) ? (1 << 29) : 0) +
@@ -1617,6 +1617,14 @@ private:
   static constexpr const char *MmioImportKindStr = "mem";
   static constexpr const char *SharedObjectImportKindStr =
       "cheriot_shared_object";
+};
+
+/// Represents the LLVM-level attribute that is used to signal
+/// that a global (variable) is a sealed value.
+class CHERIoTSealedValueAttr {
+public:
+  /// Get the name of the attribute.
+  static const std::string getAttrName() { return "cheriot_sealed_value"; }
 };
 } // end namespace llvm
 

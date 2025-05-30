@@ -15186,6 +15186,25 @@ Sema::DeclGroupPtrTy Sema::FinalizeDeclaratorGroup(Scope *S, const DeclSpec &DS,
   for (Decl *D : Group) {
     if (!D)
       continue;
+
+    auto *VD = dyn_cast<VarDecl>(D);
+
+    /// CHERIoT-specific check. If a variable is declared with a sealed type, it
+    /// can't have external storage, since its initializer must be available in
+    /// the unit.
+    ///
+    /// For example
+    /// ```
+    /// typedef int MySealedType __attribute__((cheriot_sealed("MyCompartment",
+    /// "MySealingKeyType"))); extern MySealedType mySealedObject;
+    /// ```
+    /// would not really make sense.
+    if (VD && VD->getType().hasCHERIoTSealedAttr() &&
+        VD->hasExternalStorage()) {
+      Diag(D->getLocation(), diag::err_cheriot_invalid_sealed_declaration)
+          << "external";
+    }
+
     // Check if the Decl has been declared in '#pragma omp declare target'
     // directive and has static storage duration.
     if (auto *VD = dyn_cast<VarDecl>(D);

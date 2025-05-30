@@ -210,6 +210,11 @@ def warn_cheriot_global_cap_import_non_volatile : Warning<
   "global variable definition '%0' has attribute %1 but is not qualified as `volatile`">;
 def err_cheriot_global_cap_import_initialized: Error<
   "global variable definition '%0' with attribute %1 cannot have an initializer">;
+def err_cheriot_non_addr_of_expr_on_sealed
+    : Error<
+          "the only valid operation on a sealed value is to take its address">;
+def err_cheriot_invalid_sealed_declaration
+    : Error<"cannot declare a sealed variable as %0">;
 
 // C99 variable-length arrays
 def ext_vla : Extension<"variable length arrays are a C99 feature">,

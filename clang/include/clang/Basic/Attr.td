@@ -2989,6 +2989,14 @@ def CHERIOTSharedObject : DeclOrTypeAttr {
   let Subjects = SubjectList<[GlobalVar], ErrorDiag>;
 }
 
+def CHERIoTSealedType : TypeAttr {
+  let Spellings = [C23<"cheriot", "sealed">, CXX11<"cheriot", "sealed">,
+                   GNU<"cheriot_sealed">];
+  let Documentation = [CHERIoTSealedTypeDocs];
+  let Args = [StringArgument<"CompartmentName">,
+              StringArgument<"SealingTypeName">];
+}
+
 def CHERINoSubobjectBounds : DeclOrTypeAttr {
   let Spellings = [GNU<"cheri_no_subobject_bounds">,
                    CXX11<"cheri","no_subobject_bounds">,

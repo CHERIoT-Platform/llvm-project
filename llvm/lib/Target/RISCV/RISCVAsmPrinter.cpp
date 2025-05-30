@@ -767,40 +767,46 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
       // compilation units.  Private ones must not be.
       MCSectionELF *Section;
 
-      if (Entry.IsPublic) {
-        Section = C.getELFSection(".compartment_imports." + Entry.Name,
-                                  ELF::SHT_PROGBITS,
-                                  ELF::SHF_ALLOC | ELF::SHF_GROUP |
-                                      (Entry.IsGlobal ? ELF::SHF_WRITE : 0),
-                                  0, Entry.ImportName, true);
-      } else {
-        Section = C.getELFSection(".compartment_imports." + Entry.Name,
-                                  ELF::SHT_PROGBITS, ELF::SHF_ALLOC);
-      }
+      unsigned Flags = ELF::SHF_ALLOC;
+      if ((bool)Entry.GroupedFlag)
+        Flags |= ELF::SHF_GROUP;
+      if ((bool)Entry.WritableFlag)
+        Flags |= ELF::SHF_WRITE;
+
+      Section = C.getELFSection(
+          ".compartment_imports." + Entry.Name, ELF::SHT_PROGBITS, Flags, 0,
+          Entry.ImportName,
+          Entry.COMDATFlag == CHERIoTImportedObject::COMDATFlagValue::IsCOMDAT
+              ? true
+              : false);
 
       OutStreamer->switchSection(Section);
       auto *Sym = C.getOrCreateSymbol(Entry.ImportName);
       auto *ExportSym = C.getOrCreateSymbol(Entry.ExportName);
       OutStreamer->emitSymbolAttribute(Sym, MCSA_ELF_TypeObject);
-      if (Entry.IsPublic && !Entry.IsGlobal)
+      if (Entry.WeakFlag == CHERIoTImportedObject::WeakFlagValue::IsWeak)
         OutStreamer->emitSymbolAttribute(Sym, MCSA_Weak);
-      if (Entry.IsGlobal)
+      if (Entry.GlobalFlag == CHERIoTImportedObject::GlobalFlagValue::IsGlobal)
         OutStreamer->emitSymbolAttribute(Sym, llvm::MCSA_Global);
       OutStreamer->emitValueToAlignment(Align(8));
       OutStreamer->emitLabel(Sym);
       // Library imports have their low bit set.
-      if (Entry.IsLibrary)
+      if ((bool)Entry.LibraryFlag)
         OutStreamer->emitValue(
             MCBinaryExpr::createAdd(MCSymbolRefExpr::create(ExportSym, C),
                                     MCConstantExpr::create(1, C), C),
             4);
       else
         OutStreamer->emitValue(MCSymbolRefExpr::create(ExportSym, C), 4);
-      if (!Entry.MaybeSecondWordPermissionsEncoding.has_value())
+
+      uint32_t SecondWord = Entry.SecondWordValue;
+
+      if (Entry.SecondWord ==
+          CHERIoTImportedObject::SecondWordKind::EmptySecondWord)
         OutStreamer->emitIntValue(0, 4);
-      else {
-        auto PermissionsEncoding =
-            Entry.MaybeSecondWordPermissionsEncoding.value();
+      else if (Entry.SecondWord ==
+               CHERIoTImportedObject::SecondWordKind::DiffAndPermsSecondWord) {
+        auto PermissionsEncoding = (int32_t)SecondWord;
         auto MangledExportNameEnd = Entry.ExportName + "_end";
         auto *EncodedPermissionsExpr =
             MCConstantExpr::create(PermissionsEncoding, C);
@@ -812,6 +818,9 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
         auto *SecondWordValue =
             MCBinaryExpr::createAdd(ExportLength, EncodedPermissionsExpr, C);
 
+        OutStreamer->emitValue(SecondWordValue, 4);
+      } else {
+        auto *SecondWordValue = MCConstantExpr::create(SecondWord, C);
         OutStreamer->emitValue(SecondWordValue, 4);
       }
       OutStreamer->emitELFSize(Sym, MCConstantExpr::create(8, C));

@@ -141,12 +141,6 @@ static void addFixup(SmallVectorImpl<MCFixup> &Fixups, uint32_t Offset,
   case RISCV::fixup_riscv_qc_e_branch:
   case RISCV::fixup_riscv_qc_e_call_plt:
   case RISCV::fixup_riscv_nds_branch_10:
-  case RISCV::fixup_riscv_captab_pcrel_hi20:
-  case RISCV::fixup_riscv_tls_ie_captab_pcrel_hi20:
-  case RISCV::fixup_riscv_tls_gd_captab_pcrel_hi20:
-  case RISCV::fixup_riscv_cjal:
-  case RISCV::fixup_riscv_ccall:
-  case RISCV::fixup_riscv_rvc_cjump:
     PCRel = true;
   }
   Fixups.push_back(MCFixup::create(Offset, Value, Kind, PCRel));
@@ -300,14 +294,13 @@ void RISCVMCCodeEmitter::expandCIncOffsetTPRel(
          "Expected expression as third input to CTP-relative cincoffset");
 
   const MCSpecifierExpr *Expr = dyn_cast<MCSpecifierExpr>(SrcSymbol.getExpr());
-  assert(Expr && Expr->getSpecifier() == RISCV::S_TPREL_CINCOFFSET &&
-         "Expected tprel_cincoffset relocation on CTP-relative symbol");
+  assert(Expr && Expr->getSpecifier() == ELF::R_RISCV_TPREL_ADD &&
+         "Expected tprel_add relocation on CTP-relative symbol");
 
-  // Emit the correct tprel_cincoffset relocation for the symbol.
-  Fixups.push_back(MCFixup::create(
-      0, Expr, MCFixupKind(RISCV::fixup_riscv_tprel_cincoffset)));
+  // Emit the correct tprel_add relocation for the symbol.
+  addFixup(Fixups, 0, Expr, ELF::R_RISCV_TPREL_ADD);
 
-  // Emit fixup_riscv_relax for tprel_cincoffset where the relax feature is enabled.
+  // Emit fixup_riscv_relax for tprel_add where the relax feature is enabled.
   if (STI.getFeatureBits()[RISCV::FeatureRelax]) {
     const MCConstantExpr *Dummy = MCConstantExpr::create(0, Ctx);
     Fixups.push_back(MCFixup::create(0, Dummy, ELF::R_RISCV_RELAX));
@@ -740,23 +733,6 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
       FixupKind = RISCV::fixup_riscv_qc_abs20_u;
       RelaxCandidate = true;
       break;
-    case RISCV::S_CAPTAB_PCREL_HI:
-      FixupKind = RISCV::fixup_riscv_captab_pcrel_hi20;
-      break;
-    case RISCV::S_TPREL_CINCOFFSET:
-      // See VK_TPREL_ADD.
-      llvm_unreachable(
-          "VK_TPREL_CINCOFFSET should not represent an instruction operand");
-    case RISCV::S_TLS_IE_CAPTAB_PCREL_HI:
-      FixupKind = RISCV::fixup_riscv_tls_ie_captab_pcrel_hi20;
-      break;
-    case RISCV::S_TLS_GD_CAPTAB_PCREL_HI:
-      FixupKind = RISCV::fixup_riscv_tls_gd_captab_pcrel_hi20;
-      break;
-    case RISCV::S_CCALL:
-      FixupKind = RISCV::fixup_riscv_ccall;
-      RelaxCandidate = true;
-      break;
     case RISCV::S_CHERIOT_COMPARTMENT_HI:
       FixupKind = RISCV::fixup_riscv_cheriot_compartment_hi;
       RelaxCandidate = true;
@@ -778,19 +754,13 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
     if (MIFrm == RISCVII::InstFormatJ) {
       FixupKind = RISCV::fixup_riscv_jal;
       AsmRelaxToLinkerRelaxableWithFeature(RISCV::FeatureVendorXqcilb);
-    } else if (Desc.getOpcode() == RISCV::CJAL) {
-      FixupKind = RISCV::fixup_riscv_cjal;
     } else if (MIFrm == RISCVII::InstFormatB) {
       FixupKind = RISCV::fixup_riscv_branch;
       // This might be assembler relaxed to `b<cc>; jal` but we cannot relax
       // the `jal` again in the assembler.
     } else if (MIFrm == RISCVII::InstFormatCJ) {
-      if (Desc.getOpcode() == RISCV::C_CJAL)
-        FixupKind = RISCV::fixup_riscv_rvc_cjump;
-      else {
-        FixupKind = RISCV::fixup_riscv_rvc_jump;
-        AsmRelaxToLinkerRelaxableWithFeature(RISCV::FeatureVendorXqcilb);
-      }
+      FixupKind = RISCV::fixup_riscv_rvc_jump;
+      AsmRelaxToLinkerRelaxableWithFeature(RISCV::FeatureVendorXqcilb);
     } else if (MIFrm == RISCVII::InstFormatCB) {
       FixupKind = RISCV::fixup_riscv_rvc_branch;
       // This might be assembler relaxed to `b<cc>; jal` but we cannot relax

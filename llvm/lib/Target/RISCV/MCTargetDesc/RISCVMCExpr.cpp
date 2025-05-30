@@ -46,10 +46,6 @@ RISCV::Specifier RISCV::parseSpecifierName(StringRef name) {
       // Used in data directives
       .Case("pltpcrel", ELF::R_RISCV_PLT32)
       .Case("gotpcrel", ELF::R_RISCV_GOT32_PCREL)
-      .Case("captab_pcrel_hi", RISCV::S_CAPTAB_PCREL_HI)
-      .Case("tprel_cincoffset", RISCV::S_TPREL_CINCOFFSET)
-      .Case("tls_ie_captab_pcrel_hi", RISCV::S_TLS_IE_CAPTAB_PCREL_HI)
-      .Case("tls_gd_captab_pcrel_hi", RISCV::S_TLS_GD_CAPTAB_PCREL_HI)
       .Case("cheriot_compartment_hi", RISCV::S_CHERIOT_COMPARTMENT_HI)
       .Case("cheriot_compartment_lo_i", RISCV::S_CHERIOT_COMPARTMENT_LO_I)
       .Case("cheriot_compartment_lo_s", RISCV::S_CHERIOT_COMPARTMENT_LO_S)
@@ -89,18 +85,10 @@ StringRef RISCV::getSpecifierName(Specifier S) {
     return "tlsdesc_call";
   case ELF::R_RISCV_TLS_GD_HI20:
     return "tls_gd_pcrel_hi";
-  case RISCV::S_CAPTAB_PCREL_HI:
-    return "captab_pcrel_hi";
-  case RISCV::S_TPREL_CINCOFFSET:
-    return "tprel_cincoffset";
-  case RISCV::S_TLS_IE_CAPTAB_PCREL_HI:
-    return "tls_ie_captab_pcrel_hi";
-  case RISCV::S_TLS_GD_CAPTAB_PCREL_HI:
-    return "tls_gd_captab_pcrel_hi";
+  case ELF::R_RISCV_CALL:
+    return "call";
   case ELF::R_RISCV_CALL_PLT:
     return "call_plt";
-  case RISCV::S_CCALL:
-    return "ccall";
   case RISCV::S_CHERIOT_COMPARTMENT_HI:
     return "cheriot_compartment_hi";
   case RISCV::S_CHERIOT_COMPARTMENT_LO_I:

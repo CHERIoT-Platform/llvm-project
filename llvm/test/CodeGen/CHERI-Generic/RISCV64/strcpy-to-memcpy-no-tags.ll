@@ -82,7 +82,7 @@ define void @test_strcat_to_memcpy(ptr addrspace(200) align 8 %dst) addrspace(20
 ; CHECK-ASM-NEXT:    cincoffset a0, s0, a0
 ; CHECK-ASM-NEXT:  .LBB2_1: # %entry
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
-; CHECK-ASM-NEXT:    auipcc a1, %captab_pcrel_hi(.Lstr)
+; CHECK-ASM-NEXT:    auipcc a1, %got_pcrel_hi(.Lstr)
 ; CHECK-ASM-NEXT:    clc a1, %pcrel_lo(.LBB2_1)(a1)
 ; CHECK-ASM-NEXT:    li a2, 17
 ; CHECK-ASM-NEXT:    ccall memcpy

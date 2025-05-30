@@ -38,7 +38,7 @@ define void @caller() addrspace(200) nounwind sspstrong {
 ; IL32PC64-NEXT:    csc ra, 24(sp) # 8-byte Folded Spill
 ; IL32PC64-NEXT:    csc s0, 16(sp) # 8-byte Folded Spill
 ; IL32PC64-NEXT:  .LBB0_3: # Label of block must be emitted
-; IL32PC64-NEXT:    auipcc s0, %captab_pcrel_hi(__stack_chk_guard)
+; IL32PC64-NEXT:    auipcc s0, %got_pcrel_hi(__stack_chk_guard)
 ; IL32PC64-NEXT:    clc s0, %pcrel_lo(.LBB0_3)(s0)
 ; IL32PC64-NEXT:    clw a0, 0(s0)
 ; IL32PC64-NEXT:    csw a0, 12(sp)
@@ -62,7 +62,7 @@ define void @caller() addrspace(200) nounwind sspstrong {
 ; L64PC128-NEXT:    csc ra, 32(sp) # 16-byte Folded Spill
 ; L64PC128-NEXT:    csc s0, 16(sp) # 16-byte Folded Spill
 ; L64PC128-NEXT:  .LBB0_3: # Label of block must be emitted
-; L64PC128-NEXT:    auipcc s0, %captab_pcrel_hi(__stack_chk_guard)
+; L64PC128-NEXT:    auipcc s0, %got_pcrel_hi(__stack_chk_guard)
 ; L64PC128-NEXT:    clc s0, %pcrel_lo(.LBB0_3)(s0)
 ; L64PC128-NEXT:    cld a0, 0(s0)
 ; L64PC128-NEXT:    csd a0, 8(sp)

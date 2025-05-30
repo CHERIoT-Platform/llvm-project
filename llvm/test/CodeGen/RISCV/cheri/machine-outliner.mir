@@ -49,7 +49,7 @@ body:             |
   ; CHECK-NEXT:   successors: %bb.2(0x40000000), %bb.3(0x40000000)
   ; CHECK-NEXT:   liveins: $x10_y, $x12_y, $x13_y, $x11
   ; CHECK-NEXT: {{  $}}
-  ; CHECK-NEXT:   PseudoCCALLReg target-flags(riscv-ccall) @OUTLINED_FUNCTION_0, implicit-def $x14, implicit-def $x15, implicit-def $x5_y, implicit-def $x15_y, implicit $x10_y, implicit $x12_y
+  ; CHECK-NEXT:   PseudoCCALLReg target-flags(riscv-call) @OUTLINED_FUNCTION_0, implicit-def $x14, implicit-def $x15, implicit-def $x5_y, implicit-def $x15_y, implicit $x10_y, implicit $x12_y
   ; CHECK-NEXT:   renamable $x14 = ANDI killed renamable $x14, 1
   ; CHECK-NEXT:   BEQ killed renamable $x14, $x0, %bb.3
   ; CHECK-NEXT: {{  $}}
@@ -57,7 +57,7 @@ body:             |
   ; CHECK-NEXT:   successors: %bb.3(0x80000000)
   ; CHECK-NEXT:   liveins: $x10_y, $x12_y, $x13_y, $x11
   ; CHECK-NEXT: {{  $}}
-  ; CHECK-NEXT:   PseudoCCALLReg target-flags(riscv-ccall) @OUTLINED_FUNCTION_0, implicit-def $x14, implicit-def $x15, implicit-def $x5_y, implicit-def $x15_y, implicit $x10_y, implicit $x12_y
+  ; CHECK-NEXT:   PseudoCCALLReg target-flags(riscv-call) @OUTLINED_FUNCTION_0, implicit-def $x14, implicit-def $x15, implicit-def $x5_y, implicit-def $x15_y, implicit $x10_y, implicit $x12_y
   ; CHECK-NEXT:   renamable $x15 = ANDI killed renamable $x14, 1
   ; CHECK-NEXT:   $x14_y = CMove $x0_y
   ; CHECK-NEXT: {{  $}}

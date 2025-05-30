@@ -66,7 +66,7 @@ define ptr addrspace(200) @load_from_string_table(i64 %idx) addrspace(200) {
 ; PURECAP-ASM:       # %bb.0: # %bb
 ; PURECAP-ASM-NEXT:  .LBB0_1: # %bb
 ; PURECAP-ASM-NEXT:    # Label of block must be emitted
-; PURECAP-ASM-NEXT:    auipcc a1, %captab_pcrel_hi(global)
+; PURECAP-ASM-NEXT:    auipcc a1, %got_pcrel_hi(global)
 ; PURECAP-ASM-NEXT:    clc a1, %pcrel_lo(.LBB0_1)(a1)
 ; PURECAP-ASM-NEXT:    slli a0, a0, 4
 ; PURECAP-ASM-NEXT:    cincoffset a0, a1, a0

@@ -27,7 +27,7 @@ define i32 addrspace(200)* @f1() nounwind {
 ; IL32PC64-PIC-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; IL32PC64-PIC-NEXT:  .LBB0_1: # %entry
 ; IL32PC64-PIC-NEXT:    # Label of block must be emitted
-; IL32PC64-PIC-NEXT:    auipcc a0, %tls_gd_captab_pcrel_hi(unspecified)
+; IL32PC64-PIC-NEXT:    auipcc a0, %tls_gd_pcrel_hi(unspecified)
 ; IL32PC64-PIC-NEXT:    cincoffset a0, a0, %pcrel_lo(.LBB0_1)
 ; IL32PC64-PIC-NEXT:    ccall __tls_get_addr
 ; IL32PC64-PIC-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
@@ -40,7 +40,7 @@ define i32 addrspace(200)* @f1() nounwind {
 ; L64PC128-PIC-NEXT:    csc ra, 0(sp) # 16-byte Folded Spill
 ; L64PC128-PIC-NEXT:  .LBB0_1: # %entry
 ; L64PC128-PIC-NEXT:    # Label of block must be emitted
-; L64PC128-PIC-NEXT:    auipcc a0, %tls_gd_captab_pcrel_hi(unspecified)
+; L64PC128-PIC-NEXT:    auipcc a0, %tls_gd_pcrel_hi(unspecified)
 ; L64PC128-PIC-NEXT:    cincoffset a0, a0, %pcrel_lo(.LBB0_1)
 ; L64PC128-PIC-NEXT:    ccall __tls_get_addr
 ; L64PC128-PIC-NEXT:    clc ra, 0(sp) # 16-byte Folded Reload
@@ -51,7 +51,7 @@ define i32 addrspace(200)* @f1() nounwind {
 ; IL32PC64-NOPIC:       # %bb.0: # %entry
 ; IL32PC64-NOPIC-NEXT:  .LBB0_1: # %entry
 ; IL32PC64-NOPIC-NEXT:    # Label of block must be emitted
-; IL32PC64-NOPIC-NEXT:    auipcc a1, %tls_ie_captab_pcrel_hi(unspecified)
+; IL32PC64-NOPIC-NEXT:    auipcc a1, %tls_ie_pcrel_hi(unspecified)
 ; IL32PC64-NOPIC-NEXT:    clw a0, %pcrel_lo(.LBB0_1)(a1)
 ; IL32PC64-NOPIC-NEXT:    cincoffset a0, tp, a0
 ; IL32PC64-NOPIC-NEXT:    cret
@@ -60,7 +60,7 @@ define i32 addrspace(200)* @f1() nounwind {
 ; L64PC128-NOPIC:       # %bb.0: # %entry
 ; L64PC128-NOPIC-NEXT:  .LBB0_1: # %entry
 ; L64PC128-NOPIC-NEXT:    # Label of block must be emitted
-; L64PC128-NOPIC-NEXT:    auipcc a1, %tls_ie_captab_pcrel_hi(unspecified)
+; L64PC128-NOPIC-NEXT:    auipcc a1, %tls_ie_pcrel_hi(unspecified)
 ; L64PC128-NOPIC-NEXT:    cld a0, %pcrel_lo(.LBB0_1)(a1)
 ; L64PC128-NOPIC-NEXT:    cincoffset a0, tp, a0
 ; L64PC128-NOPIC-NEXT:    cret
@@ -78,7 +78,7 @@ define i32 addrspace(200)* @f2() nounwind {
 ; IL32PC64-PIC-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; IL32PC64-PIC-NEXT:  .LBB1_1: # %entry
 ; IL32PC64-PIC-NEXT:    # Label of block must be emitted
-; IL32PC64-PIC-NEXT:    auipcc a0, %tls_gd_captab_pcrel_hi(ld)
+; IL32PC64-PIC-NEXT:    auipcc a0, %tls_gd_pcrel_hi(ld)
 ; IL32PC64-PIC-NEXT:    cincoffset a0, a0, %pcrel_lo(.LBB1_1)
 ; IL32PC64-PIC-NEXT:    ccall __tls_get_addr
 ; IL32PC64-PIC-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
@@ -91,7 +91,7 @@ define i32 addrspace(200)* @f2() nounwind {
 ; L64PC128-PIC-NEXT:    csc ra, 0(sp) # 16-byte Folded Spill
 ; L64PC128-PIC-NEXT:  .LBB1_1: # %entry
 ; L64PC128-PIC-NEXT:    # Label of block must be emitted
-; L64PC128-PIC-NEXT:    auipcc a0, %tls_gd_captab_pcrel_hi(ld)
+; L64PC128-PIC-NEXT:    auipcc a0, %tls_gd_pcrel_hi(ld)
 ; L64PC128-PIC-NEXT:    cincoffset a0, a0, %pcrel_lo(.LBB1_1)
 ; L64PC128-PIC-NEXT:    ccall __tls_get_addr
 ; L64PC128-PIC-NEXT:    clc ra, 0(sp) # 16-byte Folded Reload
@@ -102,7 +102,7 @@ define i32 addrspace(200)* @f2() nounwind {
 ; IL32PC64-NOPIC:       # %bb.0: # %entry
 ; IL32PC64-NOPIC-NEXT:  .LBB1_1: # %entry
 ; IL32PC64-NOPIC-NEXT:    # Label of block must be emitted
-; IL32PC64-NOPIC-NEXT:    auipcc a1, %tls_ie_captab_pcrel_hi(ld)
+; IL32PC64-NOPIC-NEXT:    auipcc a1, %tls_ie_pcrel_hi(ld)
 ; IL32PC64-NOPIC-NEXT:    clw a0, %pcrel_lo(.LBB1_1)(a1)
 ; IL32PC64-NOPIC-NEXT:    cincoffset a0, tp, a0
 ; IL32PC64-NOPIC-NEXT:    cret
@@ -111,7 +111,7 @@ define i32 addrspace(200)* @f2() nounwind {
 ; L64PC128-NOPIC:       # %bb.0: # %entry
 ; L64PC128-NOPIC-NEXT:  .LBB1_1: # %entry
 ; L64PC128-NOPIC-NEXT:    # Label of block must be emitted
-; L64PC128-NOPIC-NEXT:    auipcc a1, %tls_ie_captab_pcrel_hi(ld)
+; L64PC128-NOPIC-NEXT:    auipcc a1, %tls_ie_pcrel_hi(ld)
 ; L64PC128-NOPIC-NEXT:    cld a0, %pcrel_lo(.LBB1_1)(a1)
 ; L64PC128-NOPIC-NEXT:    cincoffset a0, tp, a0
 ; L64PC128-NOPIC-NEXT:    cret
@@ -127,7 +127,7 @@ define i32 addrspace(200)* @f3() nounwind {
 ; IL32PC64-PIC:       # %bb.0: # %entry
 ; IL32PC64-PIC-NEXT:  .LBB2_1: # %entry
 ; IL32PC64-PIC-NEXT:    # Label of block must be emitted
-; IL32PC64-PIC-NEXT:    auipcc a1, %tls_ie_captab_pcrel_hi(ie)
+; IL32PC64-PIC-NEXT:    auipcc a1, %tls_ie_pcrel_hi(ie)
 ; IL32PC64-PIC-NEXT:    clw a0, %pcrel_lo(.LBB2_1)(a1)
 ; IL32PC64-PIC-NEXT:    cincoffset a0, tp, a0
 ; IL32PC64-PIC-NEXT:    cret
@@ -136,7 +136,7 @@ define i32 addrspace(200)* @f3() nounwind {
 ; L64PC128-PIC:       # %bb.0: # %entry
 ; L64PC128-PIC-NEXT:  .LBB2_1: # %entry
 ; L64PC128-PIC-NEXT:    # Label of block must be emitted
-; L64PC128-PIC-NEXT:    auipcc a1, %tls_ie_captab_pcrel_hi(ie)
+; L64PC128-PIC-NEXT:    auipcc a1, %tls_ie_pcrel_hi(ie)
 ; L64PC128-PIC-NEXT:    cld a0, %pcrel_lo(.LBB2_1)(a1)
 ; L64PC128-PIC-NEXT:    cincoffset a0, tp, a0
 ; L64PC128-PIC-NEXT:    cret
@@ -145,7 +145,7 @@ define i32 addrspace(200)* @f3() nounwind {
 ; IL32PC64-NOPIC:       # %bb.0: # %entry
 ; IL32PC64-NOPIC-NEXT:  .LBB2_1: # %entry
 ; IL32PC64-NOPIC-NEXT:    # Label of block must be emitted
-; IL32PC64-NOPIC-NEXT:    auipcc a1, %tls_ie_captab_pcrel_hi(ie)
+; IL32PC64-NOPIC-NEXT:    auipcc a1, %tls_ie_pcrel_hi(ie)
 ; IL32PC64-NOPIC-NEXT:    clw a0, %pcrel_lo(.LBB2_1)(a1)
 ; IL32PC64-NOPIC-NEXT:    cincoffset a0, tp, a0
 ; IL32PC64-NOPIC-NEXT:    cret
@@ -154,7 +154,7 @@ define i32 addrspace(200)* @f3() nounwind {
 ; L64PC128-NOPIC:       # %bb.0: # %entry
 ; L64PC128-NOPIC-NEXT:  .LBB2_1: # %entry
 ; L64PC128-NOPIC-NEXT:    # Label of block must be emitted
-; L64PC128-NOPIC-NEXT:    auipcc a1, %tls_ie_captab_pcrel_hi(ie)
+; L64PC128-NOPIC-NEXT:    auipcc a1, %tls_ie_pcrel_hi(ie)
 ; L64PC128-NOPIC-NEXT:    cld a0, %pcrel_lo(.LBB2_1)(a1)
 ; L64PC128-NOPIC-NEXT:    cincoffset a0, tp, a0
 ; L64PC128-NOPIC-NEXT:    cret
@@ -169,28 +169,28 @@ define i32 addrspace(200)* @f4() nounwind {
 ; IL32PC64-PIC-LABEL: f4:
 ; IL32PC64-PIC:       # %bb.0: # %entry
 ; IL32PC64-PIC-NEXT:    lui a0, %tprel_hi(le)
-; IL32PC64-PIC-NEXT:    cincoffset a0, tp, a0, %tprel_cincoffset(le)
+; IL32PC64-PIC-NEXT:    cincoffset a0, tp, a0, %tprel_add(le)
 ; IL32PC64-PIC-NEXT:    cincoffset a0, a0, %tprel_lo(le)
 ; IL32PC64-PIC-NEXT:    cret
 ;
 ; L64PC128-PIC-LABEL: f4:
 ; L64PC128-PIC:       # %bb.0: # %entry
 ; L64PC128-PIC-NEXT:    lui a0, %tprel_hi(le)
-; L64PC128-PIC-NEXT:    cincoffset a0, tp, a0, %tprel_cincoffset(le)
+; L64PC128-PIC-NEXT:    cincoffset a0, tp, a0, %tprel_add(le)
 ; L64PC128-PIC-NEXT:    cincoffset a0, a0, %tprel_lo(le)
 ; L64PC128-PIC-NEXT:    cret
 ;
 ; IL32PC64-NOPIC-LABEL: f4:
 ; IL32PC64-NOPIC:       # %bb.0: # %entry
 ; IL32PC64-NOPIC-NEXT:    lui a0, %tprel_hi(le)
-; IL32PC64-NOPIC-NEXT:    cincoffset a0, tp, a0, %tprel_cincoffset(le)
+; IL32PC64-NOPIC-NEXT:    cincoffset a0, tp, a0, %tprel_add(le)
 ; IL32PC64-NOPIC-NEXT:    cincoffset a0, a0, %tprel_lo(le)
 ; IL32PC64-NOPIC-NEXT:    cret
 ;
 ; L64PC128-NOPIC-LABEL: f4:
 ; L64PC128-NOPIC:       # %bb.0: # %entry
 ; L64PC128-NOPIC-NEXT:    lui a0, %tprel_hi(le)
-; L64PC128-NOPIC-NEXT:    cincoffset a0, tp, a0, %tprel_cincoffset(le)
+; L64PC128-NOPIC-NEXT:    cincoffset a0, tp, a0, %tprel_add(le)
 ; L64PC128-NOPIC-NEXT:    cincoffset a0, a0, %tprel_lo(le)
 ; L64PC128-NOPIC-NEXT:    cret
 entry:

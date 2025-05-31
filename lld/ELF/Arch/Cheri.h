@@ -16,11 +16,9 @@ namespace elf {
 
 struct SymbolAndOffset {
 public:
-  SymbolAndOffset(Symbol *s, int64_t o) : symOrSec(s), offset(o) {
+  SymbolAndOffset(llvm::PointerUnion<Symbol *, InputSectionBase *> s, int64_t o)
+      : symOrSec(s), offset(o) {
     assert(s && "Should not be null");
-  }
-  SymbolAndOffset(InputSectionBase *isec, int64_t o) : symOrSec(isec), offset(o) {
-    assert(isec && "Should not be null");
   }
   SymbolAndOffset(const SymbolAndOffset &) = default;
   SymbolAndOffset &operator=(const SymbolAndOffset &) = default;
@@ -364,11 +362,12 @@ inline uint64_t getBiasedCGPOffsetLo12(Ctx &ctx, const Symbol &sym)
 }
 
 template <typename ELFT>
-void addCapabilityRelocation(Ctx &ctx, Symbol *sym, RelType type,
-                             InputSectionBase *sec, uint64_t offset,
-                             RelExpr expr, int64_t addend, bool isCallExpr,
-                             llvm::function_ref<std::string()> referencedBy,
-                             RelocationBaseSection *dynRelSec = nullptr);
+void addCapabilityRelocation(
+    Ctx &ctx, llvm::PointerUnion<Symbol *, InputSectionBase *> target,
+    RelType type, InputSectionBase *sec, uint64_t offset, RelExpr expr,
+    int64_t addend, bool isCallExpr,
+    llvm::function_ref<std::string()> referencedBy,
+    RelocationBaseSection *dynRelSec = nullptr);
 } // namespace elf
 } // namespace lld
 

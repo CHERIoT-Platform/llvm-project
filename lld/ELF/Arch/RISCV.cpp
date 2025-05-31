@@ -240,6 +240,10 @@ void RISCV::writeGotHeader(uint8_t *buf) const {
 }
 
 void RISCV::writeGotPlt(uint8_t *buf, const Symbol &s) const {
+  // Initialised by __cap_relocs for CHERI
+  if (ctx.arg.isCheriAbi)
+    return;
+
   if (ctx.arg.is64)
     write64le(buf, ctx.in.plt->getVA());
   else
@@ -256,14 +260,7 @@ void RISCV::writeIgotPlt(uint8_t *buf, const Symbol &s) const {
 }
 
 void RISCV::writePltHeader(uint8_t *buf) const {
-  // TODO: Remove once we have a CHERI .got.plt and R_RISCV_CHERI_JUMP_SLOT.
-  // Without those there can be no lazy binding support (though the former
-  // requirement can be relaxed provided .captable[0] is _dl_runtime_resolve,
-  // at least when the PLT is non-empty), so for now we emit a header full of
-  // trapping instructions to ensure we don't accidentally end up trying to use
-  // it. Ideally we would have a header size of 0, but isCheriAbi isn't known
-  // in the constructor.
-  if (ctx.arg.isCheriAbi) {
+  if (ctx.arg.isCheriAbi && !ctx.arg.zCheriRiscvJumpSlot) {
     memset(buf, 0, pltHeaderSize);
     return;
   }
@@ -306,8 +303,9 @@ void RISCV::writePlt(uint8_t *buf, const Symbol &sym,
   // nop
   uint32_t ptrload = ctx.arg.isCheriAbi ? ctx.arg.is64 ? CLC_128 : CLC_64
                                         : ctx.arg.is64 ? LD : LW;
-  uint32_t entryva =
-      ctx.arg.isCheriAbi ? sym.getGotVA(ctx) : sym.getGotPltVA(ctx);
+  uint32_t entryva = ctx.arg.isCheriAbi && !ctx.arg.zCheriRiscvJumpSlot
+                         ? sym.getGotVA(ctx)
+                         : sym.getGotPltVA(ctx);
   uint32_t offset = entryva - pltEntryAddr;
   write32le(buf + 0, utype(AUIPC, X_T3, hi20(offset)));
   write32le(buf + 4, itype(ptrload, X_T3, X_T3, lo12(offset)));

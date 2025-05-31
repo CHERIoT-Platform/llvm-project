@@ -97,7 +97,6 @@ enum Op {
   CIncOffsetImm = 0x105b,
   CLC_64 = 0x3003,
   CLC_128 = 0x200f,
-  CSub = 0x2800005b,
 
   AUIPCC = 0x17,
   AUICGP = 0x7b,
@@ -291,12 +290,12 @@ void RISCV::writePltHeader(uint8_t *buf) const {
   // (c)sub t1, (c)t1, (c)t3
   // l[wdc] (c)t3, %pcrel_lo(1b)((c)t2); (c)t3 = _dl_runtime_resolve
   // addi t1, t1, -pltHeaderSize-12; t1 = &.plt[i] - &.plt[0]
-  // addi t0, t2, %pcrel_lo(1b)
-  // srli t1, t1, (rv64?1:2); t1 = &.got.plt[i] - &.got.plt[0]
-  // l[wd] t0, Wordsize(t0); t0 = link_map
-  // jr t3
+  // addi/cincoffset (c)t0, (c)t2, %pcrel_lo(1b)
+  // (if shift != 0): srli t1, t1, shift; t1 = &.got.plt[i] - &.got.plt[0]
+  // l[wdc] (c)t0, Ptrsize((c)t0); (c)t0 = link_map
+  // (c)jr (c)t3
+  // (if shift == 0): nop
   uint32_t offset = ctx.in.gotPlt->getVA() - ctx.in.plt->getVA();
-  uint32_t ptrsub = ctx.arg.isCheriAbi ? CSub : SUB;
   uint32_t ptrload = ctx.arg.isCheriAbi ? ctx.arg.is64 ? CLC_128 : CLC_64
                      : ctx.arg.is64     ? LD
                                         : LW;
@@ -306,7 +305,7 @@ void RISCV::writePltHeader(uint8_t *buf) const {
   uint32_t ptrsize =
       ctx.arg.isCheriAbi ? ctx.arg.capabilitySize : ctx.arg.wordsize;
   write32le(buf + 0, utype(AUIPC, X_T2, hi20(offset)));
-  write32le(buf + 4, rtype(ptrsub, X_T1, X_T1, X_T3));
+  write32le(buf + 4, rtype(SUB, X_T1, X_T1, X_T3));
   write32le(buf + 8, itype(ptrload, X_T3, X_T2, lo12(offset)));
   write32le(buf + 12, itype(ADDI, X_T1, X_T1, -ctx.target->pltHeaderSize - 12));
   write32le(buf + 16, itype(ptraddi, X_T0, X_T2, lo12(offset)));

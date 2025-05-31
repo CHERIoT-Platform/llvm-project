@@ -1852,10 +1852,7 @@ static void removeBranchOnCondTrue(VPlan &Plan) {
       continue;
 
     VPBasicBlock *RemovedSucc = cast<VPBasicBlock>(VPBB->getSuccessors()[1]);
-    const auto &Preds = RemovedSucc->getPredecessors();
-    assert(count(Preds, VPBB) == 1 &&
-           "There must be a single edge between VPBB and its successor");
-    unsigned DeadIdx = std::distance(Preds.begin(), find(Preds, VPBB));
+    unsigned DeadIdx = RemovedSucc->getIndexForPredecessor(VPBB);
 
     // Values coming from VPBB into ResumePhi recipes of RemoveSucc are removed
     // from these recipes.
@@ -1864,8 +1861,8 @@ static void removeBranchOnCondTrue(VPlan &Plan) {
               !isa<PHINode>(cast<VPIRInstruction>(&R)->getInstruction())) &&
              !isa<VPHeaderPHIRecipe>(&R) &&
              "Cannot update VPIRInstructions wrapping phis or header phis yet");
-      auto *VPI = dyn_cast<VPInstruction>(&R);
-      if (!VPI || VPI->getOpcode() != VPInstruction::ResumePhi)
+      auto *VPI = dyn_cast<VPPhi>(&R);
+      if (!VPI)
         break;
       VPBuilder B(VPI);
       SmallVector<VPValue *> NewOperands;
@@ -1875,9 +1872,8 @@ static void removeBranchOnCondTrue(VPlan &Plan) {
           continue;
         NewOperands.push_back(Op);
       }
-      VPI->replaceAllUsesWith(B.createNaryOp(VPInstruction::ResumePhi,
-                                             NewOperands, VPI->getDebugLoc(),
-                                             VPI->getName()));
+      VPI->replaceAllUsesWith(
+          B.createScalarPhi(NewOperands, VPI->getDebugLoc(), VPI->getName()));
       VPI->eraseFromParent();
     }
     // Disconnect blocks and remove the terminator. RemovedSucc will be deleted

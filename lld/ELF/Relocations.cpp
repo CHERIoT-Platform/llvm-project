@@ -783,14 +783,19 @@ static void addPltEntry(Ctx &ctx, PltSection &plt, GotPltSection &gotPlt,
                         RelocationBaseSection &rel, RelType type, Symbol &sym) {
   plt.addEntry(sym);
 
-  // For CHERI-RISC-V we mark the symbol NEEDS_GOT so it will end up in .got as
-  // a function pointer, and uses .rela.dyn rather than .rela.plt, so no rtld
-  // changes are needed.
+  // For CHERI-RISC-V if JUMP_SLOT relocations are disabled (to be compatible
+  // with old CheriBSD) we mark the symbol NEEDS_GOT so it will end up in .got
+  // as a function pointer, and uses .rela.dyn rather than .rela.plt, so no
+  // rtld changes are needed.
   //
-  // TODO: More normal .got.plt with lazy-binding rather than piggy-backing on
-  // .got once rtld supports it.
-  if (ctx.arg.emachine == EM_RISCV && ctx.arg.isCheriAbi)
+  // TODO: Remove this option.
+  if (ctx.arg.emachine == EM_RISCV && ctx.arg.isCheriAbi &&
+      !ctx.arg.zCheriRiscvJumpSlot)
     return;
+
+  if (ctx.arg.isCheriAbi && !sym.isPreemptible)
+    error("cannot create non-preemptible PLT entry on CHERI against symbol: " +
+          toStr(ctx, sym));
 
   gotPlt.addEntry(sym);
   if (sym.isPreemptible)
@@ -799,6 +804,10 @@ static void addPltEntry(Ctx &ctx, PltSection &plt, GotPltSection &gotPlt,
   else
     rel.addReloc(
         {type, &gotPlt, sym.getGotPltOffset(ctx), false, sym, 0, R_ABS});
+  if (ctx.arg.isCheriAbi)
+    invokeELFT(addCapabilityRelocation, ctx, &plt, *ctx.target->cheriCapRel,
+               &gotPlt, sym.getGotPltOffset(ctx), R_CHERI_CAPABILITY, 0, false,
+               [] { return ""; });
 }
 
 void elf::addGotEntry(Ctx &ctx, Symbol &sym) {
@@ -1049,7 +1058,8 @@ void RelocScan::process(RelExpr expr, RelType type, uint64_t offset,
   } else if (needsPlt(expr)) {
     sym.setFlags(NEEDS_PLT);
     // See addPltEntry
-    if (ctx.arg.emachine == EM_RISCV && ctx.arg.isCheriAbi)
+    if (ctx.arg.emachine == EM_RISCV && ctx.arg.isCheriAbi &&
+        !ctx.arg.zCheriRiscvJumpSlot)
       sym.setFlags(NEEDS_GOT);
   } else if (LLVM_UNLIKELY(isIfunc)) {
     sym.setFlags(HAS_DIRECT_RELOC);
@@ -1214,7 +1224,8 @@ void RelocScan::process(RelExpr expr, RelType type, uint64_t offset,
       }
       sym.setFlags(NEEDS_COPY | NEEDS_PLT);
       // See addPltEntry
-      if (ctx.arg.emachine == EM_RISCV && ctx.arg.isCheriAbi)
+      if (ctx.arg.emachine == EM_RISCV && ctx.arg.isCheriAbi &&
+          !ctx.arg.zCheriRiscvJumpSlot)
         sym.setFlags(NEEDS_GOT);
       sec->addReloc({expr, type, offset, addend, &sym});
       return;

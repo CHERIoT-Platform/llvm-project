@@ -2132,6 +2132,9 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   case attr::CHERIOTSharedObject:
     OS << "cheriot_shared_object";
     break;
+  case attr::CHERIoTSealedType:
+    OS << "cheriot_sealed";
+    break;
   case attr::FastCall: OS << "fastcall"; break;
   case attr::StdCall: OS << "stdcall"; break;
   case attr::ThisCall: OS << "thiscall"; break;

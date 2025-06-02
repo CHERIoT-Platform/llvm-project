@@ -1190,7 +1190,9 @@ void ELFObjectWriter::reset() {
   OverrideABIVersion.reset();
   Relocations.clear();
   Renames.clear();
+  Weakrefs.clear();
   Symvers.clear();
+  SeenGnuAbi = false;
   MCObjectWriter::reset();
 }
 

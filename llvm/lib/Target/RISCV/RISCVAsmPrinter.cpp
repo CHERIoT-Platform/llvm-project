@@ -747,10 +747,10 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
           /*IsImport*/ false);
       auto Sym = C.getOrCreateSymbol(ExportName);
       OutStreamer->emitSymbolAttribute(Sym, MCSA_ELF_TypeObject);
-      // If the function isn't global, don't make its export table entry
-      // global either.  Two different compilation units in the same
-      // compartment may export different static things.
-      if (Entry.Fn.hasExternalLinkage() && !Entry.forceLocal)
+      // If the function isn't global, don't make its export table entry global
+      // either.  Two different compilation units in the same compartment may
+      // export different static things.
+      if (!Entry.Fn.isDiscardableIfUnused() && !Entry.forceLocal)
         OutStreamer->emitSymbolAttribute(Sym, MCSA_Global);
       OutStreamer->emitValueToAlignment(Align(4));
       OutStreamer->emitLabel(Sym);
@@ -776,7 +776,7 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
         // Emit symbol alias in the export table for the alias using the same
         // attributes, linkage, and size as the primary entry.
         OutStreamer->emitSymbolAttribute(AliasExportSym, MCSA_ELF_TypeObject);
-        if (GA->hasExternalLinkage() && !Entry.forceLocal)
+        if (!GA->isDiscardableIfUnused() && !Entry.forceLocal)
           OutStreamer->emitSymbolAttribute(AliasExportSym, MCSA_Global);
         OutStreamer->emitAssignment(AliasExportSym,
                                     MCSymbolRefExpr::create(Sym, C));

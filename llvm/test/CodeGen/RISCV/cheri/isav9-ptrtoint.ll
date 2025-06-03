@@ -67,7 +67,7 @@ define dso_local i64 @ptrtoint_null() addrspace(200) nounwind {
 ; HYBRID:       # %bb.0:
 ; HYBRID-NEXT:    cgettag a0, cnull
 ; HYBRID-NEXT:    neg a0, a0
-; HYBRID-NEXT:    and a0, zero, a0
+; HYBRID-NEXT:    li a0, 0
 ; HYBRID-NEXT:    ret
   %ret = ptrtoint i8 addrspace(200)* null to i64
   ret i64 %ret
@@ -83,8 +83,7 @@ define dso_local i64 @ptrtoint_null_plus_const() addrspace(200) nounwind {
 ; HYBRID:       # %bb.0:
 ; HYBRID-NEXT:    cgettag a0, cnull
 ; HYBRID-NEXT:    neg a0, a0
-; HYBRID-NEXT:    and a0, zero, a0
-; HYBRID-NEXT:    addi a0, a0, 2
+; HYBRID-NEXT:    li a0, 2
 ; HYBRID-NEXT:    ret
   %zero = ptrtoint i8 addrspace(200)* null to i64
   %ret = add i64 %zero, 2
@@ -100,8 +99,6 @@ define dso_local i64 @ptrtoint_null_plus_var(i64 %add) addrspace(200) nounwind {
 ; HYBRID:       # %bb.0:
 ; HYBRID-NEXT:    cgettag a1, cnull
 ; HYBRID-NEXT:    neg a1, a1
-; HYBRID-NEXT:    and a1, zero, a1
-; HYBRID-NEXT:    add a0, a1, a0
 ; HYBRID-NEXT:    ret
   %zero = ptrtoint i8 addrspace(200)* null to i64
   %ret = add i64 %zero, %add

@@ -68,7 +68,7 @@ public:
     Align ABIAlign;
     Align PrefAlign;
 
-    bool operator==(const PrimitiveSpec &Other) const;
+    LLVM_ABI bool operator==(const PrimitiveSpec &Other) const;
   };
 
   /// Pointer type specification.
@@ -84,7 +84,7 @@ public:
     /// metadata such as bounds information/permissions).
     bool IsNonIntegral;
     bool IsFatPointer;
-    bool operator==(const PointerSpec &Other) const;
+    LLVM_ABI bool operator==(const PointerSpec &Other) const;
   };
 
   enum class FunctionPtrAlignType {
@@ -146,7 +146,7 @@ private:
 
   /// Searches for a pointer specification that matches the given address space.
   /// Returns the default address space specification if not found.
-  const PointerSpec &getPointerSpec(uint32_t AddrSpace) const;
+  LLVM_ABI const PointerSpec &getPointerSpec(uint32_t AddrSpace) const;
 
   /// Sets or updates the specification for pointer in the given address space.
   void setPointerSpec(uint32_t AddrSpace, uint32_t BitWidth, Align ABIAlign,
@@ -154,7 +154,7 @@ private:
                       bool IsNonIntegral, bool IsFatPointer);
 
   /// Internal helper to get alignment for integer of given bitwidth.
-  Align getIntegerAlignment(uint32_t BitWidth, bool abi_or_pref) const;
+  LLVM_ABI Align getIntegerAlignment(uint32_t BitWidth, bool abi_or_pref) const;
 
   /// Internal helper method that returns requested alignment for type.
   Align getAlignment(Type *Ty, bool abi_or_pref) const;
@@ -177,24 +177,24 @@ private:
 
 public:
   /// Constructs a DataLayout with default values.
-  DataLayout();
+  LLVM_ABI DataLayout();
 
   /// Constructs a DataLayout from a specification string.
   /// WARNING: Aborts execution if the string is malformed. Use parse() instead.
-  explicit DataLayout(StringRef LayoutString);
+  LLVM_ABI explicit DataLayout(StringRef LayoutString);
 
   DataLayout(const DataLayout &DL) { *this = DL; }
 
-  ~DataLayout(); // Not virtual, do not subclass this class
+  LLVM_ABI ~DataLayout(); // Not virtual, do not subclass this class
 
-  DataLayout &operator=(const DataLayout &Other);
+  LLVM_ABI DataLayout &operator=(const DataLayout &Other);
 
-  bool operator==(const DataLayout &Other) const;
+  LLVM_ABI bool operator==(const DataLayout &Other) const;
   bool operator!=(const DataLayout &Other) const { return !(*this == Other); }
 
   /// Parse a data layout string and return the layout. Return an error
   /// description on failure.
-  static Expected<DataLayout> parse(StringRef LayoutString);
+  LLVM_ABI static Expected<DataLayout> parse(StringRef LayoutString);
 
   /// Layout endianness...
   bool isLittleEndian() const { return !BigEndian; }
@@ -309,7 +309,7 @@ public:
     llvm_unreachable("invalid mangling mode");
   }
 
-  static const char *getManglingComponent(const Triple &T);
+  LLVM_ABI static const char *getManglingComponent(const Triple &T);
 
   /// Returns true if the specified type fits in a native integer type
   /// supported by the CPU.
@@ -324,12 +324,12 @@ public:
   }
 
   /// Layout pointer alignment
-  Align getPointerABIAlignment(unsigned AS) const;
+  LLVM_ABI Align getPointerABIAlignment(unsigned AS) const;
 
   /// Return target's alignment for stack-based pointers
   /// FIXME: The defaults need to be removed once all of
   /// the backends/clients are updated.
-  Align getPointerPrefAlignment(LLVM_DEFAULT_AS_PARAM(AS)) const;
+  LLVM_ABI Align getPointerPrefAlignment(LLVM_DEFAULT_AS_PARAM(AS)) const;
 
   /// Get the size of the base address component of a pointer.
   /// For pointers that are simple integer representations this returns the
@@ -368,7 +368,7 @@ public:
   /// \sa DataLayout::getAddressSizeInBits
   /// FIXME: The defaults need to be removed once all of
   /// the backends/clients are updated.
-  unsigned getPointerSize(LLVM_DEFAULT_AS_PARAM(AS)) const;
+  LLVM_ABI unsigned getPointerSize(LLVM_DEFAULT_AS_PARAM(AS)) const;
 
   /// The index size in bytes used for address calculation, rounded up to a
   /// whole number of bytes. This not only defines the size used in
@@ -379,7 +379,7 @@ public:
   /// getPointerSize() returns 16, but getIndexSize() returns 8.
   /// To help with code understanding, the alias getAddressSize() can be used
   /// instead of getIndexSize() to clarify that an address width is needed.
-  unsigned getIndexSize(unsigned AS) const;
+  LLVM_ABI unsigned getIndexSize(unsigned AS) const;
 
   /// The integral size of a pointer in a given address space in bytes, which
   /// is defined to be the same as getIndexSize(). This exists as a separate
@@ -448,13 +448,13 @@ public:
   /// If this function is called with a vector of pointers, then the type size
   /// of the pointer is returned.  This should only be called with a pointer or
   /// vector of pointers.
-  unsigned getPointerTypeSizeInBits(Type *) const;
+  LLVM_ABI unsigned getPointerTypeSizeInBits(Type *) const;
 
   /// The size in bits of the index used in GEP calculation for this type.
   /// The function should be called with pointer or vector of pointers type.
   /// This is defined to return the same value as getAddressSizeInBits(),
   /// but separate functions exist for code clarity.
-  unsigned getIndexTypeSizeInBits(Type *Ty) const;
+  LLVM_ABI unsigned getIndexTypeSizeInBits(Type *Ty) const;
 
   /// The size in bits of an address for this type.
   /// This is defined to return the same value as getIndexTypeSizeInBits(),
@@ -560,7 +560,7 @@ public:
   }
 
   /// Returns the minimum ABI-required alignment for the specified type.
-  Align getABITypeAlign(Type *Ty) const;
+  LLVM_ABI Align getABITypeAlign(Type *Ty) const;
 
   /// Helper function to return `Alignment` if it's set or the result of
   /// `getABITypeAlign(Ty)`, in any case the result is a valid alignment.
@@ -579,20 +579,21 @@ public:
   /// type.
   ///
   /// This is always at least as good as the ABI alignment.
-  Align getPrefTypeAlign(Type *Ty) const;
+  LLVM_ABI Align getPrefTypeAlign(Type *Ty) const;
 
   /// Returns an integer type with size at least as big as that of a
   /// pointer in the given address space.
-  IntegerType *getIntPtrType(LLVMContext &C,
+  LLVM_ABI IntegerType *getIntPtrType(LLVMContext &C,
                              LLVM_DEFAULT_AS_PARAM(AddressSpace)) const;
 
   /// Returns an integer (vector of integer) type with size at least as
   /// big as that of a pointer of the given pointer (vector of pointer) type.
-  Type *getIntPtrType(Type *) const;
+  LLVM_ABI Type *getIntPtrType(Type *) const;
 
   /// Returns the smallest integer type with size at least as big as
   /// Width bits.
-  Type *getSmallestLegalIntType(LLVMContext &C, unsigned Width = 0) const;
+  LLVM_ABI Type *getSmallestLegalIntType(LLVMContext &C,
+                                         unsigned Width = 0) const;
 
   /// Returns the largest legal integer type, or null if none are set.
   Type *getLargestLegalIntType(LLVMContext &C) const {
@@ -602,12 +603,13 @@ public:
 
   /// Returns the size of largest legal integer type size, or 0 if none
   /// are set.
-  unsigned getLargestLegalIntTypeSizeInBits() const;
+  LLVM_ABI unsigned getLargestLegalIntTypeSizeInBits() const;
 
   /// Returns the type of a GEP index in \p AddressSpace.
   /// If it was not specified explicitly, it will be the integer type of the
   /// pointer width - IntPtrType.
-  IntegerType *getIndexType(LLVMContext &C, unsigned AddressSpace) const;
+  LLVM_ABI IntegerType *getIndexType(LLVMContext &C,
+                                     unsigned AddressSpace) const;
   /// Returns the type of an address in \p AddressSpace
   IntegerType *getAddressType(LLVMContext &C, unsigned AddressSpace) const {
     return getIndexType(C, AddressSpace);
@@ -616,7 +618,7 @@ public:
   /// Returns the type of a GEP index.
   /// If it was not specified explicitly, it will be the integer type of the
   /// pointer width - IntPtrType.
-  Type *getIndexType(Type *PtrTy) const;
+  LLVM_ABI Type *getIndexType(Type *PtrTy) const;
   /// Returns the type of an address in \p AddressSpace
   Type *getAddressType(Type *PtrTy) const { return getIndexType(PtrTy); }
 
@@ -625,28 +627,31 @@ public:
   ///
   /// Note that this takes the element type, not the pointer type.
   /// This is used to implement getelementptr.
-  int64_t getIndexedOffsetInType(Type *ElemTy, ArrayRef<Value *> Indices) const;
+  LLVM_ABI int64_t getIndexedOffsetInType(Type *ElemTy,
+                                          ArrayRef<Value *> Indices) const;
 
   /// Get GEP indices to access Offset inside ElemTy. ElemTy is updated to be
   /// the result element type and Offset to be the residual offset.
-  SmallVector<APInt> getGEPIndicesForOffset(Type *&ElemTy, APInt &Offset) const;
+  LLVM_ABI SmallVector<APInt> getGEPIndicesForOffset(Type *&ElemTy,
+                                                     APInt &Offset) const;
 
   /// Get single GEP index to access Offset inside ElemTy. Returns std::nullopt
   /// if index cannot be computed, e.g. because the type is not an aggregate.
   /// ElemTy is updated to be the result element type and Offset to be the
   /// residual offset.
-  std::optional<APInt> getGEPIndexForOffset(Type *&ElemTy, APInt &Offset) const;
+  LLVM_ABI std::optional<APInt> getGEPIndexForOffset(Type *&ElemTy,
+                                                     APInt &Offset) const;
 
   /// Returns a StructLayout object, indicating the alignment of the
   /// struct, its size, and the offsets of its fields.
   ///
   /// Note that this information is lazily cached.
-  const StructLayout *getStructLayout(StructType *Ty) const;
+  LLVM_ABI const StructLayout *getStructLayout(StructType *Ty) const;
 
   /// Returns the preferred alignment of the specified global.
   ///
   /// This includes an explicitly requested alignment (if the global has one).
-  Align getPreferredAlign(const GlobalVariable *GV) const;
+  LLVM_ABI Align getPreferredAlign(const GlobalVariable *GV) const;
 };
 
 inline DataLayout *unwrap(LLVMTargetDataRef P) {
@@ -680,7 +685,7 @@ public:
 
   /// Given a valid byte offset into the structure, returns the structure
   /// index that contains it.
-  unsigned getElementContainingOffset(uint64_t FixedOffset) const;
+  LLVM_ABI unsigned getElementContainingOffset(uint64_t FixedOffset) const;
 
   MutableArrayRef<TypeSize> getMemberOffsets() {
     return getTrailingObjects(NumElements);

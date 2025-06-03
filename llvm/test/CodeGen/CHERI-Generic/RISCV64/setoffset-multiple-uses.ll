@@ -17,7 +17,7 @@ define void @infer_values_from_null_set_offset() addrspace(200) nounwind {
 ; ASM-NEXT:    cincoffset csp, csp, -16
 ; ASM-NEXT:    csc cra, 0(csp) # 16-byte Folded Spill
 ; ASM-NEXT:    lui a0, 30
-; ASM-NEXT:    addiw a0, a0, 576
+; ASM-NEXT:    addi a0, a0, 576
 ; ASM-NEXT:    ccall check_fold
 ; ASM-NEXT:    clc cra, 0(csp) # 16-byte Folded Reload
 ; ASM-NEXT:    cincoffset csp, csp, 16
@@ -40,7 +40,7 @@ define void @multiple_uses_big_constant() addrspace(200) nounwind {
 ; ASM-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
 ; ASM-NEXT:    csc cs0, 0(csp) # 16-byte Folded Spill
 ; ASM-NEXT:    lui a0, 30
-; ASM-NEXT:    addiw a0, a0, 576
+; ASM-NEXT:    addi a0, a0, 576
 ; ASM-NEXT:    cincoffset cs0, cnull, a0
 ; ASM-NEXT:    cmove ca0, cs0
 ; ASM-NEXT:    ccall check_fold_i8ptr

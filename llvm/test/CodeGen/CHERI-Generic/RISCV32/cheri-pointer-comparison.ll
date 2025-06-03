@@ -615,7 +615,7 @@ define i8 addrspace(200)* @select_ne_null(i8 addrspace(200)* %a, i8 addrspace(20
 define i8 addrspace(200)* @select_ugt_null(i8 addrspace(200)* %a, i8 addrspace(200)* %b) nounwind {
 ; HYBRID-LABEL: select_ugt_null:
 ; HYBRID:       # %bb.0:
-; HYBRID-NEXT:    bltu zero, a0, .LBB32_2
+; HYBRID-NEXT:    bnez a0, .LBB32_2
 ; HYBRID-NEXT:  # %bb.1:
 ; HYBRID-NEXT:    cmove ca0, ca1
 ; HYBRID-NEXT:  .LBB32_2:
@@ -623,7 +623,7 @@ define i8 addrspace(200)* @select_ugt_null(i8 addrspace(200)* %a, i8 addrspace(2
 ;
 ; PURECAP-LABEL: select_ugt_null:
 ; PURECAP:       # %bb.0:
-; PURECAP-NEXT:    bltu zero, a0, .LBB32_2
+; PURECAP-NEXT:    bnez a0, .LBB32_2
 ; PURECAP-NEXT:  # %bb.1:
 ; PURECAP-NEXT:    cmove ca0, ca1
 ; PURECAP-NEXT:  .LBB32_2:
@@ -678,7 +678,7 @@ define i8 addrspace(200)* @select_ult_null(i8 addrspace(200)* %a, i8 addrspace(2
 define i8 addrspace(200)* @select_ule_null(i8 addrspace(200)* %a, i8 addrspace(200)* %b) nounwind {
 ; HYBRID-LABEL: select_ule_null:
 ; HYBRID:       # %bb.0:
-; HYBRID-NEXT:    bgeu zero, a0, .LBB35_2
+; HYBRID-NEXT:    beqz a0, .LBB35_2
 ; HYBRID-NEXT:  # %bb.1:
 ; HYBRID-NEXT:    cmove ca0, ca1
 ; HYBRID-NEXT:  .LBB35_2:
@@ -686,7 +686,7 @@ define i8 addrspace(200)* @select_ule_null(i8 addrspace(200)* %a, i8 addrspace(2
 ;
 ; PURECAP-LABEL: select_ule_null:
 ; PURECAP:       # %bb.0:
-; PURECAP-NEXT:    bgeu zero, a0, .LBB35_2
+; PURECAP-NEXT:    beqz a0, .LBB35_2
 ; PURECAP-NEXT:  # %bb.1:
 ; PURECAP-NEXT:    cmove ca0, ca1
 ; PURECAP-NEXT:  .LBB35_2:
@@ -1110,7 +1110,7 @@ if.end:
 define i32 @branch_ugt_null(i8 addrspace(200)* %a) nounwind {
 ; HYBRID-LABEL: branch_ugt_null:
 ; HYBRID:       # %bb.0: # %entry
-; HYBRID-NEXT:    bgeu zero, a0, .LBB52_2
+; HYBRID-NEXT:    beqz a0, .LBB52_2
 ; HYBRID-NEXT:  # %bb.1: # %if.then
 ; HYBRID-NEXT:    tail func1
 ; HYBRID-NEXT:  .LBB52_2: # %if.end
@@ -1118,7 +1118,7 @@ define i32 @branch_ugt_null(i8 addrspace(200)* %a) nounwind {
 ;
 ; PURECAP-LABEL: branch_ugt_null:
 ; PURECAP:       # %bb.0: # %entry
-; PURECAP-NEXT:    bgeu zero, a0, .LBB52_2
+; PURECAP-NEXT:    beqz a0, .LBB52_2
 ; PURECAP-NEXT:  # %bb.1: # %if.then
 ; PURECAP-NEXT:    ctail func1
 ; PURECAP-NEXT:  .LBB52_2: # %if.end
@@ -1191,7 +1191,7 @@ if.end:
 define i32 @branch_ule_null(i8 addrspace(200)* %a) nounwind {
 ; HYBRID-LABEL: branch_ule_null:
 ; HYBRID:       # %bb.0: # %entry
-; HYBRID-NEXT:    bltu zero, a0, .LBB55_2
+; HYBRID-NEXT:    bnez a0, .LBB55_2
 ; HYBRID-NEXT:  # %bb.1: # %if.then
 ; HYBRID-NEXT:    tail func1
 ; HYBRID-NEXT:  .LBB55_2: # %if.end
@@ -1199,7 +1199,7 @@ define i32 @branch_ule_null(i8 addrspace(200)* %a) nounwind {
 ;
 ; PURECAP-LABEL: branch_ule_null:
 ; PURECAP:       # %bb.0: # %entry
-; PURECAP-NEXT:    bltu zero, a0, .LBB55_2
+; PURECAP-NEXT:    bnez a0, .LBB55_2
 ; PURECAP-NEXT:  # %bb.1: # %if.then
 ; PURECAP-NEXT:    ctail func1
 ; PURECAP-NEXT:  .LBB55_2: # %if.end

@@ -11,8 +11,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "AArch64SelectionDAGInfo.h"
+#include "AArch64MachineFunctionInfo.h"
 #include "AArch64TargetMachine.h"
-#include "Utils/AArch64SMEAttributes.h"
 
 #define GET_SDNODE_DESC
 #include "AArch64GenSDNodeInfo.inc"
@@ -228,7 +228,8 @@ SDValue AArch64SelectionDAGInfo::EmitTargetCodeForMemcpy(
     return EmitMOPS(AArch64::MOPSMemoryCopyPseudo, DAG, DL, Chain, Dst, Src,
                     Size, Alignment, isVolatile, DstPtrInfo, SrcPtrInfo);
 
-  SMEAttrs Attrs(DAG.getMachineFunction().getFunction());
+  auto *AFI = DAG.getMachineFunction().getInfo<AArch64FunctionInfo>();
+  SMEAttrs Attrs = AFI->getSMEFnAttrs();
   if (LowerToSMERoutines && !Attrs.hasNonStreamingInterfaceAndBody())
     return EmitStreamingCompatibleMemLibCall(DAG, DL, Chain, Dst, Src, Size,
                                              RTLIB::MEMCPY);
@@ -247,7 +248,8 @@ SDValue AArch64SelectionDAGInfo::EmitTargetCodeForMemset(
                     Size, Alignment, isVolatile, DstPtrInfo,
                     MachinePointerInfo{});
 
-  SMEAttrs Attrs(DAG.getMachineFunction().getFunction());
+  auto *AFI = DAG.getMachineFunction().getInfo<AArch64FunctionInfo>();
+  SMEAttrs Attrs = AFI->getSMEFnAttrs();
   if (LowerToSMERoutines && !Attrs.hasNonStreamingInterfaceAndBody())
     return EmitStreamingCompatibleMemLibCall(DAG, dl, Chain, Dst, Src, Size,
                                              RTLIB::MEMSET);
@@ -265,7 +267,8 @@ SDValue AArch64SelectionDAGInfo::EmitTargetCodeForMemmove(
     return EmitMOPS(AArch64::MOPSMemoryMovePseudo, DAG, dl, Chain, Dst, Src,
                     Size, Alignment, isVolatile, DstPtrInfo, SrcPtrInfo);
 
-  SMEAttrs Attrs(DAG.getMachineFunction().getFunction());
+  auto *AFI = DAG.getMachineFunction().getInfo<AArch64FunctionInfo>();
+  SMEAttrs Attrs = AFI->getSMEFnAttrs();
   if (LowerToSMERoutines && !Attrs.hasNonStreamingInterfaceAndBody())
     return EmitStreamingCompatibleMemLibCall(DAG, dl, Chain, Dst, Src, Size,
                                              RTLIB::MEMMOVE);

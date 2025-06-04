@@ -1584,7 +1584,7 @@ Align llvm::getOrEnforceKnownAlignment(Value *V, MaybeAlign PrefAlign,
   unsigned BitWidth = DL.getPointerAddrSizeInBits(V->getType());
 
   KnownBits Known(BitWidth);
-  computeKnownBits(V, Known, DL, 0, AC, CxtI, DT);
+  computeKnownBits(V, Known, DL, AC, CxtI, DT);
   unsigned TrailZ = Known.countMinTrailingZeros();
 
   // Avoid trouble with ridiculously large TrailZ values, such as

@@ -3085,6 +3085,30 @@ Sema::CheckBuiltinFunctionCall(FunctionDecl *FDecl, unsigned BuiltinID,
       return ExprError();
     break;
 
+  case Builtin::BI__builtin_cheriot_sealing_type: {
+    if (checkArgCount(TheCall, 1))
+      return ExprError();
+    auto *Arg = dyn_cast<StringLiteral>(TheCall->getArg(0));
+    if (!Arg)
+      return ExprError();
+    auto ArgLit = Arg->getString();
+    if (!isValidAsciiIdentifier(ArgLit)) {
+      std::string Escaped;
+      llvm::raw_string_ostream OS(Escaped);
+      llvm::printEscapedString(ArgLit, OS);
+      OS.flush();
+      Diag(Arg->getExprLoc(), diag::err_cheriot_invalid_sealing_key_type_name)
+          << Escaped;
+      return ExprError();
+    }
+    if (getLangOpts().CheriCompartmentName.empty()) {
+      Diag(Arg->getExprLoc(),
+           diag::err_cheriot_use_of_builtin_sealing_key_type_no_compartment)
+          << Context.BuiltinInfo.getName(
+                 Builtin::BI__builtin_cheriot_sealing_type);
+    }
+    break;
+  }
   // OpenCL v2.0, s6.13.16 - Pipe functions
   case Builtin::BIread_pipe:
   case Builtin::BIwrite_pipe:

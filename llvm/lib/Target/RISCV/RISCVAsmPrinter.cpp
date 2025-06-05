@@ -120,12 +120,10 @@ public:
 
 private:
   /**
-   * Struct describing compartment exports that must be emitted for this
-   * compilation unit.
+   * Struct describing function-like compartment export objects.
    */
-  struct CompartmentExport
-  {
-    /// The compartment name for the function.
+  struct FunctionCompartmentExport {
+    /// The compartment name for the object.
     std::string CompartmentName;
     /// The IR function corresponding to the function.
     const Function &Fn;
@@ -138,9 +136,26 @@ private:
     /// The size in bytes of the stack frame, 0 if not used.
     uint32_t stackSize = 0;
   };
-  SmallVector<CompartmentExport, 1> CompartmentEntries;
+
+  /**
+   * Struct describing sealing key-like compartment export objects.
+   */
+  struct SealingKeyCompartmentExport {
+    /// The compartment name for the object.
+    std::string CompartmentName;
+    /// The name of the sealing key type.
+    std::string SealingKeyTypeName;
+
+    bool operator==(const SealingKeyCompartmentExport &Other) {
+      return this->CompartmentName == Other.CompartmentName &&
+             this->SealingKeyTypeName == Other.SealingKeyTypeName;
+    }
+  };
+
+  SmallVector<FunctionCompartmentExport, 1> FNCompartmentEntries;
+  SmallVector<SealingKeyCompartmentExport, 1> SKCompartmentEntries;
   SmallDenseMap<const Function *, SmallVector<const GlobalAlias *, 1>, 1>
-      CompartmentEntryAliases;
+      FnCompartmentEntryAliases;
 
   void emitAttributes(const MCSubtargetInfo &SubtargetInfo);
 
@@ -318,6 +333,20 @@ void RISCVAsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
     return;
   }
 
+  auto CheriotSealingKeyTypeAttrName =
+      llvm::CHERIoTSealingKeyTypeAttr::getAttrName();
+
+  if (GV->hasAttribute(CheriotSealingKeyTypeAttrName)) {
+    auto Attr = GV->getAttribute(CheriotSealingKeyTypeAttrName);
+    auto Entry = SealingKeyCompartmentExport{
+        std::string(GV->getAttribute("cheri-compartment").getValueAsString()),
+        Attr.getValueAsString().str()};
+    if (std::find(SKCompartmentEntries.begin(), SKCompartmentEntries.end(),
+                  Entry) == SKCompartmentEntries.end()) {
+      SKCompartmentEntries.push_back(Entry);
+    }
+  }
+
   // Continue through the normal path to emit the global.
   return AsmPrinter::emitGlobalVariable(GV);
 }
@@ -326,9 +355,12 @@ void RISCVAsmPrinter::emitGlobalAlias(const Module &M, const GlobalAlias &GA) {
   AsmPrinter::emitGlobalAlias(M, GA);
 
   const MCSubtargetInfo &SubtargetInfo = *TM.getMCSubtargetInfo();
+  auto CheriotSealingKeyTypeAttrName =
+      llvm::CHERIoTSealingKeyTypeAttr::getAttrName();
+
   if (SubtargetInfo.hasFeature(RISCV::FeatureVendorXCheriot)) {
     if (auto *Fn = dyn_cast<Function>(GA.getAliasee()->stripPointerCasts())) {
-      CompartmentEntryAliases[Fn].push_back(&GA);
+      FnCompartmentEntryAliases[Fn].push_back(&GA);
     }
   }
 }
@@ -588,17 +620,17 @@ bool RISCVAsmPrinter::runOnMachineFunction(MachineFunction &MF) {
     } else
       stackSize = MF.getFrameInfo().getStackSize();
     // FIXME: Get stack size as function attribute if specified
-    CompartmentEntries.push_back(
+    FNCompartmentEntries.push_back(
         {std::string(Fn.getFnAttribute("cheri-compartment").getValueAsString()),
          Fn, OutStreamer->getContext().getOrCreateSymbol(MF.getName()),
          countUsedArgRegisters(MF) + interruptFlag, false, stackSize});
   } else if (Fn.getCallingConv() == CallingConv::CHERI_LibCall)
-    CompartmentEntries.push_back(
+    FNCompartmentEntries.push_back(
         {"libcalls", Fn,
          OutStreamer->getContext().getOrCreateSymbol(MF.getName()),
          countUsedArgRegisters(MF) + interruptFlag});
   else if (interruptFlag != 0)
-    CompartmentEntries.push_back(
+    FNCompartmentEntries.push_back(
         {std::string(Fn.getFnAttribute("cheri-compartment").getValueAsString()),
          Fn, OutStreamer->getContext().getOrCreateSymbol(MF.getName()),
          countUsedArgRegisters(MF) + interruptFlag, true});
@@ -703,21 +735,21 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
   RISCVTargetStreamer &RTS =
       static_cast<RISCVTargetStreamer &>(*OutStreamer->getTargetStreamer());
 
-  if (!CompartmentEntries.empty()) {
+  if (!FNCompartmentEntries.empty()) {
     auto &C = OutStreamer->getContext();
-    auto *Exports = C.getELFSection(".compartment_exports", ELF::SHT_PROGBITS,
-                                    ELF::SHF_ALLOC | ELF::SHF_GNU_RETAIN);
-    OutStreamer->switchSection(Exports);
     auto CompartmentStartSym = C.getOrCreateSymbol("__compartment_pcc_start");
-    for (auto &Entry : CompartmentEntries) {
+    for (auto &Entry : FNCompartmentEntries) {
+      auto *Exports = C.getELFSection(".compartment_exports", ELF::SHT_PROGBITS,
+                                      ELF::SHF_ALLOC | ELF::SHF_GNU_RETAIN);
+      OutStreamer->switchSection(Exports);
       std::string ExportName = getImportExportTableName(
           Entry.CompartmentName, Entry.Fn.getName(), Entry.Fn.getCallingConv(),
           /*IsImport*/ false);
       auto Sym = C.getOrCreateSymbol(ExportName);
       OutStreamer->emitSymbolAttribute(Sym, MCSA_ELF_TypeObject);
-      // If the function isn't global, don't make its export table entry global
-      // either.  Two different compilation units in the same compartment may
-      // export different static things.
+      // If the function isn't global, don't make its export table entry
+      // global either.  Two different compilation units in the same
+      // compartment may export different static things.
       if (Entry.Fn.hasExternalLinkage() && !Entry.forceLocal)
         OutStreamer->emitSymbolAttribute(Sym, MCSA_Global);
       OutStreamer->emitValueToAlignment(Align(4));
@@ -732,8 +764,8 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
       OutStreamer->emitELFSize(Sym, MCConstantExpr::create(4, C));
 
       // Emit aliases for this export symbol entry.
-      auto I = CompartmentEntryAliases.find(&Entry.Fn);
-      if (I == CompartmentEntryAliases.end())
+      auto I = FnCompartmentEntryAliases.find(&Entry.Fn);
+      if (I == FnCompartmentEntryAliases.end())
         continue;
       for (const GlobalAlias *GA : I->second) {
         std::string AliasExportName = getImportExportTableName(
@@ -752,6 +784,29 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
       }
     }
   }
+
+  if (!SKCompartmentEntries.empty()) {
+    auto &C = OutStreamer->getContext();
+    for (auto &Entry : SKCompartmentEntries) {
+      auto ExportName = Entry.SealingKeyTypeName;
+      auto MangledExportName = "__export." + ExportName;
+      auto *Sym = C.getOrCreateSymbol(MangledExportName);
+      auto *Exports = C.getELFSection(
+          ".compartment_exports." + ExportName, ELF::SHT_PROGBITS,
+          ELF::SHF_ALLOC | ELF::SHF_WRITE | ELF::SHF_GROUP, 0, ExportName,
+          true);
+      OutStreamer->switchSection(Exports);
+      OutStreamer->emitSymbolAttribute(Sym, MCSA_ELF_TypeObject);
+      OutStreamer->emitSymbolAttribute(Sym, MCSA_Global);
+      OutStreamer->emitValueToAlignment(Align(4));
+      OutStreamer->emitLabel(Sym);
+      OutStreamer->emitIntValue(0, 2);
+      OutStreamer->emitIntValue(0, 1);
+      OutStreamer->emitIntValue(0b100000, 1);
+      OutStreamer->emitELFSize(Sym, MCConstantExpr::create(4, C));
+    }
+  }
+
   // Generate CHERIoT imports if there are any.
   auto &CHERIoTCompartmentImports =
       static_cast<RISCVTargetMachine &>(TM).ImportedObjects;

@@ -4690,6 +4690,12 @@ def CheriConditionalSeal : Builtin {
   let Prototype = "void* __capability(void const* __capability,void const* __capability)";
 }
 
+def CHERIoTEmitSealingType : Builtin {
+  let Spellings = ["__builtin_cheriot_sealing_type"];
+  let Attributes = [NoThrow, Const, CustomTypeChecking];
+  let Prototype = "void*(char const*)";
+}
+
 // Safestack builtins.
 def GetUnsafeStackStart : Builtin {
   let Spellings = ["__builtin___get_unsafe_stack_start"];

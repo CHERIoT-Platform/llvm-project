@@ -6013,6 +6013,53 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
     return RValue::get(Builder.CreateIntrinsic(
         llvm::Intrinsic::cheri_cap_perms_check, {SizeTy}, {Cap, Perms}));
   }
+  case Builtin::BI__builtin_cheriot_sealing_type: {
+    const auto *ArgLit = dyn_cast<StringLiteral>(E->getArg(0));
+    assert(ArgLit && "Argument to built-in should be a string literal!");
+
+    auto SealingTypeName = ArgLit->getString().str();
+    auto CompartmentName = getLangOpts().CheriCompartmentName;
+    auto PrefixedImportName =
+        CHERIoTSealingKeyTypeAttr::getSealingTypeSymbolName(CompartmentName,
+                                                            SealingTypeName);
+    auto &Mod = CGM.getModule();
+    auto MangledImportName = "__import." + PrefixedImportName;
+    auto *GV = Mod.getGlobalVariable(MangledImportName);
+
+    if (!GV) {
+      // This global exists only so that we have a pointer to it and is more
+      // akin to a GOT entry than a "real" global value: it just
+      // represents a pointer that we have a way of getting.
+
+      auto *OpaqueTypeName = "struct.__CHERIoT__OpaqueSealingKeyType";
+      llvm::StructType *OpaqueType =
+          llvm::StructType::getTypeByName(CGM.getLLVMContext(), OpaqueTypeName);
+
+      if (!OpaqueType)
+        OpaqueType = llvm::StructType::create(CGM.getModule().getContext(),
+                                              OpaqueTypeName);
+      else if (!OpaqueType->isOpaque())
+        CGM.Error(E->getBeginLoc(),
+                  std::string("type '") + OpaqueTypeName +
+                      "' already exists, but is not an opaque type!");
+
+      GV = new GlobalVariable(CGM.getModule(), OpaqueType, true,
+                              GlobalValue::ExternalLinkage, nullptr,
+                              MangledImportName);
+      GV->addAttribute(CHERIoTSealingKeyTypeAttr::getAttrName(),
+                       PrefixedImportName);
+      GV->addAttribute("cheri-compartment", CompartmentName);
+    } else {
+      auto *GVType = dyn_cast<StructType>(GV->getValueType());
+
+      if (!GVType || !GVType->isOpaque())
+        CGM.Error(E->getBeginLoc(),
+                  std::string("global variable '") + MangledImportName +
+                      "' already exists, but its type is not opaque!");
+    }
+
+    return RValue::get(GV);
+  }
   // Round to capability precision:
   // TODO: should we handle targets that don't have any precision constraints
   // here or in the backend?

@@ -1645,6 +1645,23 @@ public:
   /// Get the name of the attribute.
   static const std::string getAttrName() { return "cheriot_sealed_value"; }
 };
+
+/// Represents the LLVM-level attribute that is used to signal
+/// that a global (variable) represents a sealing key type.
+class CHERIoTSealingKeyTypeAttr {
+public:
+  /// Get the name of the attribute.
+  static const std::string getAttrName() { return "cheriot_sealing_key"; }
+
+  /// Get the mangled name of the symbol representing the sealing key.
+  static const std::string
+  getSealingTypeSymbolName(StringRef CompartmentName,
+                           StringRef SealingKeyTypeName) {
+    return "sealing_type." + CompartmentName.str() + "." +
+           SealingKeyTypeName.str();
+  }
+};
+
 } // end namespace llvm
 
 #endif // LLVM_IR_ATTRIBUTES_H

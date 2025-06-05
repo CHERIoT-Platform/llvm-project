@@ -8889,8 +8889,11 @@ SDValue RISCVTargetLowering::lowerGlobalAddress(SDValue Op,
         llvm::CHERIoTGlobalCapabilityImportAttr::getAttrName();
     auto GlobalSealedValueAttrName =
         llvm::CHERIoTSealedValueAttr::getAttrName();
+    auto GlobalSealingKeyTypeAttrName =
+        llvm::CHERIoTSealingKeyTypeAttr::getAttrName();
     if (GVar->hasAttribute(GlobalCapImportAttrName) ||
-        GVar->hasAttribute(GlobalSealedValueAttrName)) {
+        GVar->hasAttribute(GlobalSealedValueAttrName) ||
+        GVar->hasAttribute(GlobalSealingKeyTypeAttrName)) {
       SDLoc DL(N);
       SDValue Addr = getTargetNode(N, DL, Ty, DAG, 0);
       // Force it to be lowered to a `CLLC` regardless what `getAddr` would

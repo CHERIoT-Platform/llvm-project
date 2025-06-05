@@ -303,8 +303,12 @@ static bool CC_RISCVAssign2XLen(unsigned XLen, CCState &State, bool IsPureCapVar
     // Both halves must be passed on the stack, with proper alignment.
     // TODO: To be compatible with GCC's behaviors, we force them to have 4-byte
     // alignment. This behavior may be changed when RV32E/ILP32E is ratified.
+    // NOTE: Cheriot does not use the GCC workaround behavior.
     Align StackAlign(XLenInBytes);
-    if (!EABI || XLen != 32)
+    RISCVABI::ABI ABI = STI.getTargetABI();
+    bool IsCheriot = (ABI == RISCVABI::ABI_CHERIOT) ||
+                     (ABI == RISCVABI::ABI_CHERIOT_BAREMETAL);
+    if (!EABI || XLen != 32 || IsCheriot)
       StackAlign = std::max(StackAlign, ArgFlags1.getNonZeroOrigAlign());
     State.addLoc(
         CCValAssign::getMem(VA1.getValNo(), VA1.getValVT(),

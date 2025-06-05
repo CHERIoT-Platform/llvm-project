@@ -819,7 +819,10 @@ RValue RISCVABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
   // 2×XLEN-bit alignment and size at most 2×XLEN bits like `long long`,
   // `unsigned long long` and `double` to have 4-byte alignment. This
   // behavior may be changed when RV32E/ILP32E is ratified.
-  if (EABI && XLen == 32)
+  // NOTE: Cheriot does not use the GCC workaround behavior.
+  StringRef TargetABI = getTarget().getABI();
+  bool IsCheriot = TargetABI == "cheriot" || TargetABI == "cheriot-baremetal";
+  if (EABI && XLen == 32 && !IsCheriot)
     TInfo.Align = std::min(TInfo.Align, CharUnits::fromQuantity(4));
 
   bool IsSingleCapRecord = false;

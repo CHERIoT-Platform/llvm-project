@@ -244,6 +244,8 @@ createTargetCodeGenInfo(CodeGenModule &CGM) {
     else if (ABIStr.ends_with("d"))
       ABIFLen = 64;
     bool EABI = ABIStr.ends_with("e");
+    EABI |= ABIStr == "cheriot";
+    EABI |= ABIStr == "cheriot-baremetal";
     return createRISCVTargetCodeGenInfo(CGM, XLen, ABIFLen, EABI);
   }
 

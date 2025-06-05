@@ -639,7 +639,8 @@ protected:
     unsigned BasePathSize;
   };
 
-  static_assert(CK_IntToOCLSampler == (CastExprBitfields{.Kind = CK_IntToOCLSampler}).Kind,
+  static_assert(CK_IntToOCLSampler ==
+                    (CastExprBitfields{CK_IntToOCLSampler, 0, 0, 0}).Kind,
                 "Need more cast kind bits");
 
   class BinaryOperatorBitfields {

@@ -114,13 +114,9 @@ public:
 
 private:
   /**
-   * Struct describing compartment exports that must be emitted for this
-   * compilation unit.
+   * Struct describing function-like compartment export objects.
    */
-  struct CompartmentExport
-  {
-    /// The compartment name for the function.
-    std::string CompartmentName;
+  struct FunctionCompartmentExport {
     /// The IR function corresponding to the function.
     const Function &Fn;
     /// The symbol for the function
@@ -131,6 +127,24 @@ private:
     bool forceLocal = false;
     /// The size in bytes of the stack frame, 0 if not used.
     uint32_t stackSize = 0;
+  };
+
+  /**
+   * Struct describing sealing key-like compartment export objects.
+   */
+  struct SealingKeyCompartmentExport {
+    /// The name of the sealing key type.
+    std::string SealingKeyTypeName;
+  };
+
+  /**
+   * Struct describing compartment exports that must be emitted for this
+   * compilation unit.
+   */
+  struct CompartmentExport {
+    /// The compartment name for the object.
+    std::string CompartmentName;
+    std::variant<FunctionCompartmentExport, SealingKeyCompartmentExport> Object;
   };
   SmallVector<CompartmentExport, 1> CompartmentEntries;
   SmallDenseMap<const Function *, SmallVector<const GlobalAlias *, 1>, 1>
@@ -310,6 +324,16 @@ void RISCVAsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
            "for globals marked with the global_cap_import attribute.");
 
     return;
+  }
+
+  auto CheriotSealingKeyTypeAttrName =
+      llvm::CHERIoTSealingKeyTypeAttr::getAttrName();
+
+  if (GV->hasAttribute(CheriotSealingKeyTypeAttrName)) {
+    auto Attr = GV->getAttribute(CheriotSealingKeyTypeAttrName);
+    CompartmentEntries.push_back(
+        {std::string(GV->getAttribute("cheri-compartment").getValueAsString()),
+         SealingKeyCompartmentExport{Attr.getValueAsString().str()}});
   }
 
   // Continue through the normal path to emit the global.
@@ -582,20 +606,24 @@ bool RISCVAsmPrinter::runOnMachineFunction(MachineFunction &MF) {
     } else
       stackSize = MF.getFrameInfo().getStackSize();
     // FIXME: Get stack size as function attribute if specified
-    CompartmentEntries.push_back(
-        {std::string(Fn.getFnAttribute("cheri-compartment").getValueAsString()),
-         Fn, OutStreamer->getContext().getOrCreateSymbol(MF.getName()),
-         countUsedArgRegisters(MF) + interruptFlag, false, stackSize});
+    CompartmentEntries.push_back(CompartmentExport{
+        std::string(Fn.getFnAttribute("cheri-compartment").getValueAsString()),
+        FunctionCompartmentExport{
+            Fn, OutStreamer->getContext().getOrCreateSymbol(MF.getName()),
+            countUsedArgRegisters(MF) + interruptFlag, false, stackSize},
+    });
   } else if (Fn.getCallingConv() == CallingConv::CHERI_LibCall)
     CompartmentEntries.push_back(
-        {"libcalls", Fn,
-         OutStreamer->getContext().getOrCreateSymbol(MF.getName()),
-         countUsedArgRegisters(MF) + interruptFlag});
+        {"libcalls",
+         FunctionCompartmentExport{
+             Fn, OutStreamer->getContext().getOrCreateSymbol(MF.getName()),
+             countUsedArgRegisters(MF) + interruptFlag}});
   else if (interruptFlag != 0)
     CompartmentEntries.push_back(
         {std::string(Fn.getFnAttribute("cheri-compartment").getValueAsString()),
-         Fn, OutStreamer->getContext().getOrCreateSymbol(MF.getName()),
-         countUsedArgRegisters(MF) + interruptFlag, true});
+         FunctionCompartmentExport{
+             Fn, OutStreamer->getContext().getOrCreateSymbol(MF.getName()),
+             countUsedArgRegisters(MF) + interruptFlag, true}});
 
   if (EmittedOptionArch)
     RTS.emitDirectiveOptionPop();
@@ -700,50 +728,73 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
 
   if (!CompartmentEntries.empty()) {
     auto &C = OutStreamer->getContext();
-    auto *Exports = C.getELFSection(".compartment_exports", ELF::SHT_PROGBITS,
-                                    ELF::SHF_ALLOC | ELF::SHF_GNU_RETAIN);
-    OutStreamer->switchSection(Exports);
     auto CompartmentStartSym = C.getOrCreateSymbol("__compartment_pcc_start");
     for (auto &Entry : CompartmentEntries) {
-      std::string ExportName = getImportExportTableName(
-          Entry.CompartmentName, Entry.Fn.getName(), Entry.Fn.getCallingConv(),
-          /*IsImport*/ false);
-      auto Sym = C.getOrCreateSymbol(ExportName);
-      OutStreamer->emitSymbolAttribute(Sym, MCSA_ELF_TypeObject);
-      // If the function isn't global, don't make its export table entry global
-      // either.  Two different compilation units in the same compartment may
-      // export different static things.
-      if (Entry.Fn.hasExternalLinkage() && !Entry.forceLocal)
-        OutStreamer->emitSymbolAttribute(Sym, MCSA_Global);
-      OutStreamer->emitValueToAlignment(Align(4));
-      OutStreamer->emitLabel(Sym);
-      emitLabelDifference(Entry.FnSym, CompartmentStartSym, 2);
-      auto stackSize = Entry.stackSize;
-      // Round up to multiple of 8 and divide by 8.
-      stackSize = (stackSize + 7) / 8;
-      // TODO: We should probably warn if the std::min truncates here.
-      OutStreamer->emitIntValue(std::min(uint32_t(255), stackSize), 1);
-      OutStreamer->emitIntValue(Entry.LiveIns, 1);
-      OutStreamer->emitELFSize(Sym, MCConstantExpr::create(4, C));
-
-      // Emit aliases for this export symbol entry.
-      auto I = CompartmentEntryAliases.find(&Entry.Fn);
-      if (I == CompartmentEntryAliases.end())
-        continue;
-      for (const GlobalAlias *GA : I->second) {
-        std::string AliasExportName = getImportExportTableName(
-            Entry.CompartmentName, GA->getName(), Entry.Fn.getCallingConv(),
+      if (std::holds_alternative<FunctionCompartmentExport>(Entry.Object)) {
+        auto *Exports =
+            C.getELFSection(".compartment_exports", ELF::SHT_PROGBITS,
+                            ELF::SHF_ALLOC | ELF::SHF_GNU_RETAIN);
+        OutStreamer->switchSection(Exports);
+        auto Fn = std::get<FunctionCompartmentExport>(Entry.Object);
+        std::string ExportName = getImportExportTableName(
+            Entry.CompartmentName, Fn.Fn.getName(), Fn.Fn.getCallingConv(),
             /*IsImport*/ false);
-        auto AliasExportSym = C.getOrCreateSymbol(AliasExportName);
+        auto Sym = C.getOrCreateSymbol(ExportName);
+        OutStreamer->emitSymbolAttribute(Sym, MCSA_ELF_TypeObject);
+        // If the function isn't global, don't make its export table entry
+        // global either.  Two different compilation units in the same
+        // compartment may export different static things.
+        if (Fn.Fn.hasExternalLinkage() && !Fn.forceLocal)
+          OutStreamer->emitSymbolAttribute(Sym, MCSA_Global);
+        OutStreamer->emitValueToAlignment(Align(4));
+        OutStreamer->emitLabel(Sym);
+        emitLabelDifference(Fn.FnSym, CompartmentStartSym, 2);
+        auto stackSize = Fn.stackSize;
+        // Round up to multiple of 8 and divide by 8.
+        stackSize = (stackSize + 7) / 8;
+        // TODO: We should probably warn if the std::min truncates here.
+        OutStreamer->emitIntValue(std::min(uint32_t(255), stackSize), 1);
+        OutStreamer->emitIntValue(Fn.LiveIns, 1);
+        OutStreamer->emitELFSize(Sym, MCConstantExpr::create(4, C));
 
-        // Emit symbol alias in the export table for the alias using the same
-        // attributes, linkage, and size as the primary entry.
-        OutStreamer->emitSymbolAttribute(AliasExportSym, MCSA_ELF_TypeObject);
-        if (GA->hasExternalLinkage() && !Entry.forceLocal)
-          OutStreamer->emitSymbolAttribute(AliasExportSym, MCSA_Global);
-        OutStreamer->emitAssignment(AliasExportSym,
-                                    MCSymbolRefExpr::create(Sym, C));
-        OutStreamer->emitELFSize(AliasExportSym, MCConstantExpr::create(4, C));
+        // Emit aliases for this export symbol entry.
+        auto I = CompartmentEntryAliases.find(&Fn.Fn);
+        if (I == CompartmentEntryAliases.end())
+          continue;
+        for (const GlobalAlias *GA : I->second) {
+          std::string AliasExportName = getImportExportTableName(
+              Entry.CompartmentName, GA->getName(), Fn.Fn.getCallingConv(),
+              /*IsImport*/ false);
+          auto AliasExportSym = C.getOrCreateSymbol(AliasExportName);
+
+          // Emit symbol alias in the export table for the alias using the same
+          // attributes, linkage, and size as the primary entry.
+          OutStreamer->emitSymbolAttribute(AliasExportSym, MCSA_ELF_TypeObject);
+          if (GA->hasExternalLinkage() && !Fn.forceLocal)
+            OutStreamer->emitSymbolAttribute(AliasExportSym, MCSA_Global);
+          OutStreamer->emitAssignment(AliasExportSym,
+                                      MCSymbolRefExpr::create(Sym, C));
+          OutStreamer->emitELFSize(AliasExportSym,
+                                   MCConstantExpr::create(4, C));
+        }
+      } else {
+        auto SealingKey = std::get<SealingKeyCompartmentExport>(Entry.Object);
+        auto ExportName = SealingKey.SealingKeyTypeName;
+        auto MangledExportName = "__export." + ExportName;
+        auto *Sym = C.getOrCreateSymbol(MangledExportName);
+        auto *Exports = C.getELFSection(
+            ".compartment_exports." + ExportName, ELF::SHT_PROGBITS,
+            ELF::SHF_ALLOC | ELF::SHF_WRITE | ELF::SHF_GROUP, 0, ExportName,
+            true);
+        OutStreamer->switchSection(Exports);
+        OutStreamer->emitSymbolAttribute(Sym, MCSA_ELF_TypeObject);
+        OutStreamer->emitSymbolAttribute(Sym, MCSA_Global);
+        OutStreamer->emitValueToAlignment(Align(4));
+        OutStreamer->emitLabel(Sym);
+        OutStreamer->emitIntValue(0, 2);
+        OutStreamer->emitIntValue(0, 1);
+        OutStreamer->emitIntValue(0b100000, 1);
+        OutStreamer->emitELFSize(Sym, MCConstantExpr::create(4, C));
       }
     }
   }

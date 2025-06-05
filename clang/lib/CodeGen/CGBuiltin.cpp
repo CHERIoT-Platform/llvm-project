@@ -6155,6 +6155,51 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
     return RValue::get(Builder.CreateIntrinsic(
         llvm::Intrinsic::cheri_cap_perms_check, {SizeTy}, {Cap, Perms}));
   }
+  case Builtin::BI__builtin_cheriot_sealing_type: {
+    const Expr *Callee = E->getCallee();
+    Callee = Callee->IgnoreImplicit();
+
+    const auto *DeclRef = dyn_cast<DeclRefExpr>(Callee);
+    assert(DeclRef && "DeclRef to built-in callee can't be null!");
+    assert(DeclRef->getTemplateArgs() &&
+           "template type in built-in callee can't be null!");
+
+    const auto SealingType =
+        DeclRef->getTemplateArgs()->getArgument().getAsType();
+    auto CompartmentName = getLangOpts().CheriCompartmentName;
+
+    clang::PrintingPolicy policy(getLangOpts());
+    policy.SuppressTagKeyword = true;
+    policy.SuppressElaboration = true;
+    policy.SuppressCapabilityQualifier = true;
+
+    std::string SealingTypeName = SealingType.getAsString(policy);
+    SealingTypeName.erase(
+        std::remove_if(SealingTypeName.begin(), SealingTypeName.end(), isspace),
+        SealingTypeName.end());
+
+    auto PrefixedImportName =
+        CHERIoTSealingKeyTypeAttr::getSealingTypeSymbolName(CompartmentName,
+                                                            SealingTypeName);
+    auto *Mod = &CGM.getModule();
+    auto MangledImportName = "__import." + PrefixedImportName;
+    auto *GV = Mod->getGlobalVariable(MangledImportName);
+
+    if (!GV) {
+      // llvm::StructType* opaqueType =
+      // llvm::StructType::create(CGM.getModule().getContext(), "");
+      auto *opaquePtrType =
+          llvm::PointerType::getUnqual(CGM.getModule().getContext());
+      GV = new GlobalVariable(CGM.getModule(), opaquePtrType, true,
+                              GlobalValue::ExternalLinkage, nullptr,
+                              MangledImportName);
+      GV->addAttribute(CHERIoTSealingKeyTypeAttr::getAttrName(),
+                       PrefixedImportName);
+      GV->addAttribute("cheri-compartment", CompartmentName);
+    }
+
+    return RValue::get(GV);
+  }
   // Round to capability precision:
   // TODO: should we handle targets that don't have any precision constraints
   // here or in the backend?

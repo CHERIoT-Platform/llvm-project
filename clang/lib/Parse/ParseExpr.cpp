@@ -1201,6 +1201,67 @@ ExprResult Parser::ParseCastExpression(CastParseKind ParseKind,
     return ParseCastExpression(ParseKind, isAddressOfOperand, isTypeCast,
                                isVectorLiteral, NotPrimaryExpression);
 
+  case tok::kw___builtin_cheriot_sealing_type: {
+    // We expect: `__builtin_cheriot_sealing_type<TYPENAME>()`.
+    auto KWLoc = Tok.getLocation();
+    ConsumeToken();
+    auto LAngleLoc = Tok.getLocation();
+    if (ExpectAndConsume(tok::less)) {
+      SkipUntil(tok::r_paren, StopAtSemi);
+      return ExprError();
+    }
+
+    auto TyArgLoc = Tok.getLocation();
+    TypeResult TyArg = ParseTypeName();
+    if (TyArg.isInvalid())
+      return ExprError();
+
+    TypeSourceInfo *SealingTypeInfo = nullptr;
+    QualType SealingType =
+        Actions.GetTypeFromParser(TyArg.get(), &SealingTypeInfo);
+
+    auto RAngleLoc = Tok.getLocation();
+    if (ExpectAndConsume(tok::greater)) {
+      SkipUntil(tok::r_paren, StopAtSemi);
+      return ExprError();
+    }
+
+    if (ExpectAndConsume(tok::l_paren)) {
+      SkipUntil(tok::r_paren, StopAtSemi);
+      return ExprError();
+    }
+
+    SourceLocation RParenLoc = Tok.getLocation();
+    if (ExpectAndConsume(tok::r_paren)) {
+      SkipUntil(tok::semi, StopAtSemi);
+      return ExprError();
+    }
+
+    auto *Ctxt = &Actions.getASTContext();
+    auto BuiltinID = clang::Builtin::BI__builtin_cheriot_sealing_type;
+
+    auto BuiltinName = Ctxt->BuiltinInfo.getName(BuiltinID);
+    IdentifierInfo *II = &Ctxt->Idents.get(BuiltinName);
+    LookupResult R(Actions, II, SourceLocation(), Sema::LookupOrdinaryName);
+    if (!Actions.LookupBuiltin(R)) {
+      return ExprError();
+    }
+
+    FunctionDecl *BuiltinDecl = dyn_cast<FunctionDecl>(R.getFoundDecl());
+    TemplateArgument Arg(SealingType);
+    TemplateArgumentListInfo TArgs(LAngleLoc, RAngleLoc);
+
+    TArgs.addArgument(TemplateArgumentLoc(
+        Arg, Ctxt->getTrivialTypeSourceInfo(SealingType, TyArgLoc)));
+
+    DeclRefExpr *FnRef = DeclRefExpr::Create(
+        *Ctxt, NestedNameSpecifierLoc(), SourceLocation(), BuiltinDecl, false,
+        KWLoc, BuiltinDecl->getType(), VK_LValue, R.getFoundDecl(), &TArgs);
+
+    return CallExpr::Create(*Ctxt, FnRef, {}, BuiltinDecl->getReturnType(),
+                            clang::ExprValueKind::VK_PRValue, RParenLoc,
+                            FPOptionsOverride());
+  }
   case tok::identifier:
   ParseIdentifier: {    // primary-expression: identifier
                         // unqualified-id: identifier

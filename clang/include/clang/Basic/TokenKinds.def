@@ -356,6 +356,7 @@ KEYWORD(__cheri_input               , KEYALL)
 
 // CHERIoT Predefine Expr
 KEYWORD(__cheriot_minimum_stack__   , KEYALL)
+KEYWORD(__builtin_cheriot_sealing_type 	, KEYALL)
 
 // Cheriot Qualifiers
 KEYWORD(__sealed_capability         , KEYALL)

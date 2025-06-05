@@ -1093,6 +1093,9 @@ void TypePrinter::printFunctionProtoAfter(const FunctionProtoType *T,
     OS << "))";
   }
 
+  if (T->hasCFIUncheckedCallee())
+    OS << " __attribute__((cfi_unchecked_callee))";
+
   if (T->hasTrailingReturn()) {
     OS << " -> ";
     print(T->getReturnType(), OS, StringRef());
@@ -2181,6 +2184,9 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   case attr::NoDeref:
     OS << "noderef";
     break;
+  case attr::CFIUncheckedCallee:
+    OS << "cfi_unchecked_callee";
+    break;
   case attr::MemoryAddress:
     OS << "memory_address";
     break;
@@ -2761,6 +2767,8 @@ std::string Qualifiers::getAddrSpaceAsString(LangAS AS) {
     return "hlsl_private";
   case LangAS::hlsl_device:
     return "hlsl_device";
+  case LangAS::hlsl_input:
+    return "hlsl_input";
   case LangAS::wasm_funcref:
     return "__funcref";
   default:

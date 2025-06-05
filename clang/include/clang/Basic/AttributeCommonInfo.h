@@ -75,7 +75,7 @@ public:
     GNU,
     MSVC,
     OMP,
-    HLSL,
+    HLSL, VK,
     GSL,
     RISCV,
     CHERI,

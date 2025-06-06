@@ -176,15 +176,15 @@ void func() {
 
 // CHECK: attributes #0 = { "cheriot_global_cap_import"="mem,uart,RWcm" }
 // CHECK: attributes #1 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,RWcm" }
-// CHECK: attributes #2 = { "cheriot_global_cap_import"="mem,uart,R" }
-// CHECK: attributes #3 = { "cheriot_global_cap_import"="mem,uart,Rc" }
-// CHECK: attributes #4 = { "cheriot_global_cap_import"="mem,uart,Rcm" }
-// CHECK: attributes #5 = { "cheriot_global_cap_import"="mem,uart,W" }
-// CHECK: attributes #6 = { "cheriot_global_cap_import"="mem,uart,Wc" }
-// CHECK: attributes #7 = { "cheriot_global_cap_import"="mem,uart,RWc" }
-// CHECK: attributes #8 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,R" }
-// CHECK: attributes #9 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,Rc" }
-// CHECK: attributes #10 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,Rcm" }
-// CHECK: attributes #11 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,W" }
-// CHECK: attributes #12 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,Wc" }
-// CHECK: attributes #13 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,RWc" }
+// CHECK: attributes #2 = { "cheriot_global_cap_import"="mem,uart,R---" }
+// CHECK: attributes #3 = { "cheriot_global_cap_import"="mem,uart,R-c-" }
+// CHECK: attributes #4 = { "cheriot_global_cap_import"="mem,uart,R-cm" }
+// CHECK: attributes #5 = { "cheriot_global_cap_import"="mem,uart,-W--" }
+// CHECK: attributes #6 = { "cheriot_global_cap_import"="mem,uart,-Wc-" }
+// CHECK: attributes #7 = { "cheriot_global_cap_import"="mem,uart,RWc-" }
+// CHECK: attributes #8 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,R---" }
+// CHECK: attributes #9 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,R-c-" }
+// CHECK: attributes #10 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,R-cm" }
+// CHECK: attributes #11 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,-W--" }
+// CHECK: attributes #12 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,-Wc-" }
+// CHECK: attributes #13 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,RWc-" }

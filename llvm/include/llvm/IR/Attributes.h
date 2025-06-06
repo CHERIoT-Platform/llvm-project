@@ -19,6 +19,7 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/BitmaskEnum.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/Twine.h"
 #include "llvm/Config/llvm-config.h"
 #include "llvm/Support/Alignment.h"
 #include "llvm/Support/CodeGen.h"
@@ -1529,10 +1530,11 @@ public:
       return false;
     }
 
-    Permissions = (HasRead ? std::string(ReadPermissionSymbol) : "") +
-                  (HasWrite ? std::string(WritePermissionSymbol) : "") +
-                  (HasCap ? std::string(CapPermissionSymbol) : "") +
-                  (HasMut ? std::string(MutPermissionSymbol) : "");
+    Permissions = ((HasRead ? Twine(ReadPermissionSymbol) : "-") +
+                   (HasWrite ? Twine(WritePermissionSymbol) : "-") +
+                   (HasCap ? Twine(CapPermissionSymbol) : "-") +
+                   (HasMut ? Twine(MutPermissionSymbol) : "-"))
+                      .str();
     return true;
   }
 

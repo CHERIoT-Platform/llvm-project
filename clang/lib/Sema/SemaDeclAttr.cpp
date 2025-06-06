@@ -2163,7 +2163,10 @@ static void handleCHERIOTMMIODevice(Sema &S, Decl *D, const ParsedAttr &Attr,
   }
 
   QualType QT = VD->getType();
-  if (!QT.isVolatileQualified()) {
+  auto *PQT = dyn_cast<PointerType>(QT);
+  auto IsVolatile = (PQT && PQT->getPointeeType().isVolatileQualified()) ||
+                    QT.isVolatileQualified();
+  if (!IsVolatile) {
     S.Diag(Attr.getLoc(), diag::warn_cheriot_global_cap_import_non_volatile)
         << VD->getName() << Attr.getAttrName();
   }

@@ -99,6 +99,9 @@ public:
     eRISCV_float_abi_mask   = 0x00000006,
     eRISCV_rve              = 0x00000008, /// RVE, +e
     eRISCV_tso              = 0x00000010, /// RVTSO (total store ordering)
+    eRISCV_cheri_abi        = 0x10000000,
+    eRISCV_cap_mode         = 0x20000000,
+    eRISCV_cheriot          = 0x40000000,
   };
 
   enum RISCVSubType {

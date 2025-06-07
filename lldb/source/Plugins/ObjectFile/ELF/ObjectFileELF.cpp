@@ -1433,6 +1433,16 @@ size_t ObjectFileELF::GetSectionHeaderInfo(SectionHeaderColl &section_headers,
              llvm::ELF::EF_RISCV_FLOAT_ABI_QUAD)
       flags |= ArchSpec::eRISCV_float_abi_quad;
 
+    if ((header.e_flags & llvm::ELF::EF_RISCV_CHERIABI) ==
+        llvm::ELF::EF_RISCV_CHERIABI)
+      flags |= ArchSpec::eRISCV_cheri_abi;
+    if ((header.e_flags & llvm::ELF::EF_RISCV_CAP_MODE) ==
+        llvm::ELF::EF_RISCV_CAP_MODE)
+      flags |= ArchSpec::eRISCV_cap_mode;
+    if ((header.e_flags & llvm::ELF::EF_RISCV_CHERIOT) ==
+        llvm::ELF::EF_RISCV_CHERIOT)
+      flags |= ArchSpec::eRISCV_cheriot;
+
     arch_spec.SetFlags(flags);
   }
 

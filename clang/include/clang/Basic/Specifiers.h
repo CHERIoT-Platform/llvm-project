@@ -294,14 +294,13 @@ namespace clang {
     CC_CHERILibCall,       // __attribute__((cheri_libcall))
     CC_IntelOclBicc,       // __attribute__((intel_ocl_bicc))
     CC_SpirFunction,       // default for OpenCL functions on SPIR target
-    CC_OpenCLKernel,       // inferred for OpenCL kernels
+    CC_DeviceKernel,       // __attribute__((device_kernel))
     CC_Swift,              // __attribute__((swiftcall))
     CC_SwiftAsync,         // __attribute__((swiftasynccall))
     CC_PreserveMost,       // __attribute__((preserve_most))
     CC_PreserveAll,        // __attribute__((preserve_all))
     CC_AArch64VectorCall,  // __attribute__((aarch64_vector_pcs))
     CC_AArch64SVEPCS,      // __attribute__((aarch64_sve_pcs))
-    CC_AMDGPUKernelCall,   // __attribute__((amdgpu_kernel))
     CC_M68kRTD,            // __attribute__((m68k_rtd))
     CC_PreserveNone,       // __attribute__((preserve_none))
     CC_RISCVVectorCall,    // __attribute__((riscv_vector_cc))
@@ -331,7 +330,7 @@ namespace clang {
     case CC_X86Pascal:
     case CC_X86VectorCall:
     case CC_SpirFunction:
-    case CC_OpenCLKernel:
+    case CC_DeviceKernel:
     case CC_Swift:
     case CC_SwiftAsync:
     case CC_M68kRTD:

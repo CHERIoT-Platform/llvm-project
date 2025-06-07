@@ -2311,7 +2311,9 @@ def _runShTest(test, litConfig, useExternalSh, script, tmpBase) -> lit.Test.Resu
     if err:
         output += """Command Output (stderr):\n--\n%s\n--\n""" % (err,)
 
-    return lit.Test.Result(status, output)
+    return lit.Test.Result(
+        status, output, attempts=i + 1, max_allowed_attempts=attempts
+    )
 
 
 def executeShTest(

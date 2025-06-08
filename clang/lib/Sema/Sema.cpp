@@ -1592,8 +1592,7 @@ void Sema::ActOnEndOfTranslationUnit() {
 
     CurrentModule->NamedModuleHasInit =
         DoesModNeedInit(CurrentModule) ||
-        llvm::any_of(CurrentModule->submodules(),
-                     [&](auto *SubM) { return DoesModNeedInit(SubM); });
+        llvm::any_of(CurrentModule->submodules(), DoesModNeedInit);
   }
 
   if (TUKind == TU_ClangModule) {

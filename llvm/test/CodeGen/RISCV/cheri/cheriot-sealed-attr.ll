@@ -9,6 +9,10 @@ target triple = "riscv32cheriot-unknown-cheriotrtos"
 ;; The shape of sealed `TestType`s.
 %struct.SealedTestType = type { i32, i32, %struct.TestType }
 
+%struct.AllocatorCapabilityState = type { i32, i32, [2 x ptr addrspace(200)] }
+
+%struct.SealedAllocatorCapabilityState = type { i32, i32, %struct.AllocatorCapabilityState }
+
 ; Function Attrs: minsize mustprogress nounwind optsize
 define dso_local chericcallcce noundef i32 @test_static_sealing() local_unnamed_addr addrspace(200) #0 {
 entry:
@@ -27,7 +31,8 @@ entry:
 ;; CHECK-NEXT:  	  clc	  ct2, %cheriot_compartment_lo_i(.LBB0_2)(ct2)
 ;; CHECK-NEXT:  	  cjalr	  ct2
   %call = notail call chericcallcc noundef i32 @test_static_sealed_object(ptr addrspace(200) @test) #2
-  ret i32 %call
+  %call2 = notail call chericcallcc noundef i32 @test_static_sealed_object(ptr addrspace(200) @__default_malloc_capability) #2
+  ret i32 %call2
 }
 
 ; Function Attrs: minsize optsize
@@ -41,8 +46,10 @@ attributes #2 = { minsize nounwind optsize "no-builtin-longjmp" "no-builtin-prin
 !llvm.module.flags = !{!0, !1, !2, !4}
 
 @__export.sealing_type.static_sealing_inner.SealingType = external dso_local addrspace(200) global i32, align 4
+@__export.sealing_type.allocator.MallocKey = external dso_local addrspace(200) global i32, align 4
 
 $test = comdat any
+$__default_malloc_capability = comdat any
 ;; CHECK: 	.type	test,@object                    # @test
 ;; CHECK-NEXT: 	.section	.sealed_objects,"awG",@progbits,test,comdat
 ;; CHECK-NEXT: 	.weak	test
@@ -52,12 +59,25 @@ $test = comdat any
 ;; CHECK-NEXT: 	.word	0                               # 0x0
 ;; CHECK-NEXT: 	.word	42                              # 0x2a
 ;; CHECK-NEXT: 	.size	test, 12
-@test = linkonce_odr dso_local addrspace(200) global %struct.SealedTestType {
-i32 ptrtoint (ptr addrspace(200)
-@__export.sealing_type.static_sealing_inner.SealingType to i32), i32 0,
-%struct.TestType {i32 42}}, section ".sealed_objects", comdat, align 4 "cheriot_sealed_value"
+@test = linkonce_odr dso_local addrspace(200) global %struct.SealedTestType { i32 ptrtoint (ptr addrspace(200) @__export.sealing_type.static_sealing_inner.SealingType to i32), i32 0, %struct.TestType {i32 42}}, section ".sealed_objects", comdat, align 4 "cheriot_sealed_value"
+;; CHECK: 	.type	__default_malloc_capability,@object                    # @__default_malloc_capability
+;; CHECK-NEXT: 	.section	.sealed_objects,"awG",@progbits,__default_malloc_capability,comdat
+;; CHECK-NEXT: 	.weak	__default_malloc_capability
+;; CHECK-NEXT: 	.p2align	3, 0x0
+;; CHECK-NEXT:  __default_malloc_capability:
+;; CHECK-NEXT:  .word   __export.sealing_type.allocator.MallocKey
+;; CHECK-NEXT:  .word   0                               # 0x0
+;; CHECK-NEXT:  .word   1048576                         # 0x100000
+;; CHECK-NEXT:  .word   0                               # 0x0
+;; CHECK-NEXT:  .zero   16
+;; CHECK-NEXT:  .size   __default_malloc_capability, 32
+@__default_malloc_capability = linkonce_odr dso_local addrspace(200) global
+%struct.SealedAllocatorCapabilityState { i32 ptrtoint (ptr
+addrspace(200) @__export.sealing_type.allocator.MallocKey to i32), i32 0,
+%struct.AllocatorCapabilityState { i32 1048576, i32 0, [2 x ptr addrspace(200)]
+zeroinitializer } }, section ".sealed_objects", comdat, align 8 "cheriot_sealed_value"
 
-@llvm.compiler.used = appending addrspace(200) global [1 x ptr addrspace(200)] [ptr addrspace(200) @test], section "llvm.metadata"
+@llvm.compiler.used = appending addrspace(200) global [2 x ptr addrspace(200)] [ptr addrspace(200) @test, ptr addrspace(200) @__default_malloc_capability], section "llvm.metadata"
 
 
 ;; The use of @test above must generate this import as well.
@@ -70,6 +90,14 @@ i32 ptrtoint (ptr addrspace(200)
 ;; CHECK-NEXT:	  .word	test
 ;; CHECK-NEXT:	  .word	12
 ;; CHECK-NEXT:	  .size	__import.sealed_object.test, 8
+;; CHECK:         .section .compartment_imports.__default_malloc_capability,"awG",@progbits,__import.sealed_object.__default_malloc_capability
+;; CHECK-NEXT:	  .type	  __import.sealed_object.__default_malloc_capability,@object
+;; CHECK-NEXT:	  .weak	  __import.sealed_object.__default_malloc_capability
+;; CHECK-NEXT:	  .p2align 3, 0x0
+;; CHECK-NEXT:  __import.sealed_object.__default_malloc_capability:
+;; CHECK-NEXT:	  .word	__default_malloc_capability
+;; CHECK-NEXT:	  .word
+;; CHECK-NEXT:	  .size	__import.sealed_object.__default_malloc_capability, 8
 
 
 !0 = !{i32 1, !"wchar_size", i32 2}

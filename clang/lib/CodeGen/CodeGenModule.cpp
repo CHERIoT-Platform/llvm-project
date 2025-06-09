@@ -5911,7 +5911,7 @@ void CodeGenModule::EmitGlobalVarDefinition(const VarDecl *D,
     GV->setSection(".sealed_objects");
     GV->setDSOLocal(true);
     GV->setLinkage(llvm::GlobalValue::LinkOnceODRLinkage);
-    GV->setAlignment(llvm::Align(4));
+    GV->setAlignment(getContext().getDeclAlign(D).getAsAlign());
     GV->setComdat(C);
     GV->setInitializer(Init);
     GV->addAttribute(llvm::CHERIoTSealedValueAttr::getAttrName());

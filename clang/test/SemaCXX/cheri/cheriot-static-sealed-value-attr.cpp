@@ -17,7 +17,7 @@ MyObj4 Obj4 = {0, 0, 0, 0};
 
 struct PlainObj plainObj = {10};
 MyObj5 Obj5 = &plainObj;
-extern MyObj5 Obj6; // expected-error{{cannot declare a sealed variable as external}}
+extern MyObj5 Obj6; // No warnings here, it is allowed to declare it `extern`. 
 					
 void useStruct(struct MyObj x);
 void useStructSealedCap(struct MyObj *__sealed_capability x);

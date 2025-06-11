@@ -1559,7 +1559,7 @@ class CheriBccPat<PatFrag CondOp, RVInstB Inst>
           (Inst
             (XLenVT (EXTRACT_SUBREG GPCR:$rs1, sub_cap_addr)),
             (XLenVT (EXTRACT_SUBREG GPCR:$rs2, sub_cap_addr)),
-            bare_simm13_lsb0:$imm12)>;
+            bare_simm13_lsb0_bb:$imm12)>;
 
 def : CheriBccPat<seteq, BEQ>;
 def : CheriBccPat<setne, BNE>;
@@ -1573,7 +1573,7 @@ class CheriBccSwapPat<PatFrag CondOp, RVInst InstBcc>
           (InstBcc
             (XLenVT (EXTRACT_SUBREG GPCR:$rs2, sub_cap_addr)),
             (XLenVT (EXTRACT_SUBREG GPCR:$rs1, sub_cap_addr)),
-            bare_simm13_lsb0:$imm12)>;
+            bare_simm13_lsb0_bb:$imm12)>;
 
 def : CheriBccSwapPat<setgt, BLT>;
 def : CheriBccSwapPat<setle, BGE>;

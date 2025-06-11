@@ -928,19 +928,23 @@ static void relaxCall(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
       (r.expr == R_PLT_PC ? sym.getPltVA(ctx) : sym.getVA(ctx)) + r.addend;
   const int64_t displace = dest - loc;
 
-  if (rvc && isInt<12>(displace) && rd == 0) {
+  // When the caller specifies the old value of `remove`, disallow its
+  // increment.
+  if (remove >= 6 && rvc && isInt<12>(displace) && rd == 0) {
     sec.relaxAux->relocTypes[i] = jalRVCType;
     sec.relaxAux->writes.push_back(0xa001); // c.[c]j
     remove = 6;
-  } else if (rvc && isInt<12>(displace) && rd == X_RA &&
+  } else if (remove >= 6 && rvc && isInt<12>(displace) && rd == X_RA &&
              !ctx.arg.is64) { // RV32C only
     sec.relaxAux->relocTypes[i] = R_RISCV_RVC_JUMP;
     sec.relaxAux->writes.push_back(0x2001); // c.jal
     remove = 6;
-  } else if (isInt<21>(displace)) {
+  } else if (remove >= 4 && isInt<21>(displace)) {
     sec.relaxAux->relocTypes[i] = jalType;
     sec.relaxAux->writes.push_back(0x6f | rd << 7); // [c]jal
     remove = 4;
+  } else {
+    remove = 0;
   }
 }
 
@@ -1117,7 +1121,7 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSection &sec) {
   return modified;
 }
 
-static bool relax(Ctx &ctx, InputSection &sec, int pass) {
+static bool relax(Ctx &ctx, int pass, InputSection &sec) {
   const uint64_t secAddr = sec.getVA();
   const MutableArrayRef<Relocation> relocs = sec.relocs();
   auto &aux = *sec.relaxAux;
@@ -1157,8 +1161,13 @@ static bool relax(Ctx &ctx, InputSection &sec, int pass) {
     case R_RISCV_CALL_PLT:
     case R_RISCV_CHERI_CCALL:
     case R_RISCV_CHERIOT_CCALL:
-      if (relaxable(relocs, i))
+      // Prevent oscillation between states by disallowing the increment of
+      // `remove` after a few passes. The previous `remove` value is
+      // `cur-delta`.
+      if (relaxable(relocs, i)) {
+        remove = pass < 4 ? 6 : cur - delta;
         relaxCall(ctx, sec, i, loc, r, remove);
+      }
       break;
     case R_RISCV_TPREL_HI20:
     case R_RISCV_TPREL_ADD:
@@ -1247,7 +1256,7 @@ bool RISCV::relaxOnce(int pass) const {
     if (!(osec->flags & SHF_EXECINSTR))
       continue;
     for (InputSection *sec : getInputSections(*osec, storage))
-      changed |= relax(ctx, *sec, pass);
+      changed |= relax(ctx, pass, *sec);
   }
   return changed;
 }

@@ -206,10 +206,6 @@ bool MipsMCExpr::evaluateAsRelocatableImpl(MCValue &Res,
   return !Res.getSubSym();
 }
 
-void MipsMCExpr::visitUsedExpr(MCStreamer &Streamer) const {
-  Streamer.visitUsedExpr(*getSubExpr());
-}
-
 bool MipsMCExpr::isOffImpl(Specifier &S, Specifier Expected) const {
   if (getSpecifier() == MEK_HI || getSpecifier() == MEK_LO) {
     if (const MipsMCExpr *S1 = dyn_cast<const MipsMCExpr>(getSubExpr())) {

@@ -13,12 +13,13 @@ define i32 @get_ith_word(i32 signext %i, ...) addrspace(200) nounwind {
 ; CHECK-NEXT:    addi a0, a0, 1
 ; CHECK-NEXT:  .LBB0_1: # %while.cond
 ; CHECK-NEXT:    # =>This Inner Loop Header: Depth=1
+; CHECK-NEXT:    cmove ca2, ca1
 ; CHECK-NEXT:    addiw a0, a0, -1
 ; CHECK-NEXT:    cincoffset ca1, ca1, 4
 ; CHECK-NEXT:    bgtz a0, .LBB0_1
 ; CHECK-NEXT:  # %bb.2: # %while.end
 ; CHECK-NEXT:    csc ca1, 0(csp)
-; CHECK-NEXT:    clw a0, -4(ca1)
+; CHECK-NEXT:    clw a0, 0(ca2)
 ; CHECK-NEXT:    cincoffset csp, csp, 16
 ; CHECK-NEXT:    cret
 entry:
@@ -102,6 +103,7 @@ declare void @varargs(i32, ...) addrspace(200) nounwind
 ; go in an even integer register pair and would thus reserve the odd register,
 ; even though we're passing on the stack.
 define void @test_varargs_odd_cap_reg() addrspace(200) nounwind {
+entry:
 ; CHECK-LABEL: test_varargs_odd_cap_reg:
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:    cincoffset csp, csp, -32
@@ -112,7 +114,6 @@ define void @test_varargs_odd_cap_reg() addrspace(200) nounwind {
 ; CHECK-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
 ; CHECK-NEXT:    cincoffset csp, csp, 32
 ; CHECK-NEXT:    cret
-entry:
   tail call void (i32, ...) @varargs(i32 1, ptr addrspace(200) null)
   ret void
 }

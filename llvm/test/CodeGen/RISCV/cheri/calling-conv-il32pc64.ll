@@ -13,12 +13,13 @@ define i32 @get_ith_word(i32 signext %i, ...) addrspace(200) nounwind {
 ; CHECK-NEXT:    addi a0, a0, 1
 ; CHECK-NEXT:  .LBB0_1: # %while.cond
 ; CHECK-NEXT:    # =>This Inner Loop Header: Depth=1
+; CHECK-NEXT:    cmove ca2, ca1
 ; CHECK-NEXT:    addi a0, a0, -1
 ; CHECK-NEXT:    cincoffset ca1, ca1, 4
 ; CHECK-NEXT:    bgtz a0, .LBB0_1
 ; CHECK-NEXT:  # %bb.2: # %while.end
 ; CHECK-NEXT:    csc ca1, 8(csp)
-; CHECK-NEXT:    clw a0, -4(ca1)
+; CHECK-NEXT:    clw a0, 0(ca2)
 ; CHECK-NEXT:    cincoffset csp, csp, 16
 ; CHECK-NEXT:    cret
 entry:

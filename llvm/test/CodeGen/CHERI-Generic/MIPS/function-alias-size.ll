@@ -33,15 +33,15 @@ define void @_ZN3fooD2Ev() addrspace(200) nounwind {
 ; The function alias symbol should have the same size expression:
 ; ASM-LABEL: .globl _ZN3fooD1Ev
 ; ASM-NEXT: .type _ZN3fooD1Ev,@function
-; ASM-NEXT: .set _ZN3fooD1Ev, _ZN3fooD2Ev
+; ASM-NEXT: _ZN3fooD1Ev = _ZN3fooD2Ev
 ; ASM-NEXT: .size _ZN3fooD1Ev, .Lfunc_end0-_ZN3fooD2Ev
 
 ; But for the aliases using a GEP, we have to subtract the offset:
 ; ASM-LABEL: .globl elem0
-; ASM-NEXT:  .set elem0, .Ltwo_ints
+; ASM-NEXT:  elem0 = .Ltwo_ints
 ; ASM-NEXT:  .size elem0, 4
 ; ASM-LABEL: .globl elem1
-; ASM-NEXT:  .set elem1, .Ltwo_ints+4
+; ASM-NEXT:  elem1 = .Ltwo_ints+4
 ; ASM-NEXT:  .size elem1, 4
 
 ; Check that the ELF st_size value was set correctly:

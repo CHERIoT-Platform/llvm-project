@@ -16,7 +16,7 @@ target triple = "riscv32cheriot-unknown-cheriotrtos"
 ; CHECK: .size   __library_export_libcalls__Z3foov, 4
 ; CHECK: .type   __library_export_libcalls__Z3barv,@object
 ; CHECK: .globl  __library_export_libcalls__Z3barv
-; CHECK: .set __library_export_libcalls__Z3barv, __library_export_libcalls__Z3foov
+; CHECK: __library_export_libcalls__Z3barv = __library_export_libcalls__Z3foov
 ; CHECK: .size   __library_export_libcalls__Z3barv, 4
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none)

@@ -6,31 +6,31 @@
 ; CHECK: .size .Lstructvar, 8
 
 ; CHECK: .globl	foo1
-; CHECK-NEXT: .set foo1, bar
+; CHECK-NEXT: foo1 = bar
 ; CHECK-NEXT: .size foo1, 4
 
 ; CHECK: .globl	foo2
-; CHECK-NEXT: .set foo2, bar
+; CHECK-NEXT: foo2 = bar
 ; CHECK-NEXT: .size foo2, 4
 
 ; CHECK: .weak	bar_f
 ; CHECK-NEXT: .type bar_f,%function
-; CHECK-NEXT: .set bar_f, foo_f
+; CHECK-NEXT: bar_f = foo_f
 ; CHECK-NEXT: .size bar_f, .Lfunc_end0-foo_f
 
-; CHECK: .set bar_i, bar
+; CHECK: bar_i = bar
 ; CHECK-NEXT: .size bar_i, 4
 
 ; CHECK: .globl	A
-; CHECK-NEXT: .set A, bar
+; CHECK-NEXT: A = bar
 ; CHECK-NEXT: .size A, 4
 
 ; CHECK: .globl elem0
-; CHECK-NEXT: .set elem0, .Lstructvar
+; CHECK-NEXT: elem0 = .Lstructvar
 ; CHECK-NEXT: .size elem0, 4
 
 ; CHECK: .globl elem1
-; CHECK-NEXT: .set elem1, .Lstructvar+4
+; CHECK-NEXT: elem1 = .Lstructvar+4
 ; CHECK-NEXT: .size elem1, 4
 
 @bar = global i32 42

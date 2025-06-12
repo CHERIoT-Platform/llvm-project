@@ -42,7 +42,7 @@ declare cherilibcallcc i32 @add(i32, i32) local_unnamed_addr addrspace(200) #1
 ; Function Attrs: minsize optsize
 declare cherilibcallcc i32 @foo() local_unnamed_addr addrspace(200) #1
 
-; CHECK: .set bar_alias, bar
+; CHECK: bar_alias = bar
 @bar_alias = weak_odr dso_local unnamed_addr alias void (), ptr addrspace(200) @bar
 
 attributes #0 = { minsize nounwind optsize "cheri-compartment"="foo" "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+xcheri,-64bit,-relax,-save-restore,-no-rvc-hints" }

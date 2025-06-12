@@ -11,7 +11,7 @@ void a(void) __attribute__((__alias__("__ledf2")));
 
 // ASM:      .globl	a
 // ASM-NEXT: .type	a,@function
-// ASM-NEXT: .set a, __ledf2
+// ASM-NEXT: a = __ledf2
 
 // DUMP: 0000000000000000 g     F .text		 0000000000000008 __ledf2
 // DUMP: 0000000000000000 g     F .text		 0000000000000008 a

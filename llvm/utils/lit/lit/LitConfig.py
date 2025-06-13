@@ -1,12 +1,9 @@
 from __future__ import absolute_import
+
 import inspect
 import os
-import platform
 import sys
 
-import lit.Test
-import lit.formats
-import lit.TestingConfig
 import lit.util
 
 from lit.TestingConfig import CheriTestMode

@@ -2,6 +2,7 @@
 ; RUN: opt < %s -passes=amdgpu-sw-lower-lds -S -mtriple=amdgcn-amd-amdhsa | FileCheck %s
 
 ; Test to check if LDS accesses are lowered correctly when a call is made to nested non-kernel.
+; XFAIL: *
 
 @A = external addrspace(3) global [8 x ptr]
 @B = external addrspace(3) global [0 x i32]

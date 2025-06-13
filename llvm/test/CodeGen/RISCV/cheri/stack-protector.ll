@@ -45,9 +45,9 @@ define void @caller() addrspace(200) nounwind sspstrong {
 ; IL32PC64-NEXT:    cincoffset ca0, csp, 11
 ; IL32PC64-NEXT:    csetbounds ca0, ca0, 1
 ; IL32PC64-NEXT:    ccall callee
-; IL32PC64-NEXT:    clw a0, 0(cs0)
-; IL32PC64-NEXT:    clw a1, 12(csp)
-; IL32PC64-NEXT:    bne a0, a1, .LBB0_2
+; IL32PC64-NEXT:    clc ca0, 12(csp)
+; IL32PC64-NEXT:    clc ca1, 0(cs0)
+; IL32PC64-NEXT:    bne a1, a0, .LBB0_2
 ; IL32PC64-NEXT:  # %bb.1:
 ; IL32PC64-NEXT:    clc cra, 24(csp) # 8-byte Folded Reload
 ; IL32PC64-NEXT:    clc cs0, 16(csp) # 8-byte Folded Reload
@@ -69,9 +69,9 @@ define void @caller() addrspace(200) nounwind sspstrong {
 ; L64PC128-NEXT:    cincoffset ca0, csp, 7
 ; L64PC128-NEXT:    csetbounds ca0, ca0, 1
 ; L64PC128-NEXT:    ccall callee
-; L64PC128-NEXT:    cld a0, 0(cs0)
-; L64PC128-NEXT:    cld a1, 8(csp)
-; L64PC128-NEXT:    bne a0, a1, .LBB0_2
+; L64PC128-NEXT:    clc ca0, 8(csp)
+; L64PC128-NEXT:    clc ca1, 0(cs0)
+; L64PC128-NEXT:    bne a1, a0, .LBB0_2
 ; L64PC128-NEXT:  # %bb.1:
 ; L64PC128-NEXT:    clc cra, 32(csp) # 16-byte Folded Reload
 ; L64PC128-NEXT:    clc cs0, 16(csp) # 16-byte Folded Reload

@@ -7263,14 +7263,13 @@ static void fixReductionScalarResumeWhenVectorizingEpilog(
   } else if (RecurrenceDescriptor::isFindLastIVRecurrenceKind(
                  RdxDesc.getRecurrenceKind())) {
     Value *StartV = getStartValueFromReductionResult(EpiRedResult);
+    Value *SentinelV = EpiRedResult->getOperand(2)->getLiveInIRValue();
     using namespace llvm::PatternMatch;
     Value *Cmp, *OrigResumeV, *CmpOp;
     bool IsExpectedPattern =
         match(MainResumeValue,
-              m_Select(
-                  m_OneUse(m_Value(Cmp)),
-                  m_Specific(EpiRedResult->getOperand(2)->getLiveInIRValue()),
-                  m_Value(OrigResumeV))) &&
+              m_Select(m_OneUse(m_Value(Cmp)), m_Specific(SentinelV),
+                       m_Value(OrigResumeV))) &&
         (match(Cmp, m_SpecificICmp(ICmpInst::ICMP_EQ, m_Specific(OrigResumeV),
                                    m_Value(CmpOp))) &&
          ((CmpOp == StartV && isGuaranteedNotToBeUndefOrPoison(CmpOp))));
@@ -7301,6 +7300,9 @@ DenseMap<const SCEV *, Value *> LoopVectorizationPlanner::executePlan(
   VPlanTransforms::runPass(VPlanTransforms::unrollByUF, BestVPlan, BestUF,
                            OrigLoop->getHeader()->getContext());
   VPlanTransforms::runPass(VPlanTransforms::materializeBroadcasts, BestVPlan);
+  if (hasBranchWeightMD(*OrigLoop->getLoopLatch()->getTerminator()))
+    VPlanTransforms::runPass(VPlanTransforms::addBranchWeightToMiddleTerminator,
+                             BestVPlan, BestVF);
   VPlanTransforms::optimizeForVFAndUF(BestVPlan, BestVF, BestUF, PSE);
   VPlanTransforms::simplifyRecipes(BestVPlan, *Legal->getWidestInductionType());
   VPlanTransforms::narrowInterleaveGroups(
@@ -7310,11 +7312,8 @@ DenseMap<const SCEV *, Value *> LoopVectorizationPlanner::executePlan(
 
   VPlanTransforms::convertToConcreteRecipes(BestVPlan,
                                             *Legal->getWidestInductionType());
-  // Retrieve and store the middle block before dissolving regions. Regions are
-  // dissolved after optimizing for VF and UF, which completely removes unneeded
-  // loop regions first.
-  VPBasicBlock *MiddleVPBB =
-      BestVPlan.getVectorLoopRegion() ? BestVPlan.getMiddleBlock() : nullptr;
+  // Regions are dissolved after optimizing for VF and UF, which completely
+  // removes unneeded loop regions first.
   VPlanTransforms::dissolveLoopRegions(BestVPlan);
   // Perform the actual loop transformation.
   VPTransformState State(&TTI, BestVF, LI, DT, ILV.AC, ILV.Builder, &BestVPlan,
@@ -7456,20 +7455,6 @@ DenseMap<const SCEV *, Value *> LoopVectorizationPlanner::executePlan(
   ILV.fixVectorizedLoop(State);
 
   ILV.printDebugTracesAtEnd();
-
-  // 4. Adjust branch weight of the branch in the middle block.
-  if (HeaderVPBB) {
-    auto *MiddleTerm =
-        cast<BranchInst>(State.CFG.VPBB2IRBB[MiddleVPBB]->getTerminator());
-    if (MiddleTerm->isConditional() &&
-        hasBranchWeightMD(*OrigLoop->getLoopLatch()->getTerminator())) {
-      // Assume that `Count % VectorTripCount` is equally distributed.
-      unsigned TripCount = BestVPlan.getUF() * State.VF.getKnownMinValue();
-      assert(TripCount > 0 && "trip count should not be zero");
-      const uint32_t Weights[] = {1, TripCount - 1};
-      setBranchWeights(*MiddleTerm, Weights, /*IsExpected=*/false);
-    }
-  }
 
   return ExpandedSCEVs;
 }
@@ -9224,11 +9209,10 @@ void LoopVectorizationPlanner::adjustRecipesForReductions(
     if (RecurrenceDescriptor::isFindLastIVRecurrenceKind(
             RdxDesc.getRecurrenceKind())) {
       VPValue *Start = PhiR->getStartValue();
-      FinalReductionResult = Builder.createNaryOp(
-          VPInstruction::ComputeFindLastIVResult,
-          {PhiR, Start, Plan->getOrAddLiveIn(RdxDesc.getSentinelValue()),
-           NewExitingVPV},
-          ExitDL);
+      VPValue *Sentinel = Plan->getOrAddLiveIn(RdxDesc.getSentinelValue());
+      FinalReductionResult =
+          Builder.createNaryOp(VPInstruction::ComputeFindLastIVResult,
+                               {PhiR, Start, Sentinel, NewExitingVPV}, ExitDL);
     } else if (RecurrenceDescriptor::isAnyOfRecurrenceKind(
                    RdxDesc.getRecurrenceKind())) {
       VPValue *Start = PhiR->getStartValue();
@@ -9816,8 +9800,8 @@ preparePlanForEpilogueVectorLoop(VPlan &Plan, Loop *L,
         BasicBlock *ResumeBB = cast<Instruction>(ResumeV)->getParent();
         IRBuilder<> Builder(ResumeBB, ResumeBB->getFirstNonPHIIt());
         Value *Cmp = Builder.CreateICmpEQ(ResumeV, ToFrozen[StartV]);
-        ResumeV = Builder.CreateSelect(
-            Cmp, RdxResult->getOperand(2)->getLiveInIRValue(), ResumeV);
+        Value *Sentinel = RdxResult->getOperand(2)->getLiveInIRValue();
+        ResumeV = Builder.CreateSelect(Cmp, Sentinel, ResumeV);
       } else {
         VPValue *StartVal = Plan.getOrAddLiveIn(ResumeV);
         auto *PhiR = dyn_cast<VPReductionPHIRecipe>(&R);

@@ -14,7 +14,6 @@
 #define LLVM_LIB_TARGET_RISCV_MCTARGETDESC_RISCVMCASMINFO_H
 
 #include "RISCVBaseInfo.h"
-#include "RISCVMCExpr.h"
 #include "llvm/MC/MCAsmInfoELF.h"
 #include "llvm/MC/MCFixup.h"
 

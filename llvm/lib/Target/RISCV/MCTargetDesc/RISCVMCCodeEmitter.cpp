@@ -212,7 +212,7 @@ void RISCVMCCodeEmitter::expandTLSDESCCall(const MCInst &MI,
   MCOperand SrcSymbol = MI.getOperand(3);
   assert(SrcSymbol.isExpr() &&
          "Expected expression as first input to TLSDESCCALL");
-  const RISCVMCExpr *Expr = dyn_cast<RISCVMCExpr>(SrcSymbol.getExpr());
+  const auto *Expr = dyn_cast<MCSpecifierExpr>(SrcSymbol.getExpr());
   MCRegister Link = MI.getOperand(0).getReg();
   MCRegister Dest = MI.getOperand(1).getReg();
   int64_t Imm = MI.getOperand(2).getImm();
@@ -240,7 +240,7 @@ void RISCVMCCodeEmitter::expandAddTPRel(const MCInst &MI,
   assert(SrcSymbol.isExpr() &&
          "Expected expression as third input to TP-relative add");
 
-  const RISCVMCExpr *Expr = dyn_cast<RISCVMCExpr>(SrcSymbol.getExpr());
+  const auto *Expr = dyn_cast<MCSpecifierExpr>(SrcSymbol.getExpr());
   assert(Expr && Expr->getSpecifier() == ELF::R_RISCV_TPREL_ADD &&
          "Expected tprel_add relocation on TP-relative symbol");
 
@@ -273,7 +273,7 @@ void RISCVMCCodeEmitter::expandCIncOffsetTPRel(
   assert(SrcSymbol.isExpr() &&
          "Expected expression as third input to CTP-relative cincoffset");
 
-  const RISCVMCExpr *Expr = dyn_cast<RISCVMCExpr>(SrcSymbol.getExpr());
+  const MCSpecifierExpr *Expr = dyn_cast<MCSpecifierExpr>(SrcSymbol.getExpr());
   assert(Expr && Expr->getSpecifier() == RISCV::S_TPREL_CINCOFFSET &&
          "Expected tprel_cincoffset relocation on CTP-relative symbol");
 
@@ -649,7 +649,7 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
   unsigned FixupKind = RISCV::fixup_riscv_invalid;
   bool RelaxCandidate = false;
   if (Kind == MCExpr::Specifier) {
-    const RISCVMCExpr *RVExpr = cast<RISCVMCExpr>(Expr);
+    const auto *RVExpr = cast<MCSpecifierExpr>(Expr);
     FixupKind = RVExpr->getSpecifier();
     switch (RVExpr->getSpecifier()) {
     default:

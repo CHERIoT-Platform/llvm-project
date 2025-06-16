@@ -31,8 +31,6 @@ public:
                                        MCContext &Ctx);
  static const MipsMCExpr *createCaptableOff(Specifier Kind,
                                             const MCExpr *Expr, MCContext &Ctx);
-
-  void printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const override;
 };
 
 } // end namespace llvm

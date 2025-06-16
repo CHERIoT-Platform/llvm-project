@@ -33,14 +33,6 @@ public:
                                             const MCExpr *Expr, MCContext &Ctx);
 
   void printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const override;
-  bool evaluateAsRelocatableImpl(MCValue &Res,
-                                 const MCAssembler *Asm) const override;
-
-  bool isGpOff(Specifier &S) const;
-  bool isGpOff() const;
-  bool isCaptableOff() const;
-private:
-  bool isOffImpl(Specifier &Kind, Specifier Expected) const;
 };
 
 } // end namespace llvm

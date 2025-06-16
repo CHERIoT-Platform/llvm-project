@@ -147,6 +147,12 @@ enum LtoKind : uint8_t {UnifiedThin, UnifiedRegular, Default};
 // For -z gcs=
 enum class GcsPolicy { Implicit, Never, Always };
 
+// For -z zicfilp=
+enum class ZicfilpPolicy { Implicit, Never, Unlabeled, FuncSig };
+
+// For -z zicfiss=
+enum class ZicfissPolicy { Implicit, Never, Always };
+
 // For some options that resemble -z bti-report={none,warning,error}
 enum class ReportPolicy { None, Warning, Error };
 
@@ -433,6 +439,8 @@ struct Config {
   bool zText;
   bool zRetpolineplt;
   bool zWxneeded;
+  ZicfilpPolicy zZicfilp;
+  ZicfissPolicy zZicfiss;
   DiscardPolicy discard;
   GnuStackKind zGnustack;
   ICFLevel icf;

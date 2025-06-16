@@ -24,27 +24,6 @@ class StringRef;
 class RISCVMCExpr : public MCSpecifierExpr {
 public:
   using Specifier = uint16_t;
-  // Specifiers mapping to relocation types below FirstTargetFixupKind are
-  // encoded literally, with these exceptions:
-  enum {
-    VK_None,
-    // Specifiers mapping to distinct relocation types.
-    VK_LO = FirstTargetFixupKind,
-    VK_PCREL_LO,
-    VK_TPREL_LO,
-    // Vendor-specific relocation types might conflict across vendors.
-    // Refer to them using Specifier constants.
-    VK_QC_ABS20,
-    VK_CAPTAB_PCREL_HI,
-    VK_TPREL_CINCOFFSET,
-    VK_TLS_IE_CAPTAB_PCREL_HI,
-    VK_TLS_GD_CAPTAB_PCREL_HI,
-    VK_CCALL,
-    VK_CHERIOT_COMPARTMENT_HI,
-    VK_CHERIOT_COMPARTMENT_LO_I,
-    VK_CHERIOT_COMPARTMENT_LO_S,
-    VK_CHERIOT_COMPARTMENT_SIZE,
-  };
 
 private:
   explicit RISCVMCExpr(const MCExpr *Expr, Specifier S)
@@ -66,6 +45,30 @@ public:
   static std::optional<Specifier> getSpecifierForName(StringRef name);
   static StringRef getSpecifierName(Specifier Kind);
 };
+
+namespace RISCV {
+// Specifiers mapping to relocation types below FirstTargetFixupKind are
+// encoded literally, with these exceptions:
+enum Specifier {
+  S_None,
+  // Specifiers mapping to distinct relocation types.
+  S_LO = FirstTargetFixupKind,
+  S_PCREL_LO,
+  S_TPREL_LO,
+  // Vendor-specific relocation types might conflict across vendors.
+  // Refer to them using Specifier constants.
+  S_QC_ABS20,
+  S_CAPTAB_PCREL_HI,
+  S_TPREL_CINCOFFSET,
+  S_TLS_IE_CAPTAB_PCREL_HI,
+  S_TLS_GD_CAPTAB_PCREL_HI,
+  S_CCALL,
+  S_CHERIOT_COMPARTMENT_HI,
+  S_CHERIOT_COMPARTMENT_LO_I,
+  S_CHERIOT_COMPARTMENT_LO_S,
+  S_CHERIOT_COMPARTMENT_SIZE,
+};
+} // namespace RISCV
 } // end namespace llvm.
 
 #endif

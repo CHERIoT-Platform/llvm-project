@@ -1111,7 +1111,7 @@ void Parser::ParseCapabilityQualifier(ParsedAttributes &Attrs) {
   if (!getTargetInfo().SupportsCapabilities())
     Diag(AttrNameLoc, diag::err_cheri_capability_qualifier_not_supported);
   else
-    Attrs.addNew(AttrName, AttrNameLoc, nullptr, AttrNameLoc, nullptr, 0,
+    Attrs.addNew(AttrName, AttrNameLoc, AttributeScopeInfo(), nullptr, 0,
                  Tok.getKind());
 }
 
@@ -1121,7 +1121,7 @@ void Parser::ParseCheriotSealedQualifier(ParsedAttributes &Attrs) {
   if (!getTargetInfo().SupportsCapabilities())
     Diag(AttrNameLoc, diag::err_cheri_sealed_qualifier_not_supported);
   else
-    Attrs.addNew(AttrName, AttrNameLoc, nullptr, AttrNameLoc, nullptr, 0,
+    Attrs.addNew(AttrName, AttrNameLoc, AttributeScopeInfo(), nullptr, 0,
                  Tok.getKind());
 }
 

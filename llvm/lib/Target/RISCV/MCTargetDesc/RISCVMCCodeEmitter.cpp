@@ -274,7 +274,7 @@ void RISCVMCCodeEmitter::expandCIncOffsetTPRel(
          "Expected expression as third input to CTP-relative cincoffset");
 
   const RISCVMCExpr *Expr = dyn_cast<RISCVMCExpr>(SrcSymbol.getExpr());
-  assert(Expr && Expr->getSpecifier() == RISCVMCExpr::VK_TPREL_CINCOFFSET &&
+  assert(Expr && Expr->getSpecifier() == RISCV::S_TPREL_CINCOFFSET &&
          "Expected tprel_cincoffset relocation on CTP-relative symbol");
 
   // Emit the correct tprel_cincoffset relocation for the symbol.
@@ -663,7 +663,7 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
       // encounter it here is an error.
       llvm_unreachable(
           "ELF::R_RISCV_TPREL_ADD should not represent an instruction operand");
-    case RISCVMCExpr::VK_LO:
+    case RISCV::S_LO:
       if (MIFrm == RISCVII::InstFormatI)
         FixupKind = RISCV::fixup_riscv_lo12_i;
       else if (MIFrm == RISCVII::InstFormatS)
@@ -676,7 +676,7 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
       FixupKind = RISCV::fixup_riscv_hi20;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_PCREL_LO:
+    case RISCV::S_PCREL_LO:
       if (MIFrm == RISCVII::InstFormatI)
         FixupKind = RISCV::fixup_riscv_pcrel_lo12_i;
       else if (MIFrm == RISCVII::InstFormatS)
@@ -689,7 +689,7 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
       FixupKind = RISCV::fixup_riscv_pcrel_hi20;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_TPREL_LO:
+    case RISCV::S_TPREL_LO:
       if (MIFrm == RISCVII::InstFormatI)
         FixupKind = ELF::R_RISCV_TPREL_LO12_I;
       else if (MIFrm == RISCVII::InstFormatS)
@@ -705,40 +705,40 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
       FixupKind = RISCV::fixup_riscv_call_plt;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_QC_ABS20:
+    case RISCV::S_QC_ABS20:
       FixupKind = RISCV::fixup_riscv_qc_abs20_u;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_CAPTAB_PCREL_HI:
+    case RISCV::S_CAPTAB_PCREL_HI:
       FixupKind = RISCV::fixup_riscv_captab_pcrel_hi20;
       break;
-    case RISCVMCExpr::VK_TPREL_CINCOFFSET:
+    case RISCV::S_TPREL_CINCOFFSET:
       // See VK_TPREL_ADD.
       llvm_unreachable(
           "VK_TPREL_CINCOFFSET should not represent an instruction operand");
-    case RISCVMCExpr::VK_TLS_IE_CAPTAB_PCREL_HI:
+    case RISCV::S_TLS_IE_CAPTAB_PCREL_HI:
       FixupKind = RISCV::fixup_riscv_tls_ie_captab_pcrel_hi20;
       break;
-    case RISCVMCExpr::VK_TLS_GD_CAPTAB_PCREL_HI:
+    case RISCV::S_TLS_GD_CAPTAB_PCREL_HI:
       FixupKind = RISCV::fixup_riscv_tls_gd_captab_pcrel_hi20;
       break;
-    case RISCVMCExpr::VK_CCALL:
+    case RISCV::S_CCALL:
       FixupKind = RISCV::fixup_riscv_ccall;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_CHERIOT_COMPARTMENT_HI:
+    case RISCV::S_CHERIOT_COMPARTMENT_HI:
       FixupKind = RISCV::fixup_riscv_cheriot_compartment_hi;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_CHERIOT_COMPARTMENT_LO_I:
+    case RISCV::S_CHERIOT_COMPARTMENT_LO_I:
       FixupKind = RISCV::fixup_riscv_cheriot_compartment_lo_i;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_CHERIOT_COMPARTMENT_LO_S:
+    case RISCV::S_CHERIOT_COMPARTMENT_LO_S:
       FixupKind = RISCV::fixup_riscv_cheriot_compartment_lo_s;
       RelaxCandidate = true;
       break;
-    case RISCVMCExpr::VK_CHERIOT_COMPARTMENT_SIZE:
+    case RISCV::S_CHERIOT_COMPARTMENT_SIZE:
       FixupKind = RISCV::fixup_riscv_cheriot_compartment_size;
       break;
     }

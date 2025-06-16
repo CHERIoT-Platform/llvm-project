@@ -1467,16 +1467,15 @@ public:
       // HACK: Check that only %captab and %capcall are allowed in clc / csc
       if (ShiftLeftAmount == 4) {
         if (Bits == 11) {
-          if (Expr->getSpecifier() != MipsMCExpr::MEK_CAPTABLE11 &&
-              Expr->getSpecifier() != MipsMCExpr::MEK_CAPCALL11)
-            return false;
+          return (Expr->getSpecifier() == MipsMCExpr::MEK_CAPTABLE11 ||
+                  Expr->getSpecifier() == MipsMCExpr::MEK_CAPCALL11);
         } else if (Bits == 16) {
-          if (Expr->getSpecifier() != MipsMCExpr::MEK_CAPTABLE20 &&
-              Expr->getSpecifier() != MipsMCExpr::MEK_CAPCALL20)
-            return false;
+          return (Expr->getSpecifier() == MipsMCExpr::MEK_CAPTABLE20 ||
+                  Expr->getSpecifier() == MipsMCExpr::MEK_CAPCALL20);
         }
       }
     }
+
     return Success && isShiftedInt<Bits, ShiftLeftAmount>(Res.getConstant());
   }
 

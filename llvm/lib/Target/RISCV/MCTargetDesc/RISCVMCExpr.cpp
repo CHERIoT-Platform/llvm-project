@@ -33,7 +33,8 @@ const RISCVMCExpr *RISCVMCExpr::create(const MCExpr *Expr, Specifier S,
 
 void RISCVMCExpr::printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const {
   Specifier S = getSpecifier();
-  bool HasVariant = S != VK_None && S != ELF::R_RISCV_CALL_PLT && S != VK_CCALL;
+  bool HasVariant =
+      S != RISCV::S_None && S != ELF::R_RISCV_CALL_PLT && S != RISCV::S_CCALL;
 
   if (HasVariant)
     OS << '%' << getSpecifierName(S) << '(';
@@ -93,12 +94,12 @@ const MCFixup *RISCVMCExpr::getPCRelHiFixup(const MCFragment **DFOut) const {
 std::optional<RISCVMCExpr::Specifier>
 RISCVMCExpr::getSpecifierForName(StringRef name) {
   return StringSwitch<std::optional<RISCVMCExpr::Specifier>>(name)
-      .Case("lo", VK_LO)
+      .Case("lo", RISCV::S_LO)
       .Case("hi", ELF::R_RISCV_HI20)
-      .Case("pcrel_lo", VK_PCREL_LO)
+      .Case("pcrel_lo", RISCV::S_PCREL_LO)
       .Case("pcrel_hi", ELF::R_RISCV_PCREL_HI20)
       .Case("got_pcrel_hi", ELF::R_RISCV_GOT_HI20)
-      .Case("tprel_lo", VK_TPREL_LO)
+      .Case("tprel_lo", RISCV::S_TPREL_LO)
       .Case("tprel_hi", ELF::R_RISCV_TPREL_HI20)
       .Case("tprel_add", ELF::R_RISCV_TPREL_ADD)
       .Case("tls_ie_pcrel_hi", ELF::R_RISCV_TLS_GOT_HI20)
@@ -107,36 +108,36 @@ RISCVMCExpr::getSpecifierForName(StringRef name) {
       .Case("tlsdesc_load_lo", ELF::R_RISCV_TLSDESC_LOAD_LO12)
       .Case("tlsdesc_add_lo", ELF::R_RISCV_TLSDESC_ADD_LO12)
       .Case("tlsdesc_call", ELF::R_RISCV_TLSDESC_CALL)
-      .Case("qc.abs20", VK_QC_ABS20)
+      .Case("qc.abs20", RISCV::S_QC_ABS20)
       // Used in data directives
       .Case("pltpcrel", ELF::R_RISCV_PLT32)
       .Case("gotpcrel", ELF::R_RISCV_GOT32_PCREL)
-      .Case("captab_pcrel_hi", VK_CAPTAB_PCREL_HI)
-      .Case("tprel_cincoffset", VK_TPREL_CINCOFFSET)
-      .Case("tls_ie_captab_pcrel_hi", VK_TLS_IE_CAPTAB_PCREL_HI)
-      .Case("tls_gd_captab_pcrel_hi", VK_TLS_GD_CAPTAB_PCREL_HI)
-      .Case("cheriot_compartment_hi", VK_CHERIOT_COMPARTMENT_HI)
-      .Case("cheriot_compartment_lo_i", VK_CHERIOT_COMPARTMENT_LO_I)
-      .Case("cheriot_compartment_lo_s", VK_CHERIOT_COMPARTMENT_LO_S)
-      .Case("cheriot_compartment_size", VK_CHERIOT_COMPARTMENT_SIZE)
+      .Case("captab_pcrel_hi", RISCV::S_CAPTAB_PCREL_HI)
+      .Case("tprel_cincoffset", RISCV::S_TPREL_CINCOFFSET)
+      .Case("tls_ie_captab_pcrel_hi", RISCV::S_TLS_IE_CAPTAB_PCREL_HI)
+      .Case("tls_gd_captab_pcrel_hi", RISCV::S_TLS_GD_CAPTAB_PCREL_HI)
+      .Case("cheriot_compartment_hi", RISCV::S_CHERIOT_COMPARTMENT_HI)
+      .Case("cheriot_compartment_lo_i", RISCV::S_CHERIOT_COMPARTMENT_LO_I)
+      .Case("cheriot_compartment_lo_s", RISCV::S_CHERIOT_COMPARTMENT_LO_S)
+      .Case("cheriot_compartment_size", RISCV::S_CHERIOT_COMPARTMENT_SIZE)
       .Default(std::nullopt);
 }
 
 StringRef RISCVMCExpr::getSpecifierName(Specifier S) {
   switch (S) {
-  case VK_None:
+  case RISCV::S_None:
     llvm_unreachable("not used as %specifier()");
-  case VK_LO:
+  case RISCV::S_LO:
     return "lo";
   case ELF::R_RISCV_HI20:
     return "hi";
-  case VK_PCREL_LO:
+  case RISCV::S_PCREL_LO:
     return "pcrel_lo";
   case ELF::R_RISCV_PCREL_HI20:
     return "pcrel_hi";
   case ELF::R_RISCV_GOT_HI20:
     return "got_pcrel_hi";
-  case VK_TPREL_LO:
+  case RISCV::S_TPREL_LO:
     return "tprel_lo";
   case ELF::R_RISCV_TPREL_HI20:
     return "tprel_hi";
@@ -154,25 +155,25 @@ StringRef RISCVMCExpr::getSpecifierName(Specifier S) {
     return "tlsdesc_call";
   case ELF::R_RISCV_TLS_GD_HI20:
     return "tls_gd_pcrel_hi";
-  case VK_CAPTAB_PCREL_HI:
+  case RISCV::S_CAPTAB_PCREL_HI:
     return "captab_pcrel_hi";
-  case VK_TPREL_CINCOFFSET:
+  case RISCV::S_TPREL_CINCOFFSET:
     return "tprel_cincoffset";
-  case VK_TLS_IE_CAPTAB_PCREL_HI:
+  case RISCV::S_TLS_IE_CAPTAB_PCREL_HI:
     return "tls_ie_captab_pcrel_hi";
-  case VK_TLS_GD_CAPTAB_PCREL_HI:
+  case RISCV::S_TLS_GD_CAPTAB_PCREL_HI:
     return "tls_gd_captab_pcrel_hi";
   case ELF::R_RISCV_CALL_PLT:
     return "call_plt";
-  case VK_CCALL:
+  case RISCV::S_CCALL:
     return "ccall";
-  case VK_CHERIOT_COMPARTMENT_HI:
+  case RISCV::S_CHERIOT_COMPARTMENT_HI:
     return "cheriot_compartment_hi";
-  case VK_CHERIOT_COMPARTMENT_LO_I:
+  case RISCV::S_CHERIOT_COMPARTMENT_LO_I:
     return "cheriot_compartment_lo_i";
-  case VK_CHERIOT_COMPARTMENT_LO_S:
+  case RISCV::S_CHERIOT_COMPARTMENT_LO_S:
     return "cheriot_compartment_lo_s";
-  case VK_CHERIOT_COMPARTMENT_SIZE:
+  case RISCV::S_CHERIOT_COMPARTMENT_SIZE:
     return "cheriot_compartment_size";
   case ELF::R_RISCV_32_PCREL:
     return "32_pcrel";
@@ -180,7 +181,7 @@ StringRef RISCVMCExpr::getSpecifierName(Specifier S) {
     return "gotpcrel";
   case ELF::R_RISCV_PLT32:
     return "pltpcrel";
-  case VK_QC_ABS20:
+  case RISCV::S_QC_ABS20:
     return "qc.abs20";
   }
   llvm_unreachable("Invalid ELF symbol kind");

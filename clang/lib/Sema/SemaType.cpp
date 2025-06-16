@@ -8879,8 +8879,9 @@ static bool HandleCHERIPointerQualifier(QualType &CurType,
         // chunk so we are called again with the parsed pointer type.
         ParsedAttr *attrCopy = declarator.getAttributePool().create(
             const_cast<IdentifierInfo *>(attr.getAttrName()), attr.getRange(),
-            const_cast<IdentifierInfo *>(attr.getScopeName()),
-            attr.getScopeLoc(), nullptr, 0, attr.getForm());
+            {const_cast<IdentifierInfo *>(attr.getScopeName()),
+             attr.getScopeLoc()},
+            nullptr, 0, attr.getForm());
         chunk.getAttrs().addAtEnd(attrCopy);
         return false;
       }

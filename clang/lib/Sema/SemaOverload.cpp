@@ -9301,11 +9301,10 @@ class BuiltinOperatorOverloadBuilder {
     /// the candidates into a unique set, then move from that set into the list
     /// of arithmetic types.
     llvm::SmallSetVector<CanQualType, 2> BitIntCandidates;
-    llvm::for_each(CandidateTypes, [&BitIntCandidates](
-                                       BuiltinCandidateTypeSet &Candidate) {
+    for (BuiltinCandidateTypeSet &Candidate : CandidateTypes) {
       for (QualType BitTy : Candidate.bitint_types())
         BitIntCandidates.insert(CanQualType::CreateUnsafe(BitTy));
-    });
+    }
     llvm::move(BitIntCandidates, std::back_inserter(ArithmeticTypes));
 
     // Capability types

@@ -13,8 +13,10 @@
 #ifndef LLVM_LIB_TARGET_MIPS_MCTARGETDESC_MIPSMCASMINFO_H
 #define LLVM_LIB_TARGET_MIPS_MCTARGETDESC_MIPSMCASMINFO_H
 
+#include "MCTargetDesc/MipsMCExpr.h"
 #include "llvm/MC/MCAsmInfoCOFF.h"
 #include "llvm/MC/MCAsmInfoELF.h"
+#include "llvm/MC/MCFixup.h"
 
 namespace llvm {
 class Triple;
@@ -33,6 +35,59 @@ class MipsCOFFMCAsmInfo : public MCAsmInfoGNUCOFF {
 public:
   explicit MipsCOFFMCAsmInfo();
 };
+
+namespace Mips {
+enum {
+  S_None,
+  S_CALL_HI16 = FirstTargetFixupKind,
+  S_CALL_LO16,
+  S_DTPREL,
+  S_DTPREL_HI,
+  S_DTPREL_LO,
+  S_GOT,
+  S_GOTTPREL,
+  S_GOT_CALL,
+  S_GOT_DISP,
+  S_GOT_HI16,
+  S_GOT_LO16,
+  S_GOT_OFST,
+  S_GOT_PAGE,
+  S_GPREL,
+  S_HI,
+  S_HIGHER,
+  S_HIGHEST,
+  S_LO,
+  S_NEG,
+  S_PCREL_HI16,
+  S_PCREL_LO16,
+  S_TLSGD,
+  S_TLSLDM,
+  S_TPREL_HI,
+  S_TPREL_LO,
+
+  S_CAPTABLE11,
+  S_CAPTABLE_HI16,
+  S_CAPTABLE_LO16,
+  S_CAPTABLE20,
+  S_CAPCALL11,
+  S_CAPCALL_HI16,
+  S_CAPCALL_LO16,
+  S_CAPCALL20,
+
+  S_CHERI_CAP,
+  // Like GPREL but the offset from _CHERI_CAPABILITY_TABLE_ to symbol
+  S_CAPTABLEREL,
+
+  S_CAPTAB_TLSGD_HI16,
+  S_CAPTAB_TLSGD_LO16,
+  S_CAPTAB_TLSLDM_HI16,
+  S_CAPTAB_TLSLDM_LO16,
+  S_CAPTAB_TPREL_HI16,
+  S_CAPTAB_TPREL_LO16,
+
+  S_Special,
+};
+}
 
 } // namespace llvm
 

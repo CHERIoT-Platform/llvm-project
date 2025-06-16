@@ -13,7 +13,7 @@
 
 #include "MipsMCInstLower.h"
 #include "MCTargetDesc/MipsBaseInfo.h"
-#include "MCTargetDesc/MipsMCExpr.h"
+#include "MCTargetDesc/MipsMCAsmInfo.h"
 #include "MipsAsmPrinter.h"
 #include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineInstr.h"
@@ -35,7 +35,7 @@ void MipsMCInstLower::Initialize(MCContext *C) {
 MCOperand MipsMCInstLower::LowerSymbolOperand(const MachineOperand &MO,
                                               MachineOperandType MOTy,
                                               int64_t Offset) const {
-  MipsMCExpr::Specifier TargetKind = MipsMCExpr::MEK_None;
+  MipsMCExpr::Specifier TargetKind = Mips::S_None;
   bool IsGpOff = false;
   bool IsCapTableOff = false;
   const MCSymbol *Symbol;
@@ -54,133 +54,133 @@ MCOperand MipsMCInstLower::LowerSymbolOperand(const MachineOperand &MO,
   case MipsII::MO_NO_FLAG:
     break;
   case MipsII::MO_GPREL:
-    TargetKind = MipsMCExpr::MEK_GPREL;
+    TargetKind = Mips::S_GPREL;
     break;
   case MipsII::MO_GOT_CALL:
-    TargetKind = MipsMCExpr::MEK_GOT_CALL;
+    TargetKind = Mips::S_GOT_CALL;
     break;
   case MipsII::MO_GOT:
-    TargetKind = MipsMCExpr::MEK_GOT;
+    TargetKind = Mips::S_GOT;
     break;
   case MipsII::MO_ABS_HI:
-    TargetKind = MipsMCExpr::MEK_HI;
+    TargetKind = Mips::S_HI;
     break;
   case MipsII::MO_ABS_LO:
-    TargetKind = MipsMCExpr::MEK_LO;
+    TargetKind = Mips::S_LO;
     break;
   case MipsII::MO_TLSGD:
-    TargetKind = MipsMCExpr::MEK_TLSGD;
+    TargetKind = Mips::S_TLSGD;
     break;
   case MipsII::MO_TLSLDM:
-    TargetKind = MipsMCExpr::MEK_TLSLDM;
+    TargetKind = Mips::S_TLSLDM;
     break;
   case MipsII::MO_DTPREL_HI:
-    TargetKind = MipsMCExpr::MEK_DTPREL_HI;
+    TargetKind = Mips::S_DTPREL_HI;
     break;
   case MipsII::MO_DTPREL_LO:
-    TargetKind = MipsMCExpr::MEK_DTPREL_LO;
+    TargetKind = Mips::S_DTPREL_LO;
     break;
   case MipsII::MO_GOTTPREL:
-    TargetKind = MipsMCExpr::MEK_GOTTPREL;
+    TargetKind = Mips::S_GOTTPREL;
     break;
   case MipsII::MO_TPREL_HI:
-    TargetKind = MipsMCExpr::MEK_TPREL_HI;
+    TargetKind = Mips::S_TPREL_HI;
     break;
   case MipsII::MO_TPREL_LO:
-    TargetKind = MipsMCExpr::MEK_TPREL_LO;
+    TargetKind = Mips::S_TPREL_LO;
     break;
   case MipsII::MO_GPOFF_HI:
-    TargetKind = MipsMCExpr::MEK_HI;
+    TargetKind = Mips::S_HI;
     IsGpOff = true;
     break;
   case MipsII::MO_GPOFF_LO:
-    TargetKind = MipsMCExpr::MEK_LO;
+    TargetKind = Mips::S_LO;
     IsGpOff = true;
     break;
   case MipsII::MO_GOT_DISP:
-    TargetKind = MipsMCExpr::MEK_GOT_DISP;
+    TargetKind = Mips::S_GOT_DISP;
     break;
   case MipsII::MO_GOT_HI16:
-    TargetKind = MipsMCExpr::MEK_GOT_HI16;
+    TargetKind = Mips::S_GOT_HI16;
     break;
   case MipsII::MO_GOT_LO16:
-    TargetKind = MipsMCExpr::MEK_GOT_LO16;
+    TargetKind = Mips::S_GOT_LO16;
     break;
   case MipsII::MO_GOT_PAGE:
-    TargetKind = MipsMCExpr::MEK_GOT_PAGE;
+    TargetKind = Mips::S_GOT_PAGE;
     break;
   case MipsII::MO_GOT_OFST:
-    TargetKind = MipsMCExpr::MEK_GOT_OFST;
+    TargetKind = Mips::S_GOT_OFST;
     break;
   case MipsII::MO_HIGHER:
-    TargetKind = MipsMCExpr::MEK_HIGHER;
+    TargetKind = Mips::S_HIGHER;
     break;
   case MipsII::MO_HIGHEST:
-    TargetKind = MipsMCExpr::MEK_HIGHEST;
+    TargetKind = Mips::S_HIGHEST;
     break;
   case MipsII::MO_CALL_HI16:
-    TargetKind = MipsMCExpr::MEK_CALL_HI16;
+    TargetKind = Mips::S_CALL_HI16;
     break;
   case MipsII::MO_CALL_LO16:
-    TargetKind = MipsMCExpr::MEK_CALL_LO16;
+    TargetKind = Mips::S_CALL_LO16;
     break;
   case MipsII::MO_JALR:
     return MCOperand();
   case MipsII::MO_PCREL_HI:
-    TargetKind = MipsMCExpr::MEK_PCREL_HI16;
+    TargetKind = Mips::S_PCREL_HI16;
     break;
   case MipsII::MO_PCREL_LO:
-    TargetKind = MipsMCExpr::MEK_PCREL_LO16;
+    TargetKind = Mips::S_PCREL_LO16;
     break;
   case MipsII::MO_CAPTAB11:
-    TargetKind = MipsMCExpr::MEK_CAPTABLE11;
+    TargetKind = Mips::S_CAPTABLE11;
     break;
   case MipsII::MO_CAPTAB20:
-    TargetKind = MipsMCExpr::MEK_CAPTABLE20;
+    TargetKind = Mips::S_CAPTABLE20;
     break;
   case MipsII::MO_CAPTAB_HI16:
-    TargetKind = MipsMCExpr::MEK_CAPTABLE_HI16;
+    TargetKind = Mips::S_CAPTABLE_HI16;
     break;
   case MipsII::MO_CAPTAB_LO16:
-    TargetKind = MipsMCExpr::MEK_CAPTABLE_LO16;
+    TargetKind = Mips::S_CAPTABLE_LO16;
     break;
   case MipsII::MO_CAPTAB_CALL11:
-    TargetKind = MipsMCExpr::MEK_CAPCALL11;
+    TargetKind = Mips::S_CAPCALL11;
     break;
   case MipsII::MO_CAPTAB_CALL20:
-    TargetKind = MipsMCExpr::MEK_CAPCALL20;
+    TargetKind = Mips::S_CAPCALL20;
     break;
   case MipsII::MO_CAPTAB_CALL_HI16:
-    TargetKind = MipsMCExpr::MEK_CAPCALL_HI16;
+    TargetKind = Mips::S_CAPCALL_HI16;
     break;
   case MipsII::MO_CAPTAB_CALL_LO16:
-    TargetKind = MipsMCExpr::MEK_CAPCALL_LO16;
+    TargetKind = Mips::S_CAPCALL_LO16;
     break;
   case MipsII::MO_CAPTABLE_OFF_HI:
-    TargetKind = MipsMCExpr::MEK_HI;
+    TargetKind = Mips::S_HI;
     IsCapTableOff = true;
     break;
   case MipsII::MO_CAPTABLE_OFF_LO:
-    TargetKind = MipsMCExpr::MEK_LO;
+    TargetKind = Mips::S_LO;
     IsCapTableOff = true;
     break;
   case MipsII::MO_CAPTAB_TLSGD_HI16:
-    TargetKind = MipsMCExpr::MEK_CAPTAB_TLSGD_HI16;
+    TargetKind = Mips::S_CAPTAB_TLSGD_HI16;
     break;
   case MipsII::MO_CAPTAB_TLSGD_LO16:
-    TargetKind = MipsMCExpr::MEK_CAPTAB_TLSGD_LO16;
+    TargetKind = Mips::S_CAPTAB_TLSGD_LO16;
     break;
   case MipsII::MO_CAPTAB_TLSLDM_HI16:
-    TargetKind = MipsMCExpr::MEK_CAPTAB_TLSLDM_HI16;
+    TargetKind = Mips::S_CAPTAB_TLSLDM_HI16;
     break;
   case MipsII::MO_CAPTAB_TLSLDM_LO16:
-    TargetKind = MipsMCExpr::MEK_CAPTAB_TLSLDM_LO16;
+    TargetKind = Mips::S_CAPTAB_TLSLDM_LO16;
     break;
   case MipsII::MO_CAPTAB_TPREL_HI16:
-    TargetKind = MipsMCExpr::MEK_CAPTAB_TPREL_HI16;
+    TargetKind = Mips::S_CAPTAB_TPREL_HI16;
     break;
   case MipsII::MO_CAPTAB_TPREL_LO16:
-    TargetKind = MipsMCExpr::MEK_CAPTAB_TPREL_LO16;
+    TargetKind = Mips::S_CAPTAB_TPREL_LO16;
     break;
   }
 
@@ -235,7 +235,7 @@ MCOperand MipsMCInstLower::LowerSymbolOperand(const MachineOperand &MO,
     Expr = MipsMCExpr::createGpOff(TargetKind, Expr, *Ctx);
   else if (IsCapTableOff)
     Expr = MipsMCExpr::createCaptableOff(TargetKind, Expr, *Ctx);
-  else if (TargetKind != MipsMCExpr::MEK_None)
+  else if (TargetKind != Mips::S_None)
     Expr = MipsMCExpr::create(TargetKind, Expr, *Ctx);
 
   return MCOperand::createExpr(Expr);
@@ -289,16 +289,16 @@ lowerLongBranchLUi(const MachineInstr *MI, MCInst &OutMI) const {
   unsigned TargetFlags = MI->getOperand(1).getTargetFlags();
   switch (TargetFlags) {
   case MipsII::MO_HIGHEST:
-    Spec = MipsMCExpr::MEK_HIGHEST;
+    Spec = Mips::S_HIGHEST;
     break;
   case MipsII::MO_HIGHER:
-    Spec = MipsMCExpr::MEK_HIGHER;
+    Spec = Mips::S_HIGHER;
     break;
   case MipsII::MO_ABS_HI:
-    Spec = MipsMCExpr::MEK_HI;
+    Spec = Mips::S_HI;
     break;
   case MipsII::MO_ABS_LO:
-    Spec = MipsMCExpr::MEK_LO;
+    Spec = Mips::S_LO;
     break;
   default:
     report_fatal_error("Unexpected flags for lowerLongBranchLUi");
@@ -324,16 +324,16 @@ void MipsMCInstLower::lowerLongBranchADDiu(const MachineInstr *MI,
   unsigned TargetFlags = MI->getOperand(2).getTargetFlags();
   switch (TargetFlags) {
   case MipsII::MO_HIGHEST:
-    Spec = MipsMCExpr::MEK_HIGHEST;
+    Spec = Mips::S_HIGHEST;
     break;
   case MipsII::MO_HIGHER:
-    Spec = MipsMCExpr::MEK_HIGHER;
+    Spec = Mips::S_HIGHER;
     break;
   case MipsII::MO_ABS_HI:
-    Spec = MipsMCExpr::MEK_HI;
+    Spec = Mips::S_HI;
     break;
   case MipsII::MO_ABS_LO:
-    Spec = MipsMCExpr::MEK_LO;
+    Spec = Mips::S_LO;
     break;
   default:
     report_fatal_error("Unexpected flags for lowerLongBranchADDiu");

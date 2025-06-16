@@ -12,6 +12,7 @@
 
 #include "MipsMCAsmInfo.h"
 #include "MipsABIInfo.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/TargetParser/Triple.h"
 
 using namespace llvm;
@@ -58,4 +59,195 @@ MipsCOFFMCAsmInfo::MipsCOFFMCAsmInfo() {
   PrivateGlobalPrefix = ".L";
   PrivateLabelPrefix = ".L";
   AllowAtInName = true;
+}
+
+void MipsMCExpr::printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const {
+  int64_t AbsVal;
+
+  switch (specifier) {
+  case Mips::S_None:
+  case Mips::S_Special:
+    llvm_unreachable("Mips::S_None and MEK_Special are invalid");
+    break;
+  case Mips::S_DTPREL:
+    // Mips::S_DTPREL is used for marking TLS DIEExpr only
+    // and contains a regular sub-expression.
+    MAI->printExpr(OS, *getSubExpr());
+    return;
+  case Mips::S_CALL_HI16:
+    OS << "%call_hi";
+    break;
+  case Mips::S_CALL_LO16:
+    OS << "%call_lo";
+    break;
+  case Mips::S_DTPREL_HI:
+    OS << "%dtprel_hi";
+    break;
+  case Mips::S_DTPREL_LO:
+    OS << "%dtprel_lo";
+    break;
+  case Mips::S_GOT:
+    OS << "%got";
+    break;
+  case Mips::S_GOTTPREL:
+    OS << "%gottprel";
+    break;
+  case Mips::S_GOT_CALL:
+    OS << "%call16";
+    break;
+  case Mips::S_GOT_DISP:
+    OS << "%got_disp";
+    break;
+  case Mips::S_GOT_HI16:
+    OS << "%got_hi";
+    break;
+  case Mips::S_GOT_LO16:
+    OS << "%got_lo";
+    break;
+  case Mips::S_GOT_PAGE:
+    OS << "%got_page";
+    break;
+  case Mips::S_GOT_OFST:
+    OS << "%got_ofst";
+    break;
+  case Mips::S_GPREL:
+    OS << "%gp_rel";
+    break;
+  case Mips::S_HI:
+    OS << "%hi";
+    break;
+  case Mips::S_HIGHER:
+    OS << "%higher";
+    break;
+  case Mips::S_HIGHEST:
+    OS << "%highest";
+    break;
+  case Mips::S_LO:
+    OS << "%lo";
+    break;
+  case Mips::S_NEG:
+    OS << "%neg";
+    break;
+  case Mips::S_PCREL_HI16:
+    OS << "%pcrel_hi";
+    break;
+  case Mips::S_PCREL_LO16:
+    OS << "%pcrel_lo";
+    break;
+  case Mips::S_TLSGD:
+    OS << "%tlsgd";
+    break;
+  case Mips::S_TLSLDM:
+    OS << "%tlsldm";
+    break;
+  case Mips::S_TPREL_HI:
+    OS << "%tprel_hi";
+    break;
+  case Mips::S_TPREL_LO:
+    OS << "%tprel_lo";
+    break;
+  case Mips::S_CAPTABLE11:
+    OS << "%captab";
+    break;
+  case Mips::S_CAPTABLE20:
+    OS << "%captab20";
+    break;
+  case Mips::S_CAPTABLE_HI16:
+    OS << "%captab_hi";
+    break;
+  case Mips::S_CAPTABLE_LO16:
+    OS << "%captab_lo";
+    break;
+  case Mips::S_CAPCALL11:
+    OS << "%capcall";
+    break;
+  case Mips::S_CAPCALL20:
+    OS << "%capcall20";
+    break;
+  case Mips::S_CAPCALL_HI16:
+    OS << "%capcall_hi";
+    break;
+  case Mips::S_CAPCALL_LO16:
+    OS << "%capcall_lo";
+    break;
+  case Mips::S_CHERI_CAP:
+    // FIXME: should we really end up here?
+    OS << "%chericap";
+    break;
+  case Mips::S_CAPTABLEREL:
+    OS << "%captab_rel";
+    break;
+  case Mips::S_CAPTAB_TLSGD_HI16:
+    OS << "%captab_tlsgd_hi";
+    break;
+  case Mips::S_CAPTAB_TLSGD_LO16:
+    OS << "%captab_tlsgd_lo";
+    break;
+  case Mips::S_CAPTAB_TLSLDM_HI16:
+    OS << "%captab_tlsldm_hi";
+    break;
+  case Mips::S_CAPTAB_TLSLDM_LO16:
+    OS << "%captab_tlsldm_lo";
+    break;
+  case Mips::S_CAPTAB_TPREL_HI16:
+    OS << "%captab_tprel_hi";
+    break;
+  case Mips::S_CAPTAB_TPREL_LO16:
+    OS << "%captab_tprel_lo";
+    break;
+  }
+
+  OS << '(';
+  if (Expr->evaluateAsAbsolute(AbsVal))
+    OS << AbsVal;
+  else
+    Expr->print(OS, MAI);
+  OS << ')';
+}
+
+bool MipsMCExpr::isGpOff(Specifier &S) const { return isOffImpl(S, Mips::S_GPREL); }
+bool MipsMCExpr::isGpOff() const {
+  Specifier S;
+  return isGpOff(S);
+}
+
+bool MipsMCExpr::isCaptableOff() const {
+  Specifier S;
+  return isOffImpl(S, Mips::S_CAPTABLEREL);
+}
+
+bool MipsMCExpr::isOffImpl(Specifier &Kind, Specifier Expected) const {
+  if (getSpecifier() == Mips::S_HI || getSpecifier() == Mips::S_LO) {
+    if (const MipsMCExpr *S1 = dyn_cast<const MipsMCExpr>(getSubExpr())) {
+      if (const MipsMCExpr *S2 = dyn_cast<const MipsMCExpr>(S1->getSubExpr())) {
+        if (S1->getSpecifier() == Mips::S_NEG &&
+            S2->getSpecifier() == Expected) {
+          Kind = getKind();
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+bool MipsMCExpr::evaluateAsRelocatableImpl(MCValue &Res,
+                                           const MCAssembler *Asm) const {
+  // Look for the %hi(%neg(%gp_rel(X))) and %lo(%neg(%gp_rel(X)))
+  // special cases.
+  if (isGpOff()) {
+    const MCExpr *SubExpr =
+        cast<MipsMCExpr>(cast<MipsMCExpr>(getSubExpr())->getSubExpr())
+            ->getSubExpr();
+    if (!SubExpr->evaluateAsRelocatable(Res, Asm))
+      return false;
+
+    Res.setSpecifier(Mips::S_Special);
+    return true;
+  }
+
+  if (!getSubExpr()->evaluateAsRelocatable(Res, Asm))
+    return false;
+  Res.setSpecifier(specifier);
+  return !Res.getSubSym();
 }

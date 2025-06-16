@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "MipsMCExpr.h"
+#include "MCTargetDesc/MipsMCAsmInfo.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCAssembler.h"
 #include "llvm/MC/MCContext.h"
@@ -33,189 +34,13 @@ const MipsMCExpr *MipsMCExpr::create(const MCSymbol *Sym, Specifier S,
 
 const MipsMCExpr *MipsMCExpr::createGpOff(MipsMCExpr::Specifier S,
                                           const MCExpr *Expr, MCContext &Ctx) {
-  return create(S, create(MEK_NEG, create(MEK_GPREL, Expr, Ctx), Ctx), Ctx);
+  return create(S, create(Mips::S_NEG, create(Mips::S_GPREL, Expr, Ctx), Ctx),
+                Ctx);
 }
 
 const MipsMCExpr *MipsMCExpr::createCaptableOff(MipsMCExpr::Specifier Kind,
                                           const MCExpr *Expr, MCContext &Ctx) {
-  return create(Kind, create(MEK_NEG, create(MEK_CAPTABLEREL, Expr, Ctx), Ctx), Ctx);
-}
-
-void MipsMCExpr::printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const {
-  int64_t AbsVal;
-
-  switch (specifier) {
-  case MEK_None:
-  case MEK_Special:
-    llvm_unreachable("MEK_None and MEK_Special are invalid");
-    break;
-  case MEK_DTPREL:
-    // MEK_DTPREL is used for marking TLS DIEExpr only
-    // and contains a regular sub-expression.
-    getSubExpr()->print(OS, MAI);
-    return;
-  case MEK_CALL_HI16:
-    OS << "%call_hi";
-    break;
-  case MEK_CALL_LO16:
-    OS << "%call_lo";
-    break;
-  case MEK_DTPREL_HI:
-    OS << "%dtprel_hi";
-    break;
-  case MEK_DTPREL_LO:
-    OS << "%dtprel_lo";
-    break;
-  case MEK_GOT:
-    OS << "%got";
-    break;
-  case MEK_GOTTPREL:
-    OS << "%gottprel";
-    break;
-  case MEK_GOT_CALL:
-    OS << "%call16";
-    break;
-  case MEK_GOT_DISP:
-    OS << "%got_disp";
-    break;
-  case MEK_GOT_HI16:
-    OS << "%got_hi";
-    break;
-  case MEK_GOT_LO16:
-    OS << "%got_lo";
-    break;
-  case MEK_GOT_PAGE:
-    OS << "%got_page";
-    break;
-  case MEK_GOT_OFST:
-    OS << "%got_ofst";
-    break;
-  case MEK_GPREL:
-    OS << "%gp_rel";
-    break;
-  case MEK_CAPTABLEREL:
-    OS << "%captab_rel";
-    break;
-  case MEK_HI:
-    OS << "%hi";
-    break;
-  case MEK_HIGHER:
-    OS << "%higher";
-    break;
-  case MEK_HIGHEST:
-    OS << "%highest";
-    break;
-  case MEK_LO:
-    OS << "%lo";
-    break;
-  case MEK_NEG:
-    OS << "%neg";
-    break;
-  case MEK_PCREL_HI16:
-    OS << "%pcrel_hi";
-    break;
-  case MEK_PCREL_LO16:
-    OS << "%pcrel_lo";
-    break;
-  case MEK_TLSGD:
-    OS << "%tlsgd";
-    break;
-  case MEK_TLSLDM:
-    OS << "%tlsldm";
-    break;
-  case MEK_TPREL_HI:
-    OS << "%tprel_hi";
-    break;
-  case MEK_TPREL_LO:
-    OS << "%tprel_lo";
-    break;
-  case MEK_CAPCALL11:
-    OS << "%capcall";
-    break;
-  case MEK_CAPCALL20:
-    OS << "%capcall20";
-    break;
-  case MEK_CAPCALL_HI16:
-    OS << "%capcall_hi";
-    break;
-  case MEK_CAPCALL_LO16:
-    OS << "%capcall_lo";
-    break;
-  case MEK_CAPTABLE11:
-    OS << "%captab";
-    break;
-  case MEK_CAPTABLE20:
-    OS << "%captab20";
-    break;
-  case MEK_CAPTABLE_HI16:
-    OS << "%captab_hi";
-    break;
-  case MEK_CAPTABLE_LO16:
-    OS << "%captab_lo";
-    break;
-  case MEK_CHERI_CAP:
-    // FIXME: should we really end up here?
-    OS << "%chericap";
-    break;
-  case MEK_CAPTAB_TLSGD_HI16:
-    OS << "%captab_tlsgd_hi";
-    break;
-  case MEK_CAPTAB_TLSGD_LO16:
-    OS << "%captab_tlsgd_lo";
-    break;
-  case MEK_CAPTAB_TLSLDM_HI16:
-    OS << "%captab_tlsldm_hi";
-    break;
-  case MEK_CAPTAB_TLSLDM_LO16:
-    OS << "%captab_tlsldm_lo";
-    break;
-  case MEK_CAPTAB_TPREL_HI16:
-    OS << "%captab_tprel_hi";
-    break;
-  case MEK_CAPTAB_TPREL_LO16:
-    OS << "%captab_tprel_lo";
-    break;
-  }
-
-  OS << '(';
-  if (Expr->evaluateAsAbsolute(AbsVal))
-    OS << AbsVal;
-  else
-    Expr->print(OS, MAI);
-  OS << ')';
-}
-
-bool MipsMCExpr::evaluateAsRelocatableImpl(MCValue &Res,
-                                           const MCAssembler *Asm) const {
-  // Look for the %hi(%neg(%gp_rel(X))) and %lo(%neg(%gp_rel(X)))
-  // special cases.
-  if (isGpOff() || isCaptableOff()) {
-    const MCExpr *SubExpr =
-        cast<MipsMCExpr>(cast<MipsMCExpr>(getSubExpr())->getSubExpr())
-            ->getSubExpr();
-    if (!SubExpr->evaluateAsRelocatable(Res, Asm))
-      return false;
-
-    Res.setSpecifier(MEK_Special);
-    return true;
-  }
-
-  if (!getSubExpr()->evaluateAsRelocatable(Res, Asm))
-    return false;
-  Res.setSpecifier(specifier);
-  return !Res.getSubSym();
-}
-
-bool MipsMCExpr::isOffImpl(Specifier &S, Specifier Expected) const {
-  if (getSpecifier() == MEK_HI || getSpecifier() == MEK_LO) {
-    if (const MipsMCExpr *S1 = dyn_cast<const MipsMCExpr>(getSubExpr())) {
-      if (const MipsMCExpr *S2 = dyn_cast<const MipsMCExpr>(S1->getSubExpr())) {
-        if (S1->getSpecifier() == MEK_NEG && S2->getSpecifier() == Expected) {
-          S = getSpecifier();
-          return true;
-        }
-      }
-    }
-  }
-  return false;
+  return create(
+      Kind, create(Mips::S_NEG, create(Mips::S_CAPTABLEREL, Expr, Ctx), Ctx),
+      Ctx);
 }

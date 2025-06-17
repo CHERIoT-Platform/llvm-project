@@ -8268,6 +8268,7 @@ static bool isAddSubOrSubAdd(const BuildVectorSDNode *BV,
                              SDValue &Opnd0, SDValue &Opnd1,
                              unsigned &NumExtracts,
                              bool &IsSubAdd) {
+  using namespace SDPatternMatch;
 
   MVT VT = BV->getSimpleValueType(0);
   if (!Subtarget.hasSSE3() || !VT.isFloatingPoint())
@@ -8302,14 +8303,8 @@ static bool isAddSubOrSubAdd(const BuildVectorSDNode *BV,
     // Try to match the following pattern:
     // (BINOP (extract_vector_elt A, i), (extract_vector_elt B, i))
     // Early exit if we cannot match that sequence.
-    if (Op0.getOpcode() != ISD::EXTRACT_VECTOR_ELT ||
-        Op1.getOpcode() != ISD::EXTRACT_VECTOR_ELT ||
-        !isa<ConstantSDNode>(Op0.getOperand(1)) ||
-        Op0.getOperand(1) != Op1.getOperand(1))
-      return false;
-
-    unsigned I0 = Op0.getConstantOperandVal(1);
-    if (I0 != i)
+    if (!sd_match(Op0, m_ExtractElt(m_SpecificVT(VT), m_SpecificInt(i))) ||
+        !sd_match(Op1, m_ExtractElt(m_SpecificVT(VT), m_SpecificInt(i))))
       return false;
 
     // We found a valid add/sub node, make sure its the same opcode as previous
@@ -8319,16 +8314,10 @@ static bool isAddSubOrSubAdd(const BuildVectorSDNode *BV,
     Opc[i % 2] = Opcode;
 
     // Update InVec0 and InVec1.
-    if (InVec0.isUndef()) {
+    if (InVec0.isUndef())
       InVec0 = Op0.getOperand(0);
-      if (InVec0.getSimpleValueType() != VT)
-        return false;
-    }
-    if (InVec1.isUndef()) {
+    if (InVec1.isUndef())
       InVec1 = Op1.getOperand(0);
-      if (InVec1.getSimpleValueType() != VT)
-        return false;
-    }
 
     // Make sure that operands in input to each add/sub node always
     // come from a same pair of vectors.
@@ -45511,6 +45500,7 @@ static SDValue combinevXi1ConstantToInteger(SDValue Op, SelectionDAG &DAG) {
 static SDValue combineCastedMaskArithmetic(SDNode *N, SelectionDAG &DAG,
                                            TargetLowering::DAGCombinerInfo &DCI,
                                            const X86Subtarget &Subtarget) {
+  using namespace SDPatternMatch;
   assert(N->getOpcode() == ISD::BITCAST && "Expected a bitcast");
 
   if (!DCI.isBeforeLegalizeOps())
@@ -45524,15 +45514,6 @@ static SDValue combineCastedMaskArithmetic(SDNode *N, SelectionDAG &DAG,
   SDValue Op = N->getOperand(0);
   EVT SrcVT = Op.getValueType();
 
-  if (!Op.hasOneUse())
-    return SDValue();
-
-  // Look for logic ops.
-  if (Op.getOpcode() != ISD::AND &&
-      Op.getOpcode() != ISD::OR &&
-      Op.getOpcode() != ISD::XOR)
-    return SDValue();
-
   // Make sure we have a bitcast between mask registers and a scalar type.
   if (!(SrcVT.isVector() && SrcVT.getVectorElementType() == MVT::i1 &&
         DstVT.isScalarInteger()) &&
@@ -45540,18 +45521,18 @@ static SDValue combineCastedMaskArithmetic(SDNode *N, SelectionDAG &DAG,
         SrcVT.isScalarInteger()))
     return SDValue();
 
-  SDValue LHS = Op.getOperand(0);
-  SDValue RHS = Op.getOperand(1);
+  SDValue LHS, RHS;
 
-  if (LHS.hasOneUse() && LHS.getOpcode() == ISD::BITCAST &&
-      LHS.getOperand(0).getValueType() == DstVT)
-    return DAG.getNode(Op.getOpcode(), SDLoc(N), DstVT, LHS.getOperand(0),
-                       DAG.getBitcast(DstVT, RHS));
+  // Look for logic ops.
+  if (!sd_match(Op, m_OneUse(m_BitwiseLogic(m_Value(LHS), m_Value(RHS)))))
+    return SDValue();
 
-  if (RHS.hasOneUse() && RHS.getOpcode() == ISD::BITCAST &&
-      RHS.getOperand(0).getValueType() == DstVT)
+  // If either operand was bitcast from DstVT, then perform logic with DstVT (at
+  // least one of the getBitcast() will fold away).
+  if (sd_match(LHS, m_OneUse(m_BitCast(m_SpecificVT(DstVT)))) ||
+      sd_match(RHS, m_OneUse(m_BitCast(m_SpecificVT(DstVT)))))
     return DAG.getNode(Op.getOpcode(), SDLoc(N), DstVT,
-                       DAG.getBitcast(DstVT, LHS), RHS.getOperand(0));
+                       DAG.getBitcast(DstVT, LHS), DAG.getBitcast(DstVT, RHS));
 
   // If the RHS is a vXi1 build vector, this is a good reason to flip too.
   // Most of these have to move a constant from the scalar domain anyway.
@@ -59681,16 +59662,6 @@ static SDValue narrowExtractedVectorSelect(SDNode *Ext, const SDLoc &DL,
 static SDValue combineEXTRACT_SUBVECTOR(SDNode *N, SelectionDAG &DAG,
                                         TargetLowering::DAGCombinerInfo &DCI,
                                         const X86Subtarget &Subtarget) {
-  // For AVX1 only, if we are extracting from a 256-bit and+not (which will
-  // eventually get combined/lowered into ANDNP) with a concatenated operand,
-  // split the 'and' into 128-bit ops to avoid the concatenate and extract.
-  // We let generic combining take over from there to simplify the
-  // insert/extract and 'not'.
-  // This pattern emerges during AVX1 legalization. We handle it before lowering
-  // to avoid complications like splitting constant vector loads.
-
-  // Capture the original wide type in the likely case that we need to bitcast
-  // back to this type.
   if (!N->getValueType(0).isSimple())
     return SDValue();
 
@@ -59706,8 +59677,14 @@ static SDValue combineEXTRACT_SUBVECTOR(SDNode *N, SelectionDAG &DAG,
   const TargetLowering &TLI = DAG.getTargetLoweringInfo();
   SDLoc DL(N);
 
-  if (Subtarget.hasAVX() && !Subtarget.hasAVX2() &&
-      TLI.isTypeLegal(InVecVT) &&
+  // For AVX1 only, if we are extracting from a 256-bit and+not (which will
+  // eventually get combined/lowered into ANDNP) with a concatenated operand,
+  // split the 'and' into 128-bit ops to avoid the concatenate and extract.
+  // We let generic combining take over from there to simplify the
+  // insert/extract and 'not'.
+  // This pattern emerges during AVX1 legalization. We handle it before lowering
+  // to avoid complications like splitting constant vector loads.
+  if (Subtarget.hasAVX() && !Subtarget.hasAVX2() && TLI.isTypeLegal(InVecVT) &&
       InSizeInBits == 256 && InVecBC.getOpcode() == ISD::AND) {
     auto isConcatenatedNot = [](SDValue V) {
       V = peekThroughBitcasts(V);

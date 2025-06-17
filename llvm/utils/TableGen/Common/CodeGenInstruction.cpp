@@ -449,7 +449,7 @@ void CGIOperandList::ProcessDisableEncoding(StringRef DisableEncoding) {
 CodeGenInstruction::CodeGenInstruction(const Record *R)
     : TheDef(R), Operands(R), InferredFrom(nullptr) {
   Namespace = R->getValueAsString("Namespace");
-  AsmString = R->getValueAsString("AsmString").str();
+  AsmString = R->getValueAsString("AsmString");
 
   isPreISelOpcode = R->getValueAsBit("isPreISelOpcode");
   isReturn = R->getValueAsBit("isReturn");

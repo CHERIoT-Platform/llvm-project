@@ -12,6 +12,7 @@
 
 #include "MipsMCAsmInfo.h"
 #include "MipsABIInfo.h"
+#include "llvm/MC/MCValue.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/TargetParser/Triple.h"
 
@@ -59,6 +60,20 @@ MipsCOFFMCAsmInfo::MipsCOFFMCAsmInfo() {
   PrivateGlobalPrefix = ".L";
   PrivateLabelPrefix = ".L";
   AllowAtInName = true;
+}
+
+const MCSpecifierExpr *Mips::createGpOff(const MCExpr *Expr, Mips::Specifier S,
+                                         MCContext &Ctx) {
+  Expr = MCSpecifierExpr::create(Expr, Mips::S_GPREL, Ctx);
+  Expr = MCSpecifierExpr::create(Expr, Mips::S_NEG, Ctx);
+  return MCSpecifierExpr::create(Expr, S, Ctx);
+}
+
+const MCSpecifierExpr *Mips::createCaptableOff(const MCExpr *Expr, Mips::Specifier S,
+                                         MCContext &Ctx) {
+  Expr = MCSpecifierExpr::create(Expr, Mips::S_CAPTABLEREL, Ctx);
+  Expr = MCSpecifierExpr::create(Expr, Mips::S_NEG, Ctx);
+  return MCSpecifierExpr::create(Expr, S, Ctx);
 }
 
 static void printImpl(const MCAsmInfo &MAI, raw_ostream &OS,
@@ -207,7 +222,7 @@ static void printImpl(const MCAsmInfo &MAI, raw_ostream &OS,
 }
 
 static bool isOffImpl(const MCSpecifierExpr &E,
-                      MipsMCExpr::Specifier Expected) {
+                      Mips::Specifier Expected) {
   if (E.getSpecifier() == Mips::S_HI || E.getSpecifier() == Mips::S_LO) {
     if (const auto *S1 = dyn_cast<const MCSpecifierExpr>(E.getSubExpr())) {
       if (const auto *S2 = dyn_cast<const MCSpecifierExpr>(S1->getSubExpr())) {

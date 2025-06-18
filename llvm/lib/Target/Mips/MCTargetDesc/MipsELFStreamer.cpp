@@ -8,7 +8,6 @@
 
 #include "MipsELFStreamer.h"
 #include "MipsFixupKinds.h"
-#include "MipsMCExpr.h"
 #include "MipsOptionRecord.h"
 #include "MipsTargetStreamer.h"
 #include "llvm/BinaryFormat/ELF.h"

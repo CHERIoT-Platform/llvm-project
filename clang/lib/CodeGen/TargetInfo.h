@@ -357,8 +357,8 @@ public:
                                          llvm::Value *V,
                                          const llvm::Twine &Name) const;
 
-  /// Get LLVM calling convention for OpenCL kernel.
-  virtual unsigned getOpenCLKernelCallingConv() const;
+  /// Get LLVM calling convention for device kernels.
+  virtual unsigned getDeviceKernelCallingConv() const;
 
   /// Get target specific null pointer.
   /// \param T is the LLVM type of the null pointer.

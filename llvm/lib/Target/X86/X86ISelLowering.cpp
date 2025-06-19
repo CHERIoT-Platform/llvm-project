@@ -513,10 +513,6 @@ X86TargetLowering::X86TargetLowering(const X86TargetMachine &TM,
   setOperationAction(ISD::EH_SJLJ_LONGJMP, MVT::Other, Custom);
   setOperationAction(ISD::EH_SJLJ_SETUP_DISPATCH, MVT::Other, Custom);
 
-  // FIXME: This should be set in RuntimeLibcallsInfo
-  if (TM.Options.ExceptionModel == ExceptionHandling::SjLj)
-    setLibcallName(RTLIB::UNWIND_RESUME, "_Unwind_SjLj_Resume");
-
   // Darwin ABI issue.
   for (auto VT : { MVT::i32, MVT::i64 }) {
     if (VT == MVT::i64 && !Subtarget.is64Bit())
@@ -46007,11 +46003,9 @@ static bool detectZextAbsDiff(SDValue Abs, SDValue &Op0, SDValue &Op1) {
 
   // Check if the operands of the sub are zero-extended from vectors of i8.
   EVT SrcVT0, SrcVT1;
-  return sd_match(
-             Abs,
-             m_UnaryOp(ISD::ABS,
-                       m_Sub(m_AllOf(m_Value(Op0), m_ZExt(m_VT(SrcVT0))),
-                             m_AllOf(m_Value(Op1), m_ZExt(m_VT(SrcVT1)))))) &&
+  return sd_match(Abs,
+                  m_Abs(m_Sub(m_AllOf(m_Value(Op0), m_ZExt(m_VT(SrcVT0))),
+                              m_AllOf(m_Value(Op1), m_ZExt(m_VT(SrcVT1)))))) &&
          SrcVT0.getVectorElementType() == MVT::i8 &&
          SrcVT1.getVectorElementType() == MVT::i8;
 }
@@ -50837,7 +50831,8 @@ static SDValue combineCompareEqual(SDNode *N, SelectionDAG &DAG,
 }
 
 /// Try to fold: (and (xor X, -1), Y) -> (andnp X, Y).
-static SDValue combineAndNotIntoANDNP(SDNode *N, SelectionDAG &DAG) {
+static SDValue combineAndNotIntoANDNP(SDNode *N, const SDLoc &DL,
+                                      SelectionDAG &DAG) {
   assert(N->getOpcode() == ISD::AND && "Unexpected opcode combine into ANDNP");
 
   MVT VT = N->getSimpleValueType(0);
@@ -50859,7 +50854,7 @@ static SDValue combineAndNotIntoANDNP(SDNode *N, SelectionDAG &DAG) {
 
   X = DAG.getBitcast(VT, X);
   Y = DAG.getBitcast(VT, Y);
-  return DAG.getNode(X86ISD::ANDNP, SDLoc(N), VT, X, Y);
+  return DAG.getNode(X86ISD::ANDNP, DL, VT, X, Y);
 }
 
 /// Try to fold:
@@ -51223,7 +51218,8 @@ static SDValue combineBitOpWithPACK(unsigned Opc, const SDLoc &DL, EVT VT,
 /// If this is a zero/all-bits result that is bitwise-anded with a low bits
 /// mask. (Mask == 1 for the x86 lowering of a SETCC + ZEXT), replace the 'and'
 /// with a shift-right to eliminate loading the vector constant mask value.
-static SDValue combineAndMaskToShift(SDNode *N, SelectionDAG &DAG,
+static SDValue combineAndMaskToShift(SDNode *N, const SDLoc &DL,
+                                     SelectionDAG &DAG,
                                      const X86Subtarget &Subtarget) {
   SDValue Op0 = peekThroughBitcasts(N->getOperand(0));
   SDValue Op1 = peekThroughBitcasts(N->getOperand(1));
@@ -51253,7 +51249,6 @@ static SDValue combineAndMaskToShift(SDNode *N, SelectionDAG &DAG,
       Y = Op1;
     }
     if (X && Y) {
-      SDLoc DL(N);
       SDValue Sra =
           getTargetVShiftByConstNode(X86ISD::VSRAI, DL, VT.getSimpleVT(), X,
                                      VT.getScalarSizeInBits() - 1, DAG);
@@ -51276,7 +51271,6 @@ static SDValue combineAndMaskToShift(SDNode *N, SelectionDAG &DAG,
   if (EltBitWidth != DAG.ComputeNumSignBits(Op0))
     return SDValue();
 
-  SDLoc DL(N);
   unsigned ShiftVal = SplatVal.countr_one();
   SDValue ShAmt = DAG.getTargetConstant(EltBitWidth - ShiftVal, DL, MVT::i8);
   SDValue Shift = DAG.getNode(X86ISD::VSRLI, DL, VT, Op0, ShAmt);
@@ -51307,13 +51301,11 @@ static bool hasBZHI(const X86Subtarget &Subtarget, MVT VT) {
 
 /// Folds (and X, (or Y, ~Z)) --> (and X, ~(and ~Y, Z))
 /// This undoes the inverse fold performed in InstCombine
-static SDValue combineAndNotOrIntoAndNotAnd(SDNode *N, SelectionDAG &DAG) {
-
+static SDValue combineAndNotOrIntoAndNotAnd(SDNode *N, const SDLoc &DL,
+                                            SelectionDAG &DAG) {
   using namespace llvm::SDPatternMatch;
   MVT VT = N->getSimpleValueType(0);
-  SDLoc DL(N);
-  const TargetLowering &TLI = DAG.getTargetLoweringInfo();
-  if (!TLI.hasAndNot(SDValue(N, 0)))
+  if (!DAG.getTargetLoweringInfo().hasAndNot(SDValue(N, 0)))
     return SDValue();
 
   SDValue X, Y, Z;
@@ -51840,16 +51832,16 @@ static SDValue combineAnd(SDNode *N, SelectionDAG &DAG,
   if (SDValue R = combineCompareEqual(N, DAG, DCI, Subtarget))
     return R;
 
-  if (SDValue R = combineAndNotIntoANDNP(N, DAG))
+  if (SDValue R = combineAndNotIntoANDNP(N, dl ,DAG))
     return R;
 
-  if (SDValue ShiftRight = combineAndMaskToShift(N, DAG, Subtarget))
+  if (SDValue ShiftRight = combineAndMaskToShift(N, dl, DAG, Subtarget))
     return ShiftRight;
 
   if (SDValue R = combineAndLoadToBZHI(N, DAG, Subtarget))
     return R;
 
-  if (SDValue R = combineAndNotOrIntoAndNotAnd(N, DAG))
+  if (SDValue R = combineAndNotOrIntoAndNotAnd(N, dl, DAG))
     return R;
 
   // fold (and (mul x, c1), c2) -> (mul x, (and c1, c2))

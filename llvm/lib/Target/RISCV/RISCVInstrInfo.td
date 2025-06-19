@@ -337,6 +337,10 @@ def simm12 : RISCVSImmLeafOp<12> {
     int64_t Imm;
     if (MCOp.evaluateAsConstantImm(Imm))
       return isInt<12>(Imm);
+    // Needed to make CHERIOT mnemonic aliases work.
+    if (STI.hasFeature(RISCV::FeatureVendorXCheriot) &&
+        MCOp.isExpr())
+      return true;
     return MCOp.isBareSymbolRef();
   }];
 }
@@ -378,6 +382,10 @@ class UImm20OperandMaybeSym : RISCVUImmOp<20> {
     int64_t Imm;
     if (MCOp.evaluateAsConstantImm(Imm))
       return isUInt<20>(Imm);
+    // Needed to make CHERIOT mnemonic aliases work.
+    if (STI.hasFeature(RISCV::FeatureVendorXCheriot) &&
+        MCOp.isExpr())
+      return true;
     return MCOp.isBareSymbolRef();
   }];
 }

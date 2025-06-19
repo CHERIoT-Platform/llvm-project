@@ -2056,9 +2056,8 @@ def PseudoCTAIL : Pseudo<(outs), (ins cap_call_symbol:$dst), []> {
   let AsmString = "ctail\t$dst";
 }
 
-let Predicates = [HasCheriot] in def : InstAlias<
-                                           "ct.ctail $dst",
-                                           (PseudoCTAIL cap_call_symbol:$dst)>;
+let Predicates = [HasCheriot] in
+def : InstAlias<"ct.ctail $dst", (PseudoCTAIL cap_call_symbol:$dst)>;
 
 let Predicates = [HasCheri, IsCapMode, IsPureCapABI],
     isCall = 1, isTerminator = 1, isReturn = 1, isBarrier = 1, Uses = [C2] in

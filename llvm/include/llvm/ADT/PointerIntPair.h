@@ -210,7 +210,7 @@ struct PointerIntPairInfo {
     assert((IntWord & ~IntMask) == 0 && "Integer too large for field");
 
     // Preserve all bits other than the ones we are updating.
-    return (OrigValue & ~ShiftedIntMask) | IntWord << IntShift;
+    return (OrigValue & ~ShiftedIntMask) | Int << IntShift;
   }
 };
 

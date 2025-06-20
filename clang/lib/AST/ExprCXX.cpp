@@ -805,8 +805,7 @@ CXXDynamicCastExpr *CXXDynamicCastExpr::Create(const ASTContext &C, QualType T,
   auto *E = new (Buffer) CXXDynamicCastExpr(T, VK, K, Op, PathSize, WrittenTy,
                                             L, RParenLoc, AngleBrackets, C);
   if (PathSize)
-    llvm::uninitialized_copy(*BasePath,
-                             E->getTrailingObjects<CXXBaseSpecifier *>());
+    llvm::uninitialized_copy(*BasePath, E->getTrailingObjects());
   return E;
 }
 
@@ -867,8 +866,7 @@ CXXReinterpretCastExpr::Create(const ASTContext &C, QualType T,
   auto *E = new (Buffer) CXXReinterpretCastExpr(
       T, VK, K, Op, PathSize, WrittenTy, L, RParenLoc, AngleBrackets, C);
   if (PathSize)
-    llvm::uninitialized_copy(*BasePath,
-                             E->getTrailingObjects<CXXBaseSpecifier *>());
+    llvm::uninitialized_copy(*BasePath, E->getTrailingObjects());
   return E;
 }
 

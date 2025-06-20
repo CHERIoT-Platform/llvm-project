@@ -56,6 +56,10 @@ enum Fixups {
   // 32-bit fixup for symbol references in the 48-bit qc.j/qc.jal instructions
   fixup_riscv_qc_e_call_plt,
 
+  // Andes specific fixups
+  // 10-bit fixup for symbol references in the xandesperf branch instruction
+  fixup_riscv_nds_branch_10,
+
   // fixup_riscv_captab_pcrel_hi20 - 20-bit fixup corresponding to
   // captab_pcrel_hi(foo) for instructions like auipcc
   fixup_riscv_captab_pcrel_hi20,

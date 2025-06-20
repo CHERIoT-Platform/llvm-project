@@ -979,10 +979,6 @@ public:
     return SignExtend64<32>(Imm);
   }
 
-  bool isSImm11Lsb0() const {
-    return isSImmPred([](int64_t Imm) { return isShiftedInt<10, 1>(Imm); });
-  }
-
   bool isSImm12() const {
     if (!isImm())
       return false;
@@ -1723,7 +1719,7 @@ bool RISCVAsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   case Match_InvalidSImm11:
     return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 10),
                                       (1 << 10) - 1);
-  case Match_InvalidSImm11Lsb0:
+  case Match_InvalidBareSImm11Lsb0:
     return generateImmOutOfRangeError(
         Operands, ErrorInfo, -(1 << 10), (1 << 10) - 2,
         "immediate must be a multiple of 2 bytes in the range");

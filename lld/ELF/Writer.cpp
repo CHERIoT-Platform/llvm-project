@@ -3266,7 +3266,13 @@ class CompartmentReportWriter {
           imports.push_back(json::Object{
               {"kind", "MMIO"},
               {"start", entry.start},
-              {"length", entry.length & 0xfffffff},
+              /*
+               * Length and permissions are bit-stuffed into the same 32-bit
+               * word, with the top 8 bits reserved for permission flags and
+               * the bottom 24 for length. See CHERIoT-RTOS's
+               * sdk/core/loader/types.h ReservedPermissionsMask
+               */
+              {"length", entry.length & 0x00ffffff},
               {"permits_load", (entry.length & ImportPermitsLoad) != 0},
               {"permits_store", (entry.length & ImportPermitsStore) != 0},
               {"permits_load_store_capabilities",

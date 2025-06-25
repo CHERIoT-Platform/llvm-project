@@ -3195,7 +3195,7 @@ bool TreePattern::InferAllTypes(
           return true;
         }
 
-        const SmallVectorImpl<TreePatternNode *> &InNodes = InIter->second;
+        ArrayRef<TreePatternNode *> InNodes = InIter->second;
 
         // The input types should be fully resolved by now.
         for (TreePatternNode *Node : Nodes) {

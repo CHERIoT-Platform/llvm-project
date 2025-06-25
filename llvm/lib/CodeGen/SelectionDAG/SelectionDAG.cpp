@@ -8964,11 +8964,12 @@ SDValue SelectionDAG::getMemcpy(
   // FIXME: pass in SDLoc
   TargetLowering::CallLoweringInfo CLI(*this);
   bool IsTailCall = false;
+  const char *MemCpyName = TLI->getMemcpyName();
+
   if (OverrideTailCall.has_value()) {
     IsTailCall = *OverrideTailCall;
   } else {
-    bool LowersToMemcpy =
-        TLI->getLibcallName(RTLIB::MEMCPY) == StringRef("memcpy");
+    bool LowersToMemcpy = StringRef(MemCpyName) == StringRef("memcpy");
     bool ReturnsFirstArg = CI && funcReturnsFirstArgOfCall(*CI);
     IsTailCall = CI && CI->isTailCall() &&
                  isInTailCallPosition(*CI, getTarget(),
@@ -8980,7 +8981,7 @@ SDValue SelectionDAG::getMemcpy(
       .setLibCallee(
           TLI->getLibcallCallingConv(RTLIB::MEMCPY),
           Dst.getValueType().getTypeForEVT(*getContext()),
-          getExternalFunctionSymbol(TLI->getLibcallName(RTLIB::MEMCPY)),
+          getExternalFunctionSymbol(MemCpyName),
           std::move(Args))
       .setDiscardResult()
       .setTailCall(IsTailCall);

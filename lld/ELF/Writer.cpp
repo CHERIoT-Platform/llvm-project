@@ -3261,6 +3261,7 @@ class CompartmentReportWriter {
           static constexpr uint32_t ImportPermitsLoadStoreCapabilities =
               (1UL << 29);
           static constexpr uint32_t ImportPermitsLoadMutable = (1UL << 28);
+          static constexpr uint32_t ImportPermitsLoadGlobal = (1UL << 27);
 
           imports.push_back(json::Object{
               {"kind", "MMIO"},
@@ -3271,7 +3272,9 @@ class CompartmentReportWriter {
               {"permits_load_store_capabilities",
                (entry.length & ImportPermitsLoadStoreCapabilities) != 0},
               {"permits_load_mutable",
-               (entry.length & ImportPermitsLoadMutable) != 0}});
+               (entry.length & ImportPermitsLoadMutable) != 0},
+              {"permits_load_global",
+               (entry.length & ImportPermitsLoadGlobal) != 0}});
         }
         continue;
       }

@@ -272,6 +272,11 @@ TEST_F(DumpDataExtractorTest, Formats) {
 
   // Has no special handling, intended for use elsewhere.
   TestDump<int>(99, lldb::Format::eFormatVoid, "0x00000063");
+
+  // Cheriot capability formatting
+  TestDump<uint64_t>(0x7608d4cd00220b34, lldb::eFormatCheriotCapability,
+                     "0x00220b34 (v:? 0x00220b34-0x002211a8 l:0x674 "
+                     "o:0x0[unsealed] p: G RWc-m- -- ---)");
 }
 
 TEST_F(DumpDataExtractorTest, FormatCharArray) {
@@ -403,4 +408,9 @@ TEST_F(DumpDataExtractorTest, ItemByteSizeErrors) {
   TestDumpWithItemByteSize(
       17, lldb::Format::eFormatHexFloat,
       "error: unsupported byte size (17) for hex float format");
+
+  // Cheriot capabilities must be 8 bytes.
+  TestDumpWithItemByteSize(
+      17, lldb::Format::eFormatCheriotCapability,
+      "error: unsupported byte size (17) for cheriot capability format");
 }

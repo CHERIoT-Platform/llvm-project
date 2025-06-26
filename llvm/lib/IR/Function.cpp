@@ -38,6 +38,7 @@
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Operator.h"
+#include "llvm/IR/ProfDataUtils.h"
 #include "llvm/IR/SymbolTableListTraits.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Use.h"
@@ -1116,7 +1117,7 @@ std::optional<ProfileCount> Function::getEntryCount(bool AllowSynthetic) const {
   MDNode *MD = getMetadata(LLVMContext::MD_prof);
   if (MD && MD->getOperand(0))
     if (MDString *MDS = dyn_cast<MDString>(MD->getOperand(0))) {
-      if (MDS->getString() == "function_entry_count") {
+      if (MDS->getString() == MDProfLabels::FunctionEntryCount) {
         ConstantInt *CI = mdconst::extract<ConstantInt>(MD->getOperand(1));
         uint64_t Count = CI->getValue().getZExtValue();
         // A value of -1 is used for SamplePGO when there were no samples.
@@ -1125,7 +1126,8 @@ std::optional<ProfileCount> Function::getEntryCount(bool AllowSynthetic) const {
           return std::nullopt;
         return ProfileCount(Count, PCT_Real);
       } else if (AllowSynthetic &&
-                 MDS->getString() == "synthetic_function_entry_count") {
+                 MDS->getString() ==
+                     MDProfLabels::SyntheticFunctionEntryCount) {
         ConstantInt *CI = mdconst::extract<ConstantInt>(MD->getOperand(1));
         uint64_t Count = CI->getValue().getZExtValue();
         return ProfileCount(Count, PCT_Synthetic);
@@ -1138,7 +1140,7 @@ DenseSet<GlobalValue::GUID> Function::getImportGUIDs() const {
   DenseSet<GlobalValue::GUID> R;
   if (MDNode *MD = getMetadata(LLVMContext::MD_prof))
     if (MDString *MDS = dyn_cast<MDString>(MD->getOperand(0)))
-      if (MDS->getString() == "function_entry_count")
+      if (MDS->getString() == MDProfLabels::FunctionEntryCount)
         for (unsigned i = 2; i < MD->getNumOperands(); i++)
           R.insert(mdconst::extract<ConstantInt>(MD->getOperand(i))
                        ->getValue()

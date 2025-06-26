@@ -207,6 +207,7 @@ struct PointerIntPairInfo {
 
   static intptr_t updateInt(intptr_t OrigValue, ptrdiff_t Int) {
     ptrdiff_t IntWord = static_cast<ptrdiff_t>(Int);
+    (void)IntWord;
     assert((IntWord & ~IntMask) == 0 && "Integer too large for field");
 
     // Preserve all bits other than the ones we are updating.

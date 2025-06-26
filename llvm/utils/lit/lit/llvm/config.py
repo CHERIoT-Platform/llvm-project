@@ -701,14 +701,48 @@ class LLVMConfig(object):
                 # For the tests in Driver that don't depend on the capability size
                 ToolSubst('%plain_clang_cheri_triple_allowed', command=self.config.clang, extra_args=additional_flags),
 
-                ToolSubst('%clang', command=self.config.clang, extra_args=additional_flags),
-                ToolSubst('%clang_analyze_cc1', command='%clang_cc1', extra_args=['-analyze', '%analyze', '-setup-static-analyzer']+additional_flags),
-                ToolSubst('%clang_cc1', command=self.config.clang, extra_args=clang_cc1_args+additional_flags),
-                ToolSubst('%clang_cpp', command=self.config.clang, extra_args=['--driver-mode=cpp']+additional_flags),
-                ToolSubst('%clang_cl', command=self.config.clang, extra_args=['--driver-mode=cl']+additional_flags),
-                ToolSubst('%clang_dxc', command=self.config.clang, extra_args=['--driver-mode=dxc']+additional_flags),
-                ToolSubst('%clangxx', command=self.config.clang, extra_args=['--driver-mode=g++']+additional_flags),
-                ]
+                ToolSubst(
+                    "%clang", command=self.config.clang, extra_args=additional_flags
+                ),
+                ToolSubst(
+                    "%clang_analyze_cc1",
+                    command="%clang_cc1",
+                    # -setup-static-analyzer ensures that __clang_analyzer__ is defined
+                    extra_args=["-analyze", "-setup-static-analyzer"]
+                    + additional_flags,
+                ),
+                ToolSubst(
+                    "%clang_cc1",
+                    command=self.config.clang,
+                    extra_args=[
+                        "-cc1",
+                        "-internal-isystem",
+                        builtin_include_dir,
+                        "-nostdsysteminc",
+                    ]
+                    + additional_flags,
+                ),
+                ToolSubst(
+                    "%clang_cpp",
+                    command=self.config.clang,
+                    extra_args=["--driver-mode=cpp"] + additional_flags,
+                ),
+                ToolSubst(
+                    "%clang_cl",
+                    command=self.config.clang,
+                    extra_args=["--driver-mode=cl"] + additional_flags,
+                ),
+                ToolSubst(
+                    "%clang_dxc",
+                    command=self.config.clang,
+                    extra_args=["--driver-mode=dxc"] + additional_flags,
+                ),
+                ToolSubst(
+                    "%clangxx",
+                    command=self.config.clang,
+                    extra_args=["--driver-mode=g++"] + additional_flags,
+                ),
+            ]
             self.add_tool_substitutions(tool_substitutions)
             self.config.substitutions.append(
                 ('%resource_dir', builtin_include_dir))

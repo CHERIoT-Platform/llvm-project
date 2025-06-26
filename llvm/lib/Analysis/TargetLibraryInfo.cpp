@@ -931,12 +931,6 @@ static void initialize(TargetLibraryInfoImpl &TLI, const Triple &T,
   initializeLibCalls(TLI, T, StandardNames);
 }
 
-TargetLibraryInfoImpl::TargetLibraryInfoImpl() {
-  // Default to nothing being available.
-  memset(AvailableArray, 0, sizeof(AvailableArray));
-  initializeBase(*this, Triple());
-}
-
 TargetLibraryInfoImpl::TargetLibraryInfoImpl(const Triple &T) {
   // Default to everything being available.
   memset(AvailableArray, -1, sizeof(AvailableArray));
@@ -1501,7 +1495,7 @@ unsigned TargetLibraryInfoImpl::getSizeTSize(const Module &M) const {
 }
 
 TargetLibraryInfoWrapperPass::TargetLibraryInfoWrapperPass()
-    : ImmutablePass(ID), TLA(TargetLibraryInfoImpl()) {}
+    : ImmutablePass(ID), TLA(TargetLibraryInfoImpl(Triple())) {}
 
 TargetLibraryInfoWrapperPass::TargetLibraryInfoWrapperPass(const Triple &T)
     : ImmutablePass(ID), TLA(TargetLibraryInfoImpl(T)) {}

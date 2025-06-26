@@ -3,7 +3,6 @@
 ; RUN: sed 's/addrspace(200)/addrspace(0)/g' %s | %riscv64_cheri_llc | FileCheck %s --check-prefix=HYBRID
 ; RUN: %riscv64_cheri_purecap_llc %s -o - | FileCheck %s --check-prefix=PURECAP
 
-; TODO: The purecap code should also use wider loads for the adjacent elements
 define <4 x i32> @vec_load(ptr addrspace(200) %src) addrspace(200) nounwind {
 ; HYBRID-LABEL: vec_load:
 ; HYBRID:       # %bb.0:
@@ -15,14 +14,10 @@ define <4 x i32> @vec_load(ptr addrspace(200) %src) addrspace(200) nounwind {
 ;
 ; PURECAP-LABEL: vec_load:
 ; PURECAP:       # %bb.0:
-; PURECAP-NEXT:    clw a2, 12(ca1)
-; PURECAP-NEXT:    clw a3, 8(ca1)
-; PURECAP-NEXT:    clw a4, 4(ca1)
-; PURECAP-NEXT:    clw a1, 0(ca1)
-; PURECAP-NEXT:    csw a2, 12(ca0)
-; PURECAP-NEXT:    csw a3, 8(ca0)
-; PURECAP-NEXT:    csw a4, 4(ca0)
-; PURECAP-NEXT:    csw a1, 0(ca0)
+; PURECAP-NEXT:    cld a2, 8(ca1)
+; PURECAP-NEXT:    cld a1, 0(ca1)
+; PURECAP-NEXT:    csd a2, 8(ca0)
+; PURECAP-NEXT:    csd a1, 0(ca0)
 ; PURECAP-NEXT:    cret
   %ret = load <4 x i32>, ptr addrspace(200) %src, align 16
   ret <4 x i32> %ret
@@ -39,10 +34,9 @@ define void @vec_store(i32 %0, ptr addrspace(200) %dst) addrspace(200) nounwind 
 ;
 ; PURECAP-LABEL: vec_store:
 ; PURECAP:       # %bb.0:
-; PURECAP-NEXT:    csw zero, 12(ca1)
-; PURECAP-NEXT:    csw zero, 8(ca1)
 ; PURECAP-NEXT:    csw a0, 4(ca1)
 ; PURECAP-NEXT:    csw zero, 0(ca1)
+; PURECAP-NEXT:    csd zero, 8(ca1)
 ; PURECAP-NEXT:    cret
   %vecins = insertelement <4 x i32> zeroinitializer, i32 %0, i32 1
   store <4 x i32> %vecins, ptr addrspace(200) %dst, align 16

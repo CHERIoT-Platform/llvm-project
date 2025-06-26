@@ -4067,6 +4067,10 @@ void ASTWriter::handleVTable(CXXRecordDecl *RD) {
   PendingEmittingVTables.push_back(RD);
 }
 
+void ASTWriter::addTouchedModuleFile(serialization::ModuleFile *MF) {
+  TouchedModuleFiles.insert(MF);
+}
+
 //===----------------------------------------------------------------------===//
 // DeclContext's Name Lookup Table Serialization
 //===----------------------------------------------------------------------===//
@@ -4111,7 +4115,7 @@ public:
            "have reference to loaded module file but no chain?");
 
     using namespace llvm::support;
-
+    Writer.addTouchedModuleFile(F);
     endian::write<uint32_t>(Out, Writer.getChain()->getModuleFileID(F),
                             llvm::endianness::little);
   }
@@ -4478,6 +4482,7 @@ public:
            "have reference to loaded module file but no chain?");
 
     using namespace llvm::support;
+    Writer.addTouchedModuleFile(F);
     endian::write<uint32_t>(Out, Writer.getChain()->getModuleFileID(F),
                             llvm::endianness::little);
   }

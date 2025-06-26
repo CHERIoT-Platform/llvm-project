@@ -1381,6 +1381,7 @@ protected:
       case eFormatAddressInfo:
       case eFormatHexFloat:
       case eFormatInstruction:
+      case eFormatCheriotCapability:
       case eFormatVoid:
         result.AppendError("unsupported format for writing memory");
         return;

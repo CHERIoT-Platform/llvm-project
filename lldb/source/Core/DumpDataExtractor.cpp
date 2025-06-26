@@ -413,6 +413,114 @@ lldb::offset_t lldb_private::DumpDataExtractor(
     }
 
     switch (item_format) {
+    case eFormatCheriotCapability: {
+      if (item_byte_size != 8) {
+        s->Printf("error: unsupported byte size (%" PRIu64
+                  ") for cheriot capability format",
+                  (uint64_t)item_byte_size);
+        return offset;
+      }
+
+      // Extract the raw bits of the capability.
+      uint64_t uval64 = DE.GetMaxU64(&offset, item_byte_size);
+      uint32_t addr = uval64;
+      uint32_t meta = (uval64 >> 32);
+      unsigned B = meta & 0x1FF;
+      unsigned T = (meta >> 9) & 0x1FF;
+      unsigned E = (meta >> 18) & 0xF;
+      unsigned otype = (meta >> 22) & 0x7;
+      std::bitset<6> perms = (meta >> 25) & 0x3F;
+
+      bool GL = perms[5];
+      bool LD = false;
+      bool MC = false;
+      bool SD = false;
+      bool SL = false;
+      bool LM = false;
+      bool LG = false;
+      bool SR = false;
+      bool EX = false;
+      bool U0 = false;
+      bool SE = false;
+      bool US = false;
+
+      // Cheriot capabilities pack 11 permissions into 6 bits,
+      // so decoding is non-trivial.
+      if (perms[4] && perms[3]) {
+        LD = MC = SD = true;
+        SL = perms[2];
+        LM = perms[1];
+        LD = perms[0];
+      } else if (perms[4] && !perms[3] && perms[2]) {
+        LD = MC = true;
+        LM = perms[1];
+        LG = perms[0];
+      } else if (perms[4] && !perms[3] && !perms[2] && !perms[1] && !perms[0]) {
+        SD = MC = true;
+      } else if (perms[4] && !perms[3] && !perms[2]) {
+        LD = perms[1];
+        SD = perms[0];
+      } else if (!perms[4] && perms[3]) {
+        EX = LD = MC = true;
+        SR = perms[2];
+        LM = perms[1];
+        LG = perms[0];
+      } else {
+        U0 = perms[2];
+        SE = perms[1];
+        US = perms[0];
+      }
+
+      // Render the permissions to a string.
+      std::string perm_string;
+      perm_string += GL ? 'G' : '-';
+      perm_string += ' ';
+      perm_string += LD ? 'R' : '-';
+      perm_string += SD ? 'W' : '-';
+      perm_string += MC ? 'c' : '-';
+      perm_string += LG ? 'g' : '-';
+      perm_string += LM ? 'm' : '-';
+      perm_string += SL ? 'l' : '-';
+      perm_string += ' ';
+      perm_string += EX ? 'X' : '-';
+      perm_string += SR ? 'a' : '-';
+      perm_string += ' ';
+      perm_string += SE ? 'S' : '-';
+      perm_string += US ? 'U' : '-';
+      perm_string += U0 ? '0' : '-';
+
+      // Decode otype, and present with a semantic string if possible.
+      if (otype != 0 && !EX)
+        otype += 8;
+      constexpr llvm::StringRef otypes[] = {
+          "[unsealed]",
+          "[IRQ inherit forward sentry]",
+          "[IRQ disable forward sentry]",
+          "[IRQ enable forward sentry]",
+          "[IRQ disable return sentry]",
+          "[IRQ enable return sentry]",
+      };
+      llvm::StringRef otype_str = (otype < sizeof(otypes)) ? otypes[otype] : "";
+
+      // Compute the base and top addresses for the bounds.
+      unsigned e = (E != 15) ? E : 24;
+      uint64_t a_top = addr >> (e + 9);
+      uint64_t a_mid = (addr >> e) & 0x1FF;
+      uint64_t a_hi = (a_mid < B) ? 1 : 0;
+      uint64_t t_hi = (T < B) ? 1 : 0;
+      uint64_t c_b = -a_hi;
+      uint64_t c_t = t_hi - a_hi;
+      uint64_t a_top_base = a_top + c_b;
+      uint64_t a_top_top = a_top + c_t;
+      uint64_t base = ((a_top_base << 9) + B) << e;
+      uint64_t top = ((a_top_top << 9) + T) << e;
+      uint64_t len = top - base;
+
+      s->Printf("0x%08x (v:? 0x%08llx-0x%08llx l:0x%llx o:0x%x%s p: %s)", addr,
+                base, top, len, otype, otype_str.data(), perm_string.c_str());
+
+      break;
+    }
     case eFormatBoolean:
       if (item_byte_size <= 8)
         s->Printf("%s", DE.GetMaxU64Bitfield(&offset, item_byte_size,

@@ -39,36 +39,6 @@ private:
   bool detectVLSCCEligibleStruct(QualType Ty, unsigned ABIVLen,
                                  llvm::Type *&VLSType) const;
 
-  /// CHERI(oT)-specific: Figure out how many registers are needed to pass a
-  /// value of the given type and size directly in register(s). The value of
-  /// `-1` means that the value should be passed indirectly.
-  ///
-  /// Note: `Size` is in bits.
-  int8_t getCapRegsForStruct(uint64_t Size, QualType Ty) const {
-    auto &T = getTarget();
-    auto CapWidth = T.getCHERICapabilityWidth();
-
-    if (Size % CapWidth)
-      return -1;
-
-    auto *RT = Ty->getAs<RecordType>();
-
-    StringRef TargetABI = T.getABI();
-    bool IsCheriot = TargetABI == "cheriot" || TargetABI == "cheriot-baremetal";
-
-    auto Q = Size / CapWidth;
-
-    if (RT && getContext().containsCapabilities(RT->getDecl())) {
-      if (Q == 1)
-        return 1;
-
-      if (IsCheriot && Q == 2)
-        return 2;
-    }
-
-    return -1;
-  }
-
 public:
   RISCVABIInfo(CodeGen::CodeGenTypes &CGT, unsigned XLen, unsigned FLen,
                bool EABI)
@@ -670,16 +640,19 @@ ABIArgInfo RISCVABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
   if (isEmptyRecord(getContext(), Ty, true) && Size == 0)
     return ABIArgInfo::getIgnore();
 
-  auto CapRegsForStruct = getCapRegsForStruct(Size, Ty);
-  bool ForcePassInCapRegs = CapRegsForStruct > 0;
-  bool IsSingleCapability =
-      Ty->isCHERICapabilityType(getContext()) || CapRegsForStruct == 1;
+  bool IsSingleCapRecord = false;
+  if (auto *RT = Ty->getAs<RecordType>())
+    IsSingleCapRecord = Size == getTarget().getCHERICapabilityWidth() &&
+                        getContext().containsCapabilities(RT->getDecl());
+
+  bool IsCapability = Ty->isCHERICapabilityType(getContext()) ||
+                      IsSingleCapRecord;
 
   // Capabilities (including single-capability records, which are treated the
   // same as a single capability) are passed indirectly for hybrid varargs.
   // Anything larger is bigger than 2*XLEN and thus automatically passed
   // indirectly anyway.
-  if (!IsFixed && IsSingleCapability &&
+  if (!IsFixed && IsCapability &&
       !getContext().getTargetInfo().areAllPointersCapabilities()) {
     if (ArgGPRsLeft)
       ArgGPRsLeft -= 1;
@@ -740,9 +713,9 @@ ABIArgInfo RISCVABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
   // TODO: Pairs involving capabilities should be passed in registers too like
   // int/fp pairs (requires thought for fp+cap when out of FPRs).
   int NeededArgGPRs = 1;
-  if (!IsSingleCapability && !IsFixed && NeededAlign == 2 * XLen)
+  if (!IsCapability && !IsFixed && NeededAlign == 2 * XLen)
     NeededArgGPRs = 2 + (EABI && XLen == 32 ? 0 : (ArgGPRsLeft % 2));
-  else if (!IsSingleCapability && Size > XLen && Size <= 2 * XLen)
+  else if (!IsCapability && Size > XLen && Size <= 2 * XLen)
     NeededArgGPRs = 2;
 
   if (NeededArgGPRs > ArgGPRsLeft) {
@@ -775,7 +748,7 @@ ABIArgInfo RISCVABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
     return ABIArgInfo::getDirect();
   }
 
-  if (ForcePassInCapRegs)
+  if (IsSingleCapRecord)
     return ABIArgInfo::getDirect();
 
   // TODO: _BitInt is not handled yet in VLS calling convention since _BitInt
@@ -852,18 +825,21 @@ RValue RISCVABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
   if (EABI && XLen == 32 && !IsCheriot)
     TInfo.Align = std::min(TInfo.Align, CharUnits::fromQuantity(4));
 
-  uint64_t Size = TInfo.Width.getQuantity() * 8;
+  bool IsSingleCapRecord = false;
+  CharUnits CapabilityWidth =
+    CharUnits::fromQuantity(getTarget().getCHERICapabilityWidth() / 8);
+  if (const auto *RT = Ty->getAs<RecordType>())
+    IsSingleCapRecord = TInfo.Width == CapabilityWidth &&
+                        getContext().containsCapabilities(RT->getDecl());
 
-  auto CapRegsForStruct = getCapRegsForStruct(Size, Ty);
-  bool IsSingleCapability =
-      Ty->isCHERICapabilityType(getContext()) || CapRegsForStruct == 1;
+  bool IsCapability = Ty->isCHERICapabilityType(getContext()) ||
+                      IsSingleCapRecord;
 
   // Arguments bigger than 2*Xlen bytes are passed indirectly, as are
   // capabilities for the hybrid ABI.
-  bool IsIndirect =
-      TInfo.Width > 2 * SlotSize ||
-      (!getContext().getTargetInfo().areAllPointersCapabilities() &&
-       IsSingleCapability);
+  bool IsIndirect = TInfo.Width > 2 * SlotSize ||
+    (!getContext().getTargetInfo().areAllPointersCapabilities() &&
+     IsCapability);
 
   return emitVoidPtrVAArg(CGF, VAListAddr, Ty, IsIndirect, TInfo, SlotSize,
                           /*AllowHigherAlign=*/true, Slot);

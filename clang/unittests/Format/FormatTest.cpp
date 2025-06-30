@@ -27969,13 +27969,6 @@ TEST_F(FormatTest, AlignArrayOfStructuresLeftAlignmentNonSquare) {
   verifyFormat("void foo() {\n"
                "  auto thing = test{\n"
                "      {\n"
-               "       {13}, {something}, // A\n"
-               "      }\n"
-               "  };\n"
-               "}",
-               "void foo() {\n"
-               "  auto thing = test{\n"
-               "      {\n"
                "       {13},\n"
                "       {something}, // A\n"
                "      }\n"
@@ -28031,13 +28024,6 @@ TEST_F(FormatTest, AlignArrayOfStructuresRightAlignmentNonSquare) {
                "};",
                Style);
   verifyFormat("void foo() {\n"
-               "  auto thing = test{\n"
-               "      {\n"
-               "       {13}, {something}, // A\n"
-               "      }\n"
-               "  };\n"
-               "}",
-               "void foo() {\n"
                "  auto thing = test{\n"
                "      {\n"
                "       {13},\n"

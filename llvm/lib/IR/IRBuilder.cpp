@@ -53,7 +53,7 @@ IRBuilderBase::CreateGlobalString(StringRef Str, const Twine &Name,
       AddressSpace ? *AddressSpace
                    : M->getDataLayout().getGlobalsAddressSpace());
   GV->setUnnamedAddr(GlobalValue::UnnamedAddr::Global);
-  GV->setAlignment(Align(1));
+  GV->setAlignment(M->getDataLayout().getPrefTypeAlign(getInt8Ty()));
   return GV;
 }
 

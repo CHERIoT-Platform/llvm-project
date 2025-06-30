@@ -109,8 +109,7 @@ void MipsELFStreamer::EmitCheriCapabilityImpl(const MCSymbol *Symbol,
   assert(Addend && "Should have received a MCConstExpr(0) instead of nullptr");
   visitUsedSymbol(*Symbol);
   MCContext &Context = getContext();
-  const MCSymbolRefExpr *SRE =
-      MCSymbolRefExpr::create(Symbol, MCSymbolRefExpr::VK_None, Context, Loc);
+  const MCSymbolRefExpr *SRE = MCSymbolRefExpr::create(Symbol, 0, Context, Loc);
   const MCBinaryExpr *CapExpr = MCBinaryExpr::createAdd(SRE, Addend, Context);
 
   // Pad to ensure that the capability is aligned

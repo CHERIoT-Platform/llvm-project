@@ -36,9 +36,6 @@ public:
   void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
                         Align ByteAlignment,
                         TailPaddingAmount TailPadding) override {}
-
-private:
-  void emitInstToData(const MCInst &Inst, const MCSubtargetInfo &) override;
 };
 
 } // end namespace llvm

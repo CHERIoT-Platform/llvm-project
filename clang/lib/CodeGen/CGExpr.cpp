@@ -7533,7 +7533,7 @@ RValue CodeGenFunction::EmitCall(QualType CalleeType,
     // Load the global and use it in the call
     auto *MethodNum = Builder.CreateLoad(MethodNumVar);
     MethodNum->setMetadata(CGM.getModule().getMDKindID("invariant.load"),
-                           llvm::MDNode::get(getLLVMContext(), std::nullopt));
+                           llvm::MDNode::get(getLLVMContext(), {}));
     CallArg MethodNumArg(RValue::get(MethodNum), NumTy);
     NewParams.push_back(NumTy);
     // If we have a non-empty suffix, then we're not the version of the method

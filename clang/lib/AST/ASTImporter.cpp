@@ -1615,7 +1615,7 @@ ASTNodeImporter::VisitCountAttributedType(const CountAttributedType *T) {
 
   return Importer.getToContext().getCountAttributedType(
       *ToWrappedTypeOrErr, CountExpr, T->isCountInBytes(), T->isOrNull(),
-      ArrayRef(CoupledDecls.data(), CoupledDecls.size()));
+      ArrayRef(CoupledDecls));
 }
 
 ExpectedType ASTNodeImporter::VisitTemplateTypeParmType(
@@ -6347,8 +6347,8 @@ ExpectedDecl ASTNodeImporter::VisitClassTemplateSpecializationDecl(
 
     if (GetImportedOrCreateDecl<ClassTemplatePartialSpecializationDecl>(
             D2, D, Importer.getToContext(), D->getTagKind(), DC, *BeginLocOrErr,
-            *IdLocOrErr, ToTPList, ClassTemplate,
-            ArrayRef(TemplateArgs.data(), TemplateArgs.size()), CanonInjType,
+            *IdLocOrErr, ToTPList, ClassTemplate, ArrayRef(TemplateArgs),
+            CanonInjType,
             cast_or_null<ClassTemplatePartialSpecializationDecl>(PrevDecl)))
       return D2;
 

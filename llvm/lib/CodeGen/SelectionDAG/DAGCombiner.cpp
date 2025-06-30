@@ -16904,7 +16904,7 @@ ConstantFoldBITCASTofBUILD_VECTOR(SDNode *BV, EVT DstEltVT) {
 static bool isContractableFMUL(const TargetOptions &Options, SDValue N) {
   assert(N.getOpcode() == ISD::FMUL);
 
-  return Options.AllowFPOpFusion == FPOpFusion::Fast || Options.UnsafeFPMath ||
+  return Options.AllowFPOpFusion == FPOpFusion::Fast ||
          N->getFlags().hasAllowContract();
 }
 
@@ -17177,8 +17177,8 @@ SDValue DAGCombiner::visitFSUBForFMACombine(SDNode *N) {
     return SDValue();
 
   const SDNodeFlags Flags = N->getFlags();
-  bool AllowFusionGlobally = (Options.AllowFPOpFusion == FPOpFusion::Fast ||
-                              Options.UnsafeFPMath || HasFMAD);
+  bool AllowFusionGlobally =
+      (Options.AllowFPOpFusion == FPOpFusion::Fast || HasFMAD);
 
   // If the subtraction is not contractable, do not combine.
   if (!AllowFusionGlobally && !N->getFlags().hasAllowContract())
@@ -17333,13 +17333,8 @@ SDValue DAGCombiner::visitFSUBForFMACombine(SDNode *N) {
     }
   }
 
-  auto isReassociable = [&Options](SDNode *N) {
-    return Options.UnsafeFPMath || N->getFlags().hasAllowReassociation();
-  };
-
-  auto isContractableAndReassociableFMUL = [&isContractableFMUL,
-                                            &isReassociable](SDValue N) {
-    return isContractableFMUL(N) && isReassociable(N.getNode());
+  auto isContractableAndReassociableFMUL = [&isContractableFMUL](SDValue N) {
+    return isContractableFMUL(N) && N->getFlags().hasAllowReassociation();
   };
 
   auto isFusedOp = [&](SDValue N) {
@@ -17347,8 +17342,8 @@ SDValue DAGCombiner::visitFSUBForFMACombine(SDNode *N) {
   };
 
   // More folding opportunities when target permits.
-  if (Aggressive && isReassociable(N)) {
-    bool CanFuse = Options.UnsafeFPMath || N->getFlags().hasAllowContract();
+  if (Aggressive && N->getFlags().hasAllowReassociation()) {
+    bool CanFuse = N->getFlags().hasAllowContract();
     // fold (fsub (fma x, y, (fmul u, v)), z)
     //   -> (fma x, y (fma u, v, (fneg z)))
     if (CanFuse && isFusedOp(N0) &&
@@ -17505,8 +17500,7 @@ SDValue DAGCombiner::visitFMULForFMADistributiveCombine(SDNode *N) {
 
   // Floating-point multiply-add with intermediate rounding. This can result
   // in a less precise result due to the changed rounding order.
-  bool HasFMAD = Options.UnsafeFPMath &&
-                 (LegalOperations && TLI.isFMADLegal(DAG, N));
+  bool HasFMAD = LegalOperations && TLI.isFMADLegal(DAG, N);
 
   // No valid opcode, do not combine.
   if (!HasFMAD && !HasFMA)
@@ -18405,8 +18399,7 @@ SDValue DAGCombiner::visitFDIV(SDNode *N) {
     // Only do the transform if the reciprocal is a legal fp immediate that
     // isn't too nasty (eg NaN, denormal, ...).
     if (((st == APFloat::opOK && !Recip.isDenormal()) ||
-         (st == APFloat::opInexact &&
-          (Options.UnsafeFPMath || Flags.hasAllowReciprocal()))) &&
+         (st == APFloat::opInexact && Flags.hasAllowReciprocal())) &&
         (!LegalOperations ||
          // FIXME: custom lowering of ConstantFP might fail (see e.g. ARM
          // backend)... we should handle this gracefully after Legalize.
@@ -18417,7 +18410,7 @@ SDValue DAGCombiner::visitFDIV(SDNode *N) {
                          DAG.getConstantFP(Recip, DL, VT));
   }
 
-  if (Options.UnsafeFPMath || Flags.hasAllowReciprocal()) {
+  if (Flags.hasAllowReciprocal()) {
     // If this FDIV is part of a reciprocal square root, it may be folded
     // into a target-specific square root estimate instruction.
     if (N1.getOpcode() == ISD::FSQRT) {
@@ -18492,7 +18485,7 @@ SDValue DAGCombiner::visitFDIV(SDNode *N) {
 
   // Fold X/Sqrt(X) -> Sqrt(X)
   if ((Options.NoSignedZerosFPMath || Flags.hasNoSignedZeros()) &&
-      (Options.UnsafeFPMath || Flags.hasAllowReassociation()))
+      Flags.hasAllowReassociation())
     if (N1.getOpcode() == ISD::FSQRT && N0 == N1.getOperand(0))
       return N1;
 

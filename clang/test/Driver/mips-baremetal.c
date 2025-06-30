@@ -17,10 +17,9 @@
 // SYSROOT-SAME: "-internal-isystem" "[[SYSROOT]]/include"
 // NOSYSROOT-SAME: "-internal-isystem" "{{[^"]+}}./lib/clang-runtimes/mips64-none-elf/include"
 
-// CHECK: "{{.*}}ld.lld" "{{.+}}.o" "-Bstatic"
-// SYSROOT-SAME:   "-L[[SYSROOT]]/lib"
-// NOSYSROOT-SAME: "-L{{.+}}/lib/clang-runtimes/mips64-none-elf/lib"
-// CHERIABI-SAME: "-L{{.+}}/lib/clang-runtimes/mips64-none-elf/lib"
+// SYSROOT: "{{.*}}ld" "--sysroot=[[SYSROOT]]" "-Bstatic" "-m" "elf64btsmip" "{{.+}}.o" "-L[[SYSROOT]]/lib"
+// NOSYSROOT: "{{.*}}ld" "-Bstatic" "{{.+}}.o" "-L{{.+}}/lib/clang-runtimes/mips64-none-elf/lib"
+// CHERIABI: "{{.*}}ld" "-Bstatic" "{{.+}}.o" "-L{{.+}}/lib/clang-runtimes/mips64-none-elf/lib"
 // CXX-SAME: "-lc++" "-lm"
 // CHECK-SAME: libclang_rt.builtins.a
 // CHECK-SAME: "-lc"

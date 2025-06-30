@@ -59,8 +59,6 @@ private:
   /// labels in the middle of the section.
   DenseMap<const MCSection*, bool> HasSectionLabel;
 
-  void emitInstToData(const MCInst &Inst, const MCSubtargetInfo &STI) override;
-
   void emitDataRegion(MachO::DataRegionType Kind);
   void emitDataRegionEnd();
 
@@ -428,23 +426,6 @@ void MCMachOStreamer::emitTBSSSymbol(MCSection *Section, MCSymbol *Symbol,
                                      uint64_t Size, Align ByteAlignment,
                                      TailPaddingAmount TailPadding) {
   emitZerofill(Section, Symbol, Size, ByteAlignment, TailPadding);
-}
-
-void MCMachOStreamer::emitInstToData(const MCInst &Inst,
-                                     const MCSubtargetInfo &STI) {
-  MCDataFragment *DF = getOrCreateDataFragment();
-
-  SmallVector<MCFixup, 4> Fixups;
-  SmallString<256> Code;
-  getAssembler().getEmitter().encodeInstruction(Inst, Code, Fixups, STI);
-
-  // Add the fixups and data.
-  for (MCFixup &Fixup : Fixups) {
-    Fixup.setOffset(Fixup.getOffset() + DF->getContents().size());
-    DF->getFixups().push_back(Fixup);
-  }
-  DF->setHasInstructions(STI);
-  DF->appendContents(Code);
 }
 
 void MCMachOStreamer::finishImpl() {

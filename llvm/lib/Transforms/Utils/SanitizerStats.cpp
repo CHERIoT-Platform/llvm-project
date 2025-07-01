@@ -22,9 +22,9 @@ using namespace llvm;
 
 SanitizerStatReport::SanitizerStatReport(Module *M) : M(M) {
   StatTy = ArrayType::get(
-    PointerType::get(M->getContext(),
-                     M->getDataLayout().getGlobalsAddressSpace()),
-    2);
+      PointerType::get(M->getContext(),
+                       M->getDataLayout().getDefaultGlobalsAddressSpace()),
+      2);
   EmptyModuleStatsTy = makeModuleStatsTy();
 
   ModuleStatsGV = new GlobalVariable(*M, EmptyModuleStatsTy, false,
@@ -36,18 +36,20 @@ ArrayType *SanitizerStatReport::makeModuleStatsArrayTy() {
 }
 
 StructType *SanitizerStatReport::makeModuleStatsTy() {
-  return StructType::get(M->getContext(),
-                         {PointerType::get(M->getContext(),
-                                           M->getDataLayout().getGlobalsAddressSpace()),
-                          Type::getInt32Ty(M->getContext()),
-                          makeModuleStatsArrayTy()});
+  return StructType::get(
+      M->getContext(),
+      {PointerType::get(M->getContext(),
+                        M->getDataLayout().getDefaultGlobalsAddressSpace()),
+       Type::getInt32Ty(M->getContext()), makeModuleStatsArrayTy()});
 }
 
 void SanitizerStatReport::create(IRBuilder<> &B, SanitizerStatKind SK) {
   Function *F = B.GetInsertBlock()->getParent();
   Module *M = F->getParent();
-  PointerType *PtrTy = B.getPtrTy(M->getDataLayout().getGlobalsAddressSpace());
-  IntegerType *IntPtrTy = B.getIntPtrTy(M->getDataLayout(), M->getDataLayout().getGlobalsAddressSpace());
+  PointerType *PtrTy =
+      B.getPtrTy(M->getDataLayout().getDefaultGlobalsAddressSpace());
+  IntegerType *IntPtrTy = B.getIntPtrTy(
+      M->getDataLayout(), M->getDataLayout().getDefaultGlobalsAddressSpace());
   ArrayType *StatTy = ArrayType::get(PtrTy, 2);
 
   Inits.push_back(ConstantArray::get(
@@ -77,7 +79,8 @@ void SanitizerStatReport::finish() {
     return;
   }
 
-  PointerType *Int8PtrTy = PointerType::get(M->getContext(), M->getDataLayout().getGlobalsAddressSpace());
+  PointerType *Int8PtrTy = PointerType::get(
+      M->getContext(), M->getDataLayout().getDefaultGlobalsAddressSpace());
   IntegerType *Int32Ty = Type::getInt32Ty(M->getContext());
   Type *VoidTy = Type::getVoidTy(M->getContext());
 

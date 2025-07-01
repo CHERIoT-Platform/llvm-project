@@ -1975,8 +1975,8 @@ SDValue SelectionDAG::getJumpTable(int JTI, EVT VT, bool isTarget,
 
 SDValue SelectionDAG::getJumpTableDebugInfo(int JTI, SDValue Chain,
                                             const SDLoc &DL) {
-  EVT PTy = getTargetLoweringInfo().getPointerTy(getDataLayout(),
-    getDataLayout().getGlobalsAddressSpace());
+  EVT PTy = getTargetLoweringInfo().getPointerTy(
+      getDataLayout(), getDataLayout().getDefaultGlobalsAddressSpace());
   return getNode(ISD::JUMP_TABLE_DEBUG_INFO, DL, MVT::Glue, Chain,
                  getTargetConstant(static_cast<uint64_t>(JTI), DL, PTy, true));
 }

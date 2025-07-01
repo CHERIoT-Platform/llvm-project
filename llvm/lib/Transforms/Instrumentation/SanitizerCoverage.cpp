@@ -437,7 +437,8 @@ bool ModuleSanitizerCoverage::instrumentModule() {
   IntptrTy = Type::getIntNTy(*C, DL->getPointerSizeInBits(0));
 
   PcAddrTy = Type::getIntNTy(*C, DL->getIndexSizeInBits(DL->getProgramAddressSpace()));
-  PtrTy = PointerType::get(*C, DL->getGlobalsAddressSpace());
+  unsigned GlobalAS = DL->getDefaultGlobalsAddressSpace();
+  PtrTy = PointerType::get(*C, GlobalAS);
   Type *VoidTy = Type::getVoidTy(*C);
   IRBuilder<> IRB(*C);
   Int64Ty = IRB.getInt64Ty();

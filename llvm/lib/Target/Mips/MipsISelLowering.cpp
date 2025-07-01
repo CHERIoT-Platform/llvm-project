@@ -5856,8 +5856,9 @@ SDValue MipsTargetLowering::getPICJumpTableRelocBase(SDValue Table,
                                                      SelectionDAG &DAG) const {
   if (!isPositionIndependent())
     return Table;
-  return DAG.getGLOBAL_OFFSET_TABLE(getPointerTy(
-      DAG.getDataLayout(), DAG.getDataLayout().getGlobalsAddressSpace()));
+  return DAG.getGLOBAL_OFFSET_TABLE(
+      getPointerTy(DAG.getDataLayout(),
+                   DAG.getDataLayout().getDefaultGlobalsAddressSpace()));
 }
 
 bool MipsTargetLowering::useSoftFloat() const {

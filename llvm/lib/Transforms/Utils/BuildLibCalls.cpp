@@ -2074,8 +2074,10 @@ Value *llvm::emitMalloc(Value *Num, IRBuilderBase &B, const DataLayout &DL,
 
   StringRef MallocName = TLI->getName(LibFunc_malloc);
   Type *SizeTTy = getSizeTTy(B, TLI);
-  FunctionCallee Malloc =
-      getOrInsertLibFunc(M, *TLI, LibFunc_malloc, PointerType::get(M->getContext(), DL.getGlobalsAddressSpace()), SizeTTy);
+  FunctionCallee Malloc = getOrInsertLibFunc(
+      M, *TLI, LibFunc_malloc,
+      PointerType::get(M->getContext(), DL.getDefaultGlobalsAddressSpace()),
+      SizeTTy);
   inferNonMandatoryLibFuncAttrs(M, MallocName, *TLI);
   CallInst *CI = B.CreateCall(Malloc, Num, MallocName);
 
@@ -2165,7 +2167,8 @@ Value *llvm::emitHotColdNew(Value *Num, IRBuilderBase &B,
 
   StringRef Name = TLI->getName(NewFunc);
   const DataLayout &DL = M->getDataLayout();
-  auto VoidPtrTy = PointerType::get(M->getContext(), DL.getGlobalsAddressSpace());
+  auto VoidPtrTy =
+      PointerType::get(M->getContext(), DL.getDefaultGlobalsAddressSpace());
   FunctionCallee Func =
       M->getOrInsertFunction(Name, VoidPtrTy, Num->getType(), B.getInt8Ty());
   inferNonMandatoryLibFuncAttrs(M, Name, *TLI);
@@ -2187,7 +2190,8 @@ Value *llvm::emitHotColdNewNoThrow(Value *Num, Value *NoThrow, IRBuilderBase &B,
 
   StringRef Name = TLI->getName(NewFunc);
   const DataLayout &DL = M->getDataLayout();
-  auto VoidPtrTy = PointerType::get(M->getContext(), DL.getGlobalsAddressSpace());
+  auto VoidPtrTy =
+      PointerType::get(M->getContext(), DL.getDefaultGlobalsAddressSpace());
   FunctionCallee Func = M->getOrInsertFunction(
       Name, VoidPtrTy, Num->getType(), NoThrow->getType(), B.getInt8Ty());
   inferNonMandatoryLibFuncAttrs(M, Name, *TLI);
@@ -2209,7 +2213,8 @@ Value *llvm::emitHotColdNewAligned(Value *Num, Value *Align, IRBuilderBase &B,
 
   StringRef Name = TLI->getName(NewFunc);
   const DataLayout &DL = M->getDataLayout();
-  auto VoidPtrTy = PointerType::get(M->getContext(), DL.getGlobalsAddressSpace());
+  auto VoidPtrTy =
+      PointerType::get(M->getContext(), DL.getDefaultGlobalsAddressSpace());
   FunctionCallee Func = M->getOrInsertFunction(
       Name, VoidPtrTy, Num->getType(), Align->getType(), B.getInt8Ty());
   inferNonMandatoryLibFuncAttrs(M, Name, *TLI);
@@ -2232,7 +2237,8 @@ Value *llvm::emitHotColdNewAlignedNoThrow(Value *Num, Value *Align,
 
   StringRef Name = TLI->getName(NewFunc);
   const DataLayout &DL = M->getDataLayout();
-  auto VoidPtrTy = PointerType::get(M->getContext(), DL.getGlobalsAddressSpace());
+  auto VoidPtrTy =
+      PointerType::get(M->getContext(), DL.getDefaultGlobalsAddressSpace());
   FunctionCallee Func = M->getOrInsertFunction(
       Name, VoidPtrTy, Num->getType(), Align->getType(), NoThrow->getType(),
       B.getInt8Ty());

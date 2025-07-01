@@ -9472,7 +9472,7 @@ SDValue RISCVTargetLowering::getDynamicTLSAddr(GlobalAddressSDNode *N,
                                                SelectionDAG &DAG) const {
   SDLoc DL(N);
   Type *CallTy = PointerType::get(
-      *DAG.getContext(), DAG.getDataLayout().getGlobalsAddressSpace());
+      *DAG.getContext(), DAG.getDataLayout().getDefaultGlobalsAddressSpace());
   const GlobalValue *GV = N->getGlobal();
 
   // Use a PC-relative addressing mode to access the global dynamic GOT address.
@@ -9508,7 +9508,7 @@ SDValue RISCVTargetLowering::getTLSDescAddr(GlobalAddressSDNode *N,
                                             SelectionDAG &DAG) const {
   SDLoc DL(N);
   EVT Ty = getPointerTy(DAG.getDataLayout(),
-    DAG.getDataLayout().getGlobalsAddressSpace());
+                        DAG.getDataLayout().getDefaultGlobalsAddressSpace());
   const GlobalValue *GV = N->getGlobal();
 
   // Use a PC-relative addressing mode to access the global dynamic GOT address.
@@ -11334,8 +11334,9 @@ SDValue RISCVTargetLowering::LowerINTRINSIC_WO_CHAIN(SDValue Op,
     MCPhysReg PhysReg = RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI())
                             ? RISCV::X4_Y
                             : RISCV::X4;
-    EVT PtrVT = getPointerTy(DAG.getDataLayout(),
-                             DAG.getDataLayout().getGlobalsAddressSpace());
+    EVT PtrVT =
+        getPointerTy(DAG.getDataLayout(),
+                     DAG.getDataLayout().getDefaultGlobalsAddressSpace());
     return DAG.getRegister(PhysReg, PtrVT);
   }
   case Intrinsic::riscv_orc_b:

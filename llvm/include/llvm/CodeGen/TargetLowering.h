@@ -4090,7 +4090,7 @@ public:
   virtual unsigned getJumpTableEncoding() const;
 
   virtual MVT getJumpTableRegTy(const DataLayout &DL) const {
-    return getPointerRangeTy(DL, DL.getGlobalsAddressSpace());
+    return getPointerRangeTy(DL, DL.getDefaultGlobalsAddressSpace());
   }
 
   virtual const MCExpr *

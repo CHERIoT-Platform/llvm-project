@@ -252,8 +252,6 @@ public:
   unsigned getDefaultGlobalsAddressSpace() const {
     return DefaultGlobalsAddrSpace;
   }
-  // TODO: remove this and use the upstreamed version
-  unsigned getGlobalsAddressSpace() const { return DefaultGlobalsAddrSpace; }
 
   bool hasMicrosoftFastStdCallMangling() const {
     return ManglingMode == MM_WinCOFFX86;

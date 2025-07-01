@@ -171,12 +171,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     CapType = Subtarget.typeForCapabilities();
     NullCapabilityRegister = RISCV::X0_Y;
     addRegisterClass(CapType, &RISCV::YGPRRegClass);
-  }
-
-  if (Subtarget.hasVendorXCheri()) {
-    CapType = Subtarget.typeForCapabilities();
-    NullCapabilityRegister = RISCV::X0_Y;
-    addRegisterClass(CapType, &RISCV::YGPRRegClass);
+    IsCheriPureCap = RISCVABI::isCheriPureCapABI(ABI);
   }
 
   if (Subtarget.hasVendorXCheriot()) {

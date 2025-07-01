@@ -3595,6 +3595,7 @@ public:
   Register getNullCapabilityRegister() const {
     return NullCapabilityRegister;
   }
+  bool isCheriPureCap() const { return IsCheriPureCap; }
 
   /// Does this target require the clearing of high-order bits in a register
   /// passed to the fp16 to fp conversion library function.
@@ -4033,6 +4034,9 @@ protected:
   /// The type to use for CHERI capabilities (if supported)
   /// Should be one of c64/c128/c256
   MVT CapType = MVT();
+
+  /// All pointers are capabilities.
+  bool IsCheriPureCap = false;
 
   /// Whether CHERI Capability loads/stores can be used with unaligned addresses
   /// This makes it possible to do a tag-preserving copy even if the alignment

@@ -217,8 +217,8 @@ def err_cheriot_invalid_sealed_declaration
     : Error<"cannot declare a sealed variable as %0">;
 def err_cheriot_invalid_sealing_key_type_name
     : Error<"the sealing key type name '%0' is not a valid identifier">;
-def err_cheriot_use_of_builtin_sealing_key_type_no_compartment
-    : Error<"%0 used, but no compartment name given">;
+def warn_cheriot_use_of_builtin_sealing_key_type_no_compartment
+    : Warning<"%0 used, but no compartment name given">,InGroup<CHERIMissingCompartment>,DefaultError;
 
 // C99 variable-length arrays
 def ext_vla : Extension<"variable length arrays are a C99 feature">,

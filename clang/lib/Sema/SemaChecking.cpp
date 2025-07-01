@@ -3207,7 +3207,7 @@ Sema::CheckBuiltinFunctionCall(FunctionDecl *FDecl, unsigned BuiltinID,
     }
     if (getLangOpts().CheriCompartmentName.empty()) {
       Diag(Arg->getExprLoc(),
-           diag::err_cheriot_use_of_builtin_sealing_key_type_no_compartment)
+           diag::warn_cheriot_use_of_builtin_sealing_key_type_no_compartment)
           << Context.BuiltinInfo.getName(
                  Builtin::BI__builtin_cheriot_sealing_type);
     }

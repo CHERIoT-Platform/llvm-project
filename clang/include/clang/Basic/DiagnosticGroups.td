@@ -172,6 +172,9 @@ def CheriPedantic : DiagGroup<"cheri-pedantic", [CHERICapabilityToIntegerCast, C
 // Warnings/Errors for bugs in the MIPS/CHERI backend
 def MIPSCHERIBugs: DiagGroup<"mips-cheri-bugs">;
 
+// Generally useful CHERI errors
+def CHERIMissingCompartment: DiagGroup<"cheri-missing-compartment">;
+
 def C99Compat : DiagGroup<"c99-compat">;
 def C23Compat : DiagGroup<"c23-compat">;
 def : DiagGroup<"c2x-compat", [C23Compat]>;

@@ -394,6 +394,8 @@ public:
   TTI::AddressingModeKind getPreferredAddressingMode(const Loop *L,
                                                      ScalarEvolution *SE) const;
 
+  bool isLegalBaseRegForLSR(const SCEV *S) const;
+
   unsigned getRegisterClassForType(bool Vector, Type *Ty = nullptr) const {
     if (Vector)
       return RISCVRegisterClass::VRRC;

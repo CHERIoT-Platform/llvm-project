@@ -804,6 +804,8 @@ public:
   LLVM_ABI AddressingModeKind
   getPreferredAddressingMode(const Loop *L, ScalarEvolution *SE) const;
 
+  bool isLegalBaseRegForLSR(const SCEV *) const;
+
   /// Return true if the target supports masked store.
   LLVM_ABI bool isLegalMaskedStore(Type *DataType, Align Alignment,
                                    unsigned AddressSpace) const;

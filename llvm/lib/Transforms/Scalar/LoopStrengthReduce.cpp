@@ -1482,6 +1482,10 @@ void Cost::RateFormula(const Formula &F,
       return;
   }
   for (const SCEV *BaseReg : F.BaseRegs) {
+    if (!TTI->isLegalBaseRegForLSR(BaseReg)) {
+      Lose();
+      return;
+    }
     if (VisitedRegs.count(BaseReg)) {
       Lose();
       return;

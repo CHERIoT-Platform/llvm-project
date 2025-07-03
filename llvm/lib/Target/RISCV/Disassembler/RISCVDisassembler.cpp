@@ -839,6 +839,9 @@ static constexpr DecoderListEntry DecoderList32[]{
     {DecoderTableXmipscmov32,
      {RISCV::FeatureVendorXMIPSCMov},
      "MIPS mips.ccmov"},
+    {DecoderTableXmipscbop32,
+     {RISCV::FeatureVendorXMIPSCBOP},
+     "MIPS mips.pref"},
     {DecoderTableXAndes32, XAndesGroup, "Andes extensions"},
     {DecoderTableCapModeOnly_32, {RISCV::FeatureCapMode}, "CapModeOnly_32"},
     // Standard Extensions
@@ -866,7 +869,9 @@ DecodeStatus RISCVDisassembler::getInstruction32(MCInst &MI, uint64_t &Size,
   }
   Size = 4;
 
-  uint32_t Insn = support::endian::read32le(Bytes.data());
+  // Use uint64_t to match getInstruction48. decodeInstruction is templated
+  // on the Insn type.
+  uint64_t Insn = support::endian::read32le(Bytes.data());
 
   if (!STI.hasFeature(RISCV::Feature64Bit)) {
     for (const DecoderListEntry &Entry : DecoderList32_Not64Bit) {
@@ -932,7 +937,9 @@ DecodeStatus RISCVDisassembler::getInstruction16(MCInst &MI, uint64_t &Size,
   }
   Size = 2;
 
-  uint32_t Insn = support::endian::read16le(Bytes.data());
+  // Use uint64_t to match getInstruction48. decodeInstruction is templated
+  // on the Insn type.
+  uint64_t Insn = support::endian::read16le(Bytes.data());
 
   if (!STI.hasFeature(RISCV::Feature64Bit)) {
     for (const DecoderListEntry &Entry : DecoderList16_Not64Bit) {

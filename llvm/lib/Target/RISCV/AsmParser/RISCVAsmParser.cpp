@@ -818,6 +818,7 @@ public:
   bool isUImm6() const { return isUImm<6>(); }
   bool isUImm7() const { return isUImm<7>(); }
   bool isUImm8() const { return isUImm<8>(); }
+  bool isUImm9() const { return isUImm<9>(); }
   bool isUImm10() const { return isUImm<10>(); }
   bool isUImm11() const { return isUImm<11>(); }
   bool isUImm16() const { return isUImm<16>(); }
@@ -893,6 +894,7 @@ public:
 
   bool isSImm5() const { return isSImm<5>(); }
   bool isSImm6() const { return isSImm<6>(); }
+  bool isSImm10() const { return isSImm<10>(); }
   bool isSImm11() const { return isSImm<11>(); }
   bool isSImm16() const { return isSImm<16>(); }
   bool isSImm26() const { return isSImm<26>(); }
@@ -1023,6 +1025,8 @@ public:
     return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
            VK == RISCV::S_QC_ABS20;
   }
+
+  bool isSImm10Unsigned() const { return isSImm<10>() || isUImm<10>(); }
 
   bool isUImm20LUI() const {
     if (!isImm())
@@ -1691,6 +1695,9 @@ bool RISCVAsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
     return generateImmOutOfRangeError(
         Operands, ErrorInfo, 0, (1 << 8) - 8,
         "immediate must be a multiple of 8 bytes in the range");
+  case Match_InvalidUImm9:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, 0, (1 << 9) - 1,
+                                      "immediate offset must be in the range");
   case Match_InvalidBareSImm9Lsb0:
     return generateImmOutOfRangeError(
         Operands, ErrorInfo, -(1 << 8), (1 << 8) - 2,
@@ -1699,6 +1706,12 @@ bool RISCVAsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
     return generateImmOutOfRangeError(
         Operands, ErrorInfo, 0, (1 << 9) - 8,
         "immediate must be a multiple of 8 bytes in the range");
+  case Match_InvalidSImm10:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 9),
+                                      (1 << 9) - 1);
+  case Match_InvalidSImm10Unsigned:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 9),
+                                      (1 << 10) - 1);
   case Match_InvalidUImm9Lsb0000:
     return generateImmOutOfRangeError(
         Operands, ErrorInfo, 0, (1 << 9) - 16,

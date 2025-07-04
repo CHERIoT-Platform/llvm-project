@@ -244,7 +244,8 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
       addRegClassForRVV(VT);
     }
 
-    if (Subtarget.hasVInstructionsF16Minimal())
+    if (Subtarget.hasVInstructionsF16Minimal() ||
+        Subtarget.hasVendorXAndesVPackFPH())
       for (MVT VT : F16VecVTs)
         addRegClassForRVV(VT);
 
@@ -2489,10 +2490,8 @@ unsigned RISCVTargetLowering::getVectorTypeBreakdownForCallingConv(
 // in the RISC-V ISA. May adjust compares to favor compare with 0 over compare
 // with 1/-1.
 static void translateSetCCForBranch(const SDLoc &DL, SDValue &LHS, SDValue &RHS,
-                                    ISD::CondCode &CC, SelectionDAG &DAG) {
-  const RISCVSubtarget &Subtarget =
-      DAG.getMachineFunction().getSubtarget<RISCVSubtarget>();
-
+                                    ISD::CondCode &CC, SelectionDAG &DAG,
+                                    const RISCVSubtarget &Subtarget) {
   // If this is a single bit test that can't be handled by ANDI, shift the
   // bit to be tested to the MSB and perform a signed compare with 0.
   if (isIntEqualitySetCC(CC) && isNullConstant(RHS) &&
@@ -9531,7 +9530,7 @@ SDValue RISCVTargetLowering::lowerSELECT(SDValue Op, SelectionDAG &DAG) const {
       return DAG.getNode(ISD::SUB, DL, VT, FalseV, CondV);
   }
 
-  translateSetCCForBranch(DL, LHS, RHS, CCVal, DAG);
+  translateSetCCForBranch(DL, LHS, RHS, CCVal, DAG, Subtarget);
   // 1 < x ? x : 1 -> 0 < x ? x : 1
   if (isOneConstant(LHS) && (CCVal == ISD::SETLT || CCVal == ISD::SETULT) &&
       RHS == TrueV && LHS == FalseV) {
@@ -9579,7 +9578,7 @@ SDValue RISCVTargetLowering::lowerBRCOND(SDValue Op, SelectionDAG &DAG) const {
     SDValue RHS = CondV.getOperand(1);
     ISD::CondCode CCVal = cast<CondCodeSDNode>(CondV.getOperand(2))->get();
 
-    translateSetCCForBranch(DL, LHS, RHS, CCVal, DAG);
+    translateSetCCForBranch(DL, LHS, RHS, CCVal, DAG, Subtarget);
 
     if (LHS.getValueType().isFatPointer()) {
       LHS = DAG.getTargetExtractSubreg(RISCV::sub_cap_addr, DL, XLenVT, LHS);
@@ -18546,7 +18545,7 @@ static bool combine_CC(SDValue &LHS, SDValue &RHS, SDValue &CC, const SDLoc &DL,
 
     RHS = LHS.getOperand(1);
     LHS = LHS.getOperand(0);
-    translateSetCCForBranch(DL, LHS, RHS, CCVal, DAG);
+    translateSetCCForBranch(DL, LHS, RHS, CCVal, DAG, Subtarget);
 
     CC = DAG.getCondCode(CCVal);
     return true;
@@ -18661,6 +18660,8 @@ static bool combine_CC(SDValue &LHS, SDValue &RHS, SDValue &CC, const SDLoc &DL,
 // (select C, (sub Y, X), Y) -> (sub Y, (select C, X, 0)).
 // (select C, (or Y, X), Y)  -> (or Y, (select C, X, 0)).
 // (select C, (xor Y, X), Y) -> (xor Y, (select C, X, 0)).
+// (select C, (rotl Y, X), Y) -> (rotl Y, (select C, X, 0)).
+// (select C, (rotr Y, X), Y) -> (rotr Y, (select C, X, 0)).
 static SDValue tryFoldSelectIntoOp(SDNode *N, SelectionDAG &DAG,
                                    SDValue TrueVal, SDValue FalseVal,
                                    bool Swapped) {
@@ -18673,6 +18674,8 @@ static SDValue tryFoldSelectIntoOp(SDNode *N, SelectionDAG &DAG,
   case ISD::SRA:
   case ISD::SRL:
   case ISD::SUB:
+  case ISD::ROTL:
+  case ISD::ROTR:
     Commutative = false;
     break;
   case ISD::ADD:

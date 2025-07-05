@@ -110,7 +110,7 @@ void MipsELFStreamer::EmitCheriCapabilityImpl(const MCSymbol *Symbol,
   visitUsedSymbol(*Symbol);
   MCContext &Context = getContext();
   const MCSymbolRefExpr *SRE = MCSymbolRefExpr::create(Symbol, 0, Context, Loc);
-  const MCBinaryExpr *CapExpr = MCBinaryExpr::createAdd(SRE, Addend, Context);
+  const MCBinaryExpr *CapExpr = MCBinaryExpr::createAdd(SRE, Addend, Context, Loc);
 
   // Pad to ensure that the capability is aligned
   emitValueToAlignment(Align(CapSize), 0, 1, 0);
@@ -118,7 +118,7 @@ void MipsELFStreamer::EmitCheriCapabilityImpl(const MCSymbol *Symbol,
   MCDataFragment *DF = new MCDataFragment();
   insert(DF);
   MCFixup cheriFixup = MCFixup::create(
-      0, CapExpr, MCFixupKind(Mips::fixup_CHERI_CAPABILITY), Loc);
+      0, CapExpr, MCFixupKind(Mips::fixup_CHERI_CAPABILITY));
   DF->addFixup(cheriFixup);
   DF->appendContents(CapSize, '\xca');
 }

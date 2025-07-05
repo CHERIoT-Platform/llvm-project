@@ -161,11 +161,10 @@ bool MCAssembler::evaluateFixup(const MCFragment &F, MCFixup &Fixup,
     return true;
   }
 
-  bool IsResolved = false;
   unsigned FixupFlags = getBackend().getFixupKindInfo(Fixup.getKind()).Flags;
-  bool IsPCRel = FixupFlags & MCFixupKindInfo::FKF_IsPCRel;
-  if (FixupFlags & MCFixupKindInfo::FKF_IsTarget) {
-    IsResolved = getBackend().evaluateTargetFixup(Fixup, Target, Value);
+  bool IsResolved = false;
+  if (auto State = getBackend().evaluateFixup(Fixup, Target, Value)) {
+    IsResolved = *State;
   } else {
     const MCSymbol *Add = Target.getAddSym();
     const MCSymbol *Sub = Target.getSubSym();
@@ -177,7 +176,7 @@ bool MCAssembler::evaluateFixup(const MCFragment &F, MCFixup &Fixup,
 
     bool ShouldAlignPC =
         FixupFlags & MCFixupKindInfo::FKF_IsAlignedDownTo32Bits;
-    if (IsPCRel) {
+    if (Fixup.isPCRel()) {
       uint64_t Offset = getFragmentOffset(F) + Fixup.getOffset();
 
       // A number of ARM fixups in Thumb mode require that the effective PC
@@ -202,8 +201,6 @@ bool MCAssembler::evaluateFixup(const MCFragment &F, MCFixup &Fixup,
 
   if (IsResolved && mc::isRelocRelocation(Fixup.getKind()))
     IsResolved = false;
-  if (IsPCRel)
-    Fixup.setPCRel();
   getBackend().applyFixup(F, Fixup, Target, Contents, Value, IsResolved);
   return true;
 }
@@ -1240,3 +1237,9 @@ LLVM_DUMP_METHOD void MCAssembler::dump() const{
   OS << "\n]\n";
 }
 #endif
+
+SMLoc MCFixup::getLoc() const {
+  if (auto *E = getValue())
+    return E->getLoc();
+  return {};
+}

@@ -4805,6 +4805,10 @@ bool ParseRegisters(
                   "format and encoding for gdb type %s",
                   gdb_type.c_str());
             }
+
+            if (gdb_type == "cheriot capability") {
+              reg_info.format = eFormatCheriotCapability;
+            }
           }
         }
 

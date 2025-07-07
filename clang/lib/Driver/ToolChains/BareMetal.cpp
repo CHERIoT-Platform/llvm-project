@@ -224,6 +224,16 @@ std::string BareMetal::computeSysRoot() const {
   return computeClangRuntimesSysRoot(D, /*IncludeTriple*/ true);
 }
 
+std::string BareMetal::getCompilerRTPath() const {
+  const Driver &D = getDriver();
+  if (IsGCCInstallationValid || detectGCCToolchainAdjacent(getDriver())) {
+    SmallString<128> Path(D.ResourceDir);
+    llvm::sys::path::append(Path, "lib");
+    return std::string(Path.str());
+  }
+  return ToolChain::getCompilerRTPath();
+}
+
 static void addMultilibsFilePaths(const Driver &D, const MultilibSet &Multilibs,
                                   const Multilib &Multilib,
                                   StringRef InstallPath,

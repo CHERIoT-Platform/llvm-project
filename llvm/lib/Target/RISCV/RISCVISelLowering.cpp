@@ -9643,9 +9643,6 @@ SDValue RISCVTargetLowering::lowerRETURNADDR(SDValue Op,
   MFI.setReturnAddressIsTaken(true);
   int XLenInBytes = Subtarget.getXLen() / 8;
 
-  if (verifyReturnAddressArgumentIsConstant(Op, DAG))
-    return SDValue();
-
   EVT VT = Op.getValueType();
   SDLoc DL(Op);
   unsigned Depth = Op.getConstantOperandVal(0);

@@ -178,6 +178,7 @@
 ; CHECK-NEXT:   xandesvbfhcvt                    - 'XAndesVBFHCvt' (Andes Vector BFLOAT16 Conversion Extension).
 ; CHECK-NEXT:   xandesvdot                       - 'XAndesVDot' (Andes Vector Dot Product Extension).
 ; CHECK-NEXT:   xandesvpackfph                   - 'XAndesVPackFPH' (Andes Vector Packed FP16 Extension).
+; CHECK-NEXT:   xandesvsintload                  - 'XAndesVSIntLoad' (Andes Vector INT4 Load Extension).
 ; CHECK-NEXT:   xcheri                           - 'XCheri' (Implements CHERI extension).
 ; CHECK-NEXT:   xcheri-norvc                     - Disable CHERI RVC Instructions..
 ; CHECK-NEXT:   xcheriot                         - 'XCheriot' (Implements XCheriot extension).

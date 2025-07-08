@@ -249,6 +249,8 @@ C Language Changes
 - The ``[[clang::assume()]]`` attribute is now correctly recognized in C. The
   ``__attribute__((assume()))`` form has always been supported, so the fix is
   specific to the attribute syntax used.
+- The ``clang-cl`` driver now recognizes ``/std:clatest`` and sets the language
+  mode to C23. (#GH147233)
 
 C2y Feature Support
 ^^^^^^^^^^^^^^^^^^^
@@ -673,6 +675,8 @@ Improvements to Clang's diagnostics
   false positives in exception-heavy code, though only simple patterns
   are currently recognized.
 
+- Clang now accepts ``@tparam`` comments on variable template partial
+  specializations. (#GH144775)
 
 Improvements to Clang's time-trace
 ----------------------------------
@@ -752,6 +756,11 @@ Bug Fixes in This Version
 - Fixed an infinite recursion when checking constexpr destructors. (#GH141789)
 - Fixed a crash when a malformed using declaration appears in a ``constexpr`` function. (#GH144264)
 - Fixed a bug when use unicode character name in macro concatenation. (#GH145240)
+- Clang doesn't erroneously inject a ``static_assert`` macro in ms-compatibility and
+  -std=c99 mode. This resulted in deletion of ``-W/Wno-microsoft-static-assert``
+  flag and diagnostic because the macro injection was used to emit this warning.
+  Unfortunately there is no other good way to diagnose usage of ``static_assert``
+  macro without inclusion of ``<assert.h>``.
 
 Bug Fixes to Compiler Builtins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -889,6 +898,7 @@ Bug Fixes to C++ Support
 - Clang now correctly parses arbitrary order of ``[[]]``, ``__attribute__`` and ``alignas`` attributes for declarations (#GH133107)
 - Fixed a crash when forming an invalid function type in a dependent context. (#GH138657) (#GH115725) (#GH68852)
 - Fixed a function declaration mismatch that caused inconsistencies between concepts and variable template declarations. (#GH139476)
+- Fixed an out-of-line declaration mismatch involving nested template parameters. (#GH145521)
 - Clang no longer segfaults when there is a configuration mismatch between modules and their users (http://crbug.com/400353616).
 - Fix an incorrect deduction when calling an explicit object member function template through an overload set address.
 - Fixed bug in constant evaluation that would allow using the value of a

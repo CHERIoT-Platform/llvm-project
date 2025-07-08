@@ -6694,9 +6694,6 @@ Value *llvm::simplifyBinaryIntrinsic(Intrinsic::ID IID, Type *ReturnType,
     break;
   }
   case Intrinsic::ptrmask: {
-    if (isa<PoisonValue>(Op0) || isa<PoisonValue>(Op1))
-      return PoisonValue::get(Op0->getType());
-
     // NOTE: We can't apply this simplifications based on the value of Op1
     // because we need to preserve provenance.
     if (Q.isUndefValue(Op0) || match(Op0, m_Zero()))
@@ -6742,10 +6739,6 @@ Value *llvm::simplifyBinaryIntrinsic(Intrinsic::ID IID, Type *ReturnType,
     // Canonicalize immediate constant operand as Op1.
     if (match(Op0, m_ImmConstant()))
       std::swap(Op0, Op1);
-
-    // Propagate poison.
-    if (isa<PoisonValue>(Op1))
-      return Op1;
 
     // Assume undef is the limit value.
     if (Q.isUndefValue(Op1))
@@ -6969,9 +6962,6 @@ Value *llvm::simplifyBinaryIntrinsic(Intrinsic::ID IID, Type *ReturnType,
       return Op1;
     break;
   case Intrinsic::is_fpclass: {
-    if (isa<PoisonValue>(Op0))
-      return PoisonValue::get(ReturnType);
-
     uint64_t Mask = cast<ConstantInt>(Op1)->getZExtValue();
     // If all tests are made, it doesn't matter what the value is.
     if ((Mask & fcAllFlags) == fcAllFlags)

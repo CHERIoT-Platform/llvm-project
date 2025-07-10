@@ -564,19 +564,30 @@ class LLVMConfig(object):
                 self.lit_config.note("using {}: {}".format(name, tool))
         return tool
 
-    def use_clang(
+    def _get_clang_paths(self, additional_tool_dirs):
+        # Put Clang first to avoid LLVM from overriding out-of-tree clang
+        # builds.
+        exe_dir_props = [
+            self.config.name.lower() + "_tools_dir",
+            "clang_tools_dir",
+            "llvm_tools_dir",
+        ]
+        paths = [
+            getattr(self.config, pp)
+            for pp in exe_dir_props
+            if getattr(self.config, pp, None)
+        ]
+        paths = additional_tool_dirs + paths
+        return paths
+
+    def clang_setup(
         self,
         additional_tool_dirs=[],
-        additional_flags=[],
-        required=True,
-        use_installed=False,
     ):
-        """Configure the test suite to be able to invoke clang.
+        """Perform the setup needed to be able to invoke clang.
 
-        Sets up some environment variables important to clang, locates a
-        just-built or optionally an installed clang, and add a set of standard
-        substitutions useful to any test suite that makes use of clang.
-
+        This function performs all the necessary setup to execute clang (or
+        tooling based on clang) but does not actually add clang as a tool.
         """
         # Clear some environment variables that might affect Clang.
         #
@@ -617,20 +628,9 @@ class LLVMConfig(object):
         self.clear_environment(possibly_dangerous_env_vars)
 
         # Tweak the PATH to include the tools dir and the scripts dir.
-        # Put Clang first to avoid LLVM from overriding out-of-tree clang
-        # builds.
-        exe_dir_props = [
-            self.config.name.lower() + "_tools_dir",
-            "clang_tools_dir",
-            "llvm_tools_dir",
-        ]
-        paths = [
-            getattr(self.config, pp)
-            for pp in exe_dir_props
-            if getattr(self.config, pp, None)
-        ]
-        paths = additional_tool_dirs + paths
-        self.with_environment("PATH", paths, append_path=True)
+        self.with_environment(
+            "PATH", self._get_clang_paths(additional_tool_dirs), append_path=True
+        )
 
         lib_dir_props = [
             self.config.name.lower() + "_libs_dir",
@@ -654,6 +654,85 @@ class LLVMConfig(object):
             self.config.substitutions.append(("%llvmshlibdir", shl))
         if pext:
             self.config.substitutions.append(("%pluginext", pext))
+
+        # There will be no default target triple if one was not specifically
+        # set, and the host's architecture is not an enabled target.
+        if self.config.target_triple:
+            self.config.substitutions.append(
+                (
+                    "%itanium_abi_triple",
+                    self.normalize_triple(
+                        self.make_itanium_abi_triple(self.config.target_triple)
+                    ),
+                )
+            )
+            self.config.substitutions.append(
+                ("%ms_abi_triple", self.make_msabi_triple(self.config.target_triple))
+            )
+        else:
+            if not self.lit_config.quiet:
+                self.lit_config.note(
+                    "No default target triple was found, some tests may fail as a result."
+                )
+            self.config.substitutions.append(("%itanium_abi_triple", ""))
+            self.config.substitutions.append(("%ms_abi_triple", ""))
+
+        # The host triple might not be set, at least if we're compiling clang
+        # from an already installed llvm.
+        if self.config.host_triple and self.config.host_triple != "@LLVM_HOST_TRIPLE@":
+            self.config.substitutions.append(
+                (
+                    "%target_itanium_abi_host_triple",
+                    "--target=" + self.make_itanium_abi_triple(self.config.host_triple),
+                )
+            )
+        else:
+            self.config.substitutions.append(("%target_itanium_abi_host_triple", ""))
+
+        # TODO: Many tests work across many language standards. Before
+        # https://discourse.llvm.org/t/lit-run-a-run-line-multiple-times-with-different-replacements/64932
+        # has a solution, provide substitutions to conveniently try every standard with LIT_CLANG_STD_GROUP.
+        clang_std_group = int(os.environ.get("LIT_CLANG_STD_GROUP", "0"))
+        clang_std_values = ("98", "11", "14", "17", "20", "2b")
+
+        def add_std_cxx(s):
+            t = s[8:]
+            if t.endswith("-"):
+                t += clang_std_values[-1]
+            l = clang_std_values.index(t[0:2] if t[0:2] != "23" else "2b")
+            h = clang_std_values.index(t[3:5])
+            # Let LIT_CLANG_STD_GROUP=0 pick the highest value (likely the most relevant
+            # standard).
+            l = h - clang_std_group % (h - l + 1)
+            self.config.substitutions.append((s, "-std=c++" + clang_std_values[l]))
+
+        add_std_cxx("%std_cxx98-14")
+        add_std_cxx("%std_cxx98-")
+        add_std_cxx("%std_cxx11-14")
+        add_std_cxx("%std_cxx11-")
+        add_std_cxx("%std_cxx14-")
+        add_std_cxx("%std_cxx17-20")
+        add_std_cxx("%std_cxx17-")
+        add_std_cxx("%std_cxx20-")
+        add_std_cxx("%std_cxx23-")
+
+    def use_clang(
+        self,
+        additional_tool_dirs=[],
+        additional_flags=[],
+        required=True,
+        use_installed=False,
+    ):
+        """Configure the test suite to be able to invoke clang.
+
+        Sets up some environment variables important to clang, locates a
+        just-built or optionally an installed clang, and add a set of standard
+        substitutions useful to any test suite that makes use of clang.
+
+        """
+        self.clang_setup(additional_tool_dirs)
+
+        paths = self._get_clang_paths(additional_tool_dirs)
 
         # Discover the 'clang' and 'clangcc' to use.
         self.config.clang = self.use_llvm_tool(
@@ -744,69 +823,7 @@ class LLVMConfig(object):
                 ),
             ]
             self.add_tool_substitutions(tool_substitutions)
-            self.config.substitutions.append(
-                ('%resource_dir', builtin_include_dir))
-
-        # There will be no default target triple if one was not specifically
-        # set, and the host's architecture is not an enabled target.
-        if self.config.target_triple:
-            self.config.substitutions.append(
-                (
-                    "%itanium_abi_triple",
-                    self.normalize_triple(
-                        self.make_itanium_abi_triple(self.config.target_triple)
-                    ),
-                )
-            )
-            self.config.substitutions.append(
-                ("%ms_abi_triple", self.make_msabi_triple(self.config.target_triple))
-            )
-        else:
-            if not self.lit_config.quiet:
-                self.lit_config.note(
-                    "No default target triple was found, some tests may fail as a result."
-                )
-            self.config.substitutions.append(("%itanium_abi_triple", ""))
-            self.config.substitutions.append(("%ms_abi_triple", ""))
-
-        # The host triple might not be set, at least if we're compiling clang
-        # from an already installed llvm.
-        if self.config.host_triple and self.config.host_triple != "@LLVM_HOST_TRIPLE@":
-            self.config.substitutions.append(
-                (
-                    "%target_itanium_abi_host_triple",
-                    "--target=" + self.make_itanium_abi_triple(self.config.host_triple),
-                )
-            )
-        else:
-            self.config.substitutions.append(("%target_itanium_abi_host_triple", ""))
-
-        # TODO: Many tests work across many language standards. Before
-        # https://discourse.llvm.org/t/lit-run-a-run-line-multiple-times-with-different-replacements/64932
-        # has a solution, provide substitutions to conveniently try every standard with LIT_CLANG_STD_GROUP.
-        clang_std_group = int(os.environ.get("LIT_CLANG_STD_GROUP", "0"))
-        clang_std_values = ("98", "11", "14", "17", "20", "2b")
-
-        def add_std_cxx(s):
-            t = s[8:]
-            if t.endswith("-"):
-                t += clang_std_values[-1]
-            l = clang_std_values.index(t[0:2] if t[0:2] != "23" else "2b")
-            h = clang_std_values.index(t[3:5])
-            # Let LIT_CLANG_STD_GROUP=0 pick the highest value (likely the most relevant
-            # standard).
-            l = h - clang_std_group % (h - l + 1)
-            self.config.substitutions.append((s, "-std=c++" + clang_std_values[l]))
-
-        add_std_cxx("%std_cxx98-14")
-        add_std_cxx("%std_cxx98-")
-        add_std_cxx("%std_cxx11-14")
-        add_std_cxx("%std_cxx11-")
-        add_std_cxx("%std_cxx14-")
-        add_std_cxx("%std_cxx17-20")
-        add_std_cxx("%std_cxx17-")
-        add_std_cxx("%std_cxx20-")
-        add_std_cxx("%std_cxx23-")
+            self.config.substitutions.append(("%resource_dir", builtin_include_dir))
 
         # FIXME: Find nicer way to prohibit this.
         def prefer(this, to):

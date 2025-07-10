@@ -2059,7 +2059,7 @@ public:
   /// It returns EVT::Other if the type should be determined using generic
   /// target-independent logic.
   virtual EVT
-  getOptimalMemOpType(const MemOp &Op,
+  getOptimalMemOpType(LLVMContext &Context, const MemOp &Op,
                       const AttributeList & /*FuncAttributes*/) const {
     return MVT::Other;
   }
@@ -3655,19 +3655,10 @@ public:
 
   const char *getMemcpyName() const { return Libcalls.getMemcpyName(); }
 
-  /// Override the default CondCode to be used to test the result of the
-  /// comparison libcall against zero.
-  /// FIXME: This should be removed
-  void setCmpLibcallCC(RTLIB::Libcall Call, CmpInst::Predicate Pred) {
-    Libcalls.setSoftFloatCmpLibcallPredicate(Call, Pred);
-  }
-
-  /// Get the CondCode that's to be used to test the result of the comparison
-  /// libcall against zero.
-  CmpInst::Predicate
-  getSoftFloatCmpLibcallPredicate(RTLIB::Libcall Call) const {
-    return Libcalls.getSoftFloatCmpLibcallPredicate(Call);
-  }
+  /// Get the comparison predicate that's to be used to test the result of the
+  /// comparison libcall against zero. This should only be used with
+  /// floating-point compare libcalls.
+  ISD::CondCode getSoftFloatCmpLibcallPredicate(RTLIB::LibcallImpl Call) const;
 
   /// Set the CallingConv that should be used for the specified libcall.
   void setLibcallImplCallingConv(RTLIB::LibcallImpl Call, CallingConv::ID CC) {
@@ -4220,7 +4211,7 @@ public:
   /// Note that this is always the case when Limit is ~0.
   /// It returns the types of the sequence of memory ops to perform
   /// memset / memcpy by reference.
-  virtual bool findOptimalMemOpLowering(std::vector<EVT> &MemOps,
+  virtual bool findOptimalMemOpLowering(LLVMContext &Context, std::vector<EVT> &MemOps,
                                         unsigned Limit, const MemOp &Op,
                                         unsigned DstAS, unsigned SrcAS,
                                         const AttributeList &FuncAttributes,

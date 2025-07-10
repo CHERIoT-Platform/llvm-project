@@ -437,6 +437,8 @@ MipsTargetLowering::MipsTargetLowering(const MipsTargetMachine &TM,
     setOperationAction(ISD::FMAXNUM, MVT::f64, Legal);
     setOperationAction(ISD::IS_FPCLASS, MVT::f32, Legal);
     setOperationAction(ISD::IS_FPCLASS, MVT::f64, Legal);
+    setOperationAction(ISD::FCANONICALIZE, MVT::f32, Legal);
+    setOperationAction(ISD::FCANONICALIZE, MVT::f64, Legal);
   } else {
     setOperationAction(ISD::FCANONICALIZE, MVT::f32, Custom);
     setOperationAction(ISD::FCANONICALIZE, MVT::f64, Custom);
@@ -5851,7 +5853,8 @@ MipsTargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
 }
 
 EVT MipsTargetLowering::getOptimalMemOpType(
-    const MemOp &Op, const AttributeList &FuncAttributes) const {
+    LLVMContext &Context, const MemOp &Op,
+    const AttributeList &FuncAttributes) const {
   // If the source alignment is 32 then we are copying something that may
   // contain capabilities.  If the destination alignment is 32, then we are
   // copying to something that may contain capabilities.  If both of these is

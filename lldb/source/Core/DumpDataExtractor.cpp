@@ -516,8 +516,10 @@ lldb::offset_t lldb_private::DumpDataExtractor(
       uint64_t top = ((a_top_top << 9) + T) << e;
       uint64_t len = top - base;
 
-      s->Printf("0x%08x (v:? 0x%08llx-0x%08llx l:0x%llx o:0x%x%s p: %s)", addr,
-                base, top, len, otype, otype_str.data(), perm_string.c_str());
+      s->Printf("0x%08" PRIx32 " (v:? 0x%08" PRIx64 "-0x%08" PRIx64
+                " l:0x%" PRIx64 " o:0x%x%s p: %s)",
+                addr, base, top, len, otype, otype_str.data(),
+                perm_string.c_str());
 
       break;
     }

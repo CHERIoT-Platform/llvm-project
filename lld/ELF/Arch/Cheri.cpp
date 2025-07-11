@@ -1030,6 +1030,27 @@ void addCapabilityRelocation(
     }
   }
 
+  // Non-preemptible undef weak symbols are link-time constants
+  if (sym && !sym->isPreemptible && sym->isUndefWeak()) {
+    if (ctx.arg.isLE) {
+      sec->addReloc({R_ABS, ctx.target->symbolicRel, offset, addend, sym});
+      sec->addReloc({R_ADDEND, ctx.target->symbolicRel,
+                     offset + ctx.arg.wordsize, 0, sym});
+    } else {
+      sec->addReloc({R_ADDEND, ctx.target->symbolicRel, offset, 0, sym});
+      sec->addReloc({R_ABS, ctx.target->symbolicRel, offset + ctx.arg.wordsize,
+                     addend, sym});
+    }
+    // Handle deprecated CHERI-256
+    if (ctx.target->getCapabilitySize() == ctx.arg.wordsize * 4) {
+      sec->addReloc({R_ADDEND, ctx.target->symbolicRel,
+                     offset + 2 * ctx.arg.wordsize, 0, sym});
+      sec->addReloc({R_ADDEND, ctx.target->symbolicRel,
+                     offset + 3 * ctx.arg.wordsize, 0, sym});
+    }
+    return;
+  }
+
   // local cap relocs don't need a Elf relocation with a full symbol lookup:
   if (capRelocMode == CapRelocsMode::ElfReloc) {
     assert(sym && "ELF relocs should not be used against sections");

@@ -14582,16 +14582,14 @@ static QualType getCommonNonSugarTypeNode(ASTContext &Ctx, const Type *X,
         TX->getDepth(), TX->getIndex(), TX->isParameterPack(),
         getCommonDecl(TX->getDecl(), TY->getDecl()));
   }
-  // case Type::DependentPointer: {
-  //   const auto *PX = cast<DependentPointerType>(X),
-  //              *PY = cast<DependentPointerType>(Y);
-  //   assert(PX->getPointerInterpretation() == PY->getPointerInterpretation());
-  //   return Ctx.getDependentPointerType(
-  //     getCommonPointeeType(Ctx, PX, PY),
-  //     PX->getPointerInterpretation(),
-  //     PX->getQualifierLoc()
-  //   );
-  // }
+  case Type::DependentPointer: {
+    const auto *PX = cast<DependentPointerType>(X),
+               *PY = cast<DependentPointerType>(Y);
+    assert(PX->getPointerInterpretation() == PY->getPointerInterpretation());
+    return Ctx.getDependentPointerType(getCommonPointeeType(Ctx, PX, PY),
+                                       PX->getPointerInterpretation(),
+                                       PX->getQualifierLoc());
+  }
   }
   llvm_unreachable("Unknown Type Class");
 }

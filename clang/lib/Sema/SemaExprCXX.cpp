@@ -4097,8 +4097,7 @@ Sema::ActOnCXXDelete(SourceLocation StartLoc, bool UseGlobal,
       if (!PointeeRD->hasIrrelevantDestructor()) {
         if (CXXDestructorDecl *Dtor = LookupDestructor(PointeeRD)) {
           if (Dtor->isCalledByDelete(OperatorDelete)) {
-            MarkFunctionReferenced(StartLoc,
-                                   const_cast<CXXDestructorDecl *>(Dtor));
+            MarkFunctionReferenced(StartLoc, Dtor);
             if (DiagnoseUseOfDecl(Dtor, StartLoc))
               return ExprError();
           }

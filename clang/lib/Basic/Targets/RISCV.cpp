@@ -306,9 +306,9 @@ void RISCVTargetInfo::getTargetDefines(const LangOptions &Opts,
 
     // Macros for CHERIoT in the default and bare-metal ABIs.
     if (ABI == "cheriot" || ABI == "cheriot-baremetal")
-      Builder.defineMacro("__CHERIOT__", "20250701");
+      Builder.defineMacro("__CHERIOT__", "20250714");
     if (ABI == "cheriot-baremetal")
-      Builder.defineMacro("__CHERIOT_BAREMETAL__", "20250701");
+      Builder.defineMacro("__CHERIOT_BAREMETAL__", "20250714");
 
     Builder.defineMacro("__riscv_clen", Twine(getCHERICapabilityWidth()));
     // TODO: _MIPS_CAP_ALIGN_MASK equivalent?

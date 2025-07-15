@@ -3550,6 +3550,10 @@ template <class ELFT> void LinkerDriver::link(opt::InputArgList &args) {
       ctx.inputSections.push_back(ctx.in.capRelocs.get());
   }
 
+  // Merge .hexagon.attributes sections.
+  if (ctx.arg.emachine == EM_HEXAGON)
+    mergeHexagonAttributesSections(ctx);
+
   // Merge .riscv.attributes sections.
   if (ctx.arg.emachine == EM_RISCV)
     mergeRISCVAttributesSections(ctx);

@@ -868,6 +868,7 @@ static void InitializePredefinedMacros(const TargetInfo &TI,
                                        const LangOptions &LangOpts,
                                        const FrontendOptions &FEOpts,
                                        const PreprocessorOptions &PPOpts,
+                                       const CodeGenOptions &CGOpts,
                                        MacroBuilder &Builder) {
   // Compiler version introspection macros.
   Builder.defineMacro("__llvm__");  // LLVM Backend
@@ -1037,14 +1038,14 @@ static void InitializePredefinedMacros(const TargetInfo &TI,
   if (LangOpts.GNUCVersion && LangOpts.RTTI)
     Builder.defineMacro("__GXX_RTTI");
 
-  if (LangOpts.hasSjLjExceptions())
+  if (CGOpts.hasSjLjExceptions())
     Builder.defineMacro("__USING_SJLJ_EXCEPTIONS__");
-  else if (LangOpts.hasSEHExceptions())
+  else if (CGOpts.hasSEHExceptions())
     Builder.defineMacro("__SEH__");
-  else if (LangOpts.hasDWARFExceptions() &&
+  else if (CGOpts.hasDWARFExceptions() &&
            (TI.getTriple().isThumb() || TI.getTriple().isARM()))
     Builder.defineMacro("__ARM_DWARF_EH__");
-  else if (LangOpts.hasWasmExceptions() && TI.getTriple().isWasm())
+  else if (CGOpts.hasWasmExceptions() && TI.getTriple().isWasm())
     Builder.defineMacro("__WASM_EXCEPTIONS__");
 
   if (LangOpts.Deprecated)
@@ -1076,9 +1077,9 @@ static void InitializePredefinedMacros(const TargetInfo &TI,
     Builder.defineMacro("__clang_wide_literal_encoding__", "\"UTF-16\"");
   }
 
-  if (LangOpts.Optimize)
+  if (CGOpts.OptimizationLevel != 0)
     Builder.defineMacro("__OPTIMIZE__");
-  if (LangOpts.OptimizeSize)
+  if (CGOpts.OptimizeSize != 0)
     Builder.defineMacro("__OPTIMIZE_SIZE__");
 
   if (LangOpts.FastMath)
@@ -1450,7 +1451,7 @@ static void InitializePredefinedMacros(const TargetInfo &TI,
   if (LangOpts.GNUCVersion)
     addLockFreeMacros("__GCC_ATOMIC_");
 
-  if (LangOpts.NoInlineDefine)
+  if (CGOpts.getInlining() == CodeGenOptions::OnlyAlwaysInlining)
     Builder.defineMacro("__NO_INLINE__");
 
   if (unsigned PICLevel = LangOpts.PICLevel) {
@@ -1629,10 +1630,11 @@ void clang::InitializePreprocessor(Preprocessor &PP,
     // macros. This is not the right way to handle this.
     if ((LangOpts.CUDA || LangOpts.isTargetDevice()) && PP.getAuxTargetInfo())
       InitializePredefinedMacros(*PP.getAuxTargetInfo(), LangOpts, FEOpts,
-                                 PP.getPreprocessorOpts(), Builder);
+                                 PP.getPreprocessorOpts(), CodeGenOpts,
+                                 Builder);
 
     InitializePredefinedMacros(PP.getTargetInfo(), LangOpts, FEOpts,
-                               PP.getPreprocessorOpts(), Builder);
+                               PP.getPreprocessorOpts(), CodeGenOpts, Builder);
 
     // Install definitions to make Objective-C++ ARC work well with various
     // C++ Standard Library implementations.

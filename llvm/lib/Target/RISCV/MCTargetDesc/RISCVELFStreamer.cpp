@@ -230,8 +230,7 @@ void RISCVELFStreamer::EmitCheriCapabilityImpl(const MCSymbol *Symbol,
   // Pad to ensure that the capability is aligned
   emitValueToAlignment(Align(CapSize), 0, 1, 0);
 
-  MCDataFragment *DF = new MCDataFragment();
-  insert(DF);
+  MCFragment *DF = getOrCreateDataFragment();
   MCFixup CapFixup =
       MCFixup::create(0, CapExpr, MCFixupKind(RISCV::fixup_riscv_capability));
   DF->addFixup(CapFixup);

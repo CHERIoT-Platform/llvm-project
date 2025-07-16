@@ -4306,10 +4306,6 @@ Instruction *InstCombinerImpl::foldICmpInstWithConstantNotInt(ICmpInst &I) {
     return nullptr;
 
   switch (LHSI->getOpcode()) {
-  case Instruction::PHI:
-    if (Instruction *NV = foldOpIntoPhi(I, cast<PHINode>(LHSI)))
-      return NV;
-    break;
   case Instruction::IntToPtr:
     // icmp pred inttoptr(X), null -> icmp pred X, 0
     if (RHSC->isNullValue() &&
@@ -7733,6 +7729,13 @@ Instruction *InstCombinerImpl::visitICmpInst(ICmpInst &I) {
   // foldICmpInstWithConstant() to potentially let other folds to happen first.
   if (Instruction *New = foldSignBitTest(I))
     return New;
+
+  if (auto *PN = dyn_cast<PHINode>(Op0))
+    if (Instruction *NV = foldOpIntoPhi(I, PN))
+      return NV;
+  if (auto *PN = dyn_cast<PHINode>(Op1))
+    if (Instruction *NV = foldOpIntoPhi(I, PN))
+      return NV;
 
   if (Instruction *Res = foldICmpInstWithConstantNotInt(I))
     return Res;

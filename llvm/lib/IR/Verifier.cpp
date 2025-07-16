@@ -3210,12 +3210,6 @@ void Verifier::visitFunction(const Function &F) {
     CheckDI(SP->describes(&F),
             "!dbg attachment points at wrong subprogram for function", N, &F,
             &I, DL, Scope, SP);
-
-    if (DL->getAtomGroup())
-      CheckDI(DL->getScope()->getSubprogram()->getKeyInstructionsEnabled(),
-              "DbgLoc uses atomGroup but DISubprogram doesn't have Key "
-              "Instructions enabled",
-              DL, DL->getScope()->getSubprogram());
   };
   for (auto &BB : F)
     for (auto &I : BB) {
@@ -5517,6 +5511,15 @@ void Verifier::visitInstruction(Instruction &I) {
   if (MDNode *N = I.getDebugLoc().getAsMDNode()) {
     CheckDI(isa<DILocation>(N), "invalid !dbg metadata attachment", &I, N);
     visitMDNode(*N, AreDebugLocsAllowed::Yes);
+
+    if (auto *DL = dyn_cast<DILocation>(N)) {
+      if (DL->getAtomGroup()) {
+        CheckDI(DL->getScope()->getSubprogram()->getKeyInstructionsEnabled(),
+                "DbgLoc uses atomGroup but DISubprogram doesn't have Key "
+                "Instructions enabled",
+                DL, DL->getScope()->getSubprogram());
+      }
+    }
   }
 
   if (auto *DII = dyn_cast<DbgVariableIntrinsic>(&I)) {
@@ -6573,7 +6576,7 @@ void Verifier::visitIntrinsicCall(Intrinsic::ID ID, CallBase &Call) {
     Check(!Call.paramHasAttr(3, Attribute::InReg),
           "VGPR arguments must not have the `inreg` attribute", &Call);
 
-    auto *Next = Call.getNextNonDebugInstruction();
+    auto *Next = Call.getNextNode();
     bool IsAMDUnreachable = Next && isa<IntrinsicInst>(Next) &&
                             cast<IntrinsicInst>(Next)->getIntrinsicID() ==
                                 Intrinsic::amdgcn_unreachable;

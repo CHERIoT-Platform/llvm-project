@@ -410,10 +410,6 @@ public:
                        const MCPseudoProbeInlineStack &InlineStack,
                        MCSymbol *FnSym) override;
 
-  void emitBundleAlignMode(Align Alignment) override;
-  void emitBundleLock(bool AlignToEnd) override;
-  void emitBundleUnlock() override;
-
   void EmitCheriCapabilityImpl(const MCSymbol *Symbol, const MCExpr *Addend,
                                unsigned CapSize, SMLoc Loc = SMLoc()) override;
   void emitCheriIntcap(const MCExpr *Expr, unsigned CapSize,
@@ -2528,23 +2524,6 @@ void MCAsmStreamer::emitPseudoProbe(uint64_t Guid, uint64_t Index,
   OS << " ";
   FnSym->print(OS, MAI);
 
-  EmitEOL();
-}
-
-void MCAsmStreamer::emitBundleAlignMode(Align Alignment) {
-  OS << "\t.bundle_align_mode " << Log2(Alignment);
-  EmitEOL();
-}
-
-void MCAsmStreamer::emitBundleLock(bool AlignToEnd) {
-  OS << "\t.bundle_lock";
-  if (AlignToEnd)
-    OS << " align_to_end";
-  EmitEOL();
-}
-
-void MCAsmStreamer::emitBundleUnlock() {
-  OS << "\t.bundle_unlock";
   EmitEOL();
 }
 

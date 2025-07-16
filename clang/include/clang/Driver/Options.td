@@ -1077,6 +1077,13 @@ def Xlinker : Separate<["-"], "Xlinker">, Flags<[LinkerInput, RenderAsInput]>,
   Visibility<[ClangOption, CLOption, FlangOption]>,
   HelpText<"Pass <arg> to the linker">, MetaVarName<"<arg>">,
   Group<Link_Group>;
+def Xthinlto_distributor_EQ : CommaJoined<["-"], "Xthinlto-distributor=">,
+  Flags<[LinkOption]>,
+  Visibility<[ClangOption, CLOption]>,
+  HelpText<"Pass <arg> to the ThinLTO distributor process. Can be specified "
+           "multiple times or with comma-separated values.">,
+  MetaVarName<"<arg>">,
+  Group<Link_Group>;
 def Xoffload_linker : JoinedAndSeparate<["-"], "Xoffload-linker">,
   Visibility<[ClangOption, FlangOption]>,
   HelpText<"Pass <arg> to the offload linkers or the ones identified by -<triple>">,
@@ -2256,10 +2263,10 @@ def fwasm_exceptions : Flag<["-"], "fwasm-exceptions">, Group<f_Group>,
   HelpText<"Use WebAssembly style exceptions">;
 def exception_model : Separate<["-"], "exception-model">,
   Visibility<[CC1Option]>, HelpText<"The exception model">,
-  Values<"dwarf,sjlj,seh,wasm">,
-  NormalizedValuesScope<"LangOptions::ExceptionHandlingKind">,
-  NormalizedValues<["DwarfCFI", "SjLj", "WinEH", "Wasm"]>,
-  MarshallingInfoEnum<LangOpts<"ExceptionHandling">, "None">;
+  Values<"dwarf,sjlj,seh,wasm,none">,
+  NormalizedValuesScope<"CodeGenOptions::ExceptionHandlingKind">,
+  NormalizedValues<["DwarfCFI", "SjLj", "WinEH", "Wasm", "None"]>,
+  MarshallingInfoEnum<CodeGenOpts<"ExceptionHandling">, "None">;
 def exception_model_EQ : Joined<["-"], "exception-model=">,
   Visibility<[CC1Option]>, Alias<exception_model>;
 def fignore_exceptions : Flag<["-"], "fignore-exceptions">, Group<f_Group>,
@@ -4336,7 +4343,12 @@ def ffinite_loops: Flag<["-"],  "ffinite-loops">, Group<f_Group>,
 def fno_finite_loops: Flag<["-"], "fno-finite-loops">, Group<f_Group>,
   HelpText<"Do not assume that any loop is finite.">,
   Visibility<[ClangOption, CC1Option]>;
-
+def fthinlto_distributor_EQ : Joined<["-"], "fthinlto-distributor=">,
+  Group<f_Group>,
+  HelpText<"Path to the ThinLTO distributor process. If specified, "
+           "ThinLTO backend compilations will be distributed by LLD">,
+  MetaVarName<"<path>">,
+  Visibility<[ClangOption, CLOption]>;
 def ftrigraphs : Flag<["-"], "ftrigraphs">, Group<f_Group>,
   HelpText<"Process trigraph sequences">, Visibility<[ClangOption, CC1Option]>;
 def fno_trigraphs : Flag<["-"], "fno-trigraphs">, Group<f_Group>,

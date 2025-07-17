@@ -170,6 +170,11 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     addRegisterClass(CapType, &RISCV::GPCRRegClass);
   }
 
+  if (Subtarget.hasVendorXCheriot()) {
+    // Cheriot holds f64's in capability registers.
+    addRegisterClass(MVT::f64, &RISCV::GPCRRegClass);
+  }
+
   static const MVT::SimpleValueType BoolVecVTs[] = {
       MVT::nxv1i1,  MVT::nxv2i1,  MVT::nxv4i1, MVT::nxv8i1,
       MVT::nxv16i1, MVT::nxv32i1, MVT::nxv64i1};
@@ -678,6 +683,29 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     }
 
     setLibcallName(RTLIB::MEMSET, "memset");
+  }
+
+  if (Subtarget.hasVendorXCheriot()) {
+    // FP64 is "legal" on Cheriot in that we store it in c64 registers, but
+    // essentially no operations on it are legal other than load/store/copy.
+    setOperationAction({ISD::ConstantFP, ISD::SELECT_CC, ISD::SETCC}, MVT::f64,
+                       Custom);
+
+    // These require custom lowering because their inputs might be f64.
+    setOperationAction({ISD::SELECT_CC, ISD::SETCC}, MVT::i32, Custom);
+    setOperationAction({ISD::FP_TO_UINT, ISD::FP_TO_SINT}, MVT::i32, LibCall);
+
+    static const unsigned CheriotF64ExpandOps[] = {
+        ISD::FMINNUM,     ISD::FMAXNUM,     ISD::FADD,        ISD::FSUB,
+        ISD::FMUL,        ISD::FMA,         ISD::FDIV,        ISD::FSQRT,
+        ISD::FCEIL,       ISD::FTRUNC,      ISD::FFLOOR,      ISD::FROUND,
+        ISD::FROUNDEVEN,  ISD::FRINT,       ISD::FNEARBYINT,  ISD::IS_FPCLASS,
+        ISD::SETCC,       ISD::FMAXIMUM,    ISD::FMINIMUM,    ISD::STRICT_FADD,
+        ISD::STRICT_FSUB, ISD::STRICT_FMUL, ISD::STRICT_FDIV, ISD::STRICT_FSQRT,
+        ISD::STRICT_FMA,  ISD::FNEG,        ISD::FABS,        ISD::FCOPYSIGN,
+        ISD::UINT_TO_FP,  ISD::SINT_TO_FP,  ISD::BR_CC};
+    setOperationAction(CheriotF64ExpandOps, MVT::f64, Expand);
+    setCondCodeAction(FPCCToExpand, MVT::f64, Expand);
   }
 
   // TODO: On M-mode only targets, the cycle[h]/time[h] CSR may not be present.
@@ -6145,10 +6173,43 @@ static SDValue lowerConstant(SDValue Op, SelectionDAG &DAG,
   return SDValue();
 }
 
-SDValue RISCVTargetLowering::lowerConstantFP(SDValue Op,
-                                             SelectionDAG &DAG) const {
+SDValue
+RISCVTargetLowering::lowerConstantFP(SDValue Op, SelectionDAG &DAG,
+                                     const RISCVSubtarget &Subtarget) const {
   MVT VT = Op.getSimpleValueType();
   const APFloat &Imm = cast<ConstantFPSDNode>(Op)->getValueAPF();
+
+  if (Subtarget.hasVendorXCheriot()) {
+    // Cheriot needs to custom lower f64 immediates using csethigh
+    if (VT != MVT::f64)
+      return Op;
+
+    SDLoc DL(Op);
+    uint64_t Val = Imm.bitcastToAPInt().getLimitedValue();
+
+    // Materialize 0.0 as cnull
+    if (Val == 0)
+      return DAG.getRegister(getNullCapabilityRegister(), MVT::f64);
+
+    // Otherwise, materialize the low part into a 32-bit register.
+    auto Lo = DAG.getConstant(Val & 0xFFFFFFFF, DL, MVT::i32);
+    auto LoAsCap = DAG.getTargetInsertSubreg(RISCV::sub_cap_addr, DL, MVT::c64,
+                                             DAG.getUNDEF(MVT::f64), Lo);
+
+    // The high half of a capability register is zeroed by integer ops,
+    // so if we wanted a zero high half then we are done.
+    if (Val >> 32 == 0)
+      return DAG.getBitcast(MVT::f64, LoAsCap);
+
+    // Otherwise, materialize the high half and use csethigh to combine the two
+    // halve.
+    auto Hi = DAG.getConstant(Val >> 32, DL, MVT::i32);
+    auto Cap = DAG.getNode(
+        ISD::INTRINSIC_WO_CHAIN, DL, MVT::c64,
+        DAG.getTargetConstant(Intrinsic::cheri_cap_high_set, DL, MVT::i32),
+        LoAsCap, Hi);
+    return DAG.getBitcast(MVT::f64, Cap);
+  }
 
   // Can this constant be selected by a Zfa FLI instruction?
   bool Negate = false;
@@ -6799,7 +6860,7 @@ SDValue RISCVTargetLowering::LowerOperation(SDValue Op,
   case ISD::Constant:
     return lowerConstant(Op, DAG, Subtarget);
   case ISD::ConstantFP:
-    return lowerConstantFP(Op, DAG);
+    return lowerConstantFP(Op, DAG, Subtarget);
   case ISD::SELECT:
     return lowerSELECT(Op, DAG);
   case ISD::BRCOND:
@@ -7589,6 +7650,50 @@ SDValue RISCVTargetLowering::LowerOperation(SDValue Op,
   case ISD::VECTOR_COMPRESS:
     return lowerVectorCompress(Op, DAG);
   case ISD::SELECT_CC: {
+    if (Subtarget.hasVendorXCheriot() &&
+        (Op.getValueType() == MVT::f64 ||
+         Op.getOperand(0).getValueType() == MVT::f64)) {
+      SDLoc DL(Op);
+      EVT CCVT = getSetCCResultType(DAG.getDataLayout(), *DAG.getContext(),
+                                    Op.getOperand(0).getValueType());
+      SDValue SetCC;
+      if (Op.getOperand(0).getValueType() == MVT::f64) {
+        SDValue NewLHS = Op.getOperand(0), NewRHS = Op.getOperand(1);
+        ISD::CondCode CCCode = cast<CondCodeSDNode>(Op.getOperand(4))->get();
+
+        NewLHS = DAG.getBitcast(MVT::c64, NewLHS);
+        NewRHS = DAG.getBitcast(MVT::c64, NewRHS);
+        softenSetCCOperands(DAG, MVT::f64, NewLHS, NewRHS, CCCode, DL,
+                            Op.getOperand(0), Op.getOperand(1));
+
+        // If softenSetCCOperands returned a scalar, we need to compare the
+        // result against zero to select between true and false values.
+        if (!NewRHS.getNode()) {
+          NewRHS = DAG.getConstant(0, DL, NewLHS.getValueType());
+          CCCode = ISD::SETNE;
+        }
+
+        SetCC = DAG.getNode(ISD::SETCC, DL, CCVT, NewLHS, NewRHS,
+                            DAG.getCondCode(CCCode));
+      } else {
+        SetCC = DAG.getNode(ISD::SETCC, DL, CCVT, Op.getOperand(0),
+                            Op.getOperand(1), Op.getOperand(4), Op->getFlags());
+      }
+
+      SDValue LSel = Op.getOperand(2);
+      if (LSel.getValueType() == MVT::f64)
+        LSel = DAG.getBitcast(MVT::c64, LSel);
+      SDValue RSel = Op.getOperand(3);
+      if (RSel.getValueType() == MVT::f64)
+        RSel = DAG.getBitcast(MVT::c64, RSel);
+
+      SDValue Select =
+          DAG.getSelect(DL, LSel.getValueType(), SetCC, LSel, RSel);
+      if (Op.getValueType() == MVT::f64)
+        Select = DAG.getBitcast(MVT::f64, Select);
+      return Select;
+    }
+
     // This occurs because we custom legalize SETGT and SETUGT for setcc. That
     // causes LegalizeDAG to think we need to custom legalize select_cc. Expand
     // into separate SETCC+SELECT just like LegalizeDAG.
@@ -7608,13 +7713,43 @@ SDValue RISCVTargetLowering::LowerOperation(SDValue Op,
   }
   case ISD::SETCC: {
     MVT OpVT = Op.getOperand(0).getSimpleValueType();
+
+    if (Subtarget.hasVendorXCheriot() &&
+        (OpVT == MVT::f64 || Op.getValueType() == MVT::f64)) {
+
+      SDNode *N = Op.getNode();
+      bool IsStrict = N->isStrictFPOpcode();
+      SDValue Op0 = N->getOperand(IsStrict ? 1 : 0);
+      SDValue Op1 = N->getOperand(IsStrict ? 2 : 1);
+      SDValue Chain = IsStrict ? N->getOperand(0) : SDValue();
+      ISD::CondCode CCCode =
+          cast<CondCodeSDNode>(N->getOperand(IsStrict ? 3 : 2))->get();
+
+      EVT VT = Op0.getValueType();
+      SDValue NewLHS = DAG.getBitcast(MVT::c64, Op0);
+      SDValue NewRHS = DAG.getBitcast(MVT::c64, Op1);
+      softenSetCCOperands(DAG, VT, NewLHS, NewRHS, CCCode, SDLoc(N), Op0, Op1,
+                          Chain, N->getOpcode() == ISD::STRICT_FSETCCS);
+
+      // Update N to have the operands specified.
+      if (NewRHS.getNode()) {
+        if (IsStrict)
+          NewLHS = DAG.getNode(ISD::SETCC, SDLoc(N), N->getValueType(0), NewLHS,
+                               NewRHS, DAG.getCondCode(CCCode));
+        else
+          return SDValue(DAG.UpdateNodeOperands(N, NewLHS, NewRHS,
+                                                DAG.getCondCode(CCCode)),
+                         0);
+      }
+    }
+
     if (OpVT.isScalarInteger()) {
       MVT VT = Op.getSimpleValueType();
       SDValue LHS = Op.getOperand(0);
       SDValue RHS = Op.getOperand(1);
       ISD::CondCode CCVal = cast<CondCodeSDNode>(Op.getOperand(2))->get();
-      assert((CCVal == ISD::SETGT || CCVal == ISD::SETUGT) &&
-             "Unexpected CondCode");
+      if (CCVal != ISD::SETGT && CCVal != ISD::SETUGT)
+        return Op;
 
       SDLoc DL(Op);
 
@@ -8632,6 +8767,15 @@ SDValue RISCVTargetLowering::lowerSELECT(SDValue Op, SelectionDAG &DAG) const {
   SDLoc DL(Op);
   MVT VT = Op.getSimpleValueType();
   MVT XLenVT = Subtarget.getXLenVT();
+
+  if (Subtarget.hasVendorXCheriot() && VT == MVT::f64) {
+    // Perform SELECT_CC on f64 by bitcasting through c64.
+    SDValue LHSCap = DAG.getBitcast(MVT::c64, TrueV);
+    SDValue RHSCap = DAG.getBitcast(MVT::c64, FalseV);
+    SDValue Select =
+        DAG.getNode(ISD::SELECT, DL, MVT::c64, CondV, LHSCap, RHSCap);
+    return DAG.getBitcast(MVT::f64, Select);
+  }
 
   // Lower vector SELECTs to VSELECTs by splatting the condition.
   if (VT.isVector()) {

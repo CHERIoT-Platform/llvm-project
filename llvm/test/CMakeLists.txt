@@ -95,6 +95,7 @@ set(LLVM_TEST_DEPENDS
           llvm-dwp
           llvm-extract
           llvm-gsymutil
+          llvm-ir2vec
           llvm-isel-fuzzer
           llvm-ifs
           llvm-install-name-tool

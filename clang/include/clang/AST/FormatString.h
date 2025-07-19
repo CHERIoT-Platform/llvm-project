@@ -491,7 +491,8 @@ public:
 
   /// For a TypedefType QT, if it is a named integer type such as size_t,
   /// assign the appropriate value to LM and return true.
-  static bool namedTypeToLengthModifier(QualType QT, LengthModifier &LM);
+  static bool namedTypeToLengthModifier(ASTContext &Ctx, QualType QT,
+                                        LengthModifier &LM);
 };
 
 } // end analyze_format_string namespace

@@ -37,7 +37,7 @@ _Static_assert(sizeof(int&&) == 4, "Reference size incorrect");
 // CHECK-NEXT:| `-FieldDecl {{.*}} <line:7:2, col:6> col:6 e 'int'
 // CHECK:     |-CXXRecordDecl {{.*}} <line:12:1, line:16:1> line:12:8 referenced struct foo_int definition
 // CHECK:     | |-CXXRecordDecl {{.*}} <col:1, col:8> col:8 implicit struct foo_int
-// CHECK-NEXT:| |-FieldDecl {{.*}} <line:13:2, col:8> col:8 a 'long'
+// CHECK-NEXT:| |-FieldDecl {{.*}} <line:13:2, col:8> col:8 a '__ptrdiff_t':'long'
 // CHECK-NEXT:| |-FieldDecl {{.*}} <line:14:2, col:7> col:7 d 'long'
 // CHECK-NEXT:| `-FieldDecl {{.*}} <line:15:2, col:6> col:6 e 'int'
 

@@ -139,6 +139,7 @@ public:
   virtual void printSectionDetails() {}
   virtual void printArchSpecificInfo() {}
   virtual void printMemtag() {}
+  virtual void printSectionsAsSFrame(ArrayRef<std::string> Sections) {}
 
   virtual void printCheriCapRelocs() {}
   virtual void printCheriCapTable() {}
@@ -193,6 +194,10 @@ public:
 
 protected:
   ScopedPrinter &W;
+
+  static std::vector<object::SectionRef>
+  getSectionRefsByNameOrIndex(const object::ObjectFile &Obj,
+                              ArrayRef<std::string> Sections);
 
 private:
   virtual void printSymbols(bool ExtraSymInfo) {}

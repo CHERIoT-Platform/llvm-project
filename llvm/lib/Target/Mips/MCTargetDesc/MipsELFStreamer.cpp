@@ -115,7 +115,7 @@ void MipsELFStreamer::EmitCheriCapabilityImpl(const MCSymbol *Symbol,
   // Pad to ensure that the capability is aligned
   emitValueToAlignment(Align(CapSize), 0, 1, 0);
 
-  MCFragment *DF = getOrCreateDataFragment();
+  MCFragment *DF = getCurrentFragment();
   MCFixup cheriFixup = MCFixup::create(
       0, CapExpr, MCFixupKind(Mips::fixup_CHERI_CAPABILITY));
   DF->addFixup(cheriFixup);

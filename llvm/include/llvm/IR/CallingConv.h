@@ -284,16 +284,19 @@ namespace CallingConv {
     RISCV_VLSCall_32768 = 122,
     RISCV_VLSCall_65536 = 123,
 
+    // Calling convention for AMDGPU whole wave functions.
+    AMDGPU_Gfx_WholeWave = 124,
+
     /// CHERI_CCall - Calling convention used for CHERI when crossing a
     /// protection boundary.
-    CHERI_CCall = 124,
+    CHERI_CCall = 125,
     /// CHERI_CCallee - Calling convention used for the callee of CHERI_CCall.
     /// Ignores the first two capability arguments and the first integer
     /// argument, zeroes all unused return registers on return.
-    CHERI_CCallee = 125,
+    CHERI_CCallee = 126,
     /// CHERI_LibCalL - Calling convention used for cross-library calls to a
     /// stateless compartment.
-    CHERI_LibCall = 126,
+    CHERI_LibCall = 127,
 
     /// The highest possible ID. Must be some 2^k - 1.
     MaxID = 1023
@@ -305,8 +308,13 @@ namespace CallingConv {
 /// directly or indirectly via a call-like instruction.
 constexpr bool isCallableCC(CallingConv::ID CC) {
   switch (CC) {
+  // Called with special intrinsics:
+  // llvm.amdgcn.cs.chain
   case CallingConv::AMDGPU_CS_Chain:
   case CallingConv::AMDGPU_CS_ChainPreserve:
+  // llvm.amdgcn.call.whole.wave
+  case CallingConv::AMDGPU_Gfx_WholeWave:
+  // Hardware entry points:
   case CallingConv::AMDGPU_CS:
   case CallingConv::AMDGPU_ES:
   case CallingConv::AMDGPU_GS:

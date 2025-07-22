@@ -766,15 +766,18 @@ uint64_t MipsCheriCapTableSection::assignIndices(uint64_t startIndex,
     RelocationBaseSection *dynRelSec = it.second.usedInCallExpr
                                            ? ctx.in.relaPlt.get()
                                            : ctx.mainPart->relaDyn.get();
-    addCapabilityRelocation<ELFT>(
-        ctx, targetSym, elfCapabilityReloc, this, off, R_CHERI_CAPABILITY, 0,
-        it.second.usedInCallExpr,
-        [&]() {
-          return ("\n>>> referenced by " + refName + "\n>>> first used in " +
-                  it.second.firstUse->verboseToString(ctx))
-              .str();
-        },
-        dynRelSec);
+    if (!targetSym->isPreemptible && targetSym->isUndefWeak())
+      addNullDerivedCapability(ctx, *targetSym, *this, off, 0);
+    else
+      addCapabilityRelocation<ELFT>(
+          ctx, targetSym, elfCapabilityReloc, this, off, R_CHERI_CAPABILITY, 0,
+          it.second.usedInCallExpr,
+          [&]() {
+            return ("\n>>> referenced by " + refName + "\n>>> first used in " +
+                    it.second.firstUse->verboseToString(ctx))
+                .str();
+          },
+          dynRelSec);
   }
   assert(assignedSmallIndexes + assignedLargeIndexes == entries.size());
   return assignedSmallIndexes + assignedLargeIndexes;
@@ -1030,26 +1033,10 @@ void addCapabilityRelocation(
     }
   }
 
-  // Non-preemptible undef weak symbols are link-time constants
-  if (sym && !sym->isPreemptible && sym->isUndefWeak()) {
-    if (ctx.arg.isLE) {
-      sec->addReloc({R_ABS, ctx.target->symbolicRel, offset, addend, sym});
-      sec->addReloc({R_ADDEND, ctx.target->symbolicRel,
-                     offset + ctx.arg.wordsize, 0, sym});
-    } else {
-      sec->addReloc({R_ADDEND, ctx.target->symbolicRel, offset, 0, sym});
-      sec->addReloc({R_ABS, ctx.target->symbolicRel, offset + ctx.arg.wordsize,
-                     addend, sym});
-    }
-    // Handle deprecated CHERI-256
-    if (ctx.target->getCapabilitySize() == ctx.arg.wordsize * 4) {
-      sec->addReloc({R_ADDEND, ctx.target->symbolicRel,
-                     offset + 2 * ctx.arg.wordsize, 0, sym});
-      sec->addReloc({R_ADDEND, ctx.target->symbolicRel,
-                     offset + 3 * ctx.arg.wordsize, 0, sym});
-    }
-    return;
-  }
+  // Non-preemptible undef weak symbols are link-time constants and should use
+  // addNullDerivedCapability
+  if (sym)
+    assert(sym->isPreemptible || !sym->isUndefWeak());
 
   // local cap relocs don't need a Elf relocation with a full symbol lookup:
   if (capRelocMode == CapRelocsMode::ElfReloc) {
@@ -1117,6 +1104,28 @@ void addCapabilityRelocation(
   } else {
     assert(ctx.arg.localCapRelocsMode == CapRelocsMode::CBuildCap);
     error("CBuildCap method not implemented yet!");
+  }
+}
+
+void addNullDerivedCapability(Ctx &ctx, Symbol &sym, InputSectionBase &sec,
+                              uint64_t offset, int64_t addend) {
+  // Only non-preemptible undef weak symbols are link-time constants
+  assert(!sym.isPreemptible && sym.isUndefWeak());
+  if (ctx.arg.isLE) {
+    sec.addReloc({R_ABS, ctx.target->symbolicRel, offset, addend, &sym});
+    sec.addReloc({R_ADDEND, ctx.target->symbolicRel, offset + ctx.arg.wordsize,
+                  0, &sym});
+  } else {
+    sec.addReloc({R_ADDEND, ctx.target->symbolicRel, offset, 0, &sym});
+    sec.addReloc({R_ABS, ctx.target->symbolicRel, offset + ctx.arg.wordsize,
+                  addend, &sym});
+  }
+  // Handle deprecated CHERI-256
+  if (ctx.target->getCapabilitySize() == ctx.arg.wordsize * 4) {
+    sec.addReloc({R_ADDEND, ctx.target->symbolicRel,
+                  offset + 2 * ctx.arg.wordsize, 0, &sym});
+    sec.addReloc({R_ADDEND, ctx.target->symbolicRel,
+                  offset + 3 * ctx.arg.wordsize, 0, &sym});
   }
 }
 

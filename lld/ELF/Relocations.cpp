@@ -822,8 +822,11 @@ void elf::addGotEntry(Ctx &ctx, Symbol &sym) {
   }
 
   // Otherwise, the value is either a link-time constant or the load base
-  // plus a constant. For CHERI it always requires run-time initialisation.
-  if (ctx.arg.isCheriAbi) {
+  // plus a constant. For CHERI it always requires run-time initialisation,
+  // with the exception of undef weak symbols.
+  if (ctx.arg.isCheriAbi && sym.isUndefWeak())
+    addNullDerivedCapability(ctx, sym, *ctx.in.got, off, 0);
+  else if (ctx.arg.isCheriAbi) {
     invokeELFT(addCapabilityRelocation, ctx, &sym, *ctx.target->cheriCapRel,
                ctx.in.got.get(), off, R_CHERI_CAPABILITY, 0, false,
                [] { return ""; });
@@ -915,9 +918,10 @@ bool RelocScan::isStaticLinkTimeConstant(RelExpr e, RelType type,
   // Cheri capability relocations are never static link time constants since
   // even if we know the exact value of the capability we can't write it since
   // there is no way to store the tag bit
-  // TODO: for undef weak -> 0 (or other untagged values) it actually is okay
+  // The exception is for non-preemptible undef weak symbols, which are
+  // NULL-derived constants.
   if (e == R_CHERI_CAPABILITY)
-    return false;
+    return !sym.isPreemptible && sym.isUndefWeak();
 
   // These never do, except if the entire file is position dependent or if
   // only the low bits are used.
@@ -1068,8 +1072,23 @@ void RelocScan::process(RelExpr expr, RelType type, uint64_t offset,
   // If the relocation is known to be a link-time constant, we know no dynamic
   // relocation will be created, pass the control to relocateAlloc() or
   // relocateNonAlloc() to resolve it.
-  if (isStaticLinkTimeConstant(expr, type, sym, offset)) {
-    sec->addReloc({expr, type, offset, addend, &sym});
+  //
+  // The behavior of an undefined weak reference is implementation defined. For
+  // non-link-time constants, we resolve relocations statically (let
+  // relocate{,Non}Alloc() resolve them) for -no-pie and try producing dynamic
+  // relocations for -pie and -shared.
+  //
+  // The general expectation of -no-pie static linking is that there is no
+  // dynamic relocation (except IRELATIVE). Emitting dynamic relocations for
+  // -shared matches the spirit of its -z undefs default. -pie has freedom on
+  // choices, and we choose dynamic relocations to be consistent with the
+  // handling of GOT-generating relocations.
+  if (isStaticLinkTimeConstant(expr, type, sym, offset) ||
+      (!ctx.arg.isPic && sym.isUndefWeak())) {
+    if (expr == R_CHERI_CAPABILITY)
+      addNullDerivedCapability(ctx, sym, *sec, offset, addend);
+    else
+      sec->addReloc({expr, type, offset, addend, &sym});
     return;
   }
 

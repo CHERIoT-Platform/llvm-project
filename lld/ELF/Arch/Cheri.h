@@ -364,6 +364,9 @@ void addCapabilityRelocation(
     int64_t addend, bool isCallExpr,
     llvm::function_ref<std::string()> referencedBy,
     RelocationBaseSection *dynRelSec = nullptr);
+
+void addNullDerivedCapability(Ctx &ctx, Symbol &sym, InputSectionBase &sec,
+                              uint64_t offset, int64_t addend);
 } // namespace elf
 } // namespace lld
 

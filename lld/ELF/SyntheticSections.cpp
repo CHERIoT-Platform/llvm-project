@@ -1630,8 +1630,7 @@ DynamicSection<ELFT>::computeContents() {
       // if (ctx.arg.CapTableScope != CapTableScopePolicy::All)
       // Add the captable scope to the CHERI flags:
       targetCheriFlags |= ((unsigned)ctx.arg.capTableScope) << 3;
-      if (ctx.arg.relativeCapRelocsOnly)
-        targetCheriFlags |= DF_MIPS_CHERI_RELATIVE_CAPRELOCS;
+      targetCheriFlags |= DF_MIPS_CHERI_RELATIVE_CAPRELOCS;
       addInt(DT_MIPS_CHERI_FLAGS, targetCheriFlags);
     }
     // CHeck that we didn't link incompatible libraries:
@@ -1810,10 +1809,9 @@ void RelocationBaseSection::finalizeContents() {
     }
   }
   for (auto reloc : relocs) {
-    if (ctx.arg.isCheriAbi && ctx.arg.relativeCapRelocsOnly &&
-        reloc.inputSec->name == "__cap_relocs") {
+    if (ctx.arg.isCheriAbi && reloc.inputSec->name == "__cap_relocs") {
       warn("attempting to add a dynamic relocation against the __cap_relocs "
-           "section. If this is intended pass --no-relative-cap-relocs.");
+           "section.");
     }
     if (ctx.arg.emachine == EM_MIPS && ctx.arg.buildingFreeBSDRtld) {
       unsigned baseRelocType = reloc.type & 0xff;

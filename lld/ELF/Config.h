@@ -459,12 +459,9 @@ struct Config {
   UnresolvedPolicy unresolvedSymbolsInShlib;
   Target2Policy target2;
   GcsPolicy zGcs;
-  // Method used for capability relocations for preemptible symbols
-  CapRelocsMode preemptibleCapRelocsMode;
   // Method used for capability relocations for non-preemptible symbols
   CapRelocsMode localCapRelocsMode;
   CapTableScopePolicy capTableScope;
-  bool relativeCapRelocsOnly;
 
   bool power10Stubs;
   ARMVFPArgKind armVFPArgs = ARMVFPArgKind::Default;

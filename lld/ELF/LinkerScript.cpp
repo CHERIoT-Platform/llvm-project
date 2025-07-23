@@ -890,10 +890,6 @@ static OutputSection *findByName(ArrayRef<SectionCommand *> vec,
 static OutputDesc *createSection(Ctx &ctx, InputSectionBase *isec,
                                  StringRef outsecName) {
   OutputDesc *osd = ctx.script->createOutputSection(outsecName, "<internal>");
-  if (outsecName == "__cap_relocs" && !ctx.arg.relativeCapRelocsOnly) {
-    // TODO: remove this hack
-    isec->flags |= SHF_WRITE;
-  }
   osd->osec.recordSection(isec);
   return osd;
 }

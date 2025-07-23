@@ -55,11 +55,7 @@ struct InMemoryCapRelocEntry {
 };
 
 CheriCapRelocsSection::CheriCapRelocsSection(Ctx &ctx, StringRef name)
-    : SyntheticSection(ctx, name, SHT_PROGBITS,
-                       (ctx.arg.isPic && !ctx.arg.relativeCapRelocsOnly)
-                           ? SHF_ALLOC | SHF_WRITE
-                           : SHF_ALLOC,
-                       ctx.arg.wordsize) {
+    : SyntheticSection(ctx, name, SHT_PROGBITS, SHF_ALLOC, ctx.arg.wordsize) {
   this->entsize = ctx.arg.wordsize * 5;
 }
 
@@ -186,22 +182,9 @@ std::string CheriCapRelocLocation::toString(Ctx &ctx) const {
 template <class ELFT>
 void CheriCapRelocsSection::addCapReloc(CheriCapRelocLocation loc,
                                         const SymbolAndOffset &target,
-                                        bool targetNeedsDynReloc,
                                         int64_t capabilityOffset,
                                         Symbol *sourceSymbol) {
-  if (ctx.arg.relativeCapRelocsOnly) {
-    if (targetNeedsDynReloc) {
-      error(
-          "Cannot add __cap_reloc against target that needs a dynamic "
-          "relocation when --relative-cap-relocs is enabled: " +
-          target.verboseToString(ctx));
-      return;
-    }
-  } else {
-    // Allow relocations in __cap_relocs section for legacy mode
-    targetNeedsDynReloc = targetNeedsDynReloc || ctx.arg.isPic || ctx.arg.pie;
-  }
-  uint64_t currentEntryOffset = relocsMap.size() * entsize;
+  assert(!isa<Symbol *>(target.symOrSec) || !target.sym()->isPreemptible);
 
   auto sourceMsg = [&]() -> std::string {
     return sourceSymbol ? verboseToString(ctx, sourceSymbol) : loc.toString(ctx);
@@ -232,42 +215,7 @@ void CheriCapRelocsSection::addCapReloc(CheriCapRelocLocation loc,
     return;
   }
 
-  if (!addEntry(loc, {target, capabilityOffset, targetNeedsDynReloc})) {
-    return;  // Maybe happens with vtables?
-  }
-  if (targetNeedsDynReloc) {
-    assert(isa<Symbol *>(target.symOrSec));
-    bool relativeToLoadAddress = false;
-    // The addend is not used as the offset into the capability here, as we
-    // have the offset field in the __cap_relocs for that. The Addend
-    // will be zero unless we are targeting a string constant as these
-    // don't have a symbol and will be like .rodata.str+0x1234
-    int64_t addend = target.offset;
-    constexpr unsigned fieldSize = InMemoryCapRelocEntry<ELFT>::fieldSize;
-    // Capability target is the second field
-    if (target.sym()->isPreemptible) {
-      ctx.mainPart->relaDyn->addSymbolReloc(
-          *ctx.target->absPointerRel, *this, currentEntryOffset + fieldSize,
-          *target.sym(), addend, ctx.target->symbolicRel);
-    } else {
-      // If the target is not preemptible we can optimize this to a relative
-      // relocation against the image base.
-      relativeToLoadAddress = true;
-      ctx.mainPart->relaDyn->addRelativeReloc(
-          ctx.target->relativeRel, *this, currentEntryOffset + fieldSize,
-          *target.sym(), addend, ctx.target->symbolicRel, R_ABS);
-    }
-    assert((currentEntryOffset + fieldSize) < getSize());
-    containsDynamicRelocations = true;
-    if (!relativeToLoadAddress) {
-      // We also add a size relocation for the size field here
-      RelType sizeRel = *ctx.target->sizeRel;
-      // Capability size is the fourth field
-      assert((currentEntryOffset + 3 * fieldSize) < getSize());
-      ctx.mainPart->relaDyn->addSymbolReloc(
-          sizeRel, *this, currentEntryOffset + 3 * fieldSize, *target.sym());
-    }
-  }
+  addEntry(loc, {target, capabilityOffset});
 }
 
 template <typename ELFT>
@@ -402,37 +350,21 @@ void CheriCapRelocsSection::writeToImpl(uint8_t *buf) {
 
     // The target VA is the base address of the capability, so symbol + 0
     uint64_t targetVA;
-    bool isPreemptible, isFunc, isTls;
+    bool isFunc, isTls;
     OutputSection *os;
     if (Symbol *s = dyn_cast<Symbol *>(realTarget.symOrSec)) {
       targetVA = realTarget.sym()->getVA(ctx, 0);
-      isPreemptible = reloc.needsDynReloc && realTarget.sym()->isPreemptible;
       isFunc = s->isFunc();
       isTls = s->isTls();
       os = s->getOutputSection();
     } else {
       InputSectionBase *isec = cast<InputSectionBase *>(realTarget.symOrSec);
       targetVA = isec->getVA(0);
-      isPreemptible = false;
       isFunc = (isec->flags & SHF_EXECINSTR) != 0;
       isTls = isec->type == STT_TLS;
       os = isec->getOutputSection();
     }
-    bool preemptibleDynReloc = reloc.needsDynReloc && isPreemptible;
-    uint64_t targetSize = 0;
-    if (preemptibleDynReloc) {
-      // If we have a relocation against a preemptible symbol (even in the
-      // current DSO) we can't compute the virtual address here so we only write
-      // the addend
-      if (realTarget.offset != 0)
-        error(
-            "Dyn Reloc Target offset was nonzero: " + Twine(realTarget.offset) +
-            " - " + realTarget.verboseToString(ctx));
-      targetVA = realTarget.offset;
-    } else {
-      // For non-preemptible symbols we can write the target size:
-      targetSize = getTargetSize<ELFT>(ctx, location, realTarget);
-    }
+    uint64_t targetSize = getTargetSize<ELFT>(ctx, location, realTarget);
     uint64_t targetOffset = reloc.capabilityOffset + realTarget.offset;
     uint64_t permissions = 0;
     // Fow now Function implies ReadOnly so don't add the flag
@@ -473,15 +405,11 @@ void CheriCapRelocsSection::writeToImpl(uint8_t *buf) {
     offset += InMemoryCapRelocEntry<ELFT>::relocSize;
   }
 
-  // FIXME: this totally breaks dynamic relocs!!! need to do in finalize()
-
   // Sort the cap_relocs by target address for better cache and TLB locality
   // It also makes it much easier to read the llvm-objdump -C output since it
   // is sorted in a sensible order
-  // However, we can't do this if we added any dynamic relocations since it
-  // will mean the dynamic relocation offset refers to a different location
   // FIXME: do the sorting in finalizeSection instead
-  if (ctx.arg.sortCapRelocs && !containsDynamicRelocations)
+  if (ctx.arg.sortCapRelocs)
     std::stable_sort(
         reinterpret_cast<InMemoryCapRelocEntry<ELFT> *>(buf),
         reinterpret_cast<InMemoryCapRelocEntry<ELFT> *>(buf + offset),
@@ -1000,7 +928,7 @@ void addCapabilityRelocation(
   // For local symbols we can also emit the untagged capability bits and
   // instruct csu/rtld to run CBuildCap
   CapRelocsMode capRelocMode = sym && sym->isPreemptible
-                                   ? ctx.arg.preemptibleCapRelocsMode
+                                   ? CapRelocsMode::ElfReloc
                                    : ctx.arg.localCapRelocsMode;
   bool needTrampoline = false;
   // In the PLT ABI (and fndesc?) we have to use an elf relocation for function
@@ -1026,7 +954,6 @@ void addCapabilityRelocation(
 
     if (needTrampoline) {
       capRelocMode = CapRelocsMode::ElfReloc;
-      assert(capRelocMode == ctx.arg.preemptibleCapRelocsMode);
       if (ctx.arg.verboseCapRelocs)
         message("Using trampoline for function pointer against " +
                 verboseToString(ctx, sym));
@@ -1096,11 +1023,7 @@ void addCapabilityRelocation(
         /* Relocation type for the addend = */ ctx.target->symbolicRel);
 
   } else if (capRelocMode == CapRelocsMode::Legacy) {
-    if (ctx.arg.relativeCapRelocsOnly) {
-      assert(!sym || !sym->isPreemptible);
-    }
-    ctx.in.capRelocs->addCapReloc<ELFT>({sec, offset}, {symOrSec, 0u},
-                                        sym && sym->isPreemptible, addend);
+    ctx.in.capRelocs->addCapReloc<ELFT>({sec, offset}, {symOrSec, 0u}, addend);
   } else {
     assert(ctx.arg.localCapRelocsMode == CapRelocsMode::CBuildCap);
     error("CBuildCap method not implemented yet!");

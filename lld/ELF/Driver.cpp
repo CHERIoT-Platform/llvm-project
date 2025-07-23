@@ -485,12 +485,6 @@ static void checkOptions(Ctx &ctx) {
     error("local-cap-relocs=elf is not implemented yet");
   if (ctx.arg.localCapRelocsMode == CapRelocsMode::CBuildCap)
     error("local-cap-relocs=cbuildcap is not implemented yet");
-  assert(ctx.arg.preemptibleCapRelocsMode != CapRelocsMode::CBuildCap);
-
-  if (ctx.arg.preemptibleCapRelocsMode == CapRelocsMode::Legacy &&
-      ctx.arg.relativeCapRelocsOnly)
-    error("--preemptible-caprelocs=legacy is not compatible with "
-          "--relative-cap-relocs");
 
   if (ctx.arg.executeOnly) {
     if (ctx.arg.singleRoRx && !ctx.script->hasSectionsCommand)
@@ -854,21 +848,6 @@ static DiscardPolicy getDiscard(opt::InputArgList &args) {
   if (arg->getOption().getID() == OPT_discard_locals)
     return DiscardPolicy::Locals;
   return DiscardPolicy::None;
-}
-
-static CapRelocsMode getPreemptibleCapRelocsMode(opt::InputArgList &args) {
-  auto *arg = args.getLastArg(OPT_preemptible_caprelocs_legacy,
-                              OPT_preemptible_caprelocs_elf);
-  // The default behaviour is to emit R_CHERI_CAPABILITY relocations for
-  // preemptible symbols
-  if (!arg)
-    return CapRelocsMode::ElfReloc;
-  if (arg->getOption().getID() == OPT_preemptible_caprelocs_legacy) {
-    return CapRelocsMode::Legacy;
-  } else if (arg->getOption().getID() == OPT_preemptible_caprelocs_elf) {
-    return CapRelocsMode::ElfReloc;
-  }
-  llvm_unreachable("Invalid arg");
 }
 
 static CapTableScopePolicy getCapTableScope(opt::InputArgList &args) {
@@ -1583,7 +1562,6 @@ static void readConfigs(Ctx &ctx, opt::InputArgList &args) {
   if (auto *arg = args.getLastArg(OPT_package_metadata))
     parsePackageMetadata(ctx, *arg);
   ctx.arg.pie = args.hasFlag(OPT_pie, OPT_no_pie, false);
-  ctx.arg.preemptibleCapRelocsMode = getPreemptibleCapRelocsMode(args);
   ctx.arg.printIcfSections =
       args.hasFlag(OPT_print_icf_sections, OPT_no_print_icf_sections, false);
   if (auto *arg =
@@ -2107,14 +2085,6 @@ static void setConfigs(Ctx &ctx, opt::InputArgList &args) {
   ctx.arg.writeAddends = args.hasFlag(OPT_apply_dynamic_relocs,
                                       OPT_no_apply_dynamic_relocs, false) ||
                          !ctx.arg.isRela;
-
-  // Avoid dynamic relocations for __cap_relocs unless we are building legacy
-  // TODO: remove once benchmarking is done.
-  bool relativeCapRelocsDefault =
-      !ctx.arg.isPic || ctx.arg.preemptibleCapRelocsMode != CapRelocsMode::Legacy;
-  ctx.arg.relativeCapRelocsOnly =
-      args.hasFlag(OPT_relative_cap_relocs, OPT_no_relative_cap_relocs,
-                   relativeCapRelocsDefault);
 
   // Validation of dynamic relocation addends is on by default for assertions
   // builds and disabled otherwise. This check is enabled when writeAddends is

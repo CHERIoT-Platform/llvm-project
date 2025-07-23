@@ -958,39 +958,12 @@ void addCapabilityRelocation(
     return;
   }
 
-  assert(sym && "ELF relocs should not be used against sections");
-  assert((sym->isPreemptible || needTrampoline) &&
-         "ELF relocs should not be used for non-preemptible symbols");
-  assert((!sym->isLocal() || needTrampoline) &&
-         "ELF relocs should not be used for local symbols");
-  if (!lld::elf::hasDynamicLinker(ctx)) {
-    error("attempting to emit a R_CAPABILITY relocation against " +
-          (sym->getName().empty() ? "local symbol"
-                                  : "symbol " + toStr(ctx, *sym)) +
-          " in binary without a dynamic linker; try removing -Wl,-" +
-          (sym->isPreemptible ? "preemptible" : "local") + "-caprelocs=elf" +
-          referencedBy());
-    return;
-  }
-  assert(ctx.hasDynsym && "Should have been checked in Driver.cpp");
   // We don't use a R_MIPS_CHERI_CAPABILITY relocation for the input but
   // instead need to use an absolute pointer size relocation to write
   // the offset addend
   if (!dynRelSec)
     dynRelSec = ctx.mainPart->relaDyn.get();
-  // in the case that -local-caprelocs=elf is passed we need to ensure that
-  // the target symbol is included in the dynamic symbol table
-  if (!ctx.mainPart->dynSymTab) {
-    error("R_CHERI_CAPABILITY relocations need a dynamic symbol table");
-    return;
-  }
-  if (!isSymIncludedInDynsym(ctx, *sym)) {
-    if (!needTrampoline) {
-      error("added a R_CHERI_CAPABILITY relocation but symbol not included "
-            "in dynamic symbol: " +
-            verboseToString(ctx, sym));
-      return;
-    }
+  if (needTrampoline && !isSymIncludedInDynsym(ctx, *sym)) {
     // Hack: Add a new global symbol with a unique name so that we can use
     // a dynamic relocation against it.
     // TODO: should it be possible to add STB_LOCAL symbols to .dynsymtab?

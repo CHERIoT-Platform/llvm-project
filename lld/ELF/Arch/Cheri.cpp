@@ -905,16 +905,6 @@ void addCapabilityRelocation(
     RelocationBaseSection *dynRelSec) {
   Symbol *sym = dyn_cast<Symbol *>(symOrSec);
   assert(expr == R_CHERI_CAPABILITY);
-  if (sec->name == ".gcc_except_table" && sym && sym->isPreemptible) {
-    // We previously had an ugly workaround here to create a hidden alias for
-    // relocations in the exception table, but this has since been fixed in
-    // the compiler. Add an explicit error here in case someone tries to
-    // link against object files/static libraries from an old toolchain.
-    auto diag = ctx.arg.noinhibitExec ? Warn(ctx) : Err(ctx);
-    diag << "got relocation against preemptible symbol " << toStr(ctx, *sym)
-         << " in exception handling table. Please recompile this file!\n"
-         << ">>> referenced by " << sec->getObjMsg(offset);
-  }
 
   bool needTrampoline = false;
   // In the PLT ABI (and fndesc?) we have to use an elf relocation for function

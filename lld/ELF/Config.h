@@ -100,7 +100,7 @@ enum class BuildIdKind { None, Fast, Md5, Sha1, Hexstring, Uuid };
 // For --call-graph-profile-sort={none,hfsort,cdsort}.
 enum class CGProfileSortKind { None, Hfsort, Cdsort };
 
-enum class CapRelocsMode { Legacy, ElfReloc, CBuildCap };
+enum class CapRelocsMode { Legacy, ElfReloc };
 
 enum class CapTableScopePolicy { All, File, Function };
 

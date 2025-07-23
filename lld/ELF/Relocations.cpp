@@ -805,9 +805,9 @@ static void addPltEntry(Ctx &ctx, PltSection &plt, GotPltSection &gotPlt,
     rel.addReloc(
         {type, &gotPlt, sym.getGotPltOffset(ctx), false, sym, 0, R_ABS});
   if (ctx.arg.isCheriAbi)
-    invokeELFT(addCapabilityRelocation, ctx, &plt, *ctx.target->cheriCapRel,
-               &gotPlt, sym.getGotPltOffset(ctx), R_CHERI_CAPABILITY, 0, false,
-               [] { return ""; });
+    addCapabilityRelocation(ctx, &plt, *ctx.target->cheriCapRel, &gotPlt,
+                            sym.getGotPltOffset(ctx), R_CHERI_CAPABILITY, 0,
+                            false, [] { return ""; });
 }
 
 void elf::addGotEntry(Ctx &ctx, Symbol &sym) {
@@ -827,9 +827,9 @@ void elf::addGotEntry(Ctx &ctx, Symbol &sym) {
   if (ctx.arg.isCheriAbi && sym.isUndefWeak())
     addNullDerivedCapability(ctx, sym, *ctx.in.got, off, 0);
   else if (ctx.arg.isCheriAbi) {
-    invokeELFT(addCapabilityRelocation, ctx, &sym, *ctx.target->cheriCapRel,
-               ctx.in.got.get(), off, R_CHERI_CAPABILITY, 0, false,
-               [] { return ""; });
+    addCapabilityRelocation(ctx, &sym, *ctx.target->cheriCapRel,
+                            ctx.in.got.get(), off, R_CHERI_CAPABILITY, 0, false,
+                            [] { return ""; });
   } else if (!ctx.arg.isPic || isAbsolute(sym))
     ctx.in.got->addConstant({R_ABS, ctx.target->symbolicRel, off, 0, &sym});
   else
@@ -1112,16 +1112,8 @@ void RelocScan::process(RelExpr expr, RelType type, uint64_t offset,
       readOnlyCapRelocsError(ctx, sym, getRelocTargetLocation());
       return;
     }
-
-    if (ctx.arg.is64)
-      addCapabilityRelocation<ELF64LE>(
-          ctx, &sym, type, sec, offset, expr, addend,
-          /* isCallExpr=*/false, getRelocTargetLocation);
-    else
-      addCapabilityRelocation<ELF32LE>(
-          ctx, &sym, type, sec, offset, expr, addend,
-          /* isCallExpr=*/false, getRelocTargetLocation);
-
+    addCapabilityRelocation(ctx, &sym, type, sec, offset, expr, addend,
+                            /* isCallExpr=*/false, getRelocTargetLocation);
     // TODO: check if it is a call and needs a plt stub
     return;
   }

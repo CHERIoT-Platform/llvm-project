@@ -1813,18 +1813,6 @@ void RelocationBaseSection::finalizeContents() {
       warn("attempting to add a dynamic relocation against the __cap_relocs "
            "section.");
     }
-    if (ctx.arg.emachine == EM_MIPS && ctx.arg.buildingFreeBSDRtld) {
-      unsigned baseRelocType = reloc.type & 0xff;
-      if (baseRelocType != R_MIPS_REL32 && baseRelocType != R_MIPS_NONE) {
-        auto diag = Err(ctx);
-        diag << "relocation " << toStr(ctx, reloc.type) << " against "
-             << toStr(ctx, *reloc.sym)
-             << " cannot be using when building FreeBSD RTLD";
-
-        printLocationMessage(diag, *reloc.inputSec, *reloc.sym,
-                             reloc.offsetInSec);
-      }
-    }
   }
 }
 
@@ -4892,10 +4880,7 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
 
   // Add MIPS-specific sections.
   if (ctx.arg.emachine == EM_MIPS) {
-    // XXXAR: also add the RLD_MAP dynamic tags to rtld so that we can use
-    // gdb with rtld direct exec mode.
-    // TODO: should probably try to build rtld as PIE instead?
-    if ((!ctx.arg.shared || ctx.arg.buildingFreeBSDRtld) && ctx.hasDynsym) {
+    if (!ctx.arg.shared && ctx.hasDynsym) {
       ctx.in.mipsRldMap = std::make_unique<MipsRldMapSection>(ctx);
       add(*ctx.in.mipsRldMap);
     }

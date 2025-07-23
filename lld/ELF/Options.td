@@ -831,10 +831,9 @@ def verbose_cap_relocs : F<"verbose-cap-relocs">, HelpText<"Print all cap_relocs
 
 def local_caprelocs_legacy: F<"local-caprelocs=legacy">,
   HelpText<"Emit capability relocations for local symbols using the __cap_relocs mechanism">;
-def local_caprelocs_elf: F<"local-caprelocs=elf">,
-  HelpText<"Use ELF relocations for local capabilities.">;
-def local_caprelocs_cbuildcap: F<"local-caprelocs=cbuildcap">,
-  HelpText<"Emit capability relocations for local symbols by writing bits to be initialized using CBuildCap.">;
+def local_caprelocs_elf
+    : F<"local-caprelocs=elf">,
+      HelpText<"Use ELF relocations for local capabilities.">;
 
 def captable_scope_all: F<"captable-scope=all">,
   HelpText<"Use one captable for the whole DSO for global accesses (this is the default)">;

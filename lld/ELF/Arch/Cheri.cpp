@@ -1015,11 +1015,9 @@ void addCapabilityRelocation(
         DynamicReloc::AgainstSymbol, type, *sec, offset, *sym, addend, expr,
         /* Relocation type for the addend = */ ctx.target->symbolicRel);
 
-  } else if (capRelocMode == CapRelocsMode::Legacy) {
-    ctx.in.capRelocs->addCapReloc({sec, offset}, {symOrSec, 0u}, addend);
   } else {
-    assert(ctx.arg.localCapRelocsMode == CapRelocsMode::CBuildCap);
-    error("CBuildCap method not implemented yet!");
+    assert(ctx.arg.localCapRelocsMode == CapRelocsMode::Legacy);
+    ctx.in.capRelocs->addCapReloc({sec, offset}, {symOrSec, 0u}, addend);
   }
 }
 

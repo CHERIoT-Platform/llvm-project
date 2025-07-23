@@ -100,8 +100,6 @@ enum class BuildIdKind { None, Fast, Md5, Sha1, Hexstring, Uuid };
 // For --call-graph-profile-sort={none,hfsort,cdsort}.
 enum class CGProfileSortKind { None, Hfsort, Cdsort };
 
-enum class CapRelocsMode { Legacy, ElfReloc };
-
 enum class CapTableScopePolicy { All, File, Function };
 
 // For --discard-{all,locals,none}.
@@ -461,8 +459,7 @@ struct Config {
   UnresolvedPolicy unresolvedSymbolsInShlib;
   Target2Policy target2;
   GcsPolicy zGcs;
-  // Method used for capability relocations for non-preemptible symbols
-  CapRelocsMode localCapRelocsMode;
+  bool useRelativeCheriRelocs;
   CapTableScopePolicy capTableScope;
 
   bool power10Stubs;

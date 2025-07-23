@@ -554,11 +554,10 @@ public:
       expr = R_ADDEND;
       if (sym.isFunc() && addend != 0) {
         auto diag = Warn(ctx);
-        diag << "got capability relocation with non-zero addend (0x"
-             << llvm::utohexstr(addend)
-             << ") against function "
+        diag << "capability relocation with non-zero addend (0x"
+             << llvm::utohexstr(addend) << ") against preemptible function "
              << toStr(ctx, sym)
-             << ". This may not be supported by the runtime linker.";
+             << "; this may not be supported by the runtime linker.";
         printLocationMessage(diag, sec, sym, offsetInSec);
       }
     }

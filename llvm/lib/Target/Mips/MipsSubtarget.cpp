@@ -328,7 +328,7 @@ const RegisterBankInfo *MipsSubtarget::getRegBankInfo() const {
 }
 
 void MipsSubtarget::overrideSchedPolicy(MachineSchedPolicy &Policy,
-                                        unsigned NumRegionInstrs) const {
+                                        const SchedRegion &Region) const {
   // Note: OnlyTopDown seems to work better for latency scheduling
   //  Policy.OnlyTopDown = true;
   //  Policy.OnlyBottomUp = false;

@@ -2826,19 +2826,17 @@ SDValue SelectionDAGLegalize::ExpandLegalINT_TO_FP(SDNode *Node,
       // In strict mode, we must avoid spurious exceptions, and therefore
       // must make sure to only emit a single STRICT_SINT_TO_FP.
       SDValue InCvt = DAG.getSelect(dl, SrcVT, SignBitTest, Or, Op0);
-      Fast = DAG.getNode(ISD::STRICT_SINT_TO_FP, dl, { DestVT, MVT::Other },
-                         { Node->getOperand(0), InCvt });
-      Slow = DAG.getNode(ISD::STRICT_FADD, dl, { DestVT, MVT::Other },
-                         { Fast.getValue(1), Fast, Fast });
-      Chain = Slow.getValue(1);
       // The STRICT_SINT_TO_FP inherits the exception mode from the
       // incoming STRICT_UINT_TO_FP node; the STRICT_FADD node can
       // never raise any exception.
       SDNodeFlags Flags;
       Flags.setNoFPExcept(Node->getFlags().hasNoFPExcept());
-      Fast->setFlags(Flags);
+      Fast = DAG.getNode(ISD::STRICT_SINT_TO_FP, dl, {DestVT, MVT::Other},
+                         {Node->getOperand(0), InCvt}, Flags);
       Flags.setNoFPExcept(true);
-      Slow->setFlags(Flags);
+      Slow = DAG.getNode(ISD::STRICT_FADD, dl, {DestVT, MVT::Other},
+                         {Fast.getValue(1), Fast, Fast}, Flags);
+      Chain = Slow.getValue(1);
     } else {
       SDValue SignCvt = DAG.getNode(ISD::SINT_TO_FP, dl, DestVT, Or);
       Slow = DAG.getNode(ISD::FADD, dl, DestVT, SignCvt, SignCvt);
@@ -3456,14 +3454,12 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
     EVT VT = Operand.getValueType();
     SDValue One = DAG.getConstantFP(1.0, dl, VT);
     SDValue Chain = DAG.getEntryNode();
-    SDValue Mul = DAG.getNode(ISD::STRICT_FMUL, dl, {VT, MVT::Other},
-                              {Chain, Operand, One});
-
     // Propagate existing flags on canonicalize, and additionally set
     // NoFPExcept.
     SDNodeFlags CanonicalizeFlags = Node->getFlags();
     CanonicalizeFlags.setNoFPExcept(true);
-    Mul->setFlags(CanonicalizeFlags);
+    SDValue Mul = DAG.getNode(ISD::STRICT_FMUL, dl, {VT, MVT::Other},
+                              {Chain, Operand, One}, CanonicalizeFlags);
 
     Results.push_back(Mul);
     break;
@@ -4199,15 +4195,14 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
     Tmp2 = Node->getOperand(1);
     Tmp3 = Node->getOperand(2);
     if (Tmp1.getOpcode() == ISD::SETCC) {
-      Tmp1 = DAG.getSelectCC(dl, Tmp1.getOperand(0), Tmp1.getOperand(1),
-                             Tmp2, Tmp3,
-                             cast<CondCodeSDNode>(Tmp1.getOperand(2))->get());
+      Tmp1 = DAG.getSelectCC(
+          dl, Tmp1.getOperand(0), Tmp1.getOperand(1), Tmp2, Tmp3,
+          cast<CondCodeSDNode>(Tmp1.getOperand(2))->get(), Node->getFlags());
     } else {
-      Tmp1 = DAG.getSelectCC(dl, Tmp1,
-                             DAG.getConstant(0, dl, Tmp1.getValueType()),
-                             Tmp2, Tmp3, ISD::SETNE);
+      Tmp1 =
+          DAG.getSelectCC(dl, Tmp1, DAG.getConstant(0, dl, Tmp1.getValueType()),
+                          Tmp2, Tmp3, ISD::SETNE, Node->getFlags());
     }
-    Tmp1->setFlags(Node->getFlags());
     Results.push_back(Tmp1);
     break;
   case ISD::BR_JT: {
@@ -4357,8 +4352,8 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
     EVT Tmp1VT = Tmp1.getValueType();
     Tmp1 = DAG.getNode(ISD::SELECT_CC, dl, VT, Tmp1, Tmp2,
                        DAG.getBoolConstant(true, dl, VT, Tmp1VT),
-                       DAG.getBoolConstant(false, dl, VT, Tmp1VT), Tmp3);
-    Tmp1->setFlags(Node->getFlags());
+                       DAG.getBoolConstant(false, dl, VT, Tmp1VT), Tmp3,
+                       Node->getFlags());
     Results.push_back(Tmp1);
     break;
   }
@@ -4396,8 +4391,8 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
     if (TLI.isCondCodeLegalOrCustom(InvCC, Tmp1.getSimpleValueType())) {
       // Use the new condition code and swap true and false
       Legalized = true;
-      Tmp1 = DAG.getSelectCC(dl, Tmp1, Tmp2, Tmp4, Tmp3, InvCC);
-      Tmp1->setFlags(Node->getFlags());
+      Tmp1 =
+          DAG.getSelectCC(dl, Tmp1, Tmp2, Tmp4, Tmp3, InvCC, Node->getFlags());
     } else {
       // If The inverse is not legal, then try to swap the arguments using
       // the inverse condition code.
@@ -4406,8 +4401,8 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
         // The swapped inverse condition is legal, so swap true and false,
         // lhs and rhs.
         Legalized = true;
-        Tmp1 = DAG.getSelectCC(dl, Tmp2, Tmp1, Tmp4, Tmp3, SwapInvCC);
-        Tmp1->setFlags(Node->getFlags());
+        Tmp1 = DAG.getSelectCC(dl, Tmp2, Tmp1, Tmp4, Tmp3, SwapInvCC,
+                               Node->getFlags());
       }
     }
 
@@ -4426,15 +4421,14 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
       // If we expanded the SETCC by swapping LHS and RHS, or by inverting the
       // condition code, create a new SELECT_CC node.
       if (CC.getNode()) {
-        Tmp1 = DAG.getNode(ISD::SELECT_CC, dl, Node->getValueType(0),
-                           Tmp1, Tmp2, Tmp3, Tmp4, CC);
+        Tmp1 = DAG.getNode(ISD::SELECT_CC, dl, Node->getValueType(0), Tmp1,
+                           Tmp2, Tmp3, Tmp4, CC, Node->getFlags());
       } else {
         Tmp2 = DAG.getConstant(0, dl, Tmp1.getValueType());
         CC = DAG.getCondCode(ISD::SETNE);
         Tmp1 = DAG.getNode(ISD::SELECT_CC, dl, Node->getValueType(0), Tmp1,
-                           Tmp2, Tmp3, Tmp4, CC);
+                           Tmp2, Tmp3, Tmp4, CC, Node->getFlags());
       }
-      Tmp1->setFlags(Node->getFlags());
     }
     Results.push_back(Tmp1);
     break;

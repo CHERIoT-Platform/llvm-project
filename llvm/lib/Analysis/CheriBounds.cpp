@@ -1,5 +1,6 @@
 #include "llvm/Analysis/CheriBounds.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/Format.h"
@@ -15,6 +16,15 @@ using namespace llvm;
 
 // This is similar to CaptureTracking but we treat way more cases as "captured"
 bool CheriNeedBoundsChecker::check(const Use &U, bool Simple) const {
+  // Lifetime intrinsics never need bounds.
+  auto *II = dyn_cast<IntrinsicInst>(U.getUser());
+  if (II && (II->getIntrinsicID() == Intrinsic::lifetime_start ||
+             II->getIntrinsicID() == Intrinsic::lifetime_end)) {
+    DBG_MESSAGE("-No need for stack bounds for lifetime_{start,end}: ";
+                 II->dump());
+    return false;
+  }
+
   if (!MinSizeInBytes) {
     DBG_MESSAGE("dyanmic size alloca always needs bounds: ";
                 U.getUser()->dump());

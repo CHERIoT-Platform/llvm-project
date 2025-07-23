@@ -40,8 +40,8 @@ std::string llvm::cheri::inferSourceLocation(Instruction *AI) {
   if (Result.empty()) {
     // some instructions such as alloca instruction don't have a debug loc
     // attached directly so we need to look for calls to llvm.dbg.declare()
-    SmallVector<DbgVariableIntrinsic *, 2> DbgVars;
-    findDbgUsers(DbgVars, AI);
+    SmallVector<DbgVariableRecord *, 2> DbgVars;
+    findDbgUsers(AI, DbgVars);
     for (auto &DbgV : DbgVars) {
       Result = inferSourceLocation(DbgV->getDebugLoc(), StringRef());
       if (!Result.empty())
@@ -60,8 +60,8 @@ std::string llvm::cheri::inferLocalVariableName(AllocaInst *AI) {
   // try to find a
   // some instructions such as alloca instruction don't have a debug loc
   // attached directly so we need to look for calls to llvm.dbg.declare()
-  SmallVector<DbgVariableIntrinsic *, 2> DbgVars;
-  findDbgUsers(DbgVars, AI);
+  SmallVector<DbgVariableRecord *, 2> DbgVars;
+  findDbgUsers(AI, DbgVars);
   for (auto &DbgV : DbgVars) {
     if (DbgV->isAddressOfVariable()) {
       return ("local variable " + DbgV->getVariable()->getName()).str();

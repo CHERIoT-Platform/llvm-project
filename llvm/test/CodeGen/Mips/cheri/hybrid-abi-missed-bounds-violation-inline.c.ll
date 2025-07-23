@@ -63,22 +63,21 @@ entry:
 ; RANGE-CHECKER-LABEL:  define signext i32 @test() local_unnamed_addr #0 {
 ; RANGE-CHECKER-NEXT:  entry:
 ; RANGE-CHECKER-NEXT:    %i = alloca i32, align 4
-; RANGE-CHECKER-NEXT:    %0 = bitcast ptr %i to ptr
-; RANGE-CHECKER-NEXT:    call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %0)
+; RANGE-CHECKER-NEXT:    call void @llvm.lifetime.start.p0(i64 4, ptr %i)
 ; RANGE-CHECKER-NEXT:    store i32 7, ptr %i, align 4
-; RANGE-CHECKER-NEXT:    %1 = addrspacecast ptr %i to ptr addrspace(200)
-; RANGE-CHECKER-NEXT:    %2 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %1, i64 4)
-; RANGE-CHECKER-NEXT:    %3 = call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) %2)
-; RANGE-CHECKER-NEXT:    %conv = trunc i64 %3 to i32
-; RANGE-CHECKER-NEXT:    %4 = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %2)
-; RANGE-CHECKER-NEXT:    %conv1 = zext i1 %4 to i32
+; RANGE-CHECKER-NEXT:    %0 = addrspacecast ptr %i to ptr addrspace(200)
+; RANGE-CHECKER-NEXT:    %1 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %0, i64 4)
+; RANGE-CHECKER-NEXT:    %2 = call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) %1)
+; RANGE-CHECKER-NEXT:    %conv = trunc i64 %2 to i32
+; RANGE-CHECKER-NEXT:    %3 = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %1)
+; RANGE-CHECKER-NEXT:    %conv1 = zext i1 %3 to i32
 ; RANGE-CHECKER-NEXT:    %call = call signext i32 (ptr, ...) @printf(ptr @.str, i32 signext %conv1, i32 signext %conv)
-; RANGE-CHECKER-NEXT:    %5 = addrspacecast ptr %i to ptr addrspace(200)
-; RANGE-CHECKER-NEXT:    %6 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %5, i64 4)
-; RANGE-CHECKER-NEXT:    %offs = getelementptr i8, ptr addrspace(200) %6, i64 4
-; RANGE-CHECKER-NEXT:    %7 = load i32, ptr addrspace(200) %offs, align 4
-; RANGE-CHECKER-NEXT:    %call2 = call signext i32 (ptr, ...) @printf(ptr @.str.1, i32 signext %7)
-; RANGE-CHECKER-NEXT:    call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %0)
+; RANGE-CHECKER-NEXT:    %4 = addrspacecast ptr %i to ptr addrspace(200)
+; RANGE-CHECKER-NEXT:    %5 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %4, i64 4)
+; RANGE-CHECKER-NEXT:    %offs = getelementptr i8, ptr addrspace(200) %5, i64 4
+; RANGE-CHECKER-NEXT:    %6 = load i32, ptr addrspace(200) %offs, align 4
+; RANGE-CHECKER-NEXT:    %call2 = call signext i32 (ptr, ...) @printf(ptr @.str.1, i32 signext %6)
+; RANGE-CHECKER-NEXT:    call void @llvm.lifetime.end.p0(i64 4, ptr %i)
 ; RANGE-CHECKER-NEXT:    ret i32 0
 ; RANGE-CHECKER-NEXT:  }
 

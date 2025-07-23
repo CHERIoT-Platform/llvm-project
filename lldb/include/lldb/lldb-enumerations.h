@@ -519,6 +519,7 @@ enum LanguageType {
   eLanguageTypeAssembly = 0x0031,
   eLanguageTypeC_sharp = 0x0032,
   eLanguageTypeMojo = 0x0033,
+  eLanguageTypeLastStandardLanguage = eLanguageTypeMojo,
 
   // Vendor Extensions
   // Note: Language::GetNameForLanguageType
@@ -526,8 +527,6 @@ enum LanguageType {
   // Language::SetLanguageFromCString and Language::AsCString assume these can
   // be used as indexes into array g_languages.
   eLanguageTypeMipsAssembler, ///< Mips_Assembler.
-  // Mojo will move to the common list of languages once the DWARF committee
-  // creates a language code for it.
   eNumLanguageTypes
 };
 

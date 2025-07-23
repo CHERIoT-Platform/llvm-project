@@ -417,7 +417,8 @@ public:
 
   bool isXRaySupported() const override { return true; }
 
-  void overrideSchedPolicy(MachineSchedPolicy &Policy, unsigned NumRegionInstrs) const override;
+  void overrideSchedPolicy(MachineSchedPolicy &Policy,
+                           const SchedRegion &Region) const override;
 
   // for now constant islands are on for the whole compilation unit but we only
   // really use them if in addition we are in mips16 mode

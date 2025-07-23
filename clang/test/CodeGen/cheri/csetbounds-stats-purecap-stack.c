@@ -18,7 +18,7 @@ int use_stack_var() {
   int x = 1;
   return use_pointer(&x);
   // CSV-NODEBUG-NEXT: 2,4,s,"<somewhere in use_stack_var>","CHERI bound stack allocations","set bounds on AllocaInst x"
-  // CSV-DEBUG-NEXT:   2,4,s,"<somewhere in use_stack_var>","CHERI bound stack allocations","set bounds on AllocaInst x"
+  // CSV-DEBUG-NEXT:   2,4,s,"llvm-project/clang/test/CodeGen/cheri/csetbounds-stats-purecap-stack.c:18:7","CHERI bound stack allocations","set bounds on local variable x"
 }
 
 // CSV-EMPTY:

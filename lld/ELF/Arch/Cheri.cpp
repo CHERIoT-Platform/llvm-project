@@ -963,12 +963,6 @@ void addCapabilityRelocation(
          "ELF relocs should not be used for non-preemptible symbols");
   assert((!sym->isLocal() || needTrampoline) &&
          "ELF relocs should not be used for local symbols");
-  if (ctx.arg.emachine == llvm::ELF::EM_MIPS && ctx.arg.buildingFreeBSDRtld) {
-    error("relocation " + toStr(ctx, type) + " against " +
-          verboseToString(ctx, sym) +
-          " cannot be using when building FreeBSD RTLD" + referencedBy());
-    return;
-  }
   if (!lld::elf::hasDynamicLinker(ctx)) {
     error("attempting to emit a R_CAPABILITY relocation against " +
           (sym->getName().empty() ? "local symbol"

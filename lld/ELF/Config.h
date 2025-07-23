@@ -313,9 +313,6 @@ struct Config {
   bool asNeeded = false;
   bool armBe8 = false;
   BsymbolicKind bsymbolic = BsymbolicKind::None;
-  // make dynamic relocations that are not supported by
-  // FreeBSD _rtld_relocate_nonplt_self an error.
-  bool buildingFreeBSDRtld;
   CGProfileSortKind callGraphProfileSort;
   llvm::StringRef irpgoProfilePath;
   bool bpStartupFunctionSort = false;

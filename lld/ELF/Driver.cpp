@@ -1407,7 +1407,6 @@ static void readConfigs(Ctx &ctx, opt::InputArgList &args) {
     else if (arg->getOption().matches(OPT_Bsymbolic))
       ctx.arg.bsymbolic = BsymbolicKind::All;
   }
-  ctx.arg.buildingFreeBSDRtld = args.hasArg(OPT_building_freebsd_rtld);
   ctx.arg.callGraphProfileSort = getCGProfileSortKind(ctx, args);
   parseBPOrdererOptions(ctx, args);
   ctx.arg.capTableScope = getCapTableScope(args);

@@ -2663,20 +2663,28 @@ RISCVTTIImpl::getPreferredAddressingMode(const Loop *L,
 
 bool RISCVTTIImpl::isLegalBaseRegForLSR(const SCEV *S) const {
   if (ST->hasVendorXCheriot()) {
-    // Disallow any add-recurrence SCEV where the base offset is negative.
+    // Disallow any SCEV where the base offset is negative.
     // This is needed because CHERIoT can't represent pointers before the
     // beginning of an array.
+    auto IsAddOfNegativeCst = [](const SCEVAddExpr *A) {
+      if (!A)
+        return false;
+      const auto *Offset = dyn_cast<SCEVConstant>(A->getOperand(0));
+      if (Offset && Offset->getValue()->isNegative())
+        return true;
+      Offset = dyn_cast<SCEVConstant>(A->getOperand(1));
+      if (Offset && Offset->getValue()->isNegative())
+        return true;
+      return false;
+    };
+
     if (const auto *AddRec = dyn_cast<SCEVAddRecExpr>(S)) {
-      const auto *StartAdd = dyn_cast<SCEVAddExpr>(AddRec->getStart());
-      if (StartAdd) {
-        const auto *Offset = dyn_cast<SCEVConstant>(StartAdd->getOperand(0));
-        if (Offset && Offset->getValue()->isNegative())
-          return false;
-        Offset = dyn_cast<SCEVConstant>(StartAdd->getOperand(1));
-        if (Offset && Offset->getValue()->isNegative())
-          return false;
-      }
+      if (const auto *Cst = dyn_cast<SCEVConstant>(AddRec->getStart()))
+        return !Cst->getValue()->isNegative();
+      return !IsAddOfNegativeCst(dyn_cast<SCEVAddExpr>(AddRec->getStart()));
     }
+
+    return !IsAddOfNegativeCst(dyn_cast<SCEVAddExpr>(S));
   }
   return BasicTTIImplBase::isLegalBaseRegForLSR(S);
 }

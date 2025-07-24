@@ -13787,9 +13787,14 @@ bool ASTContext::containsCapabilities(const RecordDecl *RD) const {
     const QualType Ty = i->getType();
     if (Ty->isCHERICapabilityType(*this))
       return true;
-    if (const RecordType *RT = Ty->getAs<RecordType>())
+    if (const RecordType *RT = Ty->getAs<RecordType>()) {
+      if (RT->isIncompleteType())
+        // This can only occur when an error has occurred earlier, so it
+        // isn't too important what we return.
+        return false;
       if (containsCapabilities(RT->getDecl()))
         return true;
+    }
     if (Ty->isArrayType() && containsCapabilities(Ty))
       return true;
   }

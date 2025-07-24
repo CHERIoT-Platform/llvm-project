@@ -7,12 +7,12 @@ pr_task:
     image_project: ubuntu-os-cloud
     image_family: ubuntu-2404-lts-arm64
     architecture: arm64
-    zone: us-central1-a
+    zone: us-central1-b
     type: c4a-standard-16
     disk: 60
     preemptible: true
   env:
-    NINJA_STATUS: '%p [%f:%s/%t] %o/s, %es: '
+    NINJA_STATUS: "%p [%f:%s/%t] %o/s, %es: "
     CIRRUS_CLONE_DEPTH: 1
   dependencies_script:
     - set -eo pipefail
@@ -30,7 +30,7 @@ pr_task:
   test_script:
     - cd Build
     - ./bin/llvm-lit -v ../llvm/test/Unit ../clang/test/Unit
-    - ./bin/llvm-lit -v ../llvm/test/ ../clang/test/ 
+    - ./bin/llvm-lit -v ../llvm/test/ ../clang/test/
 
 x86_release_task:
   name: Build and upload artefact x86_64
@@ -40,10 +40,10 @@ x86_release_task:
     <<: *arm_vm
     image_family: ubuntu-2404-lts-amd64
     architecture: amd64
-    zone: us-central1-a
+    zone: us-central1-b
     type: t2d-standard-16
   env:
-    NINJA_STATUS: '%p [%f:%s/%t] %o/s, %es: '
+    NINJA_STATUS: "%p [%f:%s/%t] %o/s, %es: "
     CIRRUS_CLONE_DEPTH: 1
   dependencies_script:
     - set -eo pipefail
@@ -77,7 +77,7 @@ arm_release_task:
   timeout_in: 120m
   gce_instance: *arm_vm
   env:
-    NINJA_STATUS: '%p [%f:%s/%t] %o/s, %es: '
+    NINJA_STATUS: "%p [%f:%s/%t] %o/s, %es: "
     CIRRUS_CLONE_DEPTH: 1
   dependencies_script:
     - set -eo pipefail

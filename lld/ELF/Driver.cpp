@@ -1654,8 +1654,8 @@ static void readConfigs(Ctx &ctx, opt::InputArgList &args) {
   ctx.arg.warnSymbolOrdering =
       args.hasFlag(OPT_warn_symbol_ordering, OPT_no_warn_symbol_ordering, true);
   ctx.arg.whyExtract = args.getLastArgValue(OPT_why_extract);
-  ctx.arg.zCapTableDebug = getZFlag(args, "captabledebug", "nocaptabledebug", false);
-  ctx.arg.zCheriRiscvJumpSlot = hasZOption(args, "cheri-riscv-jump-slot");
+  ctx.arg.zCapTableDebug =
+      getZFlag(args, "captabledebug", "nocaptabledebug", false);
   for (opt::Arg *arg : args.filtered(OPT_why_live)) {
     StringRef value(arg->getValue());
     if (Expected<GlobPattern> pat = GlobPattern::create(arg->getValue())) {

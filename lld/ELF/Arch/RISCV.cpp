@@ -279,10 +279,6 @@ void RISCV::writeIgotPlt(uint8_t *buf, const Symbol &s) const {
 }
 
 void RISCV::writePltHeader(uint8_t *buf) const {
-  if (ctx.arg.isCheriAbi && !ctx.arg.zCheriRiscvJumpSlot) {
-    memset(buf, 0, pltHeaderSize);
-    return;
-  }
   // 1: auipc(c) (c)t2, %pcrel_hi(.got.plt)
   // (c)sub t1, (c)t1, (c)t3
   // l[wdc] (c)t3, %pcrel_lo(1b)((c)t2); (c)t3 = _dl_runtime_resolve
@@ -322,9 +318,7 @@ void RISCV::writePlt(uint8_t *buf, const Symbol &sym,
   // nop
   uint32_t ptrload = ctx.arg.isCheriAbi ? ctx.arg.is64 ? CLC_128 : CLC_64
                                         : ctx.arg.is64 ? LD : LW;
-  uint32_t entryva = ctx.arg.isCheriAbi && !ctx.arg.zCheriRiscvJumpSlot
-                         ? sym.getGotVA(ctx)
-                         : sym.getGotPltVA(ctx);
+  uint32_t entryva = sym.getGotPltVA(ctx);
   uint32_t offset = entryva - pltEntryAddr;
   write32le(buf + 0, utype(AUIPC, X_T3, hi20(offset)));
   write32le(buf + 4, itype(ptrload, X_T3, X_T3, lo12(offset)));

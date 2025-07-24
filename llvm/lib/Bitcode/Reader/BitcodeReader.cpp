@@ -7021,13 +7021,6 @@ Error BitcodeReader::materialize(GlobalValue *GV) {
   if (StripDebugInfo)
     stripDebugInfo(*F);
 
-  // Upgrade any old intrinsic calls in the function.
-  for (auto &I : UpgradedIntrinsics) {
-    for (User *U : llvm::make_early_inc_range(I.first->materialized_users()))
-      if (CallInst *CI = dyn_cast<CallInst>(U))
-        UpgradeIntrinsicCall(CI, I.second);
-  }
-
   // Finish fn->subprogram upgrade for materialized functions.
   if (DISubprogram *SP = MDLoader->lookupSubprogramForFunction(F))
     F->setSubprogram(SP);
@@ -7043,7 +7036,7 @@ Error BitcodeReader::materialize(GlobalValue *GV) {
     }
   }
 
-  for (auto &I : instructions(F)) {
+  for (auto &I : make_early_inc_range(instructions(F))) {
     // "Upgrade" older incorrect branch weights by dropping them.
     if (auto *MD = I.getMetadata(LLVMContext::MD_prof)) {
       if (MD->getOperand(0) != nullptr && isa<MDString>(MD->getOperand(0))) {
@@ -7074,8 +7067,8 @@ Error BitcodeReader::materialize(GlobalValue *GV) {
       }
     }
 
-    // Remove incompatible attributes on function calls.
     if (auto *CI = dyn_cast<CallBase>(&I)) {
+      // Remove incompatible attributes on function calls.
       CI->removeRetAttrs(AttributeFuncs::typeIncompatible(
           CI->getFunctionType()->getReturnType(), CI->getRetAttributes()));
 
@@ -7083,6 +7076,13 @@ Error BitcodeReader::materialize(GlobalValue *GV) {
         CI->removeParamAttrs(ArgNo, AttributeFuncs::typeIncompatible(
                                         CI->getArgOperand(ArgNo)->getType(),
                                         CI->getParamAttributes(ArgNo)));
+
+      // Upgrade intrinsics.
+      if (Function *OldFn = CI->getCalledFunction()) {
+        auto It = UpgradedIntrinsics.find(OldFn);
+        if (It != UpgradedIntrinsics.end())
+          UpgradeIntrinsicCall(CI, It->second);
+      }
     }
   }
 

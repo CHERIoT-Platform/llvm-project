@@ -78,8 +78,8 @@ usize GetMmapGranularity();
 vaddr GetMaxVirtualAddress();
 vaddr GetMaxUserVirtualAddress();
 // Threads
-tid_t GetTid();
-int TgKill(pid_t pid, tid_t tid, int sig);
+ThreadID GetTid();
+int TgKill(pid_t pid, ThreadID tid, int sig);
 uptr GetThreadSelf();
 void GetThreadStackTopAndBottom(bool at_initialization, uptr *stack_top,
                                 uptr *stack_bottom);

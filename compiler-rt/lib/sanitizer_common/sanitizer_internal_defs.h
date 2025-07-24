@@ -220,7 +220,7 @@ typedef long ssize;
 typedef sptr ssize;
 #endif
 
-typedef u64 tid_t;
+typedef u64 ThreadID;
 
 #if (SANITIZER_WORDSIZE == 64)
 typedef u64 uword;

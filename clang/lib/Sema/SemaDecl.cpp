@@ -3268,6 +3268,14 @@ void Sema::mergeDeclAttributes(NamedDecl *New, Decl *Old,
     if (isa<UsedAttr>(I) || isa<RetainAttr>(I))
       continue;
 
+    if (isa<InferredNoReturnAttr>(I)) {
+      if (auto *FD = dyn_cast<FunctionDecl>(New)) {
+        if (FD->getTemplateSpecializationKind() == TSK_ExplicitSpecialization)
+          continue; // Don't propagate inferred noreturn attributes to explicit
+                    // specializations.
+      }
+    }
+
     if (mergeDeclAttribute(*this, New, I, LocalAMK))
       foundAny = true;
   }
@@ -20828,7 +20836,8 @@ TopLevelStmtDecl *Sema::ActOnStartTopLevelStmtDecl(Scope *S) {
 }
 
 void Sema::ActOnFinishTopLevelStmtDecl(TopLevelStmtDecl *D, Stmt *Statement) {
-  D->setStmt(Statement);
+  if (Statement)
+    D->setStmt(Statement);
   PopCompoundScope();
   PopFunctionScopeInfo();
   PopDeclContext();

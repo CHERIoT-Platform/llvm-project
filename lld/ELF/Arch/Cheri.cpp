@@ -351,6 +351,12 @@ void CheriCapRelocsSection::writeToImpl(uint8_t *buf) {
     bool isFunc, isTls;
     OutputSection *os;
     if (Symbol *s = dyn_cast<Symbol *>(realTarget.symOrSec)) {
+      if (s->isGnuIFunc())
+        error("cannot reference non-preemptible IFUNC as a capability, "
+              "needed for symbol " +
+              verboseToString(ctx, s) + "\n>>> referenced by " +
+              location.toString(ctx));
+
       targetVA = realTarget.sym()->getVA(ctx, 0);
       isFunc = s->isFunc();
       isTls = s->isTls();

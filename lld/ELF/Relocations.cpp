@@ -925,21 +925,23 @@ static void addPltEntry(Ctx &ctx, PltSection &plt, GotPltSection &gotPlt,
   plt.addEntry(sym);
   gotPlt.addEntry(sym);
 
-  if (ctx.arg.isCheriAbi && !sym.isPreemptible) {
-    addCapabilityRelocation(ctx, &sym, *ctx.target->cheriCapRel, &gotPlt,
+  if (ctx.arg.isCheriAbi) {
+    if (!sym.isPreemptible) {
+      addCapabilityRelocation(ctx, &sym, *ctx.target->cheriCapRel, &gotPlt,
+                              sym.getGotPltOffset(ctx), R_CHERI_CAPABILITY, 0,
+                              false, [] { return ""; });
+      return;
+    }
+
+    addCapabilityRelocation(ctx, &plt, *ctx.target->cheriCapRel, &gotPlt,
                             sym.getGotPltOffset(ctx), R_CHERI_CAPABILITY, 0,
                             false, [] { return ""; });
-    return;
   }
 
   rel.addReloc({type, &gotPlt, sym.getGotPltOffset(ctx),
                 sym.isPreemptible ? DynamicReloc::AgainstSymbol
                                   : DynamicReloc::AddendOnlyWithTargetVA,
                 sym, 0, R_ABS});
-  if (ctx.arg.isCheriAbi)
-    addCapabilityRelocation(ctx, &plt, *ctx.target->cheriCapRel, &gotPlt,
-                            sym.getGotPltOffset(ctx), R_CHERI_CAPABILITY, 0,
-                            false, [] { return ""; });
 }
 
 void elf::addGotEntry(Ctx &ctx, Symbol &sym) {

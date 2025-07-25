@@ -793,6 +793,7 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
   case RE_RISCV_ADD:
   case RE_RISCV_LEB128:
     return r.sym->getVA(ctx, a);
+  case R_CHERI_CAPABILITY:
   case R_ADDEND:
     return a;
   case R_RELAX_HINT:
@@ -1018,8 +1019,6 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
     return ctx.in.got->getTlsIndexOff() + a;
   case R_TLSLD_PC:
     return ctx.in.got->getTlsIndexVA() + a - p;
-  case R_CHERI_CAPABILITY:
-    llvm_unreachable("R_CHERI_CAPABILITY should not be handled here!");
   case R_MIPS_CHERI_CAPTAB_INDEX:
   case R_MIPS_CHERI_CAPTAB_INDEX_SMALL_IMMEDIATE:
   case R_MIPS_CHERI_CAPTAB_INDEX_CALL:

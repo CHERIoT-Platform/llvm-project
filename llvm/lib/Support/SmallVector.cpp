@@ -55,7 +55,8 @@ static_assert(sizeof(SmallVector<Struct32B, 0>) >= alignof(Struct32B),
 #ifdef __CHERI_PURE_CAPABILITY__
 #warning "TODO size check"
 #else
-static_assert(sizeof(SmallVector<void *, 1>) == sizeof(void *) * 3,
+static_assert(sizeof(SmallVector<void *, 1>) ==
+                  sizeof(unsigned) * 2 + sizeof(void *) * 2,
               "wasted space in SmallVector size 1");
 #endif
 

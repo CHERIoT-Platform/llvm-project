@@ -782,12 +782,15 @@ template <class PltSection, class GotPltSection>
 static void addPltEntry(Ctx &ctx, PltSection &plt, GotPltSection &gotPlt,
                         RelocationBaseSection &rel, RelType type, Symbol &sym) {
   plt.addEntry(sym);
-
-  if (ctx.arg.isCheriAbi && !sym.isPreemptible)
-    error("cannot create non-preemptible PLT entry on CHERI against symbol: " +
-          toStr(ctx, sym));
-
   gotPlt.addEntry(sym);
+
+  if (ctx.arg.isCheriAbi && !sym.isPreemptible) {
+    addCapabilityRelocation(ctx, &sym, *ctx.target->cheriCapRel, &gotPlt,
+                            sym.getGotPltOffset(ctx), R_CHERI_CAPABILITY, 0,
+                            false, [] { return ""; });
+    return;
+  }
+
   if (sym.isPreemptible)
     rel.addReloc(
         {type, &gotPlt, sym.getGotPltOffset(ctx), true, sym, 0, R_ADDEND});

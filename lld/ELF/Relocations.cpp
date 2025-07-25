@@ -884,6 +884,13 @@ static void addRelativeReloc(Ctx &ctx, InputSectionBase &isec,
                              RelExpr expr, RelType type) {
   Partition &part = isec.getPartition(ctx);
 
+  if (expr == R_CHERI_CAPABILITY) {
+    assert(!sym.isPreemptible);
+    addCapabilityRelocation(ctx, &sym, type, &isec, offsetInSec, expr, addend,
+                            false, [] { return ""; });
+    return;
+  }
+
   if (sym.isTagged()) {
     part.relaDyn->addRelativeReloc<shard>(ctx.target->relativeRel, isec,
                                           offsetInSec, sym, addend, type, expr);
@@ -947,29 +954,28 @@ static void addPltEntry(Ctx &ctx, PltSection &plt, GotPltSection &gotPlt,
 void elf::addGotEntry(Ctx &ctx, Symbol &sym) {
   ctx.in.got->addEntry(sym);
   uint64_t off = sym.getGotOffset(ctx);
+  RelExpr expr = ctx.arg.isCheriAbi ? R_CHERI_CAPABILITY : R_ABS;
 
   // If preemptible, emit a GLOB_DAT relocation.
   if (sym.isPreemptible) {
     ctx.mainPart->relaDyn->addReloc({ctx.target->gotRel, ctx.in.got.get(), off,
                                      DynamicReloc::AgainstSymbol, sym, 0,
-                                     R_ABS});
+                                     expr});
     return;
   }
+
+  RelType type =
+      ctx.arg.isCheriAbi ? *ctx.target->cheriCapRel : ctx.target->symbolicRel;
 
   // Otherwise, the value is either a link-time constant or the load base
   // plus a constant. For CHERI it always requires run-time initialisation,
   // with the exception of undef weak symbols.
   if (ctx.arg.isCheriAbi && sym.isUndefWeak())
     addNullDerivedCapability(ctx, sym, *ctx.in.got, off, 0);
-  else if (ctx.arg.isCheriAbi) {
-    addCapabilityRelocation(ctx, &sym, *ctx.target->cheriCapRel,
-                            ctx.in.got.get(), off, R_CHERI_CAPABILITY, 0, false,
-                            [] { return ""; });
-  } else if (!ctx.arg.isPic || isAbsolute(sym))
-    ctx.in.got->addConstant({R_ABS, ctx.target->symbolicRel, off, 0, &sym});
+  else if (!ctx.arg.isCheriAbi && (!ctx.arg.isPic || isAbsolute(sym)))
+    ctx.in.got->addConstant({expr, type, off, 0, &sym});
   else
-    addRelativeReloc(ctx, *ctx.in.got, off, sym, 0, R_ABS,
-                     ctx.target->symbolicRel);
+    addRelativeReloc(ctx, *ctx.in.got, off, sym, 0, expr, type);
 }
 
 static void addGotAuthEntry(Ctx &ctx, Symbol &sym) {

@@ -552,14 +552,6 @@ public:
     // the added to the output file since it will be initialized to 0xcacacaca
     if (expr == R_CHERI_CAPABILITY) {
       expr = R_ADDEND;
-      if (sym.isFunc() && addend != 0) {
-        auto diag = Warn(ctx);
-        diag << "capability relocation with non-zero addend (0x"
-             << llvm::utohexstr(addend) << ") against preemptible function "
-             << toStr(ctx, sym)
-             << "; this may not be supported by the runtime linker.";
-        printLocationMessage(diag, sec, sym, offsetInSec);
-      }
     }
     if (writeAddend)
       sec.addReloc({expr, addendRelType, offsetInSec, addend, &sym});

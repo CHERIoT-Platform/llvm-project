@@ -105,11 +105,6 @@ static cl::opt<bool> EnablePostMISchedLoadStoreClustering(
     cl::desc("Enable PostRA load and store clustering in the machine scheduler"),
     cl::init(true));
 
-static cl::opt<bool>
-    EnableVLOptimizer("riscv-enable-vl-optimizer",
-                      cl::desc("Enable the RISC-V VL Optimizer pass"),
-                      cl::init(true), cl::Hidden);
-
 static cl::opt<bool> DisableVectorMaskMutation(
     "riscv-disable-vector-mask-mutation",
     cl::desc("Disable the vector mask scheduling mutation"), cl::init(false),
@@ -653,8 +648,7 @@ void RISCVPassConfig::addPreRegAlloc() {
     addPass(createRISCVCheriCleanupOptPass());
     addPass(createRISCVMergeBaseOffsetOptPass());
     addPass(createCheriGetAddressElimPass());
-    if (EnableVLOptimizer)
-      addPass(createRISCVVLOptimizerPass());
+    addPass(createRISCVVLOptimizerPass());
   }
   addPass(createRISCVInsertReadWriteCSRPass());
   addPass(createRISCVInsertWriteVXRMPass());

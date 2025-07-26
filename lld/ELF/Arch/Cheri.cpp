@@ -954,6 +954,15 @@ void addCapabilityRelocation(
     return;
   }
 
+  if (sym->isFunc() && addend != 0) {
+    auto diag = Warn(ctx);
+    diag << "capability relocation with non-zero addend (0x"
+         << llvm::utohexstr(addend) << ") against preemptible function "
+         << toStr(ctx, *sym)
+         << "; this may not be supported by the runtime linker.";
+    printLocationMessage(diag, *sec, *sym, offset);
+  }
+
   // We don't use a R_MIPS_CHERI_CAPABILITY relocation for the input but
   // instead need to use an absolute pointer size relocation to write
   // the offset addend

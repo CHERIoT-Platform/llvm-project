@@ -49,19 +49,9 @@ public:
                         BugReporter &BR) const;
 
 private:
-  using CheckFieldFn = std::function<std::unique_ptr<BugReport>(
-      const FieldDecl *D, BugReporter &BR, const BugType &BT)>;
-
-  const std::map<llvm::Triple::ArchType, CheckFieldFn> CheckFieldFnMap = {
-      //{llvm::Triple::aarch64, &checkFieldImpl<CompressedCap128m>},
-      {llvm::Triple::mips,
-       &checkFieldImpl<llvm::CompressedCapability::Cheri64>},
-      {llvm::Triple::mips64,
-       &checkFieldImpl<llvm::CompressedCapability::Cheri128>},
-      {llvm::Triple::riscv32,
-       &checkFieldImpl<llvm::CompressedCapability::Cheri64>},
-      {llvm::Triple::riscv64,
-       &checkFieldImpl<llvm::CompressedCapability::Cheri128>}};
+  using CheckFieldFn = std::unique_ptr<BugReport> (*)(const FieldDecl *D,
+                                                      BugReporter &BR,
+                                                      const BugType &BT);
 
   CheckFieldFn getCheckFieldFn(ASTContext &ASTCtx) const;
 };
@@ -107,25 +97,7 @@ reportExposedFields(const FieldDecl *D, ASTContext &ASTCtx, BugReporter &BR,
   return Report;
 }
 
-#if 0
-template <typename Handler>
-typename Handler::cap_t getBoundedCap(uint64_t ParentSize, uint64_t Offset,
-                                      uint64_t Size) {
-  typename Handler::addr_t InitLength =
-      Handler::representable_length(ParentSize);
-  typename Handler::cap_t MockCap =
-      Handler::make_max_perms_cap(0, Offset, InitLength);
-  bool exact = Handler::setbounds(&MockCap, Size);
-  assert(!exact);
-  return MockCap;
-}
-#endif
-
-template <typename Handler> uint64_t getRepresentableAlignment(uint64_t Size) {
-  return ~Handler::representable_mask(Size) + 1;
-}
-
-template <llvm::CompressedCapability::CapabilityFormat Handler>
+template <llvm::CompressedCapability::CapabilityFormat CapFormat>
 std::unique_ptr<BugReport> checkFieldImpl(const FieldDecl *D, BugReporter &BR,
                                           const BugType &BT) {
   QualType T = D->getType();
@@ -135,7 +107,8 @@ std::unique_ptr<BugReport> checkFieldImpl(const FieldDecl *D, BugReporter &BR,
   if (Offset > 0) {
     uint64_t Size = ASTCtx.getTypeSize(T) / 8;
     uint64_t ReqAlign =
-        llvm::CompressedCapability::GetRequiredAlignment(Size, Handler).value();
+        llvm::CompressedCapability::GetRequiredAlignment(Size, CapFormat)
+            .value();
     uint64_t CurAlign = 1 << llvm::countr_zero(Offset);
     if (CurAlign < ReqAlign) {
       /* Emit warning */
@@ -155,7 +128,7 @@ std::unique_ptr<BugReport> checkFieldImpl(const FieldDecl *D, BugReporter &BR,
       uint64_t AlignedSize = Size + OffsetToAlign;
       uint64_t TailPadding = static_cast<uint64_t>(
           llvm::CompressedCapability::GetRequiredTailPadding(AlignedSize,
-                                                             Handler));
+                                                             CapFormat));
       uint64_t Top = Base + AlignedSize + TailPadding;
       OS << " Current bounds: " << Base << "-" << Top;
 
@@ -184,7 +157,25 @@ SubObjectRepresentabilityChecker::getCheckFieldFn(ASTContext &ASTCtx) const {
   if (!TI.areAllPointersCapabilities())
     return nullptr;
 
-  auto It = CheckFieldFnMap.find(TI.getTriple().getArch());
+  const auto &T = TI.getTriple();
+  if (T.getArch() == llvm::Triple::riscv32 &&
+      T.getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1) {
+    return &checkFieldImpl<llvm::CompressedCapability::Cheriot64>;
+  }
+
+  static constexpr std::array CheckFieldFnMap = {
+      std::make_pair(llvm::Triple::mips,
+                     &checkFieldImpl<llvm::CompressedCapability::Cheri64>),
+      std::make_pair(llvm::Triple::mips64,
+                     &checkFieldImpl<llvm::CompressedCapability::Cheri128>),
+      std::make_pair(llvm::Triple::riscv32,
+                     &checkFieldImpl<llvm::CompressedCapability::Cheri64>),
+      std::make_pair(llvm::Triple::riscv64,
+                     &checkFieldImpl<llvm::CompressedCapability::Cheri128>),
+  };
+
+  auto It = std::find_if(CheckFieldFnMap.begin(), CheckFieldFnMap.end(),
+                         [A = T.getArch()](auto p) { return p.first == A; });
   if (It == CheckFieldFnMap.end())
     return nullptr;
   return It->second;

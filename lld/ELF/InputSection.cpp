@@ -793,7 +793,7 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
   case RE_RISCV_ADD:
   case RE_RISCV_LEB128:
     return r.sym->getVA(ctx, a);
-  case R_CHERI_CAPABILITY:
+  case R_ABS_CAP:
   case R_ADDEND:
     return a;
   case R_RELAX_HINT:

@@ -42,6 +42,7 @@ using JumpModType = uint32_t;
 // doesn't have to know about architecture-specific details.
 enum RelExpr {
   R_ABS,
+  R_ABS_CAP,
   R_ADDEND,
   R_DTPREL,
   R_GOT,
@@ -133,7 +134,6 @@ enum RelExpr {
   R_MIPS_CHERI_CAPTAB_TLSGD,
   R_MIPS_CHERI_CAPTAB_TLSLD,
   R_MIPS_CHERI_CAPTAB_TPREL,
-  R_CHERI_CAPABILITY,
   R_CHERIOT_COMPARTMENT_CGPREL_HI,
   R_CHERIOT_COMPARTMENT_CGPREL_LO_S,
   R_CHERIOT_COMPARTMENT_CGPREL_LO_I,

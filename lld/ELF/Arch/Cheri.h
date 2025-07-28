@@ -344,6 +344,11 @@ inline uint64_t getBiasedCGPOffsetLo12(Ctx &ctx, const Symbol &sym)
   return (mask << 11) | (Displacement & ((1L << 11) - 1));
 }
 
+void addRelativeCapabilityRelocation(
+    Ctx &ctx, InputSectionBase &isec, uint64_t offsetInSec,
+    llvm::PointerUnion<Symbol *, InputSectionBase *> symOrSec, int64_t addend,
+    RelExpr expr, RelType type);
+
 void addCapabilityRelocation(
     Ctx &ctx, llvm::PointerUnion<Symbol *, InputSectionBase *> target,
     RelType type, InputSectionBase *sec, uint64_t offset, RelExpr expr,

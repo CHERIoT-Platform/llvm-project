@@ -347,8 +347,7 @@ inline uint64_t getBiasedCGPOffsetLo12(Ctx &ctx, const Symbol &sym)
 void addCapabilityRelocation(
     Ctx &ctx, llvm::PointerUnion<Symbol *, InputSectionBase *> target,
     RelType type, InputSectionBase *sec, uint64_t offset, RelExpr expr,
-    int64_t addend, bool isCallExpr,
-    llvm::function_ref<std::string()> referencedBy,
+    int64_t addend, llvm::function_ref<std::string()> referencedBy,
     RelocationBaseSection *dynRelSec = nullptr);
 
 void addNullDerivedCapability(Ctx &ctx, Symbol &sym, InputSectionBase &sec,

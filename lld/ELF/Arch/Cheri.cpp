@@ -917,15 +917,11 @@ void addCapabilityRelocation(
   // that sets $cgp:
   if (ctx.arg.emachine == llvm::ELF::EM_MIPS && sym && sym->isFunc() &&
       type != *ctx.target->cheriCapCallRel) {
-    if (!lld::elf::hasDynamicLinker(ctx)) {
-      // In static binaries we do not need PLT stubs for function pointers since
-      // all functions share the same $cgp
-      // TODO: this is no longer true if we were to support dlopen() in static
-      // binaries
-      if (ctx.arg.verboseCapRelocs)
-        Msg(ctx) << "Do not need function pointer trampoline for "
-                 << toStr(ctx, *sym) << " in static binary";
-    } else if (ctx.in.mipsAbiFlags) {
+    // In static binaries we do not need PLT stubs for function pointers since
+    // all functions share the same $cgp
+    // TODO: this is no longer true if we were to support dlopen() in static
+    // binaries
+    if (lld::elf::hasDynamicLinker(ctx) && ctx.in.mipsAbiFlags) {
       std::optional<unsigned> abi;
       invokeELFT(getMipsCheriAbiVariant, abi, *ctx.in.mipsAbiFlags);
       if (abi && (*abi == llvm::ELF::DF_MIPS_CHERI_ABI_PLT ||

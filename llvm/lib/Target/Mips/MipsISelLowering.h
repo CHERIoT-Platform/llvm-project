@@ -749,7 +749,6 @@ extern bool LargeCapTable;
     SDValue lowerEH_DWARF_CFA(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerFP_TO_SINT(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerREADCYCLECOUNTER(SDValue Op, SelectionDAG &DAG) const;
-    SDValue lowerConstantFP(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerBR_JT(SDValue Op, SelectionDAG &DAG) const;
     // Convert Addr (either i64 or capability) to a pcc derived capability
     // by subtracting the addresses and performing a CIncOffset

@@ -455,7 +455,7 @@ struct Config {
   UnresolvedPolicy unresolvedSymbolsInShlib;
   Target2Policy target2;
   GcsPolicy zGcs;
-  bool useRelativeCheriRelocs;
+  bool useRelativeElfCheriRelocs;
   CapTableScopePolicy capTableScope;
 
   bool power10Stubs;

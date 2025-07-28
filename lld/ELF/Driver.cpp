@@ -481,7 +481,7 @@ static void checkOptions(Ctx &ctx) {
       ErrAlways(ctx) << "-r and -z nosectionheader may not be used together";
   }
 
-  if (ctx.arg.useRelativeCheriRelocs)
+  if (ctx.arg.useRelativeElfCheriRelocs)
     error("local-cap-relocs=elf is not implemented yet");
 
   if (ctx.arg.executeOnly) {
@@ -1475,7 +1475,7 @@ static void readConfigs(Ctx &ctx, opt::InputArgList &args) {
       args.hasArg(OPT_ignore_function_address_equality);
   ctx.arg.init = args.getLastArgValue(OPT_init, "_init");
   // TODO: change default to true
-  ctx.arg.useRelativeCheriRelocs =
+  ctx.arg.useRelativeElfCheriRelocs =
       args.hasFlag(OPT_local_caprelocs_elf, OPT_local_caprelocs_legacy, false);
   ctx.arg.ltoAAPipeline = args.getLastArgValue(OPT_lto_aa_pipeline);
   ctx.arg.ltoCSProfileGenerate = args.hasArg(OPT_lto_cs_profile_generate);

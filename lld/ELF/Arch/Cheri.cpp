@@ -946,7 +946,7 @@ void addRelativeCapabilityRelocation(
     assert(!needsCheriMipsTrampoline(ctx, type, *sym));
     assert(!sym->isPreemptible);
   }
-  assert(!ctx.arg.useRelativeCheriRelocs &&
+  assert(!ctx.arg.useRelativeElfCheriRelocs &&
          "relative ELF capability relocations not currently implemented");
   ctx.in.capRelocs->addCapReloc({&isec, offsetInSec}, {symOrSec, 0u}, addend);
 }

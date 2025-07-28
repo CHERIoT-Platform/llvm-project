@@ -744,9 +744,8 @@ static void addRelativeReloc(Ctx &ctx, InputSectionBase &isec,
   Partition &part = isec.getPartition(ctx);
 
   if (expr == R_ABS_CAP) {
-    assert(!sym.isPreemptible);
-    addCapabilityRelocation(ctx, &sym, type, &isec, offsetInSec, expr, addend,
-                            [] { return ""; });
+    addRelativeCapabilityRelocation(ctx, isec, offsetInSec, &sym, addend, expr,
+                                    type);
     return;
   }
 
@@ -793,15 +792,14 @@ static void addPltEntry(Ctx &ctx, PltSection &plt, GotPltSection &gotPlt,
 
   if (ctx.arg.isCheriAbi && !ctx.arg.useRelativeCheriRelocs) {
     if (!sym.isPreemptible) {
-      addCapabilityRelocation(ctx, &sym, *ctx.target->cheriCapRel, &gotPlt,
-                              sym.getGotPltOffset(ctx), R_ABS_CAP, 0,
-                              [] { return ""; });
+      addRelativeCapabilityRelocation(ctx, gotPlt, sym.getGotPltOffset(ctx),
+                                      &sym, 0, R_ABS_CAP,
+                                      *ctx.target->cheriCapRel);
       return;
     }
 
-    addCapabilityRelocation(ctx, &plt, *ctx.target->cheriCapRel, &gotPlt,
-                            sym.getGotPltOffset(ctx), R_ABS_CAP, 0,
-                            [] { return ""; });
+    addRelativeCapabilityRelocation(ctx, gotPlt, sym.getGotPltOffset(ctx), &plt,
+                                    0, R_ABS_CAP, *ctx.target->cheriCapRel);
   }
 
   if (sym.isPreemptible)

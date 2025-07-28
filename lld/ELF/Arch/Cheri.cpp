@@ -985,9 +985,6 @@ void addCapabilityRelocation(
     printLocationMessage(diag, *sec, *sym, offset);
   }
 
-  // We don't use a R_*_CHERI_CAPABILITY relocation for the input but
-  // instead need to use an absolute pointer size relocation to write
-  // the offset addend
   if (!dynRelSec)
     dynRelSec = ctx.mainPart->relaDyn.get();
   if (needTrampoline && ctx.arg.verboseCapRelocs)
@@ -1007,8 +1004,9 @@ void addCapabilityRelocation(
   // .chericap initialises the memory to 0xcacacaca not 0, so if writing
   // addends we still need to write even it if zero.
   // TODO: Stop doing this in the assembler and drop this hack
-  dynRelSec->addReloc(true, type, *sec, offset, *sym, addend, R_ADDEND,
-      /*addendRelType=*/ctx.target->symbolicRel, /*writeZero=*/true);
+  dynRelSec->addReloc(true, type, *sec, offset, *sym,
+                      addend, R_ADDEND,
+                      /*addendRelType=*/type, /*writeZero=*/true);
 }
 
 void addNullDerivedCapability(Ctx &ctx, Symbol &sym, InputSectionBase &sec,

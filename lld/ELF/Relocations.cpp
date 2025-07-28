@@ -744,6 +744,12 @@ static void addRelativeReloc(Ctx &ctx, InputSectionBase &isec,
   Partition &part = isec.getPartition(ctx);
 
   if (expr == R_ABS_CAP) {
+    if (shard) {
+      std::lock_guard<std::mutex> lock(ctx.relocMutex);
+      addRelativeReloc(ctx, isec, offsetInSec, sym, addend, expr, type);
+      return;
+    }
+
     addRelativeCapabilityRelocation(ctx, isec, offsetInSec, &sym, addend, expr,
                                     type);
     return;

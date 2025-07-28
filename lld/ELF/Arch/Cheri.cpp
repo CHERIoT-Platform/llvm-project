@@ -936,6 +936,20 @@ static bool needsCheriMipsTrampoline(Ctx &ctx, RelType type,
   return true;
 }
 
+static Symbol &getCheriMipsTrampolineSym(Ctx &ctx, RelType type, Symbol &sym) {
+  assert(needsCheriMipsTrampoline(ctx, type, sym));
+
+  if (isSymIncludedInDynsym(ctx, sym))
+    return sym;
+
+  Defined &newSym = *ctx.symtab->ensureSymbolWillBeInDynsym(&sym);
+  assert(newSym.isFunc() && "This should only be used for functions");
+  assert(isSymIncludedInDynsym(ctx, newSym));
+  assert(newSym.binding == llvm::ELF::STB_GLOBAL);
+  assert(newSym.visibility() == llvm::ELF::STV_HIDDEN);
+  return newSym;
+}
+
 void addRelativeCapabilityRelocation(
     Ctx &ctx, InputSectionBase &isec, uint64_t offsetInSec,
     llvm::PointerUnion<Symbol *, InputSectionBase *> symOrSec, int64_t addend,
@@ -976,20 +990,13 @@ void addCapabilityRelocation(
     return;
   }
 
-  if (needTrampoline && ctx.arg.verboseCapRelocs)
-    message("Using trampoline for function pointer against " +
-            verboseToString(ctx, sym));
-  if (needTrampoline && !isSymIncludedInDynsym(ctx, *sym)) {
-    // Hack: Add a new global symbol with a unique name so that we can use
-    // a dynamic relocation against it.
-    // TODO: should it be possible to add STB_LOCAL symbols to .dynsymtab?
-    Defined *newSym = ctx.symtab->ensureSymbolWillBeInDynsym(sym);
-    assert(newSym->isFunc() && "This should only be used for functions");
-    assert(isSymIncludedInDynsym(ctx, *newSym));
-    assert(newSym->binding == llvm::ELF::STB_GLOBAL);
-    assert(newSym->visibility() == llvm::ELF::STV_HIDDEN);
-    sym = newSym; // Make the relocation point to the newly added symbol
+  if (needTrampoline) {
+    if (ctx.arg.verboseCapRelocs)
+      message("Using trampoline for function pointer against " +
+              verboseToString(ctx, sym));
+    sym = &getCheriMipsTrampolineSym(ctx, type, *sym);
   }
+
   if (!dynRelSec)
     dynRelSec = ctx.mainPart->relaDyn.get();
   dynRelSec->addSymbolReloc(type, *sec, offset, *sym, addend, type);

@@ -349,6 +349,10 @@ void addRelativeCapabilityRelocation(
     llvm::PointerUnion<Symbol *, InputSectionBase *> symOrSec, int64_t addend,
     RelExpr expr, RelType type);
 
+void addSymbolCapabilityRelocation(RelType dynType, RelocationBaseSection &rel,
+                                   InputSectionBase &isec, uint64_t offsetInSec,
+                                   Symbol &sym, int64_t addend = 0);
+
 void addCapabilityRelocation(
     Ctx &ctx, llvm::PointerUnion<Symbol *, InputSectionBase *> target,
     RelType type, InputSectionBase *sec, uint64_t offset, RelExpr expr,

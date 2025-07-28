@@ -936,6 +936,21 @@ static bool needsCheriMipsTrampoline(Ctx &ctx, RelType type,
   return true;
 }
 
+void addRelativeCapabilityRelocation(
+    Ctx &ctx, InputSectionBase &isec, uint64_t offsetInSec,
+    llvm::PointerUnion<Symbol *, InputSectionBase *> symOrSec, int64_t addend,
+    RelExpr expr, RelType type) {
+  Symbol *sym = dyn_cast<Symbol *>(symOrSec);
+  assert(expr == R_ABS_CAP);
+  if (sym) {
+    assert(!needsCheriMipsTrampoline(ctx, type, *sym));
+    assert(!sym->isPreemptible);
+  }
+  assert(!ctx.arg.useRelativeCheriRelocs &&
+         "relative ELF capability relocations not currently implemented");
+  ctx.in.capRelocs->addCapReloc({&isec, offsetInSec}, {symOrSec, 0u}, addend);
+}
+
 void addCapabilityRelocation(
     Ctx &ctx, llvm::PointerUnion<Symbol *, InputSectionBase *> symOrSec,
     RelType type, InputSectionBase *sec, uint64_t offset, RelExpr expr,
@@ -956,9 +971,8 @@ void addCapabilityRelocation(
   // For local symbols we can also emit the untagged capability bits and
   // instruct csu/rtld to run CBuildCap
   if ((!sym || !sym->isPreemptible) && !needTrampoline) {
-    assert(!ctx.arg.useRelativeCheriRelocs &&
-           "relative ELF capability relocations not currently implemented");
-    ctx.in.capRelocs->addCapReloc({sec, offset}, {symOrSec, 0u}, addend);
+    addRelativeCapabilityRelocation(ctx, *sec, offset, symOrSec, addend, expr,
+                                    type);
     return;
   }
 

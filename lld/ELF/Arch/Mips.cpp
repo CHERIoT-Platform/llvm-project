@@ -828,7 +828,13 @@ void MIPS<ELFT>::relocate(uint8_t *loc, const Relocation &rel,
     writeShuffle<e>(ctx, loc, val, 23, 2);
     break;
   case R_MIPS_CHERI_CAPABILITY:
-    llvm_unreachable("R_MIPS_CHERI_CAPABILITY should never be handled here!");
+  case R_MIPS_CHERI_CAPABILITY_CALL:
+    // Write a word within the capability
+    if (ctx.arg.is64)
+      write64(ctx, loc, val);
+    else
+      write32(ctx, loc, val);
+    break;
   default:
     llvm_unreachable("unknown relocation");
   }

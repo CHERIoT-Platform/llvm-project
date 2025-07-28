@@ -1246,26 +1246,11 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
                   !(ctx.arg.zText ||
                     (isa<EhInputSection>(sec) && ctx.arg.emachine != EM_MIPS));
 
-  if (expr == R_ABS_CAP) {
-    std::lock_guard<std::mutex> lock(ctx.relocMutex);
-    static auto getRelocTargetLocation = [&]() -> std::string {
-      return "\n>>> referenced by " +
-             SymbolAndOffset(sec, offset).verboseToString(ctx);
-    };
-    if (!canWrite) {
-      readOnlyCapRelocsError(ctx, sym, getRelocTargetLocation());
-      return;
-    }
-    addCapabilityRelocation(ctx, &sym, type, sec, offset, expr, addend,
-                            getRelocTargetLocation);
-    // TODO: check if it is a call and needs a plt stub
-    return;
-  }
-
   if (canWrite) {
     RelType rel = ctx.target->getDynRel(type);
     if (oneof<R_GOT, RE_LOONGARCH_GOT>(expr) ||
-        (rel == ctx.target->symbolicRel && !sym.isPreemptible)) {
+        ((rel == ctx.target->symbolicRel || rel == ctx.target->cheriCapRel) &&
+         !sym.isPreemptible)) {
       addRelativeReloc<true>(ctx, *sec, offset, sym, addend, expr, type);
       return;
     }
@@ -1310,10 +1295,20 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
       // to the GOT entry and reads the GOT entry when it needs to perform
       // a dynamic relocation.
       // ftp://www.linux-mips.org/pub/linux/mips/doc/ABI/mipsabi.pdf p.4-19
-      if (ctx.arg.emachine == EM_MIPS)
+      // XXX: Excluding R_ABS_CAP is likely wrong, but is the historic
+      // behaviour.
+      if (ctx.arg.emachine == EM_MIPS && expr != R_ABS_CAP)
         ctx.in.mipsGot->addEntry(*sec->file, sym, addend, expr);
       return;
     }
+  }
+
+  if (expr == R_ABS_CAP) {
+    readOnlyCapRelocsError(
+        ctx, sym,
+        "\n>>> referenced by " +
+            SymbolAndOffset(sec, offset).verboseToString(ctx));
+    return;
   }
 
   // When producing an executable, we can perform copy relocations (for

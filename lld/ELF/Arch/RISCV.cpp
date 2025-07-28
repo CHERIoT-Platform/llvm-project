@@ -382,7 +382,7 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
   case R_RISCV_SUB_ULEB128:
     return RE_RISCV_LEB128;
     case R_RISCV_CHERI_CAPABILITY:
-    return R_CHERI_CAPABILITY;
+      return R_ABS_CAP;
     // TODO: Deprecate and eventually remove these
     case R_RISCV_CHERI_CAPTAB_PCREL_HI20:
       return R_GOT_PC;

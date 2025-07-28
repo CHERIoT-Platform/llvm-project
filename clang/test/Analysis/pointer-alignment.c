@@ -202,3 +202,15 @@ void cast_and_assign(void) {
                      // no duplicate assign warn
   *i = 42;
 }
+
+// ----
+struct __attribute__((aligned(8))) AlignedParentStruct {
+    int a;
+    int b;
+};
+
+void write_to_first_member(struct AlignedParentStruct *chunk) {
+  // No warning because alignment of is inferred from the parent struct.
+  *(long long*)(&chunk->a) = 0;
+}
+

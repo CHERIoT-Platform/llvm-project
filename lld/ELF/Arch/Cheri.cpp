@@ -976,17 +976,6 @@ void addCapabilityRelocation(
     return;
   }
 
-  if (sym->isFunc() && addend != 0) {
-    auto diag = Warn(ctx);
-    diag << "capability relocation with non-zero addend (0x"
-         << llvm::utohexstr(addend) << ") against preemptible function "
-         << toStr(ctx, *sym)
-         << "; this may not be supported by the runtime linker.";
-    printLocationMessage(diag, *sec, *sym, offset);
-  }
-
-  if (!dynRelSec)
-    dynRelSec = ctx.mainPart->relaDyn.get();
   if (needTrampoline && ctx.arg.verboseCapRelocs)
     message("Using trampoline for function pointer against " +
             verboseToString(ctx, sym));
@@ -1001,12 +990,9 @@ void addCapabilityRelocation(
     assert(newSym->visibility() == llvm::ELF::STV_HIDDEN);
     sym = newSym; // Make the relocation point to the newly added symbol
   }
-  // .chericap initialises the memory to 0xcacacaca not 0, so if writing
-  // addends we still need to write even it if zero.
-  // TODO: Stop doing this in the assembler and drop this hack
-  dynRelSec->addReloc(true, type, *sec, offset, *sym,
-                      addend, R_ADDEND,
-                      /*addendRelType=*/type, /*writeZero=*/true);
+  if (!dynRelSec)
+    dynRelSec = ctx.mainPart->relaDyn.get();
+  dynRelSec->addSymbolReloc(type, *sec, offset, *sym, addend, type);
 }
 
 void addNullDerivedCapability(Ctx &ctx, Symbol &sym, InputSectionBase &sec,

@@ -23,13 +23,13 @@
 // RUN: llvm-readobj --dyn-symbols --dyn-relocations --cap-relocs --cap-table %t-pie.exe | FileCheck %s --check-prefixes CHECK,CHECK-NODYN
 // RUN: ld.lld %t.o %t-shlib.so -o %t.exe --verbose-cap-relocs 2>&1 | FileCheck %s -check-prefixes VERBOSE-MSG,EXE-MSG
 // RUN: llvm-readobj --dyn-symbols --dyn-relocations --cap-relocs --cap-table %t.exe | FileCheck %s --check-prefixes CHECK,CHECK-NODYN
-// VERBOSE-MSG:      Using trampoline for function pointer against local function return1
+// VERBOSE-MSG:      Forcing symbolic relocation for non-preemptible trampoline-using function pointer against local function return1
 // VERBOSE-MSG-NEXT: >>> defined in ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(function return1{{.+}}))
 // VERBOSE-MSG-NEXT: Adding new symbol __cheri_fnptr_return1 to allow relocation against local function return1
 // VERBOSE-MSG-NEXT: >>> defined in ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(function return1{{.+}}))
-// VERBOSE-MSG-NEXT: Using trampoline for function pointer against function global_return2
-// VERBOSE-MSG-NEXT: >>> defined in 
 // For executables without --export-dynamic we add a new STV_HIDDEN symbol:
+// EXE-MSG:      Forcing symbolic relocation for non-preemptible trampoline-using function pointer against function global_return2
+// EXE-MSG-NEXT: >>> defined in ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(function global_return2{{.+}}))
 // EXE-MSG-NEXT: Adding new symbol __cheri_fnptr_global_return2 to allow relocation against function global_return2
 // EXE-MSG-NEXT: >>> defined in ({{.+}}local-fn-ptr-in-plt-abi.c.tmp.o:(function global_return2{{.+}}))
 // VERBOSE-MSG-EMPTY:
@@ -109,7 +109,7 @@
 
 // no need for trampolines in static executable
 // RUN: ld.lld %t.o %t-shlib.o -o %t-static.exe --verbose-cap-relocs 2>&1 | FileCheck %s --allow-empty --check-prefix STATIC-MESSAGE
-// STATIC-MESSAGE-NOT: Using trampoline for function pointer
+// STATIC-MESSAGE-NOT: Forcing symbolic relocation for non-preemptible trampoline-using function pointer
 
 // RUN: llvm-readobj --dyn-symbols --dyn-relocations --cap-relocs --cap-table %t-static.exe | FileCheck %s --check-prefix STATIC
 // STATIC-LABEL: Dynamic Relocations {

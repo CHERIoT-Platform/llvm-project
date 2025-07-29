@@ -44,12 +44,12 @@ uintptr_t* bar(uintptr_t *p) {
 
 struct S {
   intptr_t u[40];
-  int i[40]; // expected-note{{Original allocation}}
+  int i[40];
   int i_aligned[40] __attribute__((aligned(16))); // expected-note{{Original allocation}}
 };
 int struct_field(struct S *s) {
   uintptr_t* p1 = (uintptr_t*)&s->u[3];  // no warning
-  uintptr_t* p2 = (uintptr_t*)&s->i[8];  // expected-warning{{Pointer value aligned to a 4 byte boundary cast to type 'uintptr_t * __capability' with 16-byte capability alignment}}
+  uintptr_t* p2 = (uintptr_t*)&s->i[8];  // no warning
   uintptr_t* p3 = (uintptr_t*)&s->i_aligned[6];  // expected-warning{{Pointer value aligned to a 8 byte boundary cast to type 'uintptr_t * __capability' with 16-byte capability alignment}}
   uintptr_t* p4 = (uintptr_t*)&s->i_aligned[4];  // no warning
   return (p4 - p3) + (p2 - p1);
@@ -207,11 +207,18 @@ void cast_and_assign(void) {
 struct __attribute__((aligned(8))) AlignedParentStruct {
     int a;
     int b;
+    int c;
+    int d;
 };
 
 void write_to_first_member(struct AlignedParentStruct *chunk) {
   // No warning because alignment of is inferred from the parent struct.
   *(long long*)(&chunk->a) = 0;
+}
+
+void write_to_second_member(struct AlignedParentStruct *chunk) {
+  // No warning because alignment of is inferred from the parent struct.
+  *(long long*)(&chunk->c) = 0;
 }
 
 // ----

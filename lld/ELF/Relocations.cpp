@@ -211,6 +211,16 @@ bool lld::elf::needsGot(RelExpr expr) {
       expr);
 }
 
+// Returns true if Expr refers to a MIPS captable entry. Note this function
+// returns false for TLS variables even though then need a captable entry,
+// because TLS variables use the captable differently than regular variables.
+static bool needsMipsCheriCapTable(RelExpr expr) {
+  return oneof<R_MIPS_CHERI_CAPTAB_INDEX,
+               R_MIPS_CHERI_CAPTAB_INDEX_SMALL_IMMEDIATE,
+               R_MIPS_CHERI_CAPTAB_INDEX_CALL,
+               R_MIPS_CHERI_CAPTAB_INDEX_CALL_SMALL_IMMEDIATE>(expr);
+}
+
 // True if this expression is of the form Sym - X, where X is a position in the
 // file (PC, or GOT for example).
 static bool isRelExpr(RelExpr expr) {
@@ -1175,17 +1185,6 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
     return;
   }
 
-  if (oneof<R_MIPS_CHERI_CAPTAB_INDEX,
-            R_MIPS_CHERI_CAPTAB_INDEX_SMALL_IMMEDIATE,
-            R_MIPS_CHERI_CAPTAB_INDEX_CALL,
-            R_MIPS_CHERI_CAPTAB_INDEX_CALL_SMALL_IMMEDIATE>(expr)) {
-    std::lock_guard<std::mutex> lock(ctx.relocMutex);
-    ctx.in.mipsCheriCapTable->addEntry(sym, expr, sec, offset);
-    // Write out the index into the instruction
-    sec->relocations.push_back({expr, type, offset, addend, &sym});
-    return;
-  }
-
   if (needsGot(expr)) {
     if (ctx.arg.emachine == EM_MIPS) {
       // MIPS ABI has special rules to process GOT entries and doesn't
@@ -1205,6 +1204,8 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
       else
         sym.setFlags(NEEDS_GOT | NEEDS_GOT_NONAUTH);
     }
+  } else if (needsMipsCheriCapTable(expr)) {
+    ctx.in.mipsCheriCapTable->addEntry(sym, expr, sec, offset);
   } else if (needsPlt(expr)) {
     sym.setFlags(NEEDS_PLT);
   } else if (LLVM_UNLIKELY(isIfunc)) {
@@ -1407,17 +1408,17 @@ static unsigned handleMipsTlsRelocation(Ctx &ctx, RelType type, Symbol &sym,
   }
   if (expr == R_MIPS_CHERI_CAPTAB_TLSLD) {
     ctx.in.mipsCheriCapTable->addTlsIndex();
-    c.relocations.push_back({expr, type, offset, addend, &sym});
+    c.addReloc({expr, type, offset, addend, &sym});
     return 1;
   }
   if (expr == R_MIPS_CHERI_CAPTAB_TLSGD) {
     ctx.in.mipsCheriCapTable->addDynTlsEntry(sym);
-    c.relocations.push_back({expr, type, offset, addend, &sym});
+    c.addReloc({expr, type, offset, addend, &sym});
     return 1;
   }
   if (expr == R_MIPS_CHERI_CAPTAB_TPREL) {
     ctx.in.mipsCheriCapTable->addTlsEntry(sym);
-    c.relocations.push_back({expr, type, offset, addend, &sym});
+    c.addReloc({expr, type, offset, addend, &sym});
     return 1;
   }
   return 0;

@@ -102,6 +102,11 @@ std::unique_ptr<BugReport> checkFieldImpl(const FieldDecl *D, BugReporter &BR,
                                           const BugType &BT) {
   QualType T = D->getType();
 
+  // If the parent struct is explicitly marked as packed, then don't emit a
+  // diagnostic, as this layout is likely intentional.
+  if (D->getParent()->hasAttr<PackedAttr>())
+    return nullptr;
+
   ASTContext &ASTCtx = BR.getContext();
   uint64_t Offset = ASTCtx.getFieldOffset(D) / 8;
   if (Offset > 0) {

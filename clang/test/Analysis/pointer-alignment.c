@@ -214,3 +214,9 @@ void write_to_first_member(struct AlignedParentStruct *chunk) {
   *(long long*)(&chunk->a) = 0;
 }
 
+// ----
+long long * __sealed_capability sealed_cast(int * __sealed_capability in) {
+  // No warnings for sealed capabilities, since they will be effectively dynamically
+  // verified when unsealed.
+  return (long long * __sealed_capability)in;
+}

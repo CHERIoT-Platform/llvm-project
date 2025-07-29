@@ -229,12 +229,8 @@ void RISCVELFStreamer::EmitCheriCapabilityImpl(const MCSymbol *Symbol,
 
   // Pad to ensure that the capability is aligned
   emitValueToAlignment(Align(CapSize), 0, 1, 0);
-
-  MCFragment *DF = getCurrentFragment();
-  MCFixup CapFixup =
-      MCFixup::create(0, CapExpr, MCFixupKind(RISCV::fixup_riscv_capability));
-  DF->addFixup(CapFixup);
-  DF->appendContents(CapSize, '\xca');
+  addFixup(CapExpr, MCFixupKind(RISCV::fixup_riscv_capability));
+  appendContents(CapSize, '\xca');
 }
 
 MCStreamer *llvm::createRISCVELFStreamer(const Triple &, MCContext &C,

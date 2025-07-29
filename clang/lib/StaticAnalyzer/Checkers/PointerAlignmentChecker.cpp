@@ -191,15 +191,22 @@ int getTrailingZerosCount(const MemRegion *R, ProgramStateRef State,
     unsigned NaturalAlign = ASTCtx.getTypeAlignInChars(PT).getQuantity();
 
     if (const FieldRegion *FR = R->getAs<FieldRegion>()) {
-      // If this is the first field of a larger struct, we can use the alignment
-      // of the containing struct try to increase the assumed alignment.
+      // If this is the a field of a larger struct, we can use the alignment
+      // of the containing struct combined with the offset to try to increase
+      // the assumed alignment.
       const RegionOffset &Offset = FR->getAsOffset();
-      if (!Offset.hasSymbolicOffset() && Offset.getOffset() == 0) {
+      if (!Offset.hasSymbolicOffset()) {
         if (const auto *Base =
                 FR->getSuperRegion()->getAs<TypedValueRegion>()) {
           auto BaseTy = Base->getValueType();
           unsigned BaseAlign = ASTCtx.getTypeAlignInChars(BaseTy).getQuantity();
-          NaturalAlign = std::max(NaturalAlign, BaseAlign);
+          uint64_t FieldOffsetBits = Offset.getOffset();
+          unsigned Offset =
+              ASTCtx.toCharUnitsFromBits(FieldOffsetBits).getQuantity();
+          unsigned OffsetAlign =
+              (Offset == 0) ? BaseAlign : (1ULL << llvm::countr_zero(Offset));
+          unsigned InferredAlign = std::min(BaseAlign, OffsetAlign);
+          NaturalAlign = std::max(NaturalAlign, InferredAlign);
         }
       }
     }

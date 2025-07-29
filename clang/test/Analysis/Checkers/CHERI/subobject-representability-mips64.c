@@ -15,6 +15,10 @@ struct R1 {
       int c[2];
       char a[0x1000]; // no warn
     } f3good __attribute__((aligned(8)));
+    struct __attribute__((packed)) {
+      char c;
+      char a[0x1000]; // no warn
+    } f4good;
   } s2;
 } s1;
 

@@ -259,6 +259,11 @@ int getTrailingZerosCount(const SVal &V, ProgramStateRef State,
   if (V.isUnknownOrUndef())
     return -1;
 
+  // Sealed capabilities cannot be dereferenced, and any type-punning
+  // will be dynamically checked during unsealing.
+  if (V.getType(ASTCtx)->isCHERISealedCapabilityType(ASTCtx))
+    return -1;
+
   if (V.isConstant()) {
     if (auto LV = V.getAs<loc::ConcreteInt>())
       return LV->getValue()->countTrailingZeros();

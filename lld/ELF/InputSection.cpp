@@ -554,7 +554,7 @@ void InputSection::copyRelocations(Ctx &ctx, uint8_t *buf,
       // this sec->relocations change.
       else if (ctx.arg.relocatable && (sec->flags & SHF_ALLOC) &&
                type != target.noneRel)
-        sec->addReloc({R_ABS, type, rel.offset, addend, &sym});
+        sec->addReloc(ctx, {R_ABS, type, rel.offset, addend, &sym});
     } else if (ctx.arg.emachine == EM_PPC && type == R_PPC_PLTREL24 &&
                p->r_addend >= 0x8000 && sec->file->ppc32Got2) {
       // Similar to R_MIPS_GPREL{16,32}. If the addend of R_PPC_PLTREL24
@@ -1014,6 +1014,12 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
     return ctx.in.got->getTlsIndexVA() + a - p;
   case R_ABS_CAP:
     llvm_unreachable("R_ABS_CAP should not be handled here!");
+  case R_ABS_CAP_ADDR:
+    return r.sym->getVA(ctx, a);
+  case R_ABS_CAP_META:
+    assert(r.sym->isUndefined() &&
+           "cannot encode non-null derived capability yet");
+    return 0;
   case R_MIPS_CHERI_CAPTAB_INDEX:
   case R_MIPS_CHERI_CAPTAB_INDEX_SMALL_IMMEDIATE:
   case R_MIPS_CHERI_CAPTAB_INDEX_CALL:
@@ -1065,6 +1071,28 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
   default:
     llvm_unreachable("invalid expression");
   }
+}
+
+void InputSectionBase::addRelocCap(Ctx &ctx, const Relocation &r) {
+  assert(r.expr == R_ABS_CAP);
+
+  RelExpr exprLo = R_ABS_CAP_ADDR, exprHi = R_ABS_CAP_META;
+  if (!ctx.arg.isLE)
+    std::swap(exprLo, exprHi);
+
+  addReloc(ctx, {exprLo, r.type, r.offset, r.addend, r.sym});
+  addReloc(ctx, {exprHi, r.type, r.offset + ctx.arg.wordsize, r.addend, r.sym});
+
+  // Handle deprecated CHERI-256
+  if (ctx.arg.capabilitySize == ctx.arg.wordsize * 4) {
+    assert(r.sym->isUndefined() &&
+           "can encode only null-derived capabilities for CHERI-256");
+    addReloc(ctx, {R_ABS_CAP_META, r.type, r.offset + 2 * ctx.arg.wordsize,
+                   r.addend, r.sym});
+    addReloc(ctx, {R_ABS_CAP_META, r.type, r.offset + 3 * ctx.arg.wordsize,
+                   r.addend, r.sym});
+  } else
+    assert(ctx.arg.capabilitySize == ctx.arg.wordsize * 2);
 }
 
 // This function applies relocations to sections without SHF_ALLOC bit.

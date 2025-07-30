@@ -700,7 +700,7 @@ uint64_t MipsCheriCapTableSection::assignIndices(uint64_t startIndex,
     if (targetSym->isPreemptible)
       dynRelSec.addSymbolReloc(elfCapabilityReloc, *this, off, *targetSym);
     else if (targetSym->isUndefWeak())
-      addNullDerivedCapability(ctx, *targetSym, *this, off, 0);
+      addConstant(ctx, {R_ABS_CAP, elfCapabilityReloc, off, 0, targetSym});
     else
       addRelativeCapabilityRelocation(ctx, *this, off, targetSym, 0, R_ABS_CAP,
                                       elfCapabilityReloc);
@@ -749,7 +749,7 @@ void MipsCheriCapTableSection::assignValuesAndAddCapTableSymbols() {
     uint64_t offset = *cti.index * ctx.arg.wordsize;
     if (s == nullptr) {
       if (!ctx.arg.shared)
-        addConstant({R_ADDEND, ctx.target->symbolicRel, offset, 1, s});
+        addConstant(ctx, {R_ADDEND, ctx.target->symbolicRel, offset, 1, s});
       else
         ctx.mainPart->relaDyn->addReloc(
             {ctx.target->tlsModuleIndexRel, this, offset});
@@ -759,7 +759,7 @@ void MipsCheriCapTableSection::assignValuesAndAddCapTableSymbols() {
       // s->isPreemptible is not sufficient (this happens e.g. for
       // thread-locals that have been marked as local through a linker script)
       if (!s->isPreemptible && !ctx.arg.shared)
-        addConstant({R_ADDEND, ctx.target->symbolicRel, offset, 1, s});
+        addConstant(ctx, {R_ADDEND, ctx.target->symbolicRel, offset, 1, s});
       else
         ctx.mainPart->relaDyn->addSymbolReloc(ctx.target->tlsModuleIndexRel,
                                               *this, offset, *s);
@@ -769,7 +769,7 @@ void MipsCheriCapTableSection::assignValuesAndAddCapTableSymbols() {
       // However, we can skip writing the TLS offset reloc for non-preemptible
       // symbols since it is known even in shared libraries
       if (!s->isPreemptible)
-        addConstant({R_ABS, ctx.target->tlsOffsetRel, offset, 0, s});
+        addConstant(ctx, {R_ABS, ctx.target->tlsOffsetRel, offset, 0, s});
       else
         ctx.mainPart->relaDyn->addSymbolReloc(ctx.target->tlsOffsetRel, *this,
                                               offset, *s);
@@ -786,7 +786,7 @@ void MipsCheriCapTableSection::assignValuesAndAddCapTableSymbols() {
     // for the TP-relative offset as we don't know how much other data will
     // be allocated before us in the static TLS block.
     if (!s->isPreemptible && !ctx.arg.shared)
-      addConstant({R_TPREL, ctx.target->symbolicRel, offset, 0, s});
+      addConstant(ctx, {R_TPREL, ctx.target->symbolicRel, offset, 0, s});
     else
       ctx.mainPart->relaDyn->addAddendOnlyRelocIfNonPreemptible(
           ctx.target->tlsGotRel, *this, offset, *s, ctx.target->symbolicRel);
@@ -962,28 +962,6 @@ void addRelativeCapabilityRelocation(
   assert(!ctx.arg.useRelativeElfCheriRelocs &&
          "relative ELF capability relocations not currently implemented");
   ctx.in.capRelocs->addCapReloc({&isec, offsetInSec}, {symOrSec, 0u}, addend);
-}
-
-void addNullDerivedCapability(Ctx &ctx, Symbol &sym, InputSectionBase &sec,
-                              uint64_t offset, int64_t addend) {
-  // Only non-preemptible undef weak symbols are link-time constants
-  assert(!sym.isPreemptible && sym.isUndefWeak());
-  if (ctx.arg.isLE) {
-    sec.addReloc({R_ABS, ctx.target->symbolicRel, offset, addend, &sym});
-    sec.addReloc({R_ADDEND, ctx.target->symbolicRel, offset + ctx.arg.wordsize,
-                  0, &sym});
-  } else {
-    sec.addReloc({R_ADDEND, ctx.target->symbolicRel, offset, 0, &sym});
-    sec.addReloc({R_ABS, ctx.target->symbolicRel, offset + ctx.arg.wordsize,
-                  addend, &sym});
-  }
-  // Handle deprecated CHERI-256
-  if (ctx.target->getCapabilitySize() == ctx.arg.wordsize * 4) {
-    sec.addReloc({R_ADDEND, ctx.target->symbolicRel,
-                  offset + 2 * ctx.arg.wordsize, 0, &sym});
-    sec.addReloc({R_ADDEND, ctx.target->symbolicRel,
-                  offset + 3 * ctx.arg.wordsize, 0, &sym});
-  }
 }
 
 } // namespace elf

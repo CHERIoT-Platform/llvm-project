@@ -928,7 +928,7 @@ static void addRelativeReloc(Ctx &ctx, InputSectionBase &isec,
   // don't store the addend values, so we must write it to the relocated
   // address.
   if (part.relrDyn && isec.addralign >= 2 && offsetInSec % 2 == 0) {
-    isec.addReloc({expr, type, offsetInSec, addend, &sym});
+    isec.addReloc(ctx, {expr, type, offsetInSec, addend, &sym});
     if (shard)
       part.relrDyn->relocsVec[parallel::getThreadIndex()].push_back(
           {&isec, isec.relocs().size() - 1});
@@ -983,10 +983,9 @@ void elf::addGotEntry(Ctx &ctx, Symbol &sym) {
   // Otherwise, the value is either a link-time constant or the load base
   // plus a constant. For CHERI it always requires run-time initialisation,
   // with the exception of undef weak symbols.
-  if (ctx.arg.isCheriAbi && sym.isUndefWeak())
-    addNullDerivedCapability(ctx, sym, *ctx.in.got, off, 0);
-  else if (!ctx.arg.isCheriAbi && (!ctx.arg.isPic || isAbsolute(sym)))
-    ctx.in.got->addConstant({expr, type, off, 0, &sym});
+  if ((ctx.arg.isCheriAbi && sym.isUndefWeak()) ||
+      (!ctx.arg.isCheriAbi && (!ctx.arg.isPic || isAbsolute(sym))))
+    ctx.in.got->addConstant(ctx, {expr, type, off, 0, &sym});
   else
     addRelativeReloc(ctx, *ctx.in.got, off, sym, 0, expr, type);
 }
@@ -1014,7 +1013,8 @@ static void addTpOffsetGotEntry(Ctx &ctx, Symbol &sym) {
   ctx.in.got->addEntry(sym);
   uint64_t off = sym.getGotOffset(ctx);
   if (!sym.isPreemptible && !ctx.arg.shared) {
-    ctx.in.got->addConstant({R_TPREL, ctx.target->symbolicRel, off, 0, &sym});
+    ctx.in.got->addConstant(ctx,
+                            {R_TPREL, ctx.target->symbolicRel, off, 0, &sym});
     return;
   }
   ctx.mainPart->relaDyn->addAddendOnlyRelocIfNonPreemptible(
@@ -1228,10 +1228,7 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
   // handling of GOT-generating relocations.
   if (isStaticLinkTimeConstant(expr, type, sym, offset) ||
       (!ctx.arg.isPic && sym.isUndefWeak())) {
-    if (expr == R_ABS_CAP)
-      addNullDerivedCapability(ctx, sym, *sec, offset, addend);
-    else
-      sec->addReloc({expr, type, offset, addend, &sym});
+    sec->addReloc(ctx, {expr, type, offset, addend, &sym});
     return;
   }
 
@@ -1267,7 +1264,7 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
           // When symbol values are determined in
           // finalizeAddressDependentContent, some .relr.auth.dyn relocations
           // may be moved to .rela.dyn.
-          sec->addReloc({expr, type, offset, addend, &sym});
+          sec->addReloc(ctx, {expr, type, offset, addend, &sym});
           part.relrAuthDyn->relocs.push_back({sec, sec->relocs().size() - 1});
         } else {
           part.relaDyn->addReloc({R_AARCH64_AUTH_RELATIVE, sec, offset,
@@ -1333,7 +1330,7 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
         }
         sym.setFlags(NEEDS_COPY);
       }
-      sec->addReloc({expr, type, offset, addend, &sym});
+      sec->addReloc(ctx, {expr, type, offset, addend, &sym});
       return;
     }
 
@@ -1372,7 +1369,7 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
         printLocation(diag, *sec, sym, offset);
       }
       sym.setFlags(NEEDS_COPY | NEEDS_PLT);
-      sec->addReloc({expr, type, offset, addend, &sym});
+      sec->addReloc(ctx, {expr, type, offset, addend, &sym});
       return;
     }
   }
@@ -1398,33 +1395,33 @@ static unsigned handleMipsTlsRelocation(Ctx &ctx, RelType type, Symbol &sym,
                                         int64_t addend, RelExpr expr) {
   if (expr == RE_MIPS_TLSLD) {
     ctx.in.mipsGot->addTlsIndex(*c.file);
-    c.addReloc({expr, type, offset, addend, &sym});
+    c.addReloc(ctx, {expr, type, offset, addend, &sym});
     return 1;
   }
   if (expr == RE_MIPS_TLSGD) {
     ctx.in.mipsGot->addDynTlsEntry(*c.file, sym);
-    c.addReloc({expr, type, offset, addend, &sym});
+    c.addReloc(ctx, {expr, type, offset, addend, &sym});
     return 1;
   }
   if (expr == R_MIPS_CHERI_CAPTAB_TLSLD) {
     ctx.in.mipsCheriCapTable->addTlsIndex();
-    c.addReloc({expr, type, offset, addend, &sym});
+    c.addReloc(ctx, {expr, type, offset, addend, &sym});
     return 1;
   }
   if (expr == R_MIPS_CHERI_CAPTAB_TLSGD) {
     ctx.in.mipsCheriCapTable->addDynTlsEntry(sym);
-    c.addReloc({expr, type, offset, addend, &sym});
+    c.addReloc(ctx, {expr, type, offset, addend, &sym});
     return 1;
   }
   if (expr == R_MIPS_CHERI_CAPTAB_TPREL) {
     ctx.in.mipsCheriCapTable->addTlsEntry(sym);
-    c.addReloc({expr, type, offset, addend, &sym});
+    c.addReloc(ctx, {expr, type, offset, addend, &sym});
     return 1;
   }
   return 0;
 }
 
-static unsigned handleAArch64PAuthTlsRelocation(InputSectionBase *sec,
+static unsigned handleAArch64PAuthTlsRelocation(Ctx &ctx, InputSectionBase *sec,
                                                 RelExpr expr, RelType type,
                                                 uint64_t offset, Symbol &sym,
                                                 int64_t addend) {
@@ -1433,7 +1430,7 @@ static unsigned handleAArch64PAuthTlsRelocation(InputSectionBase *sec,
   // > PAUTHELF64 only supports the descriptor based TLS (TLSDESC).
   if (oneof<RE_AARCH64_AUTH_TLSDESC_PAGE, RE_AARCH64_AUTH_TLSDESC>(expr)) {
     sym.setFlags(NEEDS_TLSDESC | NEEDS_TLSDESC_AUTH);
-    sec->addReloc({expr, type, offset, addend, &sym});
+    sec->addReloc(ctx, {expr, type, offset, addend, &sym});
     return 1;
   }
 
@@ -1459,7 +1456,7 @@ unsigned RelocationScanner::handleTlsRelocation(RelExpr expr, RelType type,
 
   if (isAArch64)
     if (unsigned processed = handleAArch64PAuthTlsRelocation(
-            sec, expr, type, offset, sym, addend))
+            ctx, sec, expr, type, offset, sym, addend))
       return processed;
 
   if (expr == R_TPREL || expr == R_TPREL_NEG) {
@@ -1488,7 +1485,7 @@ unsigned RelocationScanner::handleTlsRelocation(RelExpr expr, RelType type,
         sym.setFlags(NEEDS_TLSDESC | NEEDS_TLSDESC_NONAUTH);
       else if (!isRISCV || type == R_RISCV_TLSDESC_HI20)
         sym.setFlags(NEEDS_TLSDESC);
-      sec->addReloc({expr, type, offset, addend, &sym});
+      sec->addReloc(ctx, {expr, type, offset, addend, &sym});
     }
     return 1;
   }
@@ -1531,14 +1528,14 @@ unsigned RelocationScanner::handleTlsRelocation(RelExpr expr, RelType type,
   if (oneof<R_TLSLD_GOT, R_TLSLD_GOTPLT, R_TLSLD_PC, R_TLSLD_HINT>(expr)) {
     // Local-Dynamic relocs can be optimized to Local-Exesec->
     if (execOptimize) {
-      sec->addReloc({ctx.target->adjustTlsExpr(type, R_RELAX_TLS_LD_TO_LE),
-                     type, offset, addend, &sym});
+      sec->addReloc(ctx, {ctx.target->adjustTlsExpr(type, R_RELAX_TLS_LD_TO_LE),
+                          type, offset, addend, &sym});
       return ctx.target->getTlsGdRelaxSkip(type);
     }
     if (expr == R_TLSLD_HINT)
       return 1;
     ctx.needsTlsLd.store(true, std::memory_order_relaxed);
-    sec->addReloc({expr, type, offset, addend, &sym});
+    sec->addReloc(ctx, {expr, type, offset, addend, &sym});
     return 1;
   }
 
@@ -1546,7 +1543,7 @@ unsigned RelocationScanner::handleTlsRelocation(RelExpr expr, RelType type,
   if (expr == R_DTPREL) {
     if (execOptimize)
       expr = ctx.target->adjustTlsExpr(type, R_RELAX_TLS_LD_TO_LE);
-    sec->addReloc({expr, type, offset, addend, &sym});
+    sec->addReloc(ctx, {expr, type, offset, addend, &sym});
     return 1;
   }
 
@@ -1555,7 +1552,7 @@ unsigned RelocationScanner::handleTlsRelocation(RelExpr expr, RelType type,
   // Local-Exesec->
   if (expr == R_TLSLD_GOT_OFF) {
     sym.setFlags(NEEDS_GOT_DTPREL);
-    sec->addReloc({expr, type, offset, addend, &sym});
+    sec->addReloc(ctx, {expr, type, offset, addend, &sym});
     return 1;
   }
 
@@ -1568,7 +1565,7 @@ unsigned RelocationScanner::handleTlsRelocation(RelExpr expr, RelType type,
       !execOptimize) {
     if (expr != R_TLSDESC_CALL) {
       sym.setFlags(NEEDS_TLSDESC);
-      sec->addReloc({expr, type, offset, addend, &sym});
+      sec->addReloc(ctx, {expr, type, offset, addend, &sym});
     }
     return 1;
   }
@@ -1578,7 +1575,7 @@ unsigned RelocationScanner::handleTlsRelocation(RelExpr expr, RelType type,
             RE_LOONGARCH_TLSGD_PAGE_PC, RE_LOONGARCH_TLSDESC_PAGE_PC>(expr)) {
     if (!execOptimize) {
       sym.setFlags(NEEDS_TLSGD);
-      sec->addReloc({expr, type, offset, addend, &sym});
+      sec->addReloc(ctx, {expr, type, offset, addend, &sym});
       return 1;
     }
 
@@ -1590,11 +1587,11 @@ unsigned RelocationScanner::handleTlsRelocation(RelExpr expr, RelType type,
     // the categorization in RISCV::relocateAllosec->
     if (sym.isPreemptible) {
       sym.setFlags(NEEDS_TLSGD_TO_IE);
-      sec->addReloc({ctx.target->adjustTlsExpr(type, R_RELAX_TLS_GD_TO_IE),
-                     type, offset, addend, &sym});
+      sec->addReloc(ctx, {ctx.target->adjustTlsExpr(type, R_RELAX_TLS_GD_TO_IE),
+                          type, offset, addend, &sym});
     } else {
-      sec->addReloc({ctx.target->adjustTlsExpr(type, R_RELAX_TLS_GD_TO_LE),
-                     type, offset, addend, &sym});
+      sec->addReloc(ctx, {ctx.target->adjustTlsExpr(type, R_RELAX_TLS_GD_TO_LE),
+                          type, offset, addend, &sym});
     }
     return ctx.target->getTlsGdRelaxSkip(type);
   }
@@ -1605,7 +1602,7 @@ unsigned RelocationScanner::handleTlsRelocation(RelExpr expr, RelType type,
     // Initial-Exec relocs can be optimized to Local-Exec if the symbol is
     // locally defined.  This is not supported on SystemZ.
     if (execOptimize && isLocalInExecutable && ctx.arg.emachine != EM_S390) {
-      sec->addReloc({R_RELAX_TLS_IE_TO_LE, type, offset, addend, &sym});
+      sec->addReloc(ctx, {R_RELAX_TLS_IE_TO_LE, type, offset, addend, &sym});
     } else if (expr != R_TLSIE_HINT) {
       sym.setFlags(NEEDS_TLSIE);
       // R_GOT needs a relative relocation for PIC on i386 and Hexagon.
@@ -1613,7 +1610,7 @@ unsigned RelocationScanner::handleTlsRelocation(RelExpr expr, RelType type,
           !ctx.target->usesOnlyLowPageBits(type))
         addRelativeReloc<true>(ctx, *sec, offset, sym, addend, expr, type);
       else
-        sec->addReloc({expr, type, offset, addend, &sym});
+        sec->addReloc(ctx, {expr, type, offset, addend, &sym});
     }
     return 1;
   }
@@ -1623,7 +1620,7 @@ unsigned RelocationScanner::handleTlsRelocation(RelExpr expr, RelType type,
   if (ctx.arg.emachine == EM_LOONGARCH && expr == RE_LOONGARCH_GOT &&
       execOptimize && isLocalInExecutable) {
     ctx.hasTlsIe.store(true, std::memory_order_relaxed);
-    sec->addReloc({R_RELAX_TLS_IE_TO_LE, type, offset, addend, &sym});
+    sec->addReloc(ctx, {R_RELAX_TLS_IE_TO_LE, type, offset, addend, &sym});
     return 1;
   }
 
@@ -2052,7 +2049,8 @@ void elf::postScanRelocations(Ctx &ctx) {
       uint64_t off = got->getGlobalDynOffset(sym);
       if (isLocalInExecutable)
         // Write one to the GOT slot.
-        got->addConstant({R_ADDEND, ctx.target->symbolicRel, off, 1, &sym});
+        got->addConstant(ctx,
+                         {R_ADDEND, ctx.target->symbolicRel, off, 1, &sym});
       else
         ctx.mainPart->relaDyn->addSymbolReloc(ctx.target->tlsModuleIndexRel,
                                               *got, off, sym);
@@ -2064,7 +2062,8 @@ void elf::postScanRelocations(Ctx &ctx) {
         ctx.mainPart->relaDyn->addSymbolReloc(ctx.target->tlsOffsetRel, *got,
                                               offsetOff, sym);
       else
-        got->addConstant({R_ABS, ctx.target->tlsOffsetRel, offsetOff, 0, &sym});
+        got->addConstant(ctx,
+                         {R_ABS, ctx.target->tlsOffsetRel, offsetOff, 0, &sym});
     }
     if (flags & NEEDS_TLSGD_TO_IE) {
       got->addEntry(sym);
@@ -2073,8 +2072,8 @@ void elf::postScanRelocations(Ctx &ctx) {
     }
     if (flags & NEEDS_GOT_DTPREL) {
       got->addEntry(sym);
-      got->addConstant(
-          {R_ABS, ctx.target->tlsOffsetRel, sym.getGotOffset(ctx), 0, &sym});
+      got->addConstant(ctx, {R_ABS, ctx.target->tlsOffsetRel,
+                             sym.getGotOffset(ctx), 0, &sym});
     }
 
     if ((flags & NEEDS_TLSIE) && !(flags & NEEDS_TLSGD_TO_IE))
@@ -2088,8 +2087,8 @@ void elf::postScanRelocations(Ctx &ctx) {
       ctx.mainPart->relaDyn->addReloc(
           {ctx.target->tlsModuleIndexRel, got, got->getTlsIndexOff()});
     else
-      got->addConstant({R_ADDEND, ctx.target->symbolicRel,
-                        got->getTlsIndexOff(), 1, &dummy});
+      got->addConstant(ctx, {R_ADDEND, ctx.target->symbolicRel,
+                             got->getTlsIndexOff(), 1, &dummy});
   }
 
   assert(ctx.symAux.size() == 1);

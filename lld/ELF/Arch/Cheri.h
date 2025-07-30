@@ -171,7 +171,7 @@ private:
 class MipsCheriCapTableSection : public SyntheticSection {
 public:
   MipsCheriCapTableSection(Ctx &ctx);
-  void addConstant(const Relocation &r) { addReloc(r); }
+  void addConstant(Ctx &ctx, const Relocation &r) { addReloc(ctx, r); }
   // InputFile and Offset is needed in order to implement per-file/per-function
   // tables
   void addEntry(Symbol &sym, RelExpr expr, InputSectionBase *isec,
@@ -353,9 +353,6 @@ void addRelativeCapabilityRelocation(
 void addSymbolCapabilityRelocation(RelType dynType, RelocationBaseSection &rel,
                                    InputSectionBase &isec, uint64_t offsetInSec,
                                    Symbol &sym, int64_t addend = 0);
-
-void addNullDerivedCapability(Ctx &ctx, Symbol &sym, InputSectionBase &sec,
-                              uint64_t offset, int64_t addend);
 } // namespace elf
 } // namespace lld
 

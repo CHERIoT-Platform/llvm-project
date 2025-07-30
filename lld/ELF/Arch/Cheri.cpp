@@ -318,6 +318,8 @@ struct CaptablePermissions {
                                    << ((sizeof(typename ELFT::uint) * 8) - 1);
   static const uint64_t readOnly = UINT64_C(1)
                                    << ((sizeof(typename ELFT::uint) * 8) - 2);
+  static const uint64_t indirect = UINT64_C(1)
+                                   << ((sizeof(typename ELFT::uint) * 8) - 3);
 };
 
 template <class ELFT>
@@ -349,23 +351,19 @@ void CheriCapRelocsSection::writeToImpl(uint8_t *buf) {
 
     // The target VA is the base address of the capability, so symbol + 0
     uint64_t targetVA;
-    bool isFunc, isTls;
+    bool isFunc, isGnuIFunc, isTls;
     OutputSection *os;
     if (Symbol *s = dyn_cast<Symbol *>(realTarget.symOrSec)) {
-      if (s->isGnuIFunc())
-        error("cannot reference non-preemptible IFUNC as a capability, "
-              "needed for symbol " +
-              verboseToString(ctx, s) + "\n>>> referenced by " +
-              location.toString(ctx));
-
       targetVA = realTarget.sym()->getVA(ctx, 0);
       isFunc = s->isFunc();
+      isGnuIFunc = s->isGnuIFunc();
       isTls = s->isTls();
       os = s->getOutputSection();
     } else {
       InputSectionBase *isec = cast<InputSectionBase *>(realTarget.symOrSec);
       targetVA = isec->getVA(0);
       isFunc = (isec->flags & SHF_EXECINSTR) != 0;
+      isGnuIFunc = false;
       isTls = isec->type == STT_TLS;
       os = isec->getOutputSection();
     }
@@ -373,8 +371,10 @@ void CheriCapRelocsSection::writeToImpl(uint8_t *buf) {
     uint64_t targetOffset = reloc.capabilityOffset + realTarget.offset;
     uint64_t permissions = 0;
     // Fow now Function implies ReadOnly so don't add the flag
-    if (isFunc) {
+    if (isFunc || isGnuIFunc) {
       permissions |= CaptablePermissions<ELFT>::function;
+      if (isGnuIFunc)
+        permissions |= CaptablePermissions<ELFT>::indirect;
     } else if (os) {
       assert(!isTls);
       // if ((OS->getPhdrFlags() & PF_W) == 0) {

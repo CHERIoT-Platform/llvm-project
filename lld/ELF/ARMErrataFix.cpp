@@ -457,8 +457,8 @@ static void implementPatch(ScanResult sr, InputSection *isec,
       patchRelType = R_ARM_JUMP24;
       patchRelAddend -= 4;
     }
-    psec->addReloc(
-        Relocation{sr.rel->expr, patchRelType, 0, patchRelAddend, sr.rel->sym});
+    psec->addReloc(ctx, Relocation{sr.rel->expr, patchRelType, 0,
+                                   patchRelAddend, sr.rel->sym});
     // Redirect the existing branch relocation to the patch.
     sr.rel->expr = R_PC;
     sr.rel->addend = -4;
@@ -477,7 +477,7 @@ static void implementPatch(ScanResult sr, InputSection *isec,
       type = R_ARM_THM_JUMP24;
     else
       type = R_ARM_THM_CALL;
-    isec->addReloc(Relocation{R_PC, type, sr.off, -4, psec->patchSym});
+    isec->addReloc(ctx, Relocation{R_PC, type, sr.off, -4, psec->patchSym});
   }
   patches.push_back(psec);
 }

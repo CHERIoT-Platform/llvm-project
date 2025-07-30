@@ -717,19 +717,19 @@ void MIPS<ELFT>::scanSectionImpl(InputSectionBase &sec, Relocs<RelTy> rels) {
 
     if (expr == RE_MIPS_TLSLD) {
       ctx.in.mipsGot->addTlsIndex(*sec.file);
-      sec.addReloc({expr, type, offset, addend, &sym});
+      sec.addReloc(ctx, {expr, type, offset, addend, &sym});
     } else if (expr == RE_MIPS_TLSGD) {
       ctx.in.mipsGot->addDynTlsEntry(*sec.file, sym);
-      sec.addReloc({expr, type, offset, addend, &sym});
+      sec.addReloc(ctx, {expr, type, offset, addend, &sym});
     } else if (expr == R_MIPS_CHERI_CAPTAB_TLSLD) {
       ctx.in.mipsCheriCapTable->addTlsIndex();
-      sec.addReloc({expr, type, offset, addend, &sym});
+      sec.addReloc(ctx, {expr, type, offset, addend, &sym});
     } else if (expr == R_MIPS_CHERI_CAPTAB_TLSGD) {
       ctx.in.mipsCheriCapTable->addDynTlsEntry(sym);
-      sec.addReloc({expr, type, offset, addend, &sym});
+      sec.addReloc(ctx, {expr, type, offset, addend, &sym});
     } else if (expr == R_MIPS_CHERI_CAPTAB_TPREL) {
       ctx.in.mipsCheriCapTable->addTlsEntry(sym);
-      sec.addReloc({expr, type, offset, addend, &sym});
+      sec.addReloc(ctx, {expr, type, offset, addend, &sym});
     } else {
       if (expr == R_TPREL && rs.checkTlsLe(offset, sym, type))
         continue;

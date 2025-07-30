@@ -562,10 +562,10 @@ static void implementPatch(Ctx &ctx, uint64_t adrpAddr, uint64_t patcheeOffset,
   };
 
   if (relIt != isec->relocs().end()) {
-    ps->addReloc({relIt->expr, relIt->type, 0, relIt->addend, relIt->sym});
+    ps->addReloc(ctx, {relIt->expr, relIt->type, 0, relIt->addend, relIt->sym});
     *relIt = makeRelToPatch(patcheeOffset, ps->patchSym);
   } else
-    isec->addReloc(makeRelToPatch(patcheeOffset, ps->patchSym));
+    isec->addReloc(ctx, makeRelToPatch(patcheeOffset, ps->patchSym));
 }
 
 // Scan all the instructions in InputSectionDescription, for each instance of

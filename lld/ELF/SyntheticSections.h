@@ -107,7 +107,7 @@ public:
   bool isNeeded() const override;
   void writeTo(uint8_t *buf) override;
 
-  void addConstant(const Relocation &r) { addReloc(r); }
+  void addConstant(Ctx &ctx, const Relocation &r) { addReloc(ctx, r); }
   void addEntry(const Symbol &sym);
   void addAuthEntry(const Symbol &sym);
   bool addTlsDescEntry(const Symbol &sym);
@@ -522,7 +522,7 @@ public:
     // Write the addends to the relocated address if required. We skip
     // it if the written value would be zero, unless forced.
     if (ctx.arg.writeAddends && (expr != R_ADDEND || addend != 0 || writeZero))
-      sec.addReloc({expr, addendRelType, offsetInSec, addend, &sym});
+      sec.addReloc(ctx, {expr, addendRelType, offsetInSec, addend, &sym});
     addReloc<shard>(
         {dynType, &sec, offsetInSec, isAgainstSymbol, sym, addend, expr});
   }

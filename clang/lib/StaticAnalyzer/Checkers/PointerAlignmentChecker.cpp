@@ -268,7 +268,8 @@ int getTrailingZerosCount(const SVal &V, ProgramStateRef State,
 
   // Sealed capabilities cannot be dereferenced, and any type-punning
   // will be dynamically checked during unsealing.
-  if (V.getType(ASTCtx)->isCHERISealedCapabilityType(ASTCtx))
+  auto Ty = V.getType(ASTCtx);
+  if (!Ty.isNull() && Ty->isCHERISealedCapabilityType(ASTCtx))
     return -1;
 
   if (V.isConstant()) {

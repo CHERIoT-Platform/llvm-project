@@ -190,25 +190,36 @@ int getTrailingZerosCount(const MemRegion *R, ProgramStateRef State,
       return -1;
     unsigned NaturalAlign = ASTCtx.getTypeAlignInChars(PT).getQuantity();
 
-    if (const FieldRegion *FR = R->getAs<FieldRegion>()) {
+    unsigned FullOffsetInChars = 0;
+    for (auto *SubR = R->getAs<SubRegion>(); SubR;
+         SubR = SubR->getSuperRegion()->getAs<SubRegion>()) {
       // If this is the a field of a larger struct, we can use the alignment
       // of the containing struct combined with the offset to try to increase
       // the assumed alignment.
-      const RegionOffset &Offset = FR->getAsOffset();
-      if (!Offset.hasSymbolicOffset()) {
-        if (const auto *Base =
-                FR->getSuperRegion()->getAs<TypedValueRegion>()) {
-          auto BaseTy = Base->getValueType();
-          unsigned BaseAlign = ASTCtx.getTypeAlignInChars(BaseTy).getQuantity();
-          uint64_t FieldOffsetBits = Offset.getOffset();
-          unsigned Offset =
-              ASTCtx.toCharUnitsFromBits(FieldOffsetBits).getQuantity();
-          unsigned OffsetAlign =
-              (Offset == 0) ? BaseAlign : (1ULL << llvm::countr_zero(Offset));
-          unsigned InferredAlign = std::min(BaseAlign, OffsetAlign);
-          NaturalAlign = std::max(NaturalAlign, InferredAlign);
-        }
-      }
+      const auto *FR = SubR->getAs<FieldRegion>();
+      if (!FR)
+        break;
+
+      const RegionOffset &LocalOffset = FR->getAsOffset();
+      if (LocalOffset.hasSymbolicOffset())
+        break;
+
+      const auto *Base = FR->getSuperRegion()->getAs<TypedValueRegion>();
+      if (!Base)
+        break;
+
+      auto BaseTy = Base->getValueType();
+      unsigned BaseAlign = ASTCtx.getTypeAlignInChars(BaseTy).getQuantity();
+      uint64_t LocalOffsetBits = LocalOffset.getOffset();
+      FullOffsetInChars +=
+          ASTCtx.toCharUnitsFromBits(LocalOffsetBits).getQuantity();
+      unsigned FullOffsetAlign =
+          (FullOffsetInChars == 0)
+              ? BaseAlign
+              : (1ULL << llvm::countr_zero(FullOffsetInChars));
+
+      unsigned InferredAlign = std::min(BaseAlign, FullOffsetAlign);
+      NaturalAlign = std::max(NaturalAlign, InferredAlign);
     }
 
     if (const ElementRegion *ER = R->getAs<ElementRegion>()) {

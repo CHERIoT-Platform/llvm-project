@@ -227,3 +227,23 @@ long long * __sealed_capability sealed_cast(int * __sealed_capability in) {
   // verified when unsealed.
   return (long long * __sealed_capability)in;
 }
+
+// ---
+struct __attribute__((aligned(8))) AlignedOuterStruct {
+  struct UnalignedInnerStruct {
+    int a;
+    int b;
+    int c;
+    int d;
+  } inner;
+};
+
+void write_to_first_member2(struct AlignedOuterStruct *chunk) {
+  // No warning because alignment of is inferred from the parent struct.
+  *(long long*)(&chunk->inner.a) = 0;
+}
+
+void write_to_second_member2(struct AlignedOuterStruct *chunk) {
+  // No warning because alignment of is inferred from the parent struct.
+  *(long long*)(&chunk->inner.c) = 0;
+}

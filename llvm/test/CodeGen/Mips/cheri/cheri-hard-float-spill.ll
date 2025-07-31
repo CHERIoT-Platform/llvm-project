@@ -48,10 +48,9 @@ define void @eo_fermion_force(double %eps, i32 signext %nflavors, i32 signext %x
 ; CAPTABLE-NEXT:    div.d $f27, $f24, $f0
 ; CAPTABLE-NEXT:    neg.d $f28, $f0
 ; CAPTABLE-NEXT:    dmtc1 $1, $f25
-; CAPTABLE-NEXT:    addiu $2, $zero, 1
 ; CAPTABLE-NEXT:  .LBB0_2: # %for.body.37
 ; CAPTABLE-NEXT:    # =>This Inner Loop Header: Depth=1
-; CAPTABLE-NEXT:    bnez $2, .LBB0_2
+; CAPTABLE-NEXT:    bnez $zero, .LBB0_2
 ; CAPTABLE-NEXT:    nop
 ; CAPTABLE-NEXT:  # %bb.3: # %if.then
 ; CAPTABLE-NEXT:    clcbi $c12, %capcall20(u_shift_fermion)($c18)

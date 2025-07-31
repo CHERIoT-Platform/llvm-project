@@ -1179,8 +1179,7 @@ void addCapabilityRelocation(Ctx &ctx, Symbol *sym, RelType type,
       assert(newSym->visibility() == llvm::ELF::STV_HIDDEN);
       sym = newSym;  // Make the relocation point to the newly added symbol
     }
-    dynRelSec->addReloc(
-        DynamicReloc::AgainstSymbol, type, *sec, offset, *sym, addend, expr,
+    dynRelSec->addReloc(true, type, *sec, offset, *sym, addend, expr,
         /* Relocation type for the addend = */ ctx.target->symbolicRel);
 
   } else if (capRelocMode == CapRelocsMode::Legacy) {

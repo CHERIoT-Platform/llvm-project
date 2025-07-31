@@ -932,10 +932,12 @@ static void addPltEntry(Ctx &ctx, PltSection &plt, GotPltSection &gotPlt,
     ctx.in.cheriCapTable->addEntry(sym, R_CHERI_CAPABILITY_TABLE_INDEX, &plt, 0);
   } else {
     gotPlt.addEntry(sym);
-    rel.addReloc({type, &gotPlt, sym.getGotPltOffset(ctx),
-                  sym.isPreemptible ? DynamicReloc::AgainstSymbol
-                                    : DynamicReloc::AddendOnlyWithTargetVA,
-                  sym, 0, R_ABS});
+    if (sym.isPreemptible)
+      rel.addReloc(
+          {type, &gotPlt, sym.getGotPltOffset(ctx), true, sym, 0, R_ADDEND});
+    else
+      rel.addReloc(
+          {type, &gotPlt, sym.getGotPltOffset(ctx), false, sym, 0, R_ABS});
   }
 }
 
@@ -945,9 +947,8 @@ void elf::addGotEntry(Ctx &ctx, Symbol &sym) {
 
   // If preemptible, emit a GLOB_DAT relocation.
   if (sym.isPreemptible) {
-    ctx.mainPart->relaDyn->addReloc({ctx.target->gotRel, ctx.in.got.get(), off,
-                                     DynamicReloc::AgainstSymbol, sym, 0,
-                                     R_ABS});
+    ctx.mainPart->relaDyn->addReloc(
+        {ctx.target->gotRel, ctx.in.got.get(), off, true, sym, 0, R_ADDEND});
     return;
   }
 
@@ -968,15 +969,13 @@ static void addGotAuthEntry(Ctx &ctx, Symbol &sym) {
   // If preemptible, emit a GLOB_DAT relocation.
   if (sym.isPreemptible) {
     ctx.mainPart->relaDyn->addReloc({R_AARCH64_AUTH_GLOB_DAT, ctx.in.got.get(),
-                                     off, DynamicReloc::AgainstSymbol, sym, 0,
-                                     R_ABS});
+                                     off, true, sym, 0, R_ADDEND});
     return;
   }
 
   // Signed GOT requires dynamic relocation.
   ctx.in.got->getPartition(ctx).relaDyn->addReloc(
-      {R_AARCH64_AUTH_RELATIVE, ctx.in.got.get(), off,
-       DynamicReloc::AddendOnlyWithTargetVA, sym, 0, R_ABS});
+      {R_AARCH64_AUTH_RELATIVE, ctx.in.got.get(), off, false, sym, 0, R_ABS});
 }
 
 static void addTpOffsetGotEntry(Ctx &ctx, Symbol &sym) {
@@ -1267,9 +1266,8 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
           sec->addReloc({expr, type, offset, addend, &sym});
           part.relrAuthDyn->relocs.push_back({sec, sec->relocs().size() - 1});
         } else {
-          part.relaDyn->addReloc({R_AARCH64_AUTH_RELATIVE, sec, offset,
-                                  DynamicReloc::AddendOnlyWithTargetVA, sym,
-                                  addend, R_ABS});
+          part.relaDyn->addReloc({R_AARCH64_AUTH_RELATIVE, sec, offset, false,
+                                  sym, addend, R_ABS});
         }
         return;
       }
@@ -2101,13 +2099,12 @@ void elf::postScanRelocations(Ctx &ctx) {
 
   GotSection *got = ctx.in.got.get();
   if (ctx.needsTlsLd.load(std::memory_order_relaxed) && got->addTlsIndex()) {
-    static Undefined dummy(ctx.internalFile, "", STB_LOCAL, 0, 0);
     if (ctx.arg.shared)
       ctx.mainPart->relaDyn->addReloc(
           {ctx.target->tlsModuleIndexRel, got, got->getTlsIndexOff()});
     else
       got->addConstant({R_ADDEND, ctx.target->symbolicRel,
-                        got->getTlsIndexOff(), 1, &dummy});
+                        got->getTlsIndexOff(), 1, ctx.dummySym});
   }
 
   assert(ctx.symAux.size() == 1);

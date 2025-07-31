@@ -2811,27 +2811,6 @@ bool RISCVTargetLowering::isLegalElementTypeForRVV(EVT ScalarTy) const {
   }
 }
 
-bool RISCVTargetLowering::isLegalLoadStoreElementTypeForRVV(
-    EVT ScalarTy) const {
-  if (!ScalarTy.isSimple())
-    return false;
-  switch (ScalarTy.getSimpleVT().SimpleTy) {
-  case MVT::iPTR:
-    return Subtarget.is64Bit() ? Subtarget.hasVInstructionsI64() : true;
-  case MVT::i8:
-  case MVT::i16:
-  case MVT::i32:
-  case MVT::f16:
-  case MVT::bf16:
-  case MVT::f32:
-    return true;
-  case MVT::i64:
-  case MVT::f64:
-    return Subtarget.hasVInstructionsI64();
-  default:
-    return false;
-  }
-}
 
 unsigned RISCVTargetLowering::combineRepeatedFPDivisors() const {
   return NumRepeatedDivisors;
@@ -23023,6 +23002,7 @@ SDValue RISCVTargetLowering::LowerFormalArguments(
   case CallingConv::C:
   case CallingConv::Fast:
   case CallingConv::SPIR_KERNEL:
+  case CallingConv::PreserveMost:
   case CallingConv::GRAAL:
   case CallingConv::RISCV_VectorCall:
   case CallingConv::CHERI_LibCall:
@@ -23329,8 +23309,14 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
   EVT PtrVT = getPointerTy(DAG.getDataLayout(),
                            DAG.getDataLayout().getAllocaAddrSpace());
   MVT XLenVT = Subtarget.getXLenVT();
+  const CallBase *CB = CLI.CB;
 
   MachineFunction &MF = DAG.getMachineFunction();
+  MachineFunction::CallSiteInfo CSInfo;
+
+  // Set type id for call site info.
+  if (MF.getTarget().Options.EmitCallGraphSection && CB && CB->isIndirectCall())
+    CSInfo = MachineFunction::CallSiteInfo(*CB);
 
   // Analyze the operands of the call, assigning locations to each operand.
   SmallVector<CCValAssign, 16> ArgLocs;
@@ -23635,13 +23621,14 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
         NeedSWGuarded ? RISCVISD::SW_GUARDED_TAIL : RISCVISD::TAIL;
     if (RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()))
       return DAG.getNode(RISCVISD::CAP_TAIL, DL, NodeTys, Ops);
-    else {
-      SDValue Ret = DAG.getNode(CallOpc, DL, NodeTys, Ops);
-      if (CLI.CFIType)
-        Ret.getNode()->setCFIType(CLI.CFIType->getZExtValue());
-      DAG.addNoMergeSiteInfo(Ret.getNode(), CLI.NoMerge);
-      return Ret;
-    }
+    SDValue Ret = DAG.getNode(CallOpc, DL, NodeTys, Ops);
+    if (CLI.CFIType)
+      Ret.getNode()->setCFIType(CLI.CFIType->getZExtValue());
+    DAG.addNoMergeSiteInfo(Ret.getNode(), CLI.NoMerge);
+    if (MF.getTarget().Options.EmitCallGraphSection && CB &&
+        CB->isIndirectCall())
+      DAG.addCallSiteInfo(Ret.getNode(), std::move(CSInfo));
+    return Ret;
   }
 
   unsigned CallOpc = NeedSWGuarded ? RISCVISD::SW_GUARDED_CALL : RISCVISD::CALL;
@@ -23661,6 +23648,10 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
 
   if (CLI.CFIType)
     Chain.getNode()->setCFIType(CLI.CFIType->getZExtValue());
+
+  if (MF.getTarget().Options.EmitCallGraphSection && CB && CB->isIndirectCall())
+    DAG.addCallSiteInfo(Chain.getNode(), std::move(CSInfo));
+
   DAG.addNoMergeSiteInfo(Chain.getNode(), CLI.NoMerge);
   Glue = Chain.getValue(1);
 
@@ -25195,7 +25186,7 @@ bool RISCVTargetLowering::isLegalStridedLoadStore(EVT DataType,
     return false;
 
   EVT ScalarType = DataType.getScalarType();
-  if (!isLegalLoadStoreElementTypeForRVV(ScalarType))
+  if (!isLegalElementTypeForRVV(ScalarType))
     return false;
 
   if (!Subtarget.enableUnalignedVectorMem() &&

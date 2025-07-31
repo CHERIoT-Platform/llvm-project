@@ -112,6 +112,10 @@ def CSR_XLEN_F32_V_Interrupt_RVE: CalleeSavedRegs<(sub CSR_XLEN_F32_V_Interrupt,
 def CSR_XLEN_F64_V_Interrupt_RVE: CalleeSavedRegs<(sub CSR_XLEN_F64_V_Interrupt,
                                                    (sequence "X%u", 16, 31))>;
 
+def CSR_RT_MostRegs : CalleeSavedRegs<(sub CSR_Interrupt, X6, X7, X28)>;
+def CSR_RT_MostRegs_RVE : CalleeSavedRegs<(sub CSR_RT_MostRegs,
+                                               (sequence "X%u", 16, 31))>;
+
 // Same as CSR_Interrupt, but including all capability registers that are used,
 // both Caller and Callee saved registers.
 def CSR_XLEN_CLEN_Interrupt : CalleeSavedRegs<(add X1,

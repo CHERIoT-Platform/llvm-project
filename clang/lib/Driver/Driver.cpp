@@ -866,8 +866,9 @@ static llvm::Triple computeTargetTriple(const Driver &D,
           ArchName, /*EnableExperimentalExtensions=*/true);
       if (!llvm::errorToBool(ISAInfo.takeError())) {
         unsigned XLen = (*ISAInfo)->getXLen();
+        // CHERIOT: Preserve the subarch if it was set.
         if (XLen == 32)
-          Target.setArch(llvm::Triple::riscv32);
+          Target.setArch(llvm::Triple::riscv32, Target.getSubArch());
         else if (XLen == 64)
           Target.setArch(llvm::Triple::riscv64);
       }

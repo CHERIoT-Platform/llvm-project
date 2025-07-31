@@ -160,6 +160,15 @@ StringRef Triple::getArchName(ArchType Kind, SubArchType SubArch) {
       break;
     }
     break;
+  case Triple::riscv32: {
+    switch (SubArch) {
+    case Triple::RISCV32SubArch_cheriot_v1:
+      return "riscv32cheriotv1";
+    default:
+      break;
+    }
+    break;
+  }
   default:
     break;
   }

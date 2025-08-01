@@ -1408,7 +1408,7 @@ void TargetInstrInfo::reassociateOps(
                               const MCInstrDesc &MCID, Register DestReg) {
     return MachineInstrBuilder(
                MF, MF.CreateMachineInstr(MCID, MIMD.getDL(), /*NoImpl=*/true))
-        .setPCSections(MIMD.getPCSections())
+        .copyMIMetadata(MIMD)
         .addReg(DestReg, RegState::Define);
   };
 

@@ -65,11 +65,10 @@ int foo(int* i) {
 // DEBUG-INFO-NEXT:               DW_AT_language	(DW_LANG_C11)
 // DEBUG-INFO-NEXT:               DW_AT_name	("
 // DEBUG-INFO-NEXT:               DW_AT_stmt_list	(0x00000000)
-// DEBUG-INFO-NEXT:               DW_AT_comp_dir	("
 // DEBUG-INFO-NEXT:               DW_AT_low_pc	(0x0000000000000000)
 // DEBUG-INFO-NEXT:               DW_AT_high_pc	(0x00000000000{{.+}})
 // DEBUG-INFO-EMPTY:
-// DEBUG-INFO-NEXT: [[INT_TYPE_INFO_ADDR:0x0000002e]]: DW_TAG_base_type
+// DEBUG-INFO-NEXT: [[INT_TYPE_INFO_ADDR:0x0000002a]]: DW_TAG_base_type
 // DEBUG-INFO-NEXT:                 DW_AT_name	("int")
 // DEBUG-INFO-NEXT:                 DW_AT_encoding	(DW_ATE_signed)
 // DEBUG-INFO-NEXT:                 DW_AT_byte_size	(0x04)
@@ -145,13 +144,12 @@ int foo(int* i) {
 // DEBUG-INFO-OPT-NEXT:               DW_AT_language	(DW_LANG_C11)
 // DEBUG-INFO-OPT-NEXT:               DW_AT_name	("{{.+}}/test/CodeGen/cheri/<stdin>")
 // DEBUG-INFO-OPT-NEXT:               DW_AT_stmt_list	(0x00000000)
-// DEBUG-INFO-OPT-NEXT:               DW_AT_comp_dir	("{{.+}}")
 // DEBUG-INFO-OPT-NEXT:               DW_AT_low_pc	(0x0000000000000000)
 // MIPS has one instruction less
 // CHERI-DEBUG-INFO-OPT-NEXT:         DW_AT_high_pc	(0x000000000000000c)
 // MIPS-DEBUG-INFO-OPT-NEXT:          DW_AT_high_pc	(0x0000000000000008)
 // DEBUG-INFO-OPT-EMPTY:
-// DEBUG-INFO-OPT-NEXT: [[INT_ADDR:0x0000002e]]:   DW_TAG_base_type
+// DEBUG-INFO-OPT-NEXT: [[INT_ADDR:0x0000002a]]:   DW_TAG_base_type
 // DEBUG-INFO-OPT-NEXT:                 DW_AT_name	("int")
 // DEBUG-INFO-OPT-NEXT:                 DW_AT_encoding	(DW_ATE_signed)
 // DEBUG-INFO-OPT-NEXT:                 DW_AT_byte_size	(0x04)

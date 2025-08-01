@@ -7400,7 +7400,9 @@ SDValue SelectionDAG::FoldConstantBuildVector(BuildVectorSDNode *BV,
 }
 
 SDValue SelectionDAG::getAssertAlign(const SDLoc &DL, SDValue Val, Align A) {
-  assert(Val.getValueType().isInteger() && "Invalid AssertAlign!");
+  assert(
+      (Val.getValueType().isInteger() || Val.getValueType().isCapability()) &&
+      "Invalid AssertAlign!");
 
   // There's no need to assert on a byte-aligned pointer. All pointers are at
   // least byte aligned.

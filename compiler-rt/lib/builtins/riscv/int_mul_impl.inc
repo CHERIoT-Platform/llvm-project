@@ -14,24 +14,20 @@
 #error "__mulxi3 must be defined to use this generic implementation"
 #endif
 
-	.text
-	.align 2
+.text
+    .align 2
 
-	.globl __mulxi3
-	.type  __mulxi3, @function
-__mulxi3:
-	mv     a2, a0
-	mv     a0, zero
-.L1:
-	andi   a3, a1, 1
-	beqz   a3, .L2
-	add    a0, a0, a2
-.L2:
-	srli   a1, a1, 1
-	slli   a2, a2, 1
-	bnez   a1, .L1
-#ifdef __CHERI_PURE_CAPABILITY__
-	cret
-#else
-	ret
-#endif
+    .globl __mulxi3.type __mulxi3,
+    @function __mulxi3 : mv a2,
+                         a0 mv a0,
+                         zero.L1 : andi a3,
+                         a1,
+                         1 beqz a3,
+                         .L2 add a0,
+                         a0,
+                         a2.L2 : srli a1,
+                         a1,
+                         1 slli a2,
+                         a2,
+                         1 bnez a1,
+                         .L1 ret

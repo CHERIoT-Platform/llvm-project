@@ -154,7 +154,7 @@ int foo(int* i) {
 // DEBUG-INFO-OPT-NEXT:                 DW_AT_encoding	(DW_ATE_signed)
 // DEBUG-INFO-OPT-NEXT:                 DW_AT_byte_size	(0x04)
 // DEBUG-INFO-OPT-EMPTY:
-// DEBUG-INFO-OPT-NEXT: 0x00000035:   DW_TAG_subprogram
+// DEBUG-INFO-OPT-NEXT: 0x00000031:   DW_TAG_subprogram
 // DEBUG-INFO-OPT-NEXT:                 DW_AT_low_pc	(0x0000000000000000)
 // MIPS has one instruction less
 // CHERI-DEBUG-INFO-OPT-NEXT:           DW_AT_high_pc	(0x000000000000000c)
@@ -174,7 +174,7 @@ int foo(int* i) {
 // DEBUG-INFO-OPT-NEXT:                         DW_AT_name	("i")
 // DEBUG-INFO-OPT-NEXT:                         DW_AT_decl_file	("{{.+}}cheri-debug-info.c")
 // DEBUG-INFO-OPT-NEXT:                         DW_AT_decl_line	([[#FOO_DECL_LINE]])
-// DEBUG-INFO-OPT-NEXT:                         DW_AT_type	([[INT_PTR_INFO_LOC:0x0000006(2|4)]] "int *")
+// DEBUG-INFO-OPT-NEXT:                         DW_AT_type	([[INT_PTR_INFO_LOC:0x000000(5e|60)]] "int *")
 // DEBUG-INFO-OPT-EMPTY:
 // DEBUG-INFO-OPT-NEXT: 0x000000{{.+}}:     NULL
 // DEBUG-INFO-OPT-EMPTY:

@@ -345,6 +345,15 @@ public:
     Parser.addAliasForDirective(".word", ".4byte");
     Parser.addAliasForDirective(".dword", ".8byte");
     setAvailableFeatures(ComputeAvailableFeatures(STI.getFeatureBits()));
+    // Don't record errors based on the CapMode feature. XOR the two
+    // bit patterns to get something that has just CapMode and NotCapMode.
+    // Skipping mnemonics that are not available in the current assembler mode
+    // significantly improves diagnostics and allows reusing the same register
+    // names for capmode vs non-capmode.
+    FeatureBitset CapModeSet =
+        ComputeAvailableFeatures({RISCV::FeatureCapMode});
+    FeatureBitset NoCapModeSet = ComputeAvailableFeatures({});
+    // setConflictingFeatures(CapModeSet ^ NoCapModeSet);
 
     auto ABIName = StringRef(Options.ABIName);
     if (ABIName.ends_with("f") && !getSTI().hasFeature(RISCV::FeatureStdExtF)) {

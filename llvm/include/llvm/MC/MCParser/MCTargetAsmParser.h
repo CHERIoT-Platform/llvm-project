@@ -353,6 +353,14 @@ protected: // Can only create subclasses.
 
   /// AvailableFeatures - The current set of available features.
   FeatureBitset AvailableFeatures;
+  /// A set of features that conflict with each other. This helps improve
+  /// diagnostics by ignoring instruction variants that are mutually exclusive.
+  /// An example here are the CHERI mode-dependent instructions where we have
+  /// loads/stores that are identical other than the register class for the base
+  /// register and have predicates that can never both be set. To avoid
+  /// nonsensical error messages, we should only use the candidate instructions
+  /// with the currently available feature bits.
+  FeatureBitset ConflictingFeatures;
 
   /// ParsingMSInlineAsm - Are we parsing ms-style inline assembly?
   bool ParsingMSInlineAsm = false;
@@ -382,6 +390,15 @@ public:
   }
   void setAvailableFeatures(const FeatureBitset& Value) {
     AvailableFeatures = Value;
+  }
+
+  const FeatureBitset &getConflictingFeatures() const {
+    return ConflictingFeatures;
+  }
+  void setConflictingFeatures(const FeatureBitset &Value) {
+    assert((Value.none() || Value.count() == 2) &&
+           "Only zero or two conflicting features supported");
+    ConflictingFeatures = Value;
   }
 
   bool isParsingMSInlineAsm () { return ParsingMSInlineAsm; }

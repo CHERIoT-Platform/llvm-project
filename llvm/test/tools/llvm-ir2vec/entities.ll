@@ -1,4 +1,4 @@
-; RUN: llvm-ir2vec --mode=entities | FileCheck %s
+; RUN: llvm-ir2vec entities | FileCheck %s
 
 CHECK: 93
 CHECK-NEXT: Ret     0

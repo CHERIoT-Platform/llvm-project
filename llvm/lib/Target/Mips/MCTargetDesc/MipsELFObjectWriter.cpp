@@ -172,8 +172,8 @@ unsigned MipsELFObjectWriter::getRelocType(const MCFixup &Fixup,
   case Mips::S_CAPTAB_TLSLDM_LO16:
   case Mips::S_CAPTAB_TPREL_HI16:
   case Mips::S_CAPTAB_TPREL_LO16:
-    if (auto *SA = Target.getAddSym())
-      cast<MCSymbolELF>(SA)->setType(ELF::STT_TLS);
+    if (auto *SA = const_cast<MCSymbol *>(Target.getAddSym()))
+      static_cast<MCSymbolELF *>(SA)->setType(ELF::STT_TLS);
     break;
   default:
     break;
@@ -376,7 +376,7 @@ unsigned MipsELFObjectWriter::getRelocType(const MCFixup &Fixup,
     return ELF::R_MIPS_CHERI_CAPCALL_HI16;
 
   case Mips::fixup_CHERI_CAPABILITY: {
-    const auto ElfSym = cast<const MCSymbolELF>(Target.getAddSym());
+    const auto ElfSym = static_cast<const MCSymbolELF*>(Target.getAddSym());
     // Assert that we don't create .chericap relocations against temporary
     // symbols since those will result in wrong relocations (against sec+offset)
     if (ElfSym->isDefined() && !ElfSym->getSize() &&
@@ -514,6 +514,7 @@ bool MipsELFObjectWriter::needsRelocateWithSymbol(const MCValue &V,
            needsRelocateWithSymbol(V, (Type >> 8) & 0xff) ||
            needsRelocateWithSymbol(V, (Type >> 16) & 0xff);
 
+  auto *Sym = static_cast<const MCSymbolELF *>(V.getAddSym());
   switch (Type) {
   default:
     errs() << Type << "\n";
@@ -545,7 +546,7 @@ bool MipsELFObjectWriter::needsRelocateWithSymbol(const MCValue &V,
     // FIXME: It should be safe to return false for the STO_MIPS_MICROMIPS but
     //        we neglect to handle the adjustment to the LSB of the addend that
     //        it causes in applyFixup() and similar.
-    if (cast<MCSymbolELF>(V.getAddSym())->getOther() & ELF::STO_MIPS_MICROMIPS)
+    if (Sym->getOther() & ELF::STO_MIPS_MICROMIPS)
       return true;
     return false;
 
@@ -556,7 +557,7 @@ bool MipsELFObjectWriter::needsRelocateWithSymbol(const MCValue &V,
   case ELF::R_MIPS_16:
   case ELF::R_MIPS_32:
   case ELF::R_MIPS_GPREL32:
-    if (cast<MCSymbolELF>(V.getAddSym())->getOther() & ELF::STO_MIPS_MICROMIPS)
+    if (Sym->getOther() & ELF::STO_MIPS_MICROMIPS)
       return true;
     [[fallthrough]];
   case ELF::R_MIPS_26:

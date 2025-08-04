@@ -2462,8 +2462,8 @@ void AsmPrinter::emitGlobalAlias(const Module &M, const GlobalAlias &GA) {
     // alias (no non-zero GEPs), we also apply that size to the alias symbol.
     // This is required for architectures that set bounds on globals (e.g.
     // CHERI) and use the st_size information for those bounds.
-    if (auto *BaseSymELF = dyn_cast<MCSymbolELF>(getSymbol(BaseObject)))
-      SizeExpr = BaseSymELF->getSize();
+    if (TM.getTargetTriple().isOSBinFormatELF())
+      SizeExpr = static_cast<MCSymbolELF*>(getSymbol(BaseObject))->getSize();
     if (SizeExpr && Offset != 0) {
       int64_t AbsSize = 0;
       if (SizeExpr->evaluateAsAbsolute(AbsSize)) {
@@ -3267,7 +3267,7 @@ void AsmPrinter::emitJumpTableSizesSection(const MachineJumpTableInfo &MJTI,
     return;
 
   if (isElf) {
-    MCSymbolELF *LinkedToSym = dyn_cast<MCSymbolELF>(CurrentFnSym);
+    auto *LinkedToSym = static_cast<MCSymbolELF *>(CurrentFnSym);
     int Flags = F.hasComdat() ? static_cast<int>(ELF::SHF_GROUP) : 0;
 
     JumpTableSizesSection = OutContext.getELFSection(
@@ -4857,7 +4857,7 @@ void AsmPrinter::emitXRayTable() {
   const Triple &TT = TM.getTargetTriple();
   // Use PC-relative addresses on all targets.
   if (TT.isOSBinFormatELF()) {
-    auto LinkedToSym = cast<MCSymbolELF>(CurrentFnSym);
+    auto LinkedToSym = static_cast<const MCSymbolELF *>(CurrentFnSym);
     auto Flags = ELF::SHF_ALLOC | ELF::SHF_LINK_ORDER;
     StringRef GroupName;
     if (F.hasComdat()) {
@@ -4980,7 +4980,7 @@ void AsmPrinter::emitPatchableFunctionEntries() {
         Flags |= ELF::SHF_GROUP;
         GroupName = F.getComdat()->getName();
       }
-      LinkedToSym = cast<MCSymbolELF>(CurrentFnSym);
+      LinkedToSym = static_cast<const MCSymbolELF *>(CurrentFnSym);
     }
     OutStreamer->switchSection(OutContext.getELFSection(
         SectionName, ELF::SHT_PROGBITS, Flags, 0, GroupName, F.hasComdat(),

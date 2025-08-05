@@ -112,6 +112,7 @@ add_clang_library(clangStaticAnalyzerCheckers
   SmartPtrChecker.cpp
   SmartPtrModeling.cpp
   StackAddrEscapeChecker.cpp
+  StoreToImmutableChecker.cpp
   StdLibraryFunctionsChecker.cpp
   StdVariantChecker.cpp
   STLAlgorithmModeling.cpp

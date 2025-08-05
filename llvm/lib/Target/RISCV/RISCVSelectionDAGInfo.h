@@ -34,6 +34,20 @@ public:
   void verifyTargetNode(const SelectionDAG &DAG,
                         const SDNode *N) const override;
 
+  SDValue EmitTargetCodeForMemset(SelectionDAG &DAG, const SDLoc &dl,
+                                  SDValue Chain, SDValue Dst, SDValue Src,
+                                  SDValue Size, Align Alignment,
+                                  bool isVolatile, bool AlwaysInline,
+                                  MachinePointerInfo DstPtrInfo) const override;
+
+private:
+  SDValue EmitTargetCodeForMemsetCHERI(SelectionDAG &DAG, const SDLoc &dl,
+                                  SDValue Chain, SDValue Dst, SDValue Src,
+                                  SDValue Size, Align Alignment,
+                                  bool isVolatile, bool AlwaysInline,
+                                  MachinePointerInfo DstPtrInfo) const;
+
+public:
   bool hasPassthruOp(unsigned Opcode) const {
     return GenNodeInfo.getDesc(Opcode).TSFlags & RISCVISD::HasPassthruOpMask;
   }
@@ -68,12 +82,6 @@ public:
       SDValue Op2, SDValue Op3, Align Alignment, bool isVolatile,
       PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
       MachinePointerInfo SrcPtrInfo) const override;
-
-  SDValue EmitTargetCodeForMemset(SelectionDAG &DAG, const SDLoc &dl,
-                                  SDValue Chain, SDValue Op1, SDValue Op2,
-                                  SDValue Op3, Align Alignment, bool isVolatile,
-                                  bool AlwaysInline,
-                                  MachinePointerInfo DstPtrInfo) const override;
 };
 
 } // namespace llvm

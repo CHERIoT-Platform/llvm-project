@@ -486,14 +486,6 @@ bool llvm::CC_RISCV(unsigned ValNo, MVT ValVT, MVT LocVT,
     }
   }
 
-  // Cheriot uses GPCR without a bitcast when possible.
-  if (LocVT == MVT::f64 && Subtarget.hasVendorXCheriot() && !IsPureCapVarArgs) {
-    if (MCRegister Reg = State.AllocateReg(ArgGPCRs)) {
-      State.addLoc(CCValAssign::getReg(ValNo, ValVT, Reg, LocVT, LocInfo));
-      return false;
-    }
-  }
-
   // FP smaller than XLen, uses custom GPR.
   if (LocVT == MVT::f16 || LocVT == MVT::bf16 ||
       (LocVT == MVT::f32 && XLen == 64)) {

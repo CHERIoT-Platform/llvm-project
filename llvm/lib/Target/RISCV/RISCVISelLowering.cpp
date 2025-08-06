@@ -178,11 +178,6 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     addRegisterClass(CapType, &RISCV::GPCRRegClass);
   }
 
-  if (Subtarget.hasVendorXCheriot()) {
-    // Cheriot holds f64's in capability registers.
-    addRegisterClass(MVT::f64, &RISCV::GPCRRegClass);
-  }
-
   static const MVT::SimpleValueType BoolVecVTs[] = {
       MVT::nxv1i1,  MVT::nxv2i1,  MVT::nxv4i1, MVT::nxv8i1,
       MVT::nxv16i1, MVT::nxv32i1, MVT::nxv64i1};
@@ -730,20 +725,6 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     }
 
     setLibcallImpl(RTLIB::MEMSET, RTLIB::memset);
-  }
-
-  if (Subtarget.hasVendorXCheriot()) {
-    setOperationAction(ISD::ConstantFP, MVT::f64, Custom);
-
-    static const unsigned CheriotF64ExpandOps[] = {
-        ISD::FMINNUM,     ISD::FMAXNUM,     ISD::FADD,        ISD::FSUB,
-        ISD::FMUL,        ISD::FMA,         ISD::FDIV,        ISD::FSQRT,
-        ISD::FCEIL,       ISD::FTRUNC,      ISD::FFLOOR,      ISD::FROUND,
-        ISD::FROUNDEVEN,  ISD::FRINT,       ISD::FNEARBYINT,  ISD::IS_FPCLASS,
-        ISD::SETCC,       ISD::FMAXIMUM,    ISD::FMINIMUM,    ISD::STRICT_FADD,
-        ISD::STRICT_FSUB, ISD::STRICT_FMUL, ISD::STRICT_FDIV, ISD::STRICT_FSQRT,
-        ISD::STRICT_FMA};
-    setOperationAction(CheriotF64ExpandOps, MVT::f64, Expand);
   }
 
   // TODO: On M-mode only targets, the cycle[h]/time[h] CSR may not be present.
@@ -6767,43 +6748,10 @@ static SDValue lowerConstant(SDValue Op, SelectionDAG &DAG,
   return SDValue();
 }
 
-SDValue
-RISCVTargetLowering::lowerConstantFP(SDValue Op, SelectionDAG &DAG,
-                                     const RISCVSubtarget &Subtarget) const {
+SDValue RISCVTargetLowering::lowerConstantFP(SDValue Op,
+                                             SelectionDAG &DAG) const {
   MVT VT = Op.getSimpleValueType();
   const APFloat &Imm = cast<ConstantFPSDNode>(Op)->getValueAPF();
-
-  if (Subtarget.hasVendorXCheriot()) {
-    // Cheriot needs to custom lower f64 immediates using csethigh
-    if (VT != MVT::f64)
-      return Op;
-
-    SDLoc DL(Op);
-    uint64_t Val = Imm.bitcastToAPInt().getLimitedValue();
-
-    // Materialize 0.0 as cnull
-    if (Val == 0)
-      return DAG.getRegister(getNullCapabilityRegister(), MVT::f64);
-
-    // Otherwise, materialize the low part into a 32-bit register.
-    auto Lo = DAG.getConstant(Val & 0xFFFFFFFF, DL, MVT::i32);
-    auto LoAsCap = DAG.getTargetInsertSubreg(RISCV::sub_cap_addr, DL, MVT::c64,
-                                             DAG.getUNDEF(MVT::f64), Lo);
-
-    // The high half of a capability register is zeroed by integer ops,
-    // so if we wanted a zero high half then we are done.
-    if (Val >> 32 == 0)
-      return DAG.getBitcast(MVT::f64, LoAsCap);
-
-    // Otherwise, materialize the high half and use csethigh to combine the two
-    // halve.
-    auto Hi = DAG.getConstant(Val >> 32, DL, MVT::i32);
-    auto Cap = DAG.getNode(
-        ISD::INTRINSIC_WO_CHAIN, DL, MVT::c64,
-        DAG.getTargetConstant(Intrinsic::cheri_cap_high_set, DL, MVT::i32),
-        LoAsCap, Hi);
-    return DAG.getBitcast(MVT::f64, Cap);
-  }
 
   // Can this constant be selected by a Zfa FLI instruction?
   bool Negate = false;
@@ -7474,7 +7422,7 @@ SDValue RISCVTargetLowering::LowerOperation(SDValue Op,
   case ISD::Constant:
     return lowerConstant(Op, DAG, Subtarget);
   case ISD::ConstantFP:
-    return lowerConstantFP(Op, DAG, Subtarget);
+    return lowerConstantFP(Op, DAG);
   case ISD::SELECT:
     return lowerSELECT(Op, DAG);
   case ISD::BRCOND:

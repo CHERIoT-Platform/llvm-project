@@ -503,8 +503,7 @@ private:
                             SelectionDAG &DAG) const;
   SDValue getTLSDescAddr(GlobalAddressSDNode *N, SelectionDAG &DAG) const;
 
-  SDValue lowerConstantFP(SDValue Op, SelectionDAG &DAG,
-                          const RISCVSubtarget &Subtarget) const;
+  SDValue lowerConstantFP(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerBlockAddress(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerConstantPool(SDValue Op, SelectionDAG &DAG) const;

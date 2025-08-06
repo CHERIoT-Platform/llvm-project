@@ -1924,7 +1924,7 @@ Parser::DeclGroupPtrTy Parser::ParseDeclaration(DeclaratorContext Context,
 
   case tok::kw_cbuffer:
   case tok::kw_tbuffer:
-    SingleDecl = ParseHLSLBuffer(DeclEnd);
+    SingleDecl = ParseHLSLBuffer(DeclEnd, DeclAttrs);
     break;
   case tok::kw_namespace:
     ProhibitAttributes(DeclAttrs);

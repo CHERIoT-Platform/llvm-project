@@ -1699,6 +1699,10 @@ def HasCheriot
     : Predicate<"Subtarget->hasVendorXCheriot()">,
       AssemblerPredicate<(all_of FeatureVendorXCheriot), "CHERIoT Extension">;
 
+def HasNoCheriot : Predicate<"!Subtarget->hasVendorXCheriot()">,
+                   AssemblerPredicate<(all_of(not FeatureVendorXCheriot)),
+                                      "CHERIoT Extension">;
+
 def FeatureRelax
     : SubtargetFeature<"relax", "EnableLinkerRelax", "true",
                        "Enable Linker relaxation.">;

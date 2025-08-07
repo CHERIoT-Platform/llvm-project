@@ -378,7 +378,6 @@ def CGetLen    : Cheri_r<0x3, "cgetlen">;
 let mayLoad = true in
   def CGetTag    : Cheri_r<0x4, "cgettag">;
 def CGetSealed : Cheri_r<0x5, "cgetsealed">;
-def CGetOffset : Cheri_r<0x6, "cgetoffset">;
 def CGetFlags  : Cheri_r<0x7, "cgetflags">;
 def CGetHigh   : Cheri_r<0x17, "cgethigh">;
 def CGetTop    : Cheri_r<0x18, "cgettop">;
@@ -387,6 +386,10 @@ let mayStore = false, mayLoad = false, Size = 4, isCodeGenOnly = false,
 hasSideEffects = false in
 def PseudoCGetAddr : Pseudo<(outs GPR:$rd), (ins GPCR:$cs1), [],
                             "cgetaddr", "$rd, $cs1">;
+}
+
+let Predicates = [HasCheri, HasNoCheriot] in {
+  def CGetOffset : Cheri_r<0x6, "cgetoffset">;
 }
 
 let Predicates = [HasCheriot] in {
@@ -1408,7 +1411,8 @@ def : PatGpcr<int_cheri_cap_type_get, CGetType>;
 def : PatGpcr<int_cheri_cap_base_get, CGetBase>;
 def : PatGpcr<int_cheri_cap_length_get, CGetLen>;
 def : PatGpcr<riscv_cap_sealed_get, CGetSealed>;
-def : PatGpcr<int_cheri_cap_offset_get, CGetOffset>;
+let Predicates = [HasNoCheriot] in def : PatGpcr<int_cheri_cap_offset_get,
+                                                 CGetOffset>;
 def : PatGpcr<int_cheri_cap_flags_get, CGetFlags>;
 def : Pat<(XLenVT (int_cheri_cap_address_get GPCR:$cs1)), (PseudoCGetAddr GPCR:$cs1)>;
 def : PatGpcr<int_cheri_cap_high_get, CGetHigh>;

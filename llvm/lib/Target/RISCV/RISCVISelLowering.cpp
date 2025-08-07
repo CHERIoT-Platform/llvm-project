@@ -10926,6 +10926,25 @@ SDValue RISCVTargetLowering::LowerINTRINSIC_WO_CHAIN(SDValue Op,
     // Expand CFromPtr since the dedicated instruction has been removed.
     return emitCFromPtrReplacement(DAG, DL, Op.getOperand(1), Op.getOperand(2),
                                    Op.getValueType(), XLenVT);
+
+  case Intrinsic::cheri_cap_offset_get: {
+    if (!Subtarget.hasVendorXCheriot())
+      return {};
+
+    // cheri_cap_offset_get is not directly implemented on Cheriot, so expand
+    // it to (sub (address_get), (base_get)). We lower this during operation
+    // legalization for that the subtraction has an opportunity to be
+    // optimized by DAGCombine.
+    auto Cap = Op->getOperand(1);
+    auto Addr = DAG.getNode(
+        ISD::INTRINSIC_WO_CHAIN, DL, XLenVT,
+        DAG.getConstant(llvm::Intrinsic::cheri_cap_address_get, DL, XLenVT),
+        Cap);
+    auto Base = DAG.getNode(
+        ISD::INTRINSIC_WO_CHAIN, DL, XLenVT,
+        DAG.getConstant(llvm::Intrinsic::cheri_cap_base_get, DL, XLenVT), Cap);
+    return DAG.getNode(ISD::SUB, DL, XLenVT, Addr, Base);
+  }
   case Intrinsic::cheri_cap_to_pointer:
     // Expand CToPtr since the dedicated instruction has been removed.
     // NB: DDC/PCC relocation has been removed, so we no longer subtract the

@@ -1,5 +1,5 @@
 // RUN: rm -f %t-hybrid.csv %t-purecap.csv
-// RUN: %cheri128_purecap_cc1 %s -mllvm -cheri-cap-table-abi=pcrel -cheri-bounds=aggressive \
+// RUN: %riscv64_cheri_purecap_cc1 %s -mllvm -cheri-cap-table-abi=pcrel -cheri-bounds=aggressive \
 // RUN:   -mllvm -collect-csetbounds-stats=csv -cheri-stats-file=%t-purecap.csv -S -o /dev/null -O1
 // RUN: FileCheck -input-file %t-purecap.csv %s -check-prefixes CSV
 
@@ -74,9 +74,6 @@ int test(void) {
 // CSV-NEXT: 0,<unknown>,s,"<somewhere in _Z23test_varlen_stack_arrayi>","CHERI bound stack allocations","set bounds on AllocaInst vla"
 // CSV-NEXT: 0,<unknown>,s,"<somewhere in _Z11test_allocai>","ExpandDYNAMIC_STACKALLOC",""
 // CSV-NEXT: 0,<unknown>,s,"<somewhere in _Z23test_varlen_stack_arrayi>","ExpandDYNAMIC_STACKALLOC",""
-// CSV-NEXT: 2,12,g,"<somewhere in _Z20load_global_variablev>","MipsTargetLowering::lowerGlobalAddress","load of global global_foo (alloc size=12)"
-// CSV-NEXT: 0,32,s,"<somewhere in _Z4testv>","MIPS variadic call lowering","setting varargs bounds for call to _Z3fooiz"
-
 
 // CSV-EMPTY:
 

@@ -773,13 +773,15 @@ tightenCHERIBounds(CodeGenFunction &CGF, SubObjectBoundsKind Kind,
     SizeStr = TBR.Size ? ("min(" + Twine(*TBR.Size) + ", remaining)").str()
                        : "remaining";
     auto SrcAsI8 = CGF.Builder.CreateBitCast(ValueToBound, CGF.Int8CheriCapTy);
-    auto Offset = CGF.Builder.CreateIntrinsic(
-        llvm::Intrinsic::cheri_cap_offset_get, CGF.PtrDiffTy, SrcAsI8, nullptr,
-        "cur_offset");
-    SrcLength =
-        CGF.Builder.CreateIntrinsic(llvm::Intrinsic::cheri_cap_length_get,
-                                    CGF.PtrDiffTy, SrcAsI8, nullptr, "cur_len");
-    SetBoundsSize = CGF.Builder.CreateSub(SrcLength, Offset, "remaining_bytes");
+    // CHERIoT does not directly implement cheri_cap_offset_get, so it's better
+    // to lower the bounds in terms of cheri_cap_top_get / cheri_cap_addr_get.
+    auto Top =
+        CGF.Builder.CreateIntrinsic(llvm::Intrinsic::cheri_cap_top_get,
+                                    CGF.PtrDiffTy, SrcAsI8, nullptr, "cur_top");
+    auto Addr = CGF.Builder.CreateIntrinsic(
+        llvm::Intrinsic::cheri_cap_address_get, CGF.PtrDiffTy, SrcAsI8, nullptr,
+        "cur_addr");
+    SetBoundsSize = CGF.Builder.CreateSub(Top, Addr, "remaining_bytes");
     if (TBR.Size) {
       auto MaxConst = llvm::ConstantInt::get(CGF.PtrDiffTy, *TBR.Size);
       auto LessThanMax = CGF.Builder.CreateICmpULT(SetBoundsSize, MaxConst,

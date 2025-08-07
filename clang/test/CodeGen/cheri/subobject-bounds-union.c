@@ -149,19 +149,19 @@ union WithVLA3 {
 // CHECK-LABEL: define {{[^@]+}}@test3
 // CHECK-SAME: (ptr addrspace(200) noundef [[UN1:%.*]], ptr addrspace(200) noundef [[UN2:%.*]], ptr addrspace(200) noundef [[UN3:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[CUR_OFFSET:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) [[UN1]])
-// CHECK-NEXT:    [[CUR_LEN:%.*]] = tail call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) [[UN1]])
-// CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]
+// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) [[UN1]])
+// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[UN1]])
+// CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN1]], i64 [[REMAINING_BYTES]])
 // CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
-// CHECK-NEXT:    [[CUR_OFFSET1:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) [[UN2]])
-// CHECK-NEXT:    [[CUR_LEN2:%.*]] = tail call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) [[UN2]])
-// CHECK-NEXT:    [[REMAINING_BYTES3:%.*]] = sub i64 [[CUR_LEN2]], [[CUR_OFFSET1]]
+// CHECK-NEXT:    [[CUR_TOP1:%.*]] = tail call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) [[UN2]])
+// CHECK-NEXT:    [[CUR_ADDR1:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[UN2]])
+// CHECK-NEXT:    [[REMAINING_BYTES3:%.*]] = sub i64 [[CUR_TOP1]], [[CUR_ADDR1]]
 // CHECK-NEXT:    [[TMP1:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN2]], i64 [[REMAINING_BYTES3]])
 // CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP1]]) #[[ATTR3]]
-// CHECK-NEXT:    [[CUR_OFFSET4:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) [[UN3]])
-// CHECK-NEXT:    [[CUR_LEN5:%.*]] = tail call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) [[UN3]])
-// CHECK-NEXT:    [[REMAINING_BYTES6:%.*]] = sub i64 [[CUR_LEN5]], [[CUR_OFFSET4]]
+// CHECK-NEXT:    [[CUR_TOP2:%.*]] = tail call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) [[UN3]])
+// CHECK-NEXT:    [[CUR_ADDR2:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[UN3]])
+// CHECK-NEXT:    [[REMAINING_BYTES6:%.*]] = sub i64 [[CUR_TOP2]], [[CUR_ADDR2]]
 // CHECK-NEXT:    [[TMP2:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN3]], i64 [[REMAINING_BYTES6]])
 // CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP2]]) #[[ATTR3]]
 // CHECK-NEXT:    ret void

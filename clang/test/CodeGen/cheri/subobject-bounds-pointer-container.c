@@ -59,14 +59,14 @@ char *test_SA(struct SA *sa) {
 // CHECK-LABEL: @test_TA(
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[A:%.*]] = getelementptr inbounds nuw [[STRUCT_TA:%.*]], ptr addrspace(200) [[TA:%.*]], i32 0, i32 0
-// CHECK-NEXT:    [[CUR_OFFSET:%.*]] = call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) [[A]])
-// CHECK-NEXT:    [[CUR_LEN:%.*]] = call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) [[A]])
-// CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]
+// CHECK-NEXT:    [[CUR_TOP:%.*]] = call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) [[A]])
+// CHECK-NEXT:    [[CUR_ADDR:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[A]])
+// CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
 // CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[A]], i64 [[REMAINING_BYTES]])
 // CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [2 x i8], ptr addrspace(200) [[TMP0]], i64 0, i64 1
-// CHECK-NEXT:    [[CUR_OFFSET1:%.*]] = call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) [[ARRAYIDX]])
-// CHECK-NEXT:    [[CUR_LEN2:%.*]] = call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) [[ARRAYIDX]])
-// CHECK-NEXT:    [[REMAINING_BYTES3:%.*]] = sub i64 [[CUR_LEN2]], [[CUR_OFFSET1]]
+// CHECK-NEXT:    [[CUR_TOP1:%.*]] = call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) [[ARRAYIDX]])
+// CHECK-NEXT:    [[CUR_ADDR1:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[ARRAYIDX]])
+// CHECK-NEXT:    [[REMAINING_BYTES3:%.*]] = sub i64 [[CUR_TOP1]], [[CUR_ADDR1]]
 // CHECK-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 [[REMAINING_BYTES3]])
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP1]]
 //

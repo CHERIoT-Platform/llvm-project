@@ -93,9 +93,9 @@ void test_global_struct_array_decay(struct_with_array *s, long index) {
 // CHECK-SAME: (ptr addrspace(200) nocapture noundef readnone [[S:%.*]], i64 noundef signext [[SIZE:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[VLA:%.*]] = alloca i32, i64 [[SIZE]], align 4, addrspace(200)
-// CHECK-NEXT:    [[CUR_OFFSET:%.*]] = call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) nonnull [[VLA]])
-// CHECK-NEXT:    [[CUR_LEN:%.*]] = call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) nonnull [[VLA]])
-// CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]
+// CHECK-NEXT:    [[CUR_TOP:%.*]] = call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) nonnull [[VLA]])
+// CHECK-NEXT:    [[CUR_ADDR:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull [[VLA]])
+// CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
 // CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VLA]], i64 [[REMAINING_BYTES]])
 // CHECK-NEXT:    call void @overflow_buffer(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR5]]
 // CHECK-NEXT:    ret void
@@ -115,9 +115,9 @@ struct vla_struct {
 // CHECK-SAME: (ptr addrspace(200) noundef [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[VLA:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[S]], i64 4
-// CHECK-NEXT:    [[CUR_OFFSET:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) nonnull [[VLA]])
-// CHECK-NEXT:    [[CUR_LEN:%.*]] = tail call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) nonnull [[VLA]])
-// CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]
+// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) nonnull [[VLA]])
+// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull [[VLA]])
+// CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VLA]], i64 [[REMAINING_BYTES]])
 // CHECK-NEXT:    tail call void @overflow_buffer(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR5]]
 // CHECK-NEXT:    ret void
@@ -135,9 +135,9 @@ struct fake_vla_struct {
 // CHECK-SAME: (ptr addrspace(200) noundef [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[FAKE_VLA:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[S]], i64 4
-// CHECK-NEXT:    [[CUR_OFFSET:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) nonnull [[FAKE_VLA]])
-// CHECK-NEXT:    [[CUR_LEN:%.*]] = tail call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) nonnull [[FAKE_VLA]])
-// CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]
+// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) nonnull [[FAKE_VLA]])
+// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull [[FAKE_VLA]])
+// CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[FAKE_VLA]], i64 [[REMAINING_BYTES]])
 // CHECK-NEXT:    tail call void @overflow_buffer(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR5]]
 // CHECK-NEXT:    ret void
@@ -155,9 +155,9 @@ struct fake_vla_struct2 {
 // CHECK-SAME: (ptr addrspace(200) noundef [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[FAKE_VLA2:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[S]], i64 4
-// CHECK-NEXT:    [[CUR_OFFSET:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) nonnull [[FAKE_VLA2]])
-// CHECK-NEXT:    [[CUR_LEN:%.*]] = tail call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) nonnull [[FAKE_VLA2]])
-// CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]
+// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) nonnull [[FAKE_VLA2]])
+// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull [[FAKE_VLA2]])
+// CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[FAKE_VLA2]], i64 [[REMAINING_BYTES]])
 // CHECK-NEXT:    tail call void @overflow_buffer(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR5]]
 // CHECK-NEXT:    ret void
@@ -171,9 +171,9 @@ extern int bhnd_sprom_layouts[];
 // CHECK-LABEL: define {{[^@]+}}@test_unsized_global_decay
 // CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[CUR_OFFSET:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) nonnull @bhnd_sprom_layouts)
-// CHECK-NEXT:    [[CUR_LEN:%.*]] = tail call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) nonnull @bhnd_sprom_layouts)
-// CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]
+// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) nonnull @bhnd_sprom_layouts)
+// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull @bhnd_sprom_layouts)
+// CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull @bhnd_sprom_layouts, i64 [[REMAINING_BYTES]])
 // CHECK-NEXT:    tail call void @overflow_buffer(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR5]]
 // CHECK-NEXT:    ret void

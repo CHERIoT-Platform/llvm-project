@@ -436,23 +436,23 @@ extern int bhnd_sprom_layouts[];
 
 // AGGRESSIVE-OR-LESS-LABEL: @test_unsized_global_array(
 // AGGRESSIVE-OR-LESS-NEXT:  entry:
-// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_OFFSET:%.*]] = call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
-// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_LEN:%.*]] = call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
-// AGGRESSIVE-OR-LESS-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]
+// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_TOP:%.*]] = call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
+// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_ADDR:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
+// AGGRESSIVE-OR-LESS-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
 // AGGRESSIVE-OR-LESS-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) @bhnd_sprom_layouts, i64 [[REMAINING_BYTES]])
 // AGGRESSIVE-OR-LESS-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [0 x i32], ptr addrspace(200) [[TMP0]], i64 0, i64 0
-// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_OFFSET1:%.*]] = call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) [[ARRAYIDX]])
-// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_LEN2:%.*]] = call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) [[ARRAYIDX]])
-// AGGRESSIVE-OR-LESS-NEXT:    [[REMAINING_BYTES3:%.*]] = sub i64 [[CUR_LEN2]], [[CUR_OFFSET1]]
+// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_TOP1:%.*]] = call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) [[ARRAYIDX]])
+// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_ADDR1:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[ARRAYIDX]])
+// AGGRESSIVE-OR-LESS-NEXT:    [[REMAINING_BYTES3:%.*]] = sub i64 [[CUR_TOP1]], [[CUR_ADDR1]]
 // AGGRESSIVE-OR-LESS-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 [[REMAINING_BYTES3]])
 // AGGRESSIVE-OR-LESS-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP1]])
 // AGGRESSIVE-OR-LESS-NEXT:    ret void
 //
 // VERY-AGGRESSIVE-LABEL: @test_unsized_global_array(
 // VERY-AGGRESSIVE-NEXT:  entry:
-// VERY-AGGRESSIVE-NEXT:    [[CUR_OFFSET:%.*]] = call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
-// VERY-AGGRESSIVE-NEXT:    [[CUR_LEN:%.*]] = call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
-// VERY-AGGRESSIVE-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_LEN]], [[CUR_OFFSET]]
+// VERY-AGGRESSIVE-NEXT:    [[CUR_TOP:%.*]] = call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
+// VERY-AGGRESSIVE-NEXT:    [[CUR_ADDR:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
+// VERY-AGGRESSIVE-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
 // VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) @bhnd_sprom_layouts, i64 [[REMAINING_BYTES]])
 // VERY-AGGRESSIVE-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [0 x i32], ptr addrspace(200) [[TMP0]], i64 0, i64 0
 // VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 4)

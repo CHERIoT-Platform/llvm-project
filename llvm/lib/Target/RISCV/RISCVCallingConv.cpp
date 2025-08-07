@@ -380,7 +380,7 @@ static MCRegister allocateRVVReg(MVT ValVT, unsigned ValNo, CCState &State,
 // Implements the RISC-V calling convention. Returns true upon failure.
 bool llvm::CC_RISCV(unsigned ValNo, MVT ValVT, MVT LocVT,
                     CCValAssign::LocInfo LocInfo, ISD::ArgFlagsTy ArgFlags,
-                    CCState &State, bool IsFixed, bool IsRet, Type *OrigTy) {
+                    CCState &State, bool IsRet, Type *OrigTy) {
   const MachineFunction &MF = State.getMachineFunction();
   const DataLayout &DL = MF.getDataLayout();
   const RISCVSubtarget &Subtarget = MF.getSubtarget<RISCVSubtarget>();
@@ -427,7 +427,7 @@ bool llvm::CC_RISCV(unsigned ValNo, MVT ValVT, MVT LocVT,
   bool UseGPRForF64 = true;
 
   RISCVABI::ABI ABI = Subtarget.getTargetABI();
-  bool IsPureCapVarArgs = !IsFixed && RISCVABI::isCheriPureCapABI(ABI);
+  bool IsPureCapVarArgs = ArgFlags.isVarArg() && RISCVABI::isCheriPureCapABI(ABI);
   switch (ABI) {
   default:
     llvm_unreachable("Unexpected ABI");
@@ -444,14 +444,14 @@ bool llvm::CC_RISCV(unsigned ValNo, MVT ValVT, MVT LocVT,
   case RISCVABI::ABI_LP64F:
   case RISCVABI::ABI_IL32PC64F:
   case RISCVABI::ABI_L64PC128F:
-    UseGPRForF16_F32 = !IsFixed;
+    UseGPRForF16_F32 = ArgFlags.isVarArg();
     break;
   case RISCVABI::ABI_ILP32D:
   case RISCVABI::ABI_LP64D:
   case RISCVABI::ABI_IL32PC64D:
   case RISCVABI::ABI_L64PC128D:
-    UseGPRForF16_F32 = !IsFixed;
-    UseGPRForF64 = !IsFixed;
+    UseGPRForF16_F32 = ArgFlags.isVarArg();
+    UseGPRForF64 = ArgFlags.isVarArg();
     break;
   }
 
@@ -533,7 +533,7 @@ bool llvm::CC_RISCV(unsigned ValNo, MVT ValVT, MVT LocVT,
   // currently if we are using ILP32E calling convention. This behavior may be
   // changed when RV32E/ILP32E is ratified.
   unsigned TwoXLenInBytes = (2 * XLen) / 8;
-  if (!IsFixed & !RISCVABI::isCheriPureCapABI(ABI) &&
+  if (ArgFlags.isVarArg() && !RISCVABI::isCheriPureCapABI(ABI) &&
       ArgFlags.getNonZeroOrigAlign() == TwoXLenInBytes &&
       DL.getTypeAllocSize(OrigTy) == TwoXLenInBytes &&
       ABI != RISCVABI::ABI_ILP32E) {
@@ -704,8 +704,8 @@ bool llvm::CC_RISCV(unsigned ValNo, MVT ValVT, MVT LocVT,
 // benchmark. But theoretically, it may have benefit for some cases.
 bool llvm::CC_RISCV_FastCC(unsigned ValNo, MVT ValVT, MVT LocVT,
                            CCValAssign::LocInfo LocInfo,
-                           ISD::ArgFlagsTy ArgFlags, CCState &State,
-                           bool IsFixed, bool IsRet, Type *OrigTy) {
+                           ISD::ArgFlagsTy ArgFlags, CCState &State, bool IsRet,
+                           Type *OrigTy) {
   const MachineFunction &MF = State.getMachineFunction();
   const RISCVSubtarget &Subtarget = MF.getSubtarget<RISCVSubtarget>();
   const RISCVTargetLowering &TLI = *Subtarget.getTargetLowering();

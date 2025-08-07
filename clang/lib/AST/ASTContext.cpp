@@ -13778,8 +13778,11 @@ uint64_t ASTContext::getTargetNullPointerValue(QualType QT) const {
   LangAS AS;
   if (QT->getUnqualifiedDesugaredType()->isNullPtrType())
     AS = LangAS::Default;
-  else
-    AS = QT->getPointeeType().getAddressSpace();
+  else {
+    QualType PointeeTy = QT->getPointeeType();
+    AS = PointeeTy.isNull() ? LangAS::Default
+                            : QT->getPointeeType().getAddressSpace();
+  }
 
   return getTargetInfo().getNullPointerValue(AS);
 }

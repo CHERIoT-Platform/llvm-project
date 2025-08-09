@@ -7,7 +7,7 @@ pr_task:
     image_project: ubuntu-os-cloud
     image_family: ubuntu-2404-lts-arm64
     architecture: arm64
-    zone: us-central1-c
+    zone: us-east1-b
     type: c4a-standard-16
     disk: 60
     spot: true
@@ -40,7 +40,7 @@ x86_release_task:
     <<: *arm_vm
     image_family: ubuntu-2404-lts-amd64
     architecture: amd64
-    zone: us-central1-c
+    zone: us-east1-b
     type: t2d-standard-16
   env:
     NINJA_STATUS: "%p [%f:%s/%t] %o/s, %es: "

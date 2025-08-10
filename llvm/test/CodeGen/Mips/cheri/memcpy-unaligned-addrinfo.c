@@ -73,10 +73,10 @@ void do_stuff(struct group *g);
 // CHECK-SAME: (ptr addrspace(200) noundef [[A:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[BUFFER:%.*]] = alloca [16 x i8], align 16, addrspace(200)
-// CHECK-NEXT:    call void @llvm.lifetime.start.p200(i64 16, ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5:[0-9]+]]
+// CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5:[0-9]+]]
 // CHECK-NEXT:    store ptr addrspace(200) [[A]], ptr addrspace(200) [[BUFFER]], align 16
 // CHECK-NEXT:    call void @do_stuff(ptr addrspace(200) noundef nonnull [[BUFFER]]) #[[ATTR5]]
-// CHECK-NEXT:    call void @llvm.lifetime.end.p200(i64 16, ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5]]
+// CHECK-NEXT:    call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5]]
 // CHECK-NEXT:    ret void
 //
 void copy_group(const char *a) {

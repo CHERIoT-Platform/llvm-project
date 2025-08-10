@@ -21,11 +21,11 @@ target datalayout = "E-m:e-pf200:128:128:128:64-i8:8:32-i16:16:32-i64:64-n32:64-
 ; DBG-NEXT: cheri-bound-allocas:  -Checking if load/store needs bounds (GEP offset is 0):   store ptr addrspace(200) %cap, ptr addrspace(200) %cap, align 16
 ; DBG-NEXT: cheri-bound-allocas:   -Stack slot used as value and not pointer -> must set bounds
 ; DBG-NEXT: cheri-bound-allocas: Found alloca use that needs bounds: store ptr addrspace(200) %cap, ptr addrspace(200) %cap, align 16
-; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.start.p200(i64 16, ptr addrspace(200) nonnull %cap)
+; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %cap)
 ; DBG-NEXT: cheri-bound-allocas: lazy_bind_args: 2 of 5 users need bounds for   %cap = alloca ptr addrspace(200), align 16, addrspace(200)
 ; DBG-NEXT: lazy_bind_args: setting bounds on stack alloca to 16  %cap = alloca ptr addrspace(200), align 16, addrspace(200)
 
-declare void @llvm.lifetime.start.p200(i64 immarg, ptr addrspace(200) nocapture) addrspace(200)
+declare void @llvm.lifetime.start.p200(ptr addrspace(200) nocapture) addrspace(200)
 
 declare ptr addrspace(200) @cheribsdtest_dynamic_identity_cap(ptr addrspace(200) noundef) addrspace(200)
 
@@ -58,7 +58,7 @@ define dso_local void @lazy_bind_args() addrspace(200) nounwind {
 ; CHECK-SAME: () addrspace(200) #[[ATTR2:[0-9]+]] {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[CAP:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
-; CHECK-NEXT:    call void @llvm.lifetime.start.p200(i64 16, ptr addrspace(200) nonnull [[CAP]])
+; CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[CAP]])
 ; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[CAP]], i64 16)
 ; CHECK-NEXT:    store ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[CAP]], align 16
 ; CHECK-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[CAP]], i64 16)
@@ -69,7 +69,7 @@ define dso_local void @lazy_bind_args() addrspace(200) nounwind {
 ;
 entry:
   %cap = alloca ptr addrspace(200), align 16, addrspace(200)
-  call void @llvm.lifetime.start.p200(i64 16, ptr addrspace(200) nonnull %cap)
+  call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %cap)
   store ptr addrspace(200) %cap, ptr addrspace(200) %cap, align 16
   %call = call ptr addrspace(200) @cheribsdtest_dynamic_identity_cap(ptr addrspace(200) noundef nonnull %cap)
   %0 = load ptr addrspace(200), ptr addrspace(200) %cap, align 16

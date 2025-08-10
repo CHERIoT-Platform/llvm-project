@@ -13,10 +13,10 @@ void fn2();
 // CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[BYVAL_TEMP:%.*]] = alloca [[STRUCT_DWARF_ERROR:%.*]], align 8, addrspace(200)
-// CHECK-NEXT:    call void @llvm.lifetime.start.p200(i64 4096, ptr addrspace(200) nonnull [[BYVAL_TEMP]]) #[[ATTR4:[0-9]+]]
+// CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[BYVAL_TEMP]]) #[[ATTR4:[0-9]+]]
 // CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 8 dereferenceable(4096) [[BYVAL_TEMP]], ptr addrspace(200) noundef nonnull align 4 dereferenceable(4096) @a, i64 4096, i1 false), !tbaa.struct !2
 // CHECK-NEXT:    call void @fn2(ptr addrspace(200) dead_on_return noundef nonnull [[BYVAL_TEMP]]) #[[ATTR4]]
-// CHECK-NEXT:    call void @llvm.lifetime.end.p200(i64 4096, ptr addrspace(200) nonnull [[BYVAL_TEMP]]) #[[ATTR4]]
+// CHECK-NEXT:    call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[BYVAL_TEMP]]) #[[ATTR4]]
 // CHECK-NEXT:    ret void
 //
 void fn1() {

@@ -72,7 +72,7 @@ public:
   void checkPostStmt(const BinaryOperator *BO, CheckerContext &C) const;
   void checkPostStmt(const CastExpr *BO, CheckerContext &C) const;
   void checkPreStmt(const CastExpr *BO, CheckerContext &C) const;
-  void checkBind(SVal L, SVal V, const Stmt *S, CheckerContext &C) const;
+  void checkBind(SVal L, SVal V, const Stmt *S, bool AtDeclInit, CheckerContext &C) const;
   void checkPreCall(const CallEvent &Call, CheckerContext &C) const;
   void checkDeadSymbols(SymbolReaper &SymReaper, CheckerContext &C) const;
 
@@ -502,7 +502,7 @@ void PointerAlignmentChecker::checkPreStmt(const CastExpr *CE,
 }
 
 void PointerAlignmentChecker::checkBind(SVal L, SVal V, const Stmt *S,
-                                        CheckerContext &C) const {
+                                        bool AtDeclInit, CheckerContext &C) const {
   ASTContext &ASTCtx = C.getASTContext();
   if (!isPureCapMode(ASTCtx))
     return;
@@ -785,7 +785,7 @@ unsigned getBaseAlignFromOffsetOf(const Expr *E, ASTContext &Ctx) {
   switch (BaseNode.getKind()) {
   case clang::OffsetOfNode::Field: {
     RecordDecl *BaseRec = BaseNode.getField()->getParent();
-    const QualType &BaseType = Ctx.getRecordType(BaseRec);
+    const QualType &BaseType = Ctx.getCanonicalTagType(BaseRec);
     res = Ctx.getTypeAlignInChars(BaseType).getQuantity();
     break;
   }

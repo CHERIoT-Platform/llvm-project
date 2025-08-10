@@ -567,6 +567,8 @@ private:
   void visitUIToFPInst(UIToFPInst &I);
   void visitSIToFPInst(SIToFPInst &I);
   void visitIntToPtrInst(IntToPtrInst &I);
+  void checkPtrToAddr(Type *SrcTy, Type *DestTy, const Value &V);
+  void visitPtrToAddrInst(PtrToAddrInst &I);
   void visitPtrToIntInst(PtrToIntInst &I);
   void visitBitCastInst(BitCastInst &I);
   void visitAddrSpaceCastInst(AddrSpaceCastInst &I);
@@ -849,6 +851,7 @@ void Verifier::visitGlobalVariable(const GlobalVariable &GV) {
           &GV);
     Check(GV.getInitializer()->getType()->isSized(),
           "Global variable initializer must be sized", &GV);
+    visitConstantExprsRecursively(GV.getInitializer());
     // If the global has common linkage, it must have a zero initializer and
     // cannot be constant.
     if (GV.hasCommonLinkage()) {
@@ -2635,6 +2638,8 @@ void Verifier::visitConstantExpr(const ConstantExpr *CE) {
     Check(CastInst::castIsValid(Instruction::BitCast, CE->getOperand(0),
                                 CE->getType()),
           "Invalid bitcast", CE);
+  else if (CE->getOpcode() == Instruction::PtrToAddr)
+    checkPtrToAddr(CE->getOperand(0)->getType(), CE->getType(), *CE);
 }
 
 void Verifier::visitConstantPtrAuth(const ConstantPtrAuth *CPA) {
@@ -3557,6 +3562,28 @@ void Verifier::visitFPToSIInst(FPToSIInst &I) {
   visitInstruction(I);
 }
 
+void Verifier::checkPtrToAddr(Type *SrcTy, Type *DestTy, const Value &V) {
+  Check(SrcTy->isPtrOrPtrVectorTy(), "PtrToAddr source must be pointer", V);
+  Check(DestTy->isIntOrIntVectorTy(), "PtrToAddr result must be integral", V);
+  Check(SrcTy->isVectorTy() == DestTy->isVectorTy(), "PtrToAddr type mismatch",
+        V);
+
+  if (SrcTy->isVectorTy()) {
+    auto *VSrc = cast<VectorType>(SrcTy);
+    auto *VDest = cast<VectorType>(DestTy);
+    Check(VSrc->getElementCount() == VDest->getElementCount(),
+          "PtrToAddr vector length mismatch", V);
+  }
+
+  Type *AddrTy = DL.getAddressType(SrcTy);
+  Check(AddrTy == DestTy, "PtrToAddr result must be address width", V);
+}
+
+void Verifier::visitPtrToAddrInst(PtrToAddrInst &I) {
+  checkPtrToAddr(I.getOperand(0)->getType(), I.getType(), I);
+  visitInstruction(I);
+}
+
 void Verifier::visitPtrToIntInst(PtrToIntInst &I) {
   // Get the source and destination types
   Type *SrcTy = I.getOperand(0)->getType();
@@ -3572,7 +3599,7 @@ void Verifier::visitPtrToIntInst(PtrToIntInst &I) {
     auto *VSrc = cast<VectorType>(SrcTy);
     auto *VDest = cast<VectorType>(DestTy);
     Check(VSrc->getElementCount() == VDest->getElementCount(),
-          "PtrToInt Vector width mismatch", &I);
+          "PtrToInt Vector length mismatch", &I);
   }
 
   visitInstruction(I);
@@ -3592,7 +3619,7 @@ void Verifier::visitIntToPtrInst(IntToPtrInst &I) {
     auto *VSrc = cast<VectorType>(SrcTy);
     auto *VDest = cast<VectorType>(DestTy);
     Check(VSrc->getElementCount() == VDest->getElementCount(),
-          "IntToPtr Vector width mismatch", &I);
+          "IntToPtr Vector length mismatch", &I);
   }
   visitInstruction(I);
 }
@@ -6802,7 +6829,7 @@ void Verifier::visitIntrinsicCall(Intrinsic::ID ID, CallBase &Call) {
   }
   case Intrinsic::lifetime_start:
   case Intrinsic::lifetime_end: {
-    Value *Ptr = Call.getArgOperand(1);
+    Value *Ptr = Call.getArgOperand(0);
     Check(isa<AllocaInst>(Ptr) || isa<PoisonValue>(Ptr),
           "llvm.lifetime.start/end can only be used on alloca or poison",
           &Call);

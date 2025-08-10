@@ -33,10 +33,10 @@ void test_struct_member_decay(struct_with_array *s, long index) {
 // CHECK-SAME: (ptr addrspace(200) noundef readnone captures(none) [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[BUFFER:%.*]] = alloca [12 x i32], align 4, addrspace(200)
-// CHECK-NEXT:    call void @llvm.lifetime.start.p200(i64 48, ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5]]
+// CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5]]
 // CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[BUFFER]], i64 48)
 // CHECK-NEXT:    call void @overflow_buffer(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR5]]
-// CHECK-NEXT:    call void @llvm.lifetime.end.p200(i64 48, ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5]]
+// CHECK-NEXT:    call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5]]
 // CHECK-NEXT:    ret void
 //
 void test_local_array_decay(struct_with_array *s, long index) {
@@ -49,9 +49,9 @@ void test_local_array_decay(struct_with_array *s, long index) {
 // CHECK-SAME: (ptr addrspace(200) noundef readnone captures(none) [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR4:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[BUFFER:%.*]] = alloca [21 x i32], align 4, addrspace(200)
-// CHECK-NEXT:    call void @llvm.lifetime.start.p200(i64 84, ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5]]
+// CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5]]
 // CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[BUFFER]], i64 84)
-// CHECK-NEXT:    call void @llvm.lifetime.end.p200(i64 84, ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5]]
+// CHECK-NEXT:    call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5]]
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 void* return_stack_decay(struct_with_array *s, long index) {

@@ -58,7 +58,7 @@ private:
 
     auto Q = Size / CapWidth;
 
-    if (RT && getContext().containsCapabilities(RT->getDecl())) {
+    if (RT && getContext().containsCapabilities(RT->getOriginalDecl())) {
       if (Q == 1)
         return 1;
 
@@ -265,7 +265,7 @@ bool RISCVABIInfo::detectFPCCEligibleStructHelper(QualType Ty, CharUnits CurOff,
     // Non-zero-length arrays of empty records make the struct ineligible for
     // the FP calling convention in C++.
     if (const auto *RTy = EltTy->getAs<RecordType>()) {
-      if (ArraySize != 0 && isa<CXXRecordDecl>(RTy->getDecl()) &&
+      if (ArraySize != 0 && isa<CXXRecordDecl>(RTy->getOriginalDecl()) &&
           isEmptyRecord(getContext(), EltTy, true, true))
         return false;
     }
@@ -287,7 +287,7 @@ bool RISCVABIInfo::detectFPCCEligibleStructHelper(QualType Ty, CharUnits CurOff,
       return false;
     if (isEmptyRecord(getContext(), Ty, true, true))
       return true;
-    const RecordDecl *RD = RTy->getDecl();
+    const RecordDecl *RD = RTy->getOriginalDecl()->getDefinitionOrSelf();
     // Unions aren't eligible unless they're empty (which is caught above).
     if (RD->isUnion())
       return false;
@@ -296,7 +296,9 @@ bool RISCVABIInfo::detectFPCCEligibleStructHelper(QualType Ty, CharUnits CurOff,
     if (const CXXRecordDecl *CXXRD = dyn_cast<CXXRecordDecl>(RD)) {
       for (const CXXBaseSpecifier &B : CXXRD->bases()) {
         const auto *BDecl =
-            cast<CXXRecordDecl>(B.getType()->castAs<RecordType>()->getDecl());
+            cast<CXXRecordDecl>(
+                B.getType()->castAs<RecordType>()->getOriginalDecl())
+                ->getDefinitionOrSelf();
         CharUnits BaseOff = Layout.getBaseClassOffset(BDecl);
         bool Ret = detectFPCCEligibleStructHelper(B.getType(), CurOff + BaseOff,
                                                   Field1Ty, Field1Off, Field2Ty,
@@ -730,7 +732,7 @@ ABIArgInfo RISCVABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
   if (!isAggregateTypeForABI(Ty) && !Ty->isVectorType()) {
     // Treat an enum type as its underlying type.
     if (const EnumType *EnumTy = Ty->getAs<EnumType>())
-      Ty = EnumTy->getDecl()->getIntegerType();
+      Ty = EnumTy->getOriginalDecl()->getDefinitionOrSelf()->getIntegerType();
 
     // All integral types are promoted to XLen width
     if (Size < XLen && Ty->isIntegralOrEnumerationType()) {

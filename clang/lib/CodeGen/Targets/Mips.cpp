@@ -184,7 +184,7 @@ llvm::Type* MipsABIInfo::HandleAggregates(QualType Ty, uint64_t TySize) const {
   // On CHERI, we must pass unions containing capabilities in capability
   // registers.  Otherwise, pass them as integers.
   if (RT &&
-      (RT->isUnionType() && getContext().containsCapabilities(RT->getDecl()))
+      (RT->isUnionType() && getContext().containsCapabilities(RT->getOriginalDecl()))
       && getTarget().SupportsCapabilities())
     return llvm::PointerType::get(
         getVMContext(), CGM.getTargetCodeGenInfo().getCHERICapabilityAS());
@@ -201,7 +201,7 @@ llvm::Type* MipsABIInfo::HandleAggregates(QualType Ty, uint64_t TySize) const {
     return llvm::StructType::get(getVMContext(), ArgList);
   }
 
-  const RecordDecl *RD = RT->getDecl();
+  const RecordDecl *RD = RT->getOriginalDecl()->getDefinitionOrSelf();
   const ASTRecordLayout &Layout = getContext().getASTRecordLayout(RD);
   assert(!(TySize % 8) && "Size of structure must be multiple of 8.");
 
@@ -214,7 +214,7 @@ llvm::Type* MipsABIInfo::HandleAggregates(QualType Ty, uint64_t TySize) const {
     for (const auto &I : CXXRD->bases()) {
       unsigned idx = 0;
       const CXXRecordDecl *BRD =
-          cast<CXXRecordDecl>(I.getType()->castAs<RecordType>()->getDecl());
+          cast<CXXRecordDecl>(I.getType()->castAs<RecordType>()->getOriginalDecl());
       uint64_t BaseOffset = getContext().toBits(Layout.getBaseClassOffset(BRD));
       const ASTRecordLayout &BaseLayout = getContext().getASTRecordLayout(BRD);
       for (RecordDecl::field_iterator i = BRD->field_begin(), e = BRD->field_end();
@@ -222,7 +222,7 @@ llvm::Type* MipsABIInfo::HandleAggregates(QualType Ty, uint64_t TySize) const {
         const QualType Ty = i->getType();
         uint64_t Offset = BaseOffset + BaseLayout.getFieldOffset(idx);
         if (const RecordType *FRT = Ty->getAs<RecordType>()) {
-          if (getContext().containsCapabilities(FRT->getDecl())) {
+          if (getContext().containsCapabilities(FRT->getOriginalDecl())) {
             uint64_t FieldSize = getContext().getTypeSize(Ty);
             LastOffset = Offset + FieldSize;
             ArgList.push_back(HandleAggregates(Ty, FieldSize));
@@ -254,7 +254,7 @@ llvm::Type* MipsABIInfo::HandleAggregates(QualType Ty, uint64_t TySize) const {
     uint64_t Offset = Layout.getFieldOffset(idx);
 
     if (const RecordType *FRT = Ty->getAs<RecordType>()) {
-      if (getContext().containsCapabilities(FRT->getDecl())) {
+      if (getContext().containsCapabilities(FRT->getOriginalDecl())) {
         uint64_t FieldSize = getContext().getTypeSize(Ty);
         LastOffset = Layout.getFieldOffset(idx) + FieldSize;
         ArgList.push_back(HandleAggregates(Ty, FieldSize));
@@ -358,7 +358,7 @@ MipsABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
     } else if (const auto *RT = Ty->getAs<RecordType>()) {
       // Aggregates containing capabilities are passed indirectly for hybrid
       // varargs, not just on the stack.
-      if (!IsFixed && getContext().containsCapabilities(RT->getDecl())) {
+      if (!IsFixed && getContext().containsCapabilities(RT->getOriginalDecl())) {
         PassIndirect = true;
         ByVal = false;
       }
@@ -381,7 +381,7 @@ MipsABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
 
   // Treat an enum type as its underlying type.
   if (const EnumType *EnumTy = Ty->getAs<EnumType>())
-    Ty = EnumTy->getDecl()->getIntegerType();
+    Ty = EnumTy->getOriginalDecl()->getDefinitionOrSelf()->getIntegerType();
 
   // Make sure we pass indirectly things that are too large.
   if (const auto *EIT = Ty->getAs<BitIntType>())
@@ -431,7 +431,7 @@ MipsABIInfo::returnAggregateInRegs(QualType RetTy, uint64_t Size) const {
   SmallVector<llvm::Type*, 8> RTList;
 
   if (RT && RT->isStructureOrClassType()) {
-    const RecordDecl *RD = RT->getDecl();
+    const RecordDecl *RD = RT->getOriginalDecl()->getDefinitionOrSelf();
     const ASTRecordLayout &Layout = getContext().getASTRecordLayout(RD);
     unsigned FieldCnt = Layout.getFieldCount();
 
@@ -474,7 +474,7 @@ static bool mipsCanReturnDirect(const ASTContext& Ctx, const RecordDecl *RD, uns
 static bool mipsCanReturnDirect(const ASTContext& Ctx, QualType Ty, unsigned& NumCaps, unsigned& NumInts) {
   // Treat an enum type as its underlying type.
   if (const EnumType *EnumTy = Ty->getAs<EnumType>())
-    Ty = EnumTy->getDecl()->getIntegerType();
+    Ty = EnumTy->getOriginalDecl()->getIntegerType();
   if (Ty->isMemberPointerType()) {
     if (Ty->isMemberFunctionPointerType()) {
       // Returned as { i8 addrspace(200)*, i64 }
@@ -495,7 +495,7 @@ static bool mipsCanReturnDirect(const ASTContext& Ctx, QualType Ty, unsigned& Nu
       return false;
     NumInts++;
   } else if (const RecordType *RT = Ty->getAs<RecordType>()) {
-    if (!mipsCanReturnDirect(Ctx, RT->getDecl(), NumCaps, NumInts))
+    if (!mipsCanReturnDirect(Ctx, RT->getOriginalDecl(), NumCaps, NumInts))
       return false;
   } else if (Ty->isConstantArrayType()) {
     auto CAT = cast<ConstantArrayType>(Ty->getAsArrayTypeUnsafe());
@@ -527,7 +527,7 @@ static bool mipsCanReturnDirect(const ASTContext& Ctx, const RecordDecl *RD, uns
     for (auto i = CRD->bases_begin(), e = CRD->bases_end(); i != e; ++i) {
       const QualType Ty = i->getType();
       if (const RecordType *RT = Ty->getAs<RecordType>())
-        if (!mipsCanReturnDirect(Ctx, RT->getDecl(), NumCaps, NumInts))
+        if (!mipsCanReturnDirect(Ctx, RT->getOriginalDecl(), NumCaps, NumInts))
           return false;
     }
   }
@@ -580,7 +580,7 @@ ABIArgInfo MipsABIInfo::classifyReturnType(QualType RetTy) const {
 
   // Treat an enum type as its underlying type.
   if (const EnumType *EnumTy = RetTy->getAs<EnumType>())
-    RetTy = EnumTy->getDecl()->getIntegerType();
+    RetTy = EnumTy->getOriginalDecl()->getDefinitionOrSelf()->getIntegerType();
 
   // Make sure we pass indirectly things that are too large.
   if (const auto *EIT = RetTy->getAs<BitIntType>())
@@ -651,7 +651,7 @@ RValue MipsABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
     if (Ty->isCHERICapabilityType(getContext()))
       IsIndirect = true;
     else if (const auto *RT = Ty->getAs<RecordType>()) {
-      if (getContext().containsCapabilities(RT->getDecl()))
+      if (getContext().containsCapabilities(RT->getOriginalDecl()))
         IsIndirect = true;
     }
   }

@@ -71,39 +71,39 @@ define signext i32 @stack_array() local_unnamed_addr addrspace(200) nounwind {
 ; CHECK-LABEL: define signext i32 @stack_array
 ; CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR1:[0-9]+]] {
 ; CHECK-NEXT:    [[ARRAY:%.*]] = alloca [10 x i32], align 4, addrspace(200)
-; CHECK-NEXT:    call void @llvm.lifetime.start.p200(i64 40, ptr addrspace(200) nonnull [[ARRAY]])
+; CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[ARRAY]])
 ; CHECK-NEXT:    [[BOUNDED:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[ARRAY]], i64 40)
 ; CHECK-NEXT:    call void @use(ptr addrspace(200) [[BOUNDED]])
 ; CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[BOUNDED]], i64 20
 ; CHECK-NEXT:    [[LD:%.*]] = load i32, ptr addrspace(200) [[ARRAYIDX]], align 4
-; CHECK-NEXT:    call void @llvm.lifetime.end.p200(i64 40, ptr addrspace(200) nonnull [[ARRAY]])
+; CHECK-NEXT:    call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[ARRAY]])
 ; CHECK-NEXT:    ret i32 [[LD]]
 ;
   %array = alloca [10 x i32], align 4, addrspace(200)
-  call void @llvm.lifetime.start.p200(i64 40, ptr addrspace(200) nonnull %array)
+  call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %array)
   %bounded = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %array, i64 40)
   call void @use(ptr addrspace(200) %bounded)
   %arrayidx = getelementptr inbounds i8, ptr addrspace(200) %bounded, i64 20
   %ld = load i32, ptr addrspace(200) %arrayidx, align 4
-  call void @llvm.lifetime.end.p200(i64 40, ptr addrspace(200) nonnull %array)
+  call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %array)
   ret i32 %ld
 }
 
 ; DBG-LABEL: Checking function stack_array
-; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.end.p200(i64 40, ptr addrspace(200) nonnull %array)
+; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %array)
 ; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for use in setbounds with smaller or equal size: original size=40, setbounds size=40 current offset=0:  %bounded = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %array, i64 40)
-; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.start.p200(i64 40, ptr addrspace(200) nonnull %array)
+; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %array)
 ; DBG-NEXT: cheri-bound-allocas: stack_array: 0 of 3 users need bounds for   %array = alloca [10 x i32], align 4, addrspace(200)
 ; DBG-NEXT: cheri-bound-allocas: No need to set bounds on stack alloca  %array = alloca [10 x i32], align 4, addrspace(200)
 ; DBG-EMPTY:
 
-declare void @llvm.lifetime.start.p200(i64 immarg, ptr addrspace(200) captures(none)) addrspace(200)
+declare void @llvm.lifetime.start.p200(ptr addrspace(200) captures(none)) addrspace(200)
 
 declare void @use(ptr addrspace(200)) local_unnamed_addr addrspace(200)
 
 declare ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200), i64) addrspace(200)
 
-declare void @llvm.lifetime.end.p200(i64 immarg, ptr addrspace(200) captures(none)) addrspace(200)
+declare void @llvm.lifetime.end.p200(ptr addrspace(200) captures(none)) addrspace(200)
 
 define signext i32 @stack_int() local_unnamed_addr addrspace(200) nounwind {
 ; ASM-LABEL: stack_int:
@@ -126,26 +126,26 @@ define signext i32 @stack_int() local_unnamed_addr addrspace(200) nounwind {
 ; CHECK-LABEL: define signext i32 @stack_int
 ; CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR1]] {
 ; CHECK-NEXT:    [[VALUE:%.*]] = alloca i32, align 4, addrspace(200)
-; CHECK-NEXT:    call void @llvm.lifetime.start.p200(i64 4, ptr addrspace(200) nonnull [[VALUE]])
+; CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[VALUE]])
 ; CHECK-NEXT:    store i32 1, ptr addrspace(200) [[VALUE]], align 4
 ; CHECK-NEXT:    [[BOUNDED:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE]], i64 4)
 ; CHECK-NEXT:    call void @use(ptr addrspace(200) [[BOUNDED]])
 ; CHECK-NEXT:    [[LD:%.*]] = load i32, ptr addrspace(200) [[VALUE]], align 4
-; CHECK-NEXT:    call void @llvm.lifetime.end.p200(i64 4, ptr addrspace(200) nonnull [[VALUE]])
+; CHECK-NEXT:    call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[VALUE]])
 ; CHECK-NEXT:    ret i32 [[LD]]
 ;
   %value = alloca i32, align 4, addrspace(200)
-  call void @llvm.lifetime.start.p200(i64 4, ptr addrspace(200) nonnull %value)
+  call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %value)
   store i32 1, ptr addrspace(200) %value, align 4
   %bounded = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %value, i64 4)
   call void @use(ptr addrspace(200) %bounded)
   %ld = load i32, ptr addrspace(200) %value, align 4
-  call void @llvm.lifetime.end.p200(i64 4, ptr addrspace(200) nonnull %value)
+  call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %value)
   ret i32 %ld
 }
 
 ; DBG-LABEL: Checking function stack_int
-; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.end.p200(i64 4, ptr addrspace(200) nonnull %value)
+; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %value)
 ; DBG-NEXT: cheri-bound-allocas:  -Checking if load/store needs bounds (GEP offset is 0):   %ld = load i32, ptr addrspace(200) %value, align 4
 ; DBG-NEXT: cheri-bound-allocas:   -Load/store size=4, alloca size=4, current GEP offset=0 for i32
 ; DBG-NEXT: cheri-bound-allocas:   -Load/store is in bounds -> can reuse $csp for   %ld = load i32, ptr addrspace(200) %value, align 4
@@ -153,7 +153,7 @@ define signext i32 @stack_int() local_unnamed_addr addrspace(200) nounwind {
 ; DBG-NEXT: cheri-bound-allocas:  -Checking if load/store needs bounds (GEP offset is 0):   store i32 1, ptr addrspace(200) %value, align 4
 ; DBG-NEXT: cheri-bound-allocas:   -Load/store size=4, alloca size=4, current GEP offset=0 for i32
 ; DBG-NEXT: cheri-bound-allocas:   -Load/store is in bounds -> can reuse $csp for   store i32 1, ptr addrspace(200) %value, align 4
-; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.start.p200(i64 4, ptr addrspace(200) nonnull %value)
+; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %value)
 ; DBG-NEXT: cheri-bound-allocas: stack_int: 0 of 5 users need bounds for   %value = alloca i32, align 4, addrspace(200)
 ; DBG-NEXT: cheri-bound-allocas: No need to set bounds on stack alloca  %value = alloca i32, align 4, addrspace(200)
 ; DBG-EMPTY:
@@ -174,26 +174,26 @@ define signext i32 @stack_int_inlined() local_unnamed_addr addrspace(200) nounwi
 ; CHECK-LABEL: define signext i32 @stack_int_inlined
 ; CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR1]] {
 ; CHECK-NEXT:    [[VALUE:%.*]] = alloca i32, align 4, addrspace(200)
-; CHECK-NEXT:    call void @llvm.lifetime.start.p200(i64 4, ptr addrspace(200) nonnull [[VALUE]])
+; CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[VALUE]])
 ; CHECK-NEXT:    store i32 1, ptr addrspace(200) [[VALUE]], align 4
 ; CHECK-NEXT:    [[ADDRESS_WITH_BOUNDS:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE]], i64 4)
 ; CHECK-NEXT:    store i32 2, ptr addrspace(200) [[ADDRESS_WITH_BOUNDS]], align 4
 ; CHECK-NEXT:    [[LD:%.*]] = load i32, ptr addrspace(200) [[VALUE]], align 4
-; CHECK-NEXT:    call void @llvm.lifetime.end.p200(i64 4, ptr addrspace(200) nonnull [[VALUE]])
+; CHECK-NEXT:    call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[VALUE]])
 ; CHECK-NEXT:    ret i32 [[LD]]
 ;
   %value = alloca i32, align 4, addrspace(200)
-  call void @llvm.lifetime.start.p200(i64 4, ptr addrspace(200) nonnull %value)
+  call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %value)
   store i32 1, ptr addrspace(200) %value, align 4
   %address.with.bounds = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %value, i64 4)
   store i32 2, ptr addrspace(200) %address.with.bounds, align 4
   %ld = load i32, ptr addrspace(200) %value, align 4
-  call void @llvm.lifetime.end.p200(i64 4, ptr addrspace(200) nonnull %value)
+  call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %value)
   ret i32 %ld
 }
 
 ; DBG-LABEL: Checking function stack_int_inlined
-; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.end.p200(i64 4, ptr addrspace(200) nonnull %value)
+; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %value)
 ; DBG-NEXT: cheri-bound-allocas:  -Checking if load/store needs bounds (GEP offset is 0):   %ld = load i32, ptr addrspace(200) %value, align 4
 ; DBG-NEXT: cheri-bound-allocas:   -Load/store size=4, alloca size=4, current GEP offset=0 for i32
 ; DBG-NEXT: cheri-bound-allocas:   -Load/store is in bounds -> can reuse $csp for   %ld = load i32, ptr addrspace(200) %value, align 4
@@ -201,7 +201,7 @@ define signext i32 @stack_int_inlined() local_unnamed_addr addrspace(200) nounwi
 ; DBG-NEXT: cheri-bound-allocas:  -Checking if load/store needs bounds (GEP offset is 0):   store i32 1, ptr addrspace(200) %value, align 4
 ; DBG-NEXT: cheri-bound-allocas:   -Load/store size=4, alloca size=4, current GEP offset=0 for i32
 ; DBG-NEXT: cheri-bound-allocas:   -Load/store is in bounds -> can reuse $csp for   store i32 1, ptr addrspace(200) %value, align 4
-; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.start.p200(i64 4, ptr addrspace(200) nonnull %value)
+; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %value)
 ; DBG-NEXT: cheri-bound-allocas: stack_int_inlined: 0 of 5 users need bounds for   %value = alloca i32, align 4, addrspace(200)
 ; DBG-NEXT: cheri-bound-allocas: No need to set bounds on stack alloca  %value = alloca i32, align 4, addrspace(200)
 ; DBG-EMPTY:

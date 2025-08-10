@@ -43,7 +43,7 @@ bool hasCapability(const QualType OrigTy, ASTContext &Ctx) {
   if (Ty->isCHERICapabilityType(Ctx, true))
     return true;
   if (const auto *Record = dyn_cast<RecordType>(Ty)) {
-    for (const auto *Field : Record->getDecl()->fields()) {
+    for (const auto *Field : Record->getOriginalDecl()->fields()) {
       if (hasCapability(Field->getType(), Ctx))
         return true;
     }

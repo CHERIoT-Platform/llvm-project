@@ -8,11 +8,11 @@ struct foo { char a[8]; };
 // CHECK-LABEL: @test(
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[D:%.*]] = alloca [[STRUCT_FOO:%.*]], align 1, addrspace(200)
-// CHECK-NEXT:    call void @llvm.lifetime.start.p200(i64 8, ptr addrspace(200) nonnull [[D]]) #[[ATTR4:[0-9]+]]
+// CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[D]]) #[[ATTR4:[0-9]+]]
 // CHECK-NEXT:    [[BCMP:%.*]] = call i32 @bcmp(ptr addrspace(200) noundef nonnull dereferenceable(8) [[D]], ptr addrspace(200) noundef nonnull dereferenceable(8) @.str, i64 8)
 // CHECK-NEXT:    [[TOBOOL_NOT:%.*]] = icmp eq i32 [[BCMP]], 0
 // CHECK-NEXT:    [[DOT:%.*]] = zext i1 [[TOBOOL_NOT]] to i32
-// CHECK-NEXT:    call void @llvm.lifetime.end.p200(i64 8, ptr addrspace(200) nonnull [[D]]) #[[ATTR4]]
+// CHECK-NEXT:    call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[D]]) #[[ATTR4]]
 // CHECK-NEXT:    ret i32 [[DOT]]
 //
 int test(void) {

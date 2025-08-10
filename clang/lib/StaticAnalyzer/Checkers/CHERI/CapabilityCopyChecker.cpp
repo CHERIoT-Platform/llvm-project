@@ -71,7 +71,7 @@ class CapabilityCopyChecker
 public:
   void checkLocation(SVal l, bool isLoad, const Stmt *S,
                      CheckerContext &C) const;
-  void checkBind(SVal L, SVal V, const Stmt *S, CheckerContext &C) const;
+  void checkBind(SVal L, SVal V, const Stmt *S, bool AtDeclInit, CheckerContext &C) const;
   void checkPostStmt(const BinaryOperator *BO, CheckerContext &C) const;
   void checkPostStmt(const ArraySubscriptExpr *E, CheckerContext &C) const;
   void checkBranchCondition(const Stmt *Cond, CheckerContext &C) const;
@@ -374,6 +374,7 @@ bool handleAlignmentCheck(const BinaryOperator *BO, ProgramStateRef State,
 } // namespace
 
 void CapabilityCopyChecker::checkBind(SVal L, SVal V, const Stmt *S,
+                                      bool AtDeclInit,
                                       CheckerContext &C) const {
   ASTContext &ASTCtx = C.getASTContext();
   if (!isPureCapMode(ASTCtx))

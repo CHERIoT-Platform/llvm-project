@@ -8,8 +8,8 @@
 // RUN:     -cheri-stack-bounds=if-needed -debug-only="cheri-bound-allocas" 2>&1 | FileCheck -check-prefix DBG-OPT %s
 
 // check that we ignore lifetime.start and lifetime.end intrinisics at -O1 and higher
-// DBG-OPT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.end.p200(i64 4, ptr addrspace(200) nonnull %x) #
-// DBG-OPT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.start.p200(i64 4, ptr addrspace(200) nonnull %x) #
+// DBG-OPT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %x) #
+// DBG-OPT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %x) #
 // DBG-OPT: cheri-bound-allocas: pass_arg: 2 of 8 users need bounds for   %x = alloca i32, align 4, addrspace(200)
 
 int *call(int *arg);

@@ -723,6 +723,9 @@ static constexpr FeatureBitset XAndesGroup = {
 
 static constexpr DecoderListEntry DecoderList32[]{
     // Vendor Extensions
+    {DecoderTableXCV32, XCVFeatureGroup, "CORE-V extensions"},
+    {DecoderTableXRivos32, XRivosFeatureGroup, "Rivos"},
+    {DecoderTableXqci32, XqciFeatureGroup, "Qualcomm uC Extensions"},
     {DecoderTableXVentana32,
      {RISCV::FeatureVendorXVentanaCondOps},
      "XVentanaCondOps"},
@@ -740,9 +743,6 @@ static constexpr DecoderListEntry DecoderList32[]{
     {DecoderTableXAndes32, XAndesGroup, "Andes extensions"},
     {DecoderTableCapModeOnly_32, {RISCV::FeatureCapMode}, "CapModeOnly_32"},
     // Standard Extensions
-    {DecoderTableXCV32, XCVFeatureGroup, "CORE-V extensions"},
-    {DecoderTableXqci32, XqciFeatureGroup, "Qualcomm uC Extensions"},
-    {DecoderTableXRivos32, XRivosFeatureGroup, "Rivos"},
     {DecoderTable32, {}, "standard 32-bit instructions"},
     {DecoderTableRV32Only32, {}, "RV32-only standard 32-bit instructions"},
     {DecoderTableZfinx32, {}, "Zfinx (Float in Integer)"},

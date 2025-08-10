@@ -78,7 +78,7 @@ public:
   void checkPostStmt(const CastExpr *CE, CheckerContext &C) const;
   void checkPreCall(const CallEvent &Call, CheckerContext &C) const;
   void checkPostCall(const CallEvent &Call, CheckerContext &C) const;
-  void checkBind(SVal L, SVal V, const Stmt *S, CheckerContext &C) const;
+  void checkBind(SVal L, SVal V, const Stmt *S, bool AtDeclInit, CheckerContext &C) const;
   void checkEndFunction(const ReturnStmt *RS, CheckerContext &Ctx) const;
   void checkDeadSymbols(SymbolReaper &SymReaper, CheckerContext &C) const;
 
@@ -360,7 +360,7 @@ void AllocationChecker::checkPostCall(const CallEvent &Call,
 }
 
 void AllocationChecker::checkBind(SVal L, SVal V, const Stmt *S,
-                                  CheckerContext &C) const {
+                                  bool AtDeclInit, CheckerContext &C) const {
   if (!isPureCapMode(C.getASTContext()))
     return;
 

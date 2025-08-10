@@ -13,12 +13,12 @@ define void @foo() {
 ; CHECK-NEXT:    [[B_SROA_0:%.*]] = alloca { i32, i32, i32, i32 }, align 16
 ; CHECK-NEXT:    [[TMPA_SROA_0:%.*]] = alloca { i32, i32, i32, i32 }, align 16
 ; CHECK-NEXT:    [[TMPB_SROA_0:%.*]] = alloca { i32, i32, i32, i32 }, align 16
-; CHECK-NEXT:    call void @llvm.lifetime.start.p0(i64 12, ptr [[BUF_SROA_0]])
+; CHECK-NEXT:    call void @llvm.lifetime.start.p0(ptr [[BUF_SROA_0]])
 ; CHECK-NEXT:    [[TMPA_SROA_0_4_TMPA_4_SROA_IDX:%.*]] = getelementptr inbounds i8, ptr [[TMPA_SROA_0]], i64 4
 ; CHECK-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 4 [[TMPA_SROA_0_4_TMPA_4_SROA_IDX]], ptr align 4 [[BUF_SROA_0]], i64 12, i1 false) #[[ATTR2:[0-9]+]]
 ; CHECK-NEXT:    [[TMPB_SROA_0_4_TMPB_4_SROA_IDX:%.*]] = getelementptr inbounds i8, ptr [[TMPB_SROA_0]], i64 4
 ; CHECK-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 4 [[TMPB_SROA_0_4_TMPB_4_SROA_IDX]], ptr align 4 [[BUF_SROA_0]], i64 12, i1 false) #[[ATTR2]]
-; CHECK-NEXT:    call void @llvm.lifetime.end.p0(i64 12, ptr [[BUF_SROA_0]])
+; CHECK-NEXT:    call void @llvm.lifetime.end.p0(ptr [[BUF_SROA_0]])
 ; CHECK-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[A_SROA_0]], ptr align 16 [[TMPA_SROA_0]], i64 16, i1 false)
 ; CHECK-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[B_SROA_0]], ptr align 16 [[TMPB_SROA_0]], i64 16, i1 false)
 ; CHECK-NEXT:    ret void
@@ -31,16 +31,16 @@ entry:
   %tmpb = alloca %struct, align 16
   %tmpa.4 = getelementptr inbounds i8, ptr %tmpa, i64 4
   %buf.cast = getelementptr inbounds [44 x i8], ptr %buf, i64 0, i64 0
-  call void @llvm.lifetime.start.p0(i64 44, ptr %buf.cast)
+  call void @llvm.lifetime.start.p0(ptr %buf)
   call void @llvm.memcpy.p0.p0.i64(ptr align 4 %tmpa.4, ptr align 4 %buf.cast, i64 44, i1 false)
   %tmpb.4 = getelementptr inbounds i8, ptr %tmpb, i64 4
   call void @llvm.memcpy.p0.p0.i64(ptr align 4 %tmpb.4, ptr align 4 %buf.cast, i64 44, i1 false)
-  call void @llvm.lifetime.end.p0(i64 44, ptr %buf.cast)
+  call void @llvm.lifetime.end.p0(ptr %buf)
   call void @llvm.memcpy.p0.p0.i64(ptr align 16 %a, ptr align 16 %tmpa, i64 48, i1 false)
   call void @llvm.memcpy.p0.p0.i64(ptr align 16 %b, ptr align 16 %tmpb, i64 48, i1 false)
   ret void
 }
 
-declare void @llvm.lifetime.start.p0(i64 immarg, ptr nocapture)
-declare void @llvm.lifetime.end.p0(i64 immarg, ptr nocapture)
+declare void @llvm.lifetime.start.p0(ptr nocapture)
+declare void @llvm.lifetime.end.p0(ptr nocapture)
 declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg)

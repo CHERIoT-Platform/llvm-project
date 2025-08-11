@@ -1482,6 +1482,7 @@ public:
     auto HasWrite = PermissionsRef.contains(WritePermissionSymbol);
     auto HasMut = PermissionsRef.contains(MutPermissionSymbol);
     auto HasCap = PermissionsRef.contains(CapPermissionSymbol);
+    auto _ = PermissionsRef.contains(GlobalPermissionSymbol);
 
     if (!HasRead && !HasWrite) {
       FailedSemanticCheckCallback(
@@ -1573,7 +1574,8 @@ public:
   static const std::string defaultPermissions() {
     return std::string(ReadPermissionSymbol) +
            std::string(WritePermissionSymbol) +
-           std::string(CapPermissionSymbol) + std::string(MutPermissionSymbol);
+           std::string(CapPermissionSymbol) + std::string(MutPermissionSymbol) +
+           std::string(GlobalPermissionSymbol);
   }
 
   ImportKind ImportKind;
@@ -1598,7 +1600,10 @@ private:
   /// The symbol for the mut permission.
   static constexpr const char *MutPermissionSymbol = "m";
 
-  static constexpr const std::array<char, 4> ValidSymbols = {
+  /// The symbol for the global permission.
+  static constexpr const char *GlobalPermissionSymbol = "G";
+
+  static constexpr const std::array<char, 5> ValidSymbols = {
       ReadPermissionSymbol[0], WritePermissionSymbol[0], CapPermissionSymbol[0],
       MutPermissionSymbol[0]};
 

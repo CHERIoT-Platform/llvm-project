@@ -3029,7 +3029,7 @@ public:
     return LT.first.getValue();
   }
 
-  InstructionCost getAddressComputationCost(Type *Ty, ScalarEvolution *,
+  InstructionCost getAddressComputationCost(Type *PtrTy, ScalarEvolution *,
                                             const SCEV *) const override {
     return 0;
   }

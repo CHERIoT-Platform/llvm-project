@@ -5077,6 +5077,7 @@ def HLSLResourceBinding: InheritableAttr {
         return SpaceNumber;
       }
       void setImplicitBindingOrderID(uint32_t Value) {
+        assert(!hasImplicitBindingOrderID() && "attribute already has implicit binding order id");
         ImplicitBindingOrderID = Value;
       }
       bool hasImplicitBindingOrderID() const {

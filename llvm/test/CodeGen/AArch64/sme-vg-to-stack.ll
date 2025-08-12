@@ -1441,7 +1441,7 @@ define void @streaming_compatible_to_streaming() #4 {
 ; CHECK-NEXT:    .cfi_offset b14, -88
 ; CHECK-NEXT:    .cfi_offset b15, -96
 ; CHECK-NEXT:    bl __arm_sme_state
-; CHECK-NEXT:    and x19, x0, #0x1
+; CHECK-NEXT:    mov x19, x0
 ; CHECK-NEXT:    .cfi_offset vg, -24
 ; CHECK-NEXT:    tbnz w19, #0, .LBB6_2
 ; CHECK-NEXT:  // %bb.1:
@@ -1496,7 +1496,7 @@ define void @streaming_compatible_to_streaming() #4 {
 ; FP-CHECK-NEXT:    .cfi_offset b14, -88
 ; FP-CHECK-NEXT:    .cfi_offset b15, -96
 ; FP-CHECK-NEXT:    bl __arm_sme_state
-; FP-CHECK-NEXT:    and x19, x0, #0x1
+; FP-CHECK-NEXT:    mov x19, x0
 ; FP-CHECK-NEXT:    .cfi_offset vg, -16
 ; FP-CHECK-NEXT:    tbnz w19, #0, .LBB6_2
 ; FP-CHECK-NEXT:  // %bb.1:
@@ -1553,7 +1553,7 @@ define void @streaming_compatible_to_streaming() #4 {
 ; NO-SVE-CHECK-NEXT:    .cfi_offset b14, -88
 ; NO-SVE-CHECK-NEXT:    .cfi_offset b15, -96
 ; NO-SVE-CHECK-NEXT:    bl __arm_sme_state
-; NO-SVE-CHECK-NEXT:    and x19, x0, #0x1
+; NO-SVE-CHECK-NEXT:    mov x19, x0
 ; NO-SVE-CHECK-NEXT:    .cfi_offset vg, -16
 ; NO-SVE-CHECK-NEXT:    tbnz w19, #0, .LBB6_2
 ; NO-SVE-CHECK-NEXT:  // %bb.1:
@@ -1607,7 +1607,7 @@ define void @streaming_compatible_to_streaming() #4 {
 ; OUTLINER-CHECK-NEXT:    .cfi_offset b14, -88
 ; OUTLINER-CHECK-NEXT:    .cfi_offset b15, -96
 ; OUTLINER-CHECK-NEXT:    bl __arm_sme_state
-; OUTLINER-CHECK-NEXT:    and x19, x0, #0x1
+; OUTLINER-CHECK-NEXT:    mov x19, x0
 ; OUTLINER-CHECK-NEXT:    .cfi_offset vg, -24
 ; OUTLINER-CHECK-NEXT:    tbnz w19, #0, .LBB6_2
 ; OUTLINER-CHECK-NEXT:  // %bb.1:
@@ -1663,7 +1663,7 @@ define void @streaming_compatible_to_non_streaming() #4 {
 ; CHECK-NEXT:    .cfi_offset b14, -88
 ; CHECK-NEXT:    .cfi_offset b15, -96
 ; CHECK-NEXT:    bl __arm_sme_state
-; CHECK-NEXT:    and x19, x0, #0x1
+; CHECK-NEXT:    mov x19, x0
 ; CHECK-NEXT:    .cfi_offset vg, -24
 ; CHECK-NEXT:    tbz w19, #0, .LBB7_2
 ; CHECK-NEXT:  // %bb.1:
@@ -1718,7 +1718,7 @@ define void @streaming_compatible_to_non_streaming() #4 {
 ; FP-CHECK-NEXT:    .cfi_offset b14, -88
 ; FP-CHECK-NEXT:    .cfi_offset b15, -96
 ; FP-CHECK-NEXT:    bl __arm_sme_state
-; FP-CHECK-NEXT:    and x19, x0, #0x1
+; FP-CHECK-NEXT:    mov x19, x0
 ; FP-CHECK-NEXT:    .cfi_offset vg, -16
 ; FP-CHECK-NEXT:    tbz w19, #0, .LBB7_2
 ; FP-CHECK-NEXT:  // %bb.1:
@@ -1775,7 +1775,7 @@ define void @streaming_compatible_to_non_streaming() #4 {
 ; NO-SVE-CHECK-NEXT:    .cfi_offset b14, -88
 ; NO-SVE-CHECK-NEXT:    .cfi_offset b15, -96
 ; NO-SVE-CHECK-NEXT:    bl __arm_sme_state
-; NO-SVE-CHECK-NEXT:    and x19, x0, #0x1
+; NO-SVE-CHECK-NEXT:    mov x19, x0
 ; NO-SVE-CHECK-NEXT:    .cfi_offset vg, -16
 ; NO-SVE-CHECK-NEXT:    tbz w19, #0, .LBB7_2
 ; NO-SVE-CHECK-NEXT:  // %bb.1:
@@ -1829,7 +1829,7 @@ define void @streaming_compatible_to_non_streaming() #4 {
 ; OUTLINER-CHECK-NEXT:    .cfi_offset b14, -88
 ; OUTLINER-CHECK-NEXT:    .cfi_offset b15, -96
 ; OUTLINER-CHECK-NEXT:    bl __arm_sme_state
-; OUTLINER-CHECK-NEXT:    and x19, x0, #0x1
+; OUTLINER-CHECK-NEXT:    mov x19, x0
 ; OUTLINER-CHECK-NEXT:    .cfi_offset vg, -24
 ; OUTLINER-CHECK-NEXT:    tbz w19, #0, .LBB7_2
 ; OUTLINER-CHECK-NEXT:  // %bb.1:
@@ -1891,7 +1891,7 @@ define void @streaming_compatible_no_sve(i32 noundef %x) #4 {
 ; CHECK-NEXT:    .cfi_offset b15, -96
 ; CHECK-NEXT:    mov w8, w0
 ; CHECK-NEXT:    bl __arm_sme_state
-; CHECK-NEXT:    and x19, x0, #0x1
+; CHECK-NEXT:    mov x19, x0
 ; CHECK-NEXT:    .cfi_offset vg, -24
 ; CHECK-NEXT:    tbnz w19, #0, .LBB8_2
 ; CHECK-NEXT:  // %bb.1:
@@ -1948,7 +1948,7 @@ define void @streaming_compatible_no_sve(i32 noundef %x) #4 {
 ; FP-CHECK-NEXT:    .cfi_offset b15, -96
 ; FP-CHECK-NEXT:    mov w8, w0
 ; FP-CHECK-NEXT:    bl __arm_sme_state
-; FP-CHECK-NEXT:    and x19, x0, #0x1
+; FP-CHECK-NEXT:    mov x19, x0
 ; FP-CHECK-NEXT:    .cfi_offset vg, -16
 ; FP-CHECK-NEXT:    tbnz w19, #0, .LBB8_2
 ; FP-CHECK-NEXT:  // %bb.1:
@@ -2009,7 +2009,7 @@ define void @streaming_compatible_no_sve(i32 noundef %x) #4 {
 ; NO-SVE-CHECK-NEXT:    .cfi_offset b15, -96
 ; NO-SVE-CHECK-NEXT:    mov w8, w0
 ; NO-SVE-CHECK-NEXT:    bl __arm_sme_state
-; NO-SVE-CHECK-NEXT:    and x19, x0, #0x1
+; NO-SVE-CHECK-NEXT:    mov x19, x0
 ; NO-SVE-CHECK-NEXT:    .cfi_offset vg, -16
 ; NO-SVE-CHECK-NEXT:    tbnz w19, #0, .LBB8_2
 ; NO-SVE-CHECK-NEXT:  // %bb.1:
@@ -2065,7 +2065,7 @@ define void @streaming_compatible_no_sve(i32 noundef %x) #4 {
 ; OUTLINER-CHECK-NEXT:    .cfi_offset b15, -96
 ; OUTLINER-CHECK-NEXT:    mov w8, w0
 ; OUTLINER-CHECK-NEXT:    bl __arm_sme_state
-; OUTLINER-CHECK-NEXT:    and x19, x0, #0x1
+; OUTLINER-CHECK-NEXT:    mov x19, x0
 ; OUTLINER-CHECK-NEXT:    .cfi_offset vg, -24
 ; OUTLINER-CHECK-NEXT:    tbnz w19, #0, .LBB8_2
 ; OUTLINER-CHECK-NEXT:  // %bb.1:

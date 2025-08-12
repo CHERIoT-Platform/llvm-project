@@ -664,8 +664,21 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
          "getImmOpValue expects only expressions or immediates");
   const MCExpr *Expr = MO.getExpr();
   MCExpr::ExprKind Kind = Expr->getKind();
-  unsigned FixupKind = RISCV::fixup_riscv_invalid;
+
+  // `RelaxCandidate` must be set to `true` in two cases:
+  // - The fixup's relocation gets a R_RISCV_RELAX relocation
+  // - The underlying instruction may be relaxed to an instruction that gets a
+  //   `R_RISCV_RELAX` relocation.
+  //
+  // The actual emission of `R_RISCV_RELAX` will be handled in
+  // `RISCVAsmBackend::applyFixup`.
   bool RelaxCandidate = false;
+  auto AsmRelaxToLinkerRelaxableWithFeature = [&](unsigned Feature) -> void {
+    if (!STI.hasFeature(RISCV::FeatureExactAssembly) && STI.hasFeature(Feature))
+      RelaxCandidate = true;
+  };
+
+  unsigned FixupKind = RISCV::fixup_riscv_invalid;
   if (Kind == MCExpr::Specifier) {
     const auto *RVExpr = cast<MCSpecifierExpr>(Expr);
     FixupKind = RVExpr->getSpecifier();
@@ -764,23 +777,31 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
     // FIXME: Sub kind binary exprs have chance of underflow.
     if (MIFrm == RISCVII::InstFormatJ) {
       FixupKind = RISCV::fixup_riscv_jal;
+      AsmRelaxToLinkerRelaxableWithFeature(RISCV::FeatureVendorXqcilb);
     } else if (Desc.getOpcode() == RISCV::CJAL) {
       FixupKind = RISCV::fixup_riscv_cjal;
     } else if (MIFrm == RISCVII::InstFormatB) {
       FixupKind = RISCV::fixup_riscv_branch;
+      // This might be assembler relaxed to `b<cc>; jal` but we cannot relax
+      // the `jal` again in the assembler.
     } else if (MIFrm == RISCVII::InstFormatCJ) {
       if (Desc.getOpcode() == RISCV::C_CJAL)
         FixupKind = RISCV::fixup_riscv_rvc_cjump;
       else
         FixupKind = RISCV::fixup_riscv_rvc_jump;
+      AsmRelaxToLinkerRelaxableWithFeature(RISCV::FeatureVendorXqcilb);
     } else if (MIFrm == RISCVII::InstFormatCB) {
       FixupKind = RISCV::fixup_riscv_rvc_branch;
+      // This might be assembler relaxed to `b<cc>; jal` but we cannot relax
+      // the `jal` again in the assembler.
     } else if (MIFrm == RISCVII::InstFormatCI) {
       FixupKind = RISCV::fixup_riscv_rvc_imm;
     } else if (MIFrm == RISCVII::InstFormatI) {
       FixupKind = RISCV::fixup_riscv_12_i;
     } else if (MIFrm == RISCVII::InstFormatQC_EB) {
       FixupKind = RISCV::fixup_riscv_qc_e_branch;
+      // This might be assembler relaxed to `qc.e.b<cc>; jal` but we cannot
+      // relax the `jal` again in the assembler.
     } else if (MIFrm == RISCVII::InstFormatQC_EAI) {
       FixupKind = RISCV::fixup_riscv_qc_e_32;
       RelaxCandidate = true;
@@ -795,9 +816,9 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
   assert(FixupKind != RISCV::fixup_riscv_invalid && "Unhandled expression!");
 
   addFixup(Fixups, 0, Expr, FixupKind);
-  // If linker relaxation is enabled and supported by this relocation, set
-  // a bit so that if fixup is unresolved, a R_RISCV_RELAX relocation will be
-  // appended.
+  // If linker relaxation is enabled and supported by this relocation, set a bit
+  // so that the assembler knows the size of the instruction is not fixed/known,
+  // and the relocation will need a R_RISCV_RELAX relocation.
   if (EnableRelax && RelaxCandidate)
     Fixups.back().setLinkerRelaxable();
   ++MCNumFixups;

@@ -60,8 +60,6 @@ frameInfo:
   hasVAStart:      false
   hasMustTailInVarArgFunc: false
   localFrameSize:  0
-  savePoint:       ''
-  restorePoint:    ''
 fixedStack:      []
 stack:
   - { id: 0, name: over_16_bit_imm, type: spill-slot, offset: 0, size: 8, alignment: 8,

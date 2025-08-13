@@ -250,6 +250,7 @@ class RegisterWithSubRegs<string n, list<Register> subregs> : Register<n> {
 class DAGOperand {
   string OperandNamespace = "MCOI";
   string DecoderMethod = "";
+  bit hasCompleteDecoder = true;
 }
 
 // RegisterClass - Now that all of the registers are defined, and aliases
@@ -1007,7 +1008,6 @@ class Operand<ValueType ty> : DAGOperand {
   ValueType Type = ty;
   string PrintMethod = "printOperand";
   string EncoderMethod = "";
-  bit hasCompleteDecoder = true;
   string OperandType = "OPERAND_UNKNOWN";
   dag MIOperandInfo = (ops);
 

@@ -76,8 +76,6 @@ frameInfo:
   hasVAStart:      false
   hasMustTailInVarArgFunc: false
   localFrameSize:  0
-  savePoint:       ''
-  restorePoint:    ''
 fixedStack:      []
 stack:
   - { id: 0, name: buf1, type: default, offset: 0, size: 492, alignment: 4,

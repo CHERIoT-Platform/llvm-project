@@ -7248,7 +7248,7 @@ OpenMPIRBuilder::InsertPointOrErrorTy OpenMPIRBuilder::createTargetData(
           BodyGenCB(Builder.saveIP(), BodyGenTy::NoPriv);
       if (!AfterIP)
         return AfterIP.takeError();
-      Builder.restoreIP(*AfterIP);
+      restoreIPandDebugLoc(Builder, *AfterIP);
 
       if (IfCond)
         return emitIfClause(IfCond, EndThenGen, EndElseGen, AllocaIP);

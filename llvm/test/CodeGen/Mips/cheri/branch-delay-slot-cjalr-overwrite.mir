@@ -118,8 +118,6 @@ frameInfo:
   hasVAStart:      false
   hasMustTailInVarArgFunc: false
   localFrameSize:  0
-  savePoint:       ''
-  restorePoint:    ''
 fixedStack:
 stack:
   - { id: 0, name: '', type: spill-slot, offset: -256, size: 16, alignment: 16,

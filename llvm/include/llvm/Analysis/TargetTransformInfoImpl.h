@@ -941,7 +941,8 @@ public:
 
   virtual InstructionCost getAddressComputationCost(Type *PtrTy,
                                                     ScalarEvolution *,
-                                                    const SCEV *) const {
+                                                    const SCEV *,
+                                                    TTI::TargetCostKind) const {
     return 0;
   }
 

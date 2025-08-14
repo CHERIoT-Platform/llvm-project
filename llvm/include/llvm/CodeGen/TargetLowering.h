@@ -4991,11 +4991,10 @@ public:
       return *this;
     }
 
-    MakeLibCallOptions &setTypeListBeforeSoften(ArrayRef<EVT> OpsVT, EVT RetVT,
-                                                bool Value = true) {
+    MakeLibCallOptions &setTypeListBeforeSoften(ArrayRef<EVT> OpsVT, EVT RetVT) {
       OpsVTBeforeSoften = OpsVT;
       RetVTBeforeSoften = RetVT;
-      IsSoften = Value;
+      IsSoften = true;
       return *this;
     }
 

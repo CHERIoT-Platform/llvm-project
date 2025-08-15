@@ -42,7 +42,7 @@ declare dso_local ptr addrspace(200) @__cxa_begin_catch(ptr addrspace(200)) loca
 declare dso_local void @__cxa_end_catch() local_unnamed_addr addrspace(200)
 
 ; CHECK:  .attribute 4, 16
-; CHECK-NEXT:  .attribute 5, "rv64i2p1_xcheri0p0"
+; CHECK-NEXT:  .attribute 5, "rv64i2p1_xcheri0p0_xcheripurecap0p0"
 ; CHECK-NEXT:  .file "<stdin>"
 ; CHECK-NEXT:  .text
 ; CHECK-NEXT:  .globl _Z4testv                        # -- Begin function _Z4testv

@@ -368,7 +368,7 @@ std::pair<bool, bool> RISCVAsmBackend::relaxLEB128(const MCAssembler &Asm,
 // Given a compressed control flow instruction this function returns
 // the expanded instruction.
 unsigned RISCVAsmBackend::getRelaxedOpcode(unsigned Op) const {
-  bool IsCapMode = STI.getFeatureBits()[RISCV::FeatureCapMode];
+  bool IsCapMode = STI.getFeatureBits()[RISCV::FeatureVendorXCheriPureCap];
 
   switch (Op) {
   default:

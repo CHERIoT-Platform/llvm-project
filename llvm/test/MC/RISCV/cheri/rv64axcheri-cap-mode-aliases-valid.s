@@ -1,12 +1,12 @@
-# RUN: llvm-mc %s -triple=riscv64 -mattr=+a,+xcheri,+cap-mode -riscv-no-aliases \
+# RUN: llvm-mc %s -triple=riscv64 -mattr=+a,+xcheri,+xcheripurecap -riscv-no-aliases \
 # RUN:     | FileCheck -check-prefix=CHECK-INST %s
-# RUN: llvm-mc %s -triple=riscv64 -mattr=+a,+xcheri,+cap-mode \
+# RUN: llvm-mc %s -triple=riscv64 -mattr=+a,+xcheri,+xcheripurecap \
 # RUN:     | FileCheck -check-prefix=CHECK-ALIAS %s
-# RUN: llvm-mc -filetype=obj -triple riscv64 -mattr=+a,+xcheri,+cap-mode < %s \
-# RUN:     | llvm-objdump -d --mattr=+a,+xcheri,+cap-mode -M no-aliases - \
+# RUN: llvm-mc -filetype=obj -triple riscv64 -mattr=+a,+xcheri,+xcheripurecap < %s \
+# RUN:     | llvm-objdump -d --mattr=+a,+xcheri,+xcheripurecap -M no-aliases - \
 # RUN:     | FileCheck -check-prefix=CHECK-INST %s
-# RUN: llvm-mc -filetype=obj -triple riscv64 -mattr=+a,+xcheri,+cap-mode < %s \
-# RUN:     | llvm-objdump -d --mattr=+a,+xcheri,+cap-mode - \
+# RUN: llvm-mc -filetype=obj -triple riscv64 -mattr=+a,+xcheri,+xcheripurecap < %s \
+# RUN:     | llvm-objdump -d --mattr=+a,+xcheri,+xcheripurecap - \
 # RUN:     | FileCheck -check-prefix=CHECK-ALIAS %s
 
 # The below tests for clr.d, csc.d and camo*.d, using `0(reg)` are actually

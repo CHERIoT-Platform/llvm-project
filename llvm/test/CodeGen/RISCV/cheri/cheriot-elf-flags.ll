@@ -1,4 +1,4 @@
-; RUN: llc --filetype=obj --mcpu=cheriot --mtriple=riscv32-unknown-unknown -target-abi cheriot  %s -mattr=+xcheri,+cap-mode -o - | llvm-readelf -a - | FileCheck %s
+; RUN: llc --filetype=obj --mcpu=cheriot --mtriple=riscv32-unknown-unknown -target-abi cheriot  %s -mattr=+xcheri,+xcheripurecap -o - | llvm-readelf -a - | FileCheck %s
 
 ; CHECK-LABEL: ELF Header:
 ; CHECK:          Flags: 0x70009, RVC, RVE, cheriabi, capability mode, cheriot

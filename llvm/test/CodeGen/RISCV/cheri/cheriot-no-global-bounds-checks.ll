@@ -1,4 +1,4 @@
-; RUN: llc --filetype=asm --mcpu=cheriot --mtriple=riscv32cheriot-unknown-unknown -target-abi cheriot  %s -mattr=+xcheri,+cap-mode -o - | FileCheck %s
+; RUN: llc --filetype=asm --mcpu=cheriot --mtriple=riscv32cheriot-unknown-unknown -target-abi cheriot  %s -mattr=+xcheri,+xcheripurecap -o - | FileCheck %s
 ; ModuleID = 'test.c'
 source_filename = "../Release/test.c"
 target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G200"

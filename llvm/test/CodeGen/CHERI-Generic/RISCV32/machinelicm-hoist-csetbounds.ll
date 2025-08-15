@@ -6,8 +6,8 @@
 
 ; Note: Opt correctly hoists the condition+csetbounds into a preheader, and LLC
 ; used to unconditionally hoist the csetbounds.
-; RUN: opt -data-layout="e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G200" -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+cap-mode,+f "-passes=default<O3>" -S < %s | FileCheck %s --check-prefix=HOIST-OPT
-; RUN: llc -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+cap-mode,+f -O3 < %s | FileCheck %s
+; RUN: opt -data-layout="e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G200" -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+xcheripurecap,+f "-passes=default<O3>" -S < %s | FileCheck %s --check-prefix=HOIST-OPT
+; RUN: llc -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+xcheripurecap,+f -O3 < %s | FileCheck %s
 
 ; Generated from the following C code (with subobject bounds):
 ; struct foo {

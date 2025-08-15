@@ -379,7 +379,7 @@ bool RISCVTargetInfo::initFeatureMap(
 
   if (getTriple().getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1) {
     Features["xcheri"] = true;
-    Features["cap-mode"] = true;
+    Features["xcheripurecap"] = true;
     Features["c"] = true;
     Features["e"] = true;
     Features["m"] = true;

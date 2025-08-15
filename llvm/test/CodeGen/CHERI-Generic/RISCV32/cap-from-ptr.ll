@@ -3,8 +3,8 @@
 ;; Check that we can correctly generate code for llvm.cheri.cap.from.pointer()
 ;; This previously asserted on RISC-V due to a broken ISel pattern.
 ;; We pipe this input through instcombine first to ensure SelectionDAG sees canonical IR.
-; RUN: opt -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+cap-mode,+f -passes=instcombine -S < %s | FileCheck %s --check-prefix=CHECK-IR
-; RUN: opt -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+cap-mode,+f -passes=instcombine -S < %s | llc -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+cap-mode,+f | FileCheck %s --check-prefix=PURECAP
+; RUN: opt -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+xcheripurecap,+f -passes=instcombine -S < %s | FileCheck %s --check-prefix=CHECK-IR
+; RUN: opt -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+xcheripurecap,+f -passes=instcombine -S < %s | llc -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+xcheripurecap,+f | FileCheck %s --check-prefix=PURECAP
 ; RUN: opt -mtriple=riscv32 --relocation-model=pic -target-abi ilp32f -mattr=+xcheri,+f -passes=instcombine -S < %s | llc -mtriple=riscv32 --relocation-model=pic -target-abi ilp32f -mattr=+xcheri,+f | FileCheck %s --check-prefix=HYBRID
 
 define internal ptr addrspace(200) @test(ptr addrspace(200) %ptr, ptr addrspace(200) %cap, i32 %offset) addrspace(200) nounwind {

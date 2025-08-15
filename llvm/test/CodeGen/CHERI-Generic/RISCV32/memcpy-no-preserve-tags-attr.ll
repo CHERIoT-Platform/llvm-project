@@ -2,7 +2,7 @@
 ; DO NOT EDIT -- This file was generated from test/CodeGen/CHERI-Generic/Inputs/memcpy-no-preserve-tags-attr.ll
 ; Check that the no_preserve_tags annotation on memcpy/memmove intrinsics allows
 ; use to inline struct copies >= capability size.
-; RUN: llc -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+cap-mode,+f -o - < %s | FileCheck %s
+; RUN: llc -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+xcheripurecap,+f -o - < %s | FileCheck %s
 
 %struct.pair = type { i32, i32 }
 

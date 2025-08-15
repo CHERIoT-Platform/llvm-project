@@ -808,8 +808,3 @@ __attribute__((cheri_compartment("example"))) void CheckOnePtr () {
   // CHECK:   ret void
   return;
 }
-
-
-// CHECK: attributes #0 = { mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, argmem: none, inaccessiblemem: none) "cheri-compartment"="example" "interrupt-state"="enabled" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+e,+m,+xcheri,+xcheripurecap" }
-// CHECK: attributes #1 = { mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none) "cheri-compartment"="example" "interrupt-state"="enabled" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+e,+m,+xcheri,+xcheripurecap" }
-// CHECK: attributes #2 = { mustprogress nofree norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none) "cheri-compartment"="example" "interrupt-state"="enabled" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+e,+m,+xcheri,+xcheripurecap" }

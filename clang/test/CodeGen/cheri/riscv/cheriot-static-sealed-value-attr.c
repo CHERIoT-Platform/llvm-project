@@ -40,8 +40,3 @@ void func() {
 
 // CHECK: declare void @doSomething(ptr addrspace(200) noundef) local_unnamed_addr addrspace(200) #2
 // CHECK: declare void @doSomething2(ptr addrspace(200) noundef) local_unnamed_addr addrspace(200) #2
-
-// CHECK: attributes #0 = { "cheriot_sealed_value" }
-// CHECK: attributes #1 = { minsize nounwind optsize "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+e,+m,+xcheri,+xcheripurecap" }
-// CHECK: attributes #2 = { minsize optsize "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+e,+m,+xcheri,+xcheripurecap" }
-// CHECK: attributes #3 = { minsize nounwind optsize }

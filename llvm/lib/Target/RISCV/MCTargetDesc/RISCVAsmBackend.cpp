@@ -162,7 +162,7 @@ bool RISCVAsmBackend::fixupNeedsRelaxationAdvanced(const MCFixup &Fixup,
 // expansion is available.
 static unsigned getRelaxedOpcode(unsigned Opcode, ArrayRef<MCOperand> Operands,
                                  const MCSubtargetInfo &STI) {
-  bool IsCapMode = STI.getFeatureBits()[RISCV::FeatureCapMode];
+  bool IsCapMode = STI.getFeatureBits()[RISCV::FeatureVendorXCheriPureCap];
   switch (Opcode) {
   case RISCV::C_BEQZ:
     return RISCV::BEQ;

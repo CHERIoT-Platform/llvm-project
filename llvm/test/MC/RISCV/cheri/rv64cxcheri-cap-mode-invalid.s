@@ -1,8 +1,8 @@
-# RUN: not llvm-mc -triple riscv64 -mattr=+c,+xcheri,+cap-mode -filetype=null -riscv-no-aliases -show-encoding < %s 2>&1\
+# RUN: not llvm-mc -triple riscv64 -mattr=+c,+xcheri,+xcheripurecap -filetype=null -riscv-no-aliases -show-encoding < %s 2>&1\
 # RUN:     | FileCheck %s --check-prefixes=CHECK-RV64 --implicit-check-not="error:"
-# RUN: not llvm-mc -triple riscv64 -mattr=+xcheri,+cap-mode -filetype=null -riscv-no-aliases -show-encoding < %s 2>&1 \
+# RUN: not llvm-mc -triple riscv64 -mattr=+xcheri,+xcheripurecap -filetype=null -riscv-no-aliases -show-encoding < %s 2>&1 \
 # RUN:     | FileCheck %s --check-prefixes=CHECK-RV64-NO-C --implicit-check-not="error:"
-# RUN: not llvm-mc -triple riscv32 -mattr=+c,+xcheri,+cap-mode -filetype=null -riscv-no-aliases -show-encoding < %s 2>&1 \
+# RUN: not llvm-mc -triple riscv32 -mattr=+c,+xcheri,+xcheripurecap -filetype=null -riscv-no-aliases -show-encoding < %s 2>&1 \
 # RUN:     | FileCheck %s --check-prefixes=CHECK-RV32 --implicit-check-not="error:"
 
 ## Invalid immediates

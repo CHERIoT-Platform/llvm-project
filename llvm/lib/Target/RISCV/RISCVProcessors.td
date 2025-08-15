@@ -801,8 +801,9 @@ def ANDES_AX45MPV : RISCVProcessorModel<"andes-ax45mpv",
                                         Andes45TuneFeatures>;
 
 // NB: FeatureCheri =>'s RVC (!FeatureCheriNoRVC)
-def CHERIOT : RISCVProcessorModel<"cheriot", NoSchedModel,
-                                  [Feature32Bit, FeatureVendorXCheri,
-                                   FeatureVendorXCheriot, FeatureCapMode,
-                                   FeatureStdExtC, FeatureStdExtE,
-                                   FeatureStdExtM, FeatureUnalignedScalarMem]>;
+def CHERIOT
+    : RISCVProcessorModel<"cheriot", NoSchedModel,
+                          [Feature32Bit, FeatureVendorXCheri,
+                           FeatureVendorXCheriot, FeatureVendorXCheriPureCap,
+                           FeatureStdExtC, FeatureStdExtE, FeatureStdExtM,
+                           FeatureUnalignedScalarMem]>;

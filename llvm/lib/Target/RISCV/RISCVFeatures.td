@@ -1677,15 +1677,15 @@ def HasCheriRVC : Predicate<"Subtarget->enableCheriRVCInstrs()">,
                   AssemblerPredicate<(all_of (not FeatureCheriNoRVC)),
                                      "CHERI RVC Instructions">;
 
-def FeatureCapMode
-    : SubtargetFeature<"cap-mode", "IsCapMode", "true",
-                       "Capability mode">;
-def IsCapMode  : Predicate<"Subtarget->isCapMode()">,
-                           AssemblerPredicate<(all_of FeatureCapMode),
-                           "Capability Mode">;
-def NotCapMode : Predicate<"!Subtarget->isCapMode()">,
-                           AssemblerPredicate<(all_of (not FeatureCapMode)),
-                           "Not Capability Mode">;
+def FeatureVendorXCheriPureCap
+    : RISCVExtension<
+          0, 0, "Implements CHERI pure capability mode", [FeatureVendorXCheri]>;
+def IsCapMode : Predicate<"Subtarget->hasVendorXCheriPureCap()">,
+                AssemblerPredicate<(all_of FeatureVendorXCheriPureCap),
+                                   "Capability Mode">;
+def NotCapMode : Predicate<"!Subtarget->hasVendorXCheriPureCap()">,
+                 AssemblerPredicate<(all_of(not FeatureVendorXCheriPureCap)),
+                                    "Not Capability Mode">;
 
 def IsPureCapABI
     : Predicate<"RISCVABI::isCheriPureCapABI(Subtarget->getTargetABI())">;

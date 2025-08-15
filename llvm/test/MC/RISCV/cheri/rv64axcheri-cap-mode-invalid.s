@@ -1,4 +1,4 @@
-# RUN: not llvm-mc -triple riscv64 -mattr=+a,+xcheri,+cap-mode < %s 2>&1 | FileCheck %s
+# RUN: not llvm-mc -triple riscv64 -mattr=+a,+xcheri,+xcheripurecap < %s 2>&1 | FileCheck %s
 
 # Final operand must have parentheses
 camoswap.d a1, a2, ca3 # CHECK: :[[@LINE]]:20: error: expected '(' or optional integer offset

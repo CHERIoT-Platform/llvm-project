@@ -3,17 +3,17 @@
 ; RUN:   | FileCheck -check-prefix=CHECK-ILP32 %s
 ; RUN: llc -mtriple=riscv32 -target-abi ilp32f -mattr=+f,+xcheri,-cap-mode -verify-machineinstrs < %s \
 ; RUN:   | FileCheck -check-prefix=CHECK-ILP32F %s
-; RUN: llc -mtriple=riscv32 -target-abi il32pc64 -mattr=+f,+xcheri,+cap-mode -verify-machineinstrs < %s \
+; RUN: llc -mtriple=riscv32 -target-abi il32pc64 -mattr=+f,+xcheri,+xcheripurecap -verify-machineinstrs < %s \
 ; RUN:   | FileCheck -check-prefix=CHECK-IL32PC64 %s
-; RUN: llc -mtriple=riscv32 -target-abi il32pc64f -mattr=+f,+xcheri,+cap-mode -verify-machineinstrs < %s \
+; RUN: llc -mtriple=riscv32 -target-abi il32pc64f -mattr=+f,+xcheri,+xcheripurecap -verify-machineinstrs < %s \
 ; RUN:   | FileCheck -check-prefix=CHECK-IL32PC64F %s
 ; RUN: llc -mtriple=riscv64 -target-abi lp64 -mattr=+f,+xcheri,-cap-mode -verify-machineinstrs < %s \
 ; RUN:   | FileCheck -check-prefix=CHECK-LP64 %s
 ; RUN: llc -mtriple=riscv64 -target-abi lp64f -mattr=+f,+xcheri,-cap-mode -verify-machineinstrs < %s \
 ; RUN:   | FileCheck -check-prefix=CHECK-LP64F %s
-; RUN: llc -mtriple=riscv64 -target-abi l64pc128 -mattr=+f,+xcheri,+cap-mode -verify-machineinstrs < %s \
+; RUN: llc -mtriple=riscv64 -target-abi l64pc128 -mattr=+f,+xcheri,+xcheripurecap -verify-machineinstrs < %s \
 ; RUN:   | FileCheck -check-prefix=CHECK-L64PC128 %s
-; RUN: llc -mtriple=riscv64 -target-abi l64pc128f -mattr=+f,+xcheri,+cap-mode -verify-machineinstrs < %s \
+; RUN: llc -mtriple=riscv64 -target-abi l64pc128f -mattr=+f,+xcheri,+xcheripurecap -verify-machineinstrs < %s \
 ; RUN:   | FileCheck -check-prefix=CHECK-L64PC128F %s
 
 ; Uses both loaded values in an FP op to ensure an flw is used, even for the

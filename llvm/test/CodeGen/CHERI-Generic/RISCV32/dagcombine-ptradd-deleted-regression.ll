@@ -5,7 +5,7 @@
 ; reassociated and delete the synthesised PTRADD node, not just the ADD, which
 ; the folding code was not prepared for.
 ; RUN: llc -mtriple=riscv32 --relocation-model=pic -target-abi ilp32f -mattr=+xcheri,+f %s -o - | FileCheck %s --check-prefix=HYBRID
-; RUN: llc -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+cap-mode,+f %s -o - | FileCheck %s --check-prefix=PURECAP
+; RUN: llc -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+xcheripurecap,+f %s -o - | FileCheck %s --check-prefix=PURECAP
 
 declare i32 @bar(i32 addrspace(200)*)
 

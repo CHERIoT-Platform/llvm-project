@@ -4,21 +4,21 @@
 ;
 ; RUN: cat %s > %t.tgtattr
 ; RUN: echo 'attributes #0 = { nounwind }' >> %t.tgtattr
-; RUN: %riscv32_cheri_purecap_llc -mattr=+c,+xcheri,+cap-mode -filetype=obj < %t.tgtattr \
+; RUN: %riscv32_cheri_purecap_llc -mattr=+c,+xcheri,+xcheripurecap -filetype=obj < %t.tgtattr \
 ; RUN:   | llvm-objdump -d -M no-aliases - | FileCheck %s
-; RUN: %riscv64_cheri_purecap_llc -mattr=+c,+xcheri,+cap-mode -filetype=obj < %t.tgtattr \
+; RUN: %riscv64_cheri_purecap_llc -mattr=+c,+xcheri,+xcheripurecap -filetype=obj < %t.tgtattr \
 ; RUN:   | llvm-objdump -d -M no-aliases - | FileCheck %s
-; RUN: %riscv64_cheri_purecap_llc -mattr=+c,+xcheri,+cap-mode,+xcheri-norvc -filetype=obj < %t.tgtattr \
+; RUN: %riscv64_cheri_purecap_llc -mattr=+c,+xcheri,+xcheripurecap,+xcheri-norvc -filetype=obj < %t.tgtattr \
 ; RUN:   | llvm-objdump -d -M no-aliases - | FileCheck %s --check-prefix=CHECK-NORVC
 
 ; RUN: cat %s > %t.fnattr
-; RUN: echo 'attributes #0 = { nounwind "target-features"="+c,+xcheri,+cap-mode" }' >> %t.fnattr
+; RUN: echo 'attributes #0 = { nounwind "target-features"="+c,+xcheri,+xcheripurecap" }' >> %t.fnattr
 ; RUN: %riscv32_cheri_purecap_llc -filetype=obj < %t.fnattr \
 ; RUN:   | llvm-objdump -d --mattr=+c -M no-aliases - | FileCheck %s
 ; RUN: %riscv64_cheri_purecap_llc -filetype=obj < %t.fnattr \
 ; RUN:   | llvm-objdump -d --mattr=+c -M no-aliases - | FileCheck %s
 ; RUN: cat %s > %t.fnattr
-; RUN: echo 'attributes #0 = { nounwind "target-features"="+c,+xcheri,+cap-mode,+xcheri-norvc" }' >> %t.fnattr
+; RUN: echo 'attributes #0 = { nounwind "target-features"="+c,+xcheri,+xcheripurecap,+xcheri-norvc" }' >> %t.fnattr
 ; RUN: %riscv64_cheri_purecap_llc -filetype=obj < %t.fnattr \
 ; RUN:   | llvm-objdump -d --mattr=+c -M no-aliases - | FileCheck %s --check-prefix=CHECK-NORVC
 

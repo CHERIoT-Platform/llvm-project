@@ -6,7 +6,7 @@
 ; Note: unlike other tests we do want to test attributes in this one.
 ; CHERI-GENERIC-UTC: opt --function-signature
 ; RUN: opt < %s -passes=instcombine -S | FileCheck %s --check-prefix=CHECK-IR
-; RUN: opt < %s -passes=instcombine -S | llc -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+cap-mode,+f - -o - | FileCheck %s --check-prefix=CHECK-ASM
+; RUN: opt < %s -passes=instcombine -S | llc -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+xcheripurecap,+f - -o - | FileCheck %s --check-prefix=CHECK-ASM
 target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G200"
 
 @str = private unnamed_addr addrspace(200) constant [17 x i8] c"exactly 16 chars\00", align 4

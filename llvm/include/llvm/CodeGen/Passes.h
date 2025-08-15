@@ -519,11 +519,8 @@ LLVM_ABI extern char &MachinePipelinerID;
 /// This pass frees the memory occupied by the MachineFunction.
 LLVM_ABI FunctionPass *createFreeMachineFunctionPass();
 
-/// This pass performs merging similar functions globally.
-LLVM_ABI ModulePass *createGlobalMergeFuncPass();
-
-/// This pass logs information on generated CSetBounds calls
-FunctionPass *createLogCheriSetBoundsPass();
+  /// This pass performs merging similar functions globally.
+LLVM_ABI  ModulePass *createGlobalMergeFuncPass();
 
 /// This pass performs outlining on machine instructions directly before
 /// printing assembly.

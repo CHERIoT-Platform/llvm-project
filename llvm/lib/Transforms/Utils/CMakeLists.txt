@@ -98,7 +98,6 @@ add_llvm_component_library(LLVMTransformUtils
   ${LLVM_MAIN_INCLUDE_DIR}/llvm/Transforms/Utils
 
   DEPENDS
-  vt_gen
   intrinsics_gen
 
   LINK_COMPONENTS

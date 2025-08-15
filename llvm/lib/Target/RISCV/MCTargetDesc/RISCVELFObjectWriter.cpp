@@ -108,9 +108,7 @@ unsigned RISCVELFObjectWriter::getRelocType(MCContext &Ctx,
       return ELF::R_RISCV_CHERI_CJAL;
     case RISCV::fixup_riscv_ccall: {
       const auto *STI = Ctx.getSubtargetInfo();
-      if (STI->hasFeature(RISCV::FeatureVendorXCheriot) ||
-          STI->getTargetTriple().getSubArch() ==
-              Triple::RISCV32SubArch_cheriot_v1)
+      if (STI->hasFeature(RISCV::FeatureVendorXCheriot))
         return ELF::R_RISCV_CHERIOT_CCALL;
       return ELF::R_RISCV_CHERI_CCALL;
     }

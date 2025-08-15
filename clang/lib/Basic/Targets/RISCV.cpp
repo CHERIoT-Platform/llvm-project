@@ -245,7 +245,7 @@ void RISCVTargetInfo::getTargetDefines(const LangOptions &Opts,
     }
 
     // Macros for use with the set and get permissions builtins.
-    if (getTriple().getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1) {
+    if (ISAInfo->hasExtension("xcheriot")) {
       // Expose CHERI-compatible macros for permissions that overlap with other
       // CHERI implementations.
       Builder.defineMacro("__CHERI_CAP_PERMISSION_GLOBAL__", Twine(1 << 0));
@@ -379,6 +379,7 @@ bool RISCVTargetInfo::initFeatureMap(
 
   if (getTriple().getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1) {
     Features["xcheri"] = true;
+    Features["xcheriot"] = true;
     Features["xcheripurecap"] = true;
     Features["c"] = true;
     Features["e"] = true;

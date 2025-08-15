@@ -6,7 +6,7 @@
 ; Check that integer pointers work:
 ; RUN: sed 's/addrspace(200)/addrspace(0)/g' %s | %riscv64_cheri_llc -o - -O2 - | FileCheck %s --check-prefix RV64
 ; RUN: %riscv64_cheri_purecap_llc %s -o - -O2 | FileCheck %s --check-prefix PURECAP
-; RUNs: /Users/alex/cheri/llvm-project/cmake-build-debug/bin/llc -target-abi l64pc128 -mattr=+cap-mode -mtriple=riscv64-unknown-freebsd -mattr=+xcheri -verify-machineinstrs /Users/alex/cheri/llvm-project/llvm/test/CodeGen/RISCV/cheri/phi-not-live-out-regression.ll -o -
+; RUNs: /Users/alex/cheri/llvm-project/cmake-build-debug/bin/llc -target-abi l64pc128 -mattr=+xcheripurecap -mtriple=riscv64-unknown-freebsd -mattr=+xcheri -verify-machineinstrs /Users/alex/cheri/llvm-project/llvm/test/CodeGen/RISCV/cheri/phi-not-live-out-regression.ll -o -
 ; ModuleID = '/Users/alex/cheri/llvm-project/llvm/test/CodeGen/RISCV/cheri/jemalloc_crash.ll'
 ;source_filename = "/Users/alex/cheri/llvm-project/llvm/test/CodeGen/RISCV/cheri/jemalloc_crash.ll"
 ;target datalayout = "e-m:e-pf200:128:128:128:64-p:64:64-i64:64-i128:128-n64-S128-A200-P200-G200"

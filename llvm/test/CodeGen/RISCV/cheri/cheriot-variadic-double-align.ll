@@ -1,4 +1,4 @@
-; RUN: llc --filetype=asm --mcpu=cheriot --mtriple=riscv32cheriot-unknown-cheriotrtos -target-abi cheriot -mattr=+xcheri,+cap-mode,+xcheriot %s -o - | FileCheck %s
+; RUN: llc --filetype=asm --mcpu=cheriot --mtriple=riscv32cheriot-unknown-cheriotrtos -target-abi cheriot -mattr=+xcheri,+xcheripurecap,+xcheriot %s -o - | FileCheck %s
 
 ; Verify that varargs doubles are aligned to 8 bytes on the stack.
 

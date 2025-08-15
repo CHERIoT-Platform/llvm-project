@@ -485,8 +485,8 @@ class LLVMConfig(object):
         cheri128_args = [triple_opt + '=mips64-unknown-freebsd', '-mcpu=cheri128', '-mattr=+cheri128'] + extra_args
         riscv32_cheri_args = [triple_opt + '=riscv32-unknown-freebsd', '-mattr=+xcheri'] + extra_args
         riscv64_cheri_args = [triple_opt + '=riscv64-unknown-freebsd', '-mattr=+xcheri'] + extra_args
-        riscv32_cheri_purecap_args = ['-target-abi', 'il32pc64d', '-mattr=+cap-mode'] + riscv32_cheri_args
-        riscv64_cheri_purecap_args = ['-target-abi', 'l64pc128d', '-mattr=+cap-mode'] + riscv64_cheri_args
+        riscv32_cheri_purecap_args = ['-target-abi', 'il32pc64d', '-mattr=+xcheripurecap'] + riscv32_cheri_args
+        riscv64_cheri_purecap_args = ['-target-abi', 'l64pc128d', '-mattr=+xcheripurecap'] + riscv64_cheri_args
 
         default_args = cheri128_args
         tool_patterns = [
@@ -676,8 +676,8 @@ class LLVMConfig(object):
                 ToolSubst('%cheri_clang', command=self.config.clang, extra_args=cheri_clang_args+additional_flags),
                 ToolSubst('%cheri_purecap_clang', command=self.config.clang,
                           extra_args=cheri_clang_args + ['-mabi=purecap']+additional_flags),
-                ToolSubst('%riscv32_cheri_purecap_cc1', command='%riscv32_cheri_cc1', extra_args=['-target-abi', 'il32pc64', '-target-feature', '+cap-mode']+additional_flags),
-                ToolSubst('%riscv64_cheri_purecap_cc1', command='%riscv64_cheri_cc1', extra_args=['-target-abi', 'l64pc128', '-target-feature', '+cap-mode']+additional_flags),
+                ToolSubst('%riscv32_cheri_purecap_cc1', command='%riscv32_cheri_cc1', extra_args=['-target-abi', 'il32pc64', '-target-feature', '+xcheripurecap']+additional_flags),
+                ToolSubst('%riscv64_cheri_purecap_cc1', command='%riscv64_cheri_cc1', extra_args=['-target-abi', 'l64pc128', '-target-feature', '+xcheripurecap']+additional_flags),
                 ToolSubst('%riscv32_cheri_purecap_clang', command='%riscv32_cheri_clang', extra_args=['-mabi=il32pc64']+additional_flags),
                 ToolSubst('%riscv64_cheri_purecap_clang', command='%riscv64_cheri_clang', extra_args=['-mabi=l64pc128']+additional_flags),
                 ToolSubst('%riscv32_cheri_cc1', command=self.config.clang, extra_args=riscv32_cheri_cc1_args+additional_flags),

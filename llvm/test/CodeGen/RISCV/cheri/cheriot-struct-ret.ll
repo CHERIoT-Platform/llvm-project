@@ -1,4 +1,4 @@
-; RUN: llc --filetype=asm --mcpu=cheriot --mtriple=riscv32cheriot-unknown-cheriotrtos -target-abi cheriot  %s -mattr=+xcheri,+cap-mode,+xcheriot -o - | FileCheck %s
+; RUN: llc --filetype=asm --mcpu=cheriot --mtriple=riscv32cheriot-unknown-cheriotrtos -target-abi cheriot  %s -mattr=+xcheri,+xcheripurecap,+xcheriot -o - | FileCheck %s
 target datalayout = "e-m:e-p:32:32-i64:64-n32-S128-pf200:64:64:64:32-A200-P200-G200"
 target triple = "riscv32cheriot-unknown-cheriotrtos"
 
@@ -736,14 +736,14 @@ entry:
   ret %struct.ParentPtr %.fca.1.0.insert
 }
 
-attributes #0 = { mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, argmem: none, inaccessiblemem: none) "cheri-compartment"="example" "interrupt-state"="enabled" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+cap-mode,+e,+m,+xcheri" }
-attributes #1 = { mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none) "cheri-compartment"="example" "interrupt-state"="enabled" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+cap-mode,+e,+m,+xcheri" }
-attributes #2 = { mustprogress nofree norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none) "cheri-compartment"="example" "interrupt-state"="enabled" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+cap-mode,+e,+m,+xcheri" }
+attributes #0 = { mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, argmem: none, inaccessiblemem: none) "cheri-compartment"="example" "interrupt-state"="enabled" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+xcheripurecap,+e,+m,+xcheri" }
+attributes #1 = { mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none) "cheri-compartment"="example" "interrupt-state"="enabled" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+xcheripurecap,+e,+m,+xcheri" }
+attributes #2 = { mustprogress nofree norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none) "cheri-compartment"="example" "interrupt-state"="enabled" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+xcheripurecap,+e,+m,+xcheri" }
 attributes #3 = { mustprogress nocallback nofree nosync nounwind willreturn memory(argmem: readwrite) }
-attributes #4 = { mustprogress nofree noinline norecurse nosync nounwind willreturn memory(none) "cheri-compartment"="example" "interrupt-state"="enabled" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+cap-mode,+e,+m,+xcheri" }
-attributes #5 = { nofree noinline norecurse nosync nounwind "cheri-compartment"="example" "interrupt-state"="enabled" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+cap-mode,+e,+m,+xcheri" }
+attributes #4 = { mustprogress nofree noinline norecurse nosync nounwind willreturn memory(none) "cheri-compartment"="example" "interrupt-state"="enabled" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+xcheripurecap,+e,+m,+xcheri" }
+attributes #5 = { nofree noinline norecurse nosync nounwind "cheri-compartment"="example" "interrupt-state"="enabled" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+xcheripurecap,+e,+m,+xcheri" }
 attributes #6 = { mustprogress nocallback nofree nosync nounwind willreturn }
-attributes #7 = { nofree noinline norecurse nounwind "cheri-compartment"="example" "interrupt-state"="enabled" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+cap-mode,+e,+m,+xcheri" }
+attributes #7 = { nofree noinline norecurse nounwind "cheri-compartment"="example" "interrupt-state"="enabled" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+xcheripurecap,+e,+m,+xcheri" }
 attributes #8 = { nounwind }
 
 !llvm.module.flags = !{!0, !1, !2, !4, !5}

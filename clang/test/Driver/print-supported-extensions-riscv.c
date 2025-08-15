@@ -152,6 +152,7 @@
 // CHECK-NEXT:     svvptc               1.0       'Svvptc' (Obviating Memory-Management Instructions after Marking PTEs Valid)
 // CHECK-NEXT:     xcheri               0.0       'XCheri' (Implements CHERI extension)
 // CHECK-NEXT:     xcheriot             1.0       'XCheriot' (Implements XCheriot extension)
+// CHECK-NEXT:     xcheripurecap        0.0       'XCheriPureCap' (Implements CHERI pure capability mode)
 // CHECK-NEXT:     xcvalu               1.0       'XCValu' (CORE-V ALU Operations)
 // CHECK-NEXT:     xcvbi                1.0       'XCVbi' (CORE-V Immediate Branching)
 // CHECK-NEXT:     xcvbitmanip          1.0       'XCVbitmanip' (CORE-V Bit Manipulation)

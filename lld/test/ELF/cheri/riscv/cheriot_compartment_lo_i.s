@@ -1,10 +1,10 @@
 # REQUIRES: riscv
-# RUN: llvm-mc -triple=riscv32cheriot-unknown-cheriotrtos -mcpu=cheriot -mattr=+c,+xcheri,+xcheriot -filetype=obj %s -o %t.o
+# RUN: llvm-mc -triple=riscv32cheriot-unknown-cheriotrtos -mcpu=cheriot -mattr=+c,+xcheri,+xcheripurecap,+xcheriot -filetype=obj %s -o %t.o
 # RUN: ld.lld %t.o -o %t.exe
 # RUN: llvm-objdump -d %t.exe | FileCheck %s
 
 	.attribute	4, 16
-	.attribute	5, "rv32e2p0_m2p0_c2p0_zmmul1p0_xcheri0p0_xcheriot1p0"
+	.attribute	5, "rv32e2p0_m2p0_c2p0_zmmul1p0_xcheri0p0_xcheriot1p0_xcheripurecap1p0"
 	.section	.text,"ax",@progbits
 	.globl	_start
 	.p2align	1
@@ -43,8 +43,8 @@ _start:                              # @_Z5entryv
 near:
 	.word 1
 
-# CHECK:      00012010 <near>:
-# CHECK-NEXT: 12010: 01 00 00 00 00 00 00 00
+# CHECK:      00012020 <near>:
+# CHECK-NEXT: 12020: 01 00 00 00 00 00 00 00
 
 	.type	mid,@object
 	.p2align	12, 0x0

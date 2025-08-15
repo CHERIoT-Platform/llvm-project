@@ -668,14 +668,14 @@ DecodeStatus RISCVDisassembler::getInstruction32(MCInst &MI, uint64_t &Size,
 
   uint32_t Insn = support::endian::read32le(Bytes.data());
 
-    TRY_TO_DECODE(STI.hasFeature(RISCV::FeatureCapMode) &&
-                      !STI.hasFeature(RISCV::Feature64Bit),
-                  DecoderTableRISCV32CapModeOnly_32,
-                  "RISCV32CapModeOnly_32 table");
-    TRY_TO_DECODE(!STI.hasFeature(RISCV::Feature64Bit),
-                  DecoderTableRISCV32Only_32, "RISCV32Only_32 table");
-    TRY_TO_DECODE_FEATURE(RISCV::FeatureCapMode, DecoderTableCapModeOnly_32,
-                          "CapModeOnly_32 table");
+  TRY_TO_DECODE(STI.hasFeature(RISCV::FeatureVendorXCheriPureCap) &&
+                    !STI.hasFeature(RISCV::Feature64Bit),
+                DecoderTableRISCV32CapModeOnly_32,
+                "RISCV32CapModeOnly_32 table");
+  TRY_TO_DECODE(!STI.hasFeature(RISCV::Feature64Bit),
+                DecoderTableRISCV32Only_32, "RISCV32Only_32 table");
+  TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXCheriPureCap,
+                        DecoderTableCapModeOnly_32, "CapModeOnly_32 table");
   TRY_TO_DECODE(STI.hasFeature(RISCV::FeatureStdExtZdinx) &&
                     !STI.hasFeature(RISCV::Feature64Bit),
                 DecoderTableRV32Zdinx32,
@@ -794,11 +794,11 @@ DecodeStatus RISCVDisassembler::getInstruction16(MCInst &MI, uint64_t &Size,
   Size = 2;
 
   uint32_t Insn = support::endian::read16le(Bytes.data());
-  TRY_TO_DECODE_AND_ADD_SP(!STI.hasFeature(RISCV::Feature64Bit) &&
-                               STI.hasFeature(RISCV::FeatureCapMode),
-                           DecoderTableRISCV32CapModeOnly_16,
-                           "RISCV32CapModeOnly_16");
-  TRY_TO_DECODE_AND_ADD_SP(STI.hasFeature(RISCV::FeatureCapMode),
+  TRY_TO_DECODE_AND_ADD_SP(
+      !STI.hasFeature(RISCV::Feature64Bit) &&
+          STI.hasFeature(RISCV::FeatureVendorXCheriPureCap),
+      DecoderTableRISCV32CapModeOnly_16, "RISCV32CapModeOnly_16");
+  TRY_TO_DECODE_AND_ADD_SP(STI.hasFeature(RISCV::FeatureVendorXCheriPureCap),
                            DecoderTableCapModeOnly_16, "CapModeOnly_16 table");
   TRY_TO_DECODE_AND_ADD_SP(!STI.hasFeature(RISCV::Feature64Bit),
                            DecoderTableRISCV32Only_16,

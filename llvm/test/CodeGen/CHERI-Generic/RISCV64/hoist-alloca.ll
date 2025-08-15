@@ -29,8 +29,8 @@
 ;   }
 ; }
 
-; RUN: llc -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+cap-mode,+f,+d -o %t.mir -stop-before=early-machinelicm < %s
-; RUN: llc -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+cap-mode,+f,+d -run-pass=early-machinelicm -debug-only=machinelicm %t.mir -o /dev/null 2>%t.dbg
+; RUN: llc -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+xcheripurecap,+f,+d -o %t.mir -stop-before=early-machinelicm < %s
+; RUN: llc -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+xcheripurecap,+f,+d -run-pass=early-machinelicm -debug-only=machinelicm %t.mir -o /dev/null 2>%t.dbg
 ; RUN: FileCheck --input-file=%t.dbg --check-prefix=MACHINELICM-DBG %s
 ; Check that MachineLICM hoists the CheriBoundedStackPseudoImm (MIPS) / IncOffset+SetBoundsImm (RISCV) instructions
 ; MACHINELICM-DBG-LABEL: ******** Pre-regalloc Machine LICM: hoist_alloca_uncond
@@ -52,7 +52,7 @@
 ; MACHINELICM-DBG: Hoisting [[BOUNDS:%[0-9]+]]:gpcr = CSetBoundsImm [[INC]]:gpcr, 88
 ; MACHINELICM-DBG-NEXT:  from %bb.3 to %bb.0
 
-; RUN: llc -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+cap-mode,+f,+d -O1 -o - < %s | FileCheck %s
+; RUN: llc -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+xcheripurecap,+f,+d -O1 -o - < %s | FileCheck %s
 
 define void @hoist_alloca_uncond(i32 signext %cond) local_unnamed_addr addrspace(200) nounwind {
 ; CHECK-LABEL: hoist_alloca_uncond:

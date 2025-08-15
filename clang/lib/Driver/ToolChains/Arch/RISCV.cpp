@@ -220,7 +220,7 @@ void riscv::getRISCVTargetFeatures(const Driver &D, const llvm::Triple &Triple,
             << "pure capability ABI requires xcheri extension to be specified";
         return;
       }
-      Features.push_back("+cap-mode");
+      Features.push_back("+xcheripurecap");
     }
   }
 
@@ -232,7 +232,7 @@ void riscv::getRISCVTargetFeatures(const Driver &D, const llvm::Triple &Triple,
           << "pure capability ABI requires xcheri extension to be specified";
         return;
       }
-      Features.push_back("+cap-mode");
+      Features.push_back("+xcheripurecap");
     }
   }
 
@@ -244,7 +244,7 @@ void riscv::getRISCVTargetFeatures(const Driver &D, const llvm::Triple &Triple,
           << "pure capability ABI requires xcheri extension to be specified";
         return;
       }
-      Features.push_back("+cap-mode");
+      Features.push_back("+xcheripurecap");
     }
   }
 
@@ -256,7 +256,7 @@ void riscv::getRISCVTargetFeatures(const Driver &D, const llvm::Triple &Triple,
           << "pure capability ABI requires xcheri extension to be specified";
         return;
       }
-      Features.push_back("+cap-mode");
+      Features.push_back("+xcheripurecap");
     }
   }
 

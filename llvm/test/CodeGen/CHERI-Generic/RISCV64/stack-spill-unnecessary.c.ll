@@ -5,9 +5,9 @@
 ; Previously we were moving the allocation of the register that is only used later to the beginning of
 ; the function and saving+restoring it instead of materializing it just before
 
-; RUN: llc -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+cap-mode,+f,+d -O2 --cheri-stack-bounds-single-intrinsic-threshold=0 < %s | %cheri_FileCheck %s --check-prefixes=CHECK
+; RUN: llc -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+xcheripurecap,+f,+d -O2 --cheri-stack-bounds-single-intrinsic-threshold=0 < %s | %cheri_FileCheck %s --check-prefixes=CHECK
 ; Always use a single intrinsic for the calls (should result in same codegen)
-; RUN: llc -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+cap-mode,+f,+d -O2 --cheri-stack-bounds-single-intrinsic-threshold=0 < %s | %cheri_FileCheck %s --check-prefixes=CHECK
+; RUN: llc -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+xcheripurecap,+f,+d -O2 --cheri-stack-bounds-single-intrinsic-threshold=0 < %s | %cheri_FileCheck %s --check-prefixes=CHECK
 ; RUN: sed 's/addrspace(200)/addrspace(0)/g' %s | llc -mtriple=riscv64 --relocation-model=pic -target-abi lp64d -mattr=+xcheri,+f,+d | FileCheck --check-prefix HYBRID %s
 
 

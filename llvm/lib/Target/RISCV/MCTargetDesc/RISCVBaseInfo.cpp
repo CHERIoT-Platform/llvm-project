@@ -167,8 +167,8 @@ void validate(const Triple &TT, const FeatureBitset &FeatureBits) {
   if (FeatureBits[RISCV::FeatureVendorXCheriot]) {
     if (!FeatureBits[RISCV::FeatureVendorXCheri])
       reportFatalUsageError("XCheriot extension requires XCheri extension");
-    if (!FeatureBits[RISCV::FeatureCapMode])
-      reportFatalUsageError("XCheriot extension requires CapMode");
+    if (!FeatureBits[RISCV::FeatureVendorXCheriPureCap])
+      reportFatalUsageError("XCheriot extension requires XCheriPureCap");
   }
 }
 

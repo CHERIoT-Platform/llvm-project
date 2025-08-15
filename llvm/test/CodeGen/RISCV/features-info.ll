@@ -15,7 +15,6 @@
 ; CHECK-NEXT:   b                                - 'B' (the collection of the Zba, Zbb, Zbs extensions).
 ; CHECK-NEXT:   bfext-fusion                     - Enable SLLI+SRLI (bitfield extract) macrofusion.
 ; CHECK-NEXT:   c                                - 'C' (Compressed Instructions).
-; CHECK-NEXT:   cap-mode                         - Capability mode.
 ; CHECK-NEXT:   conditional-cmv-fusion           - Enable branch+c.mv fusion.
 ; CHECK-NEXT:   d                                - 'D' (Double-Precision Floating-Point).
 ; CHECK-NEXT:   disable-latency-sched-heuristic  - Disable latency scheduling heuristic.
@@ -194,6 +193,7 @@
 ; CHECK-NEXT:   xcheri                           - 'XCheri' (Implements CHERI extension).
 ; CHECK-NEXT:   xcheri-norvc                     - Disable CHERI RVC Instructions..
 ; CHECK-NEXT:   xcheriot                         - 'XCheriot' (Implements XCheriot extension).
+; CHECK-NEXT:   xcheripurecap                    - 'XCheriPureCap' (Implements CHERI pure capability mode).
 ; CHECK-NEXT:   xcvalu                           - 'XCValu' (CORE-V ALU Operations).
 ; CHECK-NEXT:   xcvbi                            - 'XCVbi' (CORE-V Immediate Branching).
 ; CHECK-NEXT:   xcvbitmanip                      - 'XCVbitmanip' (CORE-V Bit Manipulation).

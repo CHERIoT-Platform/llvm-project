@@ -741,7 +741,7 @@ static constexpr DecoderListEntry DecoderList32[]{
      {RISCV::FeatureVendorXMIPSCBOP},
      "MIPS mips.pref"},
     {DecoderTableXAndes32, XAndesGroup, "Andes extensions"},
-    {DecoderTableCapModeOnly_32, {RISCV::FeatureCapMode}, "CapModeOnly_32"},
+    {DecoderTableCapModeOnly_32, {RISCV::FeatureVendorXCheriPureCap}, "CapModeOnly_32"},
     // Standard Extensions
     {DecoderTable32, {}, "standard 32-bit instructions"},
     {DecoderTableRV32Only32, {}, "RV32-only standard 32-bit instructions"},
@@ -750,7 +750,7 @@ static constexpr DecoderListEntry DecoderList32[]{
 };
 
 static constexpr DecoderListEntry DecoderList32_Not64Bit[]{
-  {DecoderTableRISCV32CapModeOnly_32, {RISCV::FeatureCapMode}, "RISCV32CapModeOnly_32"},
+  {DecoderTableRISCV32CapModeOnly_32, {RISCV::FeatureVendorXCheriPureCap}, "RISCV32CapModeOnly_32"},
   {DecoderTableRISCV32Only_32, {}, "RISCV32Only_32"},
 };
 
@@ -819,7 +819,7 @@ static constexpr DecoderListEntry DecoderList16[]{
 };
 
 static constexpr DecoderListEntry DecoderList16_Not64Bit[]{
-  {DecoderTableRISCV32CapModeOnly_16, {RISCV::FeatureCapMode}, "RISCV32CapModeOnly_16"},
+  {DecoderTableRISCV32CapModeOnly_16, {RISCV::FeatureVendorXCheriPureCap}, "RISCV32CapModeOnly_16"},
 };
 
 DecodeStatus RISCVDisassembler::getInstruction16(MCInst &MI, uint64_t &Size,

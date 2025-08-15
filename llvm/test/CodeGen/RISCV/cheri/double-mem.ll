@@ -3,17 +3,17 @@
 ; RUN:   | FileCheck -check-prefix=CHECK-ILP32 %s
 ; RUN: llc -mtriple=riscv32 -target-abi ilp32d -mattr=+f,+d,+xcheri,-cap-mode -verify-machineinstrs < %s \
 ; RUN:   | FileCheck -check-prefix=CHECK-ILP32D %s
-; RUN: llc -mtriple=riscv32 -target-abi il32pc64 -mattr=+f,+d,+xcheri,+cap-mode -verify-machineinstrs < %s \
+; RUN: llc -mtriple=riscv32 -target-abi il32pc64 -mattr=+f,+d,+xcheri,+xcheripurecap -verify-machineinstrs < %s \
 ; RUN:   | FileCheck -check-prefix=CHECK-IL32PC64 %s
-; RUN: llc -mtriple=riscv32 -target-abi il32pc64d -mattr=+f,+d,+xcheri,+cap-mode -verify-machineinstrs < %s \
+; RUN: llc -mtriple=riscv32 -target-abi il32pc64d -mattr=+f,+d,+xcheri,+xcheripurecap -verify-machineinstrs < %s \
 ; RUN:   | FileCheck -check-prefix=CHECK-IL32PC64D %s
 ; RUN: llc -mtriple=riscv64 -target-abi lp64 -mattr=+f,+d,+xcheri,-cap-mode -verify-machineinstrs < %s \
 ; RUN:   | FileCheck -check-prefix=CHECK-LP64 %s
 ; RUN: llc -mtriple=riscv64 -target-abi lp64d -mattr=+f,+d,+xcheri,-cap-mode -verify-machineinstrs < %s \
 ; RUN:   | FileCheck -check-prefix=CHECK-LP64D %s
-; RUN: llc -mtriple=riscv64 -target-abi l64pc128 -mattr=+f,+d,+xcheri,+cap-mode -verify-machineinstrs < %s \
+; RUN: llc -mtriple=riscv64 -target-abi l64pc128 -mattr=+f,+d,+xcheri,+xcheripurecap -verify-machineinstrs < %s \
 ; RUN:   | FileCheck -check-prefix=CHECK-L64PC128 %s
-; RUN: llc -mtriple=riscv64 -target-abi l64pc128d -mattr=+f,+d,+xcheri,+cap-mode -verify-machineinstrs < %s \
+; RUN: llc -mtriple=riscv64 -target-abi l64pc128d -mattr=+f,+d,+xcheri,+xcheripurecap -verify-machineinstrs < %s \
 ; RUN:   | FileCheck -check-prefix=CHECK-L64PC128D %s
 
 ; Uses both loaded values in an FP op to ensure an fld is used, even for the

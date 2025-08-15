@@ -48,16 +48,16 @@ RISCV32Config = ArchSpecificValues(
     common_args=["-mtriple=riscv32", "--relocation-model=pic"],
     hybrid_sf_args=["-target-abi", "ilp32", "-mattr=+xcheri,-f"],
     hybrid_hf_args=["-target-abi", "ilp32f", "-mattr=+xcheri,+f"],
-    purecap_sf_args=["-target-abi", "il32pc64", "-mattr=+xcheri,+cap-mode,-f"],
-    purecap_hf_args=["-target-abi", "il32pc64f", "-mattr=+xcheri,+cap-mode,+f"],
+    purecap_sf_args=["-target-abi", "il32pc64", "-mattr=+xcheri,+xcheripurecap,-f"],
+    purecap_hf_args=["-target-abi", "il32pc64f", "-mattr=+xcheri,+xcheripurecap,+f"],
     datalayout=b"e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128")
 RISCV64Config = ArchSpecificValues(
     "RISCV64", base_architecture="RISCV", cap_range=64, cap_width=128,
     common_args=["-mtriple=riscv64", "--relocation-model=pic"],
     hybrid_sf_args=["-target-abi", "lp64", "-mattr=+xcheri,-f,-d"],
     hybrid_hf_args=["-target-abi", "lp64d", "-mattr=+xcheri,+f,+d"],
-    purecap_sf_args=["-target-abi", "l64pc128", "-mattr=+xcheri,+cap-mode,-f,-d"],
-    purecap_hf_args=["-target-abi", "l64pc128d", "-mattr=+xcheri,+cap-mode,+f,+d"],
+    purecap_sf_args=["-target-abi", "l64pc128", "-mattr=+xcheri,+xcheripurecap,-f,-d"],
+    purecap_hf_args=["-target-abi", "l64pc128d", "-mattr=+xcheri,+xcheripurecap,+f,+d"],
     datalayout=b"e-m:e-pf200:128:128:128:64-p:64:64-i64:64-i128:128-n64-S128")
 
 ALL_ARCHITECTURES = [MIPSConfig, RISCV32Config, RISCV64Config]

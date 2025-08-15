@@ -79,8 +79,8 @@ def update_test(ti: common.TestInfo):
             tool_cmd = tool_cmd.replace("%cheri128_purecap_opt", "opt -mtriple=mips64-unknown-freebsd -target-abi purecap -relocation-model pic -mcpu=cheri128 -mattr=+cheri128")
             tool_cmd = tool_cmd.replace("%cheri_opt", "opt -mtriple=mips64-unknown-freebsd -mcpu=cheri128 -mattr=+cheri128")
             tool_cmd = tool_cmd.replace("%cheri128_opt", "opt -mtriple=mips64-unknown-freebsd -mcpu=cheri128 -mattr=+cheri128")
-            tool_cmd = tool_cmd.replace("%riscv32_cheri_purecap_opt", "opt -mtriple=riscv32-unknown-freebsd -target-abi il32pc64 -mattr=+xcheri,+cap-mode")
-            tool_cmd = tool_cmd.replace("%riscv64_cheri_purecap_opt", "opt -mtriple=riscv64-unknown-freebsd -target-abi l64pc128 -mattr=+xcheri,+cap-mode")
+            tool_cmd = tool_cmd.replace("%riscv32_cheri_purecap_opt", "opt -mtriple=riscv32-unknown-freebsd -target-abi il32pc64 -mattr=+xcheri,+xcheripurecap")
+            tool_cmd = tool_cmd.replace("%riscv64_cheri_purecap_opt", "opt -mtriple=riscv64-unknown-freebsd -target-abi l64pc128 -mattr=+xcheri,+xcheripurecap")
             tool_cmd = tool_cmd.replace("%riscv32_cheri_opt", "opt -mtriple=riscv32-unknown-freebsd -mattr=+xcheri")
             tool_cmd = tool_cmd.replace("%riscv64_cheri_opt", "opt -mtriple=riscv64-unknown-freebsd -mattr=+xcheri")
 

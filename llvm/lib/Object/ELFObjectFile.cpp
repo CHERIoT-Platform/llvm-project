@@ -383,7 +383,7 @@ Expected<SubtargetFeatures> ELFObjectFileBase::getRISCVFeatures() const {
 
   if (PlatformFlags & ELF::EF_RISCV_CAP_MODE) {
     Features.AddFeature("xcheri");
-    Features.AddFeature("cap-mode");
+    Features.AddFeature("xcheripurecap");
   }
 
   RISCVAttributeParser Attributes;

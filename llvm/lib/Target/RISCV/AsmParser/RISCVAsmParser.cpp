@@ -3501,7 +3501,7 @@ bool RISCVAsmParser::parseDirectiveOption() {
                    "option requires 'xcheri' extension");
 
     getTargetStreamer().emitDirectiveOptionCapMode();
-    setFeatureBits(RISCV::FeatureCapMode, "cap-mode");
+    setFeatureBits(RISCV::FeatureVendorXCheriPureCap, "xcheripurecap");
     return false;
   }
 
@@ -3514,7 +3514,7 @@ bool RISCVAsmParser::parseDirectiveOption() {
                    "option requires 'xcheri' extension");
 
     getTargetStreamer().emitDirectiveOptionNoCapMode();
-    clearFeatureBits(RISCV::FeatureCapMode, "cap-mode");
+    clearFeatureBits(RISCV::FeatureVendorXCheriPureCap, "xcheripurecap");
     return false;
   }
 

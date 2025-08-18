@@ -2592,6 +2592,9 @@ private:
     if (!Tok.Previous || Tok.isNot(tok::identifier) || Tok.is(TT_ClassHeadName))
       return false;
 
+    if (Tok.endsSequence(Keywords.kw_final, TT_ClassHeadName))
+      return false;
+
     if ((Style.isJavaScript() || Style.isJava()) && Tok.is(Keywords.kw_extends))
       return false;
 
@@ -6274,7 +6277,8 @@ bool TokenAnnotator::canBreakBefore(const AnnotatedLine &Line,
   }
 
   if (Right.is(tok::colon) &&
-      !Right.isOneOf(TT_CtorInitializerColon, TT_InlineASMColon)) {
+      !Right.isOneOf(TT_CtorInitializerColon, TT_InlineASMColon,
+                     TT_BitFieldColon)) {
     return false;
   }
   if (Left.is(tok::colon) && Left.isOneOf(TT_DictLiteral, TT_ObjCMethodExpr)) {

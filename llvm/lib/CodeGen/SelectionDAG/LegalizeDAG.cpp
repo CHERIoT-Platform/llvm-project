@@ -2223,12 +2223,10 @@ SelectionDAGLegalize::ExpandLibCall(RTLIB::Libcall LC, SDNode *Node,
 std::pair<SDValue, SDValue> SelectionDAGLegalize::ExpandLibCall(RTLIB::Libcall LC, SDNode *Node,
                                             bool isSigned) {
   TargetLowering::ArgListTy Args;
-  TargetLowering::ArgListEntry Entry;
   for (const SDValue &Op : Node->op_values()) {
     EVT ArgVT = Op.getValueType();
     Type *ArgTy = ArgVT.getTypeForEVT(*DAG.getContext());
-    Entry.Node = Op;
-    Entry.Ty = ArgTy;
+    TargetLowering::ArgListEntry Entry(Op, ArgTy);
     Entry.IsSExt = TLI.shouldSignExtendTypeInLibCall(ArgTy, isSigned);
     Entry.IsZExt = !Entry.IsSExt;
     Args.push_back(Entry);
@@ -2367,11 +2365,9 @@ SDValue SelectionDAGLegalize::ExpandBitCountingLibCall(
   EVT IntVT =
       EVT::getIntegerVT(*DAG.getContext(), DAG.getLibInfo().getIntSize());
 
-  TargetLowering::ArgListEntry Arg;
   EVT ArgVT = Op.getValueType();
   Type *ArgTy = ArgVT.getTypeForEVT(*DAG.getContext());
-  Arg.Node = Op;
-  Arg.Ty = ArgTy;
+  TargetLowering::ArgListEntry Arg(Op, ArgTy);
   Arg.IsSExt = TLI.shouldSignExtendTypeInLibCall(ArgTy, /*IsSigned=*/false);
   Arg.IsZExt = !Arg.IsSExt;
 
@@ -2412,12 +2408,10 @@ SelectionDAGLegalize::ExpandDivRemLibCall(SDNode *Node,
   Type *RetTy = RetVT.getTypeForEVT(*DAG.getContext());
 
   TargetLowering::ArgListTy Args;
-  TargetLowering::ArgListEntry Entry;
   for (const SDValue &Op : Node->op_values()) {
     EVT ArgVT = Op.getValueType();
     Type *ArgTy = ArgVT.getTypeForEVT(*DAG.getContext());
-    Entry.Node = Op;
-    Entry.Ty = ArgTy;
+    TargetLowering::ArgListEntry Entry(Op, ArgTy);
     Entry.IsSExt = isSigned;
     Entry.IsZExt = !isSigned;
     Args.push_back(Entry);
@@ -2425,8 +2419,8 @@ SelectionDAGLegalize::ExpandDivRemLibCall(SDNode *Node,
 
   // Also pass the return address of the remainder.
   SDValue FIPtr = DAG.CreateStackTemporary(RetVT);
-  Entry.Node = FIPtr;
-  Entry.Ty = PointerType::getUnqual(RetTy->getContext());
+  TargetLowering::ArgListEntry Entry(
+      FIPtr, PointerType::getUnqual(RetTy->getContext()));
   Entry.IsSExt = isSigned;
   Entry.IsZExt = !isSigned;
   Args.push_back(Entry);

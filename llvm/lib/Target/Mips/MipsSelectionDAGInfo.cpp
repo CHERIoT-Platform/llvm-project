@@ -34,10 +34,7 @@ SDValue callFunction(SelectionDAG &DAG, SDLoc dl, SDValue Chain, const char
   auto &STI = getMipsSubtarget(DAG);
   TargetLowering::ArgListTy Args;
   auto pushArg = [&](SDValue &Op) {
-    TargetLowering::ArgListEntry Entry;
-    Entry.Node = Op;
-    Entry.Ty = Op.getValueType().getTypeForEVT(Ctx);
-    Args.push_back(Entry);
+    Args.emplace_back(Op, Op.getValueType().getTypeForEVT(Ctx));
   };
   pushArg(Dst);
   pushArg(Src);

@@ -3092,11 +3092,7 @@ lowerGlobalTLSAddress(SDValue Op, SelectionDAG &DAG) const
 
         SDValue TlsGetAddr = DAG.getExternalFunctionSymbol("__tls_get_addr");
 
-        ArgListTy Args;
-        ArgListEntry Entry;
-        Entry.Node = Argument;
-        Entry.Ty = CapTy;
-        Args.push_back(Entry);
+        ArgListTy Args = {{Argument, CapTy}};
 
         TargetLowering::CallLoweringInfo CLI(DAG);
         CLI.setDebugLoc(DL)
@@ -3169,10 +3165,7 @@ lowerGlobalTLSAddress(SDValue Op, SelectionDAG &DAG) const
     SDValue TlsGetAddr = DAG.getExternalFunctionSymbol("__tls_get_addr");
 
     ArgListTy Args;
-    ArgListEntry Entry;
-    Entry.Node = Argument;
-    Entry.Ty = TlsGetAddrArgAndRetTy;
-    Args.push_back(Entry);
+    Args.emplace_back(Argument, TlsGetAddrArgAndRetTy);
 
     TargetLowering::CallLoweringInfo CLI(DAG);
     CLI.setDebugLoc(DL)
@@ -4420,8 +4413,7 @@ MipsTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
       MemcpyInByVal ? 0 : ABI.GetCalleeAllocdArgSizeInBytes(CallConv);
   CCInfo.AllocateStack(ReservedArgArea, Align(1));
 
-  CCInfo.AnalyzeCallOperands(Outs, CC_Mips, CLI.getArgs(),
-                             ES ? ES->getSymbol() : nullptr);
+  CCInfo.AnalyzeCallOperands(Outs, CC_Mips, CLI.getArgs());
 
   // Get a count of how many bytes are to be pushed on the stack.
   unsigned StackSize = CCInfo.getStackSize();
@@ -4868,10 +4860,58 @@ SDValue MipsTargetLowering::LowerCallResult(
   MipsCCState CCInfo(CallConv, IsVarArg, DAG.getMachineFunction(), RVLocs,
                      *DAG.getContext());
 
-  const ExternalSymbolSDNode *ES =
-      dyn_cast_or_null<const ExternalSymbolSDNode>(CLI.Callee.getNode());
-  CCInfo.AnalyzeCallResult(Ins, RetCC_Mips, CLI.RetTy,
-                           ES ? ES->getSymbol() : nullptr);
+  CCInfo.AnalyzeCallResult(Ins, RetCC_Mips, CLI.OrigRetTy);
+
+  // Calling an external function could change the value of $cgp. We need to
+  // restore it to the $cgp on entry before calling the next function.
+  // In the PLT ABI we must restore the old value of $cgp prior to return if
+  // we called an external function or a function pointer since these may have
+  // changed the $cgp value. This ensures that the callee still has the correct
+  // value for $cgp after calling any local function (even if that function
+  // calls an external function).
+  // This could cause errors in the following sequence of calls:
+  //
+  // func_in_dso1() calls func_in_dso2() -> on return $cgp is set to the $cgp of
+  // DSO2. If func_in_dso1() then calls another function in DSO1 (i.e. any call
+  // without a trampoline that changes $cgp) that function will still have the
+  // $cgp of DSO2 and will crash (or load the wrong globals).
+  //
+  // Note: we do not need to do this for the pc-relative ABI since each function
+  // derives the value of $cgp from the $pcc on entry ($c12)
+  //
+  // TODO: This could be optimized to only be done prior to the next call or
+  // return, but I think this will only remove very few instructions
+  // E.g. we can omit the restore in the case where we call a function pointer
+  // next since that will not use $cgp
+  if (ABI.IsCheriPureCap() && MCTargetOptions::cheriCapabilityTableABI() !=
+                                       CheriCapabilityTableABI::Pcrel) {
+    bool LocalCallOptimization = false;
+    bool IsPerFileOrPerFunctionCapTable = false; // TODO: add option
+    // FIXME: for captable per file/function this should always be false!
+    // For now we just require -O0 for per-file/per-function captable
+    // When optimization is enabled, we can omit the restoring of $cgp
+    if (!IsPerFileOrPerFunctionCapTable && !isOptNone(DAG.getMachineFunction())) {
+      if (GlobalAddressSDNode *G = dyn_cast<GlobalAddressSDNode>(CLI.Callee)) {
+        LocalCallOptimization = G->getGlobal()->isDSOLocal();
+      }
+    }
+
+    if (!LocalCallOptimization) {
+      // Note: we don't need to restore the entry $cgp when calling a DSO local
+      // function since all local functions ensure that $cgp on entry == $cgp on exit
+      Chain = DAG.getCopyToReg(Chain, DL, ABI.GetGlobalCapability(), getCapGlobalReg(CLI.DAG, CapType), InGlue);
+      InGlue = Chain.getValue(1);
+    } else {
+      // TODO: at -O1 assert that $cgp before and after is the same?
+#if 0
+      SDNode *Equal = DAG.getMachineNode(Mips::CEXEQ32, DL, MVT::i32,
+          DAG.getRegister(ABI.GetGlobalCapability(), CapType), getCapGlobalReg(CLI.DAG, CapType));
+      SDNode *TrapNotEqual = DAG.getMachineNode(Mips::TEQ, DL, MVT::Other, DAG.getConstant(0, DL, MVT::i32, true), SDValue(Equal, 0), DAG.getConstant(0, DL, MVT::i32, true));
+      // FIXME: how to add this to chain correctly?
+      DAG.dump();
+#endif
+    }
+  }
 
 
   // Calling an external function could change the value of $cgp. We need to

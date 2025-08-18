@@ -20,6 +20,7 @@ define i32 @a() {
 ; CHECK-NEXT:    clcbi $c12, %capcall20(external_fn1)($c18)
 ; CHECK-NEXT:    cjalr $c12, $c17
 ; CHECK-NEXT:    cgetnull $c13
+; CHECK-NEXT:    cmove $c26, $c18
 ; CHECK-NEXT:    move $16, $2
 ; CHECK-NEXT:    clcbi $c12, %capcall20(external_fn2)($c18)
 ; CHECK-NEXT:    cjalr $c12, $c17
@@ -27,6 +28,7 @@ define i32 @a() {
 ; CHECK-NEXT:    cmove $c26, $c18
 ; CHECK-NEXT:    addu $2, $16, $2
 ; restore $cgp after return from potential external call
+; CHECK-NEXT:    cmove $c26, $c18
 ; CHECK-NEXT:    cmove $c26, $c18
 ; CHECK-NEXT:    clc $c17, $zero, 0($c11)
 ; CHECK-NEXT:    clc $c18, $zero, [[#CAP_SIZE]]($c11)

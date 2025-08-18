@@ -77,7 +77,7 @@ define ptr addrspace(200) @no_onstack_args_call_variadic(ptr addrspace(200) %in_
 ; CHECK-NEXT:    ori $1, $zero, 65495
 ; CHECK-NEXT:    cjalr $c12, $c17
 ; CHECK-NEXT:    candperm $c13, $c1, $1
-; Restore $cgp
+; CHECK-NEXT:    cmove $c26, $c18
 ; CHECK-NEXT:    cmove $c26, $c18
 ; CHECK-NEXT:    clc $c17, $zero, 16($c11) # 16-byte Folded Reload
 ; CHECK-NEXT:    clc $c18, $zero, 32($c11) # 16-byte Folded Reload

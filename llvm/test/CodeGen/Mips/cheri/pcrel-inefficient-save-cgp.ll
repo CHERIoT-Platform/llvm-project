@@ -18,8 +18,10 @@ define ptr addrspace(200) @_ZN16QGraphicsWebView8settingsEv(ptr addrspace(200) %
 ; PLT-NEXT:    clcbi $c12, %capcall20(_ZN16QGraphicsWebView4pageEv)($c18)
 ; PLT-NEXT:    cjalr $c12, $c17
 ; PLT-NEXT:    nop
+; PLT-NEXT:    cmove $c26, $c18
 ; PLT-NEXT:    clcbi $c12, %capcall20(_ZN8QWebPage8settingsEv)($c18)
 ; PLT-NEXT:    cjalr $c12, $c17
+; PLT-NEXT:    cmove $c26, $c18
 ; PLT-NEXT:    cmove $c26, $c18
 ; PLT-NEXT:    cmove $c26, $c18
 ; PLT-NEXT:    clc $c17, $zero, 0($c11)

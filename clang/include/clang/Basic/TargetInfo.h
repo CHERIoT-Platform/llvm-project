@@ -239,8 +239,9 @@ protected:
   /// True if empty parameter lists should be treated as no-argument functions
   /// in all language dialects (not just C++ and C23).
   bool EmptyParameterListIsVoid = false;
-  bool HasLegalHalfType; // True if the backend supports operations on the half
-                         // LLVM IR type.
+  bool HasFastHalfType;    // True if the backend has native half float support,
+                           // and performing calculations in float instead does
+                           // not have a performance advantage.
   bool HalfArgsAndReturns; // OpenCL 6.1.1.1, NEON (IEEE 754-2008 half) type.
   bool HasFloat128;
   bool HasFloat16;
@@ -732,8 +733,9 @@ public:
     return 128;
   }
 
-  /// Determine whether _Float16 is supported on this target.
-  virtual bool hasLegalHalfType() const { return HasLegalHalfType; }
+  /// Determine whether the target has fast native support for operations
+  /// on half types.
+  virtual bool hasFastHalfType() const { return HasFastHalfType; }
 
   /// Whether half args and returns are supported.
   virtual bool allowHalfArgsAndReturns() const { return HalfArgsAndReturns; }

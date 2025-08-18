@@ -27,11 +27,11 @@ declare i32 @external_fn()
 ; SYMTAB-NEXT:  0000000000000000 l     F .text		 0000000000000014 maybe_inline
 ; SYMTAB-NEXT: 0000000000000000 l       .text		 0000000000000000
 ; SYMTAB-NEXT: 0000000000000018 l       .text		 0000000000000000
-; SYMTAB-NEXT: 0000000000000018 g     F .text		 000000000000005c test_func
+; SYMTAB-NEXT: 0000000000000018 g     F .text		 0000000000000064 test_func
 ; SYMTAB-NEXT: 0000000000000000         *UND*		 0000000000000000 external_fn
 ; SYMTAB-EMPTY:
 
 ; CSV: alignment_bits,size,kind,source_loc,compiler_pass,details
 ; CSV-NEXT: 2,20,c,"UNKNOWN","ELF symbol table","Function maybe_inline"
-; CSV-NEXT: 2,92,c,"UNKNOWN","ELF symbol table","Function test_func"
+; CSV-NEXT: 2,100,c,"UNKNOWN","ELF symbol table","Function test_func"
 ; CSV-EMPTY:

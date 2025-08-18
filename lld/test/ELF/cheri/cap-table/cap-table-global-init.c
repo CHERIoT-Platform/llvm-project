@@ -22,7 +22,7 @@ int main(void) {
 }
 
 // CHECK-LABEL: SYMBOL TABLE:
-// CHECK-DAG: 0000000000020358    l        F .text		 0000000000000038 .protected _start
+// CHECK-DAG: 0000000000020358    l        F .text		 000000000000003c .protected _start
 // CHECK-DAG: 00000000000202f0    g        F .text		 0000000000000068 __start
 // CHECK-DAG: 00000000000303d0 l             .captable		 0000000000000030 .hidden __cap_table_start
 // CHECK-DAG: 0000000000030400 l             .captable		 0000000000000000 .hidden __cap_table_end

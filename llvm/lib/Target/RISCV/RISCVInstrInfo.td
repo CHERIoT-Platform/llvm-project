@@ -2434,6 +2434,7 @@ include "RISCVInstrInfoXqccmp.td"
 include "RISCVInstrInfoXMips.td"
 include "RISCVInstrInfoXRivos.td"
 include "RISCVInstrInfoXAndes.td"
+include "RISCVInstrInfoXSpacemiT.td"
 
 //===----------------------------------------------------------------------===//
 // Global ISel

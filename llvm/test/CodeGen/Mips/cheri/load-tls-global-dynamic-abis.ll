@@ -78,6 +78,8 @@ entry:
 ; CAP-TABLE-NEXT:   CapJumpLinkPseudo killed %[[CAPTABLE_CALL]]:cherigpr, <regmask {{.+}}>, implicit-def dead $c17, implicit-def dead $c26, implicit $c3, implicit-def $c11, implicit-def $c3
 ; CAP-TABLE-NEXT:   ADJCALLSTACKCAPUP 0, 0, implicit-def dead $c11, implicit $c11
 ; PLT-NEXT:         $c26 = COPY [[CAPTABLE]]
+; PLT-NEXT:         $c26 = COPY [[CAPTABLE]]
+; FNDESC-NEXT:      $c26 = COPY [[CAPTABLE]]
 ; FNDESC-NEXT:      $c26 = COPY [[CAPTABLE]]
 ; CAP-TABLE-NEXT:   %[[C3_COPY:[0-9]+]]:cherigpr = COPY $c3
 ; CAP-TABLE-NEXT:   %[[LOAD:[0-9]+]]:gpr64 = CAPLOAD64 $zero_64, 0, %[[C3_COPY]]:cherigpr :: (dereferenceable load (s64) from @external_gd, addrspace 200)
@@ -91,6 +93,8 @@ entry:
 ; CAP-TABLE-NEXT:   CapJumpLinkPseudo killed %[[CAPTABLE_CALL2]]:cherigpr, <regmask {{.+}}>, implicit-def dead $c17, implicit-def dead $c26, implicit $c3, implicit-def $c11, implicit-def $c3
 ; CAP-TABLE-NEXT:   ADJCALLSTACKCAPUP 0, 0, implicit-def dead $c11, implicit $c11
 ; PLT-NEXT:         $c26 = COPY [[CAPTABLE]]
+; PLT-NEXT:         $c26 = COPY [[CAPTABLE]]
+; FNDESC-NEXT:      $c26 = COPY [[CAPTABLE]]
 ; FNDESC-NEXT:      $c26 = COPY [[CAPTABLE]]
 ; CAP-TABLE-NEXT:   %[[C3_COPY:[0-9]+]]:cherigpr = COPY $c3
 ; CAP-TABLE-NEXT:   %[[DTPREL_HI:[0-9]+]]:gpr64 = LUi64 target-flags(mips-dtprel-hi) @internal_gd

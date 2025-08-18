@@ -5,14 +5,14 @@
 // DISAS: 0000000000000024: R_MIPS_CHERI_CAPCALL20/R_MIPS_NONE/R_MIPS_NONE check_if_default
 // DISAS: 0000000000000060: R_MIPS_CHERI_CAPTAB20/R_MIPS_NONE/R_MIPS_NONE static_callback
 // DISAS: 0000000000000064: R_MIPS_CHERI_CAPCALL20/R_MIPS_NONE/R_MIPS_NONE check_if_default
-// DISAS: 00000000000000a8: R_MIPS_CHERI_CAPTAB20/R_MIPS_NONE/R_MIPS_NONE static_callback
-// DISAS: 00000000000000ac: R_MIPS_CHERI_CAPCALL20/R_MIPS_NONE/R_MIPS_NONE check_if_default
-// DISAS: 00000000000000e0: R_MIPS_CHERI_CAPTAB20/R_MIPS_NONE/R_MIPS_NONE static_callback
-// DISAS: 00000000000000e4: R_MIPS_CHERI_CAPCALL20/R_MIPS_NONE/R_MIPS_NONE check_if_default
-// DISAS: 0000000000000114: R_MIPS_CHERI_CAPTAB20/R_MIPS_NONE/R_MIPS_NONE static_callback
-// DISAS: 0000000000000118: R_MIPS_CHERI_CAPCALL20/R_MIPS_NONE/R_MIPS_NONE check_if_default
-// DISAS: 0000000000000194: R_MIPS_CHERI_CAPTAB20/R_MIPS_NONE/R_MIPS_NONE callbacks
-// DISAS: 000000000000019c: R_MIPS_CHERI_CAPCALL20/R_MIPS_NONE/R_MIPS_NONE check_if_default
+// DISAS: 00000000000000b0: R_MIPS_CHERI_CAPTAB20/R_MIPS_NONE/R_MIPS_NONE static_callback
+// DISAS: 00000000000000b4: R_MIPS_CHERI_CAPCALL20/R_MIPS_NONE/R_MIPS_NONE check_if_default
+// DISAS: 00000000000000f0: R_MIPS_CHERI_CAPTAB20/R_MIPS_NONE/R_MIPS_NONE static_callback
+// DISAS: 00000000000000f4: R_MIPS_CHERI_CAPCALL20/R_MIPS_NONE/R_MIPS_NONE check_if_default
+// DISAS: 0000000000000128: R_MIPS_CHERI_CAPTAB20/R_MIPS_NONE/R_MIPS_NONE static_callback
+// DISAS: 000000000000012c: R_MIPS_CHERI_CAPCALL20/R_MIPS_NONE/R_MIPS_NONE check_if_default
+// DISAS: 00000000000001ac: R_MIPS_CHERI_CAPTAB20/R_MIPS_NONE/R_MIPS_NONE callbacks
+// DISAS: 00000000000001b4: R_MIPS_CHERI_CAPCALL20/R_MIPS_NONE/R_MIPS_NONE check_if_default
 
 // RUN: %cheri128_purecap_cc1 -mllvm -cheri-cap-table-abi=plt -emit-obj -o %t2.o -DOTHER_FILE %s
 // RUN: llvm-objdump --syms %t2.o | FileCheck %s --check-prefix OTHER_FILE-SYMS
@@ -140,14 +140,14 @@
 // STATIC-NEXT:  DynamicSymbols [
 // STATIC-NEXT:  ]
 // STATIC-NEXT:  CHERI __cap_relocs [
-// STATIC-NEXT:     0x030600 (callbacks)     Base: 0x203c0 (default_callback+0) Length: 12 Perms: Function
-// STATIC-NEXT:     0x030610 Base: 0x20448 (static_callback+0) Length: 12 Perms: Function
-// STATIC-NEXT:     0x030620 Base: 0x203c0 (default_callback+0) Length: 12 Perms: Function
-// STATIC-NEXT:     0x030630 Base: 0x20448 (static_callback+0) Length: 12 Perms: Function
-// STATIC-NEXT:     0x030640 (default_callback@CAPTABLE) Base: 0x203c0 (default_callback+0) Length: 12 Perms: Function
-// STATIC-NEXT:     0x030650 (check_if_default@CAPTABLE) Base: 0x205d0 (check_if_default+0) Length: {{.+}} Perms: Function
-// STATIC-NEXT:     0x030660 (static_callback@CAPTABLE.2) Base: 0x20448 (static_callback+0) Length: 12 Perms: Function
-// STATIC-NEXT:     0x030670 (callbacks@CAPTABLE.3) Base: 0x30600 (callbacks+0) Length: 64 Perms: Constant
+// STATIC-NEXT:     0x030620 (callbacks)     Base: 0x203c0 (default_callback+0) Length: 12 Perms: Function
+// STATIC-NEXT:     0x030630 Base: 0x20450 (static_callback+0) Length: 12 Perms: Function
+// STATIC-NEXT:     0x030640 Base: 0x203c0 (default_callback+0) Length: 12 Perms: Function
+// STATIC-NEXT:     0x030650 Base: 0x20450 (static_callback+0) Length: 12 Perms: Function
+// STATIC-NEXT:     0x030660 (default_callback@CAPTABLE) Base: 0x203c0 (default_callback+0) Length: 12 Perms: Function
+// STATIC-NEXT:     0x030670 (check_if_default@CAPTABLE) Base: 0x205f0 (check_if_default+0) Length: {{.+}} Perms: Function
+// STATIC-NEXT:     0x030680 (static_callback@CAPTABLE.2) Base: 0x20450 (static_callback+0) Length: 12 Perms: Function
+// STATIC-NEXT:     0x030690 (callbacks@CAPTABLE.3) Base: 0x30620 (callbacks+0) Length: 64 Perms: Constant
 // STATIC-NEXT:  ]
 // STATIC-NEXT:  CHERI .captable [
 // STATIC-NEXT:    0x0      default_callback@CAPTABLE

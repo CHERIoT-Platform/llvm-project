@@ -22,6 +22,7 @@ entry:
   ; CHECK-NEXT: cjalr	$c12, $c17
   ; CHECK-NEXT: nop
   ; CHECK-NEXT: cmove	$c26, $c18
+  ; CHECK-NEXT: cmove	$c26, $c18
   ; CHECK-NEXT: clc	$c17, $zero, 0($c11)
   ; CHECK-NEXT: clc	$c18, $zero, [[#CAP_SIZE]]($c11)
   ; CHECK-NEXT: cjr	$c17

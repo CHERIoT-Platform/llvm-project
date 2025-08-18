@@ -242,6 +242,8 @@ def GPRCMem : MemOperand<GPRC>;
 
 class SImmAsmOperand<int width, string suffix = "">
     : ImmAsmOperand<"S", width, suffix> {
+  // XXX CHERIoT: Workaround for insufficient constraints in upstream.
+  let SuperClasses = [ImmXLenAsmOperand<"", "LI">];
 }
 
 class UImmAsmOperand<int width, string suffix = "">

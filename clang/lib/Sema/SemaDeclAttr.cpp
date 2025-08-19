@@ -2106,7 +2106,7 @@ static void handleCHERIMethodSuffix(Sema &S, Decl *D, const ParsedAttr &Attr) {
   D->addAttr(::new (S.Context) CHERIMethodSuffixAttr(S.Context, Attr, Str));
 }
 
-static void handleCHERIOTMMIODevice(Sema &S, Decl *D, const ParsedAttr &Attr,
+static void handleCHERIoTMMIODevice(Sema &S, Decl *D, const ParsedAttr &Attr,
                                     Sema::DeclAttributeLocation DAL) {
   auto *VD = dyn_cast<VarDecl>(D);
   if (!VD || !VD->hasGlobalStorage())
@@ -2166,11 +2166,11 @@ static void handleCHERIOTMMIODevice(Sema &S, Decl *D, const ParsedAttr &Attr,
           FailedSemanticCheckCallback))
     return;
 
-  return D->addAttr(::new (S.Context) CHERIOTMMIODeviceAttr(
+  return D->addAttr(::new (S.Context) CHERIoTMMIODeviceAttr(
       S.Context, Attr, DeviceName, OwnedPermissions));
 }
 
-static void handleCHERIOTSharedObject(Sema &S, Decl *D, const ParsedAttr &Attr,
+static void handleCHERIoTSharedObject(Sema &S, Decl *D, const ParsedAttr &Attr,
                                       Sema::DeclAttributeLocation DAL) {
   auto *VD = dyn_cast<VarDecl>(D);
   if (!VD || !VD->hasGlobalStorage())
@@ -2226,7 +2226,7 @@ static void handleCHERIOTSharedObject(Sema &S, Decl *D, const ParsedAttr &Attr,
           FailedSemanticCheckCallback))
     return;
 
-  D->addAttr(::new (S.Context) CHERIOTSharedObjectAttr(
+  D->addAttr(::new (S.Context) CHERIoTSharedObjectAttr(
       S.Context, Attr, ObjectName, OwnedPermissions));
 }
 
@@ -7501,11 +7501,11 @@ ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D, const ParsedAttr &AL,
   case ParsedAttr::AT_CHERICompartmentName:
     handleCHERICompartmentName(S, D, AL, DAL);
     break;
-  case ParsedAttr::AT_CHERIOTMMIODevice:
-    handleCHERIOTMMIODevice(S, D, AL, DAL);
+  case ParsedAttr::AT_CHERIoTMMIODevice:
+    handleCHERIoTMMIODevice(S, D, AL, DAL);
     break;
-  case ParsedAttr::AT_CHERIOTSharedObject:
-    handleCHERIOTSharedObject(S, D, AL, DAL);
+  case ParsedAttr::AT_CHERIoTSharedObject:
+    handleCHERIoTSharedObject(S, D, AL, DAL);
     break;
   case ParsedAttr::AT_CHERIoTSealedType:
     handleCHERIoTSealedType(S, D, AL, DAL);

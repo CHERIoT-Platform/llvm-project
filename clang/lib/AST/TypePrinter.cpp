@@ -2106,10 +2106,10 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   case attr::CHERILibCall:
     OS << "cheri_libcall";
     break;
-  case attr::CHERIOTMMIODevice:
+  case attr::CHERIoTMMIODevice:
     OS << "cheriot_mmio";
     break;
-  case attr::CHERIOTSharedObject:
+  case attr::CHERIoTSharedObject:
     OS << "cheriot_shared_object";
     break;
   case attr::CHERIoTSealedType:

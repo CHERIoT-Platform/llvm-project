@@ -2892,16 +2892,16 @@ def CHERILibCall : DeclOrTypeAttr {
   let Subjects = SubjectList<[Function], ErrorDiag>;
 }
 
-def CHERIOTMMIODevice : DeclOrTypeAttr {
+def CHERIoTMMIODevice : DeclOrTypeAttr {
   let Spellings = [GNU<"cheriot_mmio">];
-  let Documentation = [CHERIOTMMIODeviceDocs];
+  let Documentation = [CHERIoTMMIODeviceDocs];
   let Args = [StringArgument<"DeviceName">, StringArgument<"EncodedPermissions", 1>];
   let Subjects = SubjectList<[GlobalVar], ErrorDiag>;
 }
 
-def CHERIOTSharedObject : DeclOrTypeAttr {
+def CHERIoTSharedObject : DeclOrTypeAttr {
   let Spellings = [GNU<"cheriot_shared_object">];
-  let Documentation = [CHERIOTSharedObjectDocs];
+  let Documentation = [CHERIoTSharedObjectDocs];
   let Args = [StringArgument<"ObjectName">, StringArgument<"EncodedPermissions", 1>];
   let Subjects = SubjectList<[GlobalVar], ErrorDiag>;
 }

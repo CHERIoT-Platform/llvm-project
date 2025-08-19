@@ -1361,6 +1361,7 @@ public:
     SharedObject
   };
 
+  // clang-format off
   /// Parses the string value previously constructed into an instance of the
   /// attribute object. The constructed string must have the following
   /// structure: `<ImportKindStr>,<ObjectName>,<Permissions>`.
@@ -1375,16 +1376,19 @@ public:
   /// that it is assumed to be in this form:
   ///
   /// ```
-  /// Permissions     := ReadPermission WritePermissions CapPermission
-  /// MutPermission ReadPermission  := `ReadPermissionSymbol` | "-"
+  /// Permissions     := ReadPermission WritePermissions CapPermission LoadMutablePermission LoadGlobalPermission
+  /// ReadPermission  := `ReadPermissionSymbol` | "-"
   /// WritePermission := `WritePermissionSymbol` | "-"
   /// CapPermission   := `CapPermissionSymbol` | "-"
   /// WritePermission := `WritePermissionSymbol` | "-"
+  /// LoadMutablePermission  := `LoadMutablePermissionSymbol` | "-"
+  /// LoadGlobalPermission  := `LoadGlobalPermissionSymbol` | "-"
   /// ```
   ///
   /// The resulting `GlobalCapabilityImportAttr` will have the `ImportKind` and
   /// `Domain` fields derived from `<ImportKindStr>`, `ObjectName` equal to
   /// `<ObjectName>` and `Permissions` equal to `<Permissions>`.
+  // clang-format on
   CHERIoTGlobalCapabilityImportAttr(StringRef ValueRef) {
     size_t NextSubstrStartsAt = 0;
 
@@ -1463,7 +1467,8 @@ public:
     return (((Permissions[0] == *ReadPermissionSymbol) ? (1 << 31) : 0) +
             ((Permissions[1] == *WritePermissionSymbol) ? (1 << 30) : 0) +
             ((Permissions[2] == *CapPermissionSymbol) ? (1 << 29) : 0) +
-            ((Permissions[3] == *MutPermissionSymbol) ? (1 << 28) : 0));
+            ((Permissions[3] == *LoadMutablePermissionSymbol) ? (1 << 28) : 0) +
+            ((Permissions[4] == *LoadGlobalPermissionSymbol) ? (1 << 27) : 0));
   }
 
   /// Checks whether a permission encoding respects the semantic constraints.
@@ -1480,8 +1485,9 @@ public:
     auto PermissionsRef = StringRef(Permissions);
     auto HasRead = PermissionsRef.contains(ReadPermissionSymbol);
     auto HasWrite = PermissionsRef.contains(WritePermissionSymbol);
-    auto HasMut = PermissionsRef.contains(MutPermissionSymbol);
+    auto HasMut = PermissionsRef.contains(LoadMutablePermissionSymbol);
     auto HasCap = PermissionsRef.contains(CapPermissionSymbol);
+    auto HasLoadGlobal = PermissionsRef.contains(LoadGlobalPermissionSymbol);
 
     if (!HasRead && !HasWrite) {
       FailedSemanticCheckCallback(
@@ -1492,7 +1498,16 @@ public:
 
     if (HasMut && (!HasRead || !HasCap)) {
       FailedSemanticCheckCallback(
-          "contains mut (" + std::string(MutPermissionSymbol) +
+          "contains mut (" + std::string(LoadMutablePermissionSymbol) +
+          ") but does not have both read (" +
+          std::string(ReadPermissionSymbol) + ") and cap (" +
+          std::string(CapPermissionSymbol) + ")");
+      return false;
+    }
+
+    if (HasLoadGlobal && (!HasRead || !HasCap)) {
+      FailedSemanticCheckCallback(
+          "contains load global (" + std::string(LoadGlobalPermissionSymbol) +
           ") but does not have both read (" +
           std::string(ReadPermissionSymbol) + ") and cap (" +
           std::string(CapPermissionSymbol) + ")");
@@ -1502,7 +1517,8 @@ public:
     Permissions = ((HasRead ? Twine(ReadPermissionSymbol) : "-") +
                    (HasWrite ? Twine(WritePermissionSymbol) : "-") +
                    (HasCap ? Twine(CapPermissionSymbol) : "-") +
-                   (HasMut ? Twine(MutPermissionSymbol) : "-"))
+                   (HasMut ? Twine(LoadMutablePermissionSymbol) : "-") +
+                   (HasLoadGlobal ? Twine(LoadGlobalPermissionSymbol) : "-"))
                       .str();
     return true;
   }
@@ -1573,7 +1589,9 @@ public:
   static const std::string defaultPermissions() {
     return std::string(ReadPermissionSymbol) +
            std::string(WritePermissionSymbol) +
-           std::string(CapPermissionSymbol) + std::string(MutPermissionSymbol);
+           std::string(CapPermissionSymbol) +
+           std::string(LoadMutablePermissionSymbol) +
+           std::string(LoadGlobalPermissionSymbol);
   }
 
   ImportKind ImportKind;
@@ -1596,11 +1614,14 @@ private:
   static constexpr const char *CapPermissionSymbol = "c";
 
   /// The symbol for the mut permission.
-  static constexpr const char *MutPermissionSymbol = "m";
+  static constexpr const char *LoadMutablePermissionSymbol = "m";
 
-  static constexpr const std::array<char, 4> ValidSymbols = {
+  /// The symbol for the load global permission.
+  static constexpr const char *LoadGlobalPermissionSymbol = "g";
+
+  static constexpr const std::array<char, 5> ValidSymbols = {
       ReadPermissionSymbol[0], WritePermissionSymbol[0], CapPermissionSymbol[0],
-      MutPermissionSymbol[0]};
+      LoadMutablePermissionSymbol[0], LoadGlobalPermissionSymbol[0]};
 
   static constexpr const char *MmioImportKindStr = "mem";
   static constexpr const char *SharedObjectImportKindStr =

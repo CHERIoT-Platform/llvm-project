@@ -13819,14 +13819,14 @@ void Sema::AddInitializerToDecl(Decl *RealDecl, Expr *Init, bool DirectInit) {
   // CHERIoT-specific check: if the decl has the `cheriot_mmio` or
   // `cheriot_shared_object` attributes and also has an explicit definition, an
   // error must be generated.
-  if (RealDecl->hasAttr<CHERIOTSharedObjectAttr>() ||
-      RealDecl->hasAttr<CHERIOTMMIODeviceAttr>()) {
+  if (RealDecl->hasAttr<CHERIoTSharedObjectAttr>() ||
+      RealDecl->hasAttr<CHERIoTMMIODeviceAttr>()) {
     const IdentifierInfo *AttrName;
 
-    if (auto *Attr = RealDecl->getAttr<CHERIOTSharedObjectAttr>())
+    if (auto *Attr = RealDecl->getAttr<CHERIoTSharedObjectAttr>())
       AttrName = Attr->getAttrName();
     else {
-      AttrName = RealDecl->getAttr<CHERIOTMMIODeviceAttr>()->getAttrName();
+      AttrName = RealDecl->getAttr<CHERIoTMMIODeviceAttr>()->getAttrName();
     }
 
     Diag(RealDecl->getLocation(),

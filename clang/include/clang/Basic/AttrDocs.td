@@ -1473,7 +1473,7 @@ Further reading for other annotations:
   }];
 }
 
-def CHERIOTMMIODeviceDocs : Documentation {
+def CHERIoTMMIODeviceDocs : Documentation {
   let Category = DocCatVariable;
   let Content = [{
 Indicates that the global it refers to must be treated as a cross-compartment
@@ -1486,7 +1486,7 @@ qualifiers.
 of the MMIO-bound device. An example of this is ``"uart"``. The
 ``"<permissions_encoding>"`` indicates the permissions of the capability
 resulting from the import. The permissions encoding is a string of variable
-length. The symbols allowed in the string are ``R``, ``W``, ``c`` and ``m``,
+length. The symbols allowed in the string are ``R``, ``W``, ``c``, ``m`` and ``g``,
 whose meaning is explained in the table below.
 
 
@@ -1496,18 +1496,19 @@ whose meaning is explained in the table below.
    "``R``","Load (Read)", "May be used to read.",""
    "``W``","Store (Write)", "May be used to write.",""
    "``c``","Load / Store Capability", "May be used to load or store capabilities as well as non-capability data.","``R`` or ``W``"
-   "``m``","Load Mutable", "May be used to load capabilities with write permission.","``R``"
+   "``m``","Load Mutable", "May be used to load capabilities with write permission.","``R`` and ``c``"
+   "``g``","Load Global", "	May be used to load capabilities with the global permission.","``R`` and ``c``"
 
 Examples of valid encodings are: ``"RWcm"`` (all permissions), ``"R"`` (read
 only), etc. Note that the order in which symbols appear is not relevant: for
 example, `"RWcm"` and `"mcWR"` are both valid and entail the same permissions.
 
-**Warning**: The ``<permissions_encoding>`` parameter is optional, and if no encoding is given ``"RWcm"`` is assumed.
+**Warning**: The ``<permissions_encoding>`` parameter is optional, and if no encoding is given ``"RWcmg"`` is assumed.
   }];
 }
 
 
-def CHERIOTSharedObjectDocs : Documentation {
+def CHERIoTSharedObjectDocs : Documentation {
   let Category = DocCatVariable;
   let Content = [{
 Indicates that the global it refers to must be treated as a cross-compartment
@@ -1521,7 +1522,7 @@ cross-compartment shared object. The target global must have the `extern` and
 of the shared object. The ``"<permissions_encoding>"`` indicates the permissions
 of the capability resulting from the import. The permissions encoding is a
 string of variable length. The symbols allowed in the string are ``R``, ``W``,
-``c`` and ``m``, whose meaning is explained in the table below.
+``c``, ``m`` and ``g``, whose meaning is explained in the table below.
 
 
 .. csv-table:: Supported Syntaxes
@@ -1530,13 +1531,14 @@ string of variable length. The symbols allowed in the string are ``R``, ``W``,
    "``R``","Load (Read)", "May be used to read.",""
    "``W``","Store (Write)", "May be used to write.",""
    "``c``","Load / Store Capability", "May be used to load or store capabilities as well as non-capability data.","``R`` or ``W``"
-   "``m``","Load Mutable", "May be used to load capabilities with write permission.","``R``"
+   "``m``","Load Mutable", "May be used to load capabilities with write permission.","``R`` and ``c``"
+   "``g``","Load Global", "	May be used to load capabilities with the global permission.","``R`` and ``c``"
 
 Examples of valid encodings are: ``"RWcm"`` (all permissions), ``"R"`` (read
 only), etc. Note that the order in which symbols appear is not relevant: for
 example, `"RWcm"` and `"mcWR"` are both valid and entail the same permissions.
 
-**Warning**: The ``<permissions_encoding>`` parameter is optional, and if no encoding is given ``"RWcm"`` is assumed.
+**Warning**: The ``<permissions_encoding>`` parameter is optional, and if no encoding is given ``"RWcmg"`` is assumed.
   }];
 }
 

@@ -2,189 +2,232 @@
 
 struct Uart {};
 
-// No specific perm encoding means "RWcm".
+// No specific perm encoding means "RWcmg".
 // CHECK: @uart = external addrspace(200) global %struct.Uart, align 1 #0 
 __attribute__((cheriot_mmio("uart"))) extern volatile struct Uart uart;
 
-// CHECK: @uart1 = external addrspace(200) global %struct.Uart, align 1 #0 
-__attribute__((cheriot_mmio("uart", "WcmR"))) volatile struct Uart uart1;
+// CHECK: @uart_WcmRg = external addrspace(200) global %struct.Uart, align 1 #0 
+__attribute__((cheriot_mmio("uart", "WcmRg"))) volatile struct Uart uart_WcmRg;
 
-// CHECK: @uart2 = external addrspace(200) global %struct.Uart, align 1 #0 
-__attribute__((cheriot_mmio("uart", "cmRW"))) volatile struct Uart uart2;
+// CHECK: @uart_cmRWg = external addrspace(200) global %struct.Uart, align 1 #0 
+__attribute__((cheriot_mmio("uart", "cmRWg"))) volatile struct Uart uart_cmRWg;
 
-// CHECK: @uart3 = external addrspace(200) global %struct.Uart, align 1 #0 
-__attribute__((cheriot_mmio("uart", "RmcW"))) volatile struct Uart uart3;
+// CHECK: @uart_RmcWg = external addrspace(200) global %struct.Uart, align 1 #0 
+__attribute__((cheriot_mmio("uart", "RmcWg"))) volatile struct Uart uart_RmcWg;
 
-// CHECK: @uart4 = external addrspace(200) global %struct.Uart, align 1 #0 
-__attribute__((cheriot_mmio("uart", "RmcW"))) volatile struct Uart uart4;
+// CHECK: @uart_RmcWg2 = external addrspace(200) global %struct.Uart, align 1 #0 
+__attribute__((cheriot_mmio("uart", "RmcWg"))) volatile struct Uart uart_RmcWg2;
 
 // CHECK: @SO = external addrspace(200) global i32, align 4 #1
 __attribute__((cheriot_shared_object("SO"))) int SO;
 
-// CHECK: @SO1 = external addrspace(200) global i32, align 4 #1
-__attribute__((cheriot_shared_object("SO", "RWcm"))) extern int SO1;
+// CHECK: @SO_RWcmg = external addrspace(200) global i32, align 4 #1
+__attribute__((cheriot_shared_object("SO", "RWcmg"))) extern int SO_RWcmg;
 
-// CHECK: @SO2 = external addrspace(200) global i32, align 4 #1
-__attribute__((cheriot_shared_object("SO", "RWmc"))) extern int SO2;
+// CHECK: @SO_RWmcg = external addrspace(200) global i32, align 4 #1
+__attribute__((cheriot_shared_object("SO", "RWmcg"))) extern int SO_RWmcg;
 
-// CHECK: @SO3 = external addrspace(200) global i32, align 4 #1
-__attribute__((cheriot_shared_object("SO", "RmcW"))) extern int SO3;
+// CHECK: @SO_RmcWg = external addrspace(200) global i32, align 4 #1
+__attribute__((cheriot_shared_object("SO", "RmcWg"))) extern int SO_RmcWg;
 
-// CHECK: @SO4 = external addrspace(200) global i32, align 4 #1
-__attribute__((cheriot_shared_object("SO", "mRcW"))) extern int SO4;
+// CHECK: @SO_mRcWg = external addrspace(200) global i32, align 4 #1
+__attribute__((cheriot_shared_object("SO", "mRcWg"))) extern int SO_mRcWg;
 
-// CHECK: @uart5 = external addrspace(200) global %struct.Uart, align 1 #2
-__attribute__((cheriot_mmio("uart", "R"))) extern volatile struct Uart uart5;
+// CHECK: @uart_R = external addrspace(200) global %struct.Uart, align 1 #2
+__attribute__((cheriot_mmio("uart", "R"))) extern volatile struct Uart uart_R;
 
-// CHECK: @uart6 = external addrspace(200) global %struct.Uart, align 1 #3
-__attribute__((cheriot_mmio("uart", "Rc"))) extern volatile struct Uart uart6;
+// CHECK: @uart_Rc = external addrspace(200) global %struct.Uart, align 1 #3
+__attribute__((cheriot_mmio("uart", "Rc"))) extern volatile struct Uart uart_Rc;
 
-// CHECK: @uart61 = external addrspace(200) global %struct.Uart, align 1 #3
-__attribute__((cheriot_mmio("uart", "cR"))) extern volatile struct Uart uart61;
+// CHECK: @uart_cR = external addrspace(200) global %struct.Uart, align 1 #3
+__attribute__((cheriot_mmio("uart", "cR"))) extern volatile struct Uart uart_cR;
 
-// CHECK: @uart7 = external addrspace(200) global %struct.Uart, align 1 #4
-__attribute__((cheriot_mmio("uart", "Rcm"))) extern volatile struct Uart uart7;
+// CHECK: @uart_Rcm = external addrspace(200) global %struct.Uart, align 1 #4
+__attribute__((cheriot_mmio("uart", "Rcm"))) extern volatile struct Uart uart_Rcm;
 
-// CHECK: @uart71 = external addrspace(200) global %struct.Uart, align 1 #4
-__attribute__((cheriot_mmio("uart", "cRm"))) extern volatile struct Uart uart71;
+// CHECK: @uart_cRm = external addrspace(200) global %struct.Uart, align 1 #4
+__attribute__((cheriot_mmio("uart", "cRm"))) extern volatile struct Uart uart_cRm;
 
-// CHECK: @uart72 = external addrspace(200) global %struct.Uart, align 1 #4
-__attribute__((cheriot_mmio("uart", "cmR"))) extern volatile struct Uart uart72;
+// CHECK: @uart_cmR = external addrspace(200) global %struct.Uart, align 1 #4
+__attribute__((cheriot_mmio("uart", "cmR"))) extern volatile struct Uart uart_cmR;
 
-// CHECK: @uart73 = external addrspace(200) global %struct.Uart, align 1 #4
-__attribute__((cheriot_mmio("uart", "mRc"))) extern volatile struct Uart uart73;
+// CHECK: @uart_mRc = external addrspace(200) global %struct.Uart, align 1 #4
+__attribute__((cheriot_mmio("uart", "mRc"))) extern volatile struct Uart uart_mRc;
 
-// CHECK: @uart8 = external addrspace(200) global %struct.Uart, align 1 #5
-__attribute__((cheriot_mmio("uart", "W"))) extern volatile struct Uart uart8;
+// CHECK: @uart_W = external addrspace(200) global %struct.Uart, align 1 #5
+__attribute__((cheriot_mmio("uart", "W"))) extern volatile struct Uart uart_W;
 
-// CHECK: @uart9 = external addrspace(200) global %struct.Uart, align 1 #6
-__attribute__((cheriot_mmio("uart", "Wc"))) extern volatile struct Uart uart9;
+// CHECK: @uart_Wc = external addrspace(200) global %struct.Uart, align 1 #6
+__attribute__((cheriot_mmio("uart", "Wc"))) extern volatile struct Uart uart_Wc;
 
-// CHECK: @uart91 = external addrspace(200) global %struct.Uart, align 1 #6
-__attribute__((cheriot_mmio("uart", "cW"))) extern volatile struct Uart uart91;
+// CHECK: @uart_cW = external addrspace(200) global %struct.Uart, align 1 #6
+__attribute__((cheriot_mmio("uart", "cW"))) extern volatile struct Uart uart_cW;
 
-// CHECK: @uart10 = external addrspace(200) global %struct.Uart, align 1 #7
-__attribute__((cheriot_mmio("uart", "RWc"))) extern volatile struct Uart uart10;
+// CHECK: @uart_RWc = external addrspace(200) global %struct.Uart, align 1 #7
+__attribute__((cheriot_mmio("uart", "RWc"))) extern volatile struct Uart uart_RWc;
 
-// CHECK: @uart101 = external addrspace(200) global %struct.Uart, align 1 #7
-__attribute__((cheriot_mmio("uart", "cRW"))) extern volatile struct Uart uart101;
+// CHECK: @uart_cRW = external addrspace(200) global %struct.Uart, align 1 #7
+__attribute__((cheriot_mmio("uart", "cRW"))) extern volatile struct Uart uart_cRW;
 
-// CHECK: @uart102 = external addrspace(200) global %struct.Uart, align 1 #7
-__attribute__((cheriot_mmio("uart", "RcW"))) extern volatile struct Uart uart102;
+// CHECK: @uart_RcW = external addrspace(200) global %struct.Uart, align 1 #7
+__attribute__((cheriot_mmio("uart", "RcW"))) extern volatile struct Uart uart_RcW;
 
-// CHECK: @uart103 = external addrspace(200) global %struct.Uart, align 1 #7
-__attribute__((cheriot_mmio("uart", "WRc"))) extern volatile struct Uart uart103;
+// CHECK: @uart_WRc = external addrspace(200) global %struct.Uart, align 1 #7
+__attribute__((cheriot_mmio("uart", "WRc"))) extern volatile struct Uart uart_WRc;
 
-// CHECK: @uart104 = external addrspace(200) global %struct.Uart, align 1 #7
-__attribute__((cheriot_mmio("uart", "WcR"))) extern volatile struct Uart uart104;
+// CHECK: @uart_WcR = external addrspace(200) global %struct.Uart, align 1 #7
+__attribute__((cheriot_mmio("uart", "WcR"))) extern volatile struct Uart uart_WcR;
 
-// CHECK: @SO5 = external addrspace(200) global i32, align 4 #8
-__attribute__((cheriot_shared_object("SO", "R"))) extern int SO5;
+// CHECK: @uart_Rcg = external addrspace(200) global %struct.Uart, align 1 #8
+__attribute__((cheriot_mmio("uart", "Rcg"))) extern volatile struct Uart uart_Rcg;
 
-// CHECK: @SO6 = external addrspace(200) global i32, align 4 #9
-__attribute__((cheriot_shared_object("SO", "Rc"))) extern int SO6;
+// CHECK: @uart_cRg = external addrspace(200) global %struct.Uart, align 1 #8
+__attribute__((cheriot_mmio("uart", "cRg"))) extern volatile struct Uart uart_cRg;
 
-// CHECK: @SO61 = external addrspace(200) global i32, align 4 #9
-__attribute__((cheriot_shared_object("SO", "cR"))) extern int SO61;
+// CHECK: @uart_cgR = external addrspace(200) global %struct.Uart, align 1 #8
+__attribute__((cheriot_mmio("uart", "cgR"))) extern volatile struct Uart uart_cgR;
 
-// CHECK: @SO7 = external addrspace(200) global i32, align 4 #10
-__attribute__((cheriot_shared_object("SO", "Rcm"))) extern int SO7;
+// CHECK: @uart_gcR = external addrspace(200) global %struct.Uart, align 1 #8
+__attribute__((cheriot_mmio("uart", "gcR"))) extern volatile struct Uart uart_gcR;
 
-// CHECK: @SO71 = external addrspace(200) global i32, align 4 #10
-__attribute__((cheriot_shared_object("SO", "cRm"))) extern int SO71;
+// CHECK: @uart_gRc = external addrspace(200) global %struct.Uart, align 1 #8
+__attribute__((cheriot_mmio("uart", "gcR"))) extern volatile struct Uart uart_gRc;
 
-// CHECK: @SO72 = external addrspace(200) global i32, align 4 #10
-__attribute__((cheriot_shared_object("SO", "cmR"))) extern int SO72;
+// CHECK: @SO_R = external addrspace(200) global i32, align 4 #9
+__attribute__((cheriot_shared_object("SO", "R"))) extern int SO_R;
 
-// CHECK: @SO73 = external addrspace(200) global i32, align 4 #10
-__attribute__((cheriot_shared_object("SO", "mRc"))) extern int SO73;
+// CHECK: @SO_Rc = external addrspace(200) global i32, align 4 #10
+__attribute__((cheriot_shared_object("SO", "Rc"))) extern int SO_Rc;
 
-// CHECK: @SO8 = external addrspace(200) global i32, align 4 #11
-__attribute__((cheriot_shared_object("SO", "W"))) extern int SO8;
+// CHECK: @SO_cR = external addrspace(200) global i32, align 4 #10
+__attribute__((cheriot_shared_object("SO", "cR"))) extern int SO_cR;
 
-// CHECK: @SO9 = external addrspace(200) global i32, align 4 #12
-__attribute__((cheriot_shared_object("SO", "Wc"))) extern int SO9;
+// CHECK: @SO_Rcm = external addrspace(200) global i32, align 4 #11
+__attribute__((cheriot_shared_object("SO", "Rcm"))) extern int SO_Rcm;
 
-// CHECK: @SO91 = external addrspace(200) global i32, align 4 #12
-__attribute__((cheriot_shared_object("SO", "cW"))) extern int SO91;
+// CHECK: @SO_cRm = external addrspace(200) global i32, align 4 #11
+__attribute__((cheriot_shared_object("SO", "cRm"))) extern int SO_cRm;
 
-// CHECK: @SO10 = external addrspace(200) global i32, align 4 #13
-__attribute__((cheriot_shared_object("SO", "RWc"))) extern int SO10;
+// CHECK: @SO_cmR = external addrspace(200) global i32, align 4 #11
+__attribute__((cheriot_shared_object("SO", "cmR"))) extern int SO_cmR;
 
-// CHECK: @SO101 = external addrspace(200) global i32, align 4 #13
-__attribute__((cheriot_shared_object("SO", "cRW"))) extern int SO101;
+// CHECK: @SO_mRc = external addrspace(200) global i32, align 4 #11
+__attribute__((cheriot_shared_object("SO", "mRc"))) extern int SO_mRc;
 
-// CHECK: @SO102 = external addrspace(200) global i32, align 4 #13
-__attribute__((cheriot_shared_object("SO", "RcW"))) extern int SO102;
+// CHECK: @SO_W = external addrspace(200) global i32, align 4 #12
+__attribute__((cheriot_shared_object("SO", "W"))) extern int SO_W;
 
-// CHECK: @SO103 = external addrspace(200) global i32, align 4 #13
-__attribute__((cheriot_shared_object("SO", "WRc"))) extern int SO103;
+// CHECK: @SO_Wc = external addrspace(200) global i32, align 4 #13
+__attribute__((cheriot_shared_object("SO", "Wc"))) extern int SO_Wc;
 
-// CHECK: @SO104 = external addrspace(200) global i32, align 4 #13
-__attribute__((cheriot_shared_object("SO", "WcR"))) extern int SO104;
+// CHECK: @SO_cW = external addrspace(200) global i32, align 4 #13
+__attribute__((cheriot_shared_object("SO", "cW"))) extern int SO_cW;
+
+// CHECK: @SO_RWc = external addrspace(200) global i32, align 4 #14
+__attribute__((cheriot_shared_object("SO", "RWc"))) extern int SO_RWc;
+
+// CHECK: @SO_cRW = external addrspace(200) global i32, align 4 #14
+__attribute__((cheriot_shared_object("SO", "cRW"))) extern int SO_cRW;
+
+// CHECK: @SO_RcW = external addrspace(200) global i32, align 4 #14
+__attribute__((cheriot_shared_object("SO", "RcW"))) extern int SO_RcW;
+
+// CHECK: @SO_WRc = external addrspace(200) global i32, align 4 #14
+__attribute__((cheriot_shared_object("SO", "WRc"))) extern int SO_WRc;
+
+// CHECK: @SO_WcR = external addrspace(200) global i32, align 4 #14
+__attribute__((cheriot_shared_object("SO", "WcR"))) extern int SO_WcR;
+
+// CHECK: @SO_Rcg = external addrspace(200) global i32, align 4 #15
+__attribute__((cheriot_shared_object("SO", "Rcg"))) extern int SO_Rcg;
+
+// CHECK: @SO_cRg = external addrspace(200) global i32, align 4 #15
+__attribute__((cheriot_shared_object("SO", "cRg"))) extern int SO_cRg;
+
+// CHECK: @SO_cgR = external addrspace(200) global i32, align 4 #15
+__attribute__((cheriot_shared_object("SO", "cgR"))) extern int SO_cgR;
+
+// CHECK: @SO_gcR = external addrspace(200) global i32, align 4 #15
+__attribute__((cheriot_shared_object("SO", "gcR"))) extern int SO_gcR;
+
+// CHECK: @SO_gRc = external addrspace(200) global i32, align 4 #15
+__attribute__((cheriot_shared_object("SO", "gcR"))) extern int SO_gRc;
 
 void doSomethingWithUart(volatile struct Uart *uart);
 void doSomethingWithSO(int *SO);
 
 void func() {
   doSomethingWithUart(&uart);
-  doSomethingWithUart(&uart1);
-  doSomethingWithUart(&uart2);
-  doSomethingWithUart(&uart3);
-  doSomethingWithUart(&uart4);
+  doSomethingWithUart(&uart_WcmRg);
+  doSomethingWithUart(&uart_cmRWg);
+  doSomethingWithUart(&uart_RmcWg);
+  doSomethingWithUart(&uart_RmcWg2);
 
   doSomethingWithSO(&SO);
-  doSomethingWithSO(&SO1);
-  doSomethingWithSO(&SO2);
-  doSomethingWithSO(&SO3);
-  doSomethingWithSO(&SO4);
+  doSomethingWithSO(&SO_RWcmg);
+  doSomethingWithSO(&SO_RWmcg);
+  doSomethingWithSO(&SO_RmcWg);
+  doSomethingWithSO(&SO_mRcWg);
 
-  doSomethingWithUart(&uart5);
-  doSomethingWithUart(&uart6);
-  doSomethingWithUart(&uart61);
-  doSomethingWithUart(&uart7);
-  doSomethingWithUart(&uart71);
-  doSomethingWithUart(&uart72);
-  doSomethingWithUart(&uart73);
-  doSomethingWithUart(&uart8);
-  doSomethingWithUart(&uart9);
-  doSomethingWithUart(&uart91);
-  doSomethingWithUart(&uart10);
-  doSomethingWithUart(&uart101);
-  doSomethingWithUart(&uart102);
-  doSomethingWithUart(&uart103);
-  doSomethingWithUart(&uart104);
+  doSomethingWithUart(&uart_R);
+  doSomethingWithUart(&uart_Rc);
+  doSomethingWithUart(&uart_cR);
+  doSomethingWithUart(&uart_Rcm);
+  doSomethingWithUart(&uart_cRm);
+  doSomethingWithUart(&uart_cmR);
+  doSomethingWithUart(&uart_mRc);
+  doSomethingWithUart(&uart_W);
+  doSomethingWithUart(&uart_Wc);
+  doSomethingWithUart(&uart_cW);
+  doSomethingWithUart(&uart_RWc);
+  doSomethingWithUart(&uart_cRW);
+  doSomethingWithUart(&uart_RcW);
+  doSomethingWithUart(&uart_WRc);
+  doSomethingWithUart(&uart_WcR);
+  doSomethingWithUart(&uart_Rcg);
+  doSomethingWithUart(&uart_cRg);
+  doSomethingWithUart(&uart_cgR);
+  doSomethingWithUart(&uart_gcR);
+  doSomethingWithUart(&uart_gRc);
 
-  doSomethingWithSO(&SO5);
-  doSomethingWithSO(&SO6);
-  doSomethingWithSO(&SO61);
-  doSomethingWithSO(&SO7);
-  doSomethingWithSO(&SO71);
-  doSomethingWithSO(&SO72);
-  doSomethingWithSO(&SO73);
-  doSomethingWithSO(&SO8);
-  doSomethingWithSO(&SO9);
-  doSomethingWithSO(&SO91);
-  doSomethingWithSO(&SO10);
-  doSomethingWithSO(&SO101);
-  doSomethingWithSO(&SO102);
-  doSomethingWithSO(&SO103);
-  doSomethingWithSO(&SO104);
-
+  doSomethingWithSO(&SO_R);
+  doSomethingWithSO(&SO_Rc);
+  doSomethingWithSO(&SO_cR);
+  doSomethingWithSO(&SO_Rcm);
+  doSomethingWithSO(&SO_cRm);
+  doSomethingWithSO(&SO_cmR);
+  doSomethingWithSO(&SO_mRc);
+  doSomethingWithSO(&SO_W);
+  doSomethingWithSO(&SO_Wc);
+  doSomethingWithSO(&SO_cW);
+  doSomethingWithSO(&SO_RWc);
+  doSomethingWithSO(&SO_cRW);
+  doSomethingWithSO(&SO_RcW);
+  doSomethingWithSO(&SO_cW);
+  doSomethingWithSO(&SO_WRc);
+  doSomethingWithSO(&SO_WcR);
+  doSomethingWithSO(&SO_WcR);
+  doSomethingWithSO(&SO_Rcg);
+  doSomethingWithSO(&SO_cRg);
+  doSomethingWithSO(&SO_cgR);
+  doSomethingWithSO(&SO_gcR);
+  doSomethingWithSO(&SO_gRc);
 }
 
 
-// CHECK: attributes #0 = { "cheriot_global_cap_import"="mem,uart,RWcm" }
-// CHECK: attributes #1 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,RWcm" }
-// CHECK: attributes #2 = { "cheriot_global_cap_import"="mem,uart,R---" }
-// CHECK: attributes #3 = { "cheriot_global_cap_import"="mem,uart,R-c-" }
-// CHECK: attributes #4 = { "cheriot_global_cap_import"="mem,uart,R-cm" }
-// CHECK: attributes #5 = { "cheriot_global_cap_import"="mem,uart,-W--" }
-// CHECK: attributes #6 = { "cheriot_global_cap_import"="mem,uart,-Wc-" }
-// CHECK: attributes #7 = { "cheriot_global_cap_import"="mem,uart,RWc-" }
-// CHECK: attributes #8 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,R---" }
-// CHECK: attributes #9 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,R-c-" }
-// CHECK: attributes #10 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,R-cm" }
-// CHECK: attributes #11 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,-W--" }
-// CHECK: attributes #12 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,-Wc-" }
-// CHECK: attributes #13 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,RWc-" }
+// CHECK: attributes #0 = { "cheriot_global_cap_import"="mem,uart,RWcmg" }
+// CHECK: attributes #1 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,RWcmg" }
+// CHECK: attributes #2 = { "cheriot_global_cap_import"="mem,uart,R----" }
+// CHECK: attributes #3 = { "cheriot_global_cap_import"="mem,uart,R-c--" }
+// CHECK: attributes #4 = { "cheriot_global_cap_import"="mem,uart,R-cm-" }
+// CHECK: attributes #5 = { "cheriot_global_cap_import"="mem,uart,-W---" }
+// CHECK: attributes #6 = { "cheriot_global_cap_import"="mem,uart,-Wc--" }
+// CHECK: attributes #7 = { "cheriot_global_cap_import"="mem,uart,RWc--" }
+// CHECK: attributes #8 = { "cheriot_global_cap_import"="mem,uart,R-c-g" }
+// CHECK: attributes #9 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,R----" }
+// CHECK: attributes #10 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,R-c--" }
+// CHECK: attributes #11 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,R-cm-" }
+// CHECK: attributes #12 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,-W---" }
+// CHECK: attributes #13 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,-Wc--" }
+// CHECK: attributes #14 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,RWc--" }
+// CHECK: attributes #15 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,R-c-g" }

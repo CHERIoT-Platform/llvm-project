@@ -2109,6 +2109,14 @@ public:
   /// floating-point value.
   LLVM_ABI bool SignBitIsZeroFP(SDValue Op, unsigned Depth = 0) const;
 
+  /// Return true if the sign bit of Op is known to be one.
+  /// We use this predicate to simplify operations downstream.
+  bool SignBitIsOne(SDValue Op, unsigned Depth = 0) const;
+
+  /// Return true if the sign bits of N0 and N1 are known to be the same.
+  /// We use this predicate to simplify operations downstream.
+  bool SignBitIsSame(SDValue N0, SDValue N1, unsigned Depth = 0) const;
+
   /// Return true if 'Op & Mask' is known to be zero.  We
   /// use this predicate to simplify operations downstream.  Op and Mask are
   /// known to be the same type.

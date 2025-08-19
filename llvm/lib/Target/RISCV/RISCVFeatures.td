@@ -1701,7 +1701,9 @@ def NotPureCapABI
     : Predicate<"!RISCVABI::isCheriPureCapABI(Subtarget->getTargetABI())">;
 
 def FeatureVendorXCheriot
-    : RISCVExtension<1, 0, "Implements XCheriot extension">;
+    : RISCVExtension<1, 0, "Implements XCheriot extension",
+    [FeatureVendorXCheri, FeatureVendorXCheriPureCap, 
+     FeatureStdExtC, FeatureStdExtE, FeatureStdExtM]>;
 
 def HasCheriot
     : Predicate<"Subtarget->hasVendorXCheriot()">,

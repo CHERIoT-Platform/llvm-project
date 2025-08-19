@@ -875,8 +875,8 @@ public:
         // `cheriot_cap_import` attribute in the generated LLVM IR, so that the
         // back-end can generate the proper import entries and correctly
         // translate references to this global.
-        if (VD->hasAttr<CHERIOTMMIODeviceAttr>()) {
-          auto *Attr = D->getAttr<CHERIOTMMIODeviceAttr>();
+        if (VD->hasAttr<CHERIoTMMIODeviceAttr>()) {
+          auto *Attr = D->getAttr<CHERIoTMMIODeviceAttr>();
           llvm::CHERIoTGlobalCapabilityImportAttr CapImportAttr(
               llvm::CHERIoTGlobalCapabilityImportAttr::MMIO,
               Attr->getDeviceName(), Attr->getEncodedPermissions());
@@ -884,8 +884,8 @@ public:
         }
 
         // Same for the `cheriot_shared_object(...)` attribute.
-        if (VD->hasAttr<CHERIOTSharedObjectAttr>()) {
-          auto *Attr = D->getAttr<CHERIOTSharedObjectAttr>();
+        if (VD->hasAttr<CHERIoTSharedObjectAttr>()) {
+          auto *Attr = D->getAttr<CHERIoTSharedObjectAttr>();
           llvm::CHERIoTGlobalCapabilityImportAttr CapImportAttr(
               llvm::CHERIoTGlobalCapabilityImportAttr::SharedObject,
               Attr->getObjectName(), Attr->getEncodedPermissions());

@@ -3355,9 +3355,10 @@ ScalarExprEmitter::EmitScalarPrePostIncDec(const UnaryOperator *E, LValue LV,
         !(type->isUnsignedIntegerType() &&
           CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow)) &&
         CGF.getLangOpts().getSignedOverflowBehavior() !=
-            LangOptions::SOB_Trapping) {
-      llvm::AtomicRMWInst::BinOp aop = isInc ? llvm::AtomicRMWInst::Add :
-        llvm::AtomicRMWInst::Sub;
+            LangOptions::SOB_Trapping &&
+        !type->isCHERICapabilityType(CGF.getContext())) {
+      llvm::AtomicRMWInst::BinOp aop =
+          isInc ? llvm::AtomicRMWInst::Add : llvm::AtomicRMWInst::Sub;
       llvm::Instruction::BinaryOps op = isInc ? llvm::Instruction::Add :
         llvm::Instruction::Sub;
       llvm::Value *amt = CGF.EmitToMemory(

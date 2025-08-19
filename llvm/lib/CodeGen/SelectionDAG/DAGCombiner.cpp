@@ -2721,6 +2721,12 @@ SDValue DAGCombiner::visitPTRADD(SDNode *N) {
   if (isNullConstant(N1))
     return N0;
 
+  auto GetPTRADD2 = [this, &DL](SDValue &Base, SDValue &Off1, SDValue &Off2) {
+    SDValue Base2 = DAG.getMemBasePlusOffset(Base, Off1, DL);
+    AddToWorklist(Base2.getNode());
+    return DAG.getMemBasePlusOffset(Base2, Off2, DL);
+  };
+
   // fold (ptradd 0, x) -> x
   if (PtrVT == IntVT && isNullConstant(N0))
     return N1;
@@ -2779,7 +2785,6 @@ SDValue DAGCombiner::visitPTRADD(SDNode *N) {
   // For now each architecture that wants this fold must implement it in the
   // target-specific code (see e.g. SITargetLowering::performPtrAddCombine)
 
-
   // Reassociate: (ptradd (ptradd x, y), z) -> (ptradd x, (add y, z)) if:
   //   * x is a null pointer; or
   //   * the add can be constant-folded; or
@@ -2792,6 +2797,14 @@ SDValue DAGCombiner::visitPTRADD(SDNode *N) {
   // patterns. Once we represent that with PTRMASK that will be less of a
   // concern, though we might still want to detect code not using the builtins
   // and canonicalise it to a PTRMASK.
+  //
+  // Commute: (ptradd (ptradd x, y), z) -> (ptradd (ptradd x, z), y) if:
+  //   * y and z have the same sign and y is a constant.
+  //
+  // This allows immediate addressing modes to be used. Note that we need to be
+  // careful to ensure we don't transiently become unrepresentable if the
+  // original DAG does not already do so, and this is the case if both PTRADDs
+  // have the same sign.
   if (N0.getOpcode() == ISD::PTRADD &&
       !reassociationCanBreakAddressingModePattern(ISD::PTRADD, DL, N, N0, N1)) {
     SDValue X = N0.getOperand(0);
@@ -2822,6 +2835,27 @@ SDValue DAGCombiner::visitPTRADD(SDNode *N) {
         (N0.hasOneUse() && Z.hasOneUse() &&
          !DAG.isConstantIntBuildVectorOrConstantInt(Z)))
       return DAG.getMemBasePlusOffset(X, Add, DL);
+    if (DAG.SignBitIsSame(Y, Z) && DAG.isConstantIntBuildVectorOrConstantInt(Y))
+      return GetPTRADD2(X, Z, Y);
+  }
+
+  // Transform: (ptradd x, (add y, z)) -> (ptradd (ptradd x, y), z) if:
+  //   * both y and z have the same sign and z is a constant.
+  //
+  // Transform: (ptradd x, (add y, z)) -> (ptradd (ptradd x, z), y) if:
+  //   * both y and z have the same sign and y is a constant.
+  //
+  // As above, this allows for immediate addressing modes.
+  if (N1.getOpcode() == ISD::ADD) {
+    SDValue X = N0;
+    SDValue Y = N1.getOperand(0);
+    SDValue Z = N1.getOperand(1);
+    if (DAG.SignBitIsSame(Y, Z)) {
+      if (DAG.isConstantIntBuildVectorOrConstantInt(Y))
+        return GetPTRADD2(X, Z, Y);
+      if (DAG.isConstantIntBuildVectorOrConstantInt(Z))
+        return GetPTRADD2(X, Y, Z);
+    }
   }
 
   return SDValue();

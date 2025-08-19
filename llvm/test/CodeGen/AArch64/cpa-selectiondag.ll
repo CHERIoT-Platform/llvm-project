@@ -683,11 +683,10 @@ define hidden void @multidim() {
 ; CHECK-CPA-O3-NEXT:    add x10, x10, :lo12:a
 ; CHECK-CPA-O3-NEXT:    ldrh w8, [x8, :lo12:b]
 ; CHECK-CPA-O3-NEXT:    lsl x9, x8, #1
-; CHECK-CPA-O3-NEXT:    add x8, x8, #1
 ; CHECK-CPA-O3-NEXT:    add x9, x9, #2
 ; CHECK-CPA-O3-NEXT:    addpt x9, x10, x9
 ; CHECK-CPA-O3-NEXT:    addpt x8, x9, x8
-; CHECK-CPA-O3-NEXT:    ldrb w8, [x8]
+; CHECK-CPA-O3-NEXT:    ldrb w8, [x8, #1]
 ; CHECK-CPA-O3-NEXT:    cbz w8, .LBB14_2
 ; CHECK-CPA-O3-NEXT:  // %bb.1:
 ; CHECK-CPA-O3-NEXT:    str x30, [sp, #-16]! // 8-byte Folded Spill

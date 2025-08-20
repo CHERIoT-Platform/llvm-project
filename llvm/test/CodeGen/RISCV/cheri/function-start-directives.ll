@@ -64,11 +64,11 @@ declare dso_local void @__cxa_end_catch() local_unnamed_addr addrspace(200)
 
 ; CHECK: .section .gcc_except_table
 ; CHECK: .word 12 # (landing pad is a capability)
-; CHECK-NEXT: .chericap  .L_Z4testv$local+(.Ltmp2-.Lfunc_begin0) # jumps to .Ltmp2
+; CHECK-NEXT: .chericap  %code(.L_Z4testv$local+(.Ltmp2-.Lfunc_begin0)) # jumps to .Ltmp2
 
 ; OBJ-LABEL: Relocation section '.rela.gcc_except_table' at offset
 ; OBJ: Offset             Info             Type                    Symbol's Value   Symbol's Name + Addend
-; OBJ: 0000000000000020 0000000{{.}}000000c1 R_RISCV_CHERI_CAPABILITY
+; OBJ: 0000000000000020 0000000{{.}}000000c3 R_RISCV_CHERI_CAPABILITY_CODE
 
 ; OBJ-LABEL: Symbol table '.symtab' contains
 ; OBJ:    Value          Size Type    Bind   Vis       Ndx Name

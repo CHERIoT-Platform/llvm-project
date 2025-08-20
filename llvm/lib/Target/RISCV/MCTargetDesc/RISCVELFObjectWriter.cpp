@@ -166,6 +166,8 @@ unsigned RISCVELFObjectWriter::getRelocType(const MCFixup &Fixup,
     }
     goto CheriCapability;
   CheriCapability:
+    if (Fixup.getValue()->getKind() == ELF::R_RISCV_CHERI_CAPABILITY_CODE)
+      return ELF::R_RISCV_CHERI_CAPABILITY_CODE;
     return ELF::R_RISCV_CHERI_CAPABILITY;
   case RISCV::fixup_riscv_cheriot_compartment_hi:
     return ELF::R_RISCV_CHERIOT_COMPARTMENT_HI;

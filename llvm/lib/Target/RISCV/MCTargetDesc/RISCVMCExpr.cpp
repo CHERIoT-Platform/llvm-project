@@ -50,6 +50,7 @@ RISCV::Specifier RISCV::parseSpecifierName(StringRef name) {
       .Case("cheriot_compartment_lo_i", RISCV::S_CHERIOT_COMPARTMENT_LO_I)
       .Case("cheriot_compartment_lo_s", RISCV::S_CHERIOT_COMPARTMENT_LO_S)
       .Case("cheriot_compartment_size", RISCV::S_CHERIOT_COMPARTMENT_SIZE)
+      .Case("code", ELF::R_RISCV_CHERI_CAPABILITY_CODE)
       .Default(0);
 }
 
@@ -105,6 +106,8 @@ StringRef RISCV::getSpecifierName(Specifier S) {
     return "pltpcrel";
   case RISCV::S_QC_ABS20:
     return "qc.abs20";
+  case ELF::R_RISCV_CHERI_CAPABILITY_CODE:
+    return "code";
   }
   llvm_unreachable("Invalid ELF symbol kind");
 }

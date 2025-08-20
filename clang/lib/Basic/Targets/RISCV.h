@@ -293,6 +293,9 @@ public:
 
     if (ISAInfo->hasExtension("a"))
       MaxAtomicInlineWidth = 32;
+    else if (ISAInfo->hasExtension("xcheriot"))
+      // XCheriot implies atomic libcalls up to cap size.
+      MaxAtomicInlineWidth = 8;
   }
 
   uint64_t getPointerRangeForCHERICapability() const override { return 32; }

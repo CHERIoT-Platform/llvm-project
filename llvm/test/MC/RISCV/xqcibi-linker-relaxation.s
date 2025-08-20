@@ -15,7 +15,7 @@ branch_over_relaxable:
   jal x1, foo
 # CHECK: qc.e.jal 0x0 <branch_over_relaxable>
 # CHECK-NEXT: R_RISCV_VENDOR QUALCOMM
-# CHECK-NEXT: R_RISCV_CUSTOM195 foo
+# CHECK-NEXT: R_RISCV_CHERI_CAPABILITY_CODE foo
 # CHECK-NEXT: R_RISCV_RELAX *ABS*
   bne a0, a1, branch_over_relaxable
 # CHECK-NEXT: bne a0, a1, 0x6 <branch_over_relaxable+0x6>

@@ -138,8 +138,8 @@ public:
   RelType tlsOffsetRel = 0;
   std::optional<RelType> absPointerRel; // TODO: remove the optional
   std::optional<RelType> sizeRel;
-  std::optional<RelType> cheriCapRel;
-  std::optional<RelType> cheriCapCallRel;
+  std::optional<RelType> symbolicCapRel;
+  std::optional<RelType> symbolicCapCallRel;
   unsigned gotEntrySize = ctx.arg.wordsize;
   unsigned pltEntrySize = 0;
   unsigned pltHeaderSize = 0;

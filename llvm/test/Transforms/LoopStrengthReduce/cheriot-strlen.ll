@@ -9,10 +9,13 @@ target triple = "riscv32-unknown-unknown"
 define dso_local cherilibcallcc i32 @strlen(ptr addrspace(200) noundef readonly %str) local_unnamed_addr addrspace(200) #0 {
 ; CHECK: entry:
 ; CHECK-NOT: -1
+; CHECK: br label %for.cond
 entry:
   br label %for.cond
 
 ; CHECK: for.cond:
+; CHECK-NOT: -1
+; CHECK: br i1
 for.cond:                                         ; preds = %for.cond, %entry
   %s.0 = phi ptr addrspace(200) [ %str, %entry ], [ %incdec.ptr, %for.cond ]
   %0 = load i8, ptr addrspace(200) %s.0, align 1, !tbaa !6
@@ -20,6 +23,7 @@ for.cond:                                         ; preds = %for.cond, %entry
   %incdec.ptr = getelementptr inbounds nuw i8, ptr addrspace(200) %s.0, i32 1
   br i1 %tobool.not, label %for.end, label %for.cond, !llvm.loop !9
 
+; CHECK: for.end
 for.end:                                          ; preds = %for.cond
   %1 = tail call i32 @llvm.cheri.cap.diff.i32(ptr addrspace(200) nonnull %s.0, ptr addrspace(200) %str)
   ret i32 %1

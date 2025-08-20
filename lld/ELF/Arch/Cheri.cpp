@@ -180,7 +180,7 @@ std::string CheriCapRelocLocation::toString(Ctx &ctx) const {
   return SymbolAndOffset(section, offset).verboseToString(ctx);
 }
 
-void CheriCapRelocsSection::addCapReloc(CheriCapRelocLocation loc,
+void CheriCapRelocsSection::addCapReloc(bool isCode, CheriCapRelocLocation loc,
                                         const SymbolAndOffset &target,
                                         int64_t capabilityOffset,
                                         Symbol *sourceSymbol) {
@@ -215,7 +215,7 @@ void CheriCapRelocsSection::addCapReloc(CheriCapRelocLocation loc,
     return;
   }
 
-  addEntry(loc, {target, capabilityOffset});
+  addEntry(loc, {isCode, target, capabilityOffset});
 }
 
 static uint64_t getTargetSize(Ctx &ctx, const CheriCapRelocLocation &location,
@@ -321,6 +321,7 @@ template <class ELFT> struct CapRelocPermission {
   static const uint64_t function = permissionBit(1);
   static const uint64_t readOnly = permissionBit(2);
   static const uint64_t indirect = permissionBit(3);
+  static const uint64_t code     = permissionBit(4);
   // clang-format on
 };
 
@@ -353,7 +354,7 @@ void CheriCapRelocsSection::writeToImpl(uint8_t *buf) {
 
     // The target VA is the base address of the capability, so symbol + 0
     uint64_t targetVA;
-    bool isFunc, isGnuIFunc, isTls;
+    bool isFunc, isGnuIFunc, isTls, isCode = reloc.isCode;
     OutputSection *os;
     if (Symbol *s = dyn_cast<Symbol *>(realTarget.symOrSec)) {
       targetVA = realTarget.sym()->getVA(ctx, 0);
@@ -369,6 +370,15 @@ void CheriCapRelocsSection::writeToImpl(uint8_t *buf) {
       isTls = isec->type == STT_TLS;
       os = isec->getOutputSection();
     }
+    if (isCode && !isFunc) {
+      auto msg = "code relocation against non-function symbol " +
+                 realTarget.verboseToString(ctx) + "\n>>> referenced by " +
+                 location.toString(ctx);
+      if (ctx.arg.noinhibitExec)
+        warn(msg);
+      else
+        error(msg);
+    }
     uint64_t targetSize = getTargetSize(ctx, location, realTarget);
     uint64_t targetOffset = reloc.capabilityOffset + realTarget.offset;
     uint64_t permissions = 0;
@@ -377,6 +387,8 @@ void CheriCapRelocsSection::writeToImpl(uint8_t *buf) {
       permissions |= CapRelocPermission<ELFT>::function;
       if (isGnuIFunc)
         permissions |= CapRelocPermission<ELFT>::indirect;
+      if (isCode)
+        permissions |= CapRelocPermission<ELFT>::code;
     } else if (os) {
       assert(!isTls);
       // if ((OS->getPhdrFlags() & PF_W) == 0) {
@@ -960,10 +972,12 @@ void addRelativeCapabilityRelocation(
                                           type);
     return;
   }
+  bool isCode = type == ctx.target->symbolicCodeCapRel;
   assert(!sym || !sym->isPreemptible);
   assert(!ctx.arg.useRelativeElfCheriRelocs &&
          "relative ELF capability relocations not currently implemented");
-  ctx.in.capRelocs->addCapReloc({&isec, offsetInSec}, {symOrSec, 0u}, addend);
+  ctx.in.capRelocs->addCapReloc(isCode, {&isec, offsetInSec}, {symOrSec, 0u},
+                                addend);
 }
 
 } // namespace elf

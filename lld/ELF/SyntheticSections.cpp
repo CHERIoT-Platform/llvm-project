@@ -1750,10 +1750,12 @@ void RelocationBaseSection::partitionRels() {
   if (!combreloc)
     return;
   const RelType relativeRel = ctx.target->relativeRel;
-  numRelativeRelocs =
-      std::stable_partition(relocs.begin(), relocs.end(),
-                            [=](auto &r) { return r.type == relativeRel; }) -
-      relocs.begin();
+  const std::optional<RelType> relativeFuncRel = ctx.target->relativeFuncRel;
+  const auto *firstNonRelativeReloc =
+      std::stable_partition(relocs.begin(), relocs.end(), [=](auto &r) {
+        return r.type == relativeRel || r.type == relativeFuncRel;
+      });
+  numRelativeRelocs = firstNonRelativeReloc - relocs.begin();
 }
 
 void RelocationBaseSection::finalizeContents() {

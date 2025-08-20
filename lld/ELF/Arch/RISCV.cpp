@@ -145,8 +145,11 @@ RISCV::RISCV(Ctx &ctx) : TargetInfo(ctx) {
   copyRel = R_RISCV_COPY;
   pltRel = R_RISCV_JUMP_SLOT;
   relativeRel = R_RISCV_RELATIVE;
+  if (ctx.arg.isCheriAbi)
+    relativeFuncRel = R_RISCV_FUNC_RELATIVE;
   iRelativeRel = R_RISCV_IRELATIVE;
   symbolicCapRel = R_RISCV_CHERI_CAPABILITY;
+  symbolicCodeCapRel = R_RISCV_CHERI_CAPABILITY_CODE;
   if (ctx.arg.is64) {
     symbolicRel = R_RISCV_64;
     tlsModuleIndexRel = R_RISCV_TLS_DTPMOD64;
@@ -402,29 +405,29 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
   case R_RISCV_SET_ULEB128:
   case R_RISCV_SUB_ULEB128:
     return RE_RISCV_LEB128;
-    case R_RISCV_CHERI_CAPABILITY:
-      return R_ABS_CAP;
-    // TODO: Deprecate and eventually remove these
-    case R_RISCV_CHERI_CAPTAB_PCREL_HI20:
-      return R_GOT_PC;
-    case R_RISCV_CHERI_TLS_IE_CAPTAB_PCREL_HI20:
-      return R_GOT_PC;
-    case R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20:
-      return R_TLSGD_PC;
-    case R_RISCV_CHERIOT_COMPARTMENT_HI:
-      return isPCCRelative(ctx, loc, &s) ? R_PC
-                                         : R_CHERIOT_COMPARTMENT_CGPREL_HI;
-    case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
-      return R_CHERIOT_COMPARTMENT_CGPREL_LO_I;
-    case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
-      return R_CHERIOT_COMPARTMENT_CGPREL_LO_S;
-    case R_RISCV_CHERIOT_COMPARTMENT_SIZE:
-      return R_CHERIOT_COMPARTMENT_SIZE;
-    default:
-      Err(ctx) << getErrorLoc(ctx, loc) << "unknown relocation (" << type.v
-               << ") against symbol " << &s;
-      return R_NONE;
-    }
+  case R_RISCV_CHERI_CAPABILITY:
+  case R_RISCV_CHERI_CAPABILITY_CODE:
+    return R_ABS_CAP;
+  // TODO: Deprecate and eventually remove these
+  case R_RISCV_CHERI_CAPTAB_PCREL_HI20:
+    return R_GOT_PC;
+  case R_RISCV_CHERI_TLS_IE_CAPTAB_PCREL_HI20:
+    return R_GOT_PC;
+  case R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20:
+    return R_TLSGD_PC;
+  case R_RISCV_CHERIOT_COMPARTMENT_HI:
+    return isPCCRelative(ctx, loc, &s) ? R_PC : R_CHERIOT_COMPARTMENT_CGPREL_HI;
+  case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
+    return R_CHERIOT_COMPARTMENT_CGPREL_LO_I;
+  case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
+    return R_CHERIOT_COMPARTMENT_CGPREL_LO_S;
+  case R_RISCV_CHERIOT_COMPARTMENT_SIZE:
+    return R_CHERIOT_COMPARTMENT_SIZE;
+  default:
+    Err(ctx) << getErrorLoc(ctx, loc) << "unknown relocation (" << type.v
+             << ") against symbol " << &s;
+    return R_NONE;
+  }
 }
 
 void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
@@ -701,6 +704,7 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
   }
 
   case R_RISCV_CHERI_CAPABILITY:
+  case R_RISCV_CHERI_CAPABILITY_CODE:
     // Write a word within the capability
     if (ctx.arg.is64)
       write64le(loc, val);

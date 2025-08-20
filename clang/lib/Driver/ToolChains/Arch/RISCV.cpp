@@ -60,6 +60,8 @@ static bool isCheriPurecapABIName(StringRef ABI) {
       .Case("l64pc128", true)
       .Case("l64pc128f", true)
       .Case("l64pc128d", true)
+      .Case("cheriot", true)
+      .Case("cheriot-baremetal", true)
       .Default(false);
 }
 
@@ -202,8 +204,12 @@ void riscv::getRISCVTargetFeatures(const Driver &D, const llvm::Triple &Triple,
                             options::OPT_m_riscv_Features_Group);
 
   if (Arg *A = Args.getLastArg(options::OPT_mabi_EQ)) {
-    bool IsPureCapability = isCheriPurecapABIName(A->getValue());
-    if (IsPureCapability) {
+    StringRef ABI = A->getValue();
+    bool IsPureCapability = isCheriPurecapABIName(ABI);
+    if (ABI == "cheriot" || ABI == "cheriot-baremetal") {
+      // +xcheriot implies both +xcheri and +xcheripurecap
+      Features.push_back("+xcheriot");
+    } else if (IsPureCapability) {
       auto ISAInfo = llvm::RISCVISAInfo::parseFeatures(
           Triple.isArch32Bit() ? 32 : 64,
           std::vector<std::string>(Features.begin(), Features.end()));
@@ -215,42 +221,6 @@ void riscv::getRISCVTargetFeatures(const Driver &D, const llvm::Triple &Triple,
         D.Diag(diag::err_riscv_invalid_abi)
             << A->getValue()
             << "pure capability ABI requires xcheri extension to be specified";
-        return;
-      }
-      Features.push_back("+xcheripurecap");
-    }
-  }
-
-  if (Arg *A = Args.getLastArg(options::OPT_mabi_EQ)) {
-    bool IsPureCapability = isCheriPurecapABIName(A->getValue());
-    if (IsPureCapability) {
-      if (llvm::find(Features, "+xcheri") == Features.end()) {
-        D.Diag(diag::err_riscv_invalid_abi) << A->getValue()
-          << "pure capability ABI requires xcheri extension to be specified";
-        return;
-      }
-      Features.push_back("+xcheripurecap");
-    }
-  }
-
-  if (Arg *A = Args.getLastArg(options::OPT_mabi_EQ)) {
-    bool IsPureCapability = isCheriPurecapABIName(A->getValue());
-    if (IsPureCapability) {
-      if (llvm::find(Features, "+xcheri") == Features.end()) {
-        D.Diag(diag::err_riscv_invalid_abi) << A->getValue()
-          << "pure capability ABI requires xcheri extension to be specified";
-        return;
-      }
-      Features.push_back("+xcheripurecap");
-    }
-  }
-
-  if (Arg *A = Args.getLastArg(options::OPT_mabi_EQ)) {
-    bool IsPureCapability = isCheriPurecapABIName(A->getValue());
-    if (IsPureCapability) {
-      if (llvm::find(Features, "+xcheri") == Features.end()) {
-        D.Diag(diag::err_riscv_invalid_abi) << A->getValue()
-          << "pure capability ABI requires xcheri extension to be specified";
         return;
       }
       Features.push_back("+xcheripurecap");
@@ -353,6 +323,8 @@ StringRef riscv::getRISCVABI(const ArgList &Args, const llvm::Triple &Triple) {
   // - On `riscv{XLEN}-unknown-elf` we use the integer calling convention only.
   // - On all other OSs we use the double floating point calling convention.
   if (Triple.isRISCV32()) {
+    if (Triple.getOS() == llvm::Triple::CheriotRTOS)
+      return "cheriot";
     if (Triple.getOS() == llvm::Triple::UnknownOS)
       return "ilp32";
     else
@@ -458,8 +430,9 @@ std::string riscv::getRISCVArch(const llvm::opt::ArgList &Args,
   // We deviate from GCC's defaults here:
   // - On `riscv{XLEN}-unknown-elf` we default to `rv{XLEN}imac`
   // - On all other OSs we use `rv{XLEN}imafdc` (equivalent to `rv{XLEN}gc`)
-  if (Triple.getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1)
-    return "rv32emc_xcheri";
+  if (Triple.getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1 ||
+      Triple.getOS() == llvm::Triple::CheriotRTOS)
+    return "rv32emc_xcheriot";
   if (Triple.isRISCV32()) {
     if (Triple.getOS() == llvm::Triple::UnknownOS)
       return "rv32imac";
@@ -489,7 +462,8 @@ std::string riscv::getRISCVTargetCPU(const llvm::opt::ArgList &Args,
   if (!CPU.empty())
     return CPU;
 
-  if (Triple.getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1)
+  if (Triple.getOS() == llvm::Triple::CheriotRTOS ||
+      Triple.getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1)
     return "cheriot";
 
   return Triple.isRISCV64() ? "generic-rv64" : "generic-rv32";

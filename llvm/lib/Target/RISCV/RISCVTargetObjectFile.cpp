@@ -210,3 +210,14 @@ int RISCVELFTargetObjectFile::getCheriCapabilitySize(
   const RISCVTargetMachine &RTM = static_cast<const RISCVTargetMachine &>(TM);
   return RTM.IsRV64() ? 16 : 8;
 }
+
+const MCExpr *
+RISCVELFTargetObjectFile::lowerCheriCodeReference(const MCSymbol *Sym,
+                                                  const MCExpr *Addend) const {
+  const MCExpr *Expr = MCSymbolRefExpr::create(Sym, getContext());
+  if (Addend != nullptr)
+    Expr = MCBinaryExpr::createAdd(Expr, Addend, getContext());
+  Expr = MCSpecifierExpr::create(Expr, ELF::R_RISCV_CHERI_CAPABILITY_CODE,
+                                 getContext());
+  return Expr;
+}

@@ -22,12 +22,12 @@ lmp_head_extern:
 .hidden .Llmp_head_local_unsized
 .Llmp_head_local_unsized:
 	.chericap	.Llmp_head_local_unsized+1
-# WARNING: [[@LINE-1]]:12: warning: creating a R_MIPS_CHERI_CAPABILITY relocation against an unsized defined symbol: .Llmp_head_local_unsized.
+# WARNING: [[@LINE-1]]:36: warning: creating a R_MIPS_CHERI_CAPABILITY relocation against an unsized defined symbol: .Llmp_head_local_unsized. This will probably result in incorrect values at run time.
 
 .section .otherdata, "aw", %progbits
 .Lreloc_text_local:
 .chericap .Lfoo_start + 4
-# WARNING: [[@LINE-1]]:11: warning: creating a R_MIPS_CHERI_CAPABILITY relocation against an unsized defined symbol: .Lfoo_start.
+# WARNING: [[@LINE-1]]:23: warning: creating a R_MIPS_CHERI_CAPABILITY relocation against an unsized defined symbol: .Lfoo_start. This will probably result in incorrect values at run time.
 .Lreloc_text_global:
 .chericap foo + 4
 

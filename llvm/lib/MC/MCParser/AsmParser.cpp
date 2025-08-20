@@ -5849,39 +5849,11 @@ bool AsmParser::parseDirectiveCheriCap(SMLoc DirectiveLoc) {
   int64_t Offset = 0;
   unsigned CapSize = getTargetParser().getCheriCapabilitySize();
   // Allow .chericap 0x123456 to create an untagged uintcap_t
-  if (SymExpr->evaluateAsAbsolute(Offset)) {
+  if (SymExpr->evaluateAsAbsolute(Offset, getStreamer().getAssemblerPtr()))
     getStreamer().emitCheriIntcap(Offset, CapSize, ExprLoc);
-  } else {
-    const MCSymbolRefExpr *SRE = nullptr;
-    if (const MCBinaryExpr *BE = dyn_cast<MCBinaryExpr>(SymExpr)) {
-      const MCConstantExpr *CE = nullptr;
-      bool Neg = false;
-      switch (BE->getOpcode()) {
-        case MCBinaryExpr::Sub:
-          Neg = true;
-          LLVM_FALLTHROUGH;
-        case MCBinaryExpr::Add:
-          CE = dyn_cast<MCConstantExpr>(BE->getRHS());
-          break;
-        default:
-          break;
-      }
+  else
+    getStreamer().emitCheriCapability(SymExpr, CapSize, ExprLoc);
 
-      SRE = dyn_cast<MCSymbolRefExpr>(BE->getLHS());
-      if (!SRE || !CE)
-        return Error(ExprLoc, "must be sym[+const]");
-      Offset = CE->getValue();
-      if (Neg)
-        Offset = -Offset;
-    } else {
-      SRE = dyn_cast<MCSymbolRefExpr>(SymExpr);
-      if (!SRE)
-        return Error(ExprLoc, "must be sym[+const]");
-      Offset = 0;
-    }
-    const MCSymbol &Symbol = SRE->getSymbol();
-    getStreamer().EmitCheriCapability(&Symbol, Offset, CapSize, ExprLoc);
-  }
   if (parseToken(AsmToken::EndOfStatement, "expected end of statement"))
     return true;
   return false;

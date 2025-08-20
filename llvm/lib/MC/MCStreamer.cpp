@@ -195,25 +195,15 @@ void MCStreamer::emitSymbolValue(const MCSymbol *Sym, unsigned Size,
     emitCOFFSecRel32(Sym, /*Offset=*/0);
 }
 
-void MCStreamer::EmitCheriCapability(const MCSymbol *Value,
-                                     const MCExpr *Addend, unsigned CapSize,
+void MCStreamer::emitCheriCapability(const MCExpr *Value, unsigned CapSize,
                                      SMLoc Loc) {
-  if (!Addend) {
-    Addend = MCConstantExpr::create(0, Context);
-  }
-  EmitCheriCapabilityImpl(Value, Addend, CapSize, Loc);
+  report_fatal_error("emitCheriCapability is not implemented for this target!");
 }
 
-void MCStreamer::EmitCheriCapabilityImpl(const MCSymbol *Value,
-                                         const MCExpr *Addend, unsigned CapSize,
-                                         SMLoc Loc) {
-  report_fatal_error("EmitCheriCapability is not implemented for this target!");
-}
-
-void MCStreamer::EmitCheriCapability(const MCSymbol *Value, int64_t Addend,
-                                     unsigned CapSize, SMLoc Loc) {
-  EmitCheriCapability(Value, MCConstantExpr::create(Addend, Context), CapSize,
-                      Loc);
+void MCStreamer::emitSymbolCheriCapability(const MCSymbol *Sym,
+                                           unsigned CapSize) {
+  const MCExpr *Expr = MCSymbolRefExpr::create(Sym, getContext());
+  emitCheriCapability(Expr, CapSize);
 }
 
 void MCStreamer::emitCheriIntcap(int64_t Value, unsigned CapSize, SMLoc Loc) {

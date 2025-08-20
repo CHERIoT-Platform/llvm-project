@@ -224,19 +224,13 @@ void RISCVELFStreamer::emitCheriIntcap(const MCExpr *Expr, unsigned CapSize,
   emitCheriIntcapGeneric(Expr, CapSize, Loc);
 }
 
-void RISCVELFStreamer::EmitCheriCapabilityImpl(const MCSymbol *Symbol,
-                                               const MCExpr *Addend,
-                                               unsigned CapSize, SMLoc Loc) {
-  assert(Addend && "Should have received a MCConstExpr(0) instead of nullptr");
-  visitUsedSymbol(*Symbol);
-  MCContext &Context = getContext();
-
-  const MCSymbolRefExpr *SRE = MCSymbolRefExpr::create(Symbol, 0, Context, Loc);
-  const MCBinaryExpr *CapExpr = MCBinaryExpr::createAdd(SRE, Addend, Context);
+void RISCVELFStreamer::emitCheriCapability(const MCExpr *Value,
+                                           unsigned CapSize, SMLoc Loc) {
+  visitUsedExpr(*Value);
 
   // Pad to ensure that the capability is aligned
   emitValueToAlignment(Align(CapSize), 0, 1, 0);
-  addFixup(CapExpr, MCFixupKind(RISCV::fixup_riscv_capability));
+  addFixup(Value, MCFixupKind(RISCV::fixup_riscv_capability));
   appendContents(CapSize, '\xca');
 }
 

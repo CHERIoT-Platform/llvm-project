@@ -102,18 +102,13 @@ void MipsELFStreamer::emitValueImpl(const MCExpr *Value, unsigned Size,
   Labels.clear();
 }
 
-void MipsELFStreamer::EmitCheriCapabilityImpl(const MCSymbol *Symbol,
-                                              const MCExpr *Addend,
-                                              unsigned CapSize, SMLoc Loc) {
-  assert(Addend && "Should have received a MCConstExpr(0) instead of nullptr");
-  visitUsedSymbol(*Symbol);
-  MCContext &Context = getContext();
-  const MCSymbolRefExpr *SRE = MCSymbolRefExpr::create(Symbol, 0, Context, Loc);
-  const MCBinaryExpr *CapExpr = MCBinaryExpr::createAdd(SRE, Addend, Context, Loc);
+void MipsELFStreamer::emitCheriCapability(const MCExpr *Value, unsigned CapSize,
+                                          SMLoc Loc) {
+  visitUsedExpr(*Value);
 
   // Pad to ensure that the capability is aligned
   emitValueToAlignment(Align(CapSize), 0, 1, 0);
-  addFixup(CapExpr, MCFixupKind(Mips::fixup_CHERI_CAPABILITY));
+  addFixup(Value, MCFixupKind(Mips::fixup_CHERI_CAPABILITY));
   appendContents(CapSize, '\xca');
 }
 

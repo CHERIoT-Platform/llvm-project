@@ -410,8 +410,8 @@ public:
                        const MCPseudoProbeInlineStack &InlineStack,
                        MCSymbol *FnSym) override;
 
-  void EmitCheriCapabilityImpl(const MCSymbol *Symbol, const MCExpr *Addend,
-                               unsigned CapSize, SMLoc Loc = SMLoc()) override;
+  virtual void emitCheriCapability(const MCExpr *Value, unsigned CapSize,
+                                   SMLoc Loc = SMLoc()) override;
   void emitCheriIntcap(const MCExpr *Expr, unsigned CapSize,
                        SMLoc Loc = SMLoc()) override;
 
@@ -2545,24 +2545,15 @@ void MCAsmStreamer::emitPseudoProbe(uint64_t Guid, uint64_t Index,
   EmitEOL();
 }
 
-void MCAsmStreamer::EmitCheriCapabilityImpl(const MCSymbol *Symbol,
-                                            const MCExpr *Addend,
-                                            unsigned CapSize, SMLoc Loc) {
+void MCAsmStreamer::emitCheriCapability(const MCExpr *Value, unsigned CapSize,
+                                        SMLoc Loc) {
   OS << "\t.chericap\t";
-  Symbol->print(OS, MAI);
-  // Avoid parens,unary minus, and zero for constants:
-  assert(Addend);
-  if (const MCConstantExpr *CE = dyn_cast<MCConstantExpr>(Addend)) {
-    int64_t Offset = CE->getValue();
-    if (Offset > 0)
-      OS << "+" << Offset;
-    else if (Offset < 0)
-      OS << Offset;
+  if (MCTargetStreamer *TS = getTargetStreamer()) {
+    TS->emitValue(Value);
   } else {
-    OS << " + ";
-    MAI->printExpr(OS, *Addend);
+    MAI->printExpr(OS, *Value);
+    EmitEOL();
   }
-  EmitEOL();
 }
 
 void MCAsmStreamer::emitCheriIntcap(const MCExpr *Expr, unsigned CapSize,

@@ -848,13 +848,7 @@ void MachineFunction::addInvoke(MachineBasicBlock *LandingPad,
 }
 
 MCSymbol *MachineFunction::addLandingPad(MachineBasicBlock *LandingPad) {
-  // For the purecap ABIs we create a relocation against this symbol, so ensure
-  // that there is a named symbol in the object file to make objdump/readelf
-  // output more easily parseable. We avoid doing this unconditonally as it
-  // would affect many upstream tests.
-  MCSymbol *LandingPadLabel = Ctx.getAsmInfo()->isCheriPurecapABI()
-                                  ? Ctx.createNamedTempSymbol("lpad")
-                                  : Ctx.createTempSymbol();
+  MCSymbol *LandingPadLabel = Ctx.createTempSymbol();
   LandingPadInfo &LP = getOrCreateLandingPadInfo(LandingPad);
   LP.LandingPadLabel = LandingPadLabel;
 

@@ -74,8 +74,8 @@ public:
   void createPendingLabelRelocs();
 
 protected:
-  void EmitCheriCapabilityImpl(const MCSymbol *Symbol, const MCExpr *Addend,
-                               unsigned CapSize, SMLoc Loc) override;
+  void emitCheriCapability(const MCExpr *Value, unsigned CapSize,
+                           SMLoc Loc) override;
 };
 
 MCELFStreamer *createMipsELFStreamer(MCContext &Context,

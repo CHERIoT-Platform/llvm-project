@@ -429,7 +429,7 @@ void TargetLoweringObjectFileELF::emitPersonalityValueImpl(
   unsigned AS = DL.getProgramAddressSpace();
   unsigned Size = DL.getPointerSize(AS);
   if (DL.isFatPointer(DL.getProgramAddressSpace())) {
-    Streamer.EmitCheriCapability(Sym, nullptr, Size);
+    Streamer.emitSymbolCheriCapability(Sym, Size);
   } else {
     Streamer.emitSymbolValue(Sym, Size);
   }

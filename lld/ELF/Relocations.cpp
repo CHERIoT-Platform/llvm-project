@@ -936,8 +936,11 @@ static void addRelativeReloc(Ctx &ctx, InputSectionBase &isec,
       part.relrDyn->relocs.push_back({&isec, isec.relocs().size() - 1});
     return;
   }
-  part.relaDyn->addRelativeReloc<shard>(ctx.target->relativeRel, isec,
-                                        offsetInSec, sym, addend, type, expr);
+  RelType relativeType = ctx.target->relativeRel;
+  if (ctx.target->relativeFuncRel && sym.isFunc())
+    relativeType = *ctx.target->relativeFuncRel;
+  part.relaDyn->addRelativeReloc<shard>(relativeType, isec, offsetInSec, sym,
+                                        addend, type, expr);
 }
 
 template <class PltSection, class GotPltSection>
@@ -955,7 +958,8 @@ static void addPltEntry(Ctx &ctx, PltSection &plt, GotPltSection &gotPlt,
     }
 
     addRelativeCapabilityRelocation(ctx, gotPlt, sym.getGotPltOffset(ctx), &plt,
-                                    0, R_ABS_CAP, *ctx.target->symbolicCapRel);
+                                    0, R_ABS_CAP,
+                                    *ctx.target->symbolicCodeCapRel);
   }
 
   rel.addReloc({type, &gotPlt, sym.getGotPltOffset(ctx),
@@ -1246,8 +1250,8 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
   if (canWrite) {
     RelType rel = ctx.target->getDynRel(type);
     if (oneof<R_GOT, RE_LOONGARCH_GOT>(expr) ||
-        ((rel == ctx.target->symbolicRel ||
-          rel == ctx.target->symbolicCapRel) &&
+        ((rel == ctx.target->symbolicRel || rel == ctx.target->symbolicCapRel ||
+          type == ctx.target->symbolicCodeCapRel) &&
          !sym.isPreemptible)) {
       addRelativeReloc<true>(ctx, *sec, offset, sym, addend, expr, type);
       return;
@@ -1297,6 +1301,14 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
       // behaviour.
       if (ctx.arg.emachine == EM_MIPS && expr != R_ABS_CAP)
         ctx.in.mipsGot->addEntry(*sec->file, sym, addend, expr);
+      return;
+    } else if (type == ctx.target->symbolicCodeCapRel) {
+      auto diag = (ctx.arg.noinhibitExec) ? Warn(ctx) : Err(ctx);
+      diag << "relocation " + toStr(ctx, type)
+           << " cannot be used against preemptible symbol '" << toStr(ctx, sym)
+           << "'";
+      printLocation(diag, *sec, sym, offset);
+
       return;
     }
   }

@@ -130,6 +130,7 @@ public:
   RelType gotRel = 0;
   RelType pltRel = 0;
   RelType relativeRel = 0;
+  std::optional<RelType> relativeFuncRel;
   RelType iRelativeRel = 0;
   RelType symbolicRel = 0;
   RelType tlsDescRel = 0;
@@ -140,6 +141,7 @@ public:
   std::optional<RelType> sizeRel;
   std::optional<RelType> symbolicCapRel;
   std::optional<RelType> symbolicCapCallRel;
+  std::optional<RelType> symbolicCodeCapRel;
   unsigned gotEntrySize = ctx.arg.wordsize;
   unsigned pltEntrySize = 0;
   unsigned pltHeaderSize = 0;

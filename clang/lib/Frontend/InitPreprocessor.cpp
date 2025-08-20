@@ -1593,6 +1593,9 @@ static void InitializePredefinedMacros(const TargetInfo &TI,
 #undef TARGET_OS
   }
 
+  if (LangOpts.PointerAuthIntrinsics)
+    Builder.defineMacro("__PTRAUTH__");
+
   // Get other target #defines.
   TI.getTargetDefines(LangOpts, Builder);
 }

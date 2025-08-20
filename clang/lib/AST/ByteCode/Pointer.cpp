@@ -179,10 +179,7 @@ APValue Pointer::toAPValue(const ASTContext &ASTCtx) const {
   else if (const auto *E = Desc->asExpr()) {
     if (block()->isDynamic()) {
       QualType AllocatedType = getDeclPtr().getFieldDesc()->getDataType(ASTCtx);
-      // FIXME: Suboptimal counting of dynamic allocations. Move this to Context
-      // or InterpState?
-      static int ReportedDynamicAllocs = 0;
-      DynamicAllocLValue DA(ReportedDynamicAllocs++);
+      DynamicAllocLValue DA(*block()->DynAllocId);
       Base = APValue::LValueBase::getDynamicAlloc(DA, AllocatedType);
     } else {
       Base = E;
@@ -378,6 +375,8 @@ size_t Pointer::computeOffsetForComparison() const {
     }
 
     if (const Record *R = P.getBase().getRecord(); R && R->isUnion()) {
+      if (P.isOnePastEnd())
+        ++Result;
       // Direct child of a union - all have offset 0.
       P = P.getBase();
       continue;

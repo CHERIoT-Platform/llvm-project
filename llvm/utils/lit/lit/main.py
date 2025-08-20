@@ -44,6 +44,7 @@ def main(builtin_params={}):
         per_test_coverage=opts.per_test_coverage,
         gtest_sharding=opts.gtest_sharding,
         maxRetriesPerTest=opts.maxRetriesPerTest,
+        update_tests=opts.update_tests,
     )
 
     lit_config.cheri_test_mode = opts.cheri_tests_filter

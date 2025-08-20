@@ -14,6 +14,7 @@
 #include "MCTargetDesc/RISCVAsmBackend.h"
 #include "MCTargetDesc/RISCVMCAsmInfo.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/MC/MCObjectWriter.h"
 #include "llvm/Support/ErrorHandling.h"
 
 using namespace llvm;

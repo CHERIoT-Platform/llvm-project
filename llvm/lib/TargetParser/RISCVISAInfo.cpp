@@ -1002,6 +1002,8 @@ RISCVISAInfo::postProcessAndChecking(std::unique_ptr<RISCVISAInfo> &&ISAInfo) {
 
 StringRef RISCVISAInfo::computeDefaultABI() const {
   if (XLen == 32) {
+    if (Exts.count("xcheriot"))
+      return "cheriot";
     if (Exts.count("e"))
       return "ilp32e";
     if (Exts.count("d"))

@@ -810,12 +810,12 @@ static void addPltEntry(Ctx &ctx, PltSection &plt, GotPltSection &gotPlt,
     if (!sym.isPreemptible) {
       addRelativeCapabilityRelocation(ctx, gotPlt, sym.getGotPltOffset(ctx),
                                       &sym, 0, R_ABS_CAP,
-                                      *ctx.target->cheriCapRel);
+                                      *ctx.target->symbolicCapRel);
       return;
     }
 
     addRelativeCapabilityRelocation(ctx, gotPlt, sym.getGotPltOffset(ctx), &plt,
-                                    0, R_ABS_CAP, *ctx.target->cheriCapRel);
+                                    0, R_ABS_CAP, *ctx.target->symbolicCapRel);
   }
 
   if (sym.isPreemptible)
@@ -840,7 +840,9 @@ void elf::addGotEntry(Ctx &ctx, Symbol &sym) {
   }
 
   RelType type =
-      ctx.arg.isCheriAbi ? *ctx.target->cheriCapRel : ctx.target->symbolicRel;
+
+      ctx.arg.isCheriAbi ? *ctx.target->symbolicCapRel
+                         : ctx.target->symbolicRel;
 
   // Otherwise, the value is either a link-time constant or the load base
   // plus a constant. For CHERI it always requires run-time initialisation,
@@ -1105,7 +1107,8 @@ void RelocScan::process(RelExpr expr, RelType type, uint64_t offset,
   if (canWrite) {
     RelType rel = ctx.target->getDynRel(type);
     if (oneof<R_GOT, RE_LOONGARCH_GOT>(expr) ||
-        ((rel == ctx.target->symbolicRel || rel == ctx.target->cheriCapRel) &&
+        ((rel == ctx.target->symbolicRel ||
+          rel == ctx.target->symbolicCapRel) &&
          !sym.isPreemptible)) {
       addRelativeReloc<true>(ctx, *sec, offset, sym, addend, expr, type);
       return;

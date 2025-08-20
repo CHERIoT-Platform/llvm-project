@@ -57,8 +57,8 @@ template <class ELFT> MIPS<ELFT>::MIPS(Ctx &ctx) : TargetInfo(ctx) {
   pltHeaderSize = 32;
   copyRel = R_MIPS_COPY;
   pltRel = R_MIPS_JUMP_SLOT;
-  cheriCapRel = R_MIPS_CHERI_CAPABILITY;
-  cheriCapCallRel = R_MIPS_CHERI_CAPABILITY_CALL;
+  symbolicCapRel = R_MIPS_CHERI_CAPABILITY;
+  symbolicCapCallRel = R_MIPS_CHERI_CAPABILITY_CALL;
   needsThunks = true;
 
   // Set `sigrie 1` as a trap instruction.
@@ -246,7 +246,7 @@ RelExpr MIPS<ELFT>::getRelExpr(RelType type, const Symbol &s,
 }
 
 template <class ELFT> RelType MIPS<ELFT>::getDynRel(RelType type) const {
-  if (type == symbolicRel || type == cheriCapRel)
+  if (type == symbolicRel || type == symbolicCapRel)
     return type;
   return R_MIPS_NONE;
 }

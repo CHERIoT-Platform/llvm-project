@@ -4331,7 +4331,8 @@ static void emitGlobalConstantCHERICap(const DataLayout &DL, const Constant *CV,
     if (auto BA = dyn_cast<BlockAddress>(CV)) {
       // For block addresses we emit `.chericap FN+(.LtmpN - FN)`
       auto FnStart = AP.getSymbol(BA->getFunction());
-      const MCExpr *DiffToStart = MCBinaryExpr::createSub(SRE, MCSymbolRefExpr::create(FnStart, AP.OutContext), AP.OutContext);
+      const MCExpr *DiffToStart = MCBinaryExpr::createSub(
+          SRE, MCSymbolRefExpr::create(FnStart, AP.OutContext), AP.OutContext);
       AP.OutStreamer->EmitCheriCapability(FnStart, DiffToStart, CapWidth);
       return;
     }

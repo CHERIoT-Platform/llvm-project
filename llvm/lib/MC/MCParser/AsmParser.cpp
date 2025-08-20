@@ -5771,7 +5771,7 @@ bool AsmParser::parseDirectiveCheriCap(SMLoc DirectiveLoc) {
   if (!getTargetParser().isCheri())
     return Error(DirectiveLoc, "'.chericap' requires CHERI");
 
-  if (parseExpression(Expr))
+  if (getTargetParser().parseDataExpr(Expr))
     return true;
 
   int64_t Value;

@@ -163,8 +163,7 @@ SubObjectRepresentabilityChecker::getCheckFieldFn(ASTContext &ASTCtx) const {
     return nullptr;
 
   const auto &T = TI.getTriple();
-  if (T.getArch() == llvm::Triple::riscv32 &&
-      T.getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1) {
+  if (T.getArch() == llvm::Triple::riscv32 && TI.hasFeature("xcheriot")) {
     return &checkFieldImpl<llvm::CompressedCapability::Cheriot64>;
   }
 

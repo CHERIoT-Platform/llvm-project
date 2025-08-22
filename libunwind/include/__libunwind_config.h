@@ -82,6 +82,7 @@
 #  define _LIBUNWIND_HIGHEST_DWARF_REGISTER _LIBUNWIND_HIGHEST_DWARF_REGISTER_PPC
 # elif defined(__aarch64__)
 #  define _LIBUNWIND_TARGET_AARCH64 1
+#define _LIBUNWIND_CONTEXT_SIZE 67
 #  if defined(__CHERI_PURE_CAPABILITY__)
 #    define _LIBUNWIND_CONTEXT_SIZE 102
 #    if defined(__SEH__)
@@ -91,13 +92,11 @@
 #    endif
 #    define _LIBUNWIND_HIGHEST_DWARF_REGISTER _LIBUNWIND_HIGHEST_DWARF_REGISTER_MORELLO
 #  else
-#    define _LIBUNWIND_CONTEXT_SIZE 66
 #    if defined(__SEH__)
 #      define _LIBUNWIND_CURSOR_SIZE 164
 #    else
 #      define _LIBUNWIND_CURSOR_SIZE 78
 #    endif
-#    define _LIBUNWIND_HIGHEST_DWARF_REGISTER _LIBUNWIND_HIGHEST_DWARF_REGISTER_ARM64
 #  endif
 # elif defined(__arm__)
 #  define _LIBUNWIND_TARGET_ARM 1

@@ -1892,6 +1892,8 @@ public:
 #endif
 
 private:
+  uint64_t lazyGetVG() const;
+
   struct GPRs {
     uintptr_t __x[29]; // r0-r28
     uintptr_t __fp;    // Frame pointer r29
@@ -1904,12 +1906,22 @@ private:
     uint64_t __ra_sign_state; // RA sign state register
   };
 
-  GPRs    _registers;
-  double  _vectorHalfRegisters[32];
+  struct Misc {
+    mutable uint64_t __vg = 0; // Vector Granule
+  };
+
+  GPRs _registers;
   // Currently only the lower double in 128-bit vectore registers
   // is perserved during unwinding.  We could define new register
   // numbers (> 96) which mean whole vector registers, then this
   // struct would need to change to contain whole vector registers.
+  double _vectorHalfRegisters[32];
+
+  // Miscellaneous/virtual registers. These are stored below the GPRs and FPRs
+  // as they do not correspond to physical registers, so do not need to be
+  // saved/restored in UnwindRegistersRestore.S and UnwindRegistersSave.S, and
+  // we don't want to modify the existing offsets for GPRs and FPRs.
+  Misc _misc_registers;
 };
 
 inline Registers_arm64::Registers_arm64(const void *registers) {
@@ -1948,9 +1960,25 @@ inline bool Registers_arm64::validRegister(int regNum) const {
     return false;
   if (regNum == UNW_AARCH64_RA_SIGN_STATE)
     return true;
+  if (regNum == UNW_AARCH64_VG)
+    return true;
   if ((regNum > 32) && (regNum < 64))
     return false;
   return true;
+}
+
+inline uint64_t Registers_arm64::lazyGetVG() const {
+  if (!_misc_registers.__vg) {
+#if defined(__aarch64__)
+    register uint64_t vg asm("x0");
+    asm(".inst 0x04e0e3e0" // CNTD x0
+        : "=r"(vg));
+    _misc_registers.__vg = vg;
+#else
+    _LIBUNWIND_ABORT("arm64 VG undefined");
+#endif
+  }
+  return _misc_registers.__vg;
 }
 
 inline uintptr_t Registers_arm64::getRegister(int regNum) const {
@@ -1964,6 +1992,8 @@ inline uintptr_t Registers_arm64::getRegister(int regNum) const {
     return _registers.__fp;
   if (regNum == UNW_AARCH64_LR)
     return _registers.__lr;
+  if (regNum == UNW_AARCH64_VG)
+    return lazyGetVG();
   if ((regNum >= 0) && (regNum < 29))
     return _registers.__x[regNum];
 #ifdef __CHERI_PURE_CAPABILITY__
@@ -1984,6 +2014,8 @@ inline void Registers_arm64::setRegister(int regNum, uintptr_t value) {
     _registers.__fp = value;
   else if (regNum == UNW_AARCH64_LR)
     _registers.__lr = value;
+  else if (regNum == UNW_AARCH64_VG)
+    _misc_registers.__vg = value;
   else if ((regNum >= 0) && (regNum < 29))
     _registers.__x[regNum] = value;
 #ifdef __CHERI_PURE_CAPABILITY__

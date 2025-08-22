@@ -1812,16 +1812,16 @@ def PseudoCmpXchgCap : PseudoCmpXchg<GPCR> { let Size = 16; }
 } // Predicates = [HasCheri, HasStdExtA]f
 
 let Predicates = [HasCheri, HasStdExtA, NotCapMode] in {
-defm : PseudoAMOPat<"atomic_load_add_cap", PseudoAtomicLoadAddCap, GPCR>;
-defm : PseudoAMOPat<"atomic_load_sub_cap", PseudoAtomicLoadSubCap, GPCR>;
-defm : PseudoAMOPat<"atomic_load_and_cap", PseudoAtomicLoadAndCap, GPCR>;
-defm : PseudoAMOPat<"atomic_load_or_cap", PseudoAtomicLoadOrCap, GPCR>;
-defm : PseudoAMOPat<"atomic_load_xor_cap", PseudoAtomicLoadXorCap, GPCR>;
-defm : PseudoAMOPat<"atomic_load_max_cap", PseudoAtomicLoadMaxCap, GPCR>;
-defm : PseudoAMOPat<"atomic_load_min_cap", PseudoAtomicLoadMinCap, GPCR>;
-defm : PseudoAMOPat<"atomic_load_umax_cap", PseudoAtomicLoadUMaxCap, GPCR>;
-defm : PseudoAMOPat<"atomic_load_umin_cap", PseudoAtomicLoadUMinCap, GPCR>;
-defm : PseudoAMOPat<"atomic_load_nand_cap", PseudoAtomicLoadNandCap, GPCR>;
+defm : PseudoAMOPat<"atomic_load_add_cap", PseudoAtomicLoadAddCap, CLenVT, GPCR>;
+defm : PseudoAMOPat<"atomic_load_sub_cap", PseudoAtomicLoadSubCap, CLenVT, GPCR>;
+defm : PseudoAMOPat<"atomic_load_and_cap", PseudoAtomicLoadAndCap, CLenVT, GPCR>;
+defm : PseudoAMOPat<"atomic_load_or_cap", PseudoAtomicLoadOrCap, CLenVT, GPCR>;
+defm : PseudoAMOPat<"atomic_load_xor_cap", PseudoAtomicLoadXorCap, CLenVT, GPCR>;
+defm : PseudoAMOPat<"atomic_load_max_cap", PseudoAtomicLoadMaxCap, CLenVT, GPCR>;
+defm : PseudoAMOPat<"atomic_load_min_cap", PseudoAtomicLoadMinCap, CLenVT, GPCR>;
+defm : PseudoAMOPat<"atomic_load_umax_cap", PseudoAtomicLoadUMaxCap, CLenVT, GPCR>;
+defm : PseudoAMOPat<"atomic_load_umin_cap", PseudoAtomicLoadUMinCap, CLenVT, GPCR>;
+defm : PseudoAMOPat<"atomic_load_nand_cap", PseudoAtomicLoadNandCap, CLenVT, GPCR>;
 defm : PseudoCmpXchgPat<"atomic_cmp_swap_cap", PseudoCmpXchgCap, CLenVT, GPCR>;
 } // Predicates = [HasCheri, HasStdExtA, NotCapMode]
 

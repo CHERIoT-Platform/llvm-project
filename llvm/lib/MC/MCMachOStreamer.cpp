@@ -151,7 +151,7 @@ void MCMachOStreamer::emitEHSymAttributes(const MCSymbol *Symbol,
                                           MCSymbol *EHSymbol) {
   auto *Sym = static_cast<const MCSymbolMachO *>(Symbol);
   getAssembler().registerSymbol(*Symbol);
-  if (Symbol->isExternal())
+  if (Sym->isExternal())
     emitSymbolAttribute(EHSymbol, MCSA_Global);
   if (Sym->isWeakDefinition())
     emitSymbolAttribute(EHSymbol, MCSA_WeakDefinition);
@@ -376,12 +376,13 @@ void MCMachOStreamer::emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
                                        Align ByteAlignment,
                                        TailPaddingAmount TailPadding) {
   assert(TailPadding == TailPaddingAmount::None && "Not supported yet");
+  auto &Sym = static_cast<MCSymbolMachO &>(*Symbol);
   // FIXME: Darwin 'as' does appear to allow redef of a .comm by itself.
   assert(Symbol->isUndefined() && "Cannot define a symbol twice!");
 
-  getAssembler().registerSymbol(*Symbol);
-  Symbol->setExternal(true);
-  Symbol->setCommon(Size, ByteAlignment);
+  getAssembler().registerSymbol(Sym);
+  Sym.setExternal(true);
+  Sym.setCommon(Size, ByteAlignment);
 }
 
 void MCMachOStreamer::emitLocalCommonSymbol(MCSymbol *Symbol, uint64_t Size,
@@ -467,7 +468,8 @@ void MCMachOStreamer::finishImpl() {
 }
 
 void MCMachOStreamer::finalizeCGProfileEntry(const MCSymbolRefExpr *&SRE) {
-  const MCSymbol *S = &SRE->getSymbol();
+  auto *S =
+      static_cast<MCSymbolMachO *>(const_cast<MCSymbol *>(&SRE->getSymbol()));
   if (getAssembler().registerSymbol(*S))
     S->setExternal(true);
 }

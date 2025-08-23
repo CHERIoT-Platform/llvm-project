@@ -628,10 +628,12 @@ static Triple::ArchType parseArch(StringRef ArchName) {
                 .Case("cheri", Triple::mips64)         // TODO: remove
                 .Case("r600", Triple::r600)
                 .Case("amdgcn", Triple::amdgcn)
-                .StartsWith("riscv32", Triple::riscv32)
+                .Case("riscv32", Triple::riscv32)
                 .Case("riscv64", Triple::riscv64)
                 .Case("riscv32be", Triple::riscv32be)
                 .Case("riscv64be", Triple::riscv64be)
+                .Case("riscv32cheriot", Triple::riscv32)
+                .Case("riscv32cheriotv1", Triple::riscv32)
                 .Case("hexagon", Triple::hexagon)
                 .Cases("s390x", "systemz", Triple::systemz)
                 .Case("sparc", Triple::sparc)

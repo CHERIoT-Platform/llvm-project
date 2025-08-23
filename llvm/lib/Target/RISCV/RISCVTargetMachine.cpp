@@ -107,6 +107,8 @@ static cl::opt<bool>
 extern "C" LLVM_ABI LLVM_EXTERNAL_VISIBILITY void LLVMInitializeRISCVTarget() {
   RegisterTargetMachine<RISCVTargetMachine> X(getTheRISCV32Target());
   RegisterTargetMachine<RISCVTargetMachine> Y(getTheRISCV64Target());
+  RegisterTargetMachine<RISCVTargetMachine> A(getTheRISCV32beTarget());
+  RegisterTargetMachine<RISCVTargetMachine> B(getTheRISCV64beTarget());
   auto *PR = PassRegistry::getPassRegistry();
   initializeGlobalISel(*PR);
   initializeRISCVO0PreLegalizerCombinerPass(*PR);
@@ -140,27 +142,37 @@ extern "C" LLVM_ABI LLVM_EXTERNAL_VISIBILITY void LLVMInitializeRISCVTarget() {
   initializeRISCVAsmPrinterPass(*PR);
 }
 
-static std::string computeDataLayout(const Triple &TT, StringRef FS,
-                                   const TargetOptions &Options) {
-  StringRef ABIName = Options.MCOptions.getABIName();
+static std::string computeDataLayout(const Triple &TT,
+                                     StringRef FS,
+                                     const TargetOptions &Opts) {
+  std::string Ret;
 
-  StringRef IntegerTypes;
+  if (TT.isLittleEndian())
+    Ret += "e";
+  else
+    Ret += "E";
+
+  Ret += "-m:e";
+
+  // Pointer and integer sizes.
   if (TT.isArch64Bit()) {
-    if (ABIName == "lp64e")
-      IntegerTypes = "e-m:e-p:64:64-i64:64-i128:128-n32:64-S64";
-    else
-      IntegerTypes = "e-m:e-p:64:64-i64:64-i128:128-n32:64-S128";
-  } else { 
+    Ret += "-p:64:64-i64:64-i128:128";
+    Ret += "-n32:64";
+  } else {
     assert(TT.isArch32Bit() && "only RV32 and RV64 are currently supported");
-
-    if (ABIName == "ilp32e")
-      IntegerTypes = "e-m:e-p:32:32-i64:64-n32-S32";
-    else
-      IntegerTypes = "e-m:e-p:32:32-i64:64-n32-S128";
+    Ret += "-p:32:32-i64:64";
+    Ret += "-n32";
   }
 
-  StringRef CapTypes = "";
-  StringRef PurecapOptions = "";
+  // Stack alignment based on ABI.
+  StringRef ABI = Opts.MCOptions.getABIName();
+  if (ABI == "ilp32e")
+    Ret += "-S32";
+  else if (ABI == "lp64e")
+    Ret += "-S64";
+  else
+    Ret += "-S128";
+
   unsigned XLen = TT.isArch64Bit() ? 64 : 32;
   std::vector<std::string> Features;
   if (!FS.empty())
@@ -168,16 +180,16 @@ static std::string computeDataLayout(const Triple &TT, StringRef FS,
   auto ISAInfo = cantFail(llvm::RISCVISAInfo::parseFeatures(XLen, Features));
   if (ISAInfo->hasExtension("xcheri")) {
     if (TT.isArch64Bit())
-      CapTypes = "-pf200:128:128:128:64";
+      Ret += "-pf200:128:128:128:64";
     else
-      CapTypes = "-pf200:64:64:64:32";
+      Ret += "-pf200:64:64:64:32";
 
-    RISCVABI::ABI ABI = RISCVABI::getTargetABI(Options.MCOptions.getABIName(), TT);
+    RISCVABI::ABI ABI = RISCVABI::getTargetABI(Opts.MCOptions.getABIName(), TT);
     if (ABI != RISCVABI::ABI_Unknown && RISCVABI::isCheriPureCapABI(ABI))
-      PurecapOptions = "-A200-P200-G200";
+      Ret += "-A200-P200-G200";
   }
 
-  return (IntegerTypes + CapTypes + PurecapOptions).str();
+  return Ret;
 }
 
 static Reloc::Model getEffectiveRelocModel(const Triple &TT,

@@ -4504,4 +4504,6 @@ extern "C" LLVM_ABI LLVM_EXTERNAL_VISIBILITY void
 LLVMInitializeRISCVAsmParser() {
   RegisterMCAsmParser<RISCVAsmParser> X(getTheRISCV32Target());
   RegisterMCAsmParser<RISCVAsmParser> Y(getTheRISCV64Target());
+  RegisterMCAsmParser<RISCVAsmParser> A(getTheRISCV32beTarget());
+  RegisterMCAsmParser<RISCVAsmParser> B(getTheRISCV64beTarget());
 }

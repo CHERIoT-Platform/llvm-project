@@ -38,9 +38,11 @@ static cl::opt<bool>
                       "bytes of NOPs even in norvc code"));
 
 RISCVAsmBackend::RISCVAsmBackend(const MCSubtargetInfo &STI, uint8_t OSABI,
-                                 bool Is64Bit, const MCTargetOptions &Options)
-    : MCAsmBackend(llvm::endianness::little), STI(STI), OSABI(OSABI),
-      Is64Bit(Is64Bit), TargetOptions(Options) {
+                                 bool Is64Bit, bool IsLittleEndian,
+                                 const MCTargetOptions &Options)
+    : MCAsmBackend(IsLittleEndian ? llvm::endianness::little
+                                  : llvm::endianness::big),
+      STI(STI), OSABI(OSABI), Is64Bit(Is64Bit), TargetOptions(Options) {
   RISCVFeatures::validate(STI.getTargetTriple(), STI.getFeatureBits());
 }
 
@@ -392,7 +394,7 @@ bool RISCVAsmBackend::relaxDwarfLineAddr(MCFragment &F,
   } else {
     PCBytes = 2;
     OS << uint8_t(dwarf::DW_LNS_fixed_advance_pc);
-    support::endian::write<uint16_t>(OS, 0, llvm::endianness::little);
+    support::endian::write<uint16_t>(OS, 0, Endian);
   }
   auto Offset = OS.tell() - PCBytes;
 
@@ -446,15 +448,15 @@ bool RISCVAsmBackend::relaxDwarfCFA(MCFragment &F, bool &WasRelaxed) const {
     AddFixups(0, {ELF::R_RISCV_SET6, ELF::R_RISCV_SUB6});
   } else if (isUInt<8>(Value)) {
     OS << uint8_t(dwarf::DW_CFA_advance_loc1);
-    support::endian::write<uint8_t>(OS, 0, llvm::endianness::little);
+    support::endian::write<uint8_t>(OS, 0, Endian);
     AddFixups(1, {ELF::R_RISCV_SET8, ELF::R_RISCV_SUB8});
   } else if (isUInt<16>(Value)) {
     OS << uint8_t(dwarf::DW_CFA_advance_loc2);
-    support::endian::write<uint16_t>(OS, 0, llvm::endianness::little);
+    support::endian::write<uint16_t>(OS, 0, Endian);
     AddFixups(1, {ELF::R_RISCV_SET16, ELF::R_RISCV_SUB16});
   } else if (isUInt<32>(Value)) {
     OS << uint8_t(dwarf::DW_CFA_advance_loc4);
-    support::endian::write<uint32_t>(OS, 0, llvm::endianness::little);
+    support::endian::write<uint32_t>(OS, 0, Endian);
     AddFixups(1, {ELF::R_RISCV_SET32, ELF::R_RISCV_SUB32});
   } else {
     llvm_unreachable("unsupported CFA encoding");
@@ -938,6 +940,22 @@ bool RISCVAsmBackend::addReloc(const MCFragment &F, const MCFixup &Fixup,
   return false;
 }
 
+// Data fixups should be swapped for big endian cores.
+// Instruction fixups should not be swapped as RISC-V instructions
+// are always little-endian.
+static bool isDataFixup(unsigned Kind) {
+  switch (Kind) {
+  default:
+    return false;
+
+  case FK_Data_1:
+  case FK_Data_2:
+  case FK_Data_4:
+  case FK_Data_8:
+    return true;
+  }
+}
+
 void RISCVAsmBackend::applyFixup(const MCFragment &F, const MCFixup &Fixup,
                                  const MCValue &Target, uint8_t *Data,
                                  uint64_t Value, bool IsResolved) {
@@ -961,9 +979,12 @@ void RISCVAsmBackend::applyFixup(const MCFragment &F, const MCFixup &Fixup,
 
   // For each byte of the fragment that the fixup touches, mask in the
   // bits from the fixup value.
+  // For big endian cores, data fixup should be swapped.
+  bool SwapValue = Endian == llvm::endianness::big && isDataFixup(Kind);
   for (unsigned i = 0; i != NumBytes; ++i) {
-    assert((Data[i] & uint8_t((Value >> (i * 8)) & 0xff)) == 0);
-    Data[i] |= uint8_t((Value >> (i * 8)) & 0xff);
+    unsigned Idx = SwapValue ? (NumBytes - 1 - i) : i;
+    assert((Data[Idx] & uint8_t((Value >> (i * 8)) & 0xff)) == 0);
+    Data[Idx] |= uint8_t((Value >> (i * 8)) & 0xff);
   }
 }
 
@@ -978,5 +999,6 @@ MCAsmBackend *llvm::createRISCVAsmBackend(const Target &T,
                                           const MCTargetOptions &Options) {
   const Triple &TT = STI.getTargetTriple();
   uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(TT.getOS());
-  return new RISCVAsmBackend(STI, OSABI, TT.isArch64Bit(), Options);
+  return new RISCVAsmBackend(STI, OSABI, TT.isArch64Bit(), TT.isLittleEndian(),
+                             Options);
 }

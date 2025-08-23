@@ -604,16 +604,6 @@ static DecodeStatus decodeXqccmpRlistS0(MCInst &Inst, uint32_t Imm,
   return decodeZcmpRlist(Inst, Imm, Address, Decoder);
 }
 
-static DecodeStatus decodeXTHeadMemPair(MCInst &Inst, uint32_t Insn,
-                                        uint64_t Address,
-                                        const MCDisassembler *Decoder);
-
-static DecodeStatus decodeCSSPushPopchk(MCInst &Inst, uint32_t Insn,
-                                        uint64_t Address,
-                                        const MCDisassembler *Decoder);
-
-#include "RISCVGenDisassemblerTables.inc"
-
 static DecodeStatus decodeCSSPushPopchk(MCInst &Inst, uint32_t Insn,
                                         uint64_t Address,
                                         const MCDisassembler *Decoder) {
@@ -653,6 +643,8 @@ static DecodeStatus decodeXTHeadMemPair(MCInst &Inst, uint32_t Insn,
 
   return S;
 }
+
+#include "RISCVGenDisassemblerTables.inc"
 
 // Add implied SP operand for C.*SP compressed instructions. The SP operand
 // isn't explicitly encoded in the instruction.

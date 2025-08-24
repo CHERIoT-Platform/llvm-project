@@ -358,12 +358,9 @@ bool RISCVAsmBackend::relaxAlign(MCFragment &F, unsigned &Size) {
   return true;
 }
 
-bool RISCVAsmBackend::relaxDwarfLineAddr(MCFragment &F,
-                                         bool &WasRelaxed) const {
+bool RISCVAsmBackend::relaxDwarfLineAddr(MCFragment &F) const {
   int64_t LineDelta = F.getDwarfLineDelta();
   const MCExpr &AddrDelta = F.getDwarfAddrDelta();
-  size_t OldSize = F.getVarSize();
-
   int64_t Value;
   // If the label difference can be resolved, use the default handling, which
   // utilizes a shorter special opcode.
@@ -409,15 +406,12 @@ bool RISCVAsmBackend::relaxDwarfLineAddr(MCFragment &F,
   F.setVarContents(Data);
   F.setVarFixups({MCFixup::create(Offset, &AddrDelta,
                                   MCFixup::getDataKindForSize(PCBytes))});
-  WasRelaxed = OldSize != Data.size();
   return true;
 }
 
-bool RISCVAsmBackend::relaxDwarfCFA(MCFragment &F, bool &WasRelaxed) const {
+bool RISCVAsmBackend::relaxDwarfCFA(MCFragment &F) const {
   const MCExpr &AddrDelta = F.getDwarfAddrDelta();
   SmallVector<MCFixup, 2> Fixups;
-  size_t OldSize = F.getVarSize();
-
   int64_t Value;
   if (AddrDelta.evaluateAsAbsolute(Value, *Asm))
     return false;
@@ -430,7 +424,6 @@ bool RISCVAsmBackend::relaxDwarfCFA(MCFragment &F, bool &WasRelaxed) const {
   if (Value == 0) {
     F.clearVarContents();
     F.clearVarFixups();
-    WasRelaxed = OldSize != 0;
     return true;
   }
 
@@ -463,8 +456,6 @@ bool RISCVAsmBackend::relaxDwarfCFA(MCFragment &F, bool &WasRelaxed) const {
   }
   F.setVarContents(Data);
   F.setVarFixups(Fixups);
-
-  WasRelaxed = OldSize != Data.size();
   return true;
 }
 

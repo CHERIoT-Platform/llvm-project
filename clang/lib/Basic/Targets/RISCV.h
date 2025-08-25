@@ -84,7 +84,7 @@ private:
   bool HasExperimental = false;
 
 public:
-  RISCVTargetInfo(const llvm::Triple &Triple, const TargetOptions &)
+  RISCVTargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts)
       : TargetInfo(Triple) {
     BFloat16Width = 16;
     BFloat16Align = 16;
@@ -99,12 +99,6 @@ public:
     MCountName = "_mcount";
     HasFloat16 = true;
     HasStrictFP = true;
-
-    if (Triple.getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1) {
-      CPU = "cheriot";
-      ABI = (Triple.getOS() == llvm::Triple::CheriotRTOS) ? "cheriot"
-                                                          : "cheriot-baremetal";
-    }
   }
 
   bool setCPU(const std::string &Name) override {

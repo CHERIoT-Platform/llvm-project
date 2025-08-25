@@ -306,19 +306,11 @@ StringRef riscv::getRISCVABI(const ArgList &Args, const llvm::Triple &Triple) {
   // rv64e -> lp64e
   // rv64* -> lp64
   std::string Arch = getRISCVArch(Args, Triple);
-  if (Triple.getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1) {
-    llvm::Triple::OSType OS = Triple.getOS();
-    if (OS == llvm::Triple::CheriotRTOS)
-      return "cheriot";
-    else if (OS == llvm::Triple::UnknownOS)
-      return "cheriot-baremetal";
-  }
-
   auto ParseResult = llvm::RISCVISAInfo::parseArchString(
       Arch, /* EnableExperimentalExtension */ true);
   // Ignore parsing error, just go 3rd step.
   if (!llvm::errorToBool(ParseResult.takeError()))
-    return (*ParseResult)->computeDefaultABI();
+    return (*ParseResult)->computeDefaultABI(Triple);
 
   // 3. Choose a default based on the triple
   //
@@ -429,8 +421,7 @@ std::string riscv::getRISCVArch(const llvm::opt::ArgList &Args,
   // We deviate from GCC's defaults here:
   // - On `riscv{XLEN}-unknown-elf` we default to `rv{XLEN}imac`
   // - On all other OSs we use `rv{XLEN}imafdc` (equivalent to `rv{XLEN}gc`)
-  if (Triple.getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1 ||
-      Triple.getOS() == llvm::Triple::CheriotRTOS)
+  if (Triple.getOS() == llvm::Triple::CheriotRTOS)
     return "rv32emc_xcheriot";
   if (Triple.isRISCV32()) {
     if (Triple.getOS() == llvm::Triple::UnknownOS)
@@ -461,9 +452,13 @@ std::string riscv::getRISCVTargetCPU(const llvm::opt::ArgList &Args,
   if (!CPU.empty())
     return CPU;
 
-  if (Triple.getOS() == llvm::Triple::CheriotRTOS ||
-      Triple.getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1)
+  if (Triple.getOS() == llvm::Triple::CheriotRTOS)
     return "cheriot";
+  if (const Arg *A = Args.getLastArg(options::OPT_mabi_EQ)) {
+    StringRef ABI = A->getValue();
+    if (ABI == "cheriot" || ABI == "cheriot-baremetal")
+      return "cheriot";
+  }
 
   return Triple.isRISCV64() ? "generic-rv64" : "generic-rv32";
 }

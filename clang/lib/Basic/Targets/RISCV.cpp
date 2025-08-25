@@ -377,15 +377,6 @@ bool RISCVTargetInfo::initFeatureMap(
     Features["32bit"] = true;
   }
 
-  if (getTriple().getSubArch() == llvm::Triple::RISCV32SubArch_cheriot_v1) {
-    Features["xcheri"] = true;
-    Features["xcheriot"] = true;
-    Features["xcheripurecap"] = true;
-    Features["c"] = true;
-    Features["e"] = true;
-    Features["m"] = true;
-  }
-
   std::vector<std::string> AllFeatures = FeaturesVec;
   auto ParseResult = llvm::RISCVISAInfo::parseFeatures(XLen, FeaturesVec);
   if (!ParseResult) {
@@ -464,7 +455,7 @@ bool RISCVTargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
     CapSize = XLen * 2;
   }
   if (ABI.empty())
-    ABI = ISAInfo->computeDefaultABI().str();
+    ABI = ISAInfo->computeDefaultABI(getTriple()).str();
 
   if (ISAInfo->hasExtension("zfh") || ISAInfo->hasExtension("zhinx"))
     HasLegalHalfType = true;

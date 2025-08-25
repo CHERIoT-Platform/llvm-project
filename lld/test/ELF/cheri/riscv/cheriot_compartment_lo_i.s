@@ -4,7 +4,7 @@
 # RUN: llvm-objdump -d %t.exe | FileCheck %s
 
 	.attribute	4, 16
-	.attribute	5, "rv32e2p0_m2p0_c2p0_zmmul1p0_xcheri0p0_xcheriot1p0_xcheripurecap1p0"
+	.attribute	5, "rv32e2p0_m2p0_c2p0_zmmul1p0_xcheri0p0_xcheriot1p0_xcheripurecap0p0"
 	.section	.text,"ax",@progbits
 	.globl	_start
 	.p2align	1

@@ -21,6 +21,8 @@
 
 namespace llvm {
 
+class Triple;
+
 class RISCVISAInfo {
 public:
   RISCVISAInfo(const RISCVISAInfo &) = delete;
@@ -66,7 +68,7 @@ public:
 
   bool hasExtension(StringRef Ext) const;
   std::string toString() const;
-  StringRef computeDefaultABI() const;
+  StringRef computeDefaultABI(const llvm::Triple &Triple) const;
 
   static bool isSupportedExtensionFeature(StringRef Ext);
   static bool isSupportedExtension(StringRef Ext);

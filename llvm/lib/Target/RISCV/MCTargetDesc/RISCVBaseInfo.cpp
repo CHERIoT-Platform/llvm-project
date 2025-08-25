@@ -111,14 +111,11 @@ ABI computeTargetABI(const Triple &TT, const FeatureBitset &FeatureBits,
   auto ISAInfo = RISCVFeatures::parseFeatureBits(IsRV64, FeatureBits);
   if (!ISAInfo)
     reportFatalUsageError(ISAInfo.takeError());
-  return getTargetABI((*ISAInfo)->computeDefaultABI(), TT);
+  return getTargetABI((*ISAInfo)->computeDefaultABI(TT), TT);
 }
 
 ABI getTargetABI(StringRef ABIName, const Triple &TT) {
   ABI Default = ABI_Unknown;
-  if (TT.getSubArch() == Triple::RISCV32SubArch_cheriot_v1) {
-    Default = (TT.getOS() == Triple::CheriotRTOS) ? ABI_CHERIOT : ABI_CHERIOT_BAREMETAL;
-  }
 
   auto TargetABI = StringSwitch<ABI>(ABIName)
                        .Case("ilp32", ABI_ILP32)

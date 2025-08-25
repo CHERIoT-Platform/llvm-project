@@ -13,6 +13,7 @@
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/TargetParser/Triple.h"
 
 #include <array>
 #include <atomic>
@@ -999,10 +1000,11 @@ RISCVISAInfo::postProcessAndChecking(std::unique_ptr<RISCVISAInfo> &&ISAInfo) {
   return std::move(ISAInfo);
 }
 
-StringRef RISCVISAInfo::computeDefaultABI() const {
+StringRef RISCVISAInfo::computeDefaultABI(const llvm::Triple &Triple) const {
   if (XLen == 32) {
     if (Exts.count("xcheriot"))
-      return "cheriot";
+      return Triple.getOS() == llvm::Triple::CheriotRTOS ? "cheriot"
+                                                         : "cheriot-baremetal";
     if (Exts.count("e"))
       return "ilp32e";
     if (Exts.count("d"))

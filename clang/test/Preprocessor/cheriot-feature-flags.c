@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -E -dM -ffreestanding -triple riscv32cheriot-unknown-cheriotrtos < /dev/null | FileCheck %s 
+// RUN: %clang_cc1 -E -dM -ffreestanding -triple riscv32cheriot-unknown-cheriotrtos "-target-abi" "cheriot" "-target-feature" "+xcheriot" < /dev/null | FileCheck %s 
 
 // CHECK: #define __CHERIOT_PERMISSION_ACCESS_SYSTEM_REGISTERS__ 128
 // CHECK: #define __CHERIOT_PERMISSION_EXECUTE__ 256

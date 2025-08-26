@@ -6,7 +6,7 @@ target triple = "riscv32-unknown-unknown"
 
 ; Explicit 256-byte stack requirement
 ; Function Attrs: minsize nounwind optsize
-define dso_local chericcallcce i32 @needs256() local_unnamed_addr addrspace(200) #0 {
+define dso_local chericcallee i32 @needs256() local_unnamed_addr addrspace(200) #0 {
 entry:
   %call = tail call i32 @foo() #2
   ret i32 %call
@@ -17,7 +17,7 @@ declare i32 @foo() local_unnamed_addr addrspace(200) #1
 
 ; Explicit 512-byte stack requirement
 ; Function Attrs: minsize nounwind optsize
-define dso_local chericcallcce i32 @needs512() local_unnamed_addr addrspace(200) #3 {
+define dso_local chericcallee i32 @needs512() local_unnamed_addr addrspace(200) #3 {
 entry:
   %call = tail call i32 @foo() #2
   ret i32 %call
@@ -25,7 +25,7 @@ entry:
 
 ; No stack requirement
 ; Function Attrs: minsize nounwind optsize
-define dso_local chericcallcce i32 @noStack() local_unnamed_addr addrspace(200) #4 {
+define dso_local chericcallee i32 @noStack() local_unnamed_addr addrspace(200) #4 {
 entry:
   ret i32 0
 }
@@ -33,7 +33,7 @@ entry:
 ; Implicit 16-byte requirement as a result of spilling the return value (and
 ; the 16-byte alignment requirement)
 ; Function Attrs: minsize nounwind optsize
-define dso_local chericcallcce i32 @tinyStack() local_unnamed_addr addrspace(200) #4 {
+define dso_local chericcallee i32 @tinyStack() local_unnamed_addr addrspace(200) #4 {
 entry:
   %call = tail call i32 @foo() #2
   %add1 = add nsw i32 %call, 1

@@ -382,7 +382,9 @@ static void PrintCallingConv(unsigned cc, raw_ostream &Out) {
   case CallingConv::SPIR_FUNC:     Out << "spir_func"; break;
   case CallingConv::SPIR_KERNEL:   Out << "spir_kernel"; break;
   case CallingConv::CHERI_CCall:   Out << "chericcallcc"; break;
-  case CallingConv::CHERI_CCallee: Out << "chericcallcce"; break;
+  case CallingConv::CHERI_CCallee:
+    Out << "chericcallee";
+    break;
   case CallingConv::CHERI_LibCall:
     Out << "cherilibcallcc";
     break;

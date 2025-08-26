@@ -2,7 +2,7 @@
 ; RUN: %cheri_llc %s -O1 -o - | FileCheck %s
 
 ; Function Attrs: nounwind
-define chericcallcce void @fish() {
+define chericcallee void @fish() {
 ; CHECK-LABEL: fish:
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:    daddiu $2, $zero, 0

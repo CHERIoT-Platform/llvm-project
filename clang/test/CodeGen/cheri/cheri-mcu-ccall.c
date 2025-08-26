@@ -1,6 +1,6 @@
 // RUN: %clang_cc1 %s -o - "-triple" "riscv32cheriot-unknown-cheriotrtos" "-emit-llvm" "-mframe-pointer=none" "-mcmodel=small" "-target-abi" "cheriot" "-target-feature" "+xcheriot" "-Oz" "-Werror" "-cheri-compartment=example" | FileCheck %s
 
-// CHECK: define dso_local chericcallcce i32 @_Z5test2ii(i32 noundef %a0, i32 noundef %a1) local_unnamed_addr addrspace(200) #0
+// CHECK: define dso_local chericcallee i32 @_Z5test2ii(i32 noundef %a0, i32 noundef %a1) local_unnamed_addr addrspace(200) #0
 __attribute__((cheriot_compartment("example"))) int test2(int a0, int a1) {
   return a0 + a1;
 }

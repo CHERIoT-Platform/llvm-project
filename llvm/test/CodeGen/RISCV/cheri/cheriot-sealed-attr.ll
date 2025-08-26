@@ -14,7 +14,7 @@ target triple = "riscv32cheriot-unknown-cheriotrtos"
 %struct.SealedAllocatorCapabilityState = type { i32, i32, %struct.AllocatorCapabilityState }
 
 ; Function Attrs: minsize mustprogress nounwind optsize
-define dso_local chericcallcce noundef i32 @test_static_sealing() local_unnamed_addr addrspace(200) #0 {
+define dso_local chericcallee noundef i32 @test_static_sealing() local_unnamed_addr addrspace(200) #0 {
 entry:
 
 ;; CHECK:        .LBB0_1:                                # %entry

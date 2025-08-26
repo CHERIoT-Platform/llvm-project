@@ -18,7 +18,7 @@ target triple = "riscv32cheriot-unknown-cheriotrtos"
 @llvm.compiler.used = appending addrspace(200) global [5 x ptr addrspace(200)] [ptr addrspace(200) @_Z11CheckPtrIntv.x, ptr addrspace(200) @_Z14CheckParentPtrv.x, ptr addrspace(200) @_Z9CheckIntsv.x, ptr addrspace(200) @_Z9CheckPtrsv.x, ptr addrspace(200) @force_use], section "llvm.metadata"
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, argmem: none, inaccessiblemem: none)
-define dso_local chericcallcce i32 @_Z8GetValuev() local_unnamed_addr addrspace(200) #0 {
+define dso_local chericcallee i32 @_Z8GetValuev() local_unnamed_addr addrspace(200) #0 {
 entry:
   %0 = load i32, ptr addrspace(200) @dummy, align 4, !tbaa !7
   %inc = add i32 %0, 1
@@ -27,19 +27,19 @@ entry:
 }
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce [2 x i32] @_Z8InitIntsv() local_unnamed_addr addrspace(200) #1 {
+define dso_local chericcallee [2 x i32] @_Z8InitIntsv() local_unnamed_addr addrspace(200) #1 {
 
 ;; CHECK:  _Z8InitIntsv:                           # @_Z8InitIntsv
 entry:
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
   ;; CHECK:  	mv	s0, a0
-  %call = tail call chericcallcce i32 @_Z8GetValuev()
+  %call = tail call chericcallee i32 @_Z8GetValuev()
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
   ;; CHECK:  	mv	a1, a0
   ;; CHECK:  	mv	a0, s0
-  %call1 = tail call chericcallcce i32 @_Z8GetValuev()
+  %call1 = tail call chericcallee i32 @_Z8GetValuev()
   %.fca.0.insert = insertvalue [2 x i32] poison, i32 %call, 0
   %.fca.1.insert = insertvalue [2 x i32] %.fca.0.insert, i32 %call1, 1
 
@@ -52,7 +52,7 @@ entry:
 }
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce [2 x i32] @_Z7ChgInts11TwoIntegers([2 x i32] %x.coerce) local_unnamed_addr addrspace(200) #1 {
+define dso_local chericcallee [2 x i32] @_Z7ChgInts11TwoIntegers([2 x i32] %x.coerce) local_unnamed_addr addrspace(200) #1 {
 
 ;; CHECK:  _Z7ChgInts11TwoIntegers:                # @_Z7ChgInts11TwoIntegers
 entry:
@@ -62,13 +62,13 @@ entry:
   %x.coerce.fca.1.extract = extractvalue [2 x i32] %x.coerce, 1
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
-  %call = tail call chericcallcce i32 @_Z8GetValuev()
+  %call = tail call chericcallee i32 @_Z8GetValuev()
 
   ;; CHECK:  	sub	s1, s1, a0
   %sub = sub i32 %x.coerce.fca.0.extract, %call
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
-  %call1 = tail call chericcallcce i32 @_Z8GetValuev()
+  %call1 = tail call chericcallee i32 @_Z8GetValuev()
 
   ;; CHECK:  	sub	a1, s0, a0
   %sub2 = sub i32 %x.coerce.fca.1.extract, %call1
@@ -86,10 +86,10 @@ entry:
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce void @_Z9CheckIntsv() local_unnamed_addr addrspace(200) #2 {
+define dso_local chericcallee void @_Z9CheckIntsv() local_unnamed_addr addrspace(200) #2 {
 entry:
-  %call = tail call chericcallcce [2 x i32] @_Z8InitIntsv()
-  %call1 = tail call chericcallcce [2 x i32] @_Z7ChgInts11TwoIntegers([2 x i32] %call)
+  %call = tail call chericcallee [2 x i32] @_Z8InitIntsv()
+  %call1 = tail call chericcallee [2 x i32] @_Z7ChgInts11TwoIntegers([2 x i32] %call)
 
   ;; CHECK: _Z9CheckIntsv:                          # @_Z9CheckIntsv
   ;; CHECK:	        ct.ccall	_Z8InitIntsv
@@ -109,12 +109,12 @@ declare void @llvm.lifetime.start.p200(i64 immarg, ptr addrspace(200) nocapture)
 declare void @llvm.lifetime.end.p200(i64 immarg, ptr addrspace(200) nocapture) addrspace(200) #3
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce %struct.TwoPointers @_Z8InitPtrsv() local_unnamed_addr addrspace(200) #1 {
+define dso_local chericcallee %struct.TwoPointers @_Z8InitPtrsv() local_unnamed_addr addrspace(200) #1 {
 ;; CHECK: _Z8InitPtrsv:                           # @_Z8InitPtrsv
 entry:
 
   ;; CHECK:	ct.ccall	_Z8GetValuev
-  %call = tail call chericcallcce i32 @_Z8GetValuev()
+  %call = tail call chericcallee i32 @_Z8GetValuev()
 
   ;; CHECK:     auicgp	        cs0, %cheriot_compartment_hi(dummies)
   ;; CHECK:     cincoffset	cs0, cs0, %cheriot_compartment_lo_i(.LBB4_1)
@@ -125,7 +125,7 @@ entry:
 
   ;; CHECK:	ct.ccall	_Z8GetValuev
   ;; CHECK:	ct.cincoffset	ca1, cs0, a0
-  %call1 = tail call chericcallcce i32 @_Z8GetValuev()
+  %call1 = tail call chericcallee i32 @_Z8GetValuev()
   %rem2 = urem i32 %call1, 5
   %add.ptr3 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem2
   %.fca.0.insert = insertvalue %struct.TwoPointers poison, ptr addrspace(200) %add.ptr, 0
@@ -141,7 +141,7 @@ entry:
 }
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce %struct.TwoPointers @_Z7ChgPtrs11TwoPointers(ptr addrspace(200) %x.coerce0, ptr addrspace(200) %x.coerce1) local_unnamed_addr addrspace(200) #1 {
+define dso_local chericcallee %struct.TwoPointers @_Z7ChgPtrs11TwoPointers(ptr addrspace(200) %x.coerce0, ptr addrspace(200) %x.coerce1) local_unnamed_addr addrspace(200) #1 {
 ;; CHECK: _Z7ChgPtrs11TwoPointers:                # @_Z7ChgPtrs11TwoPointers
 ;; CHECK: ct.csc	ca1, 16(csp)                    # 8-byte Folded Spill
 entry:
@@ -153,7 +153,7 @@ entry:
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK: ct.ccall	_Z8GetValuev
-  %call = tail call chericcallcce i32 @_Z8GetValuev()
+  %call = tail call chericcallee i32 @_Z8GetValuev()
   %rem = urem i32 %call, 5
 
   ;; %call above was saved/reloaded in a0
@@ -172,7 +172,7 @@ entry:
   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK: ct.ccall	_Z8GetValuev
-  %call2 = tail call chericcallcce i32 @_Z8GetValuev()
+  %call2 = tail call chericcallee i32 @_Z8GetValuev()
   %rem3 = urem i32 %call2, 5
 
   ;; CHECK: ct.cincoffset	ca1, cs0, a0
@@ -188,16 +188,16 @@ entry:
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce void @_Z9CheckPtrsv() local_unnamed_addr addrspace(200) #2 {
+define dso_local chericcallee void @_Z9CheckPtrsv() local_unnamed_addr addrspace(200) #2 {
 ;; CHECK: _Z9CheckPtrsv:                          # @_Z9CheckPtrsv
 entry:
 
   ;; CHECK:       ct.ccall	_Z8InitPtrsv
   ;; CHECK-NEXT:  ct.ccall	_Z7ChgPtrs11TwoPointers
-  %call = tail call chericcallcce %struct.TwoPointers @_Z8InitPtrsv()
+  %call = tail call chericcallee %struct.TwoPointers @_Z8InitPtrsv()
   %0 = extractvalue %struct.TwoPointers %call, 0
   %1 = extractvalue %struct.TwoPointers %call, 1
-  %call1 = tail call chericcallcce %struct.TwoPointers @_Z7ChgPtrs11TwoPointers(ptr addrspace(200) %0, ptr addrspace(200) %1)
+  %call1 = tail call chericcallee %struct.TwoPointers @_Z7ChgPtrs11TwoPointers(ptr addrspace(200) %0, ptr addrspace(200) %1)
   %2 = extractvalue %struct.TwoPointers %call1, 0
   %3 = extractvalue %struct.TwoPointers %call1, 1
   store ptr addrspace(200) %2, ptr addrspace(200) @_Z9CheckPtrsv.x, align 8, !tbaa !11
@@ -206,12 +206,12 @@ entry:
 }
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce %struct.PointerAndInt @_Z10InitPtrIntv() local_unnamed_addr addrspace(200) #1 {
+define dso_local chericcallee %struct.PointerAndInt @_Z10InitPtrIntv() local_unnamed_addr addrspace(200) #1 {
 
 ;; CHECK: _Z10InitPtrIntv:                        # @_Z10InitPtrIntv
 entry:
   ;; CHECK: ct.ccall	_Z8GetValuev
-  %call = tail call chericcallcce i32 @_Z8GetValuev()
+  %call = tail call chericcallee i32 @_Z8GetValuev()
   %rem = urem i32 %call, 5
 
   ;; CHECK:  	auicgp	ca1, %cheriot_compartment_hi(dummies)
@@ -221,7 +221,7 @@ entry:
   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
-  %call1 = tail call chericcallcce i32 @_Z8GetValuev()
+  %call1 = tail call chericcallee i32 @_Z8GetValuev()
 
   ;; CHECK:  	mv	  a1, a0
   ;; CHECK:  	ct.cmove  ca0, cs0
@@ -236,7 +236,7 @@ entry:
 }
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce %struct.PointerAndInt @_Z9ChgPtrInt13PointerAndInt(ptr addrspace(200) %x.coerce0, i32 %x.coerce1) local_unnamed_addr addrspace(200) #1 {
+define dso_local chericcallee %struct.PointerAndInt @_Z9ChgPtrInt13PointerAndInt(ptr addrspace(200) %x.coerce0, i32 %x.coerce1) local_unnamed_addr addrspace(200) #1 {
 ;; CHECK: _Z9ChgPtrInt13PointerAndInt:            # @_Z9ChgPtrInt13PointerAndInt
 ;; CHECK:     mv	s0, a1
 entry:
@@ -249,7 +249,7 @@ entry:
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
-  %call = tail call chericcallcce i32 @_Z8GetValuev()
+  %call = tail call chericcallee i32 @_Z8GetValuev()
   %rem = urem i32 %call, 5
 
   ;; CHECK:     auicgp	ca1, %cheriot_compartment_hi(dummies)
@@ -259,7 +259,7 @@ entry:
   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
 
   ;; CHECK:	ct.ccall	_Z8GetValuev
-  %call2 = tail call chericcallcce i32 @_Z8GetValuev()
+  %call2 = tail call chericcallee i32 @_Z8GetValuev()
 
   ;; CHECK:       sub	a1, s0, a0
   %sub = sub i32 %x.coerce1, %call2
@@ -277,16 +277,16 @@ entry:
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce void @_Z11CheckPtrIntv() local_unnamed_addr addrspace(200) #2 {
+define dso_local chericcallee void @_Z11CheckPtrIntv() local_unnamed_addr addrspace(200) #2 {
 ;; CHECK:  _Z11CheckPtrIntv:                       # @_Z11CheckPtrIntv
 entry:
 
   ;; CHECK:  	  ct.ccall	_Z10InitPtrIntv
   ;; CHECK-NEXT:  ct.ccall	_Z9ChgPtrInt13PointerAndInt
-  %call = tail call chericcallcce %struct.PointerAndInt @_Z10InitPtrIntv()
+  %call = tail call chericcallee %struct.PointerAndInt @_Z10InitPtrIntv()
   %0 = extractvalue %struct.PointerAndInt %call, 0
   %1 = extractvalue %struct.PointerAndInt %call, 1
-  %call1 = tail call chericcallcce %struct.PointerAndInt @_Z9ChgPtrInt13PointerAndInt(ptr addrspace(200) %0, i32 %1)
+  %call1 = tail call chericcallee %struct.PointerAndInt @_Z9ChgPtrInt13PointerAndInt(ptr addrspace(200) %0, i32 %1)
   %2 = extractvalue %struct.PointerAndInt %call1, 0
   %3 = extractvalue %struct.PointerAndInt %call1, 1
   store ptr addrspace(200) %2, ptr addrspace(200) @_Z11CheckPtrIntv.x, align 8, !tbaa !11
@@ -295,14 +295,14 @@ entry:
 }
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce %struct.ParentPtr @_Z13InitParentPtrv() local_unnamed_addr addrspace(200) #1 {
+define dso_local chericcallee %struct.ParentPtr @_Z13InitParentPtrv() local_unnamed_addr addrspace(200) #1 {
 
 
 ;; CHECK: _Z13InitParentPtrv:                     # @_Z13InitParentPtrv
 entry:
 
   ;; CHECK: 	ct.ccall	_Z8GetValuev
-  %call = tail call chericcallcce i32 @_Z8GetValuev()
+  %call = tail call chericcallee i32 @_Z8GetValuev()
   %rem = urem i32 %call, 5
 
   ;; CHECK: 	auicgp	cs0, %cheriot_compartment_hi(dummies)
@@ -313,7 +313,7 @@ entry:
   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
 
   ;; CHECK: 	ct.ccall	_Z8GetValuev
-  %call1 = tail call chericcallcce i32 @_Z8GetValuev()
+  %call1 = tail call chericcallee i32 @_Z8GetValuev()
   %rem2 = urem i32 %call1, 5
 
   ;; CHECK: 	ct.cincoffset	ca1, cs0, a0
@@ -328,7 +328,7 @@ entry:
 }
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce %struct.ParentPtr @_Z12ChgParentPtr9ParentPtr(ptr addrspace(200) %x.coerce0, %struct.InnerPtr %x.coerce1) local_unnamed_addr addrspace(200) #1 {
+define dso_local chericcallee %struct.ParentPtr @_Z12ChgParentPtr9ParentPtr(ptr addrspace(200) %x.coerce0, %struct.InnerPtr %x.coerce1) local_unnamed_addr addrspace(200) #1 {
 
 ;; CHECK: _Z12ChgParentPtr9ParentPtr:             # @_Z12ChgParentPtr9ParentPtr
 ;; CHECK: 	ct.csc	ca1, 16(csp)                    # 8-byte Folded Spill
@@ -342,7 +342,7 @@ entry:
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK: 	ct.ccall	_Z8GetValuev
-  %call = tail call chericcallcce i32 @_Z8GetValuev()
+  %call = tail call chericcallee i32 @_Z8GetValuev()
   %rem = urem i32 %call, 5
 
   ;; CHECK: 	auicgp	cs0, %cheriot_compartment_hi(dummies)
@@ -358,7 +358,7 @@ entry:
   store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK: 	ct.ccall	_Z8GetValuev
-  %call3 = tail call chericcallcce i32 @_Z8GetValuev()
+  %call3 = tail call chericcallee i32 @_Z8GetValuev()
   %rem4 = urem i32 %call3, 5
 
   ;; CHECK: 	ct.cincoffset	ca1, cs0, a0
@@ -373,17 +373,17 @@ entry:
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce void @_Z14CheckParentPtrv() local_unnamed_addr addrspace(200) #2 {
+define dso_local chericcallee void @_Z14CheckParentPtrv() local_unnamed_addr addrspace(200) #2 {
 
 ;; CHECK: _Z14CheckParentPtrv:                    # @_Z14CheckParentPtrv
 entry:
 
   ;; CHECK: 	 ct.ccall	_Z13InitParentPtrv
   ;; CHECK-NEXT: ct.ccall	_Z12ChgParentPtr9ParentPtr
-  %call = tail call chericcallcce %struct.ParentPtr @_Z13InitParentPtrv()
+  %call = tail call chericcallee %struct.ParentPtr @_Z13InitParentPtrv()
   %0 = extractvalue %struct.ParentPtr %call, 0
   %1 = extractvalue %struct.ParentPtr %call, 1
-  %call1 = tail call chericcallcce %struct.ParentPtr @_Z12ChgParentPtr9ParentPtr(ptr addrspace(200) %0, %struct.InnerPtr %1)
+  %call1 = tail call chericcallee %struct.ParentPtr @_Z12ChgParentPtr9ParentPtr(ptr addrspace(200) %0, %struct.InnerPtr %1)
   %2 = extractvalue %struct.ParentPtr %call1, 0
   %3 = extractvalue %struct.ParentPtr %call1, 1
   %.fca.0.extract3 = extractvalue %struct.InnerPtr %3, 0
@@ -393,7 +393,7 @@ entry:
 }
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce %struct.TwoPointers @_Z8ChgPtrs2i11TwoPointers(i32 noundef %new_int, ptr addrspace(200) %x.coerce0, ptr addrspace(200) %x.coerce1) local_unnamed_addr addrspace(200) #1 {
+define dso_local chericcallee %struct.TwoPointers @_Z8ChgPtrs2i11TwoPointers(i32 noundef %new_int, ptr addrspace(200) %x.coerce0, ptr addrspace(200) %x.coerce1) local_unnamed_addr addrspace(200) #1 {
 
 ;; CHECK:  _Z8ChgPtrs2i11TwoPointers:              # @_Z8ChgPtrs2i11TwoPointers
 ;; CHECK:       ct.csc	ca2, 32(csp)                    # 8-byte Folded Spill
@@ -407,7 +407,7 @@ entry:
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
-  %call = tail call chericcallcce i32 @_Z8GetValuev()
+  %call = tail call chericcallee i32 @_Z8GetValuev()
   %add = add i32 %call, %new_int
   %rem = urem i32 %add, 5
 
@@ -425,7 +425,7 @@ entry:
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
   ;; CHECK:  	ct.clw	a1, 28(csp)                     # 4-byte Folded Reload
-  %call2 = tail call chericcallcce i32 @_Z8GetValuev()
+  %call2 = tail call chericcallee i32 @_Z8GetValuev()
   %add3 = add i32 %call2, %new_int
   %rem4 = urem i32 %add3, 5
 
@@ -441,7 +441,7 @@ entry:
 }
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce %struct.ParentPtr @_Z13ChgParentPtr2i9ParentPtr(i32 noundef %new_int, ptr addrspace(200) %x.coerce0, %struct.InnerPtr %x.coerce1) local_unnamed_addr addrspace(200) #1 {
+define dso_local chericcallee %struct.ParentPtr @_Z13ChgParentPtr2i9ParentPtr(i32 noundef %new_int, ptr addrspace(200) %x.coerce0, %struct.InnerPtr %x.coerce1) local_unnamed_addr addrspace(200) #1 {
 
 ;; CHECK:  _Z13ChgParentPtr2i9ParentPtr:           # @_Z13ChgParentPtr2i9ParentPtr
 ;; CHECK:  	ct.csc	ca2, 32(csp)                    # 8-byte Folded Spill
@@ -457,7 +457,7 @@ entry:
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
-  %call = tail call chericcallcce i32 @_Z8GetValuev()
+  %call = tail call chericcallee i32 @_Z8GetValuev()
   %add = add i32 %call, %new_int
   %rem = urem i32 %add, 5
 
@@ -475,7 +475,7 @@ entry:
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
   ;; CHECK:  	ct.clw	a1, 28(csp)                     # 4-byte Folded Reload
-  %call3 = tail call chericcallcce i32 @_Z8GetValuev()
+  %call3 = tail call chericcallee i32 @_Z8GetValuev()
   %add4 = add i32 %call3, %new_int
   %rem5 = urem i32 %add4, 5
 
@@ -497,7 +497,7 @@ declare void @llvm.va_start.p200(ptr addrspace(200)) addrspace(200) #6
 declare void @llvm.va_end.p200(ptr addrspace(200)) addrspace(200) #6
 
 ; Function Attrs: nofree noinline norecurse nounwind
-define dso_local chericcallcce %struct.TwoPointers @_Z8ChgPtrs3i11TwoPointersz(i32 noundef %n, ptr addrspace(200) %x.coerce0, ptr addrspace(200) %x.coerce1, ...) local_unnamed_addr addrspace(200) #7 {
+define dso_local chericcallee %struct.TwoPointers @_Z8ChgPtrs3i11TwoPointersz(i32 noundef %n, ptr addrspace(200) %x.coerce0, ptr addrspace(200) %x.coerce1, ...) local_unnamed_addr addrspace(200) #7 {
 
 ;; CHECK:  _Z8ChgPtrs3i11TwoPointersz:             # @_Z8ChgPtrs3i11TwoPointersz
 entry:
@@ -507,7 +507,7 @@ entry:
   call void @llvm.va_start.p200(ptr addrspace(200) nonnull %args)
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
   call void @llvm.lifetime.start.p200(i64 4, ptr addrspace(200) nonnull %_)
-  %call = call chericcallcce i32 @_Z8GetValuev()
+  %call = call chericcallee i32 @_Z8GetValuev()
   store volatile i32 %call, ptr addrspace(200) %_, align 4, !tbaa !7
   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8, !tbaa !11
   %cmp10 = icmp sgt i32 %n, 0
@@ -536,8 +536,8 @@ for.body:                                         ; preds = %entry, %for.body
   %argp.next = getelementptr inbounds nuw i8, ptr addrspace(200) %argp.cur, i32 4
   store ptr addrspace(200) %argp.next, ptr addrspace(200) %args, align 8
   %0 = load i32, ptr addrspace(200) %argp.cur, align 4, !tbaa !7
-  %call1 = call chericcallcce i32 @_Z8GetValuev()
-  %call3 = call chericcallcce i32 @_Z8GetValuev()
+  %call1 = call chericcallee i32 @_Z8GetValuev()
+  %call3 = call chericcallee i32 @_Z8GetValuev()
   %inc = add nuw nsw i32 %i.011, 1
   %exitcond.not = icmp eq i32 %inc, %n
   br i1 %exitcond.not, label %for.cond.for.cond.cleanup_crit_edge, label %for.body, !llvm.loop !17
@@ -559,7 +559,7 @@ for.cond.cleanup:                                 ; preds = %for.cond.for.cond.c
 }
 
 ; Function Attrs: nofree noinline norecurse nounwind
-define dso_local chericcallcce %struct.ParentPtr @_Z13ChgParentPtr3i9ParentPtrz(i32 noundef %n, ptr addrspace(200) %x.coerce0, %struct.InnerPtr %x.coerce1, ...) local_unnamed_addr addrspace(200) #7 {
+define dso_local chericcallee %struct.ParentPtr @_Z13ChgParentPtr3i9ParentPtrz(i32 noundef %n, ptr addrspace(200) %x.coerce0, %struct.InnerPtr %x.coerce1, ...) local_unnamed_addr addrspace(200) #7 {
 
 ;; CHECK:  _Z13ChgParentPtr3i9ParentPtrz:          # @_Z13ChgParentPtr3i9ParentPtrz
 entry:
@@ -570,7 +570,7 @@ entry:
   call void @llvm.va_start.p200(ptr addrspace(200) nonnull %args)
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
   call void @llvm.lifetime.start.p200(i64 4, ptr addrspace(200) nonnull %_)
-  %call = call chericcallcce i32 @_Z8GetValuev()
+  %call = call chericcallee i32 @_Z8GetValuev()
   store volatile i32 %call, ptr addrspace(200) %_, align 4, !tbaa !7
   store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8, !tbaa !11
   %cmp12 = icmp sgt i32 %n, 0
@@ -597,8 +597,8 @@ for.body:                                         ; preds = %entry, %for.body
   %argp.next = getelementptr inbounds nuw i8, ptr addrspace(200) %argp.cur, i32 4
   store ptr addrspace(200) %argp.next, ptr addrspace(200) %args, align 8
   %0 = load i32, ptr addrspace(200) %argp.cur, align 4, !tbaa !7
-  %call2 = call chericcallcce i32 @_Z8GetValuev()
-  %call4 = call chericcallcce i32 @_Z8GetValuev()
+  %call2 = call chericcallee i32 @_Z8GetValuev()
+  %call4 = call chericcallee i32 @_Z8GetValuev()
   %inc = add nuw nsw i32 %i.013, 1
   %exitcond.not = icmp eq i32 %inc, %n
   br i1 %exitcond.not, label %for.cond.for.cond.cleanup_crit_edge, label %for.body, !llvm.loop !18
@@ -623,7 +623,7 @@ for.cond.cleanup:                                 ; preds = %for.cond.for.cond.c
 }
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce %struct.TwoPointers @_Z8ChgPtrs4iiiii11TwoPointers(i32 noundef %n0, i32 noundef %n1, i32 noundef %n2, i32 noundef %n3, i32 noundef %n4, ptr addrspace(200) %x.coerce0, ptr addrspace(200) %x.coerce1) local_unnamed_addr addrspace(200) #1 {
+define dso_local chericcallee %struct.TwoPointers @_Z8ChgPtrs4iiiii11TwoPointers(i32 noundef %n0, i32 noundef %n1, i32 noundef %n2, i32 noundef %n3, i32 noundef %n4, ptr addrspace(200) %x.coerce0, ptr addrspace(200) %x.coerce1) local_unnamed_addr addrspace(200) #1 {
 ;; CHECK: _Z8ChgPtrs4iiiii11TwoPointers:          # @_Z8ChgPtrs4iiiii11TwoPointers
 ;; CHECK:     mv	s1, a1
 ;; CHECK:     mv	s0, a0
@@ -637,7 +637,7 @@ entry:
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK: ct.ccall	_Z8GetValuev
-  %call = tail call chericcallcce i32 @_Z8GetValuev()
+  %call = tail call chericcallee i32 @_Z8GetValuev()
 
   %add = add i32 %n1, %n0
   %add1 = add i32 %add, %n2
@@ -658,7 +658,7 @@ entry:
   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK: ct.ccall	_Z8GetValuev
-  %call6 = tail call chericcallcce i32 @_Z8GetValuev()
+  %call6 = tail call chericcallee i32 @_Z8GetValuev()
   %add7 = add i32 %n1, %n0
   %add8 = add i32 %add7, %n2
   %add9 = add i32 %add8, %n3
@@ -679,7 +679,7 @@ entry:
 }
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
-define dso_local chericcallcce %struct.ParentPtr @_Z13ChgParentPtr4iiiii9ParentPtr(i32 noundef %n0, i32 noundef %n1, i32 noundef %n2, i32 noundef %n3, i32 noundef %n4, ptr addrspace(200) %x.coerce0, %struct.InnerPtr %x.coerce1) local_unnamed_addr addrspace(200) #1 {
+define dso_local chericcallee %struct.ParentPtr @_Z13ChgParentPtr4iiiii9ParentPtr(i32 noundef %n0, i32 noundef %n1, i32 noundef %n2, i32 noundef %n3, i32 noundef %n4, ptr addrspace(200) %x.coerce0, %struct.InnerPtr %x.coerce1) local_unnamed_addr addrspace(200) #1 {
 
 ;; CHECK:  _Z13ChgParentPtr4iiiii9ParentPtr:       # @_Z13ChgParentPtr4iiiii9ParentPtr
 ;; CHECK:  	mv	s1, a1
@@ -696,7 +696,7 @@ entry:
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
-  %call = tail call chericcallcce i32 @_Z8GetValuev()
+  %call = tail call chericcallee i32 @_Z8GetValuev()
   %add = add i32 %n1, %n0
   %add2 = add i32 %add, %n2
   %add3 = add i32 %add2, %n3
@@ -717,7 +717,7 @@ entry:
   store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
-  %call7 = tail call chericcallcce i32 @_Z8GetValuev()
+  %call7 = tail call chericcallee i32 @_Z8GetValuev()
   %add8 = add i32 %n1, %n0
   %add9 = add i32 %add8, %n2
   %add10 = add i32 %add9, %n3

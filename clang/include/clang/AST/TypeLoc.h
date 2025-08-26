@@ -1872,11 +1872,10 @@ public:
     if (!getLocalData()->QualifierData)
       return NestedNameSpecifierLoc();
 
-    auto *QTN =
-        getTypePtr()->getTemplateName().getAsAdjustedQualifiedTemplateName();
-    assert(QTN && "missing qualification");
-    return NestedNameSpecifierLoc(QTN->getQualifier(),
-                                  getLocalData()->QualifierData);
+    NestedNameSpecifier Qualifier =
+        getTypePtr()->getTemplateName().getQualifier();
+    assert(Qualifier && "missing qualification");
+    return NestedNameSpecifierLoc(Qualifier, getLocalData()->QualifierData);
   }
 
   SourceLocation getTemplateKeywordLoc() const {
@@ -2543,10 +2542,9 @@ public:
     void *Data = getLocalData()->QualifierData;
     if (!Data)
       return NestedNameSpecifierLoc();
-    NestedNameSpecifier Qualifier = getTypePtr()
-                                        ->getTemplateName()
-                                        .getAsAdjustedQualifiedTemplateName()
-                                        ->getQualifier();
+    NestedNameSpecifier Qualifier =
+        getTypePtr()->getTemplateName().getQualifier();
+    assert(Qualifier && "missing qualification");
     return NestedNameSpecifierLoc(Qualifier, Data);
   }
 
@@ -2561,10 +2559,7 @@ public:
     }
 
     assert(QualifierLoc.getNestedNameSpecifier() ==
-               getTypePtr()
-                   ->getTemplateName()
-                   .getAsAdjustedQualifiedTemplateName()
-                   ->getQualifier() &&
+               getTypePtr()->getTemplateName().getQualifier() &&
            "Inconsistent nested-name-specifier pointer");
     getLocalData()->QualifierData = QualifierLoc.getOpaqueData();
   }

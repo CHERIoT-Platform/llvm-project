@@ -5,7 +5,7 @@ target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G
 target triple = "riscv32-unknown-unknown"
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize readnone willreturn
-define dso_local chericcallcce i32 @_Z2fnPvS_i(i8 addrspace(200)* nocapture readnone %a, i8 addrspace(200)* nocapture readnone %b, i32 returned %c) local_unnamed_addr addrspace(200) #0 {
+define dso_local chericcallee i32 @_Z2fnPvS_i(i8 addrspace(200)* nocapture readnone %a, i8 addrspace(200)* nocapture readnone %b, i32 returned %c) local_unnamed_addr addrspace(200) #0 {
 entry:
   ret i32 %c
 }

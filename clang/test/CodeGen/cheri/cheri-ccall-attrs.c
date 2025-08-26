@@ -45,7 +45,7 @@ __attribute__((cheri_method_class(cls)))
 __attribute__((cheri_method_suffix("_cap")))
 void fish(void)
 {
-  // CHECK-LABEL: define dso_local chericcallcce void @fish()
+  // CHECK-LABEL: define dso_local chericcallee void @fish()
 }
 
 __attribute__((cheri_method_suffix("_cap")))
@@ -55,7 +55,7 @@ void flibble(void);
 // CHECK-LABEL: define dso_local void @call()
 void call(void)
 {
-  // CHECK: call chericcallcce void @fish()
+  // CHECK: call chericcallee void @fish()
 	fish();
 	// Check that we get a ccall to cheri_invoke with the correct method number
 	// CHECK: load i64, ptr @__cheri_method.cls.fish, align 8, [[$INVARIANT_LOAD]]

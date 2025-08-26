@@ -6,7 +6,7 @@ target triple = "riscv32-unknown-unknown"
 @.str = private unnamed_addr addrspace(200) constant [16 x i8] c"Seven arguments\00", align 1
 
 ; Function Attrs: minsize mustprogress nounwind optsize
-define dso_local chericcallcce noundef i32 @_Z22compartment_call_inneriiPKiiS0_ii(i32 noundef %0, i32 noundef %1, ptr addrspace(200) nocapture noundef readnone %2, i32 noundef %3, ptr addrspace(200) nocapture noundef readnone %4, i32 noundef %5, i32 noundef %6) local_unnamed_addr addrspace(200) #0 {
+define dso_local chericcallee noundef i32 @_Z22compartment_call_inneriiPKiiS0_ii(i32 noundef %0, i32 noundef %1, ptr addrspace(200) nocapture noundef readnone %2, i32 noundef %3, ptr addrspace(200) nocapture noundef readnone %4, i32 noundef %5, i32 noundef %6) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: _Z22compartment_call_inneriiPKiiS0_ii:
 ; CHECK:       # %bb.0:
 ; CHECK-NEXT:    cgetbase t2, ct0

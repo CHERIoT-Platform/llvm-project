@@ -9,7 +9,7 @@ target triple = "riscv32-unknown-unknown"
 @testcall8.stack_arg = internal addrspace(200) global i32 0, align 4
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize readnone willreturn
-define dso_local chericcallcce i32 @test2(i32 %a0, i32 %a1) local_unnamed_addr addrspace(200) #0 {
+define dso_local chericcallee i32 @test2(i32 %a0, i32 %a1) local_unnamed_addr addrspace(200) #0 {
 ; Check that we have the first two arguments in the right registers.
 ; CHECK-LABEL: test2:
 ; CHECK:       # %bb.0: # %entry
@@ -21,7 +21,7 @@ entry:
 }
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize readonly willreturn
-define dso_local chericcallcce i32 @test6(i32 addrspace(200)* nocapture readonly %a0, i32 addrspace(200)* nocapture readonly %a1, i32 addrspace(200)* nocapture readonly %a2, i32 addrspace(200)* nocapture readonly %a3, i32 addrspace(200)* nocapture readonly %a4, i32 addrspace(200)* nocapture readonly %a5) local_unnamed_addr addrspace(200) #1 {
+define dso_local chericcallee i32 @test6(i32 addrspace(200)* nocapture readonly %a0, i32 addrspace(200)* nocapture readonly %a1, i32 addrspace(200)* nocapture readonly %a2, i32 addrspace(200)* nocapture readonly %a3, i32 addrspace(200)* nocapture readonly %a4, i32 addrspace(200)* nocapture readonly %a5) local_unnamed_addr addrspace(200) #1 {
 ; Check that we are loading the last register argument
 ; CHECK-LABEL: test6:
 ; CHECK: clw     a5, 0(ca5)
@@ -41,7 +41,7 @@ entry:
 }
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize readonly willreturn
-define dso_local chericcallcce i32 @test8(i32 addrspace(200)* nocapture readonly %a0, i32 addrspace(200)* nocapture readonly %a1, i32 addrspace(200)* nocapture readonly %a2, i32 addrspace(200)* nocapture readonly %a3, i32 addrspace(200)* nocapture readonly %a4, i32 addrspace(200)* nocapture readonly %a5, i32 addrspace(200)* nocapture readonly %a6, i32 addrspace(200)* nocapture readonly %a7) local_unnamed_addr addrspace(200) #1 {
+define dso_local chericcallee i32 @test8(i32 addrspace(200)* nocapture readonly %a0, i32 addrspace(200)* nocapture readonly %a1, i32 addrspace(200)* nocapture readonly %a2, i32 addrspace(200)* nocapture readonly %a3, i32 addrspace(200)* nocapture readonly %a4, i32 addrspace(200)* nocapture readonly %a5, i32 addrspace(200)* nocapture readonly %a6, i32 addrspace(200)* nocapture readonly %a7) local_unnamed_addr addrspace(200) #1 {
 ; Check that the last argument (used in the multiply) is loaded from offset 8
 ; in the stack-argument capability.
 ; CHECK-LABEL: test8:

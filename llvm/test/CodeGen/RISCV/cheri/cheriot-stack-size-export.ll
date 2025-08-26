@@ -4,7 +4,7 @@ target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G
 target triple = "riscv32-unknown-unknown"
 
 ; Function Attrs: noinline nounwind optnone
-define dso_local chericcallcce void @_Z9usesStackv() addrspace(200) #0 {
+define dso_local chericcallee void @_Z9usesStackv() addrspace(200) #0 {
 ; CHECK-LABEL: _Z9usesStackv
 ; Make sure that the stack is what we expect.  If this changes, we need to
 ; update the number in the export table below.
@@ -23,13 +23,13 @@ declare dso_local void @foo(i8 addrspace(200)*) addrspace(200) #1
 ; CHECK-LABEL: _Z11usesNoStackv
 ; Make sure we don't allocate anything on the stack here.
 ; CHECK-NOT: csp
-define dso_local chericcallcce void @_Z11usesNoStackv() addrspace(200) #0 {
+define dso_local chericcallee void @_Z11usesNoStackv() addrspace(200) #0 {
 entry:
   ret void
 }
 
 ; Function Attrs: noinline nounwind optnone
-define dso_local chericcallcce void @_Z13usesHugeStackv() addrspace(200) #0 {
+define dso_local chericcallee void @_Z13usesHugeStackv() addrspace(200) #0 {
 ; CHECK-LABEL: _Z13usesHugeStackv
 ; Make sure that we allocate a load of things on the stack, it doesn't matter
 ; if this changes to another large value.

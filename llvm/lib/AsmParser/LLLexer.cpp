@@ -634,7 +634,7 @@ lltok::Kind LLLexer::LexIdentifier() {
   KEYWORD(fastcc);
   KEYWORD(coldcc);
   KEYWORD(chericcallcc);
-  KEYWORD(chericcallcce);
+  KEYWORD(chericcallee);
   KEYWORD(cherilibcallcc);
   KEYWORD(cfguard_checkcc);
   KEYWORD(x86_stdcallcc);

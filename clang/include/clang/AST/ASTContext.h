@@ -650,7 +650,7 @@ public:
   /// contain data that is address discriminated. This includes
   /// implicitly authenticated values like vtable pointers, as well as
   /// explicitly qualified fields.
-  bool containsAddressDiscriminatedPointerAuth(QualType T) {
+  bool containsAddressDiscriminatedPointerAuth(QualType T) const {
     if (!isPointerAuthenticationAvailable())
       return false;
     return findPointerAuthContent(T) != PointerAuthContent::None;
@@ -664,8 +664,7 @@ public:
   bool containsNonRelocatablePointerAuth(QualType T) {
     if (!isPointerAuthenticationAvailable())
       return false;
-    return findPointerAuthContent(T) ==
-           PointerAuthContent::AddressDiscriminatedData;
+    return findPointerAuthContent(T) != PointerAuthContent::None;
   }
 
 private:
@@ -683,8 +682,8 @@ private:
   bool isPointerAuthenticationAvailable() const {
     return LangOpts.PointerAuthCalls || LangOpts.PointerAuthIntrinsics;
   }
-  PointerAuthContent findPointerAuthContent(QualType T);
-  llvm::DenseMap<const RecordDecl *, PointerAuthContent>
+  PointerAuthContent findPointerAuthContent(QualType T) const;
+  mutable llvm::DenseMap<const RecordDecl *, PointerAuthContent>
       RecordContainsAddressDiscriminatedPointerAuth;
 
   ImportDecl *FirstLocalImport = nullptr;
@@ -3791,7 +3790,7 @@ public:
   /// Resolve the root record to be used to derive the vtable pointer
   /// authentication policy for the specified record.
   const CXXRecordDecl *
-  baseForVTableAuthentication(const CXXRecordDecl *ThisClass);
+  baseForVTableAuthentication(const CXXRecordDecl *ThisClass) const;
 
   bool useAbbreviatedThunkName(GlobalDecl VirtualMethodDecl,
                                StringRef MangledName);

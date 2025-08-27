@@ -419,14 +419,13 @@ ArgType::matchesType(ASTContext &C, QualType argTy) const {
       return Match;
 
     case AnyCharTy: {
-      if (const auto *ETy = argTy->getAs<EnumType>()) {
+      if (const auto *ED = argTy->getAsEnumDecl()) {
         // If the enum is incomplete we know nothing about the underlying type.
         // Assume that it's 'int'. Do not use the underlying type for a scoped
         // enumeration.
-        const EnumDecl *ED = ETy->getOriginalDecl()->getDefinitionOrSelf();
         if (!ED->isComplete())
           return NoMatch;
-        if (ETy->isUnscopedEnumerationType())
+        if (!ED->isScoped())
           argTy = ED->getIntegerType();
       }
 
@@ -469,14 +468,13 @@ ArgType::matchesType(ASTContext &C, QualType argTy) const {
         return matchesSizeTPtrdiffT(C, argTy, T);
       }
 
-      if (const EnumType *ETy = argTy->getAs<EnumType>()) {
+      if (const auto *ED = argTy->getAsEnumDecl()) {
         // If the enum is incomplete we know nothing about the underlying type.
         // Assume that it's 'int'. Do not use the underlying type for a scoped
         // enumeration as that needs an exact match.
-        const EnumDecl *ED = ETy->getOriginalDecl()->getDefinitionOrSelf();
         if (!ED->isComplete())
           argTy = C.IntTy;
-        else if (ETy->isUnscopedEnumerationType())
+        else if (!ED->isScoped())
           argTy = ED->getIntegerType();
       }
 

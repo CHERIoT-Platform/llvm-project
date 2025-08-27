@@ -9815,8 +9815,7 @@ static void checkIsValidOpenCLKernelParameter(
 
   // At this point we already handled everything except of a RecordType.
   assert(PT->isRecordType() && "Unexpected type.");
-  const RecordDecl *PD =
-      PT->castAs<RecordType>()->getOriginalDecl()->getDefinitionOrSelf();
+  const auto *PD = PT->castAsRecordDecl();
   VisitStack.push_back(PD);
   assert(VisitStack.back() && "First decl null?");
 
@@ -9844,9 +9843,7 @@ static void checkIsValidOpenCLKernelParameter(
              "Unexpected type.");
       const Type *FieldRecTy = FieldTy->getPointeeOrArrayElementType();
 
-      RD = FieldRecTy->castAs<RecordType>()
-               ->getOriginalDecl()
-               ->getDefinitionOrSelf();
+      RD = FieldRecTy->castAsRecordDecl();
     } else {
       RD = cast<RecordDecl>(Next);
     }
@@ -13452,8 +13449,7 @@ struct DiagNonTrivalCUnionDefaultInitializeVisitor
   }
 
   void visitStruct(QualType QT, const FieldDecl *FD, bool InNonTrivialUnion) {
-    const RecordDecl *RD =
-        QT->castAs<RecordType>()->getOriginalDecl()->getDefinitionOrSelf();
+    const auto *RD = QT->castAsRecordDecl();
     if (RD->isUnion()) {
       if (OrigLoc.isValid()) {
         bool IsUnion = false;
@@ -13519,8 +13515,7 @@ struct DiagNonTrivalCUnionDestructedTypeVisitor
   }
 
   void visitStruct(QualType QT, const FieldDecl *FD, bool InNonTrivialUnion) {
-    const RecordDecl *RD =
-        QT->castAs<RecordType>()->getOriginalDecl()->getDefinitionOrSelf();
+    const auto *RD = QT->castAsRecordDecl();
     if (RD->isUnion()) {
       if (OrigLoc.isValid()) {
         bool IsUnion = false;
@@ -13585,8 +13580,7 @@ struct DiagNonTrivalCUnionCopyVisitor
   }
 
   void visitStruct(QualType QT, const FieldDecl *FD, bool InNonTrivialUnion) {
-    const RecordDecl *RD =
-        QT->castAs<RecordType>()->getOriginalDecl()->getDefinitionOrSelf();
+    const auto *RD = QT->castAsRecordDecl();
     if (RD->isUnion()) {
       if (OrigLoc.isValid()) {
         bool IsUnion = false;
@@ -19919,6 +19913,7 @@ void Sema::ActOnFields(Scope *S, SourceLocation RecLoc, Decl *EnclosingDecl,
                  Q && Q.isAddressDiscriminated()) {
         Record->setArgPassingRestrictions(
             RecordArgPassingKind::CanNeverPassInRegs);
+        Record->setNonTrivialToPrimitiveCopy(true);
       }
     }
 

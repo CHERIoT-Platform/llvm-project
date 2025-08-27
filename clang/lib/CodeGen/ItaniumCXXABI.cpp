@@ -1455,9 +1455,7 @@ void ItaniumCXXABI::emitVirtualObjectDelete(CodeGenFunction &CGF,
     // Grab the vtable pointer as an intptr_t*.
     // XXXAR: is this correct or is it ptrdiff_t?
     unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
-    auto *ClassDecl = cast<CXXRecordDecl>(
-                          ElementType->castAs<RecordType>()->getOriginalDecl())
-                          ->getDefinitionOrSelf();
+    auto *ClassDecl = ElementType->castAsCXXRecordDecl();
     llvm::Value *VTable = CGF.GetVTablePtr(
         Ptr, llvm::PointerType::get(CGF.getLLVMContext(), DefaultAS),
         ClassDecl);
@@ -1669,9 +1667,7 @@ llvm::Value *ItaniumCXXABI::EmitTypeid(CodeGenFunction &CGF,
                                        QualType SrcRecordTy,
                                        Address ThisPtr,
                                        llvm::Type *StdTypeInfoPtrTy) {
-  auto *ClassDecl =
-      cast<CXXRecordDecl>(SrcRecordTy->castAs<RecordType>()->getOriginalDecl())
-          ->getDefinitionOrSelf();
+  auto *ClassDecl = SrcRecordTy->castAsCXXRecordDecl();
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
   llvm::Value *Value = CGF.GetVTablePtr(
       ThisPtr, llvm::PointerType::get(CGF.getLLVMContext(), DefaultAS),
@@ -1845,9 +1841,7 @@ llvm::Value *ItaniumCXXABI::emitExactDynamicCast(
 llvm::Value *ItaniumCXXABI::emitDynamicCastToVoid(CodeGenFunction &CGF,
                                                   Address ThisAddr,
                                                   QualType SrcRecordTy) {
-  auto *ClassDecl =
-      cast<CXXRecordDecl>(SrcRecordTy->castAs<RecordType>()->getOriginalDecl())
-          ->getDefinitionOrSelf();
+  auto *ClassDecl = SrcRecordTy->castAsCXXRecordDecl();
   unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
   llvm::Value *OffsetToTop;
   if (CGM.getItaniumVTableContext().isRelativeLayout()) {
@@ -3968,9 +3962,7 @@ static bool CanUseSingleInheritance(const CXXRecordDecl *RD) {
     return false;
 
   // Check that the class is dynamic iff the base is.
-  auto *BaseDecl = cast<CXXRecordDecl>(
-                       Base->getType()->castAs<RecordType>()->getOriginalDecl())
-                       ->getDefinitionOrSelf();
+  auto *BaseDecl = Base->getType()->castAsCXXRecordDecl();
   if (!BaseDecl->isEmpty() &&
       BaseDecl->isDynamicClass() != RD->isDynamicClass())
     return false;
@@ -4492,10 +4484,7 @@ static unsigned ComputeVMIClassTypeInfoFlags(const CXXBaseSpecifier *Base,
 
   unsigned Flags = 0;
 
-  auto *BaseDecl = cast<CXXRecordDecl>(
-                       Base->getType()->castAs<RecordType>()->getOriginalDecl())
-                       ->getDefinitionOrSelf();
-
+  auto *BaseDecl = Base->getType()->castAsCXXRecordDecl();
   if (Base->isVirtual()) {
     // Mark the virtual base as seen.
     if (!Bases.VirtualBases.insert(BaseDecl).second) {
@@ -4593,11 +4582,7 @@ void ItaniumRTTIBuilder::BuildVMIClassTypeInfo(const CXXRecordDecl *RD) {
     // The __base_type member points to the RTTI for the base type.
     Fields.push_back(ItaniumRTTIBuilder(CXXABI).BuildTypeInfo(Base.getType()));
 
-    auto *BaseDecl =
-        cast<CXXRecordDecl>(
-            Base.getType()->castAs<RecordType>()->getOriginalDecl())
-            ->getDefinitionOrSelf();
-
+    auto *BaseDecl = Base.getType()->castAsCXXRecordDecl();
     int64_t OffsetFlags = 0;
 
     // All but the lower 8 bits of __offset_flags are a signed offset.

@@ -741,6 +741,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     // These require custom lowering because their inputs might be f64.
     setOperationAction({ISD::SELECT_CC, ISD::SETCC}, MVT::i32, Custom);
     setOperationAction({ISD::FP_TO_UINT, ISD::FP_TO_SINT}, MVT::i32, LibCall);
+    setOperationAction({ISD::UINT_TO_FP, ISD::SINT_TO_FP}, MVT::i32, LibCall);
 
     static const unsigned CheriotF64ExpandOps[] = {
         ISD::FMINNUM,     ISD::FMAXNUM,     ISD::FADD,        ISD::FSUB,
@@ -750,7 +751,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
         ISD::SETCC,       ISD::FMAXIMUM,    ISD::FMINIMUM,    ISD::STRICT_FADD,
         ISD::STRICT_FSUB, ISD::STRICT_FMUL, ISD::STRICT_FDIV, ISD::STRICT_FSQRT,
         ISD::STRICT_FMA,  ISD::FNEG,        ISD::FABS,        ISD::FCOPYSIGN,
-        ISD::UINT_TO_FP,  ISD::SINT_TO_FP,  ISD::BR_CC};
+        ISD::BR_CC};
     setOperationAction(CheriotF64ExpandOps, MVT::f64, Expand);
     setCondCodeAction(FPCCToExpand, MVT::f64, Expand);
   }

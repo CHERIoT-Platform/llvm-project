@@ -274,6 +274,14 @@ BareMetal::BareMetal(const Driver &D, const llvm::Triple &Triple,
       }
     }
   }
+
+  if (Triple.getOS() == llvm::Triple::CheriotRTOS ||
+      Args.getLastArgValue(options::OPT_mcpu_EQ) == "cheriot" ||
+      Args.getLastArgValue(options::OPT_mabi_EQ) == "cheriot" ||
+      Args.getLastArgValue(options::OPT_mabi_EQ) == "cheriot-baremetal")
+    IsCheriot = true;
+  else
+    IsCheriot = false;
 }
 
 static void

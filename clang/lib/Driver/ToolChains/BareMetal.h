@@ -56,6 +56,13 @@ public:
     return UnwindTableLevel::None;
   }
 
+  const char *getDefaultLinker() const override {
+    // XXX CHERIOT: Restore pre-clang21 behavior of defaulting to lld.
+    if (IsCheriot)
+      return "ld.lld";
+    return Generic_ELF::getDefaultLinker();
+  }
+
   CXXStdlibType GetDefaultCXXStdlibType() const override;
 
   RuntimeLibType GetDefaultRuntimeLibType() const override;
@@ -92,6 +99,8 @@ private:
   bool IsGCCInstallationValid;
 
   SmallVector<std::string> MultilibMacroDefines;
+
+  bool IsCheriot;
 };
 
 } // namespace toolchains

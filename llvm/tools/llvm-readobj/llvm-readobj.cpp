@@ -157,6 +157,7 @@ static bool CodeViewEnableGHash;
 static bool CodeViewMergedTypes;
 bool CodeViewSubsectionBytes;
 static bool COFFBaseRelocs;
+static bool COFFPseudoRelocs;
 static bool COFFDebugDirectory;
 static bool COFFDirectives;
 static bool COFFExports;
@@ -311,6 +312,7 @@ static void parseOptions(const opt::InputArgList &Args) {
   opts::CodeViewMergedTypes = Args.hasArg(OPT_codeview_merged_types);
   opts::CodeViewSubsectionBytes = Args.hasArg(OPT_codeview_subsection_bytes);
   opts::COFFBaseRelocs = Args.hasArg(OPT_coff_basereloc);
+  opts::COFFPseudoRelocs = Args.hasArg(OPT_coff_pseudoreloc);
   opts::COFFDebugDirectory = Args.hasArg(OPT_coff_debug_directory);
   opts::COFFDirectives = Args.hasArg(OPT_coff_directives);
   opts::COFFExports = Args.hasArg(OPT_coff_exports);
@@ -504,6 +506,8 @@ static void dumpObject(ObjectFile &Obj, ScopedPrinter &Writer,
       Dumper->printCOFFDirectives();
     if (opts::COFFBaseRelocs)
       Dumper->printCOFFBaseReloc();
+    if (opts::COFFPseudoRelocs)
+      Dumper->printCOFFPseudoReloc();
     if (opts::COFFDebugDirectory)
       Dumper->printCOFFDebugDirectory();
     if (opts::COFFTLSDirectory)

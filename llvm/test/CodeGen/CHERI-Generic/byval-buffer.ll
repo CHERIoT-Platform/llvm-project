@@ -85,8 +85,8 @@ define dso_local void @clang_purecap_byval_args() local_unnamed_addr addrspace(2
 ; RV64-PIC-NEXT:    sd ra, 1048(sp) # 8-byte Folded Spill
 ; RV64-PIC-NEXT:    sd s0, 1040(sp) # 8-byte Folded Spill
 ; RV64-PIC-NEXT:  .Lpcrel_hi0:
-; RV64-PIC-NEXT:    auipc a0, %pcrel_hi(.Lglobal_foo$local)
-; RV64-PIC-NEXT:    addi s0, a0, %pcrel_lo(.Lpcrel_hi0)
+; RV64-PIC-NEXT:    auipc s0, %pcrel_hi(.Lglobal_foo$local)
+; RV64-PIC-NEXT:    addi s0, s0, %pcrel_lo(.Lpcrel_hi0)
 ; RV64-PIC-NEXT:    li a2, 1024
 ; RV64-PIC-NEXT:    mv a0, s0
 ; RV64-PIC-NEXT:    li a1, 0

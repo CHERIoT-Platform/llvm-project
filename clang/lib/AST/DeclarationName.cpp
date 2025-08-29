@@ -19,7 +19,7 @@
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/OpenMPClause.h"
 #include "clang/AST/PrettyPrinter.h"
-#include "clang/AST/TypeBase.h"
+#include "clang/AST/Type.h"
 #include "clang/AST/TypeLoc.h"
 #include "clang/AST/TypeOrdering.h"
 #include "clang/Basic/IdentifierTable.h"
@@ -113,6 +113,7 @@ static void printCXXConstructorDestructorName(QualType ClassType,
                                               PrintingPolicy Policy) {
   // We know we're printing C++ here. Ensure we print types properly.
   Policy.adjustForCPlusPlus();
+  Policy.SuppressScope = true;
 
   if (const RecordType *ClassRec = ClassType->getAsCanonical<RecordType>()) {
     ClassRec->getOriginalDecl()->printName(OS, Policy);

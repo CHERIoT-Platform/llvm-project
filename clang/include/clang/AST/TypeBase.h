@@ -1,4 +1,4 @@
-//===- Type.h - C Language Family Type Representation -----------*- C++ -*-===//
+//===- TypeBase.h - C Language Family Type Representation -------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -14,8 +14,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_CLANG_AST_TYPE_H
-#define LLVM_CLANG_AST_TYPE_H
+#ifndef LLVM_CLANG_AST_TYPE_BASE_H
+#define LLVM_CLANG_AST_TYPE_BASE_H
 
 #include "clang/AST/DependenceFlags.h"
 #include "clang/AST/NestedNameSpecifierBase.h"
@@ -1771,7 +1771,6 @@ public:
   }
 
   bool hasAddressSpace() const { return Quals.hasAddressSpace(); }
-
   LangAS getAddressSpace() const { return Quals.getAddressSpace(); }
 
   const Type *getBaseType() const { return BaseType; }
@@ -9510,4 +9509,4 @@ inline FunctionEffectsRef FunctionEffectsRef::get(QualType QT) {
 
 } // namespace clang
 
-#endif // LLVM_CLANG_AST_TYPE_H
+#endif // LLVM_CLANG_AST_TYPE_BASE_H

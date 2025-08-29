@@ -179,7 +179,7 @@ llvm::Type* MipsABIInfo::HandleAggregates(QualType Ty, uint64_t TySize) const {
   if (Ty->isComplexType())
     return CGT.ConvertType(Ty);
 
-  const RecordType *RT = Ty->getAs<RecordType>();
+  const RecordType *RT = Ty->getAsCanonical<RecordType>();
   
   // On CHERI, we must pass unions containing capabilities in capability
   // registers.  Otherwise, pass them as integers.
@@ -427,7 +427,7 @@ MipsABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
 
 llvm::Type*
 MipsABIInfo::returnAggregateInRegs(QualType RetTy, uint64_t Size) const {
-  const RecordType *RT = RetTy->getAs<RecordType>();
+  const RecordType *RT = RetTy->getAsCanonical<RecordType>();
   SmallVector<llvm::Type*, 8> RTList;
 
   if (RT && RT->isStructureOrClassType()) {

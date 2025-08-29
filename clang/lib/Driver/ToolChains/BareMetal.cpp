@@ -12,9 +12,9 @@
 #include "clang/Driver/CommonArgs.h"
 #include "clang/Driver/InputInfo.h"
 
-#include "Arch/Mips.h"
 #include "Arch/AArch64.h"
 #include "Arch/ARM.h"
+#include "Arch/Mips.h"
 #include "Arch/RISCV.h"
 #include "clang/Driver/Compilation.h"
 #include "clang/Driver/Driver.h"
@@ -24,6 +24,7 @@
 #include "llvm/Option/ArgList.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/VirtualFileSystem.h"
+#include "llvm/TargetParser/RISCVISAInfo.h"
 
 #include <sstream>
 
@@ -275,13 +276,15 @@ BareMetal::BareMetal(const Driver &D, const llvm::Triple &Triple,
     }
   }
 
-  if (Triple.getOS() == llvm::Triple::CheriotRTOS ||
-      Args.getLastArgValue(options::OPT_mcpu_EQ) == "cheriot" ||
-      Args.getLastArgValue(options::OPT_mabi_EQ) == "cheriot" ||
-      Args.getLastArgValue(options::OPT_mabi_EQ) == "cheriot-baremetal")
-    IsCheriot = true;
-  else
-    IsCheriot = false;
+  IsCheriot = false;
+  if (Triple.isRISCV()) {
+    std::string Arch = riscv::getRISCVArch(Args, Triple);
+    // Canonicalize arch for easier matching
+    auto ISAInfo = llvm::RISCVISAInfo::parseArchString(
+        Arch, /*EnableExperimentalExtensions*/ true);
+    if (!llvm::errorToBool(ISAInfo.takeError()))
+      IsCheriot = (*ISAInfo)->hasExtension("xcheriot");
+  }
 }
 
 static void

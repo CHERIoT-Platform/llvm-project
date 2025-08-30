@@ -21,6 +21,7 @@
 #include <__type_traits/is_enum.h>
 #include <__type_traits/is_floating_point.h>
 #include <__type_traits/is_integral.h>
+#include <__type_traits/is_unqualified.h>
 #include <__type_traits/underlying_type.h>
 #include <__utility/pair.h>
 #include <__utility/swap.h>
@@ -355,7 +356,8 @@ struct __hash_impl {
 };
 
 template <class _Tp>
-struct __hash_impl<_Tp, __enable_if_t<is_enum<_Tp>::value> > : __unary_function<_Tp, size_t> {
+struct __hash_impl<_Tp, __enable_if_t<is_enum<_Tp>::value && __is_unqualified_v<_Tp> > >
+    : __unary_function<_Tp, size_t> {
   _LIBCPP_HIDE_FROM_ABI size_t operator()(_Tp __v) const _NOEXCEPT {
     using type = __underlying_type_t<_Tp>;
     return hash<type>()(static_cast<type>(__v));
@@ -363,13 +365,16 @@ struct __hash_impl<_Tp, __enable_if_t<is_enum<_Tp>::value> > : __unary_function<
 };
 
 template <class _Tp>
-struct __hash_impl<_Tp, __enable_if_t<is_integral<_Tp>::value && (sizeof(_Tp) <= sizeof(size_t))> >
+struct __hash_impl<
+    _Tp,
+    __enable_if_t<is_integral<_Tp>::value && __is_unqualified_v<_Tp> && (sizeof(_Tp) <= sizeof(size_t))> >
     : __unary_function<_Tp, size_t> {
   _LIBCPP_HIDE_FROM_ABI size_t operator()(_Tp __v) const _NOEXCEPT { return static_cast<size_t>(__v); }
 };
 
 template <class _Tp>
-struct __hash_impl<_Tp, __enable_if_t<is_integral<_Tp>::value && (sizeof(_Tp) > sizeof(size_t))> >
+struct __hash_impl<_Tp,
+                   __enable_if_t<is_integral<_Tp>::value && __is_unqualified_v<_Tp> && (sizeof(_Tp) > sizeof(size_t))> >
     : __scalar_hash<_Tp> {};
 
 #if __has_feature(capabilities)
@@ -391,7 +396,8 @@ struct __hash_impl<__uintcap_t> : __scalar_hash<__uintcap_t>
 #endif
 
 template <class _Tp>
-struct __hash_impl<_Tp, __enable_if_t<is_floating_point<_Tp>::value> > : __scalar_hash<_Tp> {
+struct __hash_impl<_Tp, __enable_if_t<is_floating_point<_Tp>::value && __is_unqualified_v<_Tp> > >
+    : __scalar_hash<_Tp> {
   _LIBCPP_HIDE_FROM_ABI size_t operator()(_Tp __v) const _NOEXCEPT {
     // -0.0 and 0.0 should return same hash
     if (__v == 0.0f)

@@ -333,7 +333,7 @@ bool CFI_Parser<A>::findFDE(A &addressSpace, pc_t pc, pint_t ehSectionStart,
 #endif
           // fprintf(stderr, "findFDE() pcStart=%#llx, pc=%#p, range=%#llx\n", (unsigned long long)pcStart, (void*)pc, (unsigned long long)pcRange);
           // Test if pc is within the function this FDE covers.
-          if ((pcStart < pcAddr) && (pcAddr <= pcStart + pcRange)) {
+          if ((pcStart <= pcAddr) && (pcAddr < pcStart + pcRange)) {
             // parse rest of info
             fdeInfo->lsda = 0;
             // check for augmentation length

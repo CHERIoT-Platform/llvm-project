@@ -212,8 +212,9 @@ void TargetLoweringObjectFile::emitCGProfileMetadata(MCStreamer &Streamer,
   }
 }
 
-void TargetLoweringObjectFile::emitPseudoProbeDescMetadata(MCStreamer &Streamer,
-                                                           Module &M) const {
+void TargetLoweringObjectFile::emitPseudoProbeDescMetadata(
+    MCStreamer &Streamer, Module &M,
+    std::function<void(MCStreamer &Streamer)> COMDATSymEmitter) const {
   NamedMDNode *FuncInfo = M.getNamedMetadata(PseudoProbeDescMetadataName);
   if (!FuncInfo)
     return;
@@ -234,6 +235,11 @@ void TargetLoweringObjectFile::emitPseudoProbeDescMetadata(MCStreamer &Streamer,
         TM->getFunctionSections() ? Name->getString() : StringRef());
 
     Streamer.switchSection(S);
+
+    // emit COFF COMDAT symbol.
+    if (COMDATSymEmitter)
+      COMDATSymEmitter(Streamer);
+
     Streamer.emitInt64(GUID->getZExtValue());
     Streamer.emitInt64(Hash->getZExtValue());
     Streamer.emitULEB128IntValue(Name->getString().size());

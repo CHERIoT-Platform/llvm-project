@@ -865,7 +865,7 @@ SDValue TargetLowering::SimplifyMultipleUseDemandedBits(
   case ISD::SHL: {
     // If we are only demanding sign bits then we can use the shift source
     // directly.
-    if (std::optional<uint64_t> MaxSA =
+    if (std::optional<unsigned> MaxSA =
             DAG.getValidMaximumShiftAmount(Op, DemandedElts, Depth + 1)) {
       SDValue Op0 = Op.getOperand(0);
       unsigned ShAmt = *MaxSA;
@@ -880,7 +880,7 @@ SDValue TargetLowering::SimplifyMultipleUseDemandedBits(
   case ISD::SRL: {
     // If we are only demanding sign bits then we can use the shift source
     // directly.
-    if (std::optional<uint64_t> MaxSA =
+    if (std::optional<unsigned> MaxSA =
             DAG.getValidMaximumShiftAmount(Op, DemandedElts, Depth + 1)) {
       SDValue Op0 = Op.getOperand(0);
       unsigned ShAmt = *MaxSA;
@@ -1813,7 +1813,7 @@ bool TargetLowering::SimplifyDemandedBits(
     SDValue Op1 = Op.getOperand(1);
     EVT ShiftVT = Op1.getValueType();
 
-    if (std::optional<uint64_t> KnownSA =
+    if (std::optional<unsigned> KnownSA =
             TLO.DAG.getValidShiftAmount(Op, DemandedElts, Depth + 1)) {
       unsigned ShAmt = *KnownSA;
       if (ShAmt == 0)
@@ -1825,7 +1825,7 @@ bool TargetLowering::SimplifyDemandedBits(
       // TODO - support non-uniform vector amounts.
       if (Op0.getOpcode() == ISD::SRL) {
         if (!DemandedBits.intersects(APInt::getLowBitsSet(BitWidth, ShAmt))) {
-          if (std::optional<uint64_t> InnerSA =
+          if (std::optional<unsigned> InnerSA =
                   TLO.DAG.getValidShiftAmount(Op0, DemandedElts, Depth + 2)) {
             unsigned C1 = *InnerSA;
             unsigned Opc = ISD::SHL;
@@ -1865,7 +1865,7 @@ bool TargetLowering::SimplifyDemandedBits(
         // TODO - support non-uniform vector amounts.
         if (InnerOp.getOpcode() == ISD::SRL && Op0.hasOneUse() &&
             InnerOp.hasOneUse()) {
-          if (std::optional<uint64_t> SA2 = TLO.DAG.getValidShiftAmount(
+          if (std::optional<unsigned> SA2 = TLO.DAG.getValidShiftAmount(
                   InnerOp, DemandedElts, Depth + 2)) {
             unsigned InnerShAmt = *SA2;
             if (InnerShAmt < ShAmt && InnerShAmt < InnerBits &&
@@ -1982,7 +1982,7 @@ bool TargetLowering::SimplifyDemandedBits(
 
     // If we are only demanding sign bits then we can use the shift source
     // directly.
-    if (std::optional<uint64_t> MaxSA =
+    if (std::optional<unsigned> MaxSA =
             TLO.DAG.getValidMaximumShiftAmount(Op, DemandedElts, Depth + 1)) {
       unsigned ShAmt = *MaxSA;
       unsigned NumSignBits =
@@ -1998,7 +1998,7 @@ bool TargetLowering::SimplifyDemandedBits(
     SDValue Op1 = Op.getOperand(1);
     EVT ShiftVT = Op1.getValueType();
 
-    if (std::optional<uint64_t> KnownSA =
+    if (std::optional<unsigned> KnownSA =
             TLO.DAG.getValidShiftAmount(Op, DemandedElts, Depth + 1)) {
       unsigned ShAmt = *KnownSA;
       if (ShAmt == 0)
@@ -2010,7 +2010,7 @@ bool TargetLowering::SimplifyDemandedBits(
       // TODO - support non-uniform vector amounts.
       if (Op0.getOpcode() == ISD::SHL) {
         if (!DemandedBits.intersects(APInt::getHighBitsSet(BitWidth, ShAmt))) {
-          if (std::optional<uint64_t> InnerSA =
+          if (std::optional<unsigned> InnerSA =
                   TLO.DAG.getValidShiftAmount(Op0, DemandedElts, Depth + 2)) {
             unsigned C1 = *InnerSA;
             unsigned Opc = ISD::SRL;
@@ -2030,7 +2030,7 @@ bool TargetLowering::SimplifyDemandedBits(
       // single sra. We can do this if the top bits are never demanded.
       if (Op0.getOpcode() == ISD::SRA && Op0.hasOneUse()) {
         if (!DemandedBits.intersects(APInt::getHighBitsSet(BitWidth, ShAmt))) {
-          if (std::optional<uint64_t> InnerSA =
+          if (std::optional<unsigned> InnerSA =
                   TLO.DAG.getValidShiftAmount(Op0, DemandedElts, Depth + 2)) {
             unsigned C1 = *InnerSA;
             // Clamp the combined shift amount if it exceeds the bit width.
@@ -2095,7 +2095,7 @@ bool TargetLowering::SimplifyDemandedBits(
 
     // If we are only demanding sign bits then we can use the shift source
     // directly.
-    if (std::optional<uint64_t> MaxSA =
+    if (std::optional<unsigned> MaxSA =
             TLO.DAG.getValidMaximumShiftAmount(Op, DemandedElts, Depth + 1)) {
       unsigned ShAmt = *MaxSA;
       // Must already be signbits in DemandedBits bounds, and can't demand any
@@ -2134,7 +2134,7 @@ bool TargetLowering::SimplifyDemandedBits(
     if (DemandedBits.isOne())
       return TLO.CombineTo(Op, TLO.DAG.getNode(ISD::SRL, dl, VT, Op0, Op1));
 
-    if (std::optional<uint64_t> KnownSA =
+    if (std::optional<unsigned> KnownSA =
             TLO.DAG.getValidShiftAmount(Op, DemandedElts, Depth + 1)) {
       unsigned ShAmt = *KnownSA;
       if (ShAmt == 0)
@@ -2143,7 +2143,7 @@ bool TargetLowering::SimplifyDemandedBits(
       // fold (sra (shl x, c1), c1) -> sext_inreg for some c1 and target
       // supports sext_inreg.
       if (Op0.getOpcode() == ISD::SHL) {
-        if (std::optional<uint64_t> InnerSA =
+        if (std::optional<unsigned> InnerSA =
                 TLO.DAG.getValidShiftAmount(Op0, DemandedElts, Depth + 2)) {
           unsigned LowBits = BitWidth - ShAmt;
           EVT ExtVT = EVT::getIntegerVT(*TLO.DAG.getContext(), LowBits);
@@ -2690,11 +2690,11 @@ bool TargetLowering::SimplifyDemandedBits(
           break;
         }
 
-        std::optional<uint64_t> ShAmtC =
+        std::optional<unsigned> ShAmtC =
             TLO.DAG.getValidShiftAmount(Src, DemandedElts, Depth + 2);
         if (!ShAmtC || *ShAmtC >= BitWidth)
           break;
-        uint64_t ShVal = *ShAmtC;
+        unsigned ShVal = *ShAmtC;
 
         APInt HighBits =
             APInt::getHighBitsSet(OperandBitWidth, OperandBitWidth - BitWidth);
@@ -9769,8 +9769,8 @@ SDValue TargetLowering::expandABS(SDNode *N, SelectionDAG &DAG,
 SDValue TargetLowering::expandABD(SDNode *N, SelectionDAG &DAG) const {
   SDLoc dl(N);
   EVT VT = N->getValueType(0);
-  SDValue LHS = DAG.getFreeze(N->getOperand(0));
-  SDValue RHS = DAG.getFreeze(N->getOperand(1));
+  SDValue LHS = N->getOperand(0);
+  SDValue RHS = N->getOperand(1);
   bool IsSigned = N->getOpcode() == ISD::ABDS;
 
   // abds(lhs, rhs) -> sub(smax(lhs,rhs), smin(lhs,rhs))
@@ -9778,34 +9778,37 @@ SDValue TargetLowering::expandABD(SDNode *N, SelectionDAG &DAG) const {
   unsigned MaxOpc = IsSigned ? ISD::SMAX : ISD::UMAX;
   unsigned MinOpc = IsSigned ? ISD::SMIN : ISD::UMIN;
   if (isOperationLegal(MaxOpc, VT) && isOperationLegal(MinOpc, VT)) {
+    LHS = DAG.getFreeze(LHS);
+    RHS = DAG.getFreeze(RHS);
     SDValue Max = DAG.getNode(MaxOpc, dl, VT, LHS, RHS);
     SDValue Min = DAG.getNode(MinOpc, dl, VT, LHS, RHS);
     return DAG.getNode(ISD::SUB, dl, VT, Max, Min);
   }
 
   // abdu(lhs, rhs) -> or(usubsat(lhs,rhs), usubsat(rhs,lhs))
-  if (!IsSigned && isOperationLegal(ISD::USUBSAT, VT))
+  if (!IsSigned && isOperationLegal(ISD::USUBSAT, VT)) {
+    LHS = DAG.getFreeze(LHS);
+    RHS = DAG.getFreeze(RHS);
     return DAG.getNode(ISD::OR, dl, VT,
                        DAG.getNode(ISD::USUBSAT, dl, VT, LHS, RHS),
                        DAG.getNode(ISD::USUBSAT, dl, VT, RHS, LHS));
+  }
 
   // If the subtract doesn't overflow then just use abs(sub())
-  // NOTE: don't use frozen operands for value tracking.
-  bool IsNonNegative = DAG.SignBitIsZero(N->getOperand(1)) &&
-                       DAG.SignBitIsZero(N->getOperand(0));
+  bool IsNonNegative = DAG.SignBitIsZero(LHS) && DAG.SignBitIsZero(RHS);
 
-  if (DAG.willNotOverflowSub(IsSigned || IsNonNegative, N->getOperand(0),
-                             N->getOperand(1)))
+  if (DAG.willNotOverflowSub(IsSigned || IsNonNegative, LHS, RHS))
     return DAG.getNode(ISD::ABS, dl, VT,
                        DAG.getNode(ISD::SUB, dl, VT, LHS, RHS));
 
-  if (DAG.willNotOverflowSub(IsSigned || IsNonNegative, N->getOperand(1),
-                             N->getOperand(0)))
+  if (DAG.willNotOverflowSub(IsSigned || IsNonNegative, RHS, LHS))
     return DAG.getNode(ISD::ABS, dl, VT,
                        DAG.getNode(ISD::SUB, dl, VT, RHS, LHS));
 
   EVT CCVT = getSetCCResultType(DAG.getDataLayout(), *DAG.getContext(), VT);
   ISD::CondCode CC = IsSigned ? ISD::CondCode::SETGT : ISD::CondCode::SETUGT;
+  LHS = DAG.getFreeze(LHS);
+  RHS = DAG.getFreeze(RHS);
   SDValue Cmp = DAG.getSetCC(dl, CCVT, LHS, RHS, CC);
 
   // Branchless expansion iff cmp result is allbits:

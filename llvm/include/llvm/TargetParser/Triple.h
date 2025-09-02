@@ -247,11 +247,11 @@ public:
     WASI,       // Experimental WebAssembly OS
     Emscripten,
     ShaderModel, // DirectX ShaderModel
-    CheriotRTOS,
     LiteOS,
     Serenity,
     Vulkan, // Vulkan SPIR-V
-    LastOSType = Vulkan
+    CheriotRTOS,
+    LastOSType = CheriotRTOS
   };
   enum EnvironmentType {
     UnknownEnvironment,

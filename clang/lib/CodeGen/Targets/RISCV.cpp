@@ -76,7 +76,7 @@ public:
         NumArgFPRs(FLen != 0 ? 8 : 0), EABI(EABI) {
       if (CGT.getTarget().getABI() == "cheriot") {
         // NB: not for "cheriot-baremetal"
-        RuntimeCC = llvm::CallingConv::CHERI_LibCall;
+        RuntimeCC = llvm::CallingConv::CHERIoT_LibraryCall;
         AtomicsCC = CallingConv::CC_CHERILibCall;
       }
   }

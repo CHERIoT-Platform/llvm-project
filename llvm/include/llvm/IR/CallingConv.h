@@ -284,16 +284,19 @@ namespace CallingConv {
     RISCV_VLSCall_32768 = 122,
     RISCV_VLSCall_65536 = 123,
 
-    /// CHERI_CCall - Calling convention used for CHERI when crossing a
+    /// CHERIoT_CompartmentCall - Calling convention used for CHERIoT when
+    /// crossing a
     /// protection boundary.
-    CHERI_CCall = 124,
-    /// CHERI_CCallee - Calling convention used for the callee of CHERI_CCall.
+    CHERIoT_CompartmentCall = 124,
+    /// CHERIoT_CompartmentCallee - Calling convention used for the callee of
+    /// CHERIoT_CompartmentCall.
     /// Ignores the first two capability arguments and the first integer
     /// argument, zeroes all unused return registers on return.
-    CHERI_CCallee = 125,
-    /// CHERI_LibCalL - Calling convention used for cross-library calls to a
+    CHERIoT_CompartmentCallee = 125,
+    /// CHERIoT_LibraryCall - Calling convention used for cross-library calls to
+    /// a
     /// stateless compartment.
-    CHERI_LibCall = 126,
+    CHERIoT_LibraryCall = 126,
 
     /// The highest possible ID. Must be some 2^k - 1.
     MaxID = 1023

@@ -5,7 +5,7 @@ target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G
 target triple = "riscv32-unknown-unknown"
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize readnone willreturn
-define dso_local chericcallcc void @_Z8callbackv() addrspace(200) #0 {
+define dso_local cheriot_compartmentcallcc void @_Z8callbackv() addrspace(200) #0 {
 entry:
   ret void
 }
@@ -17,13 +17,13 @@ entry:
   ; CHECK-NOT: cheriot_compartment_hi(_Z8callbackv)
   ; CHECK: cheriot_compartment_hi(__import_me__Z8callbackv)
   ; CHECK-NOT: cheriot_compartment_hi(_Z8callbackv)
-  notail call chericcallcc void @_Z22cross_compartment_callPU10chericcallFvvE(void () addrspace(200)* nonnull @_Z8callbackv) #3
-  notail call chericcallcc void @_Z22cross_compartment_callPU10chericcallFvvE(void () addrspace(200)* nonnull @_Z8callbackv) #3
+  notail call cheriot_compartmentcallcc void @_Z22cross_compartment_callPU10chericcallFvvE(void () addrspace(200)* nonnull @_Z8callbackv) #3
+  notail call cheriot_compartmentcallcc void @_Z22cross_compartment_callPU10chericcallFvvE(void () addrspace(200)* nonnull @_Z8callbackv) #3
   ret void
 }
 
 ; Function Attrs: minsize optsize
-declare dso_local chericcallcc void @_Z22cross_compartment_callPU10chericcallFvvE(void () addrspace(200)*) local_unnamed_addr addrspace(200) #2
+declare dso_local cheriot_compartmentcallcc void @_Z22cross_compartment_callPU10chericcallFvvE(void () addrspace(200)*) local_unnamed_addr addrspace(200) #2
 
 attributes #0 = { minsize mustprogress nofree norecurse nosync nounwind optsize readnone willreturn "cheri-compartment"="me" "frame-pointer"="none" "interrupt-state"="enabled" "min-legal-vector-width"="0" "no-builtins" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+relax,+xcheri,+xcheri-rvc,-64bit,-save-restore" }
 attributes #1 = { minsize mustprogress nounwind optsize "cheri-compartment"="me" "frame-pointer"="none" "min-legal-vector-width"="0" "no-builtins" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+relax,+xcheri,+xcheri-rvc,-64bit,-save-restore" }

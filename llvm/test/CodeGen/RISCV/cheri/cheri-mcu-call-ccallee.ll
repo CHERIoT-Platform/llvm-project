@@ -9,11 +9,11 @@ define dso_local void @func() local_unnamed_addr addrspace(200) #0 {
 entry:
   ; Make sure that there's a 4-byte stack argument passed in ct0.
   ; CHECK:         csetbounds      ct0, csp, 4
-  call chericcallee void @ccall(i32 0, i32 1, i32 2, i32 3, i32 4, i32 5, i32 6) #2
+  call cheriot_compartmentcalleecc void @ccall(i32 0, i32 1, i32 2, i32 3, i32 4, i32 5, i32 6) #2
   ret void
 }
 
-declare dso_local chericcallee void @ccall(i32, i32, i32, i32, i32, i32, i32) local_unnamed_addr addrspace(200) #1
+declare dso_local cheriot_compartmentcalleecc void @ccall(i32, i32, i32, i32, i32, i32, i32) local_unnamed_addr addrspace(200) #1
 
 attributes #0 = { nounwind "frame-pointer"="none" "min-legal-vector-width"="0" "no-builtin-printf" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+xcheri,-64bit,-relax,-save-restore" }
 attributes #1 = { "frame-pointer"="none" "no-builtin-printf" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+xcheri,-64bit,-relax,-save-restore" }

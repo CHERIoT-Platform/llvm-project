@@ -9,7 +9,7 @@ entry:
   ret void
 }
 
-define dso_local chericcallee void @_Z9say_hellov() local_unnamed_addr addrspace(200) #1 {
+define dso_local cheriot_compartmentcalleecc void @_Z9say_hellov() local_unnamed_addr addrspace(200) #1 {
 entry:
   store ptr addrspace(200) @_Z11id_functionv, ptr addrspace(200) @f, align 8
   ret void

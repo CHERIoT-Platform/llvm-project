@@ -633,9 +633,9 @@ lltok::Kind LLLexer::LexIdentifier() {
   KEYWORD(ccc);
   KEYWORD(fastcc);
   KEYWORD(coldcc);
-  KEYWORD(chericcallcc);
-  KEYWORD(chericcallee);
-  KEYWORD(cherilibcallcc);
+  KEYWORD(cheriot_compartmentcallcc);
+  KEYWORD(cheriot_compartmentcalleecc);
+  KEYWORD(cheriot_librarycallcc);
   KEYWORD(cfguard_checkcc);
   KEYWORD(x86_stdcallcc);
   KEYWORD(x86_fastcallcc);

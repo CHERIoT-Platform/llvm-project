@@ -274,7 +274,7 @@ MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
   // We can hit this code path if we need to do a library-style import
   // for a local exported function.
   CallingConv::ID CC = Fn->getCallingConv();
-  bool IsLibrary = CC == CallingConv::CHERI_LibCall;
+  bool IsLibrary = CC == CallingConv::CHERIoT_LibraryCall;
   const StringRef CompartmentName =
       IsLibrary ? "libcalls"
                 : Fn->getFnAttribute("cheri-compartment").getValueAsString();
@@ -282,7 +282,7 @@ MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
 
   auto ImportEntryName = getImportExportTableName(
       CompartmentName, ImportName,
-      TreatAsLibrary ? CallingConv::CHERI_LibCall : Fn->getCallingConv(),
+      TreatAsLibrary ? CallingConv::CHERIoT_LibraryCall : Fn->getCallingConv(),
       /*IsImport*/ true);
   // If this isn't really a library call then the export symbol will be
   // different.
@@ -472,10 +472,10 @@ bool RISCVExpandPseudo::expandLibraryCall(
       return true;
     }
     auto ImportEntryName = getImportExportTableName(
-        "libcalls", Callee.getSymbolName(), CallingConv::CHERI_LibCall,
+        "libcalls", Callee.getSymbolName(), CallingConv::CHERIoT_LibraryCall,
         /*IsImport*/ true);
     auto ExportEntryName = getImportExportTableName(
-        "libcalls", Callee.getSymbolName(), CallingConv::CHERI_LibCall,
+        "libcalls", Callee.getSymbolName(), CallingConv::CHERIoT_LibraryCall,
         /*IsImport*/ false);
     // Create the symbol for the import entry.  We don't use this symbol
     // directly (yet) but we need to allocate storage for the string where
@@ -765,8 +765,8 @@ bool RISCVExpandPseudo::expandCapLoadLocalCap(
 
     auto CC = Fn->getCallingConv();
     if ((getInterruptStatus(*Fn) != Interrupts::Inherit) ||
-        (CC == CallingConv::CHERI_CCall) ||
-        (CC == CallingConv::CHERI_CCallee)) {
+        (CC == CallingConv::CHERIoT_CompartmentCall) ||
+        (CC == CallingConv::CHERIoT_CompartmentCallee)) {
       insertLoadOfImportTable(MBB, MBBI, Fn, MBBI->getOperand(0).getReg(),
         /*TreatAsLibrary*/CC == CallingConv::C);
       NextMBBI = MBB.end();

@@ -19,7 +19,7 @@ entry:
   ; CHECK: csw	zero, 4(ca0)
   ; CHECK: csw	zero, 0(ca0)
   ; CHECK: auipcc	ct1, %cheriot_compartment_hi(__import_sret__Z1fv)
-  notail call chericcallcc void @_Z1fv(%struct.Smallish addrspace(200)* nonnull sret(%struct.Smallish) align 4 %ref.tmp) #4
+  notail call cheriot_compartmentcallcc void @_Z1fv(%struct.Smallish addrspace(200)* nonnull sret(%struct.Smallish) align 4 %ref.tmp) #4
   %foo.sroa.0.0..sroa_idx = getelementptr inbounds %struct.Smallish, %struct.Smallish addrspace(200)* %ref.tmp, i32 0, i32 0
   %foo.sroa.0.0.copyload = load i32, i32 addrspace(200)* %foo.sroa.0.0..sroa_idx, align 4, !tbaa.struct !4
   call void @llvm.lifetime.end.p200i8(i64 12, i8 addrspace(200)* nonnull %0) #3
@@ -30,7 +30,7 @@ entry:
 declare void @llvm.lifetime.start.p200i8(i64 immarg, i8 addrspace(200)* nocapture) addrspace(200) #1
 
 ; Function Attrs: minsize optsize
-declare dso_local chericcallcc void @_Z1fv(%struct.Smallish addrspace(200)* sret(%struct.Smallish) align 4) local_unnamed_addr addrspace(200) #2
+declare dso_local cheriot_compartmentcallcc void @_Z1fv(%struct.Smallish addrspace(200)* sret(%struct.Smallish) align 4) local_unnamed_addr addrspace(200) #2
 
 ; Function Attrs: argmemonly mustprogress nofree nosync nounwind willreturn
 declare void @llvm.lifetime.end.p200i8(i64 immarg, i8 addrspace(200)* nocapture) addrspace(200) #1
@@ -44,7 +44,7 @@ entry:
   ; CHECK-LABEL: _Z1iv:
   ; Check that we do a proper memset for a big struct.
   ; CHECK: 	auipcc	ct2, %cheriot_compartment_hi(__library_import_libcalls_memset)
-  notail call chericcallcc void @_Z1gv(%struct.Big addrspace(200)* nonnull sret(%struct.Big) align 1 %ref.tmp) #4
+  notail call cheriot_compartmentcallcc void @_Z1gv(%struct.Big addrspace(200)* nonnull sret(%struct.Big) align 1 %ref.tmp) #4
   %foo.sroa.0.0.copyload = load i8, i8 addrspace(200)* %0, align 1, !tbaa.struct !9
   call void @llvm.lifetime.end.p200i8(i64 128, i8 addrspace(200)* nonnull %0) #3
   %conv = zext i8 %foo.sroa.0.0.copyload to i32
@@ -52,7 +52,7 @@ entry:
 }
 
 ; Function Attrs: minsize optsize
-declare dso_local chericcallcc void @_Z1gv(%struct.Big addrspace(200)* sret(%struct.Big) align 1) local_unnamed_addr addrspace(200) #2
+declare dso_local cheriot_compartmentcallcc void @_Z1gv(%struct.Big addrspace(200)* sret(%struct.Big) align 1) local_unnamed_addr addrspace(200) #2
 
 attributes #0 = { minsize mustprogress nounwind optsize "frame-pointer"="none" "min-legal-vector-width"="0" "no-builtins" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+relax,+xcheri,-64bit,-save-restore" }
 attributes #1 = { argmemonly mustprogress nofree nosync nounwind willreturn }

@@ -117,7 +117,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
 
   if (ABI == RISCVABI::ABI_CHERIOT) {
     for (auto LCID : RTLIB::libcall_impls())
-      setLibcallImplCallingConv(LCID, CallingConv::CHERI_LibCall);
+      setLibcallImplCallingConv(LCID, CallingConv::CHERIoT_LibraryCall);
   }
 
   switch (ABI) {
@@ -23513,8 +23513,8 @@ SDValue RISCVTargetLowering::LowerFormalArguments(
   switch (CallConv) {
   default:
     reportFatalUsageError("Unsupported calling convention");
-  case CallingConv::CHERI_CCallee:
-  case CallingConv::CHERI_CCall:
+  case CallingConv::CHERIoT_CompartmentCall:
+  case CallingConv::CHERIoT_CompartmentCallee:
     isCHERIoTCompartmentCall = true;
     break;
   case CallingConv::C:
@@ -23523,7 +23523,7 @@ SDValue RISCVTargetLowering::LowerFormalArguments(
   case CallingConv::PreserveMost:
   case CallingConv::GRAAL:
   case CallingConv::RISCV_VectorCall:
-  case CallingConv::CHERI_LibCall:
+  case CallingConv::CHERIoT_LibraryCall:
 #define CC_VLS_CASE(ABI_VLEN) case CallingConv::RISCV_VLSCall_##ABI_VLEN:
     CC_VLS_CASE(32)
     CC_VLS_CASE(64)
@@ -23800,9 +23800,9 @@ bool RISCVTargetLowering::isEligibleForTailCallOptimization(
   // Do not tail call cross-compartment calls.  We could tail call ones that
   // are internal to the compartment, but it's unlikely that we'll see much
   // benefit from that.
-  if ((CalleeCC == CallingConv::CHERI_LibCall) ||
-      (CalleeCC == CallingConv::CHERI_CCall) ||
-      (CalleeCC == CallingConv::CHERI_CCallee))
+  if ((CalleeCC == CallingConv::CHERIoT_LibraryCall) ||
+      (CalleeCC == CallingConv::CHERIoT_CompartmentCall) ||
+      (CalleeCC == CallingConv::CHERIoT_CompartmentCallee))
     return false;
 
   return true;
@@ -23874,9 +23874,9 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
         // TODO: We should be able to tail call these, we're just missing
         // the relevant node.
         IsTailCall = false;
-        if ((CallConv != CallingConv::CHERI_CCall) &&
-            ((CallConv != CallingConv::CHERI_CCallee)))
-          CallConv = CallingConv::CHERI_LibCall;
+        if ((CallConv != CallingConv::CHERIoT_CompartmentCall) &&
+            ((CallConv != CallingConv::CHERIoT_CompartmentCallee)))
+          CallConv = CallingConv::CHERIoT_LibraryCall;
       }
     }
 
@@ -23891,9 +23891,9 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
         // TODO: We should be able to tail call these, we're just missing
         // the relevant node.
         IsTailCall = false;
-        if ((CallConv != CallingConv::CHERI_CCall) &&
-            ((CallConv != CallingConv::CHERI_CCallee)))
-          CallConv = CallingConv::CHERI_LibCall;
+        if ((CallConv != CallingConv::CHERIoT_CompartmentCall) &&
+            ((CallConv != CallingConv::CHERIoT_CompartmentCallee)))
+          CallConv = CallingConv::CHERIoT_LibraryCall;
       }
     }
 
@@ -24058,8 +24058,8 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
   SDValue Glue;
 
   // For CHERI CCalls, pass the on-stack argument frame as an extra capability.
-  if (CallConv == CallingConv::CHERI_CCall ||
-      CallConv == CallingConv::CHERI_CCallee) {
+  if (CallConv == CallingConv::CHERIoT_CompartmentCall ||
+      CallConv == CallingConv::CHERIoT_CompartmentCallee) {
     if (NumBytes > 0) {
       SDValue BoundedArgFrame =
           DAG.getNode(RISCVISD::BOUNDS_SET, DL, PtrVT, StackPtr,
@@ -24172,10 +24172,10 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
 
   unsigned CallOpc = NeedSWGuarded ? RISCVISD::SW_GUARDED_CALL : RISCVISD::CALL;
   if (RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI())) {
-    if ((CallConv == CallingConv::CHERI_CCall) ||
-        (CallConv == CallingConv::CHERI_CCallee)) {
+    if ((CallConv == CallingConv::CHERIoT_CompartmentCall) ||
+        (CallConv == CallingConv::CHERIoT_CompartmentCallee)) {
       CallOpc = RISCVISD::CAP_COMPARTMENT_CALL;
-    } else if (CallConv == CallingConv::CHERI_LibCall) {
+    } else if (CallConv == CallingConv::CHERIoT_LibraryCall) {
       assert(Subtarget.getTargetABI() != RISCVABI::ABI_CHERIOT_BAREMETAL &&
              "Cheri libcall on baremetal");
       CallOpc = RISCVISD::CAP_LIB_CALL;
@@ -24273,8 +24273,8 @@ RISCVTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
   SmallVector<SDValue, 4> RetOps(1, Chain);
   bool zeroX10 = false;
   bool zeroX11 = false;
-  if (CallConv == CallingConv::CHERI_CCall ||
-      CallConv == CallingConv::CHERI_CCallee) {
+  if (CallConv == CallingConv::CHERIoT_CompartmentCall ||
+      CallConv == CallingConv::CHERIoT_CompartmentCallee) {
     zeroX10 = true;
     zeroX11 = true;
   }
@@ -24285,8 +24285,8 @@ RISCVTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
     CCValAssign &VA = RVLocs[i];
     assert(VA.isRegLoc() && "Can only return in registers!");
 
-    if (CallConv == CallingConv::CHERI_CCall ||
-        CallConv == CallingConv::CHERI_CCallee) {
+    if (CallConv == CallingConv::CHERIoT_CompartmentCall ||
+        CallConv == CallingConv::CHERIoT_CompartmentCallee) {
       switch (VA.getLocReg()) {
       case RISCV::X10:
       case RISCV::C10:

@@ -331,35 +331,35 @@ def CC_Mips16RetHelper : CallingConv<[
   CCIfType<[i32], CCAssignToReg<[V0, V1, A0, A1]>>
 ]>;
 
-def CC_Mips_FixedArg : CallingConv<[
-  // Mips16 needs special handling on some functions.
-  CCIf<"State.getCallingConv() != CallingConv::Fast",
-      CCIfSpecialCallingConv<"Mips16RetHelperConv",
-           CCDelegateTo<CC_Mips16RetHelper>>>,
-  CCIf<"State.getCallingConv() == CallingConv::CHERI_CCall",
-       CCDelegateTo<CC_CHERI_CCall>>,
+def CC_Mips_FixedArg
+    : CallingConv<[
+          // Mips16 needs special handling on some functions.
+          CCIf<"State.getCallingConv() != CallingConv::Fast",
+               CCIfSpecialCallingConv<"Mips16RetHelperConv",
+                                      CCDelegateTo<CC_Mips16RetHelper>>>,
 
-  CCIfByVal<CCDelegateTo<CC_Mips_ByVal>>,
+          CCIfByVal<CCDelegateTo<CC_Mips_ByVal>>,
 
-  // f128 needs to be handled similarly to f32 and f64 on hard-float. However,
-  // f128 is not legal and is lowered to i128 which is further lowered to a pair
-  // of i64's.
-  // This presents us with a problem for the calling convention since hard-float
-  // still needs to pass them in FPU registers. We therefore resort to a
-  // pre-analyze (see PreAnalyzeFormalArgsForF128()) step to pass information on
-  // whether the argument was originally an f128 into the tablegen-erated code.
-  //
-  // f128 should only occur for the N64 ABI where long double is 128-bit. On
-  // N32, long double is equivalent to double.
-  CCIfType<[i64],
-      CCIfSubtargetNot<"useSoftFloat()",
-          CCIfOrigArgWasF128<CCBitConvertToType<f64>>>>,
+          // f128 needs to be handled similarly to f32 and f64 on hard-float.
+          // However, f128 is not legal and is lowered to i128 which is further
+          // lowered to a pair of i64's. This presents us with a problem for the
+          // calling convention since hard-float still needs to pass them in FPU
+          // registers. We therefore resort to a pre-analyze (see
+          // PreAnalyzeFormalArgsForF128()) step to pass information on whether
+          // the argument was originally an f128 into the tablegen-erated code.
+          //
+          // f128 should only occur for the N64 ABI where long double is
+          // 128-bit. On N32, long double is equivalent to double.
+          CCIfType<[i64], CCIfSubtargetNot<
+                              "useSoftFloat()",
+                              CCIfOrigArgWasF128<CCBitConvertToType<f64>>>>,
 
-  CCIfCC<"CallingConv::Fast", CCDelegateTo<CC_Mips_FastCC>>,
+          CCIfCC<"CallingConv::Fast", CCDelegateTo<CC_Mips_FastCC>>,
 
-  CCIfSubtarget<"isABI_O32()", CCIfSubtargetNot<"isGP64bit()", CCDelegateTo<CC_MipsO32_FP>>>,
-  CCDelegateTo<CC_MipsN>
-]>;
+          CCIfSubtarget<
+              "isABI_O32()",
+              CCIfSubtargetNot<"isGP64bit()", CCDelegateTo<CC_MipsO32_FP>>>,
+          CCDelegateTo<CC_MipsN>]>;
 
 def CC_Mips_VarArg : CallingConv<[
   // If this is the CHERI purecap ABI then we need to pass everything on the

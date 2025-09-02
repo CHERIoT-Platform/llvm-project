@@ -14,7 +14,7 @@ target triple = "riscv32-unknown-unknown"
 ; may be on the stack).
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize willreturn writeonly
-define dso_local chericcallee void @_Z4ret2v(%struct.ret addrspace(200)* noalias nocapture sret(%struct.ret) align 8 %agg.result) local_unnamed_addr addrspace(200) #0 {
+define dso_local cheriot_compartmentcalleecc void @_Z4ret2v(%struct.ret addrspace(200)* noalias nocapture sret(%struct.ret) align 8 %agg.result) local_unnamed_addr addrspace(200) #0 {
 entry:
   ; CHECK-LABEL: _Z4ret2v:
   ; Make sure that the base points to the current address
@@ -42,7 +42,7 @@ entry:
 ; compiler must insert the check that they are valid.
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize readnone willreturn
-define dso_local chericcallee i32 @_Z7bigargsiiiiiiii(i32 %a0, i32 %a1, i32 %a2, i32 %a3, i32 %a4, i32 %a5, i32 %a6, i32 %a7) local_unnamed_addr addrspace(200) #1 {
+define dso_local cheriot_compartmentcalleecc i32 @_Z7bigargsiiiiiiii(i32 %a0, i32 %a1, i32 %a2, i32 %a3, i32 %a4, i32 %a5, i32 %a6, i32 %a7) local_unnamed_addr addrspace(200) #1 {
 entry:
   ; CHECK-LABEL: _Z7bigargsiiiiiiii:
   ; Make sure that the base points to the current address

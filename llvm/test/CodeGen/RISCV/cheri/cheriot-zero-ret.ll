@@ -5,7 +5,7 @@ target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G
 target triple = "riscv32-unknown-unknown"
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize readnone willreturn
-define dso_local chericcallee void @_Z4ret0v() local_unnamed_addr addrspace(200) #0 {
+define dso_local cheriot_compartmentcalleecc void @_Z4ret0v() local_unnamed_addr addrspace(200) #0 {
 entry:
   ; CHECK-LABEL: _Z4ret0v
   ; CHECK: li    a0, 0
@@ -15,7 +15,7 @@ entry:
 }
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize readnone willreturn
-define dso_local chericcallee i32 @_Z4ret1v() local_unnamed_addr addrspace(200) #0 {
+define dso_local cheriot_compartmentcalleecc i32 @_Z4ret1v() local_unnamed_addr addrspace(200) #0 {
 entry:
   ; CHECK-LABEL: _Z4ret1v
   ; CHECK: li    a0, 1
@@ -25,7 +25,7 @@ entry:
 }
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize readnone willreturn
-define dso_local chericcallee [2 x i32] @_Z4ret2v() local_unnamed_addr addrspace(200) #0 {
+define dso_local cheriot_compartmentcalleecc [2 x i32] @_Z4ret2v() local_unnamed_addr addrspace(200) #0 {
 entry:
   ; CHECK-LABEL: _Z4ret2v
   ; CHECK: li  a0, 1

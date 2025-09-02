@@ -4646,25 +4646,6 @@ MipsTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
       }
     }
   }
-  // If we're doing a CCall then any unused arg registers should be zero.
-  if (!UseClearRegs && (CallConv == CallingConv::CHERI_CCall)) {
-    assert(CapArgs >= 2);
-    CapArgs -= 2;
-    // Optional argument registers for CCall calling convention
-    static const unsigned RegList[] = { Mips::C3, Mips::C4, Mips::C5, Mips::C6,
-      Mips::C7, Mips::C8, Mips::C9, Mips::C10 };
-    for (unsigned i=CapArgs ; i<8 ; i++) {
-      SDValue Zero = DAG.getNullCapability(DL);
-      RegsToPass.push_back(std::make_pair(RegList[i], Zero));
-    }
-    static const unsigned IntRegList[] = { Mips::A0_64, Mips::A1_64,
-      Mips::A2_64, Mips::A3_64, Mips::T0_64, Mips::T1_64, Mips::T2_64,
-      Mips::T3_64 };
-    for (unsigned i=IntArgs ; i<8 ; i++) {
-      SDValue Zero = DAG.getConstant(0, DL, MVT::i64);
-      RegsToPass.push_back(std::make_pair(IntRegList[i], Zero));
-    }
-  }
 
   // Transform all store nodes into one single node because all store
   // nodes are independent of each other.
@@ -4781,37 +4762,17 @@ MipsTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   getOpndList(Ops, RegsToPass, IsPIC, GlobalOrExternal, InternalLinkage,
               IsCallReloc, CLI, Callee, Chain);
 
-  // If we're doing a CCall then any unused arg registers should be zero.
-  if (UseClearRegs && (CallConv == CallingConv::CHERI_CCall)) {
-    assert(CapArgs >= 2);
-    uint32_t ClearRegsMask = 0;
-    // Cap registers C1-C10 are used for arguments (C1/C2 for the CHERI object)
-    for (unsigned i=CapArgs+1 ; i<11 ; i++) {
-      ClearRegsMask |= 1 << i;
-    }
-    assert(ClearRegsMask <= 0xffff);
-    ClearRegsMask <<= 16;
-    // Int registers $4-$11 are used for arguments and v0 ($1) for the method
-    // number
-    for (unsigned i=IntArgs+4 ; i<12 ; i++) {
-      ClearRegsMask |= 1 << i;
-      assert((1 << i) <= 0xffff);
-    }
-    Ops.insert(Ops.begin()+2, DAG.getConstant(ClearRegsMask, DL, MVT::i32));
-    Chain = DAG.getNode(MipsISD::CheriJmpLink, DL, NodeTys, Ops);
-  } else {
-    if (IsTailCall) {
-      MF.getFrameInfo().setHasTailCall();
-      SDValue Ret = DAG.getNode(MipsISD::TailCall, DL, MVT::Other, Ops);
-      DAG.addCallSiteInfo(Ret.getNode(), std::move(CSInfo));
-      return Ret;
-    }
-
-    if (ABI.IsCheriPureCap())
-      Chain = DAG.getNode(MipsISD::CapJmpLink, DL, NodeTys, Ops);
-    else
-      Chain = DAG.getNode(MipsISD::JmpLink, DL, NodeTys, Ops);
+  if (IsTailCall) {
+    MF.getFrameInfo().setHasTailCall();
+    SDValue Ret = DAG.getNode(MipsISD::TailCall, DL, MVT::Other, Ops);
+    DAG.addCallSiteInfo(Ret.getNode(), std::move(CSInfo));
+    return Ret;
   }
+
+  if (ABI.IsCheriPureCap())
+    Chain = DAG.getNode(MipsISD::CapJmpLink, DL, NodeTys, Ops);
+  else
+    Chain = DAG.getNode(MipsISD::JmpLink, DL, NodeTys, Ops);
   SDValue InGlue = Chain.getValue(1);
 
   DAG.addCallSiteInfo(Chain.getNode(), std::move(CSInfo));
@@ -5363,33 +5324,6 @@ MipsTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
     // Guarantee that all emitted copies are stuck together with flags.
     Glue = Chain.getValue(1);
     RetOps.push_back(DAG.getRegister(VA.getLocReg(), VA.getLocVT()));
-  }
-  if (CallConv == CallingConv::CHERI_CCall ||
-      CallConv == CallingConv::CHERI_CCallee) {
-    if (zeroV0) {
-      Chain = DAG.getCopyToReg(Chain, DL, Mips::V0_64,
-          DAG.getConstant(0, DL, MVT::i64), Glue);
-      Glue = Chain.getValue(1);
-      RetOps.push_back(DAG.getRegister(Mips::V0_64, MVT::i64));
-    }
-    if (zeroV1) {
-      Chain = DAG.getCopyToReg(Chain, DL, Mips::V1_64,
-          DAG.getConstant(0, DL, MVT::i64), Glue);
-      Glue = Chain.getValue(1);
-      RetOps.push_back(DAG.getRegister(Mips::V1_64, MVT::i64));
-    }
-    if (zeroC3) {
-      Chain = DAG.getCopyToReg(Chain, DL, Mips::C3,
-                               DAG.getNullCapability(DL), Glue);
-      Glue = Chain.getValue(1);
-      RetOps.push_back(DAG.getRegister(Mips::C3, CapType));
-    }
-    if (zeroC4) {
-      Chain = DAG.getCopyToReg(Chain, DL, Mips::C4,
-                               DAG.getNullCapability(DL), Glue);
-      Glue = Chain.getValue(1);
-      RetOps.push_back(DAG.getRegister(Mips::C4, CapType));
-    }
   }
 
   // The mips ABIs for returning structs by value requires that we copy

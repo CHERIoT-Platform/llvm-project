@@ -43,7 +43,7 @@ SDValue callFunction(SelectionDAG &DAG, SDLoc dl, SDValue Chain, const char
   CLI.setDebugLoc(dl)
       .setChain(Chain)
       .setLibCallee(STI.getTargetABI() == RISCVABI::ABI_CHERIOT
-                        ? CallingConv::CHERI_LibCall
+                        ? CallingConv::CHERIoT_LibraryCall
                         : CallingConv::C,
                     Dst.getValueType().getTypeForEVT(Ctx), memOpFn,
                     std::move(Args))

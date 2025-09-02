@@ -614,7 +614,7 @@ bool RISCVAsmPrinter::runOnMachineFunction(MachineFunction &MF) {
     return NumArgRegs;
   };
 
-  if (Fn.getCallingConv() == CallingConv::CHERI_CCallee) {
+  if (Fn.getCallingConv() == CallingConv::CHERIoT_CompartmentCallee) {
     uint32_t stackSize;
     if (Fn.hasFnAttribute("minimum-stack-size")) {
       bool converted =
@@ -629,7 +629,7 @@ bool RISCVAsmPrinter::runOnMachineFunction(MachineFunction &MF) {
         {std::string(Fn.getFnAttribute("cheri-compartment").getValueAsString()),
          Fn, OutStreamer->getContext().getOrCreateSymbol(MF.getName()),
          countUsedArgRegisters(MF) + interruptFlag, false, stackSize});
-  } else if (Fn.getCallingConv() == CallingConv::CHERI_LibCall)
+  } else if (Fn.getCallingConv() == CallingConv::CHERIoT_LibraryCall)
     FNCompartmentEntries.push_back(
         {"libcalls", Fn,
          OutStreamer->getContext().getOrCreateSymbol(MF.getName()),

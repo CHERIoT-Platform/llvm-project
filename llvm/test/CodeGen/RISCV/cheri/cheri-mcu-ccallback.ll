@@ -23,7 +23,7 @@ entry:
 ; CHECK: cjalr   ct2
   %buf = alloca [42 x i8], align 1, addrspace(200)
   %0 = getelementptr inbounds [42 x i8], [42 x i8] addrspace(200)* %buf, i32 0, i32 0
-  %call = notail call chericcallcc i32 %cb(i8 addrspace(200)* nonnull %0) #4
+  %call = notail call cheriot_compartmentcallcc i32 %cb(i8 addrspace(200)* nonnull %0) #4
   ret void
 }
 
@@ -54,10 +54,10 @@ entry:
 declare dso_local void @take_callback(i32 (i8 addrspace(200)*) addrspace(200)*) local_unnamed_addr addrspace(200) #2
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn
-declare chericcallcc i32 @ecb(i8 addrspace(200)* nocapture readnone %buf) addrspace(200) #3
+declare cheriot_compartmentcallcc i32 @ecb(i8 addrspace(200)* nocapture readnone %buf) addrspace(200) #3
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn
-define internal chericcallcc i32 @cb(i8 addrspace(200)* nocapture readnone %buf) addrspace(200) #3 {
+define internal cheriot_compartmentcallcc i32 @cb(i8 addrspace(200)* nocapture readnone %buf) addrspace(200) #3 {
 entry:
   %0 = load i32, i32 addrspace(200)* @x, align 4, !tbaa !4
   %inc = add nsw i32 %0, 1

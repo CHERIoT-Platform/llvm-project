@@ -14,7 +14,7 @@ target triple = "riscv32cheriot-unknown-cheriotrtos"
 ; CHECK: .size   __library_export_libcalls_foo, 4
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none)
-define weak dso_local cherilibcallcc noundef i32 @foo() local_unnamed_addr addrspace(200) #0 {
+define weak dso_local cheriot_librarycallcc noundef i32 @foo() local_unnamed_addr addrspace(200) #0 {
 entry:
   ret i32 42
 }

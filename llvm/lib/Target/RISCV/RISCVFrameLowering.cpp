@@ -930,8 +930,10 @@ void RISCVFrameLowering::emitPrologue(MachineFunction &MF,
   if (MF.getFunction().getCallingConv() == CallingConv::GHC)
     return;
 
-  if (MF.getFunction().getCallingConv() == CallingConv::CHERI_CCall ||
-      MF.getFunction().getCallingConv() == CallingConv::CHERI_CCallee) {
+  if (MF.getFunction().getCallingConv() ==
+          CallingConv::CHERIoT_CompartmentCall ||
+      MF.getFunction().getCallingConv() ==
+          CallingConv::CHERIoT_CompartmentCallee) {
     // For CHERIoT cross-compartment calls, sret pointers and pointers to
     // on-stack arguments are impossible for either the switcher (it doesn't
     // know the required sizes) or the programmer of the callee (they are not

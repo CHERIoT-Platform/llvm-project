@@ -7,7 +7,7 @@ target triple = "riscv32-unknown-unknown"
 ; Function Attrs: minsize mustprogress nounwind optsize
 define dso_local void @_Z15internal_callerv() local_unnamed_addr addrspace(200) #0 {
 entry:
-  tail call chericcallee void @_Z5emptyv() #2
+  tail call cheriot_compartmentcalleecc void @_Z5emptyv() #2
   ret void
 }
 
@@ -23,7 +23,7 @@ entry:
 ; CHECK:         .word   __export_example__Z5emptyv+1
 
 ; Function Attrs: minsize optsize
-declare dso_local chericcallee void @_Z5emptyv() local_unnamed_addr addrspace(200) #1
+declare dso_local cheriot_compartmentcalleecc void @_Z5emptyv() local_unnamed_addr addrspace(200) #1
 
 attributes #0 = { minsize mustprogress nounwind optsize "cheri-compartment"="example" "frame-pointer"="none" "min-legal-vector-width"="0" "no-builtins" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+xcheri,-64bit,-relax,-save-restore" }
 attributes #1 = { minsize optsize "cheri-compartment"="example" "frame-pointer"="none" "interrupt-state"="enabled" "no-builtins" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+xcheri,-64bit,-relax,-save-restore" }

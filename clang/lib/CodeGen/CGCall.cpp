@@ -55,10 +55,11 @@ unsigned CodeGenTypes::ClangCallConvToLLVMCallConv(CallingConv CC) {
     return llvm::CallingConv::C;
   case CC_CHERICCall:
   case CC_CHERICCallback:
-    return llvm::CallingConv::CHERI_CCall;
+    return llvm::CallingConv::CHERIoT_CompartmentCall;
   case CC_CHERILibCall:
-    return llvm::CallingConv::CHERI_LibCall;
-  case CC_CHERICCallee: return llvm::CallingConv::CHERI_CCallee;
+    return llvm::CallingConv::CHERIoT_LibraryCall;
+  case CC_CHERICCallee:
+    return llvm::CallingConv::CHERIoT_CompartmentCallee;
   case CC_X86StdCall:
     return llvm::CallingConv::X86_StdCall;
   case CC_X86FastCall:
@@ -6011,7 +6012,7 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
   // Set tail call kind if necessary.
   if (llvm::CallInst *Call = dyn_cast<llvm::CallInst>(CI)) {
     if ((TargetDecl && TargetDecl->hasAttr<NotTailCalledAttr>()) ||
-        ((CallingConv == llvm::CallingConv::CHERI_CCall) &&
+        ((CallingConv == llvm::CallingConv::CHERIoT_CompartmentCall) &&
          (getContext().getTargetInfo().cheriCallbackKind() ==
           TargetInfo::CCB_ImportTable)))
       Call->setTailCallKind(llvm::CallInst::TCK_NoTail);

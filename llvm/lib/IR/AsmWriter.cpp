@@ -381,12 +381,14 @@ static void PrintCallingConv(unsigned cc, raw_ostream &Out) {
   case CallingConv::Win64:         Out << "win64cc"; break;
   case CallingConv::SPIR_FUNC:     Out << "spir_func"; break;
   case CallingConv::SPIR_KERNEL:   Out << "spir_kernel"; break;
-  case CallingConv::CHERI_CCall:   Out << "chericcallcc"; break;
-  case CallingConv::CHERI_CCallee:
-    Out << "chericcallee";
+  case CallingConv::CHERIoT_CompartmentCall:
+    Out << "cheriot_compartmentcallcc";
     break;
-  case CallingConv::CHERI_LibCall:
-    Out << "cherilibcallcc";
+  case CallingConv::CHERIoT_CompartmentCallee:
+    Out << "cheriot_compartmentcalleecc";
+    break;
+  case CallingConv::CHERIoT_LibraryCall:
+    Out << "cheriot_librarycallcc";
     break;
   case CallingConv::Swift:         Out << "swiftcc"; break;
   case CallingConv::SwiftTail:     Out << "swifttailcc"; break;

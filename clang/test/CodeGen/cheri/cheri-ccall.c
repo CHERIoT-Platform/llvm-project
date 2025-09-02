@@ -6,6 +6,6 @@ b(__capability void*a1, __capability void*a2, __capability void *a3, __capabilit
 void a(__capability void *a1, __capability void *a2)
 {
 	// CHECK: a(
-	// CHECK: call chericcallcc void @b
+	// CHECK: call cheriot_compartmentcallcc void @b
 	b(a1, a2, a1, a2);
 }

@@ -5,28 +5,28 @@ target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G
 target triple = "riscv32-unknown-unknown"
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize readnone willreturn
-define dso_local cherilibcallcc i32 @add(i32 %a, i32 %b) local_unnamed_addr addrspace(200) #0 {
+define dso_local cheriot_librarycallcc i32 @add(i32 %a, i32 %b) local_unnamed_addr addrspace(200) #0 {
 entry:
   %add = add nsw i32 %b, %a
   ret i32 %add
 }
 
 ; Function Attrs: minsize nounwind optsize
-define dso_local cherilibcallcc i32 @callFromLibcall() local_unnamed_addr addrspace(200) #1 {
+define dso_local cheriot_librarycallcc i32 @callFromLibcall() local_unnamed_addr addrspace(200) #1 {
 entry:
 ; CHECK-LABEL: callFromLibcall:
 ; Calls to libcalls from the same compilation unit should be direct calls
 ; CHECK: auipcc  ct2, %cheriot_compartment_hi(__library_import_libcalls_foo)
 ; CHECK-NOT: ccall   foo
 ; CHECK: ccall   add
-  %call1 = tail call cherilibcallcc i32 @foo() #3
-  %call2 = tail call cherilibcallcc i32 @add(i32 1, i32 2) #3
+  %call1 = tail call cheriot_librarycallcc i32 @foo() #3
+  %call2 = tail call cheriot_librarycallcc i32 @add(i32 1, i32 2) #3
   %add = add nsw i32 %call1, %call2
   ret i32 %add
 }
 
 ; Function Attrs: minsize optsize
-declare cherilibcallcc i32 @foo() local_unnamed_addr addrspace(200) #2
+declare cheriot_librarycallcc i32 @foo() local_unnamed_addr addrspace(200) #2
 
 attributes #0 = { minsize mustprogress nofree norecurse nosync nounwind optsize readnone willreturn "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+xcheri,-64bit,-relax,-save-restore,+no-rvc-hints" }
 attributes #1 = { minsize nounwind optsize "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+xcheri,-64bit,-relax,-save-restore" }

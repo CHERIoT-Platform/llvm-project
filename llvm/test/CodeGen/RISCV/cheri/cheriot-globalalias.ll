@@ -20,7 +20,7 @@ target triple = "riscv32cheriot-unknown-cheriotrtos"
 ; CHECK: .size   __library_export_libcalls__Z3barv, 4
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none)
-define dso_local cherilibcallcc noundef i32 @_Z3foov() local_unnamed_addr addrspace(200) #0 {
+define dso_local cheriot_librarycallcc noundef i32 @_Z3foov() local_unnamed_addr addrspace(200) #0 {
 entry:
   ret i32 42
 }

@@ -48,7 +48,7 @@ public:
     auto *Type = Call.getFunctionType();
     if (Type->getNumParams() == 0)
       return;
-    if (Call.getCallingConv() != CallingConv::CHERI_CCall)
+    if (Call.getCallingConv() != CallingConv::CHERIoT_CompartmentCall)
       return;
     if (Call.paramHasAttr(0, Attribute::StructRet)) {
       Calls.push_back(&Call);

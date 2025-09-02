@@ -6,7 +6,7 @@ target triple = "riscv32-unknown-unknown"
 ;; as those are not representable on CHERIOT.
 
 ; CHECK-LABEL: @strlen
-define dso_local cherilibcallcc i32 @strlen(ptr addrspace(200) noundef readonly %str) local_unnamed_addr addrspace(200) #0 {
+define dso_local cheriot_librarycallcc i32 @strlen(ptr addrspace(200) noundef readonly %str) local_unnamed_addr addrspace(200) #0 {
 ; CHECK: entry:
 ; CHECK-NOT: -1
 ; CHECK: br label %for.cond

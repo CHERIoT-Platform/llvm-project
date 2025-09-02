@@ -34,9 +34,9 @@ void bar(int a, int b)
 {
   // CHECK-LABEL: define dso_local void @bar(i32
   // CHECK: load i64, ptr @__cheri_method.cls.foo, align 8, [[$INVARIANT_LOAD:!invariant.load ![0-9]+]]
-	// CHECK: call chericcallcc void @cheri_invoke(ptr addrspace(200) inreg %{{.*}}, ptr addrspace(200) inreg %{{.*}}, i64 noundef zeroext %{{.*}}, i32 noundef signext %{{.*}}, i32 noundef signext %{{.*}})
+	// CHECK: call cheriot_compartmentcallcc void @cheri_invoke(ptr addrspace(200) inreg %{{.*}}, ptr addrspace(200) inreg %{{.*}}, i64 noundef zeroext %{{.*}}, i32 noundef signext %{{.*}}, i32 noundef signext %{{.*}})
 	foo_cap(other, a, b);
-	// CHECK: call chericcallcc void @cheri_invoke(ptr addrspace(200) noundef %{{.*}}, ptr addrspace(200) noundef %{{.*}}, i64 noundef zeroext %{{.*}}, i32 noundef signext %{{.*}}, i32 noundef signext %{{.*}})
+	// CHECK: call cheriot_compartmentcallcc void @cheri_invoke(ptr addrspace(200) noundef %{{.*}}, ptr addrspace(200) noundef %{{.*}}, i64 noundef zeroext %{{.*}}, i32 noundef signext %{{.*}}, i32 noundef signext %{{.*}})
 	foo(a,b);
 }
 
@@ -45,7 +45,7 @@ __attribute__((cheri_method_class(cls)))
 __attribute__((cheri_method_suffix("_cap")))
 void fish(void)
 {
-  // CHECK-LABEL: define dso_local chericcallee void @fish()
+  // CHECK-LABEL: define dso_local cheriot_compartmentcalleecc void @fish()
 }
 
 __attribute__((cheri_method_suffix("_cap")))
@@ -55,17 +55,17 @@ void flibble(void);
 // CHECK-LABEL: define dso_local void @call()
 void call(void)
 {
-  // CHECK: call chericcallee void @fish()
+  // CHECK: call cheriot_compartmentcalleecc void @fish()
 	fish();
 	// Check that we get a ccall to cheri_invoke with the correct method number
 	// CHECK: load i64, ptr @__cheri_method.cls.fish, align 8, [[$INVARIANT_LOAD]]
-	// CHECK: call chericcallcc void
+	// CHECK: call cheriot_compartmentcallcc void
 	// CHECK: @cheri_invoke
 	fish_cap(other);
 	// CHECK: call void @flibble()
 	flibble();
 	// CHECK: load i64, ptr @__cheri_method.cls.flibble, align 8, [[$INVARIANT_LOAD]]
-	// CHECK: call chericcallcc void
+	// CHECK: call cheriot_compartmentcallcc void
 	// CHECK: @cheri_invoke
 	flibble_cap(other);
 }

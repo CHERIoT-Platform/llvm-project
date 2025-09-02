@@ -12,7 +12,7 @@ void foo(void (*bar)())
         bar();
 }
 
-// CHECK-LABEL: define dso_local cherilibcallcc void @_Z3barv
+// CHECK-LABEL: define dso_local cheriot_librarycallcc void @_Z3barv
 // CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR1:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    ret void

@@ -256,8 +256,8 @@ void initializeRISCVAsmPrinterPass(PassRegistry &);
 inline std::string getImportExportTableName(StringRef Compartment,
                                             StringRef FnName, int CC,
                                             bool IsImport) {
-  bool IsCCall =
-      (CC == CallingConv::CHERI_CCall) || (CC == CallingConv::CHERI_CCallee);
+  bool IsCCall = (CC == CallingConv::CHERIoT_CompartmentCall) ||
+                 (CC == CallingConv::CHERIoT_CompartmentCallee);
   Twine TargetPrefix = !IsCCall ? "__library" : "_";
   Twine KindPrefix = TargetPrefix + (IsImport ? "_import_" : "_export_");
   return (KindPrefix + Compartment + "_" + FnName).str();

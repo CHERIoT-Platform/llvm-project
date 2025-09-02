@@ -3,7 +3,7 @@ unsigned __builtin_strlen(const char *str) __asm__("_Z6strlenPKc");
 
 long dynamic(const char *str) {
   // CHECK: @dynamic
-  // CHECK: call cherilibcallcc i32 @_Z6strlenPKc
+  // CHECK: call cheriot_librarycallcc i32 @_Z6strlenPKc
   return __builtin_strlen(str);
 }
 

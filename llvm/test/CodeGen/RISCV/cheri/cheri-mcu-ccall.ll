@@ -9,7 +9,7 @@ target triple = "riscv32-unknown-unknown"
 @testcall8.stack_arg = internal addrspace(200) global i32 0, align 4
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize readnone willreturn
-define dso_local chericcallee i32 @test2(i32 %a0, i32 %a1) local_unnamed_addr addrspace(200) #0 {
+define dso_local cheriot_compartmentcalleecc i32 @test2(i32 %a0, i32 %a1) local_unnamed_addr addrspace(200) #0 {
 ; Check that we have the first two arguments in the right registers.
 ; CHECK-LABEL: test2:
 ; CHECK:       # %bb.0: # %entry
@@ -21,7 +21,7 @@ entry:
 }
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize readonly willreturn
-define dso_local chericcallee i32 @test6(i32 addrspace(200)* nocapture readonly %a0, i32 addrspace(200)* nocapture readonly %a1, i32 addrspace(200)* nocapture readonly %a2, i32 addrspace(200)* nocapture readonly %a3, i32 addrspace(200)* nocapture readonly %a4, i32 addrspace(200)* nocapture readonly %a5) local_unnamed_addr addrspace(200) #1 {
+define dso_local cheriot_compartmentcalleecc i32 @test6(i32 addrspace(200)* nocapture readonly %a0, i32 addrspace(200)* nocapture readonly %a1, i32 addrspace(200)* nocapture readonly %a2, i32 addrspace(200)* nocapture readonly %a3, i32 addrspace(200)* nocapture readonly %a4, i32 addrspace(200)* nocapture readonly %a5) local_unnamed_addr addrspace(200) #1 {
 ; Check that we are loading the last register argument
 ; CHECK-LABEL: test6:
 ; CHECK: clw     a5, 0(ca5)
@@ -41,7 +41,7 @@ entry:
 }
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize readonly willreturn
-define dso_local chericcallee i32 @test8(i32 addrspace(200)* nocapture readonly %a0, i32 addrspace(200)* nocapture readonly %a1, i32 addrspace(200)* nocapture readonly %a2, i32 addrspace(200)* nocapture readonly %a3, i32 addrspace(200)* nocapture readonly %a4, i32 addrspace(200)* nocapture readonly %a5, i32 addrspace(200)* nocapture readonly %a6, i32 addrspace(200)* nocapture readonly %a7) local_unnamed_addr addrspace(200) #1 {
+define dso_local cheriot_compartmentcalleecc i32 @test8(i32 addrspace(200)* nocapture readonly %a0, i32 addrspace(200)* nocapture readonly %a1, i32 addrspace(200)* nocapture readonly %a2, i32 addrspace(200)* nocapture readonly %a3, i32 addrspace(200)* nocapture readonly %a4, i32 addrspace(200)* nocapture readonly %a5, i32 addrspace(200)* nocapture readonly %a6, i32 addrspace(200)* nocapture readonly %a7) local_unnamed_addr addrspace(200) #1 {
 ; Check that the last argument (used in the multiply) is loaded from offset 8
 ; in the stack-argument capability.
 ; CHECK-LABEL: test8:
@@ -72,7 +72,7 @@ entry:
 declare void @llvm.lifetime.start.p200i8(i64 immarg, i8 addrspace(200)* nocapture) addrspace(200) #3
 
 ; Function Attrs: minsize optsize
-declare dso_local chericcallcc i32 @test6callee(i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*) local_unnamed_addr addrspace(200) #4
+declare dso_local cheriot_compartmentcallcc i32 @test6callee(i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*) local_unnamed_addr addrspace(200) #4
 
 ; Function Attrs: argmemonly mustprogress nofree nosync nounwind willreturn
 declare void @llvm.lifetime.end.p200i8(i64 immarg, i8 addrspace(200)* nocapture) addrspace(200) #3
@@ -101,13 +101,13 @@ entry:
   %arrayidx4 = getelementptr inbounds [8 x i32], [8 x i32] addrspace(200)* %args, i32 0, i32 4
   %arrayidx5 = getelementptr inbounds [8 x i32], [8 x i32] addrspace(200)* %args, i32 0, i32 5
   %arrayidx6 = getelementptr inbounds [8 x i32], [8 x i32] addrspace(200)* %args, i32 0, i32 6
-  %call = call chericcallcc i32 @test8callee(i32 addrspace(200)* nonnull %arrayidx, i32 addrspace(200)* nonnull %arrayidx1, i32 addrspace(200)* nonnull %arrayidx2, i32 addrspace(200)* nonnull %arrayidx3, i32 addrspace(200)* nonnull %arrayidx4, i32 addrspace(200)* nonnull %arrayidx5, i32 addrspace(200)* nonnull %arrayidx6, i32 addrspace(200)* nonnull @testcall8.stack_arg) #6
+  %call = call cheriot_compartmentcallcc i32 @test8callee(i32 addrspace(200)* nonnull %arrayidx, i32 addrspace(200)* nonnull %arrayidx1, i32 addrspace(200)* nonnull %arrayidx2, i32 addrspace(200)* nonnull %arrayidx3, i32 addrspace(200)* nonnull %arrayidx4, i32 addrspace(200)* nonnull %arrayidx5, i32 addrspace(200)* nonnull %arrayidx6, i32 addrspace(200)* nonnull @testcall8.stack_arg) #6
   call void @llvm.lifetime.end.p200i8(i64 32, i8 addrspace(200)* nonnull %0) #5
   ret i32 %call
 }
 
 ; Function Attrs: minsize optsize
-declare dso_local chericcallcc i32 @test8callee(i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*) local_unnamed_addr addrspace(200) #4
+declare dso_local cheriot_compartmentcallcc i32 @test8callee(i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*, i32 addrspace(200)*) local_unnamed_addr addrspace(200) #4
 
 attributes #0 = { minsize mustprogress nofree norecurse nosync nounwind optsize readnone willreturn "cheri-compartment"="example" "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+xcheri,-64bit,-relax,-save-restore" }
 attributes #1 = { minsize mustprogress nofree norecurse nosync nounwind optsize readonly willreturn "cheri-compartment"="example" "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+xcheri,-64bit,-relax,-save-restore" }

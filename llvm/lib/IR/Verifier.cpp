@@ -527,6 +527,7 @@ private:
   void visitRangeMetadata(Instruction &I, MDNode *Range, Type *Ty);
   void visitNoaliasAddrspaceMetadata(Instruction &I, MDNode *Range, Type *Ty);
   void visitDereferenceableMetadata(Instruction &I, MDNode *MD);
+  void visitNofreeMetadata(Instruction &I, MDNode *MD);
   void visitProfMetadata(Instruction &I, MDNode *MD);
   void visitCallStackMetadata(MDNode *MD);
   void visitMemProfMetadata(Instruction &I, MDNode *MD);
@@ -5048,6 +5049,13 @@ void Verifier::visitDereferenceableMetadata(Instruction& I, MDNode* MD) {
         &I);
 }
 
+void Verifier::visitNofreeMetadata(Instruction &I, MDNode *MD) {
+  Check(I.getType()->isPointerTy(), "nofree applies only to pointer types", &I);
+  Check((isa<IntToPtrInst>(I)), "nofree applies only to inttoptr instruction",
+        &I);
+  Check(MD->getNumOperands() == 0, "nofree metadata must be empty", &I);
+}
+
 void Verifier::visitProfMetadata(Instruction &I, MDNode *MD) {
   auto GetBranchingTerminatorNumOperands = [&]() {
     unsigned ExpectedNumOperands = 0;
@@ -5522,6 +5530,9 @@ void Verifier::visitInstruction(Instruction &I) {
 
   if (MDNode *MD = I.getMetadata(LLVMContext::MD_dereferenceable_or_null))
     visitDereferenceableMetadata(I, MD);
+
+  if (MDNode *MD = I.getMetadata(LLVMContext::MD_nofree))
+    visitNofreeMetadata(I, MD);
 
   if (MDNode *TBAA = I.getMetadata(LLVMContext::MD_tbaa))
     TBAAVerifyHelper.visitTBAAMetadata(I, TBAA);

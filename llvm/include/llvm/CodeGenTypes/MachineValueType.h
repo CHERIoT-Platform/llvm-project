@@ -47,10 +47,6 @@ namespace llvm {
 #undef GET_VT_ATTR
 #undef GET_VT_RANGES
 
-      // CHERI-TODO: Integrate this properly into tablegen
-      FIRST_CAPABILITY_VALUETYPE = c64,
-      LAST_CAPABILITY_VALUETYPE = c256,
-
       VALUETYPE_SIZE = LAST_VALUETYPE + 1,
     };
 

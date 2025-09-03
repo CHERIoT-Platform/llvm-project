@@ -28,7 +28,7 @@ class ValueType<int size, int value> {
   // Indicates this VT should be included in the
   // [FIRST_VALUETYPE,LAST_VALUETYPE] range.
   bit isNormalValueType = true;
-  int isCapability = false;
+  bit isCapability = false;
 }
 
 class VTAny<int value> : ValueType<0, value> {

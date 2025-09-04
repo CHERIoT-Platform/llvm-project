@@ -89,6 +89,8 @@
 
 using namespace llvm;
 
+// See https://llvm.org/docs/DebuggingLLVM.html for why these flags are useful.
+
 static cl::opt<bool>
     PrintInstAddrs("print-inst-addrs", cl::Hidden,
                    cl::desc("Print addresses of instructions when dumping"));

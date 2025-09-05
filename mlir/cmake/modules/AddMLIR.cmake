@@ -631,12 +631,12 @@ function(add_mlir_library_install name)
     OBJECTS DESTINATION lib${LLVM_LIBDIR_SUFFIX}
   )
 
-  if (NOT LLVM_ENABLE_IDE)
-    add_llvm_install_targets(install-${name}
-                            DEPENDS ${name}
-                            COMPONENT ${name})
-  endif()
-  set_property(GLOBAL APPEND PROPERTY MLIR_ALL_LIBS ${name})
+    if (NOT LLVM_ENABLE_IDE)
+      add_llvm_install_targets(install-${name}
+                              DEPENDS ${name}
+                              COMPONENT ${name})
+    endif()
+    set_property(GLOBAL APPEND PROPERTY MLIR_ALL_LIBS ${name})
   endif()
   set_property(GLOBAL APPEND PROPERTY MLIR_EXPORTS ${name})
 endfunction()

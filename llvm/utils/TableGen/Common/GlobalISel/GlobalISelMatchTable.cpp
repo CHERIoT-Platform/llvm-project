@@ -1457,9 +1457,8 @@ RecordAndValue
 InstructionOpcodeMatcher::getInstValue(const CodeGenInstruction *I) const {
   const auto VI = OpcodeValues.find(I);
   if (VI != OpcodeValues.end())
-    return {MatchTable::NamedValue(2, I->Namespace, I->TheDef->getName()),
-            VI->second};
-  return MatchTable::NamedValue(2, I->Namespace, I->TheDef->getName());
+    return {MatchTable::NamedValue(2, I->Namespace, I->getName()), VI->second};
+  return MatchTable::NamedValue(2, I->Namespace, I->getName());
 }
 
 void InstructionOpcodeMatcher::initOpcodeValuesMap(
@@ -1476,9 +1475,8 @@ RecordAndValue InstructionOpcodeMatcher::getValue() const {
   const CodeGenInstruction *I = Insts[0];
   const auto VI = OpcodeValues.find(I);
   if (VI != OpcodeValues.end())
-    return {MatchTable::NamedValue(2, I->Namespace, I->TheDef->getName()),
-            VI->second};
-  return MatchTable::NamedValue(2, I->Namespace, I->TheDef->getName());
+    return {MatchTable::NamedValue(2, I->Namespace, I->getName()), VI->second};
+  return MatchTable::NamedValue(2, I->Namespace, I->getName());
 }
 
 void InstructionOpcodeMatcher::emitPredicateOpcodes(MatchTable &Table,
@@ -1505,17 +1503,17 @@ bool InstructionOpcodeMatcher::isHigherPriorityThan(
   // using instruction frequency information to improve compile time.
   if (const InstructionOpcodeMatcher *BO =
           dyn_cast<InstructionOpcodeMatcher>(&B))
-    return Insts[0]->TheDef->getName() < BO->Insts[0]->TheDef->getName();
+    return Insts[0]->getName() < BO->Insts[0]->getName();
 
   return false;
 }
 
 bool InstructionOpcodeMatcher::isConstantInstruction() const {
-  return Insts.size() == 1 && Insts[0]->TheDef->getName() == "G_CONSTANT";
+  return Insts.size() == 1 && Insts[0]->getName() == "G_CONSTANT";
 }
 
 StringRef InstructionOpcodeMatcher::getOpcode() const {
-  return Insts[0]->TheDef->getName();
+  return Insts[0]->getName();
 }
 
 bool InstructionOpcodeMatcher::isVariadicNumOperands() const {
@@ -2247,7 +2245,7 @@ void BuildMIAction::emitActionOpcodes(MatchTable &Table,
           << MatchTable::Comment("RecycleInsnID")
           << MatchTable::ULEB128Value(RecycleInsnID)
           << MatchTable::Comment("Opcode")
-          << MatchTable::NamedValue(2, I->Namespace, I->TheDef->getName())
+          << MatchTable::NamedValue(2, I->Namespace, I->getName())
           << MatchTable::LineBreak;
 
     if (!I->ImplicitDefs.empty() || !I->ImplicitUses.empty()) {
@@ -2294,7 +2292,7 @@ void BuildMIAction::emitActionOpcodes(MatchTable &Table,
   }
 
   Table << MatchTable::Comment("Opcode")
-        << MatchTable::NamedValue(2, I->Namespace, I->TheDef->getName())
+        << MatchTable::NamedValue(2, I->Namespace, I->getName())
         << MatchTable::LineBreak;
 
   for (const auto &Renderer : OperandRenderers)

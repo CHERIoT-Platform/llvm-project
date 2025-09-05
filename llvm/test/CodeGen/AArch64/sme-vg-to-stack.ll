@@ -1455,8 +1455,7 @@ define void @streaming_compatible_to_streaming() #4 {
 ; CHECK-NEXT:    .cfi_offset b13, -80
 ; CHECK-NEXT:    .cfi_offset b14, -88
 ; CHECK-NEXT:    .cfi_offset b15, -96
-; CHECK-NEXT:    bl __arm_sme_state
-; CHECK-NEXT:    mov x19, x0
+; CHECK-NEXT:    mrs x19, SVCR
 ; CHECK-NEXT:    tbnz w19, #0, .LBB6_2
 ; CHECK-NEXT:  // %bb.1:
 ; CHECK-NEXT:    smstart sm
@@ -1511,8 +1510,7 @@ define void @streaming_compatible_to_streaming() #4 {
 ; FP-CHECK-NEXT:    .cfi_offset b13, -80
 ; FP-CHECK-NEXT:    .cfi_offset b14, -88
 ; FP-CHECK-NEXT:    .cfi_offset b15, -96
-; FP-CHECK-NEXT:    bl __arm_sme_state
-; FP-CHECK-NEXT:    mov x19, x0
+; FP-CHECK-NEXT:    mrs x19, SVCR
 ; FP-CHECK-NEXT:    tbnz w19, #0, .LBB6_2
 ; FP-CHECK-NEXT:  // %bb.1:
 ; FP-CHECK-NEXT:    smstart sm
@@ -1568,8 +1566,7 @@ define void @streaming_compatible_to_streaming() #4 {
 ; NO-SVE-CHECK-NEXT:    .cfi_offset b13, -80
 ; NO-SVE-CHECK-NEXT:    .cfi_offset b14, -88
 ; NO-SVE-CHECK-NEXT:    .cfi_offset b15, -96
-; NO-SVE-CHECK-NEXT:    bl __arm_sme_state
-; NO-SVE-CHECK-NEXT:    mov x19, x0
+; NO-SVE-CHECK-NEXT:    mrs x19, SVCR
 ; NO-SVE-CHECK-NEXT:    tbnz w19, #0, .LBB6_2
 ; NO-SVE-CHECK-NEXT:  // %bb.1:
 ; NO-SVE-CHECK-NEXT:    smstart sm
@@ -1623,8 +1620,7 @@ define void @streaming_compatible_to_streaming() #4 {
 ; OUTLINER-CHECK-NEXT:    .cfi_offset b13, -80
 ; OUTLINER-CHECK-NEXT:    .cfi_offset b14, -88
 ; OUTLINER-CHECK-NEXT:    .cfi_offset b15, -96
-; OUTLINER-CHECK-NEXT:    bl __arm_sme_state
-; OUTLINER-CHECK-NEXT:    mov x19, x0
+; OUTLINER-CHECK-NEXT:    mrs x19, SVCR
 ; OUTLINER-CHECK-NEXT:    tbnz w19, #0, .LBB6_2
 ; OUTLINER-CHECK-NEXT:  // %bb.1:
 ; OUTLINER-CHECK-NEXT:    smstart sm
@@ -1681,8 +1677,7 @@ define void @streaming_compatible_to_non_streaming() #4 {
 ; CHECK-NEXT:    .cfi_offset b13, -80
 ; CHECK-NEXT:    .cfi_offset b14, -88
 ; CHECK-NEXT:    .cfi_offset b15, -96
-; CHECK-NEXT:    bl __arm_sme_state
-; CHECK-NEXT:    mov x19, x0
+; CHECK-NEXT:    mrs x19, SVCR
 ; CHECK-NEXT:    tbz w19, #0, .LBB7_2
 ; CHECK-NEXT:  // %bb.1:
 ; CHECK-NEXT:    smstop sm
@@ -1737,8 +1732,7 @@ define void @streaming_compatible_to_non_streaming() #4 {
 ; FP-CHECK-NEXT:    .cfi_offset b13, -80
 ; FP-CHECK-NEXT:    .cfi_offset b14, -88
 ; FP-CHECK-NEXT:    .cfi_offset b15, -96
-; FP-CHECK-NEXT:    bl __arm_sme_state
-; FP-CHECK-NEXT:    mov x19, x0
+; FP-CHECK-NEXT:    mrs x19, SVCR
 ; FP-CHECK-NEXT:    tbz w19, #0, .LBB7_2
 ; FP-CHECK-NEXT:  // %bb.1:
 ; FP-CHECK-NEXT:    smstop sm
@@ -1794,8 +1788,7 @@ define void @streaming_compatible_to_non_streaming() #4 {
 ; NO-SVE-CHECK-NEXT:    .cfi_offset b13, -80
 ; NO-SVE-CHECK-NEXT:    .cfi_offset b14, -88
 ; NO-SVE-CHECK-NEXT:    .cfi_offset b15, -96
-; NO-SVE-CHECK-NEXT:    bl __arm_sme_state
-; NO-SVE-CHECK-NEXT:    mov x19, x0
+; NO-SVE-CHECK-NEXT:    mrs x19, SVCR
 ; NO-SVE-CHECK-NEXT:    tbz w19, #0, .LBB7_2
 ; NO-SVE-CHECK-NEXT:  // %bb.1:
 ; NO-SVE-CHECK-NEXT:    smstop sm
@@ -1849,8 +1842,7 @@ define void @streaming_compatible_to_non_streaming() #4 {
 ; OUTLINER-CHECK-NEXT:    .cfi_offset b13, -80
 ; OUTLINER-CHECK-NEXT:    .cfi_offset b14, -88
 ; OUTLINER-CHECK-NEXT:    .cfi_offset b15, -96
-; OUTLINER-CHECK-NEXT:    bl __arm_sme_state
-; OUTLINER-CHECK-NEXT:    mov x19, x0
+; OUTLINER-CHECK-NEXT:    mrs x19, SVCR
 ; OUTLINER-CHECK-NEXT:    tbz w19, #0, .LBB7_2
 ; OUTLINER-CHECK-NEXT:  // %bb.1:
 ; OUTLINER-CHECK-NEXT:    smstop sm
@@ -1912,14 +1904,11 @@ define void @streaming_compatible_no_sve(i32 noundef %x) #4 {
 ; CHECK-NEXT:    .cfi_offset b13, -80
 ; CHECK-NEXT:    .cfi_offset b14, -88
 ; CHECK-NEXT:    .cfi_offset b15, -96
-; CHECK-NEXT:    mov w8, w0
-; CHECK-NEXT:    bl __arm_sme_state
-; CHECK-NEXT:    mov x19, x0
+; CHECK-NEXT:    mrs x19, SVCR
 ; CHECK-NEXT:    tbnz w19, #0, .LBB8_2
 ; CHECK-NEXT:  // %bb.1:
 ; CHECK-NEXT:    smstart sm
 ; CHECK-NEXT:  .LBB8_2:
-; CHECK-NEXT:    mov w0, w8
 ; CHECK-NEXT:    bl streaming_callee_with_arg
 ; CHECK-NEXT:    tbnz w19, #0, .LBB8_4
 ; CHECK-NEXT:  // %bb.3:
@@ -1970,14 +1959,11 @@ define void @streaming_compatible_no_sve(i32 noundef %x) #4 {
 ; FP-CHECK-NEXT:    .cfi_offset b13, -80
 ; FP-CHECK-NEXT:    .cfi_offset b14, -88
 ; FP-CHECK-NEXT:    .cfi_offset b15, -96
-; FP-CHECK-NEXT:    mov w8, w0
-; FP-CHECK-NEXT:    bl __arm_sme_state
-; FP-CHECK-NEXT:    mov x19, x0
+; FP-CHECK-NEXT:    mrs x19, SVCR
 ; FP-CHECK-NEXT:    tbnz w19, #0, .LBB8_2
 ; FP-CHECK-NEXT:  // %bb.1:
 ; FP-CHECK-NEXT:    smstart sm
 ; FP-CHECK-NEXT:  .LBB8_2:
-; FP-CHECK-NEXT:    mov w0, w8
 ; FP-CHECK-NEXT:    bl streaming_callee_with_arg
 ; FP-CHECK-NEXT:    tbnz w19, #0, .LBB8_4
 ; FP-CHECK-NEXT:  // %bb.3:
@@ -2031,14 +2017,11 @@ define void @streaming_compatible_no_sve(i32 noundef %x) #4 {
 ; NO-SVE-CHECK-NEXT:    .cfi_offset b13, -80
 ; NO-SVE-CHECK-NEXT:    .cfi_offset b14, -88
 ; NO-SVE-CHECK-NEXT:    .cfi_offset b15, -96
-; NO-SVE-CHECK-NEXT:    mov w8, w0
-; NO-SVE-CHECK-NEXT:    bl __arm_sme_state
-; NO-SVE-CHECK-NEXT:    mov x19, x0
+; NO-SVE-CHECK-NEXT:    mrs x19, SVCR
 ; NO-SVE-CHECK-NEXT:    tbnz w19, #0, .LBB8_2
 ; NO-SVE-CHECK-NEXT:  // %bb.1:
 ; NO-SVE-CHECK-NEXT:    smstart sm
 ; NO-SVE-CHECK-NEXT:  .LBB8_2:
-; NO-SVE-CHECK-NEXT:    mov w0, w8
 ; NO-SVE-CHECK-NEXT:    bl streaming_callee_with_arg
 ; NO-SVE-CHECK-NEXT:    tbnz w19, #0, .LBB8_4
 ; NO-SVE-CHECK-NEXT:  // %bb.3:
@@ -2088,14 +2071,11 @@ define void @streaming_compatible_no_sve(i32 noundef %x) #4 {
 ; OUTLINER-CHECK-NEXT:    .cfi_offset b13, -80
 ; OUTLINER-CHECK-NEXT:    .cfi_offset b14, -88
 ; OUTLINER-CHECK-NEXT:    .cfi_offset b15, -96
-; OUTLINER-CHECK-NEXT:    mov w8, w0
-; OUTLINER-CHECK-NEXT:    bl __arm_sme_state
-; OUTLINER-CHECK-NEXT:    mov x19, x0
+; OUTLINER-CHECK-NEXT:    mrs x19, SVCR
 ; OUTLINER-CHECK-NEXT:    tbnz w19, #0, .LBB8_2
 ; OUTLINER-CHECK-NEXT:  // %bb.1:
 ; OUTLINER-CHECK-NEXT:    smstart sm
 ; OUTLINER-CHECK-NEXT:  .LBB8_2:
-; OUTLINER-CHECK-NEXT:    mov w0, w8
 ; OUTLINER-CHECK-NEXT:    bl streaming_callee_with_arg
 ; OUTLINER-CHECK-NEXT:    tbnz w19, #0, .LBB8_4
 ; OUTLINER-CHECK-NEXT:  // %bb.3:

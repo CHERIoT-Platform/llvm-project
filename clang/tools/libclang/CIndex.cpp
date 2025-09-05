@@ -2838,8 +2838,10 @@ void OpenACCClauseEnqueue::VisitTileClause(const OpenACCTileClause &C) {
 
 void OpenACCClauseEnqueue::VisitPrivateClause(const OpenACCPrivateClause &C) {
   VisitVarList(C);
-  for (VarDecl *V : C.getInitRecipes())
-    Visitor.AddDecl(V);
+  for (const OpenACCPrivateRecipe &R : C.getInitRecipes()) {
+    Visitor.AddDecl(R.AllocaDecl);
+    Visitor.AddStmt(R.InitExpr);
+  }
 }
 
 void OpenACCClauseEnqueue::VisitHostClause(const OpenACCHostClause &C) {
@@ -2854,7 +2856,8 @@ void OpenACCClauseEnqueue::VisitFirstPrivateClause(
     const OpenACCFirstPrivateClause &C) {
   VisitVarList(C);
   for (const OpenACCFirstPrivateRecipe &R : C.getInitRecipes()) {
-    Visitor.AddDecl(R.RecipeDecl);
+    Visitor.AddDecl(R.AllocaDecl);
+    Visitor.AddStmt(R.InitExpr);
     Visitor.AddDecl(R.InitFromTemporary);
   }
 }
@@ -2931,8 +2934,8 @@ void OpenACCClauseEnqueue::VisitReductionClause(
     const OpenACCReductionClause &C) {
   VisitVarList(C);
   for (const OpenACCReductionRecipe &R : C.getRecipes()) {
-    static_assert(sizeof(OpenACCReductionRecipe) == sizeof(int *));
-    Visitor.AddDecl(R.RecipeDecl);
+    Visitor.AddDecl(R.AllocaDecl);
+    Visitor.AddStmt(R.InitExpr);
   }
 }
 void OpenACCClauseEnqueue::VisitAutoClause(const OpenACCAutoClause &C) {}

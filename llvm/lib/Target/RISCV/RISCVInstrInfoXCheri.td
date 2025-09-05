@@ -346,13 +346,17 @@ let hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
 class CCheriStackLoad<bits<3> funct3, string OpcodeStr,
                       RegisterClass cls, DAGOperand opnd>
     : RVInst16CI<funct3, 0b10, (outs cls:$rd), (ins CSP:$rs1, opnd:$imm),
-                 OpcodeStr, "$rd, ${imm}(${rs1})">;
+                 OpcodeStr, "$rd, ${imm}(${rs1})"> {
+  bits<0> rs1;
+}
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
 class CCheriStackStore<bits<3> funct3, string OpcodeStr,
                        RegisterClass cls, DAGOperand opnd>
     : RVInst16CSS<funct3, 0b10, (outs), (ins cls:$rs2, CSP:$rs1, opnd:$imm),
-                  OpcodeStr, "$rs2, ${imm}(${rs1})">;
+                  OpcodeStr, "$rs2, ${imm}(${rs1})"> {
+  bits<0> rs1;
+}
 
 let hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
 class CCheriLoad_ri<bits<3> funct3, string OpcodeStr,

@@ -546,18 +546,19 @@ StmtResult Parser::ParseMicrosoftAsmStatement(SourceLocation AsmLoc) {
   // FIXME: init MCOptions from sanitizer flags here.
   llvm::MCTargetOptions MCOptions;
   std::unique_ptr<llvm::MCRegisterInfo> MRI(
-      TheTarget->createMCRegInfo(TT, MCOptions));
+      
+      TheTarget->createMCRegInfo(TheTriple, MCOptions));
   if (!MRI) {
     Diag(AsmLoc, diag::err_msasm_unable_to_create_target)
         << "target MC unavailable";
     return EmptyStmt();
   }
   std::unique_ptr<llvm::MCAsmInfo> MAI(
-      TheTarget->createMCAsmInfo(*MRI, TT, MCOptions));
+      TheTarget->createMCAsmInfo(*MRI, TheTriple, MCOptions));
   // Get the instruction descriptor.
   std::unique_ptr<llvm::MCInstrInfo> MII(TheTarget->createMCInstrInfo());
   std::unique_ptr<llvm::MCSubtargetInfo> STI(
-      TheTarget->createMCSubtargetInfo(TT, TO.CPU, FeaturesStr));
+      TheTarget->createMCSubtargetInfo(TheTriple, TO.CPU, FeaturesStr));
   // Target MCTargetDesc may not be linked in clang-based tools.
 
   if (!MAI || !MII || !STI) {
@@ -592,7 +593,7 @@ StmtResult Parser::ParseMicrosoftAsmStatement(SourceLocation AsmLoc) {
   }
 
   std::unique_ptr<llvm::MCInstPrinter> IP(
-      TheTarget->createMCInstPrinter(llvm::Triple(TT), 1, *MAI, *MII, *MRI));
+      TheTarget->createMCInstPrinter(TheTriple, 1, *MAI, *MII, *MRI));
 
   // Change to the Intel dialect.
   Parser->setAssemblerDialect(1);

@@ -277,8 +277,6 @@ int llvm_ml_main(int Argc, char **Argv, const llvm::ToolContext &) {
     WithColor::error(errs(), ProgName) << Error;
     return 1;
   }
-  const std::string &TripleName = TheTriple.getTriple();
-
   bool SafeSEH = InputArgs.hasArg(OPT_safeseh);
   if (SafeSEH && !(TheTriple.isArch32Bit() && TheTriple.isX86())) {
     WithColor::warning()
@@ -317,17 +315,17 @@ int llvm_ml_main(int Argc, char **Argv, const llvm::ToolContext &) {
   SrcMgr.setIncludeDirs(IncludeDirs);
 
   std::unique_ptr<MCRegisterInfo> MRI(
-      TheTarget->createMCRegInfo(TripleName, MCOptions));
+      TheTarget->createMCRegInfo(TheTriple, MCOptions));
   assert(MRI && "Unable to create target register info!");
 
   std::unique_ptr<MCAsmInfo> MAI(
-      TheTarget->createMCAsmInfo(*MRI, TripleName, MCOptions));
+      TheTarget->createMCAsmInfo(*MRI, TheTriple, MCOptions));
   assert(MAI && "Unable to create target asm info!");
 
   MAI->setPreserveAsmComments(InputArgs.hasArg(OPT_preserve_comments));
 
-  std::unique_ptr<MCSubtargetInfo> STI(TheTarget->createMCSubtargetInfo(
-      TripleName, /*CPU=*/"", /*Features=*/""));
+  std::unique_ptr<MCSubtargetInfo> STI(
+      TheTarget->createMCSubtargetInfo(TheTriple, /*CPU=*/"", /*Features=*/""));
   assert(STI && "Unable to create subtarget info!");
 
   // FIXME: This is not pretty. MCContext has a ptr to MCObjectFileInfo and

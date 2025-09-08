@@ -31,7 +31,8 @@ public:
     llvm::InitializeAllTargetInfos();
     llvm::InitializeAllTargetMCs();
 
-    std::string TripleName = "x86_64-pc-linux";
+    StringRef TripleName = "x86_64-pc-linux";
+    Triple TT(TripleName);
     std::string ErrorStr;
 
     const Target *TheTarget =
@@ -42,11 +43,11 @@ public:
       return;
 
     MCTargetOptions MCOptions;
-    MRI.reset(TheTarget->createMCRegInfo(TripleName, MCOptions));
-    MAI.reset(TheTarget->createMCAsmInfo(*MRI, TripleName, MCOptions));
+    MRI.reset(TheTarget->createMCRegInfo(TT, MCOptions));
+    MAI.reset(TheTarget->createMCAsmInfo(*MRI, TT, MCOptions));
     MII.reset(TheTarget->createMCInstrInfo());
-    Printer.reset(TheTarget->createMCInstPrinter(
-        Triple(TripleName), MAI->getAssemblerDialect(), *MAI, *MII, *MRI));
+    Printer.reset(TheTarget->createMCInstPrinter(TT, MAI->getAssemblerDialect(),
+                                                 *MAI, *MII, *MRI));
   }
 
   template <typename T> std::string formatHex(T i) {

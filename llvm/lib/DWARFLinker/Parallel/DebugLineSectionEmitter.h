@@ -74,18 +74,18 @@ private:
 
     // Create all the MC Objects.
     MCTargetOptions MCOptions = mc::InitMCTargetOptionsFromFlags();
-    MRI.reset(TheTarget->createMCRegInfo(TripleName, MCOptions));
+    MRI.reset(TheTarget->createMCRegInfo(TheTriple, MCOptions));
     if (!MRI)
       return createStringError(std::errc::invalid_argument,
                                "no register info for target %s",
                                TripleName.c_str());
 
-    MAI.reset(TheTarget->createMCAsmInfo(*MRI, TripleName, MCOptions));
+    MAI.reset(TheTarget->createMCAsmInfo(*MRI, TheTriple, MCOptions));
     if (!MAI)
       return createStringError(std::errc::invalid_argument,
                                "no asm info for target %s", TripleName.c_str());
 
-    MSTI.reset(TheTarget->createMCSubtargetInfo(TripleName, "", ""));
+    MSTI.reset(TheTarget->createMCSubtargetInfo(TheTriple, "", ""));
     if (!MSTI)
       return createStringError(std::errc::invalid_argument,
                                "no subtarget info for target %s",

@@ -80,8 +80,8 @@ namespace llvm::RISCV {
 
 } // end namespace llvm::RISCV
 
-RISCVInstrInfo::RISCVInstrInfo(RISCVSubtarget &STI)
-    : RISCVGenInstrInfo(RISCVABI::isCheriPureCapABI(STI.getTargetABI())
+RISCVInstrInfo::RISCVInstrInfo(const RISCVSubtarget &STI)
+    : RISCVGenInstrInfo(STI, RISCVABI::isCheriPureCapABI(STI.getTargetABI())
                             ? RISCV::ADJCALLSTACKDOWNCAP
                             : RISCV::ADJCALLSTACKDOWN,
                         RISCVABI::isCheriPureCapABI(STI.getTargetABI())

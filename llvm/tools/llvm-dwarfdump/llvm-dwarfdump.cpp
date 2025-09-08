@@ -680,7 +680,7 @@ createRegInfo(const object::ObjectFile &Obj) {
   if (!TargetLookupError.empty())
     return nullptr;
   MCTargetOptions MCOpts;
-  MCRegInfo.reset(TheTarget->createMCRegInfo(TT.str(), MCOpts));
+  MCRegInfo.reset(TheTarget->createMCRegInfo(TT, MCOpts));
   return MCRegInfo;
 }
 

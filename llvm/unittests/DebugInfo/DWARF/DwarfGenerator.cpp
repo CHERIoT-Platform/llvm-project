@@ -455,18 +455,18 @@ llvm::Error dwarfgen::Generator::init(Triple TheTriple, uint16_t V) {
 
   // Create all the MC Objects.
   MCTargetOptions MCOptions = mc::InitMCTargetOptionsFromFlags();
-  MRI.reset(TheTarget->createMCRegInfo(TripleName, MCOptions));
+  MRI.reset(TheTarget->createMCRegInfo(TheTriple, MCOptions));
   if (!MRI)
     return make_error<StringError>(Twine("no register info for target ") +
                                        TripleName,
                                    inconvertibleErrorCode());
 
-  MAI.reset(TheTarget->createMCAsmInfo(*MRI, TripleName, MCOptions));
+  MAI.reset(TheTarget->createMCAsmInfo(*MRI, TheTriple, MCOptions));
   if (!MAI)
     return make_error<StringError>("no asm info for target " + TripleName,
                                    inconvertibleErrorCode());
 
-  MSTI.reset(TheTarget->createMCSubtargetInfo(TripleName, "", ""));
+  MSTI.reset(TheTarget->createMCSubtargetInfo(TheTriple, "", ""));
   if (!MSTI)
     return make_error<StringError>("no subtarget info for target " + TripleName,
                                    inconvertibleErrorCode());

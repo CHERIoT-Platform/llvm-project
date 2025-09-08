@@ -446,11 +446,11 @@ int main(int argc, char **argv) {
   SrcMgr.setIncludeDirs(IncludeDirs);
 
   std::unique_ptr<MCRegisterInfo> MRI(
-      TheTarget->createMCRegInfo(TripleName, MCOptions));
+      TheTarget->createMCRegInfo(TheTriple, MCOptions));
   assert(MRI && "Unable to create target register info!");
 
   std::unique_ptr<MCAsmInfo> MAI(
-      TheTarget->createMCAsmInfo(*MRI, TripleName, MCOptions));
+      TheTarget->createMCAsmInfo(*MRI, TheTriple, MCOptions));
   assert(MAI && "Unable to create target asm info!");
 
   if (CompressDebugSections != DebugCompressionType::None) {
@@ -474,7 +474,7 @@ int main(int argc, char **argv) {
   }
 
   std::unique_ptr<MCSubtargetInfo> STI(
-      TheTarget->createMCSubtargetInfo(TripleName, MCPU, FeaturesStr));
+      TheTarget->createMCSubtargetInfo(TheTriple, MCPU, FeaturesStr));
   assert(STI && "Unable to create subtarget info!");
 
   // FIXME: This is not pretty. MCContext has a ptr to MCObjectFileInfo and
@@ -658,9 +658,8 @@ int main(int argc, char **argv) {
     break;
   }
   if (disassemble)
-    Res = Disassembler::disassemble(*TheTarget, TripleName, *STI, *Str, *Buffer,
-                                    SrcMgr, Ctx, MCOptions, HexBytes,
-                                    NumBenchmarkRuns);
+    Res = Disassembler::disassemble(*TheTarget, *STI, *Str, *Buffer, SrcMgr,
+                                    Ctx, MCOptions, HexBytes, NumBenchmarkRuns);
 
   // Keep output if no errors.
   if (Res == 0) {

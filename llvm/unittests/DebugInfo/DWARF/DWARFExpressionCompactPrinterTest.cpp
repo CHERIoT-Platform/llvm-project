@@ -43,7 +43,7 @@ public:
     if (!TheTarget)
       return;
     MCTargetOptions MCOptions;
-    MRI.reset(TheTarget->createMCRegInfo(TripleName, MCOptions));
+    MRI.reset(TheTarget->createMCRegInfo(Triple(TripleName), MCOptions));
   }
 
   void TestExprPrinter(ArrayRef<uint8_t> ExprData, StringRef Expected);

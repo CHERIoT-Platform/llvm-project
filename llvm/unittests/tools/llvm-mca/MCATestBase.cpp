@@ -31,17 +31,15 @@ void MCATestBase::SetUp() {
   TheTarget = getLLVMTarget();
   ASSERT_NE(TheTarget, nullptr);
 
-  StringRef TripleName = TheTriple.getTriple();
-
-  STI.reset(TheTarget->createMCSubtargetInfo(TripleName, CPUName, MAttr));
+  STI.reset(TheTarget->createMCSubtargetInfo(TheTriple, CPUName, MAttr));
   ASSERT_TRUE(STI);
   ASSERT_TRUE(STI->isCPUStringValid(CPUName));
 
   auto MCOptions = getMCTargetOptions();
-  MRI.reset(TheTarget->createMCRegInfo(TripleName, MCOptions));
+  MRI.reset(TheTarget->createMCRegInfo(TheTriple, MCOptions));
   ASSERT_TRUE(MRI);
 
-  MAI.reset(TheTarget->createMCAsmInfo(*MRI, TripleName, MCOptions));
+  MAI.reset(TheTarget->createMCAsmInfo(*MRI, TheTriple, MCOptions));
   ASSERT_TRUE(MAI);
 
   Ctx = std::make_unique<MCContext>(TheTriple, MAI.get(), MRI.get(), STI.get());

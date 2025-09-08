@@ -377,6 +377,8 @@ Error FileAnalysis::initialiseDisassemblyMembers() {
   MCPU = "";
   std::string ErrorString;
 
+  Triple TheTriple(TripleName);
+
   LLVMSymbolizer::Options Opt;
   Opt.UseSymbolTable = false;
   Symbolizer.reset(new LLVMSymbolizer(Opt));
@@ -390,18 +392,18 @@ Error FileAnalysis::initialiseDisassemblyMembers() {
             .str());
 
   MCTargetOptions MCOptions;
-  RegisterInfo.reset(ObjectTarget->createMCRegInfo(TripleName, MCOptions));
+  RegisterInfo.reset(ObjectTarget->createMCRegInfo(TheTriple, MCOptions));
   if (!RegisterInfo)
     return make_error<UnsupportedDisassembly>(
         "Failed to initialise RegisterInfo.");
 
   AsmInfo.reset(
-      ObjectTarget->createMCAsmInfo(*RegisterInfo, TripleName, MCOptions));
+      ObjectTarget->createMCAsmInfo(*RegisterInfo, TheTriple, MCOptions));
   if (!AsmInfo)
     return make_error<UnsupportedDisassembly>("Failed to initialise AsmInfo.");
 
   SubtargetInfo.reset(ObjectTarget->createMCSubtargetInfo(
-      TripleName, MCPU, Features.getString()));
+      TheTriple, MCPU, Features.getString()));
   if (!SubtargetInfo)
     return make_error<UnsupportedDisassembly>(
         "Failed to initialise SubtargetInfo.");

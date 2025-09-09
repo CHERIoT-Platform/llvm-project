@@ -266,7 +266,6 @@ add_llvm_component_library(LLVMSupport
   ToolOutputFile.cpp
   TrieRawHashMap.cpp
   Twine.cpp
-  TypeSize.cpp
   Unicode.cpp
   UnicodeCaseFold.cpp
   UnicodeNameToCodepoint.cpp

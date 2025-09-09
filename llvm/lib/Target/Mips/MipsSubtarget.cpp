@@ -250,22 +250,33 @@ CodeGenOptLevel MipsSubtarget::getOptLevelToEnablePostRAScheduler() const {
 MipsSubtarget &
 MipsSubtarget::initializeSubtargetDependencies(StringRef CPU, StringRef FS,
                                                const TargetMachine &TM) {
-  StringRef CPUName = MIPS_MC::selectMipsCPU(TM.getTargetTriple(), CPU);
+  const Triple &TT = TM.getTargetTriple();
+  StringRef CPUName = MIPS_MC::selectMipsCPU(TT, CPU);
+
+  std::string FullFS;
+  if (getABI().ArePtrs64bit()) {
+    FullFS = "+ptr64";
+    if (!FS.empty())
+      FullFS = (Twine(FullFS) + "," + FS).str();
+  } else {
+    FullFS = FS.str();
+  }
+
   std::string CheriFeatures;
   // enable capabilties for all cheri-*-* triples even if CPUName != cheri
   if (TM.getTargetTriple().getEnvironment() == llvm::Triple::CheriPurecap) {
-    if (FS.empty())
-      FS = "+cheri128";
+    if (FullFS.empty())
+      FullFS = "+cheri128";
     else {
-      CheriFeatures = FS.str();
+      CheriFeatures = FullFS;
       if (!FS.contains("+cheri256") && !FS.contains("+cheri64"))
         CheriFeatures += ",+cheri128";
-      FS = CheriFeatures;
+      FullFS = CheriFeatures;
     }
   }
 
   // Parse features string.
-  ParseSubtargetFeatures(CPUName, /*TuneCPU*/ CPUName, FS);
+  ParseSubtargetFeatures(CPUName, /*TuneCPU=*/CPUName, FullFS);
   // Initialize scheduling itinerary for the specified CPU.
   InstrItins = getInstrItineraryForCPU(CPUName);
 

@@ -166,9 +166,18 @@ def FeatureMipsCheri256 : SubtargetFeature<"cheri256", "IsCheri256", "true",
 def HasCheri : Predicate<"Subtarget->isCheri()">,
                          AssemblerPredicate<(all_of FeatureMipsCheri),
                          "CHERI Extension">;
-def Cap64      : HwMode<"+cheri64,-cheri128,-cheri256", [HasCheri]>;
-def Cap128     : HwMode<"+cheri128,-cheri64,-cheri256", [HasCheri]>;
-def Cap256     : HwMode<"+cheri256,-cheri128,-cheri64", [HasCheri]>;
+def HasCheri64 : Predicate<"Subtarget->isCheri64()">,
+                         AssemblerPredicate<(all_of FeatureMipsCheri64),
+                         "CHERI64 Extension">;
+def HasCheri128 : Predicate<"Subtarget->isCheri128()">,
+                         AssemblerPredicate<(all_of FeatureMipsCheri128),
+                         "CHERI128 Extension">;
+def HasCheri256 : Predicate<"Subtarget->isCheri256()">,
+                         AssemblerPredicate<(all_of FeatureMipsCheri256),
+                         "CHERI256 Extension">;
+def Cap64      : HwMode<[HasCheri64]>;
+def Cap128     : HwMode<[HasCheri128]>;
+def Cap256     : HwMode<[HasCheri256]>;
 
 def FeatureCheriExactEquals :
   SubtargetFeature<"cheri-exact-equals", "UseCheriExactEquals", "true",

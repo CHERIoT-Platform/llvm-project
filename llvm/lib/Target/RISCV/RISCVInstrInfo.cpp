@@ -3721,6 +3721,9 @@ RISCVInstrInfo::getOutliningTypeImpl(const MachineModuleInfo &MMI,
       return outliner::InstrType::Illegal;
   }
 
+  if (isLPAD(MI))
+    return outliner::InstrType::Illegal;
+
   return outliner::InstrType::Legal;
 }
 

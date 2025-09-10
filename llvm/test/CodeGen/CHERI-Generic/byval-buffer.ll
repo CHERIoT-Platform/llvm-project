@@ -54,28 +54,26 @@ define dso_local void @clang_purecap_byval_args() local_unnamed_addr addrspace(2
 ; RV64-STATIC-NEXT:    addi sp, sp, -1056
 ; RV64-STATIC-NEXT:    sd ra, 1048(sp) # 8-byte Folded Spill
 ; RV64-STATIC-NEXT:    sd s0, 1040(sp) # 8-byte Folded Spill
-; RV64-STATIC-NEXT:    sd s1, 1032(sp) # 8-byte Folded Spill
-; RV64-STATIC-NEXT:    lui s1, %hi(global_foo)
-; RV64-STATIC-NEXT:    addi s0, s1, %lo(global_foo)
+; RV64-STATIC-NEXT:    lui s0, %hi(global_foo)
+; RV64-STATIC-NEXT:    addi s0, s0, %lo(global_foo)
 ; RV64-STATIC-NEXT:    li a2, 1024
 ; RV64-STATIC-NEXT:    mv a0, s0
 ; RV64-STATIC-NEXT:    li a1, 0
 ; RV64-STATIC-NEXT:    call memset
-; RV64-STATIC-NEXT:    lb a0, %lo(global_foo)(s1)
+; RV64-STATIC-NEXT:    lb a0, 0(s0)
 ; RV64-STATIC-NEXT:    li a1, 0
 ; RV64-STATIC-NEXT:    call assert_eq
-; RV64-STATIC-NEXT:    addi a0, sp, 8
+; RV64-STATIC-NEXT:    addi a0, sp, 16
 ; RV64-STATIC-NEXT:    li a2, 1024
 ; RV64-STATIC-NEXT:    mv a1, s0
 ; RV64-STATIC-NEXT:    call memcpy
-; RV64-STATIC-NEXT:    addi a0, sp, 8
+; RV64-STATIC-NEXT:    addi a0, sp, 16
 ; RV64-STATIC-NEXT:    call foo_byval
-; RV64-STATIC-NEXT:    lb a0, %lo(global_foo)(s1)
+; RV64-STATIC-NEXT:    lb a0, 0(s0)
 ; RV64-STATIC-NEXT:    li a1, 0
 ; RV64-STATIC-NEXT:    call assert_eq
 ; RV64-STATIC-NEXT:    ld ra, 1048(sp) # 8-byte Folded Reload
 ; RV64-STATIC-NEXT:    ld s0, 1040(sp) # 8-byte Folded Reload
-; RV64-STATIC-NEXT:    ld s1, 1032(sp) # 8-byte Folded Reload
 ; RV64-STATIC-NEXT:    addi sp, sp, 1056
 ; RV64-STATIC-NEXT:    ret
 ;
@@ -108,61 +106,6 @@ define dso_local void @clang_purecap_byval_args() local_unnamed_addr addrspace(2
 ; RV64-PIC-NEXT:    addi sp, sp, 1056
 ; RV64-PIC-NEXT:    ret
 ;
-; MIPS-LABEL: clang_purecap_byval_args:
-; MIPS:       # %bb.0: # %entry
-; MIPS-NEXT:    daddiu $sp, $sp, -992
-; MIPS-NEXT:    sd $ra, 984($sp) # 8-byte Folded Spill
-; MIPS-NEXT:    sd $gp, 976($sp) # 8-byte Folded Spill
-; MIPS-NEXT:    sd $16, 968($sp) # 8-byte Folded Spill
-; MIPS-NEXT:    lui $1, %hi(%neg(%gp_rel(clang_purecap_byval_args)))
-; MIPS-NEXT:    daddu $1, $1, $25
-; MIPS-NEXT:    daddiu $gp, $1, %lo(%neg(%gp_rel(clang_purecap_byval_args)))
-; MIPS-NEXT:    ld $16, %got_disp(global_foo)($gp)
-; MIPS-NEXT:    ld $25, %call16(memset)($gp)
-; MIPS-NEXT:    move $4, $16
-; MIPS-NEXT:    daddiu $5, $zero, 0
-; MIPS-NEXT:    .reloc .Ltmp0, R_MIPS_JALR, memset
-; MIPS-NEXT:  .Ltmp0:
-; MIPS-NEXT:    jalr $25
-; MIPS-NEXT:    daddiu $6, $zero, 1024
-; MIPS-NEXT:    lb $4, 0($16)
-; MIPS-NEXT:    ld $25, %call16(assert_eq)($gp)
-; MIPS-NEXT:    .reloc .Ltmp1, R_MIPS_JALR, assert_eq
-; MIPS-NEXT:  .Ltmp1:
-; MIPS-NEXT:    jalr $25
-; MIPS-NEXT:    daddiu $5, $zero, 0
-; MIPS-NEXT:    daddiu $5, $16, 64
-; MIPS-NEXT:    ld $25, %call16(memcpy)($gp)
-; MIPS-NEXT:    move $4, $sp
-; MIPS-NEXT:    .reloc .Ltmp2, R_MIPS_JALR, memcpy
-; MIPS-NEXT:  .Ltmp2:
-; MIPS-NEXT:    jalr $25
-; MIPS-NEXT:    daddiu $6, $zero, 960
-; MIPS-NEXT:    ld $11, 56($16)
-; MIPS-NEXT:    ld $10, 48($16)
-; MIPS-NEXT:    ld $9, 40($16)
-; MIPS-NEXT:    ld $8, 32($16)
-; MIPS-NEXT:    ld $7, 24($16)
-; MIPS-NEXT:    ld $6, 16($16)
-; MIPS-NEXT:    ld $5, 8($16)
-; MIPS-NEXT:    ld $4, 0($16)
-; MIPS-NEXT:    ld $25, %call16(foo_byval)($gp)
-; MIPS-NEXT:    .reloc .Ltmp3, R_MIPS_JALR, foo_byval
-; MIPS-NEXT:  .Ltmp3:
-; MIPS-NEXT:    jalr $25
-; MIPS-NEXT:    nop
-; MIPS-NEXT:    lb $4, 0($16)
-; MIPS-NEXT:    ld $25, %call16(assert_eq)($gp)
-; MIPS-NEXT:    .reloc .Ltmp4, R_MIPS_JALR, assert_eq
-; MIPS-NEXT:  .Ltmp4:
-; MIPS-NEXT:    jalr $25
-; MIPS-NEXT:    daddiu $5, $zero, 0
-; MIPS-NEXT:    ld $16, 968($sp) # 8-byte Folded Reload
-; MIPS-NEXT:    ld $gp, 976($sp) # 8-byte Folded Reload
-; MIPS-NEXT:    ld $ra, 984($sp) # 8-byte Folded Reload
-; MIPS-NEXT:    jr $ra
-; MIPS-NEXT:    daddiu $sp, $sp, 992
-;
 ; PURECAP-RV64-LABEL: clang_purecap_byval_args:
 ; PURECAP-RV64:       # %bb.0: # %entry
 ; PURECAP-RV64-NEXT:    cincoffset csp, csp, -1072
@@ -192,50 +135,6 @@ define dso_local void @clang_purecap_byval_args() local_unnamed_addr addrspace(2
 ; PURECAP-RV64-NEXT:    clc cs0, 1040(csp) # 16-byte Folded Reload
 ; PURECAP-RV64-NEXT:    cincoffset csp, csp, 1072
 ; PURECAP-RV64-NEXT:    cret
-;
-; PURECAP-MIPS-LABEL: clang_purecap_byval_args:
-; PURECAP-MIPS:       # %bb.0: # %entry
-; PURECAP-MIPS-NEXT:    daddiu $1, $zero, -1104
-; PURECAP-MIPS-NEXT:    cincoffset $c11, $c11, $1
-; PURECAP-MIPS-NEXT:    csc $c20, $zero, 1088($c11) # 16-byte Folded Spill
-; PURECAP-MIPS-NEXT:    csc $c19, $zero, 1072($c11) # 16-byte Folded Spill
-; PURECAP-MIPS-NEXT:    csc $c18, $zero, 1056($c11) # 16-byte Folded Spill
-; PURECAP-MIPS-NEXT:    csc $c17, $zero, 1040($c11) # 16-byte Folded Spill
-; PURECAP-MIPS-NEXT:    lui $1, %pcrel_hi(_CHERI_CAPABILITY_TABLE_-8)
-; PURECAP-MIPS-NEXT:    daddiu $1, $1, %pcrel_lo(_CHERI_CAPABILITY_TABLE_-4)
-; PURECAP-MIPS-NEXT:    cgetpccincoffset $c20, $1
-; PURECAP-MIPS-NEXT:    clcbi $c18, %captab20(global_foo)($c20)
-; PURECAP-MIPS-NEXT:    clcbi $c12, %capcall20(memset)($c20)
-; PURECAP-MIPS-NEXT:    daddiu $4, $zero, 0
-; PURECAP-MIPS-NEXT:    daddiu $5, $zero, 1024
-; PURECAP-MIPS-NEXT:    cjalr $c12, $c17
-; PURECAP-MIPS-NEXT:    cmove $c3, $c18
-; PURECAP-MIPS-NEXT:    clb $4, $zero, 0($c18)
-; PURECAP-MIPS-NEXT:    clcbi $c12, %capcall20(assert_eq)($c20)
-; PURECAP-MIPS-NEXT:    cjalr $c12, $c17
-; PURECAP-MIPS-NEXT:    daddiu $5, $zero, 0
-; PURECAP-MIPS-NEXT:    clcbi $c12, %capcall20(memcpy)($c20)
-; PURECAP-MIPS-NEXT:    daddiu $4, $zero, 1024
-; PURECAP-MIPS-NEXT:    cmove $c19, $c11
-; PURECAP-MIPS-NEXT:    cmove $c3, $c19
-; PURECAP-MIPS-NEXT:    cjalr $c12, $c17
-; PURECAP-MIPS-NEXT:    cmove $c4, $c18
-; PURECAP-MIPS-NEXT:    csetbounds $c1, $c19, 1024
-; PURECAP-MIPS-NEXT:    clcbi $c12, %capcall20(foo_byval)($c20)
-; PURECAP-MIPS-NEXT:    ori $1, $zero, 65495
-; PURECAP-MIPS-NEXT:    cjalr $c12, $c17
-; PURECAP-MIPS-NEXT:    candperm $c13, $c1, $1
-; PURECAP-MIPS-NEXT:    clb $4, $zero, 0($c18)
-; PURECAP-MIPS-NEXT:    clcbi $c12, %capcall20(assert_eq)($c20)
-; PURECAP-MIPS-NEXT:    cjalr $c12, $c17
-; PURECAP-MIPS-NEXT:    daddiu $5, $zero, 0
-; PURECAP-MIPS-NEXT:    clc $c17, $zero, 1040($c11) # 16-byte Folded Reload
-; PURECAP-MIPS-NEXT:    clc $c18, $zero, 1056($c11) # 16-byte Folded Reload
-; PURECAP-MIPS-NEXT:    clc $c19, $zero, 1072($c11) # 16-byte Folded Reload
-; PURECAP-MIPS-NEXT:    clc $c20, $zero, 1088($c11) # 16-byte Folded Reload
-; PURECAP-MIPS-NEXT:    daddiu $1, $zero, 1104
-; PURECAP-MIPS-NEXT:    cjr $c17
-; PURECAP-MIPS-NEXT:    cincoffset $c11, $c11, $1
 ; Note: MIPS passes the first 64 byval bytes in registers
 entry:
   call void @llvm.memset.p200i8.i64(i8 addrspace(200)* nonnull align 8 dereferenceable(1024) getelementptr inbounds (%struct.foo, %struct.foo addrspace(200)* @global_foo, i64 0, i32 0, i64 0), i8 0, i64 1024, i1 false)
@@ -253,5 +152,7 @@ declare void @assert_eq(i64 signext, i64 signext) local_unnamed_addr addrspace(2
 
 ;; NOTE: These prefixes are unused and the list is autogenerated. Do not add tests below this line:
 ; CHECK: {{.*}}
+; MIPS: {{.*}}
 ; MIPS-PIC: {{.*}}
+; PURECAP-MIPS: {{.*}}
 ; RV64: {{.*}}

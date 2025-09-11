@@ -103,6 +103,7 @@ def update_test(ti: common.TestInfo):
 
     ginfo = common.make_ir_generalizer(ti.args.version, ti.args.check_globals == "none")
     global_vars_seen_dict = {}
+    global_tbaa_records_for_prefixes = {}
     builder = common.FunctionTestBuilder(
         run_list=prefix_list,
         flags=ti.args,
@@ -133,6 +134,10 @@ def update_test(ti: common.TestInfo):
             prefixes,
         )
         builder.processed_prefixes(prefixes)
+
+        # Extract TBAA metadata for later usage in check lines.
+        tbaa_map = common.get_tbaa_records(ti.args.version, raw_tool_output)
+        global_tbaa_records_for_prefixes[tuple(prefixes)] = tbaa_map
 
     prefix_set = set([prefix for prefixes, _, _ in prefix_list for prefix in prefixes])
 
@@ -175,6 +180,7 @@ def update_test(ti: common.TestInfo):
                     output_lines,
                     ginfo,
                     global_vars_seen_dict,
+                    global_tbaa_records_for_prefixes,
                     args.preserve_names,
                     True,
                     args.check_globals,
@@ -198,6 +204,7 @@ def update_test(ti: common.TestInfo):
                     args.function_signature,
                     ginfo,
                     global_vars_seen_dict,
+                    global_tbaa_records_for_prefixes,
                     is_filtered=builder.is_filtered(),
                     original_check_lines=original_check_lines.get(func, {}),
                 ),
@@ -230,6 +237,7 @@ def update_test(ti: common.TestInfo):
                         args.function_signature,
                         ginfo,
                         global_vars_seen_dict,
+                        global_tbaa_records_for_prefixes,
                         is_filtered=builder.is_filtered(),
                         original_check_lines=original_check_lines.get(func_name, {}),
                     )
@@ -247,6 +255,7 @@ def update_test(ti: common.TestInfo):
                             output_lines,
                             ginfo,
                             global_vars_seen_dict,
+                            global_tbaa_records_for_prefixes,
                             args.preserve_names,
                             True,
                             args.check_globals,
@@ -296,6 +305,7 @@ def update_test(ti: common.TestInfo):
                 output_lines,
                 ginfo,
                 global_vars_seen_dict,
+                global_tbaa_records_for_prefixes,
                 args.preserve_names,
                 False,
                 args.check_globals,

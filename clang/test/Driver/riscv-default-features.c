@@ -13,19 +13,19 @@
 // RUN: %clang --target=riscv32-unknown-elf -march=rv32ixcheri -S -mno-xcheri-norvc -emit-llvm %s -o - | FileCheck %s --check-prefixes=RV32-XCHERI,XCHERI,XCHERI-RVC
 // RUN: %clang --target=riscv64-unknown-elf -march=rv64ixcheri -S -mno-xcheri-norvc -emit-llvm %s -o - | FileCheck %s --check-prefixes=RV64-XCHERI,XCHERI,XCHERI-RVC
 
-// RV32: "target-features"="+32bit,+a,+c,+m,+relax,
-// RV64: "target-features"="+64bit,+a,+c,+m,+relax,
+// RV32: "target-features"="+32bit,+a,+c,+i,+m,+relax,
+// RV64: "target-features"="+64bit,+a,+c,+i,+m,+relax,
 
-// RV32-XCHERI: "target-features"="+32bit,+relax,+xcheri,
-// RV64-XCHERI: "target-features"="+64bit,+relax,+xcheri,
+// RV32-XCHERI: "target-features"="+32bit,+i,+relax,+xcheri,
+// RV64-XCHERI: "target-features"="+64bit,+i,+relax,+xcheri,
 
-// RV32-XCHERI-RVC: "target-features"="+32bit,+relax,+xcheri
-// RV64-XCHERI-RVC: "target-features"="+64bit,+relax,+xcheri
-// RV32-XCHERI-NORVC: "target-features"="+32bit,+relax,+xcheri,+xcheri-norvc
-// RV64-XCHERI-NORVC: "target-features"="+64bit,+relax,+xcheri,+xcheri-norvc
-// RV32-XCHERI-EXPLICIT-RVC: "target-features"="+32bit,+relax,+xcheri
+// RV32-XCHERI-RVC: "target-features"="+32bit,+i,+relax,+xcheri
+// RV64-XCHERI-RVC: "target-features"="+64bit,+i,+relax,+xcheri
+// RV32-XCHERI-NORVC: "target-features"="+32bit,+i,+relax,+xcheri,+xcheri-norvc
+// RV64-XCHERI-NORVC: "target-features"="+64bit,+i,+relax,+xcheri,+xcheri-norvc
+// RV32-XCHERI-EXPLICIT-RVC: "target-features"="+32bit,+i,+relax,+xcheri
 // XCHERI-RVC-SAME: ,-xcheri-norvc,
-// RV64-XCHERI-EXPLICIT-RVC: "target-features"="+64bit,+relax,+xcheri
+// RV64-XCHERI-EXPLICIT-RVC: "target-features"="+64bit,+i,+relax,+xcheri
 
 // XCHERI-NOT: xcheri,
 

@@ -99,8 +99,8 @@ namespace llvm {
 
     /// Return true if this is a capability type.
     bool isCapability() const {
-      return (SimpleTy >= MVT::FIRST_CAPABILITY_VALUETYPE) &&
-             (SimpleTy <= MVT::LAST_CAPABILITY_VALUETYPE);
+      return (SimpleTy >= MVT::FIRST_CHERI_CAPABILITY_VALUETYPE) &&
+             (SimpleTy <= MVT::LAST_CHERI_CAPABILITY_VALUETYPE);
     }
 
     /// Return true if this is a capability type. Deprecated.
@@ -185,6 +185,12 @@ namespace llvm {
     /// Return true if this is a 2048-bit vector type.
     bool is2048BitVector() const {
       return (isFixedLengthVector() && getFixedSizeInBits() == 2048);
+    }
+
+    /// Return true if this is a CHERI capability type.
+    bool isCheriCapability() const {
+      return (SimpleTy >= MVT::FIRST_CHERI_CAPABILITY_VALUETYPE) &&
+             (SimpleTy <= MVT::LAST_CHERI_CAPABILITY_VALUETYPE);
     }
 
     /// Return true if this is an overloaded type for TableGen.
@@ -553,8 +559,8 @@ namespace llvm {
     }
 
     static auto capability_valuetypes() {
-      return enum_seq_inclusive(MVT::FIRST_CAPABILITY_VALUETYPE,
-                                MVT::LAST_CAPABILITY_VALUETYPE,
+      return enum_seq_inclusive(MVT::FIRST_CHERI_CAPABILITY_VALUETYPE,
+                                MVT::LAST_CHERI_CAPABILITY_VALUETYPE,
                                 force_iteration_on_noniterable_enum);
     }
 

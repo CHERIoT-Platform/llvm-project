@@ -28,7 +28,7 @@ class ValueType<int size, int value> {
   // Indicates this VT should be included in the
   // [FIRST_VALUETYPE,LAST_VALUETYPE] range.
   bit isNormalValueType = true;
-  bit isCapability = false;
+  bit isCheriCapability = false;
 }
 
 class VTAny<int value> : ValueType<0, value> {
@@ -66,9 +66,8 @@ class VTVecTup<int size, int nf, ValueType dummy_elt, int value>
   let isRISCVVecTuple = true;
 }
 
-class VTCapability<int size, int value>
-  : ValueType<size, value> {
-    let isCapability = true;
+class VTCheriCapability<int size, int value> : ValueType<size, value> {
+  let isCheriCapability = true;
 }
 
 defset list<ValueType> ValueTypes = {
@@ -363,9 +362,11 @@ def amdgpuBufferStridedPointer : ValueType<192, 252>;
 
 def aarch64mfp8 : ValueType<8,  253>;  // 8-bit value in FPR (AArch64)
 
-def c64  : VTCapability<64,  !add(aarch64mfp8.Value, 1)>;  // 64-bit capability value
-def c128 : VTCapability<128, !add(c64.Value,   1)>;  // 128-bit capability value
-def c256 : VTCapability<256, !add(c128.Value,  1)>;  // 256-bit capability value
+// CHERI capabilities. Pointer-like values that carry additional metadata
+// for enforcing safety guarantees on CHERI-enabled targets.
+def c64  : VTCheriCapability<64,  254>;  // 64-bit capability value
+def c128 : VTCheriCapability<128, 255>;  // 128-bit capability value
+def c256 : VTCheriCapability<256, !add(c128.Value,  1)>;  // 256-bit capability value
 
 // Pseudo valuetype mapped to the current capability pointer size.
 def cPTR       : VTAny<!add(c256.Value,  1)>;

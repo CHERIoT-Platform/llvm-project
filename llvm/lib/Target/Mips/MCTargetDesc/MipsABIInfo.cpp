@@ -70,19 +70,18 @@ unsigned MipsABIInfo::GetCalleeAllocdArgSizeInBytes(CallingConv::ID CC) const {
   llvm_unreachable("Unhandled ABI");
 }
 
-MipsABIInfo MipsABIInfo::computeTargetABI(const Triple &TT, StringRef CPU,
-                                          const MCTargetOptions &Options) {
-  if (Options.getABIName().starts_with("o32"))
+MipsABIInfo MipsABIInfo::computeTargetABI(const Triple &TT, StringRef ABIName) {
+  if (ABIName.starts_with("o32"))
     return MipsABIInfo::O32();
-  if (Options.getABIName().starts_with("n32"))
+  if (ABIName.starts_with("n32"))
     return MipsABIInfo::N32();
-  if (Options.getABIName().starts_with("n64"))
+  if (ABIName.starts_with("n64"))
     return MipsABIInfo::N64();
-  if (Options.getABIName().starts_with("purecap"))
+  if (ABIName.starts_with("purecap"))
     return MipsABIInfo::CheriPureCap();
   if (TT.isABIN32())
     return MipsABIInfo::N32();
-  assert(Options.getABIName().empty() && "Unknown ABI option for MIPS");
+  assert(ABIName.empty() && "Unknown ABI option for MIPS");
   if (TT.getEnvironment() == llvm::Triple::CheriPurecap)
     return MipsABIInfo::CheriPureCap();
 

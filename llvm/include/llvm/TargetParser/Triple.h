@@ -1335,6 +1335,10 @@ public:
                                            const VersionTuple &Version);
 
   LLVM_ABI ExceptionHandling getDefaultExceptionHandling() const;
+
+  /// Compute the LLVM IR data layout string based on the triple. Some targets
+  /// customize the layout based on the ABIName string.
+  LLVM_ABI std::string computeDataLayout(StringRef ABIName = "", StringRef FS = "") const;
 };
 
 } // End llvm namespace

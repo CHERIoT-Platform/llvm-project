@@ -1090,6 +1090,11 @@ public:
     return isUImmPred([](int64_t Imm) { return 4 == Imm; });
   }
 
+  bool isImm5Zibi() const {
+    return isUImmPred(
+        [](int64_t Imm) { return (Imm != 0 && isUInt<5>(Imm)) || Imm == -1; });
+  }
+
   bool isSImm5Plus1() const {
     return isSImmPred(
         [](int64_t Imm) { return Imm != INT64_MIN && isInt<5>(Imm - 1); });
@@ -1832,6 +1837,10 @@ bool RISCVAsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
                                       "operand must be a valid system register "
                                       "name or an integer in the range");
   }
+  case Match_InvalidImm5Zibi:
+    return generateImmOutOfRangeError(
+        Operands, ErrorInfo, -1, (1 << 5) - 1,
+        "immediate must be non-zero in the range");
   case Match_InvalidSpecialCapRegister: {
     return generateImmOutOfRangeError(Operands, ErrorInfo, 0, (1 << 5) - 1,
                                       "operand must be a valid special "

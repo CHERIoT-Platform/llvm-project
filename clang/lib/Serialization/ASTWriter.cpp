@@ -664,18 +664,6 @@ void TypeLocWriter::VisitDependentNameTypeLoc(DependentNameTypeLoc TL) {
   addSourceLocation(TL.getNameLoc());
 }
 
-void TypeLocWriter::VisitDependentTemplateSpecializationTypeLoc(
-       DependentTemplateSpecializationTypeLoc TL) {
-  addSourceLocation(TL.getElaboratedKeywordLoc());
-  Record.AddNestedNameSpecifierLoc(TL.getQualifierLoc());
-  addSourceLocation(TL.getTemplateKeywordLoc());
-  addSourceLocation(TL.getTemplateNameLoc());
-  addSourceLocation(TL.getLAngleLoc());
-  addSourceLocation(TL.getRAngleLoc());
-  for (unsigned I = 0, E = TL.getNumArgs(); I != E; ++I)
-    Record.AddTemplateArgumentLocInfo(TL.getArgLoc(I));
-}
-
 void TypeLocWriter::VisitPackExpansionTypeLoc(PackExpansionTypeLoc TL) {
   addSourceLocation(TL.getEllipsisLoc());
 }
@@ -1063,7 +1051,6 @@ void ASTWriter::WriteBlockInfoBlock() {
   RECORD(TYPE_TEMPLATE_TYPE_PARM);
   RECORD(TYPE_TEMPLATE_SPECIALIZATION);
   RECORD(TYPE_DEPENDENT_NAME);
-  RECORD(TYPE_DEPENDENT_TEMPLATE_SPECIALIZATION);
   RECORD(TYPE_DEPENDENT_SIZED_ARRAY);
   RECORD(TYPE_PAREN);
   RECORD(TYPE_MACRO_QUALIFIED);

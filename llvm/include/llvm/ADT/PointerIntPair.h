@@ -173,8 +173,7 @@ struct PointerIntPairInfo {
                 "PointerIntPair with integer size too large for pointer");
   enum MaskAndShiftConstants : size_t {
     /// PointerBitMask - The bits that come from the pointer.
-    PointerBitMask =
-        ~(size_t)(((ptrdiff_t)1 << PtrTraits::NumLowBitsAvailable) - 1),
+    PointerBitMask = (~(size_t)0) << PtrTraits::NumLowBitsAvailable,
 
     /// IntShift - The number of low bits that we reserve for other uses, and
     /// keep zero.

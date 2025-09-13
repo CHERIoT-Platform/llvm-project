@@ -21,7 +21,7 @@ class MipsSubtarget;
 
 class MipsSERegisterInfo : public MipsRegisterInfo {
 public:
-  MipsSERegisterInfo(const MipsSubtarget &STI);
+  explicit MipsSERegisterInfo(const MipsSubtarget &STI);
 
   bool requiresRegisterScavenging(const MachineFunction &MF) const override;
 

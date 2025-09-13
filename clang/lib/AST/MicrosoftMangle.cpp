@@ -3666,12 +3666,6 @@ void MicrosoftCXXNameMangler::mangleType(const DependentNameType *T, Qualifiers,
   Error(Range.getBegin(), "dependent name type") << Range;
 }
 
-void MicrosoftCXXNameMangler::mangleType(
-    const DependentTemplateSpecializationType *T, Qualifiers,
-    SourceRange Range) {
-  Error(Range.getBegin(), "dependent template specialization type") << Range;
-}
-
 void MicrosoftCXXNameMangler::mangleType(const PackExpansionType *T, Qualifiers,
                                          SourceRange Range) {
   Error(Range.getBegin(), "pack expansion") << Range;

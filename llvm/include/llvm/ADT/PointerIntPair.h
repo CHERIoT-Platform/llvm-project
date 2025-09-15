@@ -180,7 +180,7 @@ struct PointerIntPairInfo {
     IntShift = (size_t)PtrTraits::NumLowBitsAvailable - IntBits,
 
     /// IntMask - This is the unshifted mask for valid bits of the int type.
-    IntMask = (size_t)(((ptrdiff_t)1 << IntBits) - 1),
+    IntMask = ((size_t)1 << IntBits) - 1,
 
     // ShiftedIntMask - This is the bits for the integer shifted in place.
     ShiftedIntMask = (size_t)(IntMask << IntShift)

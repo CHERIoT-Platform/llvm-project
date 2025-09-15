@@ -4464,8 +4464,6 @@ MipsTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
 
   CCInfo.rewindByValRegsInfo();
 
-  unsigned CapArgs = 0;
-  unsigned IntArgs = 0;
   int FirstOffset = -1;
   int LastOffset;
 
@@ -4561,11 +4559,6 @@ MipsTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     // Arguments that can be passed on register must be kept at
     // RegsToPass vector
     if (VA.isRegLoc()) {
-      if (ValVT.isFatPointer())
-        CapArgs++;
-      else if ((VA.getLocReg() >= Mips::A0_64) &&
-               (VA.getLocReg() <= Mips::T3_64))
-        IntArgs++;
       RegsToPass.push_back(std::make_pair(VA.getLocReg(), Arg));
 
       // If the parameter is passed through reg $D, which splits into
@@ -5255,10 +5248,6 @@ MipsTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
 
   SDValue Glue;
   SmallVector<SDValue, 4> RetOps(1, Chain);
-  bool zeroV0 = true;
-  bool zeroV1 = true;
-  bool zeroC3 = true;
-  bool zeroC4 = true;
 
   // Copy the result values into the output registers.
   for (unsigned i = 0; i != RVLocs.size(); ++i) {
@@ -5304,22 +5293,6 @@ MipsTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
     }
 
     Chain = DAG.getCopyToReg(Chain, DL, VA.getLocReg(), Val, Glue);
-    switch (VA.getLocReg()) {
-      case Mips::V0_64:
-      case Mips::V0:
-        zeroV0 = false;
-        break;
-      case Mips::V1_64:
-      case Mips::V1:
-        zeroV1 = false;
-        break;
-      case Mips::C3:
-        zeroC3 = false;
-        break;
-      case Mips::C4:
-        zeroC4 = false;
-        break;
-    }
 
     // Guarantee that all emitted copies are stuck together with flags.
     Glue = Chain.getValue(1);

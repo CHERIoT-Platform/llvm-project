@@ -157,18 +157,14 @@ def FeatureMipsCheri   : SubtargetFeature<"chericap", "IsCheri", "true",
 def FeatureMipsCheri64 : SubtargetFeature<"cheri64", "IsCheri64", "true",
                                 "Capabilities are 64 bits",
                                 [FeatureMipsCheri]>;
-def FeatureMipsCheri128 : SubtargetFeature<"cheri128", "IsCheri128", "true",
-                                "Capabilities are 128 bits",
-                                [FeatureMipsCheri]>;
-def FeatureMipsCheri256 : SubtargetFeature<"cheri256", "IsCheri256", "true",
-                                "Capabilities are 256 bits",
-                                [FeatureMipsCheri]>;
+def FeatureMipsCheri128
+    : SubtargetFeature<"cheri128", "IsCheri64", "false",
+                       "Capabilities are 128 bits", [FeatureMipsCheri]>;
 def HasCheri : Predicate<"Subtarget->isCheri()">,
                          AssemblerPredicate<(all_of FeatureMipsCheri),
                          "CHERI Extension">;
-def Cap64      : HwMode<"+cheri64,-cheri128,-cheri256", [HasCheri]>;
-def Cap128     : HwMode<"+cheri128,-cheri64,-cheri256", [HasCheri]>;
-def Cap256     : HwMode<"+cheri256,-cheri128,-cheri64", [HasCheri]>;
+def Cap64 : HwMode<"+cheri64,-cheri128", [HasCheri]>;
+def Cap128 : HwMode<"+cheri128,-cheri64", [HasCheri]>;
 
 def FeatureCheriExactEquals :
   SubtargetFeature<"cheri-exact-equals", "UseCheriExactEquals", "true",
@@ -282,10 +278,7 @@ class Proc<string Name, list<SubtargetFeature> Features>
  : ProcessorModel<Name, MipsGenericModel, Features>;
 
 def : Proc<"generic", [FeatureMips32]>;
-def : ProcessorModel<"beri", BeriModel,
-                     [FeatureMipsBeri]>;
-def : ProcessorModel<"cheri256", BeriModel,
-                     [FeatureMipsCheri256, FeatureMipsCheri, FeatureMipsBeri]>;
+def : ProcessorModel<"beri", BeriModel, [FeatureMipsBeri]>;
 def : ProcessorModel<"cheri128", BeriModel,
                      [FeatureMipsCheri128, FeatureMipsCheri, FeatureMipsBeri]>;
 def : Proc<"mips1", [FeatureMips1]>;

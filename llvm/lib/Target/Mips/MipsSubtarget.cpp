@@ -78,11 +78,10 @@ MipsSubtarget::MipsSubtarget(const Triple &TT, StringRef CPU, StringRef FS,
       IsFP64bit(false), UseOddSPReg(true), IsNaN2008bit(false),
       IsGP64bit(false), HasVFPU(false), HasCnMips(false), HasCnMipsP(false),
       HasMips3_32(false), HasMips3_32r2(false), HasMips4_32(false),
-      HasMips4_32r2(false), HasMips5_32r2(false),
-      IsCheri64(false), IsCheri128(false), IsCheri256(false), IsCheri(false),
-      IsBeri(false), UseCheriExactEquals(false), InMips16Mode(false),
-      InMips16HardFloat(Mips16HardFloat), InMicroMipsMode(false), HasDSP(false),
-      HasDSPR2(false), HasDSPR3(false),
+      HasMips4_32r2(false), HasMips5_32r2(false), IsCheri64(false),
+      IsCheri(false), IsBeri(false), UseCheriExactEquals(false),
+      InMips16Mode(false), InMips16HardFloat(Mips16HardFloat),
+      InMicroMipsMode(false), HasDSP(false), HasDSPR2(false), HasDSPR3(false),
       AllowMixed16_32(Mixed16_32 || Mips_Os16), Os16(Mips_Os16), HasMSA(false),
       UseTCCInDIV(false), HasSym32(false), HasEVA(false), DisableMadd4(false),
       HasMT(false), HasCRC(false), HasVirt(false), HasGINV(false),
@@ -275,10 +274,7 @@ MipsSubtarget::initializeSubtargetDependencies(StringRef CPU, StringRef FS,
   if (StackAlignOverride)
     stackAlignment = *StackAlignOverride;
   else if (isCheri()) {
-    if (isCheri256())
-      stackAlignment = Align(32);
-    else
-      stackAlignment = Align(16);
+    stackAlignment = Align(16);
   } else if (isABI_N32() || isABI_N64())
     stackAlignment = Align(16);
   else {

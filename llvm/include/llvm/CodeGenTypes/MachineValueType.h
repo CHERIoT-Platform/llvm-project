@@ -467,8 +467,6 @@ namespace llvm {
         return MVT::c64;
       case 128:
         return MVT::c128;
-      case 256:
-        return MVT::c256;
       }
     }
 

@@ -40,20 +40,10 @@ static cl::opt<bool> RoundSectionSizes(
 } // end anonymous namespace
 
 std::optional<unsigned> llvm::getCheriCapabilitySize(FeatureBitset Features) {
-  if (Features[Mips::FeatureMipsCheri256]) {
-    assert(Features[Mips::FeatureMipsCheri]);
-    return 32;
-  }
-  if (Features[Mips::FeatureMipsCheri128]) {
-    assert(Features[Mips::FeatureMipsCheri]);
-    return 16;
-  }
-  if (Features[Mips::FeatureMipsCheri64]) {
-    assert(Features[Mips::FeatureMipsCheri]);
-    return 8;
-  }
-  assert(!Features[Mips::FeatureMipsCheri]);
+  if (!Features[Mips::FeatureMipsCheri])
+    ;
   return std::nullopt;
+  return Features[Mips::FeatureMipsCheri64] ? 8 : 16;
 }
 
 static bool isMicroMips(const MCSubtargetInfo *STI) {

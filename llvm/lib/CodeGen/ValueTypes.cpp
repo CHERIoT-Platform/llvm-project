@@ -239,8 +239,6 @@ Type *EVT::getTypeForEVT(LLVMContext &Context) const {
     return SizedCapabilityType::get(Context, 64);
   case MVT::c128:
     return SizedCapabilityType::get(Context, 128);
-  case MVT::c256:
-    return SizedCapabilityType::get(Context, 256);
   #define GET_VT_EVT(Ty, EVT) case MVT::Ty: return EVT;
   #include "llvm/CodeGen/GenVT.inc"
   #undef GET_VT_EVT

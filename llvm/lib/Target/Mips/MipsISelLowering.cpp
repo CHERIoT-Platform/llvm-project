@@ -343,7 +343,6 @@ MipsTargetLowering::MipsTargetLowering(const MipsTargetMachine &TM,
                                        const MipsSubtarget &STI)
     : TargetLowering(TM), Subtarget(STI), ABI(TM.getABI()) {
   CapType = STI.typeForCapabilities();
-  CapTypeHasPreciseBounds = STI.isCheri256();
   assert(cheriCapabilityType().isFatPointer());
 
   // Mips does not have i1 type, so use i32 for
@@ -1538,18 +1537,12 @@ static SDValue performINTRINSIC_WO_CHAINCombine(
     break;
   }
   case Intrinsic::cheri_round_representable_length: {
-    if (Subtarget.isCheri256())
-      return N->getOperand(1);
-
     KnownBits Known = DAG.computeKnownBits(SDValue(N, 0));
     if (Known.isConstant())
       return DAG.getConstant(Known.One, DL, N->getValueType(0));
     break;
   }
   case Intrinsic::cheri_representable_alignment_mask: {
-    if (Subtarget.isCheri256())
-      return DAG.getAllOnesConstant(DL, N->getValueType(0));
-
     KnownBits Known = DAG.computeKnownBits(SDValue(N, 0));
     if (Known.isConstant())
       return DAG.getConstant(Known.One, DL, N->getValueType(0));
@@ -1699,9 +1692,7 @@ void MipsTargetLowering::computeKnownBitsForTargetNode(
     switch (cast<ConstantSDNode>(Op.getOperand(0))->getZExtValue()) {
     default: break;
     case Intrinsic::cheri_round_representable_length:
-      if (Subtarget.isCheri256()) {
-        Known = DAG.computeKnownBits(Op.getOperand(1));
-      } else if (Subtarget.isCheri128()) {
+      if (Subtarget.isCheri128()) {
         KnownBits KnownLengthBits = DAG.computeKnownBits(Op.getOperand(1));
         uint64_t MinLength = KnownLengthBits.One.getZExtValue();
         uint64_t MaxLength = (~KnownLengthBits.Zero).getZExtValue();
@@ -1760,9 +1751,7 @@ void MipsTargetLowering::computeKnownBitsForTargetNode(
       }
       break;
     case Intrinsic::cheri_representable_alignment_mask:
-      if (Subtarget.isCheri256()) {
-        Known.setAllOnes();
-      } else if (Subtarget.isCheri128()) {
+      if (Subtarget.isCheri128()) {
         KnownBits KnownLengthBits = DAG.computeKnownBits(Op.getOperand(1));
         uint64_t MinLength = KnownLengthBits.One.getZExtValue();
         uint64_t MaxLength = (~KnownLengthBits.Zero).getZExtValue();
@@ -1788,9 +1777,7 @@ MipsTargetLowering::getTailPaddingForPreciseBounds(uint64_t Size) const {
                                 Size, CompressedCapability::Cheri128)) -
         Size);
   }
-  assert(Subtarget.isCheri256());
-  // No padding required for CHERI256
-  return TailPaddingAmount::None;
+  llvm_unreachable("cheri256 is no longer supported!");
 }
 
 Align
@@ -1801,8 +1788,7 @@ MipsTargetLowering::getAlignmentForPreciseBounds(uint64_t Size) const {
     return Align(CompressedCapability::GetRequiredAlignment(
         Size, CompressedCapability::Cheri128));
   }
-  assert(Subtarget.isCheri256());
-  // No alignment required for CHERI256
+  llvm_unreachable("cheri256 is no longer supported!");
   return Align();
 }
 

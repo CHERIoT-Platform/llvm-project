@@ -157,12 +157,9 @@ def FeatureMipsCheri   : SubtargetFeature<"chericap", "IsCheri", "true",
 def FeatureMipsCheri64 : SubtargetFeature<"cheri64", "IsCheri64", "true",
                                 "Capabilities are 64 bits",
                                 [FeatureMipsCheri]>;
-def FeatureMipsCheri128 : SubtargetFeature<"cheri128", "IsCheri128", "true",
-                                "Capabilities are 128 bits",
-                                [FeatureMipsCheri]>;
-def FeatureMipsCheri256 : SubtargetFeature<"cheri256", "IsCheri256", "true",
-                                "Capabilities are 256 bits",
-                                [FeatureMipsCheri]>;
+def FeatureMipsCheri128
+    : SubtargetFeature<"cheri128", "IsCheri64", "false",
+                       "Capabilities are 128 bits", [FeatureMipsCheri]>;
 def HasCheri : Predicate<"Subtarget->isCheri()">,
                          AssemblerPredicate<(all_of FeatureMipsCheri),
                          "CHERI Extension">;
@@ -172,12 +169,8 @@ def HasCheri64 : Predicate<"Subtarget->isCheri64()">,
 def HasCheri128 : Predicate<"Subtarget->isCheri128()">,
                          AssemblerPredicate<(all_of FeatureMipsCheri128),
                          "CHERI128 Extension">;
-def HasCheri256 : Predicate<"Subtarget->isCheri256()">,
-                         AssemblerPredicate<(all_of FeatureMipsCheri256),
-                         "CHERI256 Extension">;
 def Cap64      : HwMode<[HasCheri64]>;
 def Cap128     : HwMode<[HasCheri128]>;
-def Cap256     : HwMode<[HasCheri256]>;
 
 def FeatureCheriExactEquals :
   SubtargetFeature<"cheri-exact-equals", "UseCheriExactEquals", "true",
@@ -291,10 +284,7 @@ class Proc<string Name, list<SubtargetFeature> Features>
  : ProcessorModel<Name, MipsGenericModel, Features>;
 
 def : Proc<"generic", [FeatureMips32]>;
-def : ProcessorModel<"beri", BeriModel,
-                     [FeatureMipsBeri]>;
-def : ProcessorModel<"cheri256", BeriModel,
-                     [FeatureMipsCheri256, FeatureMipsCheri, FeatureMipsBeri]>;
+def : ProcessorModel<"beri", BeriModel, [FeatureMipsBeri]>;
 def : ProcessorModel<"cheri128", BeriModel,
                      [FeatureMipsCheri128, FeatureMipsCheri, FeatureMipsBeri]>;
 def : Proc<"mips1", [FeatureMips1]>;

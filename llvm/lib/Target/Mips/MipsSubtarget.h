@@ -141,12 +141,6 @@ class MipsSubtarget : public MipsGenSubtargetInfo {
   /// IsCheri64 - CHERI capabilities are 64 bits.
   bool IsCheri64;
 
-  /// IsCheri128 - CHERI capabilities are 128 bits.
-  bool IsCheri128;
-
-  /// IsCheri256 - CHERI capabilities are 256 bits.
-  bool IsCheri256;
-
   /// IsCheri - Supports the CHERI capability extensions
   bool IsCheri;
 
@@ -324,11 +318,11 @@ public:
   unsigned getGPRSizeInBytes() const { return isGP64bit() ? 8 : 4; }
   unsigned getCapSizeInBytes() const {
     assert(isCheri() && "Should only be called for CHERI");
-    return IsCheri64 ? 8 : (IsCheri128 ? 16 : 32);
+    return IsCheri64 ? 8 : 16;
   }
   Align getCapAlignment() const {
     assert(isCheri() && "Should only be called for CHERI");
-    return IsCheri64 ? Align(8) : (IsCheri128 ? Align(16) : Align(32));
+    return IsCheri64 ? Align(8) : Align(16);
   }
   bool isPTR64bit() const { return IsPTR64bit; }
   bool isPTR32bit() const { return !IsPTR64bit; }
@@ -372,12 +366,9 @@ public:
   bool isBeri() const { return IsBeri; }
   bool isCheri() const { return IsCheri; }
   bool isCheri64() const { return IsCheri64; }
-  bool isCheri128() const { return IsCheri128; }
-  bool isCheri256() const { return IsCheri256; }
+  bool isCheri128() const { return !IsCheri64; }
   bool useCheriCapTable() const { return getABI().IsCheriPureCap(); };
-  MVT typeForCapabilities() const {
-    return IsCheri64 ? MVT::c64 : (IsCheri128 ? MVT::c128 : MVT::c256);
-  }
+  MVT typeForCapabilities() const { return IsCheri64 ? MVT::c64 : MVT::c128; }
 
   /// This is a very ugly hack.  CodeGenPrepare can sink pointer arithmetic to
   /// appear closer to load and store operations (because SelectionDAG only

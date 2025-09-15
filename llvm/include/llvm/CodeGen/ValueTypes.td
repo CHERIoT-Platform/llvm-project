@@ -366,10 +366,9 @@ def aarch64mfp8 : ValueType<8,  253>;  // 8-bit value in FPR (AArch64)
 // for enforcing safety guarantees on CHERI-enabled targets.
 def c64  : VTCheriCapability<64,  254>;  // 64-bit capability value
 def c128 : VTCheriCapability<128, 255>;  // 128-bit capability value
-def c256 : VTCheriCapability<256, !add(c128.Value,  1)>;  // 256-bit capability value
 
 // Pseudo valuetype mapped to the current capability pointer size.
-def cPTR       : VTAny<!add(c256.Value,  1)>;
+def cPTR       : VTAny<!add(c128.Value,  1)>;
 
 let isNormalValueType = false in {
 def token      : ValueType<0, 504>;  // TokenTy

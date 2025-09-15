@@ -8739,7 +8739,7 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
   // TODO: the frontend/optimization passes probably shouldn't emit
   //  must-preserve-tags for such small memcpys
   auto CapTy = TLI.cheriCapabilityType();
-  if (CapTy.isValid() && !Op.isMemset()) {
+  if (DL.hasCheriCapabilities() && CapTy.isValid() && !Op.isMemset()) {
     const uint64_t CapSize = CapTy.getStoreSize();
     if (PreserveTags == PreserveCheriTags::Required && !ReachedLimit &&
         Size >= CapSize && (!FoundLowering || !MemOps[0].isFatPointer())) {
@@ -8968,7 +8968,7 @@ static SDValue getMemmoveLoadsAndStores(
   // TODO: the frontend probably shouldn't emit must-preserve-tags for such
   // small memcpys
   auto CapTy = TLI.cheriCapabilityType();
-  if (CapTy.isValid()) {
+  if (DL.hasCheriCapabilities() && CapTy.isValid()) {
     const uint64_t CapSize = CapTy.getStoreSize();
     if (PreserveTags == PreserveCheriTags::Required && !ReachedLimit &&
         Size >= CapSize && (!FoundLowering || !MemOps[0].isFatPointer())) {

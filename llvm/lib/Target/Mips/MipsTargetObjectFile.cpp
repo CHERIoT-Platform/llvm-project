@@ -207,8 +207,7 @@ MipsTargetObjectFile::getTailPaddingForPreciseBounds(
                                 Size, CompressedCapability::Cheri128)) -
         Size);
   }
-  assert(Subtarget.isCheri256());
-  // No padding required for CHERI256
+  llvm_unreachable("cheri256 is no longer supported!");
   return TailPaddingAmount::None;
 }
 
@@ -223,8 +222,7 @@ MipsTargetObjectFile::getAlignmentForPreciseBounds(
     return Align(CompressedCapability::GetRequiredAlignment(
         Size, CompressedCapability::Cheri128));
   }
-  assert(Subtarget.isCheri256());
-  // No alignment required for CHERI256
+  llvm_unreachable("cheri256 is no longer supported!");
   return Align();
 }
 

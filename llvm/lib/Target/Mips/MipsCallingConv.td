@@ -125,109 +125,121 @@ def CC_MipsN_SoftFloat : CallingConv<[
   CCAssignToStack<4, 8>
 ]>;
 
-def CC_MipsN : CallingConv<[
-  CCIfType<[i8, i16, i32, i64],
-      CCIfSubtargetNot<"isLittle()",
-          CCIfInReg<CCPromoteToUpperBitsInType<i64>>>>,
+def CC_MipsN
+    : CallingConv<
+          [CCIfType<[i8, i16, i32, i64],
+                    CCIfSubtargetNot<
+                        "isLittle()",
+                        CCIfInReg<CCPromoteToUpperBitsInType<i64>>>>,
 
-  // First deal with f32s that got turned into i32s due to soft-float
-  CCIfType<[i32],
-      CCIfSubtarget<"useSoftFloat()",
-          CCIfOrigArgWasFloat<CCDelegateTo<CC_MipsN_SoftFloat>>>>,
+           // First deal with f32s that got turned into i32s due to soft-float
+           CCIfType<[i32], CCIfSubtarget<"useSoftFloat()",
+                                         CCIfOrigArgWasFloat<CCDelegateTo<
+                                             CC_MipsN_SoftFloat>>>>,
 
-  // All remaining integers are promoted to 64-bit.
-  CCIfType<[i8, i16, i32], CCPromoteToType<i64>>,
+           // All remaining integers are promoted to 64-bit.
+           CCIfType<[i8, i16, i32], CCPromoteToType<i64>>,
 
-  // Integer arguments are passed in integer registers.
-  CCIfType<[i64], CCAssignToRegWithShadow<[A0_64, A1_64, A2_64, A3_64,
-                                           T0_64, T1_64, T2_64, T3_64],
-                                          [D12_64, D13_64, D14_64, D15_64,
-                                           D16_64, D17_64, D18_64, D19_64]>>,
+           // Integer arguments are passed in integer registers.
+           CCIfType<[i64],
+                    CCAssignToRegWithShadow<[A0_64, A1_64, A2_64, A3_64, T0_64,
+                                             T1_64, T2_64, T3_64],
+                                            [D12_64, D13_64, D14_64, D15_64,
+                                             D16_64, D17_64, D18_64, D19_64]>>,
 
-  // f32 arguments are passed in single precision FP registers.
-  CCIfType<[f32], CCAssignToRegWithShadow<[F12, F13, F14, F15,
-                                           F16, F17, F18, F19],
-                                          [A0_64, A1_64, A2_64, A3_64,
-                                           T0_64, T1_64, T2_64, T3_64]>>,
+           // f32 arguments are passed in single precision FP registers.
+           CCIfType<[f32], CCAssignToRegWithShadow<
+                               [F12, F13, F14, F15, F16, F17, F18, F19],
+                               [A0_64, A1_64, A2_64, A3_64, T0_64, T1_64, T2_64,
+                                T3_64]>>,
 
-  // f64 arguments are passed in double precision FP registers.
-  CCIfType<[f64], CCAssignToRegWithShadow<[D12_64, D13_64, D14_64, D15_64,
-                                           D16_64, D17_64, D18_64, D19_64],
-                                          [A0_64, A1_64, A2_64, A3_64,
-                                           T0_64, T1_64, T2_64, T3_64]>>,
+           // f64 arguments are passed in double precision FP registers.
+           CCIfType<[f64],
+                    CCAssignToRegWithShadow<[D12_64, D13_64, D14_64, D15_64,
+                                             D16_64, D17_64, D18_64, D19_64],
+                                            [A0_64, A1_64, A2_64, A3_64, T0_64,
+                                             T1_64, T2_64, T3_64]>>,
 
-  // All stack parameter slots become 64-bit doublewords and are 8-byte aligned.
-  CCIfType<[f32], CCAssignToStack<4, 8>>,
-  CCIfType<[i64, f64], CCAssignToStack<8, 8>>,
-  CCIfType<[c64, c128, c256], CCAssignToReg<[C3, C4, C5, C6, C7, C8, C9, C10]>>,
-  CCIfType<[c64, c128, c256], CCDelegateTo<CC_MipsCheriCapOnStack>>
-]>;
+           // All stack parameter slots become 64-bit doublewords and are 8-byte
+           // aligned.
+           CCIfType<[f32], CCAssignToStack<4, 8>>,
+           CCIfType<[i64, f64], CCAssignToStack<8, 8>>,
+           CCIfType<[c64, c128],
+                    CCAssignToReg<[C3, C4, C5, C6, C7, C8, C9, C10]>>,
+           CCIfType<[c64, c128], CCDelegateTo<CC_MipsCheriCapOnStack>>]>;
 
 // N32/64 variable arguments.
 // All arguments are passed in integer registers.
-def CC_MipsN_VarArg : CallingConv<[
-  CCIfType<[i8, i16, i32, i64],
-      CCIfSubtargetNot<"isLittle()",
-          CCIfInReg<CCPromoteToUpperBitsInType<i64>>>>,
+def CC_MipsN_VarArg
+    : CallingConv<
+          [CCIfType<[i8, i16, i32, i64],
+                    CCIfSubtargetNot<
+                        "isLittle()",
+                        CCIfInReg<CCPromoteToUpperBitsInType<i64>>>>,
 
-  // All integers are promoted to 64-bit.
-  CCIfType<[i8, i16, i32], CCPromoteToType<i64>>,
+           // All integers are promoted to 64-bit.
+           CCIfType<[i8, i16, i32], CCPromoteToType<i64>>,
 
-  CCIfType<[f32], CCAssignToReg<[A0, A1, A2, A3, T0, T1, T2, T3]>>,
+           CCIfType<[f32], CCAssignToReg<[A0, A1, A2, A3, T0, T1, T2, T3]>>,
 
-  CCIfType<[i64, f64], CCAssignToReg<[A0_64, A1_64, A2_64, A3_64,
-                                      T0_64, T1_64, T2_64, T3_64]>>,
+           CCIfType<[i64, f64], CCAssignToReg<[A0_64, A1_64, A2_64, A3_64,
+                                               T0_64, T1_64, T2_64, T3_64]>>,
 
-  // All stack parameter slots become 64-bit doublewords and are 8-byte aligned.
-  CCIfType<[f32], CCAssignToStack<4, 8>>,
-  CCIfType<[i64, f64], CCAssignToStack<8, 8>>,
-  // All capability arguments are passed on the stack:
-  CCIfType<[c64, c128, c256], CCDelegateTo<CC_MipsCheriCapOnStack>>
-]>;
+           // All stack parameter slots become 64-bit doublewords and are 8-byte
+           // aligned.
+           CCIfType<[f32], CCAssignToStack<4, 8>>,
+           CCIfType<[i64, f64], CCAssignToStack<8, 8>>,
+           // All capability arguments are passed on the stack:
+           CCIfType<[c64, c128], CCDelegateTo<CC_MipsCheriCapOnStack>>]>;
 
 // In purecap mode, all variadic arguments are passed on the stack.
-def CC_MipsCheriPureCap_VarArg : CallingConv<[
-  // Promote i8/i16 arguments to i32.
-  CCIfType<[i8, i16, i32], CCPromoteToType<i64>>,
-  // All stack parameter slots become 64-bit doublewords and are 8-byte aligned.
-  CCIfType<[f32], CCAssignToStack<4, 8>>,
-  CCIfType<[i64, f64], CCAssignToStack<8, 8>>,
-  CCIfType<[c64, c128, c256], CCDelegateTo<CC_MipsCheriCapOnStack>>
-]>;
+def CC_MipsCheriPureCap_VarArg
+    : CallingConv<[
+          // Promote i8/i16 arguments to i32.
+          CCIfType<[i8, i16, i32], CCPromoteToType<i64>>,
+          // All stack parameter slots become 64-bit doublewords and are 8-byte
+          // aligned.
+          CCIfType<[f32], CCAssignToStack<4, 8>>,
+          CCIfType<[i64, f64], CCAssignToStack<8, 8>>,
+          CCIfType<[c64, c128], CCDelegateTo<CC_MipsCheriCapOnStack>>]>;
 
-def RetCC_MipsN : CallingConv<[
-  // f128 needs to be handled similarly to f32 and f64. However, f128 is not
-  // legal and is lowered to i128 which is further lowered to a pair of i64's.
-  // This presents us with a problem for the calling convention since hard-float
-  // still needs to pass them in FPU registers, and soft-float needs to use $v0,
-  // and $a0 instead of the usual $v0, and $v1. We therefore resort to a
-  // pre-analyze (see PreAnalyzeReturnForF128()) step to pass information on
-  // whether the result was originally an f128 into the tablegen-erated code.
-  //
-  // f128 should only occur for the N64 ABI where long double is 128-bit. On
-  // N32, long double is equivalent to double.
-  CCIfType<[i64], CCIfOrigArgWasF128<CCDelegateTo<RetCC_F128>>>,
+def RetCC_MipsN
+    : CallingConv<[
+          // f128 needs to be handled similarly to f32 and f64. However, f128 is
+          // not legal and is lowered to i128 which is further lowered to a pair
+          // of i64's. This presents us with a problem for the calling
+          // convention since hard-float still needs to pass them in FPU
+          // registers, and soft-float needs to use $v0, and $a0 instead of the
+          // usual $v0, and $v1. We therefore resort to a pre-analyze (see
+          // PreAnalyzeReturnForF128()) step to pass information on whether the
+          // result was originally an f128 into the tablegen-erated code.
+          //
+          // f128 should only occur for the N64 ABI where long double is
+          // 128-bit. On N32, long double is equivalent to double.
+          CCIfType<[i64], CCIfOrigArgWasF128<CCDelegateTo<RetCC_F128>>>,
 
-  // Aggregate returns are positioned at the lowest address in the slot for
-  // both little and big-endian targets. When passing in registers, this
-  // requires that big-endian targets shift the value into the upper bits.
-  CCIfSubtarget<"isLittle()",
-      CCIfType<[i8, i16, i32, i64], CCIfInReg<CCPromoteToType<i64>>>>,
-  CCIfSubtargetNot<"isLittle()",
-      CCIfType<[i8, i16, i32, i64],
-          CCIfInReg<CCPromoteToUpperBitsInType<i64>>>>,
+          // Aggregate returns are positioned at the lowest address in the slot
+          // for both little and big-endian targets. When passing in registers,
+          // this requires that big-endian targets shift the value into the
+          // upper bits.
+          CCIfSubtarget<
+              "isLittle()",
+              CCIfType<[i8, i16, i32, i64], CCIfInReg<CCPromoteToType<i64>>>>,
+          CCIfSubtargetNot<
+              "isLittle()",
+              CCIfType<[i8, i16, i32, i64],
+                       CCIfInReg<CCPromoteToUpperBitsInType<i64>>>>,
 
-  // i64 are returned in registers V0_64, V1_64
-  CCIfType<[i64], CCAssignToReg<[V0_64, V1_64]>>,
+          // i64 are returned in registers V0_64, V1_64
+          CCIfType<[i64], CCAssignToReg<[V0_64, V1_64]>>,
 
-  // f32 are returned in registers F0, F2
-  CCIfType<[f32], CCAssignToReg<[F0, F2]>>,
+          // f32 are returned in registers F0, F2
+          CCIfType<[f32], CCAssignToReg<[F0, F2]>>,
 
-  // f64 are returned in registers D0, D2
-  CCIfType<[f64], CCAssignToReg<[D0_64, D2_64]>>,
-  // Capabilities are returned in C3, C4
-  CCIfType<[c64, c128, c256], CCAssignToReg<[C3, C4]>>
-]>;
+          // f64 are returned in registers D0, D2
+          CCIfType<[f64], CCAssignToReg<[D0_64, D2_64]>>,
+          // Capabilities are returned in C3, C4
+          CCIfType<[c64, c128], CCAssignToReg<[C3, C4]>>]>;
 
 //===----------------------------------------------------------------------===//
 // Mips FastCC Calling Convention
@@ -253,26 +265,28 @@ def CC_MipsO32_FastCC : CallingConv<[
   CCIfType<[f64], CCAssignToStack<8, 8>>
 ]>;
 
-def CC_MipsN_FastCC : CallingConv<[
-  // Integer arguments are passed in integer registers.
-  CCIfType<[i64], CCAssignToReg<[A0_64, A1_64, A2_64, A3_64, T0_64, T1_64,
-                                 T2_64, T3_64, T4_64, T5_64, T6_64, T7_64,
-                                 T8_64, V1_64]>>,
+def CC_MipsN_FastCC
+    : CallingConv<[
+          // Integer arguments are passed in integer registers.
+          CCIfType<[i64], CCAssignToReg<[A0_64, A1_64, A2_64, A3_64, T0_64,
+                                         T1_64, T2_64, T3_64, T4_64, T5_64,
+                                         T6_64, T7_64, T8_64, V1_64]>>,
 
-  // f64 arguments are passed in double-precision floating pointer registers.
-  CCIfType<[f64], CCAssignToReg<[D0_64, D1_64, D2_64, D3_64, D4_64, D5_64,
-                                 D6_64, D7_64, D8_64, D9_64, D10_64, D11_64,
-                                 D12_64, D13_64, D14_64, D15_64, D16_64, D17_64,
-                                 D18_64, D19_64]>>,
+          // f64 arguments are passed in double-precision floating pointer
+          // registers.
+          CCIfType<[f64],
+                   CCAssignToReg<[D0_64, D1_64, D2_64, D3_64, D4_64, D5_64,
+                                  D6_64, D7_64, D8_64, D9_64, D10_64, D11_64,
+                                  D12_64, D13_64, D14_64, D15_64, D16_64,
+                                  D17_64, D18_64, D19_64]>>,
 
-  // Stack parameter slots for i64 and f64 are 64-bit doublewords and
-  // 8-byte aligned.
-  CCIfType<[i64, f64], CCAssignToStack<8, 8>>,
+          // Stack parameter slots for i64 and f64 are 64-bit doublewords and
+          // 8-byte aligned.
+          CCIfType<[i64, f64], CCAssignToStack<8, 8>>,
 
-  CCIfType<[c64, c128, c256], CCAssignToReg<[C1, C2, C3, C4, C5, C6, C7, C8, C9, C10,
-                                     C13, C14, C15, C16]>>,
-  CCIfType<[c64, c128, c256], CCDelegateTo<CC_MipsCheriCapOnStack>>
-]>;
+          CCIfType<[c64, c128], CCAssignToReg<[C1, C2, C3, C4, C5, C6, C7, C8,
+                                               C9, C10, C13, C14, C15, C16]>>,
+          CCIfType<[c64, c128], CCDelegateTo<CC_MipsCheriCapOnStack>>]>;
 
 def CC_Mips_FastCC : CallingConv<[
   // Handles byval parameters.

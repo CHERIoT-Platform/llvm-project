@@ -1831,18 +1831,11 @@ void SelectionDAGLegalize::ExpandDYNAMIC_STACKALLOC(SDNode* Node,
                             SizeVT);
 
     Tmp1 = DAG.getNode(ISD::INTRINSIC_WO_CHAIN, dl, SizeVT, GetAddr, SP);
-
-    if (TLI.cheriCapabilityTypeHasPreciseBounds()) {
-      Tmp2 = Size;
-      Tmp3 = DAG.getConstant(-Alignment.value(), dl, SizeVT);
-    } else {
-      Tmp2 = DAG.getNode(ISD::INTRINSIC_WO_CHAIN, dl, SizeVT, CRRL, Size);
-      Tmp3 = DAG.getNode(ISD::INTRINSIC_WO_CHAIN, dl, SizeVT, CRAM, Size);
-    }
+    Tmp2 = DAG.getNode(ISD::INTRINSIC_WO_CHAIN, dl, SizeVT, CRRL, Size);
+    Tmp3 = DAG.getNode(ISD::INTRINSIC_WO_CHAIN, dl, SizeVT, CRAM, Size);
 
     Tmp1 = DAG.getNode(Opc, dl, SizeVT, Tmp1, Tmp2);
-    if (Alignment > StackAlign || !TLI.cheriCapabilityTypeHasPreciseBounds())
-      Tmp1 = DAG.getNode(ISD::AND, dl, SizeVT, Tmp1, Tmp3);
+    Tmp1 = DAG.getNode(ISD::AND, dl, SizeVT, Tmp1, Tmp3);
 
     Tmp1 =
       DAG.getNode(ISD::INTRINSIC_WO_CHAIN, dl, VT, SetAddr, SP, Tmp1);

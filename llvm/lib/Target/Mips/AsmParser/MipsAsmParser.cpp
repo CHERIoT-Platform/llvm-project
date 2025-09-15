@@ -743,13 +743,9 @@ public:
   }
 
   unsigned getCheriCapabilitySize() const override {
-    if (getSTI().getFeatureBits()[Mips::FeatureMipsCheri256])
-      return 32;
-    if (getSTI().getFeatureBits()[Mips::FeatureMipsCheri128])
-      return 16;
-    if (getSTI().getFeatureBits()[Mips::FeatureMipsCheri64])
-      return 8;
-    llvm_unreachable("Should not have been called without checking isCheri()!");
+    assert(getSTI().getFeatureBits()[Mips::FeatureMipsCheri] &&
+           "Should not have been called without checking isCheri()!");
+    return getSTI().getFeatureBits()[Mips::FeatureMipsCheri64] ? 8 : 16;
   }
 
   bool hasCRC() const {

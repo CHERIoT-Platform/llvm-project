@@ -189,14 +189,12 @@ public:
 
       // For imprecise capabilities, we need to increase the alignment for
       // on-stack allocations to ensure that we can create precise bounds.
-      if (!TLI->cheriCapabilityTypeHasPreciseBounds()) {
-        // If not a constant then definitely a DYNAMIC_STACKALLOC; alignment
-        // requirements will be added later during legalisation.
-        if (ConstantInt *CI = dyn_cast<ConstantInt>(ArraySize)) {
-          uint64_t AllocaSize = DL.getTypeAllocSize(AllocationTy);
-          AllocaSize *= CI->getValue().getLimitedValue();
-          ForcedAlignment = TLI->getAlignmentForPreciseBounds(AllocaSize);
-        }
+      // If not a constant then definitely a DYNAMIC_STACKALLOC; alignment
+      // requirements will be added later during legalisation.
+      if (ConstantInt *CI = dyn_cast<ConstantInt>(ArraySize)) {
+        uint64_t AllocaSize = DL.getTypeAllocSize(AllocationTy);
+        AllocaSize *= CI->getValue().getLimitedValue();
+        ForcedAlignment = TLI->getAlignmentForPreciseBounds(AllocaSize);
       }
       if (ForcedAlignment > AI->getAlign())
         AI->setAlignment(ForcedAlignment);

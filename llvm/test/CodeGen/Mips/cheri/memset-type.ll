@@ -1,5 +1,5 @@
 ; RUN: %cheri_purecap_llc -O1 %s -o - | FileCheck %s -check-prefixes CHECK,CHERI128
-; RUN: llc -mtriple=mips64-unknown-freebsd -mattr=+cheri256 -mcpu=cheri256 -target-abi purecap -O1 %s -o - | FileCheck %s -check-prefixes CHECK,CHERI256
+; RUN: llc -mtriple=mips64-unknown-freebsd -mattr=+cheri128 -mcpu=cheri128 -target-abi purecap -O1 %s -o - | FileCheck %s -check-prefixes CHECK,CHERI128
 
 declare void @llvm.memset.p200.i64(ptr addrspace(200) nocapture writeonly, i8, i64, i1 immarg) addrspace(200)
 
@@ -29,14 +29,10 @@ entry:
 define void @align16(ptr addrspace(200) nocapture %out) addrspace(200) {
 entry:
   call void @llvm.memset.p200.i64(ptr addrspace(200) align 16 %out, i8 0, i64 36, i1 false)
-; Check that the zero memset is expanded to csc + a single csw for 128 and csd for 256
+; Check that the zero memset is expanded to csc + a single csw for 128
 ; CHECK-LABEL: align16:
 ; CHERI128-DAG: csc $cnull, $zero, 0($c3)
 ; CHERI128-DAG: csc $cnull, $zero, 16($c3)
-; CHERI256-DAG: csd $zero, $zero, 0($c3)
-; CHERI256-DAG: csd $zero, $zero, 8($c3)
-; CHERI256-DAG: csd $zero, $zero, 16($c3)
-; CHERI256-DAG: csd $zero, $zero, 24($c3)
 ; CHECK-DAG:    csw $zero, $zero, 32($c3)
   ret void
 }

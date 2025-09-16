@@ -20,8 +20,8 @@ int e();
 // PCREL-NEXT:    [[RETVAL_0:%.*]] = phi ptr addrspace(200) [ @a, [[IF_END2]] ], [ null, [[ENTRY:%.*]] ]
 // PCREL-NEXT:    ret ptr addrspace(200) [[RETVAL_0]]
 //
-int *b() {
-  int *c;
+void *b() {
+  void *c;
   if (a)
     d();
   c = a;

@@ -944,7 +944,7 @@ static void relaxCall(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
 
   // When the caller specifies the old value of `remove`, disallow its
   // increment.
-  if (remove >= 6 && rvc && isInt<12>(displace) && rd == 0) {
+  if (remove >= 6 && rvc && isInt<12>(displace) && rd == X_X0) {
     sec.relaxAux->relocTypes[i] = jalRVCType;
     sec.relaxAux->writes.push_back(0xa001); // c.[c]j
     remove = 6;

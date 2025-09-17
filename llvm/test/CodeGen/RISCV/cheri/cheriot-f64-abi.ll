@@ -333,13 +333,13 @@ define dso_local noundef double @select_on_int(double noundef %x, double noundef
 ; CHECK-NEXT:    ct.cincoffset csp, csp, -16
 ; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
 ; CHECK-NEXT:    ct.csc cs0, 0(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    slti s0, a3, 0
+; CHECK-NEXT:    srli s0, a3, 31
 ; CHECK-NEXT:  .LBB18_4: # %start
 ; CHECK-NEXT:    # Label of block must be emitted
 ; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___ltdf2)
 ; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB18_4)(ct2)
 ; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    slti a0, a0, 0
+; CHECK-NEXT:    srli a0, a0, 31
 ; CHECK-NEXT:    bne s0, a0, .LBB18_2
 ; CHECK-NEXT:  # %bb.1: # %start
 ; CHECK-NEXT:    ct.cmove ca0, cnull

@@ -745,6 +745,8 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     setOperationAction({ISD::SELECT_CC, ISD::SETCC}, MVT::i32, Custom);
     setOperationAction({ISD::FP_TO_UINT, ISD::FP_TO_SINT}, MVT::i32, LibCall);
     setOperationAction({ISD::UINT_TO_FP, ISD::SINT_TO_FP}, MVT::i32, LibCall);
+    setOperationAction({ISD::FP_EXTEND, ISD::STRICT_FP_EXTEND}, MVT::f32,
+                       Custom);
 
     static const unsigned CheriotF64ExpandOps[] = {
         ISD::FMINNUM,     ISD::FMAXNUM,     ISD::FADD,        ISD::FSUB,
@@ -754,7 +756,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
         ISD::SETCC,       ISD::FMAXIMUM,    ISD::FMINIMUM,    ISD::STRICT_FADD,
         ISD::STRICT_FSUB, ISD::STRICT_FMUL, ISD::STRICT_FDIV, ISD::STRICT_FSQRT,
         ISD::STRICT_FMA,  ISD::FNEG,        ISD::FABS,        ISD::FCOPYSIGN,
-        ISD::BR_CC};
+        ISD::BR_CC,       ISD::SELECT};
     setOperationAction(CheriotF64ExpandOps, MVT::f64, Expand);
     setCondCodeAction(FPCCToExpand, MVT::f64, Expand);
   }
@@ -6875,7 +6877,8 @@ RISCVTargetLowering::lowerConstantFP(SDValue Op, SelectionDAG &DAG,
 
     // Materialize 0.0 as cnull
     if (Val == 0)
-      return DAG.getRegister(getNullCapabilityRegister(), MVT::f64);
+      return DAG.getCopyFromReg(DAG.getEntryNode(), DL,
+                                getNullCapabilityRegister(), VT);
 
     // Otherwise, materialize the low part into a 32-bit register.
     auto Lo = DAG.getConstant(Val & 0xFFFFFFFF, DL, MVT::i32);
@@ -9697,8 +9700,8 @@ SDValue RISCVTargetLowering::lowerSELECT(SDValue Op, SelectionDAG &DAG) const {
     // Perform SELECT_CC on f64 by bitcasting through c64.
     SDValue LHSCap = DAG.getBitcast(MVT::c64, TrueV);
     SDValue RHSCap = DAG.getBitcast(MVT::c64, FalseV);
-    SDValue Select =
-        DAG.getNode(ISD::SELECT, DL, MVT::c64, CondV, LHSCap, RHSCap);
+    SDValue Select = lowerSELECT(
+        DAG.getNode(ISD::SELECT, DL, MVT::c64, CondV, LHSCap, RHSCap), DAG);
     return DAG.getBitcast(MVT::f64, Select);
   }
 
@@ -23170,6 +23173,7 @@ RISCVTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   case RISCV::Select_GPR_Using_CC_UImmLog2XLen_NDS:
   case RISCV::Select_GPR_Using_CC_UImm7_NDS:
   case RISCV::Select_GPCR_Using_CC_GPR:
+  case RISCV::Select_GPCR_f64_Using_CC_GPR:
   case RISCV::Select_FPR16_Using_CC_GPR:
   case RISCV::Select_FPR16INX_Using_CC_GPR:
   case RISCV::Select_FPR32_Using_CC_GPR:

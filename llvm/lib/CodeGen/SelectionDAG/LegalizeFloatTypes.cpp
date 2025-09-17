@@ -1145,6 +1145,10 @@ bool DAGTypeLegalizer::SoftenFloatOperand(SDNode *N, unsigned OpNo) {
   case ISD::STRICT_FP_TO_BF16:
   case ISD::STRICT_FP_ROUND:
   case ISD::FP_ROUND:    Res = SoftenFloatOp_FP_ROUND(N); break;
+  case ISD::STRICT_FP_EXTEND:
+  case ISD::FP_EXTEND:
+    Res = SoftenFloatOp_FP_EXTEND(N);
+    break;
   case ISD::STRICT_FP_TO_SINT:
   case ISD::STRICT_FP_TO_UINT:
   case ISD::FP_TO_SINT:
@@ -1226,6 +1230,33 @@ SDValue DAGTypeLegalizer::SoftenFloatOp_FP_ROUND(SDNode *N) {
   std::pair<SDValue, SDValue> Tmp = TLI.makeLibCall(DAG, LC, RVT, Op,
                                                     CallOptions, SDLoc(N),
                                                     Chain);
+  if (IsStrict) {
+    ReplaceValueWith(SDValue(N, 1), Tmp.second);
+    ReplaceValueWith(SDValue(N, 0), Tmp.first);
+    return SDValue();
+  }
+  return Tmp.first;
+}
+
+SDValue DAGTypeLegalizer::SoftenFloatOp_FP_EXTEND(SDNode *N) {
+  assert(N->getOpcode() == ISD::FP_EXTEND ||
+         N->getOpcode() == ISD::STRICT_FP_EXTEND);
+
+  bool IsStrict = N->isStrictFPOpcode();
+  SDValue Op = N->getOperand(IsStrict ? 1 : 0);
+  EVT SVT = Op.getValueType();
+  EVT RVT = N->getValueType(0);
+  EVT FloatRVT = RVT;
+
+  RTLIB::Libcall LC = RTLIB::getFPEXT(SVT, FloatRVT);
+  assert(LC != RTLIB::UNKNOWN_LIBCALL && "Unsupported FP_ROUND libcall");
+
+  SDValue Chain = IsStrict ? N->getOperand(0) : SDValue();
+  Op = GetSoftenedFloat(Op);
+  TargetLowering::MakeLibCallOptions CallOptions;
+  CallOptions.setTypeListBeforeSoften(SVT, RVT, true);
+  std::pair<SDValue, SDValue> Tmp =
+      TLI.makeLibCall(DAG, LC, RVT, Op, CallOptions, SDLoc(N), Chain);
   if (IsStrict) {
     ReplaceValueWith(SDValue(N, 1), Tmp.second);
     ReplaceValueWith(SDValue(N, 0), Tmp.first);

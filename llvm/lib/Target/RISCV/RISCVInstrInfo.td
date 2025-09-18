@@ -44,9 +44,6 @@ def SDT_RISCVIntUnaryOpW : SDTypeProfile<1, 1, [
 def SDT_RISCVIntBinOpW : SDTypeProfile<1, 2, [
   SDTCisSameAs<0, 1>, SDTCisSameAs<0, 2>, SDTCisVT<0, i64>
 ]>;
-def SDT_RISCVIntShiftDOpW : SDTypeProfile<1, 3, [
-  SDTCisSameAs<0, 1>, SDTCisSameAs<0, 2>, SDTCisVT<0, i64>, SDTCisVT<3, i64>
-]>;
 def SDT_RISCVSymLoad : SDTypeProfile<1, 1, [
   SDTCisSameAs<0, 1>, SDTCisPtrTy<0>
 ]>;

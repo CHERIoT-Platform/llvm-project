@@ -11,7 +11,7 @@
 #include "MipsSubtarget.h"
 #include "MipsTargetMachine.h"
 #include "llvm/BinaryFormat/ELF.h"
-#include "llvm/CHERI/CompressedCapability.h"
+#include "llvm/CHERI/CapabilityFormat.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/MC/MCContext.h"
@@ -203,8 +203,8 @@ MipsTargetObjectFile::getTailPaddingForPreciseBounds(
     return TailPaddingAmount::None;
   if (Subtarget.isCheri128()) {
     return static_cast<TailPaddingAmount>(
-        llvm::alignTo(Size, CompressedCapability::GetRequiredAlignment(
-                                Size, CompressedCapability::Cheri128)) -
+        llvm::alignTo(
+            Size, CHERICapabilityFormat::Cheri128.getRequiredAlignment(Size)) -
         Size);
   }
   llvm_unreachable("cheri256 is no longer supported!");
@@ -219,8 +219,7 @@ MipsTargetObjectFile::getAlignmentForPreciseBounds(
   if (!Subtarget.isCheri())
     return Align();
   if (Subtarget.isCheri128()) {
-    return Align(CompressedCapability::GetRequiredAlignment(
-        Size, CompressedCapability::Cheri128));
+    return CHERICapabilityFormat::Cheri128.getRequiredAlignment(Size);
   }
   llvm_unreachable("cheri256 is no longer supported!");
   return Align();

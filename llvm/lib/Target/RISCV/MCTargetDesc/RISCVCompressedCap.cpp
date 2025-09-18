@@ -8,7 +8,7 @@
 
 #include "RISCVCompressedCap.h"
 #include "MCTargetDesc/RISCVMCTargetDesc.h"
-#include "llvm/CHERI/CompressedCapability.h"
+#include "llvm/CHERI/CapabilityFormat.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/Support/ErrorHandling.h"
 
@@ -16,35 +16,32 @@ namespace llvm {
 
 namespace RISCVCompressedCap {
 
-static inline CompressedCapability::CapabilityFormat
-GetCapabilitySize(const MCSubtargetInfo &STI) {
+static inline CHERICapabilityFormat
+GetCapabilityFormat(const MCSubtargetInfo &STI) {
   if (STI.hasFeature(RISCV::FeatureVendorXCheriot))
-    return CompressedCapability::Cheriot64;
+    return CHERICapabilityFormat::Cheriot64;
 
   bool IsRV64 = STI.hasFeature(RISCV::Feature64Bit);
-  return IsRV64 ? CompressedCapability::Cheri128
-                : CompressedCapability::Cheri64;
+  return IsRV64 ? CHERICapabilityFormat::Cheri128
+                : CHERICapabilityFormat::Cheri64;
 }
 
 uint64_t getRepresentableLength(uint64_t Length, const MCSubtargetInfo &STI) {
 
-  return CompressedCapability::GetRepresentableLength(Length,
-                                                      GetCapabilitySize(STI));
+  return GetCapabilityFormat(STI).getRepresentableLength(Length);
 }
 
 uint64_t getAlignmentMask(uint64_t Length, const MCSubtargetInfo &STI) {
-  return CompressedCapability::GetAlignmentMask(Length, GetCapabilitySize(STI));
+  return GetCapabilityFormat(STI).getAlignmentMask(Length);
 }
 
 TailPaddingAmount getRequiredTailPadding(uint64_t Size,
                                          const MCSubtargetInfo &STI) {
-  return CompressedCapability::GetRequiredTailPadding(Size,
-                                                      GetCapabilitySize(STI));
+  return GetCapabilityFormat(STI).getRequiredTailPadding(Size);
 }
 
 Align getRequiredAlignment(uint64_t Size, const MCSubtargetInfo &STI) {
-  return CompressedCapability::GetRequiredAlignment(Size,
-                                                    GetCapabilitySize(STI));
+  return GetCapabilityFormat(STI).getRequiredAlignment(Size);
 }
 } // namespace RISCVCompressedCap
 } // namespace llvm

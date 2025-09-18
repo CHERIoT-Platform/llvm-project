@@ -13,6 +13,7 @@
 #include "Symbols.h"
 #include "SyntheticSections.h"
 #include "Target.h"
+#include "llvm/CHERI/CompressedCapability.h"
 #include "llvm/Support/ELFAttributes.h"
 #include "llvm/Support/LEB128.h"
 #include "llvm/Support/RISCVAttributeParser.h"
@@ -774,16 +775,14 @@ static void tlsdescToLe(uint8_t *loc, const Relocation &rel, uint64_t val) {
 }
 
 uint64_t RISCV::cheriRequiredAlignment(uint64_t size) const {
-  // FIXME: Non-CherIoT targets will have different calculations here
-  uint64_t mantissaWidth = 9;
-  auto mantissaWidthMinusOneMask = (uint64_t(1) << (mantissaWidth - 1)) - 1;
-  uint64_t msbIdxPlusOne = 64 - llvm::countl_zero(size);
-  uint64_t e = std::max<int64_t>(int64_t(msbIdxPlusOne) - mantissaWidth, 0);
-  // If we are very close to the top, then we need to round up one more
-  if (((size >> (e + 1)) & mantissaWidthMinusOneMask) ==
-      mantissaWidthMinusOneMask)
-    ++e;
-  return uint64_t(1) << e;
+  auto CapFormat = llvm::CompressedCapability::Cheri128;
+  if (ctx.arg.isCheriot)
+    CapFormat = llvm::CompressedCapability::Cheriot64;
+  else if (!ctx.arg.is64)
+    CapFormat = llvm::CompressedCapability::Cheri64;
+
+  return llvm::CompressedCapability::GetRequiredAlignment(size, CapFormat)
+      .value();
 }
 
 void RISCV::relocateAlloc(InputSectionBase &sec, uint8_t *buf) const {

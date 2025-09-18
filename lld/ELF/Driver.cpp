@@ -3499,6 +3499,9 @@ template <class ELFT> void LinkerDriver::link(opt::InputArgList &args) {
 
   ctx.arg.eflags = ctx.target->calcEFlags();
   ctx.arg.isCheriAbi = ctx.target->calcIsCheriAbi();
+  if (ctx.arg.isCheriAbi)
+    ctx.arg.isCheriot = ctx.arg.eflags & EF_RISCV_CHERIOT;
+
   // maxPageSize (sometimes called abi page size) is the maximum page size that
   // the output can be run on. For example if the OS can use 4k or 64k page
   // sizes then maxPageSize must be 64k for the output to be useable on both.

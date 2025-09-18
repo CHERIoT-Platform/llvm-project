@@ -9,10 +9,14 @@
 #ifndef LLVM_COMPRESSED_CAPABILITY_H
 #define LLVM_COMPRESSED_CAPABILITY_H
 
+#include "llvm/MC/MCTargetOptions.h"
+#include "llvm/Support/Alignment.h"
+
 #include <algorithm>
 #include <cstdint>
 
 namespace llvm {
+
 namespace CompressedCapability {
 
 enum class CapabilityFormat {

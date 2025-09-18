@@ -28,7 +28,7 @@
 #include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSwitch.h"
-#include "llvm/CHERI/CompressedCapability.h"
+#include "llvm/CHERI/CapabilityFormat.h"
 #include "llvm/CodeGen/CallingConvLower.h"
 #include "llvm/CodeGen/FunctionLoweringInfo.h"
 #include "llvm/CodeGen/ISDOpcodes.h"
@@ -1696,10 +1696,10 @@ void MipsTargetLowering::computeKnownBitsForTargetNode(
         KnownBits KnownLengthBits = DAG.computeKnownBits(Op.getOperand(1));
         uint64_t MinLength = KnownLengthBits.One.getZExtValue();
         uint64_t MaxLength = (~KnownLengthBits.Zero).getZExtValue();
-        uint64_t MinMask = CompressedCapability::GetAlignmentMask(
-            MinLength, CompressedCapability::Cheri128);
-        uint64_t MaxMask = CompressedCapability::GetAlignmentMask(
-            MaxLength, CompressedCapability::Cheri128);
+        uint64_t MinMask =
+            CHERICapabilityFormat::Cheri128.getAlignmentMask(MinLength);
+        uint64_t MaxMask =
+            CHERICapabilityFormat::Cheri128.getAlignmentMask(MaxLength);
         uint64_t MinRoundedLength = (MinLength + ~MinMask) & MinMask;
         uint64_t MaxRoundedLength = (MaxLength + ~MaxMask) & MaxMask;
         bool MinRoundedOverflow = MinRoundedLength < MinLength;
@@ -1756,10 +1756,10 @@ void MipsTargetLowering::computeKnownBitsForTargetNode(
         uint64_t MinLength = KnownLengthBits.One.getZExtValue();
         uint64_t MaxLength = (~KnownLengthBits.Zero).getZExtValue();
 
-        Known.Zero |= ~CompressedCapability::GetAlignmentMask(
-            MinLength, CompressedCapability::Cheri128);
-        Known.One |= CompressedCapability::GetAlignmentMask(
-            MaxLength, CompressedCapability::Cheri128);
+        Known.Zero |=
+            ~CHERICapabilityFormat::Cheri128.getAlignmentMask(MinLength);
+        Known.One |=
+            CHERICapabilityFormat::Cheri128.getAlignmentMask(MaxLength);
       }
       break;
     }
@@ -1773,8 +1773,8 @@ MipsTargetLowering::getTailPaddingForPreciseBounds(uint64_t Size) const {
     return TailPaddingAmount::None;
   if (Subtarget.isCheri128()) {
     return static_cast<TailPaddingAmount>(
-        llvm::alignTo(Size, CompressedCapability::GetRequiredAlignment(
-                                Size, CompressedCapability::Cheri128)) -
+        llvm::alignTo(
+            Size, CHERICapabilityFormat::Cheri128.getRequiredAlignment(Size)) -
         Size);
   }
   llvm_unreachable("cheri256 is no longer supported!");
@@ -1785,8 +1785,7 @@ MipsTargetLowering::getAlignmentForPreciseBounds(uint64_t Size) const {
   if (!Subtarget.isCheri())
     return Align();
   if (Subtarget.isCheri128()) {
-    return Align(CompressedCapability::GetRequiredAlignment(
-        Size, CompressedCapability::Cheri128));
+    return CHERICapabilityFormat::Cheri128.getRequiredAlignment(Size);
   }
   llvm_unreachable("cheri256 is no longer supported!");
   return Align();

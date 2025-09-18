@@ -13,7 +13,7 @@
 #include "Symbols.h"
 #include "SyntheticSections.h"
 #include "Target.h"
-#include "llvm/CHERI/CompressedCapability.h"
+#include "llvm/CHERI/CapabilityFormat.h"
 #include "llvm/Support/ELFAttributes.h"
 #include "llvm/Support/LEB128.h"
 #include "llvm/Support/RISCVAttributeParser.h"
@@ -775,14 +775,13 @@ static void tlsdescToLe(uint8_t *loc, const Relocation &rel, uint64_t val) {
 }
 
 uint64_t RISCV::cheriRequiredAlignment(uint64_t size) const {
-  auto CapFormat = llvm::CompressedCapability::Cheri128;
+  auto CapFormat = llvm::CHERICapabilityFormat::Cheri128;
   if (ctx.arg.isCheriot)
-    CapFormat = llvm::CompressedCapability::Cheriot64;
+    CapFormat = llvm::CHERICapabilityFormat::Cheriot64;
   else if (!ctx.arg.is64)
-    CapFormat = llvm::CompressedCapability::Cheri64;
+    CapFormat = llvm::CHERICapabilityFormat::Cheri64;
 
-  return llvm::CompressedCapability::GetRequiredAlignment(size, CapFormat)
-      .value();
+  return CapFormat.getRequiredAlignment(size).value();
 }
 
 void RISCV::relocateAlloc(InputSectionBase &sec, uint8_t *buf) const {

@@ -655,14 +655,17 @@ define hidden void @multidim() {
 ; CHECK-CPA-O0-NEXT:    .cfi_def_cfa_offset 16
 ; CHECK-CPA-O0-NEXT:    .cfi_offset w30, -16
 ; CHECK-CPA-O0-NEXT:    adrp x8, b
-; CHECK-CPA-O0-NEXT:    ldrh w10, [x8, :lo12:b]
+; CHECK-CPA-O0-NEXT:    ldrh w9, [x8, :lo12:b]
+; CHECK-CPA-O0-NEXT:    // implicit-def: $x8
+; CHECK-CPA-O0-NEXT:    mov w8, w9
+; CHECK-CPA-O0-NEXT:    ubfiz x8, x8, #1, #32
+; CHECK-CPA-O0-NEXT:    add x10, x8, #2
 ; CHECK-CPA-O0-NEXT:    adrp x8, a
 ; CHECK-CPA-O0-NEXT:    add x8, x8, :lo12:a
-; CHECK-CPA-O0-NEXT:    add w9, w10, #1
+; CHECK-CPA-O0-NEXT:    addpt x8, x8, x10
+; CHECK-CPA-O0-NEXT:    add w9, w9, #1
 ; CHECK-CPA-O0-NEXT:    mov w9, w9
 ; CHECK-CPA-O0-NEXT:    // kill: def $x9 killed $w9
-; CHECK-CPA-O0-NEXT:    add x9, x9, w10, uxtw #1
-; CHECK-CPA-O0-NEXT:    add x9, x9, #2
 ; CHECK-CPA-O0-NEXT:    addpt x8, x8, x9
 ; CHECK-CPA-O0-NEXT:    ldrb w8, [x8]
 ; CHECK-CPA-O0-NEXT:    cbz w8, .LBB14_2

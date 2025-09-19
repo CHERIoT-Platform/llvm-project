@@ -1733,7 +1733,7 @@ def UnretainedLocalVarsChecker : Checker<"UnretainedLocalVarsChecker">,
   Documentation<HasDocumentation>;
 
 def RetainPtrCtorAdoptChecker : Checker<"RetainPtrCtorAdoptChecker">,
-  HelpText<"Check for correct use of RetainPtr constructor, adoptNS, and adoptCF">,
+  HelpText<"Check for correct use of RetainPtr/OSObjectPtr constructor, adoptNS, adoptCF, and adoptOSObject">,
   Documentation<HasDocumentation>;
 
 } // end alpha.webkit

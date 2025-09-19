@@ -8663,7 +8663,7 @@ static bool isMemSrcFromConstant(SDValue Src, ConstantDataArraySlice &Slice) {
   GlobalAddressSDNode *G = nullptr;
   if (Src.getOpcode() == ISD::GlobalAddress)
     G = cast<GlobalAddressSDNode>(Src);
-  else if ((Src.getOpcode() == ISD::ADD || Src.getOpcode() == ISD::PTRADD) &&
+  else if (Src->isAnyAdd() &&
            Src.getOperand(0).getOpcode() == ISD::GlobalAddress &&
            Src.getOperand(1).getOpcode() == ISD::Constant) {
     G = cast<GlobalAddressSDNode>(Src.getOperand(0));

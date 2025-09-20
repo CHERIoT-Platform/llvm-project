@@ -899,3 +899,19 @@ def MSA128DOpnd : RegisterOperand<MSA128D> {
 def MSA128CROpnd : RegisterOperand<MSACtrl> {
   let ParserMatchClass = MSACtrlAsmOperand;
 }
+
+def mips_ptr_rc : RegClassByHwMode<
+  [MIPS32, MIPS64, Cap64, Cap128],
+  [GPR32, GPR64, GPR32, GPR64]>;
+
+def ptr_gpr16mm_rc : RegClassByHwMode<
+  [MIPS32, MIPS64, Cap64, Cap128],
+  [GPRMM16, GPRMM16, GPRMM16, GPRMM16]>; // FIXME: Why even use this if it's just a constant
+
+def ptr_sp_rc : RegClassByHwMode<
+  [MIPS32, MIPS64, Cap64, Cap128],
+  [SP32, SP64, SP32, SP64]>;
+
+def ptr_gp_rc : RegClassByHwMode<
+  [MIPS32, MIPS64, Cap64, Cap128],
+  [GP32, GP64, GP32, GP64]>;

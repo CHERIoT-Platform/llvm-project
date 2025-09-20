@@ -163,6 +163,7 @@ def FeatureMipsCheri128
 def HasCheri : Predicate<"Subtarget->isCheri()">,
                          AssemblerPredicate<(all_of FeatureMipsCheri),
                          "CHERI Extension">;
+def NoCheri : Predicate<"!Subtarget->isCheri()">;
 def HasCheri64 : Predicate<"Subtarget->isCheri64()">,
                          AssemblerPredicate<(all_of FeatureMipsCheri64),
                          "CHERI64 Extension">;
@@ -240,6 +241,22 @@ def FeatureUseIndirectJumpsHazard : SubtargetFeature<"use-indirect-jump-hazard",
 def FeatureStrictAlign
     : SubtargetFeature<"strict-align", "StrictAlign", "true",
                        "Disable unaligned load store for r6">;
+
+//===----------------------------------------------------------------------===//
+// Mips Instruction Predicate Definitions.
+//===----------------------------------------------------------------------===//
+
+def IsPTR64bit    :   Predicate<"Subtarget->isABI_N64()">,
+                      AssemblerPredicate<(all_of FeaturePTR64Bit)>;
+def IsPTR32bit    :   Predicate<"!Subtarget->isABI_N64()">,
+                      AssemblerPredicate<(all_of (not FeaturePTR64Bit))>;
+
+//===----------------------------------------------------------------------===//
+// HwModes
+//===----------------------------------------------------------------------===//
+
+defvar MIPS32 = DefaultMode;
+def MIPS64 : HwMode<[IsPTR64bit, NoCheri]>;
 
 //===----------------------------------------------------------------------===//
 // Register File, Calling Conv, Instruction Descriptions

@@ -365,8 +365,8 @@ public:
   bool useSmallSection() const { return UseSmallSection; }
   bool isBeri() const { return IsBeri; }
   bool isCheri() const { return IsCheri; }
-  bool isCheri64() const { return IsCheri64; }
-  bool isCheri128() const { return !IsCheri64; }
+  bool isCheri64() const { return isCheri() && IsCheri64; }
+  bool isCheri128() const { return isCheri() && !IsCheri64; }
   bool useCheriCapTable() const { return getABI().IsCheriPureCap(); };
   MVT typeForCapabilities() const { return IsCheri64 ? MVT::c64 : MVT::c128; }
 

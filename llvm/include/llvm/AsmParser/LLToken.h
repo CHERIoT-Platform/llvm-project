@@ -157,9 +157,6 @@ enum Kind {
   kw_ptx_device,
   kw_spir_kernel,
   kw_spir_func,
-  kw_cheriot_compartmentcallcc,
-  kw_cheriot_compartmentcalleecc,
-  kw_cheriot_librarycallcc,
   kw_x86_64_sysvcc,
   kw_win64cc,
   kw_anyregcc,
@@ -190,6 +187,9 @@ enum Kind {
   kw_graalcc,
   kw_riscv_vector_cc,
   kw_riscv_vls_cc,
+  kw_cheriot_compartmentcallcc,
+  kw_cheriot_compartmentcalleecc,
+  kw_cheriot_librarycallcc,
 
   // Attributes:
   kw_attributes,

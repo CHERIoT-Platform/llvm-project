@@ -2213,15 +2213,6 @@ bool LLParser::parseOptionalCallingConv(unsigned &CC) {
   case lltok::kw_ccc:            CC = CallingConv::C; break;
   case lltok::kw_fastcc:         CC = CallingConv::Fast; break;
   case lltok::kw_coldcc:         CC = CallingConv::Cold; break;
-  case lltok::kw_cheriot_compartmentcallcc:
-    CC = CallingConv::CHERIoT_CompartmentCall;
-    break;
-  case lltok::kw_cheriot_compartmentcalleecc:
-    CC = CallingConv::CHERIoT_CompartmentCallee;
-    break;
-  case lltok::kw_cheriot_librarycallcc:
-    CC = CallingConv::CHERIoT_LibraryCall;
-    break;
   case lltok::kw_cfguard_checkcc: CC = CallingConv::CFGuard_Check; break;
   case lltok::kw_x86_stdcallcc:  CC = CallingConv::X86_StdCall; break;
   case lltok::kw_x86_fastcallcc: CC = CallingConv::X86_FastCall; break;
@@ -2324,6 +2315,15 @@ bool LLParser::parseOptionalCallingConv(unsigned &CC) {
 #undef CC_VLS_CASE
     }
     return false;
+  case lltok::kw_cheriot_compartmentcallcc:
+    CC = CallingConv::CHERIoT_CompartmentCall;
+    break;
+  case lltok::kw_cheriot_compartmentcalleecc:
+    CC = CallingConv::CHERIoT_CompartmentCallee;
+    break;
+  case lltok::kw_cheriot_librarycallcc:
+    CC = CallingConv::CHERIoT_LibraryCall;
+    break;
   case lltok::kw_cc: {
       Lex.Lex();
       return parseUInt32(CC);

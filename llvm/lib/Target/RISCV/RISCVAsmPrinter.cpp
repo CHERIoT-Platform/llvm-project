@@ -579,6 +579,23 @@ bool RISCVAsmPrinter::runOnMachineFunction(MachineFunction &MF) {
   emitXRayTable();
 
   auto &Fn = MF.getFunction();
+
+  uint64_t csetboundsimm = 0;
+  uint64_t twoaddr = 0;
+
+  for (const auto &MBB : MF) {
+    for (const auto &MI : MBB) {
+      if (MI.getOpcode() != RISCV::CSetBoundsImm) continue;
+      ++csetboundsimm;
+      if (MI.getOperand(0).getReg() == MI.getOperand(1).getReg() ||
+          MI.getOperand(1).isKill())
+        ++twoaddr;
+    }
+  }
+
+  llvm::errs() << "#CSetBoundsImm = " << csetboundsimm << "\n";
+  llvm::errs() << "#TwoAddrCSetBoundsImm = " << twoaddr << "\n";
+
   // The low 3 bits of the flags field specify the number of registers to
   // clear.  The next two provide the set of
   int interruptFlag = 0;

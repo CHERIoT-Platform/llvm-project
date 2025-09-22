@@ -2285,7 +2285,7 @@ void TextNodeDumper::VisitEnumDecl(const EnumDecl *D) {
   if (D->isFixed())
     dumpType(D->getIntegerType());
 
-  if (const auto *Instance = D->getInstantiatedFromMemberEnum()) {
+  if (const auto *Instance = D->getTemplateInstantiationPattern()) {
     OS << " instantiated_from";
     dumpPointer(Instance);
   }
@@ -2391,7 +2391,7 @@ void TextNodeDumper::VisitFunctionDecl(const FunctionDecl *D) {
   if (!D->param_empty() && !D->param_begin())
     OS << " <<<NULL params x " << D->getNumParams() << ">>>";
 
-  if (const auto *Instance = D->getInstantiatedFromMemberFunction()) {
+  if (const auto *Instance = D->getTemplateInstantiationPattern()) {
     OS << " instantiated_from";
     dumpPointer(Instance);
   }
@@ -2479,6 +2479,11 @@ void TextNodeDumper::VisitVarDecl(const VarDecl *D) {
     OS << " destroyed";
   if (D->isParameterPack())
     OS << " pack";
+
+  if (const auto *Instance = D->getTemplateInstantiationPattern()) {
+    OS << " instantiated_from";
+    dumpPointer(Instance);
+  }
 
   if (D->hasInit()) {
     const Expr *E = D->getInit();
@@ -2627,7 +2632,7 @@ void TextNodeDumper::VisitTypeAliasTemplateDecl(
 
 void TextNodeDumper::VisitCXXRecordDecl(const CXXRecordDecl *D) {
   VisitRecordDecl(D);
-  if (const auto *Instance = D->getInstantiatedFromMemberClass()) {
+  if (const auto *Instance = D->getTemplateInstantiationPattern()) {
     OS << " instantiated_from";
     dumpPointer(Instance);
   }

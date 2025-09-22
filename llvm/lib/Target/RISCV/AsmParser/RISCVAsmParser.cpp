@@ -231,7 +231,7 @@ class RISCVAsmParser : public MCTargetAsmParser {
   ParseStatus parseCSRSystemRegister(OperandVector &Operands);
   ParseStatus parseSpecialCapRegister(OperandVector &Operands);
   ParseStatus parseFPImm(OperandVector &Operands);
-  ParseStatus parseImmediate(OperandVector &Operands);
+  ParseStatus parseExpression(OperandVector &Operands);
   ParseStatus parseRegister(OperandVector &Operands, bool AllowParens = false);
   ParseStatus parseMemOpBaseReg(OperandVector &Operands);
   ParseStatus parseZeroOffsetMemOp(OperandVector &Operands);
@@ -378,7 +378,7 @@ struct RISCVOperand final : public MCParsedAsmOperand {
   enum class KindTy {
     Token,
     Register,
-    Immediate,
+    Expression,
     FPImmediate,
     SystemRegister,
     SpecialCapRegister,
@@ -395,8 +395,8 @@ struct RISCVOperand final : public MCParsedAsmOperand {
     bool IsGPRAsFPR;
   };
 
-  struct ImmOp {
-    const MCExpr *Val;
+  struct ExprOp {
+    const MCExpr *Expr;
     bool IsRV64;
   };
 
@@ -447,7 +447,7 @@ struct RISCVOperand final : public MCParsedAsmOperand {
   union {
     StringRef Tok;
     RegOp Reg;
-    ImmOp Imm;
+    ExprOp Expr;
     FPImmOp FPImm;
     SysRegOp SysReg;
     struct SpecialCapRegOp SpecialCapReg;
@@ -470,8 +470,8 @@ public:
     case KindTy::Register:
       Reg = o.Reg;
       break;
-    case KindTy::Immediate:
-      Imm = o.Imm;
+    case KindTy::Expression:
+      Expr = o.Expr;
       break;
     case KindTy::FPImmediate:
       FPImm = o.FPImm;
@@ -508,6 +508,7 @@ public:
 
   bool isToken() const override { return Kind == KindTy::Token; }
   bool isReg() const override { return Kind == KindTy::Register; }
+  bool isExpr() const { return Kind == KindTy::Expression; }
   bool isV0Reg() const {
     return Kind == KindTy::Register && Reg.RegNum == RISCV::V0;
   }
@@ -524,7 +525,7 @@ public:
             RISCVMCRegisterClasses[RISCV::FPR64CRegClassID].contains(
                 Reg.RegNum));
   }
-  bool isImm() const override { return Kind == KindTy::Immediate; }
+  bool isImm() const override { return isExpr(); }
   bool isMem() const override { return false; }
   bool isSystemRegister() const { return Kind == KindTy::SystemRegister; }
   bool isRegReg() const { return Kind == KindTy::RegReg; }
@@ -578,7 +579,7 @@ public:
   bool isGPRAsFPR32() const { return isGPRF32() && Reg.IsGPRAsFPR; }
   bool isGPRPairAsFPR64() const { return isGPRPair() && Reg.IsGPRAsFPR; }
 
-  static bool evaluateConstantImm(const MCExpr *Expr, int64_t &Imm) {
+  static bool evaluateConstantExpr(const MCExpr *Expr, int64_t &Imm) {
     if (auto CE = dyn_cast<MCConstantExpr>(Expr)) {
       Imm = CE->getValue();
       return true;
@@ -590,30 +591,30 @@ public:
   // True if operand is a symbol with no modifiers, or a constant with no
   // modifiers and isShiftedInt<N-1, 1>(Op).
   template <int N> bool isBareSimmNLsb0() const {
-    if (!isImm())
+    if (!isExpr())
       return false;
 
     int64_t Imm;
-    if (evaluateConstantImm(getImm(), Imm))
-      return isShiftedInt<N - 1, 1>(fixImmediateForRV32(Imm, isRV64Imm()));
+    if (evaluateConstantExpr(getExpr(), Imm))
+      return isShiftedInt<N - 1, 1>(fixImmediateForRV32(Imm, isRV64Expr()));
 
     RISCV::Specifier VK = RISCV::S_None;
-    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+    return RISCVAsmParser::classifySymbolRef(getExpr(), VK) &&
            VK == RISCV::S_None;
   }
 
   // True if operand is a symbol with no modifiers, or a constant with no
   // modifiers and isInt<N>(Op).
   template <int N> bool isBareSimmN() const {
-    if (!isImm())
+    if (!isExpr())
       return false;
 
     int64_t Imm;
-    if (evaluateConstantImm(getImm(), Imm))
-      return isInt<N>(fixImmediateForRV32(Imm, isRV64Imm()));
+    if (evaluateConstantExpr(getExpr(), Imm))
+      return isInt<N>(fixImmediateForRV32(Imm, isRV64Expr()));
 
     RISCV::Specifier VK = RISCV::S_None;
-    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+    return RISCVAsmParser::classifySymbolRef(getExpr(), VK) &&
            VK == RISCV::S_None;
   }
 
@@ -622,76 +623,76 @@ public:
   bool isBareSymbol() const {
     int64_t Imm;
     // Must be of 'immediate' type but not a constant.
-    if (!isImm() || evaluateConstantImm(getImm(), Imm))
+    if (!isExpr() || evaluateConstantExpr(getExpr(), Imm))
       return false;
 
     RISCV::Specifier VK = RISCV::S_None;
-    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+    return RISCVAsmParser::classifySymbolRef(getExpr(), VK) &&
            VK == RISCV::S_None;
   }
 
   bool isCallSymbol() const {
     int64_t Imm;
     // Must be of 'immediate' type but not a constant.
-    if (!isImm() || evaluateConstantImm(getImm(), Imm))
+    if (!isExpr() || evaluateConstantExpr(getExpr(), Imm))
       return false;
 
     RISCV::Specifier VK = RISCV::S_None;
-    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+    return RISCVAsmParser::classifySymbolRef(getExpr(), VK) &&
            VK == ELF::R_RISCV_CALL_PLT;
   }
 
   bool isCCallSymbol() const {
     int64_t Imm;
     // Must be of 'immediate' type but not a constant.
-    if (!isImm() || evaluateConstantImm(getImm(), Imm))
+    if (!isImm() || evaluateConstantExpr(getExpr(), Imm))
     return false;
     RISCV::Specifier VK = RISCV::S_None;
-    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+    return RISCVAsmParser::classifySymbolRef(getExpr(), VK) &&
            VK == RISCV::S_CCALL;
   }
 
   bool isPseudoJumpSymbol() const {
     int64_t Imm;
     // Must be of 'immediate' type but not a constant.
-    if (!isImm() || evaluateConstantImm(getImm(), Imm))
+    if (!isExpr() || evaluateConstantExpr(getExpr(), Imm))
       return false;
 
     RISCV::Specifier VK = RISCV::S_None;
-    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+    return RISCVAsmParser::classifySymbolRef(getExpr(), VK) &&
            VK == ELF::R_RISCV_CALL_PLT;
   }
 
   bool isPseudoCJumpSymbol() const {
     int64_t Imm;
     // Must be of 'immediate' type but not a constant.
-    if (!isImm() || evaluateConstantImm(getImm(), Imm))
+    if (!isImm() || evaluateConstantExpr(getExpr(), Imm))
       return false;
 
     RISCV::Specifier VK = RISCV::S_None;
-    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+    return RISCVAsmParser::classifySymbolRef(getExpr(), VK) &&
            VK == RISCV::S_CCALL;
   }
 
   bool isTPRelAddSymbol() const {
     int64_t Imm;
     // Must be of 'immediate' type but not a constant.
-    if (!isImm() || evaluateConstantImm(getImm(), Imm))
+    if (!isExpr() || evaluateConstantExpr(getExpr(), Imm))
       return false;
 
     RISCV::Specifier VK = RISCV::S_None;
-    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+    return RISCVAsmParser::classifySymbolRef(getExpr(), VK) &&
            VK == ELF::R_RISCV_TPREL_ADD;
   }
 
   bool isTLSDESCCallSymbol() const {
     int64_t Imm;
     // Must be of 'immediate' type but not a constant.
-    if (!isImm() || evaluateConstantImm(getImm(), Imm))
+    if (!isExpr() || evaluateConstantExpr(getExpr(), Imm))
       return false;
 
     RISCV::Specifier VK = RISCV::S_None;
-    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+    return RISCVAsmParser::classifySymbolRef(getExpr(), VK) &&
            VK == ELF::R_RISCV_TLSDESC_CALL;
   }
 
@@ -699,9 +700,9 @@ public:
     int64_t Imm;
     RISCV::Specifier VK = RISCV::S_None;
     // Must be of 'immediate' type but not a constant.
-    if (!isImm() || evaluateConstantImm(getImm(), Imm))
+    if (!isImm() || evaluateConstantExpr(getExpr(), Imm))
       return false;
-    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+    return RISCVAsmParser::classifySymbolRef(getExpr(), VK) &&
            VK == RISCV::S_TPREL_CINCOFFSET;
   }
 
@@ -735,7 +736,7 @@ public:
 
   /// Return true if the operand is a valid fli.s floating-point immediate.
   bool isLoadFPImm() const {
-    if (isImm())
+    if (isExpr())
       return isUImm5();
     if (Kind != KindTy::FPImmediate)
       return false;
@@ -748,64 +749,64 @@ public:
 
   bool isImmXLenLI() const {
     int64_t Imm;
-    if (!isImm())
+    if (!isExpr())
       return false;
     // Given only Imm, ensuring that the actually specified constant is either
     // a signed or unsigned 64-bit number is unfortunately impossible.
-    if (evaluateConstantImm(getImm(), Imm))
-      return isRV64Imm() || (isInt<32>(Imm) || isUInt<32>(Imm));
+    if (evaluateConstantExpr(getExpr(), Imm))
+      return isRV64Expr() || (isInt<32>(Imm) || isUInt<32>(Imm));
 
-    return RISCVAsmParser::isSymbolDiff(getImm());
+    return RISCVAsmParser::isSymbolDiff(getExpr());
   }
 
   bool isImmXLenLI_Restricted() const {
     int64_t Imm;
-    if (!isImm())
+    if (!isExpr())
       return false;
-    bool IsConstantImm = evaluateConstantImm(getImm(), Imm);
+    bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);
     // 'la imm' supports constant immediates only.
     return IsConstantImm &&
-           (isRV64Imm() || (isInt<32>(Imm) || isUInt<32>(Imm)));
+           (isRV64Expr() || (isInt<32>(Imm) || isUInt<32>(Imm)));
   }
 
   template <unsigned N> bool isUImm() const {
     int64_t Imm;
-    if (!isImm())
+    if (!isExpr())
       return false;
-    bool IsConstantImm = evaluateConstantImm(getImm(), Imm);
+    bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);
     return IsConstantImm && isUInt<N>(Imm);
   }
 
   template <unsigned N, unsigned S> bool isUImmShifted() const {
     int64_t Imm;
-    if (!isImm())
+    if (!isExpr())
       return false;
-    bool IsConstantImm = evaluateConstantImm(getImm(), Imm);
+    bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);
     return IsConstantImm && isShiftedUInt<N, S>(Imm);
   }
 
   template <class Pred> bool isUImmPred(Pred p) const {
     int64_t Imm;
-    if (!isImm())
+    if (!isExpr())
       return false;
-    bool IsConstantImm = evaluateConstantImm(getImm(), Imm);
+    bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);
     return IsConstantImm && p(Imm);
   }
 
   bool isUImmLog2XLen() const {
-    if (isImm() && isRV64Imm())
+    if (isExpr() && isRV64Expr())
       return isUImm<6>();
     return isUImm<5>();
   }
 
   bool isUImmLog2XLenNonZero() const {
-    if (isImm() && isRV64Imm())
+    if (isExpr() && isRV64Expr())
       return isUImmPred([](int64_t Imm) { return Imm != 0 && isUInt<6>(Imm); });
     return isUImmPred([](int64_t Imm) { return Imm != 0 && isUInt<5>(Imm); });
   }
 
   bool isUImmLog2XLenHalf() const {
-    if (isImm() && isRV64Imm())
+    if (isExpr() && isRV64Expr())
       return isUImm<5>();
     return isUImm<4>();
   }
@@ -878,18 +879,18 @@ public:
 
   template <unsigned N> bool isSImm() const {
     int64_t Imm;
-    if (!isImm())
+    if (!isExpr())
       return false;
-    bool IsConstantImm = evaluateConstantImm(getImm(), Imm);
-    return IsConstantImm && isInt<N>(fixImmediateForRV32(Imm, isRV64Imm()));
+    bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);
+    return IsConstantImm && isInt<N>(fixImmediateForRV32(Imm, isRV64Expr()));
   }
 
   template <class Pred> bool isSImmPred(Pred p) const {
     int64_t Imm;
-    if (!isImm())
+    if (!isExpr())
       return false;
-    bool IsConstantImm = evaluateConstantImm(getImm(), Imm);
-    return IsConstantImm && p(fixImmediateForRV32(Imm, isRV64Imm()));
+    bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);
+    return IsConstantImm && p(fixImmediateForRV32(Imm, isRV64Expr()));
   }
 
   bool isSImm5() const { return isSImm<5>(); }
@@ -936,7 +937,7 @@ public:
       return false;
     int64_t Imm;
     RISCV::Specifier VK = RISCV::S_None;
-    bool IsConstantImm = evaluateConstantImm(getImm(), Imm);
+    bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);
     return IsConstantImm && isShiftedUInt<5, 4>(Imm) &&
            VK == RISCV::S_None;
   }
@@ -951,7 +952,7 @@ public:
       return false;
     int64_t Imm;
     RISCV::Specifier VK = RISCV::S_None;
-    bool IsConstantImm = evaluateConstantImm(getImm(), Imm);
+    bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);
     return IsConstantImm && isShiftedUInt<6, 4>(Imm) &&
            VK == RISCV::S_None;
   }
@@ -962,9 +963,9 @@ public:
     RISCV::Specifier VK;
     int64_t Imm;
     bool IsValid;
-    bool IsConstantImm = evaluateConstantImm(getImm(), Imm);
+    bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);
     if (!IsConstantImm)
-      IsValid = RISCVAsmParser::classifySymbolRef(getImm(), VK);
+      IsValid = RISCVAsmParser::classifySymbolRef(getExpr(), VK);
     else
       IsValid = isUInt<12>(Imm);
     return IsValid && ((VK == RISCV::S_None) ||
@@ -980,15 +981,15 @@ public:
   }
 
   bool isSImm12() const {
-    if (!isImm())
+    if (!isExpr())
       return false;
 
     int64_t Imm;
-    if (evaluateConstantImm(getImm(), Imm))
-      return isInt<12>(fixImmediateForRV32(Imm, isRV64Imm()));
+    if (evaluateConstantExpr(getExpr(), Imm))
+      return isInt<12>(fixImmediateForRV32(Imm, isRV64Expr()));
 
     RISCV::Specifier VK = RISCV::S_None;
-    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+    return RISCVAsmParser::classifySymbolRef(getExpr(), VK) &&
            (VK == RISCV::S_LO || VK == RISCV::S_PCREL_LO ||
             VK == RISCV::S_TPREL_LO || VK == ELF::R_RISCV_TLSDESC_LOAD_LO12 ||
             VK == ELF::R_RISCV_TLSDESC_ADD_LO12 ||
@@ -1014,15 +1015,15 @@ public:
   }
 
   bool isSImm20LI() const {
-    if (!isImm())
+    if (!isExpr())
       return false;
 
     int64_t Imm;
-    if (evaluateConstantImm(getImm(), Imm))
-      return isInt<20>(fixImmediateForRV32(Imm, isRV64Imm()));
+    if (evaluateConstantExpr(getExpr(), Imm))
+      return isInt<20>(fixImmediateForRV32(Imm, isRV64Expr()));
 
     RISCV::Specifier VK = RISCV::S_None;
-    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+    return RISCVAsmParser::classifySymbolRef(getExpr(), VK) &&
            VK == RISCV::S_QC_ABS20;
   }
 
@@ -1030,28 +1031,28 @@ public:
   bool isSImm10Unsigned() const { return isSImm<10>() || isUImm<10>(); }
 
   bool isUImm20LUI() const {
-    if (!isImm())
+    if (!isExpr())
       return false;
 
     int64_t Imm;
-    if (evaluateConstantImm(getImm(), Imm))
+    if (evaluateConstantExpr(getExpr(), Imm))
       return isUInt<20>(Imm);
 
     RISCV::Specifier VK = RISCV::S_None;
-    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+    return RISCVAsmParser::classifySymbolRef(getExpr(), VK) &&
            (VK == ELF::R_RISCV_HI20 || VK == ELF::R_RISCV_TPREL_HI20);
   }
 
   bool isUImm20AUIPC() const {
-    if (!isImm())
+    if (!isExpr())
       return false;
 
     int64_t Imm;
-    if (evaluateConstantImm(getImm(), Imm))
+    if (evaluateConstantExpr(getExpr(), Imm))
       return isUInt<20>(Imm);
 
     RISCV::Specifier VK = RISCV::S_None;
-    return RISCVAsmParser::classifySymbolRef(getImm(), VK) &&
+    return RISCVAsmParser::classifySymbolRef(getExpr(), VK) &&
            (VK == ELF::R_RISCV_PCREL_HI20 || VK == ELF::R_RISCV_GOT_HI20 ||
             VK == ELF::R_RISCV_TLS_GOT_HI20 || VK == ELF::R_RISCV_TLS_GD_HI20 ||
             VK == ELF::R_RISCV_TLSDESC_HI20 ||
@@ -1067,9 +1068,9 @@ public:
     bool IsValid;
     if (!isImm())
       return false;
-    bool IsConstantImm = evaluateConstantImm(getImm(), Imm);
+    bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);
     if (!IsConstantImm) {
-      IsValid = RISCVAsmParser::classifySymbolRef(getImm(), VK);
+      IsValid = RISCVAsmParser::classifySymbolRef(getExpr(), VK);
       return IsValid && VK == RISCV::S_CHERIOT_COMPARTMENT_HI;
     } else {
       return isUInt<20>(Imm) &&
@@ -1124,10 +1125,11 @@ public:
   SMLoc getStartLoc() const override { return StartLoc; }
   /// getEndLoc - Gets location of the last token of this operand
   SMLoc getEndLoc() const override { return EndLoc; }
+
   /// True if this operand is for an RV64 instruction
-  bool isRV64Imm() const {
-    assert(Kind == KindTy::Immediate && "Invalid type access!");
-    return Imm.IsRV64;
+  bool isRV64Expr() const {
+    assert(Kind == KindTy::Expression && "Invalid type access!");
+    return Expr.IsRV64;
   }
 
   MCRegister getReg() const override {
@@ -1145,9 +1147,9 @@ public:
     return StringRef(SpecialCapReg.Data, SpecialCapReg.Length);
   }
 
-  const MCExpr *getImm() const {
-    assert(Kind == KindTy::Immediate && "Invalid type access!");
-    return Imm.Val;
+  const MCExpr *getExpr() const {
+    assert(Kind == KindTy::Expression && "Invalid type access!");
+    return Expr.Expr;
   }
 
   uint64_t getFPConst() const {
@@ -1184,10 +1186,10 @@ public:
     };
 
     switch (Kind) {
-    case KindTy::Immediate:
+    case KindTy::Expression:
       OS << "<imm: ";
-      MAI.printExpr(OS, *Imm.Val);
-      OS << ' ' << (Imm.IsRV64 ? "rv64" : "rv32") << '>';
+      MAI.printExpr(OS, *Expr.Expr);
+      OS << ' ' << (Expr.IsRV64 ? "rv64" : "rv32") << '>';
       break;
     case KindTy::FPImmediate:
       OS << "<fpimm: " << FPImm.Val << ">";
@@ -1255,11 +1257,11 @@ public:
     return Op;
   }
 
-  static std::unique_ptr<RISCVOperand> createImm(const MCExpr *Val, SMLoc S,
-                                                 SMLoc E, bool IsRV64) {
-    auto Op = std::make_unique<RISCVOperand>(KindTy::Immediate);
-    Op->Imm.Val = Val;
-    Op->Imm.IsRV64 = IsRV64;
+  static std::unique_ptr<RISCVOperand> createExpr(const MCExpr *Val, SMLoc S,
+                                                  SMLoc E, bool IsRV64) {
+    auto Op = std::make_unique<RISCVOperand>(KindTy::Expression);
+    Op->Expr.Expr = Val;
+    Op->Expr.IsRV64 = IsRV64;
     Op->StartLoc = S;
     Op->EndLoc = E;
     return Op;
@@ -1347,7 +1349,7 @@ public:
   static void addExpr(MCInst &Inst, const MCExpr *Expr, bool IsRV64Imm) {
     assert(Expr && "Expr shouldn't be null!");
     int64_t Imm = 0;
-    bool IsConstant = evaluateConstantImm(Expr, Imm);
+    bool IsConstant = evaluateConstantExpr(Expr, Imm);
 
     if (IsConstant)
       Inst.addOperand(
@@ -1364,13 +1366,13 @@ public:
 
   void addImmOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
-    addExpr(Inst, getImm(), isRV64Imm());
+    addExpr(Inst, getExpr(), isRV64Expr());
   }
 
   void addSImm8UnsignedOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
     int64_t Imm;
-    [[maybe_unused]] bool IsConstant = evaluateConstantImm(getImm(), Imm);
+    [[maybe_unused]] bool IsConstant = evaluateConstantExpr(getExpr(), Imm);
     assert(IsConstant);
     Inst.addOperand(MCOperand::createImm(SignExtend64<8>(Imm)));
   }
@@ -1378,15 +1380,15 @@ public:
   void addSImm10UnsignedOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
     int64_t Imm;
-    [[maybe_unused]] bool IsConstant = evaluateConstantImm(getImm(), Imm);
+    [[maybe_unused]] bool IsConstant = evaluateConstantExpr(getExpr(), Imm);
     assert(IsConstant);
     Inst.addOperand(MCOperand::createImm(SignExtend64<10>(Imm)));
   }
 
   void addFPImmOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
-    if (isImm()) {
-      addExpr(Inst, getImm(), isRV64Imm());
+    if (isExpr()) {
+      addExpr(Inst, getExpr(), isRV64Expr());
       return;
     }
 
@@ -1416,8 +1418,9 @@ public:
   void addVTypeIOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
     int64_t Imm = 0;
-    if (Kind == KindTy::Immediate) {
-      [[maybe_unused]] bool IsConstantImm = evaluateConstantImm(getImm(), Imm);
+    if (Kind == KindTy::Expression) {
+      [[maybe_unused]] bool IsConstantImm =
+          evaluateConstantExpr(getExpr(), Imm);
       assert(IsConstantImm && "Invalid VTypeI Operand!");
     } else {
       Imm = getVType();
@@ -2033,7 +2036,7 @@ ParseStatus RISCVAsmParser::parseInsnDirectiveOpcode(OperandVector &Operands) {
     if (CE) {
       int64_t Imm = CE->getValue();
       if (isUInt<7>(Imm)) {
-        Operands.push_back(RISCVOperand::createImm(Res, S, E, isRV64()));
+        Operands.push_back(RISCVOperand::createExpr(Res, S, E, isRV64()));
         return ParseStatus::Success;
       }
     }
@@ -2051,7 +2054,7 @@ ParseStatus RISCVAsmParser::parseInsnDirectiveOpcode(OperandVector &Operands) {
              "Unexpected opcode");
       Res = MCConstantExpr::create(Opcode->Value, getContext());
       E = SMLoc::getFromPointer(S.getPointer() + Identifier.size());
-      Operands.push_back(RISCVOperand::createImm(Res, S, E, isRV64()));
+      Operands.push_back(RISCVOperand::createExpr(Res, S, E, isRV64()));
       return ParseStatus::Success;
     }
 
@@ -2088,7 +2091,7 @@ ParseStatus RISCVAsmParser::parseInsnCDirectiveOpcode(OperandVector &Operands) {
     if (CE) {
       int64_t Imm = CE->getValue();
       if (Imm >= 0 && Imm <= 2) {
-        Operands.push_back(RISCVOperand::createImm(Res, S, E, isRV64()));
+        Operands.push_back(RISCVOperand::createExpr(Res, S, E, isRV64()));
         return ParseStatus::Success;
       }
     }
@@ -2112,7 +2115,7 @@ ParseStatus RISCVAsmParser::parseInsnCDirectiveOpcode(OperandVector &Operands) {
 
     Res = MCConstantExpr::create(Opcode, getContext());
     E = SMLoc::getFromPointer(S.getPointer() + Identifier.size());
-    Operands.push_back(RISCVOperand::createImm(Res, S, E, isRV64()));
+    Operands.push_back(RISCVOperand::createExpr(Res, S, E, isRV64()));
     return ParseStatus::Success;
   }
   case AsmToken::Percent: {
@@ -2303,16 +2306,16 @@ ParseStatus RISCVAsmParser::parseFPImm(OperandVector &Operands) {
     StringRef Identifier = getTok().getIdentifier();
     if (Identifier.compare_insensitive("inf") == 0) {
       Operands.push_back(
-          RISCVOperand::createImm(MCConstantExpr::create(30, getContext()), S,
-                                  getTok().getEndLoc(), isRV64()));
+          RISCVOperand::createExpr(MCConstantExpr::create(30, getContext()), S,
+                                   getTok().getEndLoc(), isRV64()));
     } else if (Identifier.compare_insensitive("nan") == 0) {
       Operands.push_back(
-          RISCVOperand::createImm(MCConstantExpr::create(31, getContext()), S,
-                                  getTok().getEndLoc(), isRV64()));
+          RISCVOperand::createExpr(MCConstantExpr::create(31, getContext()), S,
+                                   getTok().getEndLoc(), isRV64()));
     } else if (Identifier.compare_insensitive("min") == 0) {
       Operands.push_back(
-          RISCVOperand::createImm(MCConstantExpr::create(1, getContext()), S,
-                                  getTok().getEndLoc(), isRV64()));
+          RISCVOperand::createExpr(MCConstantExpr::create(1, getContext()), S,
+                                   getTok().getEndLoc(), isRV64()));
     } else {
       return TokError("invalid floating point literal");
     }
@@ -2347,7 +2350,7 @@ ParseStatus RISCVAsmParser::parseFPImm(OperandVector &Operands) {
   return ParseStatus::Success;
 }
 
-ParseStatus RISCVAsmParser::parseImmediate(OperandVector &Operands) {
+ParseStatus RISCVAsmParser::parseExpression(OperandVector &Operands) {
   SMLoc S = getLoc();
   SMLoc E;
   const MCExpr *Res;
@@ -2371,7 +2374,7 @@ ParseStatus RISCVAsmParser::parseImmediate(OperandVector &Operands) {
     return parseOperandWithSpecifier(Operands);
   }
 
-  Operands.push_back(RISCVOperand::createImm(Res, S, E, isRV64()));
+  Operands.push_back(RISCVOperand::createExpr(Res, S, E, isRV64()));
   return ParseStatus::Success;
 }
 
@@ -2384,7 +2387,7 @@ ParseStatus RISCVAsmParser::parseOperandWithSpecifier(OperandVector &Operands) {
   const MCExpr *Expr = nullptr;
   bool Failed = parseExprWithSpecifier(Expr, E);
   if (!Failed)
-    Operands.push_back(RISCVOperand::createImm(Expr, S, E, isRV64()));
+    Operands.push_back(RISCVOperand::createExpr(Expr, S, E, isRV64()));
   return Failed;
 }
 
@@ -2446,7 +2449,7 @@ ParseStatus RISCVAsmParser::parseBareSymbol(OperandVector &Operands) {
   MCBinaryExpr::Opcode Opcode;
   switch (getLexer().getKind()) {
   default:
-    Operands.push_back(RISCVOperand::createImm(Res, S, E, isRV64()));
+    Operands.push_back(RISCVOperand::createExpr(Res, S, E, isRV64()));
     return ParseStatus::Success;
   case AsmToken::Plus:
     Opcode = MCBinaryExpr::Add;
@@ -2462,7 +2465,7 @@ ParseStatus RISCVAsmParser::parseBareSymbol(OperandVector &Operands) {
   if (getParser().parseExpression(Expr, E))
     return ParseStatus::Failure;
   Res = MCBinaryExpr::create(Opcode, Res, Expr, getContext());
-  Operands.push_back(RISCVOperand::createImm(Res, S, E, isRV64()));
+  Operands.push_back(RISCVOperand::createExpr(Res, S, E, isRV64()));
   return ParseStatus::Success;
 }
 
@@ -2500,7 +2503,7 @@ ParseStatus RISCVAsmParser::parseCallSymbol(OperandVector &Operands) {
   MCSymbol *Sym = getContext().getOrCreateSymbol(Identifier);
   Res = MCSymbolRefExpr::create(Sym, getContext());
   Res = MCSpecifierExpr::create(Res, Kind, getContext());
-  Operands.push_back(RISCVOperand::createImm(Res, S, E, isRV64()));
+  Operands.push_back(RISCVOperand::createExpr(Res, S, E, isRV64()));
   return ParseStatus::Success;
 }
 
@@ -2519,7 +2522,7 @@ ParseStatus RISCVAsmParser::parsePseudoJumpSymbol(OperandVector &Operands) {
   RISCV::Specifier Kind =
       IsCap ? RISCV::S_CCALL : ELF::R_RISCV_CALL_PLT;
   Res = MCSpecifierExpr::create(Res, Kind, getContext());
-  Operands.push_back(RISCVOperand::createImm(Res, S, E, isRV64()));
+  Operands.push_back(RISCVOperand::createExpr(Res, S, E, isRV64()));
   return ParseStatus::Success;
 }
 
@@ -2528,7 +2531,7 @@ ParseStatus RISCVAsmParser::parseJALOffset(OperandVector &Operands) {
   // both being acceptable forms. When parsing `jal ra, foo` this function
   // will be called for the `ra` register operand in an attempt to match the
   // single-operand alias. parseJALOffset must fail for this case. It would
-  // seem logical to try parse the operand using parseImmediate and return
+  // seem logical to try parse the operand using parseExpression and return
   // NoMatch if the next token is a comma (meaning we must be parsing a jal in
   // the second form rather than the first). We can't do this as there's no
   // way of rewinding the lexer state. Instead, return NoMatch if this operand
@@ -2537,7 +2540,7 @@ ParseStatus RISCVAsmParser::parseJALOffset(OperandVector &Operands) {
       getLexer().peekTok().is(AsmToken::Comma))
     return ParseStatus::NoMatch;
 
-  return parseImmediate(Operands);
+  return parseExpression(Operands);
 }
 
 bool RISCVAsmParser::parseVTypeToken(const AsmToken &Tok, VTypeState &State,
@@ -2961,7 +2964,7 @@ ParseStatus RISCVAsmParser::parseZeroOffsetMemOp(OperandVector &Operands) {
   // Normally, we would be able to parse these by putting the parens into the
   // instruction string. However, GNU as also accepts a zero-offset memory
   // operand (such as `0(a0)`), and ignores the 0. Normally this would be parsed
-  // with parseImmediate followed by parseMemOpBaseReg, but these instructions
+  // with parseExpression followed by parseMemOpBaseReg, but these instructions
   // do not accept an immediate operand, and we do not want to add a "dummy"
   // operand that is silently dropped.
   //
@@ -2988,8 +2991,8 @@ ParseStatus RISCVAsmParser::parseZeroOffsetMemOp(OperandVector &Operands) {
     // nicer), but we don't add it to Operands.
     SMLoc ImmEnd = getLoc();
     OptionalImmOp =
-        RISCVOperand::createImm(MCConstantExpr::create(ImmVal, getContext()),
-                                ImmStart, ImmEnd, isRV64());
+        RISCVOperand::createExpr(MCConstantExpr::create(ImmVal, getContext()),
+                                 ImmStart, ImmEnd, isRV64());
   }
 
   if (parseToken(AsmToken::LParen,
@@ -3200,8 +3203,8 @@ bool RISCVAsmParser::parseOperand(OperandVector &Operands, StringRef Mnemonic) {
   if (parseRegister(Operands, true).isSuccess())
     return false;
 
-  // Attempt to parse token as an immediate
-  if (parseImmediate(Operands).isSuccess()) {
+  // Attempt to parse token as an expression
+  if (parseExpression(Operands).isSuccess()) {
     // Parse memory base register if present
     if (getLexer().is(AsmToken::LParen))
       return !parseMemOpBaseReg(Operands).isSuccess();

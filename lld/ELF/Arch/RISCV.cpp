@@ -674,6 +674,7 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
   }
   case R_RISCV_CHERIOT_COMPARTMENT_SIZE:
     checkUInt(ctx, loc, val, 12, rel);
+    warn("LinkerCSetBoundsImmSize: " + llvm::utostr(val));
     write32le(loc, (read32le(loc) & 0x000fffff) | (val << 20));
     break;
   case R_RISCV_CHERIOT_COMPARTMENT_LO_S: {

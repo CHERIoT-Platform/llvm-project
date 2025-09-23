@@ -1115,7 +1115,7 @@ let hasSideEffects = 0, mayLoad = 0, mayStore = 0, Uses = [C2] in
 def C_CIncOffsetImm4CSPN : RVInst16CIW<0b000, 0b00, (outs GPCRC:$rd),
                                        (ins CSP:$rs1, uimm10_lsb00nonzero:$imm),
                                        "c.cincoffset4cspn", "$rd, $rs1, $imm"> {
-  bits<5> rs1;
+  bits<0> rs1;
   let Inst{12-11} = imm{5-4};
   let Inst{10-7} = imm{9-6};
   let Inst{6} = imm{2};
@@ -1206,9 +1206,10 @@ def C_CJAL : RVInst16CJ<0b001, 0b01, (outs), (ins bare_simm12_lsb0:$offset),
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
 def C_CIncOffsetImm16CSP : RVInst16CI<0b011, 0b01, (outs CSP:$rd_wb),
-                                      (ins CSP:$rd, simm10_lsb0000nonzero:$imm),
-                                      "c.cincoffset16csp", "$rd, $imm"> {
-  let Constraints = "$rd = $rd_wb";
+                                      (ins CSP:$rs1, simm10_lsb0000nonzero:$imm),
+                                      "c.cincoffset16csp", "$rs1, $imm"> {
+  bits<0> rs1;
+  let Constraints = "$rs1 = $rd_wb";
   let Inst{12} = imm{9};
   let Inst{11-7} = 2;
   let Inst{6} = imm{4};

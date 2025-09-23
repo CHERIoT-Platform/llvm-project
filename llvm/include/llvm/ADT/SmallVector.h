@@ -223,6 +223,8 @@ protected:
       this->assertSafeToAdd(From, To - From);
       this->assertSafeToAdd(To - 1, To - From);
     }
+    (void)From;
+    (void)To;
   }
 
   /// Reserve enough space to add one element, and return the updated element

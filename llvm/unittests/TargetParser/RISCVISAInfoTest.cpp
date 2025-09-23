@@ -1137,6 +1137,7 @@ R"(All available -march extensions for RISC-V
     xandesvbfhcvt        5.0
     xandesvdot           5.0
     xandesvpackfph       5.0
+    xandesvsinth         5.0
     xandesvsintload      5.0
     xcheri               0.0
     xcheriot             1.0

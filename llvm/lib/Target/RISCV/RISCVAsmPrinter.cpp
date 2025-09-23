@@ -593,9 +593,13 @@ bool RISCVAsmPrinter::runOnMachineFunction(MachineFunction &MF) {
     }
   }
 
-  llvm::errs() << "#MachineFunction = " << MF.getName() << "\n";
-  llvm::errs() << "#CSetBoundsImm = " << csetboundsimm << "\n";
-  llvm::errs() << "#TwoAddrCSetBoundsImm = " << twoaddr << "\n";
+    FILE *fp = fopen("/tmp/compiler_log.txt", "a");  // open for append, create if not exists
+    if (fp) {
+      fprintf(fp, "#MachineFunction = %s\n", MF.getName().str().c_str());
+      fprintf(fp, "#CSetBoundsImm = %lld\n", csetboundsimm);
+      fprintf(fp, "#TwoAddrCSetBoundsImm = %lld\n", twoaddr);
+      fclose(fp);
+    }
 
   // The low 3 bits of the flags field specify the number of registers to
   // clear.  The next two provide the set of

@@ -593,6 +593,7 @@ bool RISCVAsmPrinter::runOnMachineFunction(MachineFunction &MF) {
     }
   }
 
+  llvm::errs() << "#MachineFunction = " << MF.getName() << "\n";
   llvm::errs() << "#CSetBoundsImm = " << csetboundsimm << "\n";
   llvm::errs() << "#TwoAddrCSetBoundsImm = " << twoaddr << "\n";
 

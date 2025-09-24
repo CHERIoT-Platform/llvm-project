@@ -1347,9 +1347,10 @@ def : Pat<(riscv_cllc tjumptable:$in), (PseudoCLLC tjumptable:$in)>;
 def : Pat<(riscv_cllc tconstpool:$in), (PseudoCLLC tconstpool:$in)>;
 
 let hasSideEffects = 0, mayLoad = 1, mayStore = 0, isCodeGenOnly = 0,
-    isAsmParserOnly = 1, Size = 8 in
-def PseudoCLGC : Pseudo<(outs GPCR:$dst), (ins bare_symbol:$src), [],
-                        "clgc", "$dst, $src">;
+    isAsmParserOnly = 1,
+    Size = 12 in def PseudoCLGC
+    : Pseudo<(outs GPCR:$dst), (ins bare_symbol:$src), [], "clgc",
+             "$dst, $src">;
 
 def : Pat<(riscv_clgc tglobaladdr:$in), (PseudoCLGC tglobaladdr:$in)>;
 

@@ -897,6 +897,7 @@ public:
   bool isSImm6() const { return isSImm<6>(); }
   bool isSImm10() const { return isSImm<10>(); }
   bool isSImm11() const { return isSImm<11>(); }
+  bool isSImm12() const { return isSImm<12>(); }
   bool isSImm16() const { return isSImm<16>(); }
   bool isSImm26() const { return isSImm<26>(); }
 
@@ -980,7 +981,7 @@ public:
     return SignExtend64<32>(Imm);
   }
 
-  bool isSImm12() const {
+  bool isSImm12LO() const {
     if (!isExpr())
       return false;
 
@@ -1776,6 +1777,9 @@ bool RISCVAsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   case Match_InvalidUImm12:
     return generateImmOutOfRangeError(Operands, ErrorInfo, 0, (1 << 12) - 1);
   case Match_InvalidSImm12:
+    return generateImmOutOfRangeError(Operands, ErrorInfo, -(1 << 11),
+                                      (1 << 11) - 1);
+  case Match_InvalidSImm12LO:
     return generateImmOutOfRangeError(
         Operands, ErrorInfo, -(1 << 11), (1 << 11) - 1,
         "operand must be a symbol with %lo/%pcrel_lo/%tprel_lo specifier or an "

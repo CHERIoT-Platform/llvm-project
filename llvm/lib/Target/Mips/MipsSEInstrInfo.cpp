@@ -1042,12 +1042,11 @@ void MipsSEInstrInfo::expandCCallPseudo(MachineBasicBlock &MBB,
 
 // For opcodes with the ReMaterializable flag set, this function is called to
 // verify the instruction is really rematable.
-bool MipsSEInstrInfo::isReallyTriviallyReMaterializable(
+bool MipsSEInstrInfo::isReMaterializableImpl(
     const MachineInstr &MI) const {
   switch(MI.getOpcode()) {
     // To allow moving CSetBounds on the stack as late as possible.
     case Mips::CheriBoundedStackPseudoImm:
-      // LLVM_DEBUG(dbgs() << "isReallyTriviallyReMaterializable: CHECKING "; MI.dump();)
       // We cannot trivially rematerialize if the size operand is a GPR since
       // that might be dead by the time we use it -> ignore CheriBoundedStackPseudoReg
       assert(MI.getOperand(3).isImm());
@@ -1061,10 +1060,10 @@ bool MipsSEInstrInfo::isReallyTriviallyReMaterializable(
       if (Flags == MipsII::MO_CAPTABLE_OFF_HI) {
          return true;
       }
-      return TargetInstrInfo::isReallyTriviallyReMaterializable(MI);
+      return TargetInstrInfo::isReMaterializableImpl(MI);
     }
   default:
-    return TargetInstrInfo::isReallyTriviallyReMaterializable(MI);
+    return TargetInstrInfo::isReMaterializableImpl(MI);
   }
 }
 

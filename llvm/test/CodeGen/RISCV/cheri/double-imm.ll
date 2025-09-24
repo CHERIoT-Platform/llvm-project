@@ -6,20 +6,12 @@
 ; RUN: %riscv64_cheri_purecap_llc -mattr=+d -verify-machineinstrs < %s \
 ; RUN:   | FileCheck --check-prefixes=CHECK,L64PC128 %s --allow-unused-prefixes
 
-; CHECK-LABEL: .rodata.cst8,"aM",@progbits,8
-; CHECK-NEXT:  .p2align 3
-; CHECK-NEXT: .LCPI0_0:
-; CHECK-NEXT:  .quad 0x3ff0000000000000 # double 1
-; CHECK-NEXT:  .size .LCPI0_0, 8
-; CHECK-NEXT:  .text
-
 define double @double_add_const(double %a) nounwind {
 ; CHECK-LABEL: double_add_const:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:  .LBB0_1: # Label of block must be emitted
-; CHECK-NEXT:    auipcc ca0, %pcrel_hi(.LCPI0_0)
-; CHECK-NEXT:    cincoffset ca0, ca0, %pcrel_lo(.LBB0_1)
-; CHECK-NEXT:    cfld fa5, 0(ca0)
+; CHECK-NEXT:    li a0, 1023
+; CHECK-NEXT:    slli a0, a0, 52
+; CHECK-NEXT:    fmv.d.x fa5, a0
 ; CHECK-NEXT:    fadd.d fa0, fa0, fa5
 ; CHECK-NEXT:    cret
   %1 = fadd double %a, 1.0

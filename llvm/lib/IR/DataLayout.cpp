@@ -152,7 +152,8 @@ bool DataLayout::PointerSpec::operator==(const PointerSpec &Other) const {
   return AddrSpace == Other.AddrSpace && BitWidth == Other.BitWidth &&
          ABIAlign == Other.ABIAlign && PrefAlign == Other.PrefAlign &&
          IndexBitWidth == Other.IndexBitWidth &&
-         IsNonIntegral == Other.IsNonIntegral;
+         HasUnstableRepresentation == Other.HasUnstableRepresentation &&
+         HasExternalState == Other.HasExternalState;
 }
 
 namespace {
@@ -195,7 +196,7 @@ constexpr DataLayout::PrimitiveSpec DefaultVectorSpecs[] = {
 // Default pointer type specifications.
 constexpr DataLayout::PointerSpec DefaultPointerSpecs[] = {
     // p0:64:64:64:64
-    {0, 64, Align::Constant<8>(), Align::Constant<8>(), 64, false, false},
+    {0, 64, Align::Constant<8>(), Align::Constant<8>(), 64, false, false, false},
 };
 
 DataLayout::DataLayout()
@@ -407,18 +408,36 @@ Error DataLayout::parsePointerSpec(StringRef Spec) {
   if (Components.size() < 3 || Components.size() > 5)
     return createSpecFormatError("p[<n>]:<size>:<abi>[:<pref>[:<idx>]]");
 
-  // 'f' indicates a CHERI fat pointer.
-  bool IsFatPointer = false;
-  if (!Components[0].empty() && Components[0].front() == 'f') {
-    IsFatPointer = true;
-    Components[0] = Components[0].drop_front();
-  }
-
   // Address space. Optional, defaults to 0.
   unsigned AddrSpace = 0;
-  if (!Components[0].empty())
-    if (Error Err = parseAddrSpace(Components[0], AddrSpace))
-      return Err;
+  bool ExternalState = false;
+  bool UnstableRepr = false;
+  bool IsFatPointer = false;
+  StringRef AddrSpaceStr = Components[0];
+  while (!AddrSpaceStr.empty()) {
+    char C = AddrSpaceStr.front();
+    if (C == 'e') {
+      ExternalState = true;
+    } else if (C == 'u') {
+      UnstableRepr = true;
+    } else if (C == 'f') {
+      // 'f' indicates a CHERI fat pointer.
+      IsFatPointer = true;
+      ExternalState = true;
+    } else if (isAlpha(C)) {
+      return createStringError("'%c' is not a valid pointer specification flag",
+                               C);
+    } else {
+      break; // not a valid flag, remaining must be the address space number.
+    }
+    AddrSpaceStr = AddrSpaceStr.drop_front(1);
+  }
+  if (!AddrSpaceStr.empty())
+    if (Error Err = parseAddrSpace(AddrSpaceStr, AddrSpace))
+      return Err; // Failed to parse the remaining characters as a number
+  if (AddrSpace == 0 && (ExternalState || UnstableRepr))
+    return createStringError(
+        "address space 0 cannot be unstable or have external state");
 
   // Size. Required, cannot be zero.
   unsigned BitWidth;
@@ -452,7 +471,7 @@ Error DataLayout::parsePointerSpec(StringRef Spec) {
         "index size cannot be larger than the pointer size");
 
   setPointerSpec(AddrSpace, BitWidth, ABIAlign, PrefAlign, IndexBitWidth,
-                 IsFatPointer, IsFatPointer);
+                 UnstableRepr, ExternalState, IsFatPointer);
   return Error::success();
 }
 
@@ -628,7 +647,7 @@ Error DataLayout::parseLayoutString(StringRef LayoutString) {
     // the spec for AS0, and we then update that to mark it non-integral.
     const PointerSpec &PS = getPointerSpec(AS);
     setPointerSpec(AS, PS.BitWidth, PS.ABIAlign, PS.PrefAlign, PS.IndexBitWidth,
-                   true, PS.IsFatPointer);
+                   /*HasUnstableRepr=*/true, /*HasExternalState=*/false, PS.IsFatPointer);
   }
 
   return Error::success();
@@ -676,20 +695,23 @@ DataLayout::getPointerSpec(uint32_t AddrSpace) const {
 
 void DataLayout::setPointerSpec(uint32_t AddrSpace, uint32_t BitWidth,
                                 Align ABIAlign, Align PrefAlign,
-                                uint32_t IndexBitWidth, bool IsNonIntegral,
+                                uint32_t IndexBitWidth, bool HasUnstableRepr,
+                                bool HasExternalState,
                                 bool IsFatPointer) {
-  assert((IsNonIntegral || !IsFatPointer) && "IsFat requires IsNonIntegral!");
+  assert((HasExternalState || !IsFatPointer) && "IsFat requires IsNonIntegral!");
   auto I = lower_bound(PointerSpecs, AddrSpace, LessPointerAddrSpace());
   if (I == PointerSpecs.end() || I->AddrSpace != AddrSpace) {
     PointerSpecs.insert(I, PointerSpec{AddrSpace, BitWidth, ABIAlign, PrefAlign,
-                                       IndexBitWidth, IsNonIntegral, IsFatPointer});
+                                       IndexBitWidth, HasUnstableRepr,
+                                       HasExternalState, IsFatPointer});
     HasCheriCapabilities = HasCheriCapabilities || IsFatPointer;
   } else {
     I->BitWidth = BitWidth;
     I->ABIAlign = ABIAlign;
     I->PrefAlign = PrefAlign;
     I->IndexBitWidth = IndexBitWidth;
-    I->IsNonIntegral = IsNonIntegral;
+    I->HasUnstableRepresentation = HasUnstableRepr;
+    I->HasExternalState = HasExternalState;
     I->IsFatPointer = IsFatPointer;
     // Value was replaced, re-calculate HasCheriCapabilities
     HasCheriCapabilities = any_of(

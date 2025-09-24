@@ -167,7 +167,7 @@ class Cheri_rr<bits<7> funct7, string opcodestr, RegisterClass rdClass=GPCR,
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
 class Cheri_ri<bits<3> funct3, string opcodestr, bit simm>
     : RVInstI<funct3, OPC_CHERI, (outs GPCR:$rd),
-              (ins GPCR:$rs1, !if(simm,simm12,uimm12):$imm12),
+              (ins GPCR:$rs1, !if(simm,simm12_lo,uimm12):$imm12),
               opcodestr, "$rd, $rs1, $imm12">;
 
 let hasSideEffects = 1, mayLoad = 0, mayStore = 0 in
@@ -233,10 +233,10 @@ multiclass CheriLoad_ri<bits<3> funct3, string opcodestr> {
   let hasSideEffects = 0, mayLoad = 1, mayStore = 0,
       DecoderNamespace = "CapModeOnly_" in
   def "" : RVInstI<funct3, OPC_LOAD, (outs GPR:$rd),
-                   (ins GPCR:$rs1, simm12:$imm12), "c" # opcodestr,
+                   (ins GPCR:$rs1, simm12_lo:$imm12), "c" # opcodestr,
                    "$rd, ${imm12}(${rs1})">;
   def : InstAlias<opcodestr # " $rd, ${imm12}(${rs1})",
-                  (!cast<Instruction>(NAME) GPR:$rd, GPCR:$rs1, simm12:$imm12),
+                  (!cast<Instruction>(NAME) GPR:$rd, GPCR:$rs1, simm12_lo:$imm12),
                   0>;
 }
 
@@ -244,10 +244,10 @@ multiclass CheriStore_ri<bits<3> funct3, string opcodestr> {
   let hasSideEffects = 0, mayLoad = 0, mayStore = 1,
       DecoderNamespace = "CapModeOnly_" in
   def "" : RVInstS<funct3, OPC_STORE, (outs),
-                   (ins GPR:$rs2, GPCR:$rs1, simm12:$imm12),
+                   (ins GPR:$rs2, GPCR:$rs1, simm12_lo:$imm12),
                    "c" # opcodestr, "$rs2, ${imm12}(${rs1})">;
   def : InstAlias<opcodestr # "$rs2, ${imm12}(${rs1})",
-                  (!cast<Instruction>(NAME) GPR:$rs2, GPCR:$rs1, simm12:$imm12),
+                  (!cast<Instruction>(NAME) GPR:$rs2, GPCR:$rs1, simm12_lo:$imm12),
                   0>;
 }
 
@@ -438,7 +438,7 @@ let defsCanBeSealed = 1 in
 def CSealEntry      : Cheri_r<0x11, "csealentry", GPCR>;
 
 def : InstAlias<"cincoffsetimm $cd, $cs1, $imm",
-                (CIncOffsetImm GPCR:$cd, GPCR:$cs1, simm12:$imm), 0>;
+                (CIncOffsetImm GPCR:$cd, GPCR:$cs1, simm12_lo:$imm), 0>;
 def : InstAlias<"csetboundsimm $cd, $cs1, $imm",
                 (CSetBoundsImm GPCR:$cd, GPCR:$cs1, uimm12:$imm), 0>;
 }
@@ -459,9 +459,9 @@ let Predicates = [HasCheriot] in {
   def : InstAlias<"ct.cincoffset $rd, $rs1, $rs2", (CIncOffset GPCR:$rd,
                                                        GPCR:$rs1, GPR:$rs2)>;
   def : InstAlias<"ct.cincaddr $rd, $rs1, $rs2",
-                  (CIncOffsetImm GPCR:$rd, GPCR:$rs1, simm12:$rs2), 0>;
+                  (CIncOffsetImm GPCR:$rd, GPCR:$rs1, simm12_lo:$rs2), 0>;
   def : InstAlias<"ct.cincoffset $rd, $rs1, $rs2", (CIncOffsetImm GPCR:$rd,
-                                                       GPCR:$rs1, simm12:$rs2)>;
+                                                       GPCR:$rs1, simm12_lo:$rs2)>;
   def : InstAlias<"ct.csetbounds $rd, $rs1, $rs2", (CSetBounds GPCR:$rd,
                                                        GPCR:$rs1, GPR:$rs2)>;
   def : InstAlias<"ct.csetboundsexact $rd, $rs1, $rs2",
@@ -473,9 +473,9 @@ let Predicates = [HasCheriot] in {
   def : InstAlias<"ct.ccleartag $rd, $rs1", (CClearTag GPCR:$rd, GPCR:$rs1)>;
 
   def : InstAlias<"ct.cincaddrimm $cd, $cs1, $imm",
-                  (CIncOffsetImm GPCR:$cd, GPCR:$cs1, simm12:$imm), 0>;
+                  (CIncOffsetImm GPCR:$cd, GPCR:$cs1, simm12_lo:$imm), 0>;
   def : InstAlias<"ct.cincoffsetimm $cd, $cs1, $imm",
-                  (CIncOffsetImm GPCR:$cd, GPCR:$cs1, simm12:$imm), 0>;
+                  (CIncOffsetImm GPCR:$cd, GPCR:$cs1, simm12_lo:$imm), 0>;
   def : InstAlias<"ct.csetboundsimm $cd, $cs1, $imm",
                   (CSetBoundsImm GPCR:$cd, GPCR:$cs1, uimm12:$imm), 0>;
 }
@@ -760,13 +760,13 @@ let Predicates = [HasCheri, IsRV32, NotCapMode] in {
 let DecoderNamespace = "RISCV32Only_",
     hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
 def LC_64  : RVInstI<0x3, OPC_LOAD, (outs GPCR:$rd),
-                     (ins GPR:$rs1, simm12:$imm12),
+                     (ins GPR:$rs1, simm12_lo:$imm12),
                      "lc", "$rd, ${imm12}(${rs1})">;
 
 let DecoderNamespace = "RISCV32Only_",
     hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
 def SC_64  : RVInstS<0x3, OPC_STORE, (outs),
-                     (ins GPCR:$rs2, GPR:$rs1, simm12:$imm12),
+                     (ins GPCR:$rs2, GPR:$rs1, simm12_lo:$imm12),
                      "sc", "$rs2, ${imm12}(${rs1})">;
 
 let EmitPriority = 0 in {
@@ -780,12 +780,12 @@ def : InstAlias<"sc $rs2, (${rs1})",
 let Predicates = [HasCheri, IsRV64, NotCapMode] in {
 let hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
 def LC_128  : RVInstI<0x2, OPC_MISC_MEM, (outs GPCR:$rd),
-                      (ins GPR:$rs1, simm12:$imm12),
+                      (ins GPR:$rs1, simm12_lo:$imm12),
                       "lc", "$rd, ${imm12}(${rs1})">;
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
 def SC_128  : RVInstS<0x4, OPC_STORE, (outs),
-                      (ins GPCR:$rs2, GPR:$rs1, simm12:$imm12),
+                      (ins GPCR:$rs2, GPR:$rs1, simm12_lo:$imm12),
                       "sc", "$rs2, ${imm12}(${rs1})">;
 
 let EmitPriority = 0 in {
@@ -833,7 +833,7 @@ def CJAL : RVInstJ<OPC_JAL, (outs GPCR:$rd), (ins simm21_lsb0_jal:$imm20),
 
 let isCall = 1 in
 def CJALR : RVInstI<0b000, OPC_JALR, (outs GPCR:$rd),
-                    (ins GPCR:$rs1, simm12:$imm12),
+                    (ins GPCR:$rs1, simm12_lo:$imm12),
                     "cjalr", "$rd, ${imm12}(${rs1})">;
 } // Predicates = [HasCheri, IsCapMode]
 } // hasSideEffects = 0, mayLoad = 0, mayStore = 0
@@ -850,16 +850,16 @@ def : InstAlias<"cj $offset",   (CJAL C0, simm21_lsb0_jal:$offset), 0>;
 // Non-zero offset aliases of "cjalr" are the lowest weight, followed by the
 // two-register form, then the one-register forms and finally "cret".
 def : InstAlias<"cjr $rs",                (CJALR       C0, GPCR:$rs, 0), 3>;
-def : InstAlias<"cjr ${offset}(${rs})",   (CJALR       C0, GPCR:$rs, simm12:$offset)>;
+def : InstAlias<"cjr ${offset}(${rs})",   (CJALR       C0, GPCR:$rs, simm12_lo:$offset)>;
 def : InstAlias<"cjalr $rs",              (CJALR       C1, GPCR:$rs, 0), 3>;
-def : InstAlias<"cjalr ${offset}(${rs})", (CJALR       C1, GPCR:$rs, simm12:$offset)>;
+def : InstAlias<"cjalr ${offset}(${rs})", (CJALR       C1, GPCR:$rs, simm12_lo:$offset)>;
 def : InstAlias<"cjalr $rd, $rs",         (CJALR GPCR:$rd, GPCR:$rs, 0), 2>;
 def : InstAlias<"cret",                   (CJALR       C0,       C1, 0), 4>;
 
 // Non-canonical forms for jump targets also accepted by the assembler.
-def : InstAlias<"cjr $rs, $offset",        (CJALR       C0, GPCR:$rs, simm12:$offset), 0>;
-def : InstAlias<"cjalr $rs, $offset",      (CJALR       C1, GPCR:$rs, simm12:$offset), 0>;
-def : InstAlias<"cjalr $rd, $rs, $offset", (CJALR GPCR:$rd, GPCR:$rs, simm12:$offset), 0>;
+def : InstAlias<"cjr $rs, $offset",        (CJALR       C0, GPCR:$rs, simm12_lo:$offset), 0>;
+def : InstAlias<"cjalr $rs, $offset",      (CJALR       C1, GPCR:$rs, simm12_lo:$offset), 0>;
+def : InstAlias<"cjalr $rd, $rs, $offset", (CJALR GPCR:$rd, GPCR:$rs, simm12_lo:$offset), 0>;
 } // Predicates = [HasCheri, IsCapMode]
 
 let Predicates = [HasCheriot] in {
@@ -870,26 +870,26 @@ let Predicates = [HasCheriot] in {
   def : InstAlias<"ct.cjal $rd, $imm20", (CJAL GPCR:$rd,
                                              simm21_lsb0_jal:$imm20)>;
   def : InstAlias<"ct.cjalr $rd, ${imm12}(${rs1})", (CJALR GPCR:$rd, GPCR:$rs1,
-                                                        simm12:$imm12)>;
+                                                        simm12_lo:$imm12)>;
 
   def : InstAlias<"ct.cjal $offset", (CJAL C1, simm21_lsb0_jal:$offset), 2>;
   def : InstAlias<"ct.cj $offset", (CJAL C0, simm21_lsb0_jal:$offset), 0>;
 
   def : InstAlias<"ct.cjr $rs", (CJALR C0, GPCR:$rs, 0), 8>;
   def : InstAlias<"ct.cjr ${offset}(${rs})",
-                  (CJALR C0, GPCR:$rs, simm12:$offset), 5>;
+                  (CJALR C0, GPCR:$rs, simm12_lo:$offset), 5>;
   def : InstAlias<"ct.cjalr $rs", (CJALR C1, GPCR:$rs, 0), 8>;
   def : InstAlias<"ct.cjalr ${offset}(${rs})",
-                  (CJALR C1, GPCR:$rs, simm12:$offset), 5>;
+                  (CJALR C1, GPCR:$rs, simm12_lo:$offset), 5>;
   def : InstAlias<"ct.cjalr $rd, $rs", (CJALR GPCR:$rd, GPCR:$rs, 0), 7>;
   def : InstAlias<"ct.cret", (CJALR C0, C1, 0), 9>;
 
-  def : InstAlias<"ct.cjr $rs, $offset", (CJALR C0, GPCR:$rs, simm12:$offset),
+  def : InstAlias<"ct.cjr $rs, $offset", (CJALR C0, GPCR:$rs, simm12_lo:$offset),
                   0>;
-  def : InstAlias<"ct.cjalr $rs, $offset", (CJALR C1, GPCR:$rs, simm12:$offset),
+  def : InstAlias<"ct.cjalr $rs, $offset", (CJALR C1, GPCR:$rs, simm12_lo:$offset),
                   0>;
   def : InstAlias<"ct.cjalr $rd, $rs, $offset",
-                  (CJALR GPCR:$rd, GPCR:$rs, simm12:$offset), 0>;
+                  (CJALR GPCR:$rd, GPCR:$rs, simm12_lo:$offset), 0>;
 }
 
 // Expands to an instruction alias with and without a c prefix for loads/stores
@@ -913,22 +913,22 @@ defm CSW : CheriStore_ri<0b010, "sw">;
 
 let Predicates = [HasCheriot] in {
   def : InstAlias<"ct.clb $rd, ${imm12}(${rs1})", (CLB GPR:$rd, GPCR:$rs1,
-                                                      simm12:$imm12)>;
+                                                      simm12_lo:$imm12)>;
   def : InstAlias<"ct.clh $rd, ${imm12}(${rs1})", (CLH GPR:$rd, GPCR:$rs1,
-                                                      simm12:$imm12)>;
+                                                      simm12_lo:$imm12)>;
   def : InstAlias<"ct.clw $rd, ${imm12}(${rs1})", (CLW GPR:$rd, GPCR:$rs1,
-                                                      simm12:$imm12)>;
+                                                      simm12_lo:$imm12)>;
   def : InstAlias<"ct.clbu $rd, ${imm12}(${rs1})", (CLBU GPR:$rd, GPCR:$rs1,
-                                                       simm12:$imm12)>;
+                                                       simm12_lo:$imm12)>;
   def : InstAlias<"ct.clhu $rd, ${imm12}(${rs1})", (CLHU GPR:$rd, GPCR:$rs1,
-                                                       simm12:$imm12)>;
+                                                       simm12_lo:$imm12)>;
 
   def : InstAlias<"ct.csb $rs2, ${imm12}(${rs1})", (CSB GPR:$rs2, GPCR:$rs1,
-                                                       simm12:$imm12)>;
+                                                       simm12_lo:$imm12)>;
   def : InstAlias<"ct.csh $rs2, ${imm12}(${rs1})", (CSH GPR:$rs2, GPCR:$rs1,
-                                                       simm12:$imm12)>;
+                                                       simm12_lo:$imm12)>;
   def : InstAlias<"ct.csw $rs2, ${imm12}(${rs1})", (CSW GPR:$rs2, GPCR:$rs1,
-                                                       simm12:$imm12)>;
+                                                       simm12_lo:$imm12)>;
 }
 
 let Predicates = [HasCheri, IsRV64, IsCapMode] in {
@@ -941,18 +941,18 @@ let Predicates = [HasCheri, IsRV32, IsCapMode] in {
 let DecoderNamespace = "RISCV32CapModeOnly_",
     hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
 def CLC_64  : RVInstI<0x3, OPC_LOAD, (outs GPCR:$rd),
-                      (ins GPCR:$rs1, simm12:$imm12),
+                      (ins GPCR:$rs1, simm12_lo:$imm12),
                       "clc", "$rd, ${imm12}(${rs1})">;
 def : InstAlias<"lc $rd, ${imm12}(${rs1})",
-                (CLC_64  GPCR:$rd, GPCR:$rs1, simm12:$imm12), 0>;
+                (CLC_64  GPCR:$rd, GPCR:$rs1, simm12_lo:$imm12), 0>;
 
 let DecoderNamespace = "RISCV32CapModeOnly_",
     hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
 def CSC_64  : RVInstS<0x3, OPC_STORE, (outs),
-                      (ins GPCR:$rs2, GPCR:$rs1, simm12:$imm12),
+                      (ins GPCR:$rs2, GPCR:$rs1, simm12_lo:$imm12),
                       "csc", "$rs2, ${imm12}(${rs1})">;
 def : InstAlias<"sc $rs2, ${imm12}(${rs1})",
-                (CSC_64  GPCR:$rs2, GPCR:$rs1, simm12:$imm12), 0>;
+                (CSC_64  GPCR:$rs2, GPCR:$rs1, simm12_lo:$imm12), 0>;
 
 defm : CPrefixedInstAlias<"lc $rd, (${rs1})",
                           (CLC_64  GPCR:$rd, GPCR:$rs1, 0)>;
@@ -962,27 +962,27 @@ defm : CPrefixedInstAlias<"sc $rs2, (${rs1})",
 
 let Predicates = [HasCheriot] in {
   def : InstAlias<"ct.clc $rd, ${imm12}(${rs1})", (CLC_64 GPCR:$rd, GPCR:$rs1,
-                                                      simm12:$imm12)>;
+                                                      simm12_lo:$imm12)>;
   def : InstAlias<"ct.csc $rd, ${imm12}(${rs1})", (CSC_64 GPCR:$rd, GPCR:$rs1,
-                                                      simm12:$imm12)>;
+                                                      simm12_lo:$imm12)>;
 }
 
 let Predicates = [HasCheri, IsRV64, IsCapMode] in {
 let DecoderNamespace = "CapModeOnly_",
     hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
 def CLC_128  : RVInstI<0x2, OPC_MISC_MEM, (outs GPCR:$rd),
-                       (ins GPCR:$rs1, simm12:$imm12),
+                       (ins GPCR:$rs1, simm12_lo:$imm12),
                        "clc", "$rd, ${imm12}(${rs1})">;
 def : InstAlias<"lc $rd, ${imm12}(${rs1})",
-                (CLC_128  GPCR:$rd, GPCR:$rs1, simm12:$imm12), 0>;
+                (CLC_128  GPCR:$rd, GPCR:$rs1, simm12_lo:$imm12), 0>;
 
 let DecoderNamespace = "CapModeOnly_",
     hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
 def CSC_128  : RVInstS<0x4, OPC_STORE, (outs),
-                       (ins GPCR:$rs2, GPCR:$rs1, simm12:$imm12),
+                       (ins GPCR:$rs2, GPCR:$rs1, simm12_lo:$imm12),
                        "csc", "$rs2, ${imm12}(${rs1})">;
 def : InstAlias<"sc $rs2, ${imm12}(${rs1})",
-                (CSC_128  GPCR:$rs2, GPCR:$rs1, simm12:$imm12), 0>;
+                (CSC_128  GPCR:$rs2, GPCR:$rs1, simm12_lo:$imm12), 0>;
 
 defm : CPrefixedInstAlias<"lc $rd, (${rs1})",
                           (CLC_128  GPCR:$rd, GPCR:$rs1, 0)>;
@@ -1064,22 +1064,22 @@ let Predicates = [HasCheri, HasStdExtF, IsCapMode] in {
 let DecoderNamespace = "CapModeOnly_",
     hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
 def CFLW : RVInstI<0b010, OPC_LOAD_FP, (outs FPR32:$rd),
-                   (ins GPCR:$rs1, simm12:$imm12),
+                   (ins GPCR:$rs1, simm12_lo:$imm12),
                    "cflw", "$rd, ${imm12}(${rs1})">;
 
 let DecoderNamespace = "CapModeOnly_",
     hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
 def CFSW : RVInstS<0b010, OPC_STORE_FP, (outs),
-                   (ins FPR32:$rs2, GPCR:$rs1, simm12:$imm12),
+                   (ins FPR32:$rs2, GPCR:$rs1, simm12_lo:$imm12),
                    "cfsw", "$rs2, ${imm12}(${rs1})">;
 
 defm : CPrefixedInstAlias<"flw $rd, (${rs1})", (CFLW FPR32:$rd, GPCR:$rs1, 0)>;
 defm : CPrefixedInstAlias<"fsw $rs2, (${rs1})",
                           (CFSW FPR32:$rs2, GPCR:$rs1, 0)>;
 def : InstAlias<"flw $rd, ${imm12}(${rs1})",
-                (CFLW FPR32:$rd, GPCR:$rs1, simm12:$imm12), 0>;
+                (CFLW FPR32:$rd, GPCR:$rs1, simm12_lo:$imm12), 0>;
 def : InstAlias<"fsw $rs2, ${imm12}(${rs1})",
-                (CFSW FPR32:$rs2, GPCR:$rs1, simm12:$imm12), 0>;
+                (CFSW FPR32:$rs2, GPCR:$rs1, simm12_lo:$imm12), 0>;
 } // Predicates = [HasCheri, HasStdExtF, IsCapMode]
 
 /// 'D' (Single-Precision Floating-Point) extension
@@ -1088,22 +1088,22 @@ let Predicates = [HasCheri, HasStdExtD, IsCapMode] in {
 let DecoderNamespace = "CapModeOnly_",
     hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
 def CFLD : RVInstI<0b011, OPC_LOAD_FP, (outs FPR64:$rd),
-                   (ins GPCR:$rs1, simm12:$imm12),
+                   (ins GPCR:$rs1, simm12_lo:$imm12),
                    "cfld", "$rd, ${imm12}(${rs1})">;
 
 let DecoderNamespace = "CapModeOnly_",
     hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
 def CFSD : RVInstS<0b011, OPC_STORE_FP, (outs),
-                   (ins FPR64:$rs2, GPCR:$rs1, simm12:$imm12),
+                   (ins FPR64:$rs2, GPCR:$rs1, simm12_lo:$imm12),
                    "cfsd", "$rs2, ${imm12}(${rs1})">;
 
 defm : CPrefixedInstAlias<"fld $rd, (${rs1})", (CFLD FPR64:$rd, GPCR:$rs1, 0)>;
 defm : CPrefixedInstAlias<"fsd $rs2, (${rs1})",
                           (CFSD FPR64:$rs2, GPCR:$rs1, 0)>;
 def : InstAlias<"fld $rd, ${imm12}(${rs1})",
-                (CFLD FPR64:$rd, GPCR:$rs1, simm12:$imm12), 0>;
+                (CFLD FPR64:$rd, GPCR:$rs1, simm12_lo:$imm12), 0>;
 def : InstAlias<"fsd $rs2, ${imm12}(${rs1})",
-                (CFSD FPR64:$rs2, GPCR:$rs1, simm12:$imm12), 0>;
+                (CFSD FPR64:$rs2, GPCR:$rs1, simm12_lo:$imm12), 0>;
 } // Predicates = [HasCheri, HasStdExtD, IsCapMode]
 
 /// 'C' (Compressed Instructions) extension
@@ -1402,7 +1402,7 @@ class PatGpcrGpr<SDPatternOperator OpNode, RVInst Inst>
     : Pat<(OpNode GPCR:$rs1, (XLenVT GPR:$rs2)), (Inst GPCR:$rs1, GPR:$rs2)>;
 
 class PatGpcrSimm12<SDPatternOperator OpNode, RVInstI Inst>
-    : Pat<(OpNode GPCR:$rs1, simm12:$imm12), (Inst GPCR:$rs1, simm12:$imm12)>;
+    : Pat<(OpNode GPCR:$rs1, simm12_lo:$imm12), (Inst GPCR:$rs1, simm12_lo:$imm12)>;
 
 class PatGpcrUimm12<SDPatternOperator OpNode, RVInstI Inst>
     : Pat<(OpNode GPCR:$rs1, uimm12:$imm12), (Inst GPCR:$rs1, uimm12:$imm12)>;
@@ -1461,8 +1461,8 @@ def : PatGpcrUimm12<int_cheri_bounded_stack_cap, CSetBoundsImm>;
 def : PatGpcrGpr<int_cheri_bounded_stack_cap_dynamic, CSetBounds>;
 def : PatGpcrUimm12<int_cheri_bounded_stack_cap_dynamic, CSetBoundsImm>;
 
-def : Pat<(CapFrameAddrRegImm(cPTR GPCR:$rs1), simm12:$imm12),
-          (CIncOffsetImm GPCR:$rs1, simm12:$imm12)>;
+def : Pat<(CapFrameAddrRegImm(cPTR GPCR:$rs1), simm12_lo:$imm12),
+          (CIncOffsetImm GPCR:$rs1, simm12_lo:$imm12)>;
 
 /// Pointer-Arithmetic Instructions
 
@@ -1474,8 +1474,8 @@ def : Pat<(XLenVT (int_cheri_cap_diff GPCR:$cs1, GPCR:$cs2)),
 
 let Predicates = [IsPureCapABI] in {
   def : Pat<(inttoptr(XLenVT GPR:$rs2)), (cPTR(CIncOffset(cPTR C0), GPR:$rs2))>;
-  def : Pat<(inttoptr simm12:$imm12), (cPTR(CIncOffsetImm(cPTR C0),
-                                          simm12:$imm12))>;
+  def : Pat<(inttoptr simm12_lo:$imm12), (cPTR(CIncOffsetImm(cPTR C0),
+                                          simm12_lo:$imm12))>;
   def : Pat<(XLenVT(ptrtoint(cPTR GPCR:$rs1))), (PseudoCGetAddr GPCR:$rs1)>;
 }
 
@@ -1520,7 +1520,7 @@ multiclass CheriSetCCPatGpcrImm<PatFrag CondOp, Operand ImmTy, dag GprImmDag> {
 }
 
 multiclass CheriSetCCPatGpcrSimm12<PatFrag CondOp, dag GprImmDag>
-    : CheriSetCCPatGpcrImm<CondOp, simm12, GprImmDag>;
+    : CheriSetCCPatGpcrImm<CondOp, simm12_lo, GprImmDag>;
 
 multiclass CheriSetCCPatGpcrSimm12Plus1<PatFrag CondOp, dag GprImmDag>
     : CheriSetCCPatGpcrImm<CondOp, simm12_plus1, GprImmDag>;
@@ -1842,14 +1842,14 @@ defm : PseudoCmpXchgPat<"atomic_cmp_swap_cap", PseudoCmpXchgCap, CLenVT, GPCR>;
 /// Capability Mode Instructions
 
 multiclass CheriLdPat<PatFrag LoadOp, RVInst Inst, ValueType ReturnVt = XLenVT> {
-  def : Pat<(ReturnVt(LoadOp(CapRegImm(cPTR GPCR:$rs1), simm12:$imm12))),
-            (Inst GPCR:$rs1, simm12:$imm12)>;
+  def : Pat<(ReturnVt(LoadOp(CapRegImm(cPTR GPCR:$rs1), simm12_lo:$imm12))),
+            (Inst GPCR:$rs1, simm12_lo:$imm12)>;
 }
 
 multiclass CheriStPat<PatFrag StoreOp, RVInst Inst, RegisterClass StTy, ValueType StoreVt = XLenVT> {
   def : Pat<(StoreOp(StoreVt StTy:$rs2), (CapRegImm(cPTR GPCR:$rs1),
-                                             simm12:$imm12)),
-            (Inst(StoreVt StTy:$rs2), GPCR:$rs1, simm12:$imm12)>;
+                                             simm12_lo:$imm12)),
+            (Inst(StoreVt StTy:$rs2), GPCR:$rs1, simm12_lo:$imm12)>;
 }
 
 multiclass CheriAtomicStPat<PatFrag StoreOp, RVInst Inst, RegisterClass StTy, ValueType StoreVt>
@@ -1999,12 +1999,12 @@ def PseudoCBR : Pseudo<(outs), (ins simm21_lsb0_jal:$imm20), [(br bb:$imm20)]>,
 
 let isCall = 1, Defs = [C1] in
 let isBarrier = 1, isBranch = 1, isIndirectBranch = 1, isTerminator = 1 in
-def PseudoCBRIND : Pseudo<(outs), (ins GPCRNoC0C1:$rs1, simm12:$imm12), []>,
-                   PseudoInstExpansion<(CJALR C0, GPCR:$rs1, simm12:$imm12)>;
+def PseudoCBRIND : Pseudo<(outs), (ins GPCRNoC0C1:$rs1, simm12_lo:$imm12), []>,
+                   PseudoInstExpansion<(CJALR C0, GPCR:$rs1, simm12_lo:$imm12)>;
 
 def : Pat<(brind GPCR:$rs1), (PseudoCBRIND GPCR:$rs1, 0)>;
-def : Pat<(brind (cptradd GPCR:$rs1, simm12:$imm12)),
-          (PseudoCBRIND GPCR:$rs1, simm12:$imm12)>;
+def : Pat<(brind (cptradd GPCR:$rs1, simm12_lo:$imm12)),
+          (PseudoCBRIND GPCR:$rs1, simm12_lo:$imm12)>;
 } // Predicates = [HasCheri, IsCapMode, IsPureCapABI]
 
 let Predicates = [HasCheri, IsCapMode],

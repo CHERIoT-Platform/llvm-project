@@ -219,7 +219,7 @@ define <2 x i32> @ptrtoint_of_ptrmask_vec_fail(<2 x ptr addrspace(1) > %p, <2 x 
 ; CHECK-SAME: (<2 x ptr addrspace(1)> [[P:%.*]], <2 x i32> [[M:%.*]]) {
 ; CHECK-NEXT:    [[PM:%.*]] = call <2 x ptr addrspace(1)> @llvm.ptrmask.v2p1.v2i32(<2 x ptr addrspace(1)> [[P]], <2 x i32> [[M]])
 ; CHECK-NEXT:    [[TMP1:%.*]] = ptrtoint <2 x ptr addrspace(1)> [[PM]] to <2 x i64>
-; CHECK-NEXT:    [[R:%.*]] = trunc <2 x i64> [[TMP1]] to <2 x i32>
+; CHECK-NEXT:    [[R:%.*]] = trunc nuw <2 x i64> [[TMP1]] to <2 x i32>
 ; CHECK-NEXT:    ret <2 x i32> [[R]]
 ;
   %pm = call <2 x ptr addrspace(1) > @llvm.ptrmask.v2p1.v2i32(<2 x ptr addrspace(1) > %p, <2 x i32> %m)
@@ -230,7 +230,7 @@ define <2 x i32> @ptrtoint_of_ptrmask_vec_fail(<2 x ptr addrspace(1) > %p, <2 x 
 define ptr addrspace(1) @ptrmask_is_null(ptr addrspace(1) align 32 %p) {
 ; CHECK-LABEL: define ptr addrspace(1) @ptrmask_is_null
 ; CHECK-SAME: (ptr addrspace(1) align 32 [[P:%.*]]) {
-; CHECK-NEXT:    [[R:%.*]] = call align 4294967296 ptr addrspace(1) @llvm.ptrmask.p1.i32(ptr addrspace(1) [[P]], i32 0)
+; CHECK-NEXT:    [[R:%.*]] = call align 2147483648 ptr addrspace(1) @llvm.ptrmask.p1.i32(ptr addrspace(1) [[P]], i32 0)
 ; CHECK-NEXT:    ret ptr addrspace(1) [[R]]
 ;
   %r = call ptr addrspace(1) @llvm.ptrmask.p1.i32(ptr addrspace(1) %p, i32 31)
@@ -280,7 +280,7 @@ define ptr @ptrmask_maintain_provenance_i64(ptr %p0) {
 define ptr addrspace(1) @ptrmask_maintain_provenance_i32(ptr addrspace(1) %p0) {
 ; CHECK-LABEL: define ptr addrspace(1) @ptrmask_maintain_provenance_i32
 ; CHECK-SAME: (ptr addrspace(1) [[P0:%.*]]) {
-; CHECK-NEXT:    [[R:%.*]] = call align 4294967296 ptr addrspace(1) @llvm.ptrmask.p1.i32(ptr addrspace(1) [[P0]], i32 0)
+; CHECK-NEXT:    [[R:%.*]] = call align 2147483648 ptr addrspace(1) @llvm.ptrmask.p1.i32(ptr addrspace(1) [[P0]], i32 0)
 ; CHECK-NEXT:    ret ptr addrspace(1) [[R]]
 ;
   %r = call ptr addrspace(1) @llvm.ptrmask.p1.i32(ptr addrspace(1) %p0, i32 0)

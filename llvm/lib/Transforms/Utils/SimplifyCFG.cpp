@@ -526,28 +526,33 @@ static bool dominatesMergePoint(
 static ConstantInt *getConstantInt(Value *V, const DataLayout &DL) {
   // Normal constant int.
   ConstantInt *CI = dyn_cast<ConstantInt>(V);
-  if (CI || !isa<Constant>(V) || !V->getType()->isPointerTy() ||
-      DL.isNonIntegralPointerType(V->getType()))
+  if (CI || !isa<Constant>(V) || !V->getType()->isPointerTy())
     return CI;
+
+  // It is not safe to look through inttoptr or ptrtoint when using unstable
+  // pointer types.
+  if (DL.hasUnstableRepresentation(V->getType()))
+    return nullptr;
 
   // This is some kind of pointer constant. Turn it into a pointer-sized
   // ConstantInt if possible.
-  IntegerType *PtrTy = cast<IntegerType>(DL.getIntPtrType(V->getType()));
+  IntegerType *IntPtrTy = cast<IntegerType>(DL.getIntPtrType(V->getType()));
 
   // Null pointer means 0, see SelectionDAGBuilder::getValue(const Value*).
   if (isa<ConstantPointerNull>(V))
-    return ConstantInt::get(PtrTy, 0);
+    return ConstantInt::get(IntPtrTy, 0);
 
-  // IntToPtr const int.
+  // IntToPtr const int, we can look through this if the semantics of
+  // inttoptr for this address space are a simple (truncating) bitcast.
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(V))
     if (CE->getOpcode() == Instruction::IntToPtr)
       if (ConstantInt *CI = dyn_cast<ConstantInt>(CE->getOperand(0))) {
         // The constant is very likely to have the right type already.
-        if (CI->getType() == PtrTy)
+        if (CI->getType() == IntPtrTy)
           return CI;
         else
           return cast<ConstantInt>(
-              ConstantFoldIntegerCast(CI, PtrTy, /*isSigned=*/false, DL));
+              ConstantFoldIntegerCast(CI, IntPtrTy, /*isSigned=*/false, DL));
       }
   return nullptr;
 }
@@ -867,10 +872,12 @@ Value *SimplifyCFGOpt::isValueEqualityComparison(Instruction *TI) {
       }
     }
 
-  // Unwrap any lossless ptrtoint cast.
+  // Unwrap any lossless ptrtoint cast (except for unstable pointers).
   if (CV) {
     if (PtrToIntInst *PTII = dyn_cast<PtrToIntInst>(CV)) {
       Value *Ptr = PTII->getPointerOperand();
+      if (DL.hasUnstableRepresentation(Ptr->getType()))
+        return CV;
       if (PTII->getType() == DL.getIntPtrType(Ptr->getType()))
         CV = Ptr;
     }
@@ -1428,6 +1435,8 @@ bool SimplifyCFGOpt::performValueComparisonIntoPredecessorFolding(
   Builder.SetInsertPoint(PTI);
   // Convert pointer to int before we switch.
   if (CV->getType()->isPointerTy()) {
+    assert(!DL.hasUnstableRepresentation(CV->getType()) &&
+           "Should not end up here with unstable pointers");
     CV =
         Builder.CreatePtrToInt(CV, DL.getIntPtrType(CV->getType()), "magicptr");
   }
@@ -5261,6 +5270,8 @@ bool SimplifyCFGOpt::simplifyBranchOnICmpChain(BranchInst *BI,
   Builder.SetInsertPoint(BI);
   // Convert pointer to int before we switch.
   if (CompVal->getType()->isPointerTy()) {
+    assert(!DL.hasUnstableRepresentation(CompVal->getType()) &&
+           "Should not end up here with unstable pointers");
     // For CHERI capabilities we want to compare the virtual address ->
     // call cap_address_get instead of ptrtoint which might be turned into
     // ctoptr in the hybrid ABI.

@@ -77,7 +77,7 @@ public:
                          unsigned *NewImm) const;
 
 protected:
-  bool isReallyTriviallyReMaterializable(const MachineInstr &MI) const override;
+  bool isReMaterializableImpl(const MachineInstr &MI) const override;
   /// If the specific machine instruction is a instruction that moves/copies
   /// value from one register to another register return destination and source
   /// registers as machine operands.

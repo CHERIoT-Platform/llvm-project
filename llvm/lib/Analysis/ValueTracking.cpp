@@ -98,7 +98,10 @@ static unsigned getBitWidth(Type *Ty, const DataLayout &DL) {
     return BitWidth;
 
   // For CHERI capabilities the usable range here is the address range
-  return DL.getPointerAddrSizeInBits(Ty);
+  if (DL.isFatPointer(Ty))
+    return DL.getPointerAddrSizeInBits(Ty);
+
+  return DL.getPointerTypeSizeInBits(Ty);
 }
 
 // Given the provided Value and, potentially, a context instruction, return
@@ -2369,10 +2372,7 @@ void computeKnownBits(const Value *V, const APInt &DemandedElts,
   }
 
   Type *ScalarTy = Ty->getScalarType();
-  if (ScalarTy->isPointerTy()) {
-    assert(BitWidth == Q.DL.getPointerAddrSizeInBits(ScalarTy) &&
-           "V and Known should have same BitWidth");
-  } else {
+  if (!ScalarTy->isPointerTy()) {
     assert(BitWidth == Q.DL.getTypeSizeInBits(ScalarTy) &&
            "V and Known should have same BitWidth");
   }

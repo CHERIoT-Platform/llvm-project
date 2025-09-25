@@ -6,22 +6,22 @@
 //
 //===----------------------------------------------------------------------===//
 
-// UNSUPPORTED: c++03, c++11, c++14
-// <chrono>
+// ADDITIONAL_COMPILE_FLAGS: -Wno-deprecated
 
-// floor
+// hash_multiset::hash_multiset(const hash_multiset&)
 
-// template <class ToDuration, class Clock, class Duration>
-//   time_point<Clock, ToDuration>
-//   floor(const time_point<Clock, Duration>& t);
+#include <cassert>
+#include <ext/hash_set>
 
-// ToDuration shall be an instantiation of duration.
+int main(int, char**) {
+  __gnu_cxx::hash_multiset<int> set;
 
-#include <chrono>
+  set.insert(1);
+  set.insert(1);
 
-int main(int, char**)
-{
-    std::chrono::floor<int>(std::chrono::system_clock::now());
+  auto set2 = set;
+
+  assert(set2.size() == 2);
 
   return 0;
 }

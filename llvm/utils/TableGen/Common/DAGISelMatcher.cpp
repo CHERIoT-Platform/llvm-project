@@ -336,6 +336,14 @@ static bool TypesAreContradictory(MVT::SimpleValueType T1,
     return TypesAreContradictory(T1, MVT::iPTR) &&
            TypesAreContradictory(T1, MVT::cPTR);
 
+  if (T1 == MVT::pAny)
+    return TypesAreContradictory(MVT::iPTR, T2) &&
+           TypesAreContradictory(MVT::cPTR, T2);
+
+  if (T2 == MVT::pAny)
+    return TypesAreContradictory(T1, MVT::iPTR) &&
+           TypesAreContradictory(T1, MVT::cPTR);
+
   // If either type is about iPtr, then they don't conflict unless the other
   // one is not a scalar integer type.
   if (T1 == MVT::iPTR)
@@ -345,10 +353,10 @@ static bool TypesAreContradictory(MVT::SimpleValueType T1,
     return !MVT(T1).isInteger() || MVT(T1).isVector();
 
   if (T1 == MVT::cPTR)
-    return !MVT(T2).isCapability() || MVT(T2).isVector();
+    return !MVT(T2).isCheriCapability() || MVT(T2).isVector();
 
   if (T2 == MVT::cPTR)
-    return !MVT(T1).isCapability() || MVT(T1).isVector();
+    return !MVT(T1).isCheriCapability() || MVT(T1).isVector();
 
   // Otherwise, they are two different non-iPTR/cPTR types, they conflict.
   return true;

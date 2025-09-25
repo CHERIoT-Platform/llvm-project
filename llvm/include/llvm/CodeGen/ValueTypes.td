@@ -367,8 +367,9 @@ def aarch64mfp8 : ValueType<8,  253>;  // 8-bit value in FPR (AArch64)
 def c64  : VTCheriCapability<64,  254>;  // 64-bit capability value
 def c128 : VTCheriCapability<128, 255>;  // 128-bit capability value
 
-// Pseudo valuetype mapped to the current capability pointer size.
-def cPTR       : VTAny<!add(c128.Value,  1)>;
+// Pseudo valuetype mapped to the current CHERI capability pointer size.
+// Should only be used in TableGen.
+def cPTR : VTAny<503>;
 
 let isNormalValueType = false in {
 def token      : ValueType<0, 504>;  // TokenTy

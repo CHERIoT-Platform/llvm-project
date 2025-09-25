@@ -335,7 +335,8 @@ bool TypeSetByHwMode::intersect(SetType &Out, const SetType &In) {
   using WildPartT = std::pair<MVT, std::function<bool(MVT)>>;
   static const WildPartT WildParts[] = {
       {MVT::iPTR, [](MVT T) { return T.isScalarInteger() || T == MVT::iPTR; }},
-      {MVT::cPTR, [](MVT T) { return T.isCapability() || T == MVT::cPTR; }},
+      {MVT::cPTR,
+       [](MVT T) { return T.isCheriCapability() || T == MVT::cPTR; }},
   };
 
   bool Changed = false;
@@ -817,10 +818,9 @@ void TypeInfer::expandOverloads(TypeSetByHwMode::SetType &Out,
   if (Out.count(MVT::pAny)) {
     Out.erase(MVT::pAny);
     Out.insert(MVT::iPTR);
-    for (MVT T : MVT::capability_valuetypes()) {
-      if (Legal.count(T)) {
+    for (MVT T : MVT::cheri_capability_valuetypes()) {
+      if (Legal.count(T))
         Out.insert(MVT::cPTR);
-      }
     }
   } else if (Out.count(MVT::iAny)) {
     Out.erase(MVT::iAny);
@@ -1655,7 +1655,7 @@ bool SDTypeConstraint::ApplyTypeConstraint(TreePatternNode &N,
     return NodeToApply.UpdateNodeType(ResNo, VVT, TP);
   case SDTCisPtrTy: {
     // Operand must be a legal pointer (iPTR, or possibly cPTR) type.
-    const auto &PtrTys = TP.getDAGPatterns().getLegalPtrTypes();
+    const TypeSetByHwMode &PtrTys = TP.getDAGPatterns().getLegalPtrTypes();
     return NodeToApply.UpdateNodeType(ResNo, PtrTys, TP);
   }
   case SDTCisInt:
@@ -3301,7 +3301,8 @@ CodeGenDAGPatterns::CodeGenDAGPatterns(const RecordKeeper &R,
                                        PatternRewriterFn PatternRewriter)
     : Records(R), Target(R), Intrinsics(R),
       LegalVTS(Target.getLegalValueTypes()),
-    LegalPtrVTS(ComputeLegalPtrTypes()), PatternRewriter(std::move(PatternRewriter)) {
+      LegalPtrVTS(ComputeLegalPtrTypes()),
+      PatternRewriter(std::move(PatternRewriter)) {
   ParseNodeInfo();
   ParseNodeTransforms();
   ParseComplexPatterns();
@@ -3342,7 +3343,7 @@ TypeSetByHwMode CodeGenDAGPatterns::ComputeLegalPtrTypes() const {
   auto LegalPtrsForSet = [](const MachineValueTypeSet &In) {
     MachineValueTypeSet Out;
     Out.insert(MVT::iPTR);
-    for (MVT T : MVT::capability_valuetypes()) {
+    for (MVT T : MVT::cheri_capability_valuetypes()) {
       if (In.count(T)) {
         Out.insert(MVT::cPTR);
         break;
@@ -3351,7 +3352,7 @@ TypeSetByHwMode CodeGenDAGPatterns::ComputeLegalPtrTypes() const {
     return Out;
   };
 
-  const auto &LegalTypes = getLegalTypes();
+  const TypeSetByHwMode &LegalTypes = getLegalTypes();
   MachineValueTypeSet LegalPtrsDefault =
       LegalPtrsForSet(LegalTypes.get(DefaultMode));
 

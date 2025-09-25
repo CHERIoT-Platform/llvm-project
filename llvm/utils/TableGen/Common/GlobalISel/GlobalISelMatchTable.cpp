@@ -1469,7 +1469,7 @@ Error OperandMatcher::addTypeCheckPredicate(const TypeSetByHwMode &VTy,
 
   if ((VTy.getMachineValueType() == MVT::iPTR ||
        VTy.getMachineValueType() == MVT::cPTR) &&
-       OperandIsAPointer) {
+      OperandIsAPointer) {
     addPredicate<PointerToAnyOperandMatcher>(0);
     return Error::success();
   }

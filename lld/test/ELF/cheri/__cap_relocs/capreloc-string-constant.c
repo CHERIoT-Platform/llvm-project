@@ -7,7 +7,7 @@
 // RUN: llvm-readobj --cap-relocs --section-details %t-static.exe | FileCheck --check-prefixes STATIC %s
 
 // same again for statically dynamically linked exe:
-// RUN: %cheri_purecap_clang %S/Inputs/dummy_shlib.c -c -o %T/integrated_dummy_shlib.o
+// RUN: %cheri_purecap_clang %S/Inputs/dummy_shlib.c -c -o integrated_dummy_shlib.o
 // RUN: ld.lld -preemptible-caprelocs=legacy -pie -Bdynamic %t.o -o %t-dynamic.exe
 // RUN: llvm-readobj -r --section-details --cap-relocs %t-dynamic.exe | FileCheck --check-prefixes DYNAMIC %s
 

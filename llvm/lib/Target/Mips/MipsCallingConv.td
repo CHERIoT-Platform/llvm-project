@@ -203,20 +203,19 @@ def CC_MipsCheriPureCap_VarArg
           CCIfType<[i64, f64], CCAssignToStack<8, 8>>,
           CCIfType<[c64, c128], CCDelegateTo<CC_MipsCheriCapOnStack>>]>;
 
-def RetCC_MipsN
-    : CallingConv<[
-          // f128 needs to be handled similarly to f32 and f64. However, f128 is
-          // not legal and is lowered to i128 which is further lowered to a pair
-          // of i64's. This presents us with a problem for the calling
-          // convention since hard-float still needs to pass them in FPU
-          // registers, and soft-float needs to use $v0, and $a0 instead of the
-          // usual $v0, and $v1. We therefore resort to a pre-analyze (see
-          // PreAnalyzeReturnForF128()) step to pass information on whether the
-          // result was originally an f128 into the tablegen-erated code.
-          //
-          // f128 should only occur for the N64 ABI where long double is
-          // 128-bit. On N32, long double is equivalent to double.
-          CCIfType<[i64], CCIfOrigArgWasF128<CCDelegateTo<RetCC_F128>>>,
+def RetCC_MipsN : CallingConv<[
+  // f128 needs to be handled similarly to f32 and f64. However, f128 is not
+  // legal and is lowered to i128 which is further lowered to a pair of i64's.
+  // This presents us with a problem for the calling convention since hard-float
+  // still needs to pass them in FPU registers, and soft-float needs to use $v0,
+  // and $a0 instead of the usual $v0, and $v1. We therefore resort to a
+  // pre-analyze (see PreAnalyzeReturnForF128()) step to pass information on
+  // whether the result was originally an f128 into the tablegen-erated code.
+  //
+  // f128 should only occur for the N64 ABI where long double is 128-bit. On
+  // N32, long double is equivalent to double.
+  CCIfSubtargetNot<"isSingleFloat()",
+    CCIfType<[i64], CCIfOrigArgWasF128<CCDelegateTo<RetCC_F128>>>>,
 
           // Aggregate returns are positioned at the lowest address in the slot
           // for both little and big-endian targets. When passing in registers,
@@ -348,19 +347,20 @@ def CC_Mips_FixedArg
 
           CCIfByVal<CCDelegateTo<CC_Mips_ByVal>>,
 
-          // f128 needs to be handled similarly to f32 and f64 on hard-float.
-          // However, f128 is not legal and is lowered to i128 which is further
-          // lowered to a pair of i64's. This presents us with a problem for the
-          // calling convention since hard-float still needs to pass them in FPU
-          // registers. We therefore resort to a pre-analyze (see
-          // PreAnalyzeFormalArgsForF128()) step to pass information on whether
-          // the argument was originally an f128 into the tablegen-erated code.
-          //
-          // f128 should only occur for the N64 ABI where long double is
-          // 128-bit. On N32, long double is equivalent to double.
-          CCIfType<[i64], CCIfSubtargetNot<
-                              "useSoftFloat()",
-                              CCIfOrigArgWasF128<CCBitConvertToType<f64>>>>,
+  // f128 needs to be handled similarly to f32 and f64 on hard-float. However,
+  // f128 is not legal and is lowered to i128 which is further lowered to a pair
+  // of i64's.
+  // This presents us with a problem for the calling convention since hard-float
+  // still needs to pass them in FPU registers. We therefore resort to a
+  // pre-analyze (see PreAnalyzeFormalArgsForF128()) step to pass information on
+  // whether the argument was originally an f128 into the tablegen-erated code.
+  //
+  // f128 should only occur for the N64 ABI where long double is 128-bit. On
+  // N32, long double is equivalent to double.
+  CCIfType<[i64],
+      CCIfSubtargetNot<"isSingleFloat()",
+          CCIfSubtargetNot<"useSoftFloat()",
+              CCIfOrigArgWasF128<CCBitConvertToType<f64>>>>>,
 
           CCIfCC<"CallingConv::Fast", CCDelegateTo<CC_Mips_FastCC>>,
 
@@ -388,8 +388,8 @@ def CC_Mips : CallingConv<[
 // Callee-saved register lists.
 //===----------------------------------------------------------------------===//
 
-def CSR_SingleFloatOnly : CalleeSavedRegs<(add (sequence "F%u", 31, 20), RA, FP,
-                                               (sequence "S%u", 7, 0))>;
+def CSR_O32_SingleFloat : CalleeSavedRegs<(add(sequence "F%u", 31, 20), RA, FP,
+                              (sequence "S%u", 7, 0))>;
 
 def CSR_O32_FPXX : CalleeSavedRegs<(add (sequence "D%u", 15, 10), RA, FP,
                                         (sequence "S%u", 7, 0))> {
@@ -403,12 +403,18 @@ def CSR_O32_FP64 :
   CalleeSavedRegs<(add (decimate (sequence "D%u_64", 30, 20), 2), RA, FP,
                        (sequence "S%u", 7, 0))>;
 
-def CSR_N32 : CalleeSavedRegs<(add D20_64, D22_64, D24_64, D26_64, D28_64,
-                                   D30_64, RA_64, FP_64, GP_64,
-                                   (sequence "S%u_64", 7, 0))>;
+def CSR_N32 : CalleeSavedRegs<(add(decimate(sequence "D%u_64", 30, 20), 2),
+                  RA_64, FP_64, GP_64, (sequence "S%u_64", 7, 0))>;
+
+def CSR_N32_SingleFloat
+    : CalleeSavedRegs<(add(decimate(sequence "F%u", 30, 20), 2), RA_64, FP_64,
+          GP_64, (sequence "S%u_64", 7, 0))>;
 
 def CSR_N64 : CalleeSavedRegs<(add (sequence "D%u_64", 31, 24), RA_64, FP_64,
                                    GP_64, (sequence "S%u_64", 7, 0))>;
+
+def CSR_N64_SingleFloat : CalleeSavedRegs<(add(sequence "F%u", 31, 24), RA_64,
+                              FP_64, GP_64, (sequence "S%u_64", 7, 0))>;
 
 def CSR_N64_Cheri : CalleeSavedRegs<(add (sequence "D%u_64", 31, 24), RA_64, FP_64,
                                    GP_64, (sequence "S%u_64", 7, 0),

@@ -1542,8 +1542,10 @@ def getDefaultSubstitutions(test, tmpDir, tmpBase, normalize_slashes=False):
         return s
 
     path_substitutions = [
-        ("s", sourcepath), ("S", sourcedir), ("p", sourcedir),
-        ("t", tmpName), ("T", tmpDir)
+        ("s", sourcepath),
+        ("S", sourcedir),
+        ("p", sourcedir),
+        ("t", tmpName),
     ]
     for path_substitution in path_substitutions:
         letter = path_substitution[0]
@@ -1919,6 +1921,14 @@ def applySubstitutions(script, substitutions, conditions={}, recursion_limit=Non
             # since thrashing has such bad consequences, not bounding the cache
             # seems reasonable.
             ln = _caching_re_compile(a).sub(str(b), escapePercents(ln))
+
+        # TODO(boomanaiden154): Remove when we branch LLVM 22 so people on the
+        # release branch will have sufficient time to migrate.
+        if bool(_caching_re_compile("%T").search(ln)):
+            raise ValueError(
+                "%T is no longer supported. Please create directories with names "
+                "based on %t."
+            )
 
         # Strip the trailing newline and any extra whitespace.
         return ln.strip()

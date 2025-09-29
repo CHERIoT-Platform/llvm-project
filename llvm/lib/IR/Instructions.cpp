@@ -2867,6 +2867,7 @@ unsigned CastInst::isEliminableCastPair(
   // FPTRUNC       >       FloatPt      n/a        FloatPt      n/a
   // FPEXT         <       FloatPt      n/a        FloatPt      n/a
   // PTRTOINT     n/a      Pointer      n/a        Integral   Unsigned
+  // PTRTOADDR    n/a      Pointer      n/a        Integral   Unsigned
   // INTTOPTR     n/a      Integral   Unsigned     Pointer      n/a
   // BITCAST       =       FirstClass   n/a       FirstClass    n/a
   // ADDRSPCST    n/a      Pointer      n/a        Pointer      n/a
@@ -2898,7 +2899,7 @@ unsigned CastInst::isEliminableCastPair(
     { 99,99,99, 2, 2,99,99, 8, 2,99,99,99, 4, 0}, // FPExt          |
     {  1, 0, 0,99,99, 0, 0,99,99,99,99, 7, 3, 0}, // PtrToInt       |
     {  1, 0, 0,99,99, 0, 0,99,99,99,99, 0, 3, 0}, // PtrToAddr      |
-    { 99,99,99,99,99,99,99,99,99,11,99,99,15, 0}, // IntToPtr       |
+    { 99,99,99,99,99,99,99,99,99,11,11,99,15, 0}, // IntToPtr       |
     {  5, 5, 5, 0, 0, 5, 5, 0, 0,16,16, 5, 1,14}, // BitCast        |
     {  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,13,12}, // AddrSpaceCast -+
   };
@@ -2992,7 +2993,8 @@ unsigned CastInst::isEliminableCastPair(
       // zext, sext -> zext, because sext can't sign extend after zext
       return Instruction::ZExt;
     case 11: {
-      // inttoptr, ptrtoint -> bitcast if SrcSize<=PtrSize and SrcSize==DstSize
+      // inttoptr, ptrtoint/ptrtoaddr -> bitcast if SrcSize<=PtrSize and
+      // SrcSize==DstSize
       if (!MidIntPtrTy)
         return 0;
       unsigned PtrSize = MidIntPtrTy->getScalarSizeInBits();

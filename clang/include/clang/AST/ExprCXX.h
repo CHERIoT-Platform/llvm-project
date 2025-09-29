@@ -4721,7 +4721,7 @@ public:
   // sugared: it doesn't need to be resugared later.
   bool getFinal() const { return Final; }
 
-  NamedDecl *getParameter() const;
+  NonTypeTemplateParmDecl *getParameter() const;
 
   bool isReferenceParameter() const { return AssociatedDeclAndRef.getInt(); }
 

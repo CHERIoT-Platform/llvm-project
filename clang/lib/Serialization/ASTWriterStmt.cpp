@@ -2495,6 +2495,18 @@ void ASTStmtWriter::VisitOMPInterchangeDirective(OMPInterchangeDirective *D) {
   Code = serialization::STMT_OMP_INTERCHANGE_DIRECTIVE;
 }
 
+void ASTStmtWriter::VisitOMPCanonicalLoopSequenceTransformationDirective(
+    OMPCanonicalLoopSequenceTransformationDirective *D) {
+  VisitStmt(D);
+  VisitOMPExecutableDirective(D);
+  Record.writeUInt32(D->getNumGeneratedTopLevelLoops());
+}
+
+void ASTStmtWriter::VisitOMPFuseDirective(OMPFuseDirective *D) {
+  VisitOMPCanonicalLoopSequenceTransformationDirective(D);
+  Code = serialization::STMT_OMP_FUSE_DIRECTIVE;
+}
+
 void ASTStmtWriter::VisitOMPForDirective(OMPForDirective *D) {
   VisitOMPLoopDirective(D);
   Record.writeBool(D->hasCancel());

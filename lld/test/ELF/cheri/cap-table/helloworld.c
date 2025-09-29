@@ -1,6 +1,6 @@
-// RUN: mkdir -p %T/helloworld_src
-// RUN: tar xJf %S/Inputs/helloworld.tar.xz -C %T/helloworld_src
-// RUN: cd %T/helloworld_src/reproduce && ld.lld @%T/helloworld_src/reproduce/response.txt -o %t.exe
+// RUN: mkdir -p %t.test/helloworld_src
+// RUN: tar xJf %S/Inputs/helloworld.tar.xz -C %t.test/helloworld_src
+// RUN: cd %t.test/helloworld_src/reproduce && ld.lld @%t.test/helloworld_src/reproduce/response.txt -o %t.exe
 // RUN: llvm-objdump -t --cap-relocs %t.exe | FileCheck %s
 
 // check that __libc_interposing table is initialized correctly

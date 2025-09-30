@@ -51,8 +51,8 @@ void __start(void) {}
 // OBJ-CAPRELOCS-NOT: .eh_frame
 
 
-// LINKING-EXE-NOT: warning
-// LINKING-DYNAMIC-NOT: warning
+// LINKING-EXE-NOT: warning: Linking old object files without CheriABI variant flag.
+// LINKING-DYNAMIC: warning: Linking old object files without CheriABI variant flag.
 
 // DUMP-CAPRELOCS: Section {
 // DUMP-CAPRELOCS:      Name: .data

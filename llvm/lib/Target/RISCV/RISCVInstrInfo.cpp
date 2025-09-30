@@ -1098,6 +1098,37 @@ static void parseCondBranch(MachineInstr &LastInst, MachineBasicBlock *&Target,
   Cond.push_back(LastInst.getOperand(1));
 }
 
+static unsigned getInverseXqcicmOpcode(unsigned Opcode) {
+  switch (Opcode) {
+  default:
+    llvm_unreachable("Unexpected Opcode");
+  case RISCV::QC_MVEQ:
+    return RISCV::QC_MVNE;
+  case RISCV::QC_MVNE:
+    return RISCV::QC_MVEQ;
+  case RISCV::QC_MVLT:
+    return RISCV::QC_MVGE;
+  case RISCV::QC_MVGE:
+    return RISCV::QC_MVLT;
+  case RISCV::QC_MVLTU:
+    return RISCV::QC_MVGEU;
+  case RISCV::QC_MVGEU:
+    return RISCV::QC_MVLTU;
+  case RISCV::QC_MVEQI:
+    return RISCV::QC_MVNEI;
+  case RISCV::QC_MVNEI:
+    return RISCV::QC_MVEQI;
+  case RISCV::QC_MVLTI:
+    return RISCV::QC_MVGEI;
+  case RISCV::QC_MVGEI:
+    return RISCV::QC_MVLTI;
+  case RISCV::QC_MVLTUI:
+    return RISCV::QC_MVGEUI;
+  case RISCV::QC_MVGEUI:
+    return RISCV::QC_MVLTUI;
+  }
+}
+
 unsigned RISCVCC::getBrCond(RISCVCC::CondCode CC, unsigned SelectOpc) {
   switch (SelectOpc) {
   default:
@@ -1209,7 +1240,7 @@ unsigned RISCVCC::getBrCond(RISCVCC::CondCode CC, unsigned SelectOpc) {
   }
 }
 
-RISCVCC::CondCode RISCVCC::getOppositeBranchCondition(RISCVCC::CondCode CC) {
+RISCVCC::CondCode RISCVCC::getInverseBranchCondition(RISCVCC::CondCode CC) {
   switch (CC) {
   default:
     llvm_unreachable("Unrecognized conditional branch");
@@ -1652,7 +1683,7 @@ bool RISCVInstrInfo::optimizeCondBranch(MachineInstr &MI) const {
     return Register();
   };
 
-  unsigned NewOpc = RISCVCC::getBrCond(getOppositeBranchCondition(CC));
+  unsigned NewOpc = RISCVCC::getBrCond(getInverseBranchCondition(CC));
 
   // Might be case 1.
   // Don't change 0 to 1 since we can use x0.
@@ -1902,7 +1933,7 @@ RISCVInstrInfo::optimizeSelect(MachineInstr &MI,
   // Add condition code, inverting if necessary.
   auto CC = static_cast<RISCVCC::CondCode>(MI.getOperand(3).getImm());
   if (Invert)
-    CC = RISCVCC::getOppositeBranchCondition(CC);
+    CC = RISCVCC::getInverseBranchCondition(CC);
   NewMI.addImm(CC);
 
   // Copy the false register.
@@ -3985,6 +4016,19 @@ bool RISCVInstrInfo::findCommutedOpIndices(const MachineInstr &MI,
       return false;
     // Operands 1 and 2 are commutable, if we switch the opcode.
     return fixCommutedOpIndices(SrcOpIdx1, SrcOpIdx2, 1, 2);
+  case RISCV::QC_MVEQ:
+  case RISCV::QC_MVNE:
+  case RISCV::QC_MVLT:
+  case RISCV::QC_MVGE:
+  case RISCV::QC_MVLTU:
+  case RISCV::QC_MVGEU:
+  case RISCV::QC_MVEQI:
+  case RISCV::QC_MVNEI:
+  case RISCV::QC_MVLTI:
+  case RISCV::QC_MVGEI:
+  case RISCV::QC_MVLTUI:
+  case RISCV::QC_MVGEUI:
+    return fixCommutedOpIndices(SrcOpIdx1, SrcOpIdx2, 1, 4);
   case RISCV::TH_MULA:
   case RISCV::TH_MULAW:
   case RISCV::TH_MULAH:
@@ -4197,11 +4241,28 @@ MachineInstr *RISCVInstrInfo::commuteInstructionImpl(MachineInstr &MI,
     return TargetInstrInfo::commuteInstructionImpl(WorkingMI, false, OpIdx1,
                                                    OpIdx2);
   }
+  case RISCV::QC_MVEQ:
+  case RISCV::QC_MVNE:
+  case RISCV::QC_MVLT:
+  case RISCV::QC_MVGE:
+  case RISCV::QC_MVLTU:
+  case RISCV::QC_MVGEU:
+  case RISCV::QC_MVEQI:
+  case RISCV::QC_MVNEI:
+  case RISCV::QC_MVLTI:
+  case RISCV::QC_MVGEI:
+  case RISCV::QC_MVLTUI:
+  case RISCV::QC_MVGEUI: {
+    auto &WorkingMI = cloneIfNew(MI);
+    WorkingMI.setDesc(get(getInverseXqcicmOpcode(MI.getOpcode())));
+    return TargetInstrInfo::commuteInstructionImpl(WorkingMI, false, OpIdx1,
+                                                   OpIdx2);
+  }
   case RISCV::PseudoCCMOVGPRNoX0:
   case RISCV::PseudoCCMOVGPR: {
     // CCMOV can be commuted by inverting the condition.
     auto CC = static_cast<RISCVCC::CondCode>(MI.getOperand(3).getImm());
-    CC = RISCVCC::getOppositeBranchCondition(CC);
+    CC = RISCVCC::getInverseBranchCondition(CC);
     auto &WorkingMI = cloneIfNew(MI);
     WorkingMI.getOperand(3).setImm(CC);
     return TargetInstrInfo::commuteInstructionImpl(WorkingMI, /*NewMI*/ false,

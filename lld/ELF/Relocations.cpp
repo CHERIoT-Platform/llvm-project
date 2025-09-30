@@ -6,37 +6,22 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file contains platform-independent functions to process relocations.
-// I'll describe the overview of this file here.
+// This file implements the core relocation processing logic. It analyzes
+// relocations and determines what auxiliary data structures (GOT, PLT, copy
+// relocations) need to be created during linking.
 //
-// Simple relocations are easy to handle for the linker. For example,
-// for R_X86_64_PC64 relocs, the linker just has to fix up locations
-// with the relative offsets to the target symbols. It would just be
-// reading records from relocation sections and applying them to output.
+// The main entry point is scanRelocations<ELFT>(), which calls scanSection()
+// to process all relocations within an input section. For each relocation,
+// scan() analyzes the type and target, and determines whether a synthetic
+// section entry or dynamic relocation is needed.
 //
-// But not all relocations are that easy to handle. For example, for
-// R_386_GOTOFF relocs, the linker has to create new GOT entries for
-// symbols if they don't exist, and fix up locations with GOT entry
-// offsets from the beginning of GOT section. So there is more than
-// fixing addresses in relocation processing.
+// Note: This file analyzes what needs to be done but doesn't apply the
+// actual relocations - that happens later in InputSection::writeTo().
+// Instead, it populates Relocation objects in InputSectionBase::relocations
+// and creates necessary synthetic sections (GOT, PLT, etc.).
 //
-// ELF defines a large number of complex relocations.
-//
-// The functions in this file analyze relocations and do whatever needs
-// to be done. It includes, but not limited to, the following.
-//
-//  - create GOT/PLT entries
-//  - create new relocations in .dynsym to let the dynamic linker resolve
-//    them at runtime (since ELF supports dynamic linking, not all
-//    relocations can be resolved at link-time)
-//  - create COPY relocs and reserve space in .bss
-//  - replace expensive relocs (in terms of runtime cost) with cheap ones
-//  - error out infeasible combinations such as PIC and non-relative relocs
-//
-// Note that the functions in this file don't actually apply relocations
-// because it doesn't know about the output file nor the output file buffer.
-// It instead stores Relocation objects to InputSection's Relocations
-// vector to let it apply later in InputSection::writeTo.
+// In addition, this file implements the core Thunk creation logic, called
+// during finalizeAddressDependentContent().
 //
 //===----------------------------------------------------------------------===//
 
@@ -412,22 +397,17 @@ namespace {
 class OffsetGetter {
 public:
   OffsetGetter() = default;
-  explicit OffsetGetter(InputSectionBase &sec) {
-    if (auto *eh = dyn_cast<EhInputSection>(&sec)) {
-      cies = eh->cies;
-      fdes = eh->fdes;
-      i = cies.begin();
-      j = fdes.begin();
-    }
+  explicit OffsetGetter(EhInputSection &sec) {
+    cies = sec.cies;
+    fdes = sec.fdes;
+    i = cies.begin();
+    j = fdes.begin();
   }
 
   // Translates offsets in input sections to offsets in output sections.
   // Given offset must increase monotonically. We assume that Piece is
   // sorted by inputOff.
   uint64_t get(Ctx &ctx, uint64_t off) {
-    if (cies.empty())
-      return off;
-
     while (j != fdes.end() && j->inputOff <= off)
       ++j;
     auto it = j;
@@ -457,13 +437,12 @@ private:
 class RelocationScanner {
 public:
   RelocationScanner(Ctx &ctx) : ctx(ctx) {}
-  template <class ELFT>
-  void scanSection(InputSectionBase &s, bool isEH = false);
+  template <class ELFT> void scanSection(InputSectionBase &s);
+  template <class ELFT> void scanEhSection(EhInputSection &s);
 
 private:
   Ctx &ctx;
   InputSectionBase *sec;
-  OffsetGetter getter;
 
   // End of relocations, used by Mips/PPC64.
   const void *end = nullptr;
@@ -473,15 +452,14 @@ private:
   int64_t computeMipsAddend(const RelTy &rel, RelExpr expr, bool isLocal) const;
   bool isStaticLinkTimeConstant(RelExpr e, RelType type, const Symbol &sym,
                                 uint64_t relOff) const;
-  template <typename ELFT>
-  void processAux(RelExpr expr, RelType type, uint64_t offset, Symbol &sym,
-                  int64_t addend) const;
+  void process(RelExpr expr, RelType type, uint64_t offset, Symbol &sym,
+               int64_t addend) const;
   unsigned handleTlsRelocation(RelExpr expr, RelType type, uint64_t offset,
                                Symbol &sym, int64_t addend);
 
   template <class ELFT, class RelTy>
-  void scanOne(typename Relocs<RelTy>::const_iterator &i);
-  template <class ELFT, class RelTy> void scan(Relocs<RelTy> rels);
+  void scan(typename Relocs<RelTy>::const_iterator &i);
+  template <class ELFT, class RelTy> void scanSectionImpl(Relocs<RelTy> rels);
 };
 } // namespace
 
@@ -1009,7 +987,7 @@ static bool canDefineSymbolInExecutable(Ctx &ctx, Symbol &sym) {
 }
 
 // Returns true if a given relocation can be computed at link-time.
-// This only handles relocation types expected in processAux.
+// This only handles relocation types expected in process().
 //
 // For instance, we know the offset from a relocation to its target at
 // link-time if the relocation is PC-relative and refers a
@@ -1117,9 +1095,8 @@ bool RelocationScanner::isStaticLinkTimeConstant(RelExpr e, RelType type,
 // sections. Given that it is ro, we will need an extra PT_LOAD. This
 // complicates things for the dynamic linker and means we would have to reserve
 // space for the extra PT_LOAD even if we end up not using it.
-template <typename ELFT>
-void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
-                                   Symbol &sym, int64_t addend) const {
+void RelocationScanner::process(RelExpr expr, RelType type, uint64_t offset,
+                                Symbol &sym, int64_t addend) const {
   // If non-ifunc non-preemptible, change PLT to direct call and optimize GOT
   // indirection.
   const bool isIfunc = sym.isGnuIFunc();
@@ -1234,9 +1211,16 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
       readOnlyCapRelocsError(ctx, sym, getRelocTargetLocation());
       return;
     }
-    addCapabilityRelocation<ELFT>(ctx, &sym, type, sec, offset, expr, addend,
-                                  /* isCallExpr=*/false,
-                                  getRelocTargetLocation);
+
+    if (ctx.arg.is64)
+      addCapabilityRelocation<ELF64LE>(
+          ctx, &sym, type, sec, offset, expr, addend,
+          /* isCallExpr=*/false, getRelocTargetLocation);
+    else
+      addCapabilityRelocation<ELF32LE>(
+          ctx, &sym, type, sec, offset, expr, addend,
+          /* isCallExpr=*/false, getRelocTargetLocation);
+
     // TODO: check if it is a call and needs a plt stub
     return;
   }
@@ -1646,7 +1630,7 @@ unsigned RelocationScanner::handleTlsRelocation(RelExpr expr, RelType type,
 }
 
 template <class ELFT, class RelTy>
-void RelocationScanner::scanOne(typename Relocs<RelTy>::const_iterator &i) {
+void RelocationScanner::scan(typename Relocs<RelTy>::const_iterator &i) {
   const RelTy &rel = *i;
   uint32_t symIndex = rel.getSymbol(ctx.arg.isMips64EL);
   Symbol &sym = sec->getFile<ELFT>()->getSymbol(symIndex);
@@ -1664,9 +1648,7 @@ void RelocationScanner::scanOne(typename Relocs<RelTy>::const_iterator &i) {
     }
   }
   // Get an offset in an output section this relocation is applied to.
-  uint64_t offset = getter.get(ctx, rel.r_offset);
-  if (offset == uint64_t(-1))
-    return;
+  uint64_t offset = rel.r_offset;
 
   RelExpr expr =
       ctx.target->getRelExpr(type, sym, sec->content().data() + offset);
@@ -1740,7 +1722,7 @@ void RelocationScanner::scanOne(typename Relocs<RelTy>::const_iterator &i) {
   }
 
   // Process TLS relocations, including TLS optimizations. Note that
-  // R_TPREL and R_TPREL_NEG relocations are resolved in processAux.
+  // R_TPREL and R_TPREL_NEG relocations are resolved in process().
   //
   // Some RISCV TLSDESC relocations reference a local NOTYPE symbol,
   // but we need to process them in handleTlsRelocation.
@@ -1752,7 +1734,7 @@ void RelocationScanner::scanOne(typename Relocs<RelTy>::const_iterator &i) {
     }
   }
 
-  processAux<ELFT>(expr, type, offset, sym, addend);
+  process(expr, type, offset, sym, addend);
 }
 
 // R_PPC64_TLSGD/R_PPC64_TLSLD is required to mark `bl __tls_get_addr` for
@@ -1795,30 +1777,27 @@ static void checkPPC64TLSRelax(InputSectionBase &sec, Relocs<RelTy> rels) {
 }
 
 template <class ELFT, class RelTy>
-void RelocationScanner::scan(Relocs<RelTy> rels) {
+void RelocationScanner::scanSectionImpl(Relocs<RelTy> rels) {
   // Not all relocations end up in Sec->Relocations, but a lot do.
   sec->relocations.reserve(rels.size());
 
   if (ctx.arg.emachine == EM_PPC64)
     checkPPC64TLSRelax<RelTy>(*sec, rels);
 
-  // For EhInputSection, OffsetGetter expects the relocations to be sorted by
-  // r_offset. In rare cases (.eh_frame pieces are reordered by a linker
-  // script), the relocations may be unordered.
   // On SystemZ, all sections need to be sorted by r_offset, to allow TLS
   // relaxation to be handled correctly - see SystemZ::getTlsGdRelaxSkip.
   SmallVector<RelTy, 0> storage;
-  if (isa<EhInputSection>(sec) || ctx.arg.emachine == EM_S390)
+  if (ctx.arg.emachine == EM_S390)
     rels = sortRels(rels, storage);
 
   if constexpr (RelTy::IsCrel) {
     for (auto i = rels.begin(); i != rels.end();)
-      scanOne<ELFT, RelTy>(i);
+      scan<ELFT, RelTy>(i);
   } else {
     // The non-CREL code path has additional check for PPC64 TLS.
     end = static_cast<const void *>(rels.end());
     for (auto i = rels.begin(); i != end;)
-      scanOne<ELFT, RelTy>(i);
+      scan<ELFT, RelTy>(i);
   }
 
   // Sort relocations by offset for more efficient searching for
@@ -1833,17 +1812,36 @@ void RelocationScanner::scan(Relocs<RelTy> rels) {
                       });
 }
 
-template <class ELFT>
-void RelocationScanner::scanSection(InputSectionBase &s, bool isEH) {
+template <class ELFT> void RelocationScanner::scanSection(InputSectionBase &s) {
   sec = &s;
-  getter = OffsetGetter(s);
-  const RelsOrRelas<ELFT> rels = s.template relsOrRelas<ELFT>(!isEH);
+  const RelsOrRelas<ELFT> rels = s.template relsOrRelas<ELFT>();
   if (rels.areRelocsCrel())
-    scan<ELFT>(rels.crels);
+    scanSectionImpl<ELFT>(rels.crels);
   else if (rels.areRelocsRel())
-    scan<ELFT>(rels.rels);
+    scanSectionImpl<ELFT>(rels.rels);
   else
-    scan<ELFT>(rels.relas);
+    scanSectionImpl<ELFT>(rels.relas);
+}
+
+template <class ELFT> void RelocationScanner::scanEhSection(EhInputSection &s) {
+  sec = &s;
+  OffsetGetter getter(s);
+  auto rels = s.rels;
+  s.relocations.reserve(rels.size());
+  for (auto &r : rels) {
+    // Ignore R_*_NONE and other marker relocations.
+    if (r.expr == R_NONE)
+      continue;
+    uint64_t offset = getter.get(ctx, r.offset);
+    // Skip if the relocation offset is within a dead piece.
+    if (offset == uint64_t(-1))
+      continue;
+    Symbol *sym = r.sym;
+    if (sym->isUndefined() &&
+        maybeReportUndefined(ctx, cast<Undefined>(*sym), *sec, offset))
+      continue;
+    process(r.expr, r.type, offset, *sym, r.addend);
+  }
 }
 
 template <class ELFT> void elf::scanRelocations(Ctx &ctx) {
@@ -1878,7 +1876,7 @@ template <class ELFT> void elf::scanRelocations(Ctx &ctx) {
       RelocationScanner scanner(ctx);
       for (Partition &part : ctx.partitions) {
         for (EhInputSection *sec : part.ehFrame->sections)
-          scanner.template scanSection<ELFT>(*sec, /*isEH=*/true);
+          scanner.template scanEhSection<ELFT>(*sec);
         if (part.armExidx && part.armExidx->isLive())
           for (InputSection *sec : part.armExidx->exidxSections)
             if (sec->isLive())

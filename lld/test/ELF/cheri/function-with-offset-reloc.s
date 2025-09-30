@@ -54,22 +54,22 @@ bad_relocs:
 .chericap protected_local_func + 0x2
 .chericap exported_local_func + 0x3
 
-# WARNING-MSG: warning: got capability relocation with non-zero addend (0x3) against function exported_local_func. This may not be supported by the runtime linker.
+# WARNING-MSG-LABEL: warning: got capability relocation with non-zero addend (0x3) against function exported_local_func. This may not be supported by the runtime linker.
 # WARNING-MSG-NEXT: >>> defined in {{.+}}function-with-offset-reloc.s.tmp.o
 # WARNING-MSG-NEXT: >>> referenced by {{.+}}function-with-offset-reloc.s.tmp.o:(.data+0x30)
 # WARNING-MSG-EMPTY:
 .chericap external_func + 0x4
-# WARNING-MSG-NEXT: warning: got capability relocation with non-zero addend (0x4) against function external_func. This may not be supported by the runtime linker.
+# WARNING-MSG-LABEL: warning: got capability relocation with non-zero addend (0x4) against function external_func. This may not be supported by the runtime linker.
 # WARNING-MSG-NEXT: >>> defined in {{.+}}function-with-offset-reloc.s.tmp-lib.so
 # WARNING-MSG-NEXT: >>> referenced by {{.+}}function-with-offset-reloc.s.tmp.o:(.data+0x40)
 # WARNING-MSG-EMPTY:
 .chericap undef_func + 0x5
-# WARNING-MSG-NEXT: warning: got capability relocation with non-zero addend (0x5) against function undef_func. This may not be supported by the runtime linker.
+# WARNING-MSG-LABEL: warning: got capability relocation with non-zero addend (0x5) against function undef_func. This may not be supported by the runtime linker.
 # WARNING-MSG-NEXT: >>> defined in {{.+}}function-with-offset-reloc.s.tmp.o
 # WARNING-MSG-NEXT: >>> referenced by {{.+}}function-with-offset-reloc.s.tmp.o:(.data+0x50)
 # WARNING-MSG-EMPTY:
 .chericap weak_exported_local_func + 0x6
-# WARNING-MSG-NEXT: warning: got capability relocation with non-zero addend (0x6) against function weak_exported_local_func. This may not be supported by the runtime linker.
+# WARNING-MSG-LABEL: warning: got capability relocation with non-zero addend (0x6) against function weak_exported_local_func. This may not be supported by the runtime linker.
 # WARNING-MSG-NEXT: >>> defined in {{.+}}function-with-offset-reloc.s.tmp.o
 # WARNING-MSG-NEXT: >>> referenced by {{.+}}function-with-offset-reloc.s.tmp.o:(.data+0x60)
 # WARNING-MSG-EMPTY:
@@ -81,25 +81,25 @@ except_table:
 .chericap protected_local_func + 0x11
 .chericap exported_local_func + 0x12
 .chericap external_func + 0x13
-# WARNING-MSG-NEXT: warning: got relocation against preemptible symbol exported_local_func in exception handling table. Please recompile this file!
+# WARNING-MSG-LABEL: warning: got relocation against preemptible symbol exported_local_func in exception handling table. Please recompile this file!
 # WARNING-MSG-NEXT: >>> referenced by {{.+}}function-with-offset-reloc.s.tmp.o:(.gcc_except_table+0x30)
 # WARNING-MSG-EMPTY:
-# WARNING-MSG-NEXT: warning: got capability relocation with non-zero addend (0x12) against function exported_local_func. This may not be supported by the runtime linker.
+# WARNING-MSG-LABEL: warning: got capability relocation with non-zero addend (0x12) against function exported_local_func. This may not be supported by the runtime linker.
 # WARNING-MSG-NEXT: >>> defined in {{.+}}function-with-offset-reloc.s.tmp.o
 # WARNING-MSG-NEXT: >>> referenced by {{.+}}function-with-offset-reloc.s.tmp.o:(.gcc_except_table+0x30)
 # WARNING-MSG-EMPTY:
-# WARNING-MSG-NEXT: warning: got relocation against preemptible symbol external_func in exception handling table. Please recompile this file!
+# WARNING-MSG-LABEL: warning: got relocation against preemptible symbol external_func in exception handling table. Please recompile this file!
 # WARNING-MSG-NEXT: >>> referenced by {{.+}}function-with-offset-reloc.s.tmp.o:(.gcc_except_table+0x40)
 # WARNING-MSG-EMPTY:
-# WARNING-MSG-NEXT: warning: got capability relocation with non-zero addend (0x13) against function external_func. This may not be supported by the runtime linker.
+# WARNING-MSG-LABEL: warning: got capability relocation with non-zero addend (0x13) against function external_func. This may not be supported by the runtime linker.
 # WARNING-MSG-NEXT: >>> defined in {{.+}}function-with-offset-reloc.s.tmp-lib.so
 # WARNING-MSG-NEXT: >>> referenced by {{.+}}function-with-offset-reloc.s.tmp.o:(.gcc_except_table+0x40)
 # WARNING-MSG-EMPTY:
 .chericap undef_func + 0x14
-# WARNING-MSG-NEXT: warning: got relocation against preemptible symbol undef_func in exception handling table. Please recompile this file!
+# WARNING-MSG-LABEL: warning: got relocation against preemptible symbol undef_func in exception handling table. Please recompile this file!
 # WARNING-MSG-NEXT: >>> referenced by {{.+}}function-with-offset-reloc.s.tmp.o:(.gcc_except_table+0x50)
 # WARNING-MSG-EMPTY:
-# WARNING-MSG-NEXT: warning: got capability relocation with non-zero addend (0x14) against function undef_func. This may not be supported by the runtime linker.
+# WARNING-MSG-LABEL: warning: got capability relocation with non-zero addend (0x14) against function undef_func. This may not be supported by the runtime linker.
 # WARNING-MSG-NEXT: >>> defined in {{.+}}function-with-offset-reloc.s.tmp.o
 # WARNING-MSG-NEXT: >>> referenced by {{.+}}function-with-offset-reloc.s.tmp.o:(.gcc_except_table+0x50)
 # WARNING-MSG-EMPTY:

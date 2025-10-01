@@ -341,7 +341,8 @@ void CheriCapRelocsSection::addCapReloc(CheriCapRelocLocation loc,
             "\n>>> Target: " + target.verboseToString(ctx));
 
   bool canWriteLoc = (loc.section->flags & SHF_WRITE) || !ctx.arg.zText;
-  if (!canWriteLoc) {
+  if (!canWriteLoc &&
+      !(ctx.arg.isCheriot && loc.section->name == ".captable")) {
     readOnlyCapRelocsError(ctx, *target.sym(),
                            "\n>>> referenced by " + sourceMsg());
     return;
@@ -595,7 +596,9 @@ void CheriCapRelocsSection::writeTo(uint8_t *buf) {
 CheriCapTableSection::CheriCapTableSection(Ctx &ctx)
     : SyntheticSection(
           ctx, ".captable", SHT_PROGBITS,
-          SHF_ALLOC | SHF_WRITE, /* XXX: actually RELRO for BIND_NOW*/
+          SHF_ALLOC | (ctx.arg.isCheriot
+                           ? 0
+                           : SHF_WRITE), /* XXX: actually RELRO for BIND_NOW*/
           ctx.arg.capabilitySize) {
   assert(ctx.arg.capabilitySize > 0);
   this->entsize = ctx.arg.capabilitySize;

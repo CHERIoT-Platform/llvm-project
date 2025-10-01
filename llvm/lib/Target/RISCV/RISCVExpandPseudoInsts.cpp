@@ -707,7 +707,8 @@ bool RISCVExpandPseudo::expandAuipccInstPair(
       MF->getSubtarget<RISCVSubtarget>().isRV32E() && Symbol.isGlobal() &&
       isa<GlobalVariable>(Symbol.getGlobal()) &&
       (cast<GlobalVariable>(Symbol.getGlobal())->getSection() !=
-       ".compartment_imports"))
+       ".compartment_imports") &&
+      FlagsHi != RISCVII::MO_CAPTAB_PCREL_HI)
     BuildMI(NewMBB, DL, TII->get(RISCV::CSetBoundsImm), DestReg)
         .addReg(DestReg)
         .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_SIZE);

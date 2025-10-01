@@ -94,6 +94,11 @@ static cl::opt<bool>
                                "be combined with a shift"),
                       cl::init(true));
 
+static cl::opt<bool> CheriotDisableCapTable(
+    "cheriot-disable-cap-table", cl::Hidden,
+    cl::desc("Disable cap tables for references to globals on CHERIoT"),
+    cl::init(false));
+
 RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
                                          const RISCVSubtarget &STI)
     : TargetLowering(TM), Subtarget(STI) {
@@ -8977,14 +8982,17 @@ static SDValue getLargeExternalSymbol(ExternalSymbolSDNode *N, const SDLoc &DL,
 template <class NodeTy>
 SDValue RISCVTargetLowering::getAddr(NodeTy *N, EVT Ty, SelectionDAG &DAG,
                                      bool IsLocal, bool CanDeriveFromPcc,
-                                     bool IsExternWeak) const {
+                                     bool IsExternWeak,
+                                     const GlobalValue *GV) const {
   SDLoc DL(N);
 
   if (RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI())) {
     bool IsCheriot = Subtarget.getTargetABI() == RISCVABI::ABI_CHERIOT ||
                      Subtarget.getTargetABI() == RISCVABI::ABI_CHERIOT_BAREMETAL;
     SDValue Addr = getTargetNode(N, DL, Ty, DAG, 0);
-    if ((IsLocal && CanDeriveFromPcc) || IsCheriot) {
+    bool NotHighUseGV = !GV || GV->getNumUses() < 4;
+    if ((IsLocal && CanDeriveFromPcc) ||
+        (IsCheriot && (CheriotDisableCapTable || NotHighUseGV))) {
       // Use PC-relative addressing to access the symbol. This generates the
       // pattern (PseudoCLLC sym), which expands to
       // (cincoffsetimm (auipcc %pcrel_hi(sym)) %pcrel_lo(auipc)).
@@ -9121,7 +9129,7 @@ SDValue RISCVTargetLowering::lowerGlobalAddress(SDValue Op,
   }
 
   return getAddr(N, Ty, DAG, GV->isDSOLocal(), /*CanDeriveFromPcc=*/false,
-                 GV->hasExternalWeakLinkage());
+                 GV->hasExternalWeakLinkage(), GV);
 }
 
 SDValue RISCVTargetLowering::lowerBlockAddress(SDValue Op,

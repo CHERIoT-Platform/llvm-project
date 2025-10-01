@@ -124,6 +124,19 @@ static uint32_t setLO12_S(uint32_t insn, uint32_t imm) {
          (extractBits(imm, 4, 0) << 7);
 }
 
+static bool isCheriotHighPartReloc(RelType ty) {
+  switch (ty) {
+  case R_RISCV_CHERIOT_COMPARTMENT_HI:
+  case R_RISCV_CHERI_CAPTAB_PCREL_HI20:
+    // FIXME: This can be enabled once they handle cheriot 11-bit AUIPC shifts.
+    // case R_RISCV_CHERI_TLS_IE_CAPTAB_PCREL_HI20:
+    // case R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20:
+    return true;
+  default:
+    return false;
+  }
+}
+
 RISCV::RISCV(Ctx &ctx) : TargetInfo(ctx) {
   copyRel = R_RISCV_COPY;
   pltRel = R_RISCV_JUMP_SLOT;
@@ -540,6 +553,17 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
   case R_RISCV_TLS_GOT_HI20:
   case R_RISCV_TPREL_HI20:
   case R_RISCV_HI20: {
+    if (ctx.arg.isCheriot && isCheriotHighPartReloc(rel.type)) {
+      // Similar to R_RISCV_CHERIOT_COMPARTMENT_HI, except that these
+      // always use AUIPCC.
+      if (int64_t(val) < 0)
+        val = (val + 0x7ff) & ~0x7ff;
+      val = int64_t(val) >> 11;
+      checkInt(ctx, loc, SignExtend64(val + 0x800, bits) >> 12, 20, rel);
+      write32le(loc, (read32le(loc) & 0xFFF) | (val << 12));
+      return;
+    }
+
     uint64_t hi = val + 0x800;
     checkInt(ctx, loc, SignExtend64(hi, bits) >> 12, 20, rel);
     write32le(loc, (read32le(loc) & 0xFFF) | (hi & 0xFFFFF000));
@@ -1096,19 +1120,24 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSection &sec) {
 
         const Relocation *target = nullptr;
         for (auto it = range.first; it != range.second; ++it)
-          if (it->type == R_RISCV_CHERIOT_COMPARTMENT_HI) {
+          if (isCheriotHighPartReloc(it->type)) {
             target = &*it;
             break;
           }
         if (!target) {
-          error(
-              "Could not find R_RISCV_CHERIOT_COMPARTMENT_HI relocation for " +
-              toStr(ctx, *r.sym));
+          error("Could not find high-part relocation for " +
+                toStr(ctx, *r.sym) + " at 0x" +
+                llvm::utohexstr(r.offset, false, 8) + "@" + toStr(ctx, &sec));
         }
         // If the target is PCC-relative then the auipcc can't be erased and so
         // skip the rewriting.
         if (isPCCRelative(ctx, nullptr, target->sym))
           continue;
+
+        // captab relocations similarly are never relaxed, so we can skip them.
+        if (target->type == R_RISCV_CHERI_CAPTAB_PCREL_HI20)
+          continue;
+
         // Update our relocation to point to the target thing.
         r.sym = target->sym;
         r.addend = target->addend;

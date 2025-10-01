@@ -1056,7 +1056,9 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
   case R_CHERIOT_COMPARTMENT_CGPREL_LO_I: {
     if (isPCCRelative(ctx, nullptr, r.sym)) {
       if (const Relocation *hiRel = getRISCVPCRelHi20(ctx, this, r)) {
-        if (isPCCRelative(ctx, nullptr, hiRel->sym))
+        if (isPCCRelative(ctx, nullptr, hiRel->sym) ||
+            // captab is always PC-relative on CHERIoT
+            hiRel->type == R_RISCV_CHERI_CAPTAB_PCREL_HI20)
           return getRelocTargetVA(ctx, *hiRel, r.sym->getVA(ctx));
         return getBiasedCGPOffsetLo12(ctx, *hiRel->sym);
       }

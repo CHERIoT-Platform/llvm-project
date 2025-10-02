@@ -9,24 +9,24 @@ declare i32 @use_arg(i32 addrspace(200)*) addrspace(200)
 define i32 @static_alloca() nounwind {
 ; RV32IXCHERI-LABEL: static_alloca:
 ; RV32IXCHERI:       # %bb.0:
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, -16
-; RV32IXCHERI-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    cincoffset ca0, csp, 4
-; RV32IXCHERI-NEXT:    csetbounds ca0, ca0, 4
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, -16
+; RV32IXCHERI-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    cincoffset a0, sp, 4
+; RV32IXCHERI-NEXT:    csetbounds a0, a0, 4
 ; RV32IXCHERI-NEXT:    ccall use_arg
-; RV32IXCHERI-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, 16
+; RV32IXCHERI-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, 16
 ; RV32IXCHERI-NEXT:    cret
 ;
 ; RV64IXCHERI-LABEL: static_alloca:
 ; RV64IXCHERI:       # %bb.0:
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, -32
-; RV64IXCHERI-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    cincoffset ca0, csp, 12
-; RV64IXCHERI-NEXT:    csetbounds ca0, ca0, 4
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, -32
+; RV64IXCHERI-NEXT:    csc ra, 16(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    csetbounds a0, a0, 4
 ; RV64IXCHERI-NEXT:    ccall use_arg
-; RV64IXCHERI-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, 32
+; RV64IXCHERI-NEXT:    clc ra, 16(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, 32
 ; RV64IXCHERI-NEXT:    cret
   %var = alloca i32, align 4, addrspace(200)
   %call = call i32 @use_arg(i32 addrspace(200)* nonnull %var)
@@ -38,10 +38,10 @@ define i32 @static_alloca() nounwind {
 define i32 @dynamic_alloca(iXLEN %x) nounwind {
 ; RV32IXCHERI-LABEL: dynamic_alloca:
 ; RV32IXCHERI:       # %bb.0:
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, -16
-; RV32IXCHERI-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    csc cs0, 0(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    cincoffset cs0, csp, 16
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, -16
+; RV32IXCHERI-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    csc s0, 0(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    cincoffset s0, sp, 16
 ; RV32IXCHERI-NEXT:    slli a0, a0, 2
 ; RV32IXCHERI-NEXT:    addi a1, a0, 15
 ; RV32IXCHERI-NEXT:    andi a1, a1, -16
@@ -49,23 +49,23 @@ define i32 @dynamic_alloca(iXLEN %x) nounwind {
 ; RV32IXCHERI-NEXT:    sub a3, sp, a2
 ; RV32IXCHERI-NEXT:    cram a1, a1
 ; RV32IXCHERI-NEXT:    and a1, a3, a1
-; RV32IXCHERI-NEXT:    csetaddr ca1, csp, a1
-; RV32IXCHERI-NEXT:    csetbounds ca2, ca1, a2
-; RV32IXCHERI-NEXT:    cmove csp, ca1
-; RV32IXCHERI-NEXT:    csetbounds ca0, ca2, a0
+; RV32IXCHERI-NEXT:    csetaddr a1, sp, a1
+; RV32IXCHERI-NEXT:    csetbounds a2, a1, a2
+; RV32IXCHERI-NEXT:    cmove sp, a1
+; RV32IXCHERI-NEXT:    csetbounds a0, a2, a0
 ; RV32IXCHERI-NEXT:    ccall use_arg
-; RV32IXCHERI-NEXT:    cincoffset csp, cs0, -16
-; RV32IXCHERI-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    clc cs0, 0(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, 16
+; RV32IXCHERI-NEXT:    cincoffset sp, s0, -16
+; RV32IXCHERI-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    clc s0, 0(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, 16
 ; RV32IXCHERI-NEXT:    cret
 ;
 ; RV64IXCHERI-LABEL: dynamic_alloca:
 ; RV64IXCHERI:       # %bb.0:
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, -32
-; RV64IXCHERI-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    csc cs0, 0(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    cincoffset cs0, csp, 32
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, -32
+; RV64IXCHERI-NEXT:    csc ra, 16(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    csc s0, 0(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    cincoffset s0, sp, 32
 ; RV64IXCHERI-NEXT:    slli a0, a0, 2
 ; RV64IXCHERI-NEXT:    addi a1, a0, 15
 ; RV64IXCHERI-NEXT:    andi a1, a1, -16
@@ -73,15 +73,15 @@ define i32 @dynamic_alloca(iXLEN %x) nounwind {
 ; RV64IXCHERI-NEXT:    sub a3, sp, a2
 ; RV64IXCHERI-NEXT:    cram a1, a1
 ; RV64IXCHERI-NEXT:    and a1, a3, a1
-; RV64IXCHERI-NEXT:    csetaddr ca1, csp, a1
-; RV64IXCHERI-NEXT:    csetbounds ca2, ca1, a2
-; RV64IXCHERI-NEXT:    cmove csp, ca1
-; RV64IXCHERI-NEXT:    csetbounds ca0, ca2, a0
+; RV64IXCHERI-NEXT:    csetaddr a1, sp, a1
+; RV64IXCHERI-NEXT:    csetbounds a2, a1, a2
+; RV64IXCHERI-NEXT:    cmove sp, a1
+; RV64IXCHERI-NEXT:    csetbounds a0, a2, a0
 ; RV64IXCHERI-NEXT:    ccall use_arg
-; RV64IXCHERI-NEXT:    cincoffset csp, cs0, -32
-; RV64IXCHERI-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    clc cs0, 0(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, 32
+; RV64IXCHERI-NEXT:    cincoffset sp, s0, -32
+; RV64IXCHERI-NEXT:    clc ra, 16(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    clc s0, 0(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, 32
 ; RV64IXCHERI-NEXT:    cret
   %var = alloca i32, iXLEN %x, align 4, addrspace(200)
   %call = call i32 @use_arg(i32 addrspace(200)* nonnull %var)

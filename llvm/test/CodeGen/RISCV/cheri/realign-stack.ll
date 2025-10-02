@@ -9,34 +9,34 @@
 define i8 addrspace(200)* @pluto() addrspace(200) nounwind {
 ; IL32PC64-LABEL: pluto:
 ; IL32PC64:       # %bb.0: # %bb
-; IL32PC64-NEXT:    cincoffset csp, csp, -128
-; IL32PC64-NEXT:    csc cra, 120(csp) # 8-byte Folded Spill
-; IL32PC64-NEXT:    csc cs0, 112(csp) # 8-byte Folded Spill
-; IL32PC64-NEXT:    cincoffset cs0, csp, 128
+; IL32PC64-NEXT:    cincoffset sp, sp, -128
+; IL32PC64-NEXT:    csc ra, 120(sp) # 8-byte Folded Spill
+; IL32PC64-NEXT:    csc s0, 112(sp) # 8-byte Folded Spill
+; IL32PC64-NEXT:    cincoffset s0, sp, 128
 ; IL32PC64-NEXT:    andi a0, sp, -64
-; IL32PC64-NEXT:    csetaddr csp, csp, a0
-; IL32PC64-NEXT:    cincoffset ca0, csp, 0
-; IL32PC64-NEXT:    csetbounds ca0, ca0, 64
-; IL32PC64-NEXT:    cincoffset csp, cs0, -128
-; IL32PC64-NEXT:    clc cra, 120(csp) # 8-byte Folded Reload
-; IL32PC64-NEXT:    clc cs0, 112(csp) # 8-byte Folded Reload
-; IL32PC64-NEXT:    cincoffset csp, csp, 128
+; IL32PC64-NEXT:    csetaddr sp, sp, a0
+; IL32PC64-NEXT:    cincoffset a0, sp, 0
+; IL32PC64-NEXT:    csetbounds a0, a0, 64
+; IL32PC64-NEXT:    cincoffset sp, s0, -128
+; IL32PC64-NEXT:    clc ra, 120(sp) # 8-byte Folded Reload
+; IL32PC64-NEXT:    clc s0, 112(sp) # 8-byte Folded Reload
+; IL32PC64-NEXT:    cincoffset sp, sp, 128
 ; IL32PC64-NEXT:    cret
 ;
 ; L64PC128-LABEL: pluto:
 ; L64PC128:       # %bb.0: # %bb
-; L64PC128-NEXT:    cincoffset csp, csp, -128
-; L64PC128-NEXT:    csc cra, 112(csp) # 16-byte Folded Spill
-; L64PC128-NEXT:    csc cs0, 96(csp) # 16-byte Folded Spill
-; L64PC128-NEXT:    cincoffset cs0, csp, 128
+; L64PC128-NEXT:    cincoffset sp, sp, -128
+; L64PC128-NEXT:    csc ra, 112(sp) # 16-byte Folded Spill
+; L64PC128-NEXT:    csc s0, 96(sp) # 16-byte Folded Spill
+; L64PC128-NEXT:    cincoffset s0, sp, 128
 ; L64PC128-NEXT:    andi a0, sp, -64
-; L64PC128-NEXT:    csetaddr csp, csp, a0
-; L64PC128-NEXT:    cincoffset ca0, csp, 0
-; L64PC128-NEXT:    csetbounds ca0, ca0, 64
-; L64PC128-NEXT:    cincoffset csp, cs0, -128
-; L64PC128-NEXT:    clc cra, 112(csp) # 16-byte Folded Reload
-; L64PC128-NEXT:    clc cs0, 96(csp) # 16-byte Folded Reload
-; L64PC128-NEXT:    cincoffset csp, csp, 128
+; L64PC128-NEXT:    csetaddr sp, sp, a0
+; L64PC128-NEXT:    cincoffset a0, sp, 0
+; L64PC128-NEXT:    csetbounds a0, a0, 64
+; L64PC128-NEXT:    cincoffset sp, s0, -128
+; L64PC128-NEXT:    clc ra, 112(sp) # 16-byte Folded Reload
+; L64PC128-NEXT:    clc s0, 96(sp) # 16-byte Folded Reload
+; L64PC128-NEXT:    cincoffset sp, sp, 128
 ; L64PC128-NEXT:    cret
 bb:
   %tmp = alloca %struct.wobble, align 64, addrspace(200)

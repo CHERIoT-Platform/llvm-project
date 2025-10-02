@@ -7,22 +7,22 @@
 define void @callee_cap_int(i8 addrspace(200)* %cap, i8 %int) nounwind {
 ; CHECK-ILP32-LABEL: callee_cap_int:
 ; CHECK-ILP32:       # %bb.0:
-; CHECK-ILP32-NEXT:    sb.cap a1, (ca0)
+; CHECK-ILP32-NEXT:    sb.cap a1, (a0)
 ; CHECK-ILP32-NEXT:    ret
 ;
 ; CHECK-LP64-LABEL: callee_cap_int:
 ; CHECK-LP64:       # %bb.0:
-; CHECK-LP64-NEXT:    sb.cap a1, (ca0)
+; CHECK-LP64-NEXT:    sb.cap a1, (a0)
 ; CHECK-LP64-NEXT:    ret
 ;
 ; CHECK-IL32PC64-LABEL: callee_cap_int:
 ; CHECK-IL32PC64:       # %bb.0:
-; CHECK-IL32PC64-NEXT:    csb a1, 0(ca0)
+; CHECK-IL32PC64-NEXT:    csb a1, 0(a0)
 ; CHECK-IL32PC64-NEXT:    cret
 ;
 ; CHECK-L64PC128-LABEL: callee_cap_int:
 ; CHECK-L64PC128:       # %bb.0:
-; CHECK-L64PC128-NEXT:    csb a1, 0(ca0)
+; CHECK-L64PC128-NEXT:    csb a1, 0(a0)
 ; CHECK-L64PC128-NEXT:    cret
   store i8 %int, i8 addrspace(200)* %cap
   ret void
@@ -31,22 +31,22 @@ define void @callee_cap_int(i8 addrspace(200)* %cap, i8 %int) nounwind {
 define void @callee_int_cap(i8 %int, i8 addrspace(200)* %cap) nounwind {
 ; CHECK-ILP32-LABEL: callee_int_cap:
 ; CHECK-ILP32:       # %bb.0:
-; CHECK-ILP32-NEXT:    sb.cap a0, (ca1)
+; CHECK-ILP32-NEXT:    sb.cap a0, (a1)
 ; CHECK-ILP32-NEXT:    ret
 ;
 ; CHECK-LP64-LABEL: callee_int_cap:
 ; CHECK-LP64:       # %bb.0:
-; CHECK-LP64-NEXT:    sb.cap a0, (ca1)
+; CHECK-LP64-NEXT:    sb.cap a0, (a1)
 ; CHECK-LP64-NEXT:    ret
 ;
 ; CHECK-IL32PC64-LABEL: callee_int_cap:
 ; CHECK-IL32PC64:       # %bb.0:
-; CHECK-IL32PC64-NEXT:    csb a0, 0(ca1)
+; CHECK-IL32PC64-NEXT:    csb a0, 0(a1)
 ; CHECK-IL32PC64-NEXT:    cret
 ;
 ; CHECK-L64PC128-LABEL: callee_int_cap:
 ; CHECK-L64PC128:       # %bb.0:
-; CHECK-L64PC128-NEXT:    csb a0, 0(ca1)
+; CHECK-L64PC128-NEXT:    csb a0, 0(a1)
 ; CHECK-L64PC128-NEXT:    cret
   store i8 %int, i8 addrspace(200)* %cap
   ret void
@@ -55,34 +55,34 @@ define void @callee_int_cap(i8 %int, i8 addrspace(200)* %cap) nounwind {
 define void @callee_cap_cap_int(i8 addrspace(200)* %dst, i8 addrspace(200)* %src, i32 signext %offset) nounwind {
 ; CHECK-ILP32-LABEL: callee_cap_cap_int:
 ; CHECK-ILP32:       # %bb.0:
-; CHECK-ILP32-NEXT:    cincoffset ca1, ca1, a2
-; CHECK-ILP32-NEXT:    lb.cap a1, (ca1)
-; CHECK-ILP32-NEXT:    cincoffset ca0, ca0, a2
-; CHECK-ILP32-NEXT:    sb.cap a1, (ca0)
+; CHECK-ILP32-NEXT:    cincoffset a1, a1, a2
+; CHECK-ILP32-NEXT:    lb.cap a1, (a1)
+; CHECK-ILP32-NEXT:    cincoffset a0, a0, a2
+; CHECK-ILP32-NEXT:    sb.cap a1, (a0)
 ; CHECK-ILP32-NEXT:    ret
 ;
 ; CHECK-LP64-LABEL: callee_cap_cap_int:
 ; CHECK-LP64:       # %bb.0:
-; CHECK-LP64-NEXT:    cincoffset ca1, ca1, a2
-; CHECK-LP64-NEXT:    lb.cap a1, (ca1)
-; CHECK-LP64-NEXT:    cincoffset ca0, ca0, a2
-; CHECK-LP64-NEXT:    sb.cap a1, (ca0)
+; CHECK-LP64-NEXT:    cincoffset a1, a1, a2
+; CHECK-LP64-NEXT:    lb.cap a1, (a1)
+; CHECK-LP64-NEXT:    cincoffset a0, a0, a2
+; CHECK-LP64-NEXT:    sb.cap a1, (a0)
 ; CHECK-LP64-NEXT:    ret
 ;
 ; CHECK-IL32PC64-LABEL: callee_cap_cap_int:
 ; CHECK-IL32PC64:       # %bb.0:
-; CHECK-IL32PC64-NEXT:    cincoffset ca1, ca1, a2
-; CHECK-IL32PC64-NEXT:    clb a1, 0(ca1)
-; CHECK-IL32PC64-NEXT:    cincoffset ca0, ca0, a2
-; CHECK-IL32PC64-NEXT:    csb a1, 0(ca0)
+; CHECK-IL32PC64-NEXT:    cincoffset a1, a1, a2
+; CHECK-IL32PC64-NEXT:    clb a1, 0(a1)
+; CHECK-IL32PC64-NEXT:    cincoffset a0, a0, a2
+; CHECK-IL32PC64-NEXT:    csb a1, 0(a0)
 ; CHECK-IL32PC64-NEXT:    cret
 ;
 ; CHECK-L64PC128-LABEL: callee_cap_cap_int:
 ; CHECK-L64PC128:       # %bb.0:
-; CHECK-L64PC128-NEXT:    cincoffset ca1, ca1, a2
-; CHECK-L64PC128-NEXT:    clb a1, 0(ca1)
-; CHECK-L64PC128-NEXT:    cincoffset ca0, ca0, a2
-; CHECK-L64PC128-NEXT:    csb a1, 0(ca0)
+; CHECK-L64PC128-NEXT:    cincoffset a1, a1, a2
+; CHECK-L64PC128-NEXT:    clb a1, 0(a1)
+; CHECK-L64PC128-NEXT:    cincoffset a0, a0, a2
+; CHECK-L64PC128-NEXT:    csb a1, 0(a0)
 ; CHECK-L64PC128-NEXT:    cret
   %srcoff = getelementptr inbounds i8, i8 addrspace(200)* %src, i32 %offset
   %val = load i8, i8 addrspace(200)* %srcoff

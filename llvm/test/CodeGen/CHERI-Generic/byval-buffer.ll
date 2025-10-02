@@ -165,32 +165,32 @@ define dso_local void @clang_purecap_byval_args() local_unnamed_addr addrspace(2
 ;
 ; PURECAP-RV64-LABEL: clang_purecap_byval_args:
 ; PURECAP-RV64:       # %bb.0: # %entry
-; PURECAP-RV64-NEXT:    cincoffset csp, csp, -1072
-; PURECAP-RV64-NEXT:    csc cra, 1056(csp) # 16-byte Folded Spill
-; PURECAP-RV64-NEXT:    csc cs0, 1040(csp) # 16-byte Folded Spill
+; PURECAP-RV64-NEXT:    cincoffset sp, sp, -1072
+; PURECAP-RV64-NEXT:    csc ra, 1056(sp) # 16-byte Folded Spill
+; PURECAP-RV64-NEXT:    csc s0, 1040(sp) # 16-byte Folded Spill
 ; PURECAP-RV64-NEXT:  .LBB0_1: # %entry
 ; PURECAP-RV64-NEXT:    # Label of block must be emitted
-; PURECAP-RV64-NEXT:    auipcc cs0, %captab_pcrel_hi(global_foo)
-; PURECAP-RV64-NEXT:    clc cs0, %pcrel_lo(.LBB0_1)(cs0)
+; PURECAP-RV64-NEXT:    auipcc s0, %captab_pcrel_hi(global_foo)
+; PURECAP-RV64-NEXT:    clc s0, %pcrel_lo(.LBB0_1)(s0)
 ; PURECAP-RV64-NEXT:    li a2, 1024
-; PURECAP-RV64-NEXT:    cmove ca0, cs0
+; PURECAP-RV64-NEXT:    cmove a0, s0
 ; PURECAP-RV64-NEXT:    li a1, 0
 ; PURECAP-RV64-NEXT:    ccall memset
-; PURECAP-RV64-NEXT:    clb a0, 0(cs0)
+; PURECAP-RV64-NEXT:    clb a0, 0(s0)
 ; PURECAP-RV64-NEXT:    li a1, 0
 ; PURECAP-RV64-NEXT:    ccall assert_eq
-; PURECAP-RV64-NEXT:    cincoffset ca0, csp, 16
+; PURECAP-RV64-NEXT:    cincoffset a0, sp, 16
 ; PURECAP-RV64-NEXT:    li a2, 1024
-; PURECAP-RV64-NEXT:    cmove ca1, cs0
+; PURECAP-RV64-NEXT:    cmove a1, s0
 ; PURECAP-RV64-NEXT:    ccall memcpy
-; PURECAP-RV64-NEXT:    cincoffset ca0, csp, 16
+; PURECAP-RV64-NEXT:    cincoffset a0, sp, 16
 ; PURECAP-RV64-NEXT:    ccall foo_byval
-; PURECAP-RV64-NEXT:    clb a0, 0(cs0)
+; PURECAP-RV64-NEXT:    clb a0, 0(s0)
 ; PURECAP-RV64-NEXT:    li a1, 0
 ; PURECAP-RV64-NEXT:    ccall assert_eq
-; PURECAP-RV64-NEXT:    clc cra, 1056(csp) # 16-byte Folded Reload
-; PURECAP-RV64-NEXT:    clc cs0, 1040(csp) # 16-byte Folded Reload
-; PURECAP-RV64-NEXT:    cincoffset csp, csp, 1072
+; PURECAP-RV64-NEXT:    clc ra, 1056(sp) # 16-byte Folded Reload
+; PURECAP-RV64-NEXT:    clc s0, 1040(sp) # 16-byte Folded Reload
+; PURECAP-RV64-NEXT:    cincoffset sp, sp, 1072
 ; PURECAP-RV64-NEXT:    cret
 ;
 ; PURECAP-MIPS-LABEL: clang_purecap_byval_args:

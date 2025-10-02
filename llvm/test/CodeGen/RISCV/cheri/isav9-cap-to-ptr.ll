@@ -7,10 +7,10 @@
 define dso_local i64 @cap_to_ptr(i64 addrspace(200)* %dst, i8 addrspace(200)* %auth, i8 addrspace(200)* %cap) nounwind {
 ; ISAV9-LABEL: cap_to_ptr:
 ; ISAV9:       # %bb.0: # %entry
-; ISAV9-NEXT:    cgettag a1, ca2
+; ISAV9-NEXT:    cgettag a1, a2
 ; ISAV9-NEXT:    neg a1, a1
 ; ISAV9-NEXT:    and a1, a2, a1
-; ISAV9-NEXT:    csd a1, 0(ca0)
+; ISAV9-NEXT:    csd a1, 0(a0)
 ; ISAV9-NEXT:    mv a0, a1
 ; ISAV9-NEXT:    cret
 entry:
@@ -22,10 +22,10 @@ entry:
 define dso_local i64 @cap_from_ptr_ddc(i64 addrspace(200)* %dst, i8 addrspace(200)* %cap) nounwind {
 ; ISAV9-LABEL: cap_from_ptr_ddc:
 ; ISAV9:       # %bb.0: # %entry
-; ISAV9-NEXT:    cgettag a2, ca1
+; ISAV9-NEXT:    cgettag a2, a1
 ; ISAV9-NEXT:    neg a2, a2
 ; ISAV9-NEXT:    and a1, a1, a2
-; ISAV9-NEXT:    csd a1, 0(ca0)
+; ISAV9-NEXT:    csd a1, 0(a0)
 ; ISAV9-NEXT:    mv a0, a1
 ; ISAV9-NEXT:    cret
 entry:

@@ -26,10 +26,10 @@ void *__capability global_fn_to_cap(void) {
   // ASM-MIPS:      cgetpcc $c1
   // ASM-MIPS-NEXT: ld $1, %got_disp(external_fn)($1)
   // ASM-MIPS-NEXT: cfromptr $c3, $c1, $1
-  // ASM-RISCV: cspecialr ca1, pcc
+  // ASM-RISCV: cspecialr a1, pcc
   // ASM-RISCV: auipc a0, %got_pcrel_hi(external_fn)
   // ASM-RISCV-NEXT:  ld a0, %pcrel_lo(.Lpcrel_hi0)(a0)
-  // ASM-RISCV-NEXT:  csetaddr ca1, ca1, a0
+  // ASM-RISCV-NEXT:  csetaddr a1, a1, a0
   return (__cheri_tocap void *__capability)&external_fn;
 }
 
@@ -46,8 +46,8 @@ void *__capability global_data_to_cap(void) {
   // ASM-MIPS-NEXT: csetbounds $c3, $c1, 4
   // ASM-RISCV: auipc a0, %got_pcrel_hi(external_global)
   // ASM-RISCV-NEXT:  ld a0, %pcrel_lo(.Lpcrel_hi1)(a0)
-  // ASM-RISCV-NEXT:  cspecialr ca1, ddc
-  // ASM-RISCV-NEXT:  csetaddr ca1, ca1, a0
+  // ASM-RISCV-NEXT:  cspecialr a1, ddc
+  // ASM-RISCV-NEXT:  csetaddr a1, a1, a0
   // We do not set bounds on RISCV
   // ASM-RISCV-NOT: csetbounds
   return (__cheri_tocap void *__capability)&external_global;
@@ -68,8 +68,8 @@ void *__capability fn_ptr_to_cap(void (*fn_ptr)(void)) {
   // ASM-LABEL: fn_ptr_to_cap:
   // ASM-MIPS:      cgetpcc $c1
   // ASM-MIPS-NEXT: cfromptr $c3, $c1, $1
-  // ASM-RISCV:      cspecialr ca1, pcc
-  // ASM-RISCV-NEXT: csetaddr ca1, ca1, a0
+  // ASM-RISCV:      cspecialr a1, pcc
+  // ASM-RISCV-NEXT: csetaddr a1, a1, a0
   return (__cheri_tocap void *__capability)fn_ptr;
 }
 
@@ -88,8 +88,8 @@ void *__capability fn_ptr_to_cap(void (*fn_ptr)(void)) {
 void *__capability fn_ptr_to_cap_not_smart_enough(void (*fn_ptr)(void)) {
   // ASM-LABEL: fn_ptr_to_cap_not_smart_enough:
   // ASM-MIPS:  cfromddc $c3, $1
-  // ASM-RISCV: cspecialr ca1, ddc
-  // ASM-RISCV-NEXT:  csetaddr ca1, ca1, a0
+  // ASM-RISCV: cspecialr a1, ddc
+  // ASM-RISCV-NEXT:  csetaddr a1, a1, a0
   // Note: In this case clang doesn't see that the result is actual a function
   // so it uses DDC:
   void *tmp = (void *)fn_ptr;
@@ -109,7 +109,7 @@ void *__capability data_ptr_to_cap(int *data_ptr) {
   // Note: For data pointers we derive from DDC:
   // ASM-LABEL: data_ptr_to_cap:
   // ASM-MIPS:  cfromddc $c3, $1
-  // ASM-RISCV: cspecialr ca1, ddc
-  // ASM-RISCV-NEXT:  csetaddr ca1, ca1, a0
+  // ASM-RISCV: cspecialr a1, ddc
+  // ASM-RISCV-NEXT:  csetaddr a1, a1, a0
   return (__cheri_tocap void *__capability)data_ptr;
 }

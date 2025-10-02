@@ -20,19 +20,19 @@ declare ptr addrspace(200) @stpncpy(ptr addrspace(200), ptr addrspace(200), i64)
 define void @test_strcpy_to_memcpy(ptr addrspace(200) align 4 %dst) addrspace(200) nounwind {
 ; CHECK-ASM-LABEL: test_strcpy_to_memcpy:
 ; CHECK-ASM:       # %bb.0: # %entry
-; CHECK-ASM-NEXT:    csb zero, 16(ca0)
+; CHECK-ASM-NEXT:    csb zero, 16(a0)
 ; CHECK-ASM-NEXT:    lui a1, 472870
 ; CHECK-ASM-NEXT:    addi a1, a1, 360
-; CHECK-ASM-NEXT:    csw a1, 12(ca0)
+; CHECK-ASM-NEXT:    csw a1, 12(a0)
 ; CHECK-ASM-NEXT:    lui a1, 406019
 ; CHECK-ASM-NEXT:    addi a1, a1, 1585
-; CHECK-ASM-NEXT:    csw a1, 8(ca0)
+; CHECK-ASM-NEXT:    csw a1, 8(a0)
 ; CHECK-ASM-NEXT:    lui a1, 133015
 ; CHECK-ASM-NEXT:    addi a1, a1, -908
-; CHECK-ASM-NEXT:    csw a1, 4(ca0)
+; CHECK-ASM-NEXT:    csw a1, 4(a0)
 ; CHECK-ASM-NEXT:    lui a1, 407064
 ; CHECK-ASM-NEXT:    addi a1, a1, -1947
-; CHECK-ASM-NEXT:    csw a1, 0(ca0)
+; CHECK-ASM-NEXT:    csw a1, 0(a0)
 ; CHECK-ASM-NEXT:    cret
 ; CHECK-IR-LABEL: define void @test_strcpy_to_memcpy
 ; CHECK-IR-SAME: (ptr addrspace(200) align 4 [[DST:%.*]]) addrspace(200) #[[ATTR1:[0-9]+]] {
@@ -48,19 +48,19 @@ entry:
 define void @test_stpcpy_to_memcpy(ptr addrspace(200) align 4 %dst) addrspace(200) nounwind {
 ; CHECK-ASM-LABEL: test_stpcpy_to_memcpy:
 ; CHECK-ASM:       # %bb.0: # %entry
-; CHECK-ASM-NEXT:    csb zero, 16(ca0)
+; CHECK-ASM-NEXT:    csb zero, 16(a0)
 ; CHECK-ASM-NEXT:    lui a1, 472870
 ; CHECK-ASM-NEXT:    addi a1, a1, 360
-; CHECK-ASM-NEXT:    csw a1, 12(ca0)
+; CHECK-ASM-NEXT:    csw a1, 12(a0)
 ; CHECK-ASM-NEXT:    lui a1, 406019
 ; CHECK-ASM-NEXT:    addi a1, a1, 1585
-; CHECK-ASM-NEXT:    csw a1, 8(ca0)
+; CHECK-ASM-NEXT:    csw a1, 8(a0)
 ; CHECK-ASM-NEXT:    lui a1, 133015
 ; CHECK-ASM-NEXT:    addi a1, a1, -908
-; CHECK-ASM-NEXT:    csw a1, 4(ca0)
+; CHECK-ASM-NEXT:    csw a1, 4(a0)
 ; CHECK-ASM-NEXT:    lui a1, 407064
 ; CHECK-ASM-NEXT:    addi a1, a1, -1947
-; CHECK-ASM-NEXT:    csw a1, 0(ca0)
+; CHECK-ASM-NEXT:    csw a1, 0(a0)
 ; CHECK-ASM-NEXT:    cret
 ; CHECK-IR-LABEL: define void @test_stpcpy_to_memcpy
 ; CHECK-IR-SAME: (ptr addrspace(200) align 4 [[DST:%.*]]) addrspace(200) #[[ATTR1]] {
@@ -76,21 +76,21 @@ entry:
 define void @test_strcat_to_memcpy(ptr addrspace(200) align 4 %dst) addrspace(200) nounwind {
 ; CHECK-ASM-LABEL: test_strcat_to_memcpy:
 ; CHECK-ASM:       # %bb.0: # %entry
-; CHECK-ASM-NEXT:    cincoffset csp, csp, -16
-; CHECK-ASM-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
-; CHECK-ASM-NEXT:    csc cs0, 0(csp) # 8-byte Folded Spill
-; CHECK-ASM-NEXT:    cmove cs0, ca0
+; CHECK-ASM-NEXT:    cincoffset sp, sp, -16
+; CHECK-ASM-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; CHECK-ASM-NEXT:    csc s0, 0(sp) # 8-byte Folded Spill
+; CHECK-ASM-NEXT:    cmove s0, a0
 ; CHECK-ASM-NEXT:    ccall strlen
-; CHECK-ASM-NEXT:    cincoffset ca0, cs0, a0
+; CHECK-ASM-NEXT:    cincoffset a0, s0, a0
 ; CHECK-ASM-NEXT:  .LBB2_1: # %entry
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
-; CHECK-ASM-NEXT:    auipcc ca1, %captab_pcrel_hi(.Lstr)
-; CHECK-ASM-NEXT:    clc ca1, %pcrel_lo(.LBB2_1)(ca1)
+; CHECK-ASM-NEXT:    auipcc a1, %captab_pcrel_hi(.Lstr)
+; CHECK-ASM-NEXT:    clc a1, %pcrel_lo(.LBB2_1)(a1)
 ; CHECK-ASM-NEXT:    li a2, 17
 ; CHECK-ASM-NEXT:    ccall memcpy
-; CHECK-ASM-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-ASM-NEXT:    clc cs0, 0(csp) # 8-byte Folded Reload
-; CHECK-ASM-NEXT:    cincoffset csp, csp, 16
+; CHECK-ASM-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-ASM-NEXT:    clc s0, 0(sp) # 8-byte Folded Reload
+; CHECK-ASM-NEXT:    cincoffset sp, sp, 16
 ; CHECK-ASM-NEXT:    cret
 ; CHECK-IR-LABEL: define void @test_strcat_to_memcpy
 ; CHECK-IR-SAME: (ptr addrspace(200) align 4 [[DST:%.*]]) addrspace(200) #[[ATTR1]] {
@@ -109,17 +109,17 @@ entry:
 define void @test_strncpy_to_memcpy(ptr addrspace(200) align 4 %dst) addrspace(200) nounwind {
 ; CHECK-ASM-LABEL: test_strncpy_to_memcpy:
 ; CHECK-ASM:       # %bb.0: # %entry
-; CHECK-ASM-NEXT:    cincoffset csp, csp, -16
-; CHECK-ASM-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-ASM-NEXT:    cincoffset sp, sp, -16
+; CHECK-ASM-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-ASM-NEXT:  .LBB3_1: # %entry
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
-; CHECK-ASM-NEXT:    auipcc ca1, %captab_pcrel_hi(.Lstr)
-; CHECK-ASM-NEXT:    clc ca1, %pcrel_lo(.LBB3_1)(ca1)
+; CHECK-ASM-NEXT:    auipcc a1, %captab_pcrel_hi(.Lstr)
+; CHECK-ASM-NEXT:    clc a1, %pcrel_lo(.LBB3_1)(a1)
 ; CHECK-ASM-NEXT:    li a2, 17
 ; CHECK-ASM-NEXT:    li a3, 0
 ; CHECK-ASM-NEXT:    ccall strncpy
-; CHECK-ASM-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-ASM-NEXT:    cincoffset csp, csp, 16
+; CHECK-ASM-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-ASM-NEXT:    cincoffset sp, sp, 16
 ; CHECK-ASM-NEXT:    cret
 ; CHECK-IR-LABEL: define void @test_strncpy_to_memcpy
 ; CHECK-IR-SAME: (ptr addrspace(200) align 4 [[DST:%.*]]) addrspace(200) #[[ATTR1]] {
@@ -136,17 +136,17 @@ entry:
 define void @test_stpncpy_to_memcpy(ptr addrspace(200) align 4 %dst) addrspace(200) nounwind {
 ; CHECK-ASM-LABEL: test_stpncpy_to_memcpy:
 ; CHECK-ASM:       # %bb.0: # %entry
-; CHECK-ASM-NEXT:    cincoffset csp, csp, -16
-; CHECK-ASM-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-ASM-NEXT:    cincoffset sp, sp, -16
+; CHECK-ASM-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-ASM-NEXT:  .LBB4_1: # %entry
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
-; CHECK-ASM-NEXT:    auipcc ca1, %captab_pcrel_hi(.Lstr)
-; CHECK-ASM-NEXT:    clc ca1, %pcrel_lo(.LBB4_1)(ca1)
+; CHECK-ASM-NEXT:    auipcc a1, %captab_pcrel_hi(.Lstr)
+; CHECK-ASM-NEXT:    clc a1, %pcrel_lo(.LBB4_1)(a1)
 ; CHECK-ASM-NEXT:    li a2, 17
 ; CHECK-ASM-NEXT:    li a3, 0
 ; CHECK-ASM-NEXT:    ccall stpncpy
-; CHECK-ASM-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-ASM-NEXT:    cincoffset csp, csp, 16
+; CHECK-ASM-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-ASM-NEXT:    cincoffset sp, sp, 16
 ; CHECK-ASM-NEXT:    cret
 ; CHECK-IR-LABEL: define void @test_stpncpy_to_memcpy
 ; CHECK-IR-SAME: (ptr addrspace(200) align 4 [[DST:%.*]]) addrspace(200) #[[ATTR1]] {

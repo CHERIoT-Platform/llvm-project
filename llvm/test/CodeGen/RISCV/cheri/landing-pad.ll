@@ -17,9 +17,9 @@ declare void @__cxa_end_catch() addrspace(200)
 define void @test() addrspace(200) personality i8 addrspace(200)* bitcast (i32 (...) addrspace(200)* @__gxx_personality_v0 to i8 addrspace(200)*) {
 ; RV32IXCHERI-LABEL: test:
 ; RV32IXCHERI:       # %bb.0: # %entry
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, -16
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, -16
 ; RV32IXCHERI-NEXT:    .cfi_def_cfa_offset 16
-; RV32IXCHERI-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; RV32IXCHERI-NEXT:    .cfi_offset ra, -8
 ; RV32IXCHERI-NEXT:  .Ltmp0:
 ; RV32IXCHERI-NEXT:    ccall throw_exception
@@ -31,17 +31,17 @@ define void @test() addrspace(200) personality i8 addrspace(200)* bitcast (i32 (
 ; RV32IXCHERI-NEXT:    ccall __cxa_end_catch
 ; RV32IXCHERI-NEXT:    j .LBB0_2
 ; RV32IXCHERI-NEXT:  .LBB0_2: # %try.cont
-; RV32IXCHERI-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; RV32IXCHERI-NEXT:    .cfi_restore ra
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, 16
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, 16
 ; RV32IXCHERI-NEXT:    .cfi_def_cfa_offset 0
 ; RV32IXCHERI-NEXT:    cret
 ;
 ; RV64IXCHERI-LABEL: test:
 ; RV64IXCHERI:       # %bb.0: # %entry
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, -16
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, -16
 ; RV64IXCHERI-NEXT:    .cfi_def_cfa_offset 16
-; RV64IXCHERI-NEXT:    csc cra, 0(csp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    csc ra, 0(sp) # 16-byte Folded Spill
 ; RV64IXCHERI-NEXT:    .cfi_offset ra, -16
 ; RV64IXCHERI-NEXT:  .Ltmp0:
 ; RV64IXCHERI-NEXT:    ccall throw_exception
@@ -53,9 +53,9 @@ define void @test() addrspace(200) personality i8 addrspace(200)* bitcast (i32 (
 ; RV64IXCHERI-NEXT:    ccall __cxa_end_catch
 ; RV64IXCHERI-NEXT:    j .LBB0_2
 ; RV64IXCHERI-NEXT:  .LBB0_2: # %try.cont
-; RV64IXCHERI-NEXT:    clc cra, 0(csp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    clc ra, 0(sp) # 16-byte Folded Reload
 ; RV64IXCHERI-NEXT:    .cfi_restore ra
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, 16
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, 16
 ; RV64IXCHERI-NEXT:    .cfi_def_cfa_offset 0
 ; RV64IXCHERI-NEXT:    cret
 entry:

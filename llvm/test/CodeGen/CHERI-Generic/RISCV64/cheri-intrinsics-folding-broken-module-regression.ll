@@ -21,17 +21,17 @@ define void @g(i64 %x, i64 %y) addrspace(200) nounwind {
 ; ASM-LABEL: g:
 ; ASM:       # %bb.0:
 ; ASM-NEXT:  .LBB0_1: # Label of block must be emitted
-; ASM-NEXT:    auipcc ca2, %captab_pcrel_hi(d)
-; ASM-NEXT:    clc ca2, %pcrel_lo(.LBB0_1)(ca2)
+; ASM-NEXT:    auipcc a2, %captab_pcrel_hi(d)
+; ASM-NEXT:    clc a2, %pcrel_lo(.LBB0_1)(a2)
 ; ASM-NEXT:    add a1, a1, a0
 ; ASM-NEXT:  .LBB0_2: # Label of block must be emitted
-; ASM-NEXT:    auipcc ca3, %captab_pcrel_hi(e)
-; ASM-NEXT:    clc ca3, %pcrel_lo(.LBB0_2)(ca3)
-; ASM-NEXT:    cincoffset ca0, ca2, a0
-; ASM-NEXT:    cgetoffset a2, ca2
+; ASM-NEXT:    auipcc a3, %captab_pcrel_hi(e)
+; ASM-NEXT:    clc a3, %pcrel_lo(.LBB0_2)(a3)
+; ASM-NEXT:    cincoffset a0, a2, a0
+; ASM-NEXT:    cgetoffset a2, a2
 ; ASM-NEXT:    add a1, a1, a2
-; ASM-NEXT:    csetoffset ca0, ca0, a1
-; ASM-NEXT:    csc ca0, 0(ca3)
+; ASM-NEXT:    csetoffset a0, a0, a1
+; ASM-NEXT:    csc a0, 0(a3)
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define void @g
 ; CHECK-SAME: (i64 [[X:%.*]], i64 [[Y:%.*]]) addrspace(200) #[[ATTR0:[0-9]+]] {

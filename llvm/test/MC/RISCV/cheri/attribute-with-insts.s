@@ -12,5 +12,5 @@
 
 .attribute arch, "rv64i2p1_xcheri0p0"
 
-# CHECK-INST: cincoffset ct0, ct1, 0
+# CHECK-INST: cincoffset t0, t1, 0
 cincoffset ct0, ct1, 0

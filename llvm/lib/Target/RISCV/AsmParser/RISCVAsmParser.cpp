@@ -549,9 +549,9 @@ public:
            RISCVMCRegisterClasses[RISCV::GPRRegClassID].contains(Reg.RegNum);
   }
 
-  bool isGPCR() const {
+  bool isYGPR() const {
     return Kind == KindTy::Register &&
-           RISCVMCRegisterClasses[RISCV::GPCRRegClassID].contains(Reg.RegNum);
+           RISCVMCRegisterClasses[RISCV::YGPRRegClassID].contains(Reg.RegNum);
   }
 
   bool isGPRPair() const {
@@ -1464,6 +1464,11 @@ static MCRegister convertFPR64ToFPR128(MCRegister Reg) {
   return Reg - RISCV::F0_D + RISCV::F0_Q;
 }
 
+static MCRegister convertGPRToYGPR(MCRegister Reg) {
+  assert(Reg >= RISCV::X0 && Reg <= RISCV::X31 && "Invalid register");
+  return Reg - RISCV::X0 + RISCV::X0_Y;
+}
+
 static MCRegister convertVRToVRMx(const MCRegisterInfo &RI, MCRegister Reg,
                                   unsigned Kind) {
   unsigned RegClassID;
@@ -1491,6 +1496,17 @@ unsigned RISCVAsmParser::validateTargetOperandClass(MCParsedAsmOperand &AsmOp,
   bool IsRegFPR64C =
       RISCVMCRegisterClasses[RISCV::FPR64CRegClassID].contains(Reg);
   bool IsRegVR = RISCVMCRegisterClasses[RISCV::VRRegClassID].contains(Reg);
+
+  bool WantsYReg = Kind == MCK_YGPR || Kind == MCK_YGPRC ||
+                   Kind == MCK_YGPRTC || Kind == MCK_YGPRE ||
+                   Kind == MCK_YGPRNoX0X1 || Kind == MCK_YGPRNoX0 ||
+                   Kind == MCK_YGPRX0IsDDC;
+
+  if (Op.isGPR() && WantsYReg) {
+    // GPR and capability GPR use the same register names, convert if required.
+    Op.Reg.RegNum = convertGPRToYGPR(Reg);
+    return Match_Success;
+  }
 
   if (IsRegFPR64 && Kind == MCK_FPR128) {
     Op.Reg.RegNum = convertFPR64ToFPR128(Reg);
@@ -4245,7 +4261,7 @@ bool RISCVAsmParser::checkPseudoCIncOffsetTPRel(MCInst &Inst,
   assert(Inst.getOpcode() == RISCV::PseudoCIncOffsetTPRel &&
          "Invalid instruction");
   assert(Inst.getOperand(1).isReg() && "Unexpected first operand kind");
-  if (Inst.getOperand(1).getReg() != RISCV::C4) {
+  if (Inst.getOperand(1).getReg() != RISCV::X4_Y) {
     SMLoc ErrorLoc = ((RISCVOperand &)*Operands[2]).getStartLoc();
     return Error(ErrorLoc, "the first input operand must be ctp/c4 when using "
                            "%tprel_cincoffset modifier");

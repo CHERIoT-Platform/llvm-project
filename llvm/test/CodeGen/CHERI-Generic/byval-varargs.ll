@@ -96,33 +96,33 @@ define signext i32 @test_alloca() local_unnamed_addr addrspace(200) nounwind {
 ;
 ; PURECAP-RV64-LABEL: test_alloca:
 ; PURECAP-RV64:       # %bb.0: # %entry
-; PURECAP-RV64-NEXT:    cincoffset csp, csp, -2032
-; PURECAP-RV64-NEXT:    csc cra, 2016(csp) # 16-byte Folded Spill
-; PURECAP-RV64-NEXT:    csc cs0, 2000(csp) # 16-byte Folded Spill
-; PURECAP-RV64-NEXT:    csc cs1, 1984(csp) # 16-byte Folded Spill
-; PURECAP-RV64-NEXT:    cincoffset csp, csp, -96
-; PURECAP-RV64-NEXT:    cincoffset ca0, csp, 1056
-; PURECAP-RV64-NEXT:    csetbounds cs0, ca0, 1024
+; PURECAP-RV64-NEXT:    cincoffset sp, sp, -2032
+; PURECAP-RV64-NEXT:    csc ra, 2016(sp) # 16-byte Folded Spill
+; PURECAP-RV64-NEXT:    csc s0, 2000(sp) # 16-byte Folded Spill
+; PURECAP-RV64-NEXT:    csc s1, 1984(sp) # 16-byte Folded Spill
+; PURECAP-RV64-NEXT:    cincoffset sp, sp, -96
+; PURECAP-RV64-NEXT:    cincoffset a0, sp, 1056
+; PURECAP-RV64-NEXT:    csetbounds s0, a0, 1024
 ; PURECAP-RV64-NEXT:    li a2, 1024
-; PURECAP-RV64-NEXT:    cmove ca0, cs0
+; PURECAP-RV64-NEXT:    cmove a0, s0
 ; PURECAP-RV64-NEXT:    li a1, 0
 ; PURECAP-RV64-NEXT:    ccall memset
-; PURECAP-RV64-NEXT:    cmove ca0, cs0
+; PURECAP-RV64-NEXT:    cmove a0, s0
 ; PURECAP-RV64-NEXT:    ccall byref
-; PURECAP-RV64-NEXT:    cincoffset ca0, csp, 32
-; PURECAP-RV64-NEXT:    csetbounds cs1, ca0, 1024
+; PURECAP-RV64-NEXT:    cincoffset a0, sp, 32
+; PURECAP-RV64-NEXT:    csetbounds s1, a0, 1024
 ; PURECAP-RV64-NEXT:    li a2, 1024
-; PURECAP-RV64-NEXT:    cmove ca0, cs1
-; PURECAP-RV64-NEXT:    cmove ca1, cs0
+; PURECAP-RV64-NEXT:    cmove a0, s1
+; PURECAP-RV64-NEXT:    cmove a1, s0
 ; PURECAP-RV64-NEXT:    ccall memcpy
 ; PURECAP-RV64-NEXT:    li a0, 1024
-; PURECAP-RV64-NEXT:    csc cs1, 0(csp)
+; PURECAP-RV64-NEXT:    csc s1, 0(sp)
 ; PURECAP-RV64-NEXT:    ccall varargs
-; PURECAP-RV64-NEXT:    cincoffset csp, csp, 96
-; PURECAP-RV64-NEXT:    clc cra, 2016(csp) # 16-byte Folded Reload
-; PURECAP-RV64-NEXT:    clc cs0, 2000(csp) # 16-byte Folded Reload
-; PURECAP-RV64-NEXT:    clc cs1, 1984(csp) # 16-byte Folded Reload
-; PURECAP-RV64-NEXT:    cincoffset csp, csp, 2032
+; PURECAP-RV64-NEXT:    cincoffset sp, sp, 96
+; PURECAP-RV64-NEXT:    clc ra, 2016(sp) # 16-byte Folded Reload
+; PURECAP-RV64-NEXT:    clc s0, 2000(sp) # 16-byte Folded Reload
+; PURECAP-RV64-NEXT:    clc s1, 1984(sp) # 16-byte Folded Reload
+; PURECAP-RV64-NEXT:    cincoffset sp, sp, 2032
 ; PURECAP-RV64-NEXT:    cret
 ;
 ; PURECAP-MIPS-LABEL: test_alloca:
@@ -274,34 +274,34 @@ define signext i32 @test_byval() local_unnamed_addr addrspace(200) nounwind {
 ; PURECAP-RV64-LABEL: test_byval:
 ; Stack frame size should be > 2048 (split into two instructions)
 ; PURECAP-RV64:       # %bb.0: # %entry
-; PURECAP-RV64-NEXT:    cincoffset csp, csp, -2032
-; PURECAP-RV64-NEXT:    csc cra, 2016(csp) # 16-byte Folded Spill
-; PURECAP-RV64-NEXT:    csc cs0, 2000(csp) # 16-byte Folded Spill
-; PURECAP-RV64-NEXT:    csc cs1, 1984(csp) # 16-byte Folded Spill
-; PURECAP-RV64-NEXT:    cincoffset csp, csp, -96
-; PURECAP-RV64-NEXT:    cincoffset ca0, csp, 1056
-; PURECAP-RV64-NEXT:    csetbounds cs0, ca0, 1024
+; PURECAP-RV64-NEXT:    cincoffset sp, sp, -2032
+; PURECAP-RV64-NEXT:    csc ra, 2016(sp) # 16-byte Folded Spill
+; PURECAP-RV64-NEXT:    csc s0, 2000(sp) # 16-byte Folded Spill
+; PURECAP-RV64-NEXT:    csc s1, 1984(sp) # 16-byte Folded Spill
+; PURECAP-RV64-NEXT:    cincoffset sp, sp, -96
+; PURECAP-RV64-NEXT:    cincoffset a0, sp, 1056
+; PURECAP-RV64-NEXT:    csetbounds s0, a0, 1024
 ; PURECAP-RV64-NEXT:    li a2, 1024
-; PURECAP-RV64-NEXT:    cmove ca0, cs0
+; PURECAP-RV64-NEXT:    cmove a0, s0
 ; PURECAP-RV64-NEXT:    li a1, 0
 ; PURECAP-RV64-NEXT:    ccall memset
-; PURECAP-RV64-NEXT:    cmove ca0, cs0
+; PURECAP-RV64-NEXT:    cmove a0, s0
 ; PURECAP-RV64-NEXT:    ccall byref
-; PURECAP-RV64-NEXT:    cincoffset ca0, csp, 32
+; PURECAP-RV64-NEXT:    cincoffset a0, sp, 32
 ; PURECAP-RV64-NEXT:    li a2, 1024
-; PURECAP-RV64-NEXT:    cincoffset cs1, csp, 32
-; PURECAP-RV64-NEXT:    cmove ca1, cs0
+; PURECAP-RV64-NEXT:    cincoffset s1, sp, 32
+; PURECAP-RV64-NEXT:    cmove a1, s0
 ; Note: no bounds for implicit byval arg memcpy()
 ; TODO: should we add the csetbounds here? Not really necessary if we trust memcpy().
 ; PURECAP-RV64-NEXT:    ccall memcpy
 ; PURECAP-RV64-NEXT:    li a0, 1024
-; PURECAP-RV64-NEXT:    csc cs1, 0(csp)
+; PURECAP-RV64-NEXT:    csc s1, 0(sp)
 ; PURECAP-RV64-NEXT:    ccall varargs
-; PURECAP-RV64-NEXT:    cincoffset csp, csp, 96
-; PURECAP-RV64-NEXT:    clc cra, 2016(csp) # 16-byte Folded Reload
-; PURECAP-RV64-NEXT:    clc cs0, 2000(csp) # 16-byte Folded Reload
-; PURECAP-RV64-NEXT:    clc cs1, 1984(csp) # 16-byte Folded Reload
-; PURECAP-RV64-NEXT:    cincoffset csp, csp, 2032
+; PURECAP-RV64-NEXT:    cincoffset sp, sp, 96
+; PURECAP-RV64-NEXT:    clc ra, 2016(sp) # 16-byte Folded Reload
+; PURECAP-RV64-NEXT:    clc s0, 2000(sp) # 16-byte Folded Reload
+; PURECAP-RV64-NEXT:    clc s1, 1984(sp) # 16-byte Folded Reload
+; PURECAP-RV64-NEXT:    cincoffset sp, sp, 2032
 ; PURECAP-RV64-NEXT:    cret
 ;
 ; PURECAP-MIPS-LABEL: test_byval:

@@ -137,7 +137,7 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
       SizeReg = Out;
     }
     const Register DstReg = MI.getOperand(0).getReg();
-    const Register Unbounded = MRI.createVirtualRegister(&RISCV::GPCRRegClass);
+    const Register Unbounded = MRI.createVirtualRegister(&RISCV::YGPRRegClass);
     MI.getOperand(0).setReg(Unbounded);
     // Replace the pseudo with the version that doesn't need CSetBounds applied.
     MI.setDesc(TII->get(RISCV::PseudoCLLCInbounds));

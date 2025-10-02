@@ -15,13 +15,13 @@ declare void @llvm.memmove.p200i8.p200i8.i64(i8 addrspace(200)* nocapture writeo
 define void @memcpy_no_attr(%struct.pair addrspace(200)* %a, %struct.pair addrspace(200)* %b) addrspace(200) nounwind {
 ; CHECK-LABEL: memcpy_no_attr:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    cincoffset csp, csp, -16
-; CHECK-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    cincoffset sp, sp, -16
+; CHECK-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    li a2, 16
 ; CHECK-NEXT:    li a3, 0
 ; CHECK-NEXT:    ccall memcpy
-; CHECK-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    cincoffset csp, csp, 16
+; CHECK-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    cincoffset sp, sp, 16
 ; CHECK-NEXT:    cret
 entry:
   %a_i8 = bitcast %struct.pair addrspace(200)* %a to i8 addrspace(200)*
@@ -33,13 +33,13 @@ entry:
 define void @memmove_no_attr(%struct.pair addrspace(200)* %a, %struct.pair addrspace(200)* %b) addrspace(200) nounwind {
 ; CHECK-LABEL: memmove_no_attr:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    cincoffset csp, csp, -16
-; CHECK-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    cincoffset sp, sp, -16
+; CHECK-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    li a2, 16
 ; CHECK-NEXT:    li a3, 0
 ; CHECK-NEXT:    ccall memmove
-; CHECK-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    cincoffset csp, csp, 16
+; CHECK-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    cincoffset sp, sp, 16
 ; CHECK-NEXT:    cret
 entry:
   %a_i8 = bitcast %struct.pair addrspace(200)* %a to i8 addrspace(200)*
@@ -52,13 +52,13 @@ entry:
 define void @memcpy_must_preserve(%struct.pair addrspace(200)* %a, %struct.pair addrspace(200)* %b) addrspace(200) nounwind {
 ; CHECK-LABEL: memcpy_must_preserve:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    cincoffset csp, csp, -16
-; CHECK-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    cincoffset sp, sp, -16
+; CHECK-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    li a2, 16
 ; CHECK-NEXT:    li a3, 0
 ; CHECK-NEXT:    ccall memcpy
-; CHECK-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    cincoffset csp, csp, 16
+; CHECK-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    cincoffset sp, sp, 16
 ; CHECK-NEXT:    cret
 entry:
   %a_i8 = bitcast %struct.pair addrspace(200)* %a to i8 addrspace(200)*
@@ -70,13 +70,13 @@ entry:
 define void @memmove_must_preserve(%struct.pair addrspace(200)* %a, %struct.pair addrspace(200)* %b) addrspace(200) nounwind {
 ; CHECK-LABEL: memmove_must_preserve:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    cincoffset csp, csp, -16
-; CHECK-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    cincoffset sp, sp, -16
+; CHECK-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    li a2, 16
 ; CHECK-NEXT:    li a3, 0
 ; CHECK-NEXT:    ccall memmove
-; CHECK-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    cincoffset csp, csp, 16
+; CHECK-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    cincoffset sp, sp, 16
 ; CHECK-NEXT:    cret
 entry:
   %a_i8 = bitcast %struct.pair addrspace(200)* %a to i8 addrspace(200)*
@@ -89,14 +89,14 @@ entry:
 define void @memcpy_no_preserve(%struct.pair addrspace(200)* %a, %struct.pair addrspace(200)* %b) addrspace(200) nounwind {
 ; CHECK-LABEL: memcpy_no_preserve:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    clw a2, 12(ca1)
-; CHECK-NEXT:    csw a2, 12(ca0)
-; CHECK-NEXT:    clw a2, 8(ca1)
-; CHECK-NEXT:    csw a2, 8(ca0)
-; CHECK-NEXT:    clw a2, 4(ca1)
-; CHECK-NEXT:    csw a2, 4(ca0)
-; CHECK-NEXT:    clw a1, 0(ca1)
-; CHECK-NEXT:    csw a1, 0(ca0)
+; CHECK-NEXT:    clw a2, 12(a1)
+; CHECK-NEXT:    csw a2, 12(a0)
+; CHECK-NEXT:    clw a2, 8(a1)
+; CHECK-NEXT:    csw a2, 8(a0)
+; CHECK-NEXT:    clw a2, 4(a1)
+; CHECK-NEXT:    csw a2, 4(a0)
+; CHECK-NEXT:    clw a1, 0(a1)
+; CHECK-NEXT:    csw a1, 0(a0)
 ; CHECK-NEXT:    cret
 entry:
   %a_i8 = bitcast %struct.pair addrspace(200)* %a to i8 addrspace(200)*
@@ -108,14 +108,14 @@ entry:
 define void @memmove_no_preserve(%struct.pair addrspace(200)* %a, %struct.pair addrspace(200)* %b) addrspace(200) nounwind {
 ; CHECK-LABEL: memmove_no_preserve:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    clw a2, 12(ca1)
-; CHECK-NEXT:    clw a3, 8(ca1)
-; CHECK-NEXT:    clw a4, 4(ca1)
-; CHECK-NEXT:    clw a1, 0(ca1)
-; CHECK-NEXT:    csw a2, 12(ca0)
-; CHECK-NEXT:    csw a3, 8(ca0)
-; CHECK-NEXT:    csw a4, 4(ca0)
-; CHECK-NEXT:    csw a1, 0(ca0)
+; CHECK-NEXT:    clw a2, 12(a1)
+; CHECK-NEXT:    clw a3, 8(a1)
+; CHECK-NEXT:    clw a4, 4(a1)
+; CHECK-NEXT:    clw a1, 0(a1)
+; CHECK-NEXT:    csw a2, 12(a0)
+; CHECK-NEXT:    csw a3, 8(a0)
+; CHECK-NEXT:    csw a4, 4(a0)
+; CHECK-NEXT:    csw a1, 0(a0)
 ; CHECK-NEXT:    cret
 entry:
   %a_i8 = bitcast %struct.pair addrspace(200)* %a to i8 addrspace(200)*

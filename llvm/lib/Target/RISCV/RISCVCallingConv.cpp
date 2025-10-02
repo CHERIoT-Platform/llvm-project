@@ -142,43 +142,44 @@ ArrayRef<MCPhysReg> RISCV::getArgGPRs(const RISCVABI::ABI ABI) {
   return ArrayRef(ArgIGPRs);
 }
 
-ArrayRef<MCPhysReg> RISCV::getArgGPCRs(const RISCVABI::ABI ABI) {
+ArrayRef<MCPhysReg> RISCV::getArgYGPRs(const RISCVABI::ABI ABI) {
   // The GPRs used for passing arguments in the ILP32* and LP64* ABIs, except
   // the ILP32E ABI.
-  static const MCPhysReg ArgIGPCRs[] = {RISCV::C10, RISCV::C11, RISCV::C12,
-                                        RISCV::C13, RISCV::C14, RISCV::C15,
-                                        RISCV::C16, RISCV::C17};
+  static const MCPhysReg ArgIYGPRs[] = {
+      RISCV::X10_Y, RISCV::X11_Y, RISCV::X12_Y, RISCV::X13_Y,
+      RISCV::X14_Y, RISCV::X15_Y, RISCV::X16_Y, RISCV::X17_Y};
   // The GPRs used for passing arguments in the ILP32E/ILP64E ABI.
-  static const MCPhysReg ArgEGPCRs[] = {RISCV::C10, RISCV::C11, RISCV::C12,
-                                        RISCV::C13, RISCV::C14, RISCV::C15};
+  static const MCPhysReg ArgEYGPRs[] = {RISCV::X10_Y, RISCV::X11_Y,
+                                        RISCV::X12_Y, RISCV::X13_Y,
+                                        RISCV::X14_Y, RISCV::X15_Y};
 
   if (ABI == RISCVABI::ABI_ILP32E || ABI == RISCVABI::ABI_LP64E ||
       ABI == RISCVABI::ABI_IL32PC64E ||
       ABI == RISCVABI::ABI_CHERIOT || ABI == RISCVABI::ABI_CHERIOT_BAREMETAL)
-    return ArrayRef(ArgEGPCRs);
+    return ArrayRef(ArgEYGPRs);
 
-  return ArrayRef(ArgIGPCRs);
+  return ArrayRef(ArgIYGPRs);
 }
 
-static ArrayRef<MCPhysReg> getFastCCArgGPCRs(const RISCVABI::ABI ABI) {
+static ArrayRef<MCPhysReg> getFastCCArgYGPRs(const RISCVABI::ABI ABI) {
   // The GPRs used for passing arguments in the FastCC, X5 and X6 might be used
   // for save-restore libcall, so we don't use them.
-  static const MCPhysReg FastCCIGPCRs[] = {
-      RISCV::C10, RISCV::C11, RISCV::C12, RISCV::C13, RISCV::C14,
-      RISCV::C15, RISCV::C16, RISCV::C17, RISCV::C7,  RISCV::C28,
-      RISCV::C29, RISCV::C30, RISCV::C31};
+  static const MCPhysReg FastCCIYGPRs[] = {
+      RISCV::X10_Y, RISCV::X11_Y, RISCV::X12_Y, RISCV::X13_Y, RISCV::X14_Y,
+      RISCV::X15_Y, RISCV::X16_Y, RISCV::X17_Y, RISCV::X7_Y,  RISCV::X28_Y,
+      RISCV::X29_Y, RISCV::X30_Y, RISCV::X31_Y};
 
   // The GPRs used for passing arguments in the FastCC when using ILP32E/ILP64E.
-  static const MCPhysReg FastCCEGPCRs[] = {RISCV::C10, RISCV::C11, RISCV::C12,
-                                           RISCV::C13, RISCV::C14, RISCV::C15,
-                                           RISCV::C7};
+  static const MCPhysReg FastCCEYGPRs[] = {
+      RISCV::X10_Y, RISCV::X11_Y, RISCV::X12_Y, RISCV::X13_Y,
+      RISCV::X14_Y, RISCV::X15_Y, RISCV::X7_Y};
 
   if (ABI == RISCVABI::ABI_ILP32E || ABI == RISCVABI::ABI_LP64E ||
       ABI == RISCVABI::ABI_IL32PC64E ||
       ABI == RISCVABI::ABI_CHERIOT || ABI == RISCVABI::ABI_CHERIOT_BAREMETAL)
-    return ArrayRef(FastCCEGPCRs);
+    return ArrayRef(FastCCEYGPRs);
 
-  return ArrayRef(FastCCIGPCRs);
+  return ArrayRef(FastCCIYGPRs);
 }
 
 static ArrayRef<MCPhysReg> getArgGPR16s(const RISCVABI::ABI ABI) {
@@ -491,7 +492,7 @@ bool llvm::CC_RISCV(unsigned ValNo, MVT ValVT, MVT LocVT,
   }
 
   ArrayRef<MCPhysReg> ArgGPRs = RISCV::getArgGPRs(ABI);
-  ArrayRef<MCPhysReg> ArgGPCRs = RISCV::getArgGPCRs(ABI);
+  ArrayRef<MCPhysReg> ArgYGPRs = RISCV::getArgYGPRs(ABI);
 
   // Zdinx use GPR without a bitcast when possible.
   if (LocVT == MVT::f64 && XLen == 64 && Subtarget.hasStdExtZdinx()) {
@@ -501,9 +502,9 @@ bool llvm::CC_RISCV(unsigned ValNo, MVT ValVT, MVT LocVT,
     }
   }
 
-  // Cheriot uses GPCR without a bitcast when possible.
+  // Cheriot uses YGPR without a bitcast when possible.
   if (LocVT == MVT::f64 && Subtarget.hasVendorXCheriot() && !IsPureCapVarArgs) {
-    if (MCRegister Reg = State.AllocateReg(ArgGPCRs)) {
+    if (MCRegister Reg = State.AllocateReg(ArgYGPRs)) {
       State.addLoc(CCValAssign::getReg(ValNo, ValVT, Reg, LocVT, LocInfo));
       return false;
     }
@@ -627,7 +628,7 @@ bool llvm::CC_RISCV(unsigned ValNo, MVT ValVT, MVT LocVT,
   if (IsPureCapVarArgs)
     Reg = 0;
   else if (ValVT == CLenVT)
-    Reg = State.AllocateReg(ArgGPCRs);
+    Reg = State.AllocateReg(ArgYGPRs);
   else if (ValVT.isVector() || ValVT.isRISCVVectorTuple()) {
     Reg = allocateRVVReg(ValVT, ValNo, State, TLI);
     if (Reg) {
@@ -665,7 +666,7 @@ bool llvm::CC_RISCV(unsigned ValNo, MVT ValVT, MVT LocVT,
     // split arguments.
     assert(ArgFlags.isSplitEnd() && "Expected ArgFlags.isSplitEnd()");
     assert(PendingLocs.size() > 2 && "Unexpected PendingLocs.size()");
-    Reg = State.AllocateReg(ArgGPCRs);
+    Reg = State.AllocateReg(ArgYGPRs);
   } else {
     Reg = State.AllocateReg(ArgGPRs);
   }
@@ -721,9 +722,9 @@ bool llvm::CC_RISCV_FastCC(unsigned ValNo, MVT ValVT, MVT LocVT,
 
   if (LocVT.isFatPointer()) {
     // C5 and C6 might be used for save-restore libcall.
-    const ArrayRef<MCPhysReg> GPCRList =
-      getFastCCArgGPCRs(Subtarget.getTargetABI());
-    if (unsigned Reg = State.AllocateReg(GPCRList)) {
+    const ArrayRef<MCPhysReg> YGPRList =
+        getFastCCArgYGPRs(Subtarget.getTargetABI());
+    if (unsigned Reg = State.AllocateReg(YGPRList)) {
       State.addLoc(CCValAssign::getReg(ValNo, ValVT, Reg, LocVT, LocInfo));
       return false;
     }

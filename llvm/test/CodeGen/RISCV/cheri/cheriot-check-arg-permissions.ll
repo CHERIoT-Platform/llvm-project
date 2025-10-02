@@ -18,16 +18,16 @@ define dso_local cheriot_compartmentcalleecc void @_Z4ret2v(%struct.ret addrspac
 entry:
   ; CHECK-LABEL: _Z4ret2v:
   ; Make sure that the base points to the current address
-  ; CHECK:      cgetbase        t2, ca0
+  ; CHECK:      cgetbase        t2, a0
   ; CHECK:      bne     a0, t2,
   ; Make sure that the base is above the current stack pointer
   ; CHECK:      blt     a0, sp,
   ; Make sure the length is sufficient for the returned structure
-  ; CHECK:      cgetlen t1, ca0
+  ; CHECK:      cgetlen t1, a0
   ; CHECK:      li    t2, 16
   ; CHECK:      blt     t1, t2,
   ; Make sure that the permissions are as expected
-  ; CHECK:      cgetperm t1, ca0
+  ; CHECK:      cgetperm t1, a0
   ; CHECK:      li    t2, 126
   ; CHECK:      bne     t1, t2,
   %a = getelementptr inbounds %struct.ret, %struct.ret addrspace(200)* %agg.result, i32 0, i32 0
@@ -37,7 +37,7 @@ entry:
   ret void
 }
 
-; A function with on-stack arguments.  These are passed in ct0.  As with sret
+; A function with on-stack arguments.  These are passed in t0.  As with sret
 ; pointers, they are not visible in the C/C++ abstract machine and so the
 ; compiler must insert the check that they are valid.
 
@@ -46,16 +46,16 @@ define dso_local cheriot_compartmentcalleecc i32 @_Z7bigargsiiiiiiii(i32 %a0, i3
 entry:
   ; CHECK-LABEL: _Z7bigargsiiiiiiii:
   ; Make sure that the base points to the current address
-  ; CHECK:      cgetbase        t2, ct0
+  ; CHECK:      cgetbase        t2, t0
   ; CHECK:      bne     t0, t2,
   ; Make sure that the base is above the current stack pointer
   ; CHECK:      blt     t0, sp,
   ; Make sure the length is sufficient for the returned structure
-  ; CHECK:      cgetlen t1, ct0
+  ; CHECK:      cgetlen t1, t0
   ; CHECK:      li    t2, 8
   ; CHECK:      blt     t1, t2,
   ; Make sure that the permissions are as expected
-  ; CHECK:      cgetperm t1, ct0
+  ; CHECK:      cgetperm t1, t0
   ; CHECK:      li    t2, 126
   ; CHECK:      bne     t1, t2,
   %add = add nsw i32 %a7, %a6

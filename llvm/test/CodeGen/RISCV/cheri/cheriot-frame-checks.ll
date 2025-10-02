@@ -9,26 +9,26 @@ target triple = "riscv32-unknown-unknown"
 define dso_local cheriot_compartmentcalleecc noundef i32 @_Z22compartment_call_inneriiPKiiS0_ii(i32 noundef %0, i32 noundef %1, ptr addrspace(200) nocapture noundef readnone %2, i32 noundef %3, ptr addrspace(200) nocapture noundef readnone %4, i32 noundef %5, i32 noundef %6) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: _Z22compartment_call_inneriiPKiiS0_ii:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    cgetbase t2, ct0
+; CHECK-NEXT:    cgetbase t2, t0
 ; CHECK-NEXT:    bne t0, t2, .LBB0_1
 ; CHECK-NEXT:    blt t0, sp, .LBB0_1
-; CHECK-NEXT:    cgetlen t1, ct0
+; CHECK-NEXT:    cgetlen t1, t0
 ; CHECK-NEXT:    li t2, 4
 ; CHECK-NEXT:    blt t1, t2, .LBB0_1
-; CHECK-NEXT:    cgetperm t1, ct0
+; CHECK-NEXT:    cgetperm t1, t0
 ; CHECK-NEXT:    li t2, 126
 ; CHECK-NEXT:    bne t1, t2, .LBB0_1
-; CHECK-NEXT:    cincoffset csp, csp, -16
-; CHECK-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    cincoffset sp, sp, -16
+; CHECK-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:  .LBB0_2: # Label of block must be emitted
-; CHECK-NEXT:    auipcc ca0, %cheriot_compartment_hi(.L.str)
-; CHECK-NEXT:    cincoffset ca0, ca0, %cheriot_compartment_lo_i(.LBB0_2)
-; CHECK-NEXT:    csetbounds ca0, ca0, %cheriot_compartment_size(.L.str)
+; CHECK-NEXT:    auipcc a0, %cheriot_compartment_hi(.L.str)
+; CHECK-NEXT:    cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB0_2)
+; CHECK-NEXT:    csetbounds a0, a0, %cheriot_compartment_size(.L.str)
 ; CHECK-NEXT:    ccall _Z9debug_logIJEEvPKcDpT_
 ; CHECK-NEXT:    li a0, 0
 ; CHECK-NEXT:    li a1, 0
-; CHECK-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    cincoffset csp, csp, 16
+; CHECK-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    cincoffset sp, sp, 16
 ; CHECK-NEXT:    cret
 ; CHECK-NEXT:  .LBB0_1:
 ; CHECK-NEXT:    li a0, -1

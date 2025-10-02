@@ -9,15 +9,15 @@
 define dso_local ptr addrspace(200) @frameaddr() addrspace(200) nounwind {
 ; PURECAP-LABEL: frameaddr:
 ; PURECAP:       # %bb.0: # %entry
-; PURECAP-NEXT:    cincoffset csp, csp, -48
-; PURECAP-NEXT:    csc cra, 32(csp) # 16-byte Folded Spill
-; PURECAP-NEXT:    csc cs0, 16(csp) # 16-byte Folded Spill
-; PURECAP-NEXT:    cincoffset cs0, csp, 48
-; PURECAP-NEXT:    csc cs0, -48(cs0)
-; PURECAP-NEXT:    cmove ca0, cs0
-; PURECAP-NEXT:    clc cra, 32(csp) # 16-byte Folded Reload
-; PURECAP-NEXT:    clc cs0, 16(csp) # 16-byte Folded Reload
-; PURECAP-NEXT:    cincoffset csp, csp, 48
+; PURECAP-NEXT:    cincoffset sp, sp, -48
+; PURECAP-NEXT:    csc ra, 32(sp) # 16-byte Folded Spill
+; PURECAP-NEXT:    csc s0, 16(sp) # 16-byte Folded Spill
+; PURECAP-NEXT:    cincoffset s0, sp, 48
+; PURECAP-NEXT:    csc s0, -48(s0)
+; PURECAP-NEXT:    cmove a0, s0
+; PURECAP-NEXT:    clc ra, 32(sp) # 16-byte Folded Reload
+; PURECAP-NEXT:    clc s0, 16(sp) # 16-byte Folded Reload
+; PURECAP-NEXT:    cincoffset sp, sp, 48
 ; PURECAP-NEXT:    cret
 ;
 ; HYBRID-LABEL: frameaddr:
@@ -45,10 +45,10 @@ declare ptr addrspace(200) @llvm.frameaddress.p200(i32 immarg) addrspace(200)
 define dso_local ptr addrspace(200) @retaddr() addrspace(200) nounwind {
 ; PURECAP-LABEL: retaddr:
 ; PURECAP:       # %bb.0: # %entry
-; PURECAP-NEXT:    cincoffset csp, csp, -16
-; PURECAP-NEXT:    cmove ca0, cra
-; PURECAP-NEXT:    csc cra, 0(csp)
-; PURECAP-NEXT:    cincoffset csp, csp, 16
+; PURECAP-NEXT:    cincoffset sp, sp, -16
+; PURECAP-NEXT:    cmove a0, ra
+; PURECAP-NEXT:    csc ra, 0(sp)
+; PURECAP-NEXT:    cincoffset sp, sp, 16
 ; PURECAP-NEXT:    cret
 ;
 ; HYBRID-LABEL: retaddr:

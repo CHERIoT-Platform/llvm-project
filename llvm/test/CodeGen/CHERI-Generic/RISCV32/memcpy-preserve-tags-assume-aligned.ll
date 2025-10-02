@@ -12,14 +12,14 @@ declare void @llvm.assume(i1) addrspace(200)
 define void @memcpy_assume(i8 addrspace(200)* addrspace(200)* %local_cap_ptr, i8 addrspace(200)* %align1) addrspace(200) nounwind {
 ; CHECK-LABEL: memcpy_assume:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    clc ca2, 24(ca0)
-; CHECK-NEXT:    csc ca2, 24(ca1)
-; CHECK-NEXT:    clc ca2, 16(ca0)
-; CHECK-NEXT:    csc ca2, 16(ca1)
-; CHECK-NEXT:    clc ca2, 8(ca0)
-; CHECK-NEXT:    csc ca2, 8(ca1)
-; CHECK-NEXT:    clc ca0, 0(ca0)
-; CHECK-NEXT:    csc ca0, 0(ca1)
+; CHECK-NEXT:    clc a2, 24(a0)
+; CHECK-NEXT:    csc a2, 24(a1)
+; CHECK-NEXT:    clc a2, 16(a0)
+; CHECK-NEXT:    csc a2, 16(a1)
+; CHECK-NEXT:    clc a2, 8(a0)
+; CHECK-NEXT:    csc a2, 8(a1)
+; CHECK-NEXT:    clc a0, 0(a0)
+; CHECK-NEXT:    csc a0, 0(a1)
 ; CHECK-NEXT:    cret
   %ptrint = ptrtoint i8 addrspace(200)* %align1 to i32
   %maskedptr = and i32 %ptrint, 15
@@ -33,14 +33,14 @@ define void @memcpy_assume(i8 addrspace(200)* addrspace(200)* %local_cap_ptr, i8
 define void @memmove_assume(i8 addrspace(200)* addrspace(200)* %local_cap_ptr, i8 addrspace(200)* %align1) addrspace(200) nounwind {
 ; CHECK-LABEL: memmove_assume:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    clc ca2, 0(ca0)
-; CHECK-NEXT:    clc ca3, 16(ca0)
-; CHECK-NEXT:    csc ca2, 0(ca1)
-; CHECK-NEXT:    clc ca2, 8(ca0)
-; CHECK-NEXT:    clc ca0, 24(ca0)
-; CHECK-NEXT:    csc ca3, 16(ca1)
-; CHECK-NEXT:    csc ca2, 8(ca1)
-; CHECK-NEXT:    csc ca0, 24(ca1)
+; CHECK-NEXT:    clc a2, 0(a0)
+; CHECK-NEXT:    clc a3, 16(a0)
+; CHECK-NEXT:    csc a2, 0(a1)
+; CHECK-NEXT:    clc a2, 8(a0)
+; CHECK-NEXT:    clc a0, 24(a0)
+; CHECK-NEXT:    csc a3, 16(a1)
+; CHECK-NEXT:    csc a2, 8(a1)
+; CHECK-NEXT:    csc a0, 24(a1)
 ; CHECK-NEXT:    cret
   %ptrint = ptrtoint i8 addrspace(200)* %align1 to i32
   %maskedptr = and i32 %ptrint, 15

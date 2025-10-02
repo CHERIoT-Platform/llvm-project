@@ -98,36 +98,36 @@ body:             |
   ; CHECK-NEXT:   [[COPY:%[0-9]+]]:gpr = COPY $x10
   ; CHECK-NEXT:   [[ADDI:%[0-9]+]]:gpr = ADDI $x0, 492
   ; CHECK-NEXT:   [[ADDI1:%[0-9]+]]:gpr = ADDI $x0, 493
-  ; CHECK-NEXT:   [[CIncOffsetImm:%[0-9]+]]:gpcr = CIncOffsetImm %stack.0.buf1, 0
-  ; CHECK-NEXT:   [[CSetBounds:%[0-9]+]]:gpcr = CSetBounds [[CIncOffsetImm]], [[ADDI]]
-  ; CHECK-NEXT:   [[CSetBoundsExact:%[0-9]+]]:gpcr = CSetBoundsExact [[CIncOffsetImm]], [[ADDI]]
-  ; CHECK-NEXT:   [[CSetBoundsImm:%[0-9]+]]:gpcr = CSetBoundsImm [[CIncOffsetImm]], 492
-  ; CHECK-NEXT:   [[CIncOffsetImm1:%[0-9]+]]:gpcr = CIncOffsetImm %stack.0.buf1, 1
-  ; CHECK-NEXT:   [[CSetBounds1:%[0-9]+]]:gpcr = CSetBounds [[CIncOffsetImm1]], [[ADDI]]
-  ; CHECK-NEXT:   [[CSetBoundsExact1:%[0-9]+]]:gpcr = CSetBoundsExact [[CIncOffsetImm1]], [[ADDI]]
-  ; CHECK-NEXT:   [[CSetBoundsImm1:%[0-9]+]]:gpcr = CSetBoundsImm [[CIncOffsetImm1]], 492
+  ; CHECK-NEXT:   [[CIncOffsetImm:%[0-9]+]]:ygpr = CIncOffsetImm %stack.0.buf1, 0
+  ; CHECK-NEXT:   [[CSetBounds:%[0-9]+]]:ygpr = CSetBounds [[CIncOffsetImm]], [[ADDI]]
+  ; CHECK-NEXT:   [[CSetBoundsExact:%[0-9]+]]:ygpr = CSetBoundsExact [[CIncOffsetImm]], [[ADDI]]
+  ; CHECK-NEXT:   [[CSetBoundsImm:%[0-9]+]]:ygpr = CSetBoundsImm [[CIncOffsetImm]], 492
+  ; CHECK-NEXT:   [[CIncOffsetImm1:%[0-9]+]]:ygpr = CIncOffsetImm %stack.0.buf1, 1
+  ; CHECK-NEXT:   [[CSetBounds1:%[0-9]+]]:ygpr = CSetBounds [[CIncOffsetImm1]], [[ADDI]]
+  ; CHECK-NEXT:   [[CSetBoundsExact1:%[0-9]+]]:ygpr = CSetBoundsExact [[CIncOffsetImm1]], [[ADDI]]
+  ; CHECK-NEXT:   [[CSetBoundsImm1:%[0-9]+]]:ygpr = CSetBoundsImm [[CIncOffsetImm1]], 492
   ; CHECK-NEXT:   [[ADDI2:%[0-9]+]]:gpr = ADDI $x0, 491
-  ; CHECK-NEXT:   [[CSetBounds2:%[0-9]+]]:gpcr = CSetBounds [[CIncOffsetImm1]], [[ADDI2]]
-  ; CHECK-NEXT:   [[CSetBoundsExact2:%[0-9]+]]:gpcr = CSetBoundsExact [[CIncOffsetImm1]], [[ADDI2]]
-  ; CHECK-NEXT:   [[CSetBoundsImm2:%[0-9]+]]:gpcr = CSetBoundsImm [[CIncOffsetImm1]], 491
+  ; CHECK-NEXT:   [[CSetBounds2:%[0-9]+]]:ygpr = CSetBounds [[CIncOffsetImm1]], [[ADDI2]]
+  ; CHECK-NEXT:   [[CSetBoundsExact2:%[0-9]+]]:ygpr = CSetBoundsExact [[CIncOffsetImm1]], [[ADDI2]]
+  ; CHECK-NEXT:   [[CSetBoundsImm2:%[0-9]+]]:ygpr = CSetBoundsImm [[CIncOffsetImm1]], 491
   ; CHECK-NEXT:   [[ADDI3:%[0-9]+]]:gpr = ADDI $x0, 88
-  ; CHECK-NEXT:   [[CIncOffsetImm2:%[0-9]+]]:gpcr = CIncOffsetImm %stack.1.buf2, 0
-  ; CHECK-NEXT:   [[CSetBounds3:%[0-9]+]]:gpcr = CSetBounds [[CIncOffsetImm2]], [[ADDI3]]
-  ; CHECK-NEXT:   [[CSetBoundsExact3:%[0-9]+]]:gpcr = CSetBoundsExact [[CIncOffsetImm2]], [[ADDI3]]
-  ; CHECK-NEXT:   [[CIncOffsetImm3:%[0-9]+]]:gpcr = CIncOffsetImm [[CIncOffsetImm1]], -1
-  ; CHECK-NEXT:   [[CSetBounds4:%[0-9]+]]:gpcr = CSetBounds [[CIncOffsetImm3]], [[ADDI3]]
-  ; CHECK-NEXT:   [[CSetBoundsExact4:%[0-9]+]]:gpcr = CSetBoundsExact [[CIncOffsetImm3]], [[ADDI3]]
-  ; CHECK-NEXT:   [[CSetBoundsImm3:%[0-9]+]]:gpcr = CSetBoundsImm [[CIncOffsetImm3]], 492
-  ; CHECK-NEXT:   [[CIncOffsetImm4:%[0-9]+]]:gpcr = CIncOffsetImm $c0, 1
-  ; CHECK-NEXT:   [[CIncOffsetImm5:%[0-9]+]]:gpcr = CIncOffsetImm [[CIncOffsetImm4]], -1
-  ; CHECK-NEXT:   [[CSetBounds5:%[0-9]+]]:gpcr = CSetBounds [[CIncOffsetImm5]], [[ADDI3]]
-  ; CHECK-NEXT:   [[CSetBoundsExact5:%[0-9]+]]:gpcr = CSetBoundsExact [[CIncOffsetImm5]], [[ADDI3]]
-  ; CHECK-NEXT:   [[CSetBoundsImm4:%[0-9]+]]:gpcr = CSetBoundsImm [[CIncOffsetImm5]], 492
-  ; CHECK-NEXT:   [[CSetOffset:%[0-9]+]]:gpcr = CSetOffset [[CIncOffsetImm1]], $x0
-  ; CHECK-NEXT:   [[CSetBoundsImm5:%[0-9]+]]:gpcr = CSetBoundsImm [[CIncOffsetImm1]], 0
-  ; CHECK-NEXT:   [[CIncOffsetImm6:%[0-9]+]]:gpcr = CIncOffsetImm %stack.0.buf1, 492
-  ; CHECK-NEXT:   [[CSetBoundsImm6:%[0-9]+]]:gpcr = CSetBoundsImm [[CIncOffsetImm6]], 0
-  ; CHECK-NEXT:   [[CSetBoundsImm7:%[0-9]+]]:gpcr = CSetBoundsImm [[CIncOffsetImm6]], 1
+  ; CHECK-NEXT:   [[CIncOffsetImm2:%[0-9]+]]:ygpr = CIncOffsetImm %stack.1.buf2, 0
+  ; CHECK-NEXT:   [[CSetBounds3:%[0-9]+]]:ygpr = CSetBounds [[CIncOffsetImm2]], [[ADDI3]]
+  ; CHECK-NEXT:   [[CSetBoundsExact3:%[0-9]+]]:ygpr = CSetBoundsExact [[CIncOffsetImm2]], [[ADDI3]]
+  ; CHECK-NEXT:   [[CIncOffsetImm3:%[0-9]+]]:ygpr = CIncOffsetImm [[CIncOffsetImm1]], -1
+  ; CHECK-NEXT:   [[CSetBounds4:%[0-9]+]]:ygpr = CSetBounds [[CIncOffsetImm3]], [[ADDI3]]
+  ; CHECK-NEXT:   [[CSetBoundsExact4:%[0-9]+]]:ygpr = CSetBoundsExact [[CIncOffsetImm3]], [[ADDI3]]
+  ; CHECK-NEXT:   [[CSetBoundsImm3:%[0-9]+]]:ygpr = CSetBoundsImm [[CIncOffsetImm3]], 492
+  ; CHECK-NEXT:   [[CIncOffsetImm4:%[0-9]+]]:ygpr = CIncOffsetImm $x0_y, 1
+  ; CHECK-NEXT:   [[CIncOffsetImm5:%[0-9]+]]:ygpr = CIncOffsetImm [[CIncOffsetImm4]], -1
+  ; CHECK-NEXT:   [[CSetBounds5:%[0-9]+]]:ygpr = CSetBounds [[CIncOffsetImm5]], [[ADDI3]]
+  ; CHECK-NEXT:   [[CSetBoundsExact5:%[0-9]+]]:ygpr = CSetBoundsExact [[CIncOffsetImm5]], [[ADDI3]]
+  ; CHECK-NEXT:   [[CSetBoundsImm4:%[0-9]+]]:ygpr = CSetBoundsImm [[CIncOffsetImm5]], 492
+  ; CHECK-NEXT:   [[CSetOffset:%[0-9]+]]:ygpr = CSetOffset [[CIncOffsetImm1]], $x0
+  ; CHECK-NEXT:   [[CSetBoundsImm5:%[0-9]+]]:ygpr = CSetBoundsImm [[CIncOffsetImm1]], 0
+  ; CHECK-NEXT:   [[CIncOffsetImm6:%[0-9]+]]:ygpr = CIncOffsetImm %stack.0.buf1, 492
+  ; CHECK-NEXT:   [[CSetBoundsImm6:%[0-9]+]]:ygpr = CSetBoundsImm [[CIncOffsetImm6]], 0
+  ; CHECK-NEXT:   [[CSetBoundsImm7:%[0-9]+]]:ygpr = CSetBoundsImm [[CIncOffsetImm6]], 1
   ; CHECK-NEXT:   PseudoBR %bb.2
   ; CHECK-NEXT: {{  $}}
   ; CHECK-NEXT: bb.1.for.cond.cleanup:
@@ -166,48 +166,48 @@ body:             |
     successors: %bb.4(0x80000000)
     %5:gpr = ADDI $x0, 492
     %6:gpr = ADDI $x0, 493
-    %10:gpcr = CIncOffsetImm %stack.0.buf1, 0
-    %11:gpcr = CSetBounds %10, %5
-    %12:gpcr = CSetBoundsExact %10, %5
-    %13:gpcr = CSetBoundsImm %10, 492
-    %14:gpcr = CSetBounds %10, %5
-    %15:gpcr = CSetBoundsExact %10, %5
-    %16:gpcr = CSetBoundsImm %10, 492
+    %10:ygpr = CIncOffsetImm %stack.0.buf1, 0
+    %11:ygpr = CSetBounds %10, %5
+    %12:ygpr = CSetBoundsExact %10, %5
+    %13:ygpr = CSetBoundsImm %10, 492
+    %14:ygpr = CSetBounds %10, %5
+    %15:ygpr = CSetBoundsExact %10, %5
+    %16:ygpr = CSetBoundsImm %10, 492
 
-    %30:gpcr = CIncOffsetImm %stack.0.buf1, 1
-    %31:gpcr = CSetBounds %30, %5
-    %32:gpcr = CSetBoundsExact %30, %5
-    %33:gpcr = CSetBoundsImm %30, 492
+    %30:ygpr = CIncOffsetImm %stack.0.buf1, 1
+    %31:ygpr = CSetBounds %30, %5
+    %32:ygpr = CSetBoundsExact %30, %5
+    %33:ygpr = CSetBoundsImm %30, 492
     %34:gpr = ADDI $x0, 491  ; length - 1 -> should be fine
-    %35:gpcr = CSetBounds %30, %34
-    %36:gpcr = CSetBoundsExact %30, %34
-    %37:gpcr = CSetBoundsImm %30, 491
-    %38:gpcr = CSetBoundsImm %30, 492 ; OOB
+    %35:ygpr = CSetBounds %30, %34
+    %36:ygpr = CSetBoundsExact %30, %34
+    %37:ygpr = CSetBoundsImm %30, 491
+    %38:ygpr = CSetBoundsImm %30, 492 ; OOB
 
     %50:gpr = ADDI $x0, 88
-    %51:gpcr = CIncOffsetImm %stack.1.buf2, 0
-    %52:gpcr = CSetBounds %51, %50
-    %53:gpcr = CSetBoundsExact %51, %50
-    %54:gpcr = CSetBounds %51, %50
+    %51:ygpr = CIncOffsetImm %stack.1.buf2, 0
+    %52:ygpr = CSetBounds %51, %50
+    %53:ygpr = CSetBoundsExact %51, %50
+    %54:ygpr = CSetBounds %51, %50
 
 
-    %100:gpcr = CIncOffsetImm %stack.0.buf1, 1
-    %101:gpcr = CIncOffsetImm %100, -1
-    %102:gpcr = CSetBounds %101, %50
-    %103:gpcr = CSetBoundsExact %101, %50
-    %104:gpcr = CSetBoundsImm %101, 492
+    %100:ygpr = CIncOffsetImm %stack.0.buf1, 1
+    %101:ygpr = CIncOffsetImm %100, -1
+    %102:ygpr = CSetBounds %101, %50
+    %103:ygpr = CSetBoundsExact %101, %50
+    %104:ygpr = CSetBoundsImm %101, 492
 
-    %110:gpcr = CIncOffsetImm $c0, 1
-    %111:gpcr = CIncOffsetImm %110, -1
-    %112:gpcr = CSetBounds %111, %50
-    %113:gpcr = CSetBoundsExact %111, %50
-    %114:gpcr = CSetBoundsImm %111, 492
+    %110:ygpr = CIncOffsetImm $x0_y, 1
+    %111:ygpr = CIncOffsetImm %110, -1
+    %112:ygpr = CSetBounds %111, %50
+    %113:ygpr = CSetBoundsExact %111, %50
+    %114:ygpr = CSetBoundsImm %111, 492
 
-    %120:gpcr = CSetOffset %100, $x0
-    %121:gpcr = CSetBoundsImm %100, 0
-    %122:gpcr = CIncOffsetImm %stack.0.buf1, 492
-    %123:gpcr = CSetBoundsImm %122, 0
-    %124:gpcr = CSetBoundsImm %122, 1
+    %120:ygpr = CSetOffset %100, $x0
+    %121:ygpr = CSetBoundsImm %100, 0
+    %122:ygpr = CIncOffsetImm %stack.0.buf1, 492
+    %123:ygpr = CSetBoundsImm %122, 0
+    %124:ygpr = CSetBoundsImm %122, 1
 
 
   bb.4.for.inc:

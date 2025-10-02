@@ -13,34 +13,34 @@ define i64 @load_global_i64_align_1(i64 %y) addrspace(200) nounwind {
 ; CHECK-NEXT:  .Lpcrel_hi0:
 ; CHECK-NEXT:    auipc a0, %got_pcrel_hi(a1)
 ; CHECK-NEXT:    ld a0, %pcrel_lo(.Lpcrel_hi0)(a0)
-; CHECK-NEXT:    cspecialr ca1, ddc
+; CHECK-NEXT:    cspecialr a1, ddc
 ; CHECK-NEXT:    bnez a0, .LBB0_2
 ; CHECK-NEXT:  # %bb.1:
-; CHECK-NEXT:    cmove ca0, cnull
+; CHECK-NEXT:    cmove a0, zero
 ; CHECK-NEXT:    j .LBB0_3
 ; CHECK-NEXT:  .LBB0_2:
-; CHECK-NEXT:    csetaddr ca0, ca1, a0
+; CHECK-NEXT:    csetaddr a0, a1, a0
 ; CHECK-NEXT:  .LBB0_3:
-; CHECK-NEXT:    lbu.cap a1, (ca0)
-; CHECK-NEXT:    cincoffset ca2, ca0, 1
-; CHECK-NEXT:    cincoffset ca3, ca0, 2
-; CHECK-NEXT:    cincoffset ca4, ca0, 3
-; CHECK-NEXT:    lbu.cap a2, (ca2)
-; CHECK-NEXT:    cincoffset ca5, ca0, 4
-; CHECK-NEXT:    lbu.cap a3, (ca3)
-; CHECK-NEXT:    lbu.cap a4, (ca4)
+; CHECK-NEXT:    lbu.cap a1, (a0)
+; CHECK-NEXT:    cincoffset a2, a0, 1
+; CHECK-NEXT:    cincoffset a3, a0, 2
+; CHECK-NEXT:    cincoffset a4, a0, 3
+; CHECK-NEXT:    lbu.cap a2, (a2)
+; CHECK-NEXT:    cincoffset a5, a0, 4
+; CHECK-NEXT:    lbu.cap a3, (a3)
+; CHECK-NEXT:    lbu.cap a4, (a4)
 ; CHECK-NEXT:    slli a2, a2, 8
 ; CHECK-NEXT:    or a1, a2, a1
-; CHECK-NEXT:    cincoffset ca2, ca0, 5
+; CHECK-NEXT:    cincoffset a2, a0, 5
 ; CHECK-NEXT:    slli a3, a3, 16
 ; CHECK-NEXT:    slli a4, a4, 24
 ; CHECK-NEXT:    or a3, a4, a3
-; CHECK-NEXT:    cincoffset ca4, ca0, 6
-; CHECK-NEXT:    cincoffset ca0, ca0, 7
-; CHECK-NEXT:    lbu.cap a2, (ca2)
-; CHECK-NEXT:    lbu.cap a5, (ca5)
-; CHECK-NEXT:    lbu.cap a4, (ca4)
-; CHECK-NEXT:    lbu.cap a0, (ca0)
+; CHECK-NEXT:    cincoffset a4, a0, 6
+; CHECK-NEXT:    cincoffset a0, a0, 7
+; CHECK-NEXT:    lbu.cap a2, (a2)
+; CHECK-NEXT:    lbu.cap a5, (a5)
+; CHECK-NEXT:    lbu.cap a4, (a4)
+; CHECK-NEXT:    lbu.cap a0, (a0)
 ; CHECK-NEXT:    slli a2, a2, 8
 ; CHECK-NEXT:    or a2, a2, a5
 ; CHECK-NEXT:    slli a4, a4, 16
@@ -61,21 +61,21 @@ define i64 @load_global_i64_align_2(i64 %y) addrspace(200) nounwind {
 ; CHECK-NEXT:  .Lpcrel_hi1:
 ; CHECK-NEXT:    auipc a0, %got_pcrel_hi(a2)
 ; CHECK-NEXT:    ld a0, %pcrel_lo(.Lpcrel_hi1)(a0)
-; CHECK-NEXT:    cspecialr ca1, ddc
+; CHECK-NEXT:    cspecialr a1, ddc
 ; CHECK-NEXT:    bnez a0, .LBB1_2
 ; CHECK-NEXT:  # %bb.1:
-; CHECK-NEXT:    cmove ca0, cnull
+; CHECK-NEXT:    cmove a0, zero
 ; CHECK-NEXT:    j .LBB1_3
 ; CHECK-NEXT:  .LBB1_2:
-; CHECK-NEXT:    csetaddr ca0, ca1, a0
+; CHECK-NEXT:    csetaddr a0, a1, a0
 ; CHECK-NEXT:  .LBB1_3:
-; CHECK-NEXT:    lhu.cap a1, (ca0)
-; CHECK-NEXT:    cincoffset ca2, ca0, 2
-; CHECK-NEXT:    cincoffset ca3, ca0, 4
-; CHECK-NEXT:    lhu.cap a2, (ca2)
-; CHECK-NEXT:    cincoffset ca0, ca0, 6
-; CHECK-NEXT:    lhu.cap a3, (ca3)
-; CHECK-NEXT:    lhu.cap a0, (ca0)
+; CHECK-NEXT:    lhu.cap a1, (a0)
+; CHECK-NEXT:    cincoffset a2, a0, 2
+; CHECK-NEXT:    cincoffset a3, a0, 4
+; CHECK-NEXT:    lhu.cap a2, (a2)
+; CHECK-NEXT:    cincoffset a0, a0, 6
+; CHECK-NEXT:    lhu.cap a3, (a3)
+; CHECK-NEXT:    lhu.cap a0, (a0)
 ; CHECK-NEXT:    slli a2, a2, 16
 ; CHECK-NEXT:    or a1, a2, a1
 ; CHECK-NEXT:    slli a3, a3, 32
@@ -93,17 +93,17 @@ define i64 @load_global_i64_align_4(i64 %y) addrspace(200) nounwind {
 ; CHECK-NEXT:  .Lpcrel_hi2:
 ; CHECK-NEXT:    auipc a0, %got_pcrel_hi(a4)
 ; CHECK-NEXT:    ld a0, %pcrel_lo(.Lpcrel_hi2)(a0)
-; CHECK-NEXT:    cspecialr ca1, ddc
+; CHECK-NEXT:    cspecialr a1, ddc
 ; CHECK-NEXT:    bnez a0, .LBB2_2
 ; CHECK-NEXT:  # %bb.1:
-; CHECK-NEXT:    cmove ca0, cnull
+; CHECK-NEXT:    cmove a0, zero
 ; CHECK-NEXT:    j .LBB2_3
 ; CHECK-NEXT:  .LBB2_2:
-; CHECK-NEXT:    csetaddr ca0, ca1, a0
+; CHECK-NEXT:    csetaddr a0, a1, a0
 ; CHECK-NEXT:  .LBB2_3:
-; CHECK-NEXT:    cincoffset ca1, ca0, 4
-; CHECK-NEXT:    lwu.cap a1, (ca1)
-; CHECK-NEXT:    lwu.cap a0, (ca0)
+; CHECK-NEXT:    cincoffset a1, a0, 4
+; CHECK-NEXT:    lwu.cap a1, (a1)
+; CHECK-NEXT:    lwu.cap a0, (a0)
 ; CHECK-NEXT:    slli a1, a1, 32
 ; CHECK-NEXT:    or a0, a1, a0
 ; CHECK-NEXT:    ret
@@ -117,14 +117,14 @@ define i64 @load_global_i64_align_8(i64 %y) addrspace(200) nounwind {
 ; CHECK-NEXT:  .Lpcrel_hi3:
 ; CHECK-NEXT:    auipc a0, %got_pcrel_hi(a8)
 ; CHECK-NEXT:    ld a0, %pcrel_lo(.Lpcrel_hi3)(a0)
-; CHECK-NEXT:    cspecialr ca1, ddc
+; CHECK-NEXT:    cspecialr a1, ddc
 ; CHECK-NEXT:    bnez a0, .LBB3_2
 ; CHECK-NEXT:  # %bb.1:
-; CHECK-NEXT:    ld.cap a0, (cnull)
+; CHECK-NEXT:    ld.cap a0, (zero)
 ; CHECK-NEXT:    ret
 ; CHECK-NEXT:  .LBB3_2:
-; CHECK-NEXT:    csetaddr ca0, ca1, a0
-; CHECK-NEXT:    ld.cap a0, (ca0)
+; CHECK-NEXT:    csetaddr a0, a1, a0
+; CHECK-NEXT:    ld.cap a0, (a0)
 ; CHECK-NEXT:    ret
   %ret = load i64, i64 addrspace(200)* addrspacecast(i64* @a8 to i64 addrspace(200)*), align 8
   ret i64 %ret
@@ -136,36 +136,36 @@ define void @store_global_i64_align_1(i64 %y) addrspace(200) nounwind {
 ; CHECK-NEXT:  .Lpcrel_hi4:
 ; CHECK-NEXT:    auipc a1, %got_pcrel_hi(a1)
 ; CHECK-NEXT:    ld a1, %pcrel_lo(.Lpcrel_hi4)(a1)
-; CHECK-NEXT:    cspecialr ca2, ddc
+; CHECK-NEXT:    cspecialr a2, ddc
 ; CHECK-NEXT:    bnez a1, .LBB4_2
 ; CHECK-NEXT:  # %bb.1:
-; CHECK-NEXT:    cmove ca1, cnull
+; CHECK-NEXT:    cmove a1, zero
 ; CHECK-NEXT:    j .LBB4_3
 ; CHECK-NEXT:  .LBB4_2:
-; CHECK-NEXT:    csetaddr ca1, ca2, a1
+; CHECK-NEXT:    csetaddr a1, a2, a1
 ; CHECK-NEXT:  .LBB4_3:
-; CHECK-NEXT:    sb.cap a0, (ca1)
-; CHECK-NEXT:    cincoffset ca2, ca1, 7
+; CHECK-NEXT:    sb.cap a0, (a1)
+; CHECK-NEXT:    cincoffset a2, a1, 7
 ; CHECK-NEXT:    srli a3, a0, 56
-; CHECK-NEXT:    sb.cap a3, (ca2)
-; CHECK-NEXT:    cincoffset ca2, ca1, 6
+; CHECK-NEXT:    sb.cap a3, (a2)
+; CHECK-NEXT:    cincoffset a2, a1, 6
 ; CHECK-NEXT:    srli a3, a0, 48
-; CHECK-NEXT:    sb.cap a3, (ca2)
-; CHECK-NEXT:    cincoffset ca2, ca1, 5
+; CHECK-NEXT:    sb.cap a3, (a2)
+; CHECK-NEXT:    cincoffset a2, a1, 5
 ; CHECK-NEXT:    srli a3, a0, 40
-; CHECK-NEXT:    sb.cap a3, (ca2)
-; CHECK-NEXT:    cincoffset ca2, ca1, 4
+; CHECK-NEXT:    sb.cap a3, (a2)
+; CHECK-NEXT:    cincoffset a2, a1, 4
 ; CHECK-NEXT:    srli a3, a0, 32
-; CHECK-NEXT:    sb.cap a3, (ca2)
-; CHECK-NEXT:    cincoffset ca2, ca1, 3
+; CHECK-NEXT:    sb.cap a3, (a2)
+; CHECK-NEXT:    cincoffset a2, a1, 3
 ; CHECK-NEXT:    srli a3, a0, 24
-; CHECK-NEXT:    sb.cap a3, (ca2)
-; CHECK-NEXT:    cincoffset ca2, ca1, 2
+; CHECK-NEXT:    sb.cap a3, (a2)
+; CHECK-NEXT:    cincoffset a2, a1, 2
 ; CHECK-NEXT:    srli a3, a0, 16
-; CHECK-NEXT:    cincoffset ca1, ca1, 1
+; CHECK-NEXT:    cincoffset a1, a1, 1
 ; CHECK-NEXT:    srli a0, a0, 8
-; CHECK-NEXT:    sb.cap a3, (ca2)
-; CHECK-NEXT:    sb.cap a0, (ca1)
+; CHECK-NEXT:    sb.cap a3, (a2)
+; CHECK-NEXT:    sb.cap a0, (a1)
 ; CHECK-NEXT:    ret
   store i64 %y, i64 addrspace(200)* addrspacecast(i64* @a1 to i64 addrspace(200)*), align 1
   ret void
@@ -177,24 +177,24 @@ define void @store_global_i64_align_2(i64 %y) addrspace(200) nounwind {
 ; CHECK-NEXT:  .Lpcrel_hi5:
 ; CHECK-NEXT:    auipc a1, %got_pcrel_hi(a2)
 ; CHECK-NEXT:    ld a1, %pcrel_lo(.Lpcrel_hi5)(a1)
-; CHECK-NEXT:    cspecialr ca2, ddc
+; CHECK-NEXT:    cspecialr a2, ddc
 ; CHECK-NEXT:    bnez a1, .LBB5_2
 ; CHECK-NEXT:  # %bb.1:
-; CHECK-NEXT:    cmove ca1, cnull
+; CHECK-NEXT:    cmove a1, zero
 ; CHECK-NEXT:    j .LBB5_3
 ; CHECK-NEXT:  .LBB5_2:
-; CHECK-NEXT:    csetaddr ca1, ca2, a1
+; CHECK-NEXT:    csetaddr a1, a2, a1
 ; CHECK-NEXT:  .LBB5_3:
-; CHECK-NEXT:    sh.cap a0, (ca1)
-; CHECK-NEXT:    cincoffset ca2, ca1, 6
+; CHECK-NEXT:    sh.cap a0, (a1)
+; CHECK-NEXT:    cincoffset a2, a1, 6
 ; CHECK-NEXT:    srli a3, a0, 48
-; CHECK-NEXT:    sh.cap a3, (ca2)
-; CHECK-NEXT:    cincoffset ca2, ca1, 4
+; CHECK-NEXT:    sh.cap a3, (a2)
+; CHECK-NEXT:    cincoffset a2, a1, 4
 ; CHECK-NEXT:    srli a3, a0, 32
-; CHECK-NEXT:    cincoffset ca1, ca1, 2
+; CHECK-NEXT:    cincoffset a1, a1, 2
 ; CHECK-NEXT:    srli a0, a0, 16
-; CHECK-NEXT:    sh.cap a3, (ca2)
-; CHECK-NEXT:    sh.cap a0, (ca1)
+; CHECK-NEXT:    sh.cap a3, (a2)
+; CHECK-NEXT:    sh.cap a0, (a1)
 ; CHECK-NEXT:    ret
   store i64 %y, i64 addrspace(200)* addrspacecast(i64* @a2 to i64 addrspace(200)*), align 2
   ret void
@@ -206,18 +206,18 @@ define void @store_global_i64_align_4(i64 %y) addrspace(200) nounwind {
 ; CHECK-NEXT:  .Lpcrel_hi6:
 ; CHECK-NEXT:    auipc a1, %got_pcrel_hi(a4)
 ; CHECK-NEXT:    ld a1, %pcrel_lo(.Lpcrel_hi6)(a1)
-; CHECK-NEXT:    cspecialr ca2, ddc
+; CHECK-NEXT:    cspecialr a2, ddc
 ; CHECK-NEXT:    bnez a1, .LBB6_2
 ; CHECK-NEXT:  # %bb.1:
-; CHECK-NEXT:    cmove ca1, cnull
+; CHECK-NEXT:    cmove a1, zero
 ; CHECK-NEXT:    j .LBB6_3
 ; CHECK-NEXT:  .LBB6_2:
-; CHECK-NEXT:    csetaddr ca1, ca2, a1
+; CHECK-NEXT:    csetaddr a1, a2, a1
 ; CHECK-NEXT:  .LBB6_3:
-; CHECK-NEXT:    sw.cap a0, (ca1)
-; CHECK-NEXT:    cincoffset ca1, ca1, 4
+; CHECK-NEXT:    sw.cap a0, (a1)
+; CHECK-NEXT:    cincoffset a1, a1, 4
 ; CHECK-NEXT:    srli a0, a0, 32
-; CHECK-NEXT:    sw.cap a0, (ca1)
+; CHECK-NEXT:    sw.cap a0, (a1)
 ; CHECK-NEXT:    ret
   store i64 %y, i64 addrspace(200)* addrspacecast(i64* @a4 to i64 addrspace(200)*), align 4
   ret void
@@ -229,14 +229,14 @@ define void @store_global_i64_align_8(i64 %y) addrspace(200) nounwind {
 ; CHECK-NEXT:  .Lpcrel_hi7:
 ; CHECK-NEXT:    auipc a1, %got_pcrel_hi(a8)
 ; CHECK-NEXT:    ld a1, %pcrel_lo(.Lpcrel_hi7)(a1)
-; CHECK-NEXT:    cspecialr ca2, ddc
+; CHECK-NEXT:    cspecialr a2, ddc
 ; CHECK-NEXT:    bnez a1, .LBB7_2
 ; CHECK-NEXT:  # %bb.1:
-; CHECK-NEXT:    sd.cap a0, (cnull)
+; CHECK-NEXT:    sd.cap a0, (zero)
 ; CHECK-NEXT:    ret
 ; CHECK-NEXT:  .LBB7_2:
-; CHECK-NEXT:    csetaddr ca1, ca2, a1
-; CHECK-NEXT:    sd.cap a0, (ca1)
+; CHECK-NEXT:    csetaddr a1, a2, a1
+; CHECK-NEXT:    sd.cap a0, (a1)
 ; CHECK-NEXT:    ret
   store i64 %y, i64 addrspace(200)* addrspacecast(i64* @a8 to i64 addrspace(200)*), align 8
   ret void

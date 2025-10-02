@@ -32,19 +32,19 @@ declare ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200), i6
 define dso_local void @hoist_csetbounds(i32 signext %cond, ptr addrspace(200) %f) local_unnamed_addr addrspace(200) nounwind {
 ; CHECK-LABEL: hoist_csetbounds:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    cincoffset csp, csp, -96
-; CHECK-NEXT:    csc cra, 80(csp) # 16-byte Folded Spill
-; CHECK-NEXT:    csc cs0, 64(csp) # 16-byte Folded Spill
-; CHECK-NEXT:    csc cs1, 48(csp) # 16-byte Folded Spill
-; CHECK-NEXT:    csc cs2, 32(csp) # 16-byte Folded Spill
-; CHECK-NEXT:    csc cs3, 16(csp) # 16-byte Folded Spill
-; CHECK-NEXT:    csc cs4, 0(csp) # 16-byte Folded Spill
-; CHECK-NEXT:    cmove cs0, ca1
-; CHECK-NEXT:    cincoffset ca0, ca1, 4
+; CHECK-NEXT:    cincoffset sp, sp, -96
+; CHECK-NEXT:    csc ra, 80(sp) # 16-byte Folded Spill
+; CHECK-NEXT:    csc s0, 64(sp) # 16-byte Folded Spill
+; CHECK-NEXT:    csc s1, 48(sp) # 16-byte Folded Spill
+; CHECK-NEXT:    csc s2, 32(sp) # 16-byte Folded Spill
+; CHECK-NEXT:    csc s3, 16(sp) # 16-byte Folded Spill
+; CHECK-NEXT:    csc s4, 0(sp) # 16-byte Folded Spill
+; CHECK-NEXT:    cmove s0, a1
+; CHECK-NEXT:    cincoffset a0, a1, 4
 ; CHECK-NEXT:    li s3, -1
 ; CHECK-NEXT:    li s4, 99
-; CHECK-NEXT:    csetbounds cs2, ca1, 4
-; CHECK-NEXT:    csetbounds cs1, ca0, 4
+; CHECK-NEXT:    csetbounds s1, a1, 4
+; CHECK-NEXT:    csetbounds s2, a0, 4
 ; CHECK-NEXT:    j .LBB0_2
 ; CHECK-NEXT:  .LBB0_1: # %for.inc
 ; CHECK-NEXT:    # in Loop: Header=BB0_2 Depth=1
@@ -55,18 +55,18 @@ define dso_local void @hoist_csetbounds(i32 signext %cond, ptr addrspace(200) %f
 ; CHECK-NEXT:    beqz s0, .LBB0_1
 ; CHECK-NEXT:  # %bb.3: # %if.then
 ; CHECK-NEXT:    # in Loop: Header=BB0_2 Depth=1
-; CHECK-NEXT:    cmove ca0, cs2
-; CHECK-NEXT:    cmove ca1, cs1
+; CHECK-NEXT:    cmove a0, s1
+; CHECK-NEXT:    cmove a1, s2
 ; CHECK-NEXT:    ccall call
 ; CHECK-NEXT:    j .LBB0_1
 ; CHECK-NEXT:  .LBB0_4: # %for.cond.cleanup
-; CHECK-NEXT:    clc cra, 80(csp) # 16-byte Folded Reload
-; CHECK-NEXT:    clc cs0, 64(csp) # 16-byte Folded Reload
-; CHECK-NEXT:    clc cs1, 48(csp) # 16-byte Folded Reload
-; CHECK-NEXT:    clc cs2, 32(csp) # 16-byte Folded Reload
-; CHECK-NEXT:    clc cs3, 16(csp) # 16-byte Folded Reload
-; CHECK-NEXT:    clc cs4, 0(csp) # 16-byte Folded Reload
-; CHECK-NEXT:    cincoffset csp, csp, 96
+; CHECK-NEXT:    clc ra, 80(sp) # 16-byte Folded Reload
+; CHECK-NEXT:    clc s0, 64(sp) # 16-byte Folded Reload
+; CHECK-NEXT:    clc s1, 48(sp) # 16-byte Folded Reload
+; CHECK-NEXT:    clc s2, 32(sp) # 16-byte Folded Reload
+; CHECK-NEXT:    clc s3, 16(sp) # 16-byte Folded Reload
+; CHECK-NEXT:    clc s4, 0(sp) # 16-byte Folded Reload
+; CHECK-NEXT:    cincoffset sp, sp, 96
 ; CHECK-NEXT:    cret
 ; HOIST-OPT-LABEL: define dso_local void @hoist_csetbounds
 ; HOIST-OPT-SAME: (i32 signext [[COND:%.*]], ptr addrspace(200) [[F:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {

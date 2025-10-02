@@ -7,9 +7,9 @@ target triple = "riscv32-unknown-unknown"
 define [2 x i32] @foo(i32 %searched) addrspace(200) {
 ; CHECK-LABEL: foo:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    cincoffset csp, csp, -16
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
 ; CHECK-NEXT:    .cfi_def_cfa_offset 16
-; CHECK-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    .cfi_offset ra, -8
 ; CHECK-NEXT:    addi a0, a0, 1
 ; CHECK-NEXT:    li a1, 4
@@ -18,27 +18,27 @@ define [2 x i32] @foo(i32 %searched) addrspace(200) {
 ; CHECK-NEXT:    slli a0, a0, 2
 ; CHECK-NEXT:  .LBB0_4: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc ca1, %cheriot_compartment_hi(.LJTI0_0)
-; CHECK-NEXT:    cincoffset ca1, ca1, %cheriot_compartment_lo_i(.LBB0_4)
-; CHECK-NEXT:    cincoffset ca0, ca1, a0
-; CHECK-NEXT:    clw a0, 0(ca0)
+; CHECK-NEXT:    ct.auipcc a1, %cheriot_compartment_hi(.LJTI0_0)
+; CHECK-NEXT:    ct.cincoffset a1, a1, %cheriot_compartment_lo_i(.LBB0_4)
+; CHECK-NEXT:    ct.cincoffset a0, a1, a0
+; CHECK-NEXT:    ct.clw a0, 0(a0)
 ; CHECK-NEXT:    li a1, 1
 ; CHECK-NEXT:  .LBB0_5: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc ca2, %cheriot_compartment_hi(.Lfoo$jump_table_base)
-; CHECK-NEXT:    cincoffset ca2, ca2, %cheriot_compartment_lo_i(.LBB0_5)
-; CHECK-NEXT:    cincoffset ca2, ca2, a0
+; CHECK-NEXT:    ct.auipcc a2, %cheriot_compartment_hi(.Lfoo$jump_table_base)
+; CHECK-NEXT:    ct.cincoffset a2, a2, %cheriot_compartment_lo_i(.LBB0_5)
+; CHECK-NEXT:    ct.cincoffset a2, a2, a0
 ; CHECK-NEXT:    li a0, -1
-; CHECK-NEXT:    cjr ca2
+; CHECK-NEXT:    ct.cjr a2
 ; CHECK-NEXT:  .LBB0_2: # %sw.epilog
 ; CHECK-NEXT:    li a0, 0
 ; CHECK-NEXT:    li a1, 0
 ; CHECK-NEXT:  .LBB0_3: # %cleanup
-; CHECK-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
 ; CHECK-NEXT:    .cfi_restore ra
-; CHECK-NEXT:    cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    .cfi_def_cfa_offset 0
-; CHECK-NEXT:    cret
+; CHECK-NEXT:    ct.cret
 entry:
   switch i32 %searched, label %sw.epilog [
     i32 -1, label %cleanup

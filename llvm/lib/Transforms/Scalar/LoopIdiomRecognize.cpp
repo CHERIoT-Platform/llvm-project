@@ -1612,11 +1612,8 @@ bool LoopIdiomRecognize::optimizeCRCLoop(const PolynomialInfo &Info) {
   //   crc = (crc << 8) ^ tbl[(iv'th byte of data) ^ (top byte of crc)]
   {
     auto LoByte = [](IRBuilderBase &Builder, Value *Op, const Twine &Name) {
-      Type *OpTy = Op->getType();
-      unsigned OpBW = OpTy->getIntegerBitWidth();
-      return OpBW > 8
-                 ? Builder.CreateAnd(Op, ConstantInt::get(OpTy, 0XFF), Name)
-                 : Op;
+      return Builder.CreateZExtOrTrunc(
+          Op, IntegerType::getInt8Ty(Op->getContext()), Name);
     };
     auto HiIdx = [LoByte, CRCBW](IRBuilderBase &Builder, Value *Op,
                                  const Twine &Name) {

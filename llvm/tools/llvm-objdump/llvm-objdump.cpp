@@ -2707,20 +2707,20 @@ printELFCapRelocations(const ELFObjectFile<ELFT> *Obj) {
   for (int i = 0, e = Data.size() / entry_size; i < e; i++) {
     const char *entry = Data.data() + (entry_size * i);
     uint64_t Target =
-        support::endian::read<TargetUint, ELFT::Endianness, 1>(
-                entry);
+        support::endian::read<TargetUint, 1>(
+                entry, ELFT::Endianness);
     uint64_t Base =
-        support::endian::read<TargetUint, ELFT::Endianness, 1>(
-                entry + sizeof(TargetUint));
+        support::endian::read<TargetUint, 1>(
+                entry + sizeof(TargetUint), ELFT::Endianness);
     uint64_t Offset =
-        support::endian::read<TargetUint, ELFT::Endianness, 1>(
-                entry + 2*sizeof(TargetUint));
+        support::endian::read<TargetUint, 1>(
+                entry + 2*sizeof(TargetUint), ELFT::Endianness);
     uint64_t Length =
-        support::endian::read<TargetUint, ELFT::Endianness, 1>(
-                entry + 3*sizeof(TargetUint));
+        support::endian::read<TargetUint, 1>(
+                entry + 3*sizeof(TargetUint), ELFT::Endianness);
     uint64_t Perms =
-        support::endian::read<TargetUint, ELFT::Endianness, 1>(
-                entry + 4*sizeof(TargetUint));
+        support::endian::read<TargetUint, 1>(
+                entry + 4*sizeof(TargetUint), ELFT::Endianness);
     bool isFunction = Perms & (UINT64_C(1) << ((sizeof(TargetUint) * 8) - 1));
     bool isConstant = Perms & (UINT64_C(1) << ((sizeof(TargetUint) * 8) - 2));
     //Perms &= 0xffffffff;

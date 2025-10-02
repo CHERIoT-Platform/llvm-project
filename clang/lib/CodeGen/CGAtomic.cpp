@@ -899,7 +899,7 @@ RValue CodeGenFunction::EmitAtomicExpr(AtomicExpr *E) {
   CharUnits MaxInlineWidth =
       getContext().toCharUnitsFromBits(MaxInlineWidthInBits);
   DiagnosticsEngine &Diags = CGM.getDiags();
-  bool Misaligned = (Ptr.getAlignment() % TInfo.Width) != 0;
+  bool Misaligned = !Ptr.getAlignment().isMultipleOf(TInfo.Width);
   bool IsCheriCap = AtomicTy->isCHERICapabilityType(CGM.getContext());
   bool Oversized = (!IsCheriCap &&
     getContext().toBits(TInfo.Width) > MaxInlineWidthInBits) ||

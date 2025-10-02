@@ -501,6 +501,160 @@ exit:
   ret void
 }
 
+define void @cost_scalar_load_of_address(ptr noalias %src, ptr %dst) {
+; CHECK-LABEL: define void @cost_scalar_load_of_address(
+; CHECK-SAME: ptr noalias [[SRC:%.*]], ptr [[DST:%.*]]) {
+; CHECK-NEXT:  [[ENTRY:.*]]:
+; CHECK-NEXT:    br label %[[LOOP:.*]]
+; CHECK:       [[LOOP]]:
+; CHECK-NEXT:    [[IV:%.*]] = phi i64 [ 0, %[[ENTRY]] ], [ [[IV_NEXT:%.*]], %[[LOOP]] ]
+; CHECK-NEXT:    [[GEP_SRC:%.*]] = getelementptr i32, ptr [[SRC]], i64 [[IV]]
+; CHECK-NEXT:    [[L:%.*]] = load i32, ptr [[GEP_SRC]], align 4
+; CHECK-NEXT:    [[L_EXT:%.*]] = sext i32 [[L]] to i64
+; CHECK-NEXT:    [[GEP_DST:%.*]] = getelementptr i32, ptr [[DST]], i64 [[L_EXT]]
+; CHECK-NEXT:    store i32 0, ptr [[GEP_DST]], align 4
+; CHECK-NEXT:    [[IV_NEXT]] = add i64 [[IV]], 1
+; CHECK-NEXT:    [[EC:%.*]] = icmp eq i64 [[IV]], 8
+; CHECK-NEXT:    br i1 [[EC]], label %[[EXIT:.*]], label %[[LOOP]]
+; CHECK:       [[EXIT]]:
+; CHECK-NEXT:    ret void
+;
+entry:
+  br label %loop
+
+loop:
+  %iv = phi i64 [ 0, %entry ], [ %iv.next, %loop ]
+  %gep.src = getelementptr i32, ptr %src, i64 %iv
+  %l = load i32, ptr %gep.src, align 4
+  %l.ext = sext i32 %l to i64
+  %gep.dst = getelementptr i32, ptr %dst, i64 %l.ext
+  store i32 0, ptr %gep.dst, align 4
+  %iv.next = add i64 %iv, 1
+  %ec = icmp eq i64 %iv, 8
+  br i1 %ec, label %exit, label %loop
+
+exit:
+  ret void
+}
+
+%t = type { [3 x double] }
+%t.2 = type { [ 64 x double ] }
+
+define double @test_scalarization_cost_for_load_of_address(ptr %src.0, ptr %src.1, ptr %src.2) {
+; CHECK-LABEL: define double @test_scalarization_cost_for_load_of_address(
+; CHECK-SAME: ptr [[SRC_0:%.*]], ptr [[SRC_1:%.*]], ptr [[SRC_2:%.*]]) {
+; CHECK-NEXT:  [[ENTRY:.*:]]
+; CHECK-NEXT:    br label %[[VECTOR_PH:.*]]
+; CHECK:       [[VECTOR_PH]]:
+; CHECK-NEXT:    br label %[[VECTOR_BODY:.*]]
+; CHECK:       [[VECTOR_BODY]]:
+; CHECK-NEXT:    [[INDEX:%.*]] = phi i64 [ 0, %[[VECTOR_PH]] ], [ [[INDEX_NEXT:%.*]], %[[VECTOR_BODY]] ]
+; CHECK-NEXT:    [[VEC_PHI:%.*]] = phi double [ 3.000000e+00, %[[VECTOR_PH]] ], [ [[TMP21:%.*]], %[[VECTOR_BODY]] ]
+; CHECK-NEXT:    [[IV:%.*]] = add i64 [[INDEX]], 0
+; CHECK-NEXT:    [[TMP1:%.*]] = add i64 [[INDEX]], 1
+; CHECK-NEXT:    [[GEP_0:%.*]] = getelementptr [[T:%.*]], ptr [[SRC_0]], i64 [[IV]]
+; CHECK-NEXT:    [[WIDE_VEC:%.*]] = load <6 x double>, ptr [[GEP_0]], align 8
+; CHECK-NEXT:    [[STRIDED_VEC:%.*]] = shufflevector <6 x double> [[WIDE_VEC]], <6 x double> poison, <2 x i32> <i32 0, i32 3>
+; CHECK-NEXT:    [[STRIDED_VEC1:%.*]] = shufflevector <6 x double> [[WIDE_VEC]], <6 x double> poison, <2 x i32> <i32 1, i32 4>
+; CHECK-NEXT:    [[STRIDED_VEC2:%.*]] = shufflevector <6 x double> [[WIDE_VEC]], <6 x double> poison, <2 x i32> <i32 2, i32 5>
+; CHECK-NEXT:    [[TMP3:%.*]] = fmul <2 x double> [[STRIDED_VEC]], splat (double 3.000000e+00)
+; CHECK-NEXT:    [[TMP4:%.*]] = fmul <2 x double> [[STRIDED_VEC1]], splat (double 3.000000e+00)
+; CHECK-NEXT:    [[TMP5:%.*]] = fmul <2 x double> [[STRIDED_VEC2]], splat (double 3.000000e+00)
+; CHECK-NEXT:    [[TMP6:%.*]] = fadd <2 x double> [[TMP3]], [[TMP4]]
+; CHECK-NEXT:    [[TMP7:%.*]] = fadd <2 x double> [[TMP6]], [[TMP5]]
+; CHECK-NEXT:    [[GEP_SRC:%.*]] = getelementptr double, ptr [[SRC_1]], i64 [[IV]]
+; CHECK-NEXT:    [[WIDE_LOAD:%.*]] = load <2 x double>, ptr [[GEP_SRC]], align 8
+; CHECK-NEXT:    [[TMP9:%.*]] = fmul <2 x double> [[TMP7]], [[WIDE_LOAD]]
+; CHECK-NEXT:    [[GEP_SRC_2:%.*]] = getelementptr [[T_2:%.*]], ptr [[SRC_2]], i64 [[IV]]
+; CHECK-NEXT:    [[TMP11:%.*]] = getelementptr [[T_2]], ptr [[SRC_2]], i64 [[TMP1]]
+; CHECK-NEXT:    [[GEP_72:%.*]] = getelementptr i8, ptr [[GEP_SRC_2]], i64 72
+; CHECK-NEXT:    [[TMP13:%.*]] = getelementptr i8, ptr [[TMP11]], i64 72
+; CHECK-NEXT:    [[L_P_2:%.*]] = load ptr, ptr [[GEP_72]], align 8
+; CHECK-NEXT:    [[TMP15:%.*]] = load ptr, ptr [[TMP13]], align 8
+; CHECK-NEXT:    [[LV:%.*]] = load double, ptr [[L_P_2]], align 8
+; CHECK-NEXT:    [[TMP17:%.*]] = load double, ptr [[TMP15]], align 8
+; CHECK-NEXT:    [[TMP18:%.*]] = insertelement <2 x double> poison, double [[LV]], i32 0
+; CHECK-NEXT:    [[TMP19:%.*]] = insertelement <2 x double> [[TMP18]], double [[TMP17]], i32 1
+; CHECK-NEXT:    [[TMP20:%.*]] = fmul <2 x double> [[TMP9]], [[TMP19]]
+; CHECK-NEXT:    [[TMP21]] = call double @llvm.vector.reduce.fadd.v2f64(double [[VEC_PHI]], <2 x double> [[TMP20]])
+; CHECK-NEXT:    [[INDEX_NEXT]] = add nuw i64 [[INDEX]], 2
+; CHECK-NEXT:    br i1 true, label %[[MIDDLE_BLOCK:.*]], label %[[VECTOR_BODY]], !llvm.loop [[LOOP23:![0-9]+]]
+; CHECK:       [[MIDDLE_BLOCK]]:
+; CHECK-NEXT:    br [[EXIT:label %.*]]
+; CHECK:       [[SCALAR_PH:.*:]]
+;
+entry:
+  br label %loop
+
+loop:
+  %iv = phi i64 [ 0, %entry ], [ %iv.next, %loop ]
+  %red = phi double [ 3.000000e+00, %entry ], [ %red.next, %loop ]
+  %gep.0 = getelementptr %t, ptr %src.0, i64 %iv
+  %l.0 = load double, ptr %gep.0, align 8
+  %gep.8 = getelementptr i8, ptr %gep.0, i64 8
+  %l.1 = load double, ptr %gep.8, align 8
+  %gep.16 = getelementptr i8, ptr %gep.0, i64 16
+  %l.2 = load double, ptr %gep.16, align 8
+  %mul.0 = fmul double %l.0, 3.000000e+00
+  %mul.1 = fmul double %l.1, 3.000000e+00
+  %mul.2 = fmul double %l.2, 3.000000e+00
+  %add.0 = fadd double %mul.0, %mul.1
+  %add.1 = fadd double %add.0, %mul.2
+  %gep.src = getelementptr double, ptr %src.1, i64 %iv
+  %l = load double, ptr %gep.src, align 8
+  %mul256.us = fmul double %add.1, %l
+  %gep.src.2 = getelementptr %t.2, ptr %src.2, i64 %iv
+  %gep.72 = getelementptr i8, ptr %gep.src.2, i64 72
+  %l.p.2 = load ptr, ptr %gep.72, align 8
+  %lv = load double, ptr %l.p.2, align 8
+  %red.next = tail call double @llvm.fmuladd.f64(double %mul256.us, double %lv, double %red)
+  %iv.next = add i64 %iv, 1
+  %ec = icmp eq i64 %iv, 1
+  br i1 %ec, label %exit, label %loop
+
+exit:
+  ret double  %red.next
+}
+
+define i32 @test_ptr_iv_load_used_by_other_load(ptr %start, ptr %end) {
+; CHECK-LABEL: define i32 @test_ptr_iv_load_used_by_other_load(
+; CHECK-SAME: ptr [[START:%.*]], ptr [[END:%.*]]) {
+; CHECK-NEXT:  [[ENTRY:.*]]:
+; CHECK-NEXT:    br label %[[LOOP:.*]]
+; CHECK:       [[LOOP]]:
+; CHECK-NEXT:    [[IV:%.*]] = phi ptr [ [[IV_NEXT:%.*]], %[[LOOP]] ], [ null, %[[ENTRY]] ]
+; CHECK-NEXT:    [[RED:%.*]] = phi i32 [ [[RED_NEXT:%.*]], %[[LOOP]] ], [ 0, %[[ENTRY]] ]
+; CHECK-NEXT:    [[TMP0:%.*]] = load ptr, ptr [[IV]], align 8
+; CHECK-NEXT:    [[TMP1:%.*]] = load i8, ptr [[TMP0]], align 8
+; CHECK-NEXT:    [[C:%.*]] = icmp ne i8 [[TMP1]], 0
+; CHECK-NEXT:    [[C_EXT:%.*]] = zext i1 [[C]] to i32
+; CHECK-NEXT:    [[RED_NEXT]] = or i32 [[RED]], [[C_EXT]]
+; CHECK-NEXT:    [[IV_NEXT]] = getelementptr nusw i8, ptr [[IV]], i64 32
+; CHECK-NEXT:    [[EC:%.*]] = icmp eq ptr [[IV]], [[END]]
+; CHECK-NEXT:    br i1 [[EC]], label %[[EXIT:.*]], label %[[LOOP]]
+; CHECK:       [[EXIT]]:
+; CHECK-NEXT:    [[RED_LCSSA:%.*]] = phi i32 [ [[RED]], %[[LOOP]] ]
+; CHECK-NEXT:    ret i32 [[RED_LCSSA]]
+;
+entry:
+  br label %loop
+
+loop:                                 ; preds = %loop, %entry
+  %iv = phi ptr [ %iv.next, %loop ], [ null, %entry ]
+  %red = phi i32 [ %red.next, %loop ], [ 0, %entry ]
+  %0 = load ptr, ptr %iv, align 8
+  %1 = load i8, ptr %0, align 8
+  %c = icmp ne i8 %1, 0
+  %c.ext = zext i1 %c to i32
+  %red.next = or i32 %red, %c.ext
+  %iv.next = getelementptr nusw i8, ptr %iv, i64 32
+  %ec = icmp eq ptr %iv, %end
+  br i1 %ec, label %exit, label %loop
+
+exit:
+  ret i32 %red
+}
+
 attributes #0 = { "target-cpu"="neoverse-512tvb" }
 
 !0 = !{!1, !2, i64 0}

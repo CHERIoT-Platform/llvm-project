@@ -12,14 +12,14 @@ declare void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) nocapture, ptr addrsp
 define void @call_memset(ptr addrspace(200) align 4 %dst) nounwind {
 ; PURECAP-LABEL: call_memset:
 ; PURECAP:       # %bb.0: # %entry
-; PURECAP-NEXT:    cincoffset csp, csp, -16
-; PURECAP-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
+; PURECAP-NEXT:    cincoffset sp, sp, -16
+; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 40
 ; PURECAP-NEXT:    li a1, 0
 ; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
-; PURECAP-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; PURECAP-NEXT:    cincoffset csp, csp, 16
+; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; PURECAP-NEXT:    cincoffset sp, sp, 16
 ; PURECAP-NEXT:    cret
 ;
 ; HYBRID-LABEL: call_memset:
@@ -41,13 +41,13 @@ entry:
 define void @call_memcpy(ptr addrspace(200) align 4 %dst, ptr addrspace(200) align 4 %src) nounwind {
 ; PURECAP-LABEL: call_memcpy:
 ; PURECAP:       # %bb.0: # %entry
-; PURECAP-NEXT:    cincoffset csp, csp, -16
-; PURECAP-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
+; PURECAP-NEXT:    cincoffset sp, sp, -16
+; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 40
 ; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memcpy
-; PURECAP-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; PURECAP-NEXT:    cincoffset csp, csp, 16
+; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; PURECAP-NEXT:    cincoffset sp, sp, 16
 ; PURECAP-NEXT:    cret
 ;
 ; HYBRID-LABEL: call_memcpy:
@@ -68,13 +68,13 @@ entry:
 define void @call_memmove(ptr addrspace(200) align 4 %dst, ptr addrspace(200) align 4 %src) nounwind {
 ; PURECAP-LABEL: call_memmove:
 ; PURECAP:       # %bb.0: # %entry
-; PURECAP-NEXT:    cincoffset csp, csp, -16
-; PURECAP-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
+; PURECAP-NEXT:    cincoffset sp, sp, -16
+; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 40
 ; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memmove
-; PURECAP-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; PURECAP-NEXT:    cincoffset csp, csp, 16
+; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; PURECAP-NEXT:    cincoffset sp, sp, 16
 ; PURECAP-NEXT:    cret
 ;
 ; HYBRID-LABEL: call_memmove:

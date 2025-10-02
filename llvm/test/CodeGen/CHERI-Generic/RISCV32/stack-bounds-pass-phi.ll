@@ -13,59 +13,59 @@ declare void @foo(ptr addrspace(200)) addrspace(200)
 define void @test_phi(i1 %cond) addrspace(200) nounwind {
 ; ASM-LABEL: test_phi:
 ; ASM:       # %bb.0: # %entry
-; ASM-NEXT:    cincoffset csp, csp, -32
-; ASM-NEXT:    csc cra, 24(csp) # 8-byte Folded Spill
-; ASM-NEXT:    csc cs0, 16(csp) # 8-byte Folded Spill
+; ASM-NEXT:    cincoffset sp, sp, -32
+; ASM-NEXT:    csc ra, 24(sp) # 8-byte Folded Spill
+; ASM-NEXT:    csc s0, 16(sp) # 8-byte Folded Spill
 ; ASM-NEXT:    andi a0, a0, 1
 ; ASM-NEXT:    beqz a0, .LBB0_2
 ; ASM-NEXT:  # %bb.1: # %block1
-; ASM-NEXT:    cmove ca0, cnull
+; ASM-NEXT:    cmove a0, zero
 ; ASM-NEXT:    li a1, 1
-; ASM-NEXT:    csw a1, 12(csp)
+; ASM-NEXT:    csw a1, 12(sp)
 ; ASM-NEXT:    li a1, 2
-; ASM-NEXT:    csw a1, 8(csp)
+; ASM-NEXT:    csw a1, 8(sp)
 ; ASM-NEXT:    li a1, 3
-; ASM-NEXT:    csw a1, 4(csp)
-; ASM-NEXT:    cincoffset ca1, csp, 8
-; ASM-NEXT:    csetbounds cs0, ca1, 4
+; ASM-NEXT:    csw a1, 4(sp)
+; ASM-NEXT:    cincoffset a1, sp, 8
+; ASM-NEXT:    csetbounds s0, a1, 4
 ; ASM-NEXT:    j .LBB0_3
 ; ASM-NEXT:  .LBB0_2: # %block2
 ; ASM-NEXT:    li a0, 4
 ; ASM-NEXT:    li a1, 5
-; ASM-NEXT:    csw a0, 12(csp)
+; ASM-NEXT:    csw a0, 12(sp)
 ; ASM-NEXT:    li a0, 6
-; ASM-NEXT:    csw a1, 8(csp)
-; ASM-NEXT:    cincoffset ca1, csp, 12
-; ASM-NEXT:    csw a0, 4(csp)
-; ASM-NEXT:    cincoffset ca2, csp, 4
-; ASM-NEXT:    csetbounds ca0, ca1, 4
-; ASM-NEXT:    csetbounds cs0, ca2, 4
+; ASM-NEXT:    csw a1, 8(sp)
+; ASM-NEXT:    cincoffset a1, sp, 12
+; ASM-NEXT:    csw a0, 4(sp)
+; ASM-NEXT:    cincoffset a2, sp, 4
+; ASM-NEXT:    csetbounds a0, a1, 4
+; ASM-NEXT:    csetbounds s0, a2, 4
 ; ASM-NEXT:  .LBB0_3: # %phi_block
 ; ASM-NEXT:    ccall foo
-; ASM-NEXT:    cmove ca0, cs0
+; ASM-NEXT:    cmove a0, s0
 ; ASM-NEXT:    ccall foo
-; ASM-NEXT:    clc cra, 24(csp) # 8-byte Folded Reload
-; ASM-NEXT:    clc cs0, 16(csp) # 8-byte Folded Reload
-; ASM-NEXT:    cincoffset csp, csp, 32
+; ASM-NEXT:    clc ra, 24(sp) # 8-byte Folded Reload
+; ASM-NEXT:    clc s0, 16(sp) # 8-byte Folded Reload
+; ASM-NEXT:    cincoffset sp, sp, 32
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define void @test_phi
 ; CHECK-SAME: (i1 [[COND:%.*]]) addrspace(200) #[[ATTR1:[0-9]+]] {
 ; CHECK-NEXT:  entry:
-; CHECK-NEXT:    [[ALLOCA1:%.*]] = alloca i32, align 4, addrspace(200)
-; CHECK-NEXT:    [[ALLOCA2:%.*]] = alloca i32, align 4, addrspace(200)
+; CHECK-NEXT:    [[ALLOa1:%.*]] = alloca i32, align 4, addrspace(200)
+; CHECK-NEXT:    [[ALLOa2:%.*]] = alloca i32, align 4, addrspace(200)
 ; CHECK-NEXT:    [[ALLOCA3:%.*]] = alloca i32, align 4, addrspace(200)
 ; CHECK-NEXT:    br i1 [[COND]], label [[BLOCK1:%.*]], label [[BLOCK2:%.*]]
 ; CHECK:       block1:
-; CHECK-NEXT:    store i32 1, ptr addrspace(200) [[ALLOCA1]], align 4
-; CHECK-NEXT:    store i32 2, ptr addrspace(200) [[ALLOCA2]], align 4
+; CHECK-NEXT:    store i32 1, ptr addrspace(200) [[ALLOa1]], align 4
+; CHECK-NEXT:    store i32 2, ptr addrspace(200) [[ALLOa2]], align 4
 ; CHECK-NEXT:    store i32 3, ptr addrspace(200) [[ALLOCA3]], align 4
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i32(ptr addrspace(200) [[ALLOCA2]], i32 4)
+; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i32(ptr addrspace(200) [[ALLOa2]], i32 4)
 ; CHECK-NEXT:    br label [[PHI_BLOCK:%.*]]
 ; CHECK:       block2:
-; CHECK-NEXT:    store i32 4, ptr addrspace(200) [[ALLOCA1]], align 4
-; CHECK-NEXT:    store i32 5, ptr addrspace(200) [[ALLOCA2]], align 4
+; CHECK-NEXT:    store i32 4, ptr addrspace(200) [[ALLOa1]], align 4
+; CHECK-NEXT:    store i32 5, ptr addrspace(200) [[ALLOa2]], align 4
 ; CHECK-NEXT:    store i32 6, ptr addrspace(200) [[ALLOCA3]], align 4
-; CHECK-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i32(ptr addrspace(200) [[ALLOCA1]], i32 4)
+; CHECK-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i32(ptr addrspace(200) [[ALLOa1]], i32 4)
 ; CHECK-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i32(ptr addrspace(200) [[ALLOCA3]], i32 4)
 ; CHECK-NEXT:    br label [[PHI_BLOCK]]
 ; CHECK:       phi_block:
@@ -75,26 +75,26 @@ define void @test_phi(i1 %cond) addrspace(200) nounwind {
 ; CHECK-NEXT:    call void @foo(ptr addrspace(200) [[VAL2]])
 ; CHECK-NEXT:    ret void
 entry:
-  %alloca1 = alloca i32, align 4, addrspace(200)
-  %alloca2 = alloca i32, align 4, addrspace(200)
+  %alloa1 = alloca i32, align 4, addrspace(200)
+  %alloa2 = alloca i32, align 4, addrspace(200)
   %alloca3 = alloca i32, align 4, addrspace(200)
   br i1 %cond, label %block1, label %block2
 
 block1:
-  store i32 1, ptr addrspace(200) %alloca1, align 4
-  store i32 2, ptr addrspace(200) %alloca2, align 4
+  store i32 1, ptr addrspace(200) %alloa1, align 4
+  store i32 2, ptr addrspace(200) %alloa2, align 4
   store i32 3, ptr addrspace(200) %alloca3, align 4
   br label %phi_block
 
 block2:
-  store i32 4, ptr addrspace(200) %alloca1, align 4
-  store i32 5, ptr addrspace(200) %alloca2, align 4
+  store i32 4, ptr addrspace(200) %alloa1, align 4
+  store i32 5, ptr addrspace(200) %alloa2, align 4
   store i32 6, ptr addrspace(200) %alloca3, align 4
   br label %phi_block
 
 phi_block:
-  %val1 = phi ptr addrspace(200) [ null, %block1 ], [ %alloca1, %block2 ]
-  %val2 = phi ptr addrspace(200) [ %alloca2, %block1 ], [ %alloca3, %block2 ]
+  %val1 = phi ptr addrspace(200) [ null, %block1 ], [ %alloa1, %block2 ]
+  %val2 = phi ptr addrspace(200) [ %alloa2, %block1 ], [ %alloca3, %block2 ]
   call void @foo(ptr addrspace(200) %val1)
   call void @foo(ptr addrspace(200) %val2)
   ret void
@@ -104,65 +104,65 @@ phi_block:
 define void @test_only_created_in_predecessor_block(i1 %cond) addrspace(200) nounwind {
 ; ASM-LABEL: test_only_created_in_predecessor_block:
 ; ASM:       # %bb.0: # %entry
-; ASM-NEXT:    cincoffset csp, csp, -16
-; ASM-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
+; ASM-NEXT:    cincoffset sp, sp, -16
+; ASM-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; ASM-NEXT:    andi a0, a0, 1
 ; ASM-NEXT:    beqz a0, .LBB1_2
 ; ASM-NEXT:  # %bb.1: # %block1
 ; ASM-NEXT:    li a0, 1
-; ASM-NEXT:    csw a0, 4(csp)
-; ASM-NEXT:    cincoffset ca0, csp, 4
+; ASM-NEXT:    csw a0, 4(sp)
+; ASM-NEXT:    cincoffset a0, sp, 4
 ; ASM-NEXT:    j .LBB1_3
 ; ASM-NEXT:  .LBB1_2: # %block2
 ; ASM-NEXT:    li a0, 5
-; ASM-NEXT:    csw a0, 0(csp)
-; ASM-NEXT:    cincoffset ca0, csp, 0
+; ASM-NEXT:    csw a0, 0(sp)
+; ASM-NEXT:    cincoffset a0, sp, 0
 ; ASM-NEXT:  .LBB1_3: # %phi_block
-; ASM-NEXT:    csetbounds ca0, ca0, 4
+; ASM-NEXT:    csetbounds a0, a0, 4
 ; ASM-NEXT:    ccall foo
-; ASM-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; ASM-NEXT:    cincoffset csp, csp, 16
+; ASM-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; ASM-NEXT:    cincoffset sp, sp, 16
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define void @test_only_created_in_predecessor_block
 ; CHECK-SAME: (i1 [[COND:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-NEXT:  entry:
-; CHECK-NEXT:    [[ALLOCA1:%.*]] = alloca i32, align 4, addrspace(200)
-; CHECK-NEXT:    [[ALLOCA2:%.*]] = alloca i32, align 4, addrspace(200)
+; CHECK-NEXT:    [[ALLOa1:%.*]] = alloca i32, align 4, addrspace(200)
+; CHECK-NEXT:    [[ALLOa2:%.*]] = alloca i32, align 4, addrspace(200)
 ; CHECK-NEXT:    br i1 [[COND]], label [[BLOCK1:%.*]], label [[BLOCK2:%.*]]
 ; CHECK:       block1:
-; CHECK-NEXT:    store i32 1, ptr addrspace(200) [[ALLOCA1]], align 4
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i32(ptr addrspace(200) [[ALLOCA1]], i32 4)
+; CHECK-NEXT:    store i32 1, ptr addrspace(200) [[ALLOa1]], align 4
+; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i32(ptr addrspace(200) [[ALLOa1]], i32 4)
 ; CHECK-NEXT:    br label [[PHI_BLOCK:%.*]]
 ; CHECK:       block2:
-; CHECK-NEXT:    store i32 5, ptr addrspace(200) [[ALLOCA2]], align 4
-; CHECK-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i32(ptr addrspace(200) [[ALLOCA2]], i32 4)
+; CHECK-NEXT:    store i32 5, ptr addrspace(200) [[ALLOa2]], align 4
+; CHECK-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i32(ptr addrspace(200) [[ALLOa2]], i32 4)
 ; CHECK-NEXT:    br label [[PHI_BLOCK]]
 ; CHECK:       phi_block:
 ; CHECK-NEXT:    [[VAL1:%.*]] = phi ptr addrspace(200) [ [[TMP0]], [[BLOCK1]] ], [ [[TMP1]], [[BLOCK2]] ]
 ; CHECK-NEXT:    call void @foo(ptr addrspace(200) [[VAL1]])
 ; CHECK-NEXT:    ret void
 entry:
-  %alloca1 = alloca i32, align 4, addrspace(200)
-  %alloca2 = alloca i32, align 4, addrspace(200)
+  %alloa1 = alloca i32, align 4, addrspace(200)
+  %alloa2 = alloca i32, align 4, addrspace(200)
   br i1 %cond, label %block1, label %block2
 
 block1:
-  store i32 1, ptr addrspace(200) %alloca1, align 4
+  store i32 1, ptr addrspace(200) %alloa1, align 4
   br label %phi_block
 
 block2:
-  store i32 5, ptr addrspace(200) %alloca2, align 4
+  store i32 5, ptr addrspace(200) %alloa2, align 4
   br label %phi_block
 
 phi_block:
-  %val1 = phi ptr addrspace(200) [ %alloca1, %block1 ], [ %alloca2, %block2 ]
+  %val1 = phi ptr addrspace(200) [ %alloa1, %block1 ], [ %alloa2, %block2 ]
   call void @foo(ptr addrspace(200) %val1)
   ret void
 }
 
 ; DBG: -Adding stack bounds since phi user needs bounds:   call void @foo(ptr addrspace(200) %val1)
-; DBG: test_phi: 1 of 3 users need bounds for   %alloca1 = alloca i32, align 4, addrspace(200)
+; DBG: test_phi: 1 of 3 users need bounds for   %alloa1 = alloca i32, align 4, addrspace(200)
 ; DBG: -Adding stack bounds since phi user needs bounds:   call void @foo(ptr addrspace(200) %val2)
-; DBG: test_phi: 1 of 3 users need bounds for   %alloca2 = alloca i32, align 4, addrspace(200)
+; DBG: test_phi: 1 of 3 users need bounds for   %alloa2 = alloca i32, align 4, addrspace(200)
 ; DBG: -Adding stack bounds since phi user needs bounds:   call void @foo(ptr addrspace(200) %val2)
 ; DBG: test_phi: 1 of 3 users need bounds for   %alloca3 = alloca i32, align 4, addrspace(200)

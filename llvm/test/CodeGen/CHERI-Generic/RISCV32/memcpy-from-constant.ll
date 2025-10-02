@@ -13,7 +13,7 @@ declare void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noalias nocapture wri
 define linkonce_odr void @copy_from_zero_constant(ptr addrspace(200) %dst) addrspace(200) {
 ; CHECK-LABEL: copy_from_zero_constant:
 ; CHECK:       # %bb.0: # %do.body
-; CHECK-NEXT:    csc cnull, 0(ca0)
+; CHECK-NEXT:    csc zero, 0(a0)
 ; CHECK-NEXT:    cret
 do.body:
   call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 8 %dst, ptr addrspace(200) align 8 @zero_constant, i64 8, i1 false)
@@ -23,7 +23,7 @@ do.body:
 define linkonce_odr void @copy_from_zero_constant_with_offset(ptr addrspace(200) %dst) addrspace(200) {
 ; CHECK-LABEL: copy_from_zero_constant_with_offset:
 ; CHECK:       # %bb.0: # %do.body
-; CHECK-NEXT:    csc cnull, 0(ca0)
+; CHECK-NEXT:    csc zero, 0(a0)
 ; CHECK-NEXT:    cret
 do.body:
   %src = getelementptr inbounds i8, ptr addrspace(200) @zero_constant, i64 8
@@ -34,7 +34,7 @@ do.body:
 define linkonce_odr void @copy_from_large_zero_constant(ptr addrspace(200) %dst) addrspace(200) {
 ; CHECK-LABEL: copy_from_large_zero_constant:
 ; CHECK:       # %bb.0: # %do.body
-; CHECK-NEXT:    csw zero, 0(ca0)
+; CHECK-NEXT:    csw zero, 0(a0)
 ; CHECK-NEXT:    cret
 do.body:
   call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 8 %dst, ptr addrspace(200) align 8 @zero_constant, i64 4, i1 false)
@@ -46,10 +46,10 @@ define linkonce_odr void @copy_from_ptr_constant(ptr addrspace(200) %dst) addrsp
 ; CHECK:       # %bb.0: # %do.body
 ; CHECK-NEXT:  .LBB3_1: # %do.body
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc ca1, %captab_pcrel_hi(constant_ptrs)
-; CHECK-NEXT:    clc ca1, %pcrel_lo(.LBB3_1)(ca1)
-; CHECK-NEXT:    clc ca1, 0(ca1)
-; CHECK-NEXT:    csc ca1, 0(ca0)
+; CHECK-NEXT:    auipcc a1, %captab_pcrel_hi(constant_ptrs)
+; CHECK-NEXT:    clc a1, %pcrel_lo(.LBB3_1)(a1)
+; CHECK-NEXT:    clc a1, 0(a1)
+; CHECK-NEXT:    csc a1, 0(a0)
 ; CHECK-NEXT:    cret
 do.body:
   call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 8 %dst, ptr addrspace(200) align 8 @constant_ptrs, i64 8, i1 false)
@@ -61,10 +61,10 @@ define linkonce_odr void @copy_from_ptr_constant_with_offset(ptr addrspace(200) 
 ; CHECK:       # %bb.0: # %do.body
 ; CHECK-NEXT:  .LBB4_1: # %do.body
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc ca1, %captab_pcrel_hi(constant_ptrs)
-; CHECK-NEXT:    clc ca1, %pcrel_lo(.LBB4_1)(ca1)
-; CHECK-NEXT:    clc ca1, 8(ca1)
-; CHECK-NEXT:    csc ca1, 0(ca0)
+; CHECK-NEXT:    auipcc a1, %captab_pcrel_hi(constant_ptrs)
+; CHECK-NEXT:    clc a1, %pcrel_lo(.LBB4_1)(a1)
+; CHECK-NEXT:    clc a1, 8(a1)
+; CHECK-NEXT:    csc a1, 0(a0)
 ; CHECK-NEXT:    cret
 do.body:
   %src = getelementptr inbounds i8, ptr addrspace(200) @constant_ptrs, i64 8
@@ -77,7 +77,7 @@ do.body:
 define linkonce_odr void @copy_from_zero_constant_preserve(ptr addrspace(200) %dst) addrspace(200) {
 ; CHECK-LABEL: copy_from_zero_constant_preserve:
 ; CHECK:       # %bb.0: # %do.body
-; CHECK-NEXT:    csc cnull, 0(ca0)
+; CHECK-NEXT:    csc zero, 0(a0)
 ; CHECK-NEXT:    cret
 do.body:
   call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 8 %dst, ptr addrspace(200) align 8 @zero_constant, i64 8, i1 false) #1
@@ -87,7 +87,7 @@ do.body:
 define linkonce_odr void @copy_from_zero_constant_with_offset_preserve(ptr addrspace(200) %dst) addrspace(200) {
 ; CHECK-LABEL: copy_from_zero_constant_with_offset_preserve:
 ; CHECK:       # %bb.0: # %do.body
-; CHECK-NEXT:    csc cnull, 0(ca0)
+; CHECK-NEXT:    csc zero, 0(a0)
 ; CHECK-NEXT:    cret
 do.body:
   %src = getelementptr inbounds i8, ptr addrspace(200) @zero_constant, i64 8
@@ -98,7 +98,7 @@ do.body:
 define linkonce_odr void @copy_from_large_zero_constant_preserve(ptr addrspace(200) %dst) addrspace(200) {
 ; CHECK-LABEL: copy_from_large_zero_constant_preserve:
 ; CHECK:       # %bb.0: # %do.body
-; CHECK-NEXT:    csw zero, 0(ca0)
+; CHECK-NEXT:    csw zero, 0(a0)
 ; CHECK-NEXT:    cret
 do.body:
   call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 8 %dst, ptr addrspace(200) align 8 @zero_constant, i64 4, i1 false) #1
@@ -110,10 +110,10 @@ define linkonce_odr void @copy_from_ptr_constant_preserve(ptr addrspace(200) %ds
 ; CHECK:       # %bb.0: # %do.body
 ; CHECK-NEXT:  .LBB8_1: # %do.body
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc ca1, %captab_pcrel_hi(constant_ptrs)
-; CHECK-NEXT:    clc ca1, %pcrel_lo(.LBB8_1)(ca1)
-; CHECK-NEXT:    clc ca1, 0(ca1)
-; CHECK-NEXT:    csc ca1, 0(ca0)
+; CHECK-NEXT:    auipcc a1, %captab_pcrel_hi(constant_ptrs)
+; CHECK-NEXT:    clc a1, %pcrel_lo(.LBB8_1)(a1)
+; CHECK-NEXT:    clc a1, 0(a1)
+; CHECK-NEXT:    csc a1, 0(a0)
 ; CHECK-NEXT:    cret
 do.body:
   call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 8 %dst, ptr addrspace(200) align 8 @constant_ptrs, i64 8, i1 false) #1
@@ -125,10 +125,10 @@ define linkonce_odr void @copy_from_ptr_constant_with_offset_preserve(ptr addrsp
 ; CHECK:       # %bb.0: # %do.body
 ; CHECK-NEXT:  .LBB9_1: # %do.body
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc ca1, %captab_pcrel_hi(constant_ptrs)
-; CHECK-NEXT:    clc ca1, %pcrel_lo(.LBB9_1)(ca1)
-; CHECK-NEXT:    clc ca1, 8(ca1)
-; CHECK-NEXT:    csc ca1, 0(ca0)
+; CHECK-NEXT:    auipcc a1, %captab_pcrel_hi(constant_ptrs)
+; CHECK-NEXT:    clc a1, %pcrel_lo(.LBB9_1)(a1)
+; CHECK-NEXT:    clc a1, 8(a1)
+; CHECK-NEXT:    csc a1, 0(a0)
 ; CHECK-NEXT:    cret
 do.body:
   %src = getelementptr inbounds i8, ptr addrspace(200) @constant_ptrs, i64 8
@@ -142,8 +142,8 @@ do.body:
 define linkonce_odr void @copy_from_underaligned_zero_constant(ptr addrspace(200) %dst) addrspace(200) {
 ; CHECK-LABEL: copy_from_underaligned_zero_constant:
 ; CHECK:       # %bb.0: # %do.body
-; CHECK-NEXT:    csw zero, 4(ca0)
-; CHECK-NEXT:    csw zero, 0(ca0)
+; CHECK-NEXT:    csw zero, 4(a0)
+; CHECK-NEXT:    csw zero, 0(a0)
 ; CHECK-NEXT:    cret
 do.body:
   call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 4 %dst, ptr addrspace(200) align 4 @zero_constant, i64 8, i1 false) #1
@@ -153,8 +153,8 @@ do.body:
 define linkonce_odr void @copy_from_underaligned_zero_constant_preserve(ptr addrspace(200) %dst) addrspace(200) {
 ; CHECK-LABEL: copy_from_underaligned_zero_constant_preserve:
 ; CHECK:       # %bb.0: # %do.body
-; CHECK-NEXT:    csw zero, 4(ca0)
-; CHECK-NEXT:    csw zero, 0(ca0)
+; CHECK-NEXT:    csw zero, 4(a0)
+; CHECK-NEXT:    csw zero, 0(a0)
 ; CHECK-NEXT:    cret
 do.body:
   call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 4 %dst, ptr addrspace(200) align 4 @zero_constant, i64 8, i1 false) #1

@@ -11,22 +11,22 @@ define void @test_string_memmove(i8 addrspace(200)* %dst, i8 addrspace(200)* %sr
   ; Note: has must_preserve_cheri_tags, but this memmove can still be inlined since it's aligned
 ; CHECK-LABEL: test_string_memmove:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    cmove ca7, ca1
-; CHECK-NEXT:    cmove ca1, ca0
-; CHECK-NEXT:    clc ca0, 0(ca7)
-; CHECK-NEXT:    clc ca2, 8(ca7)
-; CHECK-NEXT:    clc ca3, 16(ca7)
-; CHECK-NEXT:    clc ca4, 24(ca7)
-; CHECK-NEXT:    clc ca5, 32(ca7)
-; CHECK-NEXT:    clw a6, 40(ca7)
-; CHECK-NEXT:    clb a7, 44(ca7)
-; CHECK-NEXT:    csb a7, 44(ca1)
-; CHECK-NEXT:    csw a6, 40(ca1)
-; CHECK-NEXT:    csc ca5, 32(ca1)
-; CHECK-NEXT:    csc ca4, 24(ca1)
-; CHECK-NEXT:    csc ca3, 16(ca1)
-; CHECK-NEXT:    csc ca2, 8(ca1)
-; CHECK-NEXT:    csc ca0, 0(ca1)
+; CHECK-NEXT:    cmove a7, a1
+; CHECK-NEXT:    cmove a1, a0
+; CHECK-NEXT:    clc a0, 0(a7)
+; CHECK-NEXT:    clc a2, 8(a7)
+; CHECK-NEXT:    clc a3, 16(a7)
+; CHECK-NEXT:    clc a4, 24(a7)
+; CHECK-NEXT:    clc a5, 32(a7)
+; CHECK-NEXT:    clw a6, 40(a7)
+; CHECK-NEXT:    clb a7, 44(a7)
+; CHECK-NEXT:    csb a7, 44(a1)
+; CHECK-NEXT:    csw a6, 40(a1)
+; CHECK-NEXT:    csc a5, 32(a1)
+; CHECK-NEXT:    csc a4, 24(a1)
+; CHECK-NEXT:    csc a3, 16(a1)
+; CHECK-NEXT:    csc a2, 8(a1)
+; CHECK-NEXT:    csc a0, 0(a1)
 ; CHECK-NEXT:    cret
   call void @llvm.memmove.p200i8.p200i8.i64(i8 addrspace(200)* align 16 %dst, i8 addrspace(200)* align 16 %src, i64 45, i1 false) must_preserve_cheri_tags
   ret void
@@ -36,25 +36,25 @@ define void @test_string_memcpy(i8 addrspace(200)* %dst, i8 addrspace(200)* %src
   ; Note: has must_preserve_cheri_tags, but this memcpy can still be inlined since it's aligned
 ; CHECK-LABEL: test_string_memcpy:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    cincoffset csp, csp, -16
-; CHECK-NEXT:    csc ca1, 8(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    cmove ca1, ca0
-; CHECK-NEXT:    clc ca0, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    clb a2, 44(ca0)
-; CHECK-NEXT:    csb a2, 44(ca1)
-; CHECK-NEXT:    clw a2, 40(ca0)
-; CHECK-NEXT:    csw a2, 40(ca1)
-; CHECK-NEXT:    clc ca2, 32(ca0)
-; CHECK-NEXT:    csc ca2, 32(ca1)
-; CHECK-NEXT:    clc ca2, 24(ca0)
-; CHECK-NEXT:    csc ca2, 24(ca1)
-; CHECK-NEXT:    clc ca2, 16(ca0)
-; CHECK-NEXT:    csc ca2, 16(ca1)
-; CHECK-NEXT:    clc ca2, 8(ca0)
-; CHECK-NEXT:    csc ca2, 8(ca1)
-; CHECK-NEXT:    clc ca0, 0(ca0)
-; CHECK-NEXT:    csc ca0, 0(ca1)
-; CHECK-NEXT:    cincoffset csp, csp, 16
+; CHECK-NEXT:    cincoffset sp, sp, -16
+; CHECK-NEXT:    csc a1, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    cmove a1, a0
+; CHECK-NEXT:    clc a0, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    clb a2, 44(a0)
+; CHECK-NEXT:    csb a2, 44(a1)
+; CHECK-NEXT:    clw a2, 40(a0)
+; CHECK-NEXT:    csw a2, 40(a1)
+; CHECK-NEXT:    clc a2, 32(a0)
+; CHECK-NEXT:    csc a2, 32(a1)
+; CHECK-NEXT:    clc a2, 24(a0)
+; CHECK-NEXT:    csc a2, 24(a1)
+; CHECK-NEXT:    clc a2, 16(a0)
+; CHECK-NEXT:    csc a2, 16(a1)
+; CHECK-NEXT:    clc a2, 8(a0)
+; CHECK-NEXT:    csc a2, 8(a1)
+; CHECK-NEXT:    clc a0, 0(a0)
+; CHECK-NEXT:    csc a0, 0(a1)
+; CHECK-NEXT:    cincoffset sp, sp, 16
 ; CHECK-NEXT:    cret
   call void @llvm.memcpy.p200i8.p200i8.i64(i8 addrspace(200)* align 16 %dst, i8 addrspace(200)* align 16 %src, i64 45, i1 false) must_preserve_cheri_tags
   ret void

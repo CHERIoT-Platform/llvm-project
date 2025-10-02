@@ -11,26 +11,26 @@ declare i8 addrspace(200)* @llvm.returnaddress(i32)
 define i8 addrspace(200)* @test_frameaddress_0() nounwind {
 ; RV32IXCHERI-LABEL: test_frameaddress_0:
 ; RV32IXCHERI:       # %bb.0:
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, -16
-; RV32IXCHERI-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    csc cs0, 0(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    cincoffset cs0, csp, 16
-; RV32IXCHERI-NEXT:    cmove ca0, cs0
-; RV32IXCHERI-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    clc cs0, 0(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, 16
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, -16
+; RV32IXCHERI-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    csc s0, 0(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    cincoffset s0, sp, 16
+; RV32IXCHERI-NEXT:    cmove a0, s0
+; RV32IXCHERI-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    clc s0, 0(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, 16
 ; RV32IXCHERI-NEXT:    cret
 ;
 ; RV64IXCHERI-LABEL: test_frameaddress_0:
 ; RV64IXCHERI:       # %bb.0:
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, -32
-; RV64IXCHERI-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    csc cs0, 0(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    cincoffset cs0, csp, 32
-; RV64IXCHERI-NEXT:    cmove ca0, cs0
-; RV64IXCHERI-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    clc cs0, 0(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, 32
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, -32
+; RV64IXCHERI-NEXT:    csc ra, 16(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    csc s0, 0(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    cincoffset s0, sp, 32
+; RV64IXCHERI-NEXT:    cmove a0, s0
+; RV64IXCHERI-NEXT:    clc ra, 16(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    clc s0, 0(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, 32
 ; RV64IXCHERI-NEXT:    cret
   %1 = call i8 addrspace(200)* @llvm.frameaddress(i32 0)
   ret i8 addrspace(200)* %1
@@ -39,32 +39,32 @@ define i8 addrspace(200)* @test_frameaddress_0() nounwind {
 define i8 addrspace(200)* @test_frameaddress_0_alloca() nounwind {
 ; RV32IXCHERI-LABEL: test_frameaddress_0_alloca:
 ; RV32IXCHERI:       # %bb.0:
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, -128
-; RV32IXCHERI-NEXT:    csc cra, 120(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    csc cs0, 112(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    cincoffset cs0, csp, 128
-; RV32IXCHERI-NEXT:    cincoffset ca0, cs0, -120
-; RV32IXCHERI-NEXT:    csetbounds ca0, ca0, 104
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, -128
+; RV32IXCHERI-NEXT:    csc ra, 120(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    csc s0, 112(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    cincoffset s0, sp, 128
+; RV32IXCHERI-NEXT:    cincoffset a0, s0, -120
+; RV32IXCHERI-NEXT:    csetbounds a0, a0, 104
 ; RV32IXCHERI-NEXT:    ccall notdead
-; RV32IXCHERI-NEXT:    cmove ca0, cs0
-; RV32IXCHERI-NEXT:    clc cra, 120(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    clc cs0, 112(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, 128
+; RV32IXCHERI-NEXT:    cmove a0, s0
+; RV32IXCHERI-NEXT:    clc ra, 120(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    clc s0, 112(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, 128
 ; RV32IXCHERI-NEXT:    cret
 ;
 ; RV64IXCHERI-LABEL: test_frameaddress_0_alloca:
 ; RV64IXCHERI:       # %bb.0:
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, -144
-; RV64IXCHERI-NEXT:    csc cra, 128(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    csc cs0, 112(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    cincoffset cs0, csp, 144
-; RV64IXCHERI-NEXT:    cincoffset ca0, cs0, -132
-; RV64IXCHERI-NEXT:    csetbounds ca0, ca0, 100
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, -144
+; RV64IXCHERI-NEXT:    csc ra, 128(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    csc s0, 112(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    cincoffset s0, sp, 144
+; RV64IXCHERI-NEXT:    cincoffset a0, s0, -132
+; RV64IXCHERI-NEXT:    csetbounds a0, a0, 100
 ; RV64IXCHERI-NEXT:    ccall notdead
-; RV64IXCHERI-NEXT:    cmove ca0, cs0
-; RV64IXCHERI-NEXT:    clc cra, 128(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    clc cs0, 112(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, 144
+; RV64IXCHERI-NEXT:    cmove a0, s0
+; RV64IXCHERI-NEXT:    clc ra, 128(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    clc s0, 112(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, 144
 ; RV64IXCHERI-NEXT:    cret
   %1 = alloca [100 x i8], addrspace(200)
   %2 = bitcast [100 x i8] addrspace(200)* %1 to i8 addrspace(200)*
@@ -76,28 +76,28 @@ define i8 addrspace(200)* @test_frameaddress_0_alloca() nounwind {
 define i8 addrspace(200)* @test_frameaddress_2() nounwind {
 ; RV32IXCHERI-LABEL: test_frameaddress_2:
 ; RV32IXCHERI:       # %bb.0:
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, -16
-; RV32IXCHERI-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    csc cs0, 0(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    cincoffset cs0, csp, 16
-; RV32IXCHERI-NEXT:    clc ca0, -8(cs0)
-; RV32IXCHERI-NEXT:    clc ca0, -8(ca0)
-; RV32IXCHERI-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    clc cs0, 0(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, 16
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, -16
+; RV32IXCHERI-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    csc s0, 0(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    cincoffset s0, sp, 16
+; RV32IXCHERI-NEXT:    clc a0, -8(s0)
+; RV32IXCHERI-NEXT:    clc a0, -8(a0)
+; RV32IXCHERI-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    clc s0, 0(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, 16
 ; RV32IXCHERI-NEXT:    cret
 ;
 ; RV64IXCHERI-LABEL: test_frameaddress_2:
 ; RV64IXCHERI:       # %bb.0:
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, -32
-; RV64IXCHERI-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    csc cs0, 0(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    cincoffset cs0, csp, 32
-; RV64IXCHERI-NEXT:    clc ca0, -16(cs0)
-; RV64IXCHERI-NEXT:    clc ca0, -16(ca0)
-; RV64IXCHERI-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    clc cs0, 0(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, 32
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, -32
+; RV64IXCHERI-NEXT:    csc ra, 16(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    csc s0, 0(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    cincoffset s0, sp, 32
+; RV64IXCHERI-NEXT:    clc a0, -16(s0)
+; RV64IXCHERI-NEXT:    clc a0, -16(a0)
+; RV64IXCHERI-NEXT:    clc ra, 16(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    clc s0, 0(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, 32
 ; RV64IXCHERI-NEXT:    cret
   %1 = call i8 addrspace(200)* @llvm.frameaddress(i32 2)
   ret i8 addrspace(200)* %1
@@ -106,36 +106,36 @@ define i8 addrspace(200)* @test_frameaddress_2() nounwind {
 define i8 addrspace(200)* @test_frameaddress_3_alloca() nounwind {
 ; RV32IXCHERI-LABEL: test_frameaddress_3_alloca:
 ; RV32IXCHERI:       # %bb.0:
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, -128
-; RV32IXCHERI-NEXT:    csc cra, 120(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    csc cs0, 112(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    cincoffset cs0, csp, 128
-; RV32IXCHERI-NEXT:    cincoffset ca0, cs0, -120
-; RV32IXCHERI-NEXT:    csetbounds ca0, ca0, 104
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, -128
+; RV32IXCHERI-NEXT:    csc ra, 120(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    csc s0, 112(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    cincoffset s0, sp, 128
+; RV32IXCHERI-NEXT:    cincoffset a0, s0, -120
+; RV32IXCHERI-NEXT:    csetbounds a0, a0, 104
 ; RV32IXCHERI-NEXT:    ccall notdead
-; RV32IXCHERI-NEXT:    clc ca0, -8(cs0)
-; RV32IXCHERI-NEXT:    clc ca0, -8(ca0)
-; RV32IXCHERI-NEXT:    clc ca0, -8(ca0)
-; RV32IXCHERI-NEXT:    clc cra, 120(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    clc cs0, 112(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, 128
+; RV32IXCHERI-NEXT:    clc a0, -8(s0)
+; RV32IXCHERI-NEXT:    clc a0, -8(a0)
+; RV32IXCHERI-NEXT:    clc a0, -8(a0)
+; RV32IXCHERI-NEXT:    clc ra, 120(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    clc s0, 112(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, 128
 ; RV32IXCHERI-NEXT:    cret
 ;
 ; RV64IXCHERI-LABEL: test_frameaddress_3_alloca:
 ; RV64IXCHERI:       # %bb.0:
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, -144
-; RV64IXCHERI-NEXT:    csc cra, 128(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    csc cs0, 112(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    cincoffset cs0, csp, 144
-; RV64IXCHERI-NEXT:    cincoffset ca0, cs0, -132
-; RV64IXCHERI-NEXT:    csetbounds ca0, ca0, 100
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, -144
+; RV64IXCHERI-NEXT:    csc ra, 128(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    csc s0, 112(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    cincoffset s0, sp, 144
+; RV64IXCHERI-NEXT:    cincoffset a0, s0, -132
+; RV64IXCHERI-NEXT:    csetbounds a0, a0, 100
 ; RV64IXCHERI-NEXT:    ccall notdead
-; RV64IXCHERI-NEXT:    clc ca0, -16(cs0)
-; RV64IXCHERI-NEXT:    clc ca0, -16(ca0)
-; RV64IXCHERI-NEXT:    clc ca0, -16(ca0)
-; RV64IXCHERI-NEXT:    clc cra, 128(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    clc cs0, 112(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, 144
+; RV64IXCHERI-NEXT:    clc a0, -16(s0)
+; RV64IXCHERI-NEXT:    clc a0, -16(a0)
+; RV64IXCHERI-NEXT:    clc a0, -16(a0)
+; RV64IXCHERI-NEXT:    clc ra, 128(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    clc s0, 112(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, 144
 ; RV64IXCHERI-NEXT:    cret
   %1 = alloca [100 x i8], addrspace(200)
   %2 = bitcast [100 x i8] addrspace(200)* %1 to i8 addrspace(200)*
@@ -147,12 +147,12 @@ define i8 addrspace(200)* @test_frameaddress_3_alloca() nounwind {
 define i8 addrspace(200)* @test_returnaddress_0() nounwind {
 ; RV32IXCHERI-LABEL: test_returnaddress_0:
 ; RV32IXCHERI:       # %bb.0:
-; RV32IXCHERI-NEXT:    cmove ca0, cra
+; RV32IXCHERI-NEXT:    cmove a0, ra
 ; RV32IXCHERI-NEXT:    cret
 ;
 ; RV64IXCHERI-LABEL: test_returnaddress_0:
 ; RV64IXCHERI:       # %bb.0:
-; RV64IXCHERI-NEXT:    cmove ca0, cra
+; RV64IXCHERI-NEXT:    cmove a0, ra
 ; RV64IXCHERI-NEXT:    cret
   %1 = call i8 addrspace(200)* @llvm.returnaddress(i32 0)
   ret i8 addrspace(200)* %1
@@ -161,32 +161,32 @@ define i8 addrspace(200)* @test_returnaddress_0() nounwind {
 define i8 addrspace(200)* @test_returnaddress_0_alloca() nounwind {
 ; RV32IXCHERI-LABEL: test_returnaddress_0_alloca:
 ; RV32IXCHERI:       # %bb.0:
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, -128
-; RV32IXCHERI-NEXT:    csc cra, 120(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    csc cs0, 112(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    cmove cs0, cra
-; RV32IXCHERI-NEXT:    cincoffset ca0, csp, 8
-; RV32IXCHERI-NEXT:    csetbounds ca0, ca0, 104
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, -128
+; RV32IXCHERI-NEXT:    csc ra, 120(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    csc s0, 112(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    cmove s0, ra
+; RV32IXCHERI-NEXT:    cincoffset a0, sp, 8
+; RV32IXCHERI-NEXT:    csetbounds a0, a0, 104
 ; RV32IXCHERI-NEXT:    ccall notdead
-; RV32IXCHERI-NEXT:    cmove ca0, cs0
-; RV32IXCHERI-NEXT:    clc cra, 120(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    clc cs0, 112(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, 128
+; RV32IXCHERI-NEXT:    cmove a0, s0
+; RV32IXCHERI-NEXT:    clc ra, 120(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    clc s0, 112(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, 128
 ; RV32IXCHERI-NEXT:    cret
 ;
 ; RV64IXCHERI-LABEL: test_returnaddress_0_alloca:
 ; RV64IXCHERI:       # %bb.0:
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, -144
-; RV64IXCHERI-NEXT:    csc cra, 128(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    csc cs0, 112(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    cmove cs0, cra
-; RV64IXCHERI-NEXT:    cincoffset ca0, csp, 12
-; RV64IXCHERI-NEXT:    csetbounds ca0, ca0, 100
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, -144
+; RV64IXCHERI-NEXT:    csc ra, 128(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    csc s0, 112(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    cmove s0, ra
+; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    csetbounds a0, a0, 100
 ; RV64IXCHERI-NEXT:    ccall notdead
-; RV64IXCHERI-NEXT:    cmove ca0, cs0
-; RV64IXCHERI-NEXT:    clc cra, 128(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    clc cs0, 112(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, 144
+; RV64IXCHERI-NEXT:    cmove a0, s0
+; RV64IXCHERI-NEXT:    clc ra, 128(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    clc s0, 112(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, 144
 ; RV64IXCHERI-NEXT:    cret
   %1 = alloca [100 x i8], addrspace(200)
   %2 = bitcast [100 x i8] addrspace(200)* %1 to i8 addrspace(200)*
@@ -198,30 +198,30 @@ define i8 addrspace(200)* @test_returnaddress_0_alloca() nounwind {
 define i8 addrspace(200)* @test_returnaddress_2() nounwind {
 ; RV32IXCHERI-LABEL: test_returnaddress_2:
 ; RV32IXCHERI:       # %bb.0:
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, -16
-; RV32IXCHERI-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    csc cs0, 0(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    cincoffset cs0, csp, 16
-; RV32IXCHERI-NEXT:    clc ca0, -8(cs0)
-; RV32IXCHERI-NEXT:    clc ca0, -8(ca0)
-; RV32IXCHERI-NEXT:    clc ca0, -4(ca0)
-; RV32IXCHERI-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    clc cs0, 0(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, 16
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, -16
+; RV32IXCHERI-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    csc s0, 0(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    cincoffset s0, sp, 16
+; RV32IXCHERI-NEXT:    clc a0, -8(s0)
+; RV32IXCHERI-NEXT:    clc a0, -8(a0)
+; RV32IXCHERI-NEXT:    clc a0, -4(a0)
+; RV32IXCHERI-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    clc s0, 0(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, 16
 ; RV32IXCHERI-NEXT:    cret
 ;
 ; RV64IXCHERI-LABEL: test_returnaddress_2:
 ; RV64IXCHERI:       # %bb.0:
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, -32
-; RV64IXCHERI-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    csc cs0, 0(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    cincoffset cs0, csp, 32
-; RV64IXCHERI-NEXT:    clc ca0, -16(cs0)
-; RV64IXCHERI-NEXT:    clc ca0, -16(ca0)
-; RV64IXCHERI-NEXT:    clc ca0, -8(ca0)
-; RV64IXCHERI-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    clc cs0, 0(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, 32
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, -32
+; RV64IXCHERI-NEXT:    csc ra, 16(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    csc s0, 0(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    cincoffset s0, sp, 32
+; RV64IXCHERI-NEXT:    clc a0, -16(s0)
+; RV64IXCHERI-NEXT:    clc a0, -16(a0)
+; RV64IXCHERI-NEXT:    clc a0, -8(a0)
+; RV64IXCHERI-NEXT:    clc ra, 16(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    clc s0, 0(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, 32
 ; RV64IXCHERI-NEXT:    cret
   %1 = call i8 addrspace(200)* @llvm.returnaddress(i32 2)
   ret i8 addrspace(200)* %1
@@ -230,38 +230,38 @@ define i8 addrspace(200)* @test_returnaddress_2() nounwind {
 define i8 addrspace(200)* @test_returnaddress_3_alloca() nounwind {
 ; RV32IXCHERI-LABEL: test_returnaddress_3_alloca:
 ; RV32IXCHERI:       # %bb.0:
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, -128
-; RV32IXCHERI-NEXT:    csc cra, 120(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    csc cs0, 112(csp) # 8-byte Folded Spill
-; RV32IXCHERI-NEXT:    cincoffset cs0, csp, 128
-; RV32IXCHERI-NEXT:    cincoffset ca0, cs0, -120
-; RV32IXCHERI-NEXT:    csetbounds ca0, ca0, 104
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, -128
+; RV32IXCHERI-NEXT:    csc ra, 120(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    csc s0, 112(sp) # 8-byte Folded Spill
+; RV32IXCHERI-NEXT:    cincoffset s0, sp, 128
+; RV32IXCHERI-NEXT:    cincoffset a0, s0, -120
+; RV32IXCHERI-NEXT:    csetbounds a0, a0, 104
 ; RV32IXCHERI-NEXT:    ccall notdead
-; RV32IXCHERI-NEXT:    clc ca0, -8(cs0)
-; RV32IXCHERI-NEXT:    clc ca0, -8(ca0)
-; RV32IXCHERI-NEXT:    clc ca0, -8(ca0)
-; RV32IXCHERI-NEXT:    clc ca0, -4(ca0)
-; RV32IXCHERI-NEXT:    clc cra, 120(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    clc cs0, 112(csp) # 8-byte Folded Reload
-; RV32IXCHERI-NEXT:    cincoffset csp, csp, 128
+; RV32IXCHERI-NEXT:    clc a0, -8(s0)
+; RV32IXCHERI-NEXT:    clc a0, -8(a0)
+; RV32IXCHERI-NEXT:    clc a0, -8(a0)
+; RV32IXCHERI-NEXT:    clc a0, -4(a0)
+; RV32IXCHERI-NEXT:    clc ra, 120(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    clc s0, 112(sp) # 8-byte Folded Reload
+; RV32IXCHERI-NEXT:    cincoffset sp, sp, 128
 ; RV32IXCHERI-NEXT:    cret
 ;
 ; RV64IXCHERI-LABEL: test_returnaddress_3_alloca:
 ; RV64IXCHERI:       # %bb.0:
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, -144
-; RV64IXCHERI-NEXT:    csc cra, 128(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    csc cs0, 112(csp) # 16-byte Folded Spill
-; RV64IXCHERI-NEXT:    cincoffset cs0, csp, 144
-; RV64IXCHERI-NEXT:    cincoffset ca0, cs0, -132
-; RV64IXCHERI-NEXT:    csetbounds ca0, ca0, 100
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, -144
+; RV64IXCHERI-NEXT:    csc ra, 128(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    csc s0, 112(sp) # 16-byte Folded Spill
+; RV64IXCHERI-NEXT:    cincoffset s0, sp, 144
+; RV64IXCHERI-NEXT:    cincoffset a0, s0, -132
+; RV64IXCHERI-NEXT:    csetbounds a0, a0, 100
 ; RV64IXCHERI-NEXT:    ccall notdead
-; RV64IXCHERI-NEXT:    clc ca0, -16(cs0)
-; RV64IXCHERI-NEXT:    clc ca0, -16(ca0)
-; RV64IXCHERI-NEXT:    clc ca0, -16(ca0)
-; RV64IXCHERI-NEXT:    clc ca0, -8(ca0)
-; RV64IXCHERI-NEXT:    clc cra, 128(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    clc cs0, 112(csp) # 16-byte Folded Reload
-; RV64IXCHERI-NEXT:    cincoffset csp, csp, 144
+; RV64IXCHERI-NEXT:    clc a0, -16(s0)
+; RV64IXCHERI-NEXT:    clc a0, -16(a0)
+; RV64IXCHERI-NEXT:    clc a0, -16(a0)
+; RV64IXCHERI-NEXT:    clc a0, -8(a0)
+; RV64IXCHERI-NEXT:    clc ra, 128(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    clc s0, 112(sp) # 16-byte Folded Reload
+; RV64IXCHERI-NEXT:    cincoffset sp, sp, 144
 ; RV64IXCHERI-NEXT:    cret
   %1 = alloca [100 x i8], addrspace(200)
   %2 = bitcast [100 x i8] addrspace(200)* %1 to i8 addrspace(200)*

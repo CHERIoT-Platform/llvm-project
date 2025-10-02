@@ -24,10 +24,10 @@ target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G
 define i32 @first_i32_store_to_load_fwd(ptr addrspace(200) %arg) local_unnamed_addr addrspace(200) nounwind {
 ; ASM-LABEL: first_i32_store_to_load_fwd:
 ; ASM:       # %bb.0:
-; ASM-NEXT:    cincoffset csp, csp, -48
-; ASM-NEXT:    csc ca0, 0(csp)
-; ASM-NEXT:    clw a0, 0(csp)
-; ASM-NEXT:    cincoffset csp, csp, 48
+; ASM-NEXT:    cincoffset sp, sp, -48
+; ASM-NEXT:    csc a0, 0(sp)
+; ASM-NEXT:    clw a0, 0(sp)
+; ASM-NEXT:    cincoffset sp, sp, 48
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define i32 @first_i32_store_to_load_fwd
 ; CHECK-SAME: (ptr addrspace(200) [[ARG:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
@@ -46,10 +46,10 @@ define i32 @first_i32_store_to_load_fwd(ptr addrspace(200) %arg) local_unnamed_a
 define i32 @second_i32_store_to_load_fwd(ptr addrspace(200) %arg) local_unnamed_addr addrspace(200) nounwind {
 ; ASM-LABEL: second_i32_store_to_load_fwd:
 ; ASM:       # %bb.0:
-; ASM-NEXT:    cincoffset csp, csp, -48
-; ASM-NEXT:    csc ca0, 0(csp)
-; ASM-NEXT:    clw a0, 4(csp)
-; ASM-NEXT:    cincoffset csp, csp, 48
+; ASM-NEXT:    cincoffset sp, sp, -48
+; ASM-NEXT:    csc a0, 0(sp)
+; ASM-NEXT:    clw a0, 4(sp)
+; ASM-NEXT:    cincoffset sp, sp, 48
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define i32 @second_i32_store_to_load_fwd
 ; CHECK-SAME: (ptr addrspace(200) [[ARG:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
@@ -69,10 +69,10 @@ define i32 @second_i32_store_to_load_fwd(ptr addrspace(200) %arg) local_unnamed_
 define i32 @third_i32_store_to_load_fwd(ptr addrspace(200) %arg) local_unnamed_addr addrspace(200) nounwind {
 ; ASM-LABEL: third_i32_store_to_load_fwd:
 ; ASM:       # %bb.0:
-; ASM-NEXT:    cincoffset csp, csp, -48
-; ASM-NEXT:    csc ca0, 0(csp)
+; ASM-NEXT:    cincoffset sp, sp, -48
+; ASM-NEXT:    csc a0, 0(sp)
 ; ASM-NEXT:    # implicit-def: $x10
-; ASM-NEXT:    cincoffset csp, csp, 48
+; ASM-NEXT:    cincoffset sp, sp, 48
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define i32 @third_i32_store_to_load_fwd
 ; CHECK-SAME: (ptr addrspace(200) [[ARG:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
@@ -91,10 +91,10 @@ define i32 @third_i32_store_to_load_fwd(ptr addrspace(200) %arg) local_unnamed_a
 define i32 @fourth_i32_store_to_load_fwd(ptr addrspace(200) %arg) local_unnamed_addr addrspace(200) nounwind {
 ; ASM-LABEL: fourth_i32_store_to_load_fwd:
 ; ASM:       # %bb.0:
-; ASM-NEXT:    cincoffset csp, csp, -48
-; ASM-NEXT:    csc ca0, 0(csp)
+; ASM-NEXT:    cincoffset sp, sp, -48
+; ASM-NEXT:    csc a0, 0(sp)
 ; ASM-NEXT:    # implicit-def: $x10
-; ASM-NEXT:    cincoffset csp, csp, 48
+; ASM-NEXT:    cincoffset sp, sp, 48
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define i32 @fourth_i32_store_to_load_fwd
 ; CHECK-SAME: (ptr addrspace(200) [[ARG:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {

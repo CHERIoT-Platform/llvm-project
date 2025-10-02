@@ -4,7 +4,7 @@
 define i8 addrspace(200)* @test1(i8 addrspace(200)* %cap, i32 %bounds) nounwind {
 ; CHECK-LABEL: test1:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    ct.csetbounds ca0, ca0, 3
+; CHECK-NEXT:    ct.csetbounds a0, a0, 3
 ; CHECK-NEXT:    ct.cret
   %newcap = call i8 addrspace(200)* @llvm.cheri.cap.bounds.set.exact.i32(i8 addrspace(200)* %cap, i32 3)
   ret i8 addrspace(200)* %newcap
@@ -13,7 +13,7 @@ define i8 addrspace(200)* @test1(i8 addrspace(200)* %cap, i32 %bounds) nounwind 
 define i8 addrspace(200)* @test2(i8 addrspace(200)* %cap, i32 %bounds) nounwind {
 ; CHECK-LABEL: test2:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    ct.csetbounds ca0, ca0, 511
+; CHECK-NEXT:    ct.csetbounds a0, a0, 511
 ; CHECK-NEXT:    ct.cret
   %newcap = call i8 addrspace(200)* @llvm.cheri.cap.bounds.set.exact.i32(i8 addrspace(200)* %cap, i32 511)
   ret i8 addrspace(200)* %newcap
@@ -23,7 +23,7 @@ define i8 addrspace(200)* @test3(i8 addrspace(200)* %cap, i32 %bounds) nounwind 
 ; CHECK-LABEL: test3:
 ; CHECK:       # %bb.0:
 ; CHECK-NEXT:    li a1, 512
-; CHECK-NEXT:    ct.csetboundsexact ca0, ca0, a1
+; CHECK-NEXT:    ct.csetboundsexact a0, a0, a1
 ; CHECK-NEXT:    ct.cret
   %newcap = call i8 addrspace(200)* @llvm.cheri.cap.bounds.set.exact.i32(i8 addrspace(200)* %cap, i32 512)
   ret i8 addrspace(200)* %newcap

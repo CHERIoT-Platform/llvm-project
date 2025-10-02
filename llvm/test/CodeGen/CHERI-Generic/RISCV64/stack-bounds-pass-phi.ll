@@ -13,40 +13,40 @@ declare void @foo(ptr addrspace(200)) addrspace(200)
 define void @test_phi(i1 %cond) addrspace(200) nounwind {
 ; ASM-LABEL: test_phi:
 ; ASM:       # %bb.0: # %entry
-; ASM-NEXT:    cincoffset csp, csp, -48
-; ASM-NEXT:    csc cra, 32(csp) # 16-byte Folded Spill
-; ASM-NEXT:    csc cs0, 16(csp) # 16-byte Folded Spill
+; ASM-NEXT:    cincoffset sp, sp, -48
+; ASM-NEXT:    csc ra, 32(sp) # 16-byte Folded Spill
+; ASM-NEXT:    csc s0, 16(sp) # 16-byte Folded Spill
 ; ASM-NEXT:    andi a0, a0, 1
 ; ASM-NEXT:    beqz a0, .LBB0_2
 ; ASM-NEXT:  # %bb.1: # %block1
-; ASM-NEXT:    cmove ca0, cnull
+; ASM-NEXT:    cmove a0, zero
 ; ASM-NEXT:    li a1, 1
-; ASM-NEXT:    csw a1, 12(csp)
+; ASM-NEXT:    csw a1, 12(sp)
 ; ASM-NEXT:    li a1, 2
-; ASM-NEXT:    csw a1, 8(csp)
+; ASM-NEXT:    csw a1, 8(sp)
 ; ASM-NEXT:    li a1, 3
-; ASM-NEXT:    csw a1, 4(csp)
-; ASM-NEXT:    cincoffset ca1, csp, 8
-; ASM-NEXT:    csetbounds cs0, ca1, 4
+; ASM-NEXT:    csw a1, 4(sp)
+; ASM-NEXT:    cincoffset a1, sp, 8
+; ASM-NEXT:    csetbounds s0, a1, 4
 ; ASM-NEXT:    j .LBB0_3
 ; ASM-NEXT:  .LBB0_2: # %block2
 ; ASM-NEXT:    li a0, 4
 ; ASM-NEXT:    li a1, 5
-; ASM-NEXT:    csw a0, 12(csp)
+; ASM-NEXT:    csw a0, 12(sp)
 ; ASM-NEXT:    li a0, 6
-; ASM-NEXT:    csw a1, 8(csp)
-; ASM-NEXT:    cincoffset ca1, csp, 12
-; ASM-NEXT:    csw a0, 4(csp)
-; ASM-NEXT:    cincoffset ca2, csp, 4
-; ASM-NEXT:    csetbounds ca0, ca1, 4
-; ASM-NEXT:    csetbounds cs0, ca2, 4
+; ASM-NEXT:    csw a1, 8(sp)
+; ASM-NEXT:    cincoffset a1, sp, 12
+; ASM-NEXT:    csw a0, 4(sp)
+; ASM-NEXT:    cincoffset a2, sp, 4
+; ASM-NEXT:    csetbounds a0, a1, 4
+; ASM-NEXT:    csetbounds s0, a2, 4
 ; ASM-NEXT:  .LBB0_3: # %phi_block
 ; ASM-NEXT:    ccall foo
-; ASM-NEXT:    cmove ca0, cs0
+; ASM-NEXT:    cmove a0, s0
 ; ASM-NEXT:    ccall foo
-; ASM-NEXT:    clc cra, 32(csp) # 16-byte Folded Reload
-; ASM-NEXT:    clc cs0, 16(csp) # 16-byte Folded Reload
-; ASM-NEXT:    cincoffset csp, csp, 48
+; ASM-NEXT:    clc ra, 32(sp) # 16-byte Folded Reload
+; ASM-NEXT:    clc s0, 16(sp) # 16-byte Folded Reload
+; ASM-NEXT:    cincoffset sp, sp, 48
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define void @test_phi
 ; CHECK-SAME: (i1 [[COND:%.*]]) addrspace(200) #[[ATTR1:[0-9]+]] {
@@ -104,24 +104,24 @@ phi_block:
 define void @test_only_created_in_predecessor_block(i1 %cond) addrspace(200) nounwind {
 ; ASM-LABEL: test_only_created_in_predecessor_block:
 ; ASM:       # %bb.0: # %entry
-; ASM-NEXT:    cincoffset csp, csp, -32
-; ASM-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
+; ASM-NEXT:    cincoffset sp, sp, -32
+; ASM-NEXT:    csc ra, 16(sp) # 16-byte Folded Spill
 ; ASM-NEXT:    andi a0, a0, 1
 ; ASM-NEXT:    beqz a0, .LBB1_2
 ; ASM-NEXT:  # %bb.1: # %block1
 ; ASM-NEXT:    li a0, 1
-; ASM-NEXT:    csw a0, 12(csp)
-; ASM-NEXT:    cincoffset ca0, csp, 12
+; ASM-NEXT:    csw a0, 12(sp)
+; ASM-NEXT:    cincoffset a0, sp, 12
 ; ASM-NEXT:    j .LBB1_3
 ; ASM-NEXT:  .LBB1_2: # %block2
 ; ASM-NEXT:    li a0, 5
-; ASM-NEXT:    csw a0, 8(csp)
-; ASM-NEXT:    cincoffset ca0, csp, 8
+; ASM-NEXT:    csw a0, 8(sp)
+; ASM-NEXT:    cincoffset a0, sp, 8
 ; ASM-NEXT:  .LBB1_3: # %phi_block
-; ASM-NEXT:    csetbounds ca0, ca0, 4
+; ASM-NEXT:    csetbounds a0, a0, 4
 ; ASM-NEXT:    ccall foo
-; ASM-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
-; ASM-NEXT:    cincoffset csp, csp, 32
+; ASM-NEXT:    clc ra, 16(sp) # 16-byte Folded Reload
+; ASM-NEXT:    cincoffset sp, sp, 32
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define void @test_only_created_in_predecessor_block
 ; CHECK-SAME: (i1 [[COND:%.*]]) addrspace(200) #[[ATTR1]] {

@@ -21,10 +21,10 @@
 define dso_local noundef signext i32 @_Z8do_catchv() local_unnamed_addr addrspace(200) #0 personality ptr addrspace(200) @__gxx_personality_v0 {
 ; CHECK-LABEL: _Z8do_catchv:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    cincoffset csp, csp, -32
+; CHECK-NEXT:    cincoffset sp, sp, -32
 ; CHECK-NEXT:    .cfi_def_cfa_offset 32
-; CHECK-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
-; CHECK-NEXT:    csc cs0, 0(csp) # 16-byte Folded Spill
+; CHECK-NEXT:    csc ra, 16(sp) # 16-byte Folded Spill
+; CHECK-NEXT:    csc s0, 0(sp) # 16-byte Folded Spill
 ; CHECK-NEXT:    .cfi_offset ra, -16
 ; CHECK-NEXT:    .cfi_offset s0, -32
 ; CHECK-NEXT:    .cfi_remember_state
@@ -32,11 +32,11 @@ define dso_local noundef signext i32 @_Z8do_catchv() local_unnamed_addr addrspac
 ; CHECK-NEXT:    ccall _Z3foov
 ; CHECK-NEXT:  .Ltmp1:
 ; CHECK-NEXT:  .LBB0_1: # %return
-; CHECK-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
-; CHECK-NEXT:    clc cs0, 0(csp) # 16-byte Folded Reload
+; CHECK-NEXT:    clc ra, 16(sp) # 16-byte Folded Reload
+; CHECK-NEXT:    clc s0, 0(sp) # 16-byte Folded Reload
 ; CHECK-NEXT:    .cfi_restore ra
 ; CHECK-NEXT:    .cfi_restore s0
-; CHECK-NEXT:    cincoffset csp, csp, 32
+; CHECK-NEXT:    cincoffset sp, sp, 32
 ; CHECK-NEXT:    .cfi_def_cfa_offset 0
 ; CHECK-NEXT:    cret
 ; CHECK-NEXT:  .LBB0_2: # %lpad

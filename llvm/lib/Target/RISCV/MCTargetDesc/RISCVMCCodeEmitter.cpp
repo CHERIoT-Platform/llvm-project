@@ -186,7 +186,7 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
     IsCap = false;
   } else if (MI.getOpcode() == RISCV::PseudoCTAIL) {
     Func = MI.getOperand(0);
-    Ra = RISCV::C6;
+    Ra = RISCV::X6_Y;
     IsCap = true;
   } else if (MI.getOpcode() == RISCV::PseudoCCALLReg) {
     Func = MI.getOperand(1);
@@ -194,7 +194,7 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
     IsCap = true;
   } else if (MI.getOpcode() == RISCV::PseudoCCALL) {
     Func = MI.getOperand(0);
-    Ra = RISCV::C1;
+    Ra = RISCV::X1_Y;
     IsCap = true;
   } else if (MI.getOpcode() == RISCV::PseudoCJump) {
     Func = MI.getOperand(1);
@@ -220,7 +220,7 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
       MI.getOpcode() == RISCV::PseudoCJump)
     // Emit [C]JALR [XC]0, Ra, 0
     TmpInst = MCInstBuilder(IsCap ? RISCV::CJALR : RISCV::JALR)
-                  .addReg(IsCap ? RISCV::C0 : RISCV::X0)
+                  .addReg(IsCap ? RISCV::X0_Y : RISCV::X0)
                   .addReg(Ra)
                   .addImm(0);
   else
@@ -292,7 +292,7 @@ void RISCVMCCodeEmitter::expandCIncOffsetTPRel(
   MCOperand DestReg = MI.getOperand(0);
   MCOperand TPReg = MI.getOperand(1);
   MCOperand SrcReg = MI.getOperand(2);
-  assert(TPReg.isReg() && TPReg.getReg() == RISCV::C4 &&
+  assert(TPReg.isReg() && TPReg.getReg() == RISCV::X4_Y &&
          "Expected thread pointer as first input to CTP-relative cincoffset");
 
   MCOperand SrcSymbol = MI.getOperand(3);

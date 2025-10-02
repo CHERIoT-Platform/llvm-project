@@ -14,23 +14,23 @@ define internal i32 @foo(i32 addrspace(200)* %a, i64 addrspace(200)* %b) nounwin
 ; HYBRID:       # %bb.0: # %entry
 ; HYBRID-NEXT:    addi sp, sp, -32
 ; HYBRID-NEXT:    sd ra, 24(sp) # 8-byte Folded Spill
-; HYBRID-NEXT:    cincoffset ca0, ca0, 4
-; HYBRID-NEXT:    sc ca0, 0(sp) # 16-byte Folded Spill
+; HYBRID-NEXT:    cincoffset a0, a0, 4
+; HYBRID-NEXT:    sc a0, 0(sp) # 16-byte Folded Spill
 ; HYBRID-NEXT:  .LBB0_1: # %loop
 ; HYBRID-NEXT:    # =>This Inner Loop Header: Depth=1
-; HYBRID-NEXT:    lc ca0, 0(sp) # 16-byte Folded Reload
+; HYBRID-NEXT:    lc a0, 0(sp) # 16-byte Folded Reload
 ; HYBRID-NEXT:    call bar
 ; HYBRID-NEXT:    j .LBB0_1
 ;
 ; PURECAP-LABEL: foo:
 ; PURECAP:       # %bb.0: # %entry
-; PURECAP-NEXT:    cincoffset csp, csp, -32
-; PURECAP-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
-; PURECAP-NEXT:    csc cs0, 0(csp) # 16-byte Folded Spill
-; PURECAP-NEXT:    cincoffset cs0, ca0, 4
+; PURECAP-NEXT:    cincoffset sp, sp, -32
+; PURECAP-NEXT:    csc ra, 16(sp) # 16-byte Folded Spill
+; PURECAP-NEXT:    csc s0, 0(sp) # 16-byte Folded Spill
+; PURECAP-NEXT:    cincoffset s0, a0, 4
 ; PURECAP-NEXT:  .LBB0_1: # %loop
 ; PURECAP-NEXT:    # =>This Inner Loop Header: Depth=1
-; PURECAP-NEXT:    cmove ca0, cs0
+; PURECAP-NEXT:    cmove a0, s0
 ; PURECAP-NEXT:    ccall bar
 ; PURECAP-NEXT:    j .LBB0_1
 entry:

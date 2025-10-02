@@ -152,7 +152,7 @@ ABI getTargetABI(StringRef ABIName, const Triple &TT) {
 // callee saved register to save the value. RV32E only has X8 and X9 as callee
 // saved registers and X8 will be used as fp. So we choose X9 as bp.
 MCRegister getBPReg(ABI TargetABI) {
-  return isCheriPureCapABI(TargetABI) ? RISCV::C9 : RISCV::X9;
+  return isCheriPureCapABI(TargetABI) ? RISCV::X9_Y : RISCV::X9;
 }
 
 // Returns the register holding shadow call stack pointer.

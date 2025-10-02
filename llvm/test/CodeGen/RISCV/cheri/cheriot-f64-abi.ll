@@ -360,6 +360,104 @@ start:
   ret double %c
 }
 
+define dso_local void @trunc_store(ptr addrspace(200) noundef writeonly captures(none) initializes((0, 4)) %a, double noundef %b) local_unnamed_addr addrspace(200) #0 {
+; CHECK-LABEL: trunc_store:
+; CHECK:       # %bb.0: # %entry
+; CHECK-NEXT:    ct.cincoffset csp, csp, -16
+; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc cs0, 0(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cmove cs0, ca0
+; CHECK-NEXT:    ct.cmove ca0, ca1
+; CHECK-NEXT:  .LBB19_1: # %entry
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___truncdfsf2)
+; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB19_1)(ct2)
+; CHECK-NEXT:    ct.cjalr ct2
+; CHECK-NEXT:    ct.csw a0, 0(cs0)
+; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc cs0, 0(csp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.cret
+entry:
+  %conv = fptrunc double %b to float
+  store float %conv, ptr addrspace(200) %a, align 4, !tbaa !6
+  ret void
+}
+
+define dso_local void @ext_store(ptr addrspace(200) noundef writeonly captures(none) initializes((0, 8)) %a, float noundef %b) local_unnamed_addr addrspace(200) #0 {
+; CHECK-LABEL: ext_store:
+; CHECK:       # %bb.0: # %entry
+; CHECK-NEXT:    ct.cincoffset csp, csp, -16
+; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc cs0, 0(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cmove cs0, ca0
+; CHECK-NEXT:    mv a0, a1
+; CHECK-NEXT:  .LBB20_1: # %entry
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___extendsfdf2)
+; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB20_1)(ct2)
+; CHECK-NEXT:    ct.cjalr ct2
+; CHECK-NEXT:    ct.csc ca0, 0(cs0)
+; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc cs0, 0(csp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.cret
+entry:
+  %conv = fpext float %b to double
+  store double %conv, ptr addrspace(200) %a, align 8, !tbaa !10
+  ret void
+}
+
+define dso_local void @load_ext_store(ptr addrspace(200) noundef writeonly captures(none) initializes((0, 8)) %a, ptr addrspace(200) noundef readonly captures(none) %b) local_unnamed_addr addrspace(200) #1 {
+; CHECK-LABEL: load_ext_store:
+; CHECK:       # %bb.0: # %entry
+; CHECK-NEXT:    ct.cincoffset csp, csp, -16
+; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc cs0, 0(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.clw a1, 0(ca1)
+; CHECK-NEXT:    ct.cmove cs0, ca0
+; CHECK-NEXT:    mv a0, a1
+; CHECK-NEXT:  .LBB21_1: # %entry
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___extendsfdf2)
+; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB21_1)(ct2)
+; CHECK-NEXT:    ct.cjalr ct2
+; CHECK-NEXT:    ct.csc ca0, 0(cs0)
+; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc cs0, 0(csp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.cret
+entry:
+  %0 = load float, ptr addrspace(200) %b, align 4, !tbaa !6
+  %conv = fpext float %0 to double
+  store double %conv, ptr addrspace(200) %a, align 8, !tbaa !10
+  ret void
+}
+
+define dso_local void @load_trunc_store(ptr addrspace(200) noundef readonly captures(none) %a, ptr addrspace(200) noundef writeonly captures(none) initializes((0, 4)) %b) local_unnamed_addr addrspace(200) #1 {
+; CHECK-LABEL: load_trunc_store:
+; CHECK:       # %bb.0: # %entry
+; CHECK-NEXT:    ct.cincoffset csp, csp, -16
+; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc cs0, 0(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.clc ca0, 0(ca0)
+; CHECK-NEXT:    ct.cmove cs0, ca1
+; CHECK-NEXT:  .LBB22_1: # %entry
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___truncdfsf2)
+; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB22_1)(ct2)
+; CHECK-NEXT:    ct.cjalr ct2
+; CHECK-NEXT:    ct.csw a0, 0(cs0)
+; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc cs0, 0(csp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.cret
+entry:
+  %0 = load double, ptr addrspace(200) %a, align 8, !tbaa !10
+  %conv = fptrunc double %0 to float
+  store float %conv, ptr addrspace(200) %b, align 4, !tbaa !6
+  ret void
+}
 
 attributes #0 = { mustprogress nofree norecurse nosync nounwind willreturn memory(none) "cheri-compartment"="qoi_decode" "no-builtin-longjmp" "no-builtin-printf" "no-builtin-setjmp" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+32bit,+c,+e,+m,+relax,+unaligned-scalar-mem,+xcheri,+xcheriot,+zmmul,-a,-b,-d,-experimental-sdext,-experimental-sdtrig,-experimental-smctr,-experimental-ssctr,-experimental-svukte,-experimental-xqcia,-experimental-xqciac,-experimental-xqcicli,-experimental-xqcicm,-experimental-xqcics,-experimental-xqcicsr,-experimental-xqciint,-experimental-xqcilo,-experimental-xqcilsm,-experimental-xqcisls,-experimental-zalasr,-experimental-zicfilp,-experimental-zicfiss,-experimental-zvbc32e,-experimental-zvkgs,-f,-h,-i,-sha,-shcounterenw,-shgatpa,-shtvala,-shvsatpa,-shvstvala,-shvstvecd,-smaia,-smcdeleg,-smcsrind,-smdbltrp,-smepmp,-smmpm,-smnpm,-smrnmi,-smstateen,-ssaia,-ssccfg,-ssccptr,-sscofpmf,-sscounterenw,-sscsrind,-ssdbltrp,-ssnpm,-sspm,-ssqosid,-ssstateen,-ssstrict,-sstc,-sstvala,-sstvecd,-ssu64xl,-supm,-svade,-svadu,-svbare,-svinval,-svnapot,-svpbmt,-svvptc,-v,-xcheri-norvc,-xcvalu,-xcvbi,-xcvbitmanip,-xcvelw,-xcvmac,-xcvmem,-xcvsimd,-xmipscmove,-xmipslsp,-xsfcease,-xsfvcp,-xsfvfnrclipxfqf,-xsfvfwmaccqqq,-xsfvqmaccdod,-xsfvqmaccqoq,-xsifivecdiscarddlone,-xsifivecflushdlone,-xtheadba,-xtheadbb,-xtheadbs,-xtheadcmo,-xtheadcondmov,-xtheadfmemidx,-xtheadmac,-xtheadmemidx,-xtheadmempair,-xtheadsync,-xtheadvdot,-xventanacondops,-xwchc,-za128rs,-za64rs,-zaamo,-zabha,-zacas,-zalrsc,-zama16b,-zawrs,-zba,-zbb,-zbc,-zbkb,-zbkc,-zbkx,-zbs,-zca,-zcb,-zcd,-zce,-zcf,-zcmop,-zcmp,-zcmt,-zdinx,-zfa,-zfbfmin,-zfh,-zfhmin,-zfinx,-zhinx,-zhinxmin,-zic64b,-zicbom,-zicbop,-zicboz,-ziccamoa,-ziccif,-zicclsm,-ziccrse,-zicntr,-zicond,-zicsr,-zifencei,-zihintntl,-zihintpause,-zihpm,-zimop,-zk,-zkn,-zknd,-zkne,-zknh,-zkr,-zks,-zksed,-zksh,-zkt,-ztso,-zvbb,-zvbc,-zve32f,-zve32x,-zve64d,-zve64f,-zve64x,-zvfbfmin,-zvfbfwma,-zvfh,-zvfhmin,-zvkb,-zvkg,-zvkn,-zvknc,-zvkned,-zvkng,-zvknha,-zvknhb,-zvks,-zvksc,-zvksed,-zvksg,-zvksh,-zvkt,-zvl1024b,-zvl128b,-zvl16384b,-zvl2048b,-zvl256b,-zvl32768b,-zvl32b,-zvl4096b,-zvl512b,-zvl64b,-zvl65536b,-zvl8192b" }
 attributes #1 = { mustprogress nofree norecurse nosync nounwind willreturn memory(argmem: read) "cheri-compartment"="qoi_decode" "no-builtin-longjmp" "no-builtin-printf" "no-builtin-setjmp" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+32bit,+c,+e,+m,+relax,+unaligned-scalar-mem,+xcheri,+xcheriot,+zmmul,-a,-b,-d,-experimental-sdext,-experimental-sdtrig,-experimental-smctr,-experimental-ssctr,-experimental-svukte,-experimental-xqcia,-experimental-xqciac,-experimental-xqcicli,-experimental-xqcicm,-experimental-xqcics,-experimental-xqcicsr,-experimental-xqciint,-experimental-xqcilo,-experimental-xqcilsm,-experimental-xqcisls,-experimental-zalasr,-experimental-zicfilp,-experimental-zicfiss,-experimental-zvbc32e,-experimental-zvkgs,-f,-h,-i,-sha,-shcounterenw,-shgatpa,-shtvala,-shvsatpa,-shvstvala,-shvstvecd,-smaia,-smcdeleg,-smcsrind,-smdbltrp,-smepmp,-smmpm,-smnpm,-smrnmi,-smstateen,-ssaia,-ssccfg,-ssccptr,-sscofpmf,-sscounterenw,-sscsrind,-ssdbltrp,-ssnpm,-sspm,-ssqosid,-ssstateen,-ssstrict,-sstc,-sstvala,-sstvecd,-ssu64xl,-supm,-svade,-svadu,-svbare,-svinval,-svnapot,-svpbmt,-svvptc,-v,-xcheri-norvc,-xcvalu,-xcvbi,-xcvbitmanip,-xcvelw,-xcvmac,-xcvmem,-xcvsimd,-xmipscmove,-xmipslsp,-xsfcease,-xsfvcp,-xsfvfnrclipxfqf,-xsfvfwmaccqqq,-xsfvqmaccdod,-xsfvqmaccqoq,-xsifivecdiscarddlone,-xsifivecflushdlone,-xtheadba,-xtheadbb,-xtheadbs,-xtheadcmo,-xtheadcondmov,-xtheadfmemidx,-xtheadmac,-xtheadmemidx,-xtheadmempair,-xtheadsync,-xtheadvdot,-xventanacondops,-xwchc,-za128rs,-za64rs,-zaamo,-zabha,-zacas,-zalrsc,-zama16b,-zawrs,-zba,-zbb,-zbc,-zbkb,-zbkc,-zbkx,-zbs,-zca,-zcb,-zcd,-zce,-zcf,-zcmop,-zcmp,-zcmt,-zdinx,-zfa,-zfbfmin,-zfh,-zfhmin,-zfinx,-zhinx,-zhinxmin,-zic64b,-zicbom,-zicbop,-zicboz,-ziccamoa,-ziccif,-zicclsm,-ziccrse,-zicntr,-zicond,-zicsr,-zifencei,-zihintntl,-zihintpause,-zihpm,-zimop,-zk,-zkn,-zknd,-zkne,-zknh,-zkr,-zks,-zksed,-zksh,-zkt,-ztso,-zvbb,-zvbc,-zve32f,-zve32x,-zve64d,-zve64f,-zve64x,-zvfbfmin,-zvfbfwma,-zvfh,-zvfhmin,-zvkb,-zvkg,-zvkn,-zvknc,-zvkned,-zvkng,-zvknha,-zvknhb,-zvks,-zvksc,-zvksed,-zvksg,-zvksh,-zvkt,-zvl1024b,-zvl128b,-zvl16384b,-zvl2048b,-zvl256b,-zvl32768b,-zvl32b,-zvl4096b,-zvl512b,-zvl64b,-zvl65536b,-zvl8192b" }

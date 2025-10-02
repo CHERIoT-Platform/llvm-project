@@ -753,6 +753,11 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
         ISD::BR_CC,       ISD::SELECT};
     setOperationAction(CheriotF64ExpandOps, MVT::f64, Expand);
     setCondCodeAction(FPCCToExpand, MVT::f64, Expand);
+
+    setTruncStoreAction(MVT::f64, MVT::f16, Expand);
+    setTruncStoreAction(MVT::f64, MVT::f32, Expand);
+    setLoadExtAction(ISD::EXTLOAD, MVT::f64, MVT::f16, Expand);
+    setLoadExtAction(ISD::EXTLOAD, MVT::f64, MVT::f32, Expand);
   }
 
   // TODO: On M-mode only targets, the cycle[h]/time[h] CSR may not be present.

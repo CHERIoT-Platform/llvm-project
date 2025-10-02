@@ -21,9 +21,9 @@ failedISel:      false
 tracksRegLiveness: true
 hasWinCFI:       false
 registers:
-  - { id: 0, class: gpcr, preferred-register: '' }
-  - { id: 1, class: gpcr, preferred-register: '' }
-  - { id: 2, class: gpcr, preferred-register: '' }
+  - { id: 0, class: ygpr, preferred-register: '' }
+  - { id: 1, class: ygpr, preferred-register: '' }
+  - { id: 2, class: ygpr, preferred-register: '' }
 liveins:         []
 frameInfo:
   isFrameAddressTaken: false
@@ -50,53 +50,53 @@ machineFunctionInfo: {}
 body:             |
   bb.0 (%ir-block.0):
     ; CHECK-LABEL: name: test_remat
-    ; CHECK: ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $c2, implicit $c2
-    ; CHECK-NEXT: dead %5:gpcr = PseudoCLGC @external_fn
-    ; CHECK-NEXT: $c23 = COPY $c2
-    ; CHECK-NEXT: [[COPY:%[0-9]+]]:gpcr = COPY $c23
-    ; CHECK-NEXT: [[CIncOffsetImm:%[0-9]+]]:gpcr = CIncOffsetImm [[COPY]], 321
-    ; CHECK-NEXT: $c10 = CIncOffsetImm $c0, 123
-    ; CHECK-NEXT: $c11 = CMove $c0
-    ; CHECK-NEXT: $c12 = COPY [[CIncOffsetImm]]
-    ; CHECK-NEXT: PseudoCCALL target-flags(riscv-ccall) @external_fn, csr_il32pc64_l64pc128, implicit-def dead $c1, implicit killed $c10, implicit killed $c11, implicit killed $c12, implicit-def $c2
-    ; CHECK-NEXT: ADJCALLSTACKUPCAP 0, 0, implicit-def dead $c2, implicit $c2
-    ; CHECK-NEXT: ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $c2, implicit $c2
-    ; CHECK-NEXT: $c10 = CIncOffsetImm $c0, 123
-    ; CHECK-NEXT: $c11 = CMove $c0
-    ; CHECK-NEXT: $c12 = COPY [[CIncOffsetImm]]
-    ; CHECK-NEXT: PseudoCCALL target-flags(riscv-ccall) @external_fn, csr_il32pc64_l64pc128, implicit-def dead $c1, implicit killed $c10, implicit killed $c11, implicit killed $c12, implicit-def $c2
-    ; CHECK-NEXT: ADJCALLSTACKUPCAP 0, 0, implicit-def dead $c2, implicit $c2
-    ; CHECK-NEXT: ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $c2, implicit $c2
-    ; CHECK-NEXT: $c10 = CIncOffsetImm $c0, 123
-    ; CHECK-NEXT: $c11 = CMove $c0
-    ; CHECK-NEXT: $c12 = COPY [[CIncOffsetImm]]
-    ; CHECK-NEXT: PseudoCCALL target-flags(riscv-ccall) @external_fn, csr_il32pc64_l64pc128, implicit-def dead $c1, implicit killed $c10, implicit killed $c11, implicit killed $c12, implicit-def $c2
-    ; CHECK-NEXT: ADJCALLSTACKUPCAP 0, 0, implicit-def dead $c2, implicit $c2
+    ; CHECK: ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
+    ; CHECK-NEXT: dead %5:ygpr = PseudoCLGC @external_fn
+    ; CHECK-NEXT: $x23_y = COPY $x2_y
+    ; CHECK-NEXT: [[COPY:%[0-9]+]]:ygpr = COPY $x23_y
+    ; CHECK-NEXT: [[CIncOffsetImm:%[0-9]+]]:ygpr = CIncOffsetImm [[COPY]], 321
+    ; CHECK-NEXT: $x10_y = CIncOffsetImm $x0_y, 123
+    ; CHECK-NEXT: $x11_y = CMove $x0_y
+    ; CHECK-NEXT: $x12_y = COPY [[CIncOffsetImm]]
+    ; CHECK-NEXT: PseudoCCALL target-flags(riscv-ccall) @external_fn, csr_il32pc64_l64pc128, implicit-def dead $x1_y, implicit killed $x10_y, implicit killed $x11_y, implicit killed $x12_y, implicit-def $x2_y
+    ; CHECK-NEXT: ADJCALLSTACKUPCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
+    ; CHECK-NEXT: ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
+    ; CHECK-NEXT: $x10_y = CIncOffsetImm $x0_y, 123
+    ; CHECK-NEXT: $x11_y = CMove $x0_y
+    ; CHECK-NEXT: $x12_y = COPY [[CIncOffsetImm]]
+    ; CHECK-NEXT: PseudoCCALL target-flags(riscv-ccall) @external_fn, csr_il32pc64_l64pc128, implicit-def dead $x1_y, implicit killed $x10_y, implicit killed $x11_y, implicit killed $x12_y, implicit-def $x2_y
+    ; CHECK-NEXT: ADJCALLSTACKUPCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
+    ; CHECK-NEXT: ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
+    ; CHECK-NEXT: $x10_y = CIncOffsetImm $x0_y, 123
+    ; CHECK-NEXT: $x11_y = CMove $x0_y
+    ; CHECK-NEXT: $x12_y = COPY [[CIncOffsetImm]]
+    ; CHECK-NEXT: PseudoCCALL target-flags(riscv-ccall) @external_fn, csr_il32pc64_l64pc128, implicit-def dead $x1_y, implicit killed $x10_y, implicit killed $x11_y, implicit killed $x12_y, implicit-def $x2_y
+    ; CHECK-NEXT: ADJCALLSTACKUPCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
     ; CHECK-NEXT: PseudoCRET
-    ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $c2, implicit $c2
-    %0:gpcr = COPY $c0
-    %1:gpcr = CIncOffsetImm %0, 123
-    %2:gpcr = PseudoCLGC @external_fn
-    %2:gpcr = CMove killed %0
-    $c23 = COPY $c2
-    %3:gpcr = COPY $c23
-    %4:gpcr = CIncOffsetImm %3, 321
-    $c10 = COPY %1
-    $c11 = COPY %2
-    $c12 = COPY %4
-    PseudoCCALL target-flags(riscv-ccall) @external_fn, csr_il32pc64_l64pc128, implicit-def dead $c1, implicit killed $c10, implicit killed $c11, implicit killed $c12, implicit-def $c2
-    ADJCALLSTACKUPCAP 0, 0, implicit-def dead $c2, implicit $c2
-    ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $c2, implicit $c2
-    $c10 = COPY %1
-    $c11 = COPY %2
-    $c12 = COPY %4
-    PseudoCCALL target-flags(riscv-ccall) @external_fn, csr_il32pc64_l64pc128, implicit-def dead $c1, implicit killed $c10, implicit killed $c11, implicit killed $c12, implicit-def $c2
-    ADJCALLSTACKUPCAP 0, 0, implicit-def dead $c2, implicit $c2
-    ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $c2, implicit $c2
-    $c10 = COPY killed %1
-    $c11 = COPY %2
-    $c12 = COPY %4
-    PseudoCCALL target-flags(riscv-ccall) @external_fn, csr_il32pc64_l64pc128, implicit-def dead $c1, implicit killed $c10, implicit killed $c11, implicit killed $c12, implicit-def $c2
-    ADJCALLSTACKUPCAP 0, 0, implicit-def dead $c2, implicit $c2
+    ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
+    %0:ygpr = COPY $x0_y
+    %1:ygpr = CIncOffsetImm %0, 123
+    %2:ygpr = PseudoCLGC @external_fn
+    %2:ygpr = CMove killed %0
+    $x23_y = COPY $x2_y
+    %3:ygpr = COPY $x23_y
+    %4:ygpr = CIncOffsetImm %3, 321
+    $x10_y = COPY %1
+    $x11_y = COPY %2
+    $x12_y = COPY %4
+    PseudoCCALL target-flags(riscv-ccall) @external_fn, csr_il32pc64_l64pc128, implicit-def dead $x1_y, implicit killed $x10_y, implicit killed $x11_y, implicit killed $x12_y, implicit-def $x2_y
+    ADJCALLSTACKUPCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
+    ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
+    $x10_y = COPY %1
+    $x11_y = COPY %2
+    $x12_y = COPY %4
+    PseudoCCALL target-flags(riscv-ccall) @external_fn, csr_il32pc64_l64pc128, implicit-def dead $x1_y, implicit killed $x10_y, implicit killed $x11_y, implicit killed $x12_y, implicit-def $x2_y
+    ADJCALLSTACKUPCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
+    ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
+    $x10_y = COPY killed %1
+    $x11_y = COPY %2
+    $x12_y = COPY %4
+    PseudoCCALL target-flags(riscv-ccall) @external_fn, csr_il32pc64_l64pc128, implicit-def dead $x1_y, implicit killed $x10_y, implicit killed $x11_y, implicit killed $x12_y, implicit-def $x2_y
+    ADJCALLSTACKUPCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
     PseudoCRET
 ...

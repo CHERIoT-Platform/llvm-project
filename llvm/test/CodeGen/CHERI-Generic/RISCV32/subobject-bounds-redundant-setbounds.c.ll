@@ -38,7 +38,7 @@ define void @use_inline(ptr addrspace(200) captures(none) %arg) local_unnamed_ad
 ; ASM-LABEL: use_inline:
 ; ASM:       # %bb.0:
 ; ASM-NEXT:    li a1, 2
-; ASM-NEXT:    csw a1, 0(ca0)
+; ASM-NEXT:    csw a1, 0(a0)
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define {{[^@]+}}@use_inline
 ; CHECK-SAME: (ptr addrspace(200) captures(none) [[ARG:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
@@ -52,17 +52,17 @@ define void @use_inline(ptr addrspace(200) captures(none) %arg) local_unnamed_ad
 define signext i32 @stack_array() local_unnamed_addr addrspace(200) nounwind {
 ; ASM-LABEL: stack_array:
 ; ASM:       # %bb.0:
-; ASM-NEXT:    cincoffset csp, csp, -64
-; ASM-NEXT:    csc cra, 56(csp) # 8-byte Folded Spill
-; ASM-NEXT:    csc cs0, 48(csp) # 8-byte Folded Spill
-; ASM-NEXT:    cincoffset ca0, csp, 8
-; ASM-NEXT:    csetbounds cs0, ca0, 40
-; ASM-NEXT:    cmove ca0, cs0
+; ASM-NEXT:    cincoffset sp, sp, -64
+; ASM-NEXT:    csc ra, 56(sp) # 8-byte Folded Spill
+; ASM-NEXT:    csc s0, 48(sp) # 8-byte Folded Spill
+; ASM-NEXT:    cincoffset a0, sp, 8
+; ASM-NEXT:    csetbounds s0, a0, 40
+; ASM-NEXT:    cmove a0, s0
 ; ASM-NEXT:    ccall use
-; ASM-NEXT:    clw a0, 20(cs0)
-; ASM-NEXT:    clc cra, 56(csp) # 8-byte Folded Reload
-; ASM-NEXT:    clc cs0, 48(csp) # 8-byte Folded Reload
-; ASM-NEXT:    cincoffset csp, csp, 64
+; ASM-NEXT:    clw a0, 20(s0)
+; ASM-NEXT:    clc ra, 56(sp) # 8-byte Folded Reload
+; ASM-NEXT:    clc s0, 48(sp) # 8-byte Folded Reload
+; ASM-NEXT:    cincoffset sp, sp, 64
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define signext i32 @stack_array
 ; CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR1:[0-9]+]] {
@@ -104,16 +104,16 @@ declare void @llvm.lifetime.end.p200(ptr addrspace(200) captures(none)) addrspac
 define signext i32 @stack_int() local_unnamed_addr addrspace(200) nounwind {
 ; ASM-LABEL: stack_int:
 ; ASM:       # %bb.0:
-; ASM-NEXT:    cincoffset csp, csp, -16
-; ASM-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
+; ASM-NEXT:    cincoffset sp, sp, -16
+; ASM-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; ASM-NEXT:    li a0, 1
-; ASM-NEXT:    csw a0, 4(csp)
-; ASM-NEXT:    cincoffset ca0, csp, 4
-; ASM-NEXT:    csetbounds ca0, ca0, 4
+; ASM-NEXT:    csw a0, 4(sp)
+; ASM-NEXT:    cincoffset a0, sp, 4
+; ASM-NEXT:    csetbounds a0, a0, 4
 ; ASM-NEXT:    ccall use
-; ASM-NEXT:    clw a0, 4(csp)
-; ASM-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; ASM-NEXT:    cincoffset csp, csp, 16
+; ASM-NEXT:    clw a0, 4(sp)
+; ASM-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; ASM-NEXT:    cincoffset sp, sp, 16
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define signext i32 @stack_int
 ; CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR1]] {
@@ -153,15 +153,15 @@ define signext i32 @stack_int() local_unnamed_addr addrspace(200) nounwind {
 define signext i32 @stack_int_inlined() local_unnamed_addr addrspace(200) nounwind {
 ; ASM-LABEL: stack_int_inlined:
 ; ASM:       # %bb.0:
-; ASM-NEXT:    cincoffset csp, csp, -16
+; ASM-NEXT:    cincoffset sp, sp, -16
 ; ASM-NEXT:    li a0, 1
-; ASM-NEXT:    cincoffset ca1, csp, 12
-; ASM-NEXT:    csw a0, 12(csp)
-; ASM-NEXT:    csetbounds ca0, ca1, 4
+; ASM-NEXT:    cincoffset a1, sp, 12
+; ASM-NEXT:    csw a0, 12(sp)
+; ASM-NEXT:    csetbounds a0, a1, 4
 ; ASM-NEXT:    li a1, 2
-; ASM-NEXT:    csw a1, 0(ca0)
-; ASM-NEXT:    clw a0, 12(csp)
-; ASM-NEXT:    cincoffset csp, csp, 16
+; ASM-NEXT:    csw a1, 0(a0)
+; ASM-NEXT:    clw a0, 12(sp)
+; ASM-NEXT:    cincoffset sp, sp, 16
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define signext i32 @stack_int_inlined
 ; CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR1]] {
@@ -201,14 +201,14 @@ define signext i32 @stack_int_inlined() local_unnamed_addr addrspace(200) nounwi
 define signext i32 @out_of_bounds_setbounds() local_unnamed_addr addrspace(200) nounwind {
 ; ASM-LABEL: out_of_bounds_setbounds:
 ; ASM:       # %bb.0:
-; ASM-NEXT:    cincoffset csp, csp, -16
-; ASM-NEXT:    cincoffset ca0, csp, 12
-; ASM-NEXT:    csetbounds ca0, ca0, 4
-; ASM-NEXT:    csetbounds ca0, ca0, 5
+; ASM-NEXT:    cincoffset sp, sp, -16
+; ASM-NEXT:    cincoffset a0, sp, 12
+; ASM-NEXT:    csetbounds a0, a0, 4
+; ASM-NEXT:    csetbounds a0, a0, 5
 ; ASM-NEXT:    li a1, 2
-; ASM-NEXT:    csw a1, 0(ca0)
-; ASM-NEXT:    clw a0, 12(csp)
-; ASM-NEXT:    cincoffset csp, csp, 16
+; ASM-NEXT:    csw a1, 0(a0)
+; ASM-NEXT:    clw a0, 12(sp)
+; ASM-NEXT:    cincoffset sp, sp, 16
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define signext i32 @out_of_bounds_setbounds
 ; CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR1]] {
@@ -240,16 +240,16 @@ define signext i32 @out_of_bounds_setbounds() local_unnamed_addr addrspace(200) 
 define signext i32 @setbounds_escapes() local_unnamed_addr addrspace(200) nounwind {
 ; ASM-LABEL: setbounds_escapes:
 ; ASM:       # %bb.0:
-; ASM-NEXT:    cincoffset csp, csp, -16
-; ASM-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
-; ASM-NEXT:    cincoffset ca0, csp, 4
-; ASM-NEXT:    csetbounds ca0, ca0, 4
+; ASM-NEXT:    cincoffset sp, sp, -16
+; ASM-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; ASM-NEXT:    cincoffset a0, sp, 4
+; ASM-NEXT:    csetbounds a0, a0, 4
 ; ASM-NEXT:    li a1, 2
-; ASM-NEXT:    csw a1, 0(ca0)
+; ASM-NEXT:    csw a1, 0(a0)
 ; ASM-NEXT:    ccall use
-; ASM-NEXT:    clw a0, 4(csp)
-; ASM-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; ASM-NEXT:    cincoffset csp, csp, 16
+; ASM-NEXT:    clw a0, 4(sp)
+; ASM-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; ASM-NEXT:    cincoffset sp, sp, 16
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define signext i32 @setbounds_escapes
 ; CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR1]] {
@@ -282,10 +282,10 @@ define signext i32 @setbounds_escapes() local_unnamed_addr addrspace(200) nounwi
 define void @assume_aligned() local_unnamed_addr addrspace(200) nounwind {
 ; ASM-LABEL: assume_aligned:
 ; ASM:       # %bb.0:
-; ASM-NEXT:    cincoffset csp, csp, -16
+; ASM-NEXT:    cincoffset sp, sp, -16
 ; ASM-NEXT:    li a0, 1
-; ASM-NEXT:    csw a0, 12(csp)
-; ASM-NEXT:    cincoffset csp, csp, 16
+; ASM-NEXT:    csw a0, 12(sp)
+; ASM-NEXT:    cincoffset sp, sp, 16
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define void @assume_aligned
 ; CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR1]] {

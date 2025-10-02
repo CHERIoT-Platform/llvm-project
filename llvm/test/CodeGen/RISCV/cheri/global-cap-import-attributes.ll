@@ -11,111 +11,111 @@ define dso_local void @_Z7examplev() addrspace(200) #0 {
 entry:
 ; CHECK:        .LBB0_1:                                # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:	        auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_-----")
-; CHECK-NEXT:	        clc	ca0, %cheriot_compartment_lo_i(.LBB0_1)(ca0)
+; CHECK-NEXT:	        auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_-----")
+; CHECK-NEXT:	        clc	a0, %cheriot_compartment_lo_i(.LBB0_1)(a0)
 ; CHECK-NEXT:	        ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_no_perm)
 ; CHECK:        .LBB0_2:                                # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_--c--")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_2)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_--c--")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_2)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_c)
 ; CHECK:        .LBB0_3:                                # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_---m-")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_3)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_---m-")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_3)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_m)
 
 ; CHECK:        .LBB0_4:                                # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_----g")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_4)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_----g")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_4)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_g)
 
 ; CHECK:        .LBB0_5:                                # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_--cm-")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_5)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_--cm-")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_5)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_cm)
 
 ; CHECK:        .LBB0_6:                                # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_-W---")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_6)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_-W---")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_6)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_W)
 
 ; CHECK:        .LBB0_7:                                # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_-Wc--")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_7)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_-Wc--")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_7)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_Wc)
 
 ; CHECK:        .LBB0_8:                                # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_-W-m-")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_8)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_-W-m-")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_8)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_Wm)
 
 ; CHECK:        .LBB0_9:                                # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_-Wcm-")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_9)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_-Wcm-")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_9)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_Wcm)
 
 ; CHECK:        .LBB0_10:                                # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_R----")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_10)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_R----")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_10)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_R)
 
 ; CHECK:        .LBB0_11:                               # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_R-c--")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_11)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_R-c--")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_11)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_Rc)
 
 ; CHECK:        .LBB0_12:                               # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_R--m-")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_12)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_R--m-")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_12)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_Rm)
 
 ; CHECK:        .LBB0_13:                               # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_R-cm-")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_13)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_R-cm-")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_13)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_Rcm)
 
 ; CHECK:        .LBB0_14:                               # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_RW---")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_14)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_RW---")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_14)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_RW)
 
 ; CHECK:        .LBB0_15:                               # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_RWc--")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_15)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_RWc--")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_15)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_RWc)
 
 ; CHECK:        .LBB0_16:                               # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_mem_uart_RW-m-")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_16)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_mem_uart_RW-m-")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_16)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_RWm)
 
@@ -124,25 +124,25 @@ entry:
 
 ; CHECK:        .LBB0_17:                               # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	cs1, %cheriot_compartment_hi("__import_mem_uart_RWcm-")
-; CHECK-NEXT:        	clc	cs1, %cheriot_compartment_lo_i(.LBB0_17)(cs1)
-; CHECK-NEXT:        	cmove	ca0, cs1
+; CHECK-NEXT:        	auipcc	s1, %cheriot_compartment_hi("__import_mem_uart_RWcm-")
+; CHECK-NEXT:        	clc	s1, %cheriot_compartment_lo_i(.LBB0_17)(s1)
+; CHECK-NEXT:        	cmove	a0, s1
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_RWcm)
 
-; CHECK-NEXT:        	cmove   ca0, cs1
+; CHECK-NEXT:        	cmove   a0, s1
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_RWcm)
 
-; CHECK-NEXT:        	cmove	ca0, cs1
+; CHECK-NEXT:        	cmove	a0, s1
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_RWcm)
 
-; CHECK-NEXT:        	cmove	ca0, cs1
+; CHECK-NEXT:        	cmove	a0, s1
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_RWcm)
 
-; CHECK-NEXT:        	cmove	ca0, cs1
+; CHECK-NEXT:        	cmove	a0, s1
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_RWcm)
 
@@ -150,34 +150,34 @@ entry:
 
 ; CHECK:        .LBB0_18:                               # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	cs1, %cheriot_compartment_hi("__import_mem_uart_RWcm-")
-; CHECK-NEXT:        	clc	cs1, %cheriot_compartment_lo_i(.LBB0_18)(cs1)
-; CHECK-NEXT:           cmove	ca0, cs1
+; CHECK-NEXT:        	auipcc	s1, %cheriot_compartment_hi("__import_mem_uart_RWcm-")
+; CHECK-NEXT:        	clc	s1, %cheriot_compartment_lo_i(.LBB0_18)(s1)
+; CHECK-NEXT:           cmove	a0, s1
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_RWcm2)
 
-; CHECK-NEXT:           cmove   ca0, cs1
+; CHECK-NEXT:           cmove   a0, s1
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_RWcm2)
 
 ; CHECK:        .LBB0_19:                               # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi("__import_cheriot_shared_object_shared_obj_RWcm-")
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_19)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi("__import_cheriot_shared_object_shared_obj_RWcm-")
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_19)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithSharedObjectP4SharedObject
   call void @_Z19doSomethingWithSharedObjectP4SharedObject(ptr addrspace(200) noundef @shared_obj_RWcm)
 
 ; CHECK:        .LBB0_20:                               # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi(__import_mem_uart_RWcmg)
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_20)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi(__import_mem_uart_RWcmg)
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_20)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithUartP4Uart
   call void @_Z19doSomethingWithUartP4Uart(ptr addrspace(200) noundef @uart_RWcmg)
 
 ; CHECK:        .LBB0_21:                               # %entry
 ; CHECK-NEXT:                                           # Label of block must be emitted
-; CHECK-NEXT:        	auipcc	ca0, %cheriot_compartment_hi(__import_cheriot_shared_object_shared_obj_RWcmg)
-; CHECK-NEXT:        	clc	ca0, %cheriot_compartment_lo_i(.LBB0_21)(ca0)
+; CHECK-NEXT:        	auipcc	a0, %cheriot_compartment_hi(__import_cheriot_shared_object_shared_obj_RWcmg)
+; CHECK-NEXT:        	clc	a0, %cheriot_compartment_lo_i(.LBB0_21)(a0)
 ; CHECK-NEXT:        	ccall	_Z19doSomethingWithSharedObjectP4SharedObject
   call void @_Z19doSomethingWithSharedObjectP4SharedObject(ptr addrspace(200) noundef @shared_obj_RWcmg)
 

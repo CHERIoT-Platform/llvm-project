@@ -58,7 +58,7 @@ createRISCVMCRegisterInfo(const Triple &TT, const MCTargetOptions &Options) {
 
   MCRegister RAReg;
   if (ABI != RISCVABI::ABI_Unknown && RISCVABI::isCheriPureCapABI(ABI))
-    RAReg = RISCV::C1;
+    RAReg = RISCV::X1_Y;
   else
     RAReg = RISCV::X1;
 
@@ -74,7 +74,7 @@ static MCAsmInfo *createRISCVMCAsmInfo(const MCRegisterInfo &MRI,
 
   MCRegister SPReg;
   if (ABI != RISCVABI::ABI_Unknown && RISCVABI::isCheriPureCapABI(ABI))
-    SPReg = RISCV::C2;
+    SPReg = RISCV::X2_Y;
   else
     SPReg = RISCV::X2;
 

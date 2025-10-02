@@ -7,8 +7,8 @@ target triple = "riscv32-unknown-unknown"
 ; Function Attrs: nounwind
 define dso_local void @func() local_unnamed_addr addrspace(200) #0 {
 entry:
-  ; Make sure that there's a 4-byte stack argument passed in ct0.
-  ; CHECK:         csetbounds      ct0, csp, 4
+  ; Make sure that there's a 4-byte stack argument passed in t0.
+  ; CHECK:         csetbounds      t0, sp, 4
   call cheriot_compartmentcalleecc void @ccall(i32 0, i32 1, i32 2, i32 3, i32 4, i32 5, i32 6) #2
   ret void
 }

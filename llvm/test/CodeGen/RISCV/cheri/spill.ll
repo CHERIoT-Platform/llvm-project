@@ -22,14 +22,14 @@ define void @test_spill_slot(i8 addrspace(200)** %ptr) nounwind {
 ; RV32IXCHERI-ILP32-NEXT:    sw s10, 32(sp) # 4-byte Folded Spill
 ; RV32IXCHERI-ILP32-NEXT:    sw s11, 28(sp) # 4-byte Folded Spill
 ; RV32IXCHERI-ILP32-NEXT:    sw a0, 12(sp) # 4-byte Folded Spill
-; RV32IXCHERI-ILP32-NEXT:    lc ca1, 0(a0)
-; RV32IXCHERI-ILP32-NEXT:    sc ca1, 16(sp) # 8-byte Folded Spill
+; RV32IXCHERI-ILP32-NEXT:    lc a1, 0(a0)
+; RV32IXCHERI-ILP32-NEXT:    sc a1, 16(sp) # 8-byte Folded Spill
 ; RV32IXCHERI-ILP32-NEXT:    #APP
 ; RV32IXCHERI-ILP32-NEXT:    nop
 ; RV32IXCHERI-ILP32-NEXT:    #NO_APP
-; RV32IXCHERI-ILP32-NEXT:    lc ca0, 16(sp) # 8-byte Folded Reload
+; RV32IXCHERI-ILP32-NEXT:    lc a0, 16(sp) # 8-byte Folded Reload
 ; RV32IXCHERI-ILP32-NEXT:    lw a1, 12(sp) # 4-byte Folded Reload
-; RV32IXCHERI-ILP32-NEXT:    sc ca0, 0(a1)
+; RV32IXCHERI-ILP32-NEXT:    sc a0, 0(a1)
 ; RV32IXCHERI-ILP32-NEXT:    lw ra, 76(sp) # 4-byte Folded Reload
 ; RV32IXCHERI-ILP32-NEXT:    lw s0, 72(sp) # 4-byte Folded Reload
 ; RV32IXCHERI-ILP32-NEXT:    lw s1, 68(sp) # 4-byte Folded Reload
@@ -63,14 +63,14 @@ define void @test_spill_slot(i8 addrspace(200)** %ptr) nounwind {
 ; RV64IXCHERI-LP64-NEXT:    sd s10, 48(sp) # 8-byte Folded Spill
 ; RV64IXCHERI-LP64-NEXT:    sd s11, 40(sp) # 8-byte Folded Spill
 ; RV64IXCHERI-LP64-NEXT:    sd a0, 8(sp) # 8-byte Folded Spill
-; RV64IXCHERI-LP64-NEXT:    lc ca1, 0(a0)
-; RV64IXCHERI-LP64-NEXT:    sc ca1, 16(sp) # 16-byte Folded Spill
+; RV64IXCHERI-LP64-NEXT:    lc a1, 0(a0)
+; RV64IXCHERI-LP64-NEXT:    sc a1, 16(sp) # 16-byte Folded Spill
 ; RV64IXCHERI-LP64-NEXT:    #APP
 ; RV64IXCHERI-LP64-NEXT:    nop
 ; RV64IXCHERI-LP64-NEXT:    #NO_APP
-; RV64IXCHERI-LP64-NEXT:    lc ca0, 16(sp) # 16-byte Folded Reload
+; RV64IXCHERI-LP64-NEXT:    lc a0, 16(sp) # 16-byte Folded Reload
 ; RV64IXCHERI-LP64-NEXT:    ld a1, 8(sp) # 8-byte Folded Reload
-; RV64IXCHERI-LP64-NEXT:    sc ca0, 0(a1)
+; RV64IXCHERI-LP64-NEXT:    sc a0, 0(a1)
 ; RV64IXCHERI-LP64-NEXT:    ld ra, 136(sp) # 8-byte Folded Reload
 ; RV64IXCHERI-LP64-NEXT:    ld s0, 128(sp) # 8-byte Folded Reload
 ; RV64IXCHERI-LP64-NEXT:    ld s1, 120(sp) # 8-byte Folded Reload
@@ -89,7 +89,7 @@ define void @test_spill_slot(i8 addrspace(200)** %ptr) nounwind {
   %a = load volatile i8 addrspace(200)*, i8 addrspace(200)** %ptr
   ; Clobber all non-reserved capability registers (ie all but cnull, csp, cgp
   ; and ctp). Note that cfp may be not be reserved so we must clobber it.
-  tail call void asm sideeffect "nop", "~{c1},~{c5},~{c6},~{c7},~{c8},~{c9},~{c10},~{c11},~{c12},~{c13},~{c14},~{c15},~{c16},~{c17},~{c18},~{c19},~{c20},~{c21},~{c22},~{c23},~{c24},~{c25},~{c26},~{c27},~{c28},~{c29},~{c30},~{c31}"()
+  tail call void asm sideeffect "nop", "~{x1},~{x5},~{x6},~{x7},~{x8},~{x9},~{x10},~{x11},~{x12},~{x13},~{x14},~{x15},~{x16},~{x17},~{x18},~{x19},~{x20},~{x21},~{x22},~{x23},~{x24},~{x25},~{x26},~{x27},~{x28},~{x29},~{x30},~{x31}"()
   store volatile i8 addrspace(200)* %a, i8 addrspace(200)** %ptr
   ret void
 }

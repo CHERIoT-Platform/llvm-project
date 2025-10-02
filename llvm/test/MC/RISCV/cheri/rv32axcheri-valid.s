@@ -29,22 +29,22 @@ sc.h.ddc x1, (x2)
 # CHECK-ASM: encoding: [0x5b,0x09,0x11,0xf8]
 sc.w.ddc x1, (x2)
 
-# CHECK-ASM-AND-OBJ: lr.b.cap ra, (csp)
+# CHECK-ASM-AND-OBJ: lr.b.cap ra, (sp)
 # CHECK-ASM: encoding: [0xdb,0x00,0x81,0xfb]
 lr.b.cap x1, (c2)
-# CHECK-ASM-AND-OBJ: lr.h.cap ra, (csp)
+# CHECK-ASM-AND-OBJ: lr.h.cap ra, (sp)
 # CHECK-ASM: encoding: [0xdb,0x00,0x91,0xfb]
 lr.h.cap x1, (c2)
-# CHECK-ASM-AND-OBJ: lr.w.cap ra, (csp)
+# CHECK-ASM-AND-OBJ: lr.w.cap ra, (sp)
 # CHECK-ASM: encoding: [0xdb,0x00,0xa1,0xfb]
 lr.w.cap x1, (c2)
 
-# CHECK-ASM-AND-OBJ: sc.b.cap ra, (csp)
+# CHECK-ASM-AND-OBJ: sc.b.cap ra, (sp)
 # CHECK-ASM: encoding: [0x5b,0x0c,0x11,0xf8]
 sc.b.cap x1, (c2)
-# CHECK-ASM-AND-OBJ: sc.h.cap ra, (csp)
+# CHECK-ASM-AND-OBJ: sc.h.cap ra, (sp)
 # CHECK-ASM: encoding: [0xdb,0x0c,0x11,0xf8]
 sc.h.cap x1, (c2)
-# CHECK-ASM-AND-OBJ: sc.w.cap ra, (csp)
+# CHECK-ASM-AND-OBJ: sc.w.cap ra, (sp)
 # CHECK-ASM: encoding: [0x5b,0x0d,0x11,0xf8]
 sc.w.cap x1, (c2)

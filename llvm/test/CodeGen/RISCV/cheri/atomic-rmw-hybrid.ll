@@ -21,7 +21,7 @@ define i8 addrspace(200)* @atomicrmw_xchg_cap_monotonic(i8 addrspace(200)** %a, 
 ;
 ; RV32IAXCHERI-LABEL: atomicrmw_xchg_cap_monotonic:
 ; RV32IAXCHERI:       # %bb.0:
-; RV32IAXCHERI-NEXT:    amoswap.c ca0, ca1, (a0)
+; RV32IAXCHERI-NEXT:    amoswap.c a0, a1, (a0)
 ; RV32IAXCHERI-NEXT:    ret
 ;
 ; RV64IXCHERI-LABEL: atomicrmw_xchg_cap_monotonic:
@@ -36,7 +36,7 @@ define i8 addrspace(200)* @atomicrmw_xchg_cap_monotonic(i8 addrspace(200)** %a, 
 ;
 ; RV64IAXCHERI-LABEL: atomicrmw_xchg_cap_monotonic:
 ; RV64IAXCHERI:       # %bb.0:
-; RV64IAXCHERI-NEXT:    amoswap.c ca0, ca1, (a0)
+; RV64IAXCHERI-NEXT:    amoswap.c a0, a1, (a0)
 ; RV64IAXCHERI-NEXT:    ret
   %1 = atomicrmw xchg i8 addrspace(200)** %a, i8 addrspace(200)* %b monotonic
   ret i8 addrspace(200)* %1
@@ -55,7 +55,7 @@ define i8 addrspace(200)* @atomicrmw_xchg_cap_acquire(i8 addrspace(200)** %a, i8
 ;
 ; RV32IAXCHERI-LABEL: atomicrmw_xchg_cap_acquire:
 ; RV32IAXCHERI:       # %bb.0:
-; RV32IAXCHERI-NEXT:    amoswap.c.aq ca0, ca1, (a0)
+; RV32IAXCHERI-NEXT:    amoswap.c.aq a0, a1, (a0)
 ; RV32IAXCHERI-NEXT:    ret
 ;
 ; RV64IXCHERI-LABEL: atomicrmw_xchg_cap_acquire:
@@ -70,7 +70,7 @@ define i8 addrspace(200)* @atomicrmw_xchg_cap_acquire(i8 addrspace(200)** %a, i8
 ;
 ; RV64IAXCHERI-LABEL: atomicrmw_xchg_cap_acquire:
 ; RV64IAXCHERI:       # %bb.0:
-; RV64IAXCHERI-NEXT:    amoswap.c.aq ca0, ca1, (a0)
+; RV64IAXCHERI-NEXT:    amoswap.c.aq a0, a1, (a0)
 ; RV64IAXCHERI-NEXT:    ret
   %1 = atomicrmw xchg i8 addrspace(200)** %a, i8 addrspace(200)* %b acquire
   ret i8 addrspace(200)* %1
@@ -89,7 +89,7 @@ define i8 addrspace(200)* @atomicrmw_xchg_cap_release(i8 addrspace(200)** %a, i8
 ;
 ; RV32IAXCHERI-LABEL: atomicrmw_xchg_cap_release:
 ; RV32IAXCHERI:       # %bb.0:
-; RV32IAXCHERI-NEXT:    amoswap.c.rl ca0, ca1, (a0)
+; RV32IAXCHERI-NEXT:    amoswap.c.rl a0, a1, (a0)
 ; RV32IAXCHERI-NEXT:    ret
 ;
 ; RV64IXCHERI-LABEL: atomicrmw_xchg_cap_release:
@@ -104,7 +104,7 @@ define i8 addrspace(200)* @atomicrmw_xchg_cap_release(i8 addrspace(200)** %a, i8
 ;
 ; RV64IAXCHERI-LABEL: atomicrmw_xchg_cap_release:
 ; RV64IAXCHERI:       # %bb.0:
-; RV64IAXCHERI-NEXT:    amoswap.c.rl ca0, ca1, (a0)
+; RV64IAXCHERI-NEXT:    amoswap.c.rl a0, a1, (a0)
 ; RV64IAXCHERI-NEXT:    ret
   %1 = atomicrmw xchg i8 addrspace(200)** %a, i8 addrspace(200)* %b release
   ret i8 addrspace(200)* %1
@@ -123,7 +123,7 @@ define i8 addrspace(200)* @atomicrmw_xchg_cap_acq_rel(i8 addrspace(200)** %a, i8
 ;
 ; RV32IAXCHERI-LABEL: atomicrmw_xchg_cap_acq_rel:
 ; RV32IAXCHERI:       # %bb.0:
-; RV32IAXCHERI-NEXT:    amoswap.c.aqrl ca0, ca1, (a0)
+; RV32IAXCHERI-NEXT:    amoswap.c.aqrl a0, a1, (a0)
 ; RV32IAXCHERI-NEXT:    ret
 ;
 ; RV64IXCHERI-LABEL: atomicrmw_xchg_cap_acq_rel:
@@ -138,7 +138,7 @@ define i8 addrspace(200)* @atomicrmw_xchg_cap_acq_rel(i8 addrspace(200)** %a, i8
 ;
 ; RV64IAXCHERI-LABEL: atomicrmw_xchg_cap_acq_rel:
 ; RV64IAXCHERI:       # %bb.0:
-; RV64IAXCHERI-NEXT:    amoswap.c.aqrl ca0, ca1, (a0)
+; RV64IAXCHERI-NEXT:    amoswap.c.aqrl a0, a1, (a0)
 ; RV64IAXCHERI-NEXT:    ret
   %1 = atomicrmw xchg i8 addrspace(200)** %a, i8 addrspace(200)* %b acq_rel
   ret i8 addrspace(200)* %1
@@ -157,7 +157,7 @@ define i8 addrspace(200)* @atomicrmw_xchg_cap_seq_cst(i8 addrspace(200)** %a, i8
 ;
 ; RV32IAXCHERI-LABEL: atomicrmw_xchg_cap_seq_cst:
 ; RV32IAXCHERI:       # %bb.0:
-; RV32IAXCHERI-NEXT:    amoswap.c.aqrl ca0, ca1, (a0)
+; RV32IAXCHERI-NEXT:    amoswap.c.aqrl a0, a1, (a0)
 ; RV32IAXCHERI-NEXT:    ret
 ;
 ; RV64IXCHERI-LABEL: atomicrmw_xchg_cap_seq_cst:
@@ -172,7 +172,7 @@ define i8 addrspace(200)* @atomicrmw_xchg_cap_seq_cst(i8 addrspace(200)** %a, i8
 ;
 ; RV64IAXCHERI-LABEL: atomicrmw_xchg_cap_seq_cst:
 ; RV64IAXCHERI:       # %bb.0:
-; RV64IAXCHERI-NEXT:    amoswap.c.aqrl ca0, ca1, (a0)
+; RV64IAXCHERI-NEXT:    amoswap.c.aqrl a0, a1, (a0)
 ; RV64IAXCHERI-NEXT:    ret
   %1 = atomicrmw xchg i8 addrspace(200)** %a, i8 addrspace(200)* %b seq_cst
   ret i8 addrspace(200)* %1

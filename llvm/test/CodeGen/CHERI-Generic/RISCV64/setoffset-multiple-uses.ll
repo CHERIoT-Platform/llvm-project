@@ -4,7 +4,7 @@
 ; RUN: opt -S -passes=instcombine -o - %s | llc -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+xcheripurecap,+f,+d -O1 - -o - | %cheri_FileCheck %s --check-prefix ASM
 
 target datalayout = "e-m:e-pf200:128:128:128:64-p:64:64-i64:64-i128:128-n64-S128-A200-P200-G200"
-; Reduced test case for a crash in the new optimization to fold multiple setoffset calls (orignally found when compiling libunwind)
+; Reduced test case for a rash in the new optimization to fold multiple setoffset calls (orignally found when compiling libunwind)
 
 declare i64 @check_fold(i64) addrspace(200)
 declare void @check_fold_i8ptr(ptr addrspace(200)) addrspace(200)
@@ -14,13 +14,13 @@ declare ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200), i6
 define void @infer_values_from_null_set_offset() addrspace(200) nounwind {
 ; ASM-LABEL: infer_values_from_null_set_offset:
 ; ASM:       # %bb.0:
-; ASM-NEXT:    cincoffset csp, csp, -16
-; ASM-NEXT:    csc cra, 0(csp) # 16-byte Folded Spill
+; ASM-NEXT:    cincoffset sp, sp, -16
+; ASM-NEXT:    csc ra, 0(sp) # 16-byte Folded Spill
 ; ASM-NEXT:    lui a0, 30
 ; ASM-NEXT:    addi a0, a0, 576
 ; ASM-NEXT:    ccall check_fold
-; ASM-NEXT:    clc cra, 0(csp) # 16-byte Folded Reload
-; ASM-NEXT:    cincoffset csp, csp, 16
+; ASM-NEXT:    clc ra, 0(sp) # 16-byte Folded Reload
+; ASM-NEXT:    cincoffset sp, sp, 16
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define void @infer_values_from_null_set_offset
 ; CHECK-SAME: () addrspace(200) #[[ATTR1:[0-9]+]] {
@@ -36,21 +36,21 @@ define void @infer_values_from_null_set_offset() addrspace(200) nounwind {
 define void @multiple_uses_big_constant() addrspace(200) nounwind {
 ; ASM-LABEL: multiple_uses_big_constant:
 ; ASM:       # %bb.0:
-; ASM-NEXT:    cincoffset csp, csp, -32
-; ASM-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
-; ASM-NEXT:    csc cs0, 0(csp) # 16-byte Folded Spill
+; ASM-NEXT:    cincoffset sp, sp, -32
+; ASM-NEXT:    csc ra, 16(sp) # 16-byte Folded Spill
+; ASM-NEXT:    csc s0, 0(sp) # 16-byte Folded Spill
 ; ASM-NEXT:    lui a0, 30
 ; ASM-NEXT:    addi a0, a0, 576
-; ASM-NEXT:    cincoffset cs0, cnull, a0
-; ASM-NEXT:    cmove ca0, cs0
+; ASM-NEXT:    cincoffset s0, zero, a0
+; ASM-NEXT:    cmove a0, s0
 ; ASM-NEXT:    ccall check_fold_i8ptr
-; ASM-NEXT:    cmove ca0, cs0
+; ASM-NEXT:    cmove a0, s0
 ; ASM-NEXT:    ccall check_fold_i8ptr
-; ASM-NEXT:    cmove ca0, cs0
+; ASM-NEXT:    cmove a0, s0
 ; ASM-NEXT:    ccall check_fold_i8ptr
-; ASM-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
-; ASM-NEXT:    clc cs0, 0(csp) # 16-byte Folded Reload
-; ASM-NEXT:    cincoffset csp, csp, 32
+; ASM-NEXT:    clc ra, 16(sp) # 16-byte Folded Reload
+; ASM-NEXT:    clc s0, 0(sp) # 16-byte Folded Reload
+; ASM-NEXT:    cincoffset sp, sp, 32
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define void @multiple_uses_big_constant
 ; CHECK-SAME: () addrspace(200) #[[ATTR1]] {
@@ -70,16 +70,16 @@ define void @multiple_uses_big_constant() addrspace(200) nounwind {
 define void @multiple_uses_small_constant() addrspace(200) nounwind {
 ; ASM-LABEL: multiple_uses_small_constant:
 ; ASM:       # %bb.0:
-; ASM-NEXT:    cincoffset csp, csp, -16
-; ASM-NEXT:    csc cra, 0(csp) # 16-byte Folded Spill
-; ASM-NEXT:    cincoffset ca0, cnull, 123
+; ASM-NEXT:    cincoffset sp, sp, -16
+; ASM-NEXT:    csc ra, 0(sp) # 16-byte Folded Spill
+; ASM-NEXT:    cincoffset a0, zero, 123
 ; ASM-NEXT:    ccall check_fold_i8ptr
-; ASM-NEXT:    cincoffset ca0, cnull, 123
+; ASM-NEXT:    cincoffset a0, zero, 123
 ; ASM-NEXT:    ccall check_fold_i8ptr
-; ASM-NEXT:    cincoffset ca0, cnull, 123
+; ASM-NEXT:    cincoffset a0, zero, 123
 ; ASM-NEXT:    ccall check_fold_i8ptr
-; ASM-NEXT:    clc cra, 0(csp) # 16-byte Folded Reload
-; ASM-NEXT:    cincoffset csp, csp, 16
+; ASM-NEXT:    clc ra, 0(sp) # 16-byte Folded Reload
+; ASM-NEXT:    cincoffset sp, sp, 16
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define void @multiple_uses_small_constant
 ; CHECK-SAME: () addrspace(200) #[[ATTR1]] {

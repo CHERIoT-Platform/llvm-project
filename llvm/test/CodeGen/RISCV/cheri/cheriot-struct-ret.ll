@@ -44,9 +44,9 @@ entry:
   %.fca.1.insert = insertvalue [2 x i32] %.fca.0.insert, i32 %call1, 1
 
   ;; Usual callee epilogue.
-  ;; CHECK-NEXT:  	ct.clc	cra, 8(csp)                     # 8-byte Folded Reload
-  ;; CHECK-NEXT:  	ct.clc	cs0, 0(csp)                     # 8-byte Folded Reload
-  ;; CHECK-NEXT:  	ct.cincoffset	csp, csp, 16
+  ;; CHECK-NEXT:  	ct.clc	ra, 8(sp)                     # 8-byte Folded Reload
+  ;; CHECK-NEXT:  	ct.clc	s0, 0(sp)                     # 8-byte Folded Reload
+  ;; CHECK-NEXT:  	ct.cincoffset	sp, sp, 16
   ;; CHECK-NEXT:  	ct.cret
   ret [2 x i32] %.fca.1.insert
 }
@@ -77,10 +77,10 @@ entry:
   %.fca.1.insert = insertvalue [2 x i32] %.fca.0.insert, i32 %sub2, 1
 
   ;; CHECK:  	mv	a0, s1
-  ;; CHECK:  	ct.clc	cra, 24(csp)                    # 8-byte Folded Reload
-  ;; CHECK:  	ct.clc	cs0, 16(csp)                    # 8-byte Folded Reload
-  ;; CHECK:  	ct.clc	cs1, 8(csp)                     # 8-byte Folded Reload
-  ;; CHECK:  	ct.cincoffset	csp, csp, 32
+  ;; CHECK:  	ct.clc	ra, 24(sp)                    # 8-byte Folded Reload
+  ;; CHECK:  	ct.clc	s0, 16(sp)                    # 8-byte Folded Reload
+  ;; CHECK:  	ct.clc	s1, 8(sp)                     # 8-byte Folded Reload
+  ;; CHECK:  	ct.cincoffset	sp, sp, 32
   ;; CHECK:  	ct.cret
   ret [2 x i32] %.fca.1.insert
 }
@@ -116,26 +116,26 @@ entry:
   ;; CHECK:	ct.ccall	_Z8GetValuev
   %call = tail call cheriot_compartmentcalleecc i32 @_Z8GetValuev()
 
-  ;; CHECK:     auicgp	        cs0, %cheriot_compartment_hi(dummies)
-  ;; CHECK:     cincoffset	cs0, cs0, %cheriot_compartment_lo_i(.LBB4_1)
-  ;; CHECK:     ct.csetbounds   cs0, cs0, %cheriot_compartment_size(dummies)
-  ;; CHECK:     ct.cincoffset   ca0, cs0, a0
+  ;; CHECK:     auicgp	        s0, %cheriot_compartment_hi(dummies)
+  ;; CHECK:     cincoffset	s0, s0, %cheriot_compartment_lo_i(.LBB4_1)
+  ;; CHECK:     ct.csetbounds   s0, s0, %cheriot_compartment_size(dummies)
+  ;; CHECK:     ct.cincoffset   a0, s0, a0
   %rem = urem i32 %call, 5
   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
 
   ;; CHECK:	ct.ccall	_Z8GetValuev
-  ;; CHECK:	ct.cincoffset	ca1, cs0, a0
+  ;; CHECK:	ct.cincoffset	a1, s0, a0
   %call1 = tail call cheriot_compartmentcalleecc i32 @_Z8GetValuev()
   %rem2 = urem i32 %call1, 5
   %add.ptr3 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem2
   %.fca.0.insert = insertvalue %struct.TwoPointers poison, ptr addrspace(200) %add.ptr, 0
   %.fca.1.insert = insertvalue %struct.TwoPointers %.fca.0.insert, ptr addrspace(200) %add.ptr3, 1
 
-  ;; CHECK:     ct.clc	ca0, 0(csp)                     # 8-byte Folded Reload
-  ;; CHECK:	ct.clc	cra, 24(csp)                    # 8-byte Folded Reload
-  ;; CHECK:	ct.clc	cs0, 16(csp)                    # 8-byte Folded Reload
-  ;; CHECK:	ct.clc	cs1, 8(csp)                     # 8-byte Folded Reload
-  ;; CHECK:	ct.cincoffset	csp, csp, 32
+  ;; CHECK:     ct.clc	a0, 0(sp)                     # 8-byte Folded Reload
+  ;; CHECK:	ct.clc	ra, 24(sp)                    # 8-byte Folded Reload
+  ;; CHECK:	ct.clc	s0, 16(sp)                    # 8-byte Folded Reload
+  ;; CHECK:	ct.clc	s1, 8(sp)                     # 8-byte Folded Reload
+  ;; CHECK:	ct.cincoffset	sp, sp, 32
   ;; CHECK:	ct.cret
   ret %struct.TwoPointers %.fca.1.insert
 }
@@ -143,13 +143,13 @@ entry:
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
 define dso_local cheriot_compartmentcalleecc %struct.TwoPointers @_Z7ChgPtrs11TwoPointers(ptr addrspace(200) %x.coerce0, ptr addrspace(200) %x.coerce1) local_unnamed_addr addrspace(200) #1 {
 ;; CHECK: _Z7ChgPtrs11TwoPointers:                # @_Z7ChgPtrs11TwoPointers
-;; CHECK: ct.csc	ca1, 16(csp)                    # 8-byte Folded Spill
+;; CHECK: ct.csc	a1, 16(sp)                    # 8-byte Folded Spill
 entry:
 
-  ;; CHECK: auicgp	ca1, %cheriot_compartment_hi(force_use)
-  ;; CHECK: cincoffset	ca1, ca1, %cheriot_compartment_lo_i(.LBB5_1)
-  ;; CHECK: ct.csc	ca1, 8(csp)                     # 8-byte Folded Spill
-  ;; CHECK: ct.csc	ca0, 0(ca1)
+  ;; CHECK: auicgp	a1, %cheriot_compartment_hi(force_use)
+  ;; CHECK: cincoffset	a1, a1, %cheriot_compartment_lo_i(.LBB5_1)
+  ;; CHECK: ct.csc	a1, 8(sp)                     # 8-byte Folded Spill
+  ;; CHECK: ct.csc	a0, 0(a1)
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK: ct.ccall	_Z8GetValuev
@@ -157,29 +157,29 @@ entry:
   %rem = urem i32 %call, 5
 
   ;; %call above was saved/reloaded in a0
-  ;; CHECK: auicgp	  cs0, %cheriot_compartment_hi(dummies)
-  ;; CHECK: cincoffset	  cs0, cs0, %cheriot_compartment_lo_i(.LBB5_2)
-  ;; CHECK: ct.csetbounds cs0, cs0, %cheriot_compartment_size(dummies)
+  ;; CHECK: auicgp	  s0, %cheriot_compartment_hi(dummies)
+  ;; CHECK: cincoffset	  s0, s0, %cheriot_compartment_lo_i(.LBB5_2)
+  ;; CHECK: ct.csetbounds s0, s0, %cheriot_compartment_size(dummies)
   ;; CHECK: sub	          a0, a0, a1
   ;; CHECK: slli	  a0, a0, 2
-  ;; CHECK: ct.cincoffset ca0, cs0, a0
-  ;; CHECK: ct.csc	ca0, 0(csp)                     # 8-byte Folded Spill
+  ;; CHECK: ct.cincoffset a0, s0, a0
+  ;; CHECK: ct.csc	a0, 0(sp)                     # 8-byte Folded Spill
   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
 
-  ;; CHECK: ct.clc  ca0, 16(csp)                    # 8-byte Folded Reload
-  ;; CHECK: ct.clc  ca1, 8(csp)                     # 8-byte Folded Reload
-  ;; CHECK: ct.csc  ca0, 0(ca1)
+  ;; CHECK: ct.clc  a0, 16(sp)                    # 8-byte Folded Reload
+  ;; CHECK: ct.clc  a1, 8(sp)                     # 8-byte Folded Reload
+  ;; CHECK: ct.csc  a0, 0(a1)
   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK: ct.ccall	_Z8GetValuev
   %call2 = tail call cheriot_compartmentcalleecc i32 @_Z8GetValuev()
   %rem3 = urem i32 %call2, 5
 
-  ;; CHECK: ct.cincoffset	ca1, cs0, a0
+  ;; CHECK: ct.cincoffset	a1, s0, a0
   %add.ptr4 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem3
 
-  ;; ca1 already contains the final value; reload ca0
-  ;; CHECK: ct.clc	ca0, 0(csp)                     # 8-byte Folded Reload
+  ;; a1 already contains the final value; reload a0
+  ;; CHECK: ct.clc	a0, 0(sp)                     # 8-byte Folded Reload
   %.fca.0.insert = insertvalue %struct.TwoPointers poison, ptr addrspace(200) %add.ptr, 0
   %.fca.1.insert = insertvalue %struct.TwoPointers %.fca.0.insert, ptr addrspace(200) %add.ptr4, 1
 
@@ -214,20 +214,20 @@ entry:
   %call = tail call cheriot_compartmentcalleecc i32 @_Z8GetValuev()
   %rem = urem i32 %call, 5
 
-  ;; CHECK:  	auicgp	ca1, %cheriot_compartment_hi(dummies)
-  ;; CHECK:  	cincoffset	ca1, ca1, %cheriot_compartment_lo_i(.LBB7_1)
-  ;; CHECK:  	ct.csetbounds	ca1, ca1, %cheriot_compartment_size(dummies)
-  ;; CHECK:  	ct.cincoffset	cs0, ca1, a0
+  ;; CHECK:  	auicgp	a1, %cheriot_compartment_hi(dummies)
+  ;; CHECK:  	cincoffset	a1, a1, %cheriot_compartment_lo_i(.LBB7_1)
+  ;; CHECK:  	ct.csetbounds	a1, a1, %cheriot_compartment_size(dummies)
+  ;; CHECK:  	ct.cincoffset	s0, a1, a0
   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
   %call1 = tail call cheriot_compartmentcalleecc i32 @_Z8GetValuev()
 
   ;; CHECK:  	mv	  a1, a0
-  ;; CHECK:  	ct.cmove  ca0, cs0
-  ;; CHECK:  	ct.clc	  cra, 8(csp)                     # 8-byte Folded Reload
-  ;; CHECK:  	ct.clc	  cs0, 0(csp)                     # 8-byte Folded Reload
-  ;; CHECK:  	ct.cincoffset	csp, csp, 16
+  ;; CHECK:  	ct.cmove  a0, s0
+  ;; CHECK:  	ct.clc	  ra, 8(sp)                     # 8-byte Folded Reload
+  ;; CHECK:  	ct.clc	  s0, 0(sp)                     # 8-byte Folded Reload
+  ;; CHECK:  	ct.cincoffset	sp, sp, 16
   %.fca.0.insert = insertvalue %struct.PointerAndInt poison, ptr addrspace(200) %add.ptr, 0
   %.fca.1.insert = insertvalue %struct.PointerAndInt %.fca.0.insert, i32 %call1, 1
 
@@ -243,19 +243,19 @@ entry:
 
   ;; CHECK:  .LBB8_1:                                # %entry
   ;; CHECK:                                          # Label of block must be emitted
-  ;; CHECK:  	auicgp	ca1, %cheriot_compartment_hi(force_use)
-  ;; CHECK:  	cincoffset	ca1, ca1, %cheriot_compartment_lo_i(.LBB8_1)
-  ;; CHECK:       ct.csc	ca0, 0(ca1)
+  ;; CHECK:  	auicgp	a1, %cheriot_compartment_hi(force_use)
+  ;; CHECK:  	cincoffset	a1, a1, %cheriot_compartment_lo_i(.LBB8_1)
+  ;; CHECK:       ct.csc	a0, 0(a1)
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
   %call = tail call cheriot_compartmentcalleecc i32 @_Z8GetValuev()
   %rem = urem i32 %call, 5
 
-  ;; CHECK:     auicgp	ca1, %cheriot_compartment_hi(dummies)
-  ;; CHECK:     cincoffset	ca1, ca1, %cheriot_compartment_lo_i(.LBB8_2)
-  ;; CHECK:  	ct.csetbounds	ca1, ca1, %cheriot_compartment_size(dummies)
-  ;; CHECK:  	ct.cincoffset	cs1, ca1, a0
+  ;; CHECK:     auicgp	a1, %cheriot_compartment_hi(dummies)
+  ;; CHECK:     cincoffset	a1, a1, %cheriot_compartment_lo_i(.LBB8_2)
+  ;; CHECK:  	ct.csetbounds	a1, a1, %cheriot_compartment_size(dummies)
+  ;; CHECK:  	ct.cincoffset	s1, a1, a0
   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
 
   ;; CHECK:	ct.ccall	_Z8GetValuev
@@ -264,11 +264,11 @@ entry:
   ;; CHECK:       sub	a1, s0, a0
   %sub = sub i32 %x.coerce1, %call2
 
-  ;; CHECK:  	ct.cmove	ca0, cs1
-  ;; CHECK:  	ct.clc	cra, 24(csp)                    # 8-byte Folded Reload
-  ;; CHECK:  	ct.clc	cs0, 16(csp)                    # 8-byte Folded Reload
-  ;; CHECK:  	ct.clc	cs1, 8(csp)                     # 8-byte Folded Reload
-  ;; CHECK:  	ct.cincoffset	csp, csp, 32
+  ;; CHECK:  	ct.cmove	a0, s1
+  ;; CHECK:  	ct.clc	ra, 24(sp)                    # 8-byte Folded Reload
+  ;; CHECK:  	ct.clc	s0, 16(sp)                    # 8-byte Folded Reload
+  ;; CHECK:  	ct.clc	s1, 8(sp)                     # 8-byte Folded Reload
+  ;; CHECK:  	ct.cincoffset	sp, sp, 32
   %.fca.0.insert = insertvalue %struct.PointerAndInt poison, ptr addrspace(200) %add.ptr, 0
   %.fca.1.insert = insertvalue %struct.PointerAndInt %.fca.0.insert, i32 %sub, 1
 
@@ -305,21 +305,21 @@ entry:
   %call = tail call cheriot_compartmentcalleecc i32 @_Z8GetValuev()
   %rem = urem i32 %call, 5
 
-  ;; CHECK: 	auicgp	cs0, %cheriot_compartment_hi(dummies)
-  ;; CHECK:     cincoffset	cs0, cs0, %cheriot_compartment_lo_i(.LBB10_1)
-  ;; CHECK: 	ct.csetbounds	cs0, cs0, %cheriot_compartment_size(dummies)
-  ;; CHECK: 	ct.cincoffset	ca0, cs0, a0
-  ;; CHECK: 	ct.csc	ca0, 0(csp)                     # 8-byte Folded Spill
+  ;; CHECK: 	auicgp	s0, %cheriot_compartment_hi(dummies)
+  ;; CHECK:     cincoffset	s0, s0, %cheriot_compartment_lo_i(.LBB10_1)
+  ;; CHECK: 	ct.csetbounds	s0, s0, %cheriot_compartment_size(dummies)
+  ;; CHECK: 	ct.cincoffset	a0, s0, a0
+  ;; CHECK: 	ct.csc	a0, 0(sp)                     # 8-byte Folded Spill
   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
 
   ;; CHECK: 	ct.ccall	_Z8GetValuev
   %call1 = tail call cheriot_compartmentcalleecc i32 @_Z8GetValuev()
   %rem2 = urem i32 %call1, 5
 
-  ;; CHECK: 	ct.cincoffset	ca1, cs0, a0
+  ;; CHECK: 	ct.cincoffset	a1, s0, a0
   %add.ptr3 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem2
 
-  ;; CHECK: 	ct.clc	ca0, 0(csp)                     # 8-byte Folded Reload
+  ;; CHECK: 	ct.clc	a0, 0(sp)                     # 8-byte Folded Reload
   %.fca.0.insert = insertvalue %struct.ParentPtr poison, ptr addrspace(200) %add.ptr, 0
   %.fca.1.0.insert = insertvalue %struct.ParentPtr %.fca.0.insert, ptr addrspace(200) %add.ptr3, 1, 0
 
@@ -331,13 +331,13 @@ entry:
 define dso_local cheriot_compartmentcalleecc %struct.ParentPtr @_Z12ChgParentPtr9ParentPtr(ptr addrspace(200) %x.coerce0, %struct.InnerPtr %x.coerce1) local_unnamed_addr addrspace(200) #1 {
 
 ;; CHECK: _Z12ChgParentPtr9ParentPtr:             # @_Z12ChgParentPtr9ParentPtr
-;; CHECK: 	ct.csc	ca1, 16(csp)                    # 8-byte Folded Spill
+;; CHECK: 	ct.csc	a1, 16(sp)                    # 8-byte Folded Spill
 entry:
 
-  ;; CHECK: 	auicgp	ca1, %cheriot_compartment_hi(force_use)
-  ;; CHECK: 	cincoffset	ca1, ca1, %cheriot_compartment_lo_i(.LBB11_1)
-  ;; CHECK: 	ct.csc	ca1, 8(csp)                     # 8-byte Folded Spill
-  ;; CHECK: 	ct.csc	ca0, 0(ca1)
+  ;; CHECK: 	auicgp	a1, %cheriot_compartment_hi(force_use)
+  ;; CHECK: 	cincoffset	a1, a1, %cheriot_compartment_lo_i(.LBB11_1)
+  ;; CHECK: 	ct.csc	a1, 8(sp)                     # 8-byte Folded Spill
+  ;; CHECK: 	ct.csc	a0, 0(a1)
   %x.coerce1.fca.0.extract = extractvalue %struct.InnerPtr %x.coerce1, 0
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
@@ -345,26 +345,26 @@ entry:
   %call = tail call cheriot_compartmentcalleecc i32 @_Z8GetValuev()
   %rem = urem i32 %call, 5
 
-  ;; CHECK: 	auicgp	cs0, %cheriot_compartment_hi(dummies)
-  ;; CHECK: 	cincoffset	cs0, cs0, %cheriot_compartment_lo_i(.LBB11_2)
-  ;; CHECK: 	ct.csetbounds	cs0, cs0, %cheriot_compartment_size(dummies)
-  ;; CHECK: 	ct.cincoffset	ca0, cs0, a0
-  ;; CHECK: 	ct.csc	ca0, 0(csp)                     # 8-byte Folded Spill
+  ;; CHECK: 	auicgp	s0, %cheriot_compartment_hi(dummies)
+  ;; CHECK: 	cincoffset	s0, s0, %cheriot_compartment_lo_i(.LBB11_2)
+  ;; CHECK: 	ct.csetbounds	s0, s0, %cheriot_compartment_size(dummies)
+  ;; CHECK: 	ct.cincoffset	a0, s0, a0
+  ;; CHECK: 	ct.csc	a0, 0(sp)                     # 8-byte Folded Spill
   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
 
-  ;; CHECK: 	ct.clc	ca0, 16(csp)                    # 8-byte Folded Reload
-  ;; CHECK: 	ct.clc	ca1, 8(csp)                     # 8-byte Folded Reload
-  ;; CHECK: 	ct.csc	ca0, 0(ca1)
+  ;; CHECK: 	ct.clc	a0, 16(sp)                    # 8-byte Folded Reload
+  ;; CHECK: 	ct.clc	a1, 8(sp)                     # 8-byte Folded Reload
+  ;; CHECK: 	ct.csc	a0, 0(a1)
   store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK: 	ct.ccall	_Z8GetValuev
   %call3 = tail call cheriot_compartmentcalleecc i32 @_Z8GetValuev()
   %rem4 = urem i32 %call3, 5
 
-  ;; CHECK: 	ct.cincoffset	ca1, cs0, a0
+  ;; CHECK: 	ct.cincoffset	a1, s0, a0
   %add.ptr5 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem4
 
-  ;; CHECK: 	ct.clc	ca0, 0(csp)                     # 8-byte Folded Reload
+  ;; CHECK: 	ct.clc	a0, 0(sp)                     # 8-byte Folded Reload
   %.fca.0.insert = insertvalue %struct.ParentPtr poison, ptr addrspace(200) %add.ptr, 0
   %.fca.1.0.insert = insertvalue %struct.ParentPtr %.fca.0.insert, ptr addrspace(200) %add.ptr5, 1, 0
 
@@ -396,14 +396,14 @@ entry:
 define dso_local cheriot_compartmentcalleecc %struct.TwoPointers @_Z8ChgPtrs2i11TwoPointers(i32 noundef %new_int, ptr addrspace(200) %x.coerce0, ptr addrspace(200) %x.coerce1) local_unnamed_addr addrspace(200) #1 {
 
 ;; CHECK:  _Z8ChgPtrs2i11TwoPointers:              # @_Z8ChgPtrs2i11TwoPointers
-;; CHECK:       ct.csc	ca2, 32(csp)                    # 8-byte Folded Spill
-;; CHECK:  	ct.csw	a0, 28(csp)                     # 4-byte Folded Spill
+;; CHECK:       ct.csc	a2, 32(sp)                    # 8-byte Folded Spill
+;; CHECK:  	ct.csw	a0, 28(sp)                     # 4-byte Folded Spill
 entry:
 
-  ;; CHECK:  	auicgp	ca0, %cheriot_compartment_hi(force_use)
-  ;; CHECK:  	cincoffset	ca0, ca0, %cheriot_compartment_lo_i(.LBB13_1)
-  ;; CHECK:  	ct.csc	ca0, 16(csp)                    # 8-byte Folded Spill
-  ;; CHECK:  	ct.csc	ca1, 0(ca0)
+  ;; CHECK:  	auicgp	a0, %cheriot_compartment_hi(force_use)
+  ;; CHECK:  	cincoffset	a0, a0, %cheriot_compartment_lo_i(.LBB13_1)
+  ;; CHECK:  	ct.csc	a0, 16(sp)                    # 8-byte Folded Spill
+  ;; CHECK:  	ct.csc	a1, 0(a0)
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
@@ -411,28 +411,28 @@ entry:
   %add = add i32 %call, %new_int
   %rem = urem i32 %add, 5
 
-  ;; CHECK:  	auicgp	cs0, %cheriot_compartment_hi(dummies)
-  ;; CHECK:  	cincoffset	cs0, cs0, %cheriot_compartment_lo_i(.LBB13_2)
-  ;; CHECK:  	ct.csetbounds	cs0, cs0, %cheriot_compartment_size(dummies)
-  ;; CHECK:  	ct.cincoffset	ca0, cs0, a0
-  ;; CHECK:  	ct.csc	ca0, 8(csp)                     # 8-byte Folded Spill
+  ;; CHECK:  	auicgp	s0, %cheriot_compartment_hi(dummies)
+  ;; CHECK:  	cincoffset	s0, s0, %cheriot_compartment_lo_i(.LBB13_2)
+  ;; CHECK:  	ct.csetbounds	s0, s0, %cheriot_compartment_size(dummies)
+  ;; CHECK:  	ct.cincoffset	a0, s0, a0
+  ;; CHECK:  	ct.csc	a0, 8(sp)                     # 8-byte Folded Spill
   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
 
-  ;; CHECK:  	ct.clc	ca0, 32(csp)                    # 8-byte Folded Reload
-  ;; CHECK:  	ct.clc	ca1, 16(csp)                    # 8-byte Folded Reload
-  ;; CHECK:  	ct.csc	ca0, 0(ca1)
+  ;; CHECK:  	ct.clc	a0, 32(sp)                    # 8-byte Folded Reload
+  ;; CHECK:  	ct.clc	a1, 16(sp)                    # 8-byte Folded Reload
+  ;; CHECK:  	ct.csc	a0, 0(a1)
   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
-  ;; CHECK:  	ct.clw	a1, 28(csp)                     # 4-byte Folded Reload
+  ;; CHECK:  	ct.clw	a1, 28(sp)                     # 4-byte Folded Reload
   %call2 = tail call cheriot_compartmentcalleecc i32 @_Z8GetValuev()
   %add3 = add i32 %call2, %new_int
   %rem4 = urem i32 %add3, 5
 
-  ;; CHECK:  	ct.cincoffset	ca1, cs0, a0
+  ;; CHECK:  	ct.cincoffset	a1, s0, a0
   %add.ptr5 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem4
 
-  ;; CHECK:  	ct.clc	ca0, 8(csp)                     # 8-byte Folded Reload
+  ;; CHECK:  	ct.clc	a0, 8(sp)                     # 8-byte Folded Reload
   %.fca.0.insert = insertvalue %struct.TwoPointers poison, ptr addrspace(200) %add.ptr, 0
   %.fca.1.insert = insertvalue %struct.TwoPointers %.fca.0.insert, ptr addrspace(200) %add.ptr5, 1
 
@@ -444,15 +444,15 @@ entry:
 define dso_local cheriot_compartmentcalleecc %struct.ParentPtr @_Z13ChgParentPtr2i9ParentPtr(i32 noundef %new_int, ptr addrspace(200) %x.coerce0, %struct.InnerPtr %x.coerce1) local_unnamed_addr addrspace(200) #1 {
 
 ;; CHECK:  _Z13ChgParentPtr2i9ParentPtr:           # @_Z13ChgParentPtr2i9ParentPtr
-;; CHECK:  	ct.csc	ca2, 32(csp)                    # 8-byte Folded Spill
+;; CHECK:  	ct.csc	a2, 32(sp)                    # 8-byte Folded Spill
 ;; CHECK:  	mv	s0, a0
-;; CHECK:  	ct.csw	a0, 28(csp)                     # 4-byte Folded Spill
+;; CHECK:  	ct.csw	a0, 28(sp)                     # 4-byte Folded Spill
 entry:
 
-  ;; CHECK:  	auicgp	ca0, %cheriot_compartment_hi(force_use)
-  ;; CHECK:  	cincoffset	ca0, ca0, %cheriot_compartment_lo_i(.LBB14_1)
-  ;; CHECK:  	ct.csc	ca0, 16(csp)                    # 8-byte Folded Spill
-  ;; CHECK:  	ct.csc	ca1, 0(ca0)
+  ;; CHECK:  	auicgp	a0, %cheriot_compartment_hi(force_use)
+  ;; CHECK:  	cincoffset	a0, a0, %cheriot_compartment_lo_i(.LBB14_1)
+  ;; CHECK:  	ct.csc	a0, 16(sp)                    # 8-byte Folded Spill
+  ;; CHECK:  	ct.csc	a1, 0(a0)
   %x.coerce1.fca.0.extract = extractvalue %struct.InnerPtr %x.coerce1, 0
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
@@ -461,28 +461,28 @@ entry:
   %add = add i32 %call, %new_int
   %rem = urem i32 %add, 5
 
-  ;; CHECK:  	auicgp	cs0, %cheriot_compartment_hi(dummies)
-  ;; CHECK:  	cincoffset	cs0, cs0, %cheriot_compartment_lo_i(.LBB14_2)
-  ;; CHECK:  	ct.csetbounds	cs0, cs0, %cheriot_compartment_size(dummies)
-  ;; CHECK:  	ct.cincoffset	ca0, cs0, a0
-  ;; CHECK:  	ct.csc	ca0, 8(csp)                     # 8-byte Folded Spill
+  ;; CHECK:  	auicgp	s0, %cheriot_compartment_hi(dummies)
+  ;; CHECK:  	cincoffset	s0, s0, %cheriot_compartment_lo_i(.LBB14_2)
+  ;; CHECK:  	ct.csetbounds	s0, s0, %cheriot_compartment_size(dummies)
+  ;; CHECK:  	ct.cincoffset	a0, s0, a0
+  ;; CHECK:  	ct.csc	a0, 8(sp)                     # 8-byte Folded Spill
   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
 
-  ;; CHECK:  	ct.clc	ca0, 32(csp)                    # 8-byte Folded Reload
-  ;; CHECK:  	ct.clc	ca1, 16(csp)                    # 8-byte Folded Reload
-  ;; CHECK:  	ct.csc	ca0, 0(ca1)
+  ;; CHECK:  	ct.clc	a0, 32(sp)                    # 8-byte Folded Reload
+  ;; CHECK:  	ct.clc	a1, 16(sp)                    # 8-byte Folded Reload
+  ;; CHECK:  	ct.csc	a0, 0(a1)
   store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
-  ;; CHECK:  	ct.clw	a1, 28(csp)                     # 4-byte Folded Reload
+  ;; CHECK:  	ct.clw	a1, 28(sp)                     # 4-byte Folded Reload
   %call3 = tail call cheriot_compartmentcalleecc i32 @_Z8GetValuev()
   %add4 = add i32 %call3, %new_int
   %rem5 = urem i32 %add4, 5
 
-  ;; CHECK:  	ct.cincoffset	ca1, cs0, a0
+  ;; CHECK:  	ct.cincoffset	a1, s0, a0
   %add.ptr6 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem5
 
-  ;; CHECK:  	ct.clc	ca0, 8(csp)                     # 8-byte Folded Reload
+  ;; CHECK:  	ct.clc	a0, 8(sp)                     # 8-byte Folded Reload
   %.fca.0.insert = insertvalue %struct.ParentPtr poison, ptr addrspace(200) %add.ptr, 0
   %.fca.1.0.insert = insertvalue %struct.ParentPtr %.fca.0.insert, ptr addrspace(200) %add.ptr6, 1, 0
 
@@ -514,16 +514,16 @@ entry:
   br i1 %cmp10, label %for.body, label %for.cond.cleanup
 
 for.cond.for.cond.cleanup_crit_edge:              ; preds = %for.body
-  ;; CHECK:  auicgp	ca2, %cheriot_compartment_hi(dummies)
-  ;; CHECK:  cincoffset	ca2, ca2, %cheriot_compartment_lo_i(.LBB15_5)
-  ;; CHECK:  ct.csetbounds	ca2, ca2, %cheriot_compartment_size(dummies)
+  ;; CHECK:  auicgp	a2, %cheriot_compartment_hi(dummies)
+  ;; CHECK:  cincoffset	a2, a2, %cheriot_compartment_lo_i(.LBB15_5)
+  ;; CHECK:  ct.csetbounds	a2, a2, %cheriot_compartment_size(dummies)
 
-  ;; CHECK:  ct.cincoffset	ca3, ca2, s1
+  ;; CHECK:  ct.cincoffset	a3, a2, s1
   %add.le = add i32 %call1, %0
   %rem.le = urem i32 %add.le, 5
   %add.ptr.le = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem.le
 
-  ;; CHECK:  ct.cincoffset	ca1, ca2, a0
+  ;; CHECK:  ct.cincoffset	a1, a2, a0
   %add4.le = add i32 %call3, %0
   %rem5.le = urem i32 %add4.le, 5
   %add.ptr6.le = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem5.le
@@ -549,7 +549,7 @@ for.cond.cleanup:                                 ; preds = %for.cond.for.cond.c
   call void @llvm.lifetime.end.p200(i64 4, ptr addrspace(200) nonnull %_)
   call void @llvm.lifetime.end.p200(i64 8, ptr addrspace(200) nonnull %args) #8
 
-  ;; CHECK:  	ct.cmove	ca0, ca3
+  ;; CHECK:  	ct.cmove	a0, a3
   %.fca.0.insert = insertvalue %struct.TwoPointers poison, ptr addrspace(200) %x.sroa.0.0.lcssa, 0
   %.fca.1.insert = insertvalue %struct.TwoPointers %.fca.0.insert, ptr addrspace(200) %x.sroa.4.0.lcssa, 1
 
@@ -583,11 +583,11 @@ for.cond.for.cond.cleanup_crit_edge:              ; preds = %for.body
   %add5.le = add i32 %call4, %0
   %rem6.le = urem i32 %add5.le, 5
   %add.ptr7.le = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem6.le
-  ;; CHECK:  	auicgp	ca2, %cheriot_compartment_hi(dummies)
-  ;; CHECK:  	cincoffset	ca2, ca2, %cheriot_compartment_lo_i(.LBB16_6)
-  ;; CHECK:  	ct.csetbounds	ca2, ca2, %cheriot_compartment_size(dummies)
-  ;; CHECK:  	ct.cincoffset	ca0, ca2, s1
-  ;; CHECK:  	ct.cincoffset	ca1, ca2, a1
+  ;; CHECK:  	auicgp	a2, %cheriot_compartment_hi(dummies)
+  ;; CHECK:  	cincoffset	a2, a2, %cheriot_compartment_lo_i(.LBB16_6)
+  ;; CHECK:  	ct.csetbounds	a2, a2, %cheriot_compartment_size(dummies)
+  ;; CHECK:  	ct.cincoffset	a0, a2, s1
+  ;; CHECK:  	ct.cincoffset	a1, a2, a1
   ;; CHECK:  	j	.LBB16_4
   br label %for.cond.cleanup
 
@@ -613,10 +613,10 @@ for.cond.cleanup:                                 ; preds = %for.cond.for.cond.c
   %.fca.1.0.insert = insertvalue %struct.ParentPtr %.fca.0.insert, ptr addrspace(200) %x.sroa.4.0.lcssa, 1, 0
 
   ;; CHECK: .LBB16_4:                               # %for.cond.cleanup
-  ;; CHECK: 	ct.clc	cra, 56(csp)                    # 8-byte Folded Reload
-  ;; CHECK: 	ct.clc	cs0, 48(csp)                    # 8-byte Folded Reload
-  ;; CHECK: 	ct.clc	cs1, 40(csp)                    # 8-byte Folded Reload
-  ;; CHECK: 	ct.cincoffset	csp, csp, 64
+  ;; CHECK: 	ct.clc	ra, 56(sp)                    # 8-byte Folded Reload
+  ;; CHECK: 	ct.clc	s0, 48(sp)                    # 8-byte Folded Reload
+  ;; CHECK: 	ct.clc	s1, 40(sp)                    # 8-byte Folded Reload
+  ;; CHECK: 	ct.cincoffset	sp, sp, 64
   ;; CHECK: 	ct.cret
   ret %struct.ParentPtr %.fca.1.0.insert
 
@@ -627,13 +627,13 @@ define dso_local cheriot_compartmentcalleecc %struct.TwoPointers @_Z8ChgPtrs4iii
 ;; CHECK: _Z8ChgPtrs4iiiii11TwoPointers:          # @_Z8ChgPtrs4iiiii11TwoPointers
 ;; CHECK:     mv	s1, a1
 ;; CHECK:     mv	s0, a0
-;; CHECK:     ct.clc	ca0, 0(ct0)
-;; CHECK:     ct.csc	ca0, 32(csp)                    # 8-byte Folded Spill
+;; CHECK:     ct.clc	a0, 0(t0)
+;; CHECK:     ct.csc	a0, 32(sp)                    # 8-byte Folded Spill
 entry:
-  ;; CHECK:  auicgp	ca0, %cheriot_compartment_hi(force_use)
-  ;; CHECK:  	cincoffset	ca0, ca0, %cheriot_compartment_lo_i(.LBB17_2)
-  ;; CHECK:  	ct.csc	ca0, 24(csp)                    # 8-byte Folded Spill
-  ;; CHECK:  	ct.csc	ca5, 0(ca0)
+  ;; CHECK:  auicgp	a0, %cheriot_compartment_hi(force_use)
+  ;; CHECK:  	cincoffset	a0, a0, %cheriot_compartment_lo_i(.LBB17_2)
+  ;; CHECK:  	ct.csc	a0, 24(sp)                    # 8-byte Folded Spill
+  ;; CHECK:  	ct.csc	a5, 0(a0)
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK: ct.ccall	_Z8GetValuev
@@ -646,15 +646,15 @@ entry:
   %add4 = add i32 %add3, %call
   %rem = urem i32 %add4, 5
 
-  ;; CHECK: auicgp	ca3, %cheriot_compartment_hi(dummies)
-  ;; CHECK: cincoffset	ca3, ca3, %cheriot_compartment_lo_i(.LBB17_3)
-  ;; CHECK: ct.csc	ca3, 8(csp)                     # 8-byte Folded Spill
-  ;; CHECK: ct.cincoffset	ca0, ca3, a0
-  ;; CHECK: ct.csc	ca0, 16(csp)                    # 8-byte Folded Spill
+  ;; CHECK: auicgp	a3, %cheriot_compartment_hi(dummies)
+  ;; CHECK: cincoffset	a3, a3, %cheriot_compartment_lo_i(.LBB17_3)
+  ;; CHECK: ct.csc	a3, 8(sp)                     # 8-byte Folded Spill
+  ;; CHECK: ct.cincoffset	a0, a3, a0
+  ;; CHECK: ct.csc	a0, 16(sp)                    # 8-byte Folded Spill
   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
 
-  ;; CHECK: ct.clc	ca0, 32(csp)                    # 8-byte Folded Reload
-  ;; CHECK: ct.clc	ca1, 24(csp)                    # 8-byte Folded Reload
+  ;; CHECK: ct.clc	a0, 32(sp)                    # 8-byte Folded Reload
+  ;; CHECK: ct.clc	a1, 24(sp)                    # 8-byte Folded Reload
   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK: ct.ccall	_Z8GetValuev
@@ -666,11 +666,11 @@ entry:
   %add11 = add i32 %add10, %call6
   %rem12 = urem i32 %add11, 5
 
-  ;; CHECK: ct.clc	ca1, 8(csp)                     # 8-byte Folded Reload
-  ;; CHECK: ct.cincoffset	ca1, ca1, a0
+  ;; CHECK: ct.clc	a1, 8(sp)                     # 8-byte Folded Reload
+  ;; CHECK: ct.cincoffset	a1, a1, a0
   %add.ptr13 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem12
 
-  ;; CHECK: ct.clc	ca0, 16(csp)                    # 8-byte Folded Reload
+  ;; CHECK: ct.clc	a0, 16(sp)                    # 8-byte Folded Reload
   %.fca.0.insert = insertvalue %struct.TwoPointers poison, ptr addrspace(200) %add.ptr, 0
   %.fca.1.insert = insertvalue %struct.TwoPointers %.fca.0.insert, ptr addrspace(200) %add.ptr13, 1
 
@@ -684,14 +684,14 @@ define dso_local cheriot_compartmentcalleecc %struct.ParentPtr @_Z13ChgParentPtr
 ;; CHECK:  _Z13ChgParentPtr4iiiii9ParentPtr:       # @_Z13ChgParentPtr4iiiii9ParentPtr
 ;; CHECK:  	mv	s1, a1
 ;; CHECK:  	mv	s0, a0
-;; CHECK:  	ct.clc	ca0, 0(ct0)
-;; CHECK:  	ct.csc	ca0, 32(csp)                    # 8-byte Folded Spill
+;; CHECK:  	ct.clc	a0, 0(t0)
+;; CHECK:  	ct.csc	a0, 32(sp)                    # 8-byte Folded Spill
 entry:
 
-  ;; CHECK:  	auicgp	ca0, %cheriot_compartment_hi(force_use)
-  ;; CHECK:  	cincoffset	ca0, ca0, %cheriot_compartment_lo_i(.LBB18_2)
-  ;; CHECK:  	ct.csc	ca0, 24(csp)                    # 8-byte Folded Spill
-  ;; CHECK:  	ct.csc	ca5, 0(ca0)
+  ;; CHECK:  	auicgp	a0, %cheriot_compartment_hi(force_use)
+  ;; CHECK:  	cincoffset	a0, a0, %cheriot_compartment_lo_i(.LBB18_2)
+  ;; CHECK:  	ct.csc	a0, 24(sp)                    # 8-byte Folded Spill
+  ;; CHECK:  	ct.csc	a5, 0(a0)
   %x.coerce1.fca.0.extract = extractvalue %struct.InnerPtr %x.coerce1, 0
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
@@ -704,16 +704,16 @@ entry:
   %add5 = add i32 %add4, %call
   %rem = urem i32 %add5, 5
 
-  ;; CHECK:  	auicgp	ca3, %cheriot_compartment_hi(dummies)
-  ;; CHECK:  	cincoffset	ca3, ca3, %cheriot_compartment_lo_i(.LBB18_3)
-  ;; CHECK:  	ct.csetbounds	ca3, ca3, %cheriot_compartment_size(dummies)
-  ;; CHECK:  	ct.csc	ca3, 8(csp)                     # 8-byte Folded Spill
-  ;; CHECK:  	ct.cincoffset	ca0, ca3, a0
-  ;; CHECK:  	ct.csc	ca0, 16(csp)                    # 8-byte Folded Spill
+  ;; CHECK:  	auicgp	a3, %cheriot_compartment_hi(dummies)
+  ;; CHECK:  	cincoffset	a3, a3, %cheriot_compartment_lo_i(.LBB18_3)
+  ;; CHECK:  	ct.csetbounds	a3, a3, %cheriot_compartment_size(dummies)
+  ;; CHECK:  	ct.csc	a3, 8(sp)                     # 8-byte Folded Spill
+  ;; CHECK:  	ct.cincoffset	a0, a3, a0
+  ;; CHECK:  	ct.csc	a0, 16(sp)                    # 8-byte Folded Spill
   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
 
-  ;; CHECK:  	ct.clc	ca0, 32(csp)                    # 8-byte Folded Reload
-  ;; CHECK:  	ct.clc	ca1, 24(csp)                    # 8-byte Folded Reload
+  ;; CHECK:  	ct.clc	a0, 32(sp)                    # 8-byte Folded Reload
+  ;; CHECK:  	ct.clc	a1, 24(sp)                    # 8-byte Folded Reload
   store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev
@@ -725,10 +725,10 @@ entry:
   %add12 = add i32 %add11, %call7
   %rem13 = urem i32 %add12, 5
 
-  ;; CHECK:  	ct.cincoffset	ca1, ca1, a0
+  ;; CHECK:  	ct.cincoffset	a1, a1, a0
   %add.ptr14 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem13
 
-  ;; CHECK:  	ct.clc	ca0, 16(csp)                    # 8-byte Folded Reload
+  ;; CHECK:  	ct.clc	a0, 16(sp)                    # 8-byte Folded Reload
   %.fca.0.insert = insertvalue %struct.ParentPtr poison, ptr addrspace(200) %add.ptr, 0
   %.fca.1.0.insert = insertvalue %struct.ParentPtr %.fca.0.insert, ptr addrspace(200) %add.ptr14, 1, 0
 

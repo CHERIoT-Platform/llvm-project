@@ -4,22 +4,22 @@
 define i32 @get_ith_word(i32 signext %i, ...) addrspace(200) nounwind {
 ; CHECK-LABEL: get_ith_word:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    cincoffset csp, csp, -16
-; CHECK-NEXT:    cincoffset ca1, csp, 0
-; CHECK-NEXT:    csetbounds ca1, ca1, 16
-; CHECK-NEXT:    cincoffset ca2, csp, 16
-; CHECK-NEXT:    csc ca2, 0(ca1)
-; CHECK-NEXT:    clc ca1, 0(csp)
+; CHECK-NEXT:    cincoffset sp, sp, -16
+; CHECK-NEXT:    cincoffset a1, sp, 0
+; CHECK-NEXT:    csetbounds a1, a1, 16
+; CHECK-NEXT:    cincoffset a2, sp, 16
+; CHECK-NEXT:    csc a2, 0(a1)
+; CHECK-NEXT:    clc a1, 0(sp)
 ; CHECK-NEXT:    addi a0, a0, 1
 ; CHECK-NEXT:  .LBB0_1: # %while.cond
 ; CHECK-NEXT:    # =>This Inner Loop Header: Depth=1
 ; CHECK-NEXT:    addiw a0, a0, -1
-; CHECK-NEXT:    cincoffset ca1, ca1, 4
+; CHECK-NEXT:    cincoffset a1, a1, 4
 ; CHECK-NEXT:    bgtz a0, .LBB0_1
 ; CHECK-NEXT:  # %bb.2: # %while.end
-; CHECK-NEXT:    csc ca1, 0(csp)
-; CHECK-NEXT:    clw a0, -4(ca1)
-; CHECK-NEXT:    cincoffset csp, csp, 16
+; CHECK-NEXT:    csc a1, 0(sp)
+; CHECK-NEXT:    clw a0, -4(a1)
+; CHECK-NEXT:    cincoffset sp, sp, 16
 ; CHECK-NEXT:    cret
 entry:
   %ap = alloca ptr addrspace(200), align 16, addrspace(200)
@@ -47,25 +47,25 @@ while.end:                                        ; preds = %while.cond
 define ptr addrspace(200) @get_ith_cap(i32 signext %i, ...) addrspace(200) nounwind {
 ; CHECK-LABEL: get_ith_cap:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    cincoffset csp, csp, -16
-; CHECK-NEXT:    cincoffset ca1, csp, 0
-; CHECK-NEXT:    csetbounds ca1, ca1, 16
-; CHECK-NEXT:    cincoffset ca2, csp, 16
-; CHECK-NEXT:    csc ca2, 0(ca1)
-; CHECK-NEXT:    clc ca1, 0(csp)
+; CHECK-NEXT:    cincoffset sp, sp, -16
+; CHECK-NEXT:    cincoffset a1, sp, 0
+; CHECK-NEXT:    csetbounds a1, a1, 16
+; CHECK-NEXT:    cincoffset a2, sp, 16
+; CHECK-NEXT:    csc a2, 0(a1)
+; CHECK-NEXT:    clc a1, 0(sp)
 ; CHECK-NEXT:    addi a0, a0, 1
 ; CHECK-NEXT:  .LBB1_1: # %while.cond
 ; CHECK-NEXT:    # =>This Inner Loop Header: Depth=1
 ; CHECK-NEXT:    addi a2, a1, 15
 ; CHECK-NEXT:    andi a2, a2, -16
-; CHECK-NEXT:    csetaddr ca2, ca1, a2
+; CHECK-NEXT:    csetaddr a2, a1, a2
 ; CHECK-NEXT:    addiw a0, a0, -1
-; CHECK-NEXT:    cincoffset ca1, ca2, 16
+; CHECK-NEXT:    cincoffset a1, a2, 16
 ; CHECK-NEXT:    bgtz a0, .LBB1_1
 ; CHECK-NEXT:  # %bb.2: # %while.end
-; CHECK-NEXT:    csc ca1, 0(csp)
-; CHECK-NEXT:    clc ca0, 0(ca2)
-; CHECK-NEXT:    cincoffset csp, csp, 16
+; CHECK-NEXT:    csc a1, 0(sp)
+; CHECK-NEXT:    clc a0, 0(a2)
+; CHECK-NEXT:    cincoffset sp, sp, 16
 ; CHECK-NEXT:    cret
 entry:
   %ap = alloca ptr addrspace(200), align 16, addrspace(200)
@@ -102,17 +102,17 @@ declare void @varargs(i32, ...) addrspace(200) nounwind
 ; go in an even integer register pair and would thus reserve the odd register,
 ; even though we're passing on the stack.
 define void @test_varargs_odd_cap_reg() addrspace(200) nounwind {
-entry:
 ; CHECK-LABEL: test_varargs_odd_cap_reg:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    cincoffset csp, csp, -32
-; CHECK-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
+; CHECK-NEXT:    cincoffset sp, sp, -32
+; CHECK-NEXT:    csc ra, 16(sp) # 16-byte Folded Spill
 ; CHECK-NEXT:    li a0, 1
-; CHECK-NEXT:    csc cnull, 0(csp)
+; CHECK-NEXT:    csc zero, 0(sp)
 ; CHECK-NEXT:    ccall varargs
-; CHECK-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
-; CHECK-NEXT:    cincoffset csp, csp, 32
+; CHECK-NEXT:    clc ra, 16(sp) # 16-byte Folded Reload
+; CHECK-NEXT:    cincoffset sp, sp, 32
 ; CHECK-NEXT:    cret
+entry:
   tail call void (i32, ...) @varargs(i32 1, ptr addrspace(200) null)
   ret void
 }

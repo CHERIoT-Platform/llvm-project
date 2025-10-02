@@ -598,16 +598,16 @@ bool RISCVAsmPrinter::runOnMachineFunction(MachineFunction &MF) {
   // switcher will zero all of the ones above this.
   auto countUsedArgRegisters = [](auto const &MF) -> int {
     static constexpr int ArgRegCount = 7;
-    static const MCPhysReg ArgGPCRsE[ArgRegCount] = {
-        RISCV::C10, RISCV::C11, RISCV::C12, RISCV::C13,
-        RISCV::C14, RISCV::C15, RISCV::C5};
+    static const MCPhysReg ArgYGPRsE[ArgRegCount] = {
+        RISCV::X10_Y, RISCV::X11_Y, RISCV::X12_Y, RISCV::X13_Y,
+        RISCV::X14_Y, RISCV::X15_Y, RISCV::X5_Y};
     auto LiveIns = MF.getRegInfo().liveins();
     auto *TRI = MF.getRegInfo().getTargetRegisterInfo();
     int NumArgRegs = 0;
     for (auto LI : LiveIns)
       for (int i = 0; i < ArgRegCount; i++)
-        if ((ArgGPCRsE[i] == LI.first) ||
-            TRI->isSubRegister(ArgGPCRsE[i], LI.first)) {
+        if ((ArgYGPRsE[i] == LI.first) ||
+            TRI->isSubRegister(ArgYGPRsE[i], LI.first)) {
           NumArgRegs = std::max(NumArgRegs, i + 1);
           break;
         }

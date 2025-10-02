@@ -8,7 +8,7 @@
 define %struct.foo addrspace(200)* @fold_geps(i64 %arg1, %struct.foo addrspace(200)* %arg2) nounwind {
 ; CHECK-LABEL: fold_geps:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    cincoffset ca0, ca1, -32
+; CHECK-NEXT:    cincoffset a0, a1, -32
 ; CHECK-NEXT:    cret
 entry:
   %mul = mul nsw i64 0, %arg1
@@ -20,7 +20,7 @@ entry:
 define %struct.foo addrspace(200)* @fold_geps2(i64 %a, i64 %b, %struct.foo addrspace(200)* %ptr) nounwind {
 ; CHECK-LABEL: fold_geps2:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    cincoffset ca0, ca2, -32
+; CHECK-NEXT:    cincoffset a0, a2, -32
 ; CHECK-NEXT:    cret
 entry:
   %zero = sub i64 %a, %a  ; Use a fold that does not return SDValue(N, 0)
@@ -35,8 +35,8 @@ define %struct.foo addrspace(200)* @cannot_fold(i64 %arg1, %struct.foo addrspace
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:    mul a0, a0, a0
 ; CHECK-NEXT:    slli a0, a0, 5
-; CHECK-NEXT:    cincoffset ca0, ca1, a0
-; CHECK-NEXT:    cincoffset ca0, ca0, -32
+; CHECK-NEXT:    cincoffset a0, a1, a0
+; CHECK-NEXT:    cincoffset a0, a0, -32
 ; CHECK-NEXT:    cret
 entry:
   %mul = mul i64 %arg1, %arg1
@@ -50,8 +50,8 @@ define i8 addrspace(200)* @cannot_fold_2(i64 %arg1, i8 addrspace(200)* %ptr) nou
 ; CHECK-LABEL: cannot_fold_2:
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:    neg a0, a0
-; CHECK-NEXT:    cincoffset ca0, ca1, a0
-; CHECK-NEXT:    cincoffset ca0, ca0, 304
+; CHECK-NEXT:    cincoffset a0, a1, a0
+; CHECK-NEXT:    cincoffset a0, a0, 304
 ; CHECK-NEXT:    cret
 entry:
   %sub = sub i64 0, %arg1
@@ -72,14 +72,14 @@ define i8 addrspace(200)* @reassociated_node_reuses_other_node(i64 %arg1, %struc
 ; CHECK-LABEL: reassociated_node_reuses_other_node:
 ; CHECK:       # %bb.0: # %bb
 ; CHECK-NEXT:    slli a0, a0, 5
-; CHECK-NEXT:    clc ca2, 0(ca1)
+; CHECK-NEXT:    clc a2, 0(a1)
 ; CHECK-NEXT:    addi a3, a0, 16
-; CHECK-NEXT:    cincoffset ca3, ca1, a3
-; CHECK-NEXT:    csc cnull, 0(ca3)
-; CHECK-NEXT:    cincoffset ca0, ca1, a0
-; CHECK-NEXT:    csc ca2, 0(ca0)
-; CHECK-NEXT:    clc ca1, 16(ca1)
-; CHECK-NEXT:    csc ca1, 16(ca0)
+; CHECK-NEXT:    cincoffset a3, a1, a3
+; CHECK-NEXT:    csc zero, 0(a3)
+; CHECK-NEXT:    cincoffset a0, a1, a0
+; CHECK-NEXT:    csc a2, 0(a0)
+; CHECK-NEXT:    clc a1, 16(a1)
+; CHECK-NEXT:    csc a1, 16(a0)
 ; CHECK-NEXT:    cret
 bb:
   %dst0 = getelementptr inbounds %struct.bar, %struct.bar addrspace(200)* %arg2, i64 %arg1, i32 0

@@ -6,7 +6,7 @@ target triple = "riscv32cheriot-unknown-cheriotrtos"
 define ptr addrspace(200) @foo(ptr addrspace(200) %cap, i32 noundef %b) addrspace(200) {
 ; CHECK-LABEL: foo:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    csetboundsrounddown ca0, ca0, a1
+; CHECK-NEXT:    csetboundsrounddown a0, a0, a1
 ; CHECK-NEXT:    cret
 entry:
   %0 = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.round.down.i32(ptr addrspace(200) %cap, i32 %b)

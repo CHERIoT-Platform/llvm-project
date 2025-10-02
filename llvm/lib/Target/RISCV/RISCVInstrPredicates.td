@@ -48,9 +48,9 @@ def isSelectPseudo
     : TIIPredicate<
           "isSelectPseudo",
           MCReturnStatement<CheckOpcode<
-              [Select_GPR_Using_CC_GPR, Select_GPCR_Using_CC_GPR,
+              [Select_GPR_Using_CC_GPR, Select_YGPR_Using_CC_GPR,
                Select_GPR_Using_CC_Imm5_Zibi,
-               Select_GPCR_f64_Using_CC_GPR, Select_GPR_Using_CC_SImm5_CV,
+               Select_YGPR_f64_Using_CC_GPR, Select_GPR_Using_CC_SImm5_CV,
                Select_GPRNoX0_Using_CC_SImm5NonZero_QC,
                Select_GPRNoX0_Using_CC_UImm5NonZero_QC,
                Select_GPRNoX0_Using_CC_SImm16NonZero_QC,

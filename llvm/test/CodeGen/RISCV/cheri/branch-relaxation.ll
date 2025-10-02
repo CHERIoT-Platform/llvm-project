@@ -34,11 +34,11 @@ tail:
 define i32 @relax_cjal(i1 %a) nounwind {
 ; CHECK-LABEL: relax_cjal:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    cincoffset csp, csp, -16
+; CHECK-NEXT:    cincoffset sp, sp, -16
 ; CHECK-NEXT:    andi a0, a0, 1
 ; CHECK-NEXT:    bnez a0, .LBB1_1
 ; CHECK-NEXT:  # %bb.4:
-; CHECK-NEXT:    cjump .LBB1_2, ca0
+; CHECK-NEXT:    cjump .LBB1_2, a0
 ; CHECK-NEXT:  .LBB1_1: # %iftrue
 ; CHECK-NEXT:    #APP
 ; CHECK-NEXT:    #NO_APP
@@ -51,7 +51,7 @@ define i32 @relax_cjal(i1 %a) nounwind {
 ; CHECK-NEXT:    #NO_APP
 ; CHECK-NEXT:  .LBB1_3: # %tail
 ; CHECK-NEXT:    li a0, 1
-; CHECK-NEXT:    cincoffset csp, csp, 16
+; CHECK-NEXT:    cincoffset sp, sp, 16
 ; CHECK-NEXT:    cret
   br i1 %a, label %iftrue, label %jmp
 

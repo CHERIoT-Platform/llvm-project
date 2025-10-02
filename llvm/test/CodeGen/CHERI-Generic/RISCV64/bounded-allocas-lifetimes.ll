@@ -12,13 +12,13 @@ declare void @use(i8 addrspace(200)*)
 define void @static_alloca() {
   ; CHECK-LABEL: name: static_alloca
   ; CHECK: bb.0 (%ir-block.0):
-  ; CHECK-NEXT:   [[CIncOffsetImm:%[0-9]+]]:gpcr = CIncOffsetImm %stack.0, 0
-  ; CHECK-NEXT:   [[CSetBoundsImm:%[0-9]+]]:gpcr = CSetBoundsImm killed [[CIncOffsetImm]], 4
+  ; CHECK-NEXT:   [[CIncOffsetImm:%[0-9]+]]:ygpr = CIncOffsetImm %stack.0, 0
+  ; CHECK-NEXT:   [[CSetBoundsImm:%[0-9]+]]:ygpr = CSetBoundsImm killed [[CIncOffsetImm]], 4
   ; CHECK-NEXT:   LIFETIME_START %stack.0
-  ; CHECK-NEXT:   ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $c2, implicit $c2
-  ; CHECK-NEXT:   $c10 = COPY [[CSetBoundsImm]]
-  ; CHECK-NEXT:   PseudoCCALL target-flags(riscv-ccall) @use, csr_il32pc64d_l64pc128d, implicit-def dead $c1, implicit $c10, implicit-def $c2
-  ; CHECK-NEXT:   ADJCALLSTACKUPCAP 0, 0, implicit-def dead $c2, implicit $c2
+  ; CHECK-NEXT:   ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
+  ; CHECK-NEXT:   $x10_y = COPY [[CSetBoundsImm]]
+  ; CHECK-NEXT:   PseudoCCALL target-flags(riscv-ccall) @use, csr_il32pc64d_l64pc128d, implicit-def dead $x1_y, implicit $x10_y, implicit-def $x2_y
+  ; CHECK-NEXT:   ADJCALLSTACKUPCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
   ; CHECK-NEXT:   LIFETIME_END %stack.0
   ; CHECK-NEXT:   PseudoCRET
   %1 = alloca i32, align 4, addrspace(200)
@@ -37,8 +37,8 @@ define void @dynamic_alloca(i64 zeroext %n) {
   ; CHECK-NEXT:   liveins: $x10
   ; CHECK-NEXT: {{  $}}
   ; CHECK-NEXT:   [[COPY:%[0-9]+]]:gpr = COPY $x10
-  ; CHECK-NEXT:   ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $c2, implicit $c2
-  ; CHECK-NEXT:   [[COPY1:%[0-9]+]]:gpcr = COPY $c2
+  ; CHECK-NEXT:   ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
+  ; CHECK-NEXT:   [[COPY1:%[0-9]+]]:ygpr = COPY $x2_y
   ; CHECK-NEXT:   [[PseudoCGetAddr:%[0-9]+]]:gpr = PseudoCGetAddr [[COPY1]]
   ; CHECK-NEXT:   [[SLLI:%[0-9]+]]:gpr = SLLI [[COPY]], 2
   ; CHECK-NEXT:   [[ADDI:%[0-9]+]]:gpr = nuw ADDI [[SLLI]], 15
@@ -47,15 +47,15 @@ define void @dynamic_alloca(i64 zeroext %n) {
   ; CHECK-NEXT:   [[SUB:%[0-9]+]]:gpr = SUB killed [[PseudoCGetAddr]], [[CRRL]]
   ; CHECK-NEXT:   [[CRAM:%[0-9]+]]:gpr = CRAM [[ANDI]]
   ; CHECK-NEXT:   [[AND:%[0-9]+]]:gpr = AND killed [[SUB]], killed [[CRAM]]
-  ; CHECK-NEXT:   [[CSetAddr:%[0-9]+]]:gpcr = CSetAddr [[COPY1]], killed [[AND]]
-  ; CHECK-NEXT:   [[CSetBounds:%[0-9]+]]:gpcr = CSetBounds [[CSetAddr]], [[CRRL]]
-  ; CHECK-NEXT:   $c2 = COPY [[CSetAddr]]
-  ; CHECK-NEXT:   ADJCALLSTACKUPCAP 0, 0, implicit-def dead $c2, implicit $c2
-  ; CHECK-NEXT:   [[CSetBounds1:%[0-9]+]]:gpcr = CSetBounds killed [[CSetBounds]], [[SLLI]]
-  ; CHECK-NEXT:   ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $c2, implicit $c2
-  ; CHECK-NEXT:   $c10 = COPY [[CSetBounds1]]
-  ; CHECK-NEXT:   PseudoCCALL target-flags(riscv-ccall) @use, csr_il32pc64d_l64pc128d, implicit-def dead $c1, implicit $c10, implicit-def $c2
-  ; CHECK-NEXT:   ADJCALLSTACKUPCAP 0, 0, implicit-def dead $c2, implicit $c2
+  ; CHECK-NEXT:   [[CSetAddr:%[0-9]+]]:ygpr = CSetAddr [[COPY1]], killed [[AND]]
+  ; CHECK-NEXT:   [[CSetBounds:%[0-9]+]]:ygpr = CSetBounds [[CSetAddr]], [[CRRL]]
+  ; CHECK-NEXT:   $x2_y = COPY [[CSetAddr]]
+  ; CHECK-NEXT:   ADJCALLSTACKUPCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
+  ; CHECK-NEXT:   [[CSetBounds1:%[0-9]+]]:ygpr = CSetBounds killed [[CSetBounds]], [[SLLI]]
+  ; CHECK-NEXT:   ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
+  ; CHECK-NEXT:   $x10_y = COPY [[CSetBounds1]]
+  ; CHECK-NEXT:   PseudoCCALL target-flags(riscv-ccall) @use, csr_il32pc64d_l64pc128d, implicit-def dead $x1_y, implicit $x10_y, implicit-def $x2_y
+  ; CHECK-NEXT:   ADJCALLSTACKUPCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
   ; CHECK-NEXT:   PseudoCRET
   %1 = alloca i32, i64 %n, align 4, addrspace(200)
   %2 = bitcast i32 addrspace(200)* %1 to i8 addrspace(200)*

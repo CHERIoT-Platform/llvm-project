@@ -8,7 +8,7 @@ define dso_local cheriot_compartmentcalleecc void @_Z9usesStackv() addrspace(200
 ; CHECK-LABEL: _Z9usesStackv
 ; Make sure that the stack is what we expect.  If this changes, we need to
 ; update the number in the export table below.
-; CHECK: cincoffset      csp, csp, -48
+; CHECK: cincoffset      sp, sp, -48
 entry:
   %x = alloca [8 x i32], align 4, addrspace(200)
   %arraydecay = getelementptr inbounds [8 x i32], [8 x i32] addrspace(200)* %x, i32 0, i32 0
@@ -22,7 +22,7 @@ declare dso_local void @foo(i8 addrspace(200)*) addrspace(200) #1
 ; Function Attrs: noinline nounwind optnone
 ; CHECK-LABEL: _Z11usesNoStackv
 ; Make sure we don't allocate anything on the stack here.
-; CHECK-NOT: csp
+; CHECK-NOT: sp
 define dso_local cheriot_compartmentcalleecc void @_Z11usesNoStackv() addrspace(200) #0 {
 entry:
   ret void
@@ -35,7 +35,7 @@ define dso_local cheriot_compartmentcalleecc void @_Z13usesHugeStackv() addrspac
 ; if this changes to another large value.
 ; CHECK: lui a0, 1048574
 ; CHECK-NEXT: addi a0, a0, 192
-; CHECK-NEXT: cincoffset csp, csp, a0
+; CHECK-NEXT: cincoffset sp, sp, a0
 entry:
   %x = alloca [2048 x i32], align 4, addrspace(200)
   %arraydecay = getelementptr inbounds [2048 x i32], [2048 x i32] addrspace(200)* %x, i32 0, i32 0

@@ -56,9 +56,10 @@ static_assert(RISCV::V31 == RISCV::V0 + 31, "Register list not consecutive");
 
 RISCVRegisterInfo::RISCVRegisterInfo(const RISCVSubtarget &STI)
     : RISCVGenRegisterInfo(RISCVABI::isCheriPureCapABI(STI.getTargetABI())
-                               ? RISCV::C1 : RISCV::X1,
-                           /*DwarfFlavour*/0, /*EHFlavor*/0,
-                           /*PC*/0, STI.getHwMode()) {}
+                               ? RISCV::X1_Y
+                               : RISCV::X1,
+                           /*DwarfFlavour*/ 0, /*EHFlavor*/ 0,
+                           /*PC*/ 0, STI.getHwMode()) {}
 
 const MCPhysReg *
 RISCVRegisterInfo::getIPRACSRegs(const MachineFunction *MF) const {
@@ -171,15 +172,15 @@ BitVector RISCVRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   if (TFI->hasBP(MF))
     markSuperRegs(Reserved, RISCV::X9); // bp
 
-  markSuperRegs(Reserved, RISCV::C0); // cnull
-  markSuperRegs(Reserved, RISCV::C2); // csp
-  markSuperRegs(Reserved, RISCV::C3); // cgp
+  markSuperRegs(Reserved, RISCV::X0_Y); // cnull
+  markSuperRegs(Reserved, RISCV::X2_Y); // csp
+  markSuperRegs(Reserved, RISCV::X3_Y); // cgp
   if (STI.getTargetABI() != RISCVABI::ABI_CHERIOT && STI.getTargetABI() != RISCVABI::ABI_CHERIOT_BAREMETAL)
-    markSuperRegs(Reserved, RISCV::C4); // ctp
+    markSuperRegs(Reserved, RISCV::X4_Y); // ctp
   if (TFI->hasFP(MF))
-    markSuperRegs(Reserved, RISCV::C8); // cfp
+    markSuperRegs(Reserved, RISCV::X8_Y); // cfp
   if (TFI->hasBP(MF))
-    markSuperRegs(Reserved, RISCV::C9); // cbp
+    markSuperRegs(Reserved, RISCV::X9_Y); // cbp
 
   markSuperRegs(Reserved, RISCV::DDC);
 
@@ -605,7 +606,7 @@ bool RISCVRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     if (MI.getOpcode() == RISCV::ADDI || MI.getOpcode() == RISCV::CIncOffsetImm)
       DestReg = MI.getOperand(0).getReg();
     else if (RISCVABI::isCheriPureCapABI(ST.getTargetABI()))
-      DestReg = MRI.createVirtualRegister(&RISCV::GPCRRegClass);
+      DestReg = MRI.createVirtualRegister(&RISCV::YGPRRegClass);
     else
       DestReg = MRI.createVirtualRegister(&RISCV::GPRRegClass);
     adjustReg(*II->getParent(), II, DL, DestReg, FrameReg, Offset,
@@ -705,8 +706,8 @@ bool RISCVRegisterInfo::needsFrameBaseReg(MachineInstr *MI,
 
       if (RISCV::GPRRegClass.contains(Reg))
         CalleeSavedSize += getSpillSize(RISCV::GPRRegClass);
-       if (RISCV::GPCRRegClass.contains(Reg))
-        CalleeSavedSize += getSpillSize(RISCV::GPCRRegClass);
+      if (RISCV::YGPRRegClass.contains(Reg))
+        CalleeSavedSize += getSpillSize(RISCV::YGPRRegClass);
       else if (RISCV::FPR64RegClass.contains(Reg))
         CalleeSavedSize += getSpillSize(RISCV::FPR64RegClass);
       else if (RISCV::FPR32RegClass.contains(Reg))
@@ -762,7 +763,7 @@ Register RISCVRegisterInfo::materializeFrameBaseRegister(MachineBasicBlock *MBB,
   Register BaseReg;
   if (RISCVABI::isCheriPureCapABI(ST.getTargetABI())) {
     Opc = RISCV::CIncOffsetImm;
-    BaseReg = MFI.createVirtualRegister(&RISCV::GPCRRegClass);
+    BaseReg = MFI.createVirtualRegister(&RISCV::YGPRRegClass);
   } else {
     Opc = RISCV::ADDI;
     BaseReg = MFI.createVirtualRegister(&RISCV::GPRRegClass);

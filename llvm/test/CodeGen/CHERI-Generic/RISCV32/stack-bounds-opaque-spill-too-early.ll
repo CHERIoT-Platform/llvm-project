@@ -34,19 +34,19 @@ declare void @cheribsdtest_check_cap_eq(ptr addrspace(200) noundef, ptr addrspac
 define dso_local void @lazy_bind_args() addrspace(200) nounwind {
 ; ASM-LABEL: lazy_bind_args:
 ; ASM:       # %bb.0: # %entry
-; ASM-NEXT:    cincoffset csp, csp, -16
-; ASM-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
-; ASM-NEXT:    cincoffset ca0, csp, 0
-; ASM-NEXT:    csetbounds ca0, ca0, 8
-; ASM-NEXT:    csc ca0, 0(csp)
+; ASM-NEXT:    cincoffset sp, sp, -16
+; ASM-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; ASM-NEXT:    cincoffset a0, sp, 0
+; ASM-NEXT:    csetbounds a0, a0, 8
+; ASM-NEXT:    csc a0, 0(sp)
 ; ASM-NEXT:    ccall cheribsdtest_dynamic_identity_cap
-; ASM-NEXT:    clc ca1, 0(csp)
-; ASM-NEXT:    cmove ca2, ca0
-; ASM-NEXT:    cmove ca0, ca1
-; ASM-NEXT:    cmove ca1, ca2
+; ASM-NEXT:    clc a1, 0(sp)
+; ASM-NEXT:    cmove a2, a0
+; ASM-NEXT:    cmove a0, a1
+; ASM-NEXT:    cmove a1, a2
 ; ASM-NEXT:    ccall cheribsdtest_check_cap_eq
-; ASM-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; ASM-NEXT:    cincoffset csp, csp, 16
+; ASM-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; ASM-NEXT:    cincoffset sp, sp, 16
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define dso_local void @lazy_bind_args
 ; CHECK-SAME: () addrspace(200) #[[ATTR2:[0-9]+]] {

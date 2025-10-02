@@ -26,33 +26,33 @@
 
 define i32 @loadstore(i32 addrspace(200)* %intptrarg, i8 addrspace(200)* addrspace(200)* %ptrptrarg) addrspace(200) #0 {
 ; CHECK-LABEL: <loadstore>:
-; CHECK-NEXT:    c.cincoffset16csp csp, -0x20
-; CHECK-NEXT:    c.clw a2, 0x0(ca0)
+; CHECK-NEXT:    c.cincoffset16csp sp, -0x20
+; CHECK-NEXT:    c.clw a2, 0x0(a0)
 ; CHECK-NEXT:    c.li a3, 0x1
-; CHECK-NEXT:    c.csw a3, 0x0(ca0)
-; CHECK-NEXT:    c.clc ca0, 0x0(ca1)
-; CHECK-NEXT:    c.csc ca0, 0x0(ca1)
-; CHECK-NEXT:    c.csccsp ca0, 0x10(csp)
-; CHECK-NEXT:    c.clccsp ca0, 0x10(csp)
-; CHECK-NEXT:    c.cswcsp a2, 0x0(csp)
-; CHECK-NEXT:    clw zero, 0x0(csp)
+; CHECK-NEXT:    c.csw a3, 0x0(a0)
+; CHECK-NEXT:    c.clc a0, 0x0(a1)
+; CHECK-NEXT:    c.csc a0, 0x0(a1)
+; CHECK-NEXT:    c.csccsp a0, 0x10(sp)
+; CHECK-NEXT:    c.clccsp a0, 0x10(sp)
+; CHECK-NEXT:    c.cswcsp a2, 0x0(sp)
+; CHECK-NEXT:    clw zero, 0x0(sp)
 ; CHECK-NEXT:    c.mv a0, a2
-; CHECK-NEXT:    c.cincoffset16csp csp, 0x20
-; CHECK-NEXT:    c.cjr cra
+; CHECK-NEXT:    c.cincoffset16csp sp, 0x20
+; CHECK-NEXT:    c.cjr ra
 ; CHECK-NORVC-LABEL: <loadstore>:
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset csp, csp, -0x20
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}clw a2, 0x0(ca0)
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset sp, sp, -0x20
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}clw a2, 0x0(a0)
 ; CHECK-NORVC-NEXT:  {{[^a-z.]}}c.li a3, 0x1
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}csw a3, 0x0(ca0)
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}clc ca0, 0x0(ca1)
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}csc ca0, 0x0(ca1)
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}csc ca0, 0x10(csp)
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}clc ca0, 0x10(csp)
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}csw a2, 0x0(csp)
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}clw zero, 0x0(csp)
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}csw a3, 0x0(a0)
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}clc a0, 0x0(a1)
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}csc a0, 0x0(a1)
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}csc a0, 0x10(sp)
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}clc a0, 0x10(sp)
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}csw a2, 0x0(sp)
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}clw zero, 0x0(sp)
 ; CHECK-NORVC-NEXT:  {{[^a-z.]}}c.mv a0, a2
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset csp, csp, 0x20
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}cjalr cnull, 0x0(cra)
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset sp, sp, 0x20
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}cjalr zero, 0x0(ra)
   %stackptr = alloca i8 addrspace(200)*, align 16, addrspace(200)
   %stackint = alloca i32, align 16, addrspace(200)
   %val = load volatile i32, i32 addrspace(200)* %intptrarg
@@ -69,33 +69,33 @@ define i32 @loadstore(i32 addrspace(200)* %intptrarg, i8 addrspace(200)* addrspa
 ;; NB: No c.cjalr here, linker relaxations expect the full sequence.
 define i32 @call() addrspace(200) #0 {
 ; CHECK-LABEL: <call>:
-; CHECK-NEXT:    c.cincoffset16csp csp, -{{0x70|0x90}}
-; CHECK-NEXT:    c.csccsp cra, {{0x68|0x80}}(csp)
-; CHECK-NEXT:    c.cincoffset4cspn ca0, csp, 0x40
-; CHECK-NEXT:    cincoffset ca1, csp, 0x0
-; CHECK-NEXT:    csetbounds ca0, ca0, {{0x20|0x40}}
-; CHECK-NEXT:    csetbounds ca2, ca1, 0x40
-; CHECK-NEXT:    cincoffset ca1, ca0, {{0x18|0x30}}
-; CHECK-NEXT:    cincoffset ca0, ca2, 0xc
-; CHECK-NEXT:    auipcc cra, 0x0
-; CHECK-NEXT:    cjalr cra, 0x0(cra)
-; CHECK-NEXT:    c.clccsp cra, {{0x68|0x80}}(csp)
-; CHECK-NEXT:    c.cincoffset16csp csp, {{0x70|0x90}}
-; CHECK-NEXT:    c.cjr cra
+; CHECK-NEXT:    c.cincoffset16csp sp, -{{0x70|0x90}}
+; CHECK-NEXT:    c.csccsp ra, {{0x68|0x80}}(sp)
+; CHECK-NEXT:    c.cincoffset4cspn a0, sp, 0x40
+; CHECK-NEXT:    cincoffset a1, sp, 0x0
+; CHECK-NEXT:    csetbounds a0, a0, {{0x20|0x40}}
+; CHECK-NEXT:    csetbounds a2, a1, 0x40
+; CHECK-NEXT:    cincoffset a1, a0, {{0x18|0x30}}
+; CHECK-NEXT:    cincoffset a0, a2, 0xc
+; CHECK-NEXT:    auipcc ra, 0x0
+; CHECK-NEXT:    cjalr ra, 0x0(ra)
+; CHECK-NEXT:    c.clccsp ra, {{0x68|0x80}}(sp)
+; CHECK-NEXT:    c.cincoffset16csp sp, {{0x70|0x90}}
+; CHECK-NEXT:    c.cjr ra
 ; CHECK-NORVC-LABEL: <call>:
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset csp, csp, -0x90
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}csc cra, 0x80(csp)
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset ca0, csp, 0x40
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset ca1, csp, 0x0
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}csetbounds ca0, ca0, 0x40
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}csetbounds ca2, ca1, 0x40
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset ca1, ca0, 0x30
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset ca0, ca2, 0xc
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}auipcc cra, 0x0
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}cjalr cra, 0x0(cra)
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}clc cra, 0x80(csp)
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset csp, csp, 0x90
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}cjalr cnull, 0x0(cra)
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset sp, sp, -0x90
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}csc ra, 0x80(sp)
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset a0, sp, 0x40
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset a1, sp, 0x0
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}csetbounds a0, a0, 0x40
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}csetbounds a2, a1, 0x40
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset a1, a0, 0x30
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset a0, a2, 0xc
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}auipcc ra, 0x0
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}cjalr ra, 0x0(ra)
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}clc ra, 0x80(sp)
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset sp, sp, 0x90
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}cjalr zero, 0x0(ra)
 
   %ptrarray = alloca [4 x i8 addrspace(200)*], align 16, addrspace(200)
   %intarray = alloca [16 x i32], align 1, addrspace(200)

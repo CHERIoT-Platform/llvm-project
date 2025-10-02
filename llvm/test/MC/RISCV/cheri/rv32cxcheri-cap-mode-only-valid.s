@@ -6,28 +6,28 @@
 
 ## Different encoding between RV64 and RV32 (see rv64cxcheri-cap-mode-only-valid.s)
 
-# CHECK-ASM-AND-OBJ: c.clccsp cra, 40(csp)
+# CHECK-ASM-AND-OBJ: c.clccsp ra, 40(sp)
 # CHECK-ASM-SAME: encoding: [0xa2,0x70]
 c.clccsp cra, 40(csp)
-# CHECK-ASM-AND-OBJ: c.clccsp cra, 40(csp)
+# CHECK-ASM-AND-OBJ: c.clccsp ra, 40(sp)
 # CHECK-ASM-SAME: encoding: [0xa2,0x70]
 c.lcsp cra, 40(csp)
-# CHECK-ASM-AND-OBJ: c.csccsp cra, 256(csp)
+# CHECK-ASM-AND-OBJ: c.csccsp ra, 256(sp)
 # CHECK-ASM-SAME: encoding: [0x06,0xe2]
 c.csccsp cra, 256(csp)
-# CHECK-ASM-AND-OBJ: c.csccsp cra, 256(csp)
+# CHECK-ASM-AND-OBJ: c.csccsp ra, 256(sp)
 # CHECK-ASM-SAME: encoding: [0x06,0xe2]
 c.scsp cra, 256(csp)
-# CHECK-ASM-AND-OBJ: c.clc ca2, 16(ca0)
+# CHECK-ASM-AND-OBJ: c.clc a2, 16(a0)
 # CHECK-ASM-SAME: encoding: [0x10,0x69]
 c.clc ca2, 16(ca0)
-# CHECK-ASM-AND-OBJ: c.clc ca2, 16(ca0)
+# CHECK-ASM-AND-OBJ: c.clc a2, 16(a0)
 # CHECK-ASM-SAME: encoding: [0x10,0x69]
 c.lc ca2, 16(ca0)
-# CHECK-ASM-AND-OBJ: c.csc ca5, 128(ca3)
+# CHECK-ASM-AND-OBJ: c.csc a5, 128(a3)
 # CHECK-ASM-SAME: encoding: [0xdc,0xe2]
 c.csc ca5, 128(ca3)
-# CHECK-ASM-AND-OBJ: c.csc ca5, 128(ca3)
+# CHECK-ASM-AND-OBJ: c.csc a5, 128(a3)
 # CHECK-ASM-SAME: encoding: [0xdc,0xe2]
 c.sc ca5, 128(ca3)
 

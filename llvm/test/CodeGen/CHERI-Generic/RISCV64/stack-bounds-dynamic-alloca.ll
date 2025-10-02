@@ -19,8 +19,8 @@ declare i32 @use_alloca(ptr addrspace(200)) local_unnamed_addr addrspace(200)
 define i32 @alloca_in_entry(i1 %arg) local_unnamed_addr addrspace(200) nounwind {
 ; ASM-LABEL: alloca_in_entry:
 ; ASM:       # %bb.0: # %entry
-; ASM-NEXT:    cincoffset csp, csp, -32
-; ASM-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
+; ASM-NEXT:    cincoffset sp, sp, -32
+; ASM-NEXT:    csc ra, 16(sp) # 16-byte Folded Spill
 ; ASM-NEXT:    mv a1, a0
 ; ASM-NEXT:    andi a0, a1, 1
 ; ASM-NEXT:    beqz a0, .LBB0_4
@@ -29,17 +29,17 @@ define i32 @alloca_in_entry(i1 %arg) local_unnamed_addr addrspace(200) nounwind 
 ; ASM-NEXT:    j .LBB0_2
 ; ASM-NEXT:  .LBB0_2: # %use_alloca_no_bounds
 ; ASM-NEXT:    li a0, 1234
-; ASM-NEXT:    csd a0, 8(csp)
+; ASM-NEXT:    csd a0, 8(sp)
 ; ASM-NEXT:    j .LBB0_3
 ; ASM-NEXT:  .LBB0_3: # %use_alloca_need_bounds
-; ASM-NEXT:    cincoffset ca0, csp, 0
-; ASM-NEXT:    csetbounds ca0, ca0, 16
+; ASM-NEXT:    cincoffset a0, sp, 0
+; ASM-NEXT:    csetbounds a0, a0, 16
 ; ASM-NEXT:    ccall use_alloca
 ; ASM-NEXT:    j .LBB0_4
 ; ASM-NEXT:  .LBB0_4: # %exit
 ; ASM-NEXT:    li a0, 123
-; ASM-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
-; ASM-NEXT:    cincoffset csp, csp, 32
+; ASM-NEXT:    clc ra, 16(sp) # 16-byte Folded Reload
+; ASM-NEXT:    cincoffset sp, sp, 32
 ; ASM-NEXT:    cret
 ;
 ; ASM-OPT-LABEL: alloca_in_entry:
@@ -47,15 +47,15 @@ define i32 @alloca_in_entry(i1 %arg) local_unnamed_addr addrspace(200) nounwind 
 ; ASM-OPT-NEXT:    andi a0, a0, 1
 ; ASM-OPT-NEXT:    beqz a0, .LBB0_2
 ; ASM-OPT-NEXT:  # %bb.1: # %do_alloca
-; ASM-OPT-NEXT:    cincoffset csp, csp, -32
-; ASM-OPT-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
+; ASM-OPT-NEXT:    cincoffset sp, sp, -32
+; ASM-OPT-NEXT:    csc ra, 16(sp) # 16-byte Folded Spill
 ; ASM-OPT-NEXT:    li a0, 1234
-; ASM-OPT-NEXT:    csd a0, 8(csp)
-; ASM-OPT-NEXT:    cincoffset ca0, csp, 0
-; ASM-OPT-NEXT:    csetbounds ca0, ca0, 16
+; ASM-OPT-NEXT:    csd a0, 8(sp)
+; ASM-OPT-NEXT:    cincoffset a0, sp, 0
+; ASM-OPT-NEXT:    csetbounds a0, a0, 16
 ; ASM-OPT-NEXT:    ccall use_alloca
-; ASM-OPT-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
-; ASM-OPT-NEXT:    cincoffset csp, csp, 32
+; ASM-OPT-NEXT:    clc ra, 16(sp) # 16-byte Folded Reload
+; ASM-OPT-NEXT:    cincoffset sp, sp, 32
 ; ASM-OPT-NEXT:  .LBB0_2: # %exit
 ; ASM-OPT-NEXT:    li a0, 123
 ; ASM-OPT-NEXT:    cret
@@ -102,40 +102,40 @@ exit:                                             ; preds = %use_alloca_need_bou
 define i32 @alloca_not_in_entry(i1 %arg) local_unnamed_addr addrspace(200) nounwind {
 ; ASM-LABEL: alloca_not_in_entry:
 ; ASM:       # %bb.0: # %entry
-; ASM-NEXT:    cincoffset csp, csp, -64
-; ASM-NEXT:    csc cra, 48(csp) # 16-byte Folded Spill
-; ASM-NEXT:    csc cs0, 32(csp) # 16-byte Folded Spill
-; ASM-NEXT:    cincoffset cs0, csp, 64
+; ASM-NEXT:    cincoffset sp, sp, -64
+; ASM-NEXT:    csc ra, 48(sp) # 16-byte Folded Spill
+; ASM-NEXT:    csc s0, 32(sp) # 16-byte Folded Spill
+; ASM-NEXT:    cincoffset s0, sp, 64
 ; ASM-NEXT:    mv a1, a0
 ; ASM-NEXT:    andi a0, a1, 1
 ; ASM-NEXT:    beqz a0, .LBB1_4
 ; ASM-NEXT:    j .LBB1_1
 ; ASM-NEXT:  .LBB1_1: # %do_alloca
-; ASM-NEXT:    cmove ca0, csp
+; ASM-NEXT:    cmove a0, sp
 ; ASM-NEXT:    mv a1, a0
 ; ASM-NEXT:    addi a1, a1, -16
-; ASM-NEXT:    csetaddr ca1, ca0, a1
-; ASM-NEXT:    csetbounds ca0, ca1, 16
-; ASM-NEXT:    csc ca0, -64(cs0) # 16-byte Folded Spill
-; ASM-NEXT:    cmove csp, ca1
-; ASM-NEXT:    csetbounds ca0, ca0, 16
-; ASM-NEXT:    csc ca0, -48(cs0) # 16-byte Folded Spill
+; ASM-NEXT:    csetaddr a1, a0, a1
+; ASM-NEXT:    csetbounds a0, a1, 16
+; ASM-NEXT:    csc a0, -64(s0) # 16-byte Folded Spill
+; ASM-NEXT:    cmove sp, a1
+; ASM-NEXT:    csetbounds a0, a0, 16
+; ASM-NEXT:    csc a0, -48(s0) # 16-byte Folded Spill
 ; ASM-NEXT:    j .LBB1_2
 ; ASM-NEXT:  .LBB1_2: # %use_alloca_no_bounds
-; ASM-NEXT:    clc ca1, -64(cs0) # 16-byte Folded Reload
+; ASM-NEXT:    clc a1, -64(s0) # 16-byte Folded Reload
 ; ASM-NEXT:    li a0, 1234
-; ASM-NEXT:    csd a0, 8(ca1)
+; ASM-NEXT:    csd a0, 8(a1)
 ; ASM-NEXT:    j .LBB1_3
 ; ASM-NEXT:  .LBB1_3: # %use_alloca_need_bounds
-; ASM-NEXT:    clc ca0, -48(cs0) # 16-byte Folded Reload
+; ASM-NEXT:    clc a0, -48(s0) # 16-byte Folded Reload
 ; ASM-NEXT:    ccall use_alloca
 ; ASM-NEXT:    j .LBB1_4
 ; ASM-NEXT:  .LBB1_4: # %exit
 ; ASM-NEXT:    li a0, 123
-; ASM-NEXT:    cincoffset csp, cs0, -64
-; ASM-NEXT:    clc cra, 48(csp) # 16-byte Folded Reload
-; ASM-NEXT:    clc cs0, 32(csp) # 16-byte Folded Reload
-; ASM-NEXT:    cincoffset csp, csp, 64
+; ASM-NEXT:    cincoffset sp, s0, -64
+; ASM-NEXT:    clc ra, 48(sp) # 16-byte Folded Reload
+; ASM-NEXT:    clc s0, 32(sp) # 16-byte Folded Reload
+; ASM-NEXT:    cincoffset sp, sp, 64
 ; ASM-NEXT:    cret
 ;
 ; ASM-OPT-LABEL: alloca_not_in_entry:
@@ -143,22 +143,22 @@ define i32 @alloca_not_in_entry(i1 %arg) local_unnamed_addr addrspace(200) nounw
 ; ASM-OPT-NEXT:    andi a0, a0, 1
 ; ASM-OPT-NEXT:    beqz a0, .LBB1_2
 ; ASM-OPT-NEXT:  # %bb.1: # %do_alloca
-; ASM-OPT-NEXT:    cincoffset csp, csp, -32
-; ASM-OPT-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
-; ASM-OPT-NEXT:    csc cs0, 0(csp) # 16-byte Folded Spill
-; ASM-OPT-NEXT:    cincoffset cs0, csp, 32
+; ASM-OPT-NEXT:    cincoffset sp, sp, -32
+; ASM-OPT-NEXT:    csc ra, 16(sp) # 16-byte Folded Spill
+; ASM-OPT-NEXT:    csc s0, 0(sp) # 16-byte Folded Spill
+; ASM-OPT-NEXT:    cincoffset s0, sp, 32
 ; ASM-OPT-NEXT:    addi a0, sp, -16
-; ASM-OPT-NEXT:    csetaddr ca0, csp, a0
-; ASM-OPT-NEXT:    csetbounds ca1, ca0, 16
-; ASM-OPT-NEXT:    cmove csp, ca0
-; ASM-OPT-NEXT:    csetbounds ca0, ca1, 16
+; ASM-OPT-NEXT:    csetaddr a0, sp, a0
+; ASM-OPT-NEXT:    csetbounds a1, a0, 16
+; ASM-OPT-NEXT:    cmove sp, a0
+; ASM-OPT-NEXT:    csetbounds a0, a1, 16
 ; ASM-OPT-NEXT:    li a2, 1234
-; ASM-OPT-NEXT:    csd a2, 8(ca1)
+; ASM-OPT-NEXT:    csd a2, 8(a1)
 ; ASM-OPT-NEXT:    ccall use_alloca
-; ASM-OPT-NEXT:    cincoffset csp, cs0, -32
-; ASM-OPT-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
-; ASM-OPT-NEXT:    clc cs0, 0(csp) # 16-byte Folded Reload
-; ASM-OPT-NEXT:    cincoffset csp, csp, 32
+; ASM-OPT-NEXT:    cincoffset sp, s0, -32
+; ASM-OPT-NEXT:    clc ra, 16(sp) # 16-byte Folded Reload
+; ASM-OPT-NEXT:    clc s0, 0(sp) # 16-byte Folded Reload
+; ASM-OPT-NEXT:    cincoffset sp, sp, 32
 ; ASM-OPT-NEXT:  .LBB1_2: # %exit
 ; ASM-OPT-NEXT:    li a0, 123
 ; ASM-OPT-NEXT:    cret
@@ -204,65 +204,65 @@ exit:                                             ; preds = %use_alloca_need_bou
 
 ; The original reduced test case from libc/gen/exec.c
 ; We can't use llvm.cheri.bounded.stack.cap.i64 here, since that only works for static allocas:
-define i32 @crash_reproducer(i1 %arg) local_unnamed_addr addrspace(200) nounwind {
-; ASM-LABEL: crash_reproducer:
+define i32 @rash_reproducer(i1 %arg) local_unnamed_addr addrspace(200) nounwind {
+; ASM-LABEL: rash_reproducer:
 ; ASM:       # %bb.0: # %entry
-; ASM-NEXT:    cincoffset csp, csp, -64
-; ASM-NEXT:    csc cra, 48(csp) # 16-byte Folded Spill
-; ASM-NEXT:    csc cs0, 32(csp) # 16-byte Folded Spill
-; ASM-NEXT:    cincoffset cs0, csp, 64
+; ASM-NEXT:    cincoffset sp, sp, -64
+; ASM-NEXT:    csc ra, 48(sp) # 16-byte Folded Spill
+; ASM-NEXT:    csc s0, 32(sp) # 16-byte Folded Spill
+; ASM-NEXT:    cincoffset s0, sp, 64
 ; ASM-NEXT:    mv a1, a0
 ; ASM-NEXT:    andi a0, a1, 1
 ; ASM-NEXT:    beqz a0, .LBB2_2
 ; ASM-NEXT:    j .LBB2_1
 ; ASM-NEXT:  .LBB2_1: # %entry.while.end_crit_edge
 ; ASM-NEXT:  .LBB2_2: # %while.body
-; ASM-NEXT:    cmove ca0, csp
+; ASM-NEXT:    cmove a0, sp
 ; ASM-NEXT:    mv a1, a0
 ; ASM-NEXT:    addi a1, a1, -16
-; ASM-NEXT:    csetaddr ca1, ca0, a1
-; ASM-NEXT:    csetbounds ca0, ca1, 16
-; ASM-NEXT:    cmove csp, ca1
-; ASM-NEXT:    csetbounds ca0, ca0, 16
-; ASM-NEXT:    csc ca0, -48(cs0) # 16-byte Folded Spill
+; ASM-NEXT:    csetaddr a1, a0, a1
+; ASM-NEXT:    csetbounds a0, a1, 16
+; ASM-NEXT:    cmove sp, a1
+; ASM-NEXT:    csetbounds a0, a0, 16
+; ASM-NEXT:    csc a0, -48(s0) # 16-byte Folded Spill
 ; ASM-NEXT:    j .LBB2_3
 ; ASM-NEXT:  .LBB2_3: # %while.end.loopexit
-; ASM-NEXT:    clc ca0, -48(cs0) # 16-byte Folded Reload
-; ASM-NEXT:    csc ca0, -64(cs0) # 16-byte Folded Spill
+; ASM-NEXT:    clc a0, -48(s0) # 16-byte Folded Reload
+; ASM-NEXT:    csc a0, -64(s0) # 16-byte Folded Spill
 ; ASM-NEXT:    j .LBB2_4
 ; ASM-NEXT:  .LBB2_4: # %while.end
-; ASM-NEXT:    clc ca0, -64(cs0) # 16-byte Folded Reload
+; ASM-NEXT:    clc a0, -64(s0) # 16-byte Folded Reload
 ; ASM-NEXT:    ccall use_alloca
 ; ASM-NEXT:    addiw a0, a0, 1234
-; ASM-NEXT:    cincoffset csp, cs0, -64
-; ASM-NEXT:    clc cra, 48(csp) # 16-byte Folded Reload
-; ASM-NEXT:    clc cs0, 32(csp) # 16-byte Folded Reload
-; ASM-NEXT:    cincoffset csp, csp, 64
+; ASM-NEXT:    cincoffset sp, s0, -64
+; ASM-NEXT:    clc ra, 48(sp) # 16-byte Folded Reload
+; ASM-NEXT:    clc s0, 32(sp) # 16-byte Folded Reload
+; ASM-NEXT:    cincoffset sp, sp, 64
 ; ASM-NEXT:    cret
 ;
-; ASM-OPT-LABEL: crash_reproducer:
+; ASM-OPT-LABEL: rash_reproducer:
 ; ASM-OPT:       # %bb.0: # %entry
 ; ASM-OPT-NEXT:    andi a0, a0, 1
 ; ASM-OPT-NEXT:    bnez a0, .LBB2_2
 ; ASM-OPT-NEXT:  # %bb.1: # %while.body
-; ASM-OPT-NEXT:    cincoffset csp, csp, -32
-; ASM-OPT-NEXT:    csc cra, 16(csp) # 16-byte Folded Spill
-; ASM-OPT-NEXT:    csc cs0, 0(csp) # 16-byte Folded Spill
-; ASM-OPT-NEXT:    cincoffset cs0, csp, 32
+; ASM-OPT-NEXT:    cincoffset sp, sp, -32
+; ASM-OPT-NEXT:    csc ra, 16(sp) # 16-byte Folded Spill
+; ASM-OPT-NEXT:    csc s0, 0(sp) # 16-byte Folded Spill
+; ASM-OPT-NEXT:    cincoffset s0, sp, 32
 ; ASM-OPT-NEXT:    addi a0, sp, -16
-; ASM-OPT-NEXT:    csetaddr ca0, csp, a0
-; ASM-OPT-NEXT:    csetbounds ca1, ca0, 16
-; ASM-OPT-NEXT:    cmove csp, ca0
-; ASM-OPT-NEXT:    csetbounds ca0, ca1, 16
+; ASM-OPT-NEXT:    csetaddr a0, sp, a0
+; ASM-OPT-NEXT:    csetbounds a1, a0, 16
+; ASM-OPT-NEXT:    cmove sp, a0
+; ASM-OPT-NEXT:    csetbounds a0, a1, 16
 ; ASM-OPT-NEXT:    ccall use_alloca
 ; ASM-OPT-NEXT:    addiw a0, a0, 1234
-; ASM-OPT-NEXT:    cincoffset csp, cs0, -32
-; ASM-OPT-NEXT:    clc cra, 16(csp) # 16-byte Folded Reload
-; ASM-OPT-NEXT:    clc cs0, 0(csp) # 16-byte Folded Reload
-; ASM-OPT-NEXT:    cincoffset csp, csp, 32
+; ASM-OPT-NEXT:    cincoffset sp, s0, -32
+; ASM-OPT-NEXT:    clc ra, 16(sp) # 16-byte Folded Reload
+; ASM-OPT-NEXT:    clc s0, 0(sp) # 16-byte Folded Reload
+; ASM-OPT-NEXT:    cincoffset sp, sp, 32
 ; ASM-OPT-NEXT:    cret
 ; ASM-OPT-NEXT:  .LBB2_2: # %entry.while.end_crit_edge
-; CHECK-LABEL: define i32 @crash_reproducer
+; CHECK-LABEL: define i32 @rash_reproducer
 ; CHECK-SAME: (i1 [[ARG:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR1]] {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    br i1 [[ARG]], label [[ENTRY_WHILE_END_CRIT_EDGE:%.*]], label [[WHILE_BODY:%.*]]

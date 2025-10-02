@@ -4,7 +4,7 @@
 define i32 @test1(i8 addrspace(200)* %cap) nounwind {
 ; CHECK-LABEL: test1:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    ct.cgetbase a1, ca0
+; CHECK-NEXT:    ct.cgetbase a1, a0
 ; CHECK-NEXT:    sub a0, a0, a1
 ; CHECK-NEXT:    ct.cret
   %newcap = call i32 @llvm.cheri.cap.offset.get.i32(i8 addrspace(200)* %cap)

@@ -19,7 +19,7 @@ entry:
 define dso_local noundef double @_Z6test02dd(double noundef %a, double noundef returned %b) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: _Z6test02dd:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.cmove ca0, ca1
+; CHECK-NEXT:    ct.cmove a0, a1
 ; CHECK-NEXT:    ct.cret
 entry:
   ret double %b
@@ -29,7 +29,7 @@ entry:
 define dso_local noundef double @_Z6test03Pd(ptr addrspace(200) nocapture noundef readonly %a) local_unnamed_addr addrspace(200) #1 {
 ; CHECK-LABEL: _Z6test03Pd:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.clc ca0, 0(ca0)
+; CHECK-NEXT:    ct.clc a0, 0(a0)
 ; CHECK-NEXT:    ct.cret
 entry:
   %0 = load double, ptr addrspace(200) %a, align 8, !tbaa !6
@@ -41,7 +41,7 @@ define dso_local noundef double @_Z6test04v() local_unnamed_addr addrspace(200) 
 ; CHECK-LABEL: _Z6test04v:
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:    lui a0, 261888
-; CHECK-NEXT:    ct.csethigh ca0, cnull, a0
+; CHECK-NEXT:    ct.csethigh a0, zero, a0
 ; CHECK-NEXT:    ct.cret
 entry:
   ret double 1.000000e+00
@@ -51,17 +51,17 @@ entry:
 define dso_local noundef double @_Z6test05d(double noundef %a) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: _Z6test05d:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    lui a1, 261888
-; CHECK-NEXT:    ct.csethigh ca1, cnull, a1
+; CHECK-NEXT:    ct.csethigh a1, zero, a1
 ; CHECK-NEXT:  .LBB4_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB4_1)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB4_1)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 entry:
   %add = fadd double %a, 1.000000e+00
@@ -72,16 +72,16 @@ entry:
 define dso_local noundef double @_Z6test06d(double noundef %a) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: _Z6test06d:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    ct.cmove ca1, cnull
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cmove a1, zero
 ; CHECK-NEXT:  .LBB5_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB5_1)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB5_1)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 entry:
   %add = fadd double %a, 0.000000e+00
@@ -92,16 +92,16 @@ entry:
 define dso_local noundef double @_Z6test07dd(double noundef %a, double noundef %b) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: _Z6test07dd:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    ct.cmove ca1, cnull
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cmove a1, zero
 ; CHECK-NEXT:  .LBB6_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB6_1)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB6_1)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 entry:
   %add = fadd double %a, 0.000000e+00
@@ -112,21 +112,21 @@ entry:
 define dso_local void @_Z6test08dPd(double noundef %a, ptr addrspace(200) nocapture noundef writeonly initializes((0, 8)) %b) local_unnamed_addr addrspace(200) #2 {
 ; CHECK-LABEL: _Z6test08dPd:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    ct.csc cs0, 0(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    ct.cmove cs0, ca1
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc s0, 0(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cmove s0, a1
 ; CHECK-NEXT:    lui a1, 261888
-; CHECK-NEXT:    ct.csethigh ca1, cnull, a1
+; CHECK-NEXT:    ct.csethigh a1, zero, a1
 ; CHECK-NEXT:  .LBB7_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB7_1)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.csc ca0, 0(cs0)
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.clc cs0, 0(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB7_1)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.csc a0, 0(s0)
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc s0, 0(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 entry:
   %add = fadd double %a, 1.000000e+00
@@ -138,7 +138,7 @@ entry:
 define dso_local void @_Z6test09dPd(double noundef %a, ptr addrspace(200) nocapture noundef writeonly initializes((8, 16)) %b) local_unnamed_addr addrspace(200) #2 {
 ; CHECK-LABEL: _Z6test09dPd:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.csc ca0, 8(ca1)
+; CHECK-NEXT:    ct.csc a0, 8(a1)
 ; CHECK-NEXT:    ct.cret
 entry:
   %arrayidx = getelementptr inbounds nuw i8, ptr addrspace(200) %b, i32 8
@@ -150,15 +150,15 @@ entry:
 define dso_local noundef double @_Z6test10dd(double noundef %a, double noundef %b) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: _Z6test10dd:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:  .LBB9_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___subdf3)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB9_1)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___subdf3)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB9_1)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 entry:
   %sub = fsub double %a, %b
@@ -169,15 +169,15 @@ entry:
 define dso_local noundef double @_Z6test11dd(double noundef %a, double noundef %b) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: _Z6test11dd:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:  .LBB10_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___muldf3)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB10_1)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___muldf3)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB10_1)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 entry:
   %mul = fmul double %a, %b
@@ -188,15 +188,15 @@ entry:
 define dso_local noundef double @_Z6test12dd(double noundef %a, double noundef %b) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: _Z6test12dd:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:  .LBB11_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___divdf3)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB11_1)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___divdf3)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB11_1)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 entry:
   %div = fdiv double %a, %b
@@ -207,26 +207,26 @@ entry:
 define dso_local noundef double @_Z6test1310TwoDoubles(ptr addrspace(200) nocapture noundef readonly %in) local_unnamed_addr addrspace(200) #1 {
 ; CHECK-LABEL: _Z6test1310TwoDoubles:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    ct.csc cs0, 0(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    ct.clc cs0, 0(ca0)
-; CHECK-NEXT:    ct.clc ca0, 8(ca0)
-; CHECK-NEXT:    ct.cmove ca1, ca0
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc s0, 0(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.clc s0, 0(a0)
+; CHECK-NEXT:    ct.clc a0, 8(a0)
+; CHECK-NEXT:    ct.cmove a1, a0
 ; CHECK-NEXT:  .LBB12_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB12_1)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.cmove ca1, cs0
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB12_1)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.cmove a1, s0
 ; CHECK-NEXT:  .LBB12_2: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB12_2)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.clc cs0, 0(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB12_2)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc s0, 0(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 entry:
   %0 = load double, ptr addrspace(200) %in, align 8, !tbaa !10
@@ -243,10 +243,10 @@ declare double @llvm.fmuladd.f64(double, double, double) addrspace(200) #3
 define dso_local void @_Z6test13d(ptr addrspace(200) dead_on_unwind noalias nocapture writable writeonly sret(%struct.TwoDoubles) align 8 initializes((0, 16)) %agg.result, double noundef %a) local_unnamed_addr addrspace(200) #2 {
 ; CHECK-LABEL: _Z6test13d:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.csc ca1, 0(ca0)
+; CHECK-NEXT:    ct.csc a1, 0(a0)
 ; CHECK-NEXT:    lui a1, 262272
-; CHECK-NEXT:    ct.csw a1, 12(ca0)
-; CHECK-NEXT:    ct.csw zero, 8(ca0)
+; CHECK-NEXT:    ct.csw a1, 12(a0)
+; CHECK-NEXT:    ct.csw zero, 8(a0)
 ; CHECK-NEXT:    ct.cret
 entry:
   store double %a, ptr addrspace(200) %agg.result, align 8, !tbaa !10
@@ -260,9 +260,9 @@ define dso_local void @_Z6test14d(ptr addrspace(200) dead_on_unwind noalias noca
 ; CHECK-LABEL: _Z6test14d:
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:    lui a2, 262464
-; CHECK-NEXT:    ct.csw zero, 0(ca0)
-; CHECK-NEXT:    ct.csw a2, 4(ca0)
-; CHECK-NEXT:    ct.csc ca1, 8(ca0)
+; CHECK-NEXT:    ct.csw zero, 0(a0)
+; CHECK-NEXT:    ct.csw a2, 4(a0)
+; CHECK-NEXT:    ct.csc a1, 8(a0)
 ; CHECK-NEXT:    ct.cret
 entry:
   store double 5.000000e+00, ptr addrspace(200) %agg.result, align 8, !tbaa !10
@@ -275,15 +275,15 @@ entry:
 define dso_local noundef double @_Z6test15(i32 noundef %a) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: _Z6test15:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:  .LBB15_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___floatunsidf)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB15_1)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___floatunsidf)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB15_1)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 entry:
   %b = uitofp i32 %a to double
@@ -294,15 +294,15 @@ entry:
 define dso_local noundef double @float2double(float noundef %x) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: float2double:
 ; CHECK:       # %bb.0: # %start
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:  .LBB16_1: # %start
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___extendsfdf2)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB16_1)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___extendsfdf2)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB16_1)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 start:
   %a = fpext float %x to double
@@ -312,15 +312,15 @@ start:
 define dso_local noundef float @double2float(double noundef %x) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: double2float:
 ; CHECK:       # %bb.0: # %start
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:  .LBB17_1: # %start
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___truncdfsf2)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB17_1)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___truncdfsf2)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB17_1)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 start:
   %a = fptrunc double %x to float
@@ -330,27 +330,27 @@ start:
 define dso_local noundef double @select_on_int(double noundef %x, double noundef %y, i64 noundef %z) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: select_on_int:
 ; CHECK:       # %bb.0: # %start
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    ct.csc cs0, 0(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc s0, 0(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    slti s0, a3, 0
 ; CHECK-NEXT:  .LBB18_4: # %start
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___ltdf2)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB18_4)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___ltdf2)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB18_4)(t2)
+; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    slti a0, a0, 0
 ; CHECK-NEXT:    bne s0, a0, .LBB18_2
 ; CHECK-NEXT:  # %bb.1: # %start
-; CHECK-NEXT:    ct.cmove ca0, cnull
+; CHECK-NEXT:    ct.cmove a0, zero
 ; CHECK-NEXT:    j .LBB18_3
 ; CHECK-NEXT:  .LBB18_2:
 ; CHECK-NEXT:    lui a0, 261888
-; CHECK-NEXT:    ct.csethigh ca0, cnull, a0
+; CHECK-NEXT:    ct.csethigh a0, zero, a0
 ; CHECK-NEXT:  .LBB18_3: # %start
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.clc cs0, 0(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc s0, 0(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 start:
   %a = icmp slt i64 %z, 0
@@ -363,20 +363,20 @@ start:
 define dso_local void @trunc_store(ptr addrspace(200) noundef writeonly captures(none) initializes((0, 4)) %a, double noundef %b) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: trunc_store:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    ct.csc cs0, 0(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    ct.cmove cs0, ca0
-; CHECK-NEXT:    ct.cmove ca0, ca1
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc s0, 0(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cmove s0, a0
+; CHECK-NEXT:    ct.cmove a0, a1
 ; CHECK-NEXT:  .LBB19_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___truncdfsf2)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB19_1)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.csw a0, 0(cs0)
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.clc cs0, 0(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___truncdfsf2)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB19_1)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.csw a0, 0(s0)
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc s0, 0(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 entry:
   %conv = fptrunc double %b to float
@@ -387,20 +387,20 @@ entry:
 define dso_local void @ext_store(ptr addrspace(200) noundef writeonly captures(none) initializes((0, 8)) %a, float noundef %b) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: ext_store:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    ct.csc cs0, 0(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    ct.cmove cs0, ca0
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc s0, 0(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cmove s0, a0
 ; CHECK-NEXT:    mv a0, a1
 ; CHECK-NEXT:  .LBB20_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___extendsfdf2)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB20_1)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.csc ca0, 0(cs0)
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.clc cs0, 0(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___extendsfdf2)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB20_1)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.csc a0, 0(s0)
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc s0, 0(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 entry:
   %conv = fpext float %b to double
@@ -411,21 +411,21 @@ entry:
 define dso_local void @load_ext_store(ptr addrspace(200) noundef writeonly captures(none) initializes((0, 8)) %a, ptr addrspace(200) noundef readonly captures(none) %b) local_unnamed_addr addrspace(200) #1 {
 ; CHECK-LABEL: load_ext_store:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    ct.csc cs0, 0(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    ct.clw a1, 0(ca1)
-; CHECK-NEXT:    ct.cmove cs0, ca0
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc s0, 0(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.clw a1, 0(a1)
+; CHECK-NEXT:    ct.cmove s0, a0
 ; CHECK-NEXT:    mv a0, a1
 ; CHECK-NEXT:  .LBB21_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___extendsfdf2)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB21_1)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.csc ca0, 0(cs0)
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.clc cs0, 0(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___extendsfdf2)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB21_1)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.csc a0, 0(s0)
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc s0, 0(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 entry:
   %0 = load float, ptr addrspace(200) %b, align 4, !tbaa !6
@@ -437,20 +437,20 @@ entry:
 define dso_local void @load_trunc_store(ptr addrspace(200) noundef readonly captures(none) %a, ptr addrspace(200) noundef writeonly captures(none) initializes((0, 4)) %b) local_unnamed_addr addrspace(200) #1 {
 ; CHECK-LABEL: load_trunc_store:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.cincoffset csp, csp, -16
-; CHECK-NEXT:    ct.csc cra, 8(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    ct.csc cs0, 0(csp) # 8-byte Folded Spill
-; CHECK-NEXT:    ct.clc ca0, 0(ca0)
-; CHECK-NEXT:    ct.cmove cs0, ca1
+; CHECK-NEXT:    ct.cincoffset sp, sp, -16
+; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc s0, 0(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.clc a0, 0(a0)
+; CHECK-NEXT:    ct.cmove s0, a1
 ; CHECK-NEXT:  .LBB22_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc ct2, %cheriot_compartment_hi(__library_import_libcalls___truncdfsf2)
-; CHECK-NEXT:    ct.clc ct2, %cheriot_compartment_lo_i(.LBB22_1)(ct2)
-; CHECK-NEXT:    ct.cjalr ct2
-; CHECK-NEXT:    ct.csw a0, 0(cs0)
-; CHECK-NEXT:    ct.clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.clc cs0, 0(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset csp, csp, 16
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___truncdfsf2)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB22_1)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.csw a0, 0(s0)
+; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc s0, 0(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 16
 ; CHECK-NEXT:    ct.cret
 entry:
   %0 = load double, ptr addrspace(200) %a, align 8, !tbaa !10

@@ -10,12 +10,12 @@
 	.p2align	1
 	.type	_start,@function
 _start:                              # @_Z5entryv
-	ct.auipcc	ct1, %cheriot_compartment_hi(near)
-	ct.auipcc	ct1, %cheriot_compartment_hi(mid)
+	ct.auipcc	t1, %cheriot_compartment_hi(near)
+	ct.auipcc	t1, %cheriot_compartment_hi(mid)
 
 # CHECK:        00012000 <_start>:
-# CHECK-NEXT:   12000: 00000317      ct.auipcc       ct1, 0x0
-# CHECK-NEXT:   12004: 00001317      ct.auipcc       ct1, 0x1
+# CHECK-NEXT:   12000: 00000317      ct.auipcc       t1, 0x0
+# CHECK-NEXT:   12004: 00001317      ct.auipcc       t1, 0x1
 
 	.type	near,@object
 	.p2align	3, 0x0

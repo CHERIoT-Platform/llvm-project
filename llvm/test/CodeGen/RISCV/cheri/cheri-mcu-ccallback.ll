@@ -11,16 +11,16 @@ define dso_local void @call_callback(i32 (i8 addrspace(200)*) addrspace(200)* no
 entry:
 ; Make sure that calling the callback has a sensible call sequence:
 ; CHECK-LABEL: call_callback:
-; Allocate 42 bytes of stack storage and store it in ca0
-; CHECK: cincoffset      ca0, csp,
-; CHECK: csetbounds      ca0, ca0, 42
+; Allocate 42 bytes of stack storage and store it in a0
+; CHECK: cincoffset      a0, sp,
+; CHECK: csetbounds      a0, a0, 42
 ; Move the argument register to the compartment switcher target
 ; TODO: We should be able to avoid the double move here.
-; CHECK: cmove   ct1
-; Load the compartment switcher into $ct2 and jump there
-; CHECK: auipcc  ct2, %cheriot_compartment_hi(.compartment_switcher)
-; CHECK: clc     ct2, %cheriot_compartment_lo_i(.LBB0_1)(ct2)
-; CHECK: cjalr   ct2
+; CHECK: cmove   t1
+; Load the compartment switcher into $t2 and jump there
+; CHECK: auipcc  t2, %cheriot_compartment_hi(.compartment_switcher)
+; CHECK: clc     t2, %cheriot_compartment_lo_i(.LBB0_1)(t2)
+; CHECK: cjalr   t2
   %buf = alloca [42 x i8], align 1, addrspace(200)
   %0 = getelementptr inbounds [42 x i8], [42 x i8] addrspace(200)* %buf, i32 0, i32 0
   %call = notail call cheriot_compartmentcallcc i32 %cb(i8 addrspace(200)* nonnull %0) #4
@@ -39,13 +39,13 @@ entry:
 ; CHECK-LABEL: pass_callback:
 ; Check that this call is loading the import table entry, not the function
 ; address
-; CHECK:         auipcc  ca0, %cheriot_compartment_hi(__import_comp_cb)
-; CHECK:         clc     ca0, %cheriot_compartment_lo_i(.LBB1_1)(ca0)
+; CHECK:         auipcc  a0, %cheriot_compartment_hi(__import_comp_cb)
+; CHECK:         clc     a0, %cheriot_compartment_lo_i(.LBB1_1)(a0)
 ; And make sure that it's really jumping to the right function.
 ; CHECK: ccall   take_callback
   call void @take_callback(i32 (i8 addrspace(200)*) addrspace(200)* nonnull @cb) #4
-; CHECK:         auipcc  ca0, %cheriot_compartment_hi(__import_comp_ecb)
-; CHECK:         clc     ca0, %cheriot_compartment_lo_i
+; CHECK:         auipcc  a0, %cheriot_compartment_hi(__import_comp_ecb)
+; CHECK:         clc     a0, %cheriot_compartment_lo_i
 ; CHECK: ccall   take_callback
   call void @take_callback(i32 (i8 addrspace(200)*) addrspace(200)* nonnull @ecb) #4
   ret void

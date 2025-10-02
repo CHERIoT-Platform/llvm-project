@@ -11,21 +11,21 @@ define dso_local cheriot_compartmentcalleecc i32 @_Z2swi(i32 noundef %v) local_u
 ; CHECK-NEXT:    li a1, 8
 ; CHECK-NEXT:    bltu a1, a0, .LBB0_13
 ; CHECK-NEXT:  # %bb.1: # %entry
-; CHECK-NEXT:    cincoffset csp, csp, -16
-; CHECK-NEXT:    csc cra, 8(csp) # 8-byte Folded Spill
+; CHECK-NEXT:    cincoffset sp, sp, -16
+; CHECK-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    slli a0, a0, 2
 ; CHECK-NEXT:  .LBB0_14: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc ca1, %cheriot_compartment_hi(.LJTI0_0)
-; CHECK-NEXT:    cincoffset ca1, ca1, %cheriot_compartment_lo_i(.LBB0_14)
-; CHECK-NEXT:    cincoffset ca0, ca1, a0
-; CHECK-NEXT:    clw a0, 0(ca0)
+; CHECK-NEXT:    auipcc a1, %cheriot_compartment_hi(.LJTI0_0)
+; CHECK-NEXT:    cincoffset a1, a1, %cheriot_compartment_lo_i(.LBB0_14)
+; CHECK-NEXT:    cincoffset a0, a1, a0
+; CHECK-NEXT:    clw a0, 0(a0)
 ; CHECK-NEXT:  .LBB0_15: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc ca1, %cheriot_compartment_hi(.L_Z2swi$jump_table_base)
-; CHECK-NEXT:    cincoffset ca1, ca1, %cheriot_compartment_lo_i(.LBB0_15)
-; CHECK-NEXT:    cincoffset ca0, ca1, a0
-; CHECK-NEXT:    cjr ca0
+; CHECK-NEXT:    auipcc a1, %cheriot_compartment_hi(.L_Z2swi$jump_table_base)
+; CHECK-NEXT:    cincoffset a1, a1, %cheriot_compartment_lo_i(.LBB0_15)
+; CHECK-NEXT:    cincoffset a0, a1, a0
+; CHECK-NEXT:    cjr a0
 ; CHECK-NEXT:  .LBB0_2: # %sw.bb
 ; CHECK-NEXT:    ccall a
 ; CHECK-NEXT:    j .LBB0_11
@@ -54,8 +54,8 @@ define dso_local cheriot_compartmentcalleecc i32 @_Z2swi(i32 noundef %v) local_u
 ; CHECK-NEXT:    ccall i
 ; CHECK-NEXT:  .LBB0_11:
 ; CHECK-NEXT:    addi a0, a0, 12
-; CHECK-NEXT:    clc cra, 8(csp) # 8-byte Folded Reload
-; CHECK-NEXT:    cincoffset csp, csp, 16
+; CHECK-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    cincoffset sp, sp, 16
 ; CHECK-NEXT:  .LBB0_12: # %sw.epilog
 ; CHECK-NEXT:    slli a0, a0, 1
 ; CHECK-NEXT:    li a1, 0

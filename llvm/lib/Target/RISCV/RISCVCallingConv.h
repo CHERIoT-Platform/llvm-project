@@ -38,7 +38,7 @@ bool CC_RISCV_GHC(unsigned ValNo, MVT ValVT, MVT LocVT,
 namespace RISCV {
 
 ArrayRef<MCPhysReg> getArgGPRs(const RISCVABI::ABI ABI);
-ArrayRef<MCPhysReg> getArgGPCRs(const RISCVABI::ABI ABI);
+ArrayRef<MCPhysReg> getArgYGPRs(const RISCVABI::ABI ABI);
 
 } // end namespace RISCV
 

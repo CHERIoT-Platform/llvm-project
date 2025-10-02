@@ -1,11 +1,11 @@
 # RUN: not llvm-mc -triple riscv32 -mattr=+c,+xcheri,+xcheripurecap -filetype=null -riscv-no-aliases -show-encoding < %s 2>&1 \
-# RUN:     | FileCheck %s --check-prefixes=CHECK,CHECK-RV32,CHECK-RV32-C --implicit-check-not="error:"
+# RUN:     | FileCheck %s --check-prefixes=CHECK-RV32,CHECK-RV32-C --implicit-check-not="error:"
 # RUN: not llvm-mc -triple riscv32 -mattr=+xcheri,+xcheripurecap -filetype=null -riscv-no-aliases -show-encoding < %s 2>&1 \
-# RUN:     | FileCheck %s --check-prefixes=CHECK,CHECK-RV32,CHECK-RV32-NO-C --implicit-check-not="error:"
+# RUN:     | FileCheck %s --check-prefixes=CHECK-RV32,CHECK-RV32-NO-C --implicit-check-not="error:"
 # RUN: not llvm-mc -triple riscv64 -mattr=+c,+xcheri,+xcheripurecap -filetype=null -riscv-no-aliases -show-encoding < %s 2>&1\
-# RUN:     | FileCheck %s --check-prefixes=CHECK,CHECK-RV64-C --implicit-check-not="error:"
+# RUN:     | FileCheck %s --check-prefixes=CHECK-RV64-C --implicit-check-not="error:"
 # RUN: not llvm-mc -triple riscv64 -mattr=+xcheri,+xcheripurecap -filetype=null -riscv-no-aliases -show-encoding < %s 2>&1 \
-# RUN:     | FileCheck %s --check-prefixes=CHECK,CHECK-RV64-NO-C --implicit-check-not="error:"
+# RUN:     | FileCheck %s --check-prefixes=CHECK-RV64-NO-C --implicit-check-not="error:"
 
 ## C.JAL is only defined for RV32C:
 c.cjal 2046
@@ -28,21 +28,3 @@ c.csw a5, 1(ca3)
 # CHECK-RV64-C: <stdin>:[[#@LINE-4]]:11: error: immediate must be a multiple of 4 bytes in the range [0, 124]
 # TODO-RV64-NO-C: <stdin>:[[#@LINE-5]]:11: error: instruction requires the following: 'C' (Compressed Instructions){{$}}
 # CHECK-RV64-NO-C: <stdin>:[[#@LINE-6]]:11: error: invalid operand for instruction
-
-c.csw a5, 4(a3)
-# CHECK: <stdin>:[[#@LINE-1]]:13: error: invalid operand for instruction
-c.sw a5, 4(a3)
-# CHECK-RV32-NO-C: <stdin>:[[#@LINE-1]]:1: error: instruction requires the following: 'C' (Compressed Instructions) or 'Zca' (part of the C extension, excluding compressed floating point loads/stores), Not Capability Mode
-# CHECK-RV32-C: <stdin>:[[#@LINE-2]]:12: error: invalid operand for instruction
-# CHECK-RV64-NO-C: <stdin>:[[#@LINE-3]]:1: error: instruction requires the following: 'C' (Compressed Instructions) or 'Zca' (part of the C extension, excluding compressed floating point loads/stores), Not Capability Mode
-# CHECK-RV64-C: <stdin>:[[#@LINE-4]]:12: error: invalid operand for instruction
-
-# Bad operands:
-c.cjalr a1
-# CHECK: <stdin>:[[#@LINE-1]]:9: error: invalid operand for instruction
-c.cjr a1
-# CHECK: <stdin>:[[#@LINE-1]]:7: error: invalid operand for instruction
-c.csc a5, 16(ca3)
-# CHECK: <stdin>:[[#@LINE-1]]:7: error: invalid operand for instruction
-c.csc ca5, 16(a3)
-# CHECK: <stdin>:[[#@LINE-1]]:15: error: invalid operand for instruction

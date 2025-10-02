@@ -403,13 +403,13 @@ bool RISCVExpandPseudo::expandCompartmentCall(MachineBasicBlock &MBB,
 
   MF->insert(++MBB.getIterator(), NewMBB);
 
-  BuildMI(NewMBB, DL, TII->get(RISCV::AUIPCC), RISCV::C7)
+  BuildMI(NewMBB, DL, TII->get(RISCV::AUIPCC), RISCV::X7_Y)
       .addDisp(Switcher, 0, RISCVII::MO_CHERIOT_COMPARTMENT_HI);
-  BuildMI(NewMBB, DL, TII->get(RISCV::CLC_64), RISCV::C7)
-      .addReg(RISCV::C7, RegState::Kill)
+  BuildMI(NewMBB, DL, TII->get(RISCV::CLC_64), RISCV::X7_Y)
+      .addReg(RISCV::X7_Y, RegState::Kill)
       .addMBB(NewMBB, RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
   BuildMI(NewMBB, DL, TII->get(RISCV::C_CJALR))
-      .addReg(RISCV::C7, RegState::Kill);
+      .addReg(RISCV::X7_Y, RegState::Kill);
 
   // Move all the rest of the instructions to NewMBB.
   NewMBB->splice(NewMBB->end(), &MBB, std::next(MBBI), MBB.end());
@@ -424,11 +424,11 @@ bool RISCVExpandPseudo::expandCompartmentCall(MachineBasicBlock &MBB,
 
   if (Callee.isGlobal()) {
     auto *Fn = dyn_cast<Function>(resolveGlobalAlias(Callee.getGlobal()));
-    insertLoadOfImportTable(MBB, MBBI, Fn, RISCV::C6);
+    insertLoadOfImportTable(MBB, MBBI, Fn, RISCV::X6_Y);
   } else {
     assert(Callee.isReg() && "Expected register operand");
-    if (Callee.getReg() != RISCV::C6) {
-      BuildMI(&MBB, DL, TII->get(RISCV::CMove)).addReg(RISCV::C6).add(Callee);
+    if (Callee.getReg() != RISCV::X6_Y) {
+      BuildMI(&MBB, DL, TII->get(RISCV::CMove)).addReg(RISCV::X6_Y).add(Callee);
     }
   }
 
@@ -455,7 +455,7 @@ bool RISCVExpandPseudo::expandLibraryCall(
       MI.setDesc(TII->get(RISCV::PseudoCCALL));
       return true;
     }
-    insertLoadOfImportTable(MBB, MBBI, Fn, RISCV::C7, true, true);
+    insertLoadOfImportTable(MBB, MBBI, Fn, RISCV::X7_Y, true, true);
 
     NextMBBI = MBB.end();
   } else if (Callee.isSymbol()) {
@@ -485,7 +485,7 @@ bool RISCVExpandPseudo::expandLibraryCall(
     MCSymbol *ExportSymbol =
         MF->getContext().getOrCreateSymbol(ExportEntryName);
     insertLoadOfImportTable(MBB, MBBI, ImportSymbol, ExportSymbol,
-                            Callee.getSymbolName(), RISCV::C7, true, true,
+                            Callee.getSymbolName(), RISCV::X7_Y, true, true,
                             true);
 
     NextMBBI = MBB.end();

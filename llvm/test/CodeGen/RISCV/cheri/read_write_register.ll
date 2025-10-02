@@ -30,11 +30,11 @@ define void @set_tp(i64 %value) local_unnamed_addr #2 {
 ; FIXME: this is wrong, but is a bug upstream and not in CHERI clang (https://godbolt.org/z/WTYh5q)
 ; CHECK-L64PC128-LABEL: set_tp:
 ; CHECK-L64PC128:       # %bb.0: # %entry
-; CHECK-L64PC128-NEXT:    cincoffset csp, csp, -16
-; CHECK-L64PC128-NEXT:    csc ctp, 0(csp) # 16-byte Folded Spill
+; CHECK-L64PC128-NEXT:    cincoffset sp, sp, -16
+; CHECK-L64PC128-NEXT:    csc tp, 0(sp) # 16-byte Folded Spill
 ; CHECK-L64PC128-NEXT:    mv tp, a0
-; CHECK-L64PC128-NEXT:    clc ctp, 0(csp) # 16-byte Folded Reload
-; CHECK-L64PC128-NEXT:    cincoffset csp, csp, 16
+; CHECK-L64PC128-NEXT:    clc tp, 0(sp) # 16-byte Folded Reload
+; CHECK-L64PC128-NEXT:    cincoffset sp, sp, 16
 ; CHECK-L64PC128-NEXT:    cret
 ;
 ; CHECK-LP64-LABEL: set_tp:
@@ -53,12 +53,12 @@ declare void @llvm.write_register.i64(metadata, i64) #3
 define i8 addrspace(200)* @get_ctp() local_unnamed_addr #0 {
 ; CHECK-L64PC128-LABEL: get_ctp:
 ; CHECK-L64PC128:       # %bb.0: # %entry
-; CHECK-L64PC128-NEXT:    cmove ca0, ctp
+; CHECK-L64PC128-NEXT:    cmove a0, tp
 ; CHECK-L64PC128-NEXT:    cret
 ;
 ; CHECK-LP64-LABEL: get_ctp:
 ; CHECK-LP64:       # %bb.0: # %entry
-; CHECK-LP64-NEXT:    cmove ca0, ctp
+; CHECK-LP64-NEXT:    cmove a0, tp
 ; CHECK-LP64-NEXT:    ret
 entry:
   %0 = tail call i8 addrspace(200)* @llvm.read_register.p200i8(metadata !1)
@@ -73,16 +73,16 @@ define void @set_ctp(i8 addrspace(200)* %value) local_unnamed_addr #2 {
 ; FIXME: this is wrong, but is a bug upstream and not in CHERI clang (https://godbolt.org/z/WTYh5q)
 ; CHECK-L64PC128-LABEL: set_ctp:
 ; CHECK-L64PC128:       # %bb.0: # %entry
-; CHECK-L64PC128-NEXT:    cincoffset csp, csp, -16
-; CHECK-L64PC128-NEXT:    csc ctp, 0(csp) # 16-byte Folded Spill
-; CHECK-L64PC128-NEXT:    cmove ctp, ca0
-; CHECK-L64PC128-NEXT:    clc ctp, 0(csp) # 16-byte Folded Reload
-; CHECK-L64PC128-NEXT:    cincoffset csp, csp, 16
+; CHECK-L64PC128-NEXT:    cincoffset sp, sp, -16
+; CHECK-L64PC128-NEXT:    csc tp, 0(sp) # 16-byte Folded Spill
+; CHECK-L64PC128-NEXT:    cmove tp, a0
+; CHECK-L64PC128-NEXT:    clc tp, 0(sp) # 16-byte Folded Reload
+; CHECK-L64PC128-NEXT:    cincoffset sp, sp, 16
 ; CHECK-L64PC128-NEXT:    cret
 ;
 ; CHECK-LP64-LABEL: set_ctp:
 ; CHECK-LP64:       # %bb.0: # %entry
-; CHECK-LP64-NEXT:    cmove ctp, ca0
+; CHECK-LP64-NEXT:    cmove tp, a0
 ; CHECK-LP64-NEXT:    ret
 entry:
   tail call void @llvm.write_register.p200i8(metadata !1, i8 addrspace(200)* %value)
@@ -96,12 +96,12 @@ declare void @llvm.write_register.p200i8(metadata, i8 addrspace(200)*) #3
 define %struct.StackPtr addrspace(200)* @get_csp() local_unnamed_addr #0 {
 ; CHECK-L64PC128-LABEL: get_csp:
 ; CHECK-L64PC128:       # %bb.0: # %entry
-; CHECK-L64PC128-NEXT:    cmove ca0, csp
+; CHECK-L64PC128-NEXT:    cmove a0, sp
 ; CHECK-L64PC128-NEXT:    cret
 ;
 ; CHECK-LP64-LABEL: get_csp:
 ; CHECK-LP64:       # %bb.0: # %entry
-; CHECK-LP64-NEXT:    cmove ca0, csp
+; CHECK-LP64-NEXT:    cmove a0, sp
 ; CHECK-LP64-NEXT:    ret
 entry:
   %0 = tail call i8 addrspace(200)* @llvm.read_register.p200i8(metadata !2)
@@ -113,12 +113,12 @@ entry:
 define void @set_csp(%struct.StackPtr addrspace(200)* %value) local_unnamed_addr #2 {
 ; CHECK-L64PC128-LABEL: set_csp:
 ; CHECK-L64PC128:       # %bb.0: # %entry
-; CHECK-L64PC128-NEXT:    cmove csp, ca0
+; CHECK-L64PC128-NEXT:    cmove sp, a0
 ; CHECK-L64PC128-NEXT:    cret
 ;
 ; CHECK-LP64-LABEL: set_csp:
 ; CHECK-LP64:       # %bb.0: # %entry
-; CHECK-LP64-NEXT:    cmove csp, ca0
+; CHECK-LP64-NEXT:    cmove sp, a0
 ; CHECK-LP64-NEXT:    ret
 entry:
   %0 = bitcast %struct.StackPtr addrspace(200)* %value to i8 addrspace(200)*
@@ -151,16 +151,16 @@ define void @set_gp_addr(i64 %value) local_unnamed_addr #2 {
 ; FIXME: this is wrong, but is a bug upstream and not in CHERI clang (https://godbolt.org/z/WTYh5q)
 ; CHECK-L64PC128-LABEL: set_gp_addr:
 ; CHECK-L64PC128:       # %bb.0: # %entry
-; CHECK-L64PC128-NEXT:    cincoffset csp, csp, -16
-; CHECK-L64PC128-NEXT:    csc cgp, 0(csp) # 16-byte Folded Spill
-; CHECK-L64PC128-NEXT:    cincoffset cgp, cnull, a0
-; CHECK-L64PC128-NEXT:    clc cgp, 0(csp) # 16-byte Folded Reload
-; CHECK-L64PC128-NEXT:    cincoffset csp, csp, 16
+; CHECK-L64PC128-NEXT:    cincoffset sp, sp, -16
+; CHECK-L64PC128-NEXT:    csc gp, 0(sp) # 16-byte Folded Spill
+; CHECK-L64PC128-NEXT:    cincoffset gp, zero, a0
+; CHECK-L64PC128-NEXT:    clc gp, 0(sp) # 16-byte Folded Reload
+; CHECK-L64PC128-NEXT:    cincoffset sp, sp, 16
 ; CHECK-L64PC128-NEXT:    cret
 ;
 ; CHECK-LP64-LABEL: set_gp_addr:
 ; CHECK-LP64:       # %bb.0: # %entry
-; CHECK-LP64-NEXT:    cincoffset cgp, cnull, a0
+; CHECK-LP64-NEXT:    cincoffset gp, zero, a0
 ; CHECK-LP64-NEXT:    ret
 entry:
   %0 = getelementptr i8, i8 addrspace(200)* null, i64 %value

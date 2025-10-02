@@ -9,14 +9,14 @@ declare hidden noundef double @_Z7va_testPKcz(ptr addrspace(200) nocapture readn
 
 define hidden noundef double @_Z6helperv() local_unnamed_addr addrspace(200) {
 ; CHECK-LABEL: _Z6helperv:
-; CHECK-NOT: csw [.*], 4(csp)
+; CHECK-NOT: csw [.*], 4(sp)
 ; CHECK-DAG: lui [[R0:.*]], 261939
 ; CHECK-DAG: lui [[R1:.*]], 209715
 ; CHECK-DAG: addi [[R0]], [[R0]], 819
 ; CHECK-DAG: addi [[R1]], [[R1]], 819
-; CHECK-DAG: csw [[R0]], 12(csp)
-; CHECK-DAG: csw [[R1]], 8(csp)
-; CHECK-NOT: csw [.*], 4(csp)
+; CHECK-DAG: csw [[R0]], 12(sp)
+; CHECK-DAG: csw [[R1]], 8(sp)
+; CHECK-NOT: csw [.*], 4(sp)
 entry:
   %call = tail call noundef double (ptr addrspace(200), ...) @_Z7va_testPKcz(ptr addrspace(200) nonnull poison, i32 noundef 0, double noundef 1.200000e+00)
   ret double %call

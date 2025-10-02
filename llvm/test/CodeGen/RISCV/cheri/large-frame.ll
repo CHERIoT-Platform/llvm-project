@@ -7,38 +7,38 @@
 define dso_local void @bar() addrspace(200) nounwind {
 ; RV32IXCHERI-IL32PC64-LABEL: bar:
 ; RV32IXCHERI-IL32PC64:       # %bb.0: # %entry
-; RV32IXCHERI-IL32PC64-NEXT:    cincoffset csp, csp, -2032
-; RV32IXCHERI-IL32PC64-NEXT:    csc cra, 2024(csp) # 8-byte Folded Spill
-; RV32IXCHERI-IL32PC64-NEXT:    csc cs0, 2016(csp) # 8-byte Folded Spill
-; RV32IXCHERI-IL32PC64-NEXT:    cincoffset cs0, csp, 2032
-; RV32IXCHERI-IL32PC64-NEXT:    cincoffset csp, csp, -2048
-; RV32IXCHERI-IL32PC64-NEXT:    cincoffset csp, csp, -1040
+; RV32IXCHERI-IL32PC64-NEXT:    cincoffset sp, sp, -2032
+; RV32IXCHERI-IL32PC64-NEXT:    csc ra, 2024(sp) # 8-byte Folded Spill
+; RV32IXCHERI-IL32PC64-NEXT:    csc s0, 2016(sp) # 8-byte Folded Spill
+; RV32IXCHERI-IL32PC64-NEXT:    cincoffset s0, sp, 2032
+; RV32IXCHERI-IL32PC64-NEXT:    cincoffset sp, sp, -2048
+; RV32IXCHERI-IL32PC64-NEXT:    cincoffset sp, sp, -1040
 ; RV32IXCHERI-IL32PC64-NEXT:    andi a0, sp, -512
-; RV32IXCHERI-IL32PC64-NEXT:    csetaddr csp, csp, a0
+; RV32IXCHERI-IL32PC64-NEXT:    csetaddr sp, sp, a0
 ; RV32IXCHERI-IL32PC64-NEXT:    lui a0, 1
-; RV32IXCHERI-IL32PC64-NEXT:    cincoffset ca1, csp, 512
-; RV32IXCHERI-IL32PC64-NEXT:    csetbounds ca0, ca1, a0
+; RV32IXCHERI-IL32PC64-NEXT:    cincoffset a1, sp, 512
+; RV32IXCHERI-IL32PC64-NEXT:    csetbounds a0, a1, a0
 ; RV32IXCHERI-IL32PC64-NEXT:    ccall foo
-; RV32IXCHERI-IL32PC64-NEXT:    cincoffset csp, cs0, -2032
-; RV32IXCHERI-IL32PC64-NEXT:    clc cra, 2024(csp) # 8-byte Folded Reload
-; RV32IXCHERI-IL32PC64-NEXT:    clc cs0, 2016(csp) # 8-byte Folded Reload
-; RV32IXCHERI-IL32PC64-NEXT:    cincoffset csp, csp, 2032
+; RV32IXCHERI-IL32PC64-NEXT:    cincoffset sp, s0, -2032
+; RV32IXCHERI-IL32PC64-NEXT:    clc ra, 2024(sp) # 8-byte Folded Reload
+; RV32IXCHERI-IL32PC64-NEXT:    clc s0, 2016(sp) # 8-byte Folded Reload
+; RV32IXCHERI-IL32PC64-NEXT:    cincoffset sp, sp, 2032
 ; RV32IXCHERI-IL32PC64-NEXT:    cret
 ;
 ; RV64IXCHERI-L64PC128-LABEL: bar:
 ; RV64IXCHERI-L64PC128:       # %bb.0: # %entry
-; RV64IXCHERI-L64PC128-NEXT:    cincoffset csp, csp, -2032
-; RV64IXCHERI-L64PC128-NEXT:    csc cra, 2016(csp) # 16-byte Folded Spill
-; RV64IXCHERI-L64PC128-NEXT:    cincoffset csp, csp, -2048
-; RV64IXCHERI-L64PC128-NEXT:    cincoffset csp, csp, -48
+; RV64IXCHERI-L64PC128-NEXT:    cincoffset sp, sp, -2032
+; RV64IXCHERI-L64PC128-NEXT:    csc ra, 2016(sp) # 16-byte Folded Spill
+; RV64IXCHERI-L64PC128-NEXT:    cincoffset sp, sp, -2048
+; RV64IXCHERI-L64PC128-NEXT:    cincoffset sp, sp, -48
 ; RV64IXCHERI-L64PC128-NEXT:    lui a0, 1
-; RV64IXCHERI-L64PC128-NEXT:    cincoffset ca1, csp, 16
-; RV64IXCHERI-L64PC128-NEXT:    csetbounds ca0, ca1, a0
+; RV64IXCHERI-L64PC128-NEXT:    cincoffset a1, sp, 16
+; RV64IXCHERI-L64PC128-NEXT:    csetbounds a0, a1, a0
 ; RV64IXCHERI-L64PC128-NEXT:    ccall foo
-; RV64IXCHERI-L64PC128-NEXT:    cincoffset csp, csp, 2032
-; RV64IXCHERI-L64PC128-NEXT:    cincoffset csp, csp, 64
-; RV64IXCHERI-L64PC128-NEXT:    clc cra, 2016(csp) # 16-byte Folded Reload
-; RV64IXCHERI-L64PC128-NEXT:    cincoffset csp, csp, 2032
+; RV64IXCHERI-L64PC128-NEXT:    cincoffset sp, sp, 2032
+; RV64IXCHERI-L64PC128-NEXT:    cincoffset sp, sp, 64
+; RV64IXCHERI-L64PC128-NEXT:    clc ra, 2016(sp) # 16-byte Folded Reload
+; RV64IXCHERI-L64PC128-NEXT:    cincoffset sp, sp, 2032
 ; RV64IXCHERI-L64PC128-NEXT:    cret
 entry:
   %buf = alloca [4096 x i8], align 1, addrspace(200)

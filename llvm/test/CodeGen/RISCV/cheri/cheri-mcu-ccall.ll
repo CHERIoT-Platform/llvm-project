@@ -24,7 +24,7 @@ entry:
 define dso_local cheriot_compartmentcalleecc i32 @test6(i32 addrspace(200)* nocapture readonly %a0, i32 addrspace(200)* nocapture readonly %a1, i32 addrspace(200)* nocapture readonly %a2, i32 addrspace(200)* nocapture readonly %a3, i32 addrspace(200)* nocapture readonly %a4, i32 addrspace(200)* nocapture readonly %a5) local_unnamed_addr addrspace(200) #1 {
 ; Check that we are loading the last register argument
 ; CHECK-LABEL: test6:
-; CHECK: clw     a5, 0(ca5)
+; CHECK: clw     a5, 0(a5)
 entry:
   %0 = load i32, i32 addrspace(200)* %a0, align 4, !tbaa !5
   %1 = load i32, i32 addrspace(200)* %a1, align 4, !tbaa !5
@@ -45,7 +45,7 @@ define dso_local cheriot_compartmentcalleecc i32 @test8(i32 addrspace(200)* noca
 ; Check that the last argument (used in the multiply) is loaded from offset 8
 ; in the stack-argument capability.
 ; CHECK-LABEL: test8:
-; CHECK: clc     [[CREG:[a-z]+[0-9]+]], 8(ct0)
+; CHECK: clc     [[CREG:[a-z]+[0-9]+]], 8(t0)
 ; CHECK: clw     [[IREG:[a-z]+[0-9]+]], 0([[CREG]])
 ; CHECK: mul
 ; CHECK-SAME: [[IREG]]
@@ -82,15 +82,15 @@ define dso_local i32 @testcall8() local_unnamed_addr addrspace(200) #2 {
 entry:
   ; Check that we have the right relocations and stack layout.
   ; CHECK-LABEL: testcall8:
-  ; CHECK:  auicgp  ct0, %cheriot_compartment_hi(testcall8.stack_arg)
-  ; CHECK:  cincoffset      ct0, ct0, %cheriot_compartment_lo_i
-  ; CHECK:  csetbounds      ct0, ct0, %cheriot_compartment_size(testcall8.stack_arg)
-  ; CHECK:  csc     ct0, 8(csp)
-  ; CHECK:  auipcc  ct1, %cheriot_compartment_hi(__import_other_test8callee)
-  ; CHECK:  clc     ct1, %cheriot_compartment_lo_i
-  ; CHECK:  auipcc  ct2, %cheriot_compartment_hi(.compartment_switcher)
-  ; CHECK:  clc     ct2, %cheriot_compartment_lo_i
-  ; CHECK:  cjalr ct2
+  ; CHECK:  auicgp  t0, %cheriot_compartment_hi(testcall8.stack_arg)
+  ; CHECK:  cincoffset      t0, t0, %cheriot_compartment_lo_i
+  ; CHECK:  csetbounds      t0, t0, %cheriot_compartment_size(testcall8.stack_arg)
+  ; CHECK:  csc     t0, 8(sp)
+  ; CHECK:  auipcc  t1, %cheriot_compartment_hi(__import_other_test8callee)
+  ; CHECK:  clc     t1, %cheriot_compartment_lo_i
+  ; CHECK:  auipcc  t2, %cheriot_compartment_hi(.compartment_switcher)
+  ; CHECK:  clc     t2, %cheriot_compartment_lo_i
+  ; CHECK:  cjalr t2
   %args = alloca [8 x i32], align 4, addrspace(200)
   %0 = bitcast [8 x i32] addrspace(200)* %args to i8 addrspace(200)*
   call void @llvm.lifetime.start.p200i8(i64 32, i8 addrspace(200)* nonnull %0) #5

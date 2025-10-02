@@ -49,9 +49,9 @@ define i64 @add_constant(i64 %arg) nounwind {
 ; CHECK-L64PC128-LABEL: add_constant:
 ; CHECK-L64PC128:       # %bb.0:
 ; CHECK-L64PC128-NEXT:  .LBB0_1: # Label of block must be emitted
-; CHECK-L64PC128-NEXT:    auipcc ca1, %pcrel_hi(.LCPI0_0)
-; CHECK-L64PC128-NEXT:    cincoffset ca1, ca1, %pcrel_lo(.LBB0_1)
-; CHECK-L64PC128-NEXT:    cld a1, 0(ca1)
+; CHECK-L64PC128-NEXT:    auipcc a1, %pcrel_hi(.LCPI0_0)
+; CHECK-L64PC128-NEXT:    cincoffset a1, a1, %pcrel_lo(.LBB0_1)
+; CHECK-L64PC128-NEXT:    cld a1, 0(a1)
 ; CHECK-L64PC128-NEXT:    add a0, a0, a1
 ; CHECK-L64PC128-NEXT:    cret
   %add = add i64 %arg, 1311768467139281697

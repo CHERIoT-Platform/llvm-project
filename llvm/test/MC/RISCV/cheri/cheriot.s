@@ -3,72 +3,72 @@
 // RUN: llvm-mc %s -triple=riscv32 -mattr=+xcheri,+xcheripurecap -show-encoding | FileCheck %s -check-prefixes=CHERI
 
 csetboundsrounddown cra, cra, zero
-// CHERIOT: ct.csetboundsrounddown	cra, cra, zero  # encoding: [0xdb,0x80,0x00,0x14]
-// CHERI: csetboundsrounddown	cra, cra, zero  # encoding: [0xdb,0x80,0x00,0x14]
+// CHERIOT: ct.csetboundsrounddown	ra, ra, zero  # encoding: [0xdb,0x80,0x00,0x14]
+// CHERI: csetboundsrounddown	ra, ra, zero  # encoding: [0xdb,0x80,0x00,0x14]
 csetboundsrounddown cra, ca5, zero
-// CHERIOT: ct.csetboundsrounddown	cra, ca5, zero  # encoding: [0xdb,0x80,0x07,0x14]
-// CHERI: csetboundsrounddown	cra, ca5, zero  # encoding: [0xdb,0x80,0x07,0x14]
+// CHERIOT: ct.csetboundsrounddown	ra, a5, zero  # encoding: [0xdb,0x80,0x07,0x14]
+// CHERI: csetboundsrounddown	ra, a5, zero  # encoding: [0xdb,0x80,0x07,0x14]
 csetboundsrounddown cra, cra, a5
-// CHERIOT: ct.csetboundsrounddown	cra, cra, a5    # encoding: [0xdb,0x80,0xf0,0x14]
-// CHERI: csetboundsrounddown	cra, cra, a5    # encoding: [0xdb,0x80,0xf0,0x14]
+// CHERIOT: ct.csetboundsrounddown	ra, ra, a5    # encoding: [0xdb,0x80,0xf0,0x14]
+// CHERI: csetboundsrounddown	ra, ra, a5    # encoding: [0xdb,0x80,0xf0,0x14]
 csetboundsrounddown cra, ca5, a5
-// CHERIOT: ct.csetboundsrounddown	cra, ca5, a5    # encoding: [0xdb,0x80,0xf7,0x14]
-// CHERI: csetboundsrounddown	cra, ca5, a5    # encoding: [0xdb,0x80,0xf7,0x14]
+// CHERIOT: ct.csetboundsrounddown	ra, a5, a5    # encoding: [0xdb,0x80,0xf7,0x14]
+// CHERI: csetboundsrounddown	ra, a5, a5    # encoding: [0xdb,0x80,0xf7,0x14]
 csetboundsrounddown ca5, cra, zero
-// CHERIOT: ct.csetboundsrounddown	ca5, cra, zero  # encoding: [0xdb,0x87,0x00,0x14]
-// CHERI: csetboundsrounddown	ca5, cra, zero  # encoding: [0xdb,0x87,0x00,0x14]
+// CHERIOT: ct.csetboundsrounddown	a5, ra, zero  # encoding: [0xdb,0x87,0x00,0x14]
+// CHERI: csetboundsrounddown	a5, ra, zero  # encoding: [0xdb,0x87,0x00,0x14]
 csetboundsrounddown ca5, ca5, zero
-// CHERIOT: ct.csetboundsrounddown	ca5, ca5, zero  # encoding: [0xdb,0x87,0x07,0x14]
-// CHERI: csetboundsrounddown	ca5, ca5, zero  # encoding: [0xdb,0x87,0x07,0x14]
+// CHERIOT: ct.csetboundsrounddown	a5, a5, zero  # encoding: [0xdb,0x87,0x07,0x14]
+// CHERI: csetboundsrounddown	a5, a5, zero  # encoding: [0xdb,0x87,0x07,0x14]
 csetboundsrounddown ca5, cra, a5
-// CHERIOT: ct.csetboundsrounddown	ca5, cra, a5    # encoding: [0xdb,0x87,0xf0,0x14]
-// CHERI: csetboundsrounddown	ca5, cra, a5    # encoding: [0xdb,0x87,0xf0,0x14]
+// CHERIOT: ct.csetboundsrounddown	a5, ra, a5    # encoding: [0xdb,0x87,0xf0,0x14]
+// CHERI: csetboundsrounddown	a5, ra, a5    # encoding: [0xdb,0x87,0xf0,0x14]
 csetboundsrounddown ca5, ca5, a5
-// CHERIOT: ct.csetboundsrounddown	ca5, ca5, a5    # encoding: [0xdb,0x87,0xf7,0x14]
-// CHERI: csetboundsrounddown	ca5, ca5, a5    # encoding: [0xdb,0x87,0xf7,0x14]
+// CHERIOT: ct.csetboundsrounddown	a5, a5, a5    # encoding: [0xdb,0x87,0xf7,0x14]
+// CHERI: csetboundsrounddown	a5, a5, a5    # encoding: [0xdb,0x87,0xf7,0x14]
 
 candperm ca1, ca5, x2
-// CHERIOT: ct.candperm	ca1, ca5, sp            # encoding: [0xdb,0x85,0x27,0x1a]
-// CHERI: candperm	ca1, ca5, sp                    # encoding: [0xdb,0x85,0x27,0x1a]
+// CHERIOT: ct.candperm	a1, a5, sp            # encoding: [0xdb,0x85,0x27,0x1a]
+// CHERI: candperm	a1, a5, sp                    # encoding: [0xdb,0x85,0x27,0x1a]
 ccleartag ca1, ca5
-// CHERIOT: ct.ccleartag	ca1, ca5                # encoding: [0xdb,0x85,0xb7,0xfe]
-// CHERI: ccleartag	ca1, ca5                # encoding: [0xdb,0x85,0xb7,0xfe]
+// CHERIOT: ct.ccleartag	a1, a5                # encoding: [0xdb,0x85,0xb7,0xfe]
+// CHERI: ccleartag	a1, a5                # encoding: [0xdb,0x85,0xb7,0xfe]
 cgetbase x2, ca5
-// CHERIOT: ct.cgetbase	sp, ca5                 # encoding: [0x5b,0x81,0x27,0xfe]
-// CHERI: cgetbase	sp, ca5                         # encoding: [0x5b,0x81,0x27,0xfe]
+// CHERIOT: ct.cgetbase	sp, a5                 # encoding: [0x5b,0x81,0x27,0xfe]
+// CHERI: cgetbase	sp, a5                         # encoding: [0x5b,0x81,0x27,0xfe]
 cgethigh x2, ca5
-// CHERIOT: ct.cgethigh	sp, ca5                 # encoding: [0x5b,0x81,0x77,0xff]
-// CHERI: cgethigh	sp, ca5                         # encoding: [0x5b,0x81,0x77,0xff]
+// CHERIOT: ct.cgethigh	sp, a5                 # encoding: [0x5b,0x81,0x77,0xff]
+// CHERI: cgethigh	sp, a5                         # encoding: [0x5b,0x81,0x77,0xff]
 cgetlen x2, ca5
-// CHERIOT: ct.cgetlen	sp, ca5                 # encoding: [0x5b,0x81,0x37,0xfe]
-// CHERI: cgetlen	sp, ca5                         # encoding: [0x5b,0x81,0x37,0xfe]
+// CHERIOT: ct.cgetlen	sp, a5                 # encoding: [0x5b,0x81,0x37,0xfe]
+// CHERI: cgetlen	sp, a5                         # encoding: [0x5b,0x81,0x37,0xfe]
 cgetperm x2, ca5
-// CHERIOT: ct.cgetperm	sp, ca5                 # encoding: [0x5b,0x81,0x07,0xfe]
-// CHERI: cgetperm	sp, ca5                         # encoding: [0x5b,0x81,0x07,0xfe]
+// CHERIOT: ct.cgetperm	sp, a5                 # encoding: [0x5b,0x81,0x07,0xfe]
+// CHERI: cgetperm	sp, a5                         # encoding: [0x5b,0x81,0x07,0xfe]
 cgettag x2, ca5
-// CHERIOT: ct.cgettag	sp, ca5                 # encoding: [0x5b,0x81,0x47,0xfe]
-// CHERI: cgettag	sp, ca5                         # encoding: [0x5b,0x81,0x47,0xfe]
+// CHERIOT: ct.cgettag	sp, a5                 # encoding: [0x5b,0x81,0x47,0xfe]
+// CHERI: cgettag	sp, a5                         # encoding: [0x5b,0x81,0x47,0xfe]
 cgettype x2, ca5
-// CHERIOT: ct.cgettype	sp, ca5                 # encoding: [0x5b,0x81,0x17,0xfe]
-// CHERI: cgettype	sp, ca5                         # encoding: [0x5b,0x81,0x17,0xfe]
+// CHERIOT: ct.cgettype	sp, a5                 # encoding: [0x5b,0x81,0x17,0xfe]
+// CHERI: cgettype	sp, a5                         # encoding: [0x5b,0x81,0x17,0xfe]
 cincoffset ca1, ca2, x2
-// CHERIOT: ct.cincoffset	ca1, ca2, sp            # encoding: [0xdb,0x05,0x26,0x22]
-// CHERI: cincoffset	ca1, ca2, sp            # encoding: [0xdb,0x05,0x26,0x22]
+// CHERIOT: ct.cincoffset	a1, a2, sp            # encoding: [0xdb,0x05,0x26,0x22]
+// CHERI: cincoffset	a1, a2, sp            # encoding: [0xdb,0x05,0x26,0x22]
 cincoffset ca1, ca2, 3
-// CHERIOT: ct.cincoffset	ca1, ca2, 3             # encoding: [0xdb,0x15,0x36,0x00]
-// CHERI: cincoffset	ca1, ca2, 3             # encoding: [0xdb,0x15,0x36,0x00]
+// CHERIOT: ct.cincoffset	a1, a2, 3             # encoding: [0xdb,0x15,0x36,0x00]
+// CHERI: cincoffset	a1, a2, 3             # encoding: [0xdb,0x15,0x36,0x00]
 cincoffsetimm ca1, ca2, 3
-// CHERIOT: ct.cincoffset	ca1, ca2, 3             # encoding: [0xdb,0x15,0x36,0x00]
-// CHERI: cincoffset	ca1, ca2, 3             # encoding: [0xdb,0x15,0x36,0x00]
+// CHERIOT: ct.cincoffset	a1, a2, 3             # encoding: [0xdb,0x15,0x36,0x00]
+// CHERI: cincoffset	a1, a2, 3             # encoding: [0xdb,0x15,0x36,0x00]
 clc c1, (ca2)
-// CHERIOT: ct.clc	cra, 0(ca2)                     # encoding: [0x83,0x30,0x06,0x00]
-// CHERI: clc	cra, 0(ca2)                     # encoding: [0x83,0x30,0x06,0x00]
+// CHERIOT: ct.clc	ra, 0(a2)                     # encoding: [0x83,0x30,0x06,0x00]
+// CHERI: clc	ra, 0(a2)                     # encoding: [0x83,0x30,0x06,0x00]
 clc c1, 7(ca2)
-// CHERIOT: ct.clc	cra, 7(ca2)                     # encoding: [0x83,0x30,0x76,0x00]
-// CHERI: clc	cra, 7(ca2)                     # encoding: [0x83,0x30,0x76,0x00]
+// CHERIOT: ct.clc	ra, 7(a2)                     # encoding: [0x83,0x30,0x76,0x00]
+// CHERI: clc	ra, 7(a2)                     # encoding: [0x83,0x30,0x76,0x00]
 cmove ca1, ca2
-// CHERIOT: ct.cmove	ca1, ca2                        # encoding: [0xdb,0x05,0xa6,0xfe]
-// CHERI: cmove	ca1, ca2                        # encoding: [0xdb,0x05,0xa6,0xfe]
+// CHERIOT: ct.cmove	a1, a2                        # encoding: [0xdb,0x05,0xa6,0xfe]
+// CHERI: cmove	a1, a2                        # encoding: [0xdb,0x05,0xa6,0xfe]
 cram x2, x5
 // CHERIOT: cram	sp, t0                          # encoding: [0x5b,0x81,0x92,0xfe]
 // CHERI: cram	sp, t0                          # encoding: [0x5b,0x81,0x92,0xfe]
@@ -82,41 +82,41 @@ croundrepresentablelength x2, x5
 // CHERIOT: crrl	sp, t0                          # encoding: [0x5b,0x81,0x82,0xfe]
 // CHERI: crrl	sp, t0                          # encoding: [0x5b,0x81,0x82,0xfe]
 csc c1, (ca2)
-// CHERIOT: ct.csc	cra, 0(ca2)                     # encoding: [0x23,0x30,0x16,0x00]
-// CHERI: csc	cra, 0(ca2)                     # encoding: [0x23,0x30,0x16,0x00]
+// CHERIOT: ct.csc	ra, 0(a2)                     # encoding: [0x23,0x30,0x16,0x00]
+// CHERI: csc	ra, 0(a2)                     # encoding: [0x23,0x30,0x16,0x00]
 csc c1, 7(ca2)
-// CHERIOT: ct.csc	cra, 7(ca2)                     # encoding: [0xa3,0x33,0x16,0x00]
-// CHERI: csc	cra, 7(ca2)                     # encoding: [0xa3,0x33,0x16,0x00]
+// CHERIOT: ct.csc	ra, 7(a2)                     # encoding: [0xa3,0x33,0x16,0x00]
+// CHERI: csc	ra, 7(a2)                     # encoding: [0xa3,0x33,0x16,0x00]
 cseal ca1, ca2, ca3
-// CHERIOT: ct.cseal	ca1, ca2, ca3                   # encoding: [0xdb,0x05,0xd6,0x16]
-// CHERI: cseal	ca1, ca2, ca3                   # encoding: [0xdb,0x05,0xd6,0x16]
+// CHERIOT: ct.cseal	a1, a2, a3                   # encoding: [0xdb,0x05,0xd6,0x16]
+// CHERI: cseal	a1, a2, a3                   # encoding: [0xdb,0x05,0xd6,0x16]
 csetaddr ca5, ca3, x2
-// CHERIOT: ct.csetaddr	ca5, ca3, sp            # encoding: [0xdb,0x87,0x26,0x20]
-// CHERI: csetaddr	ca5, ca3, sp                    # encoding: [0xdb,0x87,0x26,0x20]
+// CHERIOT: ct.csetaddr	a5, a3, sp            # encoding: [0xdb,0x87,0x26,0x20]
+// CHERI: csetaddr	a5, a3, sp                    # encoding: [0xdb,0x87,0x26,0x20]
 csetbounds ca5, ca3, x2
-// CHERIOT: ct.csetbounds	ca5, ca3, sp            # encoding: [0xdb,0x87,0x26,0x10]
-// CHERI: csetbounds	ca5, ca3, sp            # encoding: [0xdb,0x87,0x26,0x10]
+// CHERIOT: ct.csetbounds	a5, a3, sp            # encoding: [0xdb,0x87,0x26,0x10]
+// CHERI: csetbounds	a5, a3, sp            # encoding: [0xdb,0x87,0x26,0x10]
 csetbounds ca5, ca3, 3
-// CHERIOT: ct.csetbounds	ca5, ca3, 3             # encoding: [0xdb,0xa7,0x36,0x00]
-// CHERI: csetbounds	ca5, ca3, 3             # encoding: [0xdb,0xa7,0x36,0x00]
+// CHERIOT: ct.csetbounds	a5, a3, 3             # encoding: [0xdb,0xa7,0x36,0x00]
+// CHERI: csetbounds	a5, a3, 3             # encoding: [0xdb,0xa7,0x36,0x00]
 csetboundsimm ca5, ca3, 3
-// CHERIOT: ct.csetbounds	ca5, ca3, 3             # encoding: [0xdb,0xa7,0x36,0x00]
-// CHERI: csetbounds	ca5, ca3, 3             # encoding: [0xdb,0xa7,0x36,0x00]
+// CHERIOT: ct.csetbounds	a5, a3, 3             # encoding: [0xdb,0xa7,0x36,0x00]
+// CHERI: csetbounds	a5, a3, 3             # encoding: [0xdb,0xa7,0x36,0x00]
 csetboundsexact ca5, ca3, x2
-// CHERIOT: ct.csetboundsexact	ca5, ca3, sp    # encoding: [0xdb,0x87,0x26,0x12]
-// CHERI: csetboundsexact	ca5, ca3, sp            # encoding: [0xdb,0x87,0x26,0x12]
+// CHERIOT: ct.csetboundsexact	a5, a3, sp    # encoding: [0xdb,0x87,0x26,0x12]
+// CHERI: csetboundsexact	a5, a3, sp            # encoding: [0xdb,0x87,0x26,0x12]
 csetequalexact x2, ca5, ca3
-// CHERIOT: ct.cseqx	sp, ca5, ca3                    # encoding: [0x5b,0x81,0xd7,0x42]
-// CHERI: cseqx	sp, ca5, ca3                    # encoding: [0x5b,0x81,0xd7,0x42]
+// CHERIOT: ct.cseqx	sp, a5, a3                    # encoding: [0x5b,0x81,0xd7,0x42]
+// CHERI: cseqx	sp, a5, a3                    # encoding: [0x5b,0x81,0xd7,0x42]
 cseqx x2, ca5, ca3
-// CHERIOT: ct.cseqx	sp, ca5, ca3                    # encoding: [0x5b,0x81,0xd7,0x42]
-// CHERI: cseqx	sp, ca5, ca3                    # encoding: [0x5b,0x81,0xd7,0x42]
+// CHERIOT: ct.cseqx	sp, a5, a3                    # encoding: [0x5b,0x81,0xd7,0x42]
+// CHERI: cseqx	sp, a5, a3                    # encoding: [0x5b,0x81,0xd7,0x42]
 csethigh ca5, ca3, x7
-// CHERIOT: ct.csethigh	ca5, ca3, t2            # encoding: [0xdb,0x87,0x76,0x2c]
-// CHERI: csethigh	ca5, ca3, t2                    # encoding: [0xdb,0x87,0x76,0x2c]
+// CHERIOT: ct.csethigh	a5, a3, t2            # encoding: [0xdb,0x87,0x76,0x2c]
+// CHERI: csethigh	a5, a3, t2                    # encoding: [0xdb,0x87,0x76,0x2c]
 ctestsubset x7, ca5, ca3
-// CHERIOT: ct.ctestsubset	t2, ca5, ca3            # encoding: [0xdb,0x83,0xd7,0x40]
-// CHERI: ctestsubset	t2, ca5, ca3            # encoding: [0xdb,0x83,0xd7,0x40]
+// CHERIOT: ct.ctestsubset	t2, a5, a3            # encoding: [0xdb,0x83,0xd7,0x40]
+// CHERI: ctestsubset	t2, a5, a3            # encoding: [0xdb,0x83,0xd7,0x40]
 cunseal ca5, ca3, ca1
-// CHERIOT: ct.cunseal	ca5, ca3, ca1           # encoding: [0xdb,0x87,0xb6,0x18]
-// CHERI: cunseal	ca5, ca3, ca1                   # encoding: [0xdb,0x87,0xb6,0x18]
+// CHERIOT: ct.cunseal	a5, a3, a1           # encoding: [0xdb,0x87,0xb6,0x18]
+// CHERI: cunseal	a5, a3, a1                   # encoding: [0xdb,0x87,0xb6,0x18]

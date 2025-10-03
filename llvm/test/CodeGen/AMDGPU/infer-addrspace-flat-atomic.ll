@@ -11,8 +11,8 @@ define protected amdgpu_kernel void @InferNothing(i32 %a, ptr %b, double %c) {
 ; CHECK-NEXT:    v_mov_b32_e32 v2, s2
 ; CHECK-NEXT:    v_mov_b32_e32 v3, s3
 ; CHECK-NEXT:    s_lshl_b64 s[2:3], s[6:7], 3
-; CHECK-NEXT:    s_add_u32 s0, s2, s0
-; CHECK-NEXT:    s_addc_u32 s1, s3, s1
+; CHECK-NEXT:    s_add_u32 s0, s0, s2
+; CHECK-NEXT:    s_addc_u32 s1, s1, s3
 ; CHECK-NEXT:    v_mov_b32_e32 v1, s1
 ; CHECK-NEXT:    v_add_co_u32_e64 v0, vcc, -8, s0
 ; CHECK-NEXT:    v_addc_co_u32_e32 v1, vcc, -1, v1, vcc

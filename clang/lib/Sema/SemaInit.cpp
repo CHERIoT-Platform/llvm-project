@@ -8294,8 +8294,8 @@ ExprResult InitializationSequence::Perform(Sema &S,
       // InitializeTemporary entity for our target type.
       QualType Ty = Step->Type;
       bool IsTemporary = !S.Context.hasSameType(Entity.getType(), Ty);
-      InitializedEntity TempEntity = InitializedEntity::InitializeTemporary(Ty);
-      InitializedEntity InitEntity = IsTemporary ? TempEntity : Entity;
+      InitializedEntity InitEntity =
+          IsTemporary ? InitializedEntity::InitializeTemporary(Ty) : Entity;
       InitListChecker PerformInitList(S, InitEntity,
           InitList, Ty, /*VerifyOnly=*/false,
           /*TreatUnavailableAsInvalid=*/false);
@@ -8317,7 +8317,6 @@ ExprResult InitializationSequence::Perform(Sema &S,
 
       InitListExpr *StructuredInitList =
           PerformInitList.getFullyStructuredList();
-      CurInit.get();
       CurInit = shouldBindAsTemporary(InitEntity)
           ? S.MaybeBindToTemporary(StructuredInitList)
           : StructuredInitList;

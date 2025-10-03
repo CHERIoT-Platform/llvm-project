@@ -2553,6 +2553,7 @@ bool RISCVFrameLowering::isSupportedStackID(TargetStackID::Value ID) const {
   case TargetStackID::NoAlloc:
   case TargetStackID::SGPRSpill:
   case TargetStackID::WasmLocal:
+  case TargetStackID::ScalablePredicateVector:
     return false;
   }
   llvm_unreachable("Invalid TargetStackID::Value");

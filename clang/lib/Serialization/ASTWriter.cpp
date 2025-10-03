@@ -8784,9 +8784,8 @@ void ASTRecordWriter::writeOpenACCClause(const OpenACCClause *C) {
     writeOpenACCVarList(PC);
 
     for (const OpenACCPrivateRecipe &R : PC->getInitRecipes()) {
-      static_assert(sizeof(R) == 2 * sizeof(int *));
+      static_assert(sizeof(R) == 1 * sizeof(int *));
       AddDeclRef(R.AllocaDecl);
-      AddStmt(const_cast<Expr *>(R.InitExpr));
     }
     return;
   }
@@ -8808,9 +8807,8 @@ void ASTRecordWriter::writeOpenACCClause(const OpenACCClause *C) {
     writeOpenACCVarList(FPC);
 
     for (const OpenACCFirstPrivateRecipe &R : FPC->getInitRecipes()) {
-      static_assert(sizeof(R) == 3 * sizeof(int *));
+      static_assert(sizeof(R) == 2 * sizeof(int *));
       AddDeclRef(R.AllocaDecl);
-      AddStmt(const_cast<Expr *>(R.InitExpr));
       AddDeclRef(R.InitFromTemporary);
     }
     return;
@@ -8932,9 +8930,8 @@ void ASTRecordWriter::writeOpenACCClause(const OpenACCClause *C) {
     writeOpenACCVarList(RC);
 
     for (const OpenACCReductionRecipe &R : RC->getRecipes()) {
-      static_assert(sizeof(OpenACCReductionRecipe) == 2 * sizeof(int *));
+      static_assert(sizeof(OpenACCReductionRecipe) == 1 * sizeof(int *));
       AddDeclRef(R.AllocaDecl);
-      AddStmt(const_cast<Expr *>(R.InitExpr));
     }
     return;
   }

@@ -35,10 +35,9 @@ define void @issue63986(i64 %0, i64 %idxprom, ptr inreg %ptr) {
 ; CHECK-NEXT:    v_lshlrev_b64 v[6:7], 6, v[2:3]
 ; CHECK-NEXT:    s_cbranch_execnz .LBB0_8
 ; CHECK-NEXT:  .LBB0_5: ; %loop-memcpy-residual.preheader
-; CHECK-NEXT:    s_add_u32 s4, s16, 32
-; CHECK-NEXT:    s_addc_u32 s5, s17, 0
-; CHECK-NEXT:    v_mov_b32_e32 v3, s5
-; CHECK-NEXT:    v_add_co_u32_e32 v2, vcc, s4, v4
+; CHECK-NEXT:    v_or_b32_e32 v2, 32, v4
+; CHECK-NEXT:    v_mov_b32_e32 v3, s17
+; CHECK-NEXT:    v_add_co_u32_e32 v2, vcc, s16, v2
 ; CHECK-NEXT:    v_addc_co_u32_e32 v3, vcc, v3, v5, vcc
 ; CHECK-NEXT:    s_mov_b64 s[4:5], 0
 ; CHECK-NEXT:  ; %bb.6: ; %loop-memcpy-residual

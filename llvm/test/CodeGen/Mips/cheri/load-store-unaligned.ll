@@ -39,11 +39,10 @@ define ptr addrspace(200) @load_unaligned(ptr addrspace(200) %unaligned) local_u
 
 ; HYBRID-LABEL: load_unaligned:
 ; HYBRID:      daddiu	$16, $sp, 0
-; HYBRID-NEXT: cfromddc	$c1, $16
 ; HYBRID-NEXT: csetbounds	$c4, $c3, [[#CAP_SIZE]]
-; HYBRID-NEXT: daddiu	$4, $zero, [[#CAP_SIZE]]
+; HYBRID-NEXT: cfromddc	$c3, $16
 ; HYBRID-NEXT: jal	memcpy_c
-; HYBRID-NEXT: cmove $c3, $c1
+; HYBRID-NEXT: daddiu	$4, $zero, [[#CAP_SIZE]]
 ; HYBRID-NEXT: clc	$c3, $16, 0($ddc)
 
 entry:

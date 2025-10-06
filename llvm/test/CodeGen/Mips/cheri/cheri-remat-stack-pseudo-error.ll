@@ -34,7 +34,8 @@ define void @fn1() addrspace(200) noinline nounwind optnone {
 ; ASM-NEXT:    csetbounds $c18, $c18, $1
 ; ASM-NEXT:    clcbi $c4, %captab20(a)($c19)
 ; ASM-NEXT:    clcbi $c12, %capcall20(memcpy)($c19)
-; ASM-NEXT:    cmove $c3, $c18
+; ASM-NEXT:    cincoffset      $c3, $c11, 16
+; ASM-NEXT:    csetbounds      $c3, $c3, $1
 ; ASM-NEXT:    cjalr $c12, $c17
 ; ASM-NEXT:    daddiu $4, $zero, 4096
 ; ASM-NEXT:    clcbi $c12, %capcall20(fn2)($c19)
@@ -62,7 +63,7 @@ entry:
 ; CHECK: [[OFFSET:%.+]]:gpr64 = DADDiu $zero_64, 4096
 ; CHECK: [[STACK_CAP:%.+]]:cherigpr = CheriBoundedStackPseudoReg %stack.0.byval-temp, 0, [[OFFSET]]
 ; CHECK: [[A_CAP:%.+]]:cherigpr = LOADCAP_BigImm target-flags(mips-captable20) @a
-; CHECK: $c3 = COPY [[STACK_CAP]]
+; CHECK: $c3 = CheriBoundedStackPseudoReg %stack.0.byval-temp, 0, [[OFFSET]]
 ; CHECK: $c4 = COPY [[A_CAP]]
 ; CHECK: $a0_64 = DADDiu $zero_64, 4096
 ; This previously got turned into a duplicate of the CheriBoundedStackPseudoReg but that used the killed %1 register!

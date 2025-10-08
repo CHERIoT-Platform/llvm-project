@@ -215,7 +215,7 @@ let hasSideEffects = 0, mayLoad = 1, mayStore = 1 in
 class AMO_C_rr<bits<5> funct5, bit aq, bit rl, bits<3> funct3, string opcodestr,
                RegisterClass rdClass>
     : RVInstRAtomic<funct5, aq, rl, funct3, OPC_AMO,
-                    (outs rdClass:$rd), (ins GPRMemZeroOffset:$rs1, GPCR:$rs2),
+                    (outs rdClass:$rd), (ins GPCR:$rs2, GPRMemZeroOffset:$rs1),
                     opcodestr, "$rd, $rs2, $rs1">;
 
 multiclass AMO_C_rr_aq_rl<string clenstr, bits<5> funct5, bits<3> funct3,
@@ -279,11 +279,10 @@ multiclass CAMO_rr<bits<5> funct5, bit aq, bit rl, bits<3> funct3,
   let hasSideEffects = 0, mayLoad = 1, mayStore = 1,
       DecoderNamespace = Namespace in
   def "" : RVInstRAtomic<funct5, aq, rl, funct3, OPC_AMO,
-                         (outs GPR:$rd), (ins GPCRMemZeroOffset:$rs1, GPR:$rs2),
+                         (outs GPR:$rd), (ins GPR:$rs2, GPCRMemZeroOffset:$rs1),
                          "c" # opcodestr, "$rd, $rs2, $rs1">;
   def : InstAlias<opcodestr # "$rd, $rs2, $rs1",
-                  (!cast<Instruction>(NAME) GPR:$rd, GPCRMemZeroOffset:$rs1,
-                   GPR:$rs2), 0>;
+                  (!cast<Instruction>(NAME) GPR:$rd, GPR:$rs2, GPCRMemZeroOffset:$rs1), 0>;
 }
 
 multiclass CAMO_rr_aq_rl<bits<5> funct5, bits<3> funct3, string opcodestr,
@@ -322,11 +321,10 @@ multiclass CAMO_C_rr<bits<5> funct5, bit aq, bit rl, bits<3> funct3,
       DecoderNamespace = Namespace in
   def "" : RVInstRAtomic<funct5, aq, rl, funct3, OPC_AMO,
                          (outs rdClass:$rd),
-                         (ins GPCRMemZeroOffset:$rs1, GPCR:$rs2),
+                         (ins GPCR:$rs2, GPCRMemZeroOffset:$rs1),
                          "c" # opcodestr, "$rd, $rs2, $rs1">;
   def : InstAlias<opcodestr # "$rd, $rs2, $rs1",
-                 (!cast<Instruction>(NAME) rdClass:$rd, GPCRMemZeroOffset:$rs1,
-                  GPCR:$rs2), 0>;
+                 (!cast<Instruction>(NAME) rdClass:$rd, GPCR:$rs2, GPCRMemZeroOffset:$rs1), 0>;
 }
 
 multiclass CAMO_C_rr_aq_rl<string clenstr, bits<5> funct5, bits<3> funct3,
@@ -1398,8 +1396,14 @@ class PatGpcr<SDPatternOperator OpNode, RVInstCheriSrcDst Inst, ValueType RetVt=
 class PatGpcrGpcr<SDPatternOperator OpNode, RVInst Inst, ValueType RetVt=CLenVT>
     : Pat<(RetVt (OpNode GPCR:$rs1, GPCR:$rs2)), (Inst GPCR:$rs1, GPCR:$rs2)>;
 
+class PatGpcrGpcrSwapped<SDPatternOperator OpNode, RVInst Inst, ValueType RetVt=CLenVT>
+    : Pat<(RetVt (OpNode GPCR:$rs1, GPCR:$rs2)), (Inst GPCR:$rs2, GPCR:$rs1)>;
+
 class PatGpcrGpr<SDPatternOperator OpNode, RVInst Inst>
     : Pat<(OpNode GPCR:$rs1, (XLenVT GPR:$rs2)), (Inst GPCR:$rs1, GPR:$rs2)>;
+
+class PatGpcrGprSwapped<SDPatternOperator OpNode, RVInst Inst>
+    : Pat<(OpNode GPCR:$rs1, (XLenVT GPR:$rs2)), (Inst GPR:$rs2, GPCR:$rs1)>;
 
 class PatGpcrSimm12<SDPatternOperator OpNode, RVInstI Inst>
     : Pat<(OpNode GPCR:$rs1, simm12_lo:$imm12), (Inst GPCR:$rs1, simm12_lo:$imm12)>;
@@ -1409,6 +1413,9 @@ class PatGpcrUimm12<SDPatternOperator OpNode, RVInstI Inst>
 
 class PatGprGpcr<SDPatternOperator OpNode, RVInst Inst>
     : Pat<(OpNode GPR:$rs1, GPCR:$rs2), (Inst GPR:$rs1, GPCR:$rs2)>;
+
+class PatGprGpcrSwapped<SDPatternOperator OpNode, RVInst Inst>
+    : Pat<(OpNode GPR:$rs1, GPCR:$rs2), (Inst GPCR:$rs2, GPR:$rs1)>;
 
 /// Capability-Inspection Instructions
 
@@ -1777,15 +1784,15 @@ def : Pat<(store FPR64:$rs2, GPCR:$rs1),
 /// Memory-Access Instructions
 
 multiclass AMOCapPat<string CLenStr, string AtomicOp, string BaseInst> {
-  def : PatGprGpcr<!cast<PatFrag>(AtomicOp#"_monotonic"),
+  def : PatGprGpcrSwapped<!cast<PatFrag>(AtomicOp#"_monotonic"),
                    !cast<RVInst>(BaseInst#"_"#CLenStr)>;
-  def : PatGprGpcr<!cast<PatFrag>(AtomicOp#"_acquire"),
+  def : PatGprGpcrSwapped<!cast<PatFrag>(AtomicOp#"_acquire"),
                    !cast<RVInst>(BaseInst#"_AQ_"#CLenStr)>;
-  def : PatGprGpcr<!cast<PatFrag>(AtomicOp#"_release"),
+  def : PatGprGpcrSwapped<!cast<PatFrag>(AtomicOp#"_release"),
                    !cast<RVInst>(BaseInst#"_RL_"#CLenStr)>;
-  def : PatGprGpcr<!cast<PatFrag>(AtomicOp#"_acq_rel"),
+  def : PatGprGpcrSwapped<!cast<PatFrag>(AtomicOp#"_acq_rel"),
                    !cast<RVInst>(BaseInst#"_AQ_RL_"#CLenStr)>;
-  def : PatGprGpcr<!cast<PatFrag>(AtomicOp#"_seq_cst"),
+  def : PatGprGpcrSwapped<!cast<PatFrag>(AtomicOp#"_seq_cst"),
                    !cast<RVInst>(BaseInst#"_AQ_RL_"#CLenStr)>;
 }
 
@@ -1856,29 +1863,29 @@ multiclass CheriAtomicStPat<PatFrag StoreOp, RVInst Inst, RegisterClass StTy, Va
     : CheriStPat<StoreOp, Inst, StTy, StoreVt>;
 
 multiclass CheriAMOPat<string AtomicOp, string BaseInst> {
-  def : PatGpcrGpr<!cast<PatFrag>(AtomicOp#"_monotonic"),
+  def : PatGpcrGprSwapped<!cast<PatFrag>(AtomicOp#"_monotonic"),
                    !cast<RVInst>(BaseInst)>;
-  def : PatGpcrGpr<!cast<PatFrag>(AtomicOp#"_acquire"),
+  def : PatGpcrGprSwapped<!cast<PatFrag>(AtomicOp#"_acquire"),
                    !cast<RVInst>(BaseInst#"_AQ")>;
-  def : PatGpcrGpr<!cast<PatFrag>(AtomicOp#"_release"),
+  def : PatGpcrGprSwapped<!cast<PatFrag>(AtomicOp#"_release"),
                    !cast<RVInst>(BaseInst#"_RL")>;
-  def : PatGpcrGpr<!cast<PatFrag>(AtomicOp#"_acq_rel"),
+  def : PatGpcrGprSwapped<!cast<PatFrag>(AtomicOp#"_acq_rel"),
                    !cast<RVInst>(BaseInst#"_AQ_RL")>;
-  def : PatGpcrGpr<!cast<PatFrag>(AtomicOp#"_seq_cst"),
+  def : PatGpcrGprSwapped<!cast<PatFrag>(AtomicOp#"_seq_cst"),
                    !cast<RVInst>(BaseInst#"_AQ_RL")>;
 }
 
 multiclass CheriAMOSubPat<string AtomicOp, string BaseInst> {
   def : Pat<(!cast<PatFrag>(AtomicOp#"_monotonic") GPCR:$addr, (XLenVT GPR:$incr)),
-            (!cast<RVInst>(BaseInst) GPCR:$addr, (SUB (XLenVT X0), (XLenVT GPR:$incr)))>;
+            (!cast<RVInst>(BaseInst) (SUB (XLenVT X0), (XLenVT GPR:$incr)), GPCR:$addr)>;
   def : Pat<(!cast<PatFrag>(AtomicOp#"_acquire") GPCR:$addr, (XLenVT GPR:$incr)),
-            (!cast<RVInst>(BaseInst#"_AQ") GPCR:$addr, (SUB (XLenVT X0), (XLenVT GPR:$incr)))>;
+            (!cast<RVInst>(BaseInst#"_AQ") (SUB (XLenVT X0), (XLenVT GPR:$incr)), GPCR:$addr)>;
   def : Pat<(!cast<PatFrag>(AtomicOp#"_release") GPCR:$addr, (XLenVT GPR:$incr)),
-            (!cast<RVInst>(BaseInst#"_RL") GPCR:$addr, (SUB (XLenVT X0), (XLenVT GPR:$incr)))>;
+            (!cast<RVInst>(BaseInst#"_RL") (SUB (XLenVT X0), (XLenVT GPR:$incr)), GPCR:$addr)>;
   def : Pat<(!cast<PatFrag>(AtomicOp#"_acq_rel") GPCR:$addr, (XLenVT GPR:$incr)),
-            (!cast<RVInst>(BaseInst#"_AQ_RL") GPCR:$addr, (SUB (XLenVT X0), (XLenVT GPR:$incr)))>;
+            (!cast<RVInst>(BaseInst#"_AQ_RL") (SUB (XLenVT X0), (XLenVT GPR:$incr)), GPCR:$addr)>;
   def : Pat<(!cast<PatFrag>(AtomicOp#"_seq_cst") GPCR:$addr, (XLenVT GPR:$incr)),
-            (!cast<RVInst>(BaseInst#"_AQ_RL") GPCR:$addr, (SUB (XLenVT X0), (XLenVT GPR:$incr)))>;
+            (!cast<RVInst>(BaseInst#"_AQ_RL") (SUB (XLenVT X0), (XLenVT GPR:$incr)), GPCR:$addr)>;
 }
 
 class PseudoCheriAMO<RegisterClass ValTy=GPR>
@@ -1930,15 +1937,15 @@ multiclass PseudoCheriCmpXchgPat<string Op, Pseudo CmpXchgInst,
 } 
 
 multiclass CheriAMOCapPat<string CLenStr, string AtomicOp, string BaseInst> {
-  def : PatGpcrGpcr<!cast<PatFrag>(AtomicOp#"_monotonic"),
+  def : PatGpcrGpcrSwapped<!cast<PatFrag>(AtomicOp#"_monotonic"),
                     !cast<RVInst>(BaseInst#"_"#CLenStr), CLenVT>;
-  def : PatGpcrGpcr<!cast<PatFrag>(AtomicOp#"_acquire"),
+  def : PatGpcrGpcrSwapped<!cast<PatFrag>(AtomicOp#"_acquire"),
                     !cast<RVInst>(BaseInst#"_AQ_"#CLenStr), CLenVT>;
-  def : PatGpcrGpcr<!cast<PatFrag>(AtomicOp#"_release"),
+  def : PatGpcrGpcrSwapped<!cast<PatFrag>(AtomicOp#"_release"),
                     !cast<RVInst>(BaseInst#"_RL_"#CLenStr), CLenVT>;
-  def : PatGpcrGpcr<!cast<PatFrag>(AtomicOp#"_acq_rel"),
+  def : PatGpcrGpcrSwapped<!cast<PatFrag>(AtomicOp#"_acq_rel"),
                     !cast<RVInst>(BaseInst#"_AQ_RL_"#CLenStr), CLenVT>;
-  def : PatGpcrGpcr<!cast<PatFrag>(AtomicOp#"_seq_cst"),
+  def : PatGpcrGpcrSwapped<!cast<PatFrag>(AtomicOp#"_seq_cst"),
                     !cast<RVInst>(BaseInst#"_AQ_RL_"#CLenStr), CLenVT>;
 }
 

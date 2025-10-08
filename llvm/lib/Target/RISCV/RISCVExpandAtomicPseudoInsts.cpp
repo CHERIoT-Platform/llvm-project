@@ -388,7 +388,7 @@ static unsigned getLRForRMW32(bool PtrIsCap, AtomicOrdering Ordering,
       return RISCV::LR_W;
     return PtrIsCap ? RISCV::CLR_W_AQ : RISCV::LR_W_AQ;
   case AtomicOrdering::SequentiallyConsistent:
-    return PtrIsCap ? RISCV::CLR_W_AQ_RL : RISCV::LR_W_AQ_RL;
+    return PtrIsCap ? RISCV::CLR_W_AQ_RL : RISCV::LR_W_AQRL;
   }
 }
 
@@ -432,7 +432,7 @@ static unsigned getLRForRMW64(bool PtrIsCap, AtomicOrdering Ordering,
       return RISCV::LR_D;
     return PtrIsCap ? RISCV::CLR_D_AQ : RISCV::LR_D_AQ;
   case AtomicOrdering::SequentiallyConsistent:
-    return PtrIsCap ? RISCV::CLR_D_AQ_RL : RISCV::LR_D_AQ_RL;
+    return PtrIsCap ? RISCV::CLR_D_AQ_RL : RISCV::LR_D_AQRL;
   }
 }
 
@@ -653,8 +653,8 @@ static void doAtomicBinOpExpansion(const RISCVInstrInfo *TII, MachineInstr &MI,
         .addReg(ScratchIntReg);
   BuildMI(LoopMBB, DL, TII->get(getSCForRMW(PtrIsCap, Ordering, VT, STI)),
           ScratchIntReg)
-      .addReg(AddrReg)
-      .addReg(ScratchReg);
+      .addReg(ScratchReg)
+      .addReg(AddrReg);
   BuildMI(LoopMBB, DL, TII->get(RISCV::BNE))
       .addReg(ScratchIntReg)
       .addReg(RISCV::X0)
@@ -741,8 +741,8 @@ static void doMaskedAtomicBinOpExpansion(const RISCVInstrInfo *TII,
                     ScratchReg);
 
   BuildMI(LoopMBB, DL, TII->get(getSCForRMW32(false, Ordering, STI)), ScratchReg)
-      .addReg(AddrReg)
-      .addReg(ScratchReg);
+      .addReg(ScratchReg)
+      .addReg(AddrReg);
   BuildMI(LoopMBB, DL, TII->get(RISCV::BNE))
       .addReg(ScratchReg)
       .addReg(RISCV::X0)
@@ -909,8 +909,8 @@ bool RISCVExpandAtomicPseudo::expandAtomicMinMaxOp(
   //   sc.w scratch1, scratch1, (addr)
   //   bnez scratch1, loop
     BuildMI(LoopTailMBB, DL, TII->get(getSCForRMW32(PtrIsCap, Ordering, STI)), Scratch1Reg)
-      .addReg(AddrReg)
-      .addReg(Scratch1Reg);
+      .addReg(Scratch1Reg)
+      .addReg(AddrReg);
   BuildMI(LoopTailMBB, DL, TII->get(RISCV::BNE))
       .addReg(Scratch1Reg)
       .addReg(RISCV::X0)
@@ -996,8 +996,8 @@ bool RISCVExpandAtomicPseudo::expandAtomicMinMaxOp(
     //   bnez scratch, loop
     BuildMI(LoopTailMBB, DL, TII->get(getSCForRMW(PtrIsCap, Ordering, VT, STI)),
             ScratchIntReg)
-        .addReg(AddrReg)
-        .addReg(ScratchReg);
+        .addReg(ScratchReg)
+        .addReg(AddrReg);
     BuildMI(LoopTailMBB, DL, TII->get(RISCV::BNE))
         .addReg(ScratchIntReg)
         .addReg(RISCV::X0)
@@ -1147,8 +1147,8 @@ bool RISCVExpandAtomicPseudo::expandAtomicCmpXchg(
     //   bnez scratch, loophead
     BuildMI(LoopTailMBB, DL, TII->get(getSCForRMW(PtrIsCap, Ordering, VT, STI)),
             ScratchReg)
-        .addReg(AddrReg)
-        .addReg(NewValReg);
+        .addReg(NewValReg)
+        .addReg(AddrReg);
     BuildMI(LoopTailMBB, DL, TII->get(RISCV::BNE))
         .addReg(ScratchReg)
         .addReg(RISCV::X0)
@@ -1183,8 +1183,8 @@ bool RISCVExpandAtomicPseudo::expandAtomicCmpXchg(
                       MaskReg, ScratchReg);
     BuildMI(LoopTailMBB, DL, TII->get(getSCForRMW(false, Ordering, VT, STI)),
             ScratchReg)
-        .addReg(AddrReg)
-        .addReg(ScratchReg);
+        .addReg(ScratchReg)
+        .addReg(AddrReg);
     BuildMI(LoopTailMBB, DL, TII->get(RISCV::BNE))
         .addReg(ScratchReg)
         .addReg(RISCV::X0)

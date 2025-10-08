@@ -2028,7 +2028,7 @@ def : LdPat<sextloadi8, LB>, Requires<[NotCapMode]>;
 def : LdPat<extloadi8, LBU>, Requires<[NotCapMode]>; // Prefer unsigned due to no c.lb in Zcb.
 def : LdPat<sextloadi16, LH>, Requires<[NotCapMode]>;
 def : LdPat<extloadi16, LH>, Requires<[NotCapMode]>;
-def : LdPat<load, LW, i32>, Requires<[NotCapMode]>;
+def : LdPat<load, LW, i32>, Requires<[NotCapMode, IsRV32]>;
 def : LdPat<zextloadi8, LBU>, Requires<[NotCapMode]>;
 def : LdPat<zextloadi16, LHU>, Requires<[NotCapMode]>;
 
@@ -2042,7 +2042,7 @@ class StPat<PatFrag StoreOp, RVInst Inst, RegisterClass StTy,
 
 def : StPat<truncstorei8, SB, GPR, XLenVT>, Requires<[NotCapMode]>;
 def : StPat<truncstorei16, SH, GPR, XLenVT>, Requires<[NotCapMode]>;
-def : StPat<store, SW, GPR, i32>, Requires<[NotCapMode]>;
+def : StPat<store, SW, GPR, i32>, Requires<[NotCapMode, IsRV32]>;
 
 /// Fences
 

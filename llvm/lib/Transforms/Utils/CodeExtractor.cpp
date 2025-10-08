@@ -973,6 +973,7 @@ Function *CodeExtractor::constructFunctionDeclaration(
       case Attribute::SanitizeMemTag:
       case Attribute::SanitizeRealtime:
       case Attribute::SanitizeRealtimeBlocking:
+      case Attribute::SanitizeAllocToken:
       case Attribute::SpeculativeLoadHardening:
       case Attribute::StackProtect:
       case Attribute::StackProtectReq:

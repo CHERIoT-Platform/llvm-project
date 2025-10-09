@@ -12,6 +12,14 @@
 // IBEX: "-target-feature" "+b"
 // KUDU: "-target-feature" "+b"
 
+// CHERIOT-NOT: "-target-feature" "+zbkb"
+// IBEX: "-target-feature" "+zbkb"
+// KUDU: "-target-feature" "+zbkb"
+
+// CHERIOT-NOT: "-target-feature" "+zbkc"
+// IBEX: "-target-feature" "+zbkc"
+// KUDU: "-target-feature" "+zbkc"
+
 // ALL: "-target-feature" "+xcheriot"
 
 // BAREMETAL: "-target-abi" "cheriot-baremetal"

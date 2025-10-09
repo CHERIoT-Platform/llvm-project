@@ -887,11 +887,13 @@ def CHERIOT_IBEX
                           [Feature32Bit, FeatureVendorXCheri,
                            FeatureVendorXCheriot, FeatureVendorXCheriPureCap,
                            FeatureStdExtB, FeatureStdExtC, FeatureStdExtE,
-                           FeatureStdExtM, FeatureUnalignedScalarMem]>;
+                           FeatureStdExtM, FeatureStdExtZbkb, FeatureStdExtZbkc,
+                           FeatureUnalignedScalarMem]>;
 
 def CHERIOT_KUDU
     : RISCVProcessorModel<"cheriot-kudu", NoSchedModel,
                           [Feature32Bit, FeatureVendorXCheri,
                            FeatureVendorXCheriot, FeatureVendorXCheriPureCap,
                            FeatureStdExtB, FeatureStdExtC, FeatureStdExtE,
-                           FeatureStdExtM, FeatureUnalignedScalarMem]>;
+                           FeatureStdExtM, FeatureStdExtZbkb, FeatureStdExtZbkc,
+                           FeatureUnalignedScalarMem]>;

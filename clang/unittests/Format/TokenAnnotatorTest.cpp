@@ -2229,6 +2229,12 @@ TEST_F(TokenAnnotatorTest, UnderstandsLambdas) {
   ASSERT_EQ(Tokens.size(), 21u) << Tokens;
   EXPECT_TOKEN(Tokens[11], tok::l_square, TT_LambdaLSquare);
   EXPECT_TOKEN(Tokens[13], tok::l_brace, TT_LambdaLBrace);
+
+  Tokens = annotate("SomeFunction({[]() -> int *[] { return {}; }});");
+  ASSERT_EQ(Tokens.size(), 22u) << Tokens;
+  EXPECT_TOKEN(Tokens[3], tok::l_square, TT_LambdaLSquare);
+  EXPECT_TOKEN(Tokens[5], tok::l_paren, TT_LambdaDefinitionLParen);
+  EXPECT_TOKEN(Tokens[10], tok::l_square, TT_ArraySubscriptLSquare);
 }
 
 TEST_F(TokenAnnotatorTest, UnderstandsFunctionAnnotations) {
@@ -4097,6 +4103,13 @@ TEST_F(TokenAnnotatorTest, UTF8StringLiteral) {
   EXPECT_TOKEN(Tokens[1], tok::utf8_string_literal, TT_Unknown);
 }
 
+TEST_F(TokenAnnotatorTest, C23DigitSeparator) {
+  auto Tokens = annotate("return 1'000;", getLLVMStyle(FormatStyle::LK_C));
+  ASSERT_EQ(Tokens.size(), 4u) << Tokens;
+  EXPECT_EQ(Tokens[1]->TokenText, "1'000");
+  EXPECT_TOKEN(Tokens[2], tok::semi, TT_Unknown);
+}
+
 TEST_F(TokenAnnotatorTest, IdentifierPackage) {
   auto Tokens = annotate("auto package;");
   ASSERT_EQ(Tokens.size(), 4u) << Tokens;
@@ -4142,6 +4155,14 @@ TEST_F(TokenAnnotatorTest, LineCommentTrailingBackslash) {
                          "// b");
   ASSERT_EQ(Tokens.size(), 3u) << Tokens;
   EXPECT_TOKEN(Tokens[1], tok::comment, TT_LineComment);
+}
+
+TEST_F(TokenAnnotatorTest, ArrowAfterSubscript) {
+  auto Tokens =
+      annotate("return (getStructType()->getElements())[eIdx]->getName();");
+  ASSERT_EQ(Tokens.size(), 19u) << Tokens;
+  // Not TT_LambdaArrow.
+  EXPECT_TOKEN(Tokens[13], tok::arrow, TT_Unknown);
 }
 
 } // namespace

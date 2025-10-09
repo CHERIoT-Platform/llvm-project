@@ -138,3 +138,7 @@ def CSR_XLEN_CLEN_F64_Interrupt
           (sequence "F%u_D", 0, 7), (sequence "F%u_D", 10, 11),
           (sequence "F%u_D", 12, 17), (sequence "F%u_D", 28, 31),
           (sequence "F%u_D", 8, 9), (sequence "F%u_D", 18, 27))>;
+
+def CSR_RT_MostRegs : CalleeSavedRegs<(sub CSR_Interrupt, X6, X7, X28)>;
+def CSR_RT_MostRegs_RVE : CalleeSavedRegs<(sub CSR_RT_MostRegs,
+                                               (sequence "X%u", 16, 31))>;

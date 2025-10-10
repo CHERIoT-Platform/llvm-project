@@ -4264,8 +4264,8 @@ bool LoopVectorizationPlanner::isCandidateForEpilogueVectorization(
   if (any_of(OrigLoop->getHeader()->phis(), [&](PHINode &Phi) {
         if (!Legal->isReductionVariable(&Phi))
           return Legal->isFixedOrderRecurrence(&Phi);
-        RecurKind RK = Legal->getRecurrenceDescriptor(&Phi).getRecurrenceKind();
-        return RK == RecurKind::FMinNum || RK == RecurKind::FMaxNum;
+        return RecurrenceDescriptor::isFPMinMaxNumRecurrenceKind(
+            Legal->getRecurrenceDescriptor(&Phi).getRecurrenceKind());
       }))
     return false;
 
@@ -5696,7 +5696,7 @@ void LoopVectorizationCostModel::setCostBasedWideningDecision(ElementCount VF) {
     Instruction *I = Worklist.pop_back_val();
     for (auto &Op : I->operands())
       if (auto *InstOp = dyn_cast<Instruction>(Op))
-        if ((InstOp->getParent() == I->getParent()) && !isa<PHINode>(InstOp) &&
+        if (TheLoop->contains(InstOp) && !isa<PHINode>(InstOp) &&
             AddrDefs.insert(InstOp).second)
           Worklist.push_back(InstOp);
   }

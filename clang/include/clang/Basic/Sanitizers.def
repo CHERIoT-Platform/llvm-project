@@ -195,6 +195,9 @@ SANITIZER_GROUP("bounds", Bounds, ArrayBounds | LocalBounds)
 // Scudo hardened allocator
 SANITIZER("scudo", Scudo)
 
+// AllocToken
+SANITIZER("alloc-token", AllocToken)
+
 // -fsanitize=cheri includes all the sanitizers that make use of capability
 // metadata and don't have any ABI implications.
 SANITIZER("cheri-unrepresentable", CheriUnrepresentable)

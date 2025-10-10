@@ -34,11 +34,8 @@ define i64 @ptrdiff2(ptr addrspace(200) %ptr) addrspace(200) {
 }
 
 define i64 @ptrdiff3(ptr addrspace(200) %ptr) addrspace(200) {
-; Don't bother with non-inbounds GEPs.
 ; CHECK-LABEL: @ptrdiff3(
-; CHECK-NEXT:    [[LAST:%.*]] = getelementptr i8, ptr addrspace(200) [[PTR:%.*]], i32 42
-; CHECK-NEXT:    [[DIFF:%.*]] = call i64 @llvm.cheri.cap.diff.i64(ptr addrspace(200) [[LAST]], ptr addrspace(200) [[PTR]])
-; CHECK-NEXT:    ret i64 [[DIFF]]
+; CHECK-NEXT:    ret i64 42
 ;
   %first = getelementptr i8, ptr addrspace(200) %ptr, i32 0
   %last = getelementptr i8, ptr addrspace(200) %ptr, i32 42

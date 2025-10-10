@@ -118,8 +118,14 @@ def main():
             sys.exit("ERROR: missing --shared-mount-remote-path argument.")
 
     # Create a temporary directory where the test will be run.
-    # That is effectively the value of %T on the remote host.
-    localTmp, remoteTmp = createTempdir(args)
+    # That is effectively the value of %{temp} on the remote host.
+    tmp = runCommand(
+        ssh("mktemp -d {}/libcxx.XXXXXXXXXX".format(args.tempdir)),
+        universal_newlines=True,
+        check=True,
+        capture_output=True,
+        stdin=subprocess.DEVNULL
+    ).stdout.strip()
 
     # HACK:
     # If an argument is a file that ends in `.tmp.exe`, assume it is the name

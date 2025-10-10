@@ -252,14 +252,12 @@ void ProfiledBinary::load() {
 
   DisassembleFunctionSet.insert_range(DisassembleFunctions);
 
-  if (auto *ELFObj = dyn_cast<ELFObjectFileBase>(Obj)) {
-    checkPseudoProbe(ELFObj);
-    if (UsePseudoProbes)
-      populateElfSymbolAddressList(ELFObj);
+  checkPseudoProbe(Obj);
+  if (UsePseudoProbes)
+    populateSymbolAddressList(Obj);
 
-    if (ShowDisassemblyOnly)
-      decodePseudoProbe(ELFObj);
-  }
+  if (ShowDisassemblyOnly)
+    decodePseudoProbe(Obj);
 
   // Disassemble the text sections.
   disassemble(Obj);
@@ -419,7 +417,7 @@ void ProfiledBinary::setPreferredTextSegmentAddresses(const ObjectFile *Obj) {
     llvm_unreachable("invalid object format");
 }
 
-void ProfiledBinary::checkPseudoProbe(const ELFObjectFileBase *Obj) {
+void ProfiledBinary::checkPseudoProbe(const ObjectFile *Obj) {
   if (UseDwarfCorrelation)
     return;
 
@@ -442,7 +440,7 @@ void ProfiledBinary::checkPseudoProbe(const ELFObjectFileBase *Obj) {
   UsePseudoProbes = HasProbeDescSection && HasPseudoProbeSection;
 }
 
-void ProfiledBinary::decodePseudoProbe(const ELFObjectFileBase *Obj) {
+void ProfiledBinary::decodePseudoProbe(const ObjectFile *Obj) {
   if (!UsePseudoProbes)
     return;
 
@@ -513,7 +511,7 @@ void ProfiledBinary::decodePseudoProbe(const ELFObjectFileBase *Obj) {
 void ProfiledBinary::decodePseudoProbe() {
   OwningBinary<Binary> OBinary = unwrapOrError(createBinary(Path), Path);
   Binary &ExeBinary = *OBinary.getBinary();
-  auto *Obj = cast<ELFObjectFileBase>(&ExeBinary);
+  auto *Obj = cast<ObjectFile>(&ExeBinary);
   decodePseudoProbe(Obj);
 }
 
@@ -811,8 +809,7 @@ void ProfiledBinary::checkUseFSDiscriminator(
   }
 }
 
-void ProfiledBinary::populateElfSymbolAddressList(
-    const ELFObjectFileBase *Obj) {
+void ProfiledBinary::populateSymbolAddressList(const ObjectFile *Obj) {
   // Create a mapping from virtual address to symbol GUID and the other way
   // around.
   StringRef FileName = Obj->getFileName();

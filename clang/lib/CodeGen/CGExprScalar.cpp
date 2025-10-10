@@ -35,6 +35,7 @@
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Sema/SemaDiagnostic.h"
 #include "llvm/ADT/APFixedPoint.h"
+#include "llvm/ADT/ScopeExit.h"
 #include "llvm/IR/Argument.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Cheri.h"
@@ -2734,6 +2735,10 @@ static llvm::Value *createCToPtr(CodeGenFunction &CGF, llvm::Value *Cap,
 // have to handle a more broad range of conversions than explicit casts, as they
 // handle things like function to ptr-to-function decay etc.
 Value *ScalarExprEmitter::VisitCastExpr(CastExpr *CE) {
+  auto RestoreCurCast =
+      llvm::make_scope_exit([this, Prev = CGF.CurCast] { CGF.CurCast = Prev; });
+  CGF.CurCast = CE;
+
   Expr *E = CE->getSubExpr();
   QualType DestTy = CE->getType();
   CastKind Kind = CE->getCastKind();

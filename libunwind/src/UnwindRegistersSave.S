@@ -6,6 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#if !defined(__wasm__)
+
 #include "assembly.h"
 #include "__libunwind_config.h"
 
@@ -21,7 +23,7 @@
     .text
 #endif
 
-#if !defined(__USING_SJLJ_EXCEPTIONS__) && !defined(__wasm__)
+#if !defined(__USING_SJLJ_EXCEPTIONS__)
 
 #if defined(__i386__)
 
@@ -1429,6 +1431,8 @@ DEFINE_LIBUNWIND_FUNCTION(__unw_getcontext)
   WEAK_ALIAS(__unw_getcontext, unw_getcontext)
 #endif
 
-#endif /* !defined(__USING_SJLJ_EXCEPTIONS__) && !defined(__wasm__) */
+#endif /* !defined(__USING_SJLJ_EXCEPTIONS__) */
 
 NO_EXEC_STACK_DIRECTIVE
+
+#endif /* !defined(__wasm__) */

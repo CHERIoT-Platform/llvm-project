@@ -118,7 +118,8 @@ private:
                                              const Function *Fn,
                                              Register DestReg,
                                              bool TreatAsLibrary = false,
-                                             bool CallImportTarget = false);
+                                             bool CallImportTarget = false,
+                                             const MachineInstr *OriginalCall = nullptr);
   /**
    * Helper that inserts a load from the import table identified by an import
    * and export table entry symbol.
@@ -130,7 +131,8 @@ private:
                           MachineBasicBlock::iterator MBBI,
                           MCSymbol *ImportSymbol, MCSymbol *ExportSymbol,
                           const StringRef ImportName, Register DestReg,
-                          bool IsLibrary, bool IsPublic, bool CallImportTarget);
+                          bool IsLibrary, bool IsPublic, bool CallImportTarget,
+                          const MachineInstr* OriginalCall);
 
 #ifndef NDEBUG
   unsigned getInstSizeInBytes(const MachineFunction &MF) const {
@@ -269,8 +271,10 @@ bool RISCVExpandPseudo::expandMI(MachineBasicBlock &MBB,
 
 MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    const Function *Fn, Register DestReg, bool TreatAsLibrary,
-    bool CallImportTarget) {
+    const Function *Fn, Register DestReg,
+    bool TreatAsLibrary,
+    bool CallImportTarget,
+    const MachineInstr *OriginalCall) {
   auto *MF = MBB.getParent();
   const StringRef ImportName = Fn->getName();
   // We can hit this code path if we need to do a library-style import
@@ -298,7 +302,7 @@ MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
   MCSymbol *ExportSymbol = MF->getContext().getOrCreateSymbol(ExportEntryName);
   return insertLoadOfImportTable(
       MBB, MBBI, ImportSymbol, ExportSymbol, ImportName, DestReg,
-      IsLibrary || TreatAsLibrary, Fn->hasExternalLinkage(), CallImportTarget);
+      IsLibrary || TreatAsLibrary, Fn->hasExternalLinkage(), CallImportTarget, OriginalCall);
 }
 
 static const GlobalValue *resolveGlobalAlias(const GlobalValue *GV) {
@@ -311,7 +315,9 @@ static const GlobalValue *resolveGlobalAlias(const GlobalValue *GV) {
 MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
     MCSymbol *ImportSymbol, MCSymbol *ExportSymbol, const StringRef ImportName,
-    Register DestReg, bool IsLibrary, bool IsPublic, bool CallImportTarget) {
+    Register DestReg,
+    bool IsLibrary, bool IsPublic, bool CallImportTarget,
+    const MachineInstr* OriginalCall) {
   auto *MF = MBB.getParent();
   const DebugLoc DL = MBBI->getDebugLoc();
   MachineBasicBlock *NewMBB =
@@ -330,9 +336,12 @@ MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
       .addReg(DestReg, RegState::Kill)
       .addMBB(NewMBB, RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
 
-  if (CallImportTarget)
-    BuildMI(NewMBB, DL, TII->get(RISCV::C_CJALR))
+  if (CallImportTarget) {
+    auto NewCallMI = BuildMI(NewMBB, DL, TII->get(RISCV::C_CJALR))
         .addReg(DestReg, RegState::Kill);
+    if (OriginalCall && OriginalCall->shouldUpdateAdditionalCallInfo())
+      MF->moveAdditionalCallInfo(OriginalCall, NewCallMI);
+  }
 
   NewMBB->splice(NewMBB->end(), &MBB, std::next(MBBI), MBB.end());
   // Update machine-CFG edges.
@@ -410,8 +419,10 @@ bool RISCVExpandPseudo::expandCompartmentCall(MachineBasicBlock &MBB,
   BuildMI(NewMBB, DL, TII->get(RISCV::CLC_64), RISCV::X7_Y)
       .addReg(RISCV::X7_Y, RegState::Kill)
       .addMBB(NewMBB, RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
-  BuildMI(NewMBB, DL, TII->get(RISCV::C_CJALR))
+  auto NewCallMI = BuildMI(NewMBB, DL, TII->get(RISCV::C_CJALR))
       .addReg(RISCV::X7_Y, RegState::Kill);
+  if (MI.shouldUpdateAdditionalCallInfo())
+    MF->moveAdditionalCallInfo(&MI, NewCallMI);
 
   // Move all the rest of the instructions to NewMBB.
   NewMBB->splice(NewMBB->end(), &MBB, std::next(MBBI), MBB.end());
@@ -457,7 +468,7 @@ bool RISCVExpandPseudo::expandLibraryCall(
       MI.setDesc(TII->get(RISCV::PseudoCCALL));
       return true;
     }
-    insertLoadOfImportTable(MBB, MBBI, Fn, RISCV::X7_Y, true, true);
+    insertLoadOfImportTable(MBB, MBBI, Fn, RISCV::X7_Y, true, true, &MI);
 
     NextMBBI = MBB.end();
   } else if (Callee.isSymbol()) {
@@ -488,14 +499,17 @@ bool RISCVExpandPseudo::expandLibraryCall(
         MF->getContext().getOrCreateSymbol(ExportEntryName);
     insertLoadOfImportTable(MBB, MBBI, ImportSymbol, ExportSymbol,
                             Callee.getSymbolName(), RISCV::X7_Y, true, true,
-                            true);
+                            true, &MI);
 
     NextMBBI = MBB.end();
   } else {
     assert(Callee.isReg() && "Expected register operand");
     // Indirect library calls are just cjalr instructions.
-    BuildMI(&MBB, MI.getDebugLoc(), TII->get(RISCV::C_CJALR)).add(Callee);
+    auto NewCallMI = BuildMI(&MBB, MI.getDebugLoc(), TII->get(RISCV::C_CJALR)).add(Callee);
+    if (MI.shouldUpdateAdditionalCallInfo())
+      MF->moveAdditionalCallInfo(NewCallMI, &MI);
   }
+  
   MI.eraseFromParent();
   return true;
 }

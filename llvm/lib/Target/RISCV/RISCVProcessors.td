@@ -889,7 +889,6 @@ def CHERIOT_IBEX
                            FeatureVendorXCheriot, FeatureVendorXCheriPureCap,
                            FeatureStdExtB, FeatureStdExtC, FeatureStdExtE,
                            FeatureStdExtM, FeatureStdExtZbkb, FeatureStdExtZbkc,
-                           FeatureStdExtZicond,
                            FeatureUnalignedScalarMem]>;
 
 def CHERIOT_KUDU

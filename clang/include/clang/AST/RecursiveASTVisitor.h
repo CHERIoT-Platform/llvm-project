@@ -1718,7 +1718,7 @@ DEF_TRAVERSE_DECL(FriendDecl, {
     // it will not be in the parent context:
     if (auto *TT = D->getFriendType()->getType()->getAs<TagType>();
         TT && TT->isTagOwned())
-      TRY_TO(TraverseDecl(TT->getOriginalDecl()));
+      TRY_TO(TraverseDecl(TT->getDecl()));
   } else {
     TRY_TO(TraverseDecl(D->getFriendDecl()));
   }

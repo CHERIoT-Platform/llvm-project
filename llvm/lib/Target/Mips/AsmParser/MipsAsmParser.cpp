@@ -6669,13 +6669,13 @@ static bool isCRegZeroDDC(const OperandVector &Operands,
   // TODO: can I somehow get this information from the tablegen'd code?
   size_t AllowedIndex =
       StringSwitch<size_t>(Mnemonic)
-          .Cases("clc", "clb", "clbu", "clh", "clhu", "clw", "clwu", "cld", 5)
-          .Cases("csc", "csb", "csh", "csw", "csd", 5)
-          .Cases("clcbi", "cscbi", 4)
-          .Cases("cllc", "cllb", "cllbu", "cllh", "cllhu", "cllw", "cllwu",
-                 "clld", 2)
-          .Cases("cscc", "cscb", "csch", "cscw", "cscd", 3)
-          .Cases("cfromptr", "cbuildcap", "ctestsubset", 2)
+          .Cases({"clc", "clb", "clbu", "clh", "clhu", "clw", "clwu", "cld"}, 5)
+          .Cases({"csc", "csb", "csh", "csw", "csd"}, 5)
+          .Cases({"clcbi", "cscbi"}, 4)
+          .Cases({"cllc", "cllb", "cllbu", "cllh", "cllhu", "cllw", "cllwu",
+                 "clld"}, 2)
+          .Cases({"cscc", "cscb", "csch", "cscw", "cscd"}, 3)
+          .Cases({"cfromptr", "cbuildcap", "ctestsubset"}, 2)
           .Case("ctoptr", 3) // XXXAR: inconsisten with the insns above
           .Default(std::numeric_limits<size_t>::max());
 

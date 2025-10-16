@@ -2506,7 +2506,7 @@ void CGObjCCommonMac::BuildRCBlockVarRecordLayout(const RecordType *RT,
                                                   CharUnits BytePos,
                                                   bool &HasUnion,
                                                   bool ByrefLayout) {
-  const RecordDecl *RD = RT->getOriginalDecl()->getDefinitionOrSelf();
+  const RecordDecl *RD = RT->getDecl()->getDefinitionOrSelf();
   SmallVector<const FieldDecl *, 16> Fields(RD->fields());
   llvm::Type *Ty = CGM.getTypes().ConvertType(QualType(RT, 0));
   const llvm::StructLayout *RecLayout =
@@ -5195,7 +5195,7 @@ CGObjCCommonMac::GetIvarLayoutName(IdentifierInfo *Ident,
 }
 
 void IvarLayoutBuilder::visitRecord(const RecordType *RT, CharUnits offset) {
-  const RecordDecl *RD = RT->getOriginalDecl()->getDefinitionOrSelf();
+  const RecordDecl *RD = RT->getDecl()->getDefinitionOrSelf();
 
   // If this is a union, remember that we had one, because it might mess
   // up the ordering of layout entries.

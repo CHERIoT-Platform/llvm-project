@@ -1012,6 +1012,8 @@ public:
     // part if scalar. In the latter case, the recipe will be removed during
     // unrolling.
     ExtractLastElement,
+    // Extracts the last lane for each part from its operand.
+    ExtractLastLanePerPart,
     // Extracts the second-to-last lane from its operand or the second-to-last
     // part if it is scalar. In the latter case, the recipe will be removed
     // during unrolling.
@@ -4265,12 +4267,14 @@ public:
       BackedgeTakenCount = new VPValue();
     return BackedgeTakenCount;
   }
+  VPValue *getBackedgeTakenCount() const { return BackedgeTakenCount; }
 
   /// The vector trip count.
   VPValue &getVectorTripCount() { return VectorTripCount; }
 
   /// Returns the VF of the vector loop region.
   VPValue &getVF() { return VF; };
+  const VPValue &getVF() const { return VF; };
 
   /// Returns VF * UF of the vector loop region.
   VPValue &getVFxUF() { return VFxUF; }

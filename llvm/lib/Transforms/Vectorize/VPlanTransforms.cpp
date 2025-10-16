@@ -788,9 +788,7 @@ static VPValue *optimizeEarlyExitInductionUser(VPlan &Plan,
                                                ScalarEvolution &SE) {
   VPValue *Incoming, *Mask;
   if (!match(Op, m_VPInstruction<VPInstruction::ExtractLane>(
-                     m_VPInstruction<VPInstruction::FirstActiveLane>(
-                         m_VPValue(Mask)),
-                     m_VPValue(Incoming))))
+                     m_FirstActiveLane(m_VPValue(Mask)), m_VPValue(Incoming))))
     return nullptr;
 
   auto *WideIV = getOptimizableIVOf(Incoming, SE);
@@ -1209,7 +1207,8 @@ static void simplifyRecipe(VPRecipeBase &R, VPTypeAnalysis &TypeInfo) {
   }
 
   // Look through ExtractLastElement (BuildVector ....).
-  if (match(&R, m_ExtractLastElement(m_BuildVector()))) {
+  if (match(&R, m_CombineOr(m_ExtractLastElement(m_BuildVector()),
+                            m_ExtractLastLanePerPart(m_BuildVector())))) {
     auto *BuildVector = cast<VPInstruction>(R.getOperand(0));
     Def->replaceAllUsesWith(
         BuildVector->getOperand(BuildVector->getNumOperands() - 1));
@@ -1275,19 +1274,27 @@ static void simplifyRecipe(VPRecipeBase &R, VPTypeAnalysis &TypeInfo) {
     return;
   }
 
-  if (match(Def, m_ExtractLastElement(m_Broadcast(m_VPValue(A))))) {
+  if (match(Def,
+            m_CombineOr(m_ExtractLastElement(m_Broadcast(m_VPValue(A))),
+                        m_ExtractLastLanePerPart(m_Broadcast(m_VPValue(A)))))) {
     Def->replaceAllUsesWith(A);
     return;
   }
 
-  if (match(Def,
-            m_VPInstruction<VPInstruction::ExtractLastElement>(m_VPValue(A))) &&
+  if (match(Def, m_CombineOr(m_ExtractLastElement(m_VPValue(A)),
+                             m_ExtractLastLanePerPart(m_VPValue(A)))) &&
       ((isa<VPInstruction>(A) && vputils::isSingleScalar(A)) ||
        (isa<VPReplicateRecipe>(A) &&
         cast<VPReplicateRecipe>(A)->isSingleScalar())) &&
       all_of(A->users(),
              [Def, A](VPUser *U) { return U->usesScalars(A) || Def == U; })) {
     return Def->replaceAllUsesWith(A);
+  }
+
+  if (Plan->getUF() == 1 &&
+      match(Def, m_ExtractLastLanePerPart(m_VPValue(A)))) {
+    return Def->replaceAllUsesWith(
+        Builder.createNaryOp(VPInstruction::ExtractLastElement, {A}));
   }
 }
 
@@ -1326,8 +1333,11 @@ static void narrowToSingleScalarRecipes(VPlan &Plan) {
             RepOrWidenR->getUnderlyingInstr(), RepOrWidenR->operands(),
             true /*IsSingleScalar*/, nullptr /*Mask*/, *RepR /*Metadata*/);
         Clone->insertBefore(RepOrWidenR);
-        auto *Ext = new VPInstruction(VPInstruction::ExtractLastElement,
-                                      {Clone->getOperand(0)});
+        unsigned ExtractOpc =
+            vputils::isUniformAcrossVFsAndUFs(RepR->getOperand(1))
+                ? VPInstruction::ExtractLastElement
+                : VPInstruction::ExtractLastLanePerPart;
+        auto *Ext = new VPInstruction(ExtractOpc, {Clone->getOperand(0)});
         Ext->insertBefore(Clone);
         Clone->setOperand(0, Ext);
         RepR->eraseFromParent();
@@ -1341,7 +1351,8 @@ static void narrowToSingleScalarRecipes(VPlan &Plan) {
           !all_of(RepOrWidenR->users(), [RepOrWidenR](const VPUser *U) {
             return U->usesScalars(RepOrWidenR) ||
                    match(cast<VPRecipeBase>(U),
-                         m_ExtractLastElement(m_VPValue()));
+                         m_CombineOr(m_ExtractLastElement(m_VPValue()),
+                                     m_ExtractLastLanePerPart(m_VPValue())));
           }))
         continue;
 
@@ -2110,9 +2121,13 @@ static void licm(VPlan &Plan) {
   VPBasicBlock *Preheader = Plan.getVectorPreheader();
 
   // Return true if we do not know how to (mechanically) hoist a given recipe
-  // out of a loop region. Does not address legality concerns such as aliasing
-  // or speculation safety.
+  // out of a loop region.
   auto CannotHoistRecipe = [](VPRecipeBase &R) {
+    // TODO: Relax checks in the future, e.g. we could also hoist reads, if
+    // their memory location is not modified in the vector loop.
+    if (R.mayHaveSideEffects() || R.mayReadFromMemory() || R.isPhi())
+      return true;
+
     // Allocas cannot be hoisted.
     auto *RepR = dyn_cast<VPReplicateRecipe>(&R);
     return RepR && RepR->getOpcode() == Instruction::Alloca;
@@ -2120,17 +2135,18 @@ static void licm(VPlan &Plan) {
 
   // Hoist any loop invariant recipes from the vector loop region to the
   // preheader. Preform a shallow traversal of the vector loop region, to
-  // exclude recipes in replicate regions.
+  // exclude recipes in replicate regions. Since the top-level blocks in the
+  // vector loop region are guaranteed to execute if the vector pre-header is,
+  // we don't need to check speculation safety.
   VPRegionBlock *LoopRegion = Plan.getVectorLoopRegion();
+  assert(Preheader->getSingleSuccessor() == LoopRegion &&
+         "Expected vector prehader's successor to be the vector loop region");
   for (VPBasicBlock *VPBB : VPBlockUtils::blocksOnly<VPBasicBlock>(
            vp_depth_first_shallow(LoopRegion->getEntry()))) {
     for (VPRecipeBase &R : make_early_inc_range(*VPBB)) {
       if (CannotHoistRecipe(R))
         continue;
-      // TODO: Relax checks in the future, e.g. we could also hoist reads, if
-      // their memory location is not modified in the vector loop.
-      if (R.mayHaveSideEffects() || R.mayReadFromMemory() || R.isPhi() ||
-          any_of(R.operands(), [](VPValue *Op) {
+      if (any_of(R.operands(), [](VPValue *Op) {
             return !Op->isDefinedOutsideLoopRegions();
           }))
         continue;

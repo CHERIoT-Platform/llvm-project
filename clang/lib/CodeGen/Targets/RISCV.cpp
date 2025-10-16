@@ -59,7 +59,7 @@ private:
 
     auto Q = Size / CapWidth;
 
-    if (RT && getContext().containsCapabilities(RT->getOriginalDecl())) {
+    if (RT && getContext().containsCapabilities(RT->getDecl())) {
       if (Q == 1)
         return 1;
 
@@ -271,7 +271,7 @@ bool RISCVABIInfo::detectFPCCEligibleStructHelper(QualType Ty, CharUnits CurOff,
     // Non-zero-length arrays of empty records make the struct ineligible for
     // the FP calling convention in C++.
     if (const auto *RTy = EltTy->getAsCanonical<RecordType>()) {
-      if (ArraySize != 0 && isa<CXXRecordDecl>(RTy->getOriginalDecl()) &&
+      if (ArraySize != 0 && isa<CXXRecordDecl>(RTy->getDecl()) &&
           isEmptyRecord(getContext(), EltTy, true, true))
         return false;
     }
@@ -293,7 +293,7 @@ bool RISCVABIInfo::detectFPCCEligibleStructHelper(QualType Ty, CharUnits CurOff,
       return false;
     if (isEmptyRecord(getContext(), Ty, true, true))
       return true;
-    const RecordDecl *RD = RTy->getOriginalDecl()->getDefinitionOrSelf();
+    const RecordDecl *RD = RTy->getDecl()->getDefinitionOrSelf();
     // Unions aren't eligible unless they're empty (which is caught above).
     if (RD->isUnion())
       return false;

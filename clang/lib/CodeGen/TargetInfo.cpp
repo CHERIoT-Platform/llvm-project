@@ -82,6 +82,11 @@ TargetCodeGenInfo::~TargetCodeGenInfo() = default;
 // If someone can figure out a general rule for this, that would be great.
 // It's probably just doomed to be platform-dependent, though.
 unsigned TargetCodeGenInfo::getSizeOfUnwindException() const {
+  if (getABIInfo().getCodeGenOpts().hasSEHExceptions())
+    return getABIInfo().getDataLayout().getPointerSizeInBits(
+               getABIInfo().getDataLayout().getAllocaAddrSpace()) > 32
+               ? 64
+               : 48;
   // Verified for:
   //   x86-64     FreeBSD, Linux, Darwin
   //   x86-32     FreeBSD, Linux, Darwin

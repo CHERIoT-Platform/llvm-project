@@ -17843,7 +17843,6 @@ SDValue DAGCombiner::visitFADD(SDNode *N) {
   bool N1CFP = DAG.isConstantFPBuildVectorOrConstantFP(N1);
   EVT VT = N->getValueType(0);
   SDLoc DL(N);
-  const TargetOptions &Options = DAG.getTarget().Options;
   SDNodeFlags Flags = N->getFlags();
   SelectionDAG::FlagInserter FlagsInserter(DAG, N);
 
@@ -17909,7 +17908,7 @@ SDValue DAGCombiner::visitFADD(SDNode *N) {
   bool AllowNewConst = (Level < AfterLegalizeDAG);
 
   // If nnan is enabled, fold lots of things.
-  if ((Options.NoNaNsFPMath || Flags.hasNoNaNs()) && AllowNewConst) {
+  if (Flags.hasNoNaNs() && AllowNewConst) {
     // If allowed, fold (fadd (fneg x), x) -> 0.0
     if (N0.getOpcode() == ISD::FNEG && N0.getOperand(0) == N1)
       return DAG.getConstantFP(0.0, DL, VT);
@@ -18058,7 +18057,6 @@ SDValue DAGCombiner::visitFSUB(SDNode *N) {
   ConstantFPSDNode *N1CFP = isConstOrConstSplatFP(N1, true);
   EVT VT = N->getValueType(0);
   SDLoc DL(N);
-  const TargetOptions &Options = DAG.getTarget().Options;
   const SDNodeFlags Flags = N->getFlags();
   SelectionDAG::FlagInserter FlagsInserter(DAG, N);
 
@@ -18086,7 +18084,7 @@ SDValue DAGCombiner::visitFSUB(SDNode *N) {
 
   if (N0 == N1) {
     // (fsub x, x) -> 0.0
-    if (Options.NoNaNsFPMath || Flags.hasNoNaNs())
+    if (Flags.hasNoNaNs())
       return DAG.getConstantFP(0.0f, DL, VT);
   }
 
@@ -18397,7 +18395,6 @@ template <class MatchContextClass> SDValue DAGCombiner::visitFMA(SDNode *N) {
   ConstantFPSDNode *N2CFP = dyn_cast<ConstantFPSDNode>(N2);
   EVT VT = N->getValueType(0);
   SDLoc DL(N);
-  const TargetOptions &Options = DAG.getTarget().Options;
   // FMA nodes have flags that propagate to the created nodes.
   SelectionDAG::FlagInserter FlagsInserter(DAG, N);
   MatchContextClass matcher(DAG, TLI, N);
@@ -18423,8 +18420,7 @@ template <class MatchContextClass> SDValue DAGCombiner::visitFMA(SDNode *N) {
       return matcher.getNode(ISD::FMA, DL, VT, NegN0, NegN1, N2);
   }
 
-  if ((Options.NoNaNsFPMath && N->getFlags().hasNoInfs()) ||
-      (N->getFlags().hasNoNaNs() && N->getFlags().hasNoInfs())) {
+  if (N->getFlags().hasNoNaNs() && N->getFlags().hasNoInfs()) {
     if (N->getFlags().hasNoSignedZeros() ||
         (N2CFP && !N2CFP->isExactlyValue(-0.0))) {
       if (N0CFP && N0CFP->isZero())

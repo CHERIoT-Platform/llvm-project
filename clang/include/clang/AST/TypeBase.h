@@ -6628,10 +6628,10 @@ protected:
           bool IsInjected, const Type *CanonicalType);
 
 public:
-  // FIXME: Temporarily renamed from `getDecl` in order to facilitate
-  // rebasing, due to change in behaviour. This should be renamed back
-  // to `getDecl` once the change is settled.
-  TagDecl *getOriginalDecl() const { return decl; }
+  TagDecl *getDecl() const { return decl; }
+  [[deprecated("Use getDecl instead")]] TagDecl *getOriginalDecl() const {
+    return decl;
+  }
 
   NestedNameSpecifier getQualifier() const;
 
@@ -6672,7 +6672,7 @@ struct TagTypeFoldingSetPlaceholder : public llvm::FoldingSetNode {
 
   void Profile(llvm::FoldingSetNodeID &ID) const {
     const TagType *T = getTagType();
-    Profile(ID, T->getKeyword(), T->getQualifier(), T->getOriginalDecl(),
+    Profile(ID, T->getKeyword(), T->getQualifier(), T->getDecl(),
             T->isTagOwned(), T->isInjected());
   }
 
@@ -6696,11 +6696,11 @@ class RecordType final : public TagType {
   using TagType::TagType;
 
 public:
-  // FIXME: Temporarily renamed from `getDecl` in order to facilitate
-  // rebasing, due to change in behaviour. This should be renamed back
-  // to `getDecl` once the change is settled.
-  RecordDecl *getOriginalDecl() const {
-    return reinterpret_cast<RecordDecl *>(TagType::getOriginalDecl());
+  RecordDecl *getDecl() const {
+    return reinterpret_cast<RecordDecl *>(TagType::getDecl());
+  }
+  [[deprecated("Use getDecl instead")]] RecordDecl *getOriginalDecl() const {
+    return getDecl();
   }
 
   /// Recursively check all fields in the record for const-ness. If any field
@@ -6716,11 +6716,11 @@ class EnumType final : public TagType {
   using TagType::TagType;
 
 public:
-  // FIXME: Temporarily renamed from `getDecl` in order to facilitate
-  // rebasing, due to change in behaviour. This should be renamed back
-  // to `getDecl` once the change is settled.
-  EnumDecl *getOriginalDecl() const {
-    return reinterpret_cast<EnumDecl *>(TagType::getOriginalDecl());
+  EnumDecl *getDecl() const {
+    return reinterpret_cast<EnumDecl *>(TagType::getDecl());
+  }
+  [[deprecated("Use getDecl instead")]] EnumDecl *getOriginalDecl() const {
+    return getDecl();
   }
 
   static bool classof(const Type *T) { return T->getTypeClass() == Enum; }
@@ -6751,11 +6751,11 @@ class InjectedClassNameType final : public TagType {
                         bool IsInjected, const Type *CanonicalType);
 
 public:
-  // FIXME: Temporarily renamed from `getDecl` in order to facilitate
-  // rebasing, due to change in behaviour. This should be renamed back
-  // to `getDecl` once the change is settled.
-  CXXRecordDecl *getOriginalDecl() const {
-    return reinterpret_cast<CXXRecordDecl *>(TagType::getOriginalDecl());
+  CXXRecordDecl *getDecl() const {
+    return reinterpret_cast<CXXRecordDecl *>(TagType::getDecl());
+  }
+  [[deprecated("Use getDecl instead")]] CXXRecordDecl *getOriginalDecl() const {
+    return getDecl();
   }
 
   static bool classof(const Type *T) {
@@ -9143,8 +9143,8 @@ inline bool Type::isIntegerType() const {
   if (const EnumType *ET = dyn_cast<EnumType>(CanonicalType)) {
     // Incomplete enum types are not treated as integer types.
     // FIXME: In C++, enum types are never integer types.
-    return IsEnumDeclComplete(ET->getOriginalDecl()) &&
-           !IsEnumDeclScoped(ET->getOriginalDecl());
+    return IsEnumDeclComplete(ET->getDecl()) &&
+           !IsEnumDeclScoped(ET->getDecl());
   }
   return isBitIntType();
 }
@@ -9202,7 +9202,7 @@ inline bool Type::isScalarType() const {
   if (const EnumType *ET = dyn_cast<EnumType>(CanonicalType))
     // Enums are scalar types, but only if they are defined.  Incomplete enums
     // are not treated as scalar types.
-    return IsEnumDeclComplete(ET->getOriginalDecl());
+    return IsEnumDeclComplete(ET->getDecl());
   return isa<PointerType>(CanonicalType) ||
          isa<BlockPointerType>(CanonicalType) ||
          isa<MemberPointerType>(CanonicalType) ||
@@ -9218,7 +9218,7 @@ inline bool Type::isIntegralOrEnumerationType() const {
   // Check for a complete enum type; incomplete enum types are not properly an
   // enumeration type in the sense required here.
   if (const auto *ET = dyn_cast<EnumType>(CanonicalType))
-    return IsEnumDeclComplete(ET->getOriginalDecl());
+    return IsEnumDeclComplete(ET->getDecl());
 
   return isBitIntType();
 }

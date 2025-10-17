@@ -1780,6 +1780,8 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
   if (Subtarget.useRVVForFixedLengthVectors())
     setTargetDAGCombine(ISD::BITCAST);
 
+  setMaxDivRemBitWidthSupported(Subtarget.is64Bit() ? 128 : 64);
+
   // Disable strict node mutation.
   IsStrictFPEnabled = true;
   EnableExtLdPromotion = true;

@@ -3797,17 +3797,11 @@ static bool isFunctionDeclarationName(const LangOptions &LangOpts,
   if (Current.is(TT_FunctionDeclarationName))
     return true;
 
-  if (!Current.Tok.getIdentifierInfo())
+  if (Current.isNoneOf(tok::identifier, tok::kw_operator))
     return false;
 
   const auto *Prev = Current.getPreviousNonComment();
   assert(Prev);
-
-  if (Prev->is(tok::coloncolon))
-    Prev = Prev->Previous;
-
-  if (!Prev)
-    return false;
 
   const auto &Previous = *Prev;
 
@@ -3857,6 +3851,8 @@ static bool isFunctionDeclarationName(const LangOptions &LangOpts,
 
   // Find parentheses of parameter list.
   if (Current.is(tok::kw_operator)) {
+    if (Line.startsWith(tok::kw_friend))
+      return true;
     if (Previous.Tok.getIdentifierInfo() &&
         Previous.isNoneOf(tok::kw_return, tok::kw_co_return)) {
       return true;
@@ -4101,7 +4097,8 @@ void TokenAnnotator::calculateFormattingInformation(AnnotatedLine &Line) const {
     if (Current->is(TT_LineComment)) {
       if (Prev->is(BK_BracedInit) && Prev->opensScope()) {
         Current->SpacesRequiredBefore =
-            (Style.Cpp11BracedListStyle && !Style.SpacesInParensOptions.Other)
+            (Style.Cpp11BracedListStyle == FormatStyle::BLS_AlignFirstComment &&
+             !Style.SpacesInParensOptions.Other)
                 ? 0
                 : 1;
       } else if (Prev->is(TT_VerilogMultiLineListLParen)) {
@@ -4452,8 +4449,10 @@ unsigned TokenAnnotator::splitPenalty(const AnnotatedLine &Line,
         (Left.ParameterCount <= 1 || Style.AllowAllArgumentsOnNextLine)) {
       return 0;
     }
-    if (Left.is(tok::l_brace) && !Style.Cpp11BracedListStyle)
+    if (Left.is(tok::l_brace) &&
+        Style.Cpp11BracedListStyle == FormatStyle::BLS_Block) {
       return 19;
+    }
     return Left.ParameterCount > 1 ? Style.PenaltyBreakBeforeFirstCallParameter
                                    : 19;
   }
@@ -4619,7 +4618,7 @@ bool TokenAnnotator::spaceRequiredBetween(const AnnotatedLine &Line,
       // Format empty list as `<>`.
       if (Left.is(tok::less) && Right.is(tok::greater))
         return false;
-      return !Style.Cpp11BracedListStyle;
+      return Style.Cpp11BracedListStyle == FormatStyle::BLS_Block;
     }
     // Don't attempt to format operator<(), as it is handled later.
     if (Right.isNot(TT_OverloadedOperatorLParen))
@@ -4787,7 +4786,8 @@ bool TokenAnnotator::spaceRequiredBetween(const AnnotatedLine &Line,
   const auto SpaceRequiredForArrayInitializerLSquare =
       [](const FormatToken &LSquareTok, const FormatStyle &Style) {
         return Style.SpacesInContainerLiterals ||
-               (Style.isProto() && !Style.Cpp11BracedListStyle &&
+               (Style.isProto() &&
+                Style.Cpp11BracedListStyle == FormatStyle::BLS_Block &&
                 LSquareTok.endsSequence(tok::l_square, tok::colon,
                                         TT_SelectorName));
       };
@@ -4820,7 +4820,8 @@ bool TokenAnnotator::spaceRequiredBetween(const AnnotatedLine &Line,
   if ((Left.is(tok::l_brace) && Left.isNot(BK_Block)) ||
       (Right.is(tok::r_brace) && Right.MatchingParen &&
        Right.MatchingParen->isNot(BK_Block))) {
-    return !Style.Cpp11BracedListStyle || Style.SpacesInParensOptions.Other;
+    return Style.Cpp11BracedListStyle == FormatStyle::BLS_Block ||
+           Style.SpacesInParensOptions.Other;
   }
   if (Left.is(TT_BlockComment)) {
     // No whitespace in x(/*foo=*/1), except for JavaScript.
@@ -5002,7 +5003,7 @@ bool TokenAnnotator::spaceRequiredBefore(const AnnotatedLine &Line,
       Left.Children.empty()) {
     if (Left.is(BK_Block))
       return Style.SpaceInEmptyBraces != FormatStyle::SIEB_Never;
-    if (Style.Cpp11BracedListStyle) {
+    if (Style.Cpp11BracedListStyle != FormatStyle::BLS_Block) {
       return Style.SpacesInParens == FormatStyle::SIPO_Custom &&
              Style.SpacesInParensOptions.InEmptyParentheses;
     }
@@ -5084,7 +5085,7 @@ bool TokenAnnotator::spaceRequiredBefore(const AnnotatedLine &Line,
     if (Left.MatchingParen &&
         Left.MatchingParen->is(TT_ProtoExtensionLSquare) &&
         Right.isOneOf(tok::l_brace, tok::less)) {
-      return !Style.Cpp11BracedListStyle;
+      return Style.Cpp11BracedListStyle == FormatStyle::BLS_Block;
     }
     // A percent is probably part of a formatting specification, such as %lld.
     if (Left.is(tok::percent))
@@ -5524,7 +5525,7 @@ bool TokenAnnotator::spaceRequiredBefore(const AnnotatedLine &Line,
   if (Left.is(tok::greater) && Right.is(tok::greater)) {
     if (Style.isTextProto() ||
         (Style.Language == FormatStyle::LK_Proto && Left.is(TT_DictLiteral))) {
-      return !Style.Cpp11BracedListStyle;
+      return Style.Cpp11BracedListStyle == FormatStyle::BLS_Block;
     }
     return Right.is(TT_TemplateCloser) && Left.is(TT_TemplateCloser) &&
            ((Style.Standard < FormatStyle::LS_Cpp11) ||
@@ -6385,7 +6386,7 @@ bool TokenAnnotator::canBreakBefore(const AnnotatedLine &Line,
     return false;
   }
   if (Left.is(tok::equal) && Right.is(tok::l_brace) &&
-      !Style.Cpp11BracedListStyle) {
+      Style.Cpp11BracedListStyle == FormatStyle::BLS_Block) {
     return false;
   }
   if (Left.is(TT_AttributeLParen) ||

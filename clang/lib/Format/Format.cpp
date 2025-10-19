@@ -304,6 +304,18 @@ struct ScalarEnumerationTraits<FormatStyle::BreakTemplateDeclarationsStyle> {
   }
 };
 
+template <> struct ScalarEnumerationTraits<FormatStyle::BracedListStyle> {
+  static void enumeration(IO &IO, FormatStyle::BracedListStyle &Value) {
+    IO.enumCase(Value, "Block", FormatStyle::BLS_Block);
+    IO.enumCase(Value, "FunctionCall", FormatStyle::BLS_FunctionCall);
+    IO.enumCase(Value, "AlignFirstComment", FormatStyle::BLS_AlignFirstComment);
+
+    // For backward compatibility.
+    IO.enumCase(Value, "false", FormatStyle::BLS_Block);
+    IO.enumCase(Value, "true", FormatStyle::BLS_AlignFirstComment);
+  }
+};
+
 template <> struct ScalarEnumerationTraits<FormatStyle::DAGArgStyle> {
   static void enumeration(IO &IO, FormatStyle::DAGArgStyle &Value) {
     IO.enumCase(Value, "DontBreak", FormatStyle::DAS_DontBreak);
@@ -1629,7 +1641,7 @@ FormatStyle getLLVMStyle(FormatStyle::LanguageKind Language) {
   LLVMStyle.CompactNamespaces = false;
   LLVMStyle.ConstructorInitializerIndentWidth = 4;
   LLVMStyle.ContinuationIndentWidth = 4;
-  LLVMStyle.Cpp11BracedListStyle = true;
+  LLVMStyle.Cpp11BracedListStyle = FormatStyle::BLS_AlignFirstComment;
   LLVMStyle.DerivePointerAlignment = false;
   LLVMStyle.DisableFormat = false;
   LLVMStyle.EmptyLineAfterAccessModifier = FormatStyle::ELAAMS_Never;
@@ -1905,7 +1917,7 @@ FormatStyle getGoogleStyle(FormatStyle::LanguageKind Language) {
     // beneficial there. Investigate turning this on once proper string reflow
     // has been implemented.
     GoogleStyle.BreakStringLiterals = false;
-    GoogleStyle.Cpp11BracedListStyle = false;
+    GoogleStyle.Cpp11BracedListStyle = FormatStyle::BLS_Block;
     GoogleStyle.SpacesInContainerLiterals = false;
   } else if (Language == FormatStyle::LK_ObjC) {
     GoogleStyle.AlwaysBreakBeforeMultilineStrings = false;
@@ -2001,7 +2013,7 @@ FormatStyle getMozillaStyle() {
   MozillaStyle.BreakTemplateDeclarations = FormatStyle::BTDS_Yes;
   MozillaStyle.ConstructorInitializerIndentWidth = 2;
   MozillaStyle.ContinuationIndentWidth = 2;
-  MozillaStyle.Cpp11BracedListStyle = false;
+  MozillaStyle.Cpp11BracedListStyle = FormatStyle::BLS_Block;
   MozillaStyle.FixNamespaceComments = false;
   MozillaStyle.IndentCaseLabels = true;
   MozillaStyle.ObjCSpaceAfterProperty = true;
@@ -2024,7 +2036,7 @@ FormatStyle getWebKitStyle() {
   Style.BreakBeforeBraces = FormatStyle::BS_WebKit;
   Style.BreakConstructorInitializers = FormatStyle::BCIS_BeforeComma;
   Style.ColumnLimit = 0;
-  Style.Cpp11BracedListStyle = false;
+  Style.Cpp11BracedListStyle = FormatStyle::BLS_Block;
   Style.FixNamespaceComments = false;
   Style.IndentWidth = 4;
   Style.NamespaceIndentation = FormatStyle::NI_Inner;
@@ -2044,7 +2056,7 @@ FormatStyle getGNUStyle() {
   Style.BreakBeforeBraces = FormatStyle::BS_GNU;
   Style.BreakBeforeTernaryOperators = true;
   Style.ColumnLimit = 79;
-  Style.Cpp11BracedListStyle = false;
+  Style.Cpp11BracedListStyle = FormatStyle::BLS_Block;
   Style.FixNamespaceComments = false;
   Style.KeepFormFeed = true;
   Style.SpaceBeforeParens = FormatStyle::SBPO_Always;

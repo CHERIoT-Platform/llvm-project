@@ -311,12 +311,11 @@ Instruction *InstCombinerImpl::SimplifyAnyMemSet(AnyMemSetInst *MI) {
 // * Narrow width by halfs excluding zero/undef lanes
 Value *InstCombinerImpl::simplifyMaskedLoad(IntrinsicInst &II) {
   Value *LoadPtr = II.getArgOperand(0);
-  const Align Alignment =
-      cast<ConstantInt>(II.getArgOperand(1))->getAlignValue();
+  const Align Alignment = II.getParamAlign(0).valueOrOne();
 
   // If the mask is all ones or undefs, this is a plain vector load of the 1st
   // argument.
-  if (maskIsAllOneOrUndef(II.getArgOperand(2))) {
+  if (maskIsAllOneOrUndef(II.getArgOperand(1))) {
     LoadInst *L = Builder.CreateAlignedLoad(II.getType(), LoadPtr, Alignment,
                                             "unmaskedload");
     L->copyMetadata(II);
@@ -330,7 +329,7 @@ Value *InstCombinerImpl::simplifyMaskedLoad(IntrinsicInst &II) {
     LoadInst *LI = Builder.CreateAlignedLoad(II.getType(), LoadPtr, Alignment,
                                              "unmaskedload");
     LI->copyMetadata(II);
-    return Builder.CreateSelect(II.getArgOperand(2), LI, II.getArgOperand(3));
+    return Builder.CreateSelect(II.getArgOperand(1), LI, II.getArgOperand(2));
   }
 
   return nullptr;
@@ -341,8 +340,8 @@ Value *InstCombinerImpl::simplifyMaskedLoad(IntrinsicInst &II) {
 // * Narrow width by halfs excluding zero/undef lanes
 Instruction *InstCombinerImpl::simplifyMaskedStore(IntrinsicInst &II) {
   Value *StorePtr = II.getArgOperand(1);
-  Align Alignment = cast<ConstantInt>(II.getArgOperand(2))->getAlignValue();
-  auto *ConstMask = dyn_cast<Constant>(II.getArgOperand(3));
+  Align Alignment = II.getParamAlign(1).valueOrOne();
+  auto *ConstMask = dyn_cast<Constant>(II.getArgOperand(2));
   if (!ConstMask)
     return nullptr;
 
@@ -378,7 +377,7 @@ Instruction *InstCombinerImpl::simplifyMaskedStore(IntrinsicInst &II) {
 // * Narrow width by halfs excluding zero/undef lanes
 // * Vector incrementing address -> vector masked load
 Instruction *InstCombinerImpl::simplifyMaskedGather(IntrinsicInst &II) {
-  auto *ConstMask = dyn_cast<Constant>(II.getArgOperand(2));
+  auto *ConstMask = dyn_cast<Constant>(II.getArgOperand(1));
   if (!ConstMask)
     return nullptr;
 
@@ -388,8 +387,7 @@ Instruction *InstCombinerImpl::simplifyMaskedGather(IntrinsicInst &II) {
   if (ConstMask->isAllOnesValue())
     if (auto *SplatPtr = getSplatValue(II.getArgOperand(0))) {
       auto *VecTy = cast<VectorType>(II.getType());
-      const Align Alignment =
-          cast<ConstantInt>(II.getArgOperand(1))->getAlignValue();
+      const Align Alignment = II.getParamAlign(0).valueOrOne();
       LoadInst *L = Builder.CreateAlignedLoad(VecTy->getElementType(), SplatPtr,
                                               Alignment, "load.scalar");
       Value *Shuf =
@@ -406,7 +404,7 @@ Instruction *InstCombinerImpl::simplifyMaskedGather(IntrinsicInst &II) {
 // * Narrow store width by halfs excluding zero/undef lanes
 // * Vector incrementing address -> vector masked store
 Instruction *InstCombinerImpl::simplifyMaskedScatter(IntrinsicInst &II) {
-  auto *ConstMask = dyn_cast<Constant>(II.getArgOperand(3));
+  auto *ConstMask = dyn_cast<Constant>(II.getArgOperand(2));
   if (!ConstMask)
     return nullptr;
 
@@ -419,8 +417,7 @@ Instruction *InstCombinerImpl::simplifyMaskedScatter(IntrinsicInst &II) {
     // scatter(splat(value), splat(ptr), non-zero-mask) -> store value, ptr
     if (auto *SplatValue = getSplatValue(II.getArgOperand(0))) {
       if (maskContainsAllOneOrUndef(ConstMask)) {
-        Align Alignment =
-            cast<ConstantInt>(II.getArgOperand(2))->getAlignValue();
+        Align Alignment = II.getParamAlign(1).valueOrOne();
         StoreInst *S = new StoreInst(SplatValue, SplatPtr, /*IsVolatile=*/false,
                                      Alignment);
         S->copyMetadata(II);
@@ -430,7 +427,7 @@ Instruction *InstCombinerImpl::simplifyMaskedScatter(IntrinsicInst &II) {
     // scatter(vector, splat(ptr), splat(true)) -> store extract(vector,
     // lastlane), ptr
     if (ConstMask->isAllOnesValue()) {
-      Align Alignment = cast<ConstantInt>(II.getArgOperand(2))->getAlignValue();
+      Align Alignment = II.getParamAlign(1).valueOrOne();
       VectorType *WideLoadTy = cast<VectorType>(II.getArgOperand(1)->getType());
       ElementCount VF = WideLoadTy->getElementCount();
       Value *RunTimeVF = Builder.CreateElementCount(Builder.getInt32Ty(), VF);

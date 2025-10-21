@@ -132,20 +132,18 @@ struct UnwindInfoSections {
     defined(_LIBUNWIND_SUPPORT_COMPACT_UNWIND) ||                              \
     defined(_LIBUNWIND_USE_DL_ITERATE_PHDR)
   // No dso_base for SEH.
-  uintptr_t       dso_base;
+  uintptr_t __ptrauth_unwind_uis_dso_base
+                  dso_base = 0;
 #endif
 #if defined(_LIBUNWIND_USE_DL_ITERATE_PHDR)
   size_t          text_segment_length;
 #endif
 #if defined(_LIBUNWIND_SUPPORT_DWARF_UNWIND)
 private:
-  uintptr_t       __dwarf_section;
-public:
-  void set_dwarf_section(uintptr_t value) {
-      __dwarf_section = assert_pointer_in_bounds(value);
-  }
-  uintptr_t dwarf_section() const { return __dwarf_section; }
-  size_t          dwarf_section_length;
+  uintptr_t __ptrauth_unwind_uis_dwarf_section
+                  dwarf_section = 0;
+  size_t __ptrauth_unwind_uis_dwarf_section_length
+                  dwarf_section_length = 0;
 #endif
 #if defined(_LIBUNWIND_SUPPORT_DWARF_INDEX)
 private:
@@ -158,8 +156,10 @@ public:
   size_t          dwarf_index_section_length;
 #endif
 #if defined(_LIBUNWIND_SUPPORT_COMPACT_UNWIND)
-  uintptr_t       compact_unwind_section;
-  size_t          compact_unwind_section_length;
+  uintptr_t __ptrauth_unwind_uis_compact_unwind_section
+                  compact_unwind_section = 0;
+  size_t __ptrauth_unwind_uis_compact_unwind_section_length
+                  compact_unwind_section_length = 0;
 #endif
 #if defined(_LIBUNWIND_ARM_EHABI)
   uintptr_t       arm_section;
@@ -332,7 +332,7 @@ public:
   static int64_t  getSLEB128(pint_t &addr, pint_t end);
 
   pint_t getEncodedP(pint_t &addr, pint_t end, uint8_t encoding,
-                     pint_t datarelBase = 0);
+                     pint_t datarelBase = 0, pint_t *resultAddr = nullptr);
   bool findFunctionName(pc_t ip, char *buf, size_t bufLen, unw_word_t *offset);
   bool findUnwindSections(pc_t targetAddr, UnwindInfoSections &info);
   bool findOtherFDE(addr_t targetAddr, pint_t &fde);
@@ -467,7 +467,7 @@ constexpr int check_same_type() {
 
 inline LocalAddressSpace::pint_t
 LocalAddressSpace::getEncodedP(pint_t &addr, pint_t end, uint8_t encoding,
-                               pint_t datarelBase) {
+                               pint_t datarelBase, pint_t *resultAddr) {
   pint_t startAddr = addr;
   const uint8_t *p = (uint8_t *)addr;
   pint_t result;
@@ -557,6 +557,8 @@ LocalAddressSpace::getEncodedP(pint_t &addr, pint_t end, uint8_t encoding,
   }
 
   if (encoding & DW_EH_PE_indirect) {
+    if (resultAddr)
+      *resultAddr = result; {
     // Always read a pointer sized value for DW_EH_PE_indirect
     // This seems to be the way that GNU tools interpret this but it will almost
     // certainly cause some issues for CHERI since we might want non-capability
@@ -565,6 +567,10 @@ LocalAddressSpace::getEncodedP(pint_t &addr, pint_t end, uint8_t encoding,
 #ifdef __CHERI_PURE_CAPABILITY__
     assert_pointer_in_bounds(result);
 #endif
+  }
+  } else {
+    if (resultAddr)
+      *resultAddr = startAddr;
   }
 
   return result;

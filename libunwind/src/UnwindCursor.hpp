@@ -1055,18 +1055,26 @@ private:
 #if defined(_LIBUNWIND_SUPPORT_DWARF_UNWIND)
   bool getInfoFromFdeCie(const typename CFI_Parser<A>::FDE_Info &fdeInfo,
                          const typename CFI_Parser<A>::CIE_Info &cieInfo,
-                         pc_t pc, uintptr_t dso_base);
-  bool getInfoFromDwarfSection(pc_t pc, const UnwindInfoSections &sects,
-                                            uint32_t fdeSectionOffsetHint=0);
+                         pint_t pc, uintptr_t dso_base);
+  bool getInfoFromDwarfSection(const typename R::link_reg_t &pc,
+                               const UnwindInfoSections &sects,
+                               uint32_t fdeSectionOffsetHint = 0);
   int stepWithDwarfFDE(bool stage2) {
+#if defined(_LIBUNWIND_TARGET_AARCH64_AUTHENTICATED_UNWINDING)
+    typename R::reg_t rawPC = this->getReg(UNW_REG_IP);
+    typename R::link_reg_t pc;
+    _registers.loadAndAuthenticateLinkRegister(rawPC, &pc);
+#else
+    typename R::link_reg_t pc = this->getReg(UNW_REG_IP);
+#endif
     return DwarfInstructions<A, R>::stepWithDwarf(
-        _addressSpace, this->getIP(), (pint_t)_info.unwind_info, _registers,
+        _addressSpace, pc, (pint_t)_info.unwind_info, _registers,
         _isSignalFrame, stage2);
   }
 #endif
 
 #if defined(_LIBUNWIND_SUPPORT_COMPACT_UNWIND)
-  bool getInfoFromCompactEncodingSection(pc_t pc,
+  bool getInfoFromCompactEncodingSection(const typename R::link_reg_t &pc,
                                          const UnwindInfoSections &sects);
   int stepWithCompactEncoding(bool stage2 = false) {
   #if defined(_LIBUNWIND_SUPPORT_DWARF_UNWIND)
@@ -1383,13 +1391,13 @@ UnwindCursor<A, R>::UnwindCursor(unw_context_t *context, A &as)
                 "UnwindCursor<> does not fit in unw_cursor_t");
   static_assert((alignof(UnwindCursor<A, R>) <= alignof(unw_cursor_t)),
                 "UnwindCursor<> requires more alignment than unw_cursor_t");
-  memset(&_info, 0, sizeof(_info));
+  memset(static_cast<void *>(&_info), 0, sizeof(_info));
 }
 
 template <typename A, typename R>
 UnwindCursor<A, R>::UnwindCursor(A &as, void *)
     : _addressSpace(as), _unwindInfoMissing(false), _isSignalFrame(false) {
-  memset(&_info, 0, sizeof(_info));
+  memset(static_cast<void *>(&_info), 0, sizeof(_info));
   // FIXME
   // fill in _registers from thread arg
 }
@@ -1716,7 +1724,8 @@ bool UnwindCursor<A, R>::getInfoFromFdeCie(
 
 template <typename A, typename R>
 bool UnwindCursor<A, R>::getInfoFromDwarfSection(
-    pc_t pc, const UnwindInfoSections &sects, uint32_t fdeSectionOffsetHint) {
+    const typename R::link_reg_t &pc, const UnwindInfoSections &sects,
+    uint32_t fdeSectionOffsetHint) {
   typename CFI_Parser<A>::FDE_Info fdeInfo;
   typename CFI_Parser<A>::CIE_Info cieInfo;
   bool foundFDE = false;
@@ -1775,8 +1784,7 @@ bool UnwindCursor<A, R>::getInfoFromDwarfSection(
 #if defined(_LIBUNWIND_SUPPORT_COMPACT_UNWIND)
 template <typename A, typename R>
 bool UnwindCursor<A, R>::getInfoFromCompactEncodingSection(
-    pc_t pc_raw, const UnwindInfoSections &sects) {
-  addr_t pc = pc_raw.address();
+    const typename R::link_reg_t &pc, const UnwindInfoSections &sects) {
   const bool log = false;
   if (log)
     fprintf(stderr, "getInfoFromCompactEncodingSection(pc=0x%llX, mh=0x%llX)\n",
@@ -2007,6 +2015,16 @@ bool UnwindCursor<A, R>::getInfoFromCompactEncodingSection(
         personalityIndex * sizeof(uint32_t));
     pint_t personalityPointer = sects.dso_base + (pint_t)personalityDelta;
     personality = _addressSpace.getP(personalityPointer);
+#if defined(_LIBUNWIND_TARGET_AARCH64_AUTHENTICATED_UNWINDING)
+    // The GOT for the personality function was signed address authenticated.
+    // Resign it as a regular function pointer.
+    const auto discriminator = ptrauth_blend_discriminator(
+        &_info.handler, __ptrauth_unwind_upi_handler_disc);
+    void *signedPtr = ptrauth_auth_and_resign(
+        (void *)personality, ptrauth_key_function_pointer, personalityPointer,
+        ptrauth_key_function_pointer, discriminator);
+    personality = (__typeof(personality))signedPtr;
+#endif
     if (log)
       fprintf(stderr, "getInfoFromCompactEncodingSection(pc=0x%llX), "
                       "personalityDelta=0x%08X, personality=0x%08llX\n",
@@ -2020,7 +2038,11 @@ bool UnwindCursor<A, R>::getInfoFromCompactEncodingSection(
   _info.start_ip = funcStart;
   _info.end_ip = funcEnd;
   _info.lsda = lsda;
-  _info.handler = personality;
+  // We use memmove to copy the personality function as we have already manually
+  // re-signed the pointer, and assigning directly will attempt to incorrectly
+  // sign the already signed value.
+  memmove(reinterpret_cast<void *>(&_info.handler),
+          reinterpret_cast<void *>(&personality), sizeof(personality));
   _info.gp = 0;
   _info.flags = 0;
   _info.format = encoding;
@@ -2673,17 +2695,23 @@ void UnwindCursor<A, R>::setInfoBasedOnIPRegister(bool isReturnAddress) {
   _isSigReturn = false;
 #endif
 
-  pc_t pc = this->getIP();
-  CHERI_DBG("%s(%d): pc=%#p\n", __func__, isReturnAddress, (void *)pc.get());
-#if defined(_LIBUNWIND_ARM_EHABI) || \
-    (defined(__CHERI_PURE_CAPABILITY__) && defined(__aarch64__))
+  typename R::reg_t rawPC = this->getReg(UNW_REG_IP);
+
+#if defined(_LIBUNWIND_ARM_EHABI)
   // Remove the thumb bit so the IP represents the actual instruction address.
   // This matches the behaviour of _Unwind_GetIP on arm.
   // Also do this for Morello, since we need to find the FDE for the actual
   // instruction address, not the address with the LSB set. Note that this does
   // *not* match _Unwind_GetIP, as clearing the LSB set would invalidate the
   // returned sentry.
-  pc &= (pint_t)~0x1;
+  rawPC &= (pint_t)~0x1;
+#endif
+
+  typename R::link_reg_t pc;
+#if defined(_LIBUNWIND_TARGET_AARCH64_AUTHENTICATED_UNWINDING)
+  _registers.loadAndAuthenticateLinkRegister(rawPC, &pc);
+#else
+  pc = rawPC;
 #endif
 
   // Exit early if at the top of the stack.
@@ -3247,7 +3275,7 @@ template <typename A, typename R> int UnwindCursor<A, R>::step(bool stage2) {
 template <typename A, typename R>
 void UnwindCursor<A, R>::getInfo(unw_proc_info_t *info) {
   if (_unwindInfoMissing)
-    memset(info, 0, sizeof(*info));
+    memset(static_cast<void *>(info), 0, sizeof(*info));
   else
     *info = _info;
 }
@@ -3255,7 +3283,14 @@ void UnwindCursor<A, R>::getInfo(unw_proc_info_t *info) {
 template <typename A, typename R>
 bool UnwindCursor<A, R>::getFunctionName(char *buf, size_t bufLen,
                                          unw_word_t *offset) {
-  return _addressSpace.findFunctionName(this->getIP(), buf, bufLen, offset);
+#if defined(_LIBUNWIND_TARGET_AARCH64_AUTHENTICATED_UNWINDING)
+  typename R::reg_t rawPC = this->getReg(UNW_REG_IP);
+  typename R::link_reg_t pc;
+  _registers.loadAndAuthenticateLinkRegister(rawPC, &pc);
+#else
+  typename R::link_reg_t pc = this->getReg(UNW_REG_IP);
+#endif
+  return _addressSpace.findFunctionName(pc, buf, bufLen, offset);
 }
 
 #if defined(_LIBUNWIND_CHECK_LINUX_SIGRETURN)

@@ -8,7 +8,7 @@
 // CHECK-NEXT:  [[ENTRY:.*]]:
 // CHECK-NEXT:    [[P:%.*]] = alloca ptr addrspace(200), align 8, addrspace(200)
 // CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[P]]) #[[ATTR2:[0-9]+]]
-// CHECK-NEXT:    [[ATOMIC_LOAD:%.*]] = load atomic ptr addrspace(200), ptr addrspace(200) [[P]] seq_cst, align 8, !tbaa [[TBAA7:![0-9]+]]
+// CHECK-NEXT:    [[ATOMIC_LOAD:%.*]] = load atomic ptr addrspace(200), ptr addrspace(200) [[P]] seq_cst, align 8, !tbaa [[TBAA11:![0-9]+]]
 // CHECK-NEXT:    br label %[[ATOMIC_OP:.*]]
 // CHECK:       [[ATOMIC_OP]]:
 // CHECK-NEXT:    [[TMP0:%.*]] = phi ptr addrspace(200) [ [[ATOMIC_LOAD]], %[[ENTRY]] ], [ [[TMP3:%.*]], %[[ATOMIC_OP]] ]
@@ -26,7 +26,7 @@ void test1() {
   ++p;
 }
 //.
-// CHECK: [[TBAA7]] = !{[[META8:![0-9]+]], [[META8]], i64 0}
-// CHECK: [[META8]] = !{!"omnipotent char", [[META9:![0-9]+]], i64 0}
-// CHECK: [[META9]] = !{!"Simple C/C++ TBAA"}
-//.
+// CHECK: [[META9:![0-9]+]] = !{!"omnipotent char", [[META10:![0-9]+]], i64 0}
+// CHECK: [[META10]] = !{!"Simple C/C++ TBAA"}
+// CHECK: [[TBAA11]] = !{[[META9]], [[META9]], i64 0}
+

@@ -1714,18 +1714,15 @@ llvm::Function *CGOpenMPRuntime::emitThreadPrivateVarDefinition(
     if (!Ctor && !Dtor)
       return nullptr;
 
-    unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
     // Copying constructor for the threadprivate variable.
     // Must be NULL - reserved by runtime, but currently it requires that this
     // parameter is always NULL. Otherwise it fires assertion.
-    CopyCtor = llvm::Constant::getNullValue(CGM.UnqualPtrTy);
+    CopyCtor = llvm::Constant::getNullValue(CGM.DefaultPtrTy);
     if (Ctor == nullptr) {
-      auto *CtorTy = llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS);
-      Ctor = llvm::Constant::getNullValue(CtorTy);
+      Ctor = llvm::Constant::getNullValue(CGM.DefaultPtrTy);
     }
     if (Dtor == nullptr) {
-      auto *DtorTy = llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS);
-      Dtor = llvm::Constant::getNullValue(DtorTy);
+      Dtor = llvm::Constant::getNullValue(CGM.DefaultPtrTy);
     }
     if (!CGF) {
       auto *InitFunctionTy =

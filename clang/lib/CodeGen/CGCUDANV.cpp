@@ -230,9 +230,7 @@ CGNVCUDARuntime::CGNVCUDARuntime(CodeGenModule &CGM)
   IntTy = CGM.IntTy;
   SizeTy = CGM.SizeTy;
   VoidTy = CGM.VoidTy;
-
-  unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
-  PtrTy = llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS);
+  PtrTy = CGM.DefaultPtrTy;
 
   if (CGM.getLangOpts().OffloadViaLLVM)
     Prefix = "llvm";

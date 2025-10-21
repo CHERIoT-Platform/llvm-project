@@ -886,6 +886,11 @@ LnoR2Fix:
 //
   .p2align 2
 DEFINE_LIBUNWIND_FUNCTION(__unw_getcontext)
+
+#if __has_feature(ptrauth_calls)
+  pacibsp
+#endif
+
 #ifdef __CHERI_PURE_CAPABILITY__
   stp    c0, c1,  [c0, #0x000]
   stp    c2, c3,  [c0, #0x020]
@@ -981,6 +986,10 @@ DEFINE_LIBUNWIND_FUNCTION(__unw_getcontext)
   str    d31,     [x0, #0x208]
 #endif
   mov    x0, #0                   // return UNW_ESUCCESS
+
+#if __has_feature(ptrauth_calls)
+  retab
+#else
   ret
 #endif
 

@@ -301,9 +301,9 @@ static std::string computeAMDDataLayout(const Triple &TT) {
 
 static bool isRISCVCheriPureCapABI(StringRef ABIName) {
   return StringSwitch<bool>(ABIName)
-    .Cases("il32pc64", "il32pc64f", "il32pc64d", "il32pc64e", true)
-    .Cases("l64pc128", "l64pc128f", "l64pc128d", true)
-    .Cases("cheriot", "cheriot-baremetal", true)
+    .Cases({"il32pc64", "il32pc64f", "il32pc64d", "il32pc64e"}, true)
+    .Cases({"l64pc128", "l64pc128f", "l64pc128d"}, true)
+    .Cases({"cheriot", "cheriot-baremetal"}, true)
     .Default(false);
 }
 

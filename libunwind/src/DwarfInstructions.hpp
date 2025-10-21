@@ -22,7 +22,6 @@
 #include "dwarf2.h"
 #include "libunwind_ext.h"
 
-
 namespace libunwind {
 
 
@@ -37,8 +36,9 @@ public:
   typedef typename A::pc_t pc_t;
   typedef typename A::capability_t capability_t;
 
-  static int stepWithDwarf(A &addressSpace, pc_t pc, pint_t fdeStart,
-                           R &registers, bool &isSignalFrame, bool stage2);
+  static int stepWithDwarf(A &addressSpace, const typename R::link_reg_t &pc,
+                           pint_t fdeStart, R &registers, bool &isSignalFrame,
+                           bool stage2);
 
 private:
 
@@ -68,30 +68,17 @@ private:
   static v128 getSavedVectorRegister(A &addressSpace, const R &registers,
                                   pint_t cfa, const RegisterLocation &savedReg);
 
-  static pint_t getCFA(A &addressSpace, const PrologInfo &prolog, pc_t pc,
-                       const R &registers, bool *success) {
-    *success = true;
-    pint_t result = (pint_t)-1;
+  static pint_t getCFA(A &addressSpace, const PrologInfo &prolog,
+                       const R &registers) {
     if (prolog.cfaRegister != 0) {
-      result =
-          (pint_t)((sint_t)registers.getRegister((int)prolog.cfaRegister) +
-                   prolog.cfaRegisterOffset);
-    } else  if (prolog.cfaExpression != 0) {
-      result = evaluateExpression((pint_t)prolog.cfaExpression,
-                                         addressSpace, registers, 0);
-    } else {
-      _LIBUNWIND_LOG("got broken prolog for pc " _LIBUNWIND_FMT_PTR "\n",
-                     (void *)pc.get());
-      *success = false;
-      return (pint_t)-1;
+      uintptr_t cfaRegister = registers.getRegister((int)prolog.cfaRegister);
+      return (pint_t)(cfaRegister + prolog.cfaRegisterOffset);
     }
-    if (!is_pointer_in_bounds(result, true)) {
-      _LIBUNWIND_LOG("evaluated out-of-bounds/invalid CFA "
-                     "expression for pc %#tx: " _LIBUNWIND_FMT_PTR "\n",
-                     (ptrdiff_t)pc.address(), (void *)result);
-      *success = false;
-    }
-    return result;
+    if (prolog.cfaExpression != 0)
+      return evaluateExpression((pint_t)prolog.cfaExpression, addressSpace,
+                                registers, 0);
+    assert(0 && "getCFA(): unknown location");
+    __builtin_unreachable();
   }
 #if defined(_LIBUNWIND_TARGET_AARCH64)
   static bool isReturnAddressSigned(A &addressSpace, R registers, pint_t cfa,
@@ -267,7 +254,8 @@ bool DwarfInstructions<A, R>::isReturnAddressSignedWithPC(A &addressSpace,
 #endif
 
 template <typename A, typename R>
-int DwarfInstructions<A, R>::stepWithDwarf(A &addressSpace, pc_t pc,
+int DwarfInstructions<A, R>::stepWithDwarf(A &addressSpace,
+                                           const typename R::link_reg_t &pc,
                                            pint_t fdeStart, R &registers,
                                            bool &isSignalFrame, bool stage2) {
   FDE_Info fdeInfo;
@@ -329,7 +317,7 @@ int DwarfInstructions<A, R>::stepWithDwarf(A &addressSpace, pc_t pc,
       CHERI_DBG("SETTING SP: %#p\n", (void *)cfa);
       newRegisters.setSP(cfa);
 
-      pint_t returnAddress = 0;
+      typename R::reg_t returnAddress = 0;
       constexpr int lastReg = R::lastDwarfRegNum();
       static_assert(static_cast<int>(CFI_Parser<A>::kMaxRegisterNumber) >=
                         lastReg,
@@ -375,7 +363,16 @@ int DwarfInstructions<A, R>::stepWithDwarf(A &addressSpace, pc_t pc,
 
       isSignalFrame = cieInfo.isSignalFrame;
 
-#if defined(_LIBUNWIND_TARGET_AARCH64)
+#if defined(_LIBUNWIND_TARGET_AARCH64) &&                                      \
+    !defined(_LIBUNWIND_TARGET_AARCH64_AUTHENTICATED_UNWINDING)
+      // There are two ways of return address signing: pac-ret (enabled via
+      // -mbranch-protection=pac-ret) and ptrauth-returns (enabled as part of
+      // Apple's arm64e or experimental pauthtest ABI on Linux). The code
+      // below handles signed RA for pac-ret, while ptrauth-returns uses
+      // different logic.
+      // TODO: unify logic for both cases, see
+      // https://github.com/llvm/llvm-project/issues/160110
+      //
       // If the target is aarch64 then the return address may have been signed
       // using the v8.3 pointer authentication extensions. The original
       // return address needs to be authenticated before the return address is

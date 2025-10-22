@@ -285,7 +285,8 @@ public:
   void setMaxAtomicWidth() override {
     MaxAtomicPromoteWidth = 128;
 
-    if (ISAInfo->hasExtension("a"))
+    // "a" implies "zalrsc" which is sufficient to inline atomics
+    if (ISAInfo->hasExtension("zalrsc"))
       MaxAtomicInlineWidth = 32;
     else if (ISAInfo->hasExtension("xcheriot"))
       // XCheriot implies atomic libcalls up to cap size.
@@ -325,7 +326,8 @@ public:
   void setMaxAtomicWidth() override {
     MaxAtomicPromoteWidth = 128;
 
-    if (ISAInfo->hasExtension("a"))
+    // "a" implies "zalrsc" which is sufficient to inline atomics
+    if (ISAInfo->hasExtension("zalrsc"))
       MaxAtomicInlineWidth = 64;
   }
 

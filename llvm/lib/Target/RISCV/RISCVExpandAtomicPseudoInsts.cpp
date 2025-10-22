@@ -113,12 +113,70 @@ bool RISCVExpandAtomicPseudo::expandMI(MachineBasicBlock &MBB,
   const auto &Subtarget = MBB.getParent()->getSubtarget<RISCVSubtarget>();
   MVT CLenVT = Subtarget.hasVendorXCheri() ? Subtarget.typeForCapabilities() : MVT();
   switch (MBBI->getOpcode()) {
+  case RISCV::PseudoAtomicSwap32:
+    return expandAtomicBinOp(MBB, MBBI, AtomicRMWInst::Xchg, false, MVT::i32,
+                             false, NextMBBI);
+  case RISCV::PseudoAtomicSwap64:
+    return expandAtomicBinOp(MBB, MBBI, AtomicRMWInst::Xchg, false, MVT::i64,
+                             false, NextMBBI);
+  case RISCV::PseudoAtomicLoadAdd32:
+    return expandAtomicBinOp(MBB, MBBI, AtomicRMWInst::Add, false, MVT::i32,
+                             false, NextMBBI);
+  case RISCV::PseudoAtomicLoadAdd64:
+    return expandAtomicBinOp(MBB, MBBI, AtomicRMWInst::Add, false, MVT::i64,
+                             false, NextMBBI);
+  case RISCV::PseudoAtomicLoadSub32:
+    return expandAtomicBinOp(MBB, MBBI, AtomicRMWInst::Sub, false, MVT::i32,
+                             false, NextMBBI);
+  case RISCV::PseudoAtomicLoadSub64:
+    return expandAtomicBinOp(MBB, MBBI, AtomicRMWInst::Sub, false, MVT::i64,
+                             false, NextMBBI);
+  case RISCV::PseudoAtomicLoadAnd32:
+    return expandAtomicBinOp(MBB, MBBI, AtomicRMWInst::And, false, MVT::i32,
+                             false, NextMBBI);
+  case RISCV::PseudoAtomicLoadAnd64:
+    return expandAtomicBinOp(MBB, MBBI, AtomicRMWInst::And, false, MVT::i64,
+                             false, NextMBBI);
+  case RISCV::PseudoAtomicLoadOr32:
+    return expandAtomicBinOp(MBB, MBBI, AtomicRMWInst::Or, false, MVT::i32, false, NextMBBI);
+  case RISCV::PseudoAtomicLoadOr64:
+    return expandAtomicBinOp(MBB, MBBI, AtomicRMWInst::Or, false, MVT::i64, false, NextMBBI);
+  case RISCV::PseudoAtomicLoadXor32:
+    return expandAtomicBinOp(MBB, MBBI, AtomicRMWInst::Xor, false, MVT::i32,
+                             false, NextMBBI);
+  case RISCV::PseudoAtomicLoadXor64:
+    return expandAtomicBinOp(MBB, MBBI, AtomicRMWInst::Xor, false, MVT::i64,
+                             false, NextMBBI);
   case RISCV::PseudoAtomicLoadNand32:
     return expandAtomicBinOp(MBB, MBBI, AtomicRMWInst::Nand, false, MVT::i32,
                              false, NextMBBI);
   case RISCV::PseudoAtomicLoadNand64:
     return expandAtomicBinOp(MBB, MBBI, AtomicRMWInst::Nand, false, MVT::i64,
                              false, NextMBBI);
+  case RISCV::PseudoAtomicLoadMin32:
+    return expandAtomicMinMaxOp(MBB, MBBI, AtomicRMWInst::Min, false, MVT::i32,
+                                false, NextMBBI);
+  case RISCV::PseudoAtomicLoadMin64:
+    return expandAtomicMinMaxOp(MBB, MBBI, AtomicRMWInst::Min, false, MVT::i64,
+                                false, NextMBBI);
+  case RISCV::PseudoAtomicLoadMax32:
+    return expandAtomicMinMaxOp(MBB, MBBI, AtomicRMWInst::Max, false, MVT::i32,
+                                false, NextMBBI);
+  case RISCV::PseudoAtomicLoadMax64:
+    return expandAtomicMinMaxOp(MBB, MBBI, AtomicRMWInst::Max, false, MVT::i64,
+                                false, NextMBBI);
+  case RISCV::PseudoAtomicLoadUMin32:
+    return expandAtomicMinMaxOp(MBB, MBBI, AtomicRMWInst::UMin, false, MVT::i32,
+                                false, NextMBBI);
+  case RISCV::PseudoAtomicLoadUMin64:
+    return expandAtomicMinMaxOp(MBB, MBBI, AtomicRMWInst::UMin, false, MVT::i64,
+                                false, NextMBBI);
+  case RISCV::PseudoAtomicLoadUMax32:
+    return expandAtomicMinMaxOp(MBB, MBBI, AtomicRMWInst::UMax, false, MVT::i32,
+                                false, NextMBBI);
+  case RISCV::PseudoAtomicLoadUMax64:
+    return expandAtomicMinMaxOp(MBB, MBBI, AtomicRMWInst::UMax, false, MVT::i64,
+                                false, NextMBBI);
   case RISCV::PseudoMaskedAtomicSwap32:
     return expandAtomicBinOp(MBB, MBBI, AtomicRMWInst::Xchg, true, MVT::i32,
                              false, NextMBBI);
@@ -599,9 +657,9 @@ static void doAtomicBinOpExpansion(const RISCVInstrInfo *TII, MachineInstr &MI,
     llvm_unreachable("Unexpected AtomicRMW BinOp");
   case AtomicRMWInst::Xchg:
     assert(!VT.isFatPointer() && "Capabilities should use AMOSWAP.C");
-    BuildMI(LoopMBB, DL, TII->get(RISCV::ADD), ScratchReg)
-        .addReg(RISCV::X0)
-        .addReg(IncrReg);
+    BuildMI(LoopMBB, DL, TII->get(RISCV::ADDI), ScratchReg)
+        .addReg(IncrReg)
+        .addImm(0);
     break;
   case AtomicRMWInst::Add:
     if (VT.isFatPointer()) {
@@ -802,13 +860,192 @@ static void insertSext(const RISCVInstrInfo *TII, DebugLoc DL,
       .addReg(ShamtReg);
 }
 
+static void doAtomicMinMaxOpExpansion(
+    const RISCVInstrInfo *TII, MachineInstr &MI, DebugLoc DL,
+    MachineBasicBlock *ThisMBB, MachineBasicBlock *LoopHeadMBB,
+    MachineBasicBlock *LoopIfBodyMBB, MachineBasicBlock *LoopTailMBB,
+    MachineBasicBlock *DoneMBB, AtomicRMWInst::BinOp BinOp, MVT VT,
+    bool PtrIsCap, const RISCVSubtarget *STI) {
+  Register DestReg = MI.getOperand(0).getReg();
+  Register ScratchReg = MI.getOperand(1).getReg();
+  Register AddrReg = MI.getOperand(2).getReg();
+  Register IncrReg = MI.getOperand(3).getReg();
+  AtomicOrdering Ordering =
+      static_cast<AtomicOrdering>(MI.getOperand(4).getImm());
+
+  Register ScratchIntReg;
+  Register IncrIntReg;
+  if (VT.isFatPointer()) {
+    const TargetRegisterInfo *TRI = STI->getRegisterInfo();
+    ScratchIntReg = TRI->getSubReg(ScratchReg, RISCV::sub_cap_addr);
+    IncrIntReg = TRI->getSubReg(IncrReg, RISCV::sub_cap_addr);
+  } else {
+    ScratchIntReg = ScratchReg;
+    IncrIntReg = IncrReg;
+  }
+
+  // .loophead:
+  //   lr.[w|d] dest, (addr)
+  //   mv scratch, dest
+  //   ifnochangeneeded scratch, incr, .looptail
+  BuildMI(LoopHeadMBB, DL, TII->get(getLRForRMW(PtrIsCap, Ordering, VT, STI)), DestReg)
+      .addReg(AddrReg);
+  if (VT.isFatPointer())
+    BuildMI(LoopHeadMBB, DL, TII->get(RISCV::CMove), ScratchReg)
+        .addReg(DestReg);
+  else
+    BuildMI(LoopHeadMBB, DL, TII->get(RISCV::ADDI), ScratchReg)
+        .addReg(DestReg)
+        .addImm(0);
+  switch (BinOp) {
+  default:
+    llvm_unreachable("Unexpected AtomicRMW BinOp");
+  case AtomicRMWInst::Max: {
+    BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGE))
+        .addReg(ScratchIntReg)
+        .addReg(IncrIntReg)
+        .addMBB(LoopTailMBB);
+    break;
+  }
+  case AtomicRMWInst::Min: {
+    BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGE))
+        .addReg(IncrIntReg)
+        .addReg(ScratchIntReg)
+        .addMBB(LoopTailMBB);
+    break;
+  }
+  case AtomicRMWInst::UMax:
+    BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGEU))
+        .addReg(ScratchIntReg)
+        .addReg(IncrIntReg)
+        .addMBB(LoopTailMBB);
+    break;
+  case AtomicRMWInst::UMin:
+    BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGEU))
+        .addReg(IncrIntReg)
+        .addReg(ScratchIntReg)
+        .addMBB(LoopTailMBB);
+    break;
+  }
+
+  // .loopifbody:
+  //   mv scratch, incr
+  if (VT.isFatPointer())
+    BuildMI(LoopIfBodyMBB, DL, TII->get(RISCV::CMove), ScratchReg)
+        .addReg(DestReg);
+  else
+    BuildMI(LoopIfBodyMBB, DL, TII->get(RISCV::ADDI), ScratchReg)
+        .addReg(IncrReg)
+        .addImm(0);
+
+  // .looptail:
+  //   sc.[w|d] scratch, scratch, (addr)
+  //   bnez scratch, loop
+  BuildMI(LoopTailMBB, DL, TII->get(getSCForRMW(PtrIsCap, Ordering, VT, STI)),
+          ScratchIntReg)
+      .addReg(ScratchReg)
+      .addReg(AddrReg);
+  BuildMI(LoopTailMBB, DL, TII->get(RISCV::BNE))
+      .addReg(ScratchIntReg)
+      .addReg(RISCV::X0)
+      .addMBB(LoopHeadMBB);
+}
+
+static void doMaskedAtomicMinMaxOpExpansion(
+    const RISCVInstrInfo *TII, MachineInstr &MI, DebugLoc DL,
+    MachineBasicBlock *ThisMBB, MachineBasicBlock *LoopHeadMBB,
+    MachineBasicBlock *LoopIfBodyMBB, MachineBasicBlock *LoopTailMBB,
+    MachineBasicBlock *DoneMBB, AtomicRMWInst::BinOp BinOp, MVT VT,
+    bool PtrIsCap, const RISCVSubtarget *STI) {
+  assert(!PtrIsCap &&
+          "Should never used masked operations with capabilities");
+  assert(VT == MVT::i32 && "Should never need to expand masked 64-bit operations");
+  Register DestReg = MI.getOperand(0).getReg();
+  Register Scratch1Reg = MI.getOperand(1).getReg();
+  Register Scratch2Reg = MI.getOperand(2).getReg();
+  Register AddrReg = MI.getOperand(3).getReg();
+  Register IncrReg = MI.getOperand(4).getReg();
+  Register MaskReg = MI.getOperand(5).getReg();
+  bool IsSigned = BinOp == AtomicRMWInst::Min || BinOp == AtomicRMWInst::Max;
+  AtomicOrdering Ordering =
+      static_cast<AtomicOrdering>(MI.getOperand(IsSigned ? 7 : 6).getImm());
+
+  //
+  // .loophead:
+  //   lr.w destreg, (alignedaddr)
+  //   and scratch2, destreg, mask
+  //   mv scratch1, destreg
+  //   [sext scratch2 if signed min/max]
+  //   ifnochangeneeded scratch2, incr, .looptail
+  BuildMI(LoopHeadMBB, DL, TII->get(getLRForRMW32(PtrIsCap, Ordering, STI)), DestReg)
+      .addReg(AddrReg);
+  BuildMI(LoopHeadMBB, DL, TII->get(RISCV::AND), Scratch2Reg)
+      .addReg(DestReg)
+      .addReg(MaskReg);
+  BuildMI(LoopHeadMBB, DL, TII->get(RISCV::ADDI), Scratch1Reg)
+      .addReg(DestReg)
+      .addImm(0);
+
+  switch (BinOp) {
+  default:
+    llvm_unreachable("Unexpected AtomicRMW BinOp");
+  case AtomicRMWInst::Max: {
+    insertSext(TII, DL, LoopHeadMBB, Scratch2Reg, MI.getOperand(6).getReg());
+    BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGE))
+        .addReg(Scratch2Reg)
+        .addReg(IncrReg)
+        .addMBB(LoopTailMBB);
+    break;
+  }
+  case AtomicRMWInst::Min: {
+    insertSext(TII, DL, LoopHeadMBB, Scratch2Reg, MI.getOperand(6).getReg());
+    BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGE))
+        .addReg(IncrReg)
+        .addReg(Scratch2Reg)
+        .addMBB(LoopTailMBB);
+    break;
+  }
+  case AtomicRMWInst::UMax:
+    BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGEU))
+        .addReg(Scratch2Reg)
+        .addReg(IncrReg)
+        .addMBB(LoopTailMBB);
+    break;
+  case AtomicRMWInst::UMin:
+    BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGEU))
+        .addReg(IncrReg)
+        .addReg(Scratch2Reg)
+        .addMBB(LoopTailMBB);
+    break;
+  }
+
+  // .loopifbody:
+  //   xor scratch1, destreg, incr
+  //   and scratch1, scratch1, mask
+  //   xor scratch1, destreg, scratch1
+  insertMaskedMerge(TII, DL, LoopIfBodyMBB, Scratch1Reg, DestReg, IncrReg,
+                    MaskReg, Scratch1Reg);
+
+  // .looptail:
+  //   sc.w scratch1, scratch1, (addr)
+  //   bnez scratch1, loop
+  BuildMI(LoopTailMBB, DL, TII->get(getSCForRMW32(PtrIsCap, Ordering, STI)), Scratch1Reg)
+      .addReg(Scratch1Reg)
+      .addReg(AddrReg);
+  BuildMI(LoopTailMBB, DL, TII->get(RISCV::BNE))
+      .addReg(Scratch1Reg)
+      .addReg(RISCV::X0)
+      .addMBB(LoopHeadMBB);
+}
+
 bool RISCVExpandAtomicPseudo::expandAtomicMinMaxOp(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    AtomicRMWInst::BinOp BinOp, bool IsMasked, MVT VT, bool PtrIsCap,
+    AtomicRMWInst::BinOp BinOp, bool IsMasked, MVT VT,
+    bool PtrIsCap,
     MachineBasicBlock::iterator &NextMBBI) {
-  assert((PtrIsCap || IsMasked == true) &&
-         "Should only need to expand masked atomic max/min without capabilities");
-  assert((PtrIsCap || VT == MVT::i32) && "Should never need to expand masked 64-bit operations");
+  assert(
+      !(PtrIsCap && IsMasked) &&
+      "Should only need to expand masked atomic max/min without capabilities");
 
   MachineInstr &MI = *MBBI;
   DebugLoc DL = MI.getDebugLoc();
@@ -834,175 +1071,13 @@ bool RISCVExpandAtomicPseudo::expandAtomicMinMaxOp(
   DoneMBB->transferSuccessors(&MBB);
   MBB.addSuccessor(LoopHeadMBB);
 
-  if (IsMasked) {
-    assert(!PtrIsCap &&
-           "Should never used masked operations with capabilities");
-
-    Register DestReg = MI.getOperand(0).getReg();
-    Register Scratch1Reg = MI.getOperand(1).getReg();
-    Register Scratch2Reg = MI.getOperand(2).getReg();
-    Register AddrReg = MI.getOperand(3).getReg();
-    Register IncrReg = MI.getOperand(4).getReg();
-    Register MaskReg = MI.getOperand(5).getReg();
-    bool IsSigned = BinOp == AtomicRMWInst::Min || BinOp == AtomicRMWInst::Max;
-    AtomicOrdering Ordering =
-        static_cast<AtomicOrdering>(MI.getOperand(IsSigned ? 7 : 6).getImm());
-
-  //
-  // .loophead:
-  //   lr.w destreg, (alignedaddr)
-  //   and scratch2, destreg, mask
-  //   mv scratch1, destreg
-  //   [sext scratch2 if signed min/max]
-  //   ifnochangeneeded scratch2, incr, .looptail
-    BuildMI(LoopHeadMBB, DL, TII->get(getLRForRMW32(PtrIsCap, Ordering, STI)),
-            DestReg)
-      .addReg(AddrReg);
-  BuildMI(LoopHeadMBB, DL, TII->get(RISCV::AND), Scratch2Reg)
-      .addReg(DestReg)
-      .addReg(MaskReg);
-  BuildMI(LoopHeadMBB, DL, TII->get(RISCV::ADDI), Scratch1Reg)
-      .addReg(DestReg)
-      .addImm(0);
-
-    switch (BinOp) {
-    default:
-      llvm_unreachable("Unexpected AtomicRMW BinOp");
-    case AtomicRMWInst::Max: {
-      insertSext(TII, DL, LoopHeadMBB, Scratch2Reg, MI.getOperand(6).getReg());
-      BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGE))
-          .addReg(Scratch2Reg)
-          .addReg(IncrReg)
-          .addMBB(LoopTailMBB);
-      break;
-    }
-    case AtomicRMWInst::Min: {
-      insertSext(TII, DL, LoopHeadMBB, Scratch2Reg, MI.getOperand(6).getReg());
-      BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGE))
-          .addReg(IncrReg)
-          .addReg(Scratch2Reg)
-          .addMBB(LoopTailMBB);
-      break;
-    }
-    case AtomicRMWInst::UMax:
-      BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGEU))
-          .addReg(Scratch2Reg)
-          .addReg(IncrReg)
-          .addMBB(LoopTailMBB);
-      break;
-    case AtomicRMWInst::UMin:
-      BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGEU))
-          .addReg(IncrReg)
-          .addReg(Scratch2Reg)
-          .addMBB(LoopTailMBB);
-      break;
-    }
-
-    // .loopifbody:
-    //   xor scratch1, destreg, incr
-    //   and scratch1, scratch1, mask
-    //   xor scratch1, destreg, scratch1
-    insertMaskedMerge(TII, DL, LoopIfBodyMBB, Scratch1Reg, DestReg, IncrReg,
-                      MaskReg, Scratch1Reg);
-
-  // .looptail:
-  //   sc.w scratch1, scratch1, (addr)
-  //   bnez scratch1, loop
-    BuildMI(LoopTailMBB, DL, TII->get(getSCForRMW32(PtrIsCap, Ordering, STI)), Scratch1Reg)
-      .addReg(Scratch1Reg)
-      .addReg(AddrReg);
-  BuildMI(LoopTailMBB, DL, TII->get(RISCV::BNE))
-      .addReg(Scratch1Reg)
-      .addReg(RISCV::X0)
-      .addMBB(LoopHeadMBB);
-  } else {
-    Register DestReg = MI.getOperand(0).getReg();
-    Register ScratchReg = MI.getOperand(1).getReg();
-    Register AddrReg = MI.getOperand(2).getReg();
-    Register IncrReg = MI.getOperand(3).getReg();
-    AtomicOrdering Ordering =
-        static_cast<AtomicOrdering>(MI.getOperand(4).getImm());
-
-    Register ScratchIntReg;
-    Register IncrIntReg;
-    if (VT.isFatPointer()) {
-      const TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
-      ScratchIntReg = TRI->getSubReg(ScratchReg, RISCV::sub_cap_addr);
-      IncrIntReg = TRI->getSubReg(IncrReg, RISCV::sub_cap_addr);
-    } else {
-      ScratchIntReg = ScratchReg;
-      IncrIntReg = IncrReg;
-    }
-
-    //
-    // .loophead:
-    //   lr.[b|h] dest, (addr)
-    //   mv scratch, dest
-    //   ifnochangeneeded scratch, incr, .looptail
-    BuildMI(LoopHeadMBB, DL, TII->get(getLRForRMW(PtrIsCap, Ordering, VT, STI)),
-            DestReg)
-        .addReg(AddrReg);
-    if (VT.isFatPointer())
-      BuildMI(LoopHeadMBB, DL, TII->get(RISCV::CMove), ScratchReg)
-          .addReg(DestReg);
-    else
-      BuildMI(LoopHeadMBB, DL, TII->get(RISCV::ADDI), ScratchReg)
-          .addReg(DestReg)
-          .addImm(0);
-
-    switch (BinOp) {
-    default:
-      llvm_unreachable("Unexpected AtomicRMW BinOp");
-    case AtomicRMWInst::Max: {
-      BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGE))
-          .addReg(ScratchIntReg)
-          .addReg(IncrIntReg)
-          .addMBB(LoopTailMBB);
-      break;
-    }
-    case AtomicRMWInst::Min: {
-      BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGE))
-          .addReg(IncrIntReg)
-          .addReg(ScratchIntReg)
-          .addMBB(LoopTailMBB);
-      break;
-    }
-    case AtomicRMWInst::UMax:
-      BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGEU))
-          .addReg(ScratchIntReg)
-          .addReg(IncrIntReg)
-          .addMBB(LoopTailMBB);
-      break;
-    case AtomicRMWInst::UMin:
-      BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BGEU))
-          .addReg(IncrIntReg)
-          .addReg(ScratchIntReg)
-          .addMBB(LoopTailMBB);
-      break;
-    }
-
-    // .loopifbody:
-    //   mv scratch, incr
-    if (VT.isFatPointer())
-      BuildMI(LoopIfBodyMBB, DL, TII->get(RISCV::CMove), ScratchReg)
-          .addReg(DestReg);
-    else
-      BuildMI(LoopIfBodyMBB, DL, TII->get(RISCV::ADDI), ScratchReg)
-          .addReg(IncrReg)
-          .addImm(0);
-
-    // .looptail:
-    //   sc.[b|h] scratch, scratch, (addr)
-    //   bnez scratch, loop
-    BuildMI(LoopTailMBB, DL, TII->get(getSCForRMW(PtrIsCap, Ordering, VT, STI)),
-            ScratchIntReg)
-        .addReg(ScratchReg)
-        .addReg(AddrReg);
-    BuildMI(LoopTailMBB, DL, TII->get(RISCV::BNE))
-        .addReg(ScratchIntReg)
-        .addReg(RISCV::X0)
-        .addMBB(LoopHeadMBB);
-  }
+  if (!IsMasked)
+    doAtomicMinMaxOpExpansion(TII, MI, DL, &MBB, LoopHeadMBB, LoopIfBodyMBB,
+                              LoopTailMBB, DoneMBB, BinOp, VT, PtrIsCap, STI);
+  else
+    doMaskedAtomicMinMaxOpExpansion(TII, MI, DL, &MBB, LoopHeadMBB,
+                                    LoopIfBodyMBB, LoopTailMBB, DoneMBB, BinOp,
+                                    VT, PtrIsCap, STI);
 
   NextMBBI = MBB.end();
   MI.eraseFromParent();

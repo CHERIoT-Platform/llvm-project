@@ -10079,7 +10079,7 @@ public:
   public:
     DeferDiagsRAII(Sema &S, bool DeferDiags)
         : S(S), SavedDeferDiags(S.DeferDiags) {
-      S.DeferDiags = DeferDiags;
+      S.DeferDiags = SavedDeferDiags || DeferDiags;
     }
     ~DeferDiagsRAII() { S.DeferDiags = SavedDeferDiags; }
   };

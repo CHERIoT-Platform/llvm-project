@@ -219,7 +219,7 @@ define <2 x i32> @ptrtoint_of_ptrmask_vec_fail(<2 x ptr addrspace(1) > %p, <2 x 
 ; CHECK-SAME: (<2 x ptr addrspace(1)> [[P:%.*]], <2 x i32> [[M:%.*]]) {
 ; CHECK-NEXT:    [[PM:%.*]] = call <2 x ptr addrspace(1)> @llvm.ptrmask.v2p1.v2i32(<2 x ptr addrspace(1)> [[P]], <2 x i32> [[M]])
 ; CHECK-NEXT:    [[TMP1:%.*]] = ptrtoint <2 x ptr addrspace(1)> [[PM]] to <2 x i64>
-; CHECK-NEXT:    [[R:%.*]] = trunc nuw <2 x i64> [[TMP1]] to <2 x i32>
+; CHECK-NEXT:    [[R:%.*]] = trunc <2 x i64> [[TMP1]] to <2 x i32>
 ; CHECK-NEXT:    ret <2 x i32> [[R]]
 ;
   %pm = call <2 x ptr addrspace(1) > @llvm.ptrmask.v2p1.v2i32(<2 x ptr addrspace(1) > %p, <2 x i32> %m)

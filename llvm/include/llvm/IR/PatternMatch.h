@@ -2102,11 +2102,18 @@ template <typename Op_t> struct PtrToIntSameSize_match {
       : DL(DL), Op(OpMatch) {}
 
   template <typename OpTy> bool match(OpTy *V) const {
-    if (auto *O = dyn_cast<Operator>(V))
+    if (auto *O = dyn_cast<Operator>(V)) {
+      if (O->getOpcode() == Instruction::PtrToInt &&
+          DL.isFatPointer(O->getOperand(0)->getType())) {
+        return DL.getTypeIntegerRangeInBits(O->getType()) ==
+                   DL.getTypeIntegerRangeInBits(O->getOperand(0)->getType()) &&
+               Op.match(O->getOperand(0));
+      }
       return O->getOpcode() == Instruction::PtrToInt &&
-             DL.getTypeIntegerRangeInBits(O->getType()) ==
-                 DL.getTypeIntegerRangeInBits(O->getOperand(0)->getType()) &&
+             DL.getTypeSizeInBits(O->getType()) ==
+                 DL.getTypeSizeInBits(O->getOperand(0)->getType()) &&
              Op.match(O->getOperand(0));
+    }
     return false;
   }
 };

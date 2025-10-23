@@ -9,7 +9,7 @@ define i1 @test59(ptr %foo) {
 ; CHECK-LABEL: @test59(
 ; CHECK-NEXT:    [[GEP1:%.*]] = getelementptr inbounds nuw i8, ptr [[FOO:%.*]], i32 8
 ; CHECK-NEXT:    [[TMP1:%.*]] = ptrtoint ptr [[GEP1]] to i40
-; CHECK-NEXT:    [[USE:%.*]] = zext nneg i40 [[TMP1]] to i64
+; CHECK-NEXT:    [[USE:%.*]] = zext i40 [[TMP1]] to i64
 ; CHECK-NEXT:    [[CALL:%.*]] = call i32 @test58_d(i64 [[USE]])
 ; CHECK-NEXT:    ret i1 true
 ;

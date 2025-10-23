@@ -1417,8 +1417,11 @@ static void computeKnownBitsFromOperator(const Operator *I,
     // which fall through here.
     Type *ScalarTy = SrcTy->getScalarType();
     SrcBitWidth = ScalarTy->isPointerTy() ?
-      Q.DL.getPointerAddrSizeInBits(ScalarTy) :
+      Q.DL.getPointerTypeSizeInBits(ScalarTy) :
       Q.DL.getTypeSizeInBits(ScalarTy);
+    if (Q.DL.isFatPointer(ScalarTy)) {
+      SrcBitWidth = Q.DL.getPointerAddrSizeInBits(ScalarTy);
+    }
 
     assert(SrcBitWidth && "SrcBitWidth can't be zero");
     Known = Known.anyextOrTrunc(SrcBitWidth);
@@ -4210,8 +4213,11 @@ static unsigned ComputeNumSignBitsImpl(const Value *V,
 
   Type *ScalarTy = Ty->getScalarType();
   unsigned TyBits = ScalarTy->isPointerTy() ?
-    Q.DL.getPointerAddrSizeInBits(ScalarTy) :
+    Q.DL.getPointerTypeSizeInBits(ScalarTy) :
     Q.DL.getTypeSizeInBits(ScalarTy);
+  if (Q.DL.isFatPointer(ScalarTy)) {
+    TyBits = Q.DL.getPointerAddrSizeInBits(ScalarTy);
+  }
 
   unsigned Tmp, Tmp2;
   unsigned FirstAnswer = 1;

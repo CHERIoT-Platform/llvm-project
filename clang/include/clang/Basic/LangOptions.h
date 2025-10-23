@@ -25,6 +25,7 @@
 #include "llvm/ADT/FloatingPointMode.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/BinaryFormat/DXContainer.h"
+#include "llvm/Support/AllocToken.h"
 #include "llvm/TargetParser/Triple.h"
 #include <optional>
 #include <string>
@@ -616,6 +617,13 @@ public:
   bool AtomicRemoteMemory = false;
   bool AtomicFineGrainedMemory = false;
   bool AtomicIgnoreDenormalMode = false;
+
+  /// Maximum number of allocation tokens (0 = no max), nullopt if none set (use
+  /// target default).
+  std::optional<uint64_t> AllocTokenMax;
+
+  /// The allocation token mode.
+  std::optional<llvm::AllocTokenMode> AllocTokenMode;
 
   /// The name of the CHERI compartment for this compilation unit.
   std::string CheriCompartmentName;

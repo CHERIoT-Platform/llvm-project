@@ -1665,6 +1665,9 @@ ASTContext::findPointerAuthContent(QualType T) const {
   if (!RD)
     return PointerAuthContent::None;
 
+  if (RD->isInvalidDecl())
+    return PointerAuthContent::None;
+
   if (auto Existing = RecordContainsAddressDiscriminatedPointerAuth.find(RD);
       Existing != RecordContainsAddressDiscriminatedPointerAuth.end())
     return Existing->second;
@@ -3576,7 +3579,6 @@ static void encodeTypeForFunctionPointerAuth(const ASTContext &Ctx,
 uint16_t ASTContext::getPointerAuthTypeDiscriminator(QualType T) {
   assert(!T->isDependentType() &&
          "cannot compute type discriminator of a dependent type");
-
   SmallString<256> Str;
   llvm::raw_svector_ostream Out(Str);
 

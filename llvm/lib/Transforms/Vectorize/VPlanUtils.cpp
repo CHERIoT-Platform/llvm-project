@@ -32,8 +32,6 @@ bool vputils::onlyScalarValuesUsed(const VPValue *Def) {
 }
 
 VPValue *vputils::getOrCreateVPValueForSCEVExpr(VPlan &Plan, const SCEV *Expr) {
-  if (auto *Expanded = Plan.getSCEVExpansion(Expr))
-    return Expanded;
   VPValue *Expanded = nullptr;
   if (auto *E = dyn_cast<SCEVConstant>(Expr))
     Expanded = Plan.getOrAddLiveIn(E->getValue());
@@ -50,7 +48,6 @@ VPValue *vputils::getOrCreateVPValueForSCEVExpr(VPlan &Plan, const SCEV *Expr) {
       Plan.getEntry()->appendRecipe(Expanded->getDefiningRecipe());
     }
   }
-  Plan.addSCEVExpansion(Expr, Expanded);
   return Expanded;
 }
 
@@ -151,6 +148,8 @@ unsigned vputils::getVFScaleFactor(VPRecipeBase *R) {
     return RR->getVFScaleFactor();
   if (auto *RR = dyn_cast<VPPartialReductionRecipe>(R))
     return RR->getVFScaleFactor();
+  if (auto *ER = dyn_cast<VPExpressionRecipe>(R))
+    return ER->getVFScaleFactor();
   assert(
       (!isa<VPInstruction>(R) || cast<VPInstruction>(R)->getOpcode() !=
                                      VPInstruction::ReductionStartVector) &&

@@ -8,6 +8,7 @@
 
 #include "InputSection.h"
 #include "Arch/Cheri.h"
+#include "Arch/RISCVInternalRelocations.h"
 #include "Config.h"
 #include "InputFiles.h"
 #include "OutputSections.h"
@@ -699,8 +700,9 @@ static Relocation *getRISCVPCRelHi20(Ctx &ctx, const InputSectionBase *loSec,
   // binary search.
   Relocation hiReloc;
   hiReloc.offset = d->value;
+  auto hiSecRelocs = riscv_vendor_relocs(hiSec->relocs());
   auto range =
-      std::equal_range(hiSec->relocs().begin(), hiSec->relocs().end(), hiReloc,
+      std::equal_range(hiSecRelocs.begin(), hiSecRelocs.end(), hiReloc,
                        [](const Relocation &lhs, const Relocation &rhs) {
                          return lhs.offset < rhs.offset;
                        });
@@ -708,11 +710,8 @@ static Relocation *getRISCVPCRelHi20(Ctx &ctx, const InputSectionBase *loSec,
   for (auto it = range.first; it != range.second; ++it)
     if (it->type == R_RISCV_PCREL_HI20 || it->type == R_RISCV_GOT_HI20 ||
         it->type == R_RISCV_TLS_GD_HI20 || it->type == R_RISCV_TLS_GOT_HI20 ||
-        it->type == R_RISCV_CHERIOT_COMPARTMENT_HI ||
-        it->type == R_RISCV_CHERI_CAPTAB_PCREL_HI20 ||
-        it->type == R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20 ||
-        it->type == R_RISCV_CHERI_TLS_IE_CAPTAB_PCREL_HI20)
-      return &*it;
+        it->type == INTERNAL_RISCV_XCHERIOT1_CHERIOT_COMPARTMENT_HI)
+      return it.getUnderlyingRelocation();
 
   Err(ctx) << loSec->getLocation(loReloc.offset)
            << ": R_RISCV_PCREL_LO12 relocation points to "

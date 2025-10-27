@@ -70,7 +70,7 @@ fn_reloc1:
 .chericap .Lfirst_fn_target
 # OBJ-RELOCS-NEXT:   Relocation {
 # OBJ-RELOCS-NEXT:     Offset: 0x0
-# OBJ-RELOCS-NEXT:     Type: R_RISCV_CHERI_CAPABILITY (193)
+# OBJ-RELOCS-NEXT:     Type: R_RISCV_CHERI_CAPABILITY (67)
 # OBJ-RELOCS-NEXT:     Symbol: .Lfirst_fn_target (
 # OBJ-RELOCS-NEXT:     Addend: 0x0
 # OBJ-RELOCS-NEXT:   }
@@ -94,7 +94,7 @@ fn_reloc2:
 .chericap .Lsecond_fn_target
 # OBJ-RELOCS-NEXT:   Relocation {
 # OBJ-RELOCS-NEXT:     Offset: 0x10
-# OBJ-RELOCS-NEXT:     Type: R_RISCV_CHERI_CAPABILITY (193)
+# OBJ-RELOCS-NEXT:     Type: R_RISCV_CHERI_CAPABILITY (67)
 # OBJ-RELOCS-NEXT:     Symbol: .Lsecond_fn_target (
 # OBJ-RELOCS-NEXT:     Addend: 0x0
 # OBJ-RELOCS-NEXT:   }
@@ -110,7 +110,7 @@ data_reloc1:
 .chericap .Linside_obj1
 # OBJ-RELOCS-NEXT:   Relocation {
 # OBJ-RELOCS-NEXT:     Offset: 0x20
-# OBJ-RELOCS-NEXT:     Type: R_RISCV_CHERI_CAPABILITY (193)
+# OBJ-RELOCS-NEXT:     Type: R_RISCV_CHERI_CAPABILITY (67)
 # OBJ-RELOCS-NEXT:     Symbol: .Linside_obj1 (
 # OBJ-RELOCS-NEXT:     Addend: 0x0
 # OBJ-RELOCS-NEXT:   }
@@ -126,7 +126,7 @@ data_reloc2:
 .chericap obj2_subobject1
 # OBJ-RELOCS-NEXT:   Relocation {
 # OBJ-RELOCS-NEXT:     Offset: 0x30
-# OBJ-RELOCS-NEXT:     Type: R_RISCV_CHERI_CAPABILITY (193)
+# OBJ-RELOCS-NEXT:     Type: R_RISCV_CHERI_CAPABILITY (67)
 # OBJ-RELOCS-NEXT:     Symbol: obj2_subobject1 (
 # OBJ-RELOCS-NEXT:     Addend: 0x0
 # OBJ-RELOCS-NEXT:   }
@@ -146,7 +146,7 @@ data_reloc3:
 .chericap obj2_subobject2
 # OBJ-RELOCS-NEXT:   Relocation {
 # OBJ-RELOCS-NEXT:     Offset: 0x40
-# OBJ-RELOCS-NEXT:     Type: R_RISCV_CHERI_CAPABILITY (193)
+# OBJ-RELOCS-NEXT:     Type: R_RISCV_CHERI_CAPABILITY (67)
 # OBJ-RELOCS-NEXT:     Symbol: obj2_subobject2 (
 # OBJ-RELOCS-NEXT:     Addend: 0x0
 # OBJ-RELOCS-NEXT:   }
@@ -161,7 +161,7 @@ data_reloc4:
 .chericap .Linside_obj2_subobject2
 # OBJ-RELOCS-NEXT:   Relocation {
 # OBJ-RELOCS-NEXT:     Offset: 0x50
-# OBJ-RELOCS-NEXT:     Type: R_RISCV_CHERI_CAPABILITY (193)
+# OBJ-RELOCS-NEXT:     Type: R_RISCV_CHERI_CAPABILITY (67)
 # OBJ-RELOCS-NEXT:     Symbol: .Linside_obj2_subobject2 (
 # OBJ-RELOCS-NEXT:     Addend: 0x0
 # OBJ-RELOCS-NEXT:   }

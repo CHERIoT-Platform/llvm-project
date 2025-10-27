@@ -68,7 +68,7 @@ declare dso_local void @__cxa_end_catch() local_unnamed_addr addrspace(200)
 
 ; OBJ-LABEL: Relocation section '.rela.gcc_except_table' at offset
 ; OBJ: Offset             Info             Type                    Symbol's Value   Symbol's Name + Addend
-; OBJ: 0000000000000020 0000000{{.}}000000c3 R_RISCV_CHERI_CAPABILITY_CODE
+; OBJ: 0000000000000020 0000000{{.}}00000044 R_RISCV_CHERI_CAPABILITY_CODE
 
 ; OBJ-LABEL: Symbol table '.symtab' contains
 ; OBJ:    Value          Size Type    Bind   Vis       Ndx Name

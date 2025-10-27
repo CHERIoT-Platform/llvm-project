@@ -9,7 +9,6 @@
 # RUN: llvm-mc -filetype=obj -triple riscv64 %s \
 # RUN:   | llvm-objdump -dr -M no-aliases  - \
 # RUN:   | FileCheck -check-prefix=CHECK-OBJ %s
-# XFAIL: *
 
   # CHECK-ASM: .text
   # CHECK-OBJ: <.text>:

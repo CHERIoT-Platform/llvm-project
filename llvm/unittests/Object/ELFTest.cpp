@@ -257,16 +257,16 @@ TEST(ELFTest, getELFRelocationTypeNameForLoongArch) {
 
 TEST(ELFTest, getRISCVVendorRelocationTypeName) {
   EXPECT_EQ("R_RISCV_QC_ABS20_U",
-            getRISCVVendorRelocationTypeName(192, "QUALCOMM"));
+            getRISCVVendorRelocationTypeName(R_RISCV_CUSTOM192, "QUALCOMM"));
   EXPECT_EQ("R_RISCV_QC_E_BRANCH",
-            getRISCVVendorRelocationTypeName(193, "QUALCOMM"));
+            getRISCVVendorRelocationTypeName(R_RISCV_CUSTOM193, "QUALCOMM"));
   EXPECT_EQ("R_RISCV_QC_E_32",
-            getRISCVVendorRelocationTypeName(194, "QUALCOMM"));
+            getRISCVVendorRelocationTypeName(R_RISCV_CUSTOM194, "QUALCOMM"));
   EXPECT_EQ("R_RISCV_QC_E_CALL_PLT",
-            getRISCVVendorRelocationTypeName(195, "QUALCOMM"));
+            getRISCVVendorRelocationTypeName(R_RISCV_CUSTOM195, "QUALCOMM"));
 
   EXPECT_EQ("R_RISCV_NDS_BRANCH_10",
-            getRISCVVendorRelocationTypeName(241, "ANDES"));
+            getRISCVVendorRelocationTypeName(R_RISCV_CUSTOM241, "ANDES"));
 }
 
 TEST(ELFTest, getELFRelativeRelocationType) {

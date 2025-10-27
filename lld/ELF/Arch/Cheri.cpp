@@ -1,4 +1,5 @@
 #include "Cheri.h"
+#include "RISCVInternalRelocations.h"
 
 #include "../InputFiles.h"
 #include "../OutputSections.h"

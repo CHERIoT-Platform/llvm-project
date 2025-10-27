@@ -3700,12 +3700,16 @@ template <class ELFT> void ELFDumper<ELFT>::printCheriCapTable() {
       return;
     if (RelRegion.EntSize == sizeof(Elf_Rela)) {
       for (const Elf_Rela &Rela : RelRegion.getAsArrayRef<Elf_Rela>()) {
+        if (e.e_machine == EM_RISCV && (Rela.r_info & 0xFF) == R_RISCV_VENDOR)
+          continue;
         if (Rela.r_offset >= CapTableStartVaddr &&
             Rela.r_offset < CapTableEndVaddr)
           CapTableDynRels.insert(std::make_pair((uint64_t)Rela.r_offset, Rela));
       }
     } else {
       for (const Elf_Rel &Rel : RelRegion.getAsArrayRef<Elf_Rel>()) {
+        if (e.e_machine == EM_RISCV && (Rel.r_info & 0xFF) == R_RISCV_VENDOR)
+          continue;
         if (Rel.r_offset >= CapTableStartVaddr &&
             Rel.r_offset < CapTableEndVaddr) {
           Elf_Rela Rela;

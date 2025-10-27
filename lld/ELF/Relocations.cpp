@@ -27,6 +27,7 @@
 
 #include "Relocations.h"
 #include "Arch/Cheri.h"
+#include "Arch/RISCVInternalRelocations.h"
 #include "Config.h"
 #include "InputFiles.h"
 #include "LinkerScript.h"
@@ -1801,8 +1802,11 @@ void elf::postScanRelocations(Ctx &ctx) {
   }
 
   assert(ctx.symAux.size() == 1);
-  for (Symbol *sym : ctx.symtab->getSymbols())
-    fn(*sym);
+  // When RISCV vendor-specific relocations are used in the GOT, a new marker
+  // symbol may be introduced during this iteration, so we have to use an
+  // invalidation-safe loop.
+  for (size_t i = 0; i < ctx.symtab->getSymbols().size(); ++i)
+    fn(*ctx.symtab->getSymbols()[i]);
 
   // Local symbols may need the aforementioned non-preemptible ifunc and GOT
   // handling. They don't need regular PLT.

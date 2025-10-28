@@ -2207,7 +2207,7 @@ public:
                       FMFSource);
   }
   Value *CreatePtrToAddr(Value *V, const Twine &Name = "") {
-    return CreateCast(Instruction::PtrToInt, V,
+    return CreateCast(Instruction::PtrToAddr, V,
                       BB->getDataLayout().getAddressType(V->getType()), Name);
   }
   Value *CreatePtrToInt(Value *V, Type *DestTy,

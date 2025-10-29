@@ -596,12 +596,13 @@ public:
     // Check if suitable for a bit test
     // XXXAR: AS0 hardcoded
     if (N <= DL.getIndexSizeInBits(0u)) {
-      SmallPtrSet<const BasicBlock *, 4> Dests;
-      for (auto I : SI.cases())
-        Dests.insert(I.getCaseSuccessor());
+      DenseMap<const BasicBlock *, unsigned int> DestMap;
+      for (auto I : SI.cases()) {
+        const BasicBlock *BB = I.getCaseSuccessor();
+        ++DestMap[BB];
+      }
 
-      if (TLI->isSuitableForBitTests(Dests.size(), N, MinCaseVal, MaxCaseVal,
-                                     DL))
+      if (TLI->isSuitableForBitTests(DestMap, MinCaseVal, MaxCaseVal, DL))
         return 1;
     }
 

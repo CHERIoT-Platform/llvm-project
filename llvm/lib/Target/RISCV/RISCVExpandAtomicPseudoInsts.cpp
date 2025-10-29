@@ -704,6 +704,26 @@ static void doAtomicBinOpExpansion(const RISCVInstrInfo *TII, MachineInstr &MI,
         .addReg(ScratchIntReg)
         .addImm(-1);
     break;
+case AtomicRMWInst::Max:
+    BuildMI(LoopMBB, DL, TII->get(RISCV::MAX), ScratchIntReg)
+        .addReg(DestIntReg)
+        .addReg(IncrReg);
+    break;
+  case AtomicRMWInst::Min:
+    BuildMI(LoopMBB, DL, TII->get(RISCV::MIN), ScratchIntReg)
+        .addReg(DestIntReg)
+        .addReg(IncrReg);
+    break;
+  case AtomicRMWInst::UMax:
+    BuildMI(LoopMBB, DL, TII->get(RISCV::MAXU), ScratchIntReg)
+        .addReg(DestIntReg)
+        .addReg(IncrReg);
+    break;
+  case AtomicRMWInst::UMin:
+    BuildMI(LoopMBB, DL, TII->get(RISCV::MINU), ScratchIntReg)
+        .addReg(DestIntReg)
+        .addReg(IncrReg);
+    break;
   }
   if (VT.isFatPointer() && BinOp != AtomicRMWInst::Add)
     BuildMI(LoopMBB, DL, TII->get(RISCV::CSetAddr), ScratchReg)
@@ -1046,6 +1066,9 @@ bool RISCVExpandAtomicPseudo::expandAtomicMinMaxOp(
   assert(
       !(PtrIsCap && IsMasked) &&
       "Should only need to expand masked atomic max/min without capabilities");
+  // Using MIN(U)/MAX(U) is preferrable if permitted
+  if (STI->hasPermissiveZalrsc() && STI->hasStdExtZbb() && !IsMasked)
+    return expandAtomicBinOp(MBB, MBBI, BinOp, IsMasked, VT, PtrIsCap, NextMBBI);
 
   MachineInstr &MI = *MBBI;
   DebugLoc DL = MI.getDebugLoc();

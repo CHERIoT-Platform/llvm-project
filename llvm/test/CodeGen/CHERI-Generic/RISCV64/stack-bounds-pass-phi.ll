@@ -59,20 +59,20 @@ define void @test_phi(i1 %cond) addrspace(200) nounwind {
 ; CHECK-NEXT:    store i32 1, ptr addrspace(200) [[ALLOCA1]], align 4
 ; CHECK-NEXT:    store i32 2, ptr addrspace(200) [[ALLOCA2]], align 4
 ; CHECK-NEXT:    store i32 3, ptr addrspace(200) [[ALLOCA3]], align 4
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[ALLOCA2]], i64 4)
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[ALLOCA2]], i64 4)
 ; CHECK-NEXT:    br label [[PHI_BLOCK:%.*]]
 ; CHECK:       block2:
 ; CHECK-NEXT:    store i32 4, ptr addrspace(200) [[ALLOCA1]], align 4
 ; CHECK-NEXT:    store i32 5, ptr addrspace(200) [[ALLOCA2]], align 4
 ; CHECK-NEXT:    store i32 6, ptr addrspace(200) [[ALLOCA3]], align 4
-; CHECK-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[ALLOCA1]], i64 4)
-; CHECK-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[ALLOCA3]], i64 4)
+; CHECK-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[ALLOCA1]], i64 4)
+; CHECK-NEXT:    [[TMP2:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[ALLOCA3]], i64 4)
 ; CHECK-NEXT:    br label [[PHI_BLOCK]]
 ; CHECK:       phi_block:
 ; CHECK-NEXT:    [[VAL1:%.*]] = phi ptr addrspace(200) [ null, [[BLOCK1]] ], [ [[TMP1]], [[BLOCK2]] ]
 ; CHECK-NEXT:    [[VAL2:%.*]] = phi ptr addrspace(200) [ [[TMP0]], [[BLOCK1]] ], [ [[TMP2]], [[BLOCK2]] ]
-; CHECK-NEXT:    call void @foo(ptr addrspace(200) [[VAL1]])
-; CHECK-NEXT:    call void @foo(ptr addrspace(200) [[VAL2]])
+; CHECK-NEXT:    call addrspace(200) void @foo(ptr addrspace(200) [[VAL1]])
+; CHECK-NEXT:    call addrspace(200) void @foo(ptr addrspace(200) [[VAL2]])
 ; CHECK-NEXT:    ret void
 entry:
   %alloca1 = alloca i32, align 4, addrspace(200)
@@ -95,8 +95,8 @@ block2:
 phi_block:
   %val1 = phi ptr addrspace(200) [ null, %block1 ], [ %alloca1, %block2 ]
   %val2 = phi ptr addrspace(200) [ %alloca2, %block1 ], [ %alloca3, %block2 ]
-  call void @foo(ptr addrspace(200) %val1)
-  call void @foo(ptr addrspace(200) %val2)
+  call addrspace(200) void @foo(ptr addrspace(200) %val1)
+  call addrspace(200) void @foo(ptr addrspace(200) %val2)
   ret void
 }
 
@@ -131,15 +131,15 @@ define void @test_only_created_in_predecessor_block(i1 %cond) addrspace(200) nou
 ; CHECK-NEXT:    br i1 [[COND]], label [[BLOCK1:%.*]], label [[BLOCK2:%.*]]
 ; CHECK:       block1:
 ; CHECK-NEXT:    store i32 1, ptr addrspace(200) [[ALLOCA1]], align 4
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[ALLOCA1]], i64 4)
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[ALLOCA1]], i64 4)
 ; CHECK-NEXT:    br label [[PHI_BLOCK:%.*]]
 ; CHECK:       block2:
 ; CHECK-NEXT:    store i32 5, ptr addrspace(200) [[ALLOCA2]], align 4
-; CHECK-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[ALLOCA2]], i64 4)
+; CHECK-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[ALLOCA2]], i64 4)
 ; CHECK-NEXT:    br label [[PHI_BLOCK]]
 ; CHECK:       phi_block:
 ; CHECK-NEXT:    [[VAL1:%.*]] = phi ptr addrspace(200) [ [[TMP0]], [[BLOCK1]] ], [ [[TMP1]], [[BLOCK2]] ]
-; CHECK-NEXT:    call void @foo(ptr addrspace(200) [[VAL1]])
+; CHECK-NEXT:    call addrspace(200) void @foo(ptr addrspace(200) [[VAL1]])
 ; CHECK-NEXT:    ret void
 entry:
   %alloca1 = alloca i32, align 4, addrspace(200)
@@ -156,13 +156,13 @@ block2:
 
 phi_block:
   %val1 = phi ptr addrspace(200) [ %alloca1, %block1 ], [ %alloca2, %block2 ]
-  call void @foo(ptr addrspace(200) %val1)
+  call addrspace(200) void @foo(ptr addrspace(200) %val1)
   ret void
 }
 
-; DBG: -Adding stack bounds since phi user needs bounds:   call void @foo(ptr addrspace(200) %val1)
+; DBG: -Adding stack bounds since phi user needs bounds:   call addrspace(200) void @foo(ptr addrspace(200) %val1)
 ; DBG: test_phi: 1 of 3 users need bounds for   %alloca1 = alloca i32, align 4, addrspace(200)
-; DBG: -Adding stack bounds since phi user needs bounds:   call void @foo(ptr addrspace(200) %val2)
+; DBG: -Adding stack bounds since phi user needs bounds:   call addrspace(200) void @foo(ptr addrspace(200) %val2)
 ; DBG: test_phi: 1 of 3 users need bounds for   %alloca2 = alloca i32, align 4, addrspace(200)
-; DBG: -Adding stack bounds since phi user needs bounds:   call void @foo(ptr addrspace(200) %val2)
+; DBG: -Adding stack bounds since phi user needs bounds:   call addrspace(200) void @foo(ptr addrspace(200) %val2)
 ; DBG: test_phi: 1 of 3 users need bounds for   %alloca3 = alloca i32, align 4, addrspace(200)

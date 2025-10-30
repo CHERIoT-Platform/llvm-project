@@ -59,8 +59,8 @@ void do_stuff_untyped(void *);
 // AGGRESSIVE-OR-LESS-NEXT:    store ptr addrspace(200) [[S:%.*]], ptr addrspace(200) [[S_ADDR]], align 16
 // AGGRESSIVE-OR-LESS-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // AGGRESSIVE-OR-LESS-NEXT:    [[VALUES:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY:%.*]], ptr addrspace(200) [[TMP0]], i32 0, i32 1
-// AGGRESSIVE-OR-LESS-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
-// AGGRESSIVE-OR-LESS-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP1]])
+// AGGRESSIVE-OR-LESS-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
+// AGGRESSIVE-OR-LESS-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP1]])
 // AGGRESSIVE-OR-LESS-NEXT:    ret void
 //
 // VERY-AGGRESSIVE-LABEL: @test_len2_array_1(
@@ -69,8 +69,8 @@ void do_stuff_untyped(void *);
 // VERY-AGGRESSIVE-NEXT:    store ptr addrspace(200) [[S:%.*]], ptr addrspace(200) [[S_ADDR]], align 16
 // VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // VERY-AGGRESSIVE-NEXT:    [[VALUES:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY:%.*]], ptr addrspace(200) [[TMP0]], i32 0, i32 1
-// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
-// VERY-AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP1]])
+// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
+// VERY-AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP1]])
 // VERY-AGGRESSIVE-NEXT:    ret void
 //
 void test_len2_array_1(struct WithLen2Array *s) {
@@ -86,34 +86,34 @@ void test_len2_array_1(struct WithLen2Array *s) {
 // SUBOBJECT-SAFE-NEXT:    store ptr addrspace(200) [[S:%.*]], ptr addrspace(200) [[S_ADDR]], align 16
 // SUBOBJECT-SAFE-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // SUBOBJECT-SAFE-NEXT:    [[VALUES:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY:%.*]], ptr addrspace(200) [[TMP0]], i32 0, i32 1
-// SUBOBJECT-SAFE-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
-// SUBOBJECT-SAFE-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP1]], i64 12)
+// SUBOBJECT-SAFE-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
+// SUBOBJECT-SAFE-NEXT:    [[TMP2:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP1]], i64 12)
 // SUBOBJECT-SAFE-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP2]], i64 0, i64 0
-// SUBOBJECT-SAFE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX]])
+// SUBOBJECT-SAFE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX]])
 // SUBOBJECT-SAFE-NEXT:    [[TMP3:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // SUBOBJECT-SAFE-NEXT:    [[VALUES1:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY]], ptr addrspace(200) [[TMP3]], i32 0, i32 1
-// SUBOBJECT-SAFE-NEXT:    [[TMP4:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES1]], i64 12)
-// SUBOBJECT-SAFE-NEXT:    [[TMP5:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP4]], i64 12)
+// SUBOBJECT-SAFE-NEXT:    [[TMP4:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES1]], i64 12)
+// SUBOBJECT-SAFE-NEXT:    [[TMP5:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP4]], i64 12)
 // SUBOBJECT-SAFE-NEXT:    [[ARRAYIDX2:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP5]], i64 0, i64 1
-// SUBOBJECT-SAFE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX2]])
+// SUBOBJECT-SAFE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX2]])
 // SUBOBJECT-SAFE-NEXT:    [[TMP6:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // SUBOBJECT-SAFE-NEXT:    [[VALUES3:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY]], ptr addrspace(200) [[TMP6]], i32 0, i32 1
-// SUBOBJECT-SAFE-NEXT:    [[TMP7:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES3]], i64 12)
-// SUBOBJECT-SAFE-NEXT:    [[TMP8:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP7]], i64 12)
+// SUBOBJECT-SAFE-NEXT:    [[TMP7:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES3]], i64 12)
+// SUBOBJECT-SAFE-NEXT:    [[TMP8:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP7]], i64 12)
 // SUBOBJECT-SAFE-NEXT:    [[ARRAYIDX4:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP8]], i64 0, i64 2
-// SUBOBJECT-SAFE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX4]])
+// SUBOBJECT-SAFE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX4]])
 // SUBOBJECT-SAFE-NEXT:    [[TMP9:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // SUBOBJECT-SAFE-NEXT:    [[VALUES5:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY]], ptr addrspace(200) [[TMP9]], i32 0, i32 1
-// SUBOBJECT-SAFE-NEXT:    [[TMP10:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES5]], i64 12)
-// SUBOBJECT-SAFE-NEXT:    [[TMP11:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP10]], i64 12)
+// SUBOBJECT-SAFE-NEXT:    [[TMP10:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES5]], i64 12)
+// SUBOBJECT-SAFE-NEXT:    [[TMP11:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP10]], i64 12)
 // SUBOBJECT-SAFE-NEXT:    [[ARRAYIDX6:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP11]], i64 0, i64 3
-// SUBOBJECT-SAFE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX6]])
+// SUBOBJECT-SAFE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX6]])
 // SUBOBJECT-SAFE-NEXT:    [[TMP12:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // SUBOBJECT-SAFE-NEXT:    [[VALUES7:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY]], ptr addrspace(200) [[TMP12]], i32 0, i32 1
-// SUBOBJECT-SAFE-NEXT:    [[TMP13:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES7]], i64 12)
-// SUBOBJECT-SAFE-NEXT:    [[TMP14:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP13]], i64 12)
+// SUBOBJECT-SAFE-NEXT:    [[TMP13:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES7]], i64 12)
+// SUBOBJECT-SAFE-NEXT:    [[TMP14:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP13]], i64 12)
 // SUBOBJECT-SAFE-NEXT:    [[ARRAYIDX8:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP14]], i64 0, i64 4
-// SUBOBJECT-SAFE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX8]])
+// SUBOBJECT-SAFE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX8]])
 // SUBOBJECT-SAFE-NEXT:    ret void
 //
 // AGGRESSIVE-LABEL: @test_len2_array_2(
@@ -122,34 +122,34 @@ void test_len2_array_1(struct WithLen2Array *s) {
 // AGGRESSIVE-NEXT:    store ptr addrspace(200) [[S:%.*]], ptr addrspace(200) [[S_ADDR]], align 16
 // AGGRESSIVE-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // AGGRESSIVE-NEXT:    [[VALUES:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY:%.*]], ptr addrspace(200) [[TMP0]], i32 0, i32 1
-// AGGRESSIVE-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
-// AGGRESSIVE-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP1]], i64 12)
+// AGGRESSIVE-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
+// AGGRESSIVE-NEXT:    [[TMP2:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP1]], i64 12)
 // AGGRESSIVE-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP2]], i64 0, i64 0
-// AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX]])
+// AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX]])
 // AGGRESSIVE-NEXT:    [[TMP3:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // AGGRESSIVE-NEXT:    [[VALUES1:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY]], ptr addrspace(200) [[TMP3]], i32 0, i32 1
-// AGGRESSIVE-NEXT:    [[TMP4:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES1]], i64 12)
+// AGGRESSIVE-NEXT:    [[TMP4:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES1]], i64 12)
 // AGGRESSIVE-NEXT:    [[ARRAYIDX2:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP4]], i64 0, i64 1
-// AGGRESSIVE-NEXT:    [[TMP5:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX2]], i64 4)
-// AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP5]])
+// AGGRESSIVE-NEXT:    [[TMP5:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX2]], i64 4)
+// AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP5]])
 // AGGRESSIVE-NEXT:    [[TMP6:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // AGGRESSIVE-NEXT:    [[VALUES3:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY]], ptr addrspace(200) [[TMP6]], i32 0, i32 1
-// AGGRESSIVE-NEXT:    [[TMP7:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES3]], i64 12)
-// AGGRESSIVE-NEXT:    [[TMP8:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP7]], i64 12)
+// AGGRESSIVE-NEXT:    [[TMP7:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES3]], i64 12)
+// AGGRESSIVE-NEXT:    [[TMP8:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP7]], i64 12)
 // AGGRESSIVE-NEXT:    [[ARRAYIDX4:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP8]], i64 0, i64 2
-// AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX4]])
+// AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX4]])
 // AGGRESSIVE-NEXT:    [[TMP9:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // AGGRESSIVE-NEXT:    [[VALUES5:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY]], ptr addrspace(200) [[TMP9]], i32 0, i32 1
-// AGGRESSIVE-NEXT:    [[TMP10:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES5]], i64 12)
-// AGGRESSIVE-NEXT:    [[TMP11:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP10]], i64 12)
+// AGGRESSIVE-NEXT:    [[TMP10:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES5]], i64 12)
+// AGGRESSIVE-NEXT:    [[TMP11:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP10]], i64 12)
 // AGGRESSIVE-NEXT:    [[ARRAYIDX6:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP11]], i64 0, i64 3
-// AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX6]])
+// AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX6]])
 // AGGRESSIVE-NEXT:    [[TMP12:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // AGGRESSIVE-NEXT:    [[VALUES7:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY]], ptr addrspace(200) [[TMP12]], i32 0, i32 1
-// AGGRESSIVE-NEXT:    [[TMP13:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES7]], i64 12)
-// AGGRESSIVE-NEXT:    [[TMP14:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP13]], i64 12)
+// AGGRESSIVE-NEXT:    [[TMP13:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES7]], i64 12)
+// AGGRESSIVE-NEXT:    [[TMP14:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP13]], i64 12)
 // AGGRESSIVE-NEXT:    [[ARRAYIDX8:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP14]], i64 0, i64 4
-// AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX8]])
+// AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX8]])
 // AGGRESSIVE-NEXT:    ret void
 //
 // VERY-AGGRESSIVE-LABEL: @test_len2_array_2(
@@ -158,34 +158,34 @@ void test_len2_array_1(struct WithLen2Array *s) {
 // VERY-AGGRESSIVE-NEXT:    store ptr addrspace(200) [[S:%.*]], ptr addrspace(200) [[S_ADDR]], align 16
 // VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // VERY-AGGRESSIVE-NEXT:    [[VALUES:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY:%.*]], ptr addrspace(200) [[TMP0]], i32 0, i32 1
-// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
+// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
 // VERY-AGGRESSIVE-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP1]], i64 0, i64 0
-// VERY-AGGRESSIVE-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 4)
-// VERY-AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP2]])
+// VERY-AGGRESSIVE-NEXT:    [[TMP2:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 4)
+// VERY-AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP2]])
 // VERY-AGGRESSIVE-NEXT:    [[TMP3:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // VERY-AGGRESSIVE-NEXT:    [[VALUES1:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY]], ptr addrspace(200) [[TMP3]], i32 0, i32 1
-// VERY-AGGRESSIVE-NEXT:    [[TMP4:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES1]], i64 12)
+// VERY-AGGRESSIVE-NEXT:    [[TMP4:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES1]], i64 12)
 // VERY-AGGRESSIVE-NEXT:    [[ARRAYIDX2:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP4]], i64 0, i64 1
-// VERY-AGGRESSIVE-NEXT:    [[TMP5:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX2]], i64 4)
-// VERY-AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP5]])
+// VERY-AGGRESSIVE-NEXT:    [[TMP5:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX2]], i64 4)
+// VERY-AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP5]])
 // VERY-AGGRESSIVE-NEXT:    [[TMP6:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // VERY-AGGRESSIVE-NEXT:    [[VALUES3:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY]], ptr addrspace(200) [[TMP6]], i32 0, i32 1
-// VERY-AGGRESSIVE-NEXT:    [[TMP7:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES3]], i64 12)
+// VERY-AGGRESSIVE-NEXT:    [[TMP7:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES3]], i64 12)
 // VERY-AGGRESSIVE-NEXT:    [[ARRAYIDX4:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP7]], i64 0, i64 2
-// VERY-AGGRESSIVE-NEXT:    [[TMP8:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX4]], i64 4)
-// VERY-AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP8]])
+// VERY-AGGRESSIVE-NEXT:    [[TMP8:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX4]], i64 4)
+// VERY-AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP8]])
 // VERY-AGGRESSIVE-NEXT:    [[TMP9:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // VERY-AGGRESSIVE-NEXT:    [[VALUES5:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY]], ptr addrspace(200) [[TMP9]], i32 0, i32 1
-// VERY-AGGRESSIVE-NEXT:    [[TMP10:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES5]], i64 12)
+// VERY-AGGRESSIVE-NEXT:    [[TMP10:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES5]], i64 12)
 // VERY-AGGRESSIVE-NEXT:    [[ARRAYIDX6:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP10]], i64 0, i64 3
-// VERY-AGGRESSIVE-NEXT:    [[TMP11:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX6]], i64 4)
-// VERY-AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP11]])
+// VERY-AGGRESSIVE-NEXT:    [[TMP11:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX6]], i64 4)
+// VERY-AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP11]])
 // VERY-AGGRESSIVE-NEXT:    [[TMP12:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[S_ADDR]], align 16
 // VERY-AGGRESSIVE-NEXT:    [[VALUES7:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY]], ptr addrspace(200) [[TMP12]], i32 0, i32 1
-// VERY-AGGRESSIVE-NEXT:    [[TMP13:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES7]], i64 12)
+// VERY-AGGRESSIVE-NEXT:    [[TMP13:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES7]], i64 12)
 // VERY-AGGRESSIVE-NEXT:    [[ARRAYIDX8:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP13]], i64 0, i64 4
-// VERY-AGGRESSIVE-NEXT:    [[TMP14:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX8]], i64 4)
-// VERY-AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP14]])
+// VERY-AGGRESSIVE-NEXT:    [[TMP14:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX8]], i64 4)
+// VERY-AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP14]])
 // VERY-AGGRESSIVE-NEXT:    ret void
 //
 void test_len2_array_2(struct WithLen2Array *s) {
@@ -274,10 +274,10 @@ void test_len2_array_2(struct WithLen2Array *s) {
 // SUBOBJECT-SAFE-NEXT:    [[VALUES:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY:%.*]], ptr addrspace(200) [[TMP1]], i32 0, i32 1
 // SUBOBJECT-SAFE-NEXT:    [[TMP2:%.*]] = load i32, ptr addrspace(200) [[I]], align 4
 // SUBOBJECT-SAFE-NEXT:    [[IDXPROM:%.*]] = sext i32 [[TMP2]] to i64
-// SUBOBJECT-SAFE-NEXT:    [[TMP3:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
-// SUBOBJECT-SAFE-NEXT:    [[TMP4:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP3]], i64 12)
+// SUBOBJECT-SAFE-NEXT:    [[TMP3:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
+// SUBOBJECT-SAFE-NEXT:    [[TMP4:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP3]], i64 12)
 // SUBOBJECT-SAFE-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP4]], i64 0, i64 [[IDXPROM]]
-// SUBOBJECT-SAFE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX]])
+// SUBOBJECT-SAFE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX]])
 // SUBOBJECT-SAFE-NEXT:    br label [[FOR_INC:%.*]]
 // SUBOBJECT-SAFE:       for.inc:
 // SUBOBJECT-SAFE-NEXT:    [[TMP5:%.*]] = load i32, ptr addrspace(200) [[I]], align 4
@@ -303,10 +303,10 @@ void test_len2_array_2(struct WithLen2Array *s) {
 // AGGRESSIVE-NEXT:    [[VALUES:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY:%.*]], ptr addrspace(200) [[TMP1]], i32 0, i32 1
 // AGGRESSIVE-NEXT:    [[TMP2:%.*]] = load i32, ptr addrspace(200) [[I]], align 4
 // AGGRESSIVE-NEXT:    [[IDXPROM:%.*]] = sext i32 [[TMP2]] to i64
-// AGGRESSIVE-NEXT:    [[TMP3:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
+// AGGRESSIVE-NEXT:    [[TMP3:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
 // AGGRESSIVE-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP3]], i64 0, i64 [[IDXPROM]]
-// AGGRESSIVE-NEXT:    [[TMP4:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 4)
-// AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP4]])
+// AGGRESSIVE-NEXT:    [[TMP4:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 4)
+// AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP4]])
 // AGGRESSIVE-NEXT:    br label [[FOR_INC:%.*]]
 // AGGRESSIVE:       for.inc:
 // AGGRESSIVE-NEXT:    [[TMP5:%.*]] = load i32, ptr addrspace(200) [[I]], align 4
@@ -332,10 +332,10 @@ void test_len2_array_2(struct WithLen2Array *s) {
 // VERY-AGGRESSIVE-NEXT:    [[VALUES:%.*]] = getelementptr inbounds nuw [[STRUCT_WITHLEN2ARRAY:%.*]], ptr addrspace(200) [[TMP1]], i32 0, i32 1
 // VERY-AGGRESSIVE-NEXT:    [[TMP2:%.*]] = load i32, ptr addrspace(200) [[I]], align 4
 // VERY-AGGRESSIVE-NEXT:    [[IDXPROM:%.*]] = sext i32 [[TMP2]] to i64
-// VERY-AGGRESSIVE-NEXT:    [[TMP3:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
+// VERY-AGGRESSIVE-NEXT:    [[TMP3:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[VALUES]], i64 12)
 // VERY-AGGRESSIVE-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [3 x %struct.Foo], ptr addrspace(200) [[TMP3]], i64 0, i64 [[IDXPROM]]
-// VERY-AGGRESSIVE-NEXT:    [[TMP4:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 4)
-// VERY-AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP4]])
+// VERY-AGGRESSIVE-NEXT:    [[TMP4:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 4)
+// VERY-AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP4]])
 // VERY-AGGRESSIVE-NEXT:    br label [[FOR_INC:%.*]]
 // VERY-AGGRESSIVE:       for.inc:
 // VERY-AGGRESSIVE-NEXT:    [[TMP5:%.*]] = load i32, ptr addrspace(200) [[I]], align 4
@@ -369,7 +369,7 @@ void test_len2_array_3(struct WithLen2Array *s) {
 // AGGRESSIVE-OR-LESS-NEXT:    store ptr addrspace(200) [[ARRAY:%.*]], ptr addrspace(200) [[ARRAY_ADDR]], align 16
 // AGGRESSIVE-OR-LESS-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[ARRAY_ADDR]], align 16
 // AGGRESSIVE-OR-LESS-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds i32, ptr addrspace(200) [[TMP0]], i64 0
-// AGGRESSIVE-OR-LESS-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX]])
+// AGGRESSIVE-OR-LESS-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX]])
 // AGGRESSIVE-OR-LESS-NEXT:    ret void
 //
 // VERY-AGGRESSIVE-LABEL: @test2(
@@ -378,8 +378,8 @@ void test_len2_array_3(struct WithLen2Array *s) {
 // VERY-AGGRESSIVE-NEXT:    store ptr addrspace(200) [[ARRAY:%.*]], ptr addrspace(200) [[ARRAY_ADDR]], align 16
 // VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[ARRAY_ADDR]], align 16
 // VERY-AGGRESSIVE-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds i32, ptr addrspace(200) [[TMP0]], i64 0
-// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 4)
-// VERY-AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP1]])
+// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 4)
+// VERY-AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP1]])
 // VERY-AGGRESSIVE-NEXT:    ret void
 //
 void test2(int *array) {
@@ -402,9 +402,9 @@ void test2(int *array) {
 // AGGRESSIVE-OR-LESS-NEXT:    store ptr addrspace(200) [[ARRAY_PARAM:%.*]], ptr addrspace(200) [[ARRAY_PARAM_ADDR]], align 16
 // AGGRESSIVE-OR-LESS-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[ARRAY_PARAM_ADDR]], align 16
 // AGGRESSIVE-OR-LESS-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds i32, ptr addrspace(200) [[TMP0]], i64 0
-// AGGRESSIVE-OR-LESS-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX]])
+// AGGRESSIVE-OR-LESS-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[ARRAYIDX]])
 // AGGRESSIVE-OR-LESS-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[ARRAY_PARAM_ADDR]], align 16
-// AGGRESSIVE-OR-LESS-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP1]])
+// AGGRESSIVE-OR-LESS-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP1]])
 // AGGRESSIVE-OR-LESS-NEXT:    ret void
 //
 // VERY-AGGRESSIVE-LABEL: @test_unsized_array(
@@ -413,10 +413,10 @@ void test2(int *array) {
 // VERY-AGGRESSIVE-NEXT:    store ptr addrspace(200) [[ARRAY_PARAM:%.*]], ptr addrspace(200) [[ARRAY_PARAM_ADDR]], align 16
 // VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[ARRAY_PARAM_ADDR]], align 16
 // VERY-AGGRESSIVE-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds i32, ptr addrspace(200) [[TMP0]], i64 0
-// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 4)
-// VERY-AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP1]])
+// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 4)
+// VERY-AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP1]])
 // VERY-AGGRESSIVE-NEXT:    [[TMP2:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[ARRAY_PARAM_ADDR]], align 16
-// VERY-AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP2]])
+// VERY-AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP2]])
 // VERY-AGGRESSIVE-NEXT:    ret void
 //
 void test_unsized_array(int array_param[]) {
@@ -436,27 +436,27 @@ extern int bhnd_sprom_layouts[];
 
 // AGGRESSIVE-OR-LESS-LABEL: @test_unsized_global_array(
 // AGGRESSIVE-OR-LESS-NEXT:  entry:
-// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_TOP:%.*]] = call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
-// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_ADDR:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
+// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_TOP:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
+// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_ADDR:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
 // AGGRESSIVE-OR-LESS-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
-// AGGRESSIVE-OR-LESS-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) @bhnd_sprom_layouts, i64 [[REMAINING_BYTES]])
+// AGGRESSIVE-OR-LESS-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) @bhnd_sprom_layouts, i64 [[REMAINING_BYTES]])
 // AGGRESSIVE-OR-LESS-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [0 x i32], ptr addrspace(200) [[TMP0]], i64 0, i64 0
-// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_TOP1:%.*]] = call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) [[ARRAYIDX]])
-// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_ADDR1:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[ARRAYIDX]])
+// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_TOP1:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) [[ARRAYIDX]])
+// AGGRESSIVE-OR-LESS-NEXT:    [[CUR_ADDR1:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[ARRAYIDX]])
 // AGGRESSIVE-OR-LESS-NEXT:    [[REMAINING_BYTES3:%.*]] = sub i64 [[CUR_TOP1]], [[CUR_ADDR1]]
-// AGGRESSIVE-OR-LESS-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 [[REMAINING_BYTES3]])
-// AGGRESSIVE-OR-LESS-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP1]])
+// AGGRESSIVE-OR-LESS-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 [[REMAINING_BYTES3]])
+// AGGRESSIVE-OR-LESS-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP1]])
 // AGGRESSIVE-OR-LESS-NEXT:    ret void
 //
 // VERY-AGGRESSIVE-LABEL: @test_unsized_global_array(
 // VERY-AGGRESSIVE-NEXT:  entry:
-// VERY-AGGRESSIVE-NEXT:    [[CUR_TOP:%.*]] = call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
-// VERY-AGGRESSIVE-NEXT:    [[CUR_ADDR:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
+// VERY-AGGRESSIVE-NEXT:    [[CUR_TOP:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
+// VERY-AGGRESSIVE-NEXT:    [[CUR_ADDR:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) @bhnd_sprom_layouts)
 // VERY-AGGRESSIVE-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
-// VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) @bhnd_sprom_layouts, i64 [[REMAINING_BYTES]])
+// VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) @bhnd_sprom_layouts, i64 [[REMAINING_BYTES]])
 // VERY-AGGRESSIVE-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [0 x i32], ptr addrspace(200) [[TMP0]], i64 0, i64 0
-// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 4)
-// VERY-AGGRESSIVE-NEXT:    call void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP1]])
+// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[ARRAYIDX]], i64 4)
+// VERY-AGGRESSIVE-NEXT:    call addrspace(200) void @do_stuff_untyped(ptr addrspace(200) noundef [[TMP1]])
 // VERY-AGGRESSIVE-NEXT:    ret void
 //
 void test_unsized_global_array(void) {

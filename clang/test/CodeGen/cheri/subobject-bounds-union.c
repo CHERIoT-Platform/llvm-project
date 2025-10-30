@@ -38,20 +38,20 @@ void call(void* arg);
 // CHECK-LABEL: define {{[^@]+}}@test
 // CHECK-SAME: (ptr addrspace(200) noundef [[UN:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 28)
-// CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3:[0-9]+]]
-// CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
-// CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
+// CHECK-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 28)
+// CHECK-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3:[0-9]+]]
+// CHECK-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
+// CHECK-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
 // CHECK-NEXT:    ret void
 //
 // VERY-AGGRESSIVE-LABEL: define {{[^@]+}}@test
 // VERY-AGGRESSIVE-SAME: (ptr addrspace(200) noundef [[UN:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // VERY-AGGRESSIVE-NEXT:  entry:
-// VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 16)
-// VERY-AGGRESSIVE-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3:[0-9]+]]
-// VERY-AGGRESSIVE-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
-// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 28)
-// VERY-AGGRESSIVE-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP1]]) #[[ATTR3]]
+// VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 16)
+// VERY-AGGRESSIVE-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3:[0-9]+]]
+// VERY-AGGRESSIVE-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
+// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 28)
+// VERY-AGGRESSIVE-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP1]]) #[[ATTR3]]
 // VERY-AGGRESSIVE-NEXT:    ret void
 //
 void test(union sockunion* un) {
@@ -81,28 +81,28 @@ union WithNestedStruct {
 // CHECK-LABEL: define {{[^@]+}}@test2
 // CHECK-SAME: (ptr addrspace(200) noundef [[UN:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 4)
-// CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
+// CHECK-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 4)
+// CHECK-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
 // CHECK-NEXT:    [[B:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[UN]], i64 4
-// CHECK-NEXT:    [[TMP1:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[B]], i64 4)
-// CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP1]]) #[[ATTR3]]
-// CHECK-NEXT:    [[TMP2:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 64)
-// CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP2]]) #[[ATTR3]]
-// CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP2]]) #[[ATTR3]]
+// CHECK-NEXT:    [[TMP1:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[B]], i64 4)
+// CHECK-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP1]]) #[[ATTR3]]
+// CHECK-NEXT:    [[TMP2:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 64)
+// CHECK-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP2]]) #[[ATTR3]]
+// CHECK-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP2]]) #[[ATTR3]]
 // CHECK-NEXT:    ret void
 //
 // VERY-AGGRESSIVE-LABEL: define {{[^@]+}}@test2
 // VERY-AGGRESSIVE-SAME: (ptr addrspace(200) noundef [[UN:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // VERY-AGGRESSIVE-NEXT:  entry:
-// VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 4)
-// VERY-AGGRESSIVE-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
+// VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 4)
+// VERY-AGGRESSIVE-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
 // VERY-AGGRESSIVE-NEXT:    [[B:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[UN]], i64 4
-// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[B]], i64 4)
-// VERY-AGGRESSIVE-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP1]]) #[[ATTR3]]
-// VERY-AGGRESSIVE-NEXT:    [[TMP2:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 8)
-// VERY-AGGRESSIVE-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP2]]) #[[ATTR3]]
-// VERY-AGGRESSIVE-NEXT:    [[TMP3:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 64)
-// VERY-AGGRESSIVE-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP3]]) #[[ATTR3]]
+// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[B]], i64 4)
+// VERY-AGGRESSIVE-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP1]]) #[[ATTR3]]
+// VERY-AGGRESSIVE-NEXT:    [[TMP2:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 8)
+// VERY-AGGRESSIVE-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP2]]) #[[ATTR3]]
+// VERY-AGGRESSIVE-NEXT:    [[TMP3:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN]], i64 64)
+// VERY-AGGRESSIVE-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP3]]) #[[ATTR3]]
 // VERY-AGGRESSIVE-NEXT:    ret void
 //
 void test2(union WithNestedStruct* un) {
@@ -149,32 +149,32 @@ union WithVLA3 {
 // CHECK-LABEL: define {{[^@]+}}@test3
 // CHECK-SAME: (ptr addrspace(200) noundef [[UN1:%.*]], ptr addrspace(200) noundef [[UN2:%.*]], ptr addrspace(200) noundef [[UN3:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) [[UN1]])
-// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[UN1]])
+// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) [[UN1]])
+// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[UN1]])
 // CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
-// CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN1]], i64 [[REMAINING_BYTES]])
-// CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
-// CHECK-NEXT:    [[CUR_TOP1:%.*]] = tail call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) [[UN2]])
-// CHECK-NEXT:    [[CUR_ADDR1:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[UN2]])
+// CHECK-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN1]], i64 [[REMAINING_BYTES]])
+// CHECK-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
+// CHECK-NEXT:    [[CUR_TOP1:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) [[UN2]])
+// CHECK-NEXT:    [[CUR_ADDR1:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[UN2]])
 // CHECK-NEXT:    [[REMAINING_BYTES3:%.*]] = sub i64 [[CUR_TOP1]], [[CUR_ADDR1]]
-// CHECK-NEXT:    [[TMP1:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN2]], i64 [[REMAINING_BYTES3]])
-// CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP1]]) #[[ATTR3]]
-// CHECK-NEXT:    [[CUR_TOP2:%.*]] = tail call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) [[UN3]])
-// CHECK-NEXT:    [[CUR_ADDR2:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[UN3]])
+// CHECK-NEXT:    [[TMP1:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN2]], i64 [[REMAINING_BYTES3]])
+// CHECK-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP1]]) #[[ATTR3]]
+// CHECK-NEXT:    [[CUR_TOP2:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) [[UN3]])
+// CHECK-NEXT:    [[CUR_ADDR2:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[UN3]])
 // CHECK-NEXT:    [[REMAINING_BYTES6:%.*]] = sub i64 [[CUR_TOP2]], [[CUR_ADDR2]]
-// CHECK-NEXT:    [[TMP2:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN3]], i64 [[REMAINING_BYTES6]])
-// CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP2]]) #[[ATTR3]]
+// CHECK-NEXT:    [[TMP2:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN3]], i64 [[REMAINING_BYTES6]])
+// CHECK-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP2]]) #[[ATTR3]]
 // CHECK-NEXT:    ret void
 //
 // VERY-AGGRESSIVE-LABEL: define {{[^@]+}}@test3
 // VERY-AGGRESSIVE-SAME: (ptr addrspace(200) noundef [[UN1:%.*]], ptr addrspace(200) noundef [[UN2:%.*]], ptr addrspace(200) noundef [[UN3:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // VERY-AGGRESSIVE-NEXT:  entry:
-// VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN1]], i64 4)
-// VERY-AGGRESSIVE-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
-// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN2]], i64 8)
-// VERY-AGGRESSIVE-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP1]]) #[[ATTR3]]
-// VERY-AGGRESSIVE-NEXT:    [[TMP2:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN3]], i64 4)
-// VERY-AGGRESSIVE-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP2]]) #[[ATTR3]]
+// VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN1]], i64 4)
+// VERY-AGGRESSIVE-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
+// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN2]], i64 8)
+// VERY-AGGRESSIVE-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP1]]) #[[ATTR3]]
+// VERY-AGGRESSIVE-NEXT:    [[TMP2:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[UN3]], i64 4)
+// VERY-AGGRESSIVE-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP2]]) #[[ATTR3]]
 // VERY-AGGRESSIVE-NEXT:    ret void
 //
 void test3(union WithVLA1 *un1, union WithVLA2 *un2, union WithVLA3 *un3) {
@@ -209,19 +209,19 @@ struct StructWithNestedUnion {
 // CHECK-SAME: (ptr addrspace(200) noundef [[S:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[NESTED:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[S]], i64 80
-// CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[NESTED]], i64 32)
-// CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
-// CHECK-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
+// CHECK-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[NESTED]], i64 32)
+// CHECK-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
+// CHECK-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
 // CHECK-NEXT:    ret void
 //
 // VERY-AGGRESSIVE-LABEL: define {{[^@]+}}@rmlock_regression
 // VERY-AGGRESSIVE-SAME: (ptr addrspace(200) noundef [[S:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // VERY-AGGRESSIVE-NEXT:  entry:
 // VERY-AGGRESSIVE-NEXT:    [[NESTED:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[S]], i64 80
-// VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[NESTED]], i64 32)
-// VERY-AGGRESSIVE-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
-// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[NESTED]], i64 16)
-// VERY-AGGRESSIVE-NEXT:    tail call void @call(ptr addrspace(200) noundef [[TMP1]]) #[[ATTR3]]
+// VERY-AGGRESSIVE-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[NESTED]], i64 32)
+// VERY-AGGRESSIVE-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP0]]) #[[ATTR3]]
+// VERY-AGGRESSIVE-NEXT:    [[TMP1:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[NESTED]], i64 16)
+// VERY-AGGRESSIVE-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) noundef [[TMP1]]) #[[ATTR3]]
 // VERY-AGGRESSIVE-NEXT:    ret void
 //
 void rmlock_regression(struct StructWithNestedUnion *s) {

@@ -8,10 +8,10 @@
 // CHECK-NEXT:    [[P_ADDR:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // CHECK-NEXT:    store ptr addrspace(200) [[P:%.*]], ptr addrspace(200) [[P_ADDR]], align 16
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[P_ADDR]], align 16
-// CHECK-NEXT:    call void asm sideeffect "# ASM EXPR: $0", "rm,~{memory},~{$1}"(ptr addrspace(200) [[TMP0]]) #[[ATTR1:[0-9]+]], !srcloc !2
+// CHECK-NEXT:    call addrspace(0) void asm sideeffect "# ASM EXPR: $0", "rm,~{memory},~{$1}"(ptr addrspace(200) [[TMP0]]) #[[ATTR1:[0-9]+]], !srcloc !2
 // CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[P_ADDR]], align 16
-// CHECK-NEXT:    call void asm sideeffect "# ASM EXPR: $0", "r,~{memory},~{$1}"(ptr addrspace(200) [[TMP1]]) #[[ATTR1]], !srcloc !3
-// CHECK-NEXT:    call void asm sideeffect "# ASM EXPR: $0", "*m,~{memory},~{$1}"(ptr addrspace(200) elementtype(ptr addrspace(200)) [[P_ADDR]]) #[[ATTR1]], !srcloc !4
+// CHECK-NEXT:    call addrspace(0) void asm sideeffect "# ASM EXPR: $0", "r,~{memory},~{$1}"(ptr addrspace(200) [[TMP1]]) #[[ATTR1]], !srcloc !3
+// CHECK-NEXT:    call addrspace(0) void asm sideeffect "# ASM EXPR: $0", "*m,~{memory},~{$1}"(ptr addrspace(200) elementtype(ptr addrspace(200)) [[P_ADDR]]) #[[ATTR1]], !srcloc !4
 // CHECK-NEXT:    ret void
 //
 void f(char *p) {
@@ -33,7 +33,7 @@ void f(char *p) {
 // CHECK-NEXT:    store i8 0, ptr addrspace(200) [[B]], align 1
 // CHECK-NEXT:    [[TMP0:%.*]] = load i8, ptr addrspace(200) [[B]], align 1
 // CHECK-NEXT:    [[TOBOOL:%.*]] = trunc i8 [[TMP0]] to i1
-// CHECK-NEXT:    [[TMP1:%.*]] = call i8 asm sideeffect "", "=C,0,~{$1}"(i1 [[TOBOOL]]) #[[ATTR1]], !srcloc !5
+// CHECK-NEXT:    [[TMP1:%.*]] = call addrspace(0) i8 asm sideeffect "", "=C,0,~{$1}"(i1 [[TOBOOL]]) #[[ATTR1]], !srcloc !5
 // CHECK-NEXT:    store i8 [[TMP1]], ptr addrspace(200) [[B]], align 1
 // CHECK-NEXT:    [[TMP2:%.*]] = load i8, ptr addrspace(200) [[B]], align 1
 // CHECK-NEXT:    [[TOBOOL1:%.*]] = trunc i8 [[TMP2]] to i1

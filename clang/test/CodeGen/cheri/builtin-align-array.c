@@ -10,8 +10,8 @@ extern int test_ptr(char *c);
 // PURECAP-NEXT:    [[BUF:%.*]] = alloca [1024 x i8], align 1, addrspace(200)
 // PURECAP-NEXT:    [[ARRAYDECAY:%.*]] = getelementptr inbounds [1024 x i8], ptr addrspace(200) [[BUF]], i64 0, i64 0
 // PURECAP-NEXT:    [[OVER_BOUNDARY:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARRAYDECAY]], i64 15
-// PURECAP-NEXT:    [[ALIGNED_RESULT:%.*]] = call ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[OVER_BOUNDARY]], i64 -16)
-// PURECAP-NEXT:    [[CALL:%.*]] = call signext i32 @test_ptr(ptr addrspace(200) noundef [[ALIGNED_RESULT]])
+// PURECAP-NEXT:    [[ALIGNED_RESULT:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[OVER_BOUNDARY]], i64 -16)
+// PURECAP-NEXT:    [[CALL:%.*]] = call signext addrspace(200) i32 @test_ptr(ptr addrspace(200) noundef [[ALIGNED_RESULT]])
 // PURECAP-NEXT:    ret i32 [[CALL]]
 //
 // N64-LABEL: define {{[^@]+}}@test_array

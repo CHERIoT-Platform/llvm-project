@@ -35,7 +35,7 @@ entry:
   %c = alloca ptr addrspace(200), align 16, addrspace(200)
   store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1), ptr addrspace(200) %c, align 16
   %0 = load ptr addrspace(200), ptr addrspace(200) @b, align 16
-  call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 1 dereferenceable(16) %0, ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) %c, i64 16, i1 false)
+  call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 1 dereferenceable(16) %0, ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) %c, i64 16, i1 false)
   ret void
 
   ; CHECK-LABEL: spgFormLeafTuple:
@@ -46,12 +46,12 @@ entry:
 define void @copy_nocaps() addrspace(200) nounwind {
 ; SROA-LABEL: @copy_nocaps(
 ; SROA-NEXT:  entry:
-; SROA-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 8 dereferenceable(16) @unaligned_dst, ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) @nocaps, i64 16, i1 false)
+; SROA-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 8 dereferenceable(16) @unaligned_dst, ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) @nocaps, i64 16, i1 false)
 ; SROA-NEXT:    ret void
 ;
 ; This should not be turned into a store since the target is not aligned!
 entry:
-  call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 8 dereferenceable(16) @unaligned_dst, ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) @nocaps, i64 16, i1 false)
+  call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 8 dereferenceable(16) @unaligned_dst, ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) @nocaps, i64 16, i1 false)
   ret void
 
   ; CHECK-LABEL: copy_nocaps:
@@ -69,10 +69,10 @@ define void @align2_should_call_memcpy() addrspace(200) nounwind {
 ; This should not be turned into a store since the target is not aligned!
 entry:
   %c = alloca ptr addrspace(200), align 16, addrspace(200)
-  %0 = call ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
+  %0 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
   store ptr addrspace(200) %0, ptr addrspace(200) %c, align 16
   %1 = load ptr addrspace(200), ptr addrspace(200) @b, align 16
-  call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 2 %1, ptr addrspace(200) align 16 %c, i64 16, i1 false)
+  call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 2 %1, ptr addrspace(200) align 16 %c, i64 16, i1 false)
   ret void
 
   ; CHECK-LABEL: align2_should_call_memcpy:
@@ -90,10 +90,10 @@ define void @align4_should_call_memcpy() addrspace(200) nounwind {
 ; This should not be turned into a store since the target is not aligned!
 entry:
   %c = alloca ptr addrspace(200), align 16, addrspace(200)
-  %0 = call ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
+  %0 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
   store ptr addrspace(200) %0, ptr addrspace(200) %c, align 16
   %1 = load ptr addrspace(200), ptr addrspace(200) @b, align 16
-  call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 4 %1, ptr addrspace(200) align 16 %c, i64 16, i1 false)
+  call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 4 %1, ptr addrspace(200) align 16 %c, i64 16, i1 false)
   ret void
 
   ; CHECK-LABEL: align4_should_call_memcpy:
@@ -110,10 +110,10 @@ define void @align8_should_call_memcpy() addrspace(200) nounwind {
 ; This should not be turned into a store since the target is not aligned!
 entry:
   %c = alloca ptr addrspace(200), align 16, addrspace(200)
-  %0 = call ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
+  %0 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
   store ptr addrspace(200) %0, ptr addrspace(200) %c, align 16
   %1 = load ptr addrspace(200), ptr addrspace(200) @b, align 16
-  call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 8 %1, ptr addrspace(200) align 16 %c, i64 16, i1 false)
+  call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 8 %1, ptr addrspace(200) align 16 %c, i64 16, i1 false)
   ret void
 
   ; CHECK-LABEL: align8_should_call_memcpy:
@@ -131,10 +131,10 @@ define void @align16_can_be_inlined() addrspace(200) nounwind {
 ; The memcpy can be turned into a store by sroa:
 entry:
   %c = alloca ptr addrspace(200), align 16, addrspace(200)
-  %0 = call ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
+  %0 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
   store ptr addrspace(200) %0, ptr addrspace(200) %c, align 16
   %1 = load ptr addrspace(200), ptr addrspace(200) @b, align 16
-  call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 %1, ptr addrspace(200) align 16 %c, i64 16, i1 false)
+  call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 %1, ptr addrspace(200) align 16 %c, i64 16, i1 false)
   ret void
 ; CHECK-LABEL: align16_can_be_inlined:
 ; CHECK-NOT: %capcall20(memcpy)

@@ -54,7 +54,7 @@ define void @cannot_fold_tag_unknown(ptr addrspace(200) %fn) local_unnamed_addr 
 ; INSTCOMBINE-NEXT:    [[CMP3:%.*]] = icmp eq ptr addrspace(200) [[FN]], getelementptr (i8, ptr addrspace(200) null, i64 2)
 ; INSTCOMBINE-NEXT:    br i1 [[CMP3]], label [[IF_END]], label [[IF_THEN:%.*]]
 ; INSTCOMBINE:       if.then:
-; INSTCOMBINE-NEXT:    tail call void @foo(ptr addrspace(200) nonnull [[FN]]) #[[ATTR0]]
+; INSTCOMBINE-NEXT:    tail call addrspace(200) void @foo(ptr addrspace(200) nonnull [[FN]]) #[[ATTR0]]
 ; INSTCOMBINE-NEXT:    br label [[IF_END]]
 ; INSTCOMBINE:       if.end:
 ; INSTCOMBINE-NEXT:    ret void
@@ -69,7 +69,7 @@ define void @cannot_fold_tag_unknown(ptr addrspace(200) %fn) local_unnamed_addr 
 ; IR-NEXT:    [[OR_COND1:%.*]] = or i1 [[CMP3]], [[OR_COND]]
 ; IR-NEXT:    br i1 [[OR_COND1]], label [[IF_END:%.*]], label [[IF_THEN:%.*]]
 ; IR:       if.then:
-; IR-NEXT:    tail call void @foo(ptr addrspace(200) nonnull [[FN]]) #[[ATTR0]]
+; IR-NEXT:    tail call addrspace(200) void @foo(ptr addrspace(200) nonnull [[FN]]) #[[ATTR0]]
 ; IR-NEXT:    br label [[IF_END]]
 ; IR:       if.end:
 ; IR-NEXT:    ret void
@@ -80,17 +80,17 @@ entry:
   br i1 %cmp, label %if.end, label %land.lhs.true
 
 land.lhs.true:                                    ; preds = %entry
-  %1 = tail call ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
+  %1 = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
   %cmp1 = icmp eq ptr addrspace(200) %1, %0
   br i1 %cmp1, label %if.end, label %land.lhs.true2
 
 land.lhs.true2:                                   ; preds = %land.lhs.true
-  %2 = tail call ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 2)
+  %2 = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 2)
   %cmp3 = icmp eq ptr addrspace(200) %2, %0
   br i1 %cmp3, label %if.end, label %if.then
 
 if.then:                                          ; preds = %land.lhs.true2
-  tail call void @foo(ptr addrspace(200) %0)
+  tail call addrspace(200) void @foo(ptr addrspace(200) %0)
   br label %if.end
 
 if.end:                                           ; preds = %if.then, %land.lhs.true2, %land.lhs.true, %entry
@@ -102,20 +102,20 @@ define void @can_fold_tag_unset(ptr addrspace(200) %fn_tagged) local_unnamed_add
 ; INSTCOMBINE-LABEL: define {{[^@]+}}@can_fold_tag_unset
 ; INSTCOMBINE-SAME: (ptr addrspace(200) [[FN_TAGGED:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 ; INSTCOMBINE-NEXT:  entry:
-; INSTCOMBINE-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.tag.clear(ptr addrspace(200) [[FN_TAGGED]])
-; INSTCOMBINE-NEXT:    [[OP0_ADDR:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP0]])
+; INSTCOMBINE-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.tag.clear(ptr addrspace(200) [[FN_TAGGED]])
+; INSTCOMBINE-NEXT:    [[OP0_ADDR:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP0]])
 ; INSTCOMBINE-NEXT:    [[CMP:%.*]] = icmp eq i64 [[OP0_ADDR]], 0
 ; INSTCOMBINE-NEXT:    br i1 [[CMP]], label [[IF_END:%.*]], label [[LAND_LHS_TRUE:%.*]]
 ; INSTCOMBINE:       land.lhs.true:
-; INSTCOMBINE-NEXT:    [[OP0_ADDR1:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP0]])
+; INSTCOMBINE-NEXT:    [[OP0_ADDR1:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP0]])
 ; INSTCOMBINE-NEXT:    [[CMP1:%.*]] = icmp eq i64 [[OP0_ADDR1]], 1
 ; INSTCOMBINE-NEXT:    br i1 [[CMP1]], label [[IF_END]], label [[LAND_LHS_TRUE2:%.*]]
 ; INSTCOMBINE:       land.lhs.true2:
-; INSTCOMBINE-NEXT:    [[OP0_ADDR2:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP0]])
+; INSTCOMBINE-NEXT:    [[OP0_ADDR2:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP0]])
 ; INSTCOMBINE-NEXT:    [[CMP3:%.*]] = icmp eq i64 [[OP0_ADDR2]], 2
 ; INSTCOMBINE-NEXT:    br i1 [[CMP3]], label [[IF_END]], label [[IF_THEN:%.*]]
 ; INSTCOMBINE:       if.then:
-; INSTCOMBINE-NEXT:    tail call void @foo(ptr addrspace(200) [[FN_TAGGED]]) #[[ATTR0]]
+; INSTCOMBINE-NEXT:    tail call addrspace(200) void @foo(ptr addrspace(200) [[FN_TAGGED]]) #[[ATTR0]]
 ; INSTCOMBINE-NEXT:    br label [[IF_END]]
 ; INSTCOMBINE:       if.end:
 ; INSTCOMBINE-NEXT:    ret void
@@ -123,12 +123,12 @@ define void @can_fold_tag_unset(ptr addrspace(200) %fn_tagged) local_unnamed_add
 ; IR-LABEL: define {{[^@]+}}@can_fold_tag_unset
 ; IR-SAME: (ptr addrspace(200) [[FN_TAGGED:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 ; IR-NEXT:  entry:
-; IR-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.tag.clear(ptr addrspace(200) [[FN_TAGGED]])
-; IR-NEXT:    [[OP0_ADDR:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP0]])
+; IR-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.tag.clear(ptr addrspace(200) [[FN_TAGGED]])
+; IR-NEXT:    [[OP0_ADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP0]])
 ; IR-NEXT:    [[SWITCH:%.*]] = icmp ult i64 [[OP0_ADDR]], 3
 ; IR-NEXT:    br i1 [[SWITCH]], label [[IF_END:%.*]], label [[IF_THEN:%.*]]
 ; IR:       if.then:
-; IR-NEXT:    tail call void @foo(ptr addrspace(200) [[FN_TAGGED]]) #[[ATTR0]]
+; IR-NEXT:    tail call addrspace(200) void @foo(ptr addrspace(200) [[FN_TAGGED]]) #[[ATTR0]]
 ; IR-NEXT:    br label [[IF_END]]
 ; IR:       if.end:
 ; IR-NEXT:    ret void
@@ -157,22 +157,22 @@ define void @can_fold_tag_unset(ptr addrspace(200) %fn_tagged) local_unnamed_add
 ; ASM-NEXT:    nop
 entry:
   %fn_i8 = bitcast ptr addrspace(200) %fn_tagged to ptr addrspace(200)
-  %0 = call ptr addrspace(200) @llvm.cheri.cap.tag.clear(ptr addrspace(200) %fn_i8)
+  %0 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.tag.clear(ptr addrspace(200) %fn_i8)
   %cmp = icmp eq ptr addrspace(200) %0, null
   br i1 %cmp, label %if.end, label %land.lhs.true
 
 land.lhs.true:                                    ; preds = %entry
-  %1 = tail call ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
+  %1 = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
   %cmp1 = icmp eq ptr addrspace(200) %1, %0
   br i1 %cmp1, label %if.end, label %land.lhs.true2
 
 land.lhs.true2:                                   ; preds = %land.lhs.true
-  %2 = tail call ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 2)
+  %2 = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 2)
   %cmp3 = icmp eq ptr addrspace(200) %2, %0
   br i1 %cmp3, label %if.end, label %if.then
 
 if.then:                                          ; preds = %land.lhs.true2
-  tail call void @foo(ptr addrspace(200) %fn_i8)
+  tail call addrspace(200) void @foo(ptr addrspace(200) %fn_i8)
   br label %if.end
 
 if.end:                                           ; preds = %if.then, %land.lhs.true2, %land.lhs.true, %entry

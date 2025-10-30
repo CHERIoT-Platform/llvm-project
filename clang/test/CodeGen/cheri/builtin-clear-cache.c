@@ -15,7 +15,7 @@ char *start, *end;
 // PURECAP128-NEXT:  entry:
 // PURECAP128-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @start, align 16
 // PURECAP128-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) @end, align 16
-// PURECAP128-NEXT:    call void @llvm.clear_cache.p200(ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[TMP1]])
+// PURECAP128-NEXT:    call addrspace(200) void @llvm.clear_cache.p200(ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[TMP1]])
 // PURECAP128-NEXT:    ret void
 //
 void clear_cache(void) {

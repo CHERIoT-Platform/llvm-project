@@ -14,11 +14,11 @@ target triple = "cheri-unknown-freebsd"
 define void @g() addrspace(200) #0 {
 ; CHECK-LABEL: @g(
 ; CHECK-NEXT:  entry:
-; CHECK-NEXT:    call void @puts(ptr addrspace(200) @.str)
+; CHECK-NEXT:    call addrspace(200) void @puts(ptr addrspace(200) @.str)
 ; CHECK-NEXT:    ret void
 ;
 entry:
-  call void @puts(ptr addrspace(200) @.str)
+  call addrspace(200) void @puts(ptr addrspace(200) @.str)
   ret void
 }
 
@@ -39,13 +39,13 @@ define void @foo(ptr addrspace(200) %x) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[X:%.*]], null
 ; CHECK-NEXT:    br i1 [[CMP]], label [[IF_THEN:%.*]], label [[IF_END:%.*]]
 ; CHECK:       if.then:
-; CHECK-NEXT:    call void @g()
+; CHECK-NEXT:    call addrspace(200) void @g()
 ; CHECK-NEXT:    br label [[IF_END]]
 ; CHECK:       if.end:
 ; CHECK-NEXT:    [[CMP1:%.*]] = icmp eq ptr addrspace(200) [[X]], null
 ; CHECK-NEXT:    br i1 [[CMP1]], label [[IF_ELSE:%.*]], label [[IF_END3:%.*]]
 ; CHECK:       if.else:
-; CHECK-NEXT:    call void @puts(ptr addrspace(200) @.str.1)
+; CHECK-NEXT:    call addrspace(200) void @puts(ptr addrspace(200) @.str.1)
 ; CHECK-NEXT:    br label [[IF_END3]]
 ; CHECK:       if.end3:
 ; CHECK-NEXT:    ret void
@@ -55,7 +55,7 @@ entry:
   br i1 %cmp, label %if.then, label %if.end
 
 if.then:                                          ; preds = %entry
-  call void @g()
+  call addrspace(200) void @g()
   br label %if.end
 
 if.end:                                           ; preds = %if.then, %entry
@@ -63,7 +63,7 @@ if.end:                                           ; preds = %if.then, %entry
   br i1 %cmp1, label %if.else, label %if.end3
 
 if.else:                                          ; preds = %if.end
-  call void @puts(ptr addrspace(200) @.str.1)
+  call addrspace(200) void @puts(ptr addrspace(200) @.str.1)
   br label %if.end3
 
 if.end3:                                          ; preds = %if.else, %if.end
@@ -79,7 +79,7 @@ define signext i32 @issue332(ptr addrspace(200) %e, i32 %value) local_unnamed_ad
 ; CHECK-NEXT:    [[TOBOOL:%.*]] = icmp eq i32 [[VALUE:%.*]], 0
 ; CHECK-NEXT:    br i1 [[TOBOOL]], label [[IF_END2:%.*]], label [[IF_THEN:%.*]]
 ; CHECK:       if.then:
-; CHECK-NEXT:    [[CALL:%.*]] = call signext i32 @func1()
+; CHECK-NEXT:    [[CALL:%.*]] = call signext addrspace(200) i32 @func1()
 ; CHECK-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[E:%.*]], null
 ; CHECK-NEXT:    [[TOBOOL3:%.*]] = icmp eq ptr addrspace(200) [[E]], null
 ; CHECK-NEXT:    [[OR_COND:%.*]] = or i1 [[CMP]], [[TOBOOL3]]
@@ -88,7 +88,7 @@ define signext i32 @issue332(ptr addrspace(200) %e, i32 %value) local_unnamed_ad
 ; CHECK-NEXT:    [[TOBOOL3_OLD:%.*]] = icmp eq ptr addrspace(200) [[E]], null
 ; CHECK-NEXT:    br i1 [[TOBOOL3_OLD]], label [[CLEANUP]], label [[LAND_RHS]]
 ; CHECK:       land.rhs:
-; CHECK-NEXT:    [[CALL4:%.*]] = call signext i32 @func2()
+; CHECK-NEXT:    [[CALL4:%.*]] = call signext addrspace(200) i32 @func2()
 ; CHECK-NEXT:    br label [[CLEANUP]]
 ; CHECK:       cleanup:
 ; CHECK-NEXT:    ret i32 0
@@ -98,7 +98,7 @@ entry:
   br i1 %tobool, label %if.end2, label %if.then
 
 if.then:                                          ; preds = %entry
-  %call = call signext i32 @func1()
+  %call = call signext addrspace(200) i32 @func1()
   %cmp = icmp eq ptr addrspace(200) %e, null
   %tobool3 = icmp eq ptr addrspace(200) %e, null
   %or.cond = or i1 %cmp, %tobool3
@@ -109,7 +109,7 @@ if.end2:                                          ; preds = %entry
   br i1 %tobool3.old, label %cleanup, label %land.rhs
 
 land.rhs:                                         ; preds = %if.end2, %if.then
-  %call4 = call signext i32 @func2()
+  %call4 = call signext addrspace(200) i32 @func2()
   br label %cleanup
 
 cleanup:                                          ; preds = %land.rhs, %if.end2, %if.then

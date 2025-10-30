@@ -14,7 +14,7 @@ __attribute__((cheri_ccall)) __attribute__((cheri_method_class(c))) int
 // CHECK-NEXT:    [[TMP0:%.*]] = load i64, ptr addrspace(200) @__cheri_method.c.d, align 8, !invariant.load [[META2:![0-9]+]]
 // CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) @c, align 16
 // CHECK-NEXT:    [[TMP2:%.*]] = load ptr addrspace(200), ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) @c, i64 16), align 16
-// CHECK-NEXT:    [[CALL:%.*]] = tail call cheriot_compartmentcallcc signext i32 @cheri_invoke(ptr addrspace(200) noundef [[TMP1]], ptr addrspace(200) noundef [[TMP2]], i64 noundef zeroext [[TMP0]]) #[[ATTR1:[0-9]+]]
+// CHECK-NEXT:    [[CALL:%.*]] = tail call cheriot_compartmentcallcc signext addrspace(200) i32 @cheri_invoke(ptr addrspace(200) noundef [[TMP1]], ptr addrspace(200) noundef [[TMP2]], i64 noundef zeroext [[TMP0]]) #[[ATTR1:[0-9]+]]
 // CHECK-NEXT:    ret i32 0
 //
 d(void) {

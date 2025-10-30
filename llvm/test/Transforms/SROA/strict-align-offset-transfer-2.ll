@@ -53,8 +53,8 @@ define void @crashing_testcase_with_use() nounwind {
 ; CHECK-NEXT:    [[D:%.*]] = alloca [[STRUCT_ANON:%.*]], align 16, addrspace(200)
 ; CHECK-NEXT:    [[TMP0:%.*]] = bitcast ptr addrspace(200) [[D]] to ptr addrspace(200)
 ; CHECK-NEXT:    [[TMP1:%.*]] = bitcast ptr addrspace(200) [[D]] to ptr addrspace(200)
-; CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[TMP1]], i64 32, i1 false)
-; CHECK-NEXT:    call void @use(ptr addrspace(200) [[D]])
+; CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[TMP1]], i64 32, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @use(ptr addrspace(200) [[D]])
 ; CHECK-NEXT:    ret void
 ;
 ; NOCHERI-LABEL: define {{[^@]+}}@crashing_testcase_with_use
@@ -103,8 +103,8 @@ define void @working_testcase_with_use() nounwind {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[D:%.*]] = alloca [[STRUCT_ANON:%.*]], align 16, addrspace(200)
 ; CHECK-NEXT:    [[TMP0:%.*]] = bitcast ptr addrspace(200) [[D]] to ptr addrspace(200)
-; CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[TMP0]], i64 32, i1 false)
-; CHECK-NEXT:    call void @use(ptr addrspace(200) [[D]])
+; CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[TMP0]], i64 32, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @use(ptr addrspace(200) [[D]])
 ; CHECK-NEXT:    ret void
 ;
 ; NOCHERI-LABEL: define {{[^@]+}}@working_testcase_with_use

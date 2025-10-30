@@ -10,10 +10,10 @@ define internal void @foo() unnamed_addr addrspace(200) {
 ; CHECK-NEXT:  start:
 ; CHECK-NEXT:    [[TMP0:%.*]] = alloca i96, align 16, addrspace(200)
 ; CHECK-NEXT:    [[_2:%.*]] = alloca [3 x i32], align 16, addrspace(200)
-; CHECK-NEXT:    [[TMP1:%.*]] = call i96 @bar(i32 104)
+; CHECK-NEXT:    [[TMP1:%.*]] = call addrspace(200) i96 @bar(i32 104)
 ; CHECK-NEXT:    store i96 [[TMP1]], ptr addrspace(200) [[TMP0]], align 16
-; CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(12) [[_2]], ptr addrspace(200) noundef nonnull align 16 dereferenceable(12) [[TMP0]], i64 12, i1 false)
-; CHECK-NEXT:    call void @baz(ptr addrspace(200) nonnull [[_2]])
+; CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(12) [[_2]], ptr addrspace(200) noundef nonnull align 16 dereferenceable(12) [[TMP0]], i64 12, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @baz(ptr addrspace(200) nonnull [[_2]])
 ; CHECK-NEXT:    ret void
 ;
 start:
@@ -21,12 +21,12 @@ start:
   %1 = alloca i96, align 16, addrspace(200)
   %_2 = alloca [3 x i32], align 16, addrspace(200)
   %_1 = alloca [3 x i32], align 16, addrspace(200)
-  %2 = call i96 @bar(i32 104)
+  %2 = call addrspace(200) i96 @bar(i32 104)
   store i96 %2, ptr addrspace(200) %1, align 16
   %3 = bitcast ptr addrspace(200) %_2 to ptr addrspace(200)
   %4 = bitcast ptr addrspace(200) %1 to ptr addrspace(200)
-  call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 4 %3, ptr addrspace(200) align 16 %4, i64 12, i1 false)
-  call void @baz(ptr addrspace(200) %3)
+  call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 4 %3, ptr addrspace(200) align 16 %4, i64 12, i1 false)
+  call addrspace(200) void @baz(ptr addrspace(200) %3)
   ret void
 }
 

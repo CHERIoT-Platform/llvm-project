@@ -19,7 +19,7 @@ void do_stuff(ns_dtab *tab);
 // PCREL-NEXT:    [[DTAB:%.*]] = alloca [2 x %struct._ns_dtab], align 16, addrspace(200)
 // PCREL-NEXT:    [[I:%.*]] = alloca i32, align 4, addrspace(200)
 // PCREL-NEXT:    store ptr addrspace(200) [[MDATA:%.*]], ptr addrspace(200) [[MDATA_ADDR]], align 16
-// PCREL-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[DTAB]], ptr addrspace(200) align 16 @__const.test.dtab, i64 96, i1 false)
+// PCREL-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[DTAB]], ptr addrspace(200) align 16 @__const.test.dtab, i64 96, i1 false)
 // PCREL-NEXT:    store i32 0, ptr addrspace(200) [[I]], align 4
 // PCREL-NEXT:    br label [[FOR_COND:%.*]]
 // PCREL:       for.cond:
@@ -42,7 +42,7 @@ void do_stuff(ns_dtab *tab);
 // PCREL-NEXT:    br label [[FOR_COND]], !llvm.loop [[LOOP2:![0-9]+]]
 // PCREL:       for.end:
 // PCREL-NEXT:    [[ARRAYDECAY:%.*]] = getelementptr inbounds [2 x %struct._ns_dtab], ptr addrspace(200) [[DTAB]], i64 0, i64 0
-// PCREL-NEXT:    call void @do_stuff(ptr addrspace(200) noundef [[ARRAYDECAY]])
+// PCREL-NEXT:    call addrspace(200) void @do_stuff(ptr addrspace(200) noundef [[ARRAYDECAY]])
 // PCREL-NEXT:    ret void
 //
 void test(void *mdata) {

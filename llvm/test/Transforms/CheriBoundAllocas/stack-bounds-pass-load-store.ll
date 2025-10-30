@@ -17,7 +17,7 @@ define void @store_stack_to_global() addrspace(200) nounwind {
 ; CHECK-LABEL: @store_stack_to_global(
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[X:%.*]] = alloca [16 x i32], align 4, addrspace(200)
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[X]], i64 64)
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[X]], i64 64)
 ; CHECK-NEXT:    store ptr addrspace(200) [[TMP0]], ptr addrspace(200) @global_leak, align 16
 ; CHECK-NEXT:    ret void
 ;
@@ -40,7 +40,7 @@ define void @store_stack_to_global_with_offset() addrspace(200) nounwind {
 ; CHECK-LABEL: @store_stack_to_global_with_offset(
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[X:%.*]] = alloca [16 x i32], align 4, addrspace(200)
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[X]], i64 64)
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[X]], i64 64)
 ; CHECK-NEXT:    [[X_PLUS_4:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[TMP0]], i32 4
 ; CHECK-NEXT:    store ptr addrspace(200) [[X_PLUS_4]], ptr addrspace(200) @global_leak2, align 16
 ; CHECK-NEXT:    ret void
@@ -68,7 +68,7 @@ define ptr addrspace(200) @store_stack_to_other_slot() addrspace(200) nounwind {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[SLOT_SRC:%.*]] = alloca [16 x i32], align 4, addrspace(200)
 ; CHECK-NEXT:    [[SLOT_LEAK:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[SLOT_SRC]], i64 64)
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[SLOT_SRC]], i64 64)
 ; CHECK-NEXT:    store ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[SLOT_LEAK]], align 16
 ; CHECK-NEXT:    [[LEAKED_VALUE:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[SLOT_LEAK]], align 16
 ; CHECK-NEXT:    ret ptr addrspace(200) [[LEAKED_VALUE]]
@@ -100,7 +100,7 @@ define ptr addrspace(200) @store_stack_to_other_slot_with_offset() addrspace(200
 ; CHECK-LABEL: @store_stack_to_other_slot_with_offset(
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[X:%.*]] = alloca [16 x i32], align 4, addrspace(200)
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[X]], i64 64)
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[X]], i64 64)
 ; CHECK-NEXT:    [[X_PLUS_4:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[TMP0]], i32 4
 ; CHECK-NEXT:    [[SLOT_LEAK:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 ; CHECK-NEXT:    store ptr addrspace(200) [[X_PLUS_4]], ptr addrspace(200) [[SLOT_LEAK]], align 16
@@ -140,7 +140,7 @@ define ptr addrspace(200) @store_stack_to_self() addrspace(200) nounwind {
 ; CHECK-LABEL: @store_stack_to_self(
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[SLOT_SELF:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[SLOT_SELF]], i64 16)
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[SLOT_SELF]], i64 16)
 ; CHECK-NEXT:    store ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[SLOT_SELF]], align 16
 ; CHECK-NEXT:    [[LEAKED_VALUE:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[SLOT_SELF]], align 16
 ; CHECK-NEXT:    ret ptr addrspace(200) [[LEAKED_VALUE]]

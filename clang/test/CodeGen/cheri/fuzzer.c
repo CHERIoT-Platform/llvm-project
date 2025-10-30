@@ -69,9 +69,9 @@ extern int fail2(void);
 // PURECAP-NEXT:    [[TMP1:%.*]] = add i8 [[TMP0]], 1
 // PURECAP-NEXT:    store i8 [[TMP1]], ptr addrspace(200) @__sancov_gen_, align 1, !nosanitize [[META5]]
 // PURECAP-NEXT:    [[ARRAYDECAY:%.*]] = getelementptr inbounds [10 x i8], ptr addrspace(200) [[FOO]], i64 0, i64 0
-// PURECAP-NEXT:    [[CALL:%.*]] = call ptr addrspace(200) @gets(ptr addrspace(200) noundef [[ARRAYDECAY]]) #[[ATTR3:[0-9]+]]
+// PURECAP-NEXT:    [[CALL:%.*]] = call addrspace(200) ptr addrspace(200) @gets(ptr addrspace(200) noundef [[ARRAYDECAY]]) #[[ATTR3:[0-9]+]]
 // PURECAP-NEXT:    [[ARRAYDECAY1:%.*]] = getelementptr inbounds [10 x i8], ptr addrspace(200) [[FOO]], i64 0, i64 0
-// PURECAP-NEXT:    [[CALL2:%.*]] = call signext i32 @puts(ptr addrspace(200) noundef [[ARRAYDECAY1]]) #[[ATTR3]]
+// PURECAP-NEXT:    [[CALL2:%.*]] = call signext addrspace(200) i32 @puts(ptr addrspace(200) noundef [[ARRAYDECAY1]]) #[[ATTR3]]
 // PURECAP-NEXT:    ret i32 0
 //
 int main(void) {
@@ -136,26 +136,26 @@ int main(void) {
 // PURECAP-NEXT:    store i8 [[TMP1]], ptr addrspace(200) @__sancov_gen_.2, align 1, !nosanitize [[META5]]
 // PURECAP-NEXT:    store i32 [[I]], ptr addrspace(200) [[I_ADDR]], align 4
 // PURECAP-NEXT:    [[TMP2:%.*]] = load i32, ptr addrspace(200) [[I_ADDR]], align 4
-// PURECAP-NEXT:    call void @__sanitizer_cov_trace_const_cmp4(i32 100, i32 [[TMP2]])
+// PURECAP-NEXT:    call addrspace(200) void @__sanitizer_cov_trace_const_cmp4(i32 100, i32 [[TMP2]])
 // PURECAP-NEXT:    [[CMP:%.*]] = icmp slt i32 [[TMP2]], 100
 // PURECAP-NEXT:    br i1 [[CMP]], label [[IF_THEN:%.*]], label [[IF_ELSE:%.*]]
 // PURECAP:       if.then:
 // PURECAP-NEXT:    [[TMP3:%.*]] = load i8, ptr addrspace(200) getelementptr ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 1), align 1, !nosanitize [[META5]]
 // PURECAP-NEXT:    [[TMP4:%.*]] = add i8 [[TMP3]], 1
 // PURECAP-NEXT:    store i8 [[TMP4]], ptr addrspace(200) getelementptr ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 1), align 1, !nosanitize [[META5]]
-// PURECAP-NEXT:    [[CALL:%.*]] = call signext i32 @fail1() #[[ATTR3]]
+// PURECAP-NEXT:    [[CALL:%.*]] = call signext addrspace(200) i32 @fail1() #[[ATTR3]]
 // PURECAP-NEXT:    store i32 [[CALL]], ptr addrspace(200) [[RETVAL]], align 4
 // PURECAP-NEXT:    br label [[RETURN:%.*]]
 // PURECAP:       if.else:
 // PURECAP-NEXT:    [[TMP5:%.*]] = load i32, ptr addrspace(200) [[I_ADDR]], align 4
-// PURECAP-NEXT:    call void @__sanitizer_cov_trace_const_cmp4(i32 200, i32 [[TMP5]])
+// PURECAP-NEXT:    call addrspace(200) void @__sanitizer_cov_trace_const_cmp4(i32 200, i32 [[TMP5]])
 // PURECAP-NEXT:    [[CMP1:%.*]] = icmp slt i32 [[TMP5]], 200
 // PURECAP-NEXT:    br i1 [[CMP1]], label [[IF_THEN2:%.*]], label [[IF_END:%.*]]
 // PURECAP:       if.then2:
 // PURECAP-NEXT:    [[TMP6:%.*]] = load i8, ptr addrspace(200) getelementptr ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 2), align 1, !nosanitize [[META5]]
 // PURECAP-NEXT:    [[TMP7:%.*]] = add i8 [[TMP6]], 1
 // PURECAP-NEXT:    store i8 [[TMP7]], ptr addrspace(200) getelementptr ([4 x i8], ptr addrspace(200) @__sancov_gen_.2, i64 0, i64 2), align 1, !nosanitize [[META5]]
-// PURECAP-NEXT:    [[CALL3:%.*]] = call signext i32 @fail2() #[[ATTR3]]
+// PURECAP-NEXT:    [[CALL3:%.*]] = call signext addrspace(200) i32 @fail2() #[[ATTR3]]
 // PURECAP-NEXT:    store i32 [[CALL3]], ptr addrspace(200) [[RETVAL]], align 4
 // PURECAP-NEXT:    br label [[RETURN]]
 // PURECAP:       if.end:
@@ -223,8 +223,8 @@ int func2(int i) {
 // PURECAP: declare void @__sanitizer_cov_trace_pc_guard(ptr addrspace(200)) addrspace(200)
 // PURECAP: declare void @__sanitizer_cov_8bit_counters_init(ptr addrspace(200), ptr addrspace(200)) addrspace(200)
 // PURECAP: define internal void @sancov.module_ctor_8bit_counters() addrspace(200) #{{[0-9]+}} comdat {
-// PURECAP:   call void @__sanitizer_cov_8bit_counters_init(ptr addrspace(200) @__start___sancov_cntrs, ptr addrspace(200) @__stop___sancov_cntrs)
-// PURECAP:   call void @__sanitizer_cov_pcs_init(ptr addrspace(200) @__start___sancov_pcs, ptr addrspace(200) @__stop___sancov_pcs)
+// PURECAP:   call addrspace(200) void @__sanitizer_cov_8bit_counters_init(ptr addrspace(200) @__start___sancov_cntrs, ptr addrspace(200) @__stop___sancov_cntrs)
+// PURECAP:   call addrspace(200) void @__sanitizer_cov_pcs_init(ptr addrspace(200) @__start___sancov_pcs, ptr addrspace(200) @__stop___sancov_pcs)
 // PURECAP:   ret void
 // PURECAP: }
 // PURECAP: declare void @__sanitizer_cov_pcs_init(ptr addrspace(200), ptr addrspace(200)) addrspace(200)

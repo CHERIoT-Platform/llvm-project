@@ -7,7 +7,7 @@ void crt_init_globals();
 
 // CHECK-LABEL: @__start(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    call void @crt_init_globals()
+// CHECK-NEXT:    call addrspace(200) void @crt_init_globals()
 // CHECK-NEXT:    ret void
 void __start(void)
 {

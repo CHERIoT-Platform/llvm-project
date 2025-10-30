@@ -6,7 +6,7 @@
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[ALIGNMENT:%.*]] = zext i32 [[B]] to i64
 // CHECK-NEXT:    [[INVERTED_MASK:%.*]] = sub nsw i64 0, [[ALIGNMENT]]
-// CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = tail call ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[C]], i64 [[INVERTED_MASK]])
+// CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[C]], i64 [[INVERTED_MASK]])
 // CHECK-NEXT:    ret ptr addrspace(200) [[ALIGNED_RESULT]]
 //
 extern "C" char* test1(char* c, int b) {
@@ -18,7 +18,7 @@ extern "C" char* test1(char* c, int b) {
 // CHECK-SAME: (ptr addrspace(200) noundef readnone [[VALUE:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[OVER_BOUNDARY:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[VALUE]], i64 3
-// CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = tail call align 4 ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) nonnull [[OVER_BOUNDARY]], i64 -4)
+// CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = tail call align 4 addrspace(200) ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) nonnull [[OVER_BOUNDARY]], i64 -4)
 // CHECK-NEXT:    ret ptr addrspace(200) [[ALIGNED_RESULT]]
 //
 extern "C" __uintcap_t test2(__uintcap_t value) {

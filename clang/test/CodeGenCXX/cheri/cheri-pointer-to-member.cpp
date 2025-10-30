@@ -52,7 +52,7 @@ AMemberFuncPtr global_virt_func_ptr = &A::bar_virtual;
 // CHECK-NEXT:    [[VIRTUAL_FUNC_PTR:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
 // CHECK-NEXT:    [[VIRTUAL_FUNC_PTR_2:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
 // CHECK-NEXT:    store i32 0, ptr addrspace(200) [[RETVAL]], align 4
-// CHECK-NEXT:    call void @_ZN1AC1Ev(ptr addrspace(200) noundef nonnull align 16 dereferenceable(24) [[A]]) #[[ATTR6:[0-9]+]]
+// CHECK-NEXT:    call addrspace(200) void @_ZN1AC1Ev(ptr addrspace(200) noundef nonnull align 16 dereferenceable(24) [[A]]) #[[ATTR6:[0-9]+]]
 // CHECK-NEXT:    store i64 -1, ptr addrspace(200) [[NULL_DATA_PTR]], align 8
 // CHECK-NEXT:    store i64 16, ptr addrspace(200) [[DATA_PTR]], align 8
 // CHECK-NEXT:    store i64 20, ptr addrspace(200) [[DATA_PTR_2]], align 8
@@ -403,7 +403,7 @@ bool func_ptr_not_equal(AMemberFuncPtr ptr1, AMemberFuncPtr ptr2) {
 // CHECK-NEXT:    br label [[MEMPTR_END]]
 // CHECK:       memptr.end:
 // CHECK-NEXT:    [[TMP7:%.*]] = phi ptr addrspace(200) [ [[MEMPTR_VIRTUALFN]], [[MEMPTR_VIRTUAL]] ], [ [[MEMPTR_PTR]], [[MEMPTR_NONVIRTUAL]] ]
-// CHECK-NEXT:    [[CALL:%.*]] = call noundef signext i32 [[TMP7]](ptr addrspace(200) noundef nonnull align 16 dereferenceable(24) [[TMP4]])
+// CHECK-NEXT:    [[CALL:%.*]] = call noundef signext addrspace(200) i32 [[TMP7]](ptr addrspace(200) noundef nonnull align 16 dereferenceable(24) [[TMP4]])
 // CHECK-NEXT:    ret i32 [[CALL]]
 //
 // N64-LABEL: define {{[^@]+}}@_Z20func_ptr_dereferenceP1AMS_FivE
@@ -511,11 +511,11 @@ struct C {
 // CHECK-NEXT:    [[AGG_TMP_ENSURED:%.*]] = alloca %"struct.PR7556::A", align 1, addrspace(200)
 // CHECK-NEXT:    [[AGG_TMP_ENSURED1:%.*]] = alloca %"struct.PR7556::B", align 4, addrspace(200)
 // CHECK-NEXT:    [[AGG_TMP_ENSURED2:%.*]] = alloca %"struct.PR7556::C", align 8, addrspace(200)
-// CHECK-NEXT:    call void @_ZN6PR75561AD1Ev(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[AGG_TMP_ENSURED]]) #[[ATTR6]]
-// CHECK-NEXT:    call void @llvm.memset.p200.i64(ptr addrspace(200) align 4 [[AGG_TMP_ENSURED1]], i8 0, i64 4, i1 false)
-// CHECK-NEXT:    call void @_ZN6PR75561BD1Ev(ptr addrspace(200) noundef nonnull align 4 dereferenceable(4) [[AGG_TMP_ENSURED1]]) #[[ATTR6]]
-// CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 8 [[AGG_TMP_ENSURED2]], ptr addrspace(200) align 8 @[[GLOB0:[0-9]+]], i64 8, i1 false)
-// CHECK-NEXT:    call void @_ZN6PR75561CD1Ev(ptr addrspace(200) noundef nonnull align 8 dereferenceable(8) [[AGG_TMP_ENSURED2]]) #[[ATTR6]]
+// CHECK-NEXT:    call addrspace(200) void @_ZN6PR75561AD1Ev(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[AGG_TMP_ENSURED]]) #[[ATTR6]]
+// CHECK-NEXT:    call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) align 4 [[AGG_TMP_ENSURED1]], i8 0, i64 4, i1 false)
+// CHECK-NEXT:    call addrspace(200) void @_ZN6PR75561BD1Ev(ptr addrspace(200) noundef nonnull align 4 dereferenceable(4) [[AGG_TMP_ENSURED1]]) #[[ATTR6]]
+// CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 8 [[AGG_TMP_ENSURED2]], ptr addrspace(200) align 8 @[[GLOB0:[0-9]+]], i64 8, i1 false)
+// CHECK-NEXT:    call addrspace(200) void @_ZN6PR75561CD1Ev(ptr addrspace(200) noundef nonnull align 8 dereferenceable(8) [[AGG_TMP_ENSURED2]]) #[[ATTR6]]
 // CHECK-NEXT:    ret void
 //
 // N64-LABEL: define {{[^@]+}}@_ZN6PR75563fooEv

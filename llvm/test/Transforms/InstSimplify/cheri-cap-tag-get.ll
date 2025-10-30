@@ -14,10 +14,10 @@ declare ptr addrspace(200) @llvm.cheri.cap.tag.clear(ptr addrspace(200)) addrspa
 
 define i1 @unknown(ptr addrspace(200) %ptr) addrspace(200) {
 ; CHECK-LABEL: @unknown(
-; CHECK-NEXT:    [[TAG:%.*]] = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) [[PTR:%.*]])
+; CHECK-NEXT:    [[TAG:%.*]] = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) [[PTR:%.*]])
 ; CHECK-NEXT:    ret i1 [[TAG]]
 ;
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %ptr)
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %ptr)
   ret i1 %tag
 }
 
@@ -25,8 +25,8 @@ define i1 @tag_cleared(ptr addrspace(200) %ptr) addrspace(200) {
 ; CHECK-LABEL: @tag_cleared(
 ; CHECK-NEXT:    ret i1 false
 ;
-  %cleared = call ptr addrspace(200) @llvm.cheri.cap.tag.clear(ptr addrspace(200) %ptr)
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
+  %cleared = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.tag.clear(ptr addrspace(200) %ptr)
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
   ret i1 %tag
 }
 
@@ -34,7 +34,7 @@ define i1 @gettag_null(ptr addrspace(200) %ptr) addrspace(200) {
 ; CHECK-LABEL: @gettag_null(
 ; CHECK-NEXT:    ret i1 false
 ;
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) null)
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) null)
   ret i1 %tag
 }
 
@@ -42,73 +42,73 @@ define i1 @gettag_inttoptr(ptr addrspace(200) %ptr) addrspace(200) {
 ; CHECK-LABEL: @gettag_inttoptr(
 ; CHECK-NEXT:    ret i1 false
 ;
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) inttoptr (i64 1 to ptr addrspace(200)))
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) inttoptr (i64 1 to ptr addrspace(200)))
   ret i1 %tag
 }
 
 define i1 @incoffset_nonnull(ptr addrspace(200) %ptr) addrspace(200) {
 ; CHECK-LABEL: @incoffset_nonnull(
 ; CHECK-NEXT:    [[CLEARED:%.*]] = getelementptr i8, ptr addrspace(200) [[PTR:%.*]], i64 1
-; CHECK-NEXT:    [[TAG:%.*]] = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) [[CLEARED]])
+; CHECK-NEXT:    [[TAG:%.*]] = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) [[CLEARED]])
 ; CHECK-NEXT:    ret i1 [[TAG]]
 ;
   %cleared = getelementptr i8, ptr addrspace(200) %ptr, i64 1
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
   ret i1 %tag
 }
 
 define i1 @setoffset_nonnull(ptr addrspace(200) %ptr) addrspace(200) {
 ; CHECK-LABEL: @setoffset_nonnull(
-; CHECK-NEXT:    [[CLEARED:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) [[PTR:%.*]], i64 1)
-; CHECK-NEXT:    [[TAG:%.*]] = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) [[CLEARED]])
+; CHECK-NEXT:    [[CLEARED:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) [[PTR:%.*]], i64 1)
+; CHECK-NEXT:    [[TAG:%.*]] = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) [[CLEARED]])
 ; CHECK-NEXT:    ret i1 [[TAG]]
 ;
-  %cleared = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) %ptr, i64 1)
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
+  %cleared = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) %ptr, i64 1)
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
   ret i1 %tag
 }
 
 define i1 @setaddr_nonnull(ptr addrspace(200) %ptr) addrspace(200) {
 ; CHECK-LABEL: @setaddr_nonnull(
-; CHECK-NEXT:    [[CLEARED:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) [[PTR:%.*]], i64 1)
-; CHECK-NEXT:    [[TAG:%.*]] = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) [[CLEARED]])
+; CHECK-NEXT:    [[CLEARED:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) [[PTR:%.*]], i64 1)
+; CHECK-NEXT:    [[TAG:%.*]] = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) [[CLEARED]])
 ; CHECK-NEXT:    ret i1 [[TAG]]
 ;
-  %cleared = call ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) %ptr, i64 1)
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
+  %cleared = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) %ptr, i64 1)
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
   ret i1 %tag
 }
 
 define i1 @setbounds_nonnull(ptr addrspace(200) %ptr) addrspace(200) {
 ; CHECK-LABEL: @setbounds_nonnull(
-; CHECK-NEXT:    [[CLEARED:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR:%.*]], i64 1)
-; CHECK-NEXT:    [[TAG:%.*]] = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) [[CLEARED]])
+; CHECK-NEXT:    [[CLEARED:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR:%.*]], i64 1)
+; CHECK-NEXT:    [[TAG:%.*]] = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) [[CLEARED]])
 ; CHECK-NEXT:    ret i1 [[TAG]]
 ;
-  %cleared = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %ptr, i64 1)
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
+  %cleared = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %ptr, i64 1)
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
   ret i1 %tag
 }
 
 define i1 @setboundsexact_nonnull(ptr addrspace(200) %ptr) addrspace(200) {
 ; CHECK-LABEL: @setboundsexact_nonnull(
-; CHECK-NEXT:    [[CLEARED:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[PTR:%.*]], i64 1)
-; CHECK-NEXT:    [[TAG:%.*]] = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) [[CLEARED]])
+; CHECK-NEXT:    [[CLEARED:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[PTR:%.*]], i64 1)
+; CHECK-NEXT:    [[TAG:%.*]] = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) [[CLEARED]])
 ; CHECK-NEXT:    ret i1 [[TAG]]
 ;
-  %cleared = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %ptr, i64 1)
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
+  %cleared = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %ptr, i64 1)
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
   ret i1 %tag
 }
 
 define i1 @andperm_nonnull(ptr addrspace(200) %ptr) addrspace(200) {
 ; CHECK-LABEL: @andperm_nonnull(
-; CHECK-NEXT:    [[CLEARED:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) [[PTR:%.*]], i64 1)
-; CHECK-NEXT:    [[TAG:%.*]] = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) [[CLEARED]])
+; CHECK-NEXT:    [[CLEARED:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) [[PTR:%.*]], i64 1)
+; CHECK-NEXT:    [[TAG:%.*]] = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) [[CLEARED]])
 ; CHECK-NEXT:    ret i1 [[TAG]]
 ;
-  %cleared = call ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) %ptr, i64 1)
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
+  %cleared = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) %ptr, i64 1)
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
   ret i1 %tag
 }
 
@@ -119,7 +119,7 @@ define i1 @incoffset_null(ptr addrspace(200) %ptr) addrspace(200) {
 ; CHECK-NEXT:    ret i1 false
 ;
   %cleared = getelementptr i8, ptr addrspace(200) null, i64 1
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
   ret i1 %tag
 }
 
@@ -127,8 +127,8 @@ define i1 @setoffset_null() addrspace(200) {
 ; CHECK-LABEL: @setoffset_null(
 ; CHECK-NEXT:    ret i1 false
 ;
-  %cleared = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) null, i64 1)
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
+  %cleared = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) null, i64 1)
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
   ret i1 %tag
 }
 
@@ -136,8 +136,8 @@ define i1 @setaddr_null() addrspace(200) {
 ; CHECK-LABEL: @setaddr_null(
 ; CHECK-NEXT:    ret i1 false
 ;
-  %cleared = call ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
+  %cleared = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
   ret i1 %tag
 }
 
@@ -145,8 +145,8 @@ define i1 @setbounds_null() addrspace(200) {
 ; CHECK-LABEL: @setbounds_null(
 ; CHECK-NEXT:    ret i1 false
 ;
-  %cleared = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) null, i64 1)
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
+  %cleared = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) null, i64 1)
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
   ret i1 %tag
 }
 
@@ -154,8 +154,8 @@ define i1 @setboundsexact_null() addrspace(200) {
 ; CHECK-LABEL: @setboundsexact_null(
 ; CHECK-NEXT:    ret i1 false
 ;
-  %cleared = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) null, i64 1)
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
+  %cleared = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) null, i64 1)
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
   ret i1 %tag
 }
 
@@ -163,7 +163,7 @@ define i1 @andperm_null() addrspace(200) {
 ; CHECK-LABEL: @andperm_null(
 ; CHECK-NEXT:    ret i1 false
 ;
-  %cleared = call ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) null, i64 1)
-  %tag = call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
+  %cleared = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) null, i64 1)
+  %tag = call addrspace(200) i1 @llvm.cheri.cap.tag.get(ptr addrspace(200) %cleared)
   ret i1 %tag
 }

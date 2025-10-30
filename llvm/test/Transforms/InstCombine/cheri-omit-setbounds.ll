@@ -22,7 +22,7 @@ entry:
   %value = alloca i32, align 4, addrspace(200)
   %0 = bitcast ptr addrspace(200) %value to ptr addrspace(200)
   store i32 1, ptr addrspace(200) %value, align 4
-  %1 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 4)
+  %1 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 4)
   %address.with.bounds = bitcast ptr addrspace(200) %1 to ptr addrspace(200)
   store i32 2, ptr addrspace(200) %address.with.bounds, align 4
   %2 = load i32, ptr addrspace(200) %value, align 4
@@ -35,8 +35,8 @@ define signext i32 @stack_int_inlined_escapes() local_unnamed_addr addrspace(200
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[VALUE:%.*]] = alloca i32, align 4, addrspace(200)
 ; CHECK-NEXT:    store i32 1, ptr addrspace(200) [[VALUE]], align 4
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE]], i64 4)
-; CHECK-NEXT:    call void @use(ptr addrspace(200) nonnull [[TMP0]])
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE]], i64 4)
+; CHECK-NEXT:    call addrspace(200) void @use(ptr addrspace(200) nonnull [[TMP0]])
 ; CHECK-NEXT:    store i32 2, ptr addrspace(200) [[VALUE]], align 4
 ; CHECK-NEXT:    ret i32 2
 ;
@@ -44,8 +44,8 @@ entry:
   %value = alloca i32, align 4, addrspace(200)
   %0 = bitcast ptr addrspace(200) %value to ptr addrspace(200)
   store i32 1, ptr addrspace(200) %value, align 4
-  %1 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 4)
-  call void @use(ptr addrspace(200) nonnull %1)
+  %1 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 4)
+  call addrspace(200) void @use(ptr addrspace(200) nonnull %1)
   %address.with.bounds = bitcast ptr addrspace(200) %1 to ptr addrspace(200)
   store i32 2, ptr addrspace(200) %address.with.bounds, align 4
   %2 = load i32, ptr addrspace(200) %value, align 4
@@ -58,8 +58,8 @@ define signext i32 @used_by_smaller_setbounds() local_unnamed_addr addrspace(200
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[VALUE:%.*]] = alloca i32, align 4, addrspace(200)
 ; CHECK-NEXT:    store i32 1, ptr addrspace(200) [[VALUE]], align 4
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE]], i64 4)
-; CHECK-NEXT:    call void @use(ptr addrspace(200) nonnull [[TMP0]])
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE]], i64 4)
+; CHECK-NEXT:    call addrspace(200) void @use(ptr addrspace(200) nonnull [[TMP0]])
 ; CHECK-NEXT:    store i32 2, ptr addrspace(200) [[VALUE]], align 4
 ; CHECK-NEXT:    ret i32 2
 ;
@@ -67,8 +67,8 @@ entry:
   %value = alloca i32, align 4, addrspace(200)
   %0 = bitcast ptr addrspace(200) %value to ptr addrspace(200)
   store i32 1, ptr addrspace(200) %value, align 4
-  %1 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 4)
-  call void @use(ptr addrspace(200) nonnull %1)
+  %1 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 4)
+  call addrspace(200) void @use(ptr addrspace(200) nonnull %1)
   %address.with.bounds = bitcast ptr addrspace(200) %1 to ptr addrspace(200)
   store i32 2, ptr addrspace(200) %address.with.bounds, align 4
   %2 = load i32, ptr addrspace(200) %value, align 4
@@ -81,7 +81,7 @@ define signext i32 @used_by_out_of_bounds_load() local_unnamed_addr addrspace(20
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[VALUE:%.*]] = alloca i32, align 4, addrspace(200)
 ; CHECK-NEXT:    store i32 1, ptr addrspace(200) [[VALUE]], align 4
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE]], i64 3)
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE]], i64 3)
 ; CHECK-NEXT:    store i32 2, ptr addrspace(200) [[TMP0]], align 4
 ; CHECK-NEXT:    [[TMP1:%.*]] = load i32, ptr addrspace(200) [[VALUE]], align 4
 ; CHECK-NEXT:    ret i32 [[TMP1]]
@@ -90,7 +90,7 @@ entry:
   %value = alloca i32, align 4, addrspace(200)
   %0 = bitcast ptr addrspace(200) %value to ptr addrspace(200)
   store i32 1, ptr addrspace(200) %value, align 4
-  %1 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 3)
+  %1 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 3)
   %address.with.bounds = bitcast ptr addrspace(200) %1 to ptr addrspace(200)
   store i32 2, ptr addrspace(200) %address.with.bounds, align 4
   %2 = load i32, ptr addrspace(200) %value, align 4
@@ -100,17 +100,17 @@ entry:
 define signext i32 @bounded_arg(ptr addrspace(200) %value) local_unnamed_addr addrspace(200) {
 ; CHECK-LABEL: @bounded_arg(
 ; CHECK-NEXT:  entry:
-; CHECK-NEXT:    [[LARGE_BOUNDS:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE:%.*]], i64 8)
+; CHECK-NEXT:    [[LARGE_BOUNDS:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE:%.*]], i64 8)
 ; CHECK-NEXT:    store i32 2, ptr addrspace(200) [[LARGE_BOUNDS]], align 4
 ; CHECK-NEXT:    [[RESULT:%.*]] = load i32, ptr addrspace(200) [[VALUE]], align 4
 ; CHECK-NEXT:    ret i32 [[RESULT]]
 ;
 entry:
   %0 = bitcast ptr addrspace(200) %value to ptr addrspace(200)
-  %large_bounds = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 8)
+  %large_bounds = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 8)
   %large_bitcast = bitcast ptr addrspace(200) %large_bounds to ptr addrspace(200)
   store i32 1, ptr addrspace(200) %large_bitcast, align 4
-  %small_bounds = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %large_bounds, i64 4)
+  %small_bounds = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %large_bounds, i64 4)
   %small_bitcast = bitcast ptr addrspace(200) %small_bounds to ptr addrspace(200)
   store i32 2, ptr addrspace(200) %small_bitcast, align 4
   %result = load i32, ptr addrspace(200) %value, align 4
@@ -120,19 +120,19 @@ entry:
 define signext i32 @bounded_arg_too_small(ptr addrspace(200) %value) local_unnamed_addr addrspace(200) {
 ; CHECK-LABEL: @bounded_arg_too_small(
 ; CHECK-NEXT:  entry:
-; CHECK-NEXT:    [[LARGE_BOUNDS:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE:%.*]], i64 3)
+; CHECK-NEXT:    [[LARGE_BOUNDS:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE:%.*]], i64 3)
 ; CHECK-NEXT:    store i32 1, ptr addrspace(200) [[LARGE_BOUNDS]], align 4
-; CHECK-NEXT:    [[SMALL_BOUNDS:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[LARGE_BOUNDS]], i64 4)
+; CHECK-NEXT:    [[SMALL_BOUNDS:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[LARGE_BOUNDS]], i64 4)
 ; CHECK-NEXT:    store i32 2, ptr addrspace(200) [[SMALL_BOUNDS]], align 4
 ; CHECK-NEXT:    [[RESULT:%.*]] = load i32, ptr addrspace(200) [[VALUE]], align 4
 ; CHECK-NEXT:    ret i32 [[RESULT]]
 ;
 entry:
   %0 = bitcast ptr addrspace(200) %value to ptr addrspace(200)
-  %large_bounds = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 3)
+  %large_bounds = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 3)
   %large_bitcast = bitcast ptr addrspace(200) %large_bounds to ptr addrspace(200)
   store i32 1, ptr addrspace(200) %large_bitcast, align 4
-  %small_bounds = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %large_bounds, i64 4)
+  %small_bounds = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %large_bounds, i64 4)
   %small_bitcast = bitcast ptr addrspace(200) %small_bounds to ptr addrspace(200)
   store i32 2, ptr addrspace(200) %small_bitcast, align 4
   %result = load i32, ptr addrspace(200) %value, align 4
@@ -145,7 +145,7 @@ define signext i32 @csetbounds_sequence(ptr addrspace(200) %value) local_unnamed
 ; CHECK-LABEL: @csetbounds_sequence(
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    store i32 1, ptr addrspace(200) [[VALUE:%.*]], align 4
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE]], i64 10)
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE]], i64 10)
 ; CHECK-NEXT:    store i32 2, ptr addrspace(200) [[TMP0]], align 4
 ; CHECK-NEXT:    [[RESULT:%.*]] = load i32, ptr addrspace(200) [[VALUE]], align 4
 ; CHECK-NEXT:    ret i32 [[RESULT]]
@@ -153,12 +153,12 @@ define signext i32 @csetbounds_sequence(ptr addrspace(200) %value) local_unnamed
 entry:
   %i8 = bitcast ptr addrspace(200) %value to ptr addrspace(200)
   store i32 1, ptr addrspace(200) %value, align 4
-  %0 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %i8, i64 10)
-  %1 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 9)
-  %2 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %1, i64 8)
-  %3 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %2, i64 7)
-  %4 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %3, i64 6)
-  %final_bounded_value = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %4, i64 5)
+  %0 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %i8, i64 10)
+  %1 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 9)
+  %2 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %1, i64 8)
+  %3 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %2, i64 7)
+  %4 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %3, i64 6)
+  %final_bounded_value = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %4, i64 5)
   %address.with.bounds = bitcast ptr addrspace(200) %final_bounded_value to ptr addrspace(200)
   store i32 2, ptr addrspace(200) %address.with.bounds, align 4
   %result = load i32, ptr addrspace(200) %value, align 4
@@ -173,8 +173,8 @@ define signext i32 @csetbounds_sequence_oob(ptr addrspace(200) %value) local_unn
 ; CHECK-LABEL: @csetbounds_sequence_oob(
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    store i32 1, ptr addrspace(200) [[VALUE:%.*]], align 4
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE]], i64 10)
-; CHECK-NEXT:    [[FINAL_BOUNDED_VALUE:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[TMP0]], i64 3)
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VALUE]], i64 10)
+; CHECK-NEXT:    [[FINAL_BOUNDED_VALUE:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[TMP0]], i64 3)
 ; CHECK-NEXT:    store i32 2, ptr addrspace(200) [[FINAL_BOUNDED_VALUE]], align 4
 ; CHECK-NEXT:    [[RESULT:%.*]] = load i32, ptr addrspace(200) [[VALUE]], align 4
 ; CHECK-NEXT:    ret i32 [[RESULT]]
@@ -182,14 +182,14 @@ define signext i32 @csetbounds_sequence_oob(ptr addrspace(200) %value) local_unn
 entry:
   %i8 = bitcast ptr addrspace(200) %value to ptr addrspace(200)
   store i32 1, ptr addrspace(200) %value, align 4
-  %0 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %i8, i64 10)
-  %1 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 9)
-  %2 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %1, i64 8)
-  %3 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %2, i64 7)
-  %4 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %3, i64 6)
-  %5 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %4, i64 5)
-  %6 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %5, i64 4)
-  %final_bounded_value = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %6, i64 3)
+  %0 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %i8, i64 10)
+  %1 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %0, i64 9)
+  %2 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %1, i64 8)
+  %3 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %2, i64 7)
+  %4 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %3, i64 6)
+  %5 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %4, i64 5)
+  %6 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %5, i64 4)
+  %final_bounded_value = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %6, i64 3)
   %address.with.bounds = bitcast ptr addrspace(200) %final_bounded_value to ptr addrspace(200)
   store i32 2, ptr addrspace(200) %address.with.bounds, align 4
   %result = load i32, ptr addrspace(200) %value, align 4

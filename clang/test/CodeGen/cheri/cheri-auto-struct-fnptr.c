@@ -10,7 +10,7 @@ typedef struct _ns_dtab {
 // CHECK-LABEL: @compat_setgrent(
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[DTAB:%.*]] = alloca [1 x %struct._ns_dtab], align 16, addrspace(200)
-// CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[DTAB]], ptr addrspace(200) align 16 @__const.compat_setgrent.dtab, i64 32, i1 false)
+// CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[DTAB]], ptr addrspace(200) align 16 @__const.compat_setgrent.dtab, i64 32, i1 false)
 // CHECK-NEXT:    ret void
 //
 void compat_setgrent(void)

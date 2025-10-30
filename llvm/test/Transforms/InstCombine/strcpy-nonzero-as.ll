@@ -15,11 +15,11 @@ define void @test_strcpy_to_memcpy(ptr addrspace(200) %dst) addrspace(200) nounw
 ; CHECK-LABEL: define {{[^@]+}}@test_strcpy_to_memcpy
 ; CHECK-SAME: (ptr addrspace(200) [[DST:%.*]]) addrspace(200) #[[ATTR1:[0-9]+]] {
 ; CHECK-NEXT:  entry:
-; CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) [[DST]], ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) @str, i64 17, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) [[DST]], ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) @str, i64 17, i1 false)
 ; CHECK-NEXT:    ret void
 ;
 entry:
-  %call = call ptr addrspace(200) @strcpy(ptr addrspace(200) %dst, ptr addrspace(200) @str)
+  %call = call addrspace(200) ptr addrspace(200) @strcpy(ptr addrspace(200) %dst, ptr addrspace(200) @str)
   ret void
 }
 
@@ -27,11 +27,11 @@ define void @test_stpcpy_to_memcpy(ptr addrspace(200) %dst) addrspace(200) nounw
 ; CHECK-LABEL: define {{[^@]+}}@test_stpcpy_to_memcpy
 ; CHECK-SAME: (ptr addrspace(200) [[DST:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-NEXT:  entry:
-; CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) [[DST]], ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) @str, i64 17, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) [[DST]], ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) @str, i64 17, i1 false)
 ; CHECK-NEXT:    ret void
 ;
 entry:
-  %call = call ptr addrspace(200) @stpcpy(ptr addrspace(200) %dst, ptr addrspace(200) @str)
+  %call = call addrspace(200) ptr addrspace(200) @stpcpy(ptr addrspace(200) %dst, ptr addrspace(200) @str)
   ret void
 }
 
@@ -39,11 +39,11 @@ define void @test_stpcpy_to_strcpy(ptr addrspace(200) %dst, ptr addrspace(200) %
 ; CHECK-LABEL: define {{[^@]+}}@test_stpcpy_to_strcpy
 ; CHECK-SAME: (ptr addrspace(200) [[DST:%.*]], ptr addrspace(200) [[SRC:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-NEXT:  entry:
-; CHECK-NEXT:    [[STRCPY:%.*]] = call ptr addrspace(200) @strcpy(ptr addrspace(200) noundef nonnull dereferenceable(1) [[DST]], ptr addrspace(200) noundef nonnull dereferenceable(1) [[SRC]])
+; CHECK-NEXT:    [[STRCPY:%.*]] = call addrspace(200) ptr addrspace(200) @strcpy(ptr addrspace(200) noundef nonnull dereferenceable(1) [[DST]], ptr addrspace(200) noundef nonnull dereferenceable(1) [[SRC]])
 ; CHECK-NEXT:    ret void
 ;
 entry:
-  %call = call ptr addrspace(200) @stpcpy(ptr addrspace(200) %dst, ptr addrspace(200) %src)
+  %call = call addrspace(200) ptr addrspace(200) @stpcpy(ptr addrspace(200) %dst, ptr addrspace(200) %src)
   ret void
 }
 
@@ -52,11 +52,11 @@ define void @test_strncpy_to_memcpy(ptr addrspace(200) %dst) addrspace(200) noun
 ; CHECK-LABEL: define {{[^@]+}}@test_strncpy_to_memcpy
 ; CHECK-SAME: (ptr addrspace(200) [[DST:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-NEXT:  entry:
-; CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) [[DST]], ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) @str, i64 17, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) [[DST]], ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) @str, i64 17, i1 false)
 ; CHECK-NEXT:    ret void
 ;
 entry:
-  %call = call ptr addrspace(200) @strncpy(ptr addrspace(200) %dst, ptr addrspace(200) @str, i64 17)
+  %call = call addrspace(200) ptr addrspace(200) @strncpy(ptr addrspace(200) %dst, ptr addrspace(200) @str, i64 17)
   ret void
 }
 
@@ -64,10 +64,10 @@ define void @test_stpncpy_to_memcpy(ptr addrspace(200) %dst) addrspace(200) noun
 ; CHECK-LABEL: define {{[^@]+}}@test_stpncpy_to_memcpy
 ; CHECK-SAME: (ptr addrspace(200) [[DST:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-NEXT:  entry:
-; CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) [[DST]], ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) @str, i64 17, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) [[DST]], ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) @str, i64 17, i1 false)
 ; CHECK-NEXT:    ret void
 ;
 entry:
-  %call = call ptr addrspace(200) @stpncpy(ptr addrspace(200) %dst, ptr addrspace(200) @str, i64 17)
+  %call = call addrspace(200) ptr addrspace(200) @stpncpy(ptr addrspace(200) %dst, ptr addrspace(200) @str, i64 17)
   ret void
 }

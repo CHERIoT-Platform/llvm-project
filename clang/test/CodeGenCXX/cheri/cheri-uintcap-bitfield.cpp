@@ -55,7 +55,7 @@ struct ShortDataLong {
 // CHECK-NEXT:    store i120 [[TMP2]], ptr addrspace(200) [[TMP1]], align 8
 // CHECK-NEXT:    [[TMP3:%.*]] = load i64, ptr addrspace(200) [[F_ADDR]], align 8
 // CHECK-NEXT:    [[TMP4:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[TMP3]]
-// CHECK-NEXT:    [[TMP5:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP4]])
+// CHECK-NEXT:    [[TMP5:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP4]])
 // CHECK-NEXT:    [[TMP6:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[DATA_ADDR]], align 16
 // CHECK-NEXT:    [[TMP7:%.*]] = zext i64 [[TMP5]] to i120
 // CHECK-NEXT:    store i120 [[TMP7]], ptr addrspace(200) [[TMP6]], align 8

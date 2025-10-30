@@ -9,7 +9,7 @@
 // PCREL-LABEL: define {{[^@]+}}@a
 // PCREL-SAME: () addrspace(200) #[[ATTR0:[0-9]+]] {
 // PCREL-NEXT:  entry:
-// PCREL-NEXT:    call void @a(i32 noundef signext 3)
+// PCREL-NEXT:    call addrspace(200) void @a(i32 noundef signext 3)
 // PCREL-NEXT:    ret void
 //
 void a() {

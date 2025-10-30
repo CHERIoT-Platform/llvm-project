@@ -37,11 +37,11 @@ define void @test_strcpy_to_memcpy(ptr addrspace(200) align 4 %dst) addrspace(20
 ; CHECK-IR-LABEL: define void @test_strcpy_to_memcpy
 ; CHECK-IR-SAME: (ptr addrspace(200) align 4 [[DST:%.*]]) addrspace(200) #[[ATTR1:[0-9]+]] {
 ; CHECK-IR-NEXT:  entry:
-; CHECK-IR-NEXT:    call void @llvm.memcpy.p200.p200.i32(ptr addrspace(200) noundef nonnull align 4 dereferenceable(17) [[DST]], ptr addrspace(200) noundef nonnull align 4 dereferenceable(17) @str, i32 17, i1 false) #[[ATTR4:[0-9]+]]
+; CHECK-IR-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i32(ptr addrspace(200) noundef nonnull align 4 dereferenceable(17) [[DST]], ptr addrspace(200) noundef nonnull align 4 dereferenceable(17) @str, i32 17, i1 false) #[[ATTR4:[0-9]+]]
 ; CHECK-IR-NEXT:    ret void
 ;
 entry:
-  %call = call ptr addrspace(200) @strcpy(ptr addrspace(200) %dst, ptr addrspace(200) @str)
+  %call = call addrspace(200) ptr addrspace(200) @strcpy(ptr addrspace(200) %dst, ptr addrspace(200) @str)
   ret void
 }
 
@@ -65,11 +65,11 @@ define void @test_stpcpy_to_memcpy(ptr addrspace(200) align 4 %dst) addrspace(20
 ; CHECK-IR-LABEL: define void @test_stpcpy_to_memcpy
 ; CHECK-IR-SAME: (ptr addrspace(200) align 4 [[DST:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-IR-NEXT:  entry:
-; CHECK-IR-NEXT:    call void @llvm.memcpy.p200.p200.i32(ptr addrspace(200) noundef nonnull align 4 dereferenceable(17) [[DST]], ptr addrspace(200) noundef nonnull align 4 dereferenceable(17) @str, i32 17, i1 false) #[[ATTR5:[0-9]+]]
+; CHECK-IR-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i32(ptr addrspace(200) noundef nonnull align 4 dereferenceable(17) [[DST]], ptr addrspace(200) noundef nonnull align 4 dereferenceable(17) @str, i32 17, i1 false) #[[ATTR5:[0-9]+]]
 ; CHECK-IR-NEXT:    ret void
 ;
 entry:
-  %call = call ptr addrspace(200) @stpcpy(ptr addrspace(200) %dst, ptr addrspace(200) @str)
+  %call = call addrspace(200) ptr addrspace(200) @stpcpy(ptr addrspace(200) %dst, ptr addrspace(200) @str)
   ret void
 }
 
@@ -95,13 +95,13 @@ define void @test_strcat_to_memcpy(ptr addrspace(200) align 4 %dst) addrspace(20
 ; CHECK-IR-LABEL: define void @test_strcat_to_memcpy
 ; CHECK-IR-SAME: (ptr addrspace(200) align 4 [[DST:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-IR-NEXT:  entry:
-; CHECK-IR-NEXT:    [[STRLEN:%.*]] = call i32 @strlen(ptr addrspace(200) noundef nonnull dereferenceable(1) [[DST]])
+; CHECK-IR-NEXT:    [[STRLEN:%.*]] = call addrspace(200) i32 @strlen(ptr addrspace(200) noundef nonnull dereferenceable(1) [[DST]])
 ; CHECK-IR-NEXT:    [[ENDPTR:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[DST]], i32 [[STRLEN]]
-; CHECK-IR-NEXT:    call void @llvm.memcpy.p200.p200.i32(ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) [[ENDPTR]], ptr addrspace(200) noundef nonnull align 4 dereferenceable(17) @str, i32 17, i1 false) #[[ATTR5]]
+; CHECK-IR-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i32(ptr addrspace(200) noundef nonnull align 1 dereferenceable(17) [[ENDPTR]], ptr addrspace(200) noundef nonnull align 4 dereferenceable(17) @str, i32 17, i1 false) #[[ATTR5]]
 ; CHECK-IR-NEXT:    ret void
 ;
 entry:
-  %call = call ptr addrspace(200) @strcat(ptr addrspace(200) %dst, ptr addrspace(200) @str)
+  %call = call addrspace(200) ptr addrspace(200) @strcat(ptr addrspace(200) %dst, ptr addrspace(200) @str)
   ret void
 }
 
@@ -124,11 +124,11 @@ define void @test_strncpy_to_memcpy(ptr addrspace(200) align 4 %dst) addrspace(2
 ; CHECK-IR-LABEL: define void @test_strncpy_to_memcpy
 ; CHECK-IR-SAME: (ptr addrspace(200) align 4 [[DST:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-IR-NEXT:  entry:
-; CHECK-IR-NEXT:    [[CALL:%.*]] = call ptr addrspace(200) @strncpy(ptr addrspace(200) [[DST]], ptr addrspace(200) nonnull @str, i64 17) #[[ATTR1]]
+; CHECK-IR-NEXT:    [[CALL:%.*]] = call addrspace(200) ptr addrspace(200) @strncpy(ptr addrspace(200) [[DST]], ptr addrspace(200) nonnull @str, i64 17) #[[ATTR1]]
 ; CHECK-IR-NEXT:    ret void
 ;
 entry:
-  %call = call ptr addrspace(200) @strncpy(ptr addrspace(200) %dst, ptr addrspace(200) @str, i64 17)
+  %call = call addrspace(200) ptr addrspace(200) @strncpy(ptr addrspace(200) %dst, ptr addrspace(200) @str, i64 17)
   ret void
 }
 
@@ -151,11 +151,11 @@ define void @test_stpncpy_to_memcpy(ptr addrspace(200) align 4 %dst) addrspace(2
 ; CHECK-IR-LABEL: define void @test_stpncpy_to_memcpy
 ; CHECK-IR-SAME: (ptr addrspace(200) align 4 [[DST:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-IR-NEXT:  entry:
-; CHECK-IR-NEXT:    [[CALL:%.*]] = call ptr addrspace(200) @stpncpy(ptr addrspace(200) [[DST]], ptr addrspace(200) nonnull @str, i64 17) #[[ATTR1]]
+; CHECK-IR-NEXT:    [[CALL:%.*]] = call addrspace(200) ptr addrspace(200) @stpncpy(ptr addrspace(200) [[DST]], ptr addrspace(200) nonnull @str, i64 17) #[[ATTR1]]
 ; CHECK-IR-NEXT:    ret void
 ;
 entry:
-  %call = call ptr addrspace(200) @stpncpy(ptr addrspace(200) %dst, ptr addrspace(200) @str, i64 17)
+  %call = call addrspace(200) ptr addrspace(200) @stpncpy(ptr addrspace(200) %dst, ptr addrspace(200) @str, i64 17)
   ret void
 }
 

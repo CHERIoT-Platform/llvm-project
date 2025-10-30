@@ -10,7 +10,7 @@ __attribute__((cheriot_compartment("other"))) int test6callee(int *a0, int *a1, 
 int testcall6() {
   static int stack_arg;
   int args[8];
-  // CHECK: call cheriot_compartmentcallcc i32 @_Z11test6calleePiS_S_S_S_S_
+  // CHECK: call cheriot_compartmentcallcc addrspace(200) i32 @_Z11test6calleePiS_S_S_S_S_
   return test6callee(
       &args[0],
       &args[1],

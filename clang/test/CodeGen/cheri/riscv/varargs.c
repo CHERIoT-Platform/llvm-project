@@ -9,7 +9,7 @@
 // CHECK-IL32PC64-SAME: (i32 noundef [[N:%.*]], ...) addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-IL32PC64-NEXT:  entry:
 // CHECK-IL32PC64-NEXT:    [[AP:%.*]] = alloca ptr addrspace(200), align 8, addrspace(200)
-// CHECK-IL32PC64-NEXT:    call void @llvm.va_start.p200(ptr addrspace(200) [[AP]])
+// CHECK-IL32PC64-NEXT:    call addrspace(200) void @llvm.va_start.p200(ptr addrspace(200) [[AP]])
 // CHECK-IL32PC64-NEXT:    br label [[FOR_COND:%.*]]
 // CHECK-IL32PC64:       for.cond:
 // CHECK-IL32PC64-NEXT:    [[N_ADDR_0:%.*]] = phi i32 [ [[N]], [[ENTRY:%.*]] ], [ [[DEC:%.*]], [[FOR_INC:%.*]] ]
@@ -27,18 +27,18 @@
 // CHECK-IL32PC64:       for.end:
 // CHECK-IL32PC64-NEXT:    [[ARGP_CUR1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[AP]], align 8
 // CHECK-IL32PC64-NEXT:    [[TMP1:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARGP_CUR1]], i32 7
-// CHECK-IL32PC64-NEXT:    [[ARGP_CUR1_ALIGNED:%.*]] = call ptr addrspace(200) @llvm.ptrmask.p200.i32(ptr addrspace(200) [[TMP1]], i32 -8)
+// CHECK-IL32PC64-NEXT:    [[ARGP_CUR1_ALIGNED:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.ptrmask.p200.i32(ptr addrspace(200) [[TMP1]], i32 -8)
 // CHECK-IL32PC64-NEXT:    [[ARGP_NEXT2:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARGP_CUR1_ALIGNED]], i32 8
 // CHECK-IL32PC64-NEXT:    store ptr addrspace(200) [[ARGP_NEXT2]], ptr addrspace(200) [[AP]], align 8
 // CHECK-IL32PC64-NEXT:    [[TMP2:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[ARGP_CUR1_ALIGNED]], align 8
-// CHECK-IL32PC64-NEXT:    call void @llvm.va_end.p200(ptr addrspace(200) [[AP]])
+// CHECK-IL32PC64-NEXT:    call addrspace(200) void @llvm.va_end.p200(ptr addrspace(200) [[AP]])
 // CHECK-IL32PC64-NEXT:    ret ptr addrspace(200) [[TMP2]]
 //
 // CHECK-L64PC128-LABEL: define {{[^@]+}}@callee
 // CHECK-L64PC128-SAME: (i32 noundef signext [[N:%.*]], ...) addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-L64PC128-NEXT:  entry:
 // CHECK-L64PC128-NEXT:    [[AP:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
-// CHECK-L64PC128-NEXT:    call void @llvm.va_start.p200(ptr addrspace(200) [[AP]])
+// CHECK-L64PC128-NEXT:    call addrspace(200) void @llvm.va_start.p200(ptr addrspace(200) [[AP]])
 // CHECK-L64PC128-NEXT:    br label [[FOR_COND:%.*]]
 // CHECK-L64PC128:       for.cond:
 // CHECK-L64PC128-NEXT:    [[N_ADDR_0:%.*]] = phi i32 [ [[N]], [[ENTRY:%.*]] ], [ [[DEC:%.*]], [[FOR_INC:%.*]] ]
@@ -56,11 +56,11 @@
 // CHECK-L64PC128:       for.end:
 // CHECK-L64PC128-NEXT:    [[ARGP_CUR1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[AP]], align 16
 // CHECK-L64PC128-NEXT:    [[TMP1:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARGP_CUR1]], i32 15
-// CHECK-L64PC128-NEXT:    [[ARGP_CUR1_ALIGNED:%.*]] = call ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[TMP1]], i64 -16)
+// CHECK-L64PC128-NEXT:    [[ARGP_CUR1_ALIGNED:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[TMP1]], i64 -16)
 // CHECK-L64PC128-NEXT:    [[ARGP_NEXT2:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARGP_CUR1_ALIGNED]], i64 16
 // CHECK-L64PC128-NEXT:    store ptr addrspace(200) [[ARGP_NEXT2]], ptr addrspace(200) [[AP]], align 16
 // CHECK-L64PC128-NEXT:    [[TMP2:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[ARGP_CUR1_ALIGNED]], align 16
-// CHECK-L64PC128-NEXT:    call void @llvm.va_end.p200(ptr addrspace(200) [[AP]])
+// CHECK-L64PC128-NEXT:    call addrspace(200) void @llvm.va_end.p200(ptr addrspace(200) [[AP]])
 // CHECK-L64PC128-NEXT:    ret ptr addrspace(200) [[TMP2]]
 //
 void *callee(int n, ...) {
@@ -81,13 +81,13 @@ void *callee(int n, ...) {
 // CHECK-IL32PC64-LABEL: define {{[^@]+}}@caller
 // CHECK-IL32PC64-SAME: (ptr addrspace(200) noundef [[P:%.*]]) addrspace(200) #[[ATTR0]] {
 // CHECK-IL32PC64-NEXT:  entry:
-// CHECK-IL32PC64-NEXT:    [[CALL:%.*]] = call ptr addrspace(200) (i32, ...) @callee(i32 noundef 4, i32 noundef 1, i32 noundef 2, i32 noundef 3, ptr addrspace(200) noundef [[P]])
+// CHECK-IL32PC64-NEXT:    [[CALL:%.*]] = call addrspace(200) ptr addrspace(200) (i32, ...) @callee(i32 noundef 4, i32 noundef 1, i32 noundef 2, i32 noundef 3, ptr addrspace(200) noundef [[P]])
 // CHECK-IL32PC64-NEXT:    ret ptr addrspace(200) [[CALL]]
 //
 // CHECK-L64PC128-LABEL: define {{[^@]+}}@caller
 // CHECK-L64PC128-SAME: (ptr addrspace(200) noundef [[P:%.*]]) addrspace(200) #[[ATTR0]] {
 // CHECK-L64PC128-NEXT:  entry:
-// CHECK-L64PC128-NEXT:    [[CALL:%.*]] = call ptr addrspace(200) (i32, ...) @callee(i32 noundef signext 4, i32 noundef signext 1, i32 noundef signext 2, i32 noundef signext 3, ptr addrspace(200) noundef [[P]])
+// CHECK-L64PC128-NEXT:    [[CALL:%.*]] = call addrspace(200) ptr addrspace(200) (i32, ...) @callee(i32 noundef signext 4, i32 noundef signext 1, i32 noundef signext 2, i32 noundef signext 3, ptr addrspace(200) noundef [[P]])
 // CHECK-L64PC128-NEXT:    ret ptr addrspace(200) [[CALL]]
 //
 void *caller(void *p) {
@@ -104,7 +104,7 @@ struct S {
 // CHECK-IL32PC64-SAME: (ptr addrspace(200) dead_on_unwind noalias writable sret([[STRUCT_S:%.*]]) align 1 [[AGG_RESULT:%.*]], i32 noundef [[N:%.*]], ...) addrspace(200) #[[ATTR0]] {
 // CHECK-IL32PC64-NEXT:  entry:
 // CHECK-IL32PC64-NEXT:    [[AP:%.*]] = alloca ptr addrspace(200), align 8, addrspace(200)
-// CHECK-IL32PC64-NEXT:    call void @llvm.va_start.p200(ptr addrspace(200) [[AP]])
+// CHECK-IL32PC64-NEXT:    call addrspace(200) void @llvm.va_start.p200(ptr addrspace(200) [[AP]])
 // CHECK-IL32PC64-NEXT:    br label [[FOR_COND:%.*]]
 // CHECK-IL32PC64:       for.cond:
 // CHECK-IL32PC64-NEXT:    [[N_ADDR_0:%.*]] = phi i32 [ [[N]], [[ENTRY:%.*]] ], [ [[DEC:%.*]], [[FOR_INC:%.*]] ]
@@ -122,18 +122,18 @@ struct S {
 // CHECK-IL32PC64:       for.end:
 // CHECK-IL32PC64-NEXT:    [[ARGP_CUR1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[AP]], align 8
 // CHECK-IL32PC64-NEXT:    [[TMP1:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARGP_CUR1]], i32 7
-// CHECK-IL32PC64-NEXT:    [[ARGP_CUR1_ALIGNED:%.*]] = call ptr addrspace(200) @llvm.ptrmask.p200.i32(ptr addrspace(200) [[TMP1]], i32 -8)
+// CHECK-IL32PC64-NEXT:    [[ARGP_CUR1_ALIGNED:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.ptrmask.p200.i32(ptr addrspace(200) [[TMP1]], i32 -8)
 // CHECK-IL32PC64-NEXT:    [[ARGP_NEXT2:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARGP_CUR1_ALIGNED]], i32 8
 // CHECK-IL32PC64-NEXT:    store ptr addrspace(200) [[ARGP_NEXT2]], ptr addrspace(200) [[AP]], align 8
 // CHECK-IL32PC64-NEXT:    [[TMP2:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[ARGP_CUR1_ALIGNED]], align 8
-// CHECK-IL32PC64-NEXT:    call void @llvm.memcpy.p200.p200.i32(ptr addrspace(200) align 1 [[AGG_RESULT]], ptr addrspace(200) align 1 [[TMP2]], i32 64, i1 false)
+// CHECK-IL32PC64-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i32(ptr addrspace(200) align 1 [[AGG_RESULT]], ptr addrspace(200) align 1 [[TMP2]], i32 64, i1 false)
 // CHECK-IL32PC64-NEXT:    ret void
 //
 // CHECK-L64PC128-LABEL: define {{[^@]+}}@callee_S
 // CHECK-L64PC128-SAME: (ptr addrspace(200) dead_on_unwind noalias writable sret([[STRUCT_S:%.*]]) align 1 [[AGG_RESULT:%.*]], i32 noundef signext [[N:%.*]], ...) addrspace(200) #[[ATTR0]] {
 // CHECK-L64PC128-NEXT:  entry:
 // CHECK-L64PC128-NEXT:    [[AP:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
-// CHECK-L64PC128-NEXT:    call void @llvm.va_start.p200(ptr addrspace(200) [[AP]])
+// CHECK-L64PC128-NEXT:    call addrspace(200) void @llvm.va_start.p200(ptr addrspace(200) [[AP]])
 // CHECK-L64PC128-NEXT:    br label [[FOR_COND:%.*]]
 // CHECK-L64PC128:       for.cond:
 // CHECK-L64PC128-NEXT:    [[N_ADDR_0:%.*]] = phi i32 [ [[N]], [[ENTRY:%.*]] ], [ [[DEC:%.*]], [[FOR_INC:%.*]] ]
@@ -151,11 +151,11 @@ struct S {
 // CHECK-L64PC128:       for.end:
 // CHECK-L64PC128-NEXT:    [[ARGP_CUR1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[AP]], align 16
 // CHECK-L64PC128-NEXT:    [[TMP1:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARGP_CUR1]], i32 15
-// CHECK-L64PC128-NEXT:    [[ARGP_CUR1_ALIGNED:%.*]] = call ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[TMP1]], i64 -16)
+// CHECK-L64PC128-NEXT:    [[ARGP_CUR1_ALIGNED:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[TMP1]], i64 -16)
 // CHECK-L64PC128-NEXT:    [[ARGP_NEXT2:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARGP_CUR1_ALIGNED]], i64 16
 // CHECK-L64PC128-NEXT:    store ptr addrspace(200) [[ARGP_NEXT2]], ptr addrspace(200) [[AP]], align 16
 // CHECK-L64PC128-NEXT:    [[TMP2:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[ARGP_CUR1_ALIGNED]], align 16
-// CHECK-L64PC128-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[AGG_RESULT]], ptr addrspace(200) align 1 [[TMP2]], i64 64, i1 false)
+// CHECK-L64PC128-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[AGG_RESULT]], ptr addrspace(200) align 1 [[TMP2]], i64 64, i1 false)
 // CHECK-L64PC128-NEXT:    ret void
 //
 struct S callee_S(int n, ...) {
@@ -176,16 +176,16 @@ struct S callee_S(int n, ...) {
 // CHECK-IL32PC64-SAME: (ptr addrspace(200) dead_on_unwind noalias writable sret([[STRUCT_S:%.*]]) align 1 [[AGG_RESULT:%.*]], ptr addrspace(200) dead_on_return noundef [[S:%.*]]) addrspace(200) #[[ATTR0]] {
 // CHECK-IL32PC64-NEXT:  entry:
 // CHECK-IL32PC64-NEXT:    [[BYVAL_TEMP:%.*]] = alloca [[STRUCT_S]], align 1, addrspace(200)
-// CHECK-IL32PC64-NEXT:    call void @llvm.memcpy.p200.p200.i32(ptr addrspace(200) align 1 [[BYVAL_TEMP]], ptr addrspace(200) align 1 [[S]], i32 64, i1 false)
-// CHECK-IL32PC64-NEXT:    call void (ptr addrspace(200), i32, ...) @callee_S(ptr addrspace(200) dead_on_unwind writable sret([[STRUCT_S]]) align 1 [[AGG_RESULT]], i32 noundef 4, i32 noundef 1, i32 noundef 2, i32 noundef 3, ptr addrspace(200) dead_on_return noundef [[BYVAL_TEMP]])
+// CHECK-IL32PC64-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i32(ptr addrspace(200) align 1 [[BYVAL_TEMP]], ptr addrspace(200) align 1 [[S]], i32 64, i1 false)
+// CHECK-IL32PC64-NEXT:    call addrspace(200) void (ptr addrspace(200), i32, ...) @callee_S(ptr addrspace(200) dead_on_unwind writable sret([[STRUCT_S]]) align 1 [[AGG_RESULT]], i32 noundef 4, i32 noundef 1, i32 noundef 2, i32 noundef 3, ptr addrspace(200) dead_on_return noundef [[BYVAL_TEMP]])
 // CHECK-IL32PC64-NEXT:    ret void
 //
 // CHECK-L64PC128-LABEL: define {{[^@]+}}@caller_S
 // CHECK-L64PC128-SAME: (ptr addrspace(200) dead_on_unwind noalias writable sret([[STRUCT_S:%.*]]) align 1 [[AGG_RESULT:%.*]], ptr addrspace(200) dead_on_return noundef [[S:%.*]]) addrspace(200) #[[ATTR0]] {
 // CHECK-L64PC128-NEXT:  entry:
 // CHECK-L64PC128-NEXT:    [[BYVAL_TEMP:%.*]] = alloca [[STRUCT_S]], align 1, addrspace(200)
-// CHECK-L64PC128-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[BYVAL_TEMP]], ptr addrspace(200) align 1 [[S]], i64 64, i1 false)
-// CHECK-L64PC128-NEXT:    call void (ptr addrspace(200), i32, ...) @callee_S(ptr addrspace(200) dead_on_unwind writable sret([[STRUCT_S]]) align 1 [[AGG_RESULT]], i32 noundef signext 4, i32 noundef signext 1, i32 noundef signext 2, i32 noundef signext 3, ptr addrspace(200) dead_on_return noundef [[BYVAL_TEMP]])
+// CHECK-L64PC128-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[BYVAL_TEMP]], ptr addrspace(200) align 1 [[S]], i64 64, i1 false)
+// CHECK-L64PC128-NEXT:    call addrspace(200) void (ptr addrspace(200), i32, ...) @callee_S(ptr addrspace(200) dead_on_unwind writable sret([[STRUCT_S]]) align 1 [[AGG_RESULT]], i32 noundef signext 4, i32 noundef signext 1, i32 noundef signext 2, i32 noundef signext 3, ptr addrspace(200) dead_on_return noundef [[BYVAL_TEMP]])
 // CHECK-L64PC128-NEXT:    ret void
 //
 struct S caller_S(struct S s) {

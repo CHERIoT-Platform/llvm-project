@@ -43,7 +43,7 @@ double test_long(void) {
 // CHECK-NEXT:    [[TMP1:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[CONV]]
 // CHECK-NEXT:    store ptr addrspace(200) [[TMP1]], ptr addrspace(200) [[CAP]], align 16
 // CHECK-NEXT:    [[TMP2:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[CAP]], align 16
-// CHECK-NEXT:    [[TMP3:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP2]])
+// CHECK-NEXT:    [[TMP3:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP2]])
 // CHECK-NEXT:    [[CONV1:%.*]] = sitofp i64 [[TMP3]] to double
 // CHECK-NEXT:    store double [[CONV1]], ptr addrspace(200) [[D2]], align 8
 // CHECK-NEXT:    [[TMP4:%.*]] = load double, ptr addrspace(200) [[D2]], align 8
@@ -103,7 +103,7 @@ double test_ulong(void) {
 // CHECK-NEXT:    [[TMP1:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[CONV]]
 // CHECK-NEXT:    store ptr addrspace(200) [[TMP1]], ptr addrspace(200) [[CAP]], align 16
 // CHECK-NEXT:    [[TMP2:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[CAP]], align 16
-// CHECK-NEXT:    [[TMP3:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP2]])
+// CHECK-NEXT:    [[TMP3:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP2]])
 // CHECK-NEXT:    [[CONV1:%.*]] = uitofp i64 [[TMP3]] to double
 // CHECK-NEXT:    store double [[CONV1]], ptr addrspace(200) [[D2]], align 8
 // CHECK-NEXT:    [[TMP4:%.*]] = load double, ptr addrspace(200) [[D2]], align 8

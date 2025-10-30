@@ -11,7 +11,7 @@ define signext i32 @b() local_unnamed_addr addrspace(200) nounwind {
 entry:
   %d = alloca i8, align 1, addrspace(200)
   %call = tail call signext i32 @c()
-  call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %d)
+  call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %d)
   br label %while.cond
 
 while.cond:                                       ; preds = %if.end, %entry
@@ -65,6 +65,6 @@ attributes #0 = { nocallback nofree nosync nounwind willreturn memory(argmem: re
 ; DBG-NEXT: cheri-bound-allocas:   -Adding stack bounds since phi user needs bounds:   %ctrlp.0 = phi ptr addrspace(200) [ %d, %entry ], [ %ctrlp.1, %if.end ]
 ; DBG-NEXT: cheri-bound-allocas:  -Adding stack bounds since phi user needs bounds:   %ctrlp.1 = phi ptr addrspace(200) [ @b, %if.then ], [ %ctrlp.0, %while.cond ]
 ; DBG-NEXT: cheri-bound-allocas: Found alloca use that needs bounds:   %ctrlp.0 = phi ptr addrspace(200) [ %d, %entry ], [ %ctrlp.1, %if.end ]
-; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %d)
+; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %d)
 ; DBG-NEXT: cheri-bound-allocas: b: 1 of 2 users need bounds for   %d = alloca i8, align 1, addrspace(200)
 ; DBG-NEXT: b: setting bounds on stack alloca to 1  %d = alloca i8, align 1, addrspace(200)

@@ -24,7 +24,7 @@ define internal ptr addrspace(200) @test(ptr addrspace(200) %ptr, ptr addrspace(
 ; CHECK-IR-LABEL: define internal ptr addrspace(200) @test
 ; CHECK-IR-SAME: (ptr addrspace(200) [[PTR:%.*]], ptr addrspace(200) [[CAP:%.*]], i64 [[OFFSET:%.*]]) addrspace(200) #[[ATTR0:[0-9]+]] {
 ; CHECK-IR-NEXT:  entry:
-; CHECK-IR-NEXT:    [[NEW:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.from.pointer.i64(ptr addrspace(200) [[CAP]], i64 [[OFFSET]])
+; CHECK-IR-NEXT:    [[NEW:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.from.pointer.i64(ptr addrspace(200) [[CAP]], i64 [[OFFSET]])
 ; CHECK-IR-NEXT:    store ptr addrspace(200) [[NEW]], ptr addrspace(200) [[PTR]], align 16
 ; CHECK-IR-NEXT:    ret ptr addrspace(200) [[NEW]]
 ;
@@ -77,8 +77,8 @@ define internal ptr addrspace(200) @cap_from_ptr_ddc(ptr addrspace(200) %ptr, i6
 ; CHECK-IR-LABEL: define internal ptr addrspace(200) @cap_from_ptr_ddc
 ; CHECK-IR-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[OFFSET:%.*]]) addrspace(200) #[[ATTR0]] {
 ; CHECK-IR-NEXT:  entry:
-; CHECK-IR-NEXT:    [[DDC:%.*]] = call ptr addrspace(200) @llvm.cheri.ddc.get()
-; CHECK-IR-NEXT:    [[NEW:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.from.pointer.i64(ptr addrspace(200) [[DDC]], i64 [[OFFSET]])
+; CHECK-IR-NEXT:    [[DDC:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.ddc.get()
+; CHECK-IR-NEXT:    [[NEW:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.from.pointer.i64(ptr addrspace(200) [[DDC]], i64 [[OFFSET]])
 ; CHECK-IR-NEXT:    store ptr addrspace(200) [[NEW]], ptr addrspace(200) [[PTR]], align 16
 ; CHECK-IR-NEXT:    ret ptr addrspace(200) [[NEW]]
 ;
@@ -135,7 +135,7 @@ define internal ptr addrspace(200) @cap_from_ptr_null(ptr addrspace(200) %ptr, i
 ; CHECK-IR-LABEL: define internal ptr addrspace(200) @cap_from_ptr_null
 ; CHECK-IR-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[OFFSET:%.*]]) addrspace(200) #[[ATTR0]] {
 ; CHECK-IR-NEXT:  entry:
-; CHECK-IR-NEXT:    [[NEW:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.from.pointer.i64(ptr addrspace(200) null, i64 [[OFFSET]])
+; CHECK-IR-NEXT:    [[NEW:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.from.pointer.i64(ptr addrspace(200) null, i64 [[OFFSET]])
 ; CHECK-IR-NEXT:    store ptr addrspace(200) [[NEW]], ptr addrspace(200) [[PTR]], align 16
 ; CHECK-IR-NEXT:    ret ptr addrspace(200) [[NEW]]
 ;

@@ -21,7 +21,7 @@ define void @head_i16() {
 ; CHECK-LABEL: define void @head_i16() addrspace(200) {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[BUF:%.*]] = alloca [32 x i8], align 16, addrspace(200)
-; CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) [[BUF]])
+; CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) [[BUF]])
 ; CHECK-NEXT:    [[BUF_16_P16_SROA_IDX:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[BUF]], i64 16
 ; CHECK-NEXT:    store ptr addrspace(200) null, ptr addrspace(200) [[BUF_16_P16_SROA_IDX]], align 16
 ; CHECK-NEXT:    [[BUF_15_P15_SROA_IDX:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[BUF]], i64 15
@@ -30,7 +30,7 @@ define void @head_i16() {
 ;
 entry:
   %buf = alloca [32 x i8], align 16, addrspace(200)
-  call void @llvm.lifetime.start.p200(ptr addrspace(200) %buf)
+  call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) %buf)
   %p16 = getelementptr [32 x i8], ptr addrspace(200) %buf, i64 0, i64 16
   store ptr addrspace(200) null, ptr addrspace(200) %p16, align 16
   %p15 = getelementptr [32 x i8], ptr addrspace(200) %buf, i64 0, i64 15
@@ -44,7 +44,7 @@ define void @head_cap_misaligned() {
 ; CHECK-LABEL: define void @head_cap_misaligned() addrspace(200) {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[BUF:%.*]] = alloca [32 x i8], align 16, addrspace(200)
-; CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) [[BUF]])
+; CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) [[BUF]])
 ; CHECK-NEXT:    [[BUF_16_P16_SROA_IDX:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[BUF]], i64 16
 ; CHECK-NEXT:    store ptr addrspace(200) null, ptr addrspace(200) [[BUF_16_P16_SROA_IDX]], align 16
 ; CHECK-NEXT:    [[BUF_15_P15_SROA_IDX:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[BUF]], i64 15
@@ -53,7 +53,7 @@ define void @head_cap_misaligned() {
 ;
 entry:
   %buf = alloca [32 x i8], align 16, addrspace(200)
-  call void @llvm.lifetime.start.p200(ptr addrspace(200) %buf)
+  call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) %buf)
   %p16 = getelementptr inbounds [32 x i8], ptr addrspace(200) %buf, i64 0, i64 16
   store ptr addrspace(200) null, ptr addrspace(200) %p16, align 16
   %p15 = getelementptr inbounds [32 x i8], ptr addrspace(200) %buf, i64 0, i64 15
@@ -67,7 +67,7 @@ define void @head_cap_unaligned() {
 ; CHECK-LABEL: define void @head_cap_unaligned() addrspace(200) {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[BUF:%.*]] = alloca [32 x i8], align 16, addrspace(200)
-; CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) [[BUF]])
+; CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) [[BUF]])
 ; CHECK-NEXT:    [[BUF_16_P16_SROA_IDX:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[BUF]], i64 16
 ; CHECK-NEXT:    store ptr addrspace(200) null, ptr addrspace(200) [[BUF_16_P16_SROA_IDX]], align 16
 ; CHECK-NEXT:    [[BUF_15_P15_SROA_IDX:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[BUF]], i64 15
@@ -76,7 +76,7 @@ define void @head_cap_unaligned() {
 ;
 entry:
   %buf = alloca [32 x i8], align 16, addrspace(200)
-  call void @llvm.lifetime.start.p200(ptr addrspace(200) %buf)
+  call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) %buf)
   %p16 = getelementptr inbounds [32 x i8], ptr addrspace(200) %buf, i64 0, i64 16
   store ptr addrspace(200) null, ptr addrspace(200) %p16, align 16
   %p15 = getelementptr inbounds [32 x i8], ptr addrspace(200) %buf, i64 0, i64 15
@@ -90,7 +90,7 @@ define void @tail_i16() {
 ; CHECK-LABEL: define void @tail_i16() addrspace(200) {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[BUF_SROA_0:%.*]] = alloca [17 x i8], align 16, addrspace(200)
-; CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) [[BUF_SROA_0]])
+; CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) [[BUF_SROA_0]])
 ; CHECK-NEXT:    store ptr addrspace(200) null, ptr addrspace(200) [[BUF_SROA_0]], align 16
 ; CHECK-NEXT:    [[BUF_SROA_0_15_P15_SROA_IDX1:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[BUF_SROA_0]], i64 15
 ; CHECK-NEXT:    store i16 0, ptr addrspace(200) [[BUF_SROA_0_15_P15_SROA_IDX1]], align 1
@@ -98,7 +98,7 @@ define void @tail_i16() {
 ;
 entry:
   %buf = alloca [32 x i8], align 16, addrspace(200)
-  call void @llvm.lifetime.start.p200(ptr addrspace(200) %buf)
+  call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) %buf)
   store ptr addrspace(200) null, ptr addrspace(200) %buf, align 16
   %p15 = getelementptr inbounds [32 x i8], ptr addrspace(200) %buf, i64 0, i64 15
   store i16 0, ptr addrspace(200) %p15, align 1

@@ -20,7 +20,7 @@ extern "C" {
 //
 // PURECAP-LABEL: @cap_to_long(
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[C:%.*]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[C:%.*]])
 // PURECAP-NEXT:    ret i64 [[TMP0]]
 //
 unsigned long cap_to_long(void * __capability c) {
@@ -74,7 +74,7 @@ void * __capability ptr_to_cap(void *p) {
 //
 // PURECAP-LABEL: @intcap_to_long(
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[C:%.*]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[C:%.*]])
 // PURECAP-NEXT:    ret i64 [[TMP0]]
 //
 unsigned long intcap_to_long(unsigned __intcap c) {

@@ -4365,7 +4365,6 @@ static void maybePrintCallAddrSpace(const Value *Operand, const Instruction *I,
   }
   unsigned CallAddrSpace = Operand->getType()->getPointerAddressSpace();
   bool PrintAddrSpace = CallAddrSpace != 0;
-
   if (!PrintAddrSpace) {
     const Module *Mod = getModuleFromVal(I);
     // We also print it if it is zero but not equal to the program address space
@@ -4373,22 +4372,6 @@ static void maybePrintCallAddrSpace(const Value *Operand, const Instruction *I,
     // the resulting file even without a datalayout string.
     if (!Mod || Mod->getDataLayout().getProgramAddressSpace() != 0)
       PrintAddrSpace = true;
-  }
-
-  // Hack for CHERI: don't print the addrspace() attribute for capability calls
-  // FIXME: this hack should be removed once all testcases have been updated
-  if (PrintAddrSpace) {
-    // if it is a CHERI cap call, don't print the AS
-    if (isCheriPointer(CallAddrSpace, getDataLayoutOrNull(I)))
-      PrintAddrSpace = false;
-    if (CallAddrSpace == 0) {
-      // Also don't print an address space for legacy ABI:
-      // FIXME: remove once we drop legacy ABI completely
-      const DataLayout* DL = getDataLayoutOrNull(I);
-      assert(DL && "Should only reach this branch if DL != null");
-      if (isCheriPointer(DL->getProgramAddressSpace(), DL))
-        PrintAddrSpace = false;
-    }
   }
   if (PrintAddrSpace)
     Out << " addrspace(" << CallAddrSpace << ")";

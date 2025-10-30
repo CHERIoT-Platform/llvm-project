@@ -10,24 +10,24 @@ define void @foo() local_unnamed_addr #0 {
   %vla = alloca i8, align 1, addrspace(200)
 
   ; Allocas are nonnull unless you target AMDGPU
-  call void @test(ptr addrspace(200) %vla)
-  ; CHECK: call void @test(ptr addrspace(200) nonnull %vla)
+  call addrspace(200) void @test(ptr addrspace(200) %vla)
+  ; CHECK: call addrspace(200) void @test(ptr addrspace(200) nonnull %vla)
 
   ; This one is not nonnull because we are loading an unknown value
   %1 = load ptr addrspace(200), ptr addrspace(200) @char_ptr, align 32
-  call void @test(ptr addrspace(200) %1) #0
-  ; CHECK: call void @test(ptr addrspace(200) %1)
+  call addrspace(200) void @test(ptr addrspace(200) %1) #0
+  ; CHECK: call addrspace(200) void @test(ptr addrspace(200) %1)
 
 
   ; this one is nonnull because we are taking the address of a global:
-  call void @test(ptr addrspace(200) @char_data) #0
-  ; CHECK: call void @test(ptr addrspace(200) nonnull @char_data)
+  call addrspace(200) void @test(ptr addrspace(200) @char_data) #0
+  ; CHECK: call addrspace(200) void @test(ptr addrspace(200) nonnull @char_data)
 
   ; Probably this one should be nonnnull too because it is a GEP into a known constant
   ; Other targets don't do so leave it like this
-  call void @test(ptr addrspace(200) @.str) #0
-  ; CHECK-NOTYET: call void @test(i8 addrspace(200)* nonnull getelementptr inbounds ([5 x i8], [5 x i8] addrspace(200)* @.str, i64 0, i64 0))
-  ; CHECK: call void @test(ptr addrspace(200) nonnull @.str)
+  call addrspace(200) void @test(ptr addrspace(200) @.str) #0
+  ; CHECK-NOTYET: call addrspace(200) void @test(i8 addrspace(200)* nonnull getelementptr inbounds ([5 x i8], [5 x i8] addrspace(200)* @.str, i64 0, i64 0))
+  ; CHECK: call addrspace(200) void @test(ptr addrspace(200) nonnull @.str)
   ret void
 }
 

@@ -13,7 +13,7 @@ static fnptr fn2 = &extern_func;
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @fn, align 16, !tbaa [[TBAA2:![0-9]+]]
 // CHECK-NEXT:    store ptr addrspace(200) [[TMP0]], ptr addrspace(200) @fn2, align 16, !tbaa [[TBAA2]]
-// CHECK-NEXT:    tail call void [[TMP0]]() #[[ATTR2:[0-9]+]]
+// CHECK-NEXT:    tail call addrspace(200) void [[TMP0]]() #[[ATTR2:[0-9]+]]
 // CHECK-NEXT:    ret void
 //
 void test(void) {

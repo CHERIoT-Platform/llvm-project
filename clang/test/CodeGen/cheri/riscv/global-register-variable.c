@@ -5,13 +5,12 @@
 // See e.g. https://elixir.bootlin.com/linux/v5.8.10/source/arch/riscv/include/asm/current.h
 // RUN: %riscv64_cheri_purecap_cc1 -fsyntax-only %s -o - -verify -DCHECK_BAD
 // RUN: %riscv64_cheri_purecap_cc1 -emit-llvm %s -o - | FileCheck %s
-// RUN: %riscv64_cheri_cc1 -emit-llvm %s -o -  | FileCheck %s
 
 register long int_tp __asm__("tp");
 // CHECK-LABEL: define {{[^@]+}}@get_tp
 // CHECK-SAME: ()
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[TMP0:%.*]] = call i64 @llvm.read_register.i64(metadata [[META0:![0-9]+]])
+// CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.read_register.i64(metadata [[META0:![0-9]+]])
 // CHECK-NEXT:    ret i64 [[TMP0]]
 //
 long get_tp(void) {
@@ -24,7 +23,7 @@ long get_tp(void) {
 // CHECK-NEXT:    [[VALUE_ADDR:%.*]] = alloca i64, align 8
 // CHECK-NEXT:    store i64 [[VALUE]], ptr{{( addrspace\(200\))?}} [[VALUE_ADDR]], align 8
 // CHECK-NEXT:    [[TMP0:%.*]] = load i64, ptr{{( addrspace\(200\))?}} [[VALUE_ADDR]], align 8
-// CHECK-NEXT:    call void @llvm.write_register.i64(metadata [[META0]], i64 [[TMP0]])
+// CHECK-NEXT:    call addrspace(200) void @llvm.write_register.i64(metadata [[META0]], i64 [[TMP0]])
 // CHECK-NEXT:    ret void
 //
 void set_tp(long value) {
@@ -35,7 +34,7 @@ register __uintcap_t cap_tp __asm__("ctp");
 // CHECK-LABEL: define {{[^@]+}}@get_ctp
 // CHECK-SAME: ()
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.read_register.p200(metadata [[META1:![0-9]+]])
+// CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.read_register.p200(metadata [[META1:![0-9]+]])
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 __uintcap_t get_ctp(void) {
@@ -47,7 +46,7 @@ __uintcap_t get_ctp(void) {
 // CHECK-NEXT:    [[VALUE_ADDR:%.*]] = alloca ptr addrspace(200), align 16
 // CHECK-NEXT:    store ptr addrspace(200) [[VALUE]], ptr{{( addrspace\(200\))?}} [[VALUE_ADDR]], align 16
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr{{( addrspace\(200\))?}} [[VALUE_ADDR]], align 16
-// CHECK-NEXT:    call void @llvm.write_register.p200(metadata [[META1]], ptr addrspace(200) [[TMP0]])
+// CHECK-NEXT:    call addrspace(200) void @llvm.write_register.p200(metadata [[META1]], ptr addrspace(200) [[TMP0]])
 // CHECK-NEXT:    ret void
 //
 // FIXME: This looks wrong, it does not actually set ctp
@@ -61,7 +60,7 @@ register struct StackPtr *__capability cap_sp __asm__("csp");
 // CHECK-LABEL: define {{[^@]+}}@get_csp
 // CHECK-SAME: ()
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.read_register.p200(metadata [[META2:![0-9]+]])
+// CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.read_register.p200(metadata [[META2:![0-9]+]])
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 struct StackPtr *__capability get_csp(void) {
@@ -73,7 +72,7 @@ struct StackPtr *__capability get_csp(void) {
 // CHECK-NEXT:    [[VALUE_ADDR:%.*]] = alloca ptr addrspace(200), align 16
 // CHECK-NEXT:    store ptr addrspace(200) [[VALUE]], ptr{{( addrspace\(200\))?}} [[VALUE_ADDR]], align 16
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr{{( addrspace\(200\))?}} [[VALUE_ADDR]], align 16
-// CHECK-NEXT:    call void @llvm.write_register.p200(metadata [[META2]], ptr addrspace(200) [[TMP0]])
+// CHECK-NEXT:    call addrspace(200) void @llvm.write_register.p200(metadata [[META2]], ptr addrspace(200) [[TMP0]])
 // CHECK-NEXT:    ret void
 //
 void set_csp(struct StackPtr *__capability value) {
@@ -85,8 +84,8 @@ register __uintcap_t cap_gp __asm__("cgp");
 // CHECK-LABEL: define {{[^@]+}}@get_gp_addr
 // CHECK-SAME: ()
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.read_register.p200(metadata [[META3:![0-9]+]])
-// CHECK-NEXT:    [[TMP1:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP0]])
+// CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.read_register.p200(metadata [[META3:![0-9]+]])
+// CHECK-NEXT:    [[TMP1:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP0]])
 // CHECK-NEXT:    ret i64 [[TMP1]]
 //
 long get_gp_addr(void) {
@@ -100,7 +99,7 @@ long get_gp_addr(void) {
 // CHECK-NEXT:    store i64 [[VALUE]], ptr{{( addrspace\(200\))?}} [[VALUE_ADDR]], align 8
 // CHECK-NEXT:    [[TMP0:%.*]] = load i64, ptr{{( addrspace\(200\))?}} [[VALUE_ADDR]], align 8
 // CHECK-NEXT:    [[TMP1:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[TMP0]]
-// CHECK-NEXT:    call void @llvm.write_register.p200(metadata [[META3]], ptr addrspace(200) [[TMP1]])
+// CHECK-NEXT:    call addrspace(200) void @llvm.write_register.p200(metadata [[META3]], ptr addrspace(200) [[TMP1]])
 // CHECK-NEXT:    ret void
 //
 void set_gp_addr(long value) {

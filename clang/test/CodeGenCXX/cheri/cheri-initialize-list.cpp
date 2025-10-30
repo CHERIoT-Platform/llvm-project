@@ -43,13 +43,13 @@ extern int foo(std::initializer_list<int>& l);
 // CHECK-NEXT:    store ptr addrspace(200) [[REF_TMP]], ptr addrspace(200) [[__BEGIN_]], align 16
 // CHECK-NEXT:    [[__SIZE_:%.*]] = getelementptr inbounds nuw %"class.std::initializer_list", ptr addrspace(200) [[L1]], i32 0, i32 1
 // CHECK-NEXT:    store i64 3, ptr addrspace(200) [[__SIZE_]], align 16
-// CHECK-NEXT:    [[CALL:%.*]] = call noundef signext i32 @_Z3fooRSt16initializer_listIiE(ptr addrspace(200) noundef nonnull align 16 dereferenceable(24) [[L1]])
+// CHECK-NEXT:    [[CALL:%.*]] = call noundef signext addrspace(200) i32 @_Z3fooRSt16initializer_listIiE(ptr addrspace(200) noundef nonnull align 16 dereferenceable(24) [[L1]])
 // CHECK-NEXT:    ret i32 0
 //
 // STATIC-LABEL: define {{[^@]+}}@main
 // STATIC-SAME: () addrspace(200) #[[ATTR0:[0-9]+]] {
 // STATIC-NEXT:  entry:
-// STATIC-NEXT:    [[CALL:%.*]] = call noundef signext i32 @_Z3fooRSt16initializer_listIiE(ptr addrspace(200) noundef nonnull align 16 dereferenceable(24) @_ZZ4mainE2l1)
+// STATIC-NEXT:    [[CALL:%.*]] = call noundef signext addrspace(200) i32 @_Z3fooRSt16initializer_listIiE(ptr addrspace(200) noundef nonnull align 16 dereferenceable(24) @_ZZ4mainE2l1)
 // STATIC-NEXT:    ret i32 0
 //
 int main() {

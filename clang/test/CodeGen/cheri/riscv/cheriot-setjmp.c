@@ -15,7 +15,7 @@ __attribute__((returns_twice)) int setjmp(jmp_buf env) __asm__("setjmp");
 jmp_buf buf;
 
 // CHECK-LABEL: @test
-// CHECK: call i32 @setjmp
+// CHECK: call addrspace(200) i32 @setjmp
 void test() {
     setjmp(buf);
 }

@@ -48,7 +48,7 @@ cheri_setaddress(const void *__capability dst, ptraddr_t addr) {
 // PURECAP-NEXT:    [[TMP2:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[DST_ADDR_I]], align 16
 // PURECAP-NEXT:    [[TMP3:%.*]] = load i64, ptr addrspace(200) [[ADDR_ADDR_I]], align 8
 // PURECAP-NEXT:    [[TMP4:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[DST_ADDR_I]], align 16
-// PURECAP-NEXT:    [[TMP5:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP4]])
+// PURECAP-NEXT:    [[TMP5:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP4]])
 // PURECAP-NEXT:    [[SUB_I:%.*]] = sub i64 [[TMP3]], [[TMP5]]
 // PURECAP-NEXT:    [[__BUILTIN_CHERI_OFFSET_INCREMENT_I:%.*]] = getelementptr i8, ptr addrspace(200) [[TMP2]], i64 [[SUB_I]]
 // PURECAP-NEXT:    ret ptr addrspace(200) [[__BUILTIN_CHERI_OFFSET_INCREMENT_I]]
@@ -81,7 +81,7 @@ void *__capability use_sys_cheric_function(void *__capability in, ptraddr_t new_
 // PURECAP-NEXT:    store i64 [[NEW_ADDR]], ptr addrspace(200) [[NEW_ADDR_ADDR]], align 8
 // PURECAP-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[IN_ADDR]], align 16
 // PURECAP-NEXT:    [[TMP1:%.*]] = load i64, ptr addrspace(200) [[NEW_ADDR_ADDR]], align 8
-// PURECAP-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) [[TMP0]], i64 [[TMP1]])
+// PURECAP-NEXT:    [[TMP2:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) [[TMP0]], i64 [[TMP1]])
 // PURECAP-NEXT:    ret ptr addrspace(200) [[TMP2]]
 //
 void *__capability use_builtin_function(void *__capability in, ptraddr_t new_addr) {
@@ -116,7 +116,7 @@ void *__capability use_builtin_function(void *__capability in, ptraddr_t new_add
 // PURECAP-NEXT:    store i64 [[NEW_ADDR]], ptr addrspace(200) [[NEW_ADDR_ADDR]], align 8
 // PURECAP-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[IN_ADDR]], align 16
 // PURECAP-NEXT:    [[TMP1:%.*]] = load i64, ptr addrspace(200) [[NEW_ADDR_ADDR]], align 8
-// PURECAP-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) asm "csetaddr $0, $1, $2\0A\09", "=C,C,r,~{$1}"(ptr addrspace(200) [[TMP0]], i64 [[TMP1]]) #[[ATTR2:[0-9]+]], !srcloc !2
+// PURECAP-NEXT:    [[TMP2:%.*]] = call addrspace(0) ptr addrspace(200) asm "csetaddr $0, $1, $2\0A\09", "=C,C,r,~{$1}"(ptr addrspace(200) [[TMP0]], i64 [[TMP1]]) #[[ATTR2:[0-9]+]], !srcloc !2
 // PURECAP-NEXT:    store ptr addrspace(200) [[TMP2]], ptr addrspace(200) [[RESULT]], align 16
 // PURECAP-NEXT:    [[TMP3:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[RESULT]], align 16
 // PURECAP-NEXT:    ret ptr addrspace(200) [[TMP3]]

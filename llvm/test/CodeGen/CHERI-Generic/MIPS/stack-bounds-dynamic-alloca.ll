@@ -91,9 +91,9 @@ define i32 @alloca_in_entry(i1 %arg) local_unnamed_addr addrspace(200) nounwind 
 ; CHECK-NEXT:    store i64 1234, ptr addrspace(200) [[PTR_PLUS_ONE]], align 8
 ; CHECK-NEXT:    br label [[USE_ALLOCA_NEED_BOUNDS:%.*]]
 ; CHECK:       use_alloca_need_bounds:
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[ALLOCA]], i64 16)
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[ALLOCA]], i64 16)
 ; CHECK-NEXT:    [[DOTSUB_LE:%.*]] = getelementptr inbounds [16 x i8], ptr addrspace(200) [[TMP0]], i64 0, i64 0
-; CHECK-NEXT:    [[CALL:%.*]] = call signext i32 @use_alloca(ptr addrspace(200) [[DOTSUB_LE]])
+; CHECK-NEXT:    [[CALL:%.*]] = call signext addrspace(200) i32 @use_alloca(ptr addrspace(200) [[DOTSUB_LE]])
 ; CHECK-NEXT:    br label [[EXIT]]
 ; CHECK:       exit:
 ; CHECK-NEXT:    ret i32 123
@@ -112,7 +112,7 @@ use_alloca_no_bounds:                             ; preds = %do_alloca
 
 use_alloca_need_bounds:                           ; preds = %use_alloca_no_bounds
   %.sub.le = getelementptr inbounds [16 x i8], ptr addrspace(200) %alloca, i64 0, i64 0
-  %call = call signext i32 @use_alloca(ptr addrspace(200) %.sub.le)
+  %call = call signext addrspace(200) i32 @use_alloca(ptr addrspace(200) %.sub.le)
   br label %exit
 
 exit:                                             ; preds = %use_alloca_need_bounds, %entry
@@ -208,7 +208,7 @@ define i32 @alloca_not_in_entry(i1 %arg) local_unnamed_addr addrspace(200) nounw
 ; CHECK-NEXT:    br i1 [[ARG]], label [[DO_ALLOCA:%.*]], label [[EXIT:%.*]]
 ; CHECK:       do_alloca:
 ; CHECK-NEXT:    [[ALLOCA:%.*]] = alloca [16 x i8], align 16, addrspace(200)
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.dynamic.i64(ptr addrspace(200) [[ALLOCA]], i64 16)
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.dynamic.i64(ptr addrspace(200) [[ALLOCA]], i64 16)
 ; CHECK-NEXT:    br label [[USE_ALLOCA_NO_BOUNDS:%.*]]
 ; CHECK:       use_alloca_no_bounds:
 ; CHECK-NEXT:    [[PTR_PLUS_ONE:%.*]] = getelementptr i64, ptr addrspace(200) [[ALLOCA]], i64 1
@@ -216,7 +216,7 @@ define i32 @alloca_not_in_entry(i1 %arg) local_unnamed_addr addrspace(200) nounw
 ; CHECK-NEXT:    br label [[USE_ALLOCA_NEED_BOUNDS:%.*]]
 ; CHECK:       use_alloca_need_bounds:
 ; CHECK-NEXT:    [[DOTSUB_LE:%.*]] = getelementptr inbounds [16 x i8], ptr addrspace(200) [[TMP0]], i64 0, i64 0
-; CHECK-NEXT:    [[CALL:%.*]] = call signext i32 @use_alloca(ptr addrspace(200) [[DOTSUB_LE]])
+; CHECK-NEXT:    [[CALL:%.*]] = call signext addrspace(200) i32 @use_alloca(ptr addrspace(200) [[DOTSUB_LE]])
 ; CHECK-NEXT:    br label [[EXIT]]
 ; CHECK:       exit:
 ; CHECK-NEXT:    ret i32 123
@@ -235,7 +235,7 @@ use_alloca_no_bounds:                             ; preds = %do_alloca
 
 use_alloca_need_bounds:                           ; preds = %use_alloca_no_bounds
   %.sub.le = getelementptr inbounds [16 x i8], ptr addrspace(200) %alloca, i64 0, i64 0
-  %call = call signext i32 @use_alloca(ptr addrspace(200) %.sub.le)
+  %call = call signext addrspace(200) i32 @use_alloca(ptr addrspace(200) %.sub.le)
   br label %exit
 
 exit:                                             ; preds = %use_alloca_need_bounds, %entry
@@ -331,13 +331,13 @@ define i32 @crash_reproducer(i1 %arg) local_unnamed_addr addrspace(200) nounwind
 ; CHECK-NEXT:    unreachable
 ; CHECK:       while.body:
 ; CHECK-NEXT:    [[TMP0:%.*]] = alloca [16 x i8], align 16, addrspace(200)
-; CHECK-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.dynamic.i64(ptr addrspace(200) [[TMP0]], i64 16)
+; CHECK-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.dynamic.i64(ptr addrspace(200) [[TMP0]], i64 16)
 ; CHECK-NEXT:    br label [[WHILE_END_LOOPEXIT:%.*]]
 ; CHECK:       while.end.loopexit:
 ; CHECK-NEXT:    [[DOTSUB_LE:%.*]] = getelementptr inbounds [16 x i8], ptr addrspace(200) [[TMP1]], i64 0, i64 0
 ; CHECK-NEXT:    br label [[WHILE_END:%.*]]
 ; CHECK:       while.end:
-; CHECK-NEXT:    [[CALL:%.*]] = call signext i32 @use_alloca(ptr addrspace(200) [[DOTSUB_LE]])
+; CHECK-NEXT:    [[CALL:%.*]] = call signext addrspace(200) i32 @use_alloca(ptr addrspace(200) [[DOTSUB_LE]])
 ; CHECK-NEXT:    [[RESULT:%.*]] = add i32 [[CALL]], 1234
 ; CHECK-NEXT:    ret i32 [[RESULT]]
 ;
@@ -356,7 +356,7 @@ while.end.loopexit:                               ; preds = %while.body
   br label %while.end
 
 while.end:                                        ; preds = %while.end.loopexit
-  %call = call signext i32 @use_alloca(ptr addrspace(200) %.sub.le)
+  %call = call signext addrspace(200) i32 @use_alloca(ptr addrspace(200) %.sub.le)
   %result = add i32 %call, 1234
   ret i32 %result
 }

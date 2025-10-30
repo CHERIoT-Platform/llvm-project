@@ -27,7 +27,7 @@ int annotated_global __attribute__((annotate("global"))) = 1;
 // CHECK-SAME: () addrspace(200)
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[B:%.*]] = alloca i32, align 4, addrspace(200)
-// CHECK-NEXT:    call void @llvm.var.annotation.p200.p200(ptr addrspace(200) [[B]], ptr addrspace(200) @.str.2,
+// CHECK-NEXT:    call addrspace(200) void @llvm.var.annotation.p200.p200(ptr addrspace(200) [[B]], ptr addrspace(200) @.str.2,
 // CHECK-SAME:  ptr addrspace(200) @.str.1
 // CHECK-SAME:  i32 [[@LINE+15]],
 // CHECK-SAME:  ptr addrspace(200) null)
@@ -58,7 +58,7 @@ void var_annotation(void) {
 // CHECK-NEXT:    [[U:%.*]] = getelementptr inbounds nuw [[STRUCT_ANON]], ptr addrspace(200) [[VAR]], i32 0, i32 0
 // CHECK-NEXT:    store i32 0, ptr addrspace(200) [[U]], align 4
 // CHECK-NEXT:    [[V:%.*]] = getelementptr inbounds nuw [[STRUCT_ANON]], ptr addrspace(200) [[VAR]], i32 0, i32 1
-// CHECK-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.ptr.annotation.p200.p200(ptr addrspace(200) [[V]],
+// CHECK-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.ptr.annotation.p200.p200(ptr addrspace(200) [[V]],
 // CHECK-SAME:      ptr addrspace(200) @.str.3,
 // CHECK-SAME:      ptr addrspace(200) @.str.1,
 // CHECK-SAME:      i32 [[#@LINE+21]], ptr addrspace(200) null)
@@ -100,7 +100,7 @@ int ptr_annotation(void) {
 // CHECK-NEXT:    [[Y:%.*]] = alloca i64, align 8, addrspace(200)
 // CHECK-NEXT:    store i64 [[X:%.*]], ptr addrspace(200) [[X_ADDR]], align 8
 // CHECK-NEXT:    [[TMP0:%.*]] = load i64, ptr addrspace(200) [[X_ADDR]], align 8
-// CHECK-NEXT:    [[TMP1:%.*]] = call i64 @llvm.annotation.i64.p200(i64 [[TMP0]], ptr addrspace(200) @.str.4,
+// CHECK-NEXT:    [[TMP1:%.*]] = call addrspace(200) i64 @llvm.annotation.i64.p200(i64 [[TMP0]], ptr addrspace(200) @.str.4,
 // CHECK-SAME:      ptr addrspace(200) @.str.1,
 // CHECK-SAME:      i32 [[@LINE+26]])
 // CHECK-NEXT:    store i64 [[TMP1]], ptr addrspace(200) [[Y]], align 8
@@ -146,11 +146,11 @@ void issue327(void) {
 }
 
 // CHECK: define {{[^@]+}}@issue327() addrspace(200)
-// CHECK: call ptr addrspace(200) @llvm.ptr.annotation.p200.p200(ptr addrspace(200) %{{.+}}, ptr addrspace(200) @.str.3,
+// CHECK: call addrspace(200) ptr addrspace(200) @llvm.ptr.annotation.p200.p200(ptr addrspace(200) %{{.+}}, ptr addrspace(200) @.str.3,
 // CHECK-SAME: ptr addrspace(200) @.str.1
 // CHECK-SAME: i32 [[#MYANNOTATION_LINE:142]],
 // CHECK-SAME: ptr addrspace(200) null)
-// CHECK: call ptr addrspace(200) @llvm.ptr.annotation.p200.p200(ptr addrspace(200) %{{.+}}, ptr addrspace(200) @.str.3,
+// CHECK: call addrspace(200) ptr addrspace(200) @llvm.ptr.annotation.p200.p200(ptr addrspace(200) %{{.+}}, ptr addrspace(200) @.str.3,
 // CHECK-SAME: ptr addrspace(200) @.str.1
 // CHECK-SAME: i32 [[#MYANNOTATION_LINE]],
 // CHECK-SAME: ptr addrspace(200) null)

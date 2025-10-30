@@ -40,11 +40,11 @@ int a() { return ((int *)0)[__builtin_align_up((long)0, 16) / 1]; }
 // CHECK-LABEL: define {{[^@]+}}@b
 // CHECK-SAME: () addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) null)
-// CHECK-NEXT:    [[TMP1:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1))
+// CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) null)
+// CHECK-NEXT:    [[TMP1:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1))
 // CHECK-NEXT:    [[DIV:%.*]] = udiv i64 [[TMP0]], [[TMP1]]
 // CHECK-NEXT:    [[TMP2:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[DIV]]
-// CHECK-NEXT:    [[TMP3:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP2]])
+// CHECK-NEXT:    [[TMP3:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[TMP2]])
 // CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds nuw i32, ptr addrspace(200) null, i64 [[TMP3]]
 // CHECK-NEXT:    [[TMP4:%.*]] = load i32, ptr addrspace(200) [[ARRAYIDX]], align 4
 // CHECK-NEXT:    ret i32 [[TMP4]]

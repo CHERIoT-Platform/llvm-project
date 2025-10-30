@@ -10,7 +10,7 @@ int& f(void);
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[FN:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // CHECK-NEXT:    store ptr addrspace(200) @_Z1fv, ptr addrspace(200) [[FN]], align 16
-// CHECK-NEXT:    call void @_Z6invokeIRFRivEEvOT_(ptr addrspace(200) noundef nonnull @_Z1fv)
+// CHECK-NEXT:    call addrspace(200) void @_Z6invokeIRFRivEEvOT_(ptr addrspace(200) noundef nonnull @_Z1fv)
 // CHECK-NEXT:    ret void
 //
 void g() {

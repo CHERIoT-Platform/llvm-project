@@ -27,12 +27,12 @@ define void @no_fold_nonconstant_offset_gep_zero(ptr addrspace(200) %arg, i64 %o
 ; CHECK-LABEL: define {{[^@]+}}@no_fold_nonconstant_offset_gep_zero
 ; CHECK-SAME: (ptr addrspace(200) [[ARG:%.*]], i64 [[OFFSET:%.*]]) addrspace(200) #[[ATTR1:[0-9]+]] {
 ; CHECK-NEXT:  bb:
-; CHECK-NEXT:    [[TMP:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) nonnull @foo, i64 [[OFFSET]])
+; CHECK-NEXT:    [[TMP:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) nonnull @foo, i64 [[OFFSET]])
 ; CHECK-NEXT:    store ptr addrspace(200) [[ARG]], ptr addrspace(200) [[TMP]], align 16
 ; CHECK-NEXT:    ret void
 ;
 bb:
-  %tmp = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) @foo, i64 %offset)
+  %tmp = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) @foo, i64 %offset)
   %tmp7 = bitcast ptr addrspace(200) %tmp to ptr addrspace(200)
   %tmp5 = getelementptr inbounds %struct.pluto, ptr addrspace(200) %tmp7, i64 0, i32 0
   store ptr addrspace(200) %arg, ptr addrspace(200) %tmp5, align 16
@@ -44,13 +44,13 @@ define void @no_fold_nonconstant_offset_gep_one(ptr addrspace(200) %arg, i64 %of
 ; CHECK-LABEL: define {{[^@]+}}@no_fold_nonconstant_offset_gep_one
 ; CHECK-SAME: (ptr addrspace(200) [[ARG:%.*]], i64 [[OFFSET:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-NEXT:  bb:
-; CHECK-NEXT:    [[TMP:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) nonnull @foo, i64 [[OFFSET]])
+; CHECK-NEXT:    [[TMP:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) nonnull @foo, i64 [[OFFSET]])
 ; CHECK-NEXT:    [[TMP5:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[TMP]], i64 16
 ; CHECK-NEXT:    store ptr addrspace(200) [[ARG]], ptr addrspace(200) [[TMP5]], align 16
 ; CHECK-NEXT:    ret void
 ;
 bb:
-  %tmp = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) @foo, i64 %offset)
+  %tmp = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) @foo, i64 %offset)
   %tmp7 = bitcast ptr addrspace(200) %tmp to ptr addrspace(200)
   %tmp5 = getelementptr inbounds %struct.pluto, ptr addrspace(200) %tmp7, i64 0, i32 1
   store ptr addrspace(200) %arg, ptr addrspace(200) %tmp5, align 16
@@ -62,12 +62,12 @@ define void @no_fold_zero_offset_gep_zero(ptr addrspace(200) %arg) addrspace(200
 ; CHECK-LABEL: define {{[^@]+}}@no_fold_zero_offset_gep_zero
 ; CHECK-SAME: (ptr addrspace(200) [[ARG:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-NEXT:  bb:
-; CHECK-NEXT:    [[TMP:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) nonnull @foo, i64 0)
+; CHECK-NEXT:    [[TMP:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) nonnull @foo, i64 0)
 ; CHECK-NEXT:    store ptr addrspace(200) [[ARG]], ptr addrspace(200) [[TMP]], align 16
 ; CHECK-NEXT:    ret void
 ;
 bb:
-  %tmp = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) @foo, i64 0)
+  %tmp = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) @foo, i64 0)
   %tmp7 = bitcast ptr addrspace(200) %tmp to ptr addrspace(200)
   %tmp5 = getelementptr inbounds %struct.pluto, ptr addrspace(200) %tmp7, i64 0, i32 0
   store ptr addrspace(200) %arg, ptr addrspace(200) %tmp5, align 16
@@ -79,13 +79,13 @@ define void @no_fold_zero_offset_gep_one(ptr addrspace(200) %arg) addrspace(200)
 ; CHECK-LABEL: define {{[^@]+}}@no_fold_zero_offset_gep_one
 ; CHECK-SAME: (ptr addrspace(200) [[ARG:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-NEXT:  bb:
-; CHECK-NEXT:    [[TMP:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) nonnull @foo, i64 0)
+; CHECK-NEXT:    [[TMP:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) nonnull @foo, i64 0)
 ; CHECK-NEXT:    [[TMP5:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[TMP]], i64 16
 ; CHECK-NEXT:    store ptr addrspace(200) [[ARG]], ptr addrspace(200) [[TMP5]], align 16
 ; CHECK-NEXT:    ret void
 ;
 bb:
-  %tmp = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) @foo, i64 0)
+  %tmp = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) @foo, i64 0)
   %tmp7 = bitcast ptr addrspace(200) %tmp to ptr addrspace(200)
   %tmp5 = getelementptr inbounds %struct.pluto, ptr addrspace(200) %tmp7, i64 0, i32 1
   store ptr addrspace(200) %arg, ptr addrspace(200) %tmp5, align 16
@@ -97,12 +97,12 @@ define void @fold_nonzero_offset_gep_zero(ptr addrspace(200) %arg) addrspace(200
 ; CHECK-LABEL: define {{[^@]+}}@fold_nonzero_offset_gep_zero
 ; CHECK-SAME: (ptr addrspace(200) [[ARG:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-NEXT:  bb:
-; CHECK-NEXT:    [[TMP:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) nonnull @foo, i64 16)
+; CHECK-NEXT:    [[TMP:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) nonnull @foo, i64 16)
 ; CHECK-NEXT:    store ptr addrspace(200) [[ARG]], ptr addrspace(200) [[TMP]], align 16
 ; CHECK-NEXT:    ret void
 ;
 bb:
-  %tmp = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) @foo, i64 16)
+  %tmp = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) @foo, i64 16)
   %tmp7 = bitcast ptr addrspace(200) %tmp to ptr addrspace(200)
   %tmp5 = getelementptr inbounds %struct.pluto, ptr addrspace(200) %tmp7, i64 0, i32 0
   store ptr addrspace(200) %arg, ptr addrspace(200) %tmp5, align 16
@@ -114,12 +114,12 @@ define void @fold_nonzero_offset_gep_one(ptr addrspace(200) %arg) addrspace(200)
 ; CHECK-LABEL: define {{[^@]+}}@fold_nonzero_offset_gep_one
 ; CHECK-SAME: (ptr addrspace(200) [[ARG:%.*]]) addrspace(200) #[[ATTR1]] {
 ; CHECK-NEXT:  bb:
-; CHECK-NEXT:    [[TMP:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) nonnull @foo, i64 32)
+; CHECK-NEXT:    [[TMP:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) nonnull @foo, i64 32)
 ; CHECK-NEXT:    store ptr addrspace(200) [[ARG]], ptr addrspace(200) [[TMP]], align 16
 ; CHECK-NEXT:    ret void
 ;
 bb:
-  %tmp = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) @foo, i64 16)
+  %tmp = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) @foo, i64 16)
   %tmp7 = bitcast ptr addrspace(200) %tmp to ptr addrspace(200)
   %tmp5 = getelementptr inbounds %struct.pluto, ptr addrspace(200) %tmp7, i64 0, i32 1
   store ptr addrspace(200) %arg, ptr addrspace(200) %tmp5, align 16

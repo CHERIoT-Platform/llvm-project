@@ -7,7 +7,7 @@ int	 fprintf(FILE* __restrict, const char * __restrict, ...);
 
 // CHECK-LABEL: @__assert(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[CALL:%.*]] = call signext i32 (ptr addrspace(200), ptr addrspace(200), ...) @fprintf(ptr addrspace(200) noundef null, ptr addrspace(200) noundef @.str)
+// CHECK-NEXT:    [[CALL:%.*]] = call signext addrspace(200) i32 (ptr addrspace(200), ptr addrspace(200), ...) @fprintf(ptr addrspace(200) noundef null, ptr addrspace(200) noundef @.str)
 // CHECK-NEXT:    ret void
 //
 void __assert() {

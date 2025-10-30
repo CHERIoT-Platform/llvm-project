@@ -16,12 +16,12 @@ struct foo {
 // CHECK-NEXT:    [[GUARD_UNINITIALIZED:%.*]] = icmp eq i8 [[TMP0]], 0
 // CHECK-NEXT:    br i1 [[GUARD_UNINITIALIZED]], label [[INIT_CHECK:%.*]], label [[INIT_END:%.*]], !prof [[PROF2:![0-9]+]]
 // CHECK:       init.check:
-// CHECK-NEXT:    [[TMP1:%.*]] = call i32 @__cxa_guard_acquire(ptr addrspace(200) @_ZGVZ1fvE1x) #[[ATTR1:[0-9]+]]
+// CHECK-NEXT:    [[TMP1:%.*]] = call addrspace(200) i32 @__cxa_guard_acquire(ptr addrspace(200) @_ZGVZ1fvE1x) #[[ATTR1:[0-9]+]]
 // CHECK-NEXT:    [[TOBOOL:%.*]] = icmp ne i32 [[TMP1]], 0
 // CHECK-NEXT:    br i1 [[TOBOOL]], label [[INIT:%.*]], label [[INIT_END]]
 // CHECK:       init:
-// CHECK-NEXT:    call void @_ZN3fooC1Ev(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) @_ZZ1fvE1x)
-// CHECK-NEXT:    call void @__cxa_guard_release(ptr addrspace(200) @_ZGVZ1fvE1x) #[[ATTR1]]
+// CHECK-NEXT:    call addrspace(200) void @_ZN3fooC1Ev(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) @_ZZ1fvE1x)
+// CHECK-NEXT:    call addrspace(200) void @__cxa_guard_release(ptr addrspace(200) @_ZGVZ1fvE1x) #[[ATTR1]]
 // CHECK-NEXT:    br label [[INIT_END]]
 // CHECK:       init.end:
 // CHECK-NEXT:    ret ptr addrspace(200) @_ZZ1fvE1x

@@ -20,7 +20,7 @@ struct addrinfo {
 // OPTNONE-NEXT:    [[A_ADDR:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // OPTNONE-NEXT:    store ptr addrspace(200) [[A]], ptr addrspace(200) [[A_ADDR]], align 16
 // OPTNONE-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[A_ADDR]], align 16
-// OPTNONE-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[RETVAL]], ptr addrspace(200) align 1 [[TMP0]], i64 16, i1 false)
+// OPTNONE-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[RETVAL]], ptr addrspace(200) align 1 [[TMP0]], i64 16, i1 false)
 // OPTNONE-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds nuw [[STRUCT_ADDRINFO]], ptr addrspace(200) [[RETVAL]], i32 0, i32 0
 // OPTNONE-NEXT:    [[TMP1:%.*]] = load { ptr addrspace(200) }, ptr addrspace(200) [[COERCE_DIVE]], align 16
 // OPTNONE-NEXT:    ret { ptr addrspace(200) } [[TMP1]]
@@ -62,21 +62,21 @@ void do_stuff(struct group *g);
 // OPTNONE-NEXT:    [[G:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // OPTNONE-NEXT:    store ptr addrspace(200) [[A]], ptr addrspace(200) [[A_ADDR]], align 16
 // OPTNONE-NEXT:    [[ARRAYDECAY:%.*]] = getelementptr inbounds [16 x i8], ptr addrspace(200) [[BUFFER]], i64 0, i64 0
-// OPTNONE-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[ARRAYDECAY]], ptr addrspace(200) align 16 [[A_ADDR]], i64 16, i1 false) #[[ATTR3:[0-9]+]]
+// OPTNONE-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[ARRAYDECAY]], ptr addrspace(200) align 16 [[A_ADDR]], i64 16, i1 false) #[[ATTR3:[0-9]+]]
 // OPTNONE-NEXT:    [[ARRAYDECAY1:%.*]] = getelementptr inbounds [16 x i8], ptr addrspace(200) [[BUFFER]], i64 0, i64 0
 // OPTNONE-NEXT:    store ptr addrspace(200) [[ARRAYDECAY1]], ptr addrspace(200) [[G]], align 16
 // OPTNONE-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[G]], align 16
-// OPTNONE-NEXT:    call void @do_stuff(ptr addrspace(200) noundef [[TMP0]])
+// OPTNONE-NEXT:    call addrspace(200) void @do_stuff(ptr addrspace(200) noundef [[TMP0]])
 // OPTNONE-NEXT:    ret void
 //
 // CHECK-LABEL: define {{[^@]+}}@copy_group
 // CHECK-SAME: (ptr addrspace(200) noundef [[A:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[BUFFER:%.*]] = alloca [16 x i8], align 16, addrspace(200)
-// CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5:[0-9]+]]
+// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5:[0-9]+]]
 // CHECK-NEXT:    store ptr addrspace(200) [[A]], ptr addrspace(200) [[BUFFER]], align 16
-// CHECK-NEXT:    call void @do_stuff(ptr addrspace(200) noundef nonnull [[BUFFER]]) #[[ATTR5]]
-// CHECK-NEXT:    call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5]]
+// CHECK-NEXT:    call addrspace(200) void @do_stuff(ptr addrspace(200) noundef nonnull [[BUFFER]]) #[[ATTR5]]
+// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[BUFFER]]) #[[ATTR5]]
 // CHECK-NEXT:    ret void
 //
 void copy_group(const char *a) {
@@ -97,18 +97,18 @@ void copy_group(const char *a) {
 // OPTNONE-NEXT:    store ptr addrspace(200) [[A]], ptr addrspace(200) [[A_ADDR]], align 16
 // OPTNONE-NEXT:    store ptr addrspace(200) [[BUFFER]], ptr addrspace(200) [[BUFFER_ADDR]], align 16
 // OPTNONE-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[BUFFER_ADDR]], align 16
-// OPTNONE-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[TMP0]], ptr addrspace(200) align 16 [[A_ADDR]], i64 16, i1 false) #[[ATTR3]]
+// OPTNONE-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[TMP0]], ptr addrspace(200) align 16 [[A_ADDR]], i64 16, i1 false) #[[ATTR3]]
 // OPTNONE-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[BUFFER_ADDR]], align 16
 // OPTNONE-NEXT:    store ptr addrspace(200) [[TMP1]], ptr addrspace(200) [[G]], align 16
 // OPTNONE-NEXT:    [[TMP2:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[G]], align 16
-// OPTNONE-NEXT:    call void @do_stuff(ptr addrspace(200) noundef [[TMP2]])
+// OPTNONE-NEXT:    call addrspace(200) void @do_stuff(ptr addrspace(200) noundef [[TMP2]])
 // OPTNONE-NEXT:    ret void
 //
 // CHECK-LABEL: define {{[^@]+}}@copy_group2
 // CHECK-SAME: (ptr addrspace(200) noundef [[A:%.*]], ptr addrspace(200) noundef initializes((0, 16)) [[BUFFER:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    store ptr addrspace(200) [[A]], ptr addrspace(200) [[BUFFER]], align 1
-// CHECK-NEXT:    tail call void @do_stuff(ptr addrspace(200) noundef nonnull [[BUFFER]]) #[[ATTR5]]
+// CHECK-NEXT:    tail call addrspace(200) void @do_stuff(ptr addrspace(200) noundef nonnull [[BUFFER]]) #[[ATTR5]]
 // CHECK-NEXT:    ret void
 //
 void copy_group2(const char *a, char *buffer) {
@@ -135,11 +135,11 @@ void copy_group2(const char *a, char *buffer) {
 // OPTNONE-NEXT:    store i64 [[SIZE]], ptr addrspace(200) [[SIZE_ADDR]], align 8
 // OPTNONE-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[BUFFER_ADDR]], align 16
 // OPTNONE-NEXT:    [[TMP1:%.*]] = load i64, ptr addrspace(200) [[SIZE_ADDR]], align 8
-// OPTNONE-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[TMP0]], ptr addrspace(200) align 16 [[A]], i64 [[TMP1]], i1 false) #[[ATTR4:[0-9]+]]
+// OPTNONE-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[TMP0]], ptr addrspace(200) align 16 [[A]], i64 [[TMP1]], i1 false) #[[ATTR4:[0-9]+]]
 // OPTNONE-NEXT:    [[TMP2:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[BUFFER_ADDR]], align 16
 // OPTNONE-NEXT:    store ptr addrspace(200) [[TMP2]], ptr addrspace(200) [[G]], align 16
 // OPTNONE-NEXT:    [[TMP3:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[G]], align 16
-// OPTNONE-NEXT:    call void @do_stuff(ptr addrspace(200) noundef [[TMP3]])
+// OPTNONE-NEXT:    call addrspace(200) void @do_stuff(ptr addrspace(200) noundef [[TMP3]])
 // OPTNONE-NEXT:    ret void
 //
 // CHECK-LABEL: define {{[^@]+}}@copy_group3
@@ -147,8 +147,8 @@ void copy_group2(const char *a, char *buffer) {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[A_SROA_0:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // CHECK-NEXT:    store ptr addrspace(200) [[A_COERCE]], ptr addrspace(200) [[A_SROA_0]], align 16
-// CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[BUFFER]], ptr addrspace(200) nonnull align 16 [[A_SROA_0]], i64 [[SIZE]], i1 false) #[[ATTR6:[0-9]+]]
-// CHECK-NEXT:    tail call void @do_stuff(ptr addrspace(200) noundef [[BUFFER]]) #[[ATTR5]]
+// CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[BUFFER]], ptr addrspace(200) nonnull align 16 [[A_SROA_0]], i64 [[SIZE]], i1 false) #[[ATTR6:[0-9]+]]
+// CHECK-NEXT:    tail call addrspace(200) void @do_stuff(ptr addrspace(200) noundef [[BUFFER]]) #[[ATTR5]]
 // CHECK-NEXT:    ret void
 //
 void copy_group3(char *buffer, struct group a, long size) {

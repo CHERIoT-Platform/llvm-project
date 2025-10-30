@@ -191,7 +191,7 @@ __uintcap_t test_fetch_add_uintcap(_Atomic(__uintcap_t) *ptr, __uintcap_t value)
 // PURECAP-LABEL: define {{[^@]+}}@test_fetch_add_longptr
 // PURECAP-SAME: (ptr addrspace(200) noundef [[PTR:%.*]], ptr addrspace(200) noundef [[VALUE:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[VALUE]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[VALUE]])
 // PURECAP-NEXT:    [[TMP1:%.*]] = mul i64 [[TMP0]], 8
 // PURECAP-NEXT:    [[TMP2:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[TMP1]]
 // PURECAP-NEXT:    [[TMP3:%.*]] = atomicrmw add ptr addrspace(200) [[PTR]], ptr addrspace(200) [[TMP2]] seq_cst, align 16
@@ -235,7 +235,7 @@ long *__capability test_fetch_add_longptr_and_short(_Atomic(long *__capability) 
 // PURECAP-LABEL: define {{[^@]+}}@test_fetch_add_charptr
 // PURECAP-SAME: (ptr addrspace(200) noundef [[PTR:%.*]], ptr addrspace(200) noundef [[VALUE:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[VALUE]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[VALUE]])
 // PURECAP-NEXT:    [[TMP1:%.*]] = mul i64 [[TMP0]], 1
 // PURECAP-NEXT:    [[TMP2:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[TMP1]]
 // PURECAP-NEXT:    [[TMP3:%.*]] = atomicrmw add ptr addrspace(200) [[PTR]], ptr addrspace(200) [[TMP2]] seq_cst, align 16
@@ -295,7 +295,7 @@ __uintcap_t test_fetch_sub_uintcap(_Atomic(__uintcap_t) *ptr, __uintcap_t value)
 // PURECAP-LABEL: define {{[^@]+}}@test_fetch_sub_longptr
 // PURECAP-SAME: (ptr addrspace(200) noundef [[PTR:%.*]], ptr addrspace(200) noundef [[VALUE:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[VALUE]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[VALUE]])
 // PURECAP-NEXT:    [[TMP1:%.*]] = mul i64 [[TMP0]], 8
 // PURECAP-NEXT:    [[TMP2:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[TMP1]]
 // PURECAP-NEXT:    [[TMP3:%.*]] = atomicrmw sub ptr addrspace(200) [[PTR]], ptr addrspace(200) [[TMP2]] seq_cst, align 16
@@ -339,7 +339,7 @@ long *__capability test_fetch_sub_longptr_and_short(_Atomic(long *__capability) 
 // PURECAP-LABEL: define {{[^@]+}}@test_fetch_sub_charptr
 // PURECAP-SAME: (ptr addrspace(200) noundef [[PTR:%.*]], ptr addrspace(200) noundef [[VALUE:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[VALUE]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[VALUE]])
 // PURECAP-NEXT:    [[TMP1:%.*]] = mul i64 [[TMP0]], 1
 // PURECAP-NEXT:    [[TMP2:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[TMP1]]
 // PURECAP-NEXT:    [[TMP3:%.*]] = atomicrmw sub ptr addrspace(200) [[PTR]], ptr addrspace(200) [[TMP2]] seq_cst, align 16

@@ -8,7 +8,7 @@
 // CHECK-SAME: (ptr addrspace(200) noundef [[PTR:%.*]], i64 noundef signext [[ALIGN:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[MASK:%.*]] = add i64 [[ALIGN]], -1
-// CHECK-NEXT:    [[PTRADDR:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[PTR]])
+// CHECK-NEXT:    [[PTRADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[PTR]])
 // CHECK-NEXT:    [[SET_BITS:%.*]] = and i64 [[PTRADDR]], [[MASK]]
 // CHECK-NEXT:    [[IS_ALIGNED:%.*]] = icmp eq i64 [[SET_BITS]], 0
 // CHECK-NEXT:    ret i1 [[IS_ALIGNED]]
@@ -32,7 +32,7 @@ _Bool is_aligned(void *ptr, long align) {
 // CHECK-NEXT:    [[GEP0:%.*]] = getelementptr i8, ptr addrspace(200) [[PTR]], i64 [[ALIGN]]
 // CHECK-NEXT:    [[OVER_BOUNDARY:%.*]] = getelementptr i8, ptr addrspace(200) [[GEP0]], i64 -1
 // CHECK-NEXT:    [[INVERTED_MASK:%.*]] = sub i64 0, [[ALIGN]]
-// CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = tail call ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[OVER_BOUNDARY]], i64 [[INVERTED_MASK]])
+// CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[OVER_BOUNDARY]], i64 [[INVERTED_MASK]])
 // CHECK-NEXT:    ret ptr addrspace(200) [[ALIGNED_RESULT]]
 void* align_up(void *ptr, long align) {
   // ASM-LABEL: align_up:
@@ -53,7 +53,7 @@ void* align_up(void *ptr, long align) {
 // CHECK-SAME: (ptr addrspace(200) noundef readnone [[PTR:%.*]], i64 noundef signext [[ALIGN:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[INVERTED_MASK:%.*]] = sub i64 0, [[ALIGN]]
-// CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = tail call ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[PTR]], i64 [[INVERTED_MASK]])
+// CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[PTR]], i64 [[INVERTED_MASK]])
 // CHECK-NEXT:    ret ptr addrspace(200) [[ALIGNED_RESULT]]
 //
 void* align_down(void *ptr, long align) {

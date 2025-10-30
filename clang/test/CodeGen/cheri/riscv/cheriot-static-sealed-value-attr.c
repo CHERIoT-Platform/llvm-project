@@ -31,10 +31,10 @@ void doSomething2(SealedInt *__sealed_capability obj);
 // CHECK: define dso_local void @func() local_unnamed_addr addrspace(200) #1 {
 void func() {
 // CHECK: entry:
-// CHECK: 	tail call void @doSomething(ptr addrspace(200) noundef nonnull @Obj1) #3
+// CHECK: 	tail call addrspace(200) void @doSomething(ptr addrspace(200) noundef nonnull @Obj1) #3
   doSomething(&Obj1);
 
-// CHECK: 	tail call void @doSomething2(ptr addrspace(200) noundef nonnull @Obj2) #3
+// CHECK: 	tail call addrspace(200) void @doSomething2(ptr addrspace(200) noundef nonnull @Obj2) #3
   doSomething2(&Obj2);
 }
 

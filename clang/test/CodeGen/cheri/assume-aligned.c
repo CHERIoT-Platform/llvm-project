@@ -18,7 +18,7 @@
 // PURECAP-NEXT:    [[PTR_ADDR:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // PURECAP-NEXT:    store ptr addrspace(200) [[PTR]], ptr addrspace(200) [[PTR_ADDR]], align 16
 // PURECAP-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[PTR_ADDR]], align 16
-// PURECAP-NEXT:    call void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) [[TMP0]], i64 4) ]
+// PURECAP-NEXT:    call addrspace(200) void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) [[TMP0]], i64 4) ]
 // PURECAP-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 int* assume_aligned_ptr(void* ptr) {
@@ -40,7 +40,7 @@ int* assume_aligned_ptr(void* ptr) {
 // PURECAP-NEXT:    [[PTR_ADDR:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // PURECAP-NEXT:    store ptr addrspace(200) [[PTR]], ptr addrspace(200) [[PTR_ADDR]], align 16
 // PURECAP-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[PTR_ADDR]], align 16
-// PURECAP-NEXT:    call void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) [[TMP0]], i64 4) ]
+// PURECAP-NEXT:    call addrspace(200) void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) [[TMP0]], i64 4) ]
 // PURECAP-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 int* __capability assume_aligned_cap(void* __capability ptr) {

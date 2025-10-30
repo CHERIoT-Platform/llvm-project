@@ -12,7 +12,7 @@ define void @test(ptr addrspace(200) %arg1, ptr addrspace(200) %arg2) local_unna
 ; CHECK-SAME: (ptr addrspace(200) [[ARG1:%.*]], ptr addrspace(200) [[ARG2:%.*]]) local_unnamed_addr addrspace(200) {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[ARG2]], align 16
-; CHECK-NEXT:    call void [[TMP0]](ptr addrspace(200) [[ARG1]])
+; CHECK-NEXT:    call addrspace(200) void [[TMP0]](ptr addrspace(200) [[ARG1]])
 ; CHECK-NEXT:    ret void
 ;
 ; HYBRID-LABEL: define {{[^@]+}}@test
@@ -23,14 +23,14 @@ define void @test(ptr addrspace(200) %arg1, ptr addrspace(200) %arg2) local_unna
 ; HYBRID-NEXT:    ret void
 ;
 entry:
-  call void @call_fnptr(ptr addrspace(200) %arg1, ptr addrspace(200) %arg2)
+  call addrspace(200) void @call_fnptr(ptr addrspace(200) %arg1, ptr addrspace(200) %arg2)
   ret void
 }
 
 define internal void @call_fnptr(ptr addrspace(200) %this, ptr addrspace(200) %arg) unnamed_addr addrspace(200) align 2 {
 entry:
   %0 = load ptr addrspace(200), ptr addrspace(200) %arg, align 16
-  call void %0(ptr addrspace(200) %this)
+  call addrspace(200) void %0(ptr addrspace(200) %this)
   ret void
 }
 
@@ -40,7 +40,7 @@ define void @test2(ptr addrspace(200) %this) local_unnamed_addr addrspace(200) {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[VTABLE_I:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[THIS]], align 16
 ; CHECK-NEXT:    [[FN_I:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[VTABLE_I]], align 16
-; CHECK-NEXT:    call void [[FN_I]](ptr addrspace(200) [[THIS]])
+; CHECK-NEXT:    call addrspace(200) void [[FN_I]](ptr addrspace(200) [[THIS]])
 ; CHECK-NEXT:    ret void
 ;
 ; HYBRID-LABEL: define {{[^@]+}}@test2
@@ -52,7 +52,7 @@ define void @test2(ptr addrspace(200) %this) local_unnamed_addr addrspace(200) {
 ; HYBRID-NEXT:    ret void
 ;
 entry:
-  call void @call_via_vtable(ptr addrspace(200) %this)
+  call addrspace(200) void @call_via_vtable(ptr addrspace(200) %this)
   ret void
 }
 
@@ -61,6 +61,6 @@ entry:
   %0 = bitcast ptr addrspace(200) %this to ptr addrspace(200)
   %vtable = load ptr addrspace(200), ptr addrspace(200) %0, align 16
   %fn = load ptr addrspace(200), ptr addrspace(200) %vtable, align 16
-  call void %fn(ptr addrspace(200) %this)
+  call addrspace(200) void %fn(ptr addrspace(200) %this)
   ret void
 }

@@ -9,8 +9,8 @@ int foo(void);
 
 // CHECK: define dso_local i32 @callFromNotLibcall() local_unnamed_addr addrspace(200) #0 {
 int callFromNotLibcall(void) {
-  // CHECK: call cheriot_librarycallcc i32 @_Z3addii(i32 noundef 1, i32 noundef 2) #2
-  // CHECK: call cheriot_librarycallcc i32 @_Z3foov() #2
+  // CHECK: call cheriot_librarycallcc addrspace(200) i32 @_Z3addii(i32 noundef 1, i32 noundef 2) #2
+  // CHECK: call cheriot_librarycallcc addrspace(200) i32 @_Z3foov() #2
   return add(1, 2) + foo();
 }
 

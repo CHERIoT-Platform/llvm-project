@@ -25,7 +25,7 @@ struct umutex {
 // CHECK-LABEL: define {{[^@]+}}@_thr_umutex_init
 // CHECK-SAME: (ptr addrspace(200) noundef [[MTX:%.*]]) addrspace(200)
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[MTX]], ptr addrspace(200) align 16 @_thr_umutex_init.default_mtx,
+// CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[MTX]], ptr addrspace(200) align 16 @_thr_umutex_init.default_mtx,
 // Note: This should be a volatile memcpy because the struct contains a volatile member.
 // CHECK-SAME:     i64 48, i1 true)
 // CHECK-NEXT:    ret void

@@ -13,8 +13,8 @@ int e();
 // PCREL-NEXT:    [[TOBOOL_NOT:%.*]] = icmp eq ptr addrspace(200) @a, null
 // PCREL-NEXT:    br i1 [[TOBOOL_NOT]], label [[CLEANUP:%.*]], label [[IF_END2:%.*]]
 // PCREL:       if.end2:
-// PCREL-NEXT:    [[CALL:%.*]] = tail call signext i32 @d() #[[ATTR2:[0-9]+]]
-// PCREL-NEXT:    [[CALL3:%.*]] = tail call signext i32 @e() #[[ATTR2]]
+// PCREL-NEXT:    [[CALL:%.*]] = tail call signext addrspace(200) i32 @d() #[[ATTR2:[0-9]+]]
+// PCREL-NEXT:    [[CALL3:%.*]] = tail call signext addrspace(200) i32 @e() #[[ATTR2]]
 // PCREL-NEXT:    br label [[CLEANUP]]
 // PCREL:       cleanup:
 // PCREL-NEXT:    [[RETVAL_0:%.*]] = phi ptr addrspace(200) [ @a, [[IF_END2]] ], [ null, [[ENTRY:%.*]] ]

@@ -46,7 +46,7 @@ define void @no_preserve(ptr addrspace("A") noalias writeonly %dst, ptr addrspac
 ; PURECAP:       bb1.preheader:
 ; PURECAP-NEXT:    [[SCEVGEP:%.*]] = getelementptr i8, ptr addrspace(200) [[SRC]], i64 16
 ; PURECAP-NEXT:    [[TMP1:%.*]] = shl nuw i64 [[COUNT]], 4
-; PURECAP-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[DST]], ptr addrspace(200) align 4 [[SCEVGEP]], i64 [[TMP1]], i1 false) #[[ATTR2:[0-9]+]]
+; PURECAP-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[DST]], ptr addrspace(200) align 4 [[SCEVGEP]], i64 [[TMP1]], i1 false) #[[ATTR2:[0-9]+]]
 ; PURECAP-NEXT:    br label [[BB2]]
 ; PURECAP:       bb2:
 ; PURECAP-NEXT:    ret void
@@ -93,7 +93,7 @@ define void @must_preserve(ptr addrspace("A") noalias writeonly %dst, ptr addrsp
 ; PURECAP:       bb1.preheader:
 ; PURECAP-NEXT:    [[SCEVGEP:%.*]] = getelementptr i8, ptr addrspace(200) [[SRC]], i64 16
 ; PURECAP-NEXT:    [[TMP1:%.*]] = shl nuw i64 [[COUNT]], 4
-; PURECAP-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[DST]], ptr addrspace(200) align 4 [[SCEVGEP]], i64 [[TMP1]], i1 false) #[[ATTR3:[0-9]+]]
+; PURECAP-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[DST]], ptr addrspace(200) align 4 [[SCEVGEP]], i64 [[TMP1]], i1 false) #[[ATTR3:[0-9]+]]
 ; PURECAP-NEXT:    br label [[BB2]]
 ; PURECAP:       bb2:
 ; PURECAP-NEXT:    ret void

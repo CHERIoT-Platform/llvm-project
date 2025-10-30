@@ -24,7 +24,7 @@ define void @get_state(ptr addrspace("A") noalias captures(none) %state) addrspa
 ; PURECAP-LABEL: define {{[^@]+}}@get_state
 ; PURECAP-SAME: (ptr addrspace(200) noalias captures(none) [[STATE:%.*]]) addrspace(200) {
 ; PURECAP-NEXT:  entry:
-; PURECAP-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 4 [[STATE]], ptr addrspace(200) align 4 @nocap, i64 100, i1 false) #[[ATTR1:[0-9]+]]
+; PURECAP-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 4 [[STATE]], ptr addrspace(200) align 4 @nocap, i64 100, i1 false) #[[ATTR1:[0-9]+]]
 ; PURECAP-NEXT:    ret void
 ;
 entry:
@@ -57,7 +57,7 @@ define void @get_cap_state(ptr addrspace("A") captures(none) noalias %state) add
 ; PURECAP-LABEL: define {{[^@]+}}@get_cap_state
 ; PURECAP-SAME: (ptr addrspace(200) noalias captures(none) [[STATE:%.*]]) addrspace(200) {
 ; PURECAP-NEXT:  entry:
-; PURECAP-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[STATE]], ptr addrspace(200) align 16 @cap, i64 400, i1 false) #[[ATTR2:[0-9]+]]
+; PURECAP-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[STATE]], ptr addrspace(200) align 16 @cap, i64 400, i1 false) #[[ATTR2:[0-9]+]]
 ; PURECAP-NEXT:    ret void
 ;
 entry:

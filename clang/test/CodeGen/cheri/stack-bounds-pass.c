@@ -8,8 +8,8 @@
 // RUN:     -cheri-stack-bounds=if-needed -debug-only="cheri-bound-allocas" 2>&1 | FileCheck -check-prefix DBG-OPT %s
 
 // check that we ignore lifetime.start and lifetime.end intrinisics at -O1 and higher
-// DBG-OPT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %x) #
-// DBG-OPT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %x) #
+// DBG-OPT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %x) #
+// DBG-OPT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %x) #
 // DBG-OPT: cheri-bound-allocas: pass_arg: 2 of 8 users need bounds for   %x = alloca i32, align 4, addrspace(200)
 
 int *call(int *arg);
@@ -40,16 +40,16 @@ int pass_arg(void) {
 // DBG-NEXT:  -Checking if load/store needs bounds (GEP offset is 0):   %3 = load i32, ptr addrspace(200) %x, align 4
 // DBG-NEXT:   -Load/store size=4, alloca size=4, current GEP offset=0 for i32
 // DBG-NEXT:   -Load/store is in bounds -> can reuse $csp for   %3 = load i32, ptr addrspace(200) %x, align 4
-// DBG-NEXT:  -Adding stack bounds since it is passed to call:   %call1 = call ptr addrspace(200) @call(ptr addrspace(200) noundef %x)
-// DBG-NEXT: Found alloca use that needs bounds:   %call1 = call ptr addrspace(200) @call(ptr addrspace(200) noundef %x)
+// DBG-NEXT:  -Adding stack bounds since it is passed to call:   %call1 = call addrspace(200) ptr addrspace(200) @call(ptr addrspace(200) noundef %x)
+// DBG-NEXT: Found alloca use that needs bounds:   %call1 = call addrspace(200) ptr addrspace(200) @call(ptr addrspace(200) noundef %x)
 // DBG-NEXT:  -Checking if load/store needs bounds (GEP offset is 0):   store i32 %add, ptr addrspace(200) %x, align 4
 // DBG-NEXT:   -Load/store size=4, alloca size=4, current GEP offset=0 for i32
 // DBG-NEXT:   -Load/store is in bounds -> can reuse $csp for   store i32 %add, ptr addrspace(200) %x, align 4
 // DBG-NEXT:  -Checking if load/store needs bounds (GEP offset is 0):   %2 = load i32, ptr addrspace(200) %x, align 4
 // DBG-NEXT:   -Load/store size=4, alloca size=4, current GEP offset=0 for i32
 // DBG-NEXT:   -Load/store is in bounds -> can reuse $csp for   %2 = load i32, ptr addrspace(200) %x, align 4
-// DBG-NEXT:  -Adding stack bounds since it is passed to call:   %call = call ptr addrspace(200) @call(ptr addrspace(200) noundef %x)
-// DBG-NEXT: Found alloca use that needs bounds:   %call = call ptr addrspace(200) @call(ptr addrspace(200) noundef %x)
+// DBG-NEXT:  -Adding stack bounds since it is passed to call:   %call = call addrspace(200) ptr addrspace(200) @call(ptr addrspace(200) noundef %x)
+// DBG-NEXT: Found alloca use that needs bounds:   %call = call addrspace(200) ptr addrspace(200) @call(ptr addrspace(200) noundef %x)
 // DBG-NEXT:  -Checking if load/store needs bounds (GEP offset is 0):   store i32 5, ptr addrspace(200) %x, align 4
 // DBG-NEXT:   -Load/store size=4, alloca size=4, current GEP offset=0 for i32
 // DBG-NEXT:   -Load/store is in bounds -> can reuse $csp for   store i32 5, ptr addrspace(200) %x, align 4

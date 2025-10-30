@@ -7,26 +7,26 @@ target datalayout = "E-m:e-pf200:128:128:128:64-i8:8:32-i16:16:32-i64:64-n32:64-
 define dso_local ptr addrspace(200) @assume_variable(ptr addrspace(200) %ptr, i64 %alignment) addrspace(200) nounwind {
 ; CHECK-LABEL: define {{[^@]+}}@assume_variable
 ; CHECK-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[ALIGNMENT:%.*]]) addrspace(200) #[[ATTR0:[0-9]+]] {
-; CHECK-NEXT:    call void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) [[PTR]], i64 [[ALIGNMENT]]) ]
-; CHECK-NEXT:    tail call void @llvm.memset.p200.i64(ptr addrspace(200) align 1 [[PTR]], i8 0, i64 16, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) [[PTR]], i64 [[ALIGNMENT]]) ]
+; CHECK-NEXT:    tail call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) align 1 [[PTR]], i8 0, i64 16, i1 false)
 ; CHECK-NEXT:    ret ptr addrspace(200) [[PTR]]
 ;
-  call void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) %ptr, i64 %alignment) ]
+  call addrspace(200) void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) %ptr, i64 %alignment) ]
   ; Calling memset here ensures that alignment-from-assumptions tries to update the pointer alignment:
-  tail call void @llvm.memset.p200.i64(ptr addrspace(200) align 1 %ptr, i8 0, i64 16, i1 false)
+  tail call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) align 1 %ptr, i8 0, i64 16, i1 false)
   ret ptr addrspace(200) %ptr
 }
 
 define dso_local ptr addrspace(200) @assume_const(ptr addrspace(200) %ptr) addrspace(200) nounwind {
 ; CHECK-LABEL: define {{[^@]+}}@assume_const
 ; CHECK-SAME: (ptr addrspace(200) [[PTR:%.*]]) addrspace(200) #[[ATTR0]] {
-; CHECK-NEXT:    call void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) [[PTR]], i64 16) ]
-; CHECK-NEXT:    tail call void @llvm.memset.p200.i64(ptr addrspace(200) align 16 [[PTR]], i8 0, i64 16, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) [[PTR]], i64 16) ]
+; CHECK-NEXT:    tail call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) align 16 [[PTR]], i8 0, i64 16, i1 false)
 ; CHECK-NEXT:    ret ptr addrspace(200) [[PTR]]
 ;
-  call void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) %ptr, i64 16) ]
+  call addrspace(200) void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) %ptr, i64 16) ]
   ; Calling memset here ensures that alignment-from-assumptions tries to update the pointer alignment:
-  tail call void @llvm.memset.p200.i64(ptr addrspace(200) align 1 %ptr, i8 0, i64 16, i1 false)
+  tail call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) align 1 %ptr, i8 0, i64 16, i1 false)
   ret ptr addrspace(200) %ptr
 }
 

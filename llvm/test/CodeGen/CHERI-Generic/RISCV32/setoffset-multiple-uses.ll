@@ -24,12 +24,12 @@ define void @infer_values_from_null_set_offset() addrspace(200) nounwind {
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define void @infer_values_from_null_set_offset
 ; CHECK-SAME: () addrspace(200) #[[ATTR1:[0-9]+]] {
-; CHECK-NEXT:    [[OFFSET_CHECK:%.*]] = call i32 @check_fold(i32 123456)
+; CHECK-NEXT:    [[OFFSET_CHECK:%.*]] = call addrspace(200) i32 @check_fold(i32 123456)
 ; CHECK-NEXT:    ret void
 ;
-  %with_offset = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i32(ptr addrspace(200) null, i32 123456)
-  %offset = call i32 @llvm.cheri.cap.offset.get.i32(ptr addrspace(200) nonnull %with_offset)
-  %offset_check = call i32 @check_fold(i32 %offset)
+  %with_offset = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i32(ptr addrspace(200) null, i32 123456)
+  %offset = call addrspace(200) i32 @llvm.cheri.cap.offset.get.i32(ptr addrspace(200) nonnull %with_offset)
+  %offset_check = call addrspace(200) i32 @check_fold(i32 %offset)
   ret void
 }
 
@@ -54,15 +54,15 @@ define void @multiple_uses_big_constant() addrspace(200) nounwind {
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define void @multiple_uses_big_constant
 ; CHECK-SAME: () addrspace(200) #[[ATTR1]] {
-; CHECK-NEXT:    call void @check_fold_i8ptr(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i32 123456))
-; CHECK-NEXT:    call void @check_fold_i8ptr(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i32 123456))
-; CHECK-NEXT:    call void @check_fold_i8ptr(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i32 123456))
+; CHECK-NEXT:    call addrspace(200) void @check_fold_i8ptr(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i32 123456))
+; CHECK-NEXT:    call addrspace(200) void @check_fold_i8ptr(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i32 123456))
+; CHECK-NEXT:    call addrspace(200) void @check_fold_i8ptr(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i32 123456))
 ; CHECK-NEXT:    ret void
 ;
-  %with_offset = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i32(ptr addrspace(200) null, i32 123456)
-  call void @check_fold_i8ptr(ptr addrspace(200) %with_offset)
-  call void @check_fold_i8ptr(ptr addrspace(200) %with_offset)
-  call void @check_fold_i8ptr(ptr addrspace(200) %with_offset)
+  %with_offset = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i32(ptr addrspace(200) null, i32 123456)
+  call addrspace(200) void @check_fold_i8ptr(ptr addrspace(200) %with_offset)
+  call addrspace(200) void @check_fold_i8ptr(ptr addrspace(200) %with_offset)
+  call addrspace(200) void @check_fold_i8ptr(ptr addrspace(200) %with_offset)
   ret void
 }
 
@@ -83,14 +83,14 @@ define void @multiple_uses_small_constant() addrspace(200) nounwind {
 ; ASM-NEXT:    cret
 ; CHECK-LABEL: define void @multiple_uses_small_constant
 ; CHECK-SAME: () addrspace(200) #[[ATTR1]] {
-; CHECK-NEXT:    call void @check_fold_i8ptr(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i32 123))
-; CHECK-NEXT:    call void @check_fold_i8ptr(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i32 123))
-; CHECK-NEXT:    call void @check_fold_i8ptr(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i32 123))
+; CHECK-NEXT:    call addrspace(200) void @check_fold_i8ptr(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i32 123))
+; CHECK-NEXT:    call addrspace(200) void @check_fold_i8ptr(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i32 123))
+; CHECK-NEXT:    call addrspace(200) void @check_fold_i8ptr(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i32 123))
 ; CHECK-NEXT:    ret void
 ;
-  %with_offset = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i32(ptr addrspace(200) null, i32 123)
-  call void @check_fold_i8ptr(ptr addrspace(200) %with_offset)
-  call void @check_fold_i8ptr(ptr addrspace(200) %with_offset)
-  call void @check_fold_i8ptr(ptr addrspace(200) %with_offset)
+  %with_offset = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i32(ptr addrspace(200) null, i32 123)
+  call addrspace(200) void @check_fold_i8ptr(ptr addrspace(200) %with_offset)
+  call addrspace(200) void @check_fold_i8ptr(ptr addrspace(200) %with_offset)
+  call addrspace(200) void @check_fold_i8ptr(ptr addrspace(200) %with_offset)
   ret void
 }

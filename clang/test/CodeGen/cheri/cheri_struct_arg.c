@@ -15,7 +15,7 @@ void *f(void *a, struct thingy b)
 // hex: they're the high 32 bits set to the first of a pair of 32-bit values
 // and the low 32 bits set to the second value.
 //
-// CHECK: call ptr addrspace(200) 
+// CHECK: call addrspace(200) ptr addrspace(200) 
 // CHECK: (i64 inreg 1, i64 inreg 8589934595, i64 inreg 17179869189, i64 inreg 25769803776)
 	render_char((struct thingy){1,{2,3,4,5,6}});
 	return render_char(b);

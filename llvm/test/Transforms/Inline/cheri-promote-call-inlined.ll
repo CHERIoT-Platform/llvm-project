@@ -25,7 +25,7 @@ entry:
   %2 = getelementptr inbounds i8, ptr addrspace(200) %1, i64 %memptr.adj
   %this.adjusted = bitcast ptr addrspace(200) %2 to ptr addrspace(200)
   %memptr.ptr = extractvalue { ptr addrspace(200), i64 } %fp, 0
-  %memptr.ptr.addr = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) %memptr.ptr)
+  %memptr.ptr.addr = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) %memptr.ptr)
   %3 = and i64 %memptr.ptr.addr, 1
   %memptr.isvirtual = icmp ne i64 %3, 0
   br i1 %memptr.isvirtual, label %memptr.virtual, label %memptr.nonvirtual
@@ -46,7 +46,7 @@ memptr.nonvirtual:                                ; preds = %entry
 
 memptr.end:                                       ; preds = %memptr.nonvirtual, %memptr.virtual
   %8 = phi ptr addrspace(200) [ %memptr.virtualfn, %memptr.virtual ], [ %memptr.nonvirtualfn, %memptr.nonvirtual ]
-  %call = call i64 %8(ptr addrspace(200) nonnull align 16 dereferenceable(16) %this.adjusted)
+  %call = call addrspace(200) i64 %8(ptr addrspace(200) nonnull align 16 dereferenceable(16) %this.adjusted)
   ret i64 %call
 }
 
@@ -61,7 +61,7 @@ define dso_local i64 @call_f1_via_member_ptr() addrspace(200) {
 ; INLINE-ONLY-NEXT:    [[MEMPTR_ADJ_I:%.*]] = extractvalue { ptr addrspace(200), i64 } [[FP_I]], 1
 ; INLINE-ONLY-NEXT:    [[TMP0:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[A]], i64 [[MEMPTR_ADJ_I]]
 ; INLINE-ONLY-NEXT:    [[MEMPTR_PTR_I:%.*]] = extractvalue { ptr addrspace(200), i64 } [[FP_I]], 0
-; INLINE-ONLY-NEXT:    [[MEMPTR_PTR_ADDR_I:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[MEMPTR_PTR_I]])
+; INLINE-ONLY-NEXT:    [[MEMPTR_PTR_ADDR_I:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[MEMPTR_PTR_I]])
 ; INLINE-ONLY-NEXT:    [[TMP1:%.*]] = and i64 [[MEMPTR_PTR_ADDR_I]], 1
 ; INLINE-ONLY-NEXT:    [[MEMPTR_ISVIRTUAL_I:%.*]] = icmp ne i64 [[TMP1]], 0
 ; INLINE-ONLY-NEXT:    br i1 [[MEMPTR_ISVIRTUAL_I]], label [[MEMPTR_VIRTUAL_I:%.*]], label [[MEMPTR_NONVIRTUAL_I:%.*]]
@@ -76,7 +76,7 @@ define dso_local i64 @call_f1_via_member_ptr() addrspace(200) {
 ; INLINE-ONLY-NEXT:    br label [[CALL_MEMBER_FN_PTR_INDIRECT_ARG_EXIT]]
 ; INLINE-ONLY:       call_member_fn_ptr_indirect_arg.exit:
 ; INLINE-ONLY-NEXT:    [[TMP4:%.*]] = phi ptr addrspace(200) [ [[MEMPTR_VIRTUALFN_I]], [[MEMPTR_VIRTUAL_I]] ], [ [[MEMPTR_PTR_I]], [[MEMPTR_NONVIRTUAL_I]] ]
-; INLINE-ONLY-NEXT:    [[CALL_I:%.*]] = call i64 [[TMP4]](ptr addrspace(200) nonnull align 16 dereferenceable(16) [[TMP0]])
+; INLINE-ONLY-NEXT:    [[CALL_I:%.*]] = call addrspace(200) i64 [[TMP4]](ptr addrspace(200) nonnull align 16 dereferenceable(16) [[TMP0]])
 ; INLINE-ONLY-NEXT:    ret i64 [[CALL_I]]
 ;
 ; FULL-LABEL: define {{[^@]+}}@call_f1_via_member_ptr
@@ -87,9 +87,9 @@ define dso_local i64 @call_f1_via_member_ptr() addrspace(200) {
 entry:
   %a = alloca %struct.A, align 16, addrspace(200)
   %indirect-arg-temp = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
-  call void @_ZN1AC1Ev(ptr addrspace(200) nonnull align 16 dereferenceable(16) %a)
+  call addrspace(200) void @_ZN1AC1Ev(ptr addrspace(200) nonnull align 16 dereferenceable(16) %a)
   store { ptr addrspace(200), i64 } { ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1), i64 0 }, ptr addrspace(200) %indirect-arg-temp, align 16
-  %call = call i64 @call_member_fn_ptr_indirect_arg(ptr addrspace(200) %a, ptr addrspace(200) %indirect-arg-temp)
+  %call = call addrspace(200) i64 @call_member_fn_ptr_indirect_arg(ptr addrspace(200) %a, ptr addrspace(200) %indirect-arg-temp)
   ret i64 %call
 }
 
@@ -104,7 +104,7 @@ define dso_local i64 @call_f2_via_member_ptr() addrspace(200) {
 ; INLINE-ONLY-NEXT:    [[MEMPTR_ADJ_I:%.*]] = extractvalue { ptr addrspace(200), i64 } [[FP_I]], 1
 ; INLINE-ONLY-NEXT:    [[TMP0:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[A]], i64 [[MEMPTR_ADJ_I]]
 ; INLINE-ONLY-NEXT:    [[MEMPTR_PTR_I:%.*]] = extractvalue { ptr addrspace(200), i64 } [[FP_I]], 0
-; INLINE-ONLY-NEXT:    [[MEMPTR_PTR_ADDR_I:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[MEMPTR_PTR_I]])
+; INLINE-ONLY-NEXT:    [[MEMPTR_PTR_ADDR_I:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[MEMPTR_PTR_I]])
 ; INLINE-ONLY-NEXT:    [[TMP1:%.*]] = and i64 [[MEMPTR_PTR_ADDR_I]], 1
 ; INLINE-ONLY-NEXT:    [[MEMPTR_ISVIRTUAL_I:%.*]] = icmp ne i64 [[TMP1]], 0
 ; INLINE-ONLY-NEXT:    br i1 [[MEMPTR_ISVIRTUAL_I]], label [[MEMPTR_VIRTUAL_I:%.*]], label [[MEMPTR_NONVIRTUAL_I:%.*]]
@@ -119,7 +119,7 @@ define dso_local i64 @call_f2_via_member_ptr() addrspace(200) {
 ; INLINE-ONLY-NEXT:    br label [[CALL_MEMBER_FN_PTR_INDIRECT_ARG_EXIT]]
 ; INLINE-ONLY:       call_member_fn_ptr_indirect_arg.exit:
 ; INLINE-ONLY-NEXT:    [[TMP4:%.*]] = phi ptr addrspace(200) [ [[MEMPTR_VIRTUALFN_I]], [[MEMPTR_VIRTUAL_I]] ], [ [[MEMPTR_PTR_I]], [[MEMPTR_NONVIRTUAL_I]] ]
-; INLINE-ONLY-NEXT:    [[CALL_I:%.*]] = call i64 [[TMP4]](ptr addrspace(200) nonnull align 16 dereferenceable(16) [[TMP0]])
+; INLINE-ONLY-NEXT:    [[CALL_I:%.*]] = call addrspace(200) i64 [[TMP4]](ptr addrspace(200) nonnull align 16 dereferenceable(16) [[TMP0]])
 ; INLINE-ONLY-NEXT:    ret i64 [[CALL_I]]
 ;
 ; FULL-LABEL: define {{[^@]+}}@call_f2_via_member_ptr
@@ -130,9 +130,9 @@ define dso_local i64 @call_f2_via_member_ptr() addrspace(200) {
 entry:
   %a = alloca %struct.A, align 16, addrspace(200)
   %indirect-arg-temp = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
-  call void @_ZN1AC1Ev(ptr addrspace(200) nonnull align 16 dereferenceable(16) %a)
+  call addrspace(200) void @_ZN1AC1Ev(ptr addrspace(200) nonnull align 16 dereferenceable(16) %a)
   store { ptr addrspace(200), i64 } { ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 17), i64 0 }, ptr addrspace(200) %indirect-arg-temp, align 16
-  %call = call i64 @call_member_fn_ptr_indirect_arg(ptr addrspace(200) %a, ptr addrspace(200) %indirect-arg-temp)
+  %call = call addrspace(200) i64 @call_member_fn_ptr_indirect_arg(ptr addrspace(200) %a, ptr addrspace(200) %indirect-arg-temp)
   ret i64 %call
 }
 
@@ -142,7 +142,7 @@ define internal i64 @call_member_fn_ptr_direct_arg(ptr addrspace(200) %a, { ptr 
   %2 = getelementptr inbounds i8, ptr addrspace(200) %1, i64 %memptr.adj
   %this.adjusted = bitcast ptr addrspace(200) %2 to ptr addrspace(200)
   %memptr.ptr = extractvalue { ptr addrspace(200), i64 } %fp, 0
-  %memptr.ptr.addr = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) %memptr.ptr)
+  %memptr.ptr.addr = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) %memptr.ptr)
   %3 = and i64 %memptr.ptr.addr, 1
   %memptr.isvirtual = icmp ne i64 %3, 0
   br i1 %memptr.isvirtual, label %memptr.virtual, label %memptr.nonvirtual
@@ -163,7 +163,7 @@ memptr.nonvirtual:                                ; preds = %0
 
 memptr.end:                                       ; preds = %memptr.nonvirtual, %memptr.virtual
   %8 = phi ptr addrspace(200) [ %memptr.virtualfn, %memptr.virtual ], [ %memptr.nonvirtualfn, %memptr.nonvirtual ]
-  %call = call i64 %8(ptr addrspace(200) nonnull align 16 dereferenceable(16) %this.adjusted)
+  %call = call addrspace(200) i64 %8(ptr addrspace(200) nonnull align 16 dereferenceable(16) %this.adjusted)
   ret i64 %call
 }
 
@@ -183,8 +183,8 @@ define dso_local i64 @call_f1_via_member_ptr_direct_arg() addrspace(200) {
 ;
 entry:
   %a = alloca %struct.A, align 16, addrspace(200)
-  call void @_ZN1AC1Ev(ptr addrspace(200) nonnull align 16 dereferenceable(16) %a)
-  %call = call i64 @call_member_fn_ptr_direct_arg(ptr addrspace(200) %a, { ptr addrspace(200), i64 } { ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1), i64 0 })
+  call addrspace(200) void @_ZN1AC1Ev(ptr addrspace(200) nonnull align 16 dereferenceable(16) %a)
+  %call = call addrspace(200) i64 @call_member_fn_ptr_direct_arg(ptr addrspace(200) %a, { ptr addrspace(200), i64 } { ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1), i64 0 })
   ret i64 %call
 }
 
@@ -205,8 +205,8 @@ define dso_local i64 @call_f2_via_member_ptr_direct_arg() addrspace(200) {
 ;
 entry:
   %a = alloca %struct.A, align 16, addrspace(200)
-  call void @_ZN1AC1Ev(ptr addrspace(200) nonnull align 16 dereferenceable(16) %a)
-  %call = call i64 @call_member_fn_ptr_direct_arg(ptr addrspace(200) %a, { ptr addrspace(200), i64 } { ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 17), i64 0 })
+  call addrspace(200) void @_ZN1AC1Ev(ptr addrspace(200) nonnull align 16 dereferenceable(16) %a)
+  %call = call addrspace(200) i64 @call_member_fn_ptr_direct_arg(ptr addrspace(200) %a, { ptr addrspace(200), i64 } { ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 17), i64 0 })
   ret i64 %call
 }
 
@@ -219,7 +219,7 @@ entry:
 
 define internal void @_ZN1AC1Ev(ptr addrspace(200) nonnull align 16 dereferenceable(16) %this) unnamed_addr addrspace(200) {
 entry:
-  call void @_ZN1AC2Ev(ptr addrspace(200) nonnull align 16 dereferenceable(16) %this)
+  call addrspace(200) void @_ZN1AC2Ev(ptr addrspace(200) nonnull align 16 dereferenceable(16) %this)
   ret void
 }
 

@@ -4,7 +4,7 @@
 // CHECK-LABEL: define dso_local void @_Z3fooPFvvE
 // CHECK-SAME: (ptr addrspace(200) noundef readonly captures(none) [[BAR:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    tail call void [[BAR]]() #[[ATTR2:[0-9]+]]
+// CHECK-NEXT:    tail call addrspace(200) void [[BAR]]() #[[ATTR2:[0-9]+]]
 // CHECK-NEXT:    ret void
 //
 void foo(void (*bar)())

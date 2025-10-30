@@ -12,7 +12,7 @@ declare void @use(ptr addrspace(200)) addrspace(200)
 define void @test_store(i32 %a) addrspace(200) {
 ; CHECK-LABEL: @test_store(
 ; CHECK-NEXT:    [[TMP1:%.*]] = alloca [4 x i8], align 1, addrspace(200)
-; CHECK-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i32(ptr addrspace(200) [[TMP1]], i32 4)
+; CHECK-NEXT:    [[TMP2:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i32(ptr addrspace(200) [[TMP1]], i32 4)
 ; CHECK-NEXT:    [[TMP3:%.*]] = getelementptr i8, ptr addrspace(200) [[TMP2]], i32 2147483646
 ; CHECK-NEXT:    store volatile i32 [[A:%.*]], ptr addrspace(200) [[TMP3]], align 2
 ; CHECK-NEXT:    ret void
@@ -31,16 +31,16 @@ define void @test_store(i32 %a) addrspace(200) {
 define void @test_setbounds(i32 %a) addrspace(200) {
 ; CHECK-LABEL: @test_setbounds(
 ; CHECK-NEXT:    [[TMP1:%.*]] = alloca [4 x i8], align 1, addrspace(200)
-; CHECK-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i32(ptr addrspace(200) [[TMP1]], i32 4)
+; CHECK-NEXT:    [[TMP2:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i32(ptr addrspace(200) [[TMP1]], i32 4)
 ; CHECK-NEXT:    [[TMP3:%.*]] = getelementptr i8, ptr addrspace(200) [[TMP2]], i32 2147483646
-; CHECK-NEXT:    [[TMP4:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i32(ptr addrspace(200) [[TMP3]], i32 4)
-; CHECK-NEXT:    call void @use(ptr addrspace(200) [[TMP4]])
+; CHECK-NEXT:    [[TMP4:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i32(ptr addrspace(200) [[TMP3]], i32 4)
+; CHECK-NEXT:    call addrspace(200) void @use(ptr addrspace(200) [[TMP4]])
 ; CHECK-NEXT:    ret void
 ;
   %1 = alloca [4 x i8], align 1, addrspace(200)
   %2 = bitcast ptr addrspace(200) %1 to ptr addrspace(200)
   %3 = getelementptr i8, ptr addrspace(200) %2, i32 2147483646
-  %4 = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i32(ptr addrspace(200) %3, i32 4)
-  call void @use(ptr addrspace(200) %4)
+  %4 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i32(ptr addrspace(200) %3, i32 4)
+  call addrspace(200) void @use(ptr addrspace(200) %4)
   ret void
 }

@@ -17,7 +17,7 @@
 // PURECAP-LABEL: define {{[^@]+}}@test_capptr_to_long
 // PURECAP-SAME: (ptr addrspace(200) noundef [[CAP:%.*]]) addrspace(200) #[[ATTR0:[0-9]+]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
 // PURECAP-NEXT:    ret i64 [[TMP0]]
 //
 long test_capptr_to_long(char *__capability cap) {
@@ -73,7 +73,7 @@ char *test_capptr_to_ptr_fromcap(char *__capability cap) {
 // PURECAP-LABEL: define {{[^@]+}}@test_capptr_to_ptr_addr
 // PURECAP-SAME: (ptr addrspace(200) noundef [[CAP:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
 // PURECAP-NEXT:    [[TMP1:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[TMP0]]
 // PURECAP-NEXT:    ret ptr addrspace(200) [[TMP1]]
 //
@@ -95,7 +95,7 @@ char *test_capptr_to_ptr_addr(char *__capability cap) {
 // PURECAP-LABEL: define {{[^@]+}}@test_intcap_to_long
 // PURECAP-SAME: (ptr addrspace(200) noundef [[CAP:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
 // PURECAP-NEXT:    ret i64 [[TMP0]]
 //
 long test_intcap_to_long(__intcap cap) {
@@ -114,7 +114,7 @@ long test_intcap_to_long(__intcap cap) {
 // PURECAP-LABEL: define {{[^@]+}}@test_intcap_to_long_implicit
 // PURECAP-SAME: (ptr addrspace(200) noundef [[CAP:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
 // PURECAP-NEXT:    ret i64 [[TMP0]]
 //
 long test_intcap_to_long_implicit(__intcap cap) {
@@ -173,7 +173,7 @@ char *test_intcap_to_ptr_fromcap(__intcap cap) {
 // PURECAP-LABEL: define {{[^@]+}}@test_intcap_to_ptr_addr
 // PURECAP-SAME: (ptr addrspace(200) noundef [[CAP:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
 // PURECAP-NEXT:    [[TMP1:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[TMP0]]
 // PURECAP-NEXT:    ret ptr addrspace(200) [[TMP1]]
 //
@@ -195,7 +195,7 @@ char *test_intcap_to_ptr_addr(__intcap cap) {
 // PURECAP-LABEL: define {{[^@]+}}@test_capptr_to_long_via_intcap
 // PURECAP-SAME: (ptr addrspace(200) noundef [[CAP:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
 // PURECAP-NEXT:    ret i64 [[TMP0]]
 //
 long test_capptr_to_long_via_intcap(char *__capability cap) {
@@ -215,7 +215,7 @@ long test_capptr_to_long_via_intcap(char *__capability cap) {
 // PURECAP-LABEL: define {{[^@]+}}@test_capptr_to_long_via_intcap_implicit
 // PURECAP-SAME: (ptr addrspace(200) noundef [[CAP:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
 // PURECAP-NEXT:    ret i64 [[TMP0]]
 //
 long test_capptr_to_long_via_intcap_implicit(char *__capability cap) {
@@ -276,7 +276,7 @@ char *test_capptr_to_ptr_via_intcap_fromcap(char *__capability cap) {
 // PURECAP-LABEL: define {{[^@]+}}@test_capptr_to_ptr_via_intcap_addr
 // PURECAP-SAME: (ptr addrspace(200) noundef [[CAP:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
 // PURECAP-NEXT:    [[TMP1:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[TMP0]]
 // PURECAP-NEXT:    ret ptr addrspace(200) [[TMP1]]
 //
@@ -300,7 +300,7 @@ char *test_capptr_to_ptr_via_intcap_addr(char *__capability cap) {
 // PURECAP-LABEL: define {{[^@]+}}@test_intcap_to_long_via_capptr
 // PURECAP-SAME: (ptr addrspace(200) noundef [[CAP:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
 // PURECAP-NEXT:    ret i64 [[TMP0]]
 //
 long test_intcap_to_long_via_capptr(__intcap cap) {
@@ -360,7 +360,7 @@ char *test_intcap_to_ptr_via_capptr_fromcap(__intcap cap) {
 // PURECAP-LABEL: define {{[^@]+}}@test_intcap_to_ptr_via_capptr_addr
 // PURECAP-SAME: (ptr addrspace(200) noundef [[CAP:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
 // PURECAP-NEXT:    [[TMP1:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[TMP0]]
 // PURECAP-NEXT:    ret ptr addrspace(200) [[TMP1]]
 //
@@ -497,7 +497,7 @@ char *test_null_capptr_to_ptr_fromcap(__intcap cap) {
 // PURECAP-LABEL: define {{[^@]+}}@test_null_capptr_to_ptr_addr
 // PURECAP-SAME: (ptr addrspace(200) noundef [[CAP:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) null)
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) null)
 // PURECAP-NEXT:    [[TMP1:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[TMP0]]
 // PURECAP-NEXT:    ret ptr addrspace(200) [[TMP1]]
 //
@@ -558,7 +558,7 @@ char *test_constant_capptr_to_ptr_fromcap(__intcap cap) {
 // PURECAP-LABEL: define {{[^@]+}}@test_constant_capptr_to_ptr_addr
 // PURECAP-SAME: (ptr addrspace(200) noundef [[CAP:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1))
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1))
 // PURECAP-NEXT:    [[TMP1:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[TMP0]]
 // PURECAP-NEXT:    ret ptr addrspace(200) [[TMP1]]
 //

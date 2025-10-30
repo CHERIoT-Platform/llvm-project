@@ -19,8 +19,8 @@ int d;
 // CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[AGG_TMP_ENSURED:%.*]] = alloca [[CLASS_C:%.*]], align 1, addrspace(200)
-// CHECK-NEXT:    call void @_ZN1CC1EPi1a(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[AGG_TMP_ENSURED]], ptr addrspace(200) noundef nonnull @d, i8 inreg undef)
-// CHECK-NEXT:    call void @_ZN1cD2Ev(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[AGG_TMP_ENSURED]]) #[[ATTR3:[0-9]+]]
+// CHECK-NEXT:    call addrspace(200) void @_ZN1CC1EPi1a(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[AGG_TMP_ENSURED]], ptr addrspace(200) noundef nonnull @d, i8 inreg undef)
+// CHECK-NEXT:    call addrspace(200) void @_ZN1cD2Ev(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[AGG_TMP_ENSURED]]) #[[ATTR3:[0-9]+]]
 // CHECK-NEXT:    ret void
 //
 void e() { C(&d, a::b); }

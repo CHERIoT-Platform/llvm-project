@@ -21,12 +21,12 @@ define ptr addrspace(200) @setbounds_idempotent(ptr addrspace(200) %ptr, i64 %si
 ; Same argument so we can combine
 ; CHECK-LABEL: define {{[^@]+}}@setbounds_idempotent
 ; CHECK-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[SIZE:%.*]]) addrspace(200) {
-; CHECK-NEXT:    [[FIRST:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
+; CHECK-NEXT:    [[FIRST:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
 ; CHECK-NEXT:    ret ptr addrspace(200) [[FIRST]]
 ;
-  %first = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %ptr, i64 %size)
-  %second = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %first, i64 %size)
-  %third = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %second, i64 %size)
+  %first = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %ptr, i64 %size)
+  %second = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %first, i64 %size)
+  %third = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %second, i64 %size)
   ret ptr addrspace(200) %third
 }
 
@@ -34,16 +34,16 @@ define ptr addrspace(200) @setbounds_idempotent_ignore_bitcasts(ptr addrspace(20
 ; Same argument so we can combine
 ; CHECK-LABEL: define {{[^@]+}}@setbounds_idempotent_ignore_bitcasts
 ; CHECK-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[SIZE:%.*]]) addrspace(200) {
-; CHECK-NEXT:    [[FIRST:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
-; CHECK-NEXT:    call void @use32(ptr addrspace(200) [[FIRST]])
+; CHECK-NEXT:    [[FIRST:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
+; CHECK-NEXT:    call addrspace(200) void @use32(ptr addrspace(200) [[FIRST]])
 ; CHECK-NEXT:    ret ptr addrspace(200) [[FIRST]]
 ;
-  %first = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %ptr, i64 %size)
+  %first = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %ptr, i64 %size)
   %tmp = bitcast ptr addrspace(200) %first to ptr addrspace(200)
-  call void @use32(ptr addrspace(200) %tmp)
+  call addrspace(200) void @use32(ptr addrspace(200) %tmp)
   %tmp2 = bitcast ptr addrspace(200) %tmp to ptr addrspace(200)
-  %second = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %tmp2, i64 %size)
-  %third = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %second, i64 %size)
+  %second = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %tmp2, i64 %size)
+  %third = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %second, i64 %size)
   ret ptr addrspace(200) %third
 }
 
@@ -51,14 +51,14 @@ define ptr addrspace(200) @setbounds_different_args_1(ptr addrspace(200) %ptr, i
 ; Can't combine here:
 ; CHECK-LABEL: define {{[^@]+}}@setbounds_different_args_1
 ; CHECK-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[SIZE:%.*]]) addrspace(200) {
-; CHECK-NEXT:    [[FIRST:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
-; CHECK-NEXT:    [[SECOND:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[FIRST]], i64 1)
-; CHECK-NEXT:    [[THIRD:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[SECOND]], i64 [[SIZE]])
+; CHECK-NEXT:    [[FIRST:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
+; CHECK-NEXT:    [[SECOND:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[FIRST]], i64 1)
+; CHECK-NEXT:    [[THIRD:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[SECOND]], i64 [[SIZE]])
 ; CHECK-NEXT:    ret ptr addrspace(200) [[THIRD]]
 ;
-  %first = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %ptr, i64 %size)
-  %second = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %first, i64 1)
-  %third = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %second, i64 %size)
+  %first = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %ptr, i64 %size)
+  %second = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %first, i64 1)
+  %third = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %second, i64 %size)
   ret ptr addrspace(200) %third
 }
 
@@ -67,12 +67,12 @@ define ptr addrspace(200) @setbounds_idempotent_exact1(ptr addrspace(200) %ptr, 
 ; Must use exact version when combining
 ; CHECK-LABEL: define {{[^@]+}}@setbounds_idempotent_exact1
 ; CHECK-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[SIZE:%.*]]) addrspace(200) {
-; CHECK-NEXT:    [[FIRST:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
+; CHECK-NEXT:    [[FIRST:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
 ; CHECK-NEXT:    ret ptr addrspace(200) [[FIRST]]
 ;
-  %first = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %ptr, i64 %size)
-  %second = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %first, i64 %size)
-  %third = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %second, i64 %size)
+  %first = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %ptr, i64 %size)
+  %second = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %first, i64 %size)
+  %third = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %second, i64 %size)
   ret ptr addrspace(200) %third
 }
 
@@ -81,18 +81,18 @@ define ptr addrspace(200) @setbounds_idempotent_exact2(ptr addrspace(200) %ptr, 
 ; Can't upgrade inexact to exact when running instsimplify
 ; INSTCOMBINE-LABEL: define {{[^@]+}}@setbounds_idempotent_exact2
 ; INSTCOMBINE-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[SIZE:%.*]]) addrspace(200) {
-; INSTCOMBINE-NEXT:    [[SECOND:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
+; INSTCOMBINE-NEXT:    [[SECOND:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
 ; INSTCOMBINE-NEXT:    ret ptr addrspace(200) [[SECOND]]
 ;
 ; INSTSIMPLIFY-LABEL: define {{[^@]+}}@setbounds_idempotent_exact2
 ; INSTSIMPLIFY-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[SIZE:%.*]]) addrspace(200) {
-; INSTSIMPLIFY-NEXT:    [[FIRST:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
-; INSTSIMPLIFY-NEXT:    [[SECOND:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[FIRST]], i64 [[SIZE]])
+; INSTSIMPLIFY-NEXT:    [[FIRST:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
+; INSTSIMPLIFY-NEXT:    [[SECOND:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[FIRST]], i64 [[SIZE]])
 ; INSTSIMPLIFY-NEXT:    ret ptr addrspace(200) [[SECOND]]
 ;
-  %first = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %ptr, i64 %size)
-  %second = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %first, i64 %size)
-  %third = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %second, i64 %size)
+  %first = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %ptr, i64 %size)
+  %second = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %first, i64 %size)
+  %third = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %second, i64 %size)
   ret ptr addrspace(200) %third
 }
 
@@ -101,18 +101,18 @@ define ptr addrspace(200) @setbounds_idempotent_exact3(ptr addrspace(200) %ptr, 
 ; Can't upgrade inexact to exact when running instsimplify
 ; INSTCOMBINE-LABEL: define {{[^@]+}}@setbounds_idempotent_exact3
 ; INSTCOMBINE-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[SIZE:%.*]]) addrspace(200) {
-; INSTCOMBINE-NEXT:    [[THIRD:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
+; INSTCOMBINE-NEXT:    [[THIRD:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
 ; INSTCOMBINE-NEXT:    ret ptr addrspace(200) [[THIRD]]
 ;
 ; INSTSIMPLIFY-LABEL: define {{[^@]+}}@setbounds_idempotent_exact3
 ; INSTSIMPLIFY-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[SIZE:%.*]]) addrspace(200) {
-; INSTSIMPLIFY-NEXT:    [[FIRST:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
-; INSTSIMPLIFY-NEXT:    [[THIRD:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[FIRST]], i64 [[SIZE]])
+; INSTSIMPLIFY-NEXT:    [[FIRST:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
+; INSTSIMPLIFY-NEXT:    [[THIRD:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[FIRST]], i64 [[SIZE]])
 ; INSTSIMPLIFY-NEXT:    ret ptr addrspace(200) [[THIRD]]
 ;
-  %first = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %ptr, i64 %size)
-  %second = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %first, i64 %size)
-  %third = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %second, i64 %size)
+  %first = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %ptr, i64 %size)
+  %second = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %first, i64 %size)
+  %third = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %second, i64 %size)
   ret ptr addrspace(200) %third
 }
 
@@ -120,12 +120,12 @@ define ptr addrspace(200) @setbounds_idempotent_exact4(ptr addrspace(200) %ptr, 
 ; Must use exact version when combining
 ; CHECK-LABEL: define {{[^@]+}}@setbounds_idempotent_exact4
 ; CHECK-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[SIZE:%.*]]) addrspace(200) {
-; CHECK-NEXT:    [[FIRST:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
+; CHECK-NEXT:    [[FIRST:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
 ; CHECK-NEXT:    ret ptr addrspace(200) [[FIRST]]
 ;
-  %first = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %ptr, i64 %size)
-  %second = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %first, i64 %size)
-  %third = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %second, i64 %size)
+  %first = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %ptr, i64 %size)
+  %second = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %first, i64 %size)
+  %third = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %second, i64 %size)
   ret ptr addrspace(200) %third
 }
 
@@ -135,41 +135,41 @@ define ptr addrspace(200) @no_remove_exact(ptr addrspace(200) %ptr, i64 %size, i
 ; INSTCOMBINE-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[SIZE:%.*]], i1 [[MAYBE_USE:%.*]]) addrspace(200) {
 ; INSTCOMBINE-NEXT:    br i1 [[MAYBE_USE]], label [[USE:%.*]], label [[NO_USE:%.*]]
 ; INSTCOMBINE:       use:
-; INSTCOMBINE-NEXT:    [[FIRST:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
-; INSTCOMBINE-NEXT:    call void @use(ptr addrspace(200) [[FIRST]])
+; INSTCOMBINE-NEXT:    [[FIRST:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
+; INSTCOMBINE-NEXT:    call addrspace(200) void @use(ptr addrspace(200) [[FIRST]])
 ; INSTCOMBINE-NEXT:    br label [[END:%.*]]
 ; INSTCOMBINE:       no_use:
-; INSTCOMBINE-NEXT:    [[THIRD:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
-; INSTCOMBINE-NEXT:    call void @use(ptr addrspace(200) [[THIRD]])
+; INSTCOMBINE-NEXT:    [[THIRD:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
+; INSTCOMBINE-NEXT:    call addrspace(200) void @use(ptr addrspace(200) [[THIRD]])
 ; INSTCOMBINE-NEXT:    br label [[END]]
 ; INSTCOMBINE:       end:
 ; INSTCOMBINE-NEXT:    ret ptr addrspace(200) null
 ;
 ; INSTSIMPLIFY-LABEL: define {{[^@]+}}@no_remove_exact
 ; INSTSIMPLIFY-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[SIZE:%.*]], i1 [[MAYBE_USE:%.*]]) addrspace(200) {
-; INSTSIMPLIFY-NEXT:    [[FIRST:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
+; INSTSIMPLIFY-NEXT:    [[FIRST:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
 ; INSTSIMPLIFY-NEXT:    br i1 [[MAYBE_USE]], label [[USE:%.*]], label [[NO_USE:%.*]]
 ; INSTSIMPLIFY:       use:
-; INSTSIMPLIFY-NEXT:    call void @use(ptr addrspace(200) [[FIRST]])
+; INSTSIMPLIFY-NEXT:    call addrspace(200) void @use(ptr addrspace(200) [[FIRST]])
 ; INSTSIMPLIFY-NEXT:    br label [[END:%.*]]
 ; INSTSIMPLIFY:       no_use:
-; INSTSIMPLIFY-NEXT:    [[THIRD:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[FIRST]], i64 [[SIZE]])
-; INSTSIMPLIFY-NEXT:    call void @use(ptr addrspace(200) [[THIRD]])
+; INSTSIMPLIFY-NEXT:    [[THIRD:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) [[FIRST]], i64 [[SIZE]])
+; INSTSIMPLIFY-NEXT:    call addrspace(200) void @use(ptr addrspace(200) [[THIRD]])
 ; INSTSIMPLIFY-NEXT:    br label [[END]]
 ; INSTSIMPLIFY:       end:
 ; INSTSIMPLIFY-NEXT:    ret ptr addrspace(200) null
 ;
-  %first = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %ptr, i64 %size)
+  %first = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %ptr, i64 %size)
   br i1 %maybe_use, label %use, label %no_use
 
 use:                                              ; preds = %0
-  call void @use(ptr addrspace(200) %first)
+  call addrspace(200) void @use(ptr addrspace(200) %first)
   br label %end
 
 no_use:                                           ; preds = %0
-  %second = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %first, i64 %size)
-  %third = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %second, i64 %size)
-  call void @use(ptr addrspace(200) %third)
+  %second = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %first, i64 %size)
+  %third = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.exact.i64(ptr addrspace(200) %second, i64 %size)
+  call addrspace(200) void @use(ptr addrspace(200) %third)
   br label %end
 
 end:                                              ; preds = %no_use, %use
@@ -179,28 +179,28 @@ end:                                              ; preds = %no_use, %use
 define ptr addrspace(200) @permsand_idempotent_const(ptr addrspace(200) %ptr) addrspace(200) {
 ; INSTCOMBINE-LABEL: define {{[^@]+}}@permsand_idempotent_const
 ; INSTCOMBINE-SAME: (ptr addrspace(200) [[PTR:%.*]]) addrspace(200) {
-; INSTCOMBINE-NEXT:    [[SECOND:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) [[PTR]], i64 6)
+; INSTCOMBINE-NEXT:    [[SECOND:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) [[PTR]], i64 6)
 ; INSTCOMBINE-NEXT:    ret ptr addrspace(200) [[SECOND]]
 ;
 ; INSTSIMPLIFY-LABEL: define {{[^@]+}}@permsand_idempotent_const
 ; INSTSIMPLIFY-SAME: (ptr addrspace(200) [[PTR:%.*]]) addrspace(200) {
-; INSTSIMPLIFY-NEXT:    [[FIRST:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) [[PTR]], i64 14)
-; INSTSIMPLIFY-NEXT:    [[SECOND:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) [[FIRST]], i64 7)
+; INSTSIMPLIFY-NEXT:    [[FIRST:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) [[PTR]], i64 14)
+; INSTSIMPLIFY-NEXT:    [[SECOND:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) [[FIRST]], i64 7)
 ; INSTSIMPLIFY-NEXT:    ret ptr addrspace(200) [[SECOND]]
 ;
-  %first = call ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) %ptr, i64 14)
-  %second = call ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) %first, i64 7)
+  %first = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) %ptr, i64 14)
+  %second = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) %first, i64 7)
   ret ptr addrspace(200) %second
 }
 
 define ptr addrspace(200) @permsand_idempotent(ptr addrspace(200) %ptr, i64 %size) addrspace(200) {
 ; CHECK-LABEL: define {{[^@]+}}@permsand_idempotent
 ; CHECK-SAME: (ptr addrspace(200) [[PTR:%.*]], i64 [[SIZE:%.*]]) addrspace(200) {
-; CHECK-NEXT:    [[FIRST:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
+; CHECK-NEXT:    [[FIRST:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) [[PTR]], i64 [[SIZE]])
 ; CHECK-NEXT:    ret ptr addrspace(200) [[FIRST]]
 ;
-  %first = call ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) %ptr, i64 %size)
-  %second = call ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) %first, i64 %size)
-  %third = call ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) %second, i64 %size)
+  %first = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) %ptr, i64 %size)
+  %second = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) %first, i64 %size)
+  %third = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200) %second, i64 %size)
   ret ptr addrspace(200) %third
 }

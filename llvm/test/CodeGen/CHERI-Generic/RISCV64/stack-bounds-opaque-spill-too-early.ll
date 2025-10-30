@@ -13,15 +13,15 @@ target datalayout = "e-m:e-pf200:128:128:128:64-p:64:64-i64:64-i128:128-n64-S128
 ; DBG-NEXT: cheri-bound-allocas:  -Checking if load/store needs bounds (GEP offset is 0):   %0 = load ptr addrspace(200), ptr addrspace(200) %cap, align 16
 ; DBG-NEXT: cheri-bound-allocas:   -Load/store size=16, alloca size=16, current GEP offset=0 for ptr addrspace(200)
 ; DBG-NEXT: cheri-bound-allocas:   -Load/store is in bounds -> can reuse $csp for   %0 = load ptr addrspace(200), ptr addrspace(200) %cap, align 16
-; DBG-NEXT: cheri-bound-allocas:  -Adding stack bounds since it is passed to call:   %call = call ptr addrspace(200) @cheribsdtest_dynamic_identity_cap(ptr addrspace(200) noundef nonnull %cap)
-; DBG-NEXT: cheri-bound-allocas: Found alloca use that needs bounds:   %call = call ptr addrspace(200) @cheribsdtest_dynamic_identity_cap(ptr addrspace(200) noundef nonnull %cap)
+; DBG-NEXT: cheri-bound-allocas:  -Adding stack bounds since it is passed to call:   %call = call addrspace(200) ptr addrspace(200) @cheribsdtest_dynamic_identity_cap(ptr addrspace(200) noundef nonnull %cap)
+; DBG-NEXT: cheri-bound-allocas: Found alloca use that needs bounds:   %call = call addrspace(200) ptr addrspace(200) @cheribsdtest_dynamic_identity_cap(ptr addrspace(200) noundef nonnull %cap)
 ; DBG-NEXT: cheri-bound-allocas:  -Checking if load/store needs bounds (GEP offset is 0):   store ptr addrspace(200) %cap, ptr addrspace(200) %cap, align 16
 ; DBG-NEXT: cheri-bound-allocas:   -Load/store size=16, alloca size=16, current GEP offset=0 for ptr addrspace(200)
 ; DBG-NEXT: cheri-bound-allocas:   -Load/store is in bounds -> can reuse $csp for   store ptr addrspace(200) %cap, ptr addrspace(200) %cap, align 16
 ; DBG-NEXT: cheri-bound-allocas:  -Checking if load/store needs bounds (GEP offset is 0):   store ptr addrspace(200) %cap, ptr addrspace(200) %cap, align 16
 ; DBG-NEXT: cheri-bound-allocas:   -Stack slot used as value and not pointer -> must set bounds
 ; DBG-NEXT: cheri-bound-allocas: Found alloca use that needs bounds: store ptr addrspace(200) %cap, ptr addrspace(200) %cap, align 16
-; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %cap)
+; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %cap)
 ; DBG-NEXT: cheri-bound-allocas: lazy_bind_args: 2 of 5 users need bounds for   %cap = alloca ptr addrspace(200), align 16, addrspace(200)
 ; DBG-NEXT: lazy_bind_args: setting bounds on stack alloca to 16  %cap = alloca ptr addrspace(200), align 16, addrspace(200)
 
@@ -52,20 +52,20 @@ define dso_local void @lazy_bind_args() addrspace(200) nounwind {
 ; CHECK-SAME: () addrspace(200) #[[ATTR2:[0-9]+]] {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[CAP:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
-; CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[CAP]])
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[CAP]], i64 16)
+; CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[CAP]])
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[CAP]], i64 16)
 ; CHECK-NEXT:    store ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[CAP]], align 16
-; CHECK-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[CAP]], i64 16)
-; CHECK-NEXT:    [[CALL:%.*]] = call ptr addrspace(200) @cheribsdtest_dynamic_identity_cap(ptr addrspace(200) noundef nonnull [[TMP1]])
+; CHECK-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[CAP]], i64 16)
+; CHECK-NEXT:    [[CALL:%.*]] = call addrspace(200) ptr addrspace(200) @cheribsdtest_dynamic_identity_cap(ptr addrspace(200) noundef nonnull [[TMP1]])
 ; CHECK-NEXT:    [[TMP2:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[CAP]], align 16
-; CHECK-NEXT:    call void @cheribsdtest_check_cap_eq(ptr addrspace(200) noundef [[TMP2]], ptr addrspace(200) noundef [[CALL]])
+; CHECK-NEXT:    call addrspace(200) void @cheribsdtest_check_cap_eq(ptr addrspace(200) noundef [[TMP2]], ptr addrspace(200) noundef [[CALL]])
 ; CHECK-NEXT:    ret void
 entry:
   %cap = alloca ptr addrspace(200), align 16, addrspace(200)
-  call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %cap)
+  call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %cap)
   store ptr addrspace(200) %cap, ptr addrspace(200) %cap, align 16
-  %call = call ptr addrspace(200) @cheribsdtest_dynamic_identity_cap(ptr addrspace(200) noundef nonnull %cap)
+  %call = call addrspace(200) ptr addrspace(200) @cheribsdtest_dynamic_identity_cap(ptr addrspace(200) noundef nonnull %cap)
   %0 = load ptr addrspace(200), ptr addrspace(200) %cap, align 16
-  call void @cheribsdtest_check_cap_eq(ptr addrspace(200) noundef %0, ptr addrspace(200) noundef %call)
+  call addrspace(200) void @cheribsdtest_check_cap_eq(ptr addrspace(200) noundef %0, ptr addrspace(200) noundef %call)
   ret void
 }

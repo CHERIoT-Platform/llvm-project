@@ -13,21 +13,21 @@ define void @mdoc_argv(ptr addrspace(200) %dst, i32 %arg) {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[SRC_SROA_0:%.*]] = alloca { i32, i32 }, align 16, addrspace(200)
 ; CHECK-NEXT:    [[SRC_SROA_3:%.*]] = alloca [20 x i8], align 4, addrspace(200)
-; CHECK-NEXT:    call void @llvm.memset.p200.i64(ptr addrspace(200) align 16 [[SRC_SROA_0]], i8 0, i64 8, i1 false)
-; CHECK-NEXT:    call void @llvm.memset.p200.i64(ptr addrspace(200) align 4 [[SRC_SROA_3]], i8 0, i64 20, i1 false)
-; CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[DST]], ptr addrspace(200) align 16 [[SRC_SROA_0]], i64 8, i1 false) #[[ATTR2:[0-9]+]]
+; CHECK-NEXT:    call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) align 16 [[SRC_SROA_0]], i8 0, i64 8, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) align 4 [[SRC_SROA_3]], i8 0, i64 20, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[DST]], ptr addrspace(200) align 16 [[SRC_SROA_0]], i64 8, i1 false) #[[ATTR2:[0-9]+]]
 ; CHECK-NEXT:    [[SRC_SROA_2_0_DST_SROA_IDX:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[DST]], i64 8
 ; CHECK-NEXT:    store i32 [[ARG]], ptr addrspace(200) [[SRC_SROA_2_0_DST_SROA_IDX]], align 1
 ; CHECK-NEXT:    [[SRC_SROA_3_0_DST_SROA_IDX:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[DST]], i64 12
-; CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[SRC_SROA_3_0_DST_SROA_IDX]], ptr addrspace(200) align 4 [[SRC_SROA_3]], i64 20, i1 false) #[[ATTR3:[0-9]+]]
+; CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[SRC_SROA_3_0_DST_SROA_IDX]], ptr addrspace(200) align 4 [[SRC_SROA_3]], i64 20, i1 false) #[[ATTR3:[0-9]+]]
 ; CHECK-NEXT:    ret void
 ;
 entry:
   %src = alloca %struct.mdoc_argv, align 16, addrspace(200)
-  call void @llvm.memset.p200.i64(ptr addrspace(200) %src, i8 0, i64 32, i1 false)
+  call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) %src, i8 0, i64 32, i1 false)
   %pos = getelementptr inbounds %struct.mdoc_argv, ptr addrspace(200) %src, i32 0, i32 2
   store i32 %arg, ptr addrspace(200) %pos, align 8
-  call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) %dst, ptr addrspace(200) %src, i64 32, i1 false) must_preserve_cheri_tags
+  call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) %dst, ptr addrspace(200) %src, i64 32, i1 false) must_preserve_cheri_tags
   ret void
 }
 

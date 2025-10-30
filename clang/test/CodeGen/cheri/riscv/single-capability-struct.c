@@ -48,7 +48,7 @@ struct boxed callee(void) {
 // CHECK-ILP32-LABEL: @caller(
 // CHECK-ILP32-NEXT:  entry:
 // CHECK-ILP32-NEXT:    [[RETVAL:%.*]] = alloca [[STRUCT_BOXED:%.*]], align 8
-// CHECK-ILP32-NEXT:    [[CALL:%.*]] = call [[STRUCT_BOXED]] @callee()
+// CHECK-ILP32-NEXT:    [[CALL:%.*]] = call [[STRUCT_BOXED]] @[[CALLEE:[a-zA-Z0-9_$\"\\.-]*[a-zA-Z_$\"\\.-][a-zA-Z0-9_$\"\\.-]*]]()
 // CHECK-ILP32-NEXT:    [[TMP0:%.*]] = getelementptr inbounds nuw [[STRUCT_BOXED]], ptr [[RETVAL]], i32 0, i32 0
 // CHECK-ILP32-NEXT:    [[TMP1:%.*]] = extractvalue [[STRUCT_BOXED]] [[CALL]], 0
 // CHECK-ILP32-NEXT:    store ptr addrspace(200) [[TMP1]], ptr [[TMP0]], align 8
@@ -58,7 +58,7 @@ struct boxed callee(void) {
 // CHECK-LP64-LABEL: @caller(
 // CHECK-LP64-NEXT:  entry:
 // CHECK-LP64-NEXT:    [[RETVAL:%.*]] = alloca [[STRUCT_BOXED:%.*]], align 16
-// CHECK-LP64-NEXT:    [[CALL:%.*]] = call [[STRUCT_BOXED]] @callee()
+// CHECK-LP64-NEXT:    [[CALL:%.*]] = call [[STRUCT_BOXED]] @[[CALLEE:[a-zA-Z0-9_$\"\\.-]*[a-zA-Z_$\"\\.-][a-zA-Z0-9_$\"\\.-]*]]()
 // CHECK-LP64-NEXT:    [[TMP0:%.*]] = getelementptr inbounds nuw [[STRUCT_BOXED]], ptr [[RETVAL]], i32 0, i32 0
 // CHECK-LP64-NEXT:    [[TMP1:%.*]] = extractvalue [[STRUCT_BOXED]] [[CALL]], 0
 // CHECK-LP64-NEXT:    store ptr addrspace(200) [[TMP1]], ptr [[TMP0]], align 16
@@ -68,7 +68,7 @@ struct boxed callee(void) {
 // CHECK-IL32PC64-LABEL: @caller(
 // CHECK-IL32PC64-NEXT:  entry:
 // CHECK-IL32PC64-NEXT:    [[RETVAL:%.*]] = alloca [[STRUCT_BOXED:%.*]], align 8, addrspace(200)
-// CHECK-IL32PC64-NEXT:    [[CALL:%.*]] = call [[STRUCT_BOXED]] @callee()
+// CHECK-IL32PC64-NEXT:    [[CALL:%.*]] = call addrspace(200) [[STRUCT_BOXED]] @[[CALLEE:[a-zA-Z0-9_$\"\\.-]*[a-zA-Z_$\"\\.-][a-zA-Z0-9_$\"\\.-]*]]()
 // CHECK-IL32PC64-NEXT:    [[TMP0:%.*]] = getelementptr inbounds nuw [[STRUCT_BOXED]], ptr addrspace(200) [[RETVAL]], i32 0, i32 0
 // CHECK-IL32PC64-NEXT:    [[TMP1:%.*]] = extractvalue [[STRUCT_BOXED]] [[CALL]], 0
 // CHECK-IL32PC64-NEXT:    store ptr addrspace(200) [[TMP1]], ptr addrspace(200) [[TMP0]], align 8
@@ -78,7 +78,7 @@ struct boxed callee(void) {
 // CHECK-L64PC128-LABEL: @caller(
 // CHECK-L64PC128-NEXT:  entry:
 // CHECK-L64PC128-NEXT:    [[RETVAL:%.*]] = alloca [[STRUCT_BOXED:%.*]], align 16, addrspace(200)
-// CHECK-L64PC128-NEXT:    [[CALL:%.*]] = call [[STRUCT_BOXED]] @callee()
+// CHECK-L64PC128-NEXT:    [[CALL:%.*]] = call addrspace(200) [[STRUCT_BOXED]] @[[CALLEE:[a-zA-Z0-9_$\"\\.-]*[a-zA-Z_$\"\\.-][a-zA-Z0-9_$\"\\.-]*]]()
 // CHECK-L64PC128-NEXT:    [[TMP0:%.*]] = getelementptr inbounds nuw [[STRUCT_BOXED]], ptr addrspace(200) [[RETVAL]], i32 0, i32 0
 // CHECK-L64PC128-NEXT:    [[TMP1:%.*]] = extractvalue [[STRUCT_BOXED]] [[CALL]], 0
 // CHECK-L64PC128-NEXT:    store ptr addrspace(200) [[TMP1]], ptr addrspace(200) [[TMP0]], align 16

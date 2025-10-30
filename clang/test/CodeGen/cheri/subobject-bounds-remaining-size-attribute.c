@@ -9,7 +9,7 @@
 // CHECK-LABEL: @test_basic(
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[DATA:%.*]], i64 4
-// CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 255)
+// CHECK-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 255)
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 void *test_basic(void *data, long index) {
@@ -38,10 +38,10 @@ void *test_opt_out(void *data, long index) {
 // CHECK-LABEL: @test_remaining_size(
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[DATA:%.*]], i64 4
-// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) nonnull [[DATA1]])
-// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull [[DATA1]])
+// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) nonnull [[DATA1]])
+// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull [[DATA1]])
 // CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
-// CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 [[REMAINING_BYTES]])
+// CHECK-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 [[REMAINING_BYTES]])
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 void *test_remaining_size(void *data, long index) {
@@ -56,10 +56,10 @@ void *test_remaining_size(void *data, long index) {
 // CHECK-LABEL: @test_remaining_size_not_array(
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[F:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[DATA:%.*]], i64 4
-// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) nonnull [[F]])
-// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull [[F]])
+// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) nonnull [[F]])
+// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull [[F]])
 // CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
-// CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[F]], i64 [[REMAINING_BYTES]])
+// CHECK-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[F]], i64 [[REMAINING_BYTES]])
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 void *test_remaining_size_not_array(void *data, long index) {
@@ -79,11 +79,11 @@ void *test_remaining_size_not_array(void *data, long index) {
 // CHECK-LABEL: @test_remaining_size_on_type(
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[DATA:%.*]], i64 4
-// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) nonnull [[DATA1]])
-// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull [[DATA1]])
+// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) nonnull [[DATA1]])
+// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull [[DATA1]])
 // CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
-// CHECK-NEXT:    [[BOUNDED_REMAINING_SIZE:%.*]] = tail call i64 @llvm.umin.i64(i64 [[REMAINING_BYTES]], i64 16)
-// CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 [[BOUNDED_REMAINING_SIZE]])
+// CHECK-NEXT:    [[BOUNDED_REMAINING_SIZE:%.*]] = tail call addrspace(200) i64 @llvm.umin.i64(i64 [[REMAINING_BYTES]], i64 16)
+// CHECK-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 [[BOUNDED_REMAINING_SIZE]])
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 void *test_remaining_size_on_type(void *data, long index) {
@@ -102,7 +102,7 @@ void *test_remaining_size_on_type(void *data, long index) {
 // CHECK-LABEL: @test_remaining_size_ignored_on_typedef(
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[DATA:%.*]], i64 8
-// CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 4)
+// CHECK-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 4)
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 void *test_remaining_size_ignored_on_typedef(void *data, long index) {
@@ -124,11 +124,11 @@ void *test_remaining_size_ignored_on_typedef(void *data, long index) {
 // CHECK-LABEL: @test_remaining_size_maximum(
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[DATA1:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[DATA:%.*]], i64 4
-// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) nonnull [[DATA1]])
-// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull [[DATA1]])
+// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) nonnull [[DATA1]])
+// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull [[DATA1]])
 // CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
-// CHECK-NEXT:    [[BOUNDED_REMAINING_SIZE:%.*]] = tail call i64 @llvm.umin.i64(i64 [[REMAINING_BYTES]], i64 127)
-// CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 [[BOUNDED_REMAINING_SIZE]])
+// CHECK-NEXT:    [[BOUNDED_REMAINING_SIZE:%.*]] = tail call addrspace(200) i64 @llvm.umin.i64(i64 [[REMAINING_BYTES]], i64 127)
+// CHECK-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DATA1]], i64 [[BOUNDED_REMAINING_SIZE]])
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 void *test_remaining_size_maximum(void *data, long index) {
@@ -143,10 +143,10 @@ void *test_remaining_size_maximum(void *data, long index) {
 // CHECK-LABEL: @test_vla(
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[VLA:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[DATA:%.*]], i64 4
-// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) nonnull [[VLA]])
-// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull [[VLA]])
+// CHECK-NEXT:    [[CUR_TOP:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.top.get.i64(ptr addrspace(200) nonnull [[VLA]])
+// CHECK-NEXT:    [[CUR_ADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull [[VLA]])
 // CHECK-NEXT:    [[REMAINING_BYTES:%.*]] = sub i64 [[CUR_TOP]], [[CUR_ADDR]]
-// CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VLA]], i64 [[REMAINING_BYTES]])
+// CHECK-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[VLA]], i64 [[REMAINING_BYTES]])
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 void *test_vla(void *data, long index) {

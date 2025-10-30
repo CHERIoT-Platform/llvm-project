@@ -13,7 +13,7 @@ union union_two_chararrays {
 // OPAQUE-NEXT:    [[TWOARRAYS_ADDR:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // OPAQUE-NEXT:    store ptr addrspace(200) [[TWOARRAYS:%.*]], ptr addrspace(200) [[TWOARRAYS_ADDR]], align 16
 // OPAQUE-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[TWOARRAYS_ADDR]], align 16
-// OPAQUE-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP0]], i64 32)
+// OPAQUE-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) [[TMP0]], i64 32)
 // OPAQUE-NEXT:    ret ptr addrspace(200) [[TMP1]]
 //
 void *bounds_subobject_union_two_chararrays(union union_two_chararrays *twoarrays) {

@@ -59,18 +59,18 @@ define void @test() nounwind {
 ; CHECK-NEXT:    [[H_SROA_7_SROA_0:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 ; CHECK-NEXT:    [[H_SROA_7_SROA_2:%.*]] = alloca [16 x i8], align 16, addrspace(200)
 ; CHECK-NEXT:    [[H_D_BYVAL:%.*]] = alloca [[STRUCT_C:%.*]], align 16, addrspace(200)
-; CHECK-NEXT:    call void @llvm.memset.p200.i64(ptr addrspace(200) align 16 [[H_SROA_0_SROA_0]], i8 1, i64 16, i1 false)
-; CHECK-NEXT:    call void @llvm.memset.p200.i64(ptr addrspace(200) align 16 [[H_SROA_0_SROA_5]], i8 1, i64 16, i1 false)
-; CHECK-NEXT:    call void @llvm.memset.p200.i64(ptr addrspace(200) align 16 [[H_SROA_7_SROA_0]], i8 1, i64 16, i1 false)
-; CHECK-NEXT:    call void @llvm.memset.p200.i64(ptr addrspace(200) align 16 [[H_SROA_7_SROA_2]], i8 1, i64 16, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) align 16 [[H_SROA_0_SROA_0]], i8 1, i64 16, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) align 16 [[H_SROA_0_SROA_5]], i8 1, i64 16, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) align 16 [[H_SROA_7_SROA_0]], i8 1, i64 16, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) align 16 [[H_SROA_7_SROA_2]], i8 1, i64 16, i1 false)
 ; CHECK-NEXT:    [[H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_0_SROA_0_0_COPYLOAD:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[H_SROA_7_SROA_0]], align 16
 ; CHECK-NEXT:    store ptr addrspace(200) [[H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_0_SROA_0_0_COPYLOAD]], ptr addrspace(200) [[H_SROA_0_SROA_0]], align 16
-; CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[H_SROA_0_SROA_5]], ptr addrspace(200) align 16 [[H_SROA_7_SROA_2]], i64 16, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[H_SROA_0_SROA_5]], ptr addrspace(200) align 16 [[H_SROA_7_SROA_2]], i64 16, i1 false)
 ; CHECK-NEXT:    [[H_SROA_0_SROA_0_0_H_SROA_0_SROA_0_0_COPYLOAD1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[H_SROA_0_SROA_0]], align 16
 ; CHECK-NEXT:    store ptr addrspace(200) [[H_SROA_0_SROA_0_0_H_SROA_0_SROA_0_0_COPYLOAD1]], ptr addrspace(200) [[H_D_BYVAL]], align 16
 ; CHECK-NEXT:    [[H_SROA_0_SROA_5_0_H_D_BYVAL_SROA_IDX:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[H_D_BYVAL]], i64 16
-; CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[H_SROA_0_SROA_5_0_H_D_BYVAL_SROA_IDX]], ptr addrspace(200) align 16 [[H_SROA_0_SROA_5]], i64 16, i1 false)
-; CHECK-NEXT:    call void @read(ptr addrspace(200) [[H_D_BYVAL]])
+; CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[H_SROA_0_SROA_5_0_H_D_BYVAL_SROA_IDX]], ptr addrspace(200) align 16 [[H_SROA_0_SROA_5]], i64 16, i1 false)
+; CHECK-NEXT:    call addrspace(200) void @read(ptr addrspace(200) [[H_D_BYVAL]])
 ; CHECK-NEXT:    ret void
 ;
 ; CHECK-O2-LABEL: define {{[^@]+}}@test
@@ -79,14 +79,14 @@ define void @test() nounwind {
 ; CHECK-O2-NEXT:    [[H_SROA_7_SROA_0:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 ; CHECK-O2-NEXT:    [[H_SROA_7_SROA_2_SROA_0:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 ; CHECK-O2-NEXT:    [[H_D_BYVAL:%.*]] = alloca [[STRUCT_C:%.*]], align 16, addrspace(200)
-; CHECK-O2-NEXT:    call void @llvm.memset.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[H_SROA_7_SROA_0]], i8 1, i64 16, i1 false)
-; CHECK-O2-NEXT:    call void @llvm.memset.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[H_SROA_7_SROA_2_SROA_0]], i8 1, i64 16, i1 false)
+; CHECK-O2-NEXT:    call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[H_SROA_7_SROA_0]], i8 1, i64 16, i1 false)
+; CHECK-O2-NEXT:    call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[H_SROA_7_SROA_2_SROA_0]], i8 1, i64 16, i1 false)
 ; CHECK-O2-NEXT:    [[H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_0_SROA_0_0_COPYLOAD:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[H_SROA_7_SROA_0]], align 16
 ; CHECK-O2-NEXT:    [[H_SROA_7_SROA_2_SROA_0_0_H_SROA_7_SROA_2_SROA_0_0_H_SROA_7_SROA_2_SROA_0_0_H_SROA_7_SROA_2_SROA_0_0_:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[H_SROA_7_SROA_2_SROA_0]], align 16
 ; CHECK-O2-NEXT:    store ptr addrspace(200) [[H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_7_SROA_0_0_H_SROA_0_SROA_0_0_COPYLOAD]], ptr addrspace(200) [[H_D_BYVAL]], align 16
 ; CHECK-O2-NEXT:    [[H_SROA_0_SROA_5_0_H_D_BYVAL_SROA_IDX:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[H_D_BYVAL]], i64 16
 ; CHECK-O2-NEXT:    store ptr addrspace(200) [[H_SROA_7_SROA_2_SROA_0_0_H_SROA_7_SROA_2_SROA_0_0_H_SROA_7_SROA_2_SROA_0_0_H_SROA_7_SROA_2_SROA_0_0_]], ptr addrspace(200) [[H_SROA_0_SROA_5_0_H_D_BYVAL_SROA_IDX]], align 16
-; CHECK-O2-NEXT:    call void @read(ptr addrspace(200) nonnull [[H_D_BYVAL]])
+; CHECK-O2-NEXT:    call addrspace(200) void @read(ptr addrspace(200) nonnull [[H_D_BYVAL]])
 ; CHECK-O2-NEXT:    ret void
 ;
 ; NOCHERI-LABEL: define {{[^@]+}}@test

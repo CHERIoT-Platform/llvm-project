@@ -10,7 +10,7 @@
 // CHECK-NEXT:    store ptr addrspace(200) [[D:%.*]], ptr addrspace(200) [[D_ADDR]], align 16
 // CHECK-NEXT:    [[ARGP_CUR:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[D_ADDR]], align 16
 // CHECK-NEXT:    [[TMP0:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARGP_CUR]], i32 15
-// CHECK-NEXT:    [[ARGP_CUR_ALIGNED:%.*]] = call ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[TMP0]], i64 -16)
+// CHECK-NEXT:    [[ARGP_CUR_ALIGNED:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[TMP0]], i64 -16)
 // CHECK-NEXT:    [[ARGP_NEXT:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[ARGP_CUR_ALIGNED]], i64 16
 // CHECK-NEXT:    store ptr addrspace(200) [[ARGP_NEXT]], ptr addrspace(200) [[D_ADDR]], align 16
 // CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[ARGP_CUR_ALIGNED]], align 16

@@ -20,7 +20,7 @@ char takes_string_ptr(const char *a) {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[RETVAL:%.*]] = alloca i32, align 4, addrspace(200)
 // CHECK-NEXT:    store i32 0, ptr addrspace(200) [[RETVAL]], align 4
-// CHECK-NEXT:    [[CALL:%.*]] = call signext i8 @takes_string_ptr(ptr addrspace(200) noundef @.str)
+// CHECK-NEXT:    [[CALL:%.*]] = call signext addrspace(200) i8 @takes_string_ptr(ptr addrspace(200) noundef @.str)
 // CHECK-NEXT:    [[CONV:%.*]] = sext i8 [[CALL]] to i32
 // CHECK-NEXT:    ret i32 [[CONV]]
 //

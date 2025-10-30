@@ -52,15 +52,15 @@ __uintcap_t this_broke_qmutex(__uintcap_t mtx) {
 
 // BROKEN-OPT-LABEL: @this_broke_qmutex(
 // BROKEN-OPT-NEXT:  entry:
-// BROKEN-OPT-NEXT:    [[TMP1:%.*]] = tail call i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[MTX:%.*]])
+// BROKEN-OPT-NEXT:    [[TMP1:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[MTX:%.*]])
 // BROKEN-OPT-NEXT:    [[AND:%.*]] = and i64 [[TMP1]], 1
-// BROKEN-OPT-NEXT:    [[TMP2:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[MTX]], i64 [[AND]])
+// BROKEN-OPT-NEXT:    [[TMP2:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[MTX]], i64 [[AND]])
 // BROKEN-OPT-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[TMP2]], getelementptr (i8, ptr addrspace(200) null, i64 1)
 // BROKEN-OPT-NEXT:    br i1 [[CMP]], label [[IF_THEN:%.*]], label [[IF_END:%.*]]
 // BROKEN-OPT:       if.then:
 // BROKEN-OPT-NEXT:    [[AND1:%.*]] = and i64 [[TMP1]], -2
-// BROKEN-OPT-NEXT:    [[TMP3:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[MTX]], i64 [[AND1]])
-// BROKEN-OPT-NEXT:    tail call void @do_unlock() #3
+// BROKEN-OPT-NEXT:    [[TMP3:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[MTX]], i64 [[AND1]])
+// BROKEN-OPT-NEXT:    tail call addrspace(200) void @do_unlock() #3
 // BROKEN-OPT-NEXT:    br label [[IF_END]]
 // BROKEN-OPT:       if.end:
 // BROKEN-OPT-NEXT:    [[MTX_ADDR_0:%.*]] = phi ptr addrspace(200) [ [[TMP3]], [[IF_THEN]] ], [ [[MTX]], [[ENTRY:%.*]] ]
@@ -71,24 +71,24 @@ __uintcap_t this_broke_qmutex(__uintcap_t mtx) {
 // WORKS-NEXT:    [[MTX_ADDR:%.*]] = alloca ptr addrspace(200), align [[#CAP_SIZE]], addrspace(200)
 // WORKS-NEXT:    store ptr addrspace(200) [[MTX:%.*]], ptr addrspace(200) [[MTX_ADDR]], align [[#CAP_SIZE]]
 // WORKS-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[MTX_ADDR]], align [[#CAP_SIZE]]
-// WORKS-NEXT:    [[TMP2:%.*]] = call i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[TMP0]])
-// WORKS-NEXT:    [[TMP3:%.*]] = call i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1))
+// WORKS-NEXT:    [[TMP2:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[TMP0]])
+// WORKS-NEXT:    [[TMP3:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1))
 // WORKS-NEXT:    [[AND:%.*]] = and i64 [[TMP2]], [[TMP3]]
 // WORKS-NEXT:    [[BITAND_SHOULD_NULLDERIVE:%.*]] = icmp ule i64 [[TMP3]], 4096
 // WORKS-NEXT:    [[BITAND_PROVENANCE:%.*]] = select i1 [[BITAND_SHOULD_NULLDERIVE]], ptr addrspace(200) null, ptr addrspace(200) [[TMP0]]
-// WORKS-NEXT:    [[TMP4:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[BITAND_PROVENANCE]], i64 [[AND]])
+// WORKS-NEXT:    [[TMP4:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[BITAND_PROVENANCE]], i64 [[AND]])
 // WORKS-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[TMP4]], getelementptr (i8, ptr addrspace(200) null, i64 1)
 // WORKS-NEXT:    br i1 [[CMP]], label [[IF_THEN:%.*]], label [[IF_END:%.*]]
 // WORKS:       if.then:
 // WORKS-NEXT:    [[TMP7:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[MTX_ADDR]], align [[#CAP_SIZE]]
-// WORKS-NEXT:    [[TMP8:%.*]] = call i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[TMP7]])
-// WORKS-NEXT:    [[TMP9:%.*]] = call i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 -2))
+// WORKS-NEXT:    [[TMP8:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[TMP7]])
+// WORKS-NEXT:    [[TMP9:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 -2))
 // WORKS-NEXT:    [[AND1:%.*]] = and i64 [[TMP8]], [[TMP9]]
 // WORKS-NEXT:    [[BITAND_SHOULD_NULLDERIVE2:%.*]] = icmp ule i64 [[TMP9]], 4096
 // WORKS-NEXT:    [[BITAND_PROVENANCE3:%.*]] = select i1 [[BITAND_SHOULD_NULLDERIVE2]], ptr addrspace(200) null, ptr addrspace(200) [[TMP7]]
-// WORKS-NEXT:    [[TMP10:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[BITAND_PROVENANCE3]], i64 [[AND1]])
+// WORKS-NEXT:    [[TMP10:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[BITAND_PROVENANCE3]], i64 [[AND1]])
 // WORKS-NEXT:    store ptr addrspace(200) [[TMP10]], ptr addrspace(200) [[MTX_ADDR]], align [[#CAP_SIZE]]
-// WORKS-NEXT:    call void @do_unlock()
+// WORKS-NEXT:    call addrspace(200) void @do_unlock()
 // WORKS-NEXT:    br label [[IF_END]]
 // WORKS:       if.end:
 // WORKS-NEXT:    [[TMP11:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[MTX_ADDR]], align [[#CAP_SIZE]]
@@ -96,14 +96,14 @@ __uintcap_t this_broke_qmutex(__uintcap_t mtx) {
 //
 // WORKS-OPT-LABEL: @this_broke_qmutex(
 // WORKS-OPT-NEXT:  entry:
-// WORKS-OPT-NEXT:    [[TMP:%.*]] = tail call i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[MTX:%.*]])
+// WORKS-OPT-NEXT:    [[TMP:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[MTX:%.*]])
 // WORKS-OPT-NEXT:    [[AND:%.*]] = and i64 [[TMP]], 1
 // WORKS-OPT-NEXT:    [[CMP:%.*]] = icmp eq i64 [[AND]], 0
 // WORKS-OPT-NEXT:    br i1 [[CMP]], label [[IF_END:%.*]], label [[IF_THEN:%.*]]
 // WORKS-OPT:       if.then:
 // WORKS-OPT-NEXT:    [[AND1:%.*]] = and i64 [[TMP]], -2
-// WORKS-OPT-NEXT:    [[TMP3:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[MTX]], i64 [[AND1]])
-// WORKS-OPT-NEXT:    tail call void @do_unlock() #3
+// WORKS-OPT-NEXT:    [[TMP3:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[MTX]], i64 [[AND1]])
+// WORKS-OPT-NEXT:    tail call addrspace(200) void @do_unlock() #3
 // WORKS-OPT-NEXT:    br label [[IF_END]]
 // WORKS-OPT:       if.end:
 // WORKS-OPT-NEXT:    [[MTX_ADDR_0:%.*]] = phi ptr addrspace(200) [ [[TMP3]], [[IF_THEN]] ], [ [[MTX]], [[ENTRY:%.*]] ]
@@ -114,15 +114,15 @@ __uintcap_t this_broke_qmutex(__uintcap_t mtx) {
 // TODO: should we diagnose these cases where we actually emit a runtime check?
 // BROKEN-OPT-LABEL: @can_fold_the_bitand_provenance_check(
 // BROKEN-OPT-NEXT:  entry:
-// BROKEN-OPT-NEXT:    [[TMP1:%.*]] = tail call i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[MTX:%.*]])
+// BROKEN-OPT-NEXT:    [[TMP1:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[MTX:%.*]])
 // BROKEN-OPT-NEXT:    [[AND:%.*]] = and i64 [[TMP1]], 1
-// BROKEN-OPT-NEXT:    [[TMP2:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[MTX]], i64 [[AND]])
+// BROKEN-OPT-NEXT:    [[TMP2:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[MTX]], i64 [[AND]])
 // BROKEN-OPT-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[TMP2]], getelementptr (i8, ptr addrspace(200) null, i64 1)
 // BROKEN-OPT-NEXT:    br i1 [[CMP]], label [[IF_THEN:%.*]], label [[IF_END:%.*]]
 // BROKEN-OPT:       if.then:
 // BROKEN-OPT-NEXT:    [[AND1:%.*]] = and i64 [[TMP1]], -2
-// BROKEN-OPT-NEXT:    [[TMP3:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[MTX]], i64 [[AND1]])
-// BROKEN-OPT-NEXT:    tail call void @do_unlock() #3
+// BROKEN-OPT-NEXT:    [[TMP3:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[MTX]], i64 [[AND1]])
+// BROKEN-OPT-NEXT:    tail call addrspace(200) void @do_unlock() #3
 // BROKEN-OPT-NEXT:    br label [[IF_END]]
 // BROKEN-OPT:       if.end:
 // BROKEN-OPT-NEXT:    [[MTX_ADDR_0:%.*]] = phi ptr addrspace(200) [ [[TMP3]], [[IF_THEN]] ], [ [[MTX]], [[ENTRY:%.*]] ]
@@ -133,24 +133,24 @@ __uintcap_t this_broke_qmutex(__uintcap_t mtx) {
 // WORKS-NEXT:    [[MTX_ADDR:%.*]] = alloca ptr addrspace(200), align [[#CAP_SIZE]], addrspace(200)
 // WORKS-NEXT:    store ptr addrspace(200) [[MTX:%.*]], ptr addrspace(200) [[MTX_ADDR]], align [[#CAP_SIZE]]
 // WORKS-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[MTX_ADDR]], align [[#CAP_SIZE]]
-// WORKS-NEXT:    [[TMP2:%.*]] = call i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[TMP0]])
-// WORKS-NEXT:    [[TMP3:%.*]] = call i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1))
+// WORKS-NEXT:    [[TMP2:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[TMP0]])
+// WORKS-NEXT:    [[TMP3:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1))
 // WORKS-NEXT:    [[AND:%.*]] = and i64 [[TMP2]], [[TMP3]]
 // WORKS-NEXT:    [[BITAND_SHOULD_NULLDERIVE:%.*]] = icmp ule i64 [[TMP3]], 4096
 // WORKS-NEXT:    [[BITAND_PROVENANCE:%.*]] = select i1 [[BITAND_SHOULD_NULLDERIVE]], ptr addrspace(200) null, ptr addrspace(200) [[TMP0]]
-// WORKS-NEXT:    [[TMP4:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[BITAND_PROVENANCE]], i64 [[AND]])
+// WORKS-NEXT:    [[TMP4:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[BITAND_PROVENANCE]], i64 [[AND]])
 // WORKS-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[TMP4]], getelementptr (i8, ptr addrspace(200) null, i64 1)
 // WORKS-NEXT:    br i1 [[CMP]], label [[IF_THEN:%.*]], label [[IF_END:%.*]]
 // WORKS:       if.then:
 // WORKS-NEXT:    [[TMP7:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[MTX_ADDR]], align [[#CAP_SIZE]]
-// WORKS-NEXT:    [[TMP8:%.*]] = call i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[TMP7]])
-// WORKS-NEXT:    [[TMP9:%.*]] = call i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 -2))
+// WORKS-NEXT:    [[TMP8:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[TMP7]])
+// WORKS-NEXT:    [[TMP9:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 -2))
 // WORKS-NEXT:    [[AND1:%.*]] = and i64 [[TMP8]], [[TMP9]]
 // WORKS-NEXT:    [[BITAND_SHOULD_NULLDERIVE2:%.*]] = icmp ule i64 [[TMP9]], 4096
 // WORKS-NEXT:    [[BITAND_PROVENANCE3:%.*]] = select i1 [[BITAND_SHOULD_NULLDERIVE2]], ptr addrspace(200) null, ptr addrspace(200) [[TMP7]]
-// WORKS-NEXT:    [[TMP10:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[BITAND_PROVENANCE3]], i64 [[AND1]])
+// WORKS-NEXT:    [[TMP10:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[BITAND_PROVENANCE3]], i64 [[AND1]])
 // WORKS-NEXT:    store ptr addrspace(200) [[TMP10]], ptr addrspace(200) [[MTX_ADDR]], align [[#CAP_SIZE]]
-// WORKS-NEXT:    call void @do_unlock()
+// WORKS-NEXT:    call addrspace(200) void @do_unlock()
 // WORKS-NEXT:    br label [[IF_END]]
 // WORKS:       if.end:
 // WORKS-NEXT:    [[TMP11:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[MTX_ADDR]], align [[#CAP_SIZE]]
@@ -158,14 +158,14 @@ __uintcap_t this_broke_qmutex(__uintcap_t mtx) {
 //
 // WORKS-OPT-LABEL: @can_fold_the_bitand_provenance_check(
 // WORKS-OPT-NEXT:  entry:
-// WORKS-OPT-NEXT:    [[TMP:%.*]] = tail call i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[MTX:%.*]])
+// WORKS-OPT-NEXT:    [[TMP:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.[[$UINTCAP_INTRIN]].get.i64(ptr addrspace(200) [[MTX:%.*]])
 // WORKS-OPT-NEXT:    [[AND:%.*]] = and i64 [[TMP]], 1
 // WORKS-OPT-NEXT:    [[CMP:%.*]] = icmp eq i64 [[AND]], 0
 // WORKS-OPT-NEXT:    br i1 [[CMP]], label [[IF_END:%.*]], label [[IF_THEN:%.*]]
 // WORKS-OPT:       if.then:
 // WORKS-OPT-NEXT:    [[AND1:%.*]] = and i64 [[TMP]], -2
-// WORKS-OPT-NEXT:    [[TMP3:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[MTX]], i64 [[AND1]])
-// WORKS-OPT-NEXT:    tail call void @do_unlock() #3
+// WORKS-OPT-NEXT:    [[TMP3:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.[[$UINTCAP_INTRIN]].set.i64(ptr addrspace(200) [[MTX]], i64 [[AND1]])
+// WORKS-OPT-NEXT:    tail call addrspace(200) void @do_unlock() #3
 // WORKS-OPT-NEXT:    br label [[IF_END]]
 // WORKS-OPT:       if.end:
 // WORKS-OPT-NEXT:    [[MTX_ADDR_0:%.*]] = phi ptr addrspace(200) [ [[TMP3]], [[IF_THEN]] ], [ [[MTX]], [[ENTRY:%.*]] ]

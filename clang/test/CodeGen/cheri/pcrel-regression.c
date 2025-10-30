@@ -11,7 +11,7 @@
 // OPAQUE-NEXT:  entry:
 // OPAQUE-NEXT:    [[B_ADDR:%.*]] = alloca i32, align 4, addrspace(200)
 // OPAQUE-NEXT:    store i32 [[B]], ptr addrspace(200) [[B_ADDR]], align 4
-// OPAQUE-NEXT:    call void @a()
+// OPAQUE-NEXT:    call addrspace(200) void @a()
 // OPAQUE-NEXT:    ret void
 //
 void a(b) {

@@ -12,7 +12,7 @@ extern int printf(const char * __capability, ...);
 void a(void) {
   printf("Hello\n");
   // CHECK: @.str = private unnamed_addr addrspace(200) constant [7 x i8] c"Hello\0A\00"
-  // CHECK: call signext i32 (ptr addrspace(200), ...) @printf(ptr addrspace(200) noundef @.str)
+  // CHECK: call signext addrspace(200) i32 (ptr addrspace(200), ...) @printf(ptr addrspace(200) noundef @.str)
   // OPT: @str = private unnamed_addr addrspace(200) constant [6 x i8] c"Hello\00"
-  // OPT: call i32 @puts(ptr addrspace(200) nonnull dereferenceable(1) @str)
+  // OPT: call addrspace(200) i32 @puts(ptr addrspace(200) nonnull dereferenceable(1) @str)
 }

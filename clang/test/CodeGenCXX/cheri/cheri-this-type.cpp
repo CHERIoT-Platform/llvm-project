@@ -10,7 +10,7 @@ public:
 // CHECK-SAME: () addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[A:%.*]] = alloca [[CLASS_A:%.*]], align 1, addrspace(200)
-// CHECK-NEXT:    call void @_ZN1A1fEv(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[A]])
+// CHECK-NEXT:    call addrspace(200) void @_ZN1A1fEv(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[A]])
 // CHECK-NEXT:    ret void
 //
 void g() {

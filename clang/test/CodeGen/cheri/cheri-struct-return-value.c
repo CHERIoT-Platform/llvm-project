@@ -139,7 +139,7 @@ typedef struct {
 // CHECK-LABEL: define {{[^@]+}}@three_longs
 // CHECK-SAME: (ptr addrspace(200) dead_on_unwind noalias writable writeonly sret([[STRUCT_THREELONGS:%.*]]) align 8 captures(none) initializes((0, 24)) [[AGG_RESULT:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR3:[0-9]+]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    tail call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 8 dereferenceable(24) [[AGG_RESULT]], ptr addrspace(200) noundef nonnull align 8 dereferenceable(24) @__const.three_longs.t, i64 24, i1 false)
+// CHECK-NEXT:    tail call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 8 dereferenceable(24) [[AGG_RESULT]], ptr addrspace(200) noundef nonnull align 8 dereferenceable(24) @__const.three_longs.t, i64 24, i1 false)
 // CHECK-NEXT:    ret void
 //
 ThreeLongs three_longs() {
@@ -191,7 +191,7 @@ extern IntAndLong extern_int_and_long();
 // CHECK-LABEL: define {{[^@]+}}@read_int_and_long_1
 // CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR4:[0-9]+]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[CALL:%.*]] = tail call inreg { i64, i64 } @extern_int_and_long() #[[ATTR6:[0-9]+]]
+// CHECK-NEXT:    [[CALL:%.*]] = tail call inreg addrspace(200) { i64, i64 } @extern_int_and_long() #[[ATTR6:[0-9]+]]
 // CHECK-NEXT:    [[TMP0:%.*]] = extractvalue { i64, i64 } [[CALL]], 0
 // CHECK-NEXT:    [[COERCE_SROA_0_0_EXTRACT_SHIFT:%.*]] = lshr i64 [[TMP0]], 32
 // CHECK-NEXT:    [[COERCE_SROA_0_0_EXTRACT_TRUNC:%.*]] = trunc nuw i64 [[COERCE_SROA_0_0_EXTRACT_SHIFT]] to i32
@@ -215,7 +215,7 @@ int read_int_and_long_1() {
 // CHECK-LABEL: define {{[^@]+}}@read_int_and_long_2
 // CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR4]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[CALL:%.*]] = tail call inreg { i64, i64 } @extern_int_and_long() #[[ATTR6]]
+// CHECK-NEXT:    [[CALL:%.*]] = tail call inreg addrspace(200) { i64, i64 } @extern_int_and_long() #[[ATTR6]]
 // CHECK-NEXT:    [[TMP0:%.*]] = extractvalue { i64, i64 } [[CALL]], 1
 // CHECK-NEXT:    ret i64 [[TMP0]]
 //

@@ -19,7 +19,7 @@ define hidden void @multiple_uses_phi(i32 %arg) addrspace(200) {
 ; OPAQUE-NEXT:    [[REF_TMP107:%.*]] = alloca [[CLASS_QSTRING:%.*]], align 16, addrspace(200)
 ; OPAQUE-NEXT:    br label [[COND_TRUE:%.*]]
 ; OPAQUE:       cond.true:
-; OPAQUE-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[REF_TMP107]], i64 16)
+; OPAQUE-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[REF_TMP107]], i64 16)
 ; OPAQUE-NEXT:    switch i32 [[ARG]], label [[COND_END_SINK_SPLIT:%.*]] [
 ; OPAQUE-NEXT:    i32 -1, label [[COND_END:%.*]]
 ; OPAQUE-NEXT:    i32 0, label [[COND_END]]
@@ -28,7 +28,7 @@ define hidden void @multiple_uses_phi(i32 %arg) addrspace(200) {
 ; OPAQUE-NEXT:    br label [[COND_END]]
 ; OPAQUE:       cond.end:
 ; OPAQUE-NEXT:    [[REF_TMP109_SINK:%.*]] = phi ptr addrspace(200) [ [[TMP0]], [[COND_TRUE]] ], [ [[TMP0]], [[COND_TRUE]] ], [ null, [[COND_END_SINK_SPLIT]] ]
-; OPAQUE-NEXT:    call void @use_QString(ptr addrspace(200) [[REF_TMP109_SINK]])
+; OPAQUE-NEXT:    call addrspace(200) void @use_QString(ptr addrspace(200) [[REF_TMP109_SINK]])
 ; OPAQUE-NEXT:    ret void
 ;
 entry:
@@ -46,7 +46,7 @@ cond.end.sink.split:                              ; preds = %cond.true
 
 cond.end:                                         ; preds = %cond.end.sink.split, %cond.true, %cond.true
   %ref.tmp109.sink = phi ptr addrspace(200) [ %ref.tmp107, %cond.true ], [ %ref.tmp107, %cond.true ], [ null, %cond.end.sink.split ]
-  call void @use_QString(ptr addrspace(200) %ref.tmp109.sink)
+  call addrspace(200) void @use_QString(ptr addrspace(200) %ref.tmp109.sink)
   ret void
 }
 
@@ -56,17 +56,17 @@ define hidden void @multiple_uses_call() addrspace(200) {
 ; OPAQUE-LABEL: define {{[^@]+}}@multiple_uses_call() addrspace(200) {
 ; OPAQUE-NEXT:  entry:
 ; OPAQUE-NEXT:    [[FOO:%.*]] = alloca i64, align 8, addrspace(200)
-; OPAQUE-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[FOO]], i64 8)
-; OPAQUE-NEXT:    call void @use_two_i64s(ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[TMP0]])
-; OPAQUE-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[FOO]], i64 8)
-; OPAQUE-NEXT:    call void @use_two_i64s(ptr addrspace(200) [[TMP1]], ptr addrspace(200) [[TMP1]])
+; OPAQUE-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[FOO]], i64 8)
+; OPAQUE-NEXT:    call addrspace(200) void @use_two_i64s(ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[TMP0]])
+; OPAQUE-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[FOO]], i64 8)
+; OPAQUE-NEXT:    call addrspace(200) void @use_two_i64s(ptr addrspace(200) [[TMP1]], ptr addrspace(200) [[TMP1]])
 ; OPAQUE-NEXT:    ret void
 ;
 entry:
   %foo = alloca i64, align 8, addrspace(200)
-  call void @use_two_i64s(ptr addrspace(200) %foo, ptr addrspace(200) %foo)
+  call addrspace(200) void @use_two_i64s(ptr addrspace(200) %foo, ptr addrspace(200) %foo)
   ; This second call should insert another intrinsic call:
-  call void @use_two_i64s(ptr addrspace(200) %foo, ptr addrspace(200) %foo)
+  call addrspace(200) void @use_two_i64s(ptr addrspace(200) %foo, ptr addrspace(200) %foo)
   ret void
 }
 
@@ -82,14 +82,14 @@ define hidden void @multiple_uses_different_blocks_phi(i32 %arg) addrspace(200) 
 ; OPAQUE-NEXT:    i32 1, label [[COND_1:%.*]]
 ; OPAQUE-NEXT:    ]
 ; OPAQUE:       cond.0:
-; OPAQUE-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[FOO]], i64 4)
+; OPAQUE-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[FOO]], i64 4)
 ; OPAQUE-NEXT:    br label [[COND_END]]
 ; OPAQUE:       cond.1:
-; OPAQUE-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[FOO]], i64 4)
+; OPAQUE-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[FOO]], i64 4)
 ; OPAQUE-NEXT:    br label [[COND_END]]
 ; OPAQUE:       cond.end:
 ; OPAQUE-NEXT:    [[PHI:%.*]] = phi ptr addrspace(200) [ null, [[ENTRY:%.*]] ], [ [[TMP0]], [[COND_0]] ], [ [[TMP1]], [[COND_1]] ]
-; OPAQUE-NEXT:    call void @use_i32(ptr addrspace(200) [[PHI]])
+; OPAQUE-NEXT:    call addrspace(200) void @use_i32(ptr addrspace(200) [[PHI]])
 ; OPAQUE-NEXT:    ret void
 ;
 entry:
@@ -110,6 +110,6 @@ cond.end:                                         ; preds = %cond.1, %cond.0, %e
   ; of them as it may not dominate the other (alternatively we could insert it
   ; in the dominator, but in general that could be expensive).
   %phi = phi ptr addrspace(200) [ null, %entry ], [ %foo, %cond.0 ], [ %foo, %cond.1 ]
-  call void @use_i32(ptr addrspace(200) %phi)
+  call addrspace(200) void @use_i32(ptr addrspace(200) %phi)
   ret void
 }

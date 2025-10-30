@@ -13,7 +13,7 @@
 // PURECAP-LABEL: @frameaddr(
 // PURECAP-NEXT:  entry:
 // PURECAP-NEXT:    [[B:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
-// PURECAP-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.frameaddress.p200(i32 0)
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.frameaddress.p200(i32 0)
 // PURECAP-NEXT:    store ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[B]], align 16
 // PURECAP-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[B]], align 16
 // PURECAP-NEXT:    ret ptr addrspace(200) [[TMP1]]
@@ -35,7 +35,7 @@ void *frameaddr(void) {
 // PURECAP-LABEL: @retaddr(
 // PURECAP-NEXT:  entry:
 // PURECAP-NEXT:    [[B:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
-// PURECAP-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.returnaddress.p200(i32 0)
+// PURECAP-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.returnaddress.p200(i32 0)
 // PURECAP-NEXT:    store ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[B]], align 16
 // PURECAP-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[B]], align 16
 // PURECAP-NEXT:    ret ptr addrspace(200) [[TMP1]]

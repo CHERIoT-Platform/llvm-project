@@ -17,7 +17,7 @@ a c() {
 // CHECK-LABEL: define {{[^@]+}}@_Z1ev
 // CHECK-SAME: () addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[TMP0:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1))
+// CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1))
 // CHECK-NEXT:    [[CONV:%.*]] = trunc i64 [[TMP0]] to i32
 // CHECK-NEXT:    ret void
 //

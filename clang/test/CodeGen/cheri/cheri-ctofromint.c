@@ -4,7 +4,7 @@
 
 void* __capability foo(void *__capability x){
   // CHECK-HYBRID:  [[ADDR:%.+]] = call i64 @llvm.cheri.cap.to.pointer.i64(ptr addrspace(200) %1, ptr addrspace(200) %0)
-  // CHECK-PURECAP: [[ADDR:%.+]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) {{%.+}})
+  // CHECK-PURECAP: [[ADDR:%.+]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) {{%.+}})
   // CHECK-PURECAP-NEXT: trunc i64 [[ADDR]] to i32
   int pi = (int)x; // pi contains the result of CToPtr x, which is probably null
   // hybrid-warning@-1{{the following conversion will result in a CToPtr operation}}

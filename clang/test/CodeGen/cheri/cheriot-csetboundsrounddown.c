@@ -4,7 +4,7 @@
 // CHECK-LABEL: define dso_local ptr addrspace(200) @foo
 // CHECK-SAME: (ptr addrspace(200) noundef readnone [[CAP:%.*]], i32 noundef [[B:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.cap.bounds.set.round.down.i32(ptr addrspace(200) [[CAP]], i32 [[B]])
+// CHECK-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.round.down.i32(ptr addrspace(200) [[CAP]], i32 [[B]])
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //
 void *foo(void* cap, int b) {

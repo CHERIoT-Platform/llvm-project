@@ -9,7 +9,7 @@ public:
 // CHECK-NEXT:    [[THIS_ADDR:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // CHECK-NEXT:    store ptr addrspace(200) [[THIS]], ptr addrspace(200) [[THIS_ADDR]], align 16
 // CHECK-NEXT:    [[THIS1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[THIS_ADDR]], align 16
-// CHECK-NEXT:    call void @_ZN10time_pointC2Ev(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[THIS1]])
+// CHECK-NEXT:    call addrspace(200) void @_ZN10time_pointC2Ev(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[THIS1]])
 // CHECK-NEXT:    ret void
 //
   time_point() {}

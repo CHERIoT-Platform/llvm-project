@@ -26,14 +26,14 @@ declare ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200), i6
 define i8 @testBoundsSetAlias() addrspace(200) {
 ; CHECK-LABEL: Function: testBoundsSetAlias: 2 pointers, 1 call sites
 ; CHECK-NEXT:  MayAlias:	i8 addrspace(200)* %n, i8 addrspace(200)* %n.laundered
-; CHECK-NEXT:  NoModRef:  Ptr: i8* %n        <->  %a.laundered = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %a.bitcast, i64 4)
-; CHECK-NEXT:  NoModRef:  Ptr: i8* %n.laundered      <->  %a.laundered = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %a.bitcast, i64 4)
+; CHECK-NEXT:  NoModRef:  Ptr: i8* %n        <->  %a.laundered = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %a.bitcast, i64 4)
+; CHECK-NEXT:  NoModRef:  Ptr: i8* %n.laundered      <->  %a.laundered = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %a.bitcast, i64 4)
 ; CHECK-GVN-LABEL: @testBoundsSetAlias(
 ; CHECK-GVN-NEXT:  entry:
 ; CHECK-GVN-NEXT:    [[A:%.*]] = alloca [[STRUCT_A:%.*]], align 8, addrspace(200)
 ; CHECK-GVN-NEXT:    [[N:%.*]] = getelementptr inbounds [[STRUCT_A]], ptr addrspace(200) [[A]], i64 0, i32 1
 ; CHECK-GVN-NEXT:    store i8 42, ptr addrspace(200) [[N]], align 1
-; CHECK-GVN-NEXT:    [[A_LAUNDERED:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[A]], i64 4)
+; CHECK-GVN-NEXT:    [[A_LAUNDERED:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[A]], i64 4)
 ; CHECK-GVN-NEXT:    [[N_LAUNDERED:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[A_LAUNDERED]], i64 8
 ; CHECK-GVN-NEXT:    [[V:%.*]] = load i8, ptr addrspace(200) [[N_LAUNDERED]], align 1
 ; CHECK-GVN-NEXT:    ret i8 [[V]]
@@ -43,7 +43,7 @@ entry:
   %a.bitcast = bitcast ptr addrspace(200) %a to ptr addrspace(200)
   %n = getelementptr inbounds %struct.A, ptr addrspace(200) %a, i64 0, i32 1
   store i8 42, ptr addrspace(200) %n, align 1
-  %a.laundered = call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %a.bitcast, i64 4)
+  %a.laundered = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull %a.bitcast, i64 4)
   %n.laundered = getelementptr inbounds i8, ptr addrspace(200) %a.laundered, i64 8
   %v = load i8, ptr addrspace(200) %n.laundered, align 1
   ret i8 %v

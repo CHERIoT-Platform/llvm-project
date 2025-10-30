@@ -75,21 +75,21 @@ void do_stuff_with_ref(T &ref);
 TEST_PTR_TO_REF(int)
 // DEBUG-MSG: Found scalar type -> setting bounds for 'int' reference to 4
 // CHECK-LABEL: define dso_local void @_Z10test_derefPi(ptr addrspace(200)
-// CHECK: call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
+// CHECK: call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
 // CHECK-SAME: i64 4)
 
 // Same with double
 TEST_PTR_TO_REF(double)
 // DEBUG-MSG-NEXT: Found scalar type -> setting bounds for 'double' reference to 8
 // CHECK-LABEL: define dso_local void @_Z10test_derefPd(ptr addrspace(200)
-// CHECK: call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
+// CHECK: call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
 // CHECK-SAME: i64 8)
 
 // Or void*
 TEST_PTR_TO_REF(void *)
 // DEBUG-MSG-NEXT: Found scalar type -> setting bounds for 'void * __capability' reference to 16
 // CHECK-LABEL: define dso_local void @_Z10test_derefPPv(ptr addrspace(200)
-// CHECK: call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
+// CHECK: call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
 // CHECK-SAME: i64 16)
 
 enum Enum1 { E1 };
@@ -97,7 +97,7 @@ enum Enum1 { E1 };
 TEST_PTR_TO_REF(Enum1)
 // DEBUG-MSG-NEXT: Found scalar type -> setting bounds for 'Enum1' reference to 4
 // CHECK-LABEL: define dso_local void @_Z10test_derefP5Enum1(ptr addrspace(200)
-// CHECK: call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
+// CHECK: call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
 // CHECK-SAME: i64 4)
 
 enum class EnumClass : unsigned short { EC1 };
@@ -105,7 +105,7 @@ enum class EnumClass : unsigned short { EC1 };
 TEST_PTR_TO_REF(EnumClass)
 // DEBUG-MSG-NEXT: Found scalar type -> setting bounds for 'EnumClass' reference to 2
 // CHECK-LABEL: define dso_local void @_Z10test_derefP9EnumClass(ptr addrspace(200)
-// CHECK: call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
+// CHECK: call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
 // CHECK-SAME: i64 2)
 
 // No bounds here since Foo might be subclassed
@@ -118,7 +118,7 @@ TEST_PTR_TO_REF(Foo)
 TEST_PTR_TO_REF(FinalClassNoVTable)
 // DEBUG-MSG-NEXT: Found record type 'FinalClassNoVTable' -> is literal type and is marked as final -> setting bounds for 'FinalClassNoVTable' reference to 4
 // CHECK-LABEL: define dso_local void @_Z10test_derefP18FinalClassNoVTable(
-// CHECK: call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
+// CHECK: call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
 // CHECK-SAME: i64 4)
 
 // FIXME: should be able to set bounds here
@@ -126,7 +126,7 @@ TEST_PTR_TO_REF(FinalClassNoVTable)
 TEST_PTR_TO_REF(FinalClassWithVTable)
 // DEBUG-MSG-NEXT: Found record type 'FinalClassWithVTable' -> final but not a literal type -> size might by dynamic -> not setting bounds
 // CHECK-LABEL: define dso_local void @_Z10test_derefP20FinalClassWithVTable(
-// TODO-CHECK: call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
+// TODO-CHECK: call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
 // TODO-CHECK-SAME: i64 1234)
 // for now no bounds on classes with vtables
 // CHECK-NOT: @llvm.cheri.cap.bounds.set.i64
@@ -135,7 +135,7 @@ TEST_PTR_TO_REF(FinalClassWithVTable)
 TEST_PTR_TO_REF(FinalClassInheritedNoVTable)
 // DEBUG-MSG-NEXT: Found record type 'FinalClassInheritedNoVTable' -> is literal type and is marked as final -> setting bounds for 'FinalClassInheritedNoVTable' reference to 12
 // CHECK-LABEL: define dso_local void @_Z10test_derefP27FinalClassInheritedNoVTable(
-// CHECK: call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
+// CHECK: call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
 // CHECK-SAME: i64 12)
 
 // FIXME: should be able to set bounds here
@@ -167,7 +167,7 @@ TEST_PTR_TO_REF(CLike)
 TEST_PTR_TO_REF(CLikeFinal)
 // DEBUG-MSG-NEXT: Found record type 'CLikeFinal' -> is C-like struct type and is marked as final -> setting bounds for 'CLikeFinal' reference to 16
 // CHECK-LABEL: define dso_local void @_Z10test_derefP10CLikeFinal(
-// CHECK: call ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
+// CHECK: call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) %{{.+}},
 // CHECK-SAME: i64 16)
 
 union IntOrFloat {

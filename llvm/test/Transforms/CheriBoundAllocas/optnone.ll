@@ -44,7 +44,7 @@ define i32 @load_store_direct(i32 %a) @ATTRS@ {
 ;
 ; NONE-OPAQUE-LABEL: @load_store_direct(
 ; NONE-OPAQUE-NEXT:    [[TMP1:%.*]] = alloca i32, align 4, addrspace(200)
-; NONE-OPAQUE-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[TMP1]], i64 4)
+; NONE-OPAQUE-NEXT:    [[TMP2:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[TMP1]], i64 4)
 ; NONE-OPAQUE-NEXT:    store i32 [[A:%.*]], ptr addrspace(200) [[TMP2]], align 4
 ; NONE-OPAQUE-NEXT:    [[TMP3:%.*]] = load i32, ptr addrspace(200) [[TMP2]], align 4
 ; NONE-OPAQUE-NEXT:    ret i32 [[TMP3]]
@@ -74,7 +74,7 @@ define i32 @load_store_indirect(i32 %a) @ATTRS@ {
 ;
 ; SIMPLE-OPAQUE-LABEL: @load_store_indirect(
 ; SIMPLE-OPAQUE-NEXT:    [[TMP1:%.*]] = alloca i32, align 4, addrspace(200)
-; SIMPLE-OPAQUE-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[TMP1]], i64 4)
+; SIMPLE-OPAQUE-NEXT:    [[TMP2:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[TMP1]], i64 4)
 ; SIMPLE-OPAQUE-NEXT:    [[TMP3:%.*]] = getelementptr i32, ptr addrspace(200) [[TMP2]], i64 1
 ; SIMPLE-OPAQUE-NEXT:    [[TMP4:%.*]] = getelementptr i32, ptr addrspace(200) [[TMP3]], i64 -1
 ; SIMPLE-OPAQUE-NEXT:    store i32 [[A:%.*]], ptr addrspace(200) [[TMP4]], align 4
@@ -83,7 +83,7 @@ define i32 @load_store_indirect(i32 %a) @ATTRS@ {
 ;
 ; NONE-OPAQUE-LABEL: @load_store_indirect(
 ; NONE-OPAQUE-NEXT:    [[TMP1:%.*]] = alloca i32, align 4, addrspace(200)
-; NONE-OPAQUE-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[TMP1]], i64 4)
+; NONE-OPAQUE-NEXT:    [[TMP2:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[TMP1]], i64 4)
 ; NONE-OPAQUE-NEXT:    [[TMP3:%.*]] = getelementptr i32, ptr addrspace(200) [[TMP2]], i64 1
 ; NONE-OPAQUE-NEXT:    [[TMP4:%.*]] = getelementptr i32, ptr addrspace(200) [[TMP3]], i64 -1
 ; NONE-OPAQUE-NEXT:    store i32 [[A:%.*]], ptr addrspace(200) [[TMP4]], align 4

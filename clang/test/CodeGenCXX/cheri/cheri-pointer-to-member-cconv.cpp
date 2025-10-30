@@ -37,7 +37,7 @@ typedef int A::* AMemberDataPtr;
 // RISCV64-PURECAP-LABEL: define {{[^@]+}}@_Z10return_p2fv
 // RISCV64-PURECAP-SAME: (ptr addrspace(200) dead_on_unwind noalias writable writeonly sret({ ptr addrspace(200), i64 }) align 16 captures(none) initializes((0, 32)) [[AGG_RESULT:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // RISCV64-PURECAP-NEXT:  entry:
-// RISCV64-PURECAP-NEXT:    store { ptr addrspace(200), i64 } { ptr addrspace(200) @_ZN1A3fooEv, i64 0 }, ptr addrspace(200) [[AGG_RESULT]], align 16, !tbaa [[TBAA6:![0-9]+]]
+// RISCV64-PURECAP-NEXT:    store { ptr addrspace(200), i64 } { ptr addrspace(200) @_ZN1A3fooEv, i64 0 }, ptr addrspace(200) [[AGG_RESULT]], align 16, !tbaa [[TBAA10:![0-9]+]]
 // RISCV64-PURECAP-NEXT:    ret void
 //
 AMemberFuncPtr return_p2f() {
@@ -62,7 +62,7 @@ AMemberFuncPtr return_p2f() {
 // RISCV64-PURECAP-LABEL: define {{[^@]+}}@_Z15return_p2f_nullv
 // RISCV64-PURECAP-SAME: (ptr addrspace(200) dead_on_unwind noalias writable writeonly sret({ ptr addrspace(200), i64 }) align 16 captures(none) initializes((0, 32)) [[AGG_RESULT:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // RISCV64-PURECAP-NEXT:  entry:
-// RISCV64-PURECAP-NEXT:    tail call void @llvm.memset.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(32) [[AGG_RESULT]], i8 0, i64 32, i1 false)
+// RISCV64-PURECAP-NEXT:    tail call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(32) [[AGG_RESULT]], i8 0, i64 32, i1 false)
 // RISCV64-PURECAP-NEXT:    ret void
 //
 AMemberFuncPtr return_p2f_null() {
@@ -91,7 +91,7 @@ AMemberFuncPtr return_p2f_null() {
 // RISCV64-PURECAP-LABEL: define {{[^@]+}}@_Z15passthrough_p2fM1AFivE
 // RISCV64-PURECAP-SAME: (ptr addrspace(200) dead_on_unwind noalias writable writeonly sret({ ptr addrspace(200), i64 }) align 16 captures(none) initializes((0, 32)) [[AGG_RESULT:%.*]], ptr addrspace(200) dead_on_return noundef readonly captures(none) [[TMP0:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2:[0-9]+]] {
 // RISCV64-PURECAP-NEXT:  entry:
-// RISCV64-PURECAP-NEXT:    tail call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(32) [[AGG_RESULT]], ptr addrspace(200) noundef nonnull align 16 dereferenceable(32) [[TMP0]], i64 32, i1 false)
+// RISCV64-PURECAP-NEXT:    tail call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(32) [[AGG_RESULT]], ptr addrspace(200) noundef nonnull align 16 dereferenceable(32) [[TMP0]], i64 32, i1 false)
 // RISCV64-PURECAP-NEXT:    ret void
 //
 AMemberFuncPtr passthrough_p2f(AMemberFuncPtr p2f) {

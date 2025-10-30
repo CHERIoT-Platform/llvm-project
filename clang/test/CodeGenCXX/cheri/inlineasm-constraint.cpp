@@ -35,12 +35,12 @@ char DummyData64[64];
 // PURECAP-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // PURECAP-NEXT:  entry:
 // PURECAP-NEXT:    [[TMP0:%.*]] = load i32, ptr addrspace(200) @DummyData4, align 1
-// PURECAP-NEXT:    tail call void asm sideeffect "clb $$zero, $$zero, $0", "=*r|m,0,~{memory},~{$1}"(ptr addrspace(200) nonnull elementtype([4 x i8]) @DummyData4, i32 [[TMP0]]) #[[ATTR1:[0-9]+]], !srcloc [[META2:![0-9]+]]
+// PURECAP-NEXT:    tail call addrspace(0) void asm sideeffect "clb $$zero, $$zero, $0", "=*r|m,0,~{memory},~{$1}"(ptr addrspace(200) nonnull elementtype([4 x i8]) @DummyData4, i32 [[TMP0]]) #[[ATTR1:[0-9]+]], !srcloc [[META2:![0-9]+]]
 // PURECAP-NEXT:    [[TMP1:%.*]] = load i64, ptr addrspace(200) @DummyData8, align 1
-// PURECAP-NEXT:    tail call void asm sideeffect "clb $$zero, $$zero, $0", "=*r|m,0,~{memory},~{$1}"(ptr addrspace(200) nonnull elementtype([8 x i8]) @DummyData8, i64 [[TMP1]]) #[[ATTR1]], !srcloc [[META2]]
-// PURECAP-NEXT:    tail call void asm sideeffect "clb $$zero, $$zero, $0", "=*r|m,*0,~{memory},~{$1}"(ptr addrspace(200) nonnull elementtype([16 x i8]) @DummyData16, ptr addrspace(200) nonnull elementtype([16 x i8]) @DummyData16) #[[ATTR1]], !srcloc [[META2]]
-// PURECAP-NEXT:    tail call void asm sideeffect "clb $$zero, $$zero, $0", "=*r|m,*0,~{memory},~{$1}"(ptr addrspace(200) nonnull elementtype([32 x i8]) @DummyData32, ptr addrspace(200) nonnull elementtype([32 x i8]) @DummyData32) #[[ATTR1]], !srcloc [[META2]]
-// PURECAP-NEXT:    tail call void asm sideeffect "clb $$zero, $$zero, $0", "=*r|m,*0,~{memory},~{$1}"(ptr addrspace(200) nonnull elementtype([64 x i8]) @DummyData64, ptr addrspace(200) nonnull elementtype([64 x i8]) @DummyData64) #[[ATTR1]], !srcloc [[META2]]
+// PURECAP-NEXT:    tail call addrspace(0) void asm sideeffect "clb $$zero, $$zero, $0", "=*r|m,0,~{memory},~{$1}"(ptr addrspace(200) nonnull elementtype([8 x i8]) @DummyData8, i64 [[TMP1]]) #[[ATTR1]], !srcloc [[META2]]
+// PURECAP-NEXT:    tail call addrspace(0) void asm sideeffect "clb $$zero, $$zero, $0", "=*r|m,*0,~{memory},~{$1}"(ptr addrspace(200) nonnull elementtype([16 x i8]) @DummyData16, ptr addrspace(200) nonnull elementtype([16 x i8]) @DummyData16) #[[ATTR1]], !srcloc [[META2]]
+// PURECAP-NEXT:    tail call addrspace(0) void asm sideeffect "clb $$zero, $$zero, $0", "=*r|m,*0,~{memory},~{$1}"(ptr addrspace(200) nonnull elementtype([32 x i8]) @DummyData32, ptr addrspace(200) nonnull elementtype([32 x i8]) @DummyData32) #[[ATTR1]], !srcloc [[META2]]
+// PURECAP-NEXT:    tail call addrspace(0) void asm sideeffect "clb $$zero, $$zero, $0", "=*r|m,*0,~{memory},~{$1}"(ptr addrspace(200) nonnull elementtype([64 x i8]) @DummyData64, ptr addrspace(200) nonnull elementtype([64 x i8]) @DummyData64) #[[ATTR1]], !srcloc [[META2]]
 // PURECAP-NEXT:    [[TMP2:%.*]] = load i8, ptr addrspace(200) @DummyData4, align 1, !tbaa [[TBAA3:![0-9]+]]
 // PURECAP-NEXT:    ret i8 [[TMP2]]
 //
@@ -67,7 +67,7 @@ char test() {
 // PURECAP-NEXT:  entry:
 // PURECAP-NEXT:    [[P_ADDR:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // PURECAP-NEXT:    store ptr addrspace(200) [[P]], ptr addrspace(200) [[P_ADDR]], align 16, !tbaa [[TBAA6:![0-9]+]]
-// PURECAP-NEXT:    call void asm sideeffect "clb $$zero, $$zero, $0", "=*r|m,0,~{memory},~{$1}"(ptr addrspace(200) nonnull elementtype(ptr addrspace(200)) align 16 dereferenceable(16) [[P_ADDR]], ptr addrspace(200) [[P]]) #[[ATTR1]], !srcloc [[META2]]
+// PURECAP-NEXT:    call addrspace(0) void asm sideeffect "clb $$zero, $$zero, $0", "=*r|m,0,~{memory},~{$1}"(ptr addrspace(200) nonnull elementtype(ptr addrspace(200)) align 16 dereferenceable(16) [[P_ADDR]], ptr addrspace(200) [[P]]) #[[ATTR1]], !srcloc [[META2]]
 // PURECAP-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[P_ADDR]], align 16, !tbaa [[TBAA6]]
 // PURECAP-NEXT:    ret ptr addrspace(200) [[TMP0]]
 //

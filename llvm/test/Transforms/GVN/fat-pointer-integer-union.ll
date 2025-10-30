@@ -15,7 +15,7 @@ define i32 @bar(ptr addrspace(200) inreg %u.coerce) addrspace(200) #0 {
 ; CHECK-NEXT:    [[U_SROA_0_SROA_0:%.*]] = alloca ptr addrspace(200), align 32, addrspace(200)
 ; CHECK-NEXT:    store ptr addrspace(200) [[U_COERCE]], ptr addrspace(200) [[U_SROA_0_SROA_0]], align 32
 ; CHECK-NEXT:    [[U_SROA_0_SROA_0_0_U_SROA_0_SROA_0_0_U_SROA_0_0_U_SROA_0_0_:%.*]] = load i32, ptr addrspace(200) [[U_SROA_0_SROA_0]], align 32
-; CHECK-NEXT:    [[CALL:%.*]] = tail call i32 @foo(i32 signext [[U_SROA_0_SROA_0_0_U_SROA_0_SROA_0_0_U_SROA_0_0_U_SROA_0_0_]])
+; CHECK-NEXT:    [[CALL:%.*]] = tail call addrspace(200) i32 @foo(i32 signext [[U_SROA_0_SROA_0_0_U_SROA_0_SROA_0_0_U_SROA_0_0_U_SROA_0_0_]])
 ; CHECK-NEXT:    ret i32 [[CALL]]
 ;
 entry:
@@ -23,7 +23,7 @@ entry:
   store ptr addrspace(200) %u.coerce, ptr addrspace(200) %u.sroa.0.sroa.0, align 32
   %u.sroa.0.sroa.0.0.x.sroa_cast2 = bitcast ptr addrspace(200) %u.sroa.0.sroa.0 to ptr addrspace(200)
   %u.sroa.0.sroa.0.0.u.sroa.0.sroa.0.0.u.sroa.0.0.u.sroa.0.0. = load i32, ptr addrspace(200) %u.sroa.0.sroa.0.0.x.sroa_cast2, align 32
-  %call = tail call i32 @foo(i32 signext %u.sroa.0.sroa.0.0.u.sroa.0.sroa.0.0.u.sroa.0.0.u.sroa.0.0.)
+  %call = tail call addrspace(200) i32 @foo(i32 signext %u.sroa.0.sroa.0.0.u.sroa.0.sroa.0.0.u.sroa.0.0.u.sroa.0.0.)
   ret i32 %call
 }
 

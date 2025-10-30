@@ -7,7 +7,7 @@
 // CHECK-SAME: ) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  [[ENTRY:.*]]:
 // CHECK-NEXT:    [[P:%.*]] = alloca ptr addrspace(200), align 8, addrspace(200)
-// CHECK-NEXT:    call void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[P]]) #[[ATTR2:[0-9]+]]
+// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[P]]) #[[ATTR2:[0-9]+]]
 // CHECK-NEXT:    [[ATOMIC_LOAD:%.*]] = load atomic ptr addrspace(200), ptr addrspace(200) [[P]] seq_cst, align 8, !tbaa [[TBAA11:![0-9]+]]
 // CHECK-NEXT:    br label %[[ATOMIC_OP:.*]]
 // CHECK:       [[ATOMIC_OP]]:
@@ -18,7 +18,7 @@
 // CHECK-NEXT:    [[TMP4:%.*]] = extractvalue { ptr addrspace(200), i1 } [[TMP2]], 1
 // CHECK-NEXT:    br i1 [[TMP4]], label %[[ATOMIC_CONT:.*]], label %[[ATOMIC_OP]]
 // CHECK:       [[ATOMIC_CONT]]:
-// CHECK-NEXT:    call void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[P]]) #[[ATTR2]]
+// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[P]]) #[[ATTR2]]
 // CHECK-NEXT:    ret void
 //
 void test1() {

@@ -19,7 +19,7 @@ struct AlignedAsCap {
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[TMPBUFFER_ADDR]], align 16
 // CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[A_ADDR]], align 16
 // CHECK-NEXT:    [[__BUILTIN_CHERI_OFFSET_INCREMENT:%.*]] = getelementptr i8, ptr addrspace(200) [[TMP1]], i64 4
-// CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[TMP0]], ptr addrspace(200) align 1 [[__BUILTIN_CHERI_OFFSET_INCREMENT]], i64 16, i1 false)
+// CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[TMP0]], ptr addrspace(200) align 1 [[__BUILTIN_CHERI_OFFSET_INCREMENT]], i64 16, i1 false)
 // CHECK-NEXT:    ret void
 //
 void check_alignment_memcpy_inc_offset(void *tmpbuffer, struct AlignedAsCap *a) {
@@ -38,8 +38,8 @@ void check_alignment_memcpy_inc_offset(void *tmpbuffer, struct AlignedAsCap *a) 
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[TMPBUFFER_ADDR]], align 16
 // CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[A_ADDR]], align 16
 // CHECK-NEXT:    [[TMP2:%.*]] = load i64, ptr addrspace(200) [[NEW_OFFSET_ADDR]], align 8
-// CHECK-NEXT:    [[TMP3:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) [[TMP1]], i64 [[TMP2]])
-// CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[TMP0]], ptr addrspace(200) align 1 [[TMP3]], i64 16, i1 false)
+// CHECK-NEXT:    [[TMP3:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) [[TMP1]], i64 [[TMP2]])
+// CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[TMP0]], ptr addrspace(200) align 1 [[TMP3]], i64 16, i1 false)
 // CHECK-NEXT:    ret void
 //
 void check_alignment_memcpy_set_offset(void *tmpbuffer, struct AlignedAsCap *a, long new_offset) {
@@ -58,8 +58,8 @@ void check_alignment_memcpy_set_offset(void *tmpbuffer, struct AlignedAsCap *a, 
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[TMPBUFFER_ADDR]], align 16
 // CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[A_ADDR]], align 16
 // CHECK-NEXT:    [[TMP2:%.*]] = load i64, ptr addrspace(200) [[NEW_ADDR_ADDR]], align 8
-// CHECK-NEXT:    [[TMP3:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) [[TMP1]], i64 [[TMP2]])
-// CHECK-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[TMP0]], ptr addrspace(200) align 1 [[TMP3]], i64 16, i1 false)
+// CHECK-NEXT:    [[TMP3:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) [[TMP1]], i64 [[TMP2]])
+// CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 1 [[TMP0]], ptr addrspace(200) align 1 [[TMP3]], i64 16, i1 false)
 // CHECK-NEXT:    ret void
 //
 void check_alignment_memcpy_set_address(void *tmpbuffer, struct AlignedAsCap *a, long new_addr) {
@@ -91,7 +91,7 @@ void *check_return_inc_offset(struct AlignedAsCap *a) {
 // CHECK-NEXT:    store i64 [[NEW_OFFSET]], ptr addrspace(200) [[NEW_OFFSET_ADDR]], align 8
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[A_ADDR]], align 16
 // CHECK-NEXT:    [[TMP1:%.*]] = load i64, ptr addrspace(200) [[NEW_OFFSET_ADDR]], align 8
-// CHECK-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) [[TMP0]], i64 [[TMP1]])
+// CHECK-NEXT:    [[TMP2:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) [[TMP0]], i64 [[TMP1]])
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP2]]
 //
 void *check_return_set_offset(struct AlignedAsCap *a, long new_offset) {
@@ -107,7 +107,7 @@ void *check_return_set_offset(struct AlignedAsCap *a, long new_offset) {
 // CHECK-NEXT:    store i64 [[NEW_ADDR]], ptr addrspace(200) [[NEW_ADDR_ADDR]], align 8
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[A_ADDR]], align 16
 // CHECK-NEXT:    [[TMP1:%.*]] = load i64, ptr addrspace(200) [[NEW_ADDR_ADDR]], align 8
-// CHECK-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) [[TMP0]], i64 [[TMP1]])
+// CHECK-NEXT:    [[TMP2:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) [[TMP0]], i64 [[TMP1]])
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP2]]
 //
 void *check_return_set_addr(struct AlignedAsCap *a, long new_addr) {

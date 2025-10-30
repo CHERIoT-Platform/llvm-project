@@ -6,7 +6,7 @@ void a(void);
 #pragma weak a
 // CHECK-LABEL: @b(
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    call void @a()
+// CHECK-NEXT:    call addrspace(200) void @a()
 // CHECK-NEXT:    ret void
 //
 void b(void) {

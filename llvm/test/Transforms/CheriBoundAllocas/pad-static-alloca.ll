@@ -8,14 +8,14 @@ define void @small() local_unnamed_addr addrspace(200) {
 ; CHECK-LABEL: @small(
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[TMP0:%.*]] = alloca [10 x i8], align 1, addrspace(200)
-; CHECK-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[TMP0]], i64 10)
-; CHECK-NEXT:    call void @keep_live(ptr addrspace(200) nonnull [[TMP1]])
+; CHECK-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[TMP0]], i64 10)
+; CHECK-NEXT:    call addrspace(200) void @keep_live(ptr addrspace(200) nonnull [[TMP1]])
 ; CHECK-NEXT:    ret void
 ;
 entry:
   %0 = alloca [10 x i8], align 1, addrspace(200)
   %ptr = getelementptr inbounds [10 x i8], ptr addrspace(200) %0, i64 0, i64 0
-  call void @keep_live(ptr addrspace(200) nonnull %ptr)
+  call addrspace(200) void @keep_live(ptr addrspace(200) nonnull %ptr)
   ret void
 }
 
@@ -23,14 +23,14 @@ define void @pad_large() local_unnamed_addr addrspace(200) {
 ; CHECK-LABEL: @pad_large(
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[TMP0:%.*]] = alloca { [16388 x i8], [28 x i8] }, align 32, addrspace(200)
-; CHECK-NEXT:    [[TMP1:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[TMP0]], i64 16416)
-; CHECK-NEXT:    call void @keep_live(ptr addrspace(200) nonnull [[TMP1]])
+; CHECK-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[TMP0]], i64 16416)
+; CHECK-NEXT:    call addrspace(200) void @keep_live(ptr addrspace(200) nonnull [[TMP1]])
 ; CHECK-NEXT:    ret void
 ;
 entry:
   %0 = alloca [16388 x i8], align 1, addrspace(200)
   %ptr = getelementptr inbounds [16388 x i8], ptr addrspace(200) %0, i64 0, i64 0
-  call void @keep_live(ptr addrspace(200) nonnull %ptr)
+  call addrspace(200) void @keep_live(ptr addrspace(200) nonnull %ptr)
   ret void
 }
 
@@ -61,13 +61,13 @@ define dso_local void @snmp_discover_engine(ptr addrspace(200) noalias sret(%str
 ; CHECK-LABEL: @snmp_discover_engine(
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[BYVAL_TEMP:%.*]] = alloca { [[STRUCT_SNMP_PDU:%.*]], [12 x i8] }, align 16, addrspace(200)
-; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[BYVAL_TEMP]], i64 11216)
-; CHECK-NEXT:    call void @snmp_pdu_free(ptr addrspace(200) [[TMP0]])
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[BYVAL_TEMP]], i64 11216)
+; CHECK-NEXT:    call addrspace(200) void @snmp_pdu_free(ptr addrspace(200) [[TMP0]])
 ; CHECK-NEXT:    ret void
 ;
 entry:
   %byval-temp = alloca %struct.snmp_pdu, align 4, addrspace(200)
-  call void @snmp_pdu_free(ptr addrspace(200) %byval-temp)
+  call addrspace(200) void @snmp_pdu_free(ptr addrspace(200) %byval-temp)
   ret void
 }
 

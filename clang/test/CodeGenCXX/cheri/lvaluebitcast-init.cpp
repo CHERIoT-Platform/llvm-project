@@ -25,7 +25,7 @@ private:
 // CHECK-NEXT:    store ptr addrspace(200) [[TYPES]], ptr addrspace(200) [[TYPES_ADDR]], align 16
 // CHECK-NEXT:    store i32 [[METATYPE]], ptr addrspace(200) [[METATYPE_ADDR]], align 4
 // CHECK-NEXT:    [[TMP0:%.*]] = load i32, ptr addrspace(200) [[METATYPE_ADDR]], align 4
-// CHECK-NEXT:    call void @_ZN9QMetaTypeC1Ei(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[MT]], i32 noundef signext [[TMP0]])
+// CHECK-NEXT:    call addrspace(200) void @_ZN9QMetaTypeC1Ei(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[MT]], i32 noundef signext [[TMP0]])
 // CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[MT]], align 16
 // CHECK-NEXT:    [[TMP2:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[TYPES_ADDR]], align 16
 // CHECK-NEXT:    store ptr addrspace(200) [[TMP1]], ptr addrspace(200) [[TMP2]], align 16
@@ -99,7 +99,7 @@ int global_bar{(char &)global_foo};
 //
 // CHECK-LABEL: define internal void @_GLOBAL__sub_I_lvaluebitcast_init.cpp() addrspace(200) #2 {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @__cxx_global_var_init()
+// CHECK-NEXT:   call addrspace(200) void @__cxx_global_var_init()
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 

@@ -1933,6 +1933,7 @@ void ModuleBitcodeWriter::writeDIBasicType(const DIBasicType *N,
   Record.push_back(N->getEncoding());
   Record.push_back(N->getFlags());
   Record.push_back(N->getNumExtraInhabitants());
+  Record.push_back(N->getDataSizeInBits());
 
   Stream.EmitRecord(bitc::METADATA_BASIC_TYPE, Record, Abbrev);
   Record.clear();

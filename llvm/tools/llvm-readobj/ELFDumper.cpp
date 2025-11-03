@@ -8605,6 +8605,8 @@ void LLVMELFDumper<ELFT>::printBBAddrMaps(bool PrettyPGOAnalysis) {
               } else {
                 W.printNumber("Frequency", PBBE.BlockFreq.getFrequency());
               }
+              if (PAM.FeatEnable.PostLinkCfg)
+                W.printNumber("PostLink Frequency", PBBE.PostLinkBlockFreq);
             }
 
             if (PAM.FeatEnable.BrProb) {
@@ -8617,6 +8619,8 @@ void LLVMELFDumper<ELFT>::printBBAddrMaps(bool PrettyPGOAnalysis) {
                 } else {
                   W.printHex("Probability", Succ.Prob.getNumerator());
                 }
+                if (PAM.FeatEnable.PostLinkCfg)
+                  W.printNumber("PostLink Probability", Succ.PostLinkFreq);
               }
             }
           }

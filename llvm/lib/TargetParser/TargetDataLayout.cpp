@@ -233,7 +233,7 @@ static std::string computeMipsDataLayout(const Triple &TT, StringRef ABIName, St
   return Ret;
 }
 
-static std::string computePowerDataLayout(const Triple &T) {
+static std::string computePowerDataLayout(const Triple &T, StringRef ABIName) {
   bool is64Bit = T.isPPC64();
   std::string Ret;
 
@@ -253,7 +253,8 @@ static std::string computePowerDataLayout(const Triple &T) {
   // If the target ABI uses function descriptors, then the alignment of function
   // pointers depends on the alignment used to emit the descriptor. Otherwise,
   // function pointers are aligned to 32 bits because the instructions must be.
-  if ((T.getArch() == Triple::ppc64 && !T.isPPC64ELFv2ABI())) {
+  if ((T.getArch() == Triple::ppc64 &&
+       (!T.isPPC64ELFv2ABI() && ABIName != "elfv2"))) {
     Ret += "-Fi64";
   } else if (T.isOSAIX()) {
     Ret += is64Bit ? "-Fi64" : "-Fi32";
@@ -621,7 +622,7 @@ std::string Triple::computeDataLayout(StringRef ABIName, StringRef FS) const {
   case Triple::ppcle:
   case Triple::ppc64:
   case Triple::ppc64le:
-    return computePowerDataLayout(*this);
+    return computePowerDataLayout(*this, ABIName);
   case Triple::r600:
   case Triple::amdgcn:
     return computeAMDDataLayout(*this);

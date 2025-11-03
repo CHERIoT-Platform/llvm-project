@@ -85,7 +85,7 @@ protected:
 
 public:
   Dumper(const object::ObjectFile &O);
-  virtual ~Dumper() {}
+  virtual ~Dumper() = default;
 
   void reportUniqueWarning(Error Err);
   void reportUniqueWarning(const Twine &Msg);

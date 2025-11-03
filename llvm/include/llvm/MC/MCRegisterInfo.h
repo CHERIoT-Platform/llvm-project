@@ -274,7 +274,7 @@ public:
   friend class MCRegAliasIterator;
   friend class MipsABIInfo; // Hack to update RA register after creation
 
-  virtual ~MCRegisterInfo() {}
+  virtual ~MCRegisterInfo() = default;
 
   /// Initialize MCRegisterInfo, called by TableGen
   /// auto-generated routines. *DO NOT USE*.

@@ -117,7 +117,7 @@ public:
     // If we have a CHERI triple, or an explicit CHERI128 CPU, then assume
     // CHERI128.
     CapSize = llvm::StringSwitch<int>(Opts.CPU)
-      .Cases("cheri", "cheri128", 128) // If we have a CHERI CPU, default to assuming CHERI128.
+      .Cases({"cheri", "cheri128"}, 128) // If we have a CHERI CPU, default to assuming CHERI128.
       .Case("cheri256", 256)
       .Case("cheri64", 64)
       .Default(-1);

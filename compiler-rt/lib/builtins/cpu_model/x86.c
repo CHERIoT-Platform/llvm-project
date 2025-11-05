@@ -21,7 +21,9 @@
 
 #if defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER)
 
+#if __STDC_HOSTED__
 #include <assert.h>
+#endif // __STDC_HOSTED__
 
 #if (defined(__GNUC__) || defined(__clang__)) && !defined(_MSC_VER)
 #include <cpuid.h>
@@ -246,8 +248,8 @@ struct __processor_model {
   unsigned int __cpu_features[1];
 } __cpu_model = {0, 0, 0, {0}};
 
-static_assert(sizeof(__cpu_model) == 16,
-              "Wrong size of __cpu_model will result in ABI break");
+_Static_assert(sizeof(__cpu_model) == 16,
+               "Wrong size of __cpu_model will result in ABI break");
 
 // This code is copied from lib/Support/Host.cpp.
 // Changes to either file should be mirrored in the other.
@@ -1201,8 +1203,8 @@ int CONSTRUCTOR_ATTRIBUTE __cpu_indicator_init(void) {
   unsigned Vendor;
   unsigned Model, Family;
   unsigned Features[(CPU_FEATURE_MAX + 31) / 32] = {0};
-  static_assert(sizeof(Features) / sizeof(Features[0]) == 4, "");
-  static_assert(sizeof(__cpu_features2) / sizeof(__cpu_features2[0]) == 3, "");
+  _Static_assert(sizeof(Features) / sizeof(Features[0]) == 4, "");
+  _Static_assert(sizeof(__cpu_features2) / sizeof(__cpu_features2[0]) == 3, "");
 
   // This function needs to run just once.
   if (__cpu_model.__cpu_vendor)
@@ -1235,9 +1237,11 @@ int CONSTRUCTOR_ATTRIBUTE __cpu_indicator_init(void) {
   } else
     __cpu_model.__cpu_vendor = VENDOR_OTHER;
 
+#if __STDC_HOSTED__
   assert(__cpu_model.__cpu_vendor < VENDOR_MAX);
   assert(__cpu_model.__cpu_type < CPU_TYPE_MAX);
   assert(__cpu_model.__cpu_subtype < CPU_SUBTYPE_MAX);
+#endif // __STDC_HOSTED__
 
   return 0;
 }

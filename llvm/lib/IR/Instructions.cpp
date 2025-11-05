@@ -4236,6 +4236,16 @@ SwitchInstProfUpdateWrapper::removeCase(SwitchInst::CaseIt I) {
   return SI.removeCase(I);
 }
 
+void SwitchInstProfUpdateWrapper::replaceDefaultDest(SwitchInst::CaseIt I) {
+  auto *DestBlock = I->getCaseSuccessor();
+  if (Weights) {
+    auto Weight = getSuccessorWeight(I->getCaseIndex() + 1);
+    (*Weights)[0] = Weight.value();
+  }
+
+  SI.setDefaultDest(DestBlock);
+}
+
 void SwitchInstProfUpdateWrapper::addCase(
     ConstantInt *OnVal, BasicBlock *Dest,
     SwitchInstProfUpdateWrapper::CaseWeightOpt W) {

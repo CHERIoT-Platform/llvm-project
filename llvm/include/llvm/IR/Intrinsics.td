@@ -1925,6 +1925,9 @@ def int_threadlocal_address : DefaultAttrsIntrinsic<[llvm_anyptr_ty], [LLVMMatch
 def int_stepvector : DefaultAttrsIntrinsic<[llvm_anyvector_ty],
                                             [], [IntrNoMem]>;
 
+def int_reloc_none : DefaultAttrsIntrinsic<[], [llvm_metadata_ty],
+  [IntrNoMem, IntrHasSideEffects]>;
+
 //===---------------- Vector Predication Intrinsics --------------===//
 // Memory Intrinsics
 def int_vp_store : DefaultAttrsIntrinsic<[],
@@ -2821,6 +2824,10 @@ def int_vector_partial_reduce_add : DefaultAttrsIntrinsic<[LLVMMatchType<0>],
                                                            llvm_anyvector_ty],
                                                           [IntrNoMem,
                                                            IntrSpeculatable]>;
+
+def int_vector_partial_reduce_fadd : DefaultAttrsIntrinsic<[LLVMMatchType<0>],
+                                                           [llvm_anyfloat_ty, llvm_anyfloat_ty],
+                                                           [IntrNoMem]>;
 
 //===----------------- Pointer Authentication Intrinsics ------------------===//
 //

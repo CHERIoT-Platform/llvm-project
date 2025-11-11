@@ -40,8 +40,9 @@ using namespace llvm;
 // Pin the vtable to this file.
 void MipsInstrInfo::anchor() {}
 
-MipsInstrInfo::MipsInstrInfo(const MipsSubtarget &STI, unsigned UncondBr)
-    : MipsGenInstrInfo(STI, STI.isABI_CheriPureCap() ?
+MipsInstrInfo::MipsInstrInfo(const MipsSubtarget &STI,
+                             const MipsRegisterInfo &RI, unsigned UncondBr)
+    : MipsGenInstrInfo(STI, RI, STI.isABI_CheriPureCap() ?
           Mips::ADJCALLSTACKCAPDOWN : Mips::ADJCALLSTACKDOWN,
         STI.isABI_CheriPureCap() ?
           Mips::ADJCALLSTACKCAPUP: Mips::ADJCALLSTACKUP),

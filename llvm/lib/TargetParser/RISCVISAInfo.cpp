@@ -15,7 +15,6 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/TargetParser/Triple.h"
 
-#include <array>
 #include <atomic>
 #include <optional>
 #include <string>

@@ -51,9 +51,8 @@ void ContainerContainsCheck::registerMatchers(MatchFinder *Finder) {
   const auto Literal0 = integerLiteral(equals(0));
   const auto Literal1 = integerLiteral(equals(1));
 
-  auto AddSimpleMatcher = [&](auto Matcher) {
-    Finder->addMatcher(
-        traverse(TK_IgnoreUnlessSpelledInSource, std::move(Matcher)), this);
+  auto AddSimpleMatcher = [&](const auto &Matcher) {
+    Finder->addMatcher(traverse(TK_IgnoreUnlessSpelledInSource, Matcher), this);
   };
 
   // Find membership tests which use `count()`.
@@ -112,7 +111,7 @@ void ContainerContainsCheck::check(const MatchFinder::MatchResult &Result) {
       Result.Nodes.getNodeAs<Expr>("negativeComparison");
   assert((!PositiveComparison || !NegativeComparison) &&
          "only one of PositiveComparison or NegativeComparison should be set");
-  bool Negated = NegativeComparison != nullptr;
+  const bool Negated = NegativeComparison != nullptr;
   const auto *Comparison = Negated ? NegativeComparison : PositiveComparison;
 
   // Diagnose the issue.
@@ -120,7 +119,7 @@ void ContainerContainsCheck::check(const MatchFinder::MatchResult &Result) {
       diag(Call->getExprLoc(), "use 'contains' to check for membership");
 
   // Don't fix it if it's in a macro invocation. Leave fixing it to the user.
-  SourceLocation FuncCallLoc = Comparison->getEndLoc();
+  const SourceLocation FuncCallLoc = Comparison->getEndLoc();
   if (!FuncCallLoc.isValid() || FuncCallLoc.isMacroID())
     return;
 

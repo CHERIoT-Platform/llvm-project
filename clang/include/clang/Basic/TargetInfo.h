@@ -231,6 +231,7 @@ class TargetInfo : public TransferrableTargetInfo,
 protected:
   // Target values set by the ctor of the actual target implementation.  Default
   // values are specified by the TargetInfo constructor.
+  bool HasMustTail;
   bool BigEndian;
   bool TLSSupported;
   bool VLASupported;
@@ -700,6 +701,8 @@ public:
     return PaddingOnUnsignedFixedPoint ? getLongFractScale()
                                        : getLongFractScale() + 1;
   }
+
+  virtual bool hasMustTail() const { return HasMustTail; }
 
   /// Determine whether the __int128 type is supported on this target.
   virtual bool hasInt128Type() const {

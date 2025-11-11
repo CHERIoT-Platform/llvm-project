@@ -244,6 +244,9 @@ void initializeRISCVO0PreLegalizerCombinerPass(PassRegistry &);
 FunctionPass *createRISCVPreLegalizerCombiner();
 void initializeRISCVPreLegalizerCombinerPass(PassRegistry &);
 
+ModulePass *createRISCVPromoteConstantPass();
+void initializeRISCVPromoteConstantPass(PassRegistry &);
+
 FunctionPass *createRISCVVLOptimizerPass();
 void initializeRISCVVLOptimizerPass(PassRegistry &);
 

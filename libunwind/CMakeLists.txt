@@ -335,6 +335,10 @@ if (C_SUPPORTS_COMMENT_LIB_PRAGMA)
   endif()
 endif()
 
+if (RUNTIMES_EXECUTE_ONLY_CODE)
+  add_compile_definitions(_LIBUNWIND_EXECUTE_ONLY_CODE)
+endif()
+
 if (LIBUNWIND_HAS_CHERI_LIB_C18N)
   add_compile_definitions(_LIBUNWIND_HAS_CHERI_LIB_C18N)
 endif()

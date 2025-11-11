@@ -1323,7 +1323,7 @@ CodeGenFunction::canTightenCheriBounds(QualType Ty, const Expr *E,
               auto ExpectedParams =
                   llvm::StringSwitch<std::optional<unsigned>>(CXXMD->getName())
                       .Case("at", 1)
-                      .Cases("front", "back", 0)
+                      .Cases({"front", "back"}, 0)
                       .Default(std::nullopt);
               if (ExpectedParams && CXXMD->getNumParams() == *ExpectedParams)
                 KnownBad = true;
@@ -7755,15 +7755,6 @@ RValue CodeGenFunction::EmitCall(QualType CalleeType,
                          E == MustTailCall, E->getExprLoc());
 
   if (auto *CalleeDecl = dyn_cast_or_null<FunctionDecl>(TargetDecl)) {
-    // Generate function declaration DISuprogram in order to be used
-    // in debug info about call sites.
-    if (CGDebugInfo *DI = getDebugInfo()) {
-      FunctionArgList Args;
-      QualType ResTy = BuildFunctionArgList(CalleeDecl, Args);
-      DI->EmitFuncDeclForCallSite(LocalCallOrInvoke,
-                                  DI->getFunctionType(CalleeDecl, ResTy, Args),
-                                  CalleeDecl);
-    }
     if (CalleeDecl->hasAttr<RestrictAttr>() ||
         CalleeDecl->hasAttr<AllocSizeAttr>()) {
       // Function has 'malloc' (aka. 'restrict') or 'alloc_size' attribute.

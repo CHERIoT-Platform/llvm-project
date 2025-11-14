@@ -384,23 +384,23 @@ define float @atomic_cap_ptr_fadd(float addrspace(200)* %ptr, float %val) nounwi
 ; PURECAP-NEXT:    # Child Loop BB11_2 Depth 2
 ; PURECAP-NEXT:    add.s $f0, $f0, $f12
 ; PURECAP-NEXT:    mfc1 $1, $f0
+; PURECAP-NEXT:    move $3, $2
+; PURECAP-NEXT:    move $4, $2
 ; PURECAP-NEXT:  .LBB11_2: # %atomicrmw.start
 ; PURECAP-NEXT:    # Parent Loop BB11_1 Depth=1
 ; PURECAP-NEXT:    # => This Inner Loop Header: Depth=2
-; PURECAP-NEXT:    cllw $3, $c3
-; PURECAP-NEXT:    bne $3, $2, .LBB11_4
+; PURECAP-NEXT:    cllw $2, $c3
+; PURECAP-NEXT:    bne $2, $4, .LBB11_4
 ; PURECAP-NEXT:    nop
 ; PURECAP-NEXT:  # %bb.3: # %atomicrmw.start
 ; PURECAP-NEXT:    # in Loop: Header=BB11_2 Depth=2
-; PURECAP-NEXT:    cscw $4, $1, $c3
-; PURECAP-NEXT:    beqz $4, .LBB11_2
+; PURECAP-NEXT:    cscw $5, $1, $c3
+; PURECAP-NEXT:    beqz $5, .LBB11_2
 ; PURECAP-NEXT:    nop
 ; PURECAP-NEXT:  .LBB11_4: # %atomicrmw.start
 ; PURECAP-NEXT:    # in Loop: Header=BB11_1 Depth=1
-; PURECAP-NEXT:    move $1, $2
-; PURECAP-NEXT:    mtc1 $3, $f0
-; PURECAP-NEXT:    bne $3, $1, .LBB11_1
-; PURECAP-NEXT:    move $2, $3
+; PURECAP-NEXT:    bne $2, $3, .LBB11_1
+; PURECAP-NEXT:    mtc1 $2, $f0
 ; PURECAP-NEXT:  # %bb.5: # %atomicrmw.end
 ; PURECAP-NEXT:    sync
 ; PURECAP-NEXT:    cjr $c17
@@ -416,23 +416,23 @@ define float @atomic_cap_ptr_fadd(float addrspace(200)* %ptr, float %val) nounwi
 ; HYBRID-NEXT:    # Child Loop BB11_2 Depth 2
 ; HYBRID-NEXT:    add.s $f0, $f0, $f12
 ; HYBRID-NEXT:    mfc1 $1, $f0
+; HYBRID-NEXT:    move $3, $2
+; HYBRID-NEXT:    move $4, $2
 ; HYBRID-NEXT:  .LBB11_2: # %atomicrmw.start
 ; HYBRID-NEXT:    # Parent Loop BB11_1 Depth=1
 ; HYBRID-NEXT:    # => This Inner Loop Header: Depth=2
-; HYBRID-NEXT:    cllw $3, $c3
-; HYBRID-NEXT:    bne $3, $2, .LBB11_4
+; HYBRID-NEXT:    cllw $2, $c3
+; HYBRID-NEXT:    bne $2, $4, .LBB11_4
 ; HYBRID-NEXT:    nop
 ; HYBRID-NEXT:  # %bb.3: # %atomicrmw.start
 ; HYBRID-NEXT:    # in Loop: Header=BB11_2 Depth=2
-; HYBRID-NEXT:    cscw $4, $1, $c3
-; HYBRID-NEXT:    beqz $4, .LBB11_2
+; HYBRID-NEXT:    cscw $5, $1, $c3
+; HYBRID-NEXT:    beqz $5, .LBB11_2
 ; HYBRID-NEXT:    nop
 ; HYBRID-NEXT:  .LBB11_4: # %atomicrmw.start
 ; HYBRID-NEXT:    # in Loop: Header=BB11_1 Depth=1
-; HYBRID-NEXT:    move $1, $2
-; HYBRID-NEXT:    mtc1 $3, $f0
-; HYBRID-NEXT:    bne $3, $1, .LBB11_1
-; HYBRID-NEXT:    move $2, $3
+; HYBRID-NEXT:    bne $2, $3, .LBB11_1
+; HYBRID-NEXT:    mtc1 $2, $f0
 ; HYBRID-NEXT:  # %bb.5: # %atomicrmw.end
 ; HYBRID-NEXT:    sync
 ; HYBRID-NEXT:    jr $ra
@@ -452,23 +452,23 @@ define float @atomic_cap_ptr_fsub(float addrspace(200)* %ptr, float %val) nounwi
 ; PURECAP-NEXT:    # Child Loop BB12_2 Depth 2
 ; PURECAP-NEXT:    sub.s $f0, $f0, $f12
 ; PURECAP-NEXT:    mfc1 $1, $f0
+; PURECAP-NEXT:    move $3, $2
+; PURECAP-NEXT:    move $4, $2
 ; PURECAP-NEXT:  .LBB12_2: # %atomicrmw.start
 ; PURECAP-NEXT:    # Parent Loop BB12_1 Depth=1
 ; PURECAP-NEXT:    # => This Inner Loop Header: Depth=2
-; PURECAP-NEXT:    cllw $3, $c3
-; PURECAP-NEXT:    bne $3, $2, .LBB12_4
+; PURECAP-NEXT:    cllw $2, $c3
+; PURECAP-NEXT:    bne $2, $4, .LBB12_4
 ; PURECAP-NEXT:    nop
 ; PURECAP-NEXT:  # %bb.3: # %atomicrmw.start
 ; PURECAP-NEXT:    # in Loop: Header=BB12_2 Depth=2
-; PURECAP-NEXT:    cscw $4, $1, $c3
-; PURECAP-NEXT:    beqz $4, .LBB12_2
+; PURECAP-NEXT:    cscw $5, $1, $c3
+; PURECAP-NEXT:    beqz $5, .LBB12_2
 ; PURECAP-NEXT:    nop
 ; PURECAP-NEXT:  .LBB12_4: # %atomicrmw.start
 ; PURECAP-NEXT:    # in Loop: Header=BB12_1 Depth=1
-; PURECAP-NEXT:    move $1, $2
-; PURECAP-NEXT:    mtc1 $3, $f0
-; PURECAP-NEXT:    bne $3, $1, .LBB12_1
-; PURECAP-NEXT:    move $2, $3
+; PURECAP-NEXT:    bne $2, $3, .LBB12_1
+; PURECAP-NEXT:    mtc1 $2, $f0
 ; PURECAP-NEXT:  # %bb.5: # %atomicrmw.end
 ; PURECAP-NEXT:    sync
 ; PURECAP-NEXT:    cjr $c17
@@ -484,23 +484,23 @@ define float @atomic_cap_ptr_fsub(float addrspace(200)* %ptr, float %val) nounwi
 ; HYBRID-NEXT:    # Child Loop BB12_2 Depth 2
 ; HYBRID-NEXT:    sub.s $f0, $f0, $f12
 ; HYBRID-NEXT:    mfc1 $1, $f0
+; HYBRID-NEXT:    move $3, $2
+; HYBRID-NEXT:    move $4, $2
 ; HYBRID-NEXT:  .LBB12_2: # %atomicrmw.start
 ; HYBRID-NEXT:    # Parent Loop BB12_1 Depth=1
 ; HYBRID-NEXT:    # => This Inner Loop Header: Depth=2
-; HYBRID-NEXT:    cllw $3, $c3
-; HYBRID-NEXT:    bne $3, $2, .LBB12_4
+; HYBRID-NEXT:    cllw $2, $c3
+; HYBRID-NEXT:    bne $2, $4, .LBB12_4
 ; HYBRID-NEXT:    nop
 ; HYBRID-NEXT:  # %bb.3: # %atomicrmw.start
 ; HYBRID-NEXT:    # in Loop: Header=BB12_2 Depth=2
-; HYBRID-NEXT:    cscw $4, $1, $c3
-; HYBRID-NEXT:    beqz $4, .LBB12_2
+; HYBRID-NEXT:    cscw $5, $1, $c3
+; HYBRID-NEXT:    beqz $5, .LBB12_2
 ; HYBRID-NEXT:    nop
 ; HYBRID-NEXT:  .LBB12_4: # %atomicrmw.start
 ; HYBRID-NEXT:    # in Loop: Header=BB12_1 Depth=1
-; HYBRID-NEXT:    move $1, $2
-; HYBRID-NEXT:    mtc1 $3, $f0
-; HYBRID-NEXT:    bne $3, $1, .LBB12_1
-; HYBRID-NEXT:    move $2, $3
+; HYBRID-NEXT:    bne $2, $3, .LBB12_1
+; HYBRID-NEXT:    mtc1 $2, $f0
 ; HYBRID-NEXT:  # %bb.5: # %atomicrmw.end
 ; HYBRID-NEXT:    sync
 ; HYBRID-NEXT:    jr $ra

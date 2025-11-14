@@ -750,7 +750,7 @@ enum RLISTENCODE {
 
 inline unsigned encodeRegList(MCRegister EndReg, bool IsRVE = false) {
   assert((!IsRVE || EndReg <= RISCV::X9) && "Invalid Rlist for RV32E");
-  switch (EndReg) {
+  switch (EndReg.id()) {
   case RISCV::X1:
     return RLISTENCODE::RA;
   case RISCV::X8:

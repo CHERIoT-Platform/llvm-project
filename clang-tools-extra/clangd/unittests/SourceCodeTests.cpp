@@ -810,8 +810,6 @@ TEST(SourceCodeTests, isKeywords) {
   EXPECT_TRUE(isKeyword("return", LangOpts));
   // CHERI-TODO: COROUTINES_KEYWORD is not included in CXX20_KEYWORD until
   // https://github.com/CTSRD-CHERI/llvm-project/issues/717 has been fixed.
-  EXPECT_FALSE(isKeyword("co_await", LangOpts));
-  LangOpts.Coroutines = true;
   EXPECT_TRUE(isKeyword("co_await", LangOpts));
 
   // these are identifiers (not keywords!) with special meaning in some

@@ -17,10 +17,6 @@ def SDT_RISCVCheriBoolUnary : SDTypeProfile<1, 1, [
   SDTCisInt<0>, SDTCisVT<1, YLenVT>
 ]>;
 
-def SDT_RISCVCheriBoolUnaryChain : SDTypeProfile<1, 1, [
-  SDTCisInt<0>, SDTCisVT<2, YLenVT>
-]>;
-
 def SDT_RISCVCheriBoolBinary : SDTypeProfile<1, 2, [
   SDTCisInt<0>, SDTCisVT<1, YLenVT>, SDTCisVT<2, YLenVT>
 ]>;
@@ -39,7 +35,7 @@ def riscv_cap_tail        : RVSDNode<"CAP_TAIL", SDT_RISCVCapCall,
                                    [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
                                     SDNPVariadic]>;
 def riscv_cap_tag_get     : RVSDNode<"CAP_TAG_GET",
-                                   SDT_RISCVCheriBoolUnaryChain,
+                                   SDT_RISCVCheriBoolUnary,
                                    [SDNPHasChain]>;
 def riscv_cap_sealed_get  : RVSDNode<"CAP_SEALED_GET",
                                    SDT_RISCVCheriBoolUnary>;

@@ -92,7 +92,7 @@ define internal i32 @ptrtoint_null_plus_const() addrspace(200) nounwind {
 define internal i32 @ptrtoint_null_plus_var(i32 %add) addrspace(200) nounwind {
 ; CHECK-LABEL: ptrtoint_null_plus_var:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    mv a0, a0asf
+; CHECK-NEXT:    mv a0, a0
 ; CHECK-NEXT:    cret
 ;
 ; HYBRID-LABEL: ptrtoint_null_plus_var:

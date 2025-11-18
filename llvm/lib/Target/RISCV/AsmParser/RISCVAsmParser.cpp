@@ -258,7 +258,6 @@ class RISCVAsmParser : public MCTargetAsmParser {
 
   ParseStatus parseRegReg(OperandVector &Operands);
   ParseStatus parseXSfmmVType(OperandVector &Operands);
-  ParseStatus parseRetval(OperandVector &Operands);
   ParseStatus parseZcmpStackAdj(OperandVector &Operands,
                                 bool ExpectNegative = false);
   ParseStatus parseZcmpNegStackAdj(OperandVector &Operands) {
@@ -1844,10 +1843,6 @@ bool RISCVAsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
     return generateImmOutOfRangeError(
         Operands, ErrorInfo, -1, (1 << 5) - 1,
         "immediate must be non-zero in the range");
-  case Match_InvalidXSfmmVType: {
-    SMLoc ErrorLoc = ((RISCVOperand &)*Operands[ErrorInfo]).getStartLoc();
-    return generateXSfmmVTypeError(ErrorLoc);
-  }
   case Match_InvalidSpecialCapRegister: {
     return generateImmOutOfRangeError(Operands, ErrorInfo, 0, (1 << 5) - 1,
                                       "operand must be a valid special "

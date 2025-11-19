@@ -1653,6 +1653,8 @@ SanitizerMask ToolChain::getSupportedSanitizers() const {
     Res |= SanitizerKind::ShadowCallStack;
   if (getTriple().isAArch64(64))
     Res |= SanitizerKind::MemTag;
+  if (getTriple().isBPF())
+    Res |= SanitizerKind::KernelAddress;
   // TODO: SanitizerKind::CHERI should depend on CHERI support being present
   // and not whether we are compiling for CHERI purecap. We could either add a
   // function to detect CHERI support or allow it on all architectures that

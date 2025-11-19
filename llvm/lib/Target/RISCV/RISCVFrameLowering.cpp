@@ -2665,3 +2665,12 @@ void RISCVFrameLowering::inlineStackProbe(MachineFunction &MF,
     }
   }
 }
+
+int RISCVFrameLowering::getInitialCFAOffset(const MachineFunction &MF) const {
+  return 0;
+}
+
+Register
+RISCVFrameLowering::getInitialCFARegister(const MachineFunction &MF) const {
+  return RISCV::X2;
+}

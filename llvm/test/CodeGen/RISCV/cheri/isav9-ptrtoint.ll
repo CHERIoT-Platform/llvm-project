@@ -93,12 +93,14 @@ define dso_local i64 @ptrtoint_null_plus_const() addrspace(200) nounwind {
 define dso_local i64 @ptrtoint_null_plus_var(i64 %add) addrspace(200) nounwind {
 ; PURECAP-LABEL: ptrtoint_null_plus_var:
 ; PURECAP:       # %bb.0:
+; PURECAP-NEXT:    mv a0, a0
 ; PURECAP-NEXT:    cret
 ;
 ; HYBRID-LABEL: ptrtoint_null_plus_var:
 ; HYBRID:       # %bb.0:
 ; HYBRID-NEXT:    cgettag a1, zero
 ; HYBRID-NEXT:    neg a1, a1
+; HYBRID-NEXT:    mv a0, a0
 ; HYBRID-NEXT:    ret
   %zero = ptrtoint i8 addrspace(200)* null to i64
   %ret = add i64 %zero, %add

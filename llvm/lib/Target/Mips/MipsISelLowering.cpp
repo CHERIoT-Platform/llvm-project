@@ -341,7 +341,7 @@ const char *MipsTargetLowering::getTargetNodeName(unsigned Opcode) const {
 
 MipsTargetLowering::MipsTargetLowering(const MipsTargetMachine &TM,
                                        const MipsSubtarget &STI)
-    : TargetLowering(TM), Subtarget(STI), ABI(TM.getABI()) {
+    : TargetLowering(TM, STI), Subtarget(STI), ABI(TM.getABI()) {
   CapType = STI.typeForCapabilities();
   assert(cheriCapabilityType().isFatPointer());
   IsCheriPureCap = ABI.IsCheriPureCap();

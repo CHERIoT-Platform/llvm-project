@@ -147,6 +147,7 @@ public:
   std::optional<RelType> relativeFuncRel;
   RelType iRelativeRel = 0;
   RelType symbolicRel = 0;
+  RelType iRelSymbolicRel = 0;
   RelType tlsDescRel = 0;
   RelType tlsGotRel = 0;
   RelType tlsModuleIndexRel = 0;

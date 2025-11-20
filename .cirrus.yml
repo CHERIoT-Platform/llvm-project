@@ -3,9 +3,11 @@ pr_task:
   name: Build and test PR
   skip: $CIRRUS_PR == ""
   timeout_in: 240m
-  gce_instance: &arm_vm
+  container: ghcr.io/cheriot-platform/devcontainer:latest
+  gce_container: &arm_vm
     image_project: ubuntu-os-cloud
     image_family: ubuntu-2404-lts-arm64
+    container: ghcr.io/cheriot-platform/devcontainer:latest
     architecture: arm64
     zone: us-east1-b
     type: c4a-standard-16
@@ -36,7 +38,7 @@ x86_release_task:
   name: Build and upload artefact x86_64
   only_if: ($CIRRUS_PR == "") && ($CIRRUS_BRANCH == "cheriot")
   timeout_in: 120m
-  gce_instance:
+  gce_container:
     <<: *arm_vm
     image_family: ubuntu-2404-lts-amd64
     architecture: amd64

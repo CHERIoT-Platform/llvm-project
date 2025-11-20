@@ -495,14 +495,18 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     int64_t hi = SignExtend64(val + 0x800, bits) >> 12;
     checkInt(ctx, loc, hi, 20, rel);
     if (isInt<20>(hi)) {
-      relocateNoSym(loc,
-                    ctx.arg.isCheriot ? R_RISCV_CHERIOT_COMPARTMENT_HI
-                                      : R_RISCV_PCREL_HI20,
-                    val);
-      relocateNoSym(loc + 4,
-                    ctx.arg.isCheriot ? R_RISCV_CHERIOT_COMPARTMENT_LO_I
-                                      : R_RISCV_PCREL_LO12_I,
-                    val);
+      relocate(loc,
+               Relocation{R_NONE,
+                          ctx.arg.isCheriot ? R_RISCV_CHERIOT_COMPARTMENT_HI
+                                            : R_RISCV_PCREL_HI20,
+                          0, 0, rel.sym},
+               val);
+      relocate(loc + 4,
+               Relocation{R_NONE,
+                          ctx.arg.isCheriot ? R_RISCV_CHERIOT_COMPARTMENT_LO_I
+                                            : R_RISCV_PCREL_LO12_I,
+                          0, 0, rel.sym},
+               val);
     }
     return;
   }

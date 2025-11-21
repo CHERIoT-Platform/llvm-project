@@ -1095,10 +1095,10 @@ SDValue DAGTypeLegalizer::ScalarizeVecOp_STRICT_FP_ROUND(SDNode *N,
                                                          unsigned OpNo) {
   assert(OpNo == 1 && "Wrong operand for scalarization!");
   SDValue Elt = GetScalarizedVector(N->getOperand(1));
-  SDValue Res = DAG.getNode(ISD::STRICT_FP_ROUND, SDLoc(N),
-                            { N->getValueType(0).getVectorElementType(),
-                              MVT::Other },
-                            { N->getOperand(0), Elt, N->getOperand(2) });
+  SDValue Res =
+      DAG.getNode(ISD::STRICT_FP_ROUND, SDLoc(N),
+                  {N->getValueType(0).getVectorElementType(), MVT::Other},
+                  {N->getOperand(0), Elt, N->getOperand(2)});
   // Legalize the chain result - switch anything that used the old chain to
   // use the new one.
   ReplaceValueWith(SDValue(N, 1), Res.getValue(1));
@@ -3842,10 +3842,10 @@ SDValue DAGTypeLegalizer::SplitVecOp_UnaryOp(SDNode *N) {
                                InVT.getVectorElementCount());
 
   if (N->isStrictFPOpcode()) {
-    Lo = DAG.getNode(N->getOpcode(), dl, { OutVT, MVT::Other },
-                     { N->getOperand(0), Lo });
-    Hi = DAG.getNode(N->getOpcode(), dl, { OutVT, MVT::Other },
-                     { N->getOperand(0), Hi });
+    Lo = DAG.getNode(N->getOpcode(), dl, {OutVT, MVT::Other},
+                     {N->getOperand(0), Lo});
+    Hi = DAG.getNode(N->getOpcode(), dl, {OutVT, MVT::Other},
+                     {N->getOperand(0), Hi});
 
     // Build a factor node to remember that this operation is independent
     // of the other one.
@@ -4638,10 +4638,10 @@ SDValue DAGTypeLegalizer::SplitVecOp_FP_ROUND(SDNode *N) {
                                InVT.getVectorElementCount());
 
   if (N->isStrictFPOpcode()) {
-    Lo = DAG.getNode(N->getOpcode(), DL, { OutVT, MVT::Other },
-                     { N->getOperand(0), Lo, N->getOperand(2) });
-    Hi = DAG.getNode(N->getOpcode(), DL, { OutVT, MVT::Other },
-                     { N->getOperand(0), Hi, N->getOperand(2) });
+    Lo = DAG.getNode(N->getOpcode(), DL, {OutVT, MVT::Other},
+                     {N->getOperand(0), Lo, N->getOperand(2)});
+    Hi = DAG.getNode(N->getOpcode(), DL, {OutVT, MVT::Other},
+                     {N->getOperand(0), Hi, N->getOperand(2)});
     // Legalize the chain result - switch anything that used the old chain to
     // use the new one.
     SDValue NewChain = DAG.getNode(ISD::TokenFactor, DL, MVT::Other,

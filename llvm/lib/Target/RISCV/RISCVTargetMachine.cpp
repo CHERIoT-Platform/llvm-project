@@ -142,6 +142,7 @@ extern "C" LLVM_ABI LLVM_EXTERNAL_VISIBILITY void LLVMInitializeRISCVTarget() {
   initializeRISCVPushPopOptPass(*PR);
   initializeRISCVIndirectBranchTrackingPass(*PR);
   initializeRISCVLoadStoreOptPass(*PR);
+  initializeRISCVPreAllocZilsdOptPass(*PR);
   initializeRISCVExpandAtomicPseudoPass(*PR);
   initializeRISCVRedundantCopyEliminationPass(*PR);
   initializeRISCVAsmPrinterPass(*PR);
@@ -617,6 +618,8 @@ void RISCVPassConfig::addPreRegAlloc() {
     addPass(createRISCVMergeBaseOffsetOptPass());
     addPass(createCheriGetAddressElimPass());
     addPass(createRISCVVLOptimizerPass());
+    // Add Zilsd pre-allocation load/store optimization
+    addPass(createRISCVPreAllocZilsdOptPass());
   }
   addPass(createRISCVInsertReadWriteCSRPass());
   addPass(createRISCVInsertWriteVXRMPass());

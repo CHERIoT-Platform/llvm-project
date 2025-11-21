@@ -46,10 +46,12 @@
 
 // CHECK-NEXT:   }
 // CHECK-NEXT: ]
-// CHECK-NEXT: CHERI __cap_relocs [
-// PER-FUNCTION-NEXT:    0x0209b0 (function3@CAPTABLE@x.6) Base: 0x10{{.+}} (function3+0) Length: {{.+}} Perms: Function
-// PER-FILE-NEXT:        0x020950 (function3@CAPTABLE@per-function-table.c.tmp.o.4) Base: 0x10{{.+}} (function3+0) Length: {{[0-9]+}} Perms: Function
-// GLOBAL-NEXT:          0x020880 (function3@CAPTABLE.4) Base: 0x10{{.+}} (function3+0) Length: {{.+}} Perms: Function
+// CHECK-NEXT: CHERI Capability Relocations [
+// CHECK-NEXT:   Section ({{.+}}) __cap_relocs {
+// PER-FUNCTION-NEXT:    0x209B0 FUNC - 0x108F0 [0x108F0-0x10948]
+// PER-FILE-NEXT:        0x20950 FUNC - 0x108B0 [0x108B0-0x10908]
+// GLOBAL-NEXT:          0x20880 FUNC - 0x107E0 [0x107E0-0x10838]
+// CHECK-NEXT:   }
 // CHECK-NEXT: ]
 // CHECK-NEXT:        CHERI .captable [
 // PER-FUNCTION-NEXT:   0x0      extern_void_ptr@CAPTABLE@function1   R_MIPS_CHERI_CAPABILITY_CALL/R_MIPS_NONE/R_MIPS_NONE against extern_void_ptr

@@ -398,9 +398,10 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
   case R_RISCV_CHERI_CAPABILITY:
   case R_RISCV_CHERI_CAPABILITY_CODE:
     return R_ABS_CAP;
+  case INTERNAL_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI:
+    return R_PC;
   case INTERNAL_RISCV_CHERIOT_COMPARTMENT_HI:
-    return isPCCRelative(ctx, loc, &s) ? R_PC
-                                       : RE_CHERIOT_COMPARTMENT_CGPREL_HI;
+    return RE_CHERIOT_COMPARTMENT_CGPREL_HI;
   case INTERNAL_RISCV_CHERIOT_COMPARTMENT_LO_I:
   case INTERNAL_RISCV_CHERIOT_COMPARTMENT_LO_S:
     return RE_CHERIOT_COMPARTMENT_CGPREL_LO;
@@ -504,8 +505,9 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     if (isInt<20>(hi)) {
       relocate(loc,
                Relocation{R_NONE,
-                          ctx.arg.isCheriot ? INTERNAL_RISCV_CHERIOT_COMPARTMENT_HI
-                                            : R_RISCV_PCREL_HI20,
+                          ctx.arg.isCheriot
+                              ? INTERNAL_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI
+                              : R_RISCV_PCREL_HI20,
                           0, 0, rel.sym},
                val);
       relocate(loc + 4,
@@ -677,12 +679,24 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
   case INTERNAL_RISCV_CHERIOT_COMPARTMENT_HI: {
     // AUICGP
     uint32_t opcode = AUICGP;
-    if (isPCCRelative(ctx, loc, rel.sym)) {
-      opcode = AUIPCC;
-      if (int64_t(val) < 0)
-        val = (val + 0x7ff) & ~0x7ff;
-      val = int64_t(val) >> 11;
-    }
+    uint32_t existingOpcode = read32le(loc) & 0x7f;
+    if ((existingOpcode != AUIPCC) && (existingOpcode != AUICGP))
+      warn("R_RISCV_CHERIOT_COMPARTMENT_HI relocation applied to instruction "
+           "with unexpected opcode " +
+           Twine(existingOpcode));
+    checkInt(ctx, loc, SignExtend64(val + 0x800, bits) >> 12, 20, rel);
+    // Preserve the target register.  We will rewrite the opcode (source
+    // register) to either AUICGP or AUIPCC and set the immediate field.
+    uint32_t insn = read32le(loc) & 0x00000f80;
+    write32le(loc, insn | (val << 12) | opcode);
+    break;
+  }
+  case INTERNAL_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI: {
+    // AUIPCC
+    uint32_t opcode = AUIPCC;
+    if (int64_t(val) < 0)
+      val = (val + 0x7ff) & ~0x7ff;
+    val = int64_t(val) >> 11;
     uint32_t existingOpcode = read32le(loc) & 0x7f;
     if ((existingOpcode != AUIPCC) && (existingOpcode != AUICGP))
       warn("R_RISCV_CHERIOT_COMPARTMENT_HI relocation applied to instruction "
@@ -1065,7 +1079,13 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSection &sec) {
   auto vendorRelocs = riscv_vendor_relocs(sec.relocations);
   for (auto it = vendorRelocs.begin(); it != vendorRelocs.end(); ++it) {
     Relocation r = *it;
-    if (r.type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_LO_I) {
+    Relocation *underlyingReloc = it.getUnderlyingRelocation();
+    if (r.type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_HI &&
+        isPCCRelative(ctx, nullptr, r.sym)) {
+      modified = true;
+      underlyingReloc->type = INTERNAL_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI;
+      underlyingReloc->expr = R_PC;
+    } else if (r.type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_LO_I) {
       // If this is PCC-relative, then the relocation points to the auicgp /
       // auipcc instruction and we need to look there to find the real target.
       if (!isPCCRelative(ctx, nullptr, r.sym))
@@ -1092,7 +1112,8 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSection &sec) {
 
       std::optional<Relocation> target;
       for (auto it = range.first; it != range.second; ++it)
-        if (it->type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_HI) {
+        if (it->type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_HI ||
+            it->type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI) {
           target = *it;
           break;
         }
@@ -1104,7 +1125,6 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSection &sec) {
       modified = true;
       // If the target is PCC-relative then the auipcc can't be erased and so
       // skip the rewriting.
-      Relocation *underlyingReloc = it.getUnderlyingRelocation();
       if (isPCCRelative(ctx, nullptr, target->sym)) {
         underlyingReloc->type = INTERNAL_RISCV_CHERIOT_COMPARTMENT_PCCREL_LO_I;
         underlyingReloc->expr = RE_RISCV_PC_INDIRECT;

@@ -63,6 +63,7 @@ public:
 #define INTERNAL_R_RISCV_X0REL_S 259
 
 #define INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_LO_I 270
+#define INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI 271
 
 const uint64_t dtpOffset = 0x800;
 
@@ -398,9 +399,10 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
     return R_GOT_PC;
   case R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20:
     return R_TLSGD_PC;
+  case INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI:
+    return R_PC;
   case R_RISCV_CHERIOT_COMPARTMENT_HI:
-    return isPCCRelative(ctx, loc, &s) ? R_PC
-                                       : RE_CHERIOT_COMPARTMENT_CGPREL_HI;
+    return RE_CHERIOT_COMPARTMENT_CGPREL_HI;
   case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
   case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
     return RE_CHERIOT_COMPARTMENT_CGPREL_LO;
@@ -501,8 +503,9 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     if (isInt<20>(hi)) {
       relocate(loc,
                Relocation{R_NONE,
-                          ctx.arg.isCheriot ? R_RISCV_CHERIOT_COMPARTMENT_HI
-                                            : R_RISCV_PCREL_HI20,
+                          ctx.arg.isCheriot
+                              ? INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI
+                              : R_RISCV_PCREL_HI20,
                           0, 0, rel.sym},
                val);
       relocate(loc + 4,
@@ -677,12 +680,24 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
   case R_RISCV_CHERIOT_COMPARTMENT_HI: {
     // AUICGP
     uint32_t opcode = AUICGP;
-    if (isPCCRelative(ctx, loc, rel.sym)) {
-      opcode = AUIPCC;
-      if (int64_t(val) < 0)
-        val = (val + 0x7ff) & ~0x7ff;
-      val = int64_t(val) >> 11;
-    }
+    uint32_t existingOpcode = read32le(loc) & 0x7f;
+    if ((existingOpcode != AUIPCC) && (existingOpcode != AUICGP))
+      warn("R_RISCV_CHERIOT_COMPARTMENT_HI relocation applied to instruction "
+           "with unexpected opcode " +
+           Twine(existingOpcode));
+    checkInt(ctx, loc, SignExtend64(val + 0x800, bits) >> 12, 20, rel);
+    // Preserve the target register.  We will rewrite the opcode (source
+    // register) to either AUICGP or AUIPCC and set the immediate field.
+    uint32_t insn = read32le(loc) & 0x00000f80;
+    write32le(loc, insn | (val << 12) | opcode);
+    break;
+  }
+  case INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI: {
+    // AUIPCC
+    uint32_t opcode = AUIPCC;
+    if (int64_t(val) < 0)
+      val = (val + 0x7ff) & ~0x7ff;
+    val = int64_t(val) >> 11;
     uint32_t existingOpcode = read32le(loc) & 0x7f;
     if ((existingOpcode != AUIPCC) && (existingOpcode != AUICGP))
       warn("R_RISCV_CHERIOT_COMPARTMENT_HI relocation applied to instruction "
@@ -1066,7 +1081,12 @@ static void relaxCGP(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
 static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSection &sec) {
   bool modified = false;
   for (auto &r : sec.relocations) {
-    if (r.type == R_RISCV_CHERIOT_COMPARTMENT_LO_I) {
+    if (r.type == R_RISCV_CHERIOT_COMPARTMENT_HI &&
+        isPCCRelative(ctx, nullptr, r.sym)) {
+      modified = true;
+      r.type = INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI;
+      r.expr = R_PC;
+    } else if (r.type == R_RISCV_CHERIOT_COMPARTMENT_LO_I) {
       // If this is PCC-relative, then the relocation points to the auicgp /
       // auipcc instruction and we need to look there to find the real target.
       if (!isPCCRelative(ctx, nullptr, r.sym))
@@ -1092,7 +1112,8 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSection &sec) {
 
       const Relocation *target = nullptr;
       for (auto it = range.first; it != range.second; ++it)
-        if (it->type == R_RISCV_CHERIOT_COMPARTMENT_HI) {
+        if (it->type == R_RISCV_CHERIOT_COMPARTMENT_HI ||
+            it->type == INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI) {
           target = &*it;
           break;
         }

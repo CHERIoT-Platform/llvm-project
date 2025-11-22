@@ -34,9 +34,7 @@ using namespace llvm::sys;
 using namespace lld;
 using namespace lld::elf;
 
-#define INTERNAL_R_RISCV_COMPARTMENT_AUICGP_LO_I 272
-#define INTERNAL_R_RISCV_COMPARTMENT_CGPREL_LO_I 273
-#define INTERNAL_R_RISCV_COMPARTMENT_AUIPCC_LO_I 274
+#define INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI 271
 
 // Returns a string to construct an error message.
 std::string elf::toStr(Ctx &ctx, const InputSectionBase *sec) {
@@ -712,6 +710,7 @@ static Relocation *getRISCVPCRelHi20(Ctx &ctx, const InputSectionBase *loSec,
     if (it->type == R_RISCV_PCREL_HI20 || it->type == R_RISCV_GOT_HI20 ||
         it->type == R_RISCV_TLS_GD_HI20 || it->type == R_RISCV_TLS_GOT_HI20 ||
         it->type == R_RISCV_CHERIOT_COMPARTMENT_HI ||
+        it->type == INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI ||
         it->type == R_RISCV_CHERI_CAPTAB_PCREL_HI20 ||
         it->type == R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20 ||
         it->type == R_RISCV_CHERI_TLS_IE_CAPTAB_PCREL_HI20)

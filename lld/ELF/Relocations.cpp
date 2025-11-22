@@ -153,10 +153,10 @@ bool lld::elf::needsGot(RelExpr expr) {
 // returns false for TLS variables even though then need a captable entry,
 // because TLS variables use the captable differently than regular variables.
 static bool needsMipsCheriCapTable(RelExpr expr) {
-  return oneof<R_MIPS_CHERI_CAPTAB_INDEX,
-               R_MIPS_CHERI_CAPTAB_INDEX_SMALL_IMMEDIATE,
-               R_MIPS_CHERI_CAPTAB_INDEX_CALL,
-               R_MIPS_CHERI_CAPTAB_INDEX_CALL_SMALL_IMMEDIATE>(expr);
+  return oneof<RE_MIPS_CHERI_CAPTAB_INDEX,
+               RE_MIPS_CHERI_CAPTAB_INDEX_SMALL_IMMEDIATE,
+               RE_MIPS_CHERI_CAPTAB_INDEX_CALL,
+               RE_MIPS_CHERI_CAPTAB_INDEX_CALL_SMALL_IMMEDIATE>(expr);
 }
 
 // True if this expression is of the form Sym - X, where X is a position in the
@@ -165,7 +165,7 @@ static bool isRelExpr(RelExpr expr) {
   return oneof<R_PC, R_GOTREL, R_GOTPLTREL, RE_ARM_PCA, RE_MIPS_GOTREL,
                RE_PPC64_CALL, RE_PPC64_RELAX_TOC, RE_AARCH64_PAGE_PC,
                R_RELAX_GOT_PC, RE_RISCV_PC_INDIRECT, RE_PPC64_RELAX_GOT_PC,
-               RE_LOONGARCH_PAGE_PC, R_MIPS_CHERI_CAPTAB_REL>(expr);
+               RE_LOONGARCH_PAGE_PC, RE_MIPS_CHERI_CAPTAB_REL>(expr);
 }
 
 static RelExpr toPlt(RelExpr expr) {
@@ -921,21 +921,22 @@ bool RelocScan::isStaticLinkTimeConstant(RelExpr e, RelType type,
                                          const Symbol &sym,
                                          uint64_t relOff) const {
   // These expressions always compute a constant
-  if (oneof<
-          R_GOTPLT, R_GOT_OFF, R_RELAX_HINT, RE_MIPS_GOT_LOCAL_PAGE,
-          RE_MIPS_GOTREL, RE_MIPS_GOT_OFF, RE_MIPS_GOT_OFF32, RE_MIPS_GOT_GP_PC,
-          RE_AARCH64_GOT_PAGE_PC, RE_AARCH64_AUTH_GOT_PAGE_PC, R_GOT_PC,
-          R_GOTONLY_PC, R_GOTPLTONLY_PC, R_PLT_PC, R_PLT_GOTREL, R_PLT_GOTPLT,
-          R_GOTPLT_GOTREL, R_GOTPLT_PC, RE_PPC32_PLTREL, RE_PPC64_CALL_PLT,
-          RE_PPC64_RELAX_TOC, RE_RISCV_ADD, RE_AARCH64_GOT_PAGE,
-          RE_AARCH64_AUTH_GOT, RE_AARCH64_AUTH_GOT_PC, RE_LOONGARCH_PLT_PAGE_PC,
-          RE_LOONGARCH_GOT, RE_LOONGARCH_GOT_PAGE_PC, R_MIPS_CHERI_CAPTAB_INDEX,
-          R_MIPS_CHERI_CAPTAB_INDEX_SMALL_IMMEDIATE,
-          R_MIPS_CHERI_CAPTAB_INDEX_CALL,
-          R_MIPS_CHERI_CAPTAB_INDEX_CALL_SMALL_IMMEDIATE,
-          R_MIPS_CHERI_CAPTAB_REL, R_CHERIOT_COMPARTMENT_CGPREL_HI,
-          R_CHERIOT_COMPARTMENT_CGPREL_LO_I, R_CHERIOT_COMPARTMENT_CGPREL_LO_S,
-          R_CHERIOT_COMPARTMENT_SIZE>(e))
+  if (oneof<R_GOTPLT, R_GOT_OFF, R_RELAX_HINT, RE_MIPS_GOT_LOCAL_PAGE,
+            RE_MIPS_GOTREL, RE_MIPS_GOT_OFF, RE_MIPS_GOT_OFF32,
+            RE_MIPS_GOT_GP_PC, RE_AARCH64_GOT_PAGE_PC,
+            RE_AARCH64_AUTH_GOT_PAGE_PC, R_GOT_PC, R_GOTONLY_PC,
+            R_GOTPLTONLY_PC, R_PLT_PC, R_PLT_GOTREL, R_PLT_GOTPLT,
+            R_GOTPLT_GOTREL, R_GOTPLT_PC, RE_PPC32_PLTREL, RE_PPC64_CALL_PLT,
+            RE_PPC64_RELAX_TOC, RE_RISCV_ADD, RE_AARCH64_GOT_PAGE,
+            RE_AARCH64_AUTH_GOT, RE_AARCH64_AUTH_GOT_PC,
+            RE_LOONGARCH_PLT_PAGE_PC, RE_LOONGARCH_GOT,
+            RE_LOONGARCH_GOT_PAGE_PC, RE_MIPS_CHERI_CAPTAB_INDEX,
+            RE_MIPS_CHERI_CAPTAB_INDEX_SMALL_IMMEDIATE,
+            RE_MIPS_CHERI_CAPTAB_INDEX_CALL,
+            RE_MIPS_CHERI_CAPTAB_INDEX_CALL_SMALL_IMMEDIATE,
+            RE_MIPS_CHERI_CAPTAB_REL, RE_CHERIOT_COMPARTMENT_CGPREL_HI,
+            RE_CHERIOT_COMPARTMENT_CGPREL_LO_I,
+            RE_CHERIOT_COMPARTMENT_CGPREL_LO_S, RE_CHERIOT_COMPARTMENT_SIZE>(e))
     return true;
 
   // Cheri capability relocations are never static link time constants since

@@ -400,13 +400,13 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
     return R_ABS_CAP;
   case INTERNAL_RISCV_XCHERIOT1_CHERIOT_COMPARTMENT_HI:
     return isPCCRelative(ctx, loc, &s) ? R_PC
-                                        : R_CHERIOT_COMPARTMENT_CGPREL_HI;
+                                       : RE_CHERIOT_COMPARTMENT_CGPREL_HI;
   case INTERNAL_RISCV_XCHERIOT1_CHERIOT_COMPARTMENT_LO_I:
-    return R_CHERIOT_COMPARTMENT_CGPREL_LO_I;
+    return RE_CHERIOT_COMPARTMENT_CGPREL_LO_I;
   case INTERNAL_RISCV_XCHERIOT1_CHERIOT_COMPARTMENT_LO_S:
-    return R_CHERIOT_COMPARTMENT_CGPREL_LO_S;
+    return RE_CHERIOT_COMPARTMENT_CGPREL_LO_S;
   case INTERNAL_RISCV_XCHERIOT1_CHERIOT_COMPARTMENT_SIZE:
-    return R_CHERIOT_COMPARTMENT_SIZE;
+    return RE_CHERIOT_COMPARTMENT_SIZE;
   default:
     if (type.v & INTERNAL_RISCV_VENDOR_MASK) {
       Err(ctx) << getErrorLoc(ctx, loc)

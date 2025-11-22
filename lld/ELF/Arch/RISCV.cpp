@@ -62,6 +62,8 @@ public:
 #define INTERNAL_R_RISCV_X0REL_I 258
 #define INTERNAL_R_RISCV_X0REL_S 259
 
+#define INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_LO_I 270
+
 const uint64_t dtpOffset = 0x800;
 
 namespace {
@@ -401,6 +403,8 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
                                        : RE_CHERIOT_COMPARTMENT_CGPREL_HI;
   case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
     return RE_CHERIOT_COMPARTMENT_CGPREL_LO_I;
+  case INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_LO_I:
+    return RE_RISCV_PC_INDIRECT;
   case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
     return RE_CHERIOT_COMPARTMENT_CGPREL_LO_S;
   case R_RISCV_CHERIOT_COMPARTMENT_SIZE:
@@ -504,8 +508,9 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
                val);
       relocate(loc + 4,
                Relocation{R_NONE,
-                          ctx.arg.isCheriot ? R_RISCV_CHERIOT_COMPARTMENT_LO_I
-                                            : R_RISCV_PCREL_LO12_I,
+                          ctx.arg.isCheriot
+                              ? INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_LO_I
+                              : R_RISCV_PCREL_LO12_I,
                           0, 0, rel.sym},
                val);
     }
@@ -641,15 +646,18 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
       write32le(loc + 4, val);
     break;
   case R_RISCV_CHERIOT_COMPARTMENT_LO_I: {
-    if (isPCCRelative(ctx, loc, rel.sym)) {
-      // Attach a negative sign bit to LO12 if the offset is negative.
-      // However, if HI20 alone is enough to reach the target, then this should
-      // not be done and LO14 should just be 0 regardless.
-      if (int64_t(val) >= 0 || (val & 0x7ff) == 0)
-        val &= 0x7ff;
-      else
-        val = (uint64_t(-1) & ~0x7ff) | (val & 0x7ff);
-    }
+    checkInt(ctx, loc, val, 12, rel);
+    write32le(loc, (read32le(loc) & 0x000fffff) | (val << 20));
+    break;
+  }
+  case INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_LO_I: {
+    // Attach a negative sign bit to LO12 if the offset is negative.
+    // However, if HI20 alone is enough to reach the target, then this should
+    // not be done and LO14 should just be 0 regardless.
+    if (int64_t(val) >= 0 || (val & 0x7ff) == 0)
+      val &= 0x7ff;
+    else
+      val = (uint64_t(-1) & ~0x7ff) | (val & 0x7ff);
     checkInt(ctx, loc, val, 12, rel);
     write32le(loc, (read32le(loc) & 0x000fffff) | (val << 20));
     break;
@@ -1058,49 +1066,53 @@ static void relaxCGP(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
  */
 static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSection &sec) {
   bool modified = false;
-  for (auto it : llvm::enumerate(sec.relocations)) {
-    Relocation &r = it.value();
+  for (auto &r : sec.relocations) {
     if (r.type == R_RISCV_CHERIOT_COMPARTMENT_LO_I) {
       // If this is PCC-relative, then the relocation points to the auicgp /
       // auipcc instruction and we need to look there to find the real target.
-      if (isPCCRelative(ctx, nullptr, r.sym)) {
-        const Defined *d = cast<Defined>(r.sym);
-        if (!d->section)
-          error("R_RISCV_CHERIOT_COMPARTMENT_LO_I relocation points to an "
-                "absolute symbol: " +
-                r.sym->getName());
-        InputSection *isec = cast<InputSection>(d->section);
+      if (!isPCCRelative(ctx, nullptr, r.sym))
+        fatal("R_RISCV_CHERIOT_COMPARTMENT_LO_I must point to "
+              "R_RISCV_COMPARTMENT_HI");
 
-        // Relocations are sorted by offset, so we can use std::equal_range to
-        // do binary search.
-        Relocation targetReloc;
-        targetReloc.offset = d->value;
-        auto range = std::equal_range(
-            isec->relocations.begin(), isec->relocations.end(), targetReloc,
-            [](const Relocation &lhs, const Relocation &rhs) {
-              return lhs.offset < rhs.offset;
-            });
+      const Defined *d = cast<Defined>(r.sym);
+      if (!d->section)
+        error("R_RISCV_CHERIOT_COMPARTMENT_LO_I relocation points to an "
+              "absolute symbol: " +
+              r.sym->getName());
+      InputSection *isec = cast<InputSection>(d->section);
 
-        const Relocation *target = nullptr;
-        for (auto it = range.first; it != range.second; ++it)
-          if (it->type == R_RISCV_CHERIOT_COMPARTMENT_HI) {
-            target = &*it;
-            break;
-          }
-        if (!target) {
-          error(
-              "Could not find R_RISCV_CHERIOT_COMPARTMENT_HI relocation for " +
-              toStr(ctx, *r.sym));
+      // Relocations are sorted by offset, so we can use std::equal_range to
+      // do binary search.
+      Relocation targetReloc;
+      targetReloc.offset = d->value;
+      auto range = std::equal_range(
+          isec->relocations.begin(), isec->relocations.end(), targetReloc,
+          [](const Relocation &lhs, const Relocation &rhs) {
+            return lhs.offset < rhs.offset;
+          });
+
+      const Relocation *target = nullptr;
+      for (auto it = range.first; it != range.second; ++it)
+        if (it->type == R_RISCV_CHERIOT_COMPARTMENT_HI) {
+          target = &*it;
+          break;
         }
-        // If the target is PCC-relative then the auipcc can't be erased and so
-        // skip the rewriting.
-        if (isPCCRelative(ctx, nullptr, target->sym))
-          continue;
-        // Update our relocation to point to the target thing.
-        r.sym = target->sym;
-        r.addend = target->addend;
-        modified = true;
+      if (!target) {
+        error("Could not find R_RISCV_CHERIOT_COMPARTMENT_HI relocation for " +
+              toStr(ctx, *r.sym));
       }
+      modified = true;
+      // If the target is PCC-relative then the auipcc can't be erased and so
+      // skip the rewriting.
+      if (isPCCRelative(ctx, nullptr, target->sym)) {
+        r.type = INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_LO_I;
+        r.expr = RE_RISCV_PC_INDIRECT;
+        continue;
+      }
+      // Update our relocation to point to the target thing.
+      r.sym = target->sym;
+      r.addend = target->addend;
+      modified = true;
     }
   }
   return modified;

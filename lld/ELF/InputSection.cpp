@@ -34,6 +34,10 @@ using namespace llvm::sys;
 using namespace lld;
 using namespace lld::elf;
 
+#define INTERNAL_R_RISCV_COMPARTMENT_AUICGP_LO_I 272
+#define INTERNAL_R_RISCV_COMPARTMENT_CGPREL_LO_I 273
+#define INTERNAL_R_RISCV_COMPARTMENT_AUIPCC_LO_I 274
+
 // Returns a string to construct an error message.
 std::string elf::toStr(Ctx &ctx, const InputSectionBase *sec) {
   return (toStr(ctx, sec->file) + ":(" + sec->name + ")").str();
@@ -1049,7 +1053,8 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
     if (isPCCRelative(ctx, nullptr, r.sym)) {
       if (const Relocation *hiRel = getRISCVPCRelHi20(ctx, this, r)) {
         if (isPCCRelative(ctx, nullptr, hiRel->sym))
-          return getRelocTargetVA(ctx, *hiRel, r.sym->getVA(ctx));
+          fatal("RE_CHERIOT_COMPARTMENT_CGPREL_LO_I relocation used for "
+                "PCC-relative access!");
         return getBiasedCGPOffsetLo12(ctx, *hiRel->sym);
       }
       fatal("RE_CHERIOT_COMPARTMENT_CGPREL_LO_I relocation points to " +

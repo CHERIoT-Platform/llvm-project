@@ -496,8 +496,8 @@ void MipsCheriCapTableSection::addEntry(Symbol &sym, RelExpr expr,
   idx.firstUse = SymbolAndOffset(isec, offset);
   assert(!idx.firstUse->symOrSec.isNull());
   switch (expr) {
-  case R_MIPS_CHERI_CAPTAB_INDEX_SMALL_IMMEDIATE:
-  case R_MIPS_CHERI_CAPTAB_INDEX_CALL_SMALL_IMMEDIATE:
+  case RE_MIPS_CHERI_CAPTAB_INDEX_SMALL_IMMEDIATE:
+  case RE_MIPS_CHERI_CAPTAB_INDEX_CALL_SMALL_IMMEDIATE:
     idx.needsSmallImm = true;
     break;
   default:
@@ -509,8 +509,8 @@ void MipsCheriCapTableSection::addEntry(Symbol &sym, RelExpr expr,
   // not used as a function pointer and therefore does not need a unique
   // address (plt stub) across all DSOs.
   switch (expr) {
-  case R_MIPS_CHERI_CAPTAB_INDEX_CALL:
-  case R_MIPS_CHERI_CAPTAB_INDEX_CALL_SMALL_IMMEDIATE:
+  case RE_MIPS_CHERI_CAPTAB_INDEX_CALL:
+  case RE_MIPS_CHERI_CAPTAB_INDEX_CALL_SMALL_IMMEDIATE:
     if (!sym.isFunc() && !sym.isUndefWeak()) {
       CheriCapRelocLocation loc{isec, offset};
       std::string msg = "call relocation against non-function symbol " +

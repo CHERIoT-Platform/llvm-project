@@ -1056,23 +1056,29 @@ static void relaxCGP(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
 }
 
 /**
- * Find all R_RISCV_CHERIOT_COMPARTMENT_LO_I relocations that are CGP-relative
- * and rewrite them to be relative to the target of the current relocation.
- * These relocations mirror the HI20/LO12 PC-relative relocations and are
- * written as pairs where the first has the real relocation target as its
- * symbol and the second has the location of the first as its target.  This is
- * necessary for PC-relative relocations because the final address depends on
- * the location of the first instruction.  For CHERIoT, both PCC and
- * CGP-relative relocations use the same relocation types and we don't know
- * whether it is relative to PCC or CGP until we know the target.  That would
- * be fine, except that relaxation can delete the AUICGP, which means that we
- * then can't find the target.  We void this by doing a pass to find these
- * relocation targets and attaching them to the
- * R_RISCV_CHERIOT_COMPARTMENT_LO_I relocations for the cases where the target
- * is CGP-relative.
+ * Perform a substantial pre-pass of Cheriot relocations ahead of relaxation
+ * and relocation. This pre-pass has two goals:
+ *  - Separate PCC-relative and CGP-relative relocations. This reduces
+ *    complexity in relaxation and relocation by making the decision once
+ * upfront.
+ *  - Resolve the target address for the second in a pair of relocations. This
+ *    is required because relaxation may eliminate the first in a pair of
+ *    relocations, which would leave the second one unable to be relocated.
  *
- * Note: If we ever get direct PC[C]-relative loads in RISC-V then other
- * relocations will want to reuse this path.
+ * The specific post-conditions are:
+ *  - All PCC-relative CHERIOT_COMPARTMENT_HI relocations are represented as
+ *    INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI.
+ *  - All CGP-relative CHERIOT_COMPARTMENT_HI relocations are represented as
+ *    R_RISCV_CHERIOT_COMPARTMENT_HI.
+ *  - All PCC-relative CHERIOT_COMPARTMENT_LO_I relocations are represented as
+ *    INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_LO_I.
+ *  - All CGP-relative CHERIOT_COMPARTMENT_LO_I relocations are represented as
+ *    R_RISCV_CHERIOT_COMPARTMENT_LO_I.
+ *  - The targets of all CHERIOT_COMPARTMENT_LO_I relocations are resolved to
+ *    the target of their paired CHERIOT_COMPARTMENT_HI relocation.
+ *  - PCC-relative CHERIOT_COMPARTMENT_LO_S relocations do not exist.
+ *  - All CGP-relative CHERIOT_COMPARTMENT_LO_S relocations are represented as
+ *    R_RISCV_CHERIOT_COMPARTMENT_LO_S.
  */
 static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSection &sec) {
   bool modified = false;
@@ -1144,6 +1150,8 @@ static bool relax(Ctx &ctx, int pass, InputSection &sec) {
   bool tlsdescRelax = false, toLeShortForm = false;
 
   // On the first pass, do a scan of LO_I CHERIoT relocations
+  // FIXME: One the relocation scan loop is under target control, this should be
+  // applied outside of relaxation.
   if (pass == 0)
     changed |= rewriteCheriotLowRelocs(ctx, sec);
 

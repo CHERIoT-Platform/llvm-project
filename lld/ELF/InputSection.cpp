@@ -1020,39 +1020,39 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
     assert(r.sym->isUndefined() &&
            "cannot encode non-null derived capability yet");
     return 0;
-  case R_MIPS_CHERI_CAPTAB_INDEX:
-  case R_MIPS_CHERI_CAPTAB_INDEX_SMALL_IMMEDIATE:
-  case R_MIPS_CHERI_CAPTAB_INDEX_CALL:
-  case R_MIPS_CHERI_CAPTAB_INDEX_CALL_SMALL_IMMEDIATE:
+  case RE_MIPS_CHERI_CAPTAB_INDEX:
+  case RE_MIPS_CHERI_CAPTAB_INDEX_SMALL_IMMEDIATE:
+  case RE_MIPS_CHERI_CAPTAB_INDEX_CALL:
+  case RE_MIPS_CHERI_CAPTAB_INDEX_CALL_SMALL_IMMEDIATE:
     assert(a == 0 && "capability table index relocs should not have addends");
     return r.sym->getMipsCheriCapTableOffset(ctx, this, r.offset);
-  case R_MIPS_CHERI_CAPTAB_REL:
+  case RE_MIPS_CHERI_CAPTAB_REL:
     if (!ctx.sym.mipsCheriCapabilityTable) {
       error("cannot compute difference between non-existent "
             "CheriCapabilityTable and symbol " + toStr(ctx, *r.sym));
       return r.sym->getVA(ctx, a);
     }
     return r.sym->getVA(ctx, a) - ctx.sym.mipsCheriCapabilityTable->getVA(ctx);
-  case R_MIPS_CHERI_CAPTAB_TLSGD:
+  case RE_MIPS_CHERI_CAPTAB_TLSGD:
     assert(a == 0 && "capability table index relocs should not have addends");
     return ctx.in.mipsCheriCapTable->getDynTlsOffset(*r.sym);
-  case R_MIPS_CHERI_CAPTAB_TLSLD:
+  case RE_MIPS_CHERI_CAPTAB_TLSLD:
     assert(a == 0 && "capability table index relocs should not have addends");
     return ctx.in.mipsCheriCapTable->getTlsIndexOffset();
-  case R_MIPS_CHERI_CAPTAB_TPREL:
+  case RE_MIPS_CHERI_CAPTAB_TPREL:
     assert(a == 0 && "capability table index relocs should not have addends");
     return ctx.in.mipsCheriCapTable->getTlsOffset(*r.sym);
   // LO_I is used for both PCC and CGP-relative addresses.  For backwards
   // compatibility, the symbol may be a CGP-relative symbol.  In newer code, it
   // will always be the symbol containing the accompanying HI relocation.
-  case R_CHERIOT_COMPARTMENT_CGPREL_LO_I: {
+  case RE_CHERIOT_COMPARTMENT_CGPREL_LO_I: {
     if (isPCCRelative(ctx, nullptr, r.sym)) {
       if (const Relocation *hiRel = getRISCVPCRelHi20(ctx, this, r)) {
         if (isPCCRelative(ctx, nullptr, hiRel->sym))
           return getRelocTargetVA(ctx, *hiRel, r.sym->getVA(ctx));
         return getBiasedCGPOffsetLo12(ctx, *hiRel->sym);
       }
-      fatal("R_CHERIOT_COMPARTMENT_CGPREL_LO_I relocation points to " +
+      fatal("RE_CHERIOT_COMPARTMENT_CGPREL_LO_I relocation points to " +
             r.sym->getName() +
             " without an associated R_RISCV_PCREL_HI20 relocation");
     }
@@ -1060,13 +1060,13 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
   }
   // Reached only for CGP-relative relocations.  PCC-relative addresses are
   // calculated with the R_PC and R_PC_INDIRECT cases.
-  case R_CHERIOT_COMPARTMENT_CGPREL_LO_S:
+  case RE_CHERIOT_COMPARTMENT_CGPREL_LO_S:
     return getBiasedCGPOffsetLo12(ctx, *r.sym);
-  case R_CHERIOT_COMPARTMENT_CGPREL_HI:
+  case RE_CHERIOT_COMPARTMENT_CGPREL_HI:
     return (getBiasedCGPOffset(ctx, *r.sym) -
             getBiasedCGPOffsetLo12(ctx, *r.sym)) >>
            11;
-  case R_CHERIOT_COMPARTMENT_SIZE:
+  case RE_CHERIOT_COMPARTMENT_SIZE:
     return r.sym->getSize(ctx);
   default:
     llvm_unreachable("invalid expression");

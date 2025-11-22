@@ -397,13 +397,14 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
   case R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20:
     return R_TLSGD_PC;
   case R_RISCV_CHERIOT_COMPARTMENT_HI:
-    return isPCCRelative(ctx, loc, &s) ? R_PC : R_CHERIOT_COMPARTMENT_CGPREL_HI;
+    return isPCCRelative(ctx, loc, &s) ? R_PC
+                                       : RE_CHERIOT_COMPARTMENT_CGPREL_HI;
   case R_RISCV_CHERIOT_COMPARTMENT_LO_I:
-    return R_CHERIOT_COMPARTMENT_CGPREL_LO_I;
+    return RE_CHERIOT_COMPARTMENT_CGPREL_LO_I;
   case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
-    return R_CHERIOT_COMPARTMENT_CGPREL_LO_S;
+    return RE_CHERIOT_COMPARTMENT_CGPREL_LO_S;
   case R_RISCV_CHERIOT_COMPARTMENT_SIZE:
-    return R_CHERIOT_COMPARTMENT_SIZE;
+    return RE_CHERIOT_COMPARTMENT_SIZE;
   default:
     Err(ctx) << getErrorLoc(ctx, loc) << "unknown relocation (" << type.v
              << ") against symbol " << &s;

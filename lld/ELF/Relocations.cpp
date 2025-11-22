@@ -935,8 +935,7 @@ bool RelocScan::isStaticLinkTimeConstant(RelExpr e, RelType type,
             RE_MIPS_CHERI_CAPTAB_INDEX_CALL,
             RE_MIPS_CHERI_CAPTAB_INDEX_CALL_SMALL_IMMEDIATE,
             RE_MIPS_CHERI_CAPTAB_REL, RE_CHERIOT_COMPARTMENT_CGPREL_HI,
-            RE_CHERIOT_COMPARTMENT_CGPREL_LO_I,
-            RE_CHERIOT_COMPARTMENT_CGPREL_LO_S, RE_CHERIOT_COMPARTMENT_SIZE>(e))
+            RE_CHERIOT_COMPARTMENT_CGPREL_LO, RE_CHERIOT_COMPARTMENT_SIZE>(e))
     return true;
 
   // Cheri capability relocations are never static link time constants since

@@ -56,10 +56,10 @@
 
 // Less entries and relocations with a global captable:
 // GLOBAL: Relocations [
-// GLOBAL-NEXT:   Section (7) .rel.dyn {
+// GLOBAL-NEXT:   Section (8) .rel.dyn {
 // GLOBAL-NEXT:     0x208C0 R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE global_int{{$}}
 // GLOBAL-NEXT:   }
-// GLOBAL-NEXT:   Section (8) .rel.plt {
+// GLOBAL-NEXT:   Section (9) .rel.plt {
 // GLOBAL-NEXT:     0x20890 R_MIPS_CHERI_CAPABILITY_CALL/R_MIPS_NONE/R_MIPS_NONE extern_void_ptr{{$}}
 // GLOBAL-NEXT:     0x208A0 R_MIPS_CHERI_CAPABILITY_CALL/R_MIPS_NONE/R_MIPS_NONE extern_char_ptr{{$}}
 // GLOBAL-NEXT:     0x208B0 R_MIPS_CHERI_CAPABILITY_CALL/R_MIPS_NONE/R_MIPS_NONE extern_int{{$}}

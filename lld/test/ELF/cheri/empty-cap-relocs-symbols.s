@@ -19,7 +19,7 @@ __start:
   dla $a1, __stop___cap_relocs
   
 # CHECK-LABEL: Sections:
-# CHECK:  3 __cap_relocs   00000000 [[VMA:[0-9a-f]+]] DATA
+# CHECK:  1 __cap_relocs   00000000 [[VMA:[0-9a-f]+]] DATA
 # CHECK-LABEL: SYMBOL TABLE:
 # CHECK-NEXT: 0{{[0-9a-f]+}} l       .got		0000000000000000 .hidden _gp
 # CHECK-NEXT: 0{{[0-9a-f]+}} g       .text	0000000000000000 __start

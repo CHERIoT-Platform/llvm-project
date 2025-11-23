@@ -118,7 +118,7 @@
 // STATIC-NEXT:  DynamicSymbols [
 // STATIC-NEXT:  ]
 // STATIC-NEXT:  CHERI Capability Relocations [
-// STATIC-NEXT:    Section (3) __cap_relocs {
+// STATIC-NEXT:    Section (1) __cap_relocs {
 // STATIC-NEXT:      0x303C0 FUNC - 0x20370 [0x20370-0x2037C]
 // STATIC-NEXT:      0x303D0 FUNC - 0x20380 [0x20380-0x{{[0-9A-F]+}}]
 // STATIC-NEXT:      0x303E0 FUNC - 0x202F0 [0x202F0-0x202FC]

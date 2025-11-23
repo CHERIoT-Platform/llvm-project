@@ -768,7 +768,7 @@ unsigned elf::getSectionRank(Ctx &ctx, OutputSection &osec) {
     // .dynstr and .dynsym can be away from .text.
     else if (osec.type != SHT_PROGBITS)
       rank |= 4;
-    else
+    else if (osec.type == SHT_PROGBITS && osec.name != "__cap_relocs")
       rank |= RF_RODATA;
   } else if (isExec) {
     // Place readonly .ltext before .lrodata and writable .ltext after .lbss to

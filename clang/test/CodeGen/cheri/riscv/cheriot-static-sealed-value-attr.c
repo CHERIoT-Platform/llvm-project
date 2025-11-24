@@ -25,18 +25,32 @@ SealedInt Obj2 = 10;
 // CHECK: @llvm.compiler.used = appending addrspace(200) global [2 x ptr addrspace(200)] [ptr addrspace(200) @Obj1, ptr addrspace(200) @Obj2], section "llvm.metadata"
 
 void doSomething(struct SealedStructObj *__sealed_capability obj);
+void doSomethingWithAddr(int addr);
 void doSomething2(SealedInt *__sealed_capability obj);
 
 // CHECK: ; Function Attrs: minsize nounwind optsize
 // CHECK: define dso_local void @func() local_unnamed_addr addrspace(200) #1 {
 void func() {
 // CHECK: entry:
-// CHECK: 	tail call void @doSomething(ptr addrspace(200) noundef nonnull @Obj1) #3
+// CHECK: 	tail call void @doSomething(ptr addrspace(200) noundef nonnull @Obj1) #5
   doSomething(&Obj1);
 
-// CHECK: 	tail call void @doSomething2(ptr addrspace(200) noundef nonnull @Obj2) #3
+// Verify that observing the address of a sealed global value is done through a call to the launder built-in, so that 
+// the KnownBits optimisation pass can't assume anything about the value of the pointer, specifically nothing about the alignment of the pointer.
+// This is because the CHERIoT RTOS uses the lower bits of the address to store the permissions of the sealed capability, and KnownBits can in turn 
+// optimise away logical computations on lower parts of the address.
+
+// CHECK:  %0 = tail call ptr addrspace(200) @llvm.launder.alignment.p200(ptr addrspace(200) nonnull @Obj1)
+// CHECK:  %1 = tail call i32 @llvm.cheri.cap.address.get.i32(ptr addrspace(200) nonnull %0)
+// CHECK:  tail call void @doSomethingWithAddr(i32 noundef %1) #5
+  doSomethingWithAddr(__builtin_cheri_address_get(&Obj1));
+
+// CHECK: 	tail call void @doSomething2(ptr addrspace(200) noundef nonnull @Obj2) #5
   doSomething2(&Obj2);
 }
 
 // CHECK: declare void @doSomething(ptr addrspace(200) noundef) local_unnamed_addr addrspace(200) #2
+// CHECK: declare void @doSomethingWithAddr(i32 noundef) local_unnamed_addr addrspace(200) #2
+// CHECK: declare ptr addrspace(200) @llvm.launder.alignment.p200(ptr addrspace(200)) addrspace(200) #3
+// CHECK: declare i32 @llvm.cheri.cap.address.get.i32(ptr addrspace(200)) addrspace(200) #4
 // CHECK: declare void @doSomething2(ptr addrspace(200) noundef) local_unnamed_addr addrspace(200) #2

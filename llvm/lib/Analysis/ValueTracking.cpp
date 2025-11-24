@@ -6757,6 +6757,7 @@ bool llvm::isIntrinsicReturningPointerAliasingArgumentWithoutCapturing(
   // MustPreserveNullness (and, at time of writing, they are not), but we
   // document this fact out of an abundance of caution.
   case Intrinsic::amdgcn_make_buffer_rsrc:
+  case Intrinsic::launder_alignment:
     return true;
   case Intrinsic::ptrmask:
     return !MustPreserveNullness;

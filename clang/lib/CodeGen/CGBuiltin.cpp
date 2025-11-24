@@ -6066,10 +6066,15 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
       return RValue::get(Builder.CreateIntToPtr(Ptr, ResultTy));
   }
 
-  case Builtin::BI__builtin_cheri_address_get:
-    return RValue::get(
-        Builder.CreateIntrinsic(llvm::Intrinsic::cheri_cap_address_get,
-                                {IntPtrTy}, {EmitScalarExpr(E->getArg(0))}));
+  case Builtin::BI__builtin_cheri_address_get: {
+    const auto *Arg = E->getArg(0);
+    auto *RArg = EmitScalarExpr(Arg);
+    if (Arg->getType()->isCHERISealedCapabilityType(getContext()))
+      RArg = Builder.CreateIntrinsic(llvm::Intrinsic::launder_alignment,
+                                     {RArg->getType()}, {RArg});
+    return RValue::get(Builder.CreateIntrinsic(
+        llvm::Intrinsic::cheri_cap_address_get, {IntPtrTy}, {RArg}));
+  }
   case Builtin::BI__builtin_cheri_address_set: {
     Value *Cap = EmitScalarExpr(E->getArg(0));
     Value *Address = EmitScalarExpr(E->getArg(1));

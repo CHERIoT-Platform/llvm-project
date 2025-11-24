@@ -27398,6 +27398,38 @@ Returns another pointer that aliases its argument but which has no associated
 ``invariant.group`` metadata.
 It does not read any memory and can be speculated.
 
+'``llvm.launder.alignment``' Intrinsic
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Syntax:
+"""""""
+This is an overloaded intrinsic. The returned pointer must belong to the same
+address space as the argument.
+
+::
+
+      declare ptr @llvm.launder.alignment.p0(ptr <ptr>)
+
+Overview:
+"""""""""
+
+The '``llvm.launder.alignment``' intrinsic can be used when the informations
+regarding the alignment of the type the argument points to must be removed, so
+to block unwanted optimizations.
+
+
+Arguments:
+""""""""""
+
+The ``llvm.launder.alignment`` takes only one argument, which is a pointer
+to the memory.
+
+Semantics:
+""""""""""
+
+Returns another pointer that aliases its argument but which has no associated
+alignment metadata.
+It does not read any memory and can be speculated.
 
 
 .. _constrainedfp:

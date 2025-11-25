@@ -3503,15 +3503,15 @@ void ELFDumper<ELFT>::printCheriCapRelocsSectionHelper(const Elf_Shdr &Sec) {
   for (int I = 0, E = Data.size() / EntrySize; I < E; I++) {
     const uint64_t CurrentOffset = EntrySize * I;
     const uint8_t *Entry = Data.data() + CurrentOffset;
-    uintX_t Offset = support::endian::read<uintX_t, ELFT::Endianness, 1>(Entry);
-    uintX_t Base = support::endian::read<uintX_t, ELFT::Endianness, 1>(
-        Entry + sizeof(uintX_t));
-    uintX_t Addend = support::endian::read<uintX_t, ELFT::Endianness, 1>(
-        Entry + 2 * sizeof(uintX_t));
-    uintX_t Length = support::endian::read<uintX_t, ELFT::Endianness, 1>(
-        Entry + 3 * sizeof(uintX_t));
-    uintX_t Type = support::endian::read<uintX_t, ELFT::Endianness, 1>(
-        Entry + 4 * sizeof(uintX_t));
+    uintX_t Offset = support::endian::read<uintX_t, 1>(Entry, ELFT::Endianness);
+    uintX_t Base = support::endian::read<uintX_t, 1>(
+        Entry + sizeof(uintX_t), ELFT::Endianness);
+    uintX_t Addend = support::endian::read<uintX_t, 1>(
+        Entry + 2 * sizeof(uintX_t), ELFT::Endianness);
+    uintX_t Length = support::endian::read<uintX_t, 1>(
+        Entry + 3 * sizeof(uintX_t), ELFT::Endianness);
+    uintX_t Type = support::endian::read<uintX_t, 1>(
+        Entry + 4 * sizeof(uintX_t), ELFT::Endianness);
     const uintX_t Function = uintX_t(1) << ((sizeof(uintX_t) * 8) - 1);
     const uintX_t Constant = uintX_t(1) << ((sizeof(uintX_t) * 8) - 2);
     const uintX_t Indirect = uintX_t(1) << ((sizeof(uintX_t) * 8) - 3);

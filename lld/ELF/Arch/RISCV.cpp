@@ -322,6 +322,12 @@ RelType RISCV::getDynRel(RelType type) const {
 
 RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
                           const uint8_t *loc) const {
+  // TODO: Remove these
+  auto warnDeprecated = [=]() {
+    warn(getErrorLoc(ctx, loc) + "deprecated relocation (" + toStr(ctx, type) +
+         ") against symbol '" + toStr(ctx, s) +
+         "'; recompile with this toolchain");
+  };
   switch (type) {
   case R_RISCV_NONE:
     return R_NONE;
@@ -345,18 +351,22 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
   case R_RISCV_SUB32:
   case R_RISCV_SUB64:
     return RE_RISCV_ADD;
-  case R_RISCV_JAL:
   case R_RISCV_CHERI_CJAL:
+  case R_RISCV_CHERI_RVC_CJUMP:
+    warnDeprecated();
+    [[fallthrough]];
+  case R_RISCV_JAL:
   case R_RISCV_BRANCH:
   case R_RISCV_PCREL_HI20:
   case R_RISCV_RVC_BRANCH:
   case R_RISCV_RVC_JUMP:
-  case R_RISCV_CHERI_RVC_CJUMP:
   case R_RISCV_32_PCREL:
     return R_PC;
+  case R_RISCV_CHERI_CCALL:
+    warnDeprecated();
+    [[fallthrough]];
   case R_RISCV_CALL:
   case R_RISCV_CALL_PLT:
-  case R_RISCV_CHERI_CCALL:
   case R_RISCV_CHERIOT_CCALL:
   case R_RISCV_PLT32:
     return R_PLT_PC;
@@ -382,8 +392,10 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
     return R_TPREL;
   case R_RISCV_ALIGN:
     return R_RELAX_HINT;
-  case R_RISCV_TPREL_ADD:
   case R_RISCV_CHERI_TPREL_CINCOFFSET:
+    warnDeprecated();
+    [[fallthrough]];
+  case R_RISCV_TPREL_ADD:
   case R_RISCV_RELAX:
     return ctx.arg.relax ? R_RELAX_HINT : R_NONE;
   case R_RISCV_SET_ULEB128:
@@ -392,12 +404,14 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
   case R_RISCV_CHERI_CAPABILITY:
   case R_RISCV_CHERI_CAPABILITY_CODE:
     return R_ABS_CAP;
-  // TODO: Deprecate and eventually remove these
   case R_RISCV_CHERI_CAPTAB_PCREL_HI20:
+    warnDeprecated();
     return R_GOT_PC;
   case R_RISCV_CHERI_TLS_IE_CAPTAB_PCREL_HI20:
+    warnDeprecated();
     return R_GOT_PC;
   case R_RISCV_CHERI_TLS_GD_CAPTAB_PCREL_HI20:
+    warnDeprecated();
     return R_TLSGD_PC;
   case INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI:
     return R_PC;

@@ -728,6 +728,7 @@ extern bool LargeCapTable;
     SDValue lowerJumpTable(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerSELECT(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerSETCC(SDValue Op, SelectionDAG &DAG) const;
+    SDValue lowerFSETCC(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerVACOPY(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerVASTART(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerVAARG(SDValue Op, SelectionDAG &DAG) const;
@@ -747,6 +748,7 @@ extern bool LargeCapTable;
                                  bool IsSRA) const;
     SDValue lowerEH_DWARF_CFA(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerFP_TO_SINT(SDValue Op, SelectionDAG &DAG) const;
+    SDValue lowerSTRICT_FP_TO_INT(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerREADCYCLECOUNTER(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerBR_JT(SDValue Op, SelectionDAG &DAG) const;
     // Convert Addr (either i64 or capability) to a pcc derived capability

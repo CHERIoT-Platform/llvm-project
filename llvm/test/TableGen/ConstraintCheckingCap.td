@@ -1,6 +1,8 @@
 // RUN: llvm-tblgen -gen-instr-info -I %p -I %p/../../include %s | FileCheck %s
 include "ConstraintChecking.inc"
 
+defm : RemapAllTargetPseudoPointerOperands<Reg>;
+
 def Src1MustBeSealed : TestInstructionWithConstraints<"@traps_if_sealed $src1">;
 def Src2MustBeSealed : TestInstructionWithConstraints<"@traps_if_sealed $src2">;
 def BothMustBeSealed : TestInstructionWithConstraints<"@traps_if_sealed $src1, @traps_if_sealed $src2">;

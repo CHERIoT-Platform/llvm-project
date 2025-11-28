@@ -366,7 +366,7 @@ void MCELFStreamer::finishImpl() {
   }
 
   finalizeCGProfile();
-  emitFrames(nullptr);
+  emitFrames();
 
   this->MCObjectStreamer::finishImpl();
 }

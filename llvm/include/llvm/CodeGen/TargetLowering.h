@@ -4865,6 +4865,7 @@ public:
     SmallVector<SDValue, 4> InVals;
     const ConstantInt *CFIType = nullptr;
     SDValue ConvergenceControlToken;
+    GlobalValue *DeactivationSymbol = nullptr;
 
     std::optional<PtrAuthInfo> PAI;
 
@@ -5015,6 +5016,11 @@ public:
 
     CallLoweringInfo &setConvergenceControlToken(SDValue Token) {
       ConvergenceControlToken = Token;
+      return *this;
+    }
+
+    CallLoweringInfo &setDeactivationSymbol(GlobalValue *Sym) {
+      DeactivationSymbol = Sym;
       return *this;
     }
 

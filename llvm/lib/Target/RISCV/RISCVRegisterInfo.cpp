@@ -625,6 +625,7 @@ bool RISCVRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     int64_t Val = Offset.getFixed();
     int64_t Lo12 = SignExtend64<12>(Val);
     unsigned Opc = MI.getOpcode();
+    bool Lo12HasSameSign = (Val < 0) == (Lo12 < 0);
     if (Opc == RISCV::ADDI && !isInt<12>(Val)) {
       // We chose to emit the canonical immediate sequence rather than folding
       // the offset into the using add under the theory that doing so doesn't
@@ -644,10 +645,13 @@ bool RISCVRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
       // instruction will add 4 to the immediate. If that would overflow 12
       // bits, we can't fold the offset.
       MI.getOperand(FIOperandNum + 1).ChangeToImmediate(0);
-    } else {
+    } else if (Lo12HasSameSign || !ST.hasVendorXCheriot()) {
       // We can encode an add with 12 bit signed immediate in the immediate
       // operand of our user instruction.  As a result, the remaining
       // offset can by construction, at worst, a LUI and a ADD.
+      // NOTE: XCheriot requires that the displacement be materialized entirely
+      // by offset with the same sign, as otherwise we risk invalidating the
+      // pointer when it goes out of range.
       MI.getOperand(FIOperandNum + 1).ChangeToImmediate(Lo12);
       Offset = StackOffset::get((uint64_t)Val - (uint64_t)Lo12,
                                 Offset.getScalable());

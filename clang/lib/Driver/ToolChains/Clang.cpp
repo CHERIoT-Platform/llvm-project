@@ -2068,6 +2068,9 @@ void Clang::AddRISCVTargetArgs(const ArgList &Args,
   CmdArgs.push_back("-target-abi");
   CmdArgs.push_back(ABIName.data());
 
+  if (ABIName == "cheriot" || ABIName == "cheriot-baremetal")
+    CmdArgs.push_back("-Wcheriot");
+
   if (Arg *A = Args.getLastArg(options::OPT_G)) {
     CmdArgs.push_back("-msmall-data-limit");
     CmdArgs.push_back(A->getValue());

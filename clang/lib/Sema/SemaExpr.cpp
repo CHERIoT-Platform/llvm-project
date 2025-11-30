@@ -10790,6 +10790,94 @@ QualType Sema::CheckSizelessVectorOperands(ExprResult &LHS, ExprResult &RHS,
   return QualType();
 }
 
+static void checkStaticOOBCapOffset(Sema &S, ExprResult &LHS, ExprResult &RHS,
+                                    BinaryOperator::Opcode OuterOpcode,
+                                    SourceLocation OuterLoc) {
+  auto getConstantAddend = [&](const Expr *E, llvm::APSInt &Value) {
+    Expr::EvalResult Result;
+    if (!E->EvaluateAsInt(Result, S.Context))
+      return false;
+    Value = Result.Val.getInt();
+    return true;
+  };
+
+  if (OuterOpcode != BO_Add && OuterOpcode != BO_Sub)
+    return;
+
+  // Simple arr + cst or arr - cst
+  if (const auto *Decay = dyn_cast<ImplicitCastExpr>(LHS.get())) {
+    if (Decay->getCastKind() == CK_ArrayToPointerDecay) {
+      const auto *CAT =
+          dyn_cast<ConstantArrayType>(Decay->getSubExpr()->getType());
+      if (CAT) {
+        const int64_t ArrayElts = CAT->getSExtSize();
+
+        llvm::APSInt AddendInt;
+        if (getConstantAddend(RHS.get(), AddendInt)) {
+          const int64_t Addend = AddendInt.getSExtValue();
+
+          // Warn on obviously out-of-bounds offsets.
+          if ((OuterOpcode == BO_Sub && Addend > 0) ||
+              (OuterOpcode == BO_Add && Addend < 0) ||
+              (OuterOpcode == BO_Add && Addend > ArrayElts) ||
+              (OuterOpcode == BO_Sub && Addend < -ArrayElts)) {
+            S.Diag(OuterLoc, diag::warn_cheriot_array_offset)
+                << Decay->getSubExpr();
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  // Nested (array + X) + constant
+  const auto *InnerBO = dyn_cast<BinaryOperator>(LHS.get());
+  if (!InnerBO)
+    return;
+  if (InnerBO->getOpcode() != BO_Add && InnerBO->getOpcode() != BO_Sub)
+    return;
+
+  const auto *Decay = dyn_cast<ImplicitCastExpr>(InnerBO->getLHS());
+  if (!Decay || Decay->getCastKind() != CK_ArrayToPointerDecay)
+    return;
+  const auto *CAT = dyn_cast<ConstantArrayType>(Decay->getSubExpr()->getType());
+  if (!CAT)
+    return;
+  int64_t ArrayElts = CAT->getSExtSize();
+
+  llvm::APSInt OuterAddendInt;
+  llvm::APSInt InnerAddendInt;
+  bool OuterAddendConstant = getConstantAddend(RHS.get(), OuterAddendInt);
+  bool InnerAddendConstant =
+      getConstantAddend(InnerBO->getRHS(), InnerAddendInt);
+
+  if (OuterAddendConstant && InnerAddendConstant)
+    return;
+
+  // RHS of outer add is constant
+  if (OuterAddendConstant) {
+    const int64_t Addend = OuterAddendInt.getSExtValue();
+    if (Addend >= ArrayElts) {
+      S.Diag(InnerBO->getExprLoc(), diag::warn_cheriot_array_offset)
+          << Decay->getSubExpr();
+    }
+    return;
+  }
+
+  // RHS is not constant, but the inner RHS is constant
+  if (!InnerAddendConstant)
+    return;
+  int64_t Addend = InnerAddendInt.getSExtValue();
+
+  // Only warn when we have (arr + cst) + X and cst is equal to array size,
+  // because all other cases were already handled when checking the inner
+  // expression.
+  if (OuterOpcode == BO_Add && InnerBO->getOpcode() == BO_Add &&
+      Addend == ArrayElts)
+    S.Diag(InnerBO->getExprLoc(), diag::warn_cheriot_array_offset)
+        << Decay->getSubExpr();
+}
+
 // checkArithmeticNull - Detect when a NULL constant is used improperly in an
 // expression.  These are mainly cases where the null pointer is used as an
 // integer instead of a pointer.
@@ -11424,6 +11512,9 @@ QualType Sema::CheckAdditionOperands(ExprResult &LHS, ExprResult &RHS,
   // note that we bias towards the LHS being the pointer.
   Expr *PExp = LHS.get(), *IExp = RHS.get();
 
+  if (LHS.get()->getType()->isCHERICapabilityType(Context))
+    checkStaticOOBCapOffset(*this, LHS, RHS, BO_Add, Loc);
+
   // Addition is not allowed on sealed pointers.
   if (PExp->getType()->isCHERISealedCapabilityType(Context) &&
       !isUnevaluatedContext())
@@ -11555,6 +11646,8 @@ QualType Sema::CheckSubtractionOperands(ExprResult &LHS, ExprResult &RHS,
         return InvalidOperands(Loc, LHS, RHS);
       if (RHS.get()->getType()->isCHERISealedCapabilityType(Context))
         return InvalidOperands(Loc, LHS, RHS);
+      if (LHS.get()->getType()->isCHERICapabilityType(Context))
+        checkStaticOOBCapOffset(*this, LHS, RHS, BO_Sub, Loc);
     }
 
     // Diagnose bad cases where we step over interface counts.

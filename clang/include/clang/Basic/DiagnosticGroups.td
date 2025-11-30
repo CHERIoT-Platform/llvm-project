@@ -182,6 +182,7 @@ def CHERICapabilityToIntegerCast : DiagGroup<"capability-to-integer-cast">;
 def CheriPedantic : DiagGroup<"cheri-pedantic", [CHERICapabilityToIntegerCast, CHERIPrototypesStrict, CHERIProvenancePedantic]>;
 // Warnings/Errors for bugs in the MIPS/CHERI backend
 def MIPSCHERIBugs: DiagGroup<"mips-cheri-bugs">;
+def Cheriot : DiagGroup<"cheriot">;
 
 // Generally useful CHERI errors
 def CHERIMissingCompartment: DiagGroup<"cheri-missing-compartment">;

@@ -916,9 +916,9 @@ bool llvm::hoistRegion(DomTreeNode *N, AAResults *AA, LoopInfo *LI,
       // to that block.
       if (CurLoop->hasLoopInvariantOperands(&I) &&
           canSinkOrHoistInst(I, AA, DT, CurLoop, MSSAU, true, Flags, ORE) &&
-          isSafeToExecuteUnconditionally(
-              I, DT, TLI, CurLoop, SafetyInfo, ORE,
-              Preheader->getTerminator(), AC, AllowSpeculation)) {
+          isSafeToExecuteUnconditionally(I, DT, TLI, CurLoop, SafetyInfo, ORE,
+                                         Preheader->getTerminator(), AC,
+                                         AllowSpeculation)) {
         hoist(I, DT, CurLoop, CFH.getOrCreateHoistedBlock(BB), SafetyInfo,
               MSSAU, SE, ORE);
         HoistedInstructions.push_back(&I);
@@ -1035,8 +1035,8 @@ bool llvm::hoistRegion(DomTreeNode *N, AAResults *AA, LoopInfo *LI,
   if (VerifyMemorySSA)
     MSSAU.getMemorySSA()->verifyMemorySSA();
 
-    // Now that we've finished hoisting make sure that LI and DT are still
-    // valid.
+  // Now that we've finished hoisting make sure that LI and DT are still
+  // valid.
 #ifdef EXPENSIVE_CHECKS
   if (Changed) {
     assert(DT->verify(DominatorTree::VerificationLevel::Fast) &&
@@ -1137,7 +1137,7 @@ bool isOnlyMemoryAccess(const Instruction *I, const Loop *L,
     }
   return true;
 }
-}
+} // namespace
 
 static MemoryAccess *getClobberingMemoryAccess(MemorySSA &MSSA,
                                                BatchAAResults &BAA,
@@ -1186,8 +1186,8 @@ bool llvm::canSinkOrHoistInst(Instruction &I, AAResults *AA, DominatorTree *DT,
 
     bool InvariantGroup = LI->hasMetadata(LLVMContext::MD_invariant_group);
 
-    bool Invalidated = pointerInvalidatedByLoop(
-        MSSA, MU, CurLoop, I, Flags, InvariantGroup);
+    bool Invalidated =
+        pointerInvalidatedByLoop(MSSA, MU, CurLoop, I, Flags, InvariantGroup);
     // Check loop-invariant address because this may also be a sinkable load
     // whose address is not necessarily loop-invariant.
     if (ORE && Invalidated && CurLoop->isLoopInvariant(LI->getPointerOperand()))
@@ -1284,7 +1284,7 @@ static bool isTriviallyReplaceablePHI(const PHINode &PN, const Instruction &I) {
 
 /// Return true if the instruction is foldable in the loop.
 static bool isFoldableInLoop(const Instruction &I, const Loop *CurLoop,
-                         const TargetTransformInfo *TTI) {
+                             const TargetTransformInfo *TTI) {
   if (auto *GEP = dyn_cast<GetElementPtrInst>(&I)) {
     InstructionCost CostI =
         TTI->getInstructionCost(&I, TargetTransformInfo::TCK_SizeAndLatency);
@@ -1639,7 +1639,7 @@ static bool sink(Instruction &I, LoopInfo *LI, DominatorTree *DT,
   // the instruction.
   // First check if I is worth sinking for all uses. Sink only when it is worth
   // across all uses.
-  SmallSetVector<User*, 8> Users(I.user_begin(), I.user_end());
+  SmallSetVector<User *, 8> Users(I.user_begin(), I.user_end());
   for (auto *UI : Users) {
     auto *User = cast<Instruction>(UI);
 
@@ -1672,8 +1672,8 @@ static void hoist(Instruction &I, const DominatorTree *DT, const Loop *CurLoop,
   LLVM_DEBUG(dbgs() << "LICM hoisting to " << Dest->getNameOrAsOperand() << ": "
                     << I << "\n");
   ORE->emit([&]() {
-    return OptimizationRemark(DEBUG_TYPE, "Hoisted", &I) << "hoisting "
-                                                         << ore::NV("Inst", &I);
+    return OptimizationRemark(DEBUG_TYPE, "Hoisted", &I)
+           << "hoisting " << ore::NV("Inst", &I);
   });
 
   // Metadata can be dependent on conditions we are hoisting above.
@@ -2376,7 +2376,8 @@ static bool pointerInvalidatedByLoop(MemorySSA *MSSA, MemoryUse *MU,
     MemoryAccess *Source = getClobberingMemoryAccess(*MSSA, BAA, Flags, MU);
     return !MSSA->isLiveOnEntryDef(Source) &&
            CurLoop->contains(Source->getBlock()) &&
-           !(InvariantGroup && Source->getBlock() == CurLoop->getHeader() && isa<MemoryPhi>(Source));
+           !(InvariantGroup && Source->getBlock() == CurLoop->getHeader() &&
+             isa<MemoryPhi>(Source));
   }
 
   // For sinking, we'd need to check all Defs below this use. The getClobbering
@@ -2534,6 +2535,26 @@ static bool hoistGEP(Instruction &I, Loop &L, ICFLoopSafetyInfo &SafetyInfo,
   bool IsInBounds = Src->isInBounds() && GEP->isInBounds() &&
                     all_of(Src->indices(), NonNegative) &&
                     all_of(GEP->indices(), NonNegative);
+
+  // CHERIoT has very tight representable bounds in its capability formatting,
+  // meaning that any intermediate out-of-bounds values during offsetting are
+  // likely to cause invalid pointers. As such, it require a much stricter
+  // condition to reorder indices than other targets, namely that the indices
+  // must be known either to be all non-negative, or all non-positive.
+  StringRef ABI = GEP->getModule()->getTargetABIFromMD();
+  bool MustStayInBounds = DL.isFatPointer(GEP->getType()) &&
+                          (ABI == "cheriot" || ABI == "cheriot-baremetal");
+  if (MustStayInBounds) {
+    auto NonPositive = [&](Value *V) {
+      return !isKnownPositive(V, SimplifyQuery(DL, DT, AC, GEP));
+    };
+    bool AllNonNeg = all_of(Src->indices(), NonNegative) &&
+                     all_of(GEP->indices(), NonNegative);
+    bool AllNonPos = all_of(Src->indices(), NonPositive) &&
+                     all_of(GEP->indices(), NonPositive);
+    if (!AllNonNeg && !AllNonPos)
+      return false;
+  }
 
   BasicBlock *Preheader = L.getLoopPreheader();
   IRBuilder<> Builder(Preheader->getTerminator());

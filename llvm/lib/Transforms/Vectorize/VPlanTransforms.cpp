@@ -769,7 +769,8 @@ static void legalizeAndOptimizeInductions(VPlan &Plan) {
     // Replace wide pointer inductions which have only their scalars used by
     // PtrAdd(IndStart, ScalarIVSteps (0, Step)).
     if (auto *PtrIV = dyn_cast<VPWidenPointerInductionRecipe>(&Phi)) {
-      if (!PtrIV->onlyScalarsGenerated(Plan.hasScalableVF()))
+      if (!Plan.hasScalarVFOnly() &&
+          !PtrIV->onlyScalarsGenerated(Plan.hasScalableVF()))
         continue;
 
       VPValue *PtrAdd = scalarizeVPWidenPointerInduction(PtrIV, Plan, Builder);
@@ -793,12 +794,19 @@ static void legalizeAndOptimizeInductions(VPlan &Plan) {
         WideIV->getDebugLoc(), Builder);
 
     // Update scalar users of IV to use Step instead.
-    if (!HasOnlyVectorVFs)
+    if (!HasOnlyVectorVFs) {
+      assert(!Plan.hasScalableVF() &&
+             "plans containing a scalar VF cannot also include scalable VFs");
       WideIV->replaceAllUsesWith(Steps);
-    else
-      WideIV->replaceUsesWithIf(Steps, [WideIV](VPUser &U, unsigned) {
-        return U.usesScalars(WideIV);
-      });
+    } else {
+      bool HasScalableVF = Plan.hasScalableVF();
+      WideIV->replaceUsesWithIf(Steps,
+                                [WideIV, HasScalableVF](VPUser &U, unsigned) {
+                                  if (HasScalableVF)
+                                    return U.usesFirstLaneOnly(WideIV);
+                                  return U.usesScalars(WideIV);
+                                });
+    }
   }
 }
 
@@ -1522,32 +1530,36 @@ static void narrowToSingleScalarRecipes(VPlan &Plan) {
         continue;
       }
 
-      // Skip recipes that aren't single scalars or don't have only their
-      // scalar results used. In the latter case, we would introduce extra
-      // broadcasts.
-      if (!vputils::isSingleScalar(RepOrWidenR) ||
-          !all_of(RepOrWidenR->users(), [RepOrWidenR](const VPUser *U) {
-            if (auto *Store = dyn_cast<VPWidenStoreRecipe>(U)) {
-              // VPWidenStore doesn't have users, and stores are always
-              // profitable to widen: hence, permitting address and mask
-              // operands, and single-scalar stored values is an important leaf
-              // condition. The assert must hold as we checked the RepOrWidenR
-              // operand against vputils::isSingleScalar.
-              assert(RepOrWidenR != Store->getStoredValue() ||
-                     vputils::isSingleScalar(Store->getStoredValue()));
-              (void)Store;
-              return true;
-            }
+      // Skip recipes that aren't single scalars.
+      if (!vputils::isSingleScalar(RepOrWidenR))
+        continue;
 
-            if (auto *VPI = dyn_cast<VPInstruction>(U)) {
-              unsigned Opcode = VPI->getOpcode();
-              if (Opcode == VPInstruction::ExtractLastElement ||
-                  Opcode == VPInstruction::ExtractLastLanePerPart ||
-                  Opcode == VPInstruction::ExtractPenultimateElement)
-                return true;
-            }
+      // Skip recipes for which conversion to single-scalar does introduce
+      // additional broadcasts. No extra broadcasts are needed, if either only
+      // the scalars of the recipe are used, or at least one of the operands
+      // would require a broadcast. In the latter case, the single-scalar may
+      // need to be broadcasted, but another broadcast is removed.
+      if (!all_of(RepOrWidenR->users(),
+                  [RepOrWidenR](const VPUser *U) {
+                    if (auto *VPI = dyn_cast<VPInstruction>(U)) {
+                      unsigned Opcode = VPI->getOpcode();
+                      if (Opcode == VPInstruction::ExtractLastElement ||
+                          Opcode == VPInstruction::ExtractLastLanePerPart ||
+                          Opcode == VPInstruction::ExtractPenultimateElement)
+                        return true;
+                    }
 
-            return U->usesScalars(RepOrWidenR);
+                    return U->usesScalars(RepOrWidenR);
+                  }) &&
+          none_of(RepOrWidenR->operands(), [RepOrWidenR](VPValue *Op) {
+            if (Op->getSingleUser() != RepOrWidenR)
+              return false;
+            // Non-constant live-ins require broadcasts, while constants do not
+            // need explicit broadcasts.
+            bool LiveInNeedsBroadcast =
+                Op->isLiveIn() && !isa<Constant>(Op->getLiveInIRValue());
+            auto *OpR = dyn_cast<VPReplicateRecipe>(Op);
+            return LiveInNeedsBroadcast || (OpR && OpR->isSingleScalar());
           }))
         continue;
 

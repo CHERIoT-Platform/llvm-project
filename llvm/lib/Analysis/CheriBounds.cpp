@@ -216,8 +216,9 @@ bool CheriNeedBoundsChecker::useNeedsBounds(const Use &U,
   case Instruction::Select:
   case Instruction::BitCast:
   case Instruction::AddrSpaceCast:
-    // If any use of the cast/phi/selects needs bounds then we must add bounds
-    // for the initial value.
+  case Instruction::Freeze:
+    // If any use of the cast/phi/selects/freeze needs bounds then we must add
+    // bounds for the initial value.
     return anyUserNeedsBounds(I, CurrentGEPOffset, Depth, MaxDepth);
   case Instruction::ICmp:
     // comparisons need bounds since cexeq takes bounds into account.
@@ -237,7 +238,7 @@ bool CheriNeedBoundsChecker::useNeedsBounds(const Use &U,
     return false;
   default:
     // Something else - be conservative and say it needs bounds.
-    errs() << "DON'T know how to handle ";
+    errs() << "CheriNeedsBoundsChecker: DON'T know how to handle ";
     I->print(errs(), true);
     DBG_INDENTED("Adding stack bounds since don't know how to handle: ";
                  I->dump());

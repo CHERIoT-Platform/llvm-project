@@ -1098,12 +1098,21 @@ void LinkerScript::diagnoseMissingSGSectionAddress() const {
 // This is roughly the same logic as the loop in assignOffsets() to loop
 // through all commands and input sections in an output section to calculate
 // the total size.
-static uint64_t outputSectionCheriAlignment(Ctx &ctx, OutputSection *sec)
-{
+uint64_t LinkerScript::outputSectionCheriAlignment(OutputSection *sec) {
   uint64_t total = 0;
 
   for (SectionCommand *cmd : sec->commands) {
-    if (dyn_cast<SymbolAssignment>(cmd)) {
+    if (SymbolAssignment *assign = dyn_cast<SymbolAssignment>(cmd)) {
+      if (assign->name == ".") {
+        // Evaluating an expression like ". += 0x100" will attempt to read
+        // the current value of dot, which isn't accurate since we're doing
+        // things out of order here. We can fake it by temporarily setting
+        // the value of dot and restoring it later.
+        auto oldDot = dot;
+        dot = total;
+        total += assign->expression().getValue();
+        dot = oldDot;
+      }
       continue;
     }
 
@@ -1226,7 +1235,7 @@ bool LinkerScript::assignOffsets(OutputSection *sec) {
     // ALIGN is respected. sec->alignment is the max of ALIGN and the maximum of
     // input section alignments.
     if (sec->isCapAligned) {
-      uint64_t capAlignment = outputSectionCheriAlignment(ctx, sec);
+      uint64_t capAlignment = outputSectionCheriAlignment(sec);
       if (capAlignment > 1) {
         sec->addralign = std::max<uint64_t>(capAlignment, sec->addralign);
       }

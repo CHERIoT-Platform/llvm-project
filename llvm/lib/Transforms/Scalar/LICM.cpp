@@ -2557,6 +2557,26 @@ static bool hoistGEP(Instruction &I, Loop &L, ICFLoopSafetyInfo &SafetyInfo,
                     all_of(Src->indices(), NonNegative) &&
                     all_of(GEP->indices(), NonNegative);
 
+  // CHERIoT has very tight representable bounds in its capability formatting,
+  // meaning that any intermediate out-of-bounds values during offsetting are
+  // likely to cause invalid pointers. As such, it require a much stricter
+  // condition to reorder indices than other targets, namely that the indices
+  // must be known either to be all non-negative, or all non-positive.
+  StringRef ABI = GEP->getModule()->getTargetABIFromMD();
+  bool MustStayInBounds = DL.isFatPointer(GEP->getType()) &&
+                          (ABI == "cheriot" || ABI == "cheriot-baremetal");
+  if (MustStayInBounds) {
+    auto NonPositive = [&](Value *V) {
+      return !isKnownPositive(V, SimplifyQuery(DL, DT, AC, GEP));
+    };
+    bool AllNonNeg = all_of(Src->indices(), NonNegative) &&
+                     all_of(GEP->indices(), NonNegative);
+    bool AllNonPos = all_of(Src->indices(), NonPositive) &&
+                     all_of(GEP->indices(), NonPositive);
+    if (!AllNonNeg && !AllNonPos)
+      return false;
+  }
+
   BasicBlock *Preheader = L.getLoopPreheader();
   IRBuilder<> Builder(Preheader->getTerminator());
   Value *NewSrc = Builder.CreateGEP(GEP->getSourceElementType(), SrcPtr,

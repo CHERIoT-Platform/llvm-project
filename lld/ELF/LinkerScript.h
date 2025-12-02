@@ -340,6 +340,7 @@ class LinkerScript final {
   findMemoryRegion(OutputSection *sec, MemoryRegion *hint);
 
   bool assignOffsets(OutputSection *sec);
+  uint64_t outputSectionCheriAlignment(OutputSection *sec);
 
   // This captures the local AddressState and makes it accessible
   // deliberately. This is needed as there are some cases where we cannot just

@@ -29,8 +29,48 @@ do.body:
 do.end:
   ret void
 }
+; CHECK-LABEL: @zot
+; CHECK: bb:
+; CHECK-NOT: getelementptr
+; CHECK: bb12:
+; CHECK: getelementptr
+; CHECK: getelementptr
+; CHECK: call addrspace(200) void @bar
 
-declare void @bar(ptr addrspace(200) noundef)
+define void @zot(ptr addrspace(200) %arg) {
+bb:
+  %alloca = alloca [25 x i64], align 8, addrspace(200)
+  br label %bb8
+
+bb8:
+  %phi = phi i32 [ 0, %bb ], [ %add16, %bb14 ]
+  %phi9 = phi i32 [ 0, %bb ], [ %select, %bb14 ]
+  %icmp = icmp ult i32 %phi9, 256
+  br i1 %icmp, label %bb10, label %bb17
+
+bb10:
+  %icmp11 = icmp eq i32 %phi, 4
+  br i1 %icmp11, label %bb12, label %bb14
+
+bb12:
+  %getelementptr = getelementptr inbounds nuw i16, ptr addrspace(200) %arg, i32 %phi9
+  %getelementptr13 = getelementptr inbounds i8, ptr addrspace(200) %getelementptr, i32 -6
+  call void @bar(ptr addrspace(200) %getelementptr13)
+  br label %bb14
+
+bb14:
+  %icmp15 = icmp ne i32 %phi9, 255
+  %add = add nuw nsw i32 %phi9, 2
+  %zext = zext i1 %icmp15 to i32
+  %add16 = add i32 %zext, %phi
+  %select = select i1 %icmp15, i32 %add, i32 256
+  br label %bb8
+
+bb17:
+  ret void
+}
+
+declare void @bar(ptr addrspace(200))
 
 !llvm.module.flags = !{!0}
 !0 = !{i32 1, !"target-abi", !"cheriot"}

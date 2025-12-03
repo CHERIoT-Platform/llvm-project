@@ -2567,7 +2567,9 @@ static bool hoistGEP(Instruction &I, Loop &L, ICFLoopSafetyInfo &SafetyInfo,
                           (ABI == "cheriot" || ABI == "cheriot-baremetal");
   if (MustStayInBounds) {
     auto NonPositive = [&](Value *V) {
-      return !isKnownPositive(V, SimplifyQuery(DL, DT, AC, GEP));
+      if (const auto *Cst = dyn_cast<Constant>(V))
+        return Cst->isNullValue();
+      return isKnownNegative(V, SimplifyQuery(DL, DT, AC, GEP));
     };
     bool AllNonNeg = all_of(Src->indices(), NonNegative) &&
                      all_of(GEP->indices(), NonNegative);

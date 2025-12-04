@@ -69,6 +69,7 @@ void ScalarEnumerationTraits<ELFYAML::ELF_PT>::enumeration(
   ECase(PT_GNU_RELRO);
   ECase(PT_GNU_PROPERTY);
   ECase(PT_GNU_SFRAME);
+  ECase(PT_CHERI_TGOT);
 #undef ECase
   IO.enumFallback<Hex32>(Value);
 }

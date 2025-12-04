@@ -1048,8 +1048,8 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
   // Reached only for CGP-relative relocations.  PCC-relative addresses are
   // calculated with the R_PC and R_PC_INDIRECT cases.
   case RE_CHERIOT_COMPARTMENT_CGPREL_LO:
-    if (isPCCRelative(ctx, nullptr, r.sym))
-      fatal("Malformed RE_CHERIOT_COMPARTMENT_CGPREL_LO_I relocation!");
+    assert(!isPCCRelative(ctx, nullptr, r.sym) &&
+           "Malformed RE_CHERIOT_COMPARTMENT_CGPREL_LO relocation!");
     return getBiasedCGPOffsetLo12(ctx, *r.sym);
   case RE_CHERIOT_COMPARTMENT_CGPREL_HI:
     return (getBiasedCGPOffset(ctx, *r.sym) -

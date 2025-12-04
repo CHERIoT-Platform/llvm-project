@@ -174,6 +174,7 @@ unsigned RISCVELFObjectWriter::getRelocType(const MCFixup &Fixup,
   case RISCV::fixup_riscv_cheriot_compartment_lo_i:
     return ELF::R_RISCV_CHERIOT_COMPARTMENT_LO_I;
   case RISCV::fixup_riscv_cheriot_compartment_lo_s:
+    return ELF::R_RISCV_CHERIOT_COMPARTMENT_LO_S;
   case RISCV::fixup_riscv_cheriot_compartment_size:
     return ELF::R_RISCV_CHERIOT_COMPARTMENT_SIZE;
   }

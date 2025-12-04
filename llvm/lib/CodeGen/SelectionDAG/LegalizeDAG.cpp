@@ -2167,7 +2167,7 @@ SelectionDAGLegalize::ExpandLibCall(RTLIB::Libcall LC, SDNode *Node,
   if (const char *LibcallName = TLI.getLibcallName(LC))
     Callee = DAG.getExternalSymbol(LibcallName, CodePtrTy);
   else {
-    Callee = DAG.getUNDEF(CodePtrTy);
+    Callee = DAG.getPOISON(CodePtrTy);
     DAG.getContext()->emitError(Twine("no libcall available for ") +
                                 Node->getOperationName(&DAG));
   }
@@ -2418,7 +2418,18 @@ SelectionDAGLegalize::ExpandDivRemLibCall(SDNode *Node,
   Entry.IsZExt = !isSigned;
   Args.push_back(Entry);
 
-  SDValue Callee = DAG.getExternalFunctionSymbol(TLI.getLibcallName(LC));
+  RTLIB::LibcallImpl LibcallImpl = TLI.getLibcallImpl(LC);
+  if (LibcallImpl == RTLIB::Unsupported) {
+    DAG.getContext()->emitError(Twine("no libcall available for ") +
+                                Node->getOperationName(&DAG));
+    SDValue Poison = DAG.getPOISON(RetVT);
+    Results.push_back(Poison);
+    Results.push_back(Poison);
+    return;
+  }
+
+  SDValue Callee =
+      DAG.getExternalFunctionSymbol(TLI.getLibcallImplName(LibcallImpl).data());
 
   SDLoc dl(Node);
   TargetLowering::CallLoweringInfo CLI(DAG);
@@ -5032,7 +5043,7 @@ void SelectionDAGLegalize::ConvertNodeToLibcall(SDNode *Node) {
       // If the exponent does not match with sizeof(int) a libcall to
       // RTLIB::POWI would use the wrong type for the argument.
       DAG.getContext()->emitError("POWI exponent does not match sizeof(int)");
-      Results.push_back(DAG.getUNDEF(Node->getValueType(0)));
+      Results.push_back(DAG.getPOISON(Node->getValueType(0)));
       break;
     }
     ExpandFPLibCall(Node, LC, Results);

@@ -7441,8 +7441,12 @@ SDValue SelectionDAG::foldConstantFPMath(unsigned Opcode, const SDLoc &DL,
       C1.copySign(C2);
       return getConstantFP(C1, DL, VT);
     case ISD::FMINNUM:
+      if (C1.isSignaling() || C2.isSignaling())
+        return SDValue();
       return getConstantFP(minnum(C1, C2), DL, VT);
     case ISD::FMAXNUM:
+      if (C1.isSignaling() || C2.isSignaling())
+        return SDValue();
       return getConstantFP(maxnum(C1, C2), DL, VT);
     case ISD::FMINIMUM:
       return getConstantFP(minimum(C1, C2), DL, VT);
@@ -9255,8 +9259,8 @@ static bool isInTailCallPositionWrapper(const CallInst *CI,
 std::pair<SDValue, SDValue>
 SelectionDAG::getMemcmp(SDValue Chain, const SDLoc &dl, SDValue Mem0,
                         SDValue Mem1, SDValue Size, const CallInst *CI) {
-  const char *LibCallName = TLI->getLibcallName(RTLIB::MEMCMP);
-  if (!LibCallName)
+  RTLIB::LibcallImpl MemcmpImpl = TLI->getLibcallImpl(RTLIB::MEMCMP);
+  if (MemcmpImpl == RTLIB::Unsupported)
     return {};
 
   PointerType *PT = PointerType::getUnqual(*getContext());
@@ -9270,15 +9274,13 @@ SelectionDAG::getMemcmp(SDValue Chain, const SDLoc &dl, SDValue Mem0,
       isInTailCallPositionWrapper(CI, this, /*AllowReturnsFirstArg*/ true);
 
   const DataLayout &Layout = getDataLayout();
+  StringRef LibCallName = TLI->getLibcallImplName(MemcmpImpl);
   CLI.setDebugLoc(dl)
       .setChain(Chain)
-      .setLibCallee(
-          TLI->getLibcallCallingConv(RTLIB::MEMCMP),
-          Type::getInt32Ty(*getContext()),
-          getExternalSymbol(
-              LibCallName,
-              TLI->getPointerTy(Layout, Layout.getProgramAddressSpace())),
-          std::move(Args))
+      .setLibCallee(TLI->getLibcallImplCallingConv(MemcmpImpl),
+                    Type::getInt32Ty(*getContext()),
+                    getExternalFunctionSymbol(LibCallName.data()),
+                    std::move(Args))
       .setTailCall(IsTailCall);
 
   return TLI->LowerCallTo(CLI);
@@ -9288,8 +9290,8 @@ std::pair<SDValue, SDValue> SelectionDAG::getStrlen(SDValue Chain,
                                                     const SDLoc &dl,
                                                     SDValue Src,
                                                     const CallInst *CI) {
-  const char *LibCallName = TLI->getLibcallName(RTLIB::STRLEN);
-  if (!LibCallName)
+  RTLIB::LibcallImpl StrlenImpl = TLI->getLibcallImpl(RTLIB::STRLEN);
+  if (StrlenImpl == RTLIB::Unsupported)
     return {};
 
   // Emit a library call.
@@ -9299,13 +9301,15 @@ std::pair<SDValue, SDValue> SelectionDAG::getStrlen(SDValue Chain,
   TargetLowering::CallLoweringInfo CLI(*this);
   bool IsTailCall =
       isInTailCallPositionWrapper(CI, this, /*AllowReturnsFirstArg*/ true);
+  StringRef LibcallName = TLI->getLibcallImplName(StrlenImpl);
 
   CLI.setDebugLoc(dl)
       .setChain(Chain)
-      .setLibCallee(TLI->getLibcallCallingConv(RTLIB::STRLEN), CI->getType(),
-                    getExternalSymbol(
-                        LibCallName, TLI->getProgramPointerTy(getDataLayout())),
-                    std::move(Args))
+      .setLibCallee(
+          TLI->getLibcallImplCallingConv(StrlenImpl), CI->getType(),
+          getExternalSymbol(LibcallName.data(),
+                            TLI->getProgramPointerTy(getDataLayout())),
+          std::move(Args))
       .setTailCall(IsTailCall);
 
   return TLI->LowerCallTo(CLI);
@@ -9411,16 +9415,18 @@ SDValue SelectionDAG::getAtomicMemcpy(SDValue Chain, const SDLoc &dl,
 
   RTLIB::Libcall LibraryCall =
       RTLIB::getMEMCPY_ELEMENT_UNORDERED_ATOMIC(ElemSz);
-  if (LibraryCall == RTLIB::UNKNOWN_LIBCALL)
+  RTLIB::LibcallImpl LibcallImpl = TLI->getLibcallImpl(LibraryCall);
+  if (LibcallImpl == RTLIB::Unsupported)
     report_fatal_error("Unsupported element size");
 
   TargetLowering::CallLoweringInfo CLI(*this);
   CLI.setDebugLoc(dl)
       .setChain(Chain)
-      .setLibCallee(TLI->getLibcallCallingConv(LibraryCall),
-                    Type::getVoidTy(*getContext()),
-                    getExternalFunctionSymbol(TLI->getLibcallName(LibraryCall)),
-                    std::move(Args))
+      .setLibCallee(
+          TLI->getLibcallImplCallingConv(LibcallImpl),
+          Type::getVoidTy(*getContext()),
+          getExternalFunctionSymbol(TLI->getLibcallImplName(LibcallImpl).data()),
+          std::move(Args))
       .setDiscardResult()
       .setTailCall(isTailCall);
 
@@ -9517,16 +9523,18 @@ SDValue SelectionDAG::getAtomicMemmove(SDValue Chain, const SDLoc &dl,
 
   RTLIB::Libcall LibraryCall =
       RTLIB::getMEMMOVE_ELEMENT_UNORDERED_ATOMIC(ElemSz);
-  if (LibraryCall == RTLIB::UNKNOWN_LIBCALL)
+  RTLIB::LibcallImpl LibcallImpl = TLI->getLibcallImpl(LibraryCall);
+  if (LibcallImpl == RTLIB::Unsupported)
     report_fatal_error("Unsupported element size");
 
   TargetLowering::CallLoweringInfo CLI(*this);
   CLI.setDebugLoc(dl)
       .setChain(Chain)
-      .setLibCallee(TLI->getLibcallCallingConv(LibraryCall),
-                    Type::getVoidTy(*getContext()),
-                    getExternalFunctionSymbol(TLI->getLibcallName(LibraryCall)),
-                    std::move(Args))
+      .setLibCallee(
+          TLI->getLibcallImplCallingConv(LibcallImpl),
+          Type::getVoidTy(*getContext()),
+          getExternalFunctionSymbol(TLI->getLibcallImplName(LibcallImpl).data()),
+          std::move(Args))
       .setDiscardResult()
       .setTailCall(isTailCall);
 
@@ -9587,26 +9595,29 @@ SDValue SelectionDAG::getMemset(SDValue Chain, const SDLoc &dl, SDValue Dst,
   // FIXME: pass in SDLoc
   CLI.setDebugLoc(dl).setChain(Chain);
 
-  const char *BzeroName = getTargetLoweringInfo().getLibcallName(RTLIB::BZERO);
+  RTLIB::LibcallImpl BzeroImpl = TLI->getLibcallImpl(RTLIB::BZERO);
+  bool UseBZero = BzeroImpl != RTLIB::Unsupported && isNullConstant(Src);
 
-  bool UseBZero = isNullConstant(Src) && BzeroName;
   // If zeroing out and bzero is present, use it.
   if (UseBZero) {
     TargetLowering::ArgListTy Args;
     Args.emplace_back(Dst, Dst.getValueType().getTypeForEVT(Ctx));
     Args.emplace_back(Size, DL.getIntPtrType(Ctx));
     CLI.setLibCallee(
-        TLI->getLibcallCallingConv(RTLIB::BZERO), Type::getVoidTy(Ctx),
-        getExternalFunctionSymbol(BzeroName), std::move(Args));
+        TLI->getLibcallImplCallingConv(BzeroImpl), Type::getVoidTy(Ctx),
+        getExternalFunctionSymbol(TLI->getLibcallImplName(BzeroImpl).data()),
+        std::move(Args));
   } else {
+    RTLIB::LibcallImpl MemsetImpl = TLI->getLibcallImpl(RTLIB::MEMSET);
+
     TargetLowering::ArgListTy Args;
     Args.emplace_back(Dst, Dst.getValueType().getTypeForEVT(Ctx));
     Args.emplace_back(Src, Src.getValueType().getTypeForEVT(Ctx));
     Args.emplace_back(Size, DL.getIntPtrType(Ctx));
     CLI.setLibCallee(
-        TLI->getLibcallCallingConv(RTLIB::MEMSET),
+        TLI->getLibcallImplCallingConv(MemsetImpl),
         Dst.getValueType().getTypeForEVT(Ctx),
-        getExternalFunctionSymbol(TLI->getLibcallName(RTLIB::MEMSET)),
+        getExternalFunctionSymbol(TLI->getLibcallImplName(MemsetImpl).data()),
         std::move(Args));
   }
 
@@ -9639,16 +9650,18 @@ SDValue SelectionDAG::getAtomicMemset(SDValue Chain, const SDLoc &dl,
 
   RTLIB::Libcall LibraryCall =
       RTLIB::getMEMSET_ELEMENT_UNORDERED_ATOMIC(ElemSz);
-  if (LibraryCall == RTLIB::UNKNOWN_LIBCALL)
+  RTLIB::LibcallImpl LibcallImpl = TLI->getLibcallImpl(LibraryCall);
+  if (LibcallImpl == RTLIB::Unsupported)
     report_fatal_error("Unsupported element size");
 
   TargetLowering::CallLoweringInfo CLI(*this);
   CLI.setDebugLoc(dl)
       .setChain(Chain)
-      .setLibCallee(TLI->getLibcallCallingConv(LibraryCall),
-                    Type::getVoidTy(*getContext()),
-                    getExternalFunctionSymbol(TLI->getLibcallName(LibraryCall)),
-                    std::move(Args))
+      .setLibCallee(
+          TLI->getLibcallImplCallingConv(LibcallImpl),
+          Type::getVoidTy(*getContext()),
+          getExternalFunctionSymbol(TLI->getLibcallImplName(LibcallImpl).data()),
+          std::move(Args))
       .setDiscardResult()
       .setTailCall(isTailCall);
 
@@ -14375,12 +14388,17 @@ SDValue SelectionDAG::makeStateFunctionCall(unsigned LibFunc, SDValue Ptr,
   assert(InChain.getValueType() == MVT::Other && "Expected token chain");
   TargetLowering::ArgListTy Args;
   Args.emplace_back(Ptr, Ptr.getValueType().getTypeForEVT(*getContext()));
-  RTLIB::Libcall LC = static_cast<RTLIB::Libcall>(LibFunc);
-  SDValue Callee = getExternalFunctionSymbol(TLI->getLibcallName(LC));
+  RTLIB::LibcallImpl LibcallImpl =
+      TLI->getLibcallImpl(static_cast<RTLIB::Libcall>(LibFunc));
+  if (LibcallImpl == RTLIB::Unsupported)
+    reportFatalUsageError("emitting call to unsupported libcall");
+
+  SDValue Callee =
+      getExternalFunctionSymbol(TLI->getLibcallImplName(LibcallImpl).data());
   TargetLowering::CallLoweringInfo CLI(*this);
   CLI.setDebugLoc(DLoc).setChain(InChain).setLibCallee(
-      TLI->getLibcallCallingConv(LC), Type::getVoidTy(*getContext()), Callee,
-      std::move(Args));
+      TLI->getLibcallImplCallingConv(LibcallImpl),
+      Type::getVoidTy(*getContext()), Callee, std::move(Args));
   return TLI->LowerCallTo(CLI).second;
 }
 

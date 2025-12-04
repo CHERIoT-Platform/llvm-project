@@ -1087,16 +1087,17 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSection &sec) {
       modified = true;
       underlyingReloc->type = INTERNAL_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI;
       underlyingReloc->expr = R_PC;
-    } else if (r.type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_LO_I) {
+    } else if (r.type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_LO_I ||
+               r.type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_LO_S) {
       // If this is PCC-relative, then the relocation points to the auicgp /
       // auipcc instruction and we need to look there to find the real target.
       if (!isPCCRelative(ctx, nullptr, r.sym))
-        fatal("R_RISCV_CHERIOT_COMPARTMENT_LO_I must point to "
+        fatal("R_RISCV_CHERIOT_COMPARTMENT_LO_[I/S] must point to "
               "R_RISCV_COMPARTMENT_HI");
 
       const Defined *d = cast<Defined>(r.sym);
       if (!d->section)
-        error("R_RISCV_CHERIOT_COMPARTMENT_LO_I relocation points to an "
+        error("R_RISCV_CHERIOT_COMPARTMENT_LO_[I/S] relocation points to an "
               "absolute symbol: " +
               r.sym->getName());
       InputSection *isec = cast<InputSection>(d->section);
@@ -1128,6 +1129,8 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSection &sec) {
       // If the target is PCC-relative then the auipcc can't be erased and so
       // skip the rewriting.
       if (isPCCRelative(ctx, nullptr, target->sym)) {
+        assert(r.type != INTERNAL_RISCV_CHERIOT_COMPARTMENT_LO_S &&
+               "Malformed R_RISCV_CHERIOT_COMPARTMENT_LO_S relocation!");
         underlyingReloc->type = INTERNAL_RISCV_CHERIOT_COMPARTMENT_PCCREL_LO_I;
         underlyingReloc->expr = RE_RISCV_PC_INDIRECT;
         continue;

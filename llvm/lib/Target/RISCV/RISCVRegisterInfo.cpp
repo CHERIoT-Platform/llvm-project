@@ -408,7 +408,9 @@ void RISCVRegisterInfo::adjustReg(MachineBasicBlock &MBB,
   // path.  We avoid anything which can be done with a single lui as it might
   // be compressible.  Note that the sh1add case is fully covered by the 2x addi
   // case just above and is thus omitted.
-  if (ST.hasStdExtZba() && (Val & 0xFFF) != 0) {
+  if (ST.hasStdExtZba() && (Val & 0xFFF) != 0 &&
+      // SHXADD does not work on capability registers
+      !IsPureCapABI) {
     unsigned Opc = 0;
     if (isShiftedInt<12, 3>(Val)) {
       Opc = RISCV::SH3ADD;

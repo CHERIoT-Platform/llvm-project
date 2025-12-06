@@ -360,6 +360,7 @@ def simm12_lo : RISCVSImmLeafOp<12> {
       return true;
     return MCOp.isBareSymbolRef();
   }];
+  let OperandType = "OPERAND_SIMM12_LO";
 }
 
 // A 12-bit signed immediate which cannot fit in 6-bit signed immediate,
@@ -395,6 +396,7 @@ def bare_simm13_lsb0 : BareSImm13Lsb0MaybeSym,
 def bare_simm13_lsb0_bb : BareSImm13Lsb0MaybeSym;
 
 class UImm20OperandMaybeSym : RISCVUImmOp<20> {
+  let OperandType = "OPERAND_UIMM20_AUIPC";
   let MCOperandPredicate = [{
     int64_t Imm;
     if (MCOp.evaluateAsConstantImm(Imm))
@@ -409,9 +411,11 @@ class UImm20OperandMaybeSym : RISCVUImmOp<20> {
 
 def uimm20_lui : UImm20OperandMaybeSym {
   let ParserMatchClass = UImmAsmOperand<20, "LUI">;
+  let OperandType = "OPERAND_UIMM20_LUI";
 }
 def uimm20_auipc : UImm20OperandMaybeSym {
   let ParserMatchClass = UImmAsmOperand<20, "AUIPC">;
+  let OperandType = "OPERAND_UIMM20_AUIPC";
 }
 
 def uimm20 : RISCVUImmOp<20>;
@@ -526,7 +530,7 @@ def ixlenimm_li_restricted : Operand<XLenVT> {
 
 // A 12-bit signed immediate plus one where the imm range will be -2047~2048.
 def simm12_plus1 : ImmLeaf<XLenVT,
-  [{return (isInt<12>(Imm) && Imm != -2048) || Imm == 2048;}]>;
+  [{return Imm >= -2047 && Imm <= 2048;}]>;
 
 // A 6-bit constant greater than 32.
 def uimm6gt32 : ImmLeaf<XLenVT, [{

@@ -728,7 +728,7 @@ CGCallee ItaniumCXXABI::EmitLoadOfMemberFunctionPointer(
       if (BinOp->isPtrMemOp() &&
           BinOp->getRHS()
               ->getType()
-              ->hasPointeeToToCFIUncheckedCalleeFunctionType())
+              ->hasPointeeToCFIUncheckedCalleeFunctionType())
         ShouldEmitCFICheck = false;
     }
   }

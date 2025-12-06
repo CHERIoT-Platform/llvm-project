@@ -2692,7 +2692,7 @@ public:
   bool isAnyPointerType() const;   // Any C pointer or ObjC object pointer
   bool isCountAttributedType() const;
   bool isCFIUncheckedCalleeFunctionType() const;
-  bool hasPointeeToToCFIUncheckedCalleeFunctionType() const;
+  bool hasPointeeToCFIUncheckedCalleeFunctionType() const;
   bool isBlockPointerType() const;
   bool isVoidPointerType() const;
   bool isReferenceType() const;
@@ -8773,7 +8773,7 @@ inline bool Type::isCFIUncheckedCalleeFunctionType() const {
   return false;
 }
 
-inline bool Type::hasPointeeToToCFIUncheckedCalleeFunctionType() const {
+inline bool Type::hasPointeeToCFIUncheckedCalleeFunctionType() const {
   QualType Pointee;
   if (const auto *PT = getAs<PointerType>())
     Pointee = PT->getPointeeType();

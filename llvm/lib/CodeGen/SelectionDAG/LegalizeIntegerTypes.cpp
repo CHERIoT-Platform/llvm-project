@@ -5230,8 +5230,7 @@ void DAGTypeLegalizer::ExpandIntRes_XMULO(SDNode *N,
   Entry.IsZExt = false;
   Args.push_back(Entry);
 
-  SDValue Func =
-      DAG.getExternalFunctionSymbol(TLI.getLibcallImplName(LCImpl).data());
+  SDValue Func = DAG.getExternalFunctionSymbol(LCImpl);
 
   TargetLowering::CallLoweringInfo CLI(DAG);
   CLI.setDebugLoc(dl)

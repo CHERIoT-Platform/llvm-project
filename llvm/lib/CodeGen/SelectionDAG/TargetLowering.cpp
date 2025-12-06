@@ -189,7 +189,7 @@ TargetLowering::makeLibCall(SelectionDAG &DAG, RTLIB::LibcallImpl LibcallImpl,
     Args.push_back(Entry);
   }
 
-  SDValue Callee = DAG.getExternalFunctionSymbol(getLibcallImplName(LibcallImpl).data());
+  SDValue Callee = DAG.getExternalFunctionSymbol(LibcallImpl);
 
   Type *RetTy = RetVT.getTypeForEVT(*DAG.getContext());
   Type *OrigRetTy = RetTy;
@@ -12369,8 +12369,7 @@ bool TargetLowering::expandMultipleResultFPLibCall(
                       ? Node->getValueType(*CallRetResNo).getTypeForEVT(Ctx)
                       : Type::getVoidTy(Ctx);
   SDValue InChain = StoresInChain ? StoresInChain : DAG.getEntryNode();
-  SDValue Callee = DAG.getExternalSymbol(getLibcallImplName(LibcallImpl).data(),
-                                         getPointerTy(DAG.getDataLayout(), DAG.getDataLayout().getProgramAddressSpace()));
+  SDValue Callee = DAG.getExternalFunctionSymbol(LibcallImpl);
   TargetLowering::CallLoweringInfo CLI(DAG);
   CLI.setDebugLoc(DL).setChain(InChain).setLibCallee(
       getLibcallImplCallingConv(LibcallImpl), RetType, Callee, std::move(Args));

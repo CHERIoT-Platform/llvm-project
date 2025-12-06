@@ -2164,8 +2164,9 @@ SelectionDAGLegalize::ExpandLibCall(RTLIB::Libcall LC, SDNode *Node,
   const auto &DL = DAG.getDataLayout();
   EVT CodePtrTy = TLI.getPointerTy(DL, DL.getProgramAddressSpace());
   SDValue Callee;
-  if (const char *LibcallName = TLI.getLibcallName(LC))
-    Callee = DAG.getExternalSymbol(LibcallName, CodePtrTy);
+  RTLIB::LibcallImpl LCImpl = TLI.getLibcallImpl(LC);
+  if (LCImpl != RTLIB::Unsupported)
+    Callee = DAG.getExternalSymbol(LCImpl, CodePtrTy);
   else {
     Callee = DAG.getPOISON(CodePtrTy);
     DAG.getContext()->emitError(Twine("no libcall available for ") +
@@ -2194,7 +2195,7 @@ SelectionDAGLegalize::ExpandLibCall(RTLIB::Libcall LC, SDNode *Node,
   bool signExtend = TLI.shouldSignExtendTypeInLibCall(RetTy, IsSigned);
   CLI.setDebugLoc(SDLoc(Node))
       .setChain(InChain)
-      .setLibCallee(TLI.getLibcallCallingConv(LC), RetTy, Callee,
+      .setLibCallee(TLI.getLibcallImplCallingConv(LCImpl), RetTy, Callee,
                     std::move(Args))
       .setTailCall(isTailCall)
       .setSExtResult(signExtend)
@@ -2428,8 +2429,7 @@ SelectionDAGLegalize::ExpandDivRemLibCall(SDNode *Node,
     return;
   }
 
-  SDValue Callee =
-      DAG.getExternalFunctionSymbol(TLI.getLibcallImplName(LibcallImpl).data());
+  SDValue Callee = DAG.getExternalFunctionSymbol(LibcallImpl);
 
   SDLoc dl(Node);
   TargetLowering::CallLoweringInfo CLI(DAG);
@@ -2497,9 +2497,8 @@ SDValue SelectionDAGLegalize::ExpandSincosStretLibCall(SDNode *Node) const {
 
   Type *SincosStretRetTy = FuncTy->getReturnType();
   CallingConv::ID CallConv = CallsInfo.getLibcallImplCallingConv(SincosStret);
-  StringRef LibcallImplName = CallsInfo.getLibcallImplName(SincosStret);
 
-  SDValue Callee = DAG.getExternalFunctionSymbol(LibcallImplName.data());
+  SDValue Callee = DAG.getExternalFunctionSymbol(SincosStret);
 
   TargetLowering::ArgListTy Args;
   SDValue SRet;

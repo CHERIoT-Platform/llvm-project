@@ -822,6 +822,7 @@ bool RISCVExpandPseudo::expandCapLoadTLSIEAddress(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
     MachineBasicBlock::iterator &NextMBBI) {
   MachineFunction *MF = MBB.getParent();
+  assert(!STI->hasVendorXCheriot() && "TLS is not supported on XCheriot!");
 
   const auto &STI = MF->getSubtarget<RISCVSubtarget>();
   unsigned SecondOpcode = STI.is64Bit() ? RISCV::CLD : RISCV::CLW;
@@ -832,6 +833,7 @@ bool RISCVExpandPseudo::expandCapLoadTLSIEAddress(
 bool RISCVExpandPseudo::expandCapLoadTLSGDCap(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
     MachineBasicBlock::iterator &NextMBBI) {
+  assert(!STI->hasVendorXCheriot() && "TLS is not supported on XCheriot!");
   return expandAuipccInstPair(MBB, MBBI, NextMBBI, RISCVII::MO_TLS_GD_HI,
                               RISCV::CIncOffsetImm);
 }

@@ -11,14 +11,36 @@
 
 #include "llvm/CodeGen/SelectionDAGTargetInfo.h"
 
+#define GET_SDNODE_ENUM
+#include "MipsGenSDNodeInfo.inc"
+
 namespace llvm {
 
 class MipsTargetMachine;
+namespace MipsISD {
 
-class MipsSelectionDAGInfo : public SelectionDAGTargetInfo {
+enum NodeType : unsigned {
+  // Floating point Abs
+  FAbs = GENERATED_OPCODE_END,
+
+  DynAlloc,
+
+  // Double select nodes for machines without conditional-move.
+  DOUBLE_SELECT_I,
+  DOUBLE_SELECT_I64,
+};
+
+} // namespace MipsISD
+
+class MipsSelectionDAGInfo : public SelectionDAGGenTargetInfo {
 public:
+  MipsSelectionDAGInfo();
+
   ~MipsSelectionDAGInfo() override;
-  bool isTargetMemoryOpcode(unsigned Opcode) const override;
+  const char *getTargetNodeName(unsigned Opcode) const override;
+
+  void verifyTargetNode(const SelectionDAG &DAG,
+                        const SDNode *N) const override;
   SDValue EmitTargetCodeForMemcpy(SelectionDAG &DAG, const SDLoc &dl,
                                   SDValue Chain, SDValue Op1, SDValue Op2,
                                   SDValue Op3, Align Alignment, bool isVolatile,

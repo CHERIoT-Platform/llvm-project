@@ -182,7 +182,7 @@ std::string CheriCapRelocLocation::toString(Ctx &ctx) const {
 
 void CheriCapRelocsSection::addCapReloc(bool isCode, CheriCapRelocLocation loc,
                                         const SymbolAndOffset &target,
-                                        int64_t capabilityOffset) {
+                                        int64_t addend) {
   assert(!isa<Symbol *>(target.symOrSec) || !target.sym()->isPreemptible);
 
   auto sourceMsg = [&]() -> std::string { return loc.toString(ctx); };
@@ -199,9 +199,9 @@ void CheriCapRelocsSection::addCapReloc(bool isCode, CheriCapRelocLocation loc,
          << "\n>>> referenced by " << sourceMsg();
   }
 
-  // assert(CapabilityOffset >= 0 && "Negative offsets not supported");
-  if (errorHandler().verbose && capabilityOffset < 0)
-    message("global capability offset " + Twine(capabilityOffset) +
+  // assert(addend >= 0 && "Negative offsets not supported");
+  if (errorHandler().verbose && addend < 0)
+    message("global capability offset " + Twine(addend) +
             " is less than 0:\n>>> Location: " + loc.toString(ctx) +
             "\n>>> Target: " + target.verboseToString(ctx));
 
@@ -212,7 +212,7 @@ void CheriCapRelocsSection::addCapReloc(bool isCode, CheriCapRelocLocation loc,
     return;
   }
 
-  addEntry(loc, {isCode, target, capabilityOffset});
+  addEntry(loc, {isCode, target, addend});
 }
 
 static uint64_t getTargetSize(Ctx &ctx, const CheriCapRelocLocation &location,

@@ -905,8 +905,7 @@ static void addTgotEntry(Ctx &ctx, Symbol &sym) {
   if (sym.isUndefWeak())
     ctx.in.tgot->addConstant({expr, type, off, 0, &sym});
   else if (ctx.arg.isCheriAbi && !ctx.arg.useRelativeElfCheriRelocs)
-    ctx.in.tgotCapRelocs->addCapReloc(false, {ctx.in.tgot.get(), off},
-                                      {&sym, 0}, 0);
+    ctx.in.tgotCapRelocs->addReloc(*ctx.in.tgot, off, sym, 0, expr, type);
   else
     ctx.in.relaTgot->addReloc(false,
                               ctx.target->tgotRel, *ctx.in.tgot, off, sym, 0,

@@ -846,8 +846,8 @@ uint64_t MipsCheriCapTableSection::assignIndices(uint64_t startIndex,
     else if (targetSym->isUndefWeak())
       addConstant(ctx, {R_ABS_CAP, elfCapabilityReloc, off, 0, targetSym});
     else
-      addRelativeCapabilityRelocation(ctx, *this, off, targetSym, 0, R_ABS_CAP,
-                                      elfCapabilityReloc);
+      ctx.mainPart->capRelocs->addReloc(*this, off, *targetSym, 0, R_ABS_CAP,
+                                        elfCapabilityReloc);
   }
   assert(assignedSmallIndexes + assignedLargeIndexes == entries.size());
   return assignedSmallIndexes + assignedLargeIndexes;
@@ -1022,16 +1022,6 @@ void MipsCheriCapTableMappingSection::writeTo(uint8_t *buf) {
   }
   assert(entries.size() * sizeof(CaptableMappingEntry) == getSize());
   memcpy(buf, entries.data(), entries.size() * sizeof(CaptableMappingEntry));
-}
-
-void addRelativeCapabilityRelocation(
-    Ctx &ctx, InputSectionBase &isec, uint64_t offsetInSec,
-    llvm::PointerUnion<Symbol *, InputSectionBase *> symOrSec, int64_t addend,
-    RelExpr expr, RelType type) {
-  Partition &part = isec.getPartition(ctx);
-  assert(!ctx.arg.useRelativeElfCheriRelocs &&
-         "relative ELF capability relocations not currently implemented");
-  part.capRelocs->addReloc(isec, offsetInSec, symOrSec, addend, expr, type);
 }
 
 // CHERI-MIPS using the PLT and fndesc ABIs uses a different mechanism for

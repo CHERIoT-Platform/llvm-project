@@ -20,6 +20,7 @@
 #ifndef LLD_ELF_SYNTHETIC_SECTIONS_H
 #define LLD_ELF_SYNTHETIC_SECTIONS_H
 
+#include "Arch/Cheri.h"
 #include "Config.h"
 #include "DWARF.h"
 #include "InputSection.h"
@@ -37,7 +38,6 @@
 #include "llvm/Support/MipsABIFlags.h"
 #include "llvm/Support/Parallel.h"
 #include "llvm/Support/Threading.h"
-
 
 namespace lld::elf {
 class Defined;
@@ -1590,6 +1590,7 @@ struct Partition {
   std::unique_ptr<RelocationBaseSection> relaDyn;
   std::unique_ptr<RelrBaseSection> relrDyn;
   std::unique_ptr<RelrBaseSection> relrAuthDyn;
+  std::unique_ptr<CheriCapRelocsSection> capRelocs;
   std::unique_ptr<VersionDefinitionSection> verDef;
   std::unique_ptr<SyntheticSection> verNeed;
   std::unique_ptr<VersionTableSection> verSym;

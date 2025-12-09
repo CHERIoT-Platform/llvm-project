@@ -893,15 +893,14 @@ static void addRelativeReloc(Ctx &ctx, InputSectionBase &isec,
                              RelExpr expr, RelType type) {
   Partition &part = isec.getPartition(ctx);
 
-  if (expr == R_ABS_CAP) {
+  if (expr == R_ABS_CAP && !ctx.arg.useRelativeElfCheriRelocs) {
     if (shard) {
       std::lock_guard<std::mutex> lock(ctx.relocMutex);
       addRelativeReloc(ctx, isec, offsetInSec, sym, addend, expr, type);
       return;
     }
 
-    addRelativeCapabilityRelocation(ctx, isec, offsetInSec, &sym, addend, expr,
-                                    type);
+    part.capRelocs->addReloc(isec, offsetInSec, sym, addend, expr, type);
     return;
   }
 
@@ -920,6 +919,9 @@ static void addRelativeReloc(Ctx &ctx, InputSectionBase &isec,
       isec.relocations.push_back({expr, type, offsetInSec, addend, &sym});
     return;
   }
+
+  assert(expr != R_ABS_CAP &&
+         "relative ELF capability relocations not currently implemented");
 
   // Add a relative relocation. If relrDyn section is enabled, and the
   // relocation offset is guaranteed to be even, add the relocation to
@@ -951,15 +953,15 @@ static void addPltEntry(Ctx &ctx, PltSection &plt, GotPltSection &gotPlt,
 
   if (ctx.arg.isCheriAbi && !ctx.arg.useRelativeElfCheriRelocs) {
     if (!sym.isPreemptible) {
-      addRelativeCapabilityRelocation(ctx, gotPlt, sym.getGotPltOffset(ctx),
-                                      &sym, 0, R_ABS_CAP,
-                                      *ctx.target->symbolicCapRel);
+      ctx.mainPart->capRelocs->addReloc(gotPlt, sym.getGotPltOffset(ctx), sym,
+                                        0, R_ABS_CAP,
+                                        *ctx.target->symbolicCapRel);
       return;
     }
 
-    addRelativeCapabilityRelocation(ctx, gotPlt, sym.getGotPltOffset(ctx), &plt,
-                                    0, R_ABS_CAP,
-                                    *ctx.target->symbolicCodeCapRel);
+    ctx.mainPart->capRelocs->addReloc(gotPlt, sym.getGotPltOffset(ctx), plt, 0,
+                                      R_ABS_CAP,
+                                      *ctx.target->symbolicCodeCapRel);
   }
 
   rel.addReloc({type, &gotPlt, sym.getGotPltOffset(ctx),

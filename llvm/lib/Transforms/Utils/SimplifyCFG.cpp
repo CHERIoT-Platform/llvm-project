@@ -309,7 +309,8 @@ class SimplifyCFGOpt {
   bool hoistCommonCodeFromSuccessors(Instruction *TI, bool AllInstsEqOnly);
   bool hoistSuccIdenticalTerminatorToSwitchOrIf(
       Instruction *TI, Instruction *I1,
-      SmallVectorImpl<Instruction *> &OtherSuccTIs);
+      SmallVectorImpl<Instruction *> &OtherSuccTIs,
+      ArrayRef<BasicBlock *> UniqueSuccessors);
   bool speculativelyExecuteBB(BranchInst *BI, BasicBlock *ThenBB);
   bool simplifyTerminatorOnSelect(Instruction *OldTerm, Value *Cond,
                                   BasicBlock *TrueBB, BasicBlock *FalseBB,
@@ -1878,10 +1879,13 @@ bool SimplifyCFGOpt::hoistCommonCodeFromSuccessors(Instruction *TI,
   // If either of the blocks has it's address taken, then we can't do this fold,
   // because the code we'd hoist would no longer run when we jump into the block
   // by it's address.
-  for (auto *Succ : successors(BB)) {
+  SmallSetVector<BasicBlock *, 4> UniqueSuccessors(from_range, successors(BB));
+  for (auto *Succ : UniqueSuccessors) {
     if (Succ->hasAddressTaken())
       return false;
-    if (Succ->getSinglePredecessor())
+    // Use getUniquePredecessor instead of getSinglePredecessor to support
+    // multi-cases successors in switch.
+    if (Succ->getUniquePredecessor())
       continue;
     // If Succ has >1 predecessors, continue to check if the Succ contains only
     // one `unreachable` inst. Since executing `unreachable` inst is an UB, we
@@ -1894,7 +1898,7 @@ bool SimplifyCFGOpt::hoistCommonCodeFromSuccessors(Instruction *TI,
   // The second of pair is a SkipFlags bitmask.
   using SuccIterPair = std::pair<BasicBlock::iterator, unsigned>;
   SmallVector<SuccIterPair, 8> SuccIterPairs;
-  for (auto *Succ : successors(BB)) {
+  for (auto *Succ : UniqueSuccessors) {
     BasicBlock::iterator SuccItr = Succ->begin();
     if (isa<PHINode>(*SuccItr))
       return false;
@@ -1905,19 +1909,20 @@ bool SimplifyCFGOpt::hoistCommonCodeFromSuccessors(Instruction *TI,
     // Check if all instructions in the successor blocks match. This allows
     // hoisting all instructions and removing the blocks we are hoisting from,
     // so does not add any new instructions.
-    SmallVector<BasicBlock *> Succs = to_vector(successors(BB));
+
     // Check if sizes and terminators of all successors match.
-    bool AllSame = none_of(Succs, [&Succs](BasicBlock *Succ) {
-      Instruction *Term0 = Succs[0]->getTerminator();
-      Instruction *Term = Succ->getTerminator();
-      return !Term->isSameOperationAs(Term0) ||
-             !equal(Term->operands(), Term0->operands()) ||
-             Succs[0]->size() != Succ->size();
-    });
+    bool AllSame =
+        none_of(UniqueSuccessors, [&UniqueSuccessors](BasicBlock *Succ) {
+          Instruction *Term0 = UniqueSuccessors[0]->getTerminator();
+          Instruction *Term = Succ->getTerminator();
+          return !Term->isSameOperationAs(Term0) ||
+                 !equal(Term->operands(), Term0->operands()) ||
+                 UniqueSuccessors[0]->size() != Succ->size();
+        });
     if (!AllSame)
       return false;
     if (AllSame) {
-      LockstepReverseIterator<true> LRI(Succs);
+      LockstepReverseIterator<true> LRI(UniqueSuccessors.getArrayRef());
       while (LRI.isValid()) {
         Instruction *I0 = (*LRI)[0];
         if (any_of(*LRI, [I0](Instruction *I) {
@@ -1981,7 +1986,8 @@ bool SimplifyCFGOpt::hoistCommonCodeFromSuccessors(Instruction *TI,
         return Changed;
       }
 
-      return hoistSuccIdenticalTerminatorToSwitchOrIf(TI, I1, OtherInsts) ||
+      return hoistSuccIdenticalTerminatorToSwitchOrIf(
+                 TI, I1, OtherInsts, UniqueSuccessors.getArrayRef()) ||
              Changed;
     }
 
@@ -2054,7 +2060,8 @@ bool SimplifyCFGOpt::hoistCommonCodeFromSuccessors(Instruction *TI,
 
 bool SimplifyCFGOpt::hoistSuccIdenticalTerminatorToSwitchOrIf(
     Instruction *TI, Instruction *I1,
-    SmallVectorImpl<Instruction *> &OtherSuccTIs) {
+    SmallVectorImpl<Instruction *> &OtherSuccTIs,
+    ArrayRef<BasicBlock *> UniqueSuccessors) {
 
   auto *BI = dyn_cast<BranchInst>(TI);
 
@@ -2168,9 +2175,12 @@ bool SimplifyCFGOpt::hoistSuccIdenticalTerminatorToSwitchOrIf(
       Updates.push_back({DominatorTree::Insert, TIParent, Succ});
   }
 
-  if (DTU)
-    for (BasicBlock *Succ : successors(TI))
+  if (DTU) {
+    // TI might be a switch with multi-cases destination, so we need to care for
+    // the duplication of successors.
+    for (BasicBlock *Succ : UniqueSuccessors)
       Updates.push_back({DominatorTree::Delete, TIParent, Succ});
+  }
 
   eraseTerminatorAndDCECond(TI);
   if (DTU)

@@ -3531,8 +3531,9 @@ template <class ELFT> void LinkerDriver::link(opt::InputArgList &args) {
   // output sections in the usual way.
   if (!ctx.arg.relocatable) {
     combineEhSections(ctx);
-    if (ctx.in.capRelocs)
-      ctx.inputSections.push_back(ctx.in.capRelocs.get());
+    for (Partition &part : ctx.partitions)
+      if (part.capRelocs)
+        ctx.inputSections.push_back(part.capRelocs.get());
     if (ctx.in.tgotCapRelocs)
       ctx.inputSections.push_back(ctx.in.tgotCapRelocs.get());
   }

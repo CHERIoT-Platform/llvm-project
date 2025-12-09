@@ -624,7 +624,6 @@ struct InStruct {
   std::unique_ptr<TgotSection> tgot;
   std::unique_ptr<MipsCheriCapTableSection> mipsCheriCapTable;
   std::unique_ptr<CheriPccPaddingSection> pccPadding;
-  std::unique_ptr<CheriCapRelocsSection> capRelocs;
   std::unique_ptr<CheriCapRelocsSection> tgotCapRelocs;
   std::unique_ptr<MipsCheriCapTableMappingSection> mipsCheriCapTableMapping;
   std::unique_ptr<SyntheticSection> armCmseSGSection;

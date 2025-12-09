@@ -894,13 +894,16 @@ static void addRelativeReloc(Ctx &ctx, InputSectionBase &isec,
   Partition &part = isec.getPartition(ctx);
 
   if (expr == R_ABS_CAP && !ctx.arg.useRelativeElfCheriRelocs) {
-    if (shard) {
-      std::lock_guard<std::mutex> lock(ctx.relocMutex);
-      addRelativeReloc(ctx, isec, offsetInSec, sym, addend, expr, type);
-      return;
-    }
+    auto fn = [&]() {
+      part.capRelocs->addReloc(isec, offsetInSec, sym, addend, expr, type);
+    };
 
-    part.capRelocs->addReloc(isec, offsetInSec, sym, addend, expr, type);
+    if constexpr (shard) {
+      std::lock_guard<std::mutex> lock(ctx.relocMutex);
+      fn();
+    } else
+      fn();
+
     return;
   }
 

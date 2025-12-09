@@ -2160,11 +2160,9 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
 
     // Now handle __cap_relocs (must be before RelaDyn because it might
     // result in new dynamic relocations being added)
-    if (ctx.in.capRelocs) {
-      finalizeSynthetic(ctx, ctx.in.capRelocs.get());
-    }
-    if (ctx.in.tgotCapRelocs)
-      finalizeSynthetic(ctx, ctx.in.tgotCapRelocs.get());
+    for (Partition &part : ctx.partitions)
+      finalizeSynthetic(ctx, part.capRelocs.get());
+    finalizeSynthetic(ctx, ctx.in.tgotCapRelocs.get());
     if (ctx.in.plt && ctx.in.plt->isNeeded())
       ctx.in.plt->addSymbols();
     if (ctx.in.iplt && ctx.in.iplt->isNeeded())

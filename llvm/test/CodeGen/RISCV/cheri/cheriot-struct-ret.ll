@@ -244,8 +244,7 @@ entry:
   ;; CHECK:  .LBB8_1:                                # %entry
   ;; CHECK:                                          # Label of block must be emitted
   ;; CHECK:  	auicgp	a1, %cheriot_compartment_hi(force_use)
-  ;; CHECK:  	cincoffset	a1, a1, %cheriot_compartment_lo_i(.LBB8_1)
-  ;; CHECK:       ct.csc	a0, 0(a1)
+  ;; CHECK:       ct.csc	a0, %cheriot_compartment_lo_s(.LBB8_1)(a1)
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
 
   ;; CHECK:  	ct.ccall	_Z8GetValuev

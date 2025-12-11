@@ -1048,7 +1048,7 @@ static void relaxCGP(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
     }
     case R_RISCV_CHERIOT_COMPARTMENT_LO_S:
       // store cs2, cs1, %lo(x) => store cs2, cgp, %lo(x)
-      sec.relaxAux->relocTypes[i] = R_RISCV_CHERIOT_COMPARTMENT_LO_I;
+      sec.relaxAux->relocTypes[i] = R_RISCV_CHERIOT_COMPARTMENT_LO_S;
       insn = (insn & ~(31 << 15)) | (3 << 15);
       sec.relaxAux->writes.push_back(insn);
       break;

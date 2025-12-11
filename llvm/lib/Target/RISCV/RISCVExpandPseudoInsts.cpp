@@ -69,6 +69,10 @@ private:
                              MachineBasicBlock::iterator MBBI,
                              MachineBasicBlock::iterator &NextMBBI,
                              bool InBounds);
+  bool expandDerefCapLoadLocalCap(MachineBasicBlock &MBB,
+                                  MachineBasicBlock::iterator MBBI,
+                                  MachineBasicBlock::iterator &NextMBBI,
+                                  unsigned DerefOpcode);
   bool expandCapLoadGlobalCap(MachineBasicBlock &MBB,
                               MachineBasicBlock::iterator MBBI,
                               MachineBasicBlock::iterator &NextMBBI);
@@ -193,6 +197,36 @@ bool RISCVExpandPseudo::expandMI(MachineBasicBlock &MBB,
     LLVM_FALLTHROUGH;
   case RISCV::PseudoCLLCInbounds:
     return expandCapLoadLocalCap(MBB, MBBI, NextMBBI, InBounds);
+  case RISCV::PseudoCLLCInbounds_CLB:
+    return expandDerefCapLoadLocalCap(MBB, MBBI, NextMBBI, RISCV::CLB);
+  case RISCV::PseudoCLLCInbounds_CLBU:
+    return expandDerefCapLoadLocalCap(MBB, MBBI, NextMBBI, RISCV::CLBU);
+  case RISCV::PseudoCLLCInbounds_CSB:
+    return expandDerefCapLoadLocalCap(MBB, MBBI, NextMBBI, RISCV::CSB);
+  case RISCV::PseudoCLLCInbounds_CLH:
+    return expandDerefCapLoadLocalCap(MBB, MBBI, NextMBBI, RISCV::CLH);
+  case RISCV::PseudoCLLCInbounds_CLHU:
+    return expandDerefCapLoadLocalCap(MBB, MBBI, NextMBBI, RISCV::CLHU);
+  case RISCV::PseudoCLLCInbounds_CSH:
+    return expandDerefCapLoadLocalCap(MBB, MBBI, NextMBBI, RISCV::CSH);
+  case RISCV::PseudoCLLCInbounds_CLW:
+    return expandDerefCapLoadLocalCap(MBB, MBBI, NextMBBI, RISCV::CLW);
+  case RISCV::PseudoCLLCInbounds_CLWU:
+    return expandDerefCapLoadLocalCap(MBB, MBBI, NextMBBI, RISCV::CLWU);
+  case RISCV::PseudoCLLCInbounds_CSW:
+    return expandDerefCapLoadLocalCap(MBB, MBBI, NextMBBI, RISCV::CSW);
+  case RISCV::PseudoCLLCInbounds_CLD:
+    return expandDerefCapLoadLocalCap(MBB, MBBI, NextMBBI, RISCV::CLD);
+  case RISCV::PseudoCLLCInbounds_CSD:
+    return expandDerefCapLoadLocalCap(MBB, MBBI, NextMBBI, RISCV::CSD);
+  case RISCV::PseudoCLLCInbounds_CLC_64:
+    return expandDerefCapLoadLocalCap(MBB, MBBI, NextMBBI, RISCV::CLC_64);
+  case RISCV::PseudoCLLCInbounds_CSC_64:
+    return expandDerefCapLoadLocalCap(MBB, MBBI, NextMBBI, RISCV::CSC_64);
+  case RISCV::PseudoCLLCInbounds_CLC_128:
+    return expandDerefCapLoadLocalCap(MBB, MBBI, NextMBBI, RISCV::CLC_128);
+  case RISCV::PseudoCLLCInbounds_CSC_128:
+    return expandDerefCapLoadLocalCap(MBB, MBBI, NextMBBI, RISCV::CSC_128);
   case RISCV::PseudoCLGC:
     return expandCapLoadGlobalCap(MBB, MBBI, NextMBBI);
   case RISCV::PseudoCLA_TLS_IE:
@@ -516,9 +550,11 @@ bool RISCVExpandPseudo::expandAuicgpInstPair(
   DebugLoc DL = MI.getDebugLoc();
   auto *MF = MBB.getParent();
 
-  assert(MI.getNumOperands() <= 2);
-  Register DestReg = MI.getOperand(0).getReg();
-  const MachineOperand &Symbol = MI.getOperand(1);
+  assert(MI.getNumOperands() <= 3);
+  bool IsStore = MI.getNumOperands() == 3;
+  Register TmpReg = MI.getOperand(0).getReg();
+  Register DestReg = MI.getOperand(IsStore ? 1 : 0).getReg();
+  const MachineOperand &Symbol = MI.getOperand(IsStore ? 2 : 1);
 
   auto *NewMBB = MBB.getParent()->CreateMachineBasicBlock(MBB.getBasicBlock());
 
@@ -528,16 +564,20 @@ bool RISCVExpandPseudo::expandAuicgpInstPair(
 
   MF->insert(++MBB.getIterator(), NewMBB);
 
-  BuildMI(NewMBB, DL, TII->get(RISCV::AUICGP), DestReg)
+  BuildMI(NewMBB, DL, TII->get(RISCV::AUICGP), TmpReg)
       .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_HI);
-  BuildMI(NewMBB, DL, TII->get(SecondOpcode), DestReg)
-      .addReg(DestReg, RegState::Kill)
-      .addMBB(NewMBB, RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
+  BuildMI(NewMBB, DL, TII->get(SecondOpcode))
+      .addReg(DestReg, getRegState(MI.getOperand(IsStore ? 1 : 0)))
+      .addReg(TmpReg, RegState::Kill)
+      .addMBB(NewMBB, IsStore ? RISCVII::MO_CHERIOT_COMPARTMENT_LO_S
+                              : RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
 
-  if (!InBounds)
+  if (!InBounds) {
+    assert(!IsStore && "CLLC store pseudo ops must be inbounds!");
     BuildMI(NewMBB, DL, TII->get(RISCV::CSetBoundsImm), DestReg)
         .addReg(DestReg, RegState::Kill)
         .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_SIZE);
+  }
 
   // Move all the rest of the instructions to NewMBB.
   NewMBB->splice(NewMBB->end(), &MBB, std::next(MBBI), MBB.end());
@@ -791,6 +831,26 @@ bool RISCVExpandPseudo::expandCapLoadLocalCap(
 
   return expandAuipccInstPair(MBB, MBBI, NextMBBI, RISCVII::MO_PCREL_HI,
                               RISCV::CIncOffsetImm);
+}
+
+bool RISCVExpandPseudo::expandDerefCapLoadLocalCap(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+    MachineBasicBlock::iterator &NextMBBI, unsigned DerefOpcode) {
+  auto ABI = MBB.getParent()->getSubtarget<RISCVSubtarget>().getTargetABI();
+  if (ABI == RISCVABI::ABI_CHERIOT || ABI == RISCVABI::ABI_CHERIOT_BAREMETAL) {
+    bool IsStore = MBBI->getNumOperands() == 3;
+    const DebugLoc DL = MBBI->getDebugLoc();
+    const MachineOperand &Symbol = MBBI->getOperand(IsStore ? 2 : 1);
+    const GlobalVariable *GV = cast<GlobalVariable>(Symbol.getGlobal());
+    if (IsStore || !GV->isConstant())
+      return expandAuicgpInstPair(MBB, MBBI, NextMBBI, DerefOpcode, true);
+    return expandAuipccInstPair(MBB, MBBI, NextMBBI,
+                                RISCVII::MO_CHERIOT_COMPARTMENT_HI, DerefOpcode,
+                                true);
+  }
+
+  return expandAuipccInstPair(MBB, MBBI, NextMBBI, RISCVII::MO_PCREL_HI,
+                              DerefOpcode);
 }
 
 bool RISCVExpandPseudo::expandCapLoadGlobalCap(

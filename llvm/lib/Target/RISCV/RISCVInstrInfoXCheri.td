@@ -1323,32 +1323,113 @@ def : Pat<(riscv_cllc tglobaladdr:$in), (PseudoCLLC tglobaladdr:$in)>;
 def : Pat<(riscv_cllc tblockaddress:$in), (PseudoCLLC tblockaddress:$in)>;
 def : Pat<(riscv_cllc tjumptable:$in), (PseudoCLLC tjumptable:$in)>;
 def : Pat<(riscv_cllc tconstpool:$in), (PseudoCLLC tconstpool:$in)>;
+}
 
-let hasSideEffects = 0, mayLoad = 1, mayStore = 0, isCodeGenOnly = 0,
-    isAsmParserOnly = 1,
-    Size = 12 in def PseudoCLGC
-    : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [], "clgc",
-             "$dst, $src">;
+let hasSideEffects = 0, mayLoad = 1, mayStore = 0, isCodeGenOnly = 1,
+    Size = 12 in {
+  let Predicates = [HasCheri, IsCapMode] in {
+    def PseudoCLLCInbounds_CLB
+        : Pseudo<(outs GPR:$dst), (ins bare_symbol:$src), [],
+                 "cllc.inbounds.clb", "$dst, $src">;
 
-def : Pat<(riscv_clgc tglobaladdr:$in), (PseudoCLGC tglobaladdr:$in)>;
+    def PseudoCLLCInbounds_CLBU
+        : Pseudo<(outs GPR:$dst), (ins bare_symbol:$src), [],
+                 "cllc.inbounds.clbu", "$dst, $src">;
 
-let hasSideEffects = 0, mayLoad = 1, mayStore = 0, isCodeGenOnly = 0,
-    isAsmParserOnly = 1,
-    Size = 8 in def PseudoCLA_TLS_IE
-    : Pseudo<(outs GPR:$dst, YGPR:$tmp), (ins bare_symbol:$src), [],
-             "cla.tls.ie", "$dst, $src, $tmp">;
+    def PseudoCLLCInbounds_CLH
+        : Pseudo<(outs GPR:$dst), (ins bare_symbol:$src), [],
+                 "cllc.inbounds.clh", "$dst, $src">;
 
-let hasSideEffects = 0, mayLoad = 0, mayStore = 0, isCodeGenOnly = 0,
-    isAsmParserOnly = 1,
-    Size = 8 in def PseudoCLC_TLS_GD
-    : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [], "clc.tls.gd",
-             "$dst, $src">;
+    def PseudoCLLCInbounds_CLHU
+        : Pseudo<(outs GPR:$dst), (ins bare_symbol:$src), [],
+                 "cllc.inbounds.clhu", "$dst, $src">;
 
-let hasSideEffects = 0, mayLoad = 0, mayStore = 0,
-    isCodeGenOnly = 0 in def PseudoCIncOffsetTPRel
-    : Pseudo<(outs YGPR:$rd),
-             (ins YGPR:$rs1, GPR:$rs2, tprel_add_symbol:$src), [], "cincoffset",
-             "$rd, $rs1, $rs2, $src">;
+    def PseudoCLLCInbounds_CLW
+        : Pseudo<(outs GPR:$dst), (ins bare_symbol:$src), [],
+                 "cllc.inbounds.clw", "$dst, $src">;
+  }
+
+  let Predicates = [HasCheri, IsCapMode, IsRV32] in {
+    def PseudoCLLCInbounds_CLC_64
+        : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [],
+                 "cllc.inbounds.clc", "$dst, $src">;
+  }
+
+  let Predicates = [HasCheri, IsCapMode, IsRV64] in {
+    def PseudoCLLCInbounds_CLWU
+        : Pseudo<(outs GPR:$dst), (ins bare_symbol:$src), [],
+                 "cllc.inbounds.clwu", "$dst, $src">;
+
+    def PseudoCLLCInbounds_CLD
+        : Pseudo<(outs GPR:$dst), (ins bare_symbol:$src), [],
+                 "cllc.inbounds.cld", "$dst, $src">;
+
+    def PseudoCLLCInbounds_CLC_128
+        : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [],
+                 "cllc.inbounds.clc", "$dst, $src">;
+  }
+}
+
+let hasSideEffects = 0, mayLoad = 0, mayStore = 1, isCodeGenOnly = 1,
+    Size = 12 in {
+  let Predicates = [HasCheri, IsCapMode],
+      Constraints = "@earlyclobber $tmp" in {
+    def PseudoCLLCInbounds_CSB
+        : Pseudo<(outs YGPR:$tmp), (ins GPR:$dst, bare_symbol:$src), [],
+                 "cllc.inbounds.csb", "$tmp, $dst, $src">;
+
+    def PseudoCLLCInbounds_CSH
+        : Pseudo<(outs YGPR:$tmp), (ins GPR:$dst, bare_symbol:$src), [],
+                 "cllc.inbounds.csh", "$tmp, $dst, $src">;
+
+    def PseudoCLLCInbounds_CSW
+        : Pseudo<(outs YGPR:$tmp), (ins GPR:$dst, bare_symbol:$src), [],
+                 "cllc.inbounds.csw", "$tmp, $dst, $src">;
+  }
+
+  let Predicates = [HasCheri, IsCapMode, IsRV32] in {
+    def PseudoCLLCInbounds_CSC_64
+        : Pseudo<(outs YGPR:$tmp), (ins GPR:$dst, bare_symbol:$src), [],
+                 "cllc.inbounds.csc", "$tmp, $dst, $src">;
+  }
+
+  let Predicates = [HasCheri, IsCapMode, IsRV64] in {
+    def PseudoCLLCInbounds_CSD
+        : Pseudo<(outs YGPR:$tmp), (ins YGPR:$dst, bare_symbol:$src), [],
+                 "cllc.inbounds.csd", "$tmp, $dst, $src">;
+
+    def PseudoCLLCInbounds_CSC_128
+        : Pseudo<(outs YGPR:$tmp), (ins YGPR:$dst, bare_symbol:$src), [],
+                 "cllc.inbounds.csc", "$tmp, $dst, $src">;
+  }
+}
+
+let Predicates = [HasCheri, IsCapMode] in {
+  let hasSideEffects = 0, mayLoad = 1, mayStore = 0, isCodeGenOnly = 0,
+      isAsmParserOnly = 1,
+      Size = 12 in def PseudoCLGC
+      : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [], "clgc",
+               "$dst, $src">;
+
+  def : Pat<(riscv_clgc tglobaladdr:$in), (PseudoCLGC tglobaladdr:$in)>;
+
+  let hasSideEffects = 0, mayLoad = 1, mayStore = 0, isCodeGenOnly = 0,
+      isAsmParserOnly = 1,
+      Size = 8 in def PseudoCLA_TLS_IE
+      : Pseudo<(outs GPR:$dst, YGPR:$tmp), (ins bare_symbol:$src), [],
+               "cla.tls.ie", "$dst, $src, $tmp">;
+
+  let hasSideEffects = 0, mayLoad = 0, mayStore = 0, isCodeGenOnly = 0,
+      isAsmParserOnly = 1,
+      Size = 8 in def PseudoCLC_TLS_GD
+      : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [], "clc.tls.gd",
+               "$dst, $src">;
+
+  let hasSideEffects = 0, mayLoad = 0, mayStore = 0,
+      isCodeGenOnly = 0 in def PseudoCIncOffsetTPRel
+      : Pseudo<(outs YGPR:$rd),
+               (ins YGPR:$rs1, GPR:$rs2, tprel_add_symbol:$src), [],
+               "cincoffset", "$rd, $rs1, $rs2, $src">;
 }
 
 let Predicates = [HasCheri, HasStdExtD, IsRV32] in {

@@ -46,6 +46,90 @@ public:
   StringRef getPassName() const override { return RISCV_CHERI_CLEANUP_NAME; }
 };
 
+static bool rewriteMemoryReference(MachineOperand &Op,
+                                   const MachineOperand &Src,
+                                   MachineRegisterInfo &MRI,
+                                   const TargetInstrInfo *TII) {
+  // Update the opcode to an appropriate CLLC pseudo which will get expanded
+  // post-RA.
+  if (Op.getOperandNo() != 1)
+    return false;
+  bool IsStore = false;
+  MachineInstr &II = *Op.getParent();
+  switch (Op.getParent()->getOpcode()) {
+  default:
+  case RISCV::CLB:
+    II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CLB));
+    break;
+  case RISCV::CLBU:
+    II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CLBU));
+    break;
+  case RISCV::CSB:
+    II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CSB));
+    IsStore = true;
+    break;
+  case RISCV::CLH:
+    II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CLH));
+    break;
+  case RISCV::CLHU:
+    II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CLHU));
+    break;
+  case RISCV::CSH:
+    II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CSH));
+    IsStore = true;
+    break;
+  case RISCV::CLW:
+    II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CLW));
+    break;
+  case RISCV::CLWU:
+    II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CLWU));
+    break;
+  case RISCV::CSW:
+    II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CSW));
+    IsStore = true;
+    break;
+  case RISCV::CLD:
+    II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CLD));
+    break;
+  case RISCV::CSD:
+    II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CSD));
+    IsStore = true;
+    break;
+  case RISCV::CLC_64:
+    II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CLC_64));
+    break;
+  case RISCV::CSC_64:
+    II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CSC_64));
+    IsStore = true;
+    break;
+  case RISCV::CLC_128:
+    II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CLC_128));
+    break;
+  case RISCV::CSC_128:
+    II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CSC_128));
+    IsStore = true;
+    break;
+  }
+
+  // Replace the (reg, offset) destination with the global.
+  II.removeOperand(2);
+  II.removeOperand(1);
+
+  if (IsStore) {
+    // Add the temp register dest
+    II.insert(II.operands_begin(),
+              MachineOperand::CreateReg(
+                  MRI.createVirtualRegister(&RISCV::YGPRRegClass),
+                  /*IsDef=*/true, /*IsImp=*/false,
+                  /*isKill=*/false, /*isDead=*/true, /*isUndef=*/true,
+                  /*isEarlyClobber=*/true));
+  }
+  II.addOperand(MachineOperand::CreateGA(Src.getGlobal(), Src.getOffset(),
+                                         Src.getTargetFlags()));
+
+  return true;
+}
+
 bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
   auto ABI = static_cast<const RISCVSubtarget &>(MF.getSubtarget()).getTargetABI();
   if (ABI != RISCVABI::ABI_CHERIOT && ABI != RISCVABI::ABI_CHERIOT_BAREMETAL)
@@ -55,6 +139,7 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
   TII = static_cast<const RISCVInstrInfo *>(MF.getSubtarget().getInstrInfo());
   bool Modified = false;
   SmallVector<std::pair<MachineInstr *, size_t>> largeCLLCs;
+  SmallVector<MachineInstr *> ToDelete;
   for (auto &MBB : MF)
     for (auto &MI : MBB)
       if (MI.getOpcode() == RISCV::PseudoCLLC) {
@@ -64,9 +149,18 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
         uint32_t SafeSize = 0;
         // If this is the definition of a global, then we know the size.  Allow
         // any loads in that size to be safe.
-        if (auto GV = dyn_cast<GlobalVariable>(MI.getOperand(1).getGlobal()))
+        bool HasCheriotImportAttr = false;
+        if (auto GV = dyn_cast<GlobalVariable>(MI.getOperand(1).getGlobal())) {
           if (GV->hasInitializer())
             SafeSize = MF.getDataLayout().getTypeAllocSize(GV->getValueType());
+          HasCheriotImportAttr =
+              (GV->hasAttribute(
+                   llvm::CHERIoTGlobalCapabilityImportAttr::getAttrName()) ||
+               GV->hasAttribute(llvm::CHERIoTSealedValueAttr::getAttrName()) ||
+               GV->hasAttribute(
+                   llvm::CHERIoTSealingKeyTypeAttr::getAttrName()));
+        }
+
         bool UnsafeUse = false;
         for (auto &UI : MRI.use_instructions(MI.getOperand(0).getReg())) {
           size_t OpSize = 0;
@@ -89,9 +183,15 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
           case RISCV::CSW:
             OpSize = 4;
             break;
+          case RISCV::CLD:
+          case RISCV::CSD:
           case RISCV::CLC_64:
           case RISCV::CSC_64:
             OpSize = 8;
+            break;
+          case RISCV::CLC_128:
+          case RISCV::CSC_128:
+            OpSize = 16;
             break;
           }
           size_t Offset = UI.getOperand(2).getImm();
@@ -104,6 +204,20 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
         }
         if (!UnsafeUse) {
           MI.setDesc(TII->get(RISCV::PseudoCLLCInbounds));
+
+          // If there is more than one use of the CLLC, don't attempt to fold
+          // the low bits into the dereference. The presence of any Cheriot
+          // import attribute indicates that the CLC will become some kind of
+          // import table load, in which case there is no purpose to trying to
+          // fold it into the dereference.
+          if (!HasCheriotImportAttr &&
+              MRI.hasOneUse(MI.getOperand(0).getReg())) {
+            // If there is only a single inbounds use, then we can fold the low
+            // bits of the address computation into the load/store itself.
+            MachineOperand &UOp = *MRI.use_begin(MI.getOperand(0).getReg());
+            if (rewriteMemoryReference(UOp, MI.getOperand(1), MRI, TII))
+              ToDelete.push_back(&MI);
+          }
           Modified = true;
         } else if (SafeSize >= 4096) {
           // If we know the size now and we know that it doesn't fit in a
@@ -147,6 +261,10 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
         .addReg(Unbounded)
         .addReg(SizeReg);
   }
+
+  for (auto *II : ToDelete)
+    II->eraseFromParent();
+
   return Modified;
 }
 

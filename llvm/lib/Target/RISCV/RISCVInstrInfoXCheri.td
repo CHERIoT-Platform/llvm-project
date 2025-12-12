@@ -1859,7 +1859,7 @@ multiclass CheriAMOSubPat<string AtomicOp, string BaseInst> {
 
 class PseudoCheriAMO<RegisterClass ValTy=GPR>
     : Pseudo<(outs ValTy:$res, ValTy:$scratch),
-             (ins YGPR:$addr, ValTy:$incr, ixlenimm:$ordering), []> {
+             (ins YGPR:$addr, ValTy:$incr, ordering:$ordering), []> {
   let Constraints = "@earlyclobber $res,@earlyclobber $scratch";
   let mayLoad = 1;
   let mayStore = 1;
@@ -1883,7 +1883,7 @@ multiclass PseudoCheriAMOPat<string AtomicOp, Instruction BaseInst,
 
 class PseudoCheriCmpXchg<RegisterClass ValTy=GPR>
     : Pseudo<(outs ValTy:$res, GPR:$scratch),
-             (ins YGPR:$addr, ValTy:$cmpval, ValTy:$newval, ixlenimm:$ordering), []> {
+             (ins YGPR:$addr, ValTy:$cmpval, ValTy:$newval, ordering:$ordering), []> {
   let Constraints = "@earlyclobber $res,@earlyclobber $scratch";
   let mayLoad = 1;
   let mayStore = 1;

@@ -64,6 +64,7 @@
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
@@ -546,8 +547,14 @@ class Slice {
   /// split.
   PointerIntPair<Use *, 1, bool> UseAndIsSplittable;
 
+  // When this access is via an llvm.protected.field.ptr intrinsic, contains
+  // the second argument to the intrinsic, the discriminator.
+public:
+  Value *ProtectedFieldDisc;
+
   /// Indicates if this is a dummy slice used to enforce strict alignment (i.e.
   /// for memory transfers which can copy capability tags).
+private:
   bool IsStrictAlignSlice = false;
 
 public:
@@ -555,10 +562,12 @@ public:
 
   Slice(uint64_t BeginOffset, uint64_t EndOffset, Align MinAlignment,
         bool ReadsTags, bool WritesTags, Use *U, bool IsSplittable,
+        Value *ProtectedFieldDisc,
         bool IsStrictAlignSlice = false)
       : BeginOffset(BeginOffset), EndOffset(EndOffset),
         MinAlignment(MinAlignment), ReadsTags(ReadsTags),
         WritesTags(WritesTags), UseAndIsSplittable(U, IsSplittable),
+        ProtectedFieldDisc(ProtectedFieldDisc),
         IsStrictAlignSlice(IsStrictAlignSlice) {}
 
   uint64_t beginOffset() const { return BeginOffset; }
@@ -706,6 +715,10 @@ public:
   /// Access the dead users for this alloca.
   ArrayRef<Instruction *> getDeadUsers() const { return DeadUsers; }
 
+  /// Access the users for this alloca that are llvm.protected.field.ptr
+  /// intrinsics.
+  ArrayRef<IntrinsicInst *> getPFPUsers() const { return PFPUsers; }
+
   /// Access Uses that should be dropped if the alloca is promotable.
   ArrayRef<Use *> getDeadUsesIfPromotable() const {
     return DeadUseIfPromotable;
@@ -766,6 +779,10 @@ private:
   /// all these instructions can simply be removed and replaced with poison as
   /// they come from outside of the allocated space.
   SmallVector<Instruction *, 8> DeadUsers;
+
+  /// Users that are llvm.protected.field.ptr intrinsics. These will be RAUW'd
+  /// to their first argument if we rewrite the alloca.
+  SmallVector<IntrinsicInst *, 0> PFPUsers;
 
   /// Uses which will become dead if can promote the alloca.
   SmallVector<Use *, 8> DeadUseIfPromotable;
@@ -1284,6 +1301,10 @@ class AllocaSlices::SliceBuilder : public PtrUseVisitor<SliceBuilder> {
   /// Set to de-duplicate dead instructions found in the use walk.
   SmallPtrSet<Instruction *, 4> VisitedDeadInsts;
 
+  // When this access is via an llvm.protected.field.ptr intrinsic, contains
+  // the second argument to the intrinsic, the discriminator.
+  Value *ProtectedFieldDisc = nullptr;
+
 public:
   SliceBuilder(const DataLayout &DL, AllocaInst &AI, AllocaSlices &AS)
       : PtrUseVisitor<SliceBuilder>(DL),
@@ -1337,7 +1358,8 @@ private:
       MinAlign = commonAlignment(Align(getCapabilitySize(DL)), BeginOffset);
 
     AS.Slices.push_back(Slice(BeginOffset, EndOffset, MinAlign, ReadsTags,
-                              WritesTags, U, IsSplittable, IsStrictAlignSlice));
+                              WritesTags, U, IsSplittable, ProtectedFieldDisc,
+                              IsStrictAlignSlice));
   }
 
   void visitBitCastInst(BitCastInst &BC) {
@@ -1622,6 +1644,27 @@ private:
       return;
     }
 
+    if (II.getIntrinsicID() == Intrinsic::protected_field_ptr) {
+      // We only handle loads and stores as users of llvm.protected.field.ptr.
+      // Other uses may add items to the worklist, which will cause
+      // ProtectedFieldDisc to be tracked incorrectly.
+      AS.PFPUsers.push_back(&II);
+      ProtectedFieldDisc = II.getArgOperand(1);
+      for (Use &U : II.uses()) {
+        this->U = &U;
+        if (auto *LI = dyn_cast<LoadInst>(U.getUser()))
+          visitLoadInst(*LI);
+        else if (auto *SI = dyn_cast<StoreInst>(U.getUser()))
+          visitStoreInst(*SI);
+        else
+          PI.setAborted(&II);
+        if (PI.isAborted())
+          break;
+      }
+      ProtectedFieldDisc = nullptr;
+      return;
+    }
+
     Base::visitIntrinsicInst(II);
   }
 
@@ -1802,9 +1845,11 @@ void AllocaSlices::processTaggedSlices() {
             << (S.readsTags() ? "(reads tags)" : "") << "\n";
       Slice ToFindS(S.beginOffset(), S.endOffset(), Align(), !S.readsTags(),
                     !S.writesTags(), S.getUse(), /*IsSplittable=*/true,
+                    S.ProtectedFieldDisc,
                     /*IsStrictAlignSlice=*/true);
       Slice ToFindU(S.beginOffset(), S.endOffset(), Align(), !S.readsTags(),
                     !S.writesTags(), S.getUse(), /*IsSplittable=*/false,
+                    S.ProtectedFieldDisc,
                     /*IsStrictAlignSlice=*/true);
       auto I = lower_bound(Slices, ToFindS);
       if (I == Slices.end() || *I != ToFindS)
@@ -5443,7 +5488,7 @@ bool SROA::presplitLoadsAndStores(AllocaInst &AI, AllocaSlices &AS) {
       NewSlices.push_back(Slice(
           BaseOffset + PartOffset, BaseOffset + PartOffset + PartSize, Align(),
           false, false, &PLoad->getOperandUse(PLoad->getPointerOperandIndex()),
-          /*IsSplittable*/ false));
+          /*IsSplittable*/ false, nullptr));
       LLVM_DEBUG(dbgs() << "    new slice [" << NewSlices.back().beginOffset()
                         << ", " << NewSlices.back().endOffset()
                         << "): " << *PLoad << "\n");
@@ -5599,11 +5644,13 @@ bool SROA::presplitLoadsAndStores(AllocaInst &AI, AllocaSlices &AS) {
                                  LLVMContext::MD_access_group});
 
       // Now build a new slice for the alloca.
+      // ProtectedFieldDisc==nullptr is a lie, but it doesn't matter because we
+      // already determined that all accesses are consistent.
       NewSlices.push_back(
           Slice(BaseOffset + PartOffset, BaseOffset + PartOffset + PartSize,
                 Align(), false, false,
                 &PStore->getOperandUse(PStore->getPointerOperandIndex()),
-                /*IsSplittable*/ false));
+                /*IsSplittable*/ false, nullptr));
       LLVM_DEBUG(dbgs() << "    new slice [" << NewSlices.back().beginOffset()
                         << ", " << NewSlices.back().endOffset()
                         << "): " << *PStore << "\n");
@@ -6371,6 +6418,30 @@ SROA::runOnAlloca(AllocaInst &AI) {
     return {Changed, CFGChanged};
   }
 
+  for (auto &P : AS.partitions()) {
+    // For now, we can't split if a field is accessed both via protected field
+    // and not, because that would mean that we would need to introduce sign and
+    // auth operations to convert between the protected and non-protected uses,
+    // and this pass doesn't know how to do that. Also, this case is unlikely to
+    // occur in normal code.
+    std::optional<Value *> ProtectedFieldDisc;
+    auto SliceHasMismatch = [&](Slice &S) {
+      if (auto *II = dyn_cast<IntrinsicInst>(S.getUse()->getUser()))
+        if (II->getIntrinsicID() == Intrinsic::lifetime_start ||
+            II->getIntrinsicID() == Intrinsic::lifetime_end)
+          return false;
+      if (!ProtectedFieldDisc)
+        ProtectedFieldDisc = S.ProtectedFieldDisc;
+      return *ProtectedFieldDisc != S.ProtectedFieldDisc;
+    };
+    for (Slice &S : P)
+      if (SliceHasMismatch(S))
+        return {Changed, CFGChanged};
+    for (Slice *S : P.splitSliceTails())
+      if (SliceHasMismatch(*S))
+        return {Changed, CFGChanged};
+  }
+
   // Delete all the dead users of this alloca before splitting and rewriting it.
   for (Instruction *DeadUser : AS.getDeadUsers()) {
     // Free up everything used by this instruction.
@@ -6386,6 +6457,12 @@ SROA::runOnAlloca(AllocaInst &AI) {
   }
   for (Use *DeadOp : AS.getDeadOperands()) {
     clobberUse(*DeadOp);
+    Changed = true;
+  }
+  for (IntrinsicInst *PFPUser : AS.getPFPUsers()) {
+    PFPUser->replaceAllUsesWith(PFPUser->getArgOperand(0));
+
+    DeadInsts.push_back(PFPUser);
     Changed = true;
   }
 

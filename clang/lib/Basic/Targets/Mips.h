@@ -27,46 +27,6 @@ namespace clang {
 namespace targets {
 
 class LLVM_LIBRARY_VISIBILITY MipsTargetInfo : public TargetInfo {
-  void setDataLayout() {
-    StringRef Layout;
-    // XXXAR: why do we need this here? can't we use the LLVM one?
-    if (ABI == "o32") {
-      Layout = "m:m-p:32:32-i8:8:32-i16:16:32-i64:64-n32-S64";
-      if (IsCHERI)
-        llvm::report_fatal_error(Twine("Cannot use CHERI with ") + ABI + " ABI");
-    } else if (ABI == "n32") {
-      Layout = "m:e-p:32:32-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128";
-      if (IsCHERI)
-        llvm::report_fatal_error(Twine("Cannot use CHERI with ") + ABI + " ABI");
-    } else if (ABI == "n64") {
-      if (IsCHERI) {
-        if (CapSize == 64) {
-          Layout = "m:e-pf200:64:64:64:32-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128";
-        } else if (CapSize == 128) {
-          Layout = "m:e-pf200:128:128:128:64-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128";
-        } else {
-          assert(CapSize == 256);
-          Layout = "m:e-pf200:256:256:256:64-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S256";
-        }
-      } else
-        Layout = "m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128";
-    } else
-      llvm_unreachable("Invalid ABI");
-
-    StringRef PurecapOptions = "";
-    // Only set globals address space to 200 for cap-table mode
-    if (CapabilityABI) {
-        PurecapOptions = "-A200-P200-G200";
-    }
-
-    if (BigEndian)
-      resetDataLayout(
-          ("E-" + Layout + (CapabilityABI ? PurecapOptions : "")).str());
-    else
-      resetDataLayout(
-          ("e-" + Layout + (CapabilityABI ? PurecapOptions : "")).str());
-  }
-
   std::string CPU;
   bool IsMips16;
   bool IsMicromips;
@@ -170,7 +130,7 @@ public:
 
   enum FPModeEnum getDefaultFPMode() const {
     // XXXAR: CHERI?
-    if (CPU == "mips32r6" || ABI == "n32" || ABI == "n64" || ABI == "64")
+    if (CPU == "mips32r6" || ABI == "n32" || ABI == "n64" || ABI == "64" || ABI == "purecap")
       return FP64;
     else if (CPU == "mips1")
       return FP32;
@@ -204,7 +164,7 @@ public:
     if (Name == "purecap") {
       setCapabilityABITypes();
       CapabilityABI = true;
-      ABI = "n64";
+      ABI = "purecap";
       return true;
     }
     return false;
@@ -538,7 +498,31 @@ public:
           std::max(DefaultAlignForAttributeAligned, (unsigned short)CapSize);
     }
 
-    setDataLayout();
+    if (IsCHERI) {
+      // If we have an implicit size, assume cheri128
+      if (!CapSizeFeatureFound) {
+        Features.push_back("+cheri128");
+        CapSize = 128;
+      }
+      assert(CapSize > 0);
+      SuitableAlign = std::max(SuitableAlign, (unsigned short)CapSize);
+      DefaultAlignForAttributeAligned =
+          std::max(DefaultAlignForAttributeAligned, (unsigned short)CapSize);
+    }
+
+    if (IsCHERI) {
+      // FIXME: How can we pass the CHERI feature string into computeDataLayout easily?
+      std::string FS;
+      for (auto F : Features) {
+        if (FS.empty())
+          FS += F;
+        else
+          FS += std::string(",") + F;
+      }
+      DataLayoutString = getTriple().computeDataLayout(getABI(), FS);
+    } else {
+      resetDataLayout();
+    }
 
     return true;
   }

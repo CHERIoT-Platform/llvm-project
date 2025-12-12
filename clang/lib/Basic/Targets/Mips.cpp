@@ -120,7 +120,7 @@ void MipsTargetInfo::getTargetDefines(const LangOptions &Opts,
     Builder.defineMacro("__mips_n32");
     Builder.defineMacro("_ABIN32", "2");
     Builder.defineMacro("_MIPS_SIM", "_ABIN32");
-  } else if (ABI == "n64") {
+  } else if (ABI == "n64" || ABI == "purecap") {
     Builder.defineMacro("__mips_n64");
     Builder.defineMacro("_ABI64", "3");
     Builder.defineMacro("_MIPS_SIM", "_ABI64");
@@ -285,26 +285,26 @@ unsigned MipsTargetInfo::getUnwindWordWidth() const {
 
 bool MipsTargetInfo::validateTarget(DiagnosticsEngine &Diags) const {
   // microMIPS64R6 backend was removed.
-  if (getTriple().isMIPS64() && IsMicromips && (ABI == "n32" || ABI == "n64")) {
+  if (getTriple().isMIPS64() && IsMicromips && (ABI == "n32" || ABI == "n64" || ABI == "purecap")) {
     Diags.Report(diag::err_target_unsupported_cpu_for_micromips) << CPU;
     return false;
   }
 
   // 64-bit ABI's require 64-bit CPU's.
-  if (!processorSupportsGPR64() && (ABI == "n32" || ABI == "n64")) {
+  if (!processorSupportsGPR64() && (ABI == "n32" || ABI == "n64" || ABI == "purecap")) {
     Diags.Report(diag::err_target_unsupported_abi) << ABI << CPU;
     return false;
   }
 
   // -fpxx is valid only for the o32 ABI
-  if (FPMode == FPXX && (ABI == "n32" || ABI == "n64")) {
+  if (FPMode == FPXX && (ABI == "n32" || ABI == "n64" || ABI == "purecap")) {
     Diags.Report(diag::err_unsupported_abi_for_opt) << "-mfpxx" << "o32";
     return false;
   }
 
   // -mfp32 and n32/n64 ABIs are incompatible
   if (FPMode != FP64 && FPMode != FPXX && !IsSingleFloat &&
-      (ABI == "n32" || ABI == "n64")) {
+      (ABI == "n32" || ABI == "n64" || ABI == "purecap")) {
     Diags.Report(diag::err_opt_not_valid_with_opt) << "-mfpxx" << CPU;
     return false;
   }

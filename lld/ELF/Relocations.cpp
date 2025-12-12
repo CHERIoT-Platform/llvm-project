@@ -1430,7 +1430,7 @@ unsigned RelocScan::handleTlsRelocation(RelExpr expr, RelType type,
     // label, so TLSDESC=>IE will be categorized as R_RELAX_TLS_GD_TO_LE. We fix
     // the categorization in RISCV::relocateAllosec->
     if (sym.isPreemptible) {
-      sym.setFlags(NEEDS_TLSGD_TO_IE);
+      sym.setFlags(NEEDS_TLSIE);
       sec->addReloc(ctx, {ctx.target->adjustTlsExpr(type, R_RELAX_TLS_GD_TO_IE),
                           type, offset, addend, &sym});
     } else {
@@ -1772,13 +1772,7 @@ void elf::postScanRelocations(Ctx &ctx) {
         ctx.mainPart->relaDyn->addSymbolReloc(ctx.target->tlsOffsetRel, *got,
                                               offsetOff, sym);
       else
-        got->addConstant(ctx,
-                         {R_ABS, ctx.target->tlsOffsetRel, offsetOff, 0, &sym});
-    }
-    if (flags & NEEDS_TLSGD_TO_IE) {
-      got->addEntry(sym);
-      ctx.mainPart->relaDyn->addSymbolReloc(ctx.target->tlsGotRel, *got,
-                                            sym.getGotOffset(ctx), sym);
+        got->addConstant(ctx, {R_ABS, ctx.target->tlsOffsetRel, offsetOff, 0, &sym});
     }
     if (flags & NEEDS_GOT_DTPREL) {
       got->addEntry(sym);
@@ -1786,7 +1780,7 @@ void elf::postScanRelocations(Ctx &ctx) {
                              sym.getGotOffset(ctx), 0, &sym});
     }
 
-    if ((flags & NEEDS_TLSIE) && !(flags & NEEDS_TLSGD_TO_IE))
+    if (flags & NEEDS_TLSIE)
       addTpOffsetGotEntry(ctx, sym);
   };
 

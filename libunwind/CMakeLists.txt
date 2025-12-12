@@ -343,6 +343,13 @@ if (LIBUNWIND_HAS_CHERI_LIB_C18N)
   add_compile_definitions(_LIBUNWIND_HAS_CHERI_LIB_C18N)
 endif()
 
+if (LIBUNWIND_HAS_CHERI_LIB_C18N)
+  add_compile_definitions(_LIBUNWIND_HAS_CHERI_LIB_C18N)
+endif()
+
+add_custom_target(unwind-test-depends
+  COMMENT "Build dependencies required to run the libunwind test suite.")
+
 #===============================================================================
 # Setup Source Code
 #===============================================================================

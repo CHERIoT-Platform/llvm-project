@@ -12,9 +12,9 @@ def BothMustBeSealed : TestInstructionWithConstraints<"@traps_if_sealed $src1, @
 // CHECK: Src1MustBeSealed = [[SRC1_INSN_NR:[0-9]+]],
 // CHECK: Src2MustBeSealed = [[SRC2_INSN_NR:[0-9]+]],
 
-// CHECK-DAG: { [[SRC2_INSN_NR]], {{.*}}, [[OPINFO_SRC2:[0-9]+]], TestTargetImpOpBase + {{[0-9]+}}, 0|(1ULL<<MCID::MayTrapOnSealedInput)|(1ULL<<MCID::UnmodeledSideEffects)|(1ULL<<MCID::ExtraSrcRegAllocReq)|(1ULL<<MCID::ExtraDefRegAllocReq), 0x0ULL },  // Src2MustBeSealed
-// CHECK-DAG: { [[SRC1_INSN_NR]], {{.*}}, [[OPINFO_SRC1:[0-9]+]], TestTargetImpOpBase + {{[0-9]+}}, 0|(1ULL<<MCID::MayTrapOnSealedInput)|(1ULL<<MCID::UnmodeledSideEffects)|(1ULL<<MCID::ExtraSrcRegAllocReq)|(1ULL<<MCID::ExtraDefRegAllocReq), 0x0ULL },  // Src1MustBeSealed
-// CHECK-DAG: { [[BOTH_INSN_NR]], {{.*}}, [[OPINFO_BOTH:[0-9]+]], TestTargetImpOpBase + {{[0-9]+}}, 0|(1ULL<<MCID::MayTrapOnSealedInput)|(1ULL<<MCID::UnmodeledSideEffects)|(1ULL<<MCID::ExtraSrcRegAllocReq)|(1ULL<<MCID::ExtraDefRegAllocReq), 0x0ULL },  // BothMustBeSealed
+// CHECK-DAG: { [[SRC2_INSN_NR]], {{.*}}, TestTargetOpInfoBase + [[OPINFO_SRC2:[0-9]+]], 0, 0|(1ULL<<MCID::MayTrapOnSealedInput)|(1ULL<<MCID::UnmodeledSideEffects)|(1ULL<<MCID::ExtraSrcRegAllocReq)|(1ULL<<MCID::ExtraDefRegAllocReq), 0x0ULL }, // Src2MustBeSealed
+// CHECK-DAG: { [[SRC1_INSN_NR]], {{.*}}, TestTargetOpInfoBase + [[OPINFO_SRC1:[0-9]+]], 0, 0|(1ULL<<MCID::MayTrapOnSealedInput)|(1ULL<<MCID::UnmodeledSideEffects)|(1ULL<<MCID::ExtraSrcRegAllocReq)|(1ULL<<MCID::ExtraDefRegAllocReq), 0x0ULL },  // Src1MustBeSealed
+// CHECK-DAG: { [[BOTH_INSN_NR]], {{.*}}, TestTargetOpInfoBase + [[OPINFO_BOTH:[0-9]+]], 0, 0|(1ULL<<MCID::MayTrapOnSealedInput)|(1ULL<<MCID::UnmodeledSideEffects)|(1ULL<<MCID::ExtraSrcRegAllocReq)|(1ULL<<MCID::ExtraDefRegAllocReq), 0x0ULL },  // BothMustBeSealed
 
 
 // CHECK-DAG: /* [[OPINFO_BOTH]] */ { TestTarget::RegRegClassID, 0, MCOI::OPERAND_REGISTER, 0 }, { TestTarget::RegRegClassID, 0, MCOI::OPERAND_REGISTER, 0 }, { TestTarget::RegRegClassID, 0|(1<<MCOI::TrapsIfSealedCapability), MCOI::OPERAND_REGISTER, 0 }, { TestTarget::RegRegClassID, 0|(1<<MCOI::TrapsIfSealedCapability), MCOI::OPERAND_REGISTER, 0 },

@@ -801,7 +801,7 @@ void RISCVAsmBackend::maybeAddVendorReloc(const MCFragment &F,
   case RISCV::fixup_riscv_cheriot_compartment_lo_i:
   case RISCV::fixup_riscv_cheriot_compartment_lo_s:
   case RISCV::fixup_riscv_cheriot_compartment_size:
-    VendorIdentifier = "XCHERIOT1";
+    VendorIdentifier = "CHERIOT1";
     break;
   }
 

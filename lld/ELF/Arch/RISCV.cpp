@@ -1856,7 +1856,7 @@ uint32_t getRISCVVendorRelMarker(StringRef rvVendor) {
   return StringSwitch<uint32_t>(rvVendor)
           .Case("QUALCOMM", INTERNAL_RISCV_VENDOR_QUALCOMM)
           .Case("ANDES", INTERNAL_RISCV_VENDOR_ANDES)
-          .Case("XCHERIOT1", INTERNAL_RISCV_VENDOR_XCHERIOT1)
+          .Case("CHERIOT1", INTERNAL_RISCV_VENDOR_CHERIOT1)
           .Default(0);
 }
 
@@ -1865,8 +1865,8 @@ std::optional<StringRef> getRISCVVendorString(RelType ty) {
     return "QUALCOMM";
   if (ty.v & INTERNAL_RISCV_VENDOR_ANDES)
     return "ANDES";
-  if (ty.v & INTERNAL_RISCV_VENDOR_XCHERIOT1)
-    return "XCHERIOT1";
+  if (ty.v & INTERNAL_RISCV_VENDOR_CHERIOT1)
+    return "CHERIOT1";
   return std::nullopt;
 }
 

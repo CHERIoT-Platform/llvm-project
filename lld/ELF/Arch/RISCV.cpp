@@ -1051,98 +1051,6 @@ static void relaxCGP(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
   }
 }
 
-/**
- * Perform a substantial pre-pass of Cheriot relocations ahead of relaxation
- * and relocation. This pre-pass has two goals:
- *  - Separate PCC-relative and CGP-relative relocations. This reduces
- *    complexity in relaxation and relocation by making the decision once
- * upfront.
- *  - Resolve the target address for the second in a pair of relocations. This
- *    is required because relaxation may eliminate the first in a pair of
- *    relocations, which would leave the second one unable to be relocated.
- *
- * The specific post-conditions are:
- *  - All PCC-relative CHERIOT_COMPARTMENT_HI relocations are represented as
- *    INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI.
- *  - All CGP-relative CHERIOT_COMPARTMENT_HI relocations are represented as
- *    R_RISCV_CHERIOT_COMPARTMENT_HI.
- *  - All PCC-relative CHERIOT_COMPARTMENT_LO_I relocations are represented as
- *    INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_LO_I.
- *  - All CGP-relative CHERIOT_COMPARTMENT_LO_I relocations are represented as
- *    R_RISCV_CHERIOT_COMPARTMENT_LO_I.
- *  - The targets of all CHERIOT_COMPARTMENT_LO_I relocations are resolved to
- *    the target of their paired CHERIOT_COMPARTMENT_HI relocation.
- *  - PCC-relative CHERIOT_COMPARTMENT_LO_S relocations do not exist.
- *  - All CGP-relative CHERIOT_COMPARTMENT_LO_S relocations are represented as
- *    R_RISCV_CHERIOT_COMPARTMENT_LO_S.
- */
-static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSection &sec) {
-  bool modified = false;
-  auto vendorRelocs = riscv_vendor_relocs(sec.relocations);
-  for (auto it = vendorRelocs.begin(); it != vendorRelocs.end(); ++it) {
-    Relocation r = *it;
-    Relocation *underlyingReloc = it.getUnderlyingRelocation();
-    if (r.type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_HI &&
-        isPCCRelative(ctx, nullptr, r.sym)) {
-      modified = true;
-      underlyingReloc->type = INTERNAL_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI;
-      underlyingReloc->expr = R_PC;
-    } else if (r.type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_LO_I ||
-               r.type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_LO_S) {
-      // If this is PCC-relative, then the relocation points to the auicgp /
-      // auipcc instruction and we need to look there to find the real target.
-      if (!isPCCRelative(ctx, nullptr, r.sym))
-        fatal("R_RISCV_CHERIOT_COMPARTMENT_LO_[I/S] must point to "
-              "R_RISCV_COMPARTMENT_HI");
-
-      const Defined *d = cast<Defined>(r.sym);
-      if (!d->section)
-        error("R_RISCV_CHERIOT_COMPARTMENT_LO_[I/S] relocation points to an "
-              "absolute symbol: " +
-              r.sym->getName());
-      InputSection *isec = cast<InputSection>(d->section);
-
-      // Relocations are sorted by offset, so we can use std::equal_range to
-      // do binary search.
-      Relocation targetReloc;
-      targetReloc.offset = d->value;
-      auto vendorRelocs = riscv_vendor_relocs(isec->relocations);
-      auto range = std::equal_range(
-          vendorRelocs.begin(), vendorRelocs.end(), targetReloc,
-          [](const Relocation &lhs, const Relocation &rhs) {
-            return lhs.offset < rhs.offset;
-          });
-
-      std::optional<Relocation> target;
-      for (auto it = range.first; it != range.second; ++it)
-        if (it->type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_HI ||
-            it->type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI) {
-          target = *it;
-          break;
-        }
-      if (!target) {
-        error(
-            "Could not find R_RISCV_CHERIOT_COMPARTMENT_HI relocation for " +
-            toStr(ctx, *r.sym));
-      }
-      modified = true;
-      // If the target is PCC-relative then the auipcc can't be erased and so
-      // skip the rewriting.
-      if (isPCCRelative(ctx, nullptr, target->sym)) {
-        assert(r.type != INTERNAL_RISCV_CHERIOT_COMPARTMENT_LO_S &&
-               "Malformed R_RISCV_CHERIOT_COMPARTMENT_LO_S relocation!");
-        underlyingReloc->type = INTERNAL_RISCV_CHERIOT_COMPARTMENT_PCCREL_LO_I;
-        underlyingReloc->expr = RE_RISCV_PC_INDIRECT;
-        continue;
-      }
-      // Update our relocation to point to the target thing.
-      underlyingReloc->sym = target->sym;
-      underlyingReloc->addend = target->addend;
-    }
-  }
-  return modified;
-}
-
 static bool relax(Ctx &ctx, int pass, InputSection &sec) {
   const uint64_t secAddr = sec.getVA();
   const MutableArrayRef<Relocation> relocs = sec.relocs();
@@ -1151,12 +1059,6 @@ static bool relax(Ctx &ctx, int pass, InputSection &sec) {
   ArrayRef<SymbolAnchor> sa = ArrayRef(aux.anchors);
   uint64_t delta = 0;
   bool tlsdescRelax = false, toLeShortForm = false;
-
-  // On the first pass, do a scan of LO_I CHERIoT relocations
-  // FIXME: One the relocation scan loop is under target control, this should be
-  // applied outside of relaxation.
-  if (pass == 0)
-    changed |= rewriteCheriotLowRelocs(ctx, sec);
 
   std::fill_n(aux.relocTypes.get(), relocs.size(), R_RISCV_NONE);
   aux.writes.clear();
@@ -1796,6 +1698,98 @@ void elf::mergeRISCVAttributesSections(Ctx &ctx) {
 
 void elf::setRISCVTargetInfo(Ctx &ctx) { ctx.target.reset(new RISCV(ctx)); }
 
+/**
+ * Perform a substantial pre-pass of Cheriot relocations ahead of relaxation
+ * and relocation. This pre-pass has two goals:
+ *  - Separate PCC-relative and CGP-relative relocations. This reduces
+ *    complexity in relaxation and relocation by making the decision once
+ * upfront.
+ *  - Resolve the target address for the second in a pair of relocations. This
+ *    is required because relaxation may eliminate the first in a pair of
+ *    relocations, which would leave the second one unable to be relocated.
+ *
+ * The specific post-conditions are:
+ *  - All PCC-relative CHERIOT_COMPARTMENT_HI relocations are represented as
+ *    INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI.
+ *  - All CGP-relative CHERIOT_COMPARTMENT_HI relocations are represented as
+ *    R_RISCV_CHERIOT_COMPARTMENT_HI.
+ *  - All PCC-relative CHERIOT_COMPARTMENT_LO_I relocations are represented as
+ *    INTERNAL_R_RISCV_CHERIOT_COMPARTMENT_PCCREL_LO_I.
+ *  - All CGP-relative CHERIOT_COMPARTMENT_LO_I relocations are represented as
+ *    R_RISCV_CHERIOT_COMPARTMENT_LO_I.
+ *  - The targets of all CHERIOT_COMPARTMENT_LO_I relocations are resolved to
+ *    the target of their paired CHERIOT_COMPARTMENT_HI relocation.
+ *  - PCC-relative CHERIOT_COMPARTMENT_LO_S relocations do not exist.
+ *  - All CGP-relative CHERIOT_COMPARTMENT_LO_S relocations are represented as
+ *    R_RISCV_CHERIOT_COMPARTMENT_LO_S.
+ */
+static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSectionBase &sec) {
+  bool modified = false;
+  auto vendorRelocs = riscv_vendor_relocs(sec.relocations);
+  for (auto it = vendorRelocs.begin(); it != vendorRelocs.end(); ++it) {
+    Relocation r = *it;
+    Relocation *underlyingReloc = it.getUnderlyingRelocation();
+    if (r.type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_HI &&
+        isPCCRelative(ctx, nullptr, r.sym)) {
+      modified = true;
+      underlyingReloc->type = INTERNAL_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI;
+      underlyingReloc->expr = R_PC;
+    } else if (r.type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_LO_I ||
+               r.type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_LO_S) {
+      // If this is PCC-relative, then the relocation points to the auicgp /
+      // auipcc instruction and we need to look there to find the real target.
+      if (!isPCCRelative(ctx, nullptr, r.sym))
+        fatal("R_RISCV_CHERIOT_COMPARTMENT_LO_[I/S] must point to "
+              "R_RISCV_COMPARTMENT_HI");
+
+      const Defined *d = cast<Defined>(r.sym);
+      if (!d->section)
+        error("R_RISCV_CHERIOT_COMPARTMENT_LO_[I/S] relocation points to an "
+              "absolute symbol: " +
+              r.sym->getName());
+      InputSection *isec = cast<InputSection>(d->section);
+
+      // Relocations are sorted by offset, so we can use std::equal_range to
+      // do binary search.
+      Relocation targetReloc;
+      targetReloc.offset = d->value;
+      auto vendorRelocs = riscv_vendor_relocs(isec->relocations);
+      auto range = std::equal_range(
+          vendorRelocs.begin(), vendorRelocs.end(), targetReloc,
+          [](const Relocation &lhs, const Relocation &rhs) {
+            return lhs.offset < rhs.offset;
+          });
+
+      std::optional<Relocation> target;
+      for (auto it = range.first; it != range.second; ++it)
+        if (it->type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_HI ||
+            it->type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI) {
+          target = *it;
+          break;
+        }
+      if (!target) {
+        error(
+            "Could not find R_RISCV_CHERIOT_COMPARTMENT_HI relocation for " +
+            toStr(ctx, *r.sym));
+      }
+      modified = true;
+      // If the target is PCC-relative then the auipcc can't be erased and so
+      // skip the rewriting.
+      if (isPCCRelative(ctx, nullptr, target->sym)) {
+        assert(r.type != INTERNAL_RISCV_CHERIOT_COMPARTMENT_LO_S &&
+               "Malformed R_RISCV_CHERIOT_COMPARTMENT_LO_S relocation!");
+        underlyingReloc->type = INTERNAL_RISCV_CHERIOT_COMPARTMENT_PCCREL_LO_I;
+        underlyingReloc->expr = RE_RISCV_PC_INDIRECT;
+        continue;
+      }
+      // Update our relocation to point to the target thing.
+      underlyingReloc->sym = target->sym;
+      underlyingReloc->addend = target->addend;
+    }
+  }
+  return modified;
+}
+
 template <class ELFT, class RelTy>
 void RISCV::scanSectionImpl(InputSectionBase &sec, Relocs<RelTy> rels) {
   RelocScan rs(ctx, &sec);
@@ -1840,6 +1834,9 @@ void RISCV::scanSectionImpl(InputSectionBase &sec, Relocs<RelTy> rels) {
                     [](const Relocation &lhs, const Relocation &rhs) {
                       return lhs.offset < rhs.offset;
                     });
+
+  if (ctx.arg.isCheriot)
+    rewriteCheriotLowRelocs(ctx, sec);
 }
 
 template <class ELFT> void RISCV::scanSection1(InputSectionBase &sec) {

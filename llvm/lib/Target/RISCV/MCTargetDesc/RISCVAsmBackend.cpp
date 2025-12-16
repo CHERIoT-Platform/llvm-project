@@ -797,10 +797,10 @@ void RISCVAsmBackend::maybeAddVendorReloc(const MCFragment &F,
   case RISCV::fixup_riscv_nds_branch_10:
     VendorIdentifier = "ANDES";
     break;
-  case RISCV::fixup_riscv_cheriot_compartment_hi:
-  case RISCV::fixup_riscv_cheriot_compartment_lo_i:
-  case RISCV::fixup_riscv_cheriot_compartment_lo_s:
-  case RISCV::fixup_riscv_cheriot_compartment_size:
+  case RISCV::fixup_riscv_cheriot1_compartment_hi:
+  case RISCV::fixup_riscv_cheriot1_compartment_lo_i:
+  case RISCV::fixup_riscv_cheriot1_compartment_lo_s:
+  case RISCV::fixup_riscv_cheriot1_compartment_size:
     VendorIdentifier = "CHERIOT1";
     break;
   }

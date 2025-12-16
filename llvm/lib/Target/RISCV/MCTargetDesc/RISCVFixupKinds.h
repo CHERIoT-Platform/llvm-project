@@ -64,13 +64,13 @@ enum Fixups {
   fixup_riscv_nds_branch_10,
 
   // $cgp- or $pcc-relative global, used with auicgp / auipcc instructions
-  fixup_riscv_cheriot_compartment_hi,
+  fixup_riscv_cheriot1_compartment_hi,
   // $cgp- or $pcc-relative global, used with RV32 I instructions
-  fixup_riscv_cheriot_compartment_lo_i,
+  fixup_riscv_cheriot1_compartment_lo_i,
   // $cgp-relative global, used with RV32 S instructions
-  fixup_riscv_cheriot_compartment_lo_s,
+  fixup_riscv_cheriot1_compartment_lo_s,
   // Size of the symbol.
-  fixup_riscv_cheriot_compartment_size,
+  fixup_riscv_cheriot1_compartment_size,
 
   // Used as a sentinel, must be the last
   fixup_riscv_invalid,

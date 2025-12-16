@@ -373,10 +373,10 @@ MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
 
   BuildMI(NewMBB, DL, TII->get(RISCV::AUIPCC), DestReg)
       .addExternalSymbol(ImportSymbol->getName().data(),
-                         RISCVII::MO_CHERIOT_COMPARTMENT_HI);
+                         RISCVII::MO_CHERIOT1_COMPARTMENT_HI);
   BuildMI(NewMBB, DL, TII->get(RISCV::CLC_64), DestReg)
       .addReg(DestReg, RegState::Kill)
-      .addMBB(NewMBB, RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
+      .addMBB(NewMBB, RISCVII::MO_CHERIOT1_COMPARTMENT_LO_I);
 
   if (CallImportTarget) {
     auto NewCallMI = BuildMI(NewMBB, DL, TII->get(RISCV::C_CJALR))
@@ -457,10 +457,10 @@ bool RISCVExpandPseudo::expandCompartmentCall(MachineBasicBlock &MBB,
   MF->insert(++MBB.getIterator(), NewMBB);
 
   BuildMI(NewMBB, DL, TII->get(RISCV::AUIPCC), RISCV::X7_Y)
-      .addDisp(Switcher, 0, RISCVII::MO_CHERIOT_COMPARTMENT_HI);
+      .addDisp(Switcher, 0, RISCVII::MO_CHERIOT1_COMPARTMENT_HI);
   BuildMI(NewMBB, DL, TII->get(RISCV::CLC_64), RISCV::X7_Y)
       .addReg(RISCV::X7_Y, RegState::Kill)
-      .addMBB(NewMBB, RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
+      .addMBB(NewMBB, RISCVII::MO_CHERIOT1_COMPARTMENT_LO_I);
   auto NewCallMI = BuildMI(NewMBB, DL, TII->get(RISCV::C_CJALR))
       .addReg(RISCV::X7_Y, RegState::Kill);
   if (MI.shouldUpdateAdditionalCallInfo())
@@ -579,18 +579,18 @@ bool RISCVExpandPseudo::expandAuicgpInstPair(
   MF->insert(++MBB.getIterator(), NewMBB);
 
   BuildMI(NewMBB, DL, TII->get(RISCV::AUICGP), TmpReg)
-      .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_HI);
+      .addDisp(Symbol, 0, RISCVII::MO_CHERIOT1_COMPARTMENT_HI);
   BuildMI(NewMBB, DL, TII->get(SecondOpcode))
       .addReg(DestReg, getRegState(MI.getOperand(IsStore ? 1 : 0)))
       .addReg(TmpReg, RegState::Kill)
-      .addMBB(NewMBB, IsStore ? RISCVII::MO_CHERIOT_COMPARTMENT_LO_S
-                              : RISCVII::MO_CHERIOT_COMPARTMENT_LO_I);
+      .addMBB(NewMBB, IsStore ? RISCVII::MO_CHERIOT1_COMPARTMENT_LO_S
+                              : RISCVII::MO_CHERIOT1_COMPARTMENT_LO_I);
 
   if (!InBounds) {
     assert(!IsStore && "CLLC store pseudo ops must be inbounds!");
     BuildMI(NewMBB, DL, TII->get(RISCV::CSetBoundsImm), DestReg)
         .addReg(DestReg, RegState::Kill)
-        .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_SIZE);
+        .addDisp(Symbol, 0, RISCVII::MO_CHERIOT1_COMPARTMENT_SIZE);
   }
 
   // Move all the rest of the instructions to NewMBB.
@@ -763,7 +763,7 @@ bool RISCVExpandPseudo::expandAuipccInstPair(
 
   BuildMI(NewMBB, DL, TII->get(SecondOpcode), DestReg)
       .addReg(TmpReg)
-      .addMBB(NewMBB, IsCheriot ? RISCVII::MO_CHERIOT_COMPARTMENT_LO_I
+      .addMBB(NewMBB, IsCheriot ? RISCVII::MO_CHERIOT1_COMPARTMENT_LO_I
                                 : RISCVII::MO_PCREL_LO);
   if (!CheriotSealedValueAttr.has_value() &&
       !CheriotCapImportAttr.has_value() &&
@@ -774,7 +774,7 @@ bool RISCVExpandPseudo::expandAuipccInstPair(
        ".compartment_imports"))
     BuildMI(NewMBB, DL, TII->get(RISCV::CSetBoundsImm), DestReg)
         .addReg(DestReg)
-        .addDisp(Symbol, 0, RISCVII::MO_CHERIOT_COMPARTMENT_SIZE);
+        .addDisp(Symbol, 0, RISCVII::MO_CHERIOT1_COMPARTMENT_SIZE);
 
   // Move all the rest of the instructions to NewMBB.
   NewMBB->splice(NewMBB->end(), &MBB, std::next(MBBI), MBB.end());
@@ -802,7 +802,7 @@ bool RISCVExpandPseudo::expandCapLoadLocalCap(
     if (!Symbol.isGlobal() ||
         Symbol.getTargetFlags() == RISCVII::MO_JUMP_TABLE_BASE)
       return expandAuipccInstPair(MBB, MBBI, NextMBBI,
-                                  RISCVII::MO_CHERIOT_COMPARTMENT_HI,
+                                  RISCVII::MO_CHERIOT1_COMPARTMENT_HI,
                                   RISCV::CIncOffsetImm);
 
     const GlobalValue *GV = Symbol.getGlobal();
@@ -813,7 +813,7 @@ bool RISCVExpandPseudo::expandCapLoadLocalCap(
          GVar->hasAttribute(llvm::CHERIoTSealedValueAttr::getAttrName()) ||
          GVar->hasAttribute(llvm::CHERIoTSealingKeyTypeAttr::getAttrName()))) {
       return expandAuipccInstPair(MBB, MBBI, NextMBBI,
-                                  RISCVII::MO_CHERIOT_COMPARTMENT_HI,
+                                  RISCVII::MO_CHERIOT1_COMPARTMENT_HI,
                                   RISCV::CLC_64);
     }
 
@@ -824,7 +824,7 @@ bool RISCVExpandPseudo::expandCapLoadLocalCap(
     auto *Fn = dyn_cast<Function>(GV);
     if (!Fn)
       return expandAuipccInstPair(MBB, MBBI, NextMBBI,
-                            RISCVII::MO_CHERIOT_COMPARTMENT_HI,
+                            RISCVII::MO_CHERIOT1_COMPARTMENT_HI,
                             RISCV::CIncOffsetImm, InBounds);
 
     auto CC = Fn->getCallingConv();
@@ -839,7 +839,7 @@ bool RISCVExpandPseudo::expandCapLoadLocalCap(
     }
 
     return expandAuipccInstPair(MBB, MBBI, NextMBBI,
-                                RISCVII::MO_CHERIOT_COMPARTMENT_HI,
+                                RISCVII::MO_CHERIOT1_COMPARTMENT_HI,
                                 RISCV::CIncOffsetImm, InBounds);
   }
 
@@ -859,7 +859,7 @@ bool RISCVExpandPseudo::expandDerefCapLoadLocalCap(
     if (IsStore || !GV->isConstant())
       return expandAuicgpInstPair(MBB, MBBI, NextMBBI, DerefOpcode, true);
     return expandAuipccInstPair(MBB, MBBI, NextMBBI,
-                                RISCVII::MO_CHERIOT_COMPARTMENT_HI, DerefOpcode,
+                                RISCVII::MO_CHERIOT1_COMPARTMENT_HI, DerefOpcode,
                                 true);
   }
 

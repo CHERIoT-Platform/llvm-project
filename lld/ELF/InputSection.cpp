@@ -710,8 +710,8 @@ static Relocation *getRISCVPCRelHi20(Ctx &ctx, const InputSectionBase *loSec,
   for (auto it = range.first; it != range.second; ++it)
     if (it->type == R_RISCV_PCREL_HI20 || it->type == R_RISCV_GOT_HI20 ||
         it->type == R_RISCV_TLS_GD_HI20 || it->type == R_RISCV_TLS_GOT_HI20 ||
-        it->type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_HI ||
-        it->type == INTERNAL_RISCV_CHERIOT_COMPARTMENT_PCCREL_HI)
+        it->type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI ||
+        it->type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI)
       return it.getUnderlyingRelocation();
 
   Err(ctx) << loSec->getLocation(loReloc.offset)
@@ -1049,15 +1049,15 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
     return ctx.in.mipsCheriCapTable->getTlsOffset(*r.sym);
   // Reached only for CGP-relative relocations.  PCC-relative addresses are
   // calculated with the R_PC and R_PC_INDIRECT cases.
-  case RE_CHERIOT_COMPARTMENT_CGPREL_LO:
+  case RE_CHERIOT1_COMPARTMENT_CGPREL_LO:
     assert(!isPCCRelative(ctx, nullptr, r.sym) &&
            "Malformed RE_CHERIOT_COMPARTMENT_CGPREL_LO relocation!");
     return getBiasedCGPOffsetLo12(ctx, *r.sym);
-  case RE_CHERIOT_COMPARTMENT_CGPREL_HI:
+  case RE_CHERIOT1_COMPARTMENT_CGPREL_HI:
     return (getBiasedCGPOffset(ctx, *r.sym) -
             getBiasedCGPOffsetLo12(ctx, *r.sym)) >>
            11;
-  case RE_CHERIOT_COMPARTMENT_SIZE:
+  case RE_CHERIOT1_COMPARTMENT_SIZE:
     return r.sym->getSize(ctx);
   default:
     llvm_unreachable("invalid expression");

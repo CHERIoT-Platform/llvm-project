@@ -751,19 +751,19 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
       RelaxCandidate = true;
       break;
     case RISCV::S_CHERIOT_COMPARTMENT_HI:
-      FixupKind = RISCV::fixup_riscv_cheriot_compartment_hi;
+      FixupKind = RISCV::fixup_riscv_cheriot1_compartment_hi;
       RelaxCandidate = true;
       break;
     case RISCV::S_CHERIOT_COMPARTMENT_LO_I:
-      FixupKind = RISCV::fixup_riscv_cheriot_compartment_lo_i;
+      FixupKind = RISCV::fixup_riscv_cheriot1_compartment_lo_i;
       RelaxCandidate = true;
       break;
     case RISCV::S_CHERIOT_COMPARTMENT_LO_S:
-      FixupKind = RISCV::fixup_riscv_cheriot_compartment_lo_s;
+      FixupKind = RISCV::fixup_riscv_cheriot1_compartment_lo_s;
       RelaxCandidate = true;
       break;
     case RISCV::S_CHERIOT_COMPARTMENT_SIZE:
-      FixupKind = RISCV::fixup_riscv_cheriot_compartment_size;
+      FixupKind = RISCV::fixup_riscv_cheriot1_compartment_size;
       break;
     }
   } else if (Kind == MCExpr::SymbolRef || Kind == MCExpr::Binary) {

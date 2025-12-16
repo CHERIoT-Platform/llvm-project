@@ -3681,10 +3681,10 @@ RISCVInstrInfo::getSerializableDirectMachineOperandTargetFlags() const {
       {MO_TLSDESC_LOAD_LO, "riscv-tlsdesc-load-lo"},
       {MO_TLSDESC_ADD_LO, "riscv-tlsdesc-add-lo"},
       {MO_TLSDESC_CALL, "riscv-tlsdesc-call"},
-      {MO_CHERIOT_COMPARTMENT_HI, "riscv-cheriot-compartment-hi"},
-      {MO_CHERIOT_COMPARTMENT_LO_I, "riscv-cheriot-compartment-lo-i"},
-      {MO_CHERIOT_COMPARTMENT_LO_S, "riscv-cheriot-compartment-lo-s"},
-      {MO_CHERIOT_COMPARTMENT_SIZE, "riscv-cheriot-compartment-size"},
+      {MO_CHERIOT1_COMPARTMENT_HI, "riscv-cheriot-compartment-hi"},
+      {MO_CHERIOT1_COMPARTMENT_LO_I, "riscv-cheriot-compartment-lo-i"},
+      {MO_CHERIOT1_COMPARTMENT_LO_S, "riscv-cheriot-compartment-lo-s"},
+      {MO_CHERIOT1_COMPARTMENT_SIZE, "riscv-cheriot-compartment-size"},
   };
   return ArrayRef(TargetFlags);
 }

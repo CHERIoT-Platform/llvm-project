@@ -1365,7 +1365,8 @@ void GISelValueTracking::computeKnownFPClass(Register R,
           (KnownLHS.isKnownNeverInfinity() || KnownRHS.isKnownNeverInfinity()))
         Known.knownNot(fcNan);
 
-      if (Opcode == Instruction::FAdd) {
+      if (Opcode == TargetOpcode::G_FADD ||
+          Opcode == TargetOpcode::G_STRICT_FADD) {
         if (KnownLHS.cannotBeOrderedLessThanZero() &&
             KnownRHS.cannotBeOrderedLessThanZero())
           Known.knownNot(KnownFPClass::OrderedLessThanZeroMask);
@@ -1480,7 +1481,7 @@ void GISelValueTracking::computeKnownFPClass(Register R,
                           KnownLHS, Depth + 1);
     }
 
-    if (Opcode == Instruction::FDiv) {
+    if (Opcode == TargetOpcode::G_FDIV) {
       // Only 0/0, Inf/Inf produce NaN.
       if (KnownLHS.isKnownNeverNaN() && KnownRHS.isKnownNeverNaN() &&
           (KnownLHS.isKnownNeverInfinity() ||

@@ -4260,6 +4260,9 @@ void CXXNameMangler::mangleRISCVFixedRVVVectorType(const VectorType *T) {
   case BuiltinType::Double:
     TypeNameOS << "float64";
     break;
+  case BuiltinType::BFloat16:
+    TypeNameOS << "bfloat16";
+    break;
   default:
     llvm_unreachable("unexpected element type for fixed-length RVV vector!");
   }
@@ -6106,6 +6109,8 @@ void CXXNameMangler::mangleCXXDtorType(CXXDtorType T) {
   case Dtor_Comdat:
     Out << "D5";
     break;
+  case Dtor_VectorDeleting:
+    llvm_unreachable("Itanium ABI does not use vector deleting dtors");
   }
 }
 

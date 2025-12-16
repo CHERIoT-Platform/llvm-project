@@ -33,6 +33,16 @@
 namespace llvm {
 class StringRef;
 
+enum CompactBranchPolicy {
+  CB_Never,   ///< The policy 'never' may in some circumstances or for some
+              ///< ISAs not be absolutely adhered to.
+  CB_Optimal, ///< Optimal is the default and will produce compact branches
+              ///< when appropriate.
+  CB_Always   ///< 'always' may in some circumstances may not be
+              ///< absolutely adhered to, there may not be a corresponding
+              ///< compact form of a branch.
+};
+
 class MipsTargetMachine;
 
 class MipsSubtarget : public MipsGenSubtargetInfo {
@@ -213,6 +223,9 @@ class MipsSubtarget : public MipsGenSubtargetInfo {
   // Disable unaligned load store for r6.
   bool StrictAlign;
 
+  // Use compact branch instructions for R6.
+  bool UseCompactBranches = true;
+
   /// The minimum alignment known to hold of the stack frame on
   /// entry to the function and which must be maintained by every function.
   Align stackAlignment;
@@ -382,6 +395,10 @@ public:
   /// Claiming that you use AA also enables the GEP-sinking mode, so we claim
   /// this for CHERI.
   bool useAA() const override { return IsCheri; }
+
+  bool useCompactBranches() const {
+    return UseCompactBranches && hasMips32r6();
+  }
 
   bool hasStandardEncoding() const { return !InMips16Mode && !InMicroMipsMode; }
 

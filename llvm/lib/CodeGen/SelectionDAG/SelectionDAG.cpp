@@ -2122,6 +2122,12 @@ SDValue SelectionDAG::getTargetExternalSymbol(const char *Sym, EVT VT,
   return SDValue(N, 0);
 }
 
+SDValue SelectionDAG::getTargetExternalSymbol(RTLIB::LibcallImpl Libcall,
+                                              EVT VT, unsigned TargetFlags) {
+  StringRef SymName = TLI->getLibcallImplName(Libcall);
+  return getTargetExternalSymbol(SymName.data(), VT, TargetFlags);
+}
+
 SDValue
 SelectionDAG::getTargetExternalFunctionSymbol(const char *Sym,
                                               unsigned TargetFlags) {
@@ -9326,13 +9332,13 @@ SelectionDAG::getMemcmp(SDValue Chain, const SDLoc &dl, SDValue Mem0,
   bool IsTailCall =
       isInTailCallPositionWrapper(CI, this, /*AllowReturnsFirstArg*/ true);
 
-  const DataLayout &Layout = getDataLayout();
   CLI.setDebugLoc(dl)
       .setChain(Chain)
-      .setLibCallee(TLI->getLibcallImplCallingConv(MemcmpImpl),
-                    Type::getInt32Ty(*getContext()),
-                    getExternalFunctionSymbol(MemcmpImpl),
-                    std::move(Args))
+      .setLibCallee(
+          TLI->getLibcallImplCallingConv(MemcmpImpl),
+          Type::getInt32Ty(*getContext()),
+          getExternalFunctionSymbol(MemcmpImpl),
+          std::move(Args))
       .setTailCall(IsTailCall);
 
   return TLI->LowerCallTo(CLI);
@@ -9353,15 +9359,13 @@ std::pair<SDValue, SDValue> SelectionDAG::getStrlen(SDValue Chain,
   TargetLowering::CallLoweringInfo CLI(*this);
   bool IsTailCall =
       isInTailCallPositionWrapper(CI, this, /*AllowReturnsFirstArg*/ true);
-  StringRef LibcallName = TLI->getLibcallImplName(StrlenImpl);
 
   CLI.setDebugLoc(dl)
       .setChain(Chain)
-      .setLibCallee(
-          TLI->getLibcallImplCallingConv(StrlenImpl), CI->getType(),
-          getExternalSymbol(LibcallName.data(),
-                            TLI->getProgramPointerTy(getDataLayout())),
-          std::move(Args))
+      .setLibCallee(TLI->getLibcallImplCallingConv(StrlenImpl), CI->getType(),
+                    getExternalSymbol(
+                        StrlenImpl, TLI->getProgramPointerTy(getDataLayout())),
+                    std::move(Args))
       .setTailCall(IsTailCall);
 
   return TLI->LowerCallTo(CLI);
@@ -9666,11 +9670,10 @@ SDValue SelectionDAG::getMemset(SDValue Chain, const SDLoc &dl, SDValue Dst,
     Args.emplace_back(Dst, Dst.getValueType().getTypeForEVT(Ctx));
     Args.emplace_back(Src, Src.getValueType().getTypeForEVT(Ctx));
     Args.emplace_back(Size, DL.getIntPtrType(Ctx));
-    CLI.setLibCallee(
-        TLI->getLibcallImplCallingConv(MemsetImpl),
-        Dst.getValueType().getTypeForEVT(Ctx),
-        getExternalFunctionSymbol(MemsetImpl),
-        std::move(Args));
+    CLI.setLibCallee(TLI->getLibcallImplCallingConv(MemsetImpl),
+                     Dst.getValueType().getTypeForEVT(Ctx),
+                     getExternalFunctionSymbol(MemsetImpl),
+                     std::move(Args));
   }
 
   RTLIB::LibcallImpl MemsetImpl = TLI->getLibcallImpl(RTLIB::MEMSET);

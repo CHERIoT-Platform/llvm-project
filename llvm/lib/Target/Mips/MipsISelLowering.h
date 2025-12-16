@@ -647,6 +647,8 @@ extern bool LargeCapTable;
       return true;
     }
 
+    int getCPURegisterIndex(StringRef Name) const;
+
     bool supportsAtomicOperation(const DataLayout &DL, const Instruction *AI,
                                  Type *ValueTy, Type *PointerTy,
                                  Align Alignment) const override;

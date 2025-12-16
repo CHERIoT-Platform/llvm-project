@@ -804,6 +804,9 @@ public:
   SDValue getExternalFunctionSymbol(RTLIB::LibcallImpl LCImpl);
   SDValue getTargetExternalFunctionSymbol(const char *Sym,
                                           unsigned TargetFlags = 0);
+  LLVM_ABI SDValue getTargetExternalSymbol(RTLIB::LibcallImpl LCImpl, EVT VT,
+                                           unsigned TargetFlags = 0);
+
   LLVM_ABI SDValue getMCSymbol(MCSymbol *Sym, EVT VT);
 
   LLVM_ABI SDValue getValueType(EVT);

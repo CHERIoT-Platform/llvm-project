@@ -2288,6 +2288,14 @@ public:
     return false;
   }
 
+  /// Whether AtomicExpandPass should automatically insert a seq_cst trailing
+  /// fence without reducing the ordering for this atomic store. Defaults to
+  /// false.
+  virtual bool
+  shouldInsertTrailingSeqCstFenceForAtomicStore(const Instruction *I) const {
+    return false;
+  }
+
   // The memory ordering that AtomicExpandPass should assign to a atomic
   // instruction that it has lowered by adding fences. This can be used
   // to "fold" one of the fences into the atomic instruction.
@@ -2302,13 +2310,6 @@ public:
   virtual bool supportsAtomicOperation(const DataLayout &DL,
                                        const Instruction *AI, Type *ValueTy,
                                        Type *PointerTy, Align Alignment) const;
-
-  /// Whether AtomicExpandPass should automatically insert a trailing fence
-  /// without reducing the ordering for this atomic. Defaults to false.
-  virtual bool
-  shouldInsertTrailingFenceForAtomicStore(const Instruction *I) const {
-    return false;
-  }
 
   /// Perform a load-linked operation on Addr, returning a "Value *" with the
   /// corresponding pointee type. This may entail some non-trivial operations to

@@ -360,6 +360,11 @@ def SDTAtomicCap2 : SDTypeProfile<1, 2, [
   SDTCisSameAs<0,2>, SDTCisPtrTy<0>, SDTCisPtrTy<1>
 ]>;
 
+def SDTLoopDepMask : SDTypeProfile<1, 4,
+  [/*Result=*/SDTCisVec<0>, /*PtrA=*/SDTCisInt<1>, /*PtrB=*/SDTCisInt<2>,
+   /*EltSizeInBytes=*/SDTCisInt<3>, /*LaneOffset=*/SDTCisInt<4>,
+   SDTCisSameAs<2, 1>]>;
+
 class SDCallSeqStart<list<SDTypeConstraint> constraints> :
         SDTypeProfile<0, 2, constraints>;
 class SDCallSeqEnd<list<SDTypeConstraint> constraints> :
@@ -887,10 +892,6 @@ def step_vector : SDNode<"ISD::STEP_VECTOR", SDTypeProfile<1, 1,
                        [SDTCisVec<0>, SDTCisInt<1>]>, []>;
 def scalar_to_vector : SDNode<"ISD::SCALAR_TO_VECTOR", SDTypeProfile<1, 1, []>,
                               []>;
-
-def SDTLoopDepMask : SDTypeProfile<1, 3, [SDTCisVec<0>, SDTCisInt<1>,
-                                   SDTCisSameAs<2, 1>, SDTCisInt<3>,
-                                   SDTCVecEltisVT<0,i1>]>;
 def loop_dependence_war_mask : SDNode<"ISD::LOOP_DEPENDENCE_WAR_MASK",
                                       SDTLoopDepMask, []>;
 def loop_dependence_raw_mask : SDNode<"ISD::LOOP_DEPENDENCE_RAW_MASK",

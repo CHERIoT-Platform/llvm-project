@@ -467,6 +467,8 @@ enum OperandType : unsigned {
   // instructions to represent a value that be passed as AVL to either vsetvli
   // or vsetivli.
   OPERAND_AVL,
+
+  OPERAND_VMASK,
 };
 } // namespace RISCVOp
 

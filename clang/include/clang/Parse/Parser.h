@@ -2837,7 +2837,6 @@ private:
   mutable IdentifierInfo *Ident_GNU_final;
   mutable IdentifierInfo *Ident_override;
   mutable IdentifierInfo *Ident_trivially_relocatable_if_eligible;
-  mutable IdentifierInfo *Ident_replaceable_if_eligible;
 
   /// Representation of a class that has been parsed, including
   /// any member function declarations or definitions that need to be
@@ -3131,7 +3130,7 @@ private:
 
   /// isClassCompatibleKeyword - Determine whether the next token is a C++11
   /// 'final', a C++26 'trivially_relocatable_if_eligible',
-  /// 'replaceable_if_eligible', or Microsoft 'sealed' or 'abstract' contextual
+  /// or Microsoft 'sealed' or 'abstract' contextual
   /// keyword.
   bool isClassCompatibleKeyword() const;
 
@@ -3605,12 +3604,8 @@ private:
   bool isCXX2CTriviallyRelocatableKeyword() const;
   void ParseCXX2CTriviallyRelocatableSpecifier(SourceLocation &TRS);
 
-  bool isCXX2CReplaceableKeyword(Token Tok) const;
-  bool isCXX2CReplaceableKeyword() const;
-  void ParseCXX2CReplaceableSpecifier(SourceLocation &MRS);
-
   /// 'final', a C++26 'trivially_relocatable_if_eligible',
-  /// 'replaceable_if_eligible', or Microsoft 'sealed' or 'abstract' contextual
+  /// or Microsoft 'sealed' or 'abstract' contextual
   /// keyword.
   bool isClassCompatibleKeyword(Token Tok) const;
 

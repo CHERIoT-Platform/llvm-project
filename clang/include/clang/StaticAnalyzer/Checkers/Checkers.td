@@ -126,6 +126,7 @@ def WebKitAlpha : Package<"webkit">, ParentPackage<Alpha>;
 
 def CHERI : Package<"cheri">;
 def CHERIAlpha : Package<"cheri">, ParentPackage<Alpha>;
+def CHERIoT : Package<"cheriot">;
 
 //===----------------------------------------------------------------------===//
 // Core Checkers.
@@ -1862,3 +1863,10 @@ let ParentPackage = CHERIAlpha in {
         Documentation<NotDocumented>;
 
 } // end alpha.cheri
+
+let ParentPackage = CHERIoT in {
+  def CheriotHeapChecker
+      : Checker<"CheriotHeap">,
+        HelpText<"Check use of CHERIoT heap allocations APIs">,
+        Documentation<NotDocumented>;
+} // end cheriot

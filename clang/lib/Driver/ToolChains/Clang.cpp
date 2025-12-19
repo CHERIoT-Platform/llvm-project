@@ -3518,6 +3518,9 @@ static void RenderAnalyzerOptions(const ArgList &Args, ArgStringList &CmdArgs,
 
       CmdArgs.push_back("-analyzer-checker=optin.portability.PointerAlignment");
       CmdArgs.push_back("-analyzer-checker=alpha.core.PointerSub");
+
+      if (tools::riscv::isCheriot(Args, Triple))
+        CmdArgs.push_back("-analyzer-checker=cheriot");
     }
 
     // Default nullability checks.

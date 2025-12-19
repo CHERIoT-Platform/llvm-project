@@ -72,6 +72,12 @@ bool riscv::isCheriPurecap(const llvm::opt::ArgList &Args,
   return isCheriPurecapABIName(getRISCVABI(Args, Triple));
 }
 
+bool riscv::isCheriot(const llvm::opt::ArgList &Args,
+                      const llvm::Triple &Triple) {
+  auto ABI = getRISCVABI(Args, Triple);
+  return (Triple.getOS() == llvm::Triple::CheriotRTOS ||
+          (ABI == "cheriot" || ABI == "cheriot-baremetal"));
+}
 
 // Get features except standard extension feature
 static void getRISCFeaturesFromMcpu(const Driver &D, const Arg *A,

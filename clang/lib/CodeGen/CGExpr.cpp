@@ -5976,24 +5976,6 @@ LValue CodeGenFunction::EmitMatrixSingleSubscriptExpr(
   LValue Base = EmitLValue(E->getBase());
   llvm::Value *RowIdx = EmitMatrixIndexExpr(E->getRowIdx());
 
-  if (auto *RowConst = llvm::dyn_cast<llvm::ConstantInt>(RowIdx)) {
-    // Extract matrix shape from the AST type
-    const auto *MatTy = E->getBase()->getType()->castAs<ConstantMatrixType>();
-    unsigned NumCols = MatTy->getNumColumns();
-    llvm::SmallVector<llvm::Constant *, 8> Indices;
-    Indices.reserve(NumCols);
-
-    unsigned Row = RowConst->getZExtValue();
-    unsigned Start = Row * NumCols;
-    for (unsigned C = 0; C < NumCols; ++C)
-      Indices.push_back(llvm::ConstantInt::get(Int32Ty, Start + C));
-
-    llvm::Constant *Elts = llvm::ConstantVector::get(Indices);
-    return LValue::MakeExtVectorElt(
-        MaybeConvertMatrixAddress(Base.getAddress(), *this), Elts,
-        E->getBase()->getType(), Base.getBaseInfo(), TBAAAccessInfo());
-  }
-
   return LValue::MakeMatrixRow(
       MaybeConvertMatrixAddress(Base.getAddress(), *this), RowIdx,
       E->getBase()->getType(), Base.getBaseInfo(), TBAAAccessInfo());
@@ -7661,9 +7643,11 @@ RValue CodeGenFunction::EmitCall(QualType CalleeType,
 
   CGCallee Callee = OrigCallee;
 
+  bool CFIUnchecked = CalleeType->hasPointeeToCFIUncheckedCalleeFunctionType();
+
   if (SanOpts.has(SanitizerKind::Function) &&
       (!TargetDecl || !isa<FunctionDecl>(TargetDecl)) &&
-      !isa<FunctionNoProtoType>(PointeeType)) {
+      !isa<FunctionNoProtoType>(PointeeType) && !CFIUnchecked) {
     if (llvm::Constant *PrefixSig =
             CGM.getTargetCodeGenInfo().getUBSanFunctionSignature(CGM)) {
       auto CheckOrdinal = SanitizerKind::SO_Function;
@@ -7742,8 +7726,6 @@ RValue CodeGenFunction::EmitCall(QualType CalleeType,
   if (const auto *FD = dyn_cast_or_null<FunctionDecl>(TargetDecl);
       FD && DeviceKernelAttr::isOpenCLSpelling(FD->getAttr<DeviceKernelAttr>()))
     CGM.getTargetCodeGenInfo().setOCLKernelStubCallingConvention(FnType);
-
-  bool CFIUnchecked = CalleeType->hasPointeeToCFIUncheckedCalleeFunctionType();
 
   // If we are checking indirect calls and this call is indirect, check that the
   // function pointer is a member of the bit set for the function type.

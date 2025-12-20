@@ -927,6 +927,7 @@ static void getAvailableFeatures(unsigned ECX, unsigned EDX, unsigned MaxLeaf,
   const unsigned AMXBits = (1 << 17) | (1 << 18);
   bool HasXSave = ((ECX >> 27) & 1) && !getX86XCR0(&EAX, &EDX);
   bool HasAMXSave = HasXSave && ((EAX & AMXBits) == AMXBits);
+  bool HasAPXSave = HasXSave && ((EAX >> 19) & 1);
 
   if (HasAVXSave)
     setFeature(FEATURE_AVX);
@@ -1066,7 +1067,7 @@ static void getAvailableFeatures(unsigned ECX, unsigned EDX, unsigned MaxLeaf,
     setFeature(FEATURE_PREFETCHI);
   if (HasLeaf7Subleaf1 && ((EDX >> 15) & 1))
     setFeature(FEATURE_USERMSR);
-  if (HasLeaf7Subleaf1 && ((EDX >> 21) & 1))
+  if (HasLeaf7Subleaf1 && ((EDX >> 21) & 1) && HasAPXSave)
     setFeature(FEATURE_APXF);
 
   unsigned MaxLevel = 0;

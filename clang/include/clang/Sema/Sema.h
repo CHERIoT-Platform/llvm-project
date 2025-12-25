@@ -7929,7 +7929,9 @@ public:
   QualType CheckVectorLogicalOperands(ExprResult &LHS, ExprResult &RHS,
                                       SourceLocation Loc,
                                       BinaryOperatorKind Opc);
-
+  QualType CheckMatrixLogicalOperands(ExprResult &LHS, ExprResult &RHS,
+                                      SourceLocation Loc,
+                                      BinaryOperatorKind Opc);
   // type checking for sizeless vector binary operators.
   QualType CheckSizelessVectorOperands(ExprResult &LHS, ExprResult &RHS,
                                        SourceLocation Loc, bool IsCompAssign,

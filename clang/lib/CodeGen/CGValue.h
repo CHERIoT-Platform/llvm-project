@@ -217,6 +217,9 @@ class LValue {
     const CGBitFieldInfo *BitFieldInfo;
   };
 
+  // Note: Only meaningful when isMatrixRow() and the row is swizzled.
+  unsigned NumCols, NumRows;
+
   QualType Type;
 
   // 'const' is unused here
@@ -398,7 +401,7 @@ public:
   }
 
   Address getMatrixAddress() const {
-    assert(isMatrixElt());
+    assert(isMatrixElt() || isMatrixRow());
     return Addr;
   }
   llvm::Value *getMatrixPointer() const {
@@ -413,6 +416,16 @@ public:
   llvm::Value *getMatrixRowIdx() const {
     assert(isMatrixRow());
     return MatrixRowIdx;
+  }
+
+  unsigned getMatrixNumRows() const {
+    assert(isMatrixRow());
+    return NumRows;
+  }
+
+  unsigned getMatrixNumCols() const {
+    assert(isMatrixRow());
+    return NumCols;
   }
 
   // extended vector elements.
@@ -504,11 +517,14 @@ public:
   }
 
   static LValue MakeMatrixRow(Address Addr, llvm::Value *RowIdx,
+                              unsigned NumCols, unsigned NumRows,
                               QualType MatrixTy, LValueBaseInfo BaseInfo,
                               TBAAAccessInfo TBAAInfo) {
     LValue LV;
     LV.LVType = MatrixRow;
     LV.MatrixRowIdx = RowIdx; // store the row index here
+    LV.NumCols = NumCols;
+    LV.NumRows = NumRows;
     LV.Initialize(MatrixTy, MatrixTy.getQualifiers(), Addr, BaseInfo, TBAAInfo);
     return LV;
   }

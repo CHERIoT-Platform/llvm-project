@@ -796,6 +796,8 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
   case R_ABS_CAP:
   case R_ADDEND:
     return a;
+  case R_ADDEND_NEG:
+    return -static_cast<uint64_t>(a);
   case R_RELAX_HINT:
     return 0;
   case RE_ARM_SBREL:

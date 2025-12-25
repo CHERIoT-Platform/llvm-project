@@ -129,6 +129,8 @@ tools += ['llvm-readobj', 'llvm-objdump', 'llvm-dwarfdump']
 
 if config.clang_examples:
     config.available_features.add("examples")
+if config.llvm_examples:
+    config.available_features.add("llvm-examples")
 
 
 def have_host_out_of_process_jit_feature_support():

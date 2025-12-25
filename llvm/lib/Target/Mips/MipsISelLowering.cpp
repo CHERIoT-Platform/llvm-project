@@ -98,12 +98,8 @@ static cl::opt<bool, true> LargeCapTableOption(
     cl::desc("CHERI: Enable capability immediates larget than 11 bits"),
     cl::init(false));
 
-static cl::opt<bool>
-NoZeroDivCheck("mno-check-zero-division", cl::Hidden,
-               cl::desc("MIPS: Don't trap on integer division by zero."),
-               cl::init(false));
-
 extern cl::opt<bool> EmitJalrReloc;
+extern cl::opt<bool> NoZeroDivCheck;
 
 cl::opt<bool>
 UseClearRegs("cheri-use-clearregs",

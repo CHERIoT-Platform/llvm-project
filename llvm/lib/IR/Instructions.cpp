@@ -161,8 +161,9 @@ Value *PHINode::removeIncomingValue(unsigned Idx, bool DeletePHIIfEmpty) {
 void PHINode::removeIncomingValueIf(function_ref<bool(unsigned)> Predicate,
                                     bool DeletePHIIfEmpty) {
   unsigned NumOps = getNumIncomingValues();
-  unsigned Idx = 0;
-  while (Idx < NumOps) {
+
+  // Loop backwards in case the predicate is purely index based.
+  for (unsigned Idx = NumOps; Idx-- > 0;) {
     if (Predicate(Idx)) {
       unsigned LastIdx = NumOps - 1;
       if (Idx != LastIdx) {
@@ -171,8 +172,6 @@ void PHINode::removeIncomingValueIf(function_ref<bool(unsigned)> Predicate,
       }
       getOperandUse(LastIdx).set(nullptr);
       NumOps--;
-    } else {
-      Idx++;
     }
   }
 

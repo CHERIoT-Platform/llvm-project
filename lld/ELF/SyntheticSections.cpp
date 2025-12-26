@@ -1787,6 +1787,9 @@ void RelocationBaseSection::partitionRels() {
 }
 
 void RelocationBaseSection::finalizeContents() {
+  mergeRels();
+  // Compute DT_RELACOUNT to be used by part.dynamic.
+  partitionRels();
   SymbolTableBaseSection *symTab = getPartition(ctx).dynSymTab.get();
 
   // When linking glibc statically, .rel{,a}.plt contains R_*_IRELATIVE
@@ -1888,6 +1891,8 @@ void RelrBaseSection::mergeRels() {
     llvm::append_range(relocs, v);
   relocsVec.clear();
 }
+
+void RelrBaseSection::finalizeContents() { mergeRels(); }
 
 template <class ELFT>
 AndroidPackedRelocationSection<ELFT>::AndroidPackedRelocationSection(

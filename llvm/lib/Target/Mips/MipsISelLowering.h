@@ -649,6 +649,8 @@ extern bool LargeCapTable;
 
     int getCPURegisterIndex(StringRef Name) const;
 
+    ArrayRef<MCPhysReg> getRoundingControlRegisters() const override;
+
     bool supportsAtomicOperation(const DataLayout &DL, const Instruction *AI,
                                  Type *ValueTy, Type *PointerTy,
                                  Align Alignment) const override;

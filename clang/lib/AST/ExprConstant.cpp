@@ -18742,12 +18742,15 @@ bool IntExprEvaluator::VisitCastExpr(const CastExpr *E) {
 
     if (!Result.isInt()) {
       // Allow casts of address-of-label differences if they are no-ops
-      // or narrowing.  (The narrowing case isn't actually guaranteed to
+      // or narrowing, if the result is at least 32 bits wide.
+      // (The narrowing case isn't actually guaranteed to
       // be constant-evaluatable except in some narrow cases which are hard
       // to detect here.  We let it through on the assumption the user knows
       // what they are doing.)
-      if (Result.isAddrLabelDiff())
-        return Info.Ctx.getIntRange(DestType) <= Info.Ctx.getIntRange(SrcType);
+      if (Result.isAddrLabelDiff()) {
+        unsigned DestBits = Info.Ctx.getIntRange(DestType);
+        return DestBits >= 32 && DestBits <= Info.Ctx.getIntRange(SrcType);
+      }
 
       // Only allow casts of lvalues if they are lossless.
       return Info.Ctx.getIntRange(DestType) == Info.Ctx.getIntRange(SrcType);

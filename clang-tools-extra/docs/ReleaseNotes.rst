@@ -363,6 +363,11 @@ New check aliases
   <clang-tidy/checks/misc/multiple-inheritance>`
   keeping initial check as an alias to the new one.
 
+- Renamed :doc:`google-build-namespaces <clang-tidy/checks/google/build-namespaces>` to
+  :doc:`misc-anonymous-namespace-in-header 
+  <clang-tidy/checks/misc/anonymous-namespace-in-header>`
+  keeping initial check as an alias to the new one.
+
 - Renamed :doc:`google-readability-casting <clang-tidy/checks/google/readability-casting>` to
   :doc:`modernize-avoid-c-style-cast
   <clang-tidy/checks/modernize/avoid-c-style-cast>`
@@ -432,7 +437,8 @@ Changes in existing checks
 - Improved :doc:`bugprone-throw-keyword-missing
   <clang-tidy/checks/bugprone/throw-keyword-missing>` check by only considering
   the canonical types of base classes as written and adding a note on the base
-  class that triggered the warning.
+  class that triggered the warning. Also, fixed an issue where the check
+  wouldn't fire in constructors or (in certain contexts) lambdas.
 
 - Improved :doc:`bugprone-unchecked-optional-access
   <clang-tidy/checks/bugprone/unchecked-optional-access>` check by supporting

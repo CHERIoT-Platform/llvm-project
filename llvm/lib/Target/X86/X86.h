@@ -95,8 +95,16 @@ FunctionPass *createX86OptimizeLEAsLegacyPass();
 /// Return a pass that transforms setcc + movzx pairs into xor + setcc.
 FunctionPass *createX86FixupSetCC();
 
-/// Return a pass that avoids creating store forward block issues in the hardware.
-FunctionPass *createX86AvoidStoreForwardingBlocks();
+/// Return a pass that avoids creating store forward block issues in the
+/// hardware.
+class X86AvoidStoreForwardingBlocksPass
+    : public PassInfoMixin<X86AvoidStoreForwardingBlocksPass> {
+public:
+  PreservedAnalyses run(MachineFunction &MF,
+                        MachineFunctionAnalysisManager &MFAM);
+};
+
+FunctionPass *createX86AvoidStoreForwardingBlocksLegacyPass();
 
 /// Return a pass that lowers EFLAGS copy pseudo instructions.
 class X86FlagsCopyLoweringPass
@@ -149,7 +157,14 @@ FunctionPass *createX86AvoidTrailingCallLegacyPass();
 
 /// Return a pass that optimizes the code-size of x86 call sequences. This is
 /// done by replacing esp-relative movs with pushes.
-FunctionPass *createX86CallFrameOptimization();
+class X86CallFrameOptimizationPass
+    : public PassInfoMixin<X86CallFrameOptimizationPass> {
+public:
+  PreservedAnalyses run(MachineFunction &MF,
+                        MachineFunctionAnalysisManager &MFAM);
+};
+
+FunctionPass *createX86CallFrameOptimizationLegacyPass();
 
 /// Return an IR pass that inserts EH registration stack objects and explicit
 /// EH state updates. This pass must run after EH preparation, which does
@@ -261,9 +276,9 @@ void initializeX86AsmPrinterPass(PassRegistry &);
 void initializeX86FixupInstTuningPassPass(PassRegistry &);
 void initializeX86FixupVectorConstantsPassPass(PassRegistry &);
 void initializeWinEHStatePassPass(PassRegistry &);
-void initializeX86AvoidSFBPassPass(PassRegistry &);
+void initializeX86AvoidSFBLegacyPass(PassRegistry &);
 void initializeX86AvoidTrailingCallLegacyPassPass(PassRegistry &);
-void initializeX86CallFrameOptimizationPass(PassRegistry &);
+void initializeX86CallFrameOptimizationLegacyPass(PassRegistry &);
 void initializeX86CmovConverterPassPass(PassRegistry &);
 void initializeX86DAGToDAGISelLegacyPass(PassRegistry &);
 void initializeX86DomainReassignmentPass(PassRegistry &);

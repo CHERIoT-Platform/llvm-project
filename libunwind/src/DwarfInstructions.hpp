@@ -36,7 +36,8 @@ public:
   typedef typename A::pc_t pc_t;
   typedef typename A::capability_t capability_t;
 
-  static int stepWithDwarf(A &addressSpace, const typename R::link_reg_t &pc,
+  static int stepWithDwarf(A &addressSpace,
+                           typename R::link_hardened_reg_arg_t pc,
                            pint_t fdeStart, R &registers, bool &isSignalFrame,
                            bool stage2);
 
@@ -254,17 +255,16 @@ bool DwarfInstructions<A, R>::isReturnAddressSignedWithPC(A &addressSpace,
 #endif
 
 template <typename A, typename R>
-int DwarfInstructions<A, R>::stepWithDwarf(A &addressSpace,
-                                           const typename R::link_reg_t &pc,
-                                           pint_t fdeStart, R &registers,
-                                           bool &isSignalFrame, bool stage2) {
+int DwarfInstructions<A, R>::stepWithDwarf(
+    A &addressSpace, typename R::link_hardened_reg_arg_t pc, pint_t fdeStart,
+    R &registers, bool &isSignalFrame, bool stage2) {
   FDE_Info fdeInfo;
   CIE_Info cieInfo;
   if (CFI_Parser<A>::decodeFDE(addressSpace, fdeStart, &fdeInfo, &cieInfo) ==
       NULL) {
     PrologInfo prolog;
-    if (CFI_Parser<A>::parseFDEInstructions(addressSpace, fdeInfo, cieInfo,
-                                            pc.address(), R::getArch(),
+    if (CFI_Parser<A>::template parseFDEInstructions<R>(
+            addressSpace, fdeInfo, cieInfo, pc.address(), R::getArch(),
                                             &prolog)) {
       // get pointer to cfa (architecture specific)
       bool cfa_valid = false;

@@ -207,6 +207,14 @@ usize internal_strlcat(char *dst, const char *src, usize maxlen) {
   return dstlen + srclen;
 }
 
+char* internal_strcat(char* dst, const char* src) {
+  uptr len = internal_strlen(dst);
+  uptr i;
+  for (i = 0; src[i]; i++) dst[len + i] = src[i];
+  dst[len + i] = 0;
+  return dst;
+}
+
 char *internal_strncat(char *dst, const char *src, usize n) {
   usize len = internal_strlen(dst);
   usize i;

@@ -90,6 +90,7 @@ public:
 
   typedef uint32_t reg_t;
   typedef uint32_t link_reg_t;
+  typedef const link_reg_t &link_hardened_reg_arg_t;
 
   bool        validRegister(int num) const;
   uint32_t    getRegister(int num) const;
@@ -312,6 +313,7 @@ public:
 
   typedef uint64_t reg_t;
   typedef uint64_t link_reg_t;
+  typedef const link_reg_t &link_hardened_reg_arg_t;
 
   bool        validRegister(int num) const;
   uint64_t    getRegister(int num) const;
@@ -635,6 +637,7 @@ public:
 
   typedef uint32_t reg_t;
   typedef uint32_t link_reg_t;
+  typedef const link_reg_t &link_hardened_reg_arg_t;
 
   bool        validRegister(int num) const;
   uint32_t    getRegister(int num) const;
@@ -1211,6 +1214,7 @@ public:
 
   typedef uint64_t reg_t;
   typedef uint64_t link_reg_t;
+  typedef const link_reg_t &link_hardened_reg_arg_t;
 
   bool        validRegister(int num) const;
   uint64_t    getRegister(int num) const;
@@ -1877,6 +1881,14 @@ public:
   typedef uint64_t reg_t;
   typedef uint64_t __ptrauth_unwind_registers_arm64_link_reg link_reg_t;
 
+  // Use `link_hardened_reg_arg_t` to pass values of `link_reg_t` type as
+  // function arguments. We need to use a const l-value reference to keep
+  // signature of `__ptrauth`-qualified values of `link_reg_t` type on AArch64
+  // PAuth-enabled ABI intact. Passing the raw pointer by value would cause
+  // authentication on the caller side and make the pointer prone to
+  // substitution if spilled to the stack in the callee.
+  typedef const link_reg_t &link_hardened_reg_arg_t;
+
   bool        validRegister(int num) const;
   uintptr_t   getRegister(int num) const;
   void        setRegister(int num, uintptr_t value);
@@ -2404,6 +2416,7 @@ public:
 
   typedef uint32_t reg_t;
   typedef uint32_t link_reg_t;
+  typedef const link_reg_t &link_hardened_reg_arg_t;
 
   bool        validRegister(int num) const;
   uint32_t    getRegister(int num) const;
@@ -2913,6 +2926,7 @@ public:
 
   typedef uint32_t reg_t;
   typedef uint32_t link_reg_t;
+  typedef const link_reg_t &link_hardened_reg_arg_t;
 
   bool        validRegister(int num) const;
   uint32_t    getRegister(int num) const;
@@ -3116,6 +3130,7 @@ public:
 
   typedef uint32_t reg_t;
   typedef uint32_t link_reg_t;
+  typedef const link_reg_t &link_hardened_reg_arg_t;
 
   bool        validRegister(int num) const;
   uint32_t    getRegister(int num) const;
@@ -3458,6 +3473,7 @@ public:
 
   typedef uint64_t reg_t;
   typedef uint64_t link_reg_t;
+  typedef const link_reg_t &link_hardened_reg_arg_t;
 
   bool        validRegister(int num) const;
   uint64_t    getRegister(int num) const;
@@ -4121,6 +4137,7 @@ public:
 
   typedef uint32_t reg_t;
   typedef uint32_t link_reg_t;
+  typedef const link_reg_t &link_hardened_reg_arg_t;
 
   bool        validRegister(int num) const;
   uint32_t    getRegister(int num) const;
@@ -4310,6 +4327,7 @@ public:
 
   typedef uint64_t reg_t;
   typedef uint64_t link_reg_t;
+  typedef const link_reg_t &link_hardened_reg_arg_t;
 
   bool validRegister(int num) const;
   uint64_t getRegister(int num) const;
@@ -4498,6 +4516,7 @@ public:
 
   typedef uint32_t reg_t;
   typedef uint32_t link_reg_t;
+  typedef const link_reg_t &link_hardened_reg_arg_t;
 
   bool        validRegister(int num) const;
   uint32_t    getRegister(int num) const;
@@ -4708,6 +4727,7 @@ public:
 
   typedef ::libunwind::reg_t reg_t;
   typedef ::libunwind::reg_t link_reg_t;
+  typedef const link_reg_t &link_hardened_reg_arg_t;
   bool        validRegister(int num) const;
   reg_t       getRegister(int num) const;
   void        setRegister(int num, reg_t value);
@@ -5042,6 +5062,7 @@ public:
 
   typedef uint64_t reg_t;
   typedef uint64_t link_reg_t;
+  typedef const link_reg_t &link_hardened_reg_arg_t;
 
   bool        validRegister(int num) const;
   uint64_t    getRegister(int num) const;
@@ -5488,6 +5509,7 @@ public:
 
   typedef uint64_t reg_t;
   typedef uint64_t link_reg_t;
+  typedef const link_reg_t &link_hardened_reg_arg_t;
 
   bool        validRegister(int num) const;
   uint64_t    getRegister(int num) const;
@@ -5779,6 +5801,7 @@ public:
 
   typedef uint64_t reg_t;
   typedef uint64_t link_reg_t;
+  typedef const link_reg_t &link_hardened_reg_arg_t;
 
   bool validRegister(int num) const;
   uint64_t getRegister(int num) const;

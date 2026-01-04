@@ -38,8 +38,9 @@ public:
 
   static bool decodeEHHdr(A &addressSpace, pint_t ehHdrStart, pint_t ehHdrEnd,
                           EHHeaderInfo &ehHdrInfo);
-  static bool findFDE(A &addressSpace, pc_t pc, pint_t ehHdrStart,
-                      size_t sectionLength,
+  template <typename R>
+  static bool findFDE(A &addressSpace, typename R::link_hardened_reg_arg_t pc,
+                      pint_t ehHdrStart, uint32_t sectionLength,
                       typename CFI_Parser<A>::FDE_Info *fdeInfo,
                       typename CFI_Parser<A>::CIE_Info *cieInfo);
 
@@ -114,8 +115,10 @@ bool EHHeaderParser<A>::decodeTableEntry(
 }
 
 template <typename A>
-bool EHHeaderParser<A>::findFDE(A &addressSpace, pc_t pc, pint_t ehHdrStart,
-                                size_t sectionLength,
+template <typename R>
+bool EHHeaderParser<A>::findFDE(A &addressSpace,
+                                typename R::link_hardened_reg_arg_t pc,
+                                pint_t ehHdrStart, uint32_t sectionLength,
                                 typename CFI_Parser<A>::FDE_Info *fdeInfo,
                                 typename CFI_Parser<A>::CIE_Info *cieInfo) {
   pint_t ehHdrEnd = ehHdrStart + sectionLength;

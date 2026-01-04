@@ -333,9 +333,15 @@ public:
 
   pint_t getEncodedP(pint_t &addr, pint_t end, uint8_t encoding,
                      pint_t datarelBase = 0, pint_t *resultAddr = nullptr);
-  bool findFunctionName(pc_t ip, char *buf, size_t bufLen, unw_word_t *offset);
-  bool findUnwindSections(pc_t targetAddr, UnwindInfoSections &info);
-  bool findOtherFDE(addr_t targetAddr, pint_t &fde);
+  template <typename R>
+  bool findFunctionName(typename R::link_hardened_reg_arg_t addr, char *buf,
+                        size_t bufLen, unw_word_t *offset);
+  template <typename R>
+  bool findUnwindSections(typename R::link_hardened_reg_arg_t targetAddr,
+                          UnwindInfoSections &info);
+  template <typename R>
+  bool findOtherFDE(typename R::link_hardened_reg_arg_t targetAddr,
+                    pint_t &fde);
 
   static LocalAddressSpace sThisAddressSpace;
 
@@ -827,9 +833,9 @@ static int findUnwindSectionsByPhdr(struct dl_phdr_info *pinfo,
 
 #endif  // defined(_LIBUNWIND_USE_DL_ITERATE_PHDR)
 
-
-inline bool LocalAddressSpace::findUnwindSections(pc_t targetAddr,
-                                                  UnwindInfoSections &info) {
+template <typename R>
+inline bool LocalAddressSpace::findUnwindSections(
+    typename R::link_hardened_reg_arg_t targetAddr, UnwindInfoSections &info) {
 #ifdef __APPLE__
   dyld_unwind_sections dyldInfo;
   if (_dyld_find_unwind_sections(targetAddr.get(), &dyldInfo)) {
@@ -1002,16 +1008,21 @@ inline bool LocalAddressSpace::findUnwindSections(pc_t targetAddr,
   return false;
 }
 
-inline bool LocalAddressSpace::findOtherFDE(addr_t targetAddr, pint_t &fde) {
+template <typename R>
+inline bool
+LocalAddressSpace::findOtherFDE(typename R::link_hardened_reg_arg_t targetAddr,
+                                pint_t &fde) {
   // TO DO: if OS has way to dynamically register FDEs, check that.
   (void)targetAddr;
   (void)fde;
   return false;
 }
 
-inline bool LocalAddressSpace::findFunctionName(pc_t ip, char *buf,
-                                                size_t bufLen,
-                                                unw_word_t *offset) {
+template <typename R>
+inline bool
+LocalAddressSpace::findFunctionName(typename R::link_hardened_reg_arg_t addr,
+                                    char *buf, size_t bufLen,
+                                    unw_word_t *offset) {
 #if _LIBUNWIND_USE_DLADDR
   Dl_info dyldInfo;
   CHERI_DBG("%s(0x%jx: %#p))\n", __func__, (uintmax_t)ip.address(),

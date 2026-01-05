@@ -2403,8 +2403,12 @@ void CodeGenFunction::EmitAggregateCopy(LValue Dest, LValue Src, QualType Ty,
     }
   }
 
-  auto *Inst = Builder.CreateMemCpy(DestPtr, SrcPtr, SizeVal,
-                                   llvm::PreserveCheriTags::TODO, isVolatile);
+  auto PCT = llvm::PreserveCheriTags::Required;
+  const RecordType *RecordTy = Ty->getAs<RecordType>();
+  if (RecordTy && !getContext().containsCapabilities(RecordTy->getDecl()))
+    PCT = llvm::PreserveCheriTags::Unnecessary;
+
+  auto *Inst = Builder.CreateMemCpy(DestPtr, SrcPtr, SizeVal, PCT, isVolatile);
   addInstToCurrentSourceAtom(Inst, nullptr);
 
   // Determine the metadata to describe the position of any padding in this

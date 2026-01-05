@@ -32,7 +32,7 @@ int test_struct_with_array1(struct_with_array *s, long index) {
 // CHECK-SAME: (ptr addrspace(200) dead_on_unwind noalias writable writeonly sret([[STRUCT_STRUCT_WITH_ARRAY:%.*]]) align 8 captures(none) initializes((0, 56)) [[AGG_RESULT:%.*]], ptr addrspace(200) noundef readonly captures(none) [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [[STRUCT_STRUCT_WITH_ARRAY]], ptr addrspace(200) [[S]], i64 [[INDEX]]
-// CHECK-NEXT:    tail call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 8 dereferenceable(56) [[AGG_RESULT]], ptr addrspace(200) noundef nonnull align 8 dereferenceable(56) [[ARRAYIDX]], i64 56, i1 false), !tbaa.struct [[TBAA_STRUCT6:![0-9]+]]
+// CHECK-NEXT:    tail call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 8 dereferenceable(56) [[AGG_RESULT]], ptr addrspace(200) noundef nonnull align 8 dereferenceable(56) [[ARRAYIDX]], i64 56, i1 false) #[[ATTR1:[0-9]+]], !tbaa.struct [[TBAA_STRUCT6:![0-9]+]]
 // CHECK-NEXT:    ret void
 //
 struct_with_array test_struct_with_array2(struct_with_array *s, long index) {
@@ -63,7 +63,7 @@ int test_struct_with_ptr1(struct_with_ptr *s, long index) {
 // CHECK-SAME: (ptr addrspace(200) dead_on_unwind noalias writable writeonly sret([[STRUCT_STRUCT_WITH_PTR:%.*]]) align 16 captures(none) initializes((0, 48)) [[AGG_RESULT:%.*]], ptr addrspace(200) noundef readonly captures(none) [[S:%.*]], i64 noundef signext [[INDEX:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[ARRAYIDX:%.*]] = getelementptr inbounds [[STRUCT_STRUCT_WITH_PTR]], ptr addrspace(200) [[S]], i64 [[INDEX]]
-// CHECK-NEXT:    tail call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(48) [[AGG_RESULT]], ptr addrspace(200) noundef nonnull align 16 dereferenceable(48) [[ARRAYIDX]], i64 48, i1 false), !tbaa.struct [[TBAA_STRUCT13:![0-9]+]]
+// CHECK-NEXT:    tail call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(48) [[AGG_RESULT]], ptr addrspace(200) noundef nonnull align 16 dereferenceable(48) [[ARRAYIDX]], i64 48, i1 false) #[[ATTR13:[0-9]+]], !tbaa.struct [[TBAA_STRUCT13:![0-9]+]]
 // CHECK-NEXT:    ret void
 //
 struct_with_ptr test_struct_with_ptr2(struct_with_ptr *s, long index) {

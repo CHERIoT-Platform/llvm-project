@@ -82,6 +82,7 @@ add_llvm_component_library(LLVMCodeGen
   IndirectBrExpandPass.cpp
   InitUndef.cpp
   InlineSpiller.cpp
+  InsertCodePrefetch.cpp
   InterferenceCache.cpp
   InterleavedAccessPass.cpp
   InterleavedLoadCombinePass.cpp

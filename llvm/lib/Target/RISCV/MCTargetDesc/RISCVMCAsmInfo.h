@@ -14,6 +14,7 @@
 #define LLVM_LIB_TARGET_RISCV_MCTARGETDESC_RISCVMCASMINFO_H
 
 #include "RISCVBaseInfo.h"
+#include "llvm/MC/MCAsmInfoDarwin.h"
 #include "llvm/MC/MCAsmInfoELF.h"
 #include "llvm/MC/MCFixup.h"
 
@@ -59,6 +60,11 @@ enum {
 Specifier parseSpecifierName(StringRef name);
 StringRef getSpecifierName(Specifier Kind);
 } // namespace RISCV
+
+class RISCVMCAsmInfoDarwin : public MCAsmInfoDarwin {
+public:
+  explicit RISCVMCAsmInfoDarwin();
+};
 
 } // namespace llvm
 

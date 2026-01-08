@@ -67,6 +67,11 @@ public:
                                         const MCExpr *Addend) const override;
 };
 
+class RISCVMachOTargetObjectFile : public TargetLoweringObjectFileMachO {
+public:
+  RISCVMachOTargetObjectFile() {};
+};
+
 } // end namespace llvm
 
 #endif

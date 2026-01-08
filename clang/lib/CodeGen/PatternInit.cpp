@@ -63,7 +63,7 @@ llvm::Constant *clang::CodeGen::initializationPatternFor(CodeGenModule &CGM,
           llvm::IntegerType::get(CGM.getLLVMContext(), PtrRange);
 
       llvm::Constant *NullPtr = llvm::Constant::getNullValue(NullPtrTy);
-      llvm::Constant *Int = llvm::ConstantInt::get(IntTy, IntValue);
+      llvm::Constant *Int = llvm::ConstantInt::get(IntTy, IntValue, false, true);
       llvm::Constant *I8Ptr = llvm::ConstantExpr::getGetElementPtr(I8Ty, NullPtr, Int);
       return llvm::ConstantExpr::getBitCast(I8Ptr, PtrTy);
     } else {

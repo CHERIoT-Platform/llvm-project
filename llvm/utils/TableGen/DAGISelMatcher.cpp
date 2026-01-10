@@ -7,10 +7,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "DAGISelMatcher.h"
-#include "CodeGenDAGPatterns.h"
-#include "CodeGenInstruction.h"
-#include "CodeGenRegisters.h"
-#include "CodeGenTarget.h"
+#include "Common/CodeGenDAGPatterns.h"
+#include "Common/CodeGenInstruction.h"
+#include "Common/CodeGenRegisters.h"
+#include "Common/CodeGenTarget.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/TableGen/Record.h"
 using namespace llvm;
@@ -321,14 +321,6 @@ static bool TypesAreContradictory(MVT T1, MVT T2) {
   // contradict.
   if (T1 == T2)
     return false;
-
-  if (T1 == MVT::pAny)
-    return TypesAreContradictory(MVT::iPTR, T2) &&
-           TypesAreContradictory(MVT::cPTR, T2);
-
-  if (T2 == MVT::pAny)
-    return TypesAreContradictory(T1, MVT::iPTR) &&
-           TypesAreContradictory(T1, MVT::cPTR);
 
   if (T1 == MVT::pAny)
     return TypesAreContradictory(MVT::iPTR, T2) &&

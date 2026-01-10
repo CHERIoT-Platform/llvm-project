@@ -288,6 +288,7 @@ class SizeClassAllocator32 {
   uptr ComputeRegionId(vaddr mem) const {
     if (SANITIZER_SIGN_EXTENDED_ADDRESSES)
       mem &= (kSpaceSize - 1);
+    mem -= kSpaceBeg;
     const usize res = (usize)mem >> kRegionSizeLog;
     CHECK_LT(res, kNumPossibleRegions);
     return res;

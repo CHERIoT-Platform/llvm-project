@@ -184,6 +184,10 @@ if( NOT CLANG_BUILT_STANDALONE )
     yaml2obj
     )
 
+  if(TARGET lld)
+    list(APPEND CLANG_TEST_DEPS lld)
+  endif()
+
   if (TARGET llvm-rc)
     list(APPEND LLVM_TEST_DEPENDS llvm-rc llvm-windres)
   endif()

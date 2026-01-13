@@ -1162,6 +1162,7 @@ private:
   SDValue WidenVecOp_VP_REDUCE(SDNode *N);
   SDValue WidenVecOp_ExpOp(SDNode *N);
   SDValue WidenVecOp_VP_CttzElements(SDNode *N);
+  SDValue WidenVecOp_VECTOR_FIND_LAST_ACTIVE(SDNode *N);
 
   /// Helper function to generate a set of operations to perform
   /// a vector operation for a wider type.

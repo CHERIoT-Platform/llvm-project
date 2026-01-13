@@ -689,6 +689,7 @@ void RISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
                                          MachineInstr::MIFlag Flags) const {
   MachineFunction *MF = MBB.getParent();
   MachineFrameInfo &MFI = MF->getFrameInfo();
+  Align Alignment = MFI.getObjectAlign(FI);
 
   unsigned Opcode;
   if (RISCVABI::isCheriPureCapABI(STI.getTargetABI())) {
@@ -717,7 +718,12 @@ void RISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
   } else if (RISCV::GPRF32RegClass.hasSubClassEq(RC)) {
     Opcode = RISCV::SW_INX;
   } else if (RISCV::GPRPairRegClass.hasSubClassEq(RC)) {
-    Opcode = RISCV::PseudoRV32ZdinxSD;
+    if (!STI.is64Bit() && STI.hasStdExtZilsd() &&
+        Alignment >= STI.getZilsdAlign()) {
+      Opcode = RISCV::SD_RV32;
+    } else {
+      Opcode = RISCV::PseudoRV32ZdinxSD;
+    }
   } else if (RISCV::FPR16RegClass.hasSubClassEq(RC)) {
     Opcode = RISCV::FSH;
   } else if (RISCV::FPR32RegClass.hasSubClassEq(RC)) {
@@ -760,7 +766,7 @@ void RISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
   if (RISCVRegisterInfo::isRVVRegClass(RC)) {
     MachineMemOperand *MMO = MF->getMachineMemOperand(
         MachinePointerInfo::getFixedStack(*MF, FI), MachineMemOperand::MOStore,
-        TypeSize::getScalable(MFI.getObjectSize(FI)), MFI.getObjectAlign(FI));
+        TypeSize::getScalable(MFI.getObjectSize(FI)), Alignment);
 
     MFI.setStackID(FI, TargetStackID::ScalableVector);
     BuildMI(MBB, I, DebugLoc(), get(Opcode))
@@ -772,7 +778,7 @@ void RISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
   } else {
     MachineMemOperand *MMO = MF->getMachineMemOperand(
         MachinePointerInfo::getFixedStack(*MF, FI), MachineMemOperand::MOStore,
-        MFI.getObjectSize(FI), MFI.getObjectAlign(FI));
+        MFI.getObjectSize(FI), Alignment);
 
     BuildMI(MBB, I, DebugLoc(), get(Opcode))
         .addReg(SrcReg, getKillRegState(IsKill))
@@ -787,10 +793,11 @@ void RISCVInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                                           MachineBasicBlock::iterator I,
                                           Register DstReg, int FI,
                                           const TargetRegisterClass *RC,
-                                          Register VReg,
+                                          Register VReg, unsigned SubReg,
                                           MachineInstr::MIFlag Flags) const {
   MachineFunction *MF = MBB.getParent();
   MachineFrameInfo &MFI = MF->getFrameInfo();
+  Align Alignment = MFI.getObjectAlign(FI);
   DebugLoc DL =
       Flags & MachineInstr::FrameDestroy ? MBB.findDebugLoc(I) : DebugLoc();
 
@@ -821,7 +828,12 @@ void RISCVInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   } else if (RISCV::GPRF32RegClass.hasSubClassEq(RC)) {
     Opcode = RISCV::LW_INX;
   } else if (RISCV::GPRPairRegClass.hasSubClassEq(RC)) {
-    Opcode = RISCV::PseudoRV32ZdinxLD;
+    if (!STI.is64Bit() && STI.hasStdExtZilsd() &&
+        Alignment >= STI.getZilsdAlign()) {
+      Opcode = RISCV::LD_RV32;
+    } else {
+      Opcode = RISCV::PseudoRV32ZdinxLD;
+    }
   } else if (RISCV::FPR16RegClass.hasSubClassEq(RC)) {
     Opcode = RISCV::FLH;
   } else if (RISCV::FPR32RegClass.hasSubClassEq(RC)) {
@@ -864,7 +876,7 @@ void RISCVInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   if (RISCVRegisterInfo::isRVVRegClass(RC)) {
     MachineMemOperand *MMO = MF->getMachineMemOperand(
         MachinePointerInfo::getFixedStack(*MF, FI), MachineMemOperand::MOLoad,
-        TypeSize::getScalable(MFI.getObjectSize(FI)), MFI.getObjectAlign(FI));
+        TypeSize::getScalable(MFI.getObjectSize(FI)), Alignment);
 
     MFI.setStackID(FI, TargetStackID::ScalableVector);
     BuildMI(MBB, I, DL, get(Opcode), DstReg)
@@ -875,7 +887,7 @@ void RISCVInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   } else {
     MachineMemOperand *MMO = MF->getMachineMemOperand(
         MachinePointerInfo::getFixedStack(*MF, FI), MachineMemOperand::MOLoad,
-        MFI.getObjectSize(FI), MFI.getObjectAlign(FI));
+        MFI.getObjectSize(FI), Alignment);
 
     BuildMI(MBB, I, DL, get(Opcode), DstReg)
         .addFrameIndex(FI)
@@ -5138,6 +5150,14 @@ bool RISCV::isRVVSpill(const MachineInstr &MI) {
       !getLMULForRVVWholeLoadStore(Opcode) && !isRVVSpillForZvlsseg(Opcode))
     return false;
   return true;
+}
+
+/// Return true if \p MI is a copy that will be lowered to one or more vmvNr.vs.
+bool RISCV::isVectorCopy(const TargetRegisterInfo *TRI,
+                         const MachineInstr &MI) {
+  return MI.isCopy() && MI.getOperand(0).getReg().isPhysical() &&
+         RISCVRegisterInfo::isRVVRegClass(
+             TRI->getMinimalPhysRegClass(MI.getOperand(0).getReg()));
 }
 
 std::optional<std::pair<unsigned, unsigned>>

@@ -22,9 +22,11 @@
 #include "llvm/Analysis/VectorUtils.h"
 #include "llvm/IR/Cheri.h"
 #include "llvm/IR/ConstantRange.h"
+#include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/PatternMatch.h"
 #include "llvm/Support/KnownBits.h"
 #include "llvm/Transforms/InstCombine/InstCombiner.h"
@@ -6390,10 +6392,32 @@ Instruction *InstCombinerImpl::foldICmpWithCastOp(ICmpInst &ICmp) {
                         SimplifiedOp0 ? SimplifiedOp0 : ICmp.getOperand(0),
                         SimplifiedOp1 ? SimplifiedOp1 : ICmp.getOperand(1));
 
+  if (!isa<Constant>(ICmp.getOperand(1)) && !isa<CastInst>(ICmp.getOperand(1)))
+    return nullptr;
+
+  // CHERI-specific folding of calls to cheri_cap_address_get intrinsic:
+  // icmp eq ptr_size (call ptr_size @llvm.cheri.address.get %ptr), 0
+  // can be folded to
+  // icmp eq ptr %ptr, null
+  if (auto *MaybeCheriAddressGet = dyn_cast<CallInst>(ICmp.getOperand(0))) {
+    if (auto *Callee =
+            dyn_cast<Function>(MaybeCheriAddressGet->getCalledFunction())) {
+      if (Callee->isIntrinsic() &&
+          Callee->getIntrinsicID() == Intrinsic::cheri_cap_address_get) {
+        auto *Op0 = MaybeCheriAddressGet->getOperand(0);
+
+        if (auto *RHSC = dyn_cast<ConstantInt>(ICmp.getOperand(1))) {
+          if (RHSC->isZero() && RHSC->getType() == Callee->getReturnType()) {
+            return new ICmpInst(ICmp.getPredicate(), Op0,
+                                ConstantExpr::getNullValue(Op0->getType()));
+          }
+        }
+      }
+    }
+  }
+
   auto *CastOp0 = dyn_cast<CastInst>(ICmp.getOperand(0));
   if (!CastOp0)
-    return nullptr;
-  if (!isa<Constant>(ICmp.getOperand(1)) && !isa<CastInst>(ICmp.getOperand(1)))
     return nullptr;
 
   Value *Op0Src = CastOp0->getOperand(0);

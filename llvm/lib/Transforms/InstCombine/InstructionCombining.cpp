@@ -3437,7 +3437,11 @@ isAllocSiteRemovable(Instruction *AI, SmallVectorImpl<WeakTrackingVH> &Users,
         if (!ICI->isEquality())
           return std::nullopt;
         unsigned OtherIndex = (ICI->getOperand(0) == PI) ? 1 : 0;
-        if (!isNeverEqualToUnescapedAlloc(ICI->getOperand(OtherIndex), TLI, AI))
+        // CHERI: Needed to handle (icmp eq (cheri_cap_address_get ptr), 0)
+        auto *CI = dyn_cast<ConstantInt>(ICI->getOperand(OtherIndex));
+        bool IsIntZeroCmp = CI && CI->isZero();
+        if (!IsIntZeroCmp &&
+            !isNeverEqualToUnescapedAlloc(ICI->getOperand(OtherIndex), TLI, AI))
           return std::nullopt;
 
         // Do not fold compares to aligned_alloc calls, as they may have to
@@ -3495,6 +3499,7 @@ isAllocSiteRemovable(Instruction *AI, SmallVectorImpl<WeakTrackingVH> &Users,
             continue;
           case Intrinsic::launder_invariant_group:
           case Intrinsic::strip_invariant_group:
+          case Intrinsic::cheri_cap_address_get:
             Users.emplace_back(I);
             Worklist.push_back(I);
             continue;

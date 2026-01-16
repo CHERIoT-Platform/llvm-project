@@ -2667,26 +2667,28 @@ bool RISCVTTIImpl::isLegalBaseRegForLSR(const SCEV *S) const {
     // Disallow any SCEV where the base offset is negative.
     // This is needed because CHERIoT can't represent pointers before the
     // beginning of an array.
-    auto IsAddOfNegativeCst = [](const SCEVAddExpr *A) {
-      if (!A)
-        return false;
-      const auto *Offset = dyn_cast<SCEVConstant>(A->getOperand(0));
-      if (Offset && Offset->getValue()->isNegative())
-        return true;
-      Offset = dyn_cast<SCEVConstant>(A->getOperand(1));
-      if (Offset && Offset->getValue()->isNegative())
-        return true;
-      return false;
-    };
-
     if (const auto *AddRec = dyn_cast<SCEVAddRecExpr>(S)) {
       if (const auto *Cst = dyn_cast<SCEVConstant>(AddRec->getStart()))
         return !Cst->getValue()->isNegative();
-      return !IsAddOfNegativeCst(dyn_cast<SCEVAddExpr>(AddRec->getStart()));
+      return isLegalBaseRegForLSR(AddRec->getStart());
     }
 
-    return !IsAddOfNegativeCst(dyn_cast<SCEVAddExpr>(S));
+    if (const auto *A = dyn_cast<SCEVAddExpr>(S)) {
+      const auto *Offset0 = dyn_cast<SCEVConstant>(A->getOperand(0));
+      if (Offset0 && Offset0->getValue()->isNegative())
+        return false;
+      const auto *Offset1 = dyn_cast<SCEVConstant>(A->getOperand(1));
+      if (Offset1 && Offset1->getValue()->isNegative())
+        return false;
+      // noncst + noncst must be treated conservatively, as one of them
+      // could be negative.
+      if (!Offset0 && !Offset1)
+        return false;
+    }
+
+    return true;
   }
+
   return BasicTTIImplBase::isLegalBaseRegForLSR(S);
 }
 

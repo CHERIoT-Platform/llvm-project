@@ -94,6 +94,9 @@ Changes to Interprocedural Optimizations
 * Added `-enable-machine-outliner={optimistic-pgo,conservative-pgo}` to read
   profile data to guide the machine outliner
   ([#154437](https://github.com/llvm/llvm-project/pull/154437)).
+* Fixed static resolution of indirect calls to versioned functions on AArch64,
+  by separating unrelated caller versions which were previously mixed together.
+  Also improved the accuracy of the algorithm for low version counts.
 
 Changes to Vectorizers
 ----------------------------------------
@@ -140,6 +143,9 @@ Changes to the Hexagon Backend
 
 Changes to the LoongArch Backend
 --------------------------------
+
+* DWARF fission is now compatible with linker relaxations, allowing `-gsplit-dwarf` and `-mrelax`
+  to be used together when building for the LoongArch platform.
 
 Changes to the MIPS Backend
 ---------------------------

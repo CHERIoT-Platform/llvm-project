@@ -672,6 +672,8 @@ Miscellaneous Bug Fixes
 Miscellaneous Clang Crashes Fixed
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+- Fixed a crash when attempting to jump over initialization of a variable with variably modified type. (#GH175540)
+
 OpenACC Specific Changes
 ------------------------
 
@@ -703,6 +705,7 @@ X86 Support
 Arm and AArch64 Support
 ^^^^^^^^^^^^^^^^^^^^^^^
 - Support has been added for the following processors (command-line identifiers in parentheses):
+
   - Ampere Computing Ampere1C (``ampere1c``)
   - Arm C1-Nano (``c1-nano``)
   - Arm C1-Pro (``c1-pro``)
@@ -710,6 +713,11 @@ Arm and AArch64 Support
   - Arm C1-Ultra (``c1-ultra``)
 - More intrinsics for the following AArch64 instructions:
   FCVTZ[US], FCVTN[US], FCVTM[US], FCVTP[US], FCVTA[US]
+- Support level for Function Multi-Versioning (FMV) has been upgraded to Release in ACLE.
+
+  - Resolver functions can use the PAC and BTI hardening settings.
+  - Users can override function version priority.
+  - Unreachable function versions are diagnosed and ignored.
 
 Android Support
 ^^^^^^^^^^^^^^^
@@ -724,6 +732,9 @@ Windows Support
 LoongArch Support
 ^^^^^^^^^^^^^^^^^
 - Enable linker relaxation by default for loongarch64.
+
+- DWARF fission is now compatible with linker relaxations, allowing `-gsplit-dwarf` and `-mrelax`
+  to be used together when building for the LoongArch platform.
 
 RISC-V Support
 ^^^^^^^^^^^^^^

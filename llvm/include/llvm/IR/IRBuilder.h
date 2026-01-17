@@ -1955,21 +1955,13 @@ public:
   Value *CreateConstGEP1_32(Type *Ty, Value *Ptr, unsigned Idx0,
                             const Twine &Name = "") {
     Value *Idx = ConstantInt::get(Type::getInt32Ty(Context), Idx0);
-
-    if (auto *V = Folder.FoldGEP(Ty, Ptr, Idx, GEPNoWrapFlags::none()))
-      return V;
-
-    return Insert(GetElementPtrInst::Create(Ty, Ptr, Idx), Name);
+    return CreateGEP(Ty, Ptr, Idx, Name, GEPNoWrapFlags::none());
   }
 
   Value *CreateConstInBoundsGEP1_32(Type *Ty, Value *Ptr, unsigned Idx0,
                                     const Twine &Name = "") {
     Value *Idx = ConstantInt::get(Type::getInt32Ty(Context), Idx0);
-
-    if (auto *V = Folder.FoldGEP(Ty, Ptr, Idx, GEPNoWrapFlags::inBounds()))
-      return V;
-
-    return Insert(GetElementPtrInst::CreateInBounds(Ty, Ptr, Idx), Name);
+    return CreateGEP(Ty, Ptr, Idx, Name, GEPNoWrapFlags::inBounds());
   }
 
   Value *CreateConstGEP2_32(Type *Ty, Value *Ptr, unsigned Idx0, unsigned Idx1,
@@ -1979,11 +1971,7 @@ public:
       ConstantInt::get(Type::getInt32Ty(Context), Idx0),
       ConstantInt::get(Type::getInt32Ty(Context), Idx1)
     };
-
-    if (auto *V = Folder.FoldGEP(Ty, Ptr, Idxs, NWFlags))
-      return V;
-
-    return Insert(GetElementPtrInst::Create(Ty, Ptr, Idxs, NWFlags), Name);
+    return CreateGEP(Ty, Ptr, Idxs, Name, NWFlags);
   }
 
   Value *CreateConstInBoundsGEP2_32(Type *Ty, Value *Ptr, unsigned Idx0,
@@ -1992,31 +1980,19 @@ public:
       ConstantInt::get(Type::getInt32Ty(Context), Idx0),
       ConstantInt::get(Type::getInt32Ty(Context), Idx1)
     };
-
-    if (auto *V = Folder.FoldGEP(Ty, Ptr, Idxs, GEPNoWrapFlags::inBounds()))
-      return V;
-
-    return Insert(GetElementPtrInst::CreateInBounds(Ty, Ptr, Idxs), Name);
+    return CreateGEP(Ty, Ptr, Idxs, Name, GEPNoWrapFlags::inBounds());
   }
 
   Value *CreateConstGEP1_64(Type *Ty, Value *Ptr, uint64_t Idx0,
                             const Twine &Name = "") {
     Value *Idx = ConstantInt::get(Type::getInt64Ty(Context), Idx0);
-
-    if (auto *V = Folder.FoldGEP(Ty, Ptr, Idx, GEPNoWrapFlags::none()))
-      return V;
-
-    return Insert(GetElementPtrInst::Create(Ty, Ptr, Idx), Name);
+    return CreateGEP(Ty, Ptr, Idx, Name, GEPNoWrapFlags::none());
   }
 
   Value *CreateConstInBoundsGEP1_64(Type *Ty, Value *Ptr, uint64_t Idx0,
                                     const Twine &Name = "") {
     Value *Idx = ConstantInt::get(Type::getInt64Ty(Context), Idx0);
-
-    if (auto *V = Folder.FoldGEP(Ty, Ptr, Idx, GEPNoWrapFlags::inBounds()))
-      return V;
-
-    return Insert(GetElementPtrInst::CreateInBounds(Ty, Ptr, Idx), Name);
+    return CreateGEP(Ty, Ptr, Idx, Name, GEPNoWrapFlags::inBounds());
   }
 
   Value *CreateConstGEP2_64(Type *Ty, Value *Ptr, uint64_t Idx0, uint64_t Idx1,
@@ -2025,11 +2001,7 @@ public:
       ConstantInt::get(Type::getInt64Ty(Context), Idx0),
       ConstantInt::get(Type::getInt64Ty(Context), Idx1)
     };
-
-    if (auto *V = Folder.FoldGEP(Ty, Ptr, Idxs, GEPNoWrapFlags::none()))
-      return V;
-
-    return Insert(GetElementPtrInst::Create(Ty, Ptr, Idxs), Name);
+    return CreateGEP(Ty, Ptr, Idxs, Name, GEPNoWrapFlags::none());
   }
 
   Value *CreateConstInBoundsGEP2_64(Type *Ty, Value *Ptr, uint64_t Idx0,
@@ -2038,11 +2010,7 @@ public:
       ConstantInt::get(Type::getInt64Ty(Context), Idx0),
       ConstantInt::get(Type::getInt64Ty(Context), Idx1)
     };
-
-    if (auto *V = Folder.FoldGEP(Ty, Ptr, Idxs, GEPNoWrapFlags::inBounds()))
-      return V;
-
-    return Insert(GetElementPtrInst::CreateInBounds(Ty, Ptr, Idxs), Name);
+    return CreateGEP(Ty, Ptr, Idxs, Name, GEPNoWrapFlags::inBounds());
   }
 
   Value *CreateStructGEP(Type *Ty, Value *Ptr, unsigned Idx,

@@ -3066,6 +3066,8 @@ void CodeGenFunction::EmitMultiVersionResolver(
     return;
   case llvm::Triple::riscv32:
   case llvm::Triple::riscv64:
+  case llvm::Triple::riscv32be:
+  case llvm::Triple::riscv64be:
     EmitRISCVMultiVersionResolver(Resolver, Options);
     return;
 

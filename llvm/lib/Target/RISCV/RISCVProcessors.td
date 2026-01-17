@@ -882,6 +882,22 @@ def ANDES_AX45MPV : RISCVProcessorModel<"andes-ax45mpv",
                                          FeatureVendorXAndesPerf],
                                         Andes45TuneFeatures>;
 
+def ESPERANTO_SOC1 : RISCVProcessorModel<"et-soc1",
+                                         NoSchedModel,
+                                         [Feature64Bit,
+                                          FeatureStdExtM,
+                                          FeatureStdExtF,
+                                          FeatureStdExtC,
+                                          FeatureVendorXAIFET]>;
+
+def AINEKKO_ERBIUM : RISCVProcessorModel<"an-erbium",
+                                         NoSchedModel,
+                                         [Feature64Bit,
+                                          FeatureStdExtM,
+                                          FeatureStdExtF,
+                                          FeatureStdExtC,
+                                          FeatureVendorXAIFET]>;
+
 // NB: FeatureCheri =>'s RVC (!FeatureCheriNoRVC)
 def CHERIOT
     : RISCVProcessorModel<"cheriot", NoSchedModel,

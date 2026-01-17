@@ -235,7 +235,9 @@ createTargetCodeGenInfo(CodeGenModule &CGM) {
     return createMSP430TargetCodeGenInfo(CGM);
 
   case llvm::Triple::riscv32:
-  case llvm::Triple::riscv64: {
+  case llvm::Triple::riscv64:
+  case llvm::Triple::riscv32be:
+  case llvm::Triple::riscv64be: {
     StringRef ABIStr = Target.getABI();
     unsigned XLen = Target.getPointerRange(LangAS::Default);
     unsigned ABIFLen = 0;
@@ -1849,6 +1851,12 @@ void CodeGenModule::ErrorUnsupported(const Stmt *S, const char *Type) {
   getDiags().Report(Context.getFullLoc(S->getBeginLoc()),
                     diag::err_codegen_unsupported)
       << Msg << S->getSourceRange();
+}
+
+void CodeGenModule::ErrorUnsupported(const Stmt *S, llvm::StringRef Type) {
+  getDiags().Report(Context.getFullLoc(S->getBeginLoc()),
+                    diag::err_codegen_unsupported)
+      << Type << S->getSourceRange();
 }
 
 /// ErrorUnsupported - Print out an error that codegen doesn't support the

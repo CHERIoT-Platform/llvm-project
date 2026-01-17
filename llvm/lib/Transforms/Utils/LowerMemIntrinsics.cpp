@@ -13,14 +13,22 @@
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/MDBuilder.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IR/ProfDataUtils.h"
+#include "llvm/ProfileData/InstrProf.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
+#include "llvm/Transforms/Utils/LoopUtils.h"
+#include <limits>
 #include <optional>
 
 #define DEBUG_TYPE "lower-mem-intrinsics"
 
 using namespace llvm;
+
+namespace llvm {
+extern cl::opt<bool> ProfcheckDisableMetadataFixes;
+}
 
 /// \returns \p Len urem \p OpSize, checking for optimization opportunities.
 /// \p OpSizeVal must be the integer value of the \c ConstantInt \p OpSize.
@@ -61,6 +69,28 @@ struct LoopExpansionInfo {
   /// required.
   Value *ResidualLoopIndex = nullptr;
 };
+
+std::optional<uint64_t> getAverageMemOpLoopTripCount(const MemIntrinsic &I) {
+  if (ProfcheckDisableMetadataFixes)
+    return std::nullopt;
+  if (std::optional<Function::ProfileCount> EC =
+          I.getFunction()->getEntryCount();
+      !EC || !EC->getCount())
+    return std::nullopt;
+  if (const auto Len = I.getLengthInBytes())
+    return Len->getZExtValue();
+  uint64_t Total = 0;
+  SmallVector<InstrProfValueData> ProfData =
+      getValueProfDataFromInst(I, InstrProfValueKind::IPVK_MemOPSize,
+                               std::numeric_limits<uint32_t>::max(), Total);
+  if (!Total)
+    return std::nullopt;
+  uint64_t TripCount = 0;
+  for (const auto &P : ProfData)
+    TripCount += P.Count * P.Value;
+  return std::round(1.0 * TripCount / Total);
+}
+
 } // namespace
 
 /// Insert the control flow and loop counters for a memcpy/memset loop
@@ -95,10 +125,11 @@ struct LoopExpansionInfo {
 /// to \p MainLoopStep.
 /// The generated \c MainLoopIP, \c MainLoopIndex, \c ResidualLoopIP, and
 /// \c ResidualLoopIndex are returned in a \c LoopExpansionInfo object.
-static LoopExpansionInfo insertLoopExpansion(Instruction *InsertBefore,
-                                             Value *Len, unsigned MainLoopStep,
-                                             unsigned ResidualLoopStep,
-                                             StringRef BBNamePrefix) {
+static LoopExpansionInfo
+insertLoopExpansion(Instruction *InsertBefore, Value *Len,
+                    unsigned MainLoopStep, unsigned ResidualLoopStep,
+                    StringRef BBNamePrefix,
+                    std::optional<uint64_t> AverageTripCount) {
   assert((ResidualLoopStep == 0 || MainLoopStep % ResidualLoopStep == 0) &&
          "ResidualLoopStep must divide MainLoopStep if specified");
   assert(ResidualLoopStep <= MainLoopStep &&
@@ -176,9 +207,19 @@ static LoopExpansionInfo insertLoopExpansion(Instruction *InsertBefore,
     ConstantInt *Zero = ConstantInt::get(ILenType, 0U);
     if (MustTakeMainLoop)
       PreLoopBuilder.CreateBr(MainLoopBB);
-    else
-      PreLoopBuilder.CreateCondBr(PreLoopBuilder.CreateICmpNE(LoopUnits, Zero),
-                                  MainLoopBB, ResidualCondBB);
+    else {
+      auto *BR = PreLoopBuilder.CreateCondBr(
+          PreLoopBuilder.CreateICmpNE(LoopUnits, Zero), MainLoopBB,
+          ResidualCondBB);
+      if (AverageTripCount.has_value()) {
+        MDBuilder MDB(ParentFunc->getContext());
+        setFittedBranchWeights(*BR,
+                               {AverageTripCount.value() % MainLoopStep, 1},
+                               /*IsExpected=*/false);
+      } else {
+        setExplicitlyUnknownBranchWeightsIfProfiled(*BR, DEBUG_TYPE);
+      }
+    }
     PreLoopBB->getTerminator()->eraseFromParent();
 
     // Stay in the MainLoop until we have handled all the LoopUnits. Then go to
@@ -223,22 +264,32 @@ static LoopExpansionInfo insertLoopExpansion(Instruction *InsertBefore,
       PreLoopBuilder.CreateBr(MainLoopBB);
     } else {
       ConstantInt *Zero = ConstantInt::get(ILenType, 0U);
+      MDBuilder B(ParentFunc->getContext());
       PreLoopBuilder.CreateCondBr(PreLoopBuilder.CreateICmpNE(LoopUnits, Zero),
-                                  MainLoopBB, PostLoopBB);
+                                  MainLoopBB, PostLoopBB,
+                                  B.createLikelyBranchWeights());
     }
     PreLoopBB->getTerminator()->eraseFromParent();
     // Stay in the MainLoop until we have handled all the LoopUnits.
-    LoopBuilder.CreateCondBr(LoopBuilder.CreateICmpULT(NewIndex, LoopUnits),
-                             MainLoopBB, PostLoopBB);
+    auto *Br = LoopBuilder.CreateCondBr(
+        LoopBuilder.CreateICmpULT(NewIndex, LoopUnits), MainLoopBB, PostLoopBB);
+    if (AverageTripCount.has_value())
+      setFittedBranchWeights(*Br, {AverageTripCount.value() / MainLoopStep, 1},
+                             /*IsExpected=*/false);
+    else
+      setExplicitlyUnknownBranchWeightsIfProfiled(*Br, DEBUG_TYPE);
   }
   return LEI;
 }
 
-void llvm::createMemCpyLoopKnownSize(
-    Instruction *InsertBefore, Value *SrcAddr, Value *DstAddr,
-    ConstantInt *CopyLen, Align SrcAlign, Align DstAlign, bool SrcIsVolatile,
-    bool DstIsVolatile, bool CanOverlap, const TargetTransformInfo &TTI,
-    std::optional<uint32_t> AtomicElementSize) {
+void llvm::createMemCpyLoopKnownSize(Instruction *InsertBefore, Value *SrcAddr,
+                                     Value *DstAddr, ConstantInt *CopyLen,
+                                     Align SrcAlign, Align DstAlign,
+                                     bool SrcIsVolatile, bool DstIsVolatile,
+                                     bool CanOverlap,
+                                     const TargetTransformInfo &TTI,
+                                     std::optional<uint32_t> AtomicElementSize,
+                                     std::optional<uint64_t> AverageTripCount) {
   assert(!InsertBefore->getModule()->getDataLayout().hasCheriCapabilities() &&
          "Should not expand memcpy in IR for CHERI until hooks are updated");
   // No need to expand zero length copies.
@@ -272,8 +323,9 @@ void llvm::createMemCpyLoopKnownSize(
 
   // Skip the loop expansion entirely if the loop would never be taken.
   if (LoopEndCount != 0) {
-    LoopExpansionInfo LEI = insertLoopExpansion(InsertBefore, CopyLen,
-                                                LoopOpSize, 0, "static-memcpy");
+    LoopExpansionInfo LEI =
+        insertLoopExpansion(InsertBefore, CopyLen, LoopOpSize, 0,
+                            "static-memcpy", AverageTripCount);
 
     // Fill MainLoopBB
     IRBuilder<> MainLoopBuilder(LEI.MainLoopIP);
@@ -360,7 +412,8 @@ void llvm::createMemCpyLoopUnknownSize(
     Instruction *InsertBefore, Value *SrcAddr, Value *DstAddr, Value *CopyLen,
     Align SrcAlign, Align DstAlign, bool SrcIsVolatile, bool DstIsVolatile,
     bool CanOverlap, const TargetTransformInfo &TTI,
-    std::optional<uint32_t> AtomicElementSize) {
+    std::optional<uint32_t> AtomicElementSize,
+    std::optional<uint64_t> AverageTripCount) {
   assert(!InsertBefore->getModule()->getDataLayout().hasCheriCapabilities() &&
          "Should not expand memcpy in IR for CHERI until hooks are updated");
   BasicBlock *PreLoopBB = InsertBefore->getParent();
@@ -392,8 +445,9 @@ void llvm::createMemCpyLoopUnknownSize(
   assert(ResidualLoopOpSize == (AtomicElementSize ? *AtomicElementSize : 1) &&
          "Store size is expected to match type size");
 
-  LoopExpansionInfo LEI = insertLoopExpansion(
-      InsertBefore, CopyLen, LoopOpSize, ResidualLoopOpSize, "dynamic-memcpy");
+  LoopExpansionInfo LEI =
+      insertLoopExpansion(InsertBefore, CopyLen, LoopOpSize, ResidualLoopOpSize,
+                          "dynamic-memcpy", AverageTripCount);
 
   // Fill MainLoopBB
   IRBuilder<> MainLoopBuilder(LEI.MainLoopIP);
@@ -938,6 +992,7 @@ static void createMemMoveLoopKnownSize(Instruction *InsertBefore,
 
 static void createMemSetLoop(Instruction *InsertBefore, Value *DstAddr,
                              Value *CopyLen, Value *SetValue, Align DstAlign,
+                             std::optional<uint64_t> AverageTripCount,
                              bool IsVolatile) {
   Type *TypeOfCopyLen = CopyLen->getType();
   BasicBlock *OrigBB = InsertBefore->getParent();
@@ -950,9 +1005,16 @@ static void createMemSetLoop(Instruction *InsertBefore, Value *DstAddr,
 
   IRBuilder<> Builder(OrigBB->getTerminator());
 
-  Builder.CreateCondBr(
+  auto *ToLoopBR = Builder.CreateCondBr(
       Builder.CreateICmpEQ(ConstantInt::get(TypeOfCopyLen, 0), CopyLen), NewBB,
       LoopBB);
+  MDBuilder MDB(F->getContext());
+  if (AverageTripCount.has_value())
+    ToLoopBR->setMetadata(LLVMContext::MD_prof,
+                          MDB.createLikelyBranchWeights());
+  else
+    setExplicitlyUnknownBranchWeightsIfProfiled(*ToLoopBR, DEBUG_TYPE);
+
   OrigBB->getTerminator()->eraseFromParent();
 
   unsigned PartSize = DL.getTypeStoreSize(SetValue->getType());
@@ -971,8 +1033,13 @@ static void createMemSetLoop(Instruction *InsertBefore, Value *DstAddr,
       LoopBuilder.CreateAdd(LoopIndex, ConstantInt::get(TypeOfCopyLen, 1));
   LoopIndex->addIncoming(NewIndex, LoopBB);
 
-  LoopBuilder.CreateCondBr(LoopBuilder.CreateICmpULT(NewIndex, CopyLen), LoopBB,
-                           NewBB);
+  auto *LoopBR = LoopBuilder.CreateCondBr(
+      LoopBuilder.CreateICmpULT(NewIndex, CopyLen), LoopBB, NewBB);
+  if (AverageTripCount.has_value())
+    setFittedBranchWeights(*LoopBR, {AverageTripCount.value(), 1},
+                           /*IsExpected=*/false);
+  else
+    setExplicitlyUnknownBranchWeightsIfProfiled(*LoopBR, DEBUG_TYPE);
 }
 
 template <typename T>
@@ -990,6 +1057,7 @@ void llvm::expandMemCpyAsLoop(MemCpyInst *Memcpy,
                               const TargetTransformInfo &TTI,
                               ScalarEvolution *SE) {
   bool CanOverlap = canOverlap(Memcpy, SE);
+  auto TripCount = getAverageMemOpLoopTripCount(*Memcpy);
   if (ConstantInt *CI = dyn_cast<ConstantInt>(Memcpy->getLength())) {
     createMemCpyLoopKnownSize(
         /* InsertBefore */ Memcpy,
@@ -1001,7 +1069,9 @@ void llvm::expandMemCpyAsLoop(MemCpyInst *Memcpy,
         /* SrcIsVolatile */ Memcpy->isVolatile(),
         /* DstIsVolatile */ Memcpy->isVolatile(),
         /* CanOverlap */ CanOverlap,
-        /* TargetTransformInfo */ TTI);
+        /* TargetTransformInfo */ TTI,
+        /* AtomicElementSize */ std::nullopt,
+        /* AverageTripCount */ TripCount);
   } else {
     createMemCpyLoopUnknownSize(
         /* InsertBefore */ Memcpy,
@@ -1013,7 +1083,9 @@ void llvm::expandMemCpyAsLoop(MemCpyInst *Memcpy,
         /* SrcIsVolatile */ Memcpy->isVolatile(),
         /* DstIsVolatile */ Memcpy->isVolatile(),
         /* CanOverlap */ CanOverlap,
-        /* TargetTransformInfo */ TTI);
+        /* TargetTransformInfo */ TTI,
+        /* AtomicElementSize */ std::nullopt,
+        /* AverageTripCount */ TripCount);
   }
 }
 
@@ -1034,16 +1106,17 @@ bool llvm::expandMemMoveAsLoop(MemMoveInst *Memmove,
     if (!TTI.addrspacesMayAlias(SrcAS, DstAS)) {
       // We may not be able to emit a pointer comparison, but we don't have
       // to. Expand as memcpy.
+      auto AverageTripCount = getAverageMemOpLoopTripCount(*Memmove);
       if (ConstantInt *CI = dyn_cast<ConstantInt>(CopyLen)) {
-        createMemCpyLoopKnownSize(/*InsertBefore=*/Memmove, SrcAddr, DstAddr,
-                                  CI, SrcAlign, DstAlign, SrcIsVolatile,
-                                  DstIsVolatile,
-                                  /*CanOverlap=*/false, TTI);
+        createMemCpyLoopKnownSize(
+            /*InsertBefore=*/Memmove, SrcAddr, DstAddr, CI, SrcAlign, DstAlign,
+            SrcIsVolatile, DstIsVolatile,
+            /*CanOverlap=*/false, TTI, std::nullopt, AverageTripCount);
       } else {
-        createMemCpyLoopUnknownSize(/*InsertBefore=*/Memmove, SrcAddr, DstAddr,
-                                    CopyLen, SrcAlign, DstAlign, SrcIsVolatile,
-                                    DstIsVolatile,
-                                    /*CanOverlap=*/false, TTI);
+        createMemCpyLoopUnknownSize(
+            /*InsertBefore=*/Memmove, SrcAddr, DstAddr, CopyLen, SrcAlign,
+            DstAlign, SrcIsVolatile, DstIsVolatile,
+            /*CanOverlap=*/false, TTI, std::nullopt, AverageTripCount);
       }
 
       return true;
@@ -1079,7 +1152,8 @@ void llvm::expandMemSetAsLoop(MemSetInst *Memset) {
                    /* CopyLen */ Memset->getLength(),
                    /* SetValue */ Memset->getValue(),
                    /* Alignment */ Memset->getDestAlign().valueOrOne(),
-                   Memset->isVolatile());
+                   /* AverageTripCount */ getAverageMemOpLoopTripCount(*Memset),
+                   /* IsVolatile */ Memset->isVolatile());
 }
 
 void llvm::expandMemSetPatternAsLoop(MemSetPatternInst *Memset) {
@@ -1088,7 +1162,8 @@ void llvm::expandMemSetPatternAsLoop(MemSetPatternInst *Memset) {
                    /* CopyLen=*/Memset->getLength(),
                    /* SetValue=*/Memset->getValue(),
                    /* Alignment=*/Memset->getDestAlign().valueOrOne(),
-                   Memset->isVolatile());
+                   /* AverageTripCount */ getAverageMemOpLoopTripCount(*Memset),
+                   /* IsVolatile */ Memset->isVolatile());
 }
 
 void llvm::expandAtomicMemCpyAsLoop(AnyMemCpyInst *AtomicMemcpy,
@@ -1107,7 +1182,7 @@ void llvm::expandAtomicMemCpyAsLoop(AnyMemCpyInst *AtomicMemcpy,
         /* DstIsVolatile */ AtomicMemcpy->isVolatile(),
         /* CanOverlap */ false, // SrcAddr & DstAddr may not overlap by spec.
         /* TargetTransformInfo */ TTI,
-        /* AtomicCpySize */ AtomicMemcpy->getElementSizeInBytes());
+        /* AtomicElementSize */ AtomicMemcpy->getElementSizeInBytes());
   } else {
     createMemCpyLoopUnknownSize(
         /* InsertBefore */ AtomicMemcpy,
@@ -1120,6 +1195,6 @@ void llvm::expandAtomicMemCpyAsLoop(AnyMemCpyInst *AtomicMemcpy,
         /* DstIsVolatile */ AtomicMemcpy->isVolatile(),
         /* CanOverlap */ false, // SrcAddr & DstAddr may not overlap by spec.
         /* TargetTransformInfo */ TTI,
-        /* AtomicCpySize */ AtomicMemcpy->getElementSizeInBytes());
+        /* AtomicElementSize */ AtomicMemcpy->getElementSizeInBytes());
   }
 }

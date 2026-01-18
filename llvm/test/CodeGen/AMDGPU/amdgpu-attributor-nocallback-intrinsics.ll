@@ -69,6 +69,6 @@ define void @use_ubsantrap() {
 ; CHECK: attributes #[[ATTR2:[0-9]+]] = { nocallback nofree nosync nounwind willreturn memory(inaccessiblemem: write) "target-cpu"="gfx90a" }
 ; CHECK: attributes #[[ATTR3:[0-9]+]] = { nounwind "target-cpu"="gfx90a" }
 ; CHECK: attributes #[[ATTR4:[0-9]+]] = { nocallback nofree nosync nounwind willreturn memory(none) "target-cpu"="gfx90a" }
-; CHECK: attributes #[[ATTR5:[0-9]+]] = { nocallback nofree nosync nounwind willreturn memory(inaccessiblemem: readwrite) "target-cpu"="gfx90a" }
+; CHECK: attributes #[[ATTR5:[0-9]+]] = { hassideeffects nocallback nofree nosync nounwind willreturn memory(inaccessiblemem: readwrite) "target-cpu"="gfx90a" }
 ; CHECK: attributes #[[ATTR6:[0-9]+]] = { cold noreturn nounwind memory(inaccessiblemem: write) "target-cpu"="gfx90a" }
 ;.

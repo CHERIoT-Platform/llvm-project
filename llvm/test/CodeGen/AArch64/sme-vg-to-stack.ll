@@ -1043,8 +1043,8 @@ define void @vg_unwind_multiple_scratch_regs(ptr %out) #1 {
 ; CHECK-NEXT:  .LBB4_1: // %entry
 ; CHECK-NEXT:    // =>This Inner Loop Header: Depth=1
 ; CHECK-NEXT:    sub sp, sp, #1, lsl #12 // =4096
+; CHECK-NEXT:    ldr xzr, [sp]
 ; CHECK-NEXT:    cmp sp, x9
-; CHECK-NEXT:    str xzr, [sp]
 ; CHECK-NEXT:    b.ne .LBB4_1
 ; CHECK-NEXT:  // %bb.2: // %entry
 ; CHECK-NEXT:    .cfi_def_cfa_register wsp
@@ -1104,8 +1104,8 @@ define void @vg_unwind_multiple_scratch_regs(ptr %out) #1 {
 ; FP-CHECK-NEXT:  .LBB4_1: // %entry
 ; FP-CHECK-NEXT:    // =>This Inner Loop Header: Depth=1
 ; FP-CHECK-NEXT:    sub sp, sp, #1, lsl #12 // =4096
+; FP-CHECK-NEXT:    ldr xzr, [sp]
 ; FP-CHECK-NEXT:    cmp sp, x9
-; FP-CHECK-NEXT:    str xzr, [sp]
 ; FP-CHECK-NEXT:    b.ne .LBB4_1
 ; FP-CHECK-NEXT:  // %bb.2: // %entry
 ; FP-CHECK-NEXT:    mov x8, sp
@@ -1166,8 +1166,8 @@ define void @vg_unwind_multiple_scratch_regs(ptr %out) #1 {
 ; NO-SVE-CHECK-NEXT:  .LBB4_1: // %entry
 ; NO-SVE-CHECK-NEXT:    // =>This Inner Loop Header: Depth=1
 ; NO-SVE-CHECK-NEXT:    sub sp, sp, #1, lsl #12 // =4096
+; NO-SVE-CHECK-NEXT:    ldr xzr, [sp]
 ; NO-SVE-CHECK-NEXT:    cmp sp, x9
-; NO-SVE-CHECK-NEXT:    str xzr, [sp]
 ; NO-SVE-CHECK-NEXT:    b.ne .LBB4_1
 ; NO-SVE-CHECK-NEXT:  // %bb.2: // %entry
 ; NO-SVE-CHECK-NEXT:    mov x8, sp
@@ -1225,8 +1225,8 @@ define void @vg_unwind_multiple_scratch_regs(ptr %out) #1 {
 ; OUTLINER-CHECK-NEXT:  .LBB4_1: // %entry
 ; OUTLINER-CHECK-NEXT:    // =>This Inner Loop Header: Depth=1
 ; OUTLINER-CHECK-NEXT:    sub sp, sp, #1, lsl #12 // =4096
+; OUTLINER-CHECK-NEXT:    ldr xzr, [sp]
 ; OUTLINER-CHECK-NEXT:    cmp sp, x9
-; OUTLINER-CHECK-NEXT:    str xzr, [sp]
 ; OUTLINER-CHECK-NEXT:    b.ne .LBB4_1
 ; OUTLINER-CHECK-NEXT:  // %bb.2: // %entry
 ; OUTLINER-CHECK-NEXT:    .cfi_def_cfa_register wsp

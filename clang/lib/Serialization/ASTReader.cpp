@@ -12556,6 +12556,8 @@ void OMPClauseReader::VisitOMPFromClause(OMPFromClause *C) {
 
 void OMPClauseReader::VisitOMPUseDevicePtrClause(OMPUseDevicePtrClause *C) {
   C->setLParenLoc(Record.readSourceLocation());
+  C->setFallbackModifier(Record.readEnum<OpenMPUseDevicePtrFallbackModifier>());
+  C->setFallbackModifierLoc(Record.readSourceLocation());
   auto NumVars = C->varlist_size();
   auto UniqueDecls = C->getUniqueDeclarationsNum();
   auto TotalLists = C->getTotalComponentListNum();

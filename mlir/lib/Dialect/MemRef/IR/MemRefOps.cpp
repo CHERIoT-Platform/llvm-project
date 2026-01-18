@@ -405,11 +405,15 @@ ParseResult AllocaScopeOp::parse(OpAsmParser &parser, OperationState &result) {
 void AllocaScopeOp::getSuccessorRegions(
     RegionBranchPoint point, SmallVectorImpl<RegionSuccessor> &regions) {
   if (!point.isParent()) {
-    regions.push_back(RegionSuccessor::parent(getResults()));
+    regions.push_back(RegionSuccessor::parent());
     return;
   }
 
   regions.push_back(RegionSuccessor(&getBodyRegion()));
+}
+
+ValueRange AllocaScopeOp::getSuccessorInputs(RegionSuccessor successor) {
+  return successor.isParent() ? ValueRange(getResults()) : ValueRange();
 }
 
 /// Given an operation, return whether this op is guaranteed to
@@ -3756,6 +3760,20 @@ OpFoldResult ViewOp::fold(FoldAdaptor adaptor) {
     return getViewSource();
 
   return {};
+}
+
+SmallVector<OpFoldResult> ViewOp::getMixedSizes() {
+  SmallVector<OpFoldResult> result;
+  unsigned ctr = 0;
+  Builder b(getContext());
+  for (int64_t dim : getType().getShape()) {
+    if (ShapedType::isDynamic(dim)) {
+      result.push_back(getSizes()[ctr++]);
+    } else {
+      result.push_back(b.getIndexAttr(dim));
+    }
+  }
+  return result;
 }
 
 namespace {

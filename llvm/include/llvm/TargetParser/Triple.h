@@ -257,7 +257,8 @@ public:
     Serenity,
     Vulkan, // Vulkan SPIR-V
     CheriotRTOS,
-    LastOSType = CheriotRTOS
+    ChipStar,
+    LastOSType = ChipStar
   };
   enum EnvironmentType {
     UnknownEnvironment,

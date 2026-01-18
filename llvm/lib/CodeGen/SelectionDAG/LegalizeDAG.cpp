@@ -2169,7 +2169,7 @@ SelectionDAGLegalize::ExpandLibCall(RTLIB::Libcall LC, SDNode *Node,
   const auto &DL = DAG.getDataLayout();
   EVT CodePtrTy = TLI.getPointerTy(DL, DL.getProgramAddressSpace());
   SDValue Callee;
-  RTLIB::LibcallImpl LCImpl = TLI.getLibcallImpl(LC);
+  RTLIB::LibcallImpl LCImpl = DAG.getLibcalls().getLibcallImpl(LC);
   if (LCImpl != RTLIB::Unsupported)
     Callee = DAG.getExternalSymbol(LCImpl, CodePtrTy);
   else {
@@ -2200,8 +2200,8 @@ SelectionDAGLegalize::ExpandLibCall(RTLIB::Libcall LC, SDNode *Node,
   bool signExtend = TLI.shouldSignExtendTypeInLibCall(RetTy, IsSigned);
   CLI.setDebugLoc(SDLoc(Node))
       .setChain(InChain)
-      .setLibCallee(TLI.getLibcallImplCallingConv(LCImpl), RetTy, Callee,
-                    std::move(Args))
+      .setLibCallee(DAG.getLibcalls().getLibcallImplCallingConv(LCImpl), RetTy,
+                    Callee, std::move(Args))
       .setTailCall(isTailCall)
       .setSExtResult(signExtend)
       .setZExtResult(!signExtend)
@@ -2295,7 +2295,7 @@ void SelectionDAGLegalize::ExpandFastFPLibCall(
                              Call_F128.first, Call_PPCF128.first);
   }
 
-  if (!IsFast || TLI.getLibcallImpl(LC) == RTLIB::Unsupported) {
+  if (!IsFast || DAG.getLibcalls().getLibcallImpl(LC) == RTLIB::Unsupported) {
     // Fall back if we don't have a fast implementation.
     LC = RTLIB::getFPLibCall(VT, Call_F32.second, Call_F64.second,
                              Call_F80.second, Call_F128.second,
@@ -2424,7 +2424,7 @@ SelectionDAGLegalize::ExpandDivRemLibCall(SDNode *Node,
   Entry.IsZExt = !isSigned;
   Args.push_back(Entry);
 
-  RTLIB::LibcallImpl LibcallImpl = TLI.getLibcallImpl(LC);
+  RTLIB::LibcallImpl LibcallImpl = DAG.getLibcalls().getLibcallImpl(LC);
   if (LibcallImpl == RTLIB::Unsupported) {
     DAG.getContext()->emitError(Twine("no libcall available for ") +
                                 Node->getOperationName(&DAG));
@@ -2440,8 +2440,8 @@ SelectionDAGLegalize::ExpandDivRemLibCall(SDNode *Node,
   TargetLowering::CallLoweringInfo CLI(DAG);
   CLI.setDebugLoc(dl)
       .setChain(InChain)
-      .setLibCallee(TLI.getLibcallImplCallingConv(LibcallImpl), RetTy, Callee,
-                    std::move(Args))
+      .setLibCallee(DAG.getLibcalls().getLibcallImplCallingConv(LibcallImpl),
+                    RetTy, Callee, std::move(Args))
       .setSExtResult(isSigned)
       .setZExtResult(!isSigned);
 
@@ -2458,10 +2458,12 @@ SelectionDAGLegalize::ExpandDivRemLibCall(SDNode *Node,
 }
 
 /// Return true if sincos or __sincos_stret libcall is available.
-static bool isSinCosLibcallAvailable(SDNode *Node, const TargetLowering &TLI) {
+static bool isSinCosLibcallAvailable(SDNode *Node,
+                                     const LibcallLoweringInfo &Libcalls) {
   MVT::SimpleValueType VT = Node->getSimpleValueType(0).SimpleTy;
-  return TLI.getLibcallImpl(RTLIB::getSINCOS(VT)) != RTLIB::Unsupported ||
-         TLI.getLibcallImpl(RTLIB::getSINCOS_STRET(VT)) != RTLIB::Unsupported;
+  return Libcalls.getLibcallImpl(RTLIB::getSINCOS(VT)) != RTLIB::Unsupported ||
+         Libcalls.getLibcallImpl(RTLIB::getSINCOS_STRET(VT)) !=
+             RTLIB::Unsupported;
 }
 
 /// Only issue sincos libcall if both sin and cos are needed.
@@ -2487,7 +2489,7 @@ SDValue SelectionDAGLegalize::ExpandSincosStretLibCall(SDNode *Node) const {
   SDValue Arg = Node->getOperand(0);
   EVT ArgVT = Arg.getValueType();
   RTLIB::Libcall LC = RTLIB::getSINCOS_STRET(ArgVT);
-  RTLIB::LibcallImpl SincosStret = TLI.getLibcallImpl(LC);
+  RTLIB::LibcallImpl SincosStret = DAG.getLibcalls().getLibcallImpl(LC);
   if (SincosStret == RTLIB::Unsupported)
     return SDValue();
 
@@ -3921,7 +3923,7 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
     // Turn fsin / fcos into ISD::FSINCOS node if there are a pair of fsin /
     // fcos which share the same operand and both are used.
     if ((TLI.isOperationLegal(ISD::FSINCOS, VT) ||
-         isSinCosLibcallAvailable(Node, TLI)) &&
+         isSinCosLibcallAvailable(Node, DAG.getLibcalls())) &&
         useSinCos(Node)) {
       SDVTList VTs = DAG.getVTList(VT, VT);
       Tmp1 = DAG.getNode(ISD::FSINCOS, dl, VTs, Node->getOperand(0));
@@ -3937,7 +3939,7 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
     RTLIB::Libcall LC = RTLIB::getLDEXP(VT);
     // Use the LibCall instead, it is very likely faster
     // FIXME: Use separate LibCall action.
-    if (TLI.getLibcallImpl(LC) != RTLIB::Unsupported)
+    if (DAG.getLibcalls().getLibcallImpl(LC) != RTLIB::Unsupported)
       break;
 
     if (SDValue Expanded = expandLdexp(Node)) {
@@ -3952,7 +3954,7 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
     RTLIB::Libcall LC = RTLIB::getFREXP(Node->getValueType(0));
     // Use the LibCall instead, it is very likely faster
     // FIXME: Use separate LibCall action.
-    if (TLI.getLibcallImpl(LC) != RTLIB::Unsupported)
+    if (DAG.getLibcalls().getLibcallImpl(LC) != RTLIB::Unsupported)
       break;
 
     if (SDValue Expanded = expandFrexp(Node)) {
@@ -3962,7 +3964,7 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
     break;
   }
   case ISD::FSINCOS: {
-    if (isSinCosLibcallAvailable(Node, TLI))
+    if (isSinCosLibcallAvailable(Node, DAG.getLibcalls()))
       break;
     EVT VT = Node->getValueType(0);
     SDValue Op = Node->getOperand(0);
@@ -4770,7 +4772,7 @@ void SelectionDAGLegalize::ConvertNodeToLibcall(SDNode *Node) {
     RTLIB::Libcall LC = RTLIB::getOUTLINE_ATOMIC(Opc, Order, VT);
     EVT RetVT = Node->getValueType(0);
     SmallVector<SDValue, 4> Ops;
-    if (TLI.getLibcallImpl(LC) != RTLIB::Unsupported) {
+    if (DAG.getLibcalls().getLibcallImpl(LC) != RTLIB::Unsupported) {
       // If outline atomic available, prepare its arguments and expand.
       Ops.append(Node->op_begin() + 2, Node->op_end());
       Ops.push_back(Node->getOperand(1));
@@ -5034,7 +5036,7 @@ void SelectionDAGLegalize::ConvertNodeToLibcall(SDNode *Node) {
   case ISD::STRICT_FPOWI: {
     RTLIB::Libcall LC = RTLIB::getPOWI(Node->getSimpleValueType(0));
     assert(LC != RTLIB::UNKNOWN_LIBCALL && "Unexpected fpowi.");
-    if (TLI.getLibcallImpl(LC) == RTLIB::Unsupported) {
+    if (DAG.getLibcalls().getLibcallImpl(LC) == RTLIB::Unsupported) {
       // Some targets don't have a powi libcall; use pow instead.
       if (Node->isStrictFPOpcode()) {
         SDValue Exponent =

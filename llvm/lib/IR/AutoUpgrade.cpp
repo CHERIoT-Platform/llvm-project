@@ -4869,6 +4869,8 @@ void llvm::UpgradeIntrinsicCall(CallBase *CI, Function *NewFn) {
 
   LLVMContext &C = CI->getContext();
   IRBuilder<> Builder(C);
+  if (isa<FPMathOperator>(CI))
+    Builder.setFastMathFlags(CI->getFastMathFlags());
   Builder.SetInsertPoint(CI->getParent(), CI->getIterator());
 
   if (!NewFn) {

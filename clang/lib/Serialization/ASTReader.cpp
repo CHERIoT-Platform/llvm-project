@@ -8140,14 +8140,8 @@ void ASTReader::CompleteRedeclChain(const Decl *D) {
     }
   }
 
-  if (Template) {
-    // For partitial specialization, load all the specializations for safety.
-    if (isa<ClassTemplatePartialSpecializationDecl,
-            VarTemplatePartialSpecializationDecl>(D))
-      Template->loadLazySpecializationsImpl();
-    else
-      Template->loadLazySpecializationsImpl(Args);
-  }
+  if (Template)
+    Template->loadLazySpecializationsImpl(Args);
 }
 
 CXXCtorInitializer **
@@ -11337,6 +11331,9 @@ OMPClause *OMPClauseReader::readClause() {
   case llvm::omp::OMPC_threadset:
     C = new (Context) OMPThreadsetClause();
     break;
+  case llvm::omp::OMPC_transparent:
+    C = new (Context) OMPTransparentClause();
+    break;
   case llvm::omp::OMPC_read:
     C = new (Context) OMPReadClause();
     break;
@@ -11752,6 +11749,11 @@ void OMPClauseReader::VisitOMPThreadsetClause(OMPThreadsetClause *C) {
   OpenMPThreadsetKind TKind =
       static_cast<OpenMPThreadsetKind>(Record.readInt());
   C->setThreadsetKind(TKind);
+}
+
+void OMPClauseReader::VisitOMPTransparentClause(OMPTransparentClause *C) {
+  C->setLParenLoc(Record.readSourceLocation());
+  C->setImpexTypeKind(Record.readSubExpr());
 }
 
 void OMPClauseReader::VisitOMPProcBindClause(OMPProcBindClause *C) {

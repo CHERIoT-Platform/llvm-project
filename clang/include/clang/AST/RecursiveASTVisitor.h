@@ -3541,6 +3541,13 @@ bool RecursiveASTVisitor<Derived>::VisitOMPThreadsetClause(
 }
 
 template <typename Derived>
+bool RecursiveASTVisitor<Derived>::VisitOMPTransparentClause(
+    OMPTransparentClause *C) {
+  TRY_TO(TraverseStmt(C->getImpexType()));
+  return true;
+}
+
+template <typename Derived>
 bool RecursiveASTVisitor<Derived>::VisitOMPProcBindClause(OMPProcBindClause *) {
   return true;
 }

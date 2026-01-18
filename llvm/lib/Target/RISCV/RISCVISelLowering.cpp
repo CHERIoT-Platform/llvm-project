@@ -24446,44 +24446,33 @@ static SDValue convertValVTToLocVT(SelectionDAG &DAG, SDValue Val,
 // passed with CCValAssign::Indirect.
 static SDValue unpackFromMemLoc(SelectionDAG &DAG, SDValue Chain,
                                 const CCValAssign &VA, const SDLoc &DL,
-                                EVT PtrVT, bool ViaCap) {
+                                EVT PtrVT, bool ViaCap,
+                                const RISCVTargetLowering &TLI) {
   MachineFunction &MF = DAG.getMachineFunction();
   MachineFrameInfo &MFI = MF.getFrameInfo();
   EVT LocVT = VA.getLocVT();
-  EVT ValVT = VA.getValVT();
-  if (VA.getLocInfo() == CCValAssign::Indirect) {
-    // When the value is a scalable vector, we save the pointer which points to
-    // the scalable vector value in the stack. The ValVT will be the pointer
-    // type, instead of the scalable vector type.
-    ValVT = LocVT;
-  }
-  int FI = MFI.CreateFixedObject(ValVT.getStoreSize(), VA.getLocMemOffset(),
-                                 /*Immutable=*/true);
+  int FI = MFI.CreateFixedObject(LocVT.getStoreSize(), VA.getLocMemOffset(),
+                                 /*IsImmutable=*/true);
   SDValue Val;
-
-  ISD::LoadExtType ExtType = ISD::NON_EXTLOAD;
-  switch (VA.getLocInfo()) {
-  default:
-    llvm_unreachable("Unexpected CCValAssign::LocInfo");
-  case CCValAssign::Full:
-  case CCValAssign::Indirect:
-  case CCValAssign::BCvt:
-    break;
-  }
-  if (ViaCap)
+  if (ViaCap) {
+    EVT ValVT = VA.getValVT();
     Val = DAG.getExtLoad(
-        ExtType, DL, LocVT, Chain,
+        ISD::NON_EXTLOAD, DL, LocVT, Chain,
         DAG.getMemBasePlusOffset(
             DAG.getCopyFromReg(Chain, DL, RISCV::X5_Y, MVT::c64),
             TypeSize::getFixed(VA.getLocMemOffset()), DL),
         MachinePointerInfo::getFixedStack(DAG.getMachineFunction(), FI), ValVT);
-  else {
+  } else {
     SDValue FIN = DAG.getFrameIndex(FI, PtrVT);
-    Val = DAG.getExtLoad(
-      ExtType, DL, LocVT, Chain, FIN,
-      MachinePointerInfo::getFixedStack(DAG.getMachineFunction(), FI), ValVT);
+    Val = DAG.getLoad(
+        LocVT, DL, Chain, FIN,
+        MachinePointerInfo::getFixedStack(DAG.getMachineFunction(), FI));
   }
-  return Val;
+
+  if (VA.getLocInfo() == CCValAssign::Indirect)
+    return Val;
+
+  return convertLocVTToValVT(DAG, Val, VA, DL, TLI.getSubtarget());
 }
 
 static SDValue unpackF64OnRV32DSoftABI(SelectionDAG &DAG, SDValue Chain,
@@ -24648,8 +24637,7 @@ SDValue RISCVTargetLowering::LowerFormalArguments(
       ArgValue = unpackFromRegLoc(DAG, Chain, VA, DL, Ins[InsIdx], *this);
     else {
       ArgValue =
-          unpackFromMemLoc(DAG, Chain, VA, DL, PtrVT, isCHERIoTCompartmentCall);
-
+          unpackFromMemLoc(DAG, Chain, VA, DL, PtrVT, isCHERIoTCompartmentCall, *this);
 
       EVT VT = VA.getValVT();
       if (VT.isScalableVector()) {

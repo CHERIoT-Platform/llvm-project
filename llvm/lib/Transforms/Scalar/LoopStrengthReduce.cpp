@@ -1236,7 +1236,8 @@ public:
   void RateFormula(const Formula &F, SmallPtrSetImpl<const SCEV *> &Regs,
                    const DenseSet<const SCEV *> &VisitedRegs, const LSRUse &LU,
                    bool HardwareLoopProfitable,
-                   SmallPtrSetImpl<const SCEV *> *LoserRegs = nullptr);
+                   SmallPtrSetImpl<const SCEV *> *LoserRegs = nullptr,
+                   bool IsBaseline = false);
 
   void print(raw_ostream &OS) const;
   void dump() const;
@@ -1488,7 +1489,8 @@ void Cost::RatePrimaryRegister(const Formula &F, const SCEV *Reg,
 void Cost::RateFormula(const Formula &F, SmallPtrSetImpl<const SCEV *> &Regs,
                        const DenseSet<const SCEV *> &VisitedRegs,
                        const LSRUse &LU, bool HardwareLoopProfitable,
-                       SmallPtrSetImpl<const SCEV *> *LoserRegs) {
+                       SmallPtrSetImpl<const SCEV *> *LoserRegs,
+                       bool IsBaseline) {
   if (isLoser())
     return;
   assert(F.isCanonical(*L) && "Cost is accurate only for canonical formula");
@@ -1501,13 +1503,17 @@ void Cost::RateFormula(const Formula &F, SmallPtrSetImpl<const SCEV *> &Regs,
       Lose();
       return;
     }
+    if (!IsBaseline && !TTI->isLegalBaseRegForLSR(ScaledReg)) {
+      Lose();
+      return;
+    }
     RatePrimaryRegister(F, ScaledReg, Regs, LU, HardwareLoopProfitable,
                         LoserRegs);
     if (isLoser())
       return;
   }
   for (const SCEV *BaseReg : F.BaseRegs) {
-    if (!TTI->isLegalBaseRegForLSR(BaseReg)) {
+    if (!IsBaseline && !TTI->isLegalBaseRegForLSR(BaseReg)) {
       Lose();
       return;
     }
@@ -3637,8 +3643,8 @@ void LSRInstance::CollectFixupsAndInitialFormulae() {
     if (!VisitedLSRUse.count(LUIdx) && !LF.isUseFullyOutsideLoop(L)) {
       Formula F;
       F.initialMatch(S, L, SE);
-      BaselineCost.RateFormula(F, Regs, VisitedRegs, LU,
-                               HardwareLoopProfitable);
+      BaselineCost.RateFormula(F, Regs, VisitedRegs, LU, HardwareLoopProfitable,
+                               nullptr, true);
       VisitedLSRUse.insert(LUIdx);
     }
 

@@ -221,8 +221,9 @@ public:
 
   /// Override to support customized stack guard loading.
   bool useLoadStackGuardNode(const Module &M) const override { return true; }
-  void insertSSPDeclarations(Module &M) const override {
-  }
+  void
+  insertSSPDeclarations(Module &M,
+                        const LibcallLoweringInfo &Libcalls) const override {}
 
   MachineBasicBlock *
   EmitInstrWithCustomInserter(MachineInstr &MI,

@@ -731,14 +731,6 @@ typedef __char32_t char32_t;
 #    define _LIBCPP_NO_THREAD_SAFETY_ANALYSIS
 #  endif
 
-#  if _LIBCPP_STD_VER >= 20
-#    define _LIBCPP_CONSTINIT constinit
-#  elif __has_attribute(__require_constant_initialization__)
-#    define _LIBCPP_CONSTINIT __attribute__((__require_constant_initialization__))
-#  else
-#    define _LIBCPP_CONSTINIT
-#  endif
-
 #  if __has_attribute(cheri_no_subobject_bounds)
 #    define _LIBCPP_NO_SUBOBJECT_BOUNDS __attribute__((__cheri_no_subobject_bounds__))
 #  else

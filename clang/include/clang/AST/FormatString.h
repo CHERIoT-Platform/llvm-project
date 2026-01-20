@@ -389,7 +389,7 @@ public:
   }
 
   const char *getStart() const {
-      // We include the . character if it is given.
+    // We include the . character if it is given.
     return start - UsesDotPrefix;
   }
 

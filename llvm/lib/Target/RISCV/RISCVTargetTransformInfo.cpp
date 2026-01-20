@@ -3205,6 +3205,10 @@ bool RISCVTTIImpl::isLegalBaseRegForLSR(const SCEV *S) const {
     // Disallow any SCEV where the base offset is negative.
     // This is needed because CHERIoT can't represent pointers before the
     // beginning of an array.
+    if (const auto *Cst = dyn_cast<SCEVConstant>(S)) {
+      return !Cst->getValue()->isNegative();
+    }
+
     if (const auto *AddRec = dyn_cast<SCEVAddRecExpr>(S)) {
       if (const auto *Cst = dyn_cast<SCEVConstant>(AddRec->getStart()))
         return !Cst->getValue()->isNegative();
@@ -3212,15 +3216,32 @@ bool RISCVTTIImpl::isLegalBaseRegForLSR(const SCEV *S) const {
     }
 
     if (const auto *A = dyn_cast<SCEVAddExpr>(S)) {
-      const auto *Offset0 = dyn_cast<SCEVConstant>(A->getOperand(0));
-      if (Offset0 && Offset0->getValue()->isNegative())
-        return false;
-      const auto *Offset1 = dyn_cast<SCEVConstant>(A->getOperand(1));
-      if (Offset1 && Offset1->getValue()->isNegative())
-        return false;
+      bool AllNonCst = true;
+      for (const auto *Op : A->operands()) {
+        const auto *OpCst = dyn_cast<SCEVConstant>(Op);
+        if (OpCst && OpCst->getValue()->isNegative())
+          return false;
+        else if (!isLegalBaseRegForLSR(Op))
+          return false;
+        AllNonCst &= (OpCst == nullptr);
+      }
       // noncst + noncst must be treated conservatively, as one of them
       // could be negative.
-      if (!Offset0 && !Offset1)
+      if (AllNonCst)
+        return false;
+    } else if (const auto *M = dyn_cast<SCEVMulExpr>(S)) {
+      bool AllNonCst = true;
+      for (const auto *Op : M->operands()) {
+        const auto *OpCst = dyn_cast<SCEVConstant>(Op);
+        if (OpCst && OpCst->getValue()->isNegative())
+          return false;
+        else if (!isLegalBaseRegForLSR(Op))
+          return false;
+        AllNonCst &= (OpCst == nullptr);
+      }
+      // noncst + noncst must be treated conservatively, as one of them
+      // could be negative.
+      if (AllNonCst)
         return false;
     }
 

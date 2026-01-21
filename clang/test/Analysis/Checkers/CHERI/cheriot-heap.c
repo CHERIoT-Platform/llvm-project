@@ -198,6 +198,14 @@ int test_27(struct test27_struct* p) {
 }
 
 __attribute__((cheri_compartment("test")))
-int test_228(int* p) {
+int test_28(int* p) {
     return p[1]; // expected-warning{{Read of heap pointer 'p' without a valid claim}}
+}
+
+typedef __attribute__((cheri_ccallback)) void (*Callback)(void);
+__attribute__((cheri_compartment("test")))
+int test_29(int *p, Callback f) {
+    heap_claim_ephemeral(0, p, 0);
+    f();
+    return *p; // expected-warning{{Read of heap pointer 'p' after its ephemeral claim was released by a cross-compartment call}}
 }

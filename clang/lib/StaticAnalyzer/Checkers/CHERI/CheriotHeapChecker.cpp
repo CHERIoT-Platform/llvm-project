@@ -101,6 +101,29 @@ private:
 REGISTER_MAP_WITH_PROGRAMSTATE(HeapPointers, SymbolRef, HeapPtrState)
 
 bool isCrossCompartmentCall(const CallEvent &Call, const CheckerContext &C) {
+  // Any call through a CC_CHERICCallback pointer is a compartment call.
+  auto IsCompartmentCallbackCall = [](const CallEvent &Call) {
+    const auto *CallE =
+        dyn_cast<CallExpr>(Call.getOriginExpr()->IgnoreParenImpCasts());
+    if (!CallE)
+      return false;
+
+    const Type *CalleeTy =
+        CallE->getCallee()->getType()->getUnqualifiedDesugaredType();
+    const auto *PT = dyn_cast<PointerType>(CalleeTy);
+    if (!PT)
+      return false;
+
+    const auto *FT = dyn_cast<FunctionType>(
+        PT->getPointeeType()->getUnqualifiedDesugaredType());
+    if (!FT)
+      return false;
+
+    return FT->getCallConv() == CallingConv::CC_CHERICCallback;
+  };
+  if (IsCompartmentCallbackCall(Call))
+    return true;
+
   const Decl *D = Call.getDecl();
   if (!D)
     return false;

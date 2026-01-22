@@ -99,10 +99,11 @@ static cl::opt<bool>
 static const unsigned ZvfbfaVPOps[] = {
     ISD::VP_FNEG, ISD::VP_FABS, ISD::VP_FCOPYSIGN};
 static const unsigned ZvfbfaOps[] = {
-    ISD::FNEG,        ISD::FABS,        ISD::FCOPYSIGN, ISD::FADD,
-    ISD::FSUB,        ISD::FMUL,        ISD::FMINNUM,   ISD::FMAXNUM,
-    ISD::FMINIMUMNUM, ISD::FMAXIMUMNUM, ISD::FMINIMUM,  ISD::FMAXIMUM,
-    ISD::FMA,         ISD::IS_FPCLASS};
+    ISD::FNEG,        ISD::FABS,        ISD::FCOPYSIGN,   ISD::FADD,
+    ISD::FSUB,        ISD::FMUL,        ISD::FMINNUM,     ISD::FMAXNUM,
+    ISD::FMINIMUMNUM, ISD::FMAXIMUMNUM, ISD::FMINIMUM,    ISD::FMAXIMUM,
+    ISD::FMA,         ISD::IS_FPCLASS,  ISD::STRICT_FADD, ISD::STRICT_FSUB,
+    ISD::STRICT_FMUL, ISD::STRICT_FMA,  ISD::SETCC};
 
 RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
                                          const RISCVSubtarget &STI)
@@ -1244,13 +1245,8 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
                                                 ISD::FROUNDEVEN,
                                                 ISD::FRINT,
                                                 ISD::FNEARBYINT,
-                                                ISD::SETCC,
-                                                ISD::STRICT_FADD,
-                                                ISD::STRICT_FSUB,
-                                                ISD::STRICT_FMUL,
                                                 ISD::STRICT_FDIV,
                                                 ISD::STRICT_FSQRT,
-                                                ISD::STRICT_FMA,
                                                 ISD::VECREDUCE_FMIN,
                                                 ISD::VECREDUCE_FMAX,
                                                 ISD::VECREDUCE_FMINIMUM,
@@ -1450,7 +1446,11 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
 
       setOperationAction(ISD::FCOPYSIGN, VT, Legal);
       setOperationAction(ISD::SPLAT_VECTOR, VT, Legal);
+      setOperationAction({ISD::STRICT_FADD, ISD::STRICT_FSUB, ISD::STRICT_FMUL,
+                          ISD::STRICT_FMA},
+                         VT, Legal);
       setOperationAction(ZvfbfaVPOps, VT, Custom);
+      setCondCodeAction(VFPCCToExpand, VT, Expand);
 
       setOperationAction({ISD::LOAD, ISD::STORE, ISD::MLOAD, ISD::MSTORE,
                           ISD::MGATHER, ISD::MSCATTER, ISD::VP_LOAD,
@@ -1776,6 +1776,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
           if (Subtarget.hasStdExtZvfbfa()) {
             setOperationAction(ZvfbfaOps, VT, Custom);
             setOperationAction(ZvfbfaVPOps, VT, Custom);
+            setCondCodeAction(VFPCCToExpand, VT, Expand);
           }
           setOperationAction(
               {ISD::VP_MERGE, ISD::VP_SELECT, ISD::VSELECT, ISD::SELECT}, VT,
@@ -25578,14 +25579,15 @@ RISCVTargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
     // Check VM and fractional LMUL first so that those types will use that
     // class instead of VR.
     for (const auto *RC :
-         {&RISCV::VMRegClass, &RISCV::VRMF8RegClass, &RISCV::VRMF4RegClass,
-          &RISCV::VRMF2RegClass, &RISCV::VRRegClass, &RISCV::VRM2RegClass,
-          &RISCV::VRM4RegClass, &RISCV::VRM8RegClass, &RISCV::VRN2M1RegClass,
-          &RISCV::VRN3M1RegClass, &RISCV::VRN4M1RegClass,
-          &RISCV::VRN5M1RegClass, &RISCV::VRN6M1RegClass,
-          &RISCV::VRN7M1RegClass, &RISCV::VRN8M1RegClass,
-          &RISCV::VRN2M2RegClass, &RISCV::VRN3M2RegClass,
-          &RISCV::VRN4M2RegClass, &RISCV::VRN2M4RegClass}) {
+         {&RISCV::ZZZ_VMRegClass, &RISCV::ZZZ_VRMF8RegClass,
+          &RISCV::ZZZ_VRMF4RegClass, &RISCV::ZZZ_VRMF2RegClass,
+          &RISCV::VRRegClass, &RISCV::VRM2RegClass, &RISCV::VRM4RegClass,
+          &RISCV::VRM8RegClass, &RISCV::VRN2M1RegClass, &RISCV::VRN3M1RegClass,
+          &RISCV::VRN4M1RegClass, &RISCV::VRN5M1RegClass,
+          &RISCV::VRN6M1RegClass, &RISCV::VRN7M1RegClass,
+          &RISCV::VRN8M1RegClass, &RISCV::VRN2M2RegClass,
+          &RISCV::VRN3M2RegClass, &RISCV::VRN4M2RegClass,
+          &RISCV::VRN2M4RegClass}) {
       if (TRI->isTypeLegalForClass(*RC, VT.SimpleTy))
         return std::make_pair(0U, RC);
 
@@ -25599,8 +25601,8 @@ RISCVTargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
     // Check VMNoV0 and fractional LMUL first so that those types will use that
     // class instead of VRNoV0.
     for (const auto *RC :
-         {&RISCV::VMNoV0RegClass, &RISCV::VRMF8NoV0RegClass,
-          &RISCV::VRMF4NoV0RegClass, &RISCV::VRMF2NoV0RegClass,
+         {&RISCV::ZZZ_VMNoV0RegClass, &RISCV::ZZZ_VRMF8NoV0RegClass,
+          &RISCV::ZZZ_VRMF4NoV0RegClass, &RISCV::ZZZ_VRMF2NoV0RegClass,
           &RISCV::VRNoV0RegClass, &RISCV::VRM2NoV0RegClass,
           &RISCV::VRM4NoV0RegClass, &RISCV::VRM8NoV0RegClass,
           &RISCV::VRN2M1NoV0RegClass, &RISCV::VRN3M1NoV0RegClass,
@@ -25877,8 +25879,8 @@ RISCVTargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
                         .Case("{v31}", RISCV::V31)
                         .Default(RISCV::NoRegister);
     if (VReg != RISCV::NoRegister) {
-      if (TRI->isTypeLegalForClass(RISCV::VMRegClass, VT.SimpleTy))
-        return std::make_pair(VReg, &RISCV::VMRegClass);
+      if (TRI->isTypeLegalForClass(RISCV::ZZZ_VMRegClass, VT.SimpleTy))
+        return std::make_pair(VReg, &RISCV::ZZZ_VMRegClass);
       if (TRI->isTypeLegalForClass(RISCV::VRRegClass, VT.SimpleTy))
         return std::make_pair(VReg, &RISCV::VRRegClass);
       for (const auto *RC :

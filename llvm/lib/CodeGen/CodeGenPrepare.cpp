@@ -485,9 +485,7 @@ class CodeGenPrepareLegacyPass : public FunctionPass {
 public:
   static char ID; // Pass identification, replacement for typeid
 
-  CodeGenPrepareLegacyPass() : FunctionPass(ID) {
-    initializeCodeGenPrepareLegacyPassPass(*PassRegistry::getPassRegistry());
-  }
+  CodeGenPrepareLegacyPass() : FunctionPass(ID) {}
 
   bool runOnFunction(Function &F) override;
 
@@ -7048,7 +7046,7 @@ bool CodeGenPrepare::optimizePhiType(
     }
   }
 
-  if (!ConvertTy || !AnyAnchored ||
+  if (!ConvertTy || !AnyAnchored || PhiTy == ConvertTy ||
       !TLI->shouldConvertPhiType(PhiTy, ConvertTy))
     return false;
 

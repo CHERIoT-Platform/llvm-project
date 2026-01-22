@@ -5538,7 +5538,7 @@ static void TryReferenceInitializationCore(Sema &S,
       S.CompareReferenceRelationship(DeclLoc, cv1T1, cv2T2, &RefConv);
 
   // make sure to check that we aren't converting from capability to non-capability
-  auto CheckCheriCompatibility = llvm::make_scope_exit([&]() {
+  llvm::scope_exit CheckCheriCompatibility([&] {
     CheckReferenceInitCHERI(S, Entity, Initializer, Sequence);
   });
 

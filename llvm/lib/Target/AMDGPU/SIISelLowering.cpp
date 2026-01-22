@@ -2307,9 +2307,16 @@ SDValue SITargetLowering::convertArgType(SelectionDAG &DAG, EVT VT, EVT MemVT,
     Val = DAG.getNode(Opc, SL, MemVT, Val, DAG.getValueType(VT));
   }
 
-  if (MemVT.isFloatingPoint())
-    Val = getFPExtOrFPRound(DAG, Val, SL, VT);
-  else if (Signed)
+  if (MemVT.isFloatingPoint()) {
+    if (VT.isFloatingPoint()) {
+      Val = getFPExtOrFPRound(DAG, Val, SL, VT);
+    } else {
+      assert(!MemVT.isVector());
+      EVT IntVT = EVT::getIntegerVT(*DAG.getContext(), MemVT.getSizeInBits());
+      SDValue Cast = DAG.getBitcast(IntVT, Val);
+      Val = DAG.getAnyExtOrTrunc(Cast, SL, VT);
+    }
+  } else if (Signed)
     Val = DAG.getSExtOrTrunc(Val, SL, VT);
   else
     Val = DAG.getZExtOrTrunc(Val, SL, VT);
@@ -18653,12 +18660,12 @@ static bool globalMemoryFPAtomicIsLegal(const GCNSubtarget &Subtarget,
   // With AgentScopeFineGrainedRemoteMemoryAtomics, system scoped device local
   // allocations work.
   if (HasSystemScope) {
-    if (Subtarget.supportsAgentScopeFineGrainedRemoteMemoryAtomics() &&
+    if (Subtarget.hasAgentScopeFineGrainedRemoteMemoryAtomics() &&
         RMW->hasMetadata("amdgpu.no.remote.memory"))
       return true;
     if (Subtarget.hasEmulatedSystemScopeAtomics())
       return true;
-  } else if (Subtarget.supportsAgentScopeFineGrainedRemoteMemoryAtomics())
+  } else if (Subtarget.hasAgentScopeFineGrainedRemoteMemoryAtomics())
     return true;
 
   return RMW->hasMetadata("amdgpu.no.fine.grained.memory");
@@ -18768,7 +18775,7 @@ SITargetLowering::shouldExpandAtomicRMWInIR(const AtomicRMWInst *RMW) const {
       // If fine-grained remote memory works at device scope, we don't need to
       // do anything.
       if (!HasSystemScope &&
-          Subtarget->supportsAgentScopeFineGrainedRemoteMemoryAtomics())
+          Subtarget->hasAgentScopeFineGrainedRemoteMemoryAtomics())
         return atomicSupportedIfLegalIntType(RMW);
 
       // If we are targeting a remote allocated address, it depends what kind of

@@ -167,14 +167,24 @@ class RISCVMCInstrAnalysis : public MCInstrAnalysis {
   static bool isGPR(MCRegister Reg) {
     return Reg >= RISCV::X0 && Reg <= RISCV::X31;
   }
+  static bool isYGPR(MCRegister Reg) {
+    return Reg >= RISCV::X0_Y && Reg <= RISCV::X31_Y;
+  }
+  static bool isZeroReg(MCRegister Reg) {
+    return Reg == RISCV::X0 || Reg == RISCV::X0_Y;
+  }
 
   static unsigned getRegIndex(MCRegister Reg) {
+    if (isYGPR(Reg)) {
+      assert(Reg != RISCV::X0_Y && "Invalid GPR reg");
+      return Reg - RISCV::X1_Y;
+    }
     assert(isGPR(Reg) && Reg != RISCV::X0 && "Invalid GPR reg");
     return Reg - RISCV::X1;
   }
 
   void setGPRState(MCRegister Reg, std::optional<int64_t> Value) {
-    if (Reg == RISCV::X0)
+    if (isZeroReg(Reg))
       return;
 
     auto Index = getRegIndex(Reg);
@@ -188,7 +198,7 @@ class RISCVMCInstrAnalysis : public MCInstrAnalysis {
   }
 
   std::optional<int64_t> getGPRState(MCRegister Reg) const {
-    if (Reg == RISCV::X0)
+    if (isZeroReg(Reg))
       return 0;
 
     auto Index = getRegIndex(Reg);

@@ -895,6 +895,14 @@ static void initializeLibCalls(TargetLibraryInfoImpl &TLI, const Triple &T,
     TLI.setUnavailable(LibFunc_memrchr);
 
   TLI.addVectorizableFunctionsFromVecLib(VecLib, T);
+
+  if (T.getOS() == Triple::CheriotRTOS) {
+    TLI.setAvailable(LibFunc_heap_allocate);
+    TLI.setAvailable(LibFunc_heap_free);
+  } else {
+    TLI.setUnavailable(LibFunc_heap_allocate);
+    TLI.setUnavailable(LibFunc_heap_free);
+  }
 }
 
 /// Initialize the set of available library functions based on the specified

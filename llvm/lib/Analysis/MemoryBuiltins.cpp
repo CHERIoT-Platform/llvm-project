@@ -153,7 +153,8 @@ static const std::pair<LibFunc, AllocFnsTy> AllocationFnData[] = {
     {LibFunc_strndup,                           {StrDupLike,       2,  1, -1, -1, MallocFamily::Malloc}},
     {LibFunc_dunder_strndup,                    {StrDupLike,       2,  1, -1, -1, MallocFamily::Malloc}},
     {LibFunc___kmpc_alloc_shared,               {MallocLike,       1,  0, -1, -1, MallocFamily::KmpcAllocShared}},
-};
+    {LibFunc_heap_allocate,                     {MallocLike,       4,  3, -1, -1, MallocFamily::Malloc}},
+  };
 // clang-format on
 
 static const Function *getCalledFunction(const Value *V) {
@@ -485,6 +486,8 @@ static const std::pair<LibFunc, FreeFnsTy> FreeFnData[] = {
     {LibFunc_ZdlPvmSt11align_val_t,              {3, MallocFamily::CPPNewAligned}},      // delete(void*, unsigned long, align_val_t)
     {LibFunc_ZdaPvjSt11align_val_t,              {3, MallocFamily::CPPNewArrayAligned}}, // delete[](void*, unsigned int, align_val_t)
     {LibFunc_ZdaPvmSt11align_val_t,              {3, MallocFamily::CPPNewArrayAligned}}, // delete[](void*, unsigned long, align_val_t)
+    {LibFunc_heap_free,                          {2, MallocFamily::Malloc}},
+
 };
 // clang-format on
 
@@ -535,6 +538,15 @@ bool llvm::isLibFreeFunction(const Function *F, const LibFunc TLIFn) {
   // FIXME: workaround for PR5130, this will be obsolete when a nobuiltin
   // attribute will exist.
   FunctionType *FTy = F->getFunctionType();
+  if (TLIFn == LibFunc_heap_free) {
+    if (!FTy->getReturnType()->isIntegerTy())
+      return false;
+    if (FTy->getNumParams() != FnData->NumParams)
+      return false;
+    if (!FTy->getParamType(1)->isPointerTy())
+      return false;
+    return true;
+  }
   if (!FTy->getReturnType()->isVoidTy())
     return false;
   if (FTy->getNumParams() != FnData->NumParams)
@@ -550,6 +562,8 @@ Value *llvm::getFreedOperand(const CallBase *CB, const TargetLibraryInfo *TLI) {
     LibFunc TLIFn;
     if (TLI && TLI->getLibFunc(*Callee, TLIFn) && TLI->has(TLIFn) &&
         isLibFreeFunction(Callee, TLIFn)) {
+      if (TLIFn == LibFunc_heap_free)
+        return CB->getArgOperand(1);
       // All currently supported free functions free the first argument.
       return CB->getArgOperand(0);
     }

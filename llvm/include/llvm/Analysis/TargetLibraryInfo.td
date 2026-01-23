@@ -1695,3 +1695,9 @@ def wcslen : TargetLibCall<"wcslen", SizeT, [Ptr]>;
 
 /// ssize_t write(int fildes, const void *buf, size_t nbyte);
 def write : TargetLibCall<"write", SSizeT, [Int, Ptr, SizeT]>;
+
+// void * heap_allocate(Timeout * timeout, AllocatorCapability heapCapability, size_t size, uint32_t flags)
+def heap_allocate : TargetLibCall<"_Z13heap_allocateP7TimeoutU19__sealed_capabilityP24AllocatorCapabilityStatejj",  Ptr, [Ptr, Ptr, SizeT, Int32]>;
+
+// int heap_free(AllocatorCapability heapCapability, void * ptr)
+def heap_free : TargetLibCall<"_Z9heap_freeU19__sealed_capabilityP24AllocatorCapabilityStatePv", Int, [Ptr, Ptr]>;

@@ -1089,7 +1089,8 @@ void LinkerScript::diagnoseMissingSGSectionAddress() const {
     return;
 
   OutputSection *sec = findByName(sectionCommands, ".gnu.sgstubs");
-  if (sec && !sec->addrExpr && !ctx.arg.sectionStartMap.count(".gnu.sgstubs"))
+  if (sec && !sec->addrExpr &&
+      !ctx.arg.sectionStartMap.contains(".gnu.sgstubs"))
     ErrAlways(ctx) << "no address assigned to the veneers output section "
                    << sec->name;
 }
@@ -1965,5 +1966,5 @@ bool LinkerScript::shouldAddProvideSym(StringRef symName) {
     unusedProvideSyms.insert(sym);
     return false;
   }
-  return !unusedProvideSyms.count(sym);
+  return !unusedProvideSyms.contains(sym);
 }

@@ -1801,14 +1801,12 @@ public:
     if (auto *VTy = dyn_cast<VectorType>(Ty)) {
       Type *EltTy = VTy->getElementType();
       // Lower vectors of pointers to native pointer types.
-      EVT ElemVT;
-      if (auto *PTy = dyn_cast<PointerType>(EltTy)) {
-        ElemVT = getPointerTy(DL, PTy->getAddressSpace());
-      } else {
-        ElemVT = EVT::getEVT(EltTy, false);
-      }
-      assert(!ElemVT.isOverloaded() && "Should not get an overloaded EVT here");
-      return EVT::getVectorVT(Ty->getContext(), ElemVT, VTy->getElementCount());
+      EVT EltVT;
+      if (auto *PTy = dyn_cast<PointerType>(EltTy))
+        EltVT = getPointerTy(DL, PTy->getAddressSpace());
+      else
+        EltVT = EVT::getEVT(EltTy, false);
+      return EVT::getVectorVT(Ty->getContext(), EltVT, VTy->getElementCount());
     }
 
     return EVT::getEVT(Ty, AllowUnknown);
@@ -1822,12 +1820,12 @@ public:
 
     if (auto *VTy = dyn_cast<VectorType>(Ty)) {
       Type *EltTy = VTy->getElementType();
-      if (auto *PTy = dyn_cast<PointerType>(EltTy)) {
-        EVT PointerTy(getPointerMemTy(DL, PTy->getAddressSpace()));
-        EltTy = PointerTy.getTypeForEVT(Ty->getContext());
-      }
-      return EVT::getVectorVT(Ty->getContext(), EVT::getEVT(EltTy, false),
-                              VTy->getElementCount());
+      EVT EltVT;
+      if (auto *PTy = dyn_cast<PointerType>(EltTy))
+        EltVT = getPointerMemTy(DL, PTy->getAddressSpace());
+      else
+        EltVT = EVT::getEVT(EltTy, false);
+      return EVT::getVectorVT(Ty->getContext(), EltVT, VTy->getElementCount());
     }
 
     return getValueType(DL, Ty, AllowUnknown);

@@ -1237,8 +1237,8 @@ bool RISCVExpandAtomicPseudo::expandAtomicCmpXchg(
             DestReg)
         .addReg(AddrReg);
     BuildMI(LoopHeadMBB, DL, TII->get(RISCV::BNE))
-        .addReg(DestIntReg, 0)
-        .addReg(CmpValIntReg, 0)
+        .addReg(DestIntReg, {})
+        .addReg(CmpValIntReg, {})
         .addMBB(LoopHeadBNETarget);
     // .looptail:
     //   sc.[w|d] scratch, newval, (addr)

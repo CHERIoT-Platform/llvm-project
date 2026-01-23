@@ -149,7 +149,7 @@ bool CheriGetAddressElim::runOnMachineFunction(MachineFunction &MF) {
         BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
         TII->get(TargetOpcode::COPY), NewReg);
     if (VReg.isVirtual())
-      CopyMI.addReg(VReg, 0, RegIdx);
+      CopyMI.addReg(VReg, {}, RegIdx);
     else
       CopyMI.addReg(TRI->getSubReg(VReg, RegIdx));
     LLVM_DEBUG(dbgs() << "Replacing " << *MI << " with a subregister read\n");

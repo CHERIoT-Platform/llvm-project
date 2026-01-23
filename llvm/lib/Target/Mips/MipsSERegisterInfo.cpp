@@ -391,12 +391,12 @@ void MipsSERegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
         if (needsIncOffset) {
           if (isInt<11>(Offset)) {
             BuildMI(MBB, II, DL, TII.get(Mips::CIncOffsetImm), TmpCap)
-                .addReg(FrameReg, isFrameRegLoad ? RegState::Kill : 0)
+                .addReg(FrameReg, isFrameRegLoad ? RegState::Kill : RegState::NoFlags)
                 .addImm(Offset);
           } else {
             unsigned Reg = TII.loadImmediate(Offset, MBB, II, DL, nullptr);
             BuildMI(MBB, II, DL, TII.get(Mips::CIncOffset), TmpCap)
-                .addReg(FrameReg, isFrameRegLoad ? RegState::Kill : 0)
+                .addReg(FrameReg, isFrameRegLoad ? RegState::Kill : RegState::NoFlags)
                 .addReg(Reg, RegState::Kill);
           }
           FrameReg = TmpCap;

@@ -1082,7 +1082,7 @@ class VersionNeedSection final : public SyntheticSection {
 
   struct Vernaux {
     uint64_t hash;
-    uint32_t verneedIndex;
+    SharedFile::VerneedInfo verneedInfo;
     uint64_t nameStrTab;
   };
 

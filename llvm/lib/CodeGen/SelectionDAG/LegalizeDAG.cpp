@@ -2015,7 +2015,7 @@ ExpandBVWithShuffles(SDNode *Node, SelectionDAG &DAG,
     if (IntermedVals.size() > 1)
       Vec2 = IntermedVals[1].first;
     else if (Phase)
-      Vec2 = DAG.getUNDEF(VT);
+      Vec2 = DAG.getPOISON(VT);
 
     SmallVector<int, 16> ShuffleVec(NumElems, -1);
     for (unsigned i = 0, e = IntermedVals[0].second.size(); i != e; ++i)
@@ -2133,7 +2133,7 @@ SDValue SelectionDAGLegalize::ExpandBUILD_VECTOR(SDNode *Node) {
         if (Value2.getNode())
           Vec2 = DAG.getNode(ISD::SCALAR_TO_VECTOR, dl, VT, Value2);
         else
-          Vec2 = DAG.getUNDEF(VT);
+          Vec2 = DAG.getPOISON(VT);
 
         // Return shuffle(LowValVec, undef, <0,0,0,0>)
         return DAG.getVectorShuffle(VT, dl, Vec1, Vec2, ShuffleVec);

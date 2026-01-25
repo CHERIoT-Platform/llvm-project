@@ -25,11 +25,7 @@ declare_mlir_python_sources(MLIRPythonSources.Core.Python
     passmanager.py
     rewrite.py
     dialects/_ods_common.py
-
-    # The main _mlir module has submodules: include stubs from each.
-    _mlir_libs/_mlir/__init__.pyi
-    _mlir_libs/_mlir/ir.pyi
-    _mlir_libs/_mlir/passmanager.pyi
+    dialects/ext.py
 )
 
 declare_mlir_python_sources(MLIRPythonSources.Core.Python.Extras

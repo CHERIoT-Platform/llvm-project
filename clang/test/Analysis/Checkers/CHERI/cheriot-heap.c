@@ -8,6 +8,10 @@ int heap_claim_ephemeral(void* timeout, const void* ptr, const void* ptr2);
 char check_pointer(const volatile void* ptr, int space,
                    unsigned int rawPermissions, char checkStackNeeded);
 _Bool heap_address_is_valid(void *);
+void *token_obj_unseal(void*, void*);
+
+extern void unknown_call(void);
+extern int unknown_global;
 
 __attribute__((cheri_compartment("bar"))) void crossCompartmentCall(void);
 
@@ -40,11 +44,12 @@ void test_5(int* p) {
     heap_claim(0, p);
     *p = 0;
     heap_free(0, p);
-    *p = 1; // expected-warning{{Store through heap pointer 'p' without a valid claim}}
+    *p = 1;
 }
 
 __attribute__((cheri_compartment("test")))
 void test_6(int* p) {
+    unknown_call();
     heap_claim(0, p);
     *p = 0;
     heap_free_all(0);
@@ -53,6 +58,7 @@ void test_6(int* p) {
 
 __attribute__((cheri_compartment("test")))
 void test_7(int* p) {
+    unknown_call();
     heap_claim_ephemeral(0, p, 0);
     *p = 0;
     heap_free(0, p);
@@ -61,6 +67,7 @@ void test_7(int* p) {
 
 __attribute__((cheri_compartment("test")))
 void test_8(int* p) {
+    unknown_global = 1;
     heap_claim_ephemeral(0, p, 0);
     *p = 0;
     heap_free_all(0);
@@ -108,7 +115,7 @@ void test_14(int* p) {
 
 __attribute__((cheri_compartment("test")))
 void test_15(int* p) {
-    check_pointer(p, 0, 0, 0); // expected-warning{{check_pointer called on potential heap pointer 'p' without a valid claim}}
+    check_pointer(p, 0, 0, 0); // no warn
 }
 
 __attribute__((cheri_compartment("test")))
@@ -137,12 +144,14 @@ void test_20(int* p) {
 
 __attribute__((cheri_compartment("test")))
 void test_21(int* p) {
+    unknown_call();
     if (heap_address_is_valid(p))
         check_pointer(p, 0, 0, 0); // expected-warning{{check_pointer called on potential heap pointer 'p' without a valid claim}}
 }
 
 __attribute__((cheri_compartment("test")))
 void test_22(int* p) {
+    unknown_global = 1;
     *p = 1; // expected-warning{{Store through heap pointer 'p' without a valid claim}}
     heap_claim(0, p);
     *p = 0;
@@ -194,11 +203,13 @@ void test_26(int* p) {
 struct test27_struct { int i; };
 __attribute__((cheri_compartment("test")))
 int test_27(struct test27_struct* p) {
+    unknown_call();
     return p->i; // expected-warning{{Read of heap pointer 'p' without a valid claim}}
 }
 
 __attribute__((cheri_compartment("test")))
 int test_28(int* p) {
+    unknown_call();
     return p[1]; // expected-warning{{Read of heap pointer 'p' without a valid claim}}
 }
 
@@ -208,4 +219,51 @@ int test_29(int *p, Callback f) {
     heap_claim_ephemeral(0, p, 0);
     f();
     return *p; // expected-warning{{Read of heap pointer 'p' after its ephemeral claim was released by a cross-compartment call}}
+}
+
+__attribute__((cheri_compartment("test")))
+void test_30(int* p, int* q) {
+    heap_claim(0, p);
+    heap_claim(0, q);
+    *p = 0;
+    heap_free(0, p);
+    *p = 1; // expected-warning{{Store through heap pointer 'p' without a valid claim}}
+    heap_free(0, q);
+}
+
+__attribute__((cheri_compartment("test")))
+void test_31(int* p) {
+    unknown_call();
+    heap_claim(0, p);
+    *p = 0;
+    heap_free(0, p);
+    *p = 1; // expected-warning{{Store through heap pointer 'p' without a valid claim}}
+}
+
+__attribute__((cheri_compartment("test")))
+void test_32(int* p) {
+    unknown_global = 1;
+    heap_claim(0, p);
+    *p = 0;
+    heap_free(0, p);
+    *p = 1; // expected-warning{{Store through heap pointer 'p' without a valid claim}}
+}
+
+__attribute__((cheri_compartment("test")))
+void test_33(int* p) {
+    unknown_call();
+    check_pointer(p, 0, 0, 0); // expected-warning{{check_pointer called on potential heap pointer 'p' without a valid claim}}
+}
+
+__attribute__((cheri_compartment("test")))
+void test_34(int* p) {
+    token_obj_unseal(0, 0);
+    check_pointer(p, 0, 0, 0); // no warn
+}
+
+__attribute__((cheri_compartment("test")))
+void test_35(int* p) {
+    int *p2 = (int*)token_obj_unseal(0, p);
+    unknown_call();
+    check_pointer(p2, 0, 0, 0); // expected-warning{{check_pointer called on potential heap pointer without a valid claim}}
 }

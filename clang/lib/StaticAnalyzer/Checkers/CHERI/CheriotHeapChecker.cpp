@@ -71,6 +71,12 @@ class CheriotHeapChecker
       {{CDM::SimpleFunc, {"heap_free"}, 2}, &CheriotHeapChecker::postHeapFree},
       {{CDM::SimpleFunc, {"heap_free_all"}, 1},
        &CheriotHeapChecker::postHeapFreeAll},
+      {{CDM::SimpleFunc, {"token_obj_unseal"}, 2},
+       &CheriotHeapChecker::postTokenObjUnseal},
+  };
+
+  const CallDescriptionSet SafeFnMap{
+      {CDM::SimpleFunc, {"token_obj_unseal"}, 2},
   };
 
 public:
@@ -91,6 +97,7 @@ public:
   void postHeapClaimEphemeral(const CallEvent &Call, CheckerContext &C) const;
   void postHeapFree(const CallEvent &Call, CheckerContext &C) const;
   void postHeapFreeAll(const CallEvent &Call, CheckerContext &C) const;
+  void postTokenObjUnseal(const CallEvent &Call, CheckerContext &C) const;
 
 private:
   void reportLeak(SymbolRef Sym, CheckerContext &C) const;
@@ -98,9 +105,26 @@ private:
 
 } // anonymous namespace
 
+REGISTER_TRAIT_WITH_PROGRAMSTATE(ExternalStateMutated, bool)
 REGISTER_MAP_WITH_PROGRAMSTATE(HeapPointers, SymbolRef, HeapPtrState)
 
-bool isCrossCompartmentCall(const CallEvent &Call, const CheckerContext &C) {
+static bool shouldWarnOnDereferences(ProgramStateRef State) {
+  if (State->get<ExternalStateMutated>())
+    return true;
+
+  // Any pending non-ephemeral claims count as state mutation,
+  // unexpectedly terminating the compartment call without
+  // releasing them could cause a leak.
+  for (const auto &[Sym, HPS] : State->get<HeapPointers>()) {
+    if (HPS.isClaimed())
+      return true;
+  }
+
+  return false;
+}
+
+static bool isCrossCompartmentCall(const CallEvent &Call,
+                                   const CheckerContext &C) {
   // Any call through a CC_CHERICCallback pointer is a compartment call.
   auto IsCompartmentCallbackCall = [](const CallEvent &Call) {
     const auto *CallE =
@@ -150,21 +174,39 @@ void CheriotHeapChecker::checkPreCall(const CallEvent &Call,
 
 void CheriotHeapChecker::checkPostCall(const CallEvent &Call,
                                        CheckerContext &C) const {
-  if (const auto *PostFN = PostFnMap.lookup(Call))
+  if (const auto *PostFN = PostFnMap.lookup(Call)) {
     (*PostFN)(this, Call, C);
+    return;
+  }
+
+  // Opaque calls to unrecognized, non-builtin functions may modify
+  // state, which should cause us to enable warnings.
+  ProgramStateRef State = C.getState();
+  bool Changed = false;
+  const FunctionDecl *FD = dyn_cast_or_null<FunctionDecl>(Call.getDecl());
+  bool IsBuiltin = FD && FD->getBuiltinID() != 0;
+  if (!IsBuiltin && !SafeFnMap.contains(Call)) {
+    const Decl *RD = Call.getRuntimeDefinition().getDecl();
+    if (!RD || !C.getAnalysisManager().getCFG(RD)) {
+      State = State->set<ExternalStateMutated>(true);
+      Changed = true;
+    }
+  }
 
   if (isCrossCompartmentCall(Call, C)) {
     // All ephemeral claims are implicitly released at each cross-compartment
     // call.
-    ProgramStateRef State = C.getState();
     for (const auto &[Sym, HPS] : State->get<HeapPointers>()) {
       if (!HPS.isEphemeral())
         continue;
 
       State = State->set<HeapPointers>(Sym, HeapPtrState::InvalidatedEphemeral);
+      Changed = true;
     }
-    C.addTransition(State);
   }
+
+  if (Changed)
+    C.addTransition(State);
 }
 
 static void printSymbolNameForError(llvm::raw_ostream &os, SymbolRef Sym) {
@@ -179,6 +221,10 @@ static void printSymbolNameForError(llvm::raw_ostream &os, SymbolRef Sym) {
 
 void CheriotHeapChecker::preCheckPointer(const CallEvent &Call,
                                          CheckerContext &C) const {
+  ProgramStateRef State = C.getState();
+  if (!shouldWarnOnDereferences(State))
+    return;
+
   // If the pointer argument points to memory that could be heap memory,
   // check that it is in Claimed state, and report an error if not. This should
   // make sure to include arguments that are pointers to known stack or constant
@@ -188,7 +234,7 @@ void CheriotHeapChecker::preCheckPointer(const CallEvent &Call,
   if (!Sym)
     return;
 
-  const HeapPtrState *HPS = C.getState()->get<HeapPointers>(Sym);
+  const HeapPtrState *HPS = State->get<HeapPointers>(Sym);
   if (!HPS || HPS->isEffectivelyClaimed())
     return;
 
@@ -294,15 +340,51 @@ void CheriotHeapChecker::postHeapFreeAll(const CallEvent &Call,
   C.addTransition(State);
 }
 
+void CheriotHeapChecker::postTokenObjUnseal(const CallEvent &Call,
+                                            CheckerContext &C) const {
+  // Unsealing a sealed cross-compartment pointer argument produces
+  // a new pointer that should be treated the same as the original
+  // for the purposes of analysis.
+  ProgramStateRef State = C.getState();
+  SymbolRef SealedSym = Call.getArgSVal(1).getAsLocSymbol();
+  if (!State->contains<HeapPointers>(SealedSym))
+    return;
+
+  // Since the sealed pointer was undereferenceable, we can start
+  // the new one off in unclaimed state.
+  SVal RetVal = Call.getReturnValue();
+  SymbolRef Sym = RetVal.getAsLocSymbol();
+  State = State->set<HeapPointers>(Sym, HeapPtrState::Unclaimed);
+  C.addTransition(State);
+}
+
 void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
                                        CheckerContext &C) const {
+  ProgramStateRef State = C.getState();
   SymbolRef Sym = Loc.getLocSymbolInBase();
-  if (!Sym)
+
+  // If this is a write to non-stack memory that is not one of the
+  // tracked compartment call arguments, then it is an internal state
+  // change that could cause state desynchronization on compartment
+  // crash.
+  const HeapPtrState *HPS = Sym ? State->get<HeapPointers>(Sym) : nullptr;
+  bool WarningsLive = shouldWarnOnDereferences(State);
+  if (!WarningsLive && !IsLoad && !HPS) {
+    const MemRegion *R = Loc.getAsRegion();
+    if (R)
+      R = R->StripCasts();
+    if (!R || !isa<StackSpaceRegion>(R->getMemorySpace(State))) {
+      State = State->set<ExternalStateMutated>(true);
+      C.addTransition(State);
+      return;
+    }
+  }
+
+  if (!WarningsLive || !Sym)
     return;
 
   // This is a dereference of some form, so this is a bug if the
   // claim has already been released either by freeing or invalidation.
-  const HeapPtrState *HPS = C.getState()->get<HeapPointers>(Sym);
   if (!HPS || HPS->isEffectivelyClaimed())
     return;
 

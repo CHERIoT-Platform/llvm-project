@@ -45,6 +45,42 @@ struct HeapPtrState {
   void Profile(llvm::FoldingSetNodeID &ID) const { ID.AddInteger(K); }
 };
 
+struct CheckPtrState {
+  bool Checked = false;
+  uint32_t Permissions = 0;
+  bool CheckStack = false;
+  bool EnforceStrictPermissions = false;
+
+  bool canLoad() const {
+    if (!Checked)
+      return true;
+    return Permissions & PermissionLoad;
+  }
+  bool canStore() const {
+    if (!Checked)
+      return true;
+    return Permissions & PermissionStore;
+  }
+
+  bool isStrict() const { return EnforceStrictPermissions; }
+
+  bool operator==(const CheckPtrState &X) const {
+    return Checked == X.Checked && Permissions == X.Permissions &&
+           CheckStack == X.CheckStack &&
+           EnforceStrictPermissions == X.EnforceStrictPermissions;
+  }
+
+  void Profile(llvm::FoldingSetNodeID &ID) const {
+    ID.AddBoolean(Checked);
+    ID.AddInteger(Permissions);
+    ID.AddBoolean(CheckStack);
+    ID.AddBoolean(EnforceStrictPermissions);
+  }
+
+  static constexpr uint32_t PermissionStore = 1 << 2;
+  static constexpr uint32_t PermissionLoad = 1 << 5;
+};
+
 class CheriotHeapChecker
     : public Checker<check::PreCall, check::PostCall, check::Location,
                      check::BeginFunction, check::EndFunction,
@@ -71,6 +107,8 @@ class CheriotHeapChecker
       {{CDM::SimpleFunc, {"heap_free"}, 2}, &CheriotHeapChecker::postHeapFree},
       {{CDM::SimpleFunc, {"heap_free_all"}, 1},
        &CheriotHeapChecker::postHeapFreeAll},
+      {{CDM::SimpleFunc, {"CHERI", "check_pointer"}},
+       &CheriotHeapChecker::postCXXCheckPointer},
   };
 
   const CallDescriptionSet SafeFnMap{
@@ -95,6 +133,7 @@ public:
   void postHeapClaimEphemeral(const CallEvent &Call, CheckerContext &C) const;
   void postHeapFree(const CallEvent &Call, CheckerContext &C) const;
   void postHeapFreeAll(const CallEvent &Call, CheckerContext &C) const;
+  void postCXXCheckPointer(const CallEvent &Call, CheckerContext &C) const;
 
 private:
   void reportLeak(SymbolRef Sym, CheckerContext &C) const;
@@ -104,6 +143,7 @@ private:
 
 REGISTER_TRAIT_WITH_PROGRAMSTATE(ExternalStateMutated, bool)
 REGISTER_MAP_WITH_PROGRAMSTATE(HeapPointers, SymbolRef, HeapPtrState)
+REGISTER_MAP_WITH_PROGRAMSTATE(CheckedPointers, SymbolRef, CheckPtrState)
 
 static bool shouldWarnOnDereferences(ProgramStateRef State) {
   if (State->get<ExternalStateMutated>())
@@ -337,6 +377,56 @@ void CheriotHeapChecker::postHeapFreeAll(const CallEvent &Call,
   C.addTransition(State);
 }
 
+static uint32_t
+getPermissionsFromCXXCheckPointerArg(const TemplateArgument &Arg,
+                                     ASTContext &Ctx) {
+  const ValueDecl *VD = Arg.getAsDecl();
+  const TemplateParamObjectDecl *TPOD = cast<TemplateParamObjectDecl>(VD);
+  const APValue &PermissionSetVal = TPOD->getValue();
+  const APValue &RawPerms = PermissionSetVal.getStructField(0);
+  return RawPerms.getInt().getExtValue();
+}
+
+void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
+                                             CheckerContext &C) const {
+  ProgramStateRef State = C.getState();
+  SVal RefArg = Call.getArgSVal(0);
+  SVal PtrVal = State->getSVal(RefArg.castAs<Loc>());
+  SymbolRef Sym = PtrVal.getAsLocSymbol();
+  if (!Sym)
+    return;
+
+  const FunctionDecl *FD = dyn_cast_or_null<FunctionDecl>(Call.getDecl());
+  if (!FD)
+    return;
+
+  const FunctionTemplateSpecializationInfo *FTSI =
+      FD->getTemplateSpecializationInfo();
+  if (!FTSI)
+    return;
+
+  const TemplateArgumentList *TemplateArgs = FTSI->TemplateArguments;
+  if (TemplateArgs->size() != 4)
+    return;
+
+  ASTContext &Ctx = C.getASTContext();
+  uint32_t Permissions =
+      getPermissionsFromCXXCheckPointerArg(TemplateArgs->get(0), Ctx);
+  bool CheckStack = TemplateArgs->get(1).getAsIntegral().getExtValue();
+  bool EnforceStrictPermissions =
+      TemplateArgs->get(2).getAsIntegral().getExtValue();
+
+  State = State->set<CheckedPointers>(
+      Sym, CheckPtrState{
+               .Checked = true,
+               .Permissions = Permissions,
+               .CheckStack = CheckStack,
+               .EnforceStrictPermissions = EnforceStrictPermissions,
+           });
+
+  C.addTransition(State);
+}
+
 void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
                                        CheckerContext &C) const {
   ProgramStateRef State = C.getState();
@@ -364,31 +454,60 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
 
   // This is a dereference of some form, so this is a bug if the
   // claim has already been released either by freeing or invalidation.
-  if (!HPS || HPS->isEffectivelyClaimed())
+  if (HPS && !HPS->isEffectivelyClaimed()) {
+    ExplodedNode *N = C.generateErrorNode();
+    if (!N)
+      return;
+
+    SmallString<200> buf;
+    llvm::raw_svector_ostream os(buf);
+    if (IsLoad)
+      os << "Read of heap pointer ";
+    else
+      os << "Store through heap pointer ";
+    printSymbolNameForError(os, Sym);
+    if (HPS->isUnclaimed())
+      os << "without a valid claim.";
+    else if (HPS->isInvalidatedEphemeral())
+      os << "after its ephemeral claim was released by a cross-compartment "
+            "call.";
+
+    auto Report = std::make_unique<PathSensitiveBugReport>(InvalidUseBugType,
+                                                           os.str(), N);
+    if (S)
+      Report->addRange(S->getSourceRange());
+    Report->markInteresting(Sym);
+    C.emitReport(std::move(Report));
     return;
+  }
 
-  ExplodedNode *N = C.generateErrorNode();
-  if (!N)
+  const CheckPtrState *CPS = C.getState()->get<CheckedPointers>(Sym);
+  if ((IsLoad && !CPS->canLoad()) || (!IsLoad && !CPS->canStore())) {
+    ExplodedNode *N = C.generateErrorNode();
+    if (!N)
+      return;
+
+    SmallString<200> buf;
+    llvm::raw_svector_ostream os(buf);
+    if (IsLoad)
+      os << "Read of heap pointer ";
+    else
+      os << "Store through heap pointer ";
+    printSymbolNameForError(os, Sym);
+    os << "without passing the appropriate permission to check_pointer.";
+    if (!CPS->isStrict())
+      os << " Runtime behavior will depend on the permissions provided by the "
+            "caller. Use the EnforceStrictPermissions template parameter to "
+            "check_pointer to enforce consistency across callers.";
+
+    auto Report = std::make_unique<PathSensitiveBugReport>(InvalidUseBugType,
+                                                           os.str(), N);
+    if (S)
+      Report->addRange(S->getSourceRange());
+    Report->markInteresting(Sym);
+    C.emitReport(std::move(Report));
     return;
-
-  SmallString<200> buf;
-  llvm::raw_svector_ostream os(buf);
-  if (IsLoad)
-    os << "Read of heap pointer ";
-  else
-    os << "Store through heap pointer ";
-  printSymbolNameForError(os, Sym);
-  if (HPS->isUnclaimed())
-    os << "without a valid claim.";
-  else if (HPS->isInvalidatedEphemeral())
-    os << "after its ephemeral claim was released by a cross-compartment call.";
-
-  auto Report =
-      std::make_unique<PathSensitiveBugReport>(InvalidUseBugType, os.str(), N);
-  if (S)
-    Report->addRange(S->getSourceRange());
-  Report->markInteresting(Sym);
-  C.emitReport(std::move(Report));
+  }
 }
 
 ProgramStateRef CheriotHeapChecker::checkPointerEscape(
@@ -433,6 +552,7 @@ void CheriotHeapChecker::checkBeginFunction(CheckerContext &C) const {
     const VarRegion *VR = State->getRegion(Param, LC);
     if (SymbolRef Sym = State->getSVal(VR).getAsLocSymbol()) {
       State = State->set<HeapPointers>(Sym, HeapPtrState::Unclaimed);
+      State = State->set<CheckedPointers>(Sym, {});
       Modified = true;
     }
   }

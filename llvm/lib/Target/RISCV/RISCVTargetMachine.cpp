@@ -110,6 +110,11 @@ static cl::opt<bool> EnableCFIInstrInserter(
     cl::desc("Enable CFI Instruction Inserter for RISC-V"), cl::init(false),
     cl::Hidden);
 
+static cl::opt<bool>
+    EnableSelectOpt("riscv-select-opt", cl::Hidden,
+                    cl::desc("Enable select to branch optimizations"),
+                    cl::init(false));
+
 extern "C" LLVM_ABI LLVM_EXTERNAL_VISIBILITY void LLVMInitializeRISCVTarget() {
   RegisterTargetMachine<RISCVTargetMachine> X(getTheRISCV32Target());
   RegisterTargetMachine<RISCVTargetMachine> Y(getTheRISCV64Target());
@@ -485,6 +490,9 @@ void RISCVPassConfig::addIRPasses() {
   addPass(createCheriotZeroSRetPass());
   addPass(createCheriBoundAllocasLegacyPass());
   TargetPassConfig::addIRPasses();
+
+  if (getOptLevel() == CodeGenOptLevel::Aggressive && EnableSelectOpt)
+    addPass(createSelectOptimizePass());
 }
 
 bool RISCVPassConfig::addPreISel() {

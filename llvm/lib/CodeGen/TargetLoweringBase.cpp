@@ -1751,8 +1751,7 @@ void TargetLoweringBase::computeRegisterProperties(
   // conversions).
   if (!isTypeLegal(MVT::f16)) {
     // Allow targets to control how we legalize half.
-    bool SoftPromoteHalfType = softPromoteHalfType();
-    bool UseFPRegsForHalfType = !SoftPromoteHalfType || useFPRegsForHalfType();
+    bool UseFPRegsForHalfType = useFPRegsForHalfType();
 
     if (!UseFPRegsForHalfType) {
       NumRegistersForVT[MVT::f16] = NumRegistersForVT[MVT::i16];
@@ -1762,11 +1761,7 @@ void TargetLoweringBase::computeRegisterProperties(
       RegisterTypeForVT[MVT::f16] = RegisterTypeForVT[MVT::f32];
     }
     TransformToType[MVT::f16] = MVT::f32;
-    if (SoftPromoteHalfType) {
-      ValueTypeActions.setTypeAction(MVT::f16, TypeSoftPromoteHalf);
-    } else {
-      ValueTypeActions.setTypeAction(MVT::f16, TypePromoteFloat);
-    }
+    ValueTypeActions.setTypeAction(MVT::f16, TypeSoftPromoteHalf);
   }
 
   // Decide how to handle bf16. If the target does not have native bf16 support,

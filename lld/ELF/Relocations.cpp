@@ -1225,8 +1225,13 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
           "PCC-accessed symbol defined in unsupported section type");
     // TODO: Make this an error in future? Would need special relocation to
     // allow bypassing for specific use cases (e.g. kernel startup code).
+    // Cheriot doesn't distinguish between ro and relro data, so sections
+    // marked SHF_WRITE can still end up in the PCC region.
+    bool isCheriotCodeSection =
+        ctx.arg.isCheriot && (osec->flags & SHF_EXECINSTR) != 0;
     if ((osec->flags & SHF_WRITE) &&
-        !isRelroSection(ctx, osec, /*ignoreZRelro=*/true))
+        !isRelroSection(ctx, osec, /*ignoreZRelro=*/true) &&
+        !isCheriotCodeSection)
       warn("relocation " + toStr(ctx, type) + " against symbol '" +
            toStr(ctx, sym) + "' in non-PCC section" + sec->getLocation(offset));
     else

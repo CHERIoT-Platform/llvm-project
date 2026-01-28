@@ -68,6 +68,8 @@ x86_release_task:
     - rm install/bin/ld64*
     - rm install/bin/lld-link
     - rm install/bin/wasm-ld
+    - rm install/lib/liblldb.so
+    - rm install/lib/liblldb.so.[0-9]*
   binaries_artifacts:
     path: "Build/install/**"
 
@@ -102,5 +104,7 @@ arm_release_task:
     - rm install/bin/ld64*
     - rm install/bin/lld-link
     - rm install/bin/wasm-ld
+    - rm install/lib/liblldb.so
+    - rm install/lib/liblldb.so.[0-9]*
   binaries_artifacts:
     path: "Build/install/**"

@@ -320,7 +320,7 @@ multiclass CAMO_C_rr_aq_rl<string YLenstr, bits<5> funct5, bits<3> funct3,
 let hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
 class CCheriStackLoad<bits<3> funct3, string OpcodeStr,
                       RegisterClass cls, DAGOperand opnd>
-    : RVInst16CI<funct3, 0b10, (outs cls:$rd), (ins CSP:$rs1, opnd:$imm),
+    : RVInst16CI<funct3, OPC_C2, (outs cls:$rd), (ins CSP:$rs1, opnd:$imm),
                  OpcodeStr, "$rd, ${imm}(${rs1})"> {
   bits<0> rs1;
 }
@@ -328,7 +328,7 @@ class CCheriStackLoad<bits<3> funct3, string OpcodeStr,
 let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
 class CCheriStackStore<bits<3> funct3, string OpcodeStr,
                        RegisterClass cls, DAGOperand opnd>
-    : RVInst16CSS<funct3, 0b10, (outs), (ins cls:$rs2, CSP:$rs1, opnd:$imm),
+    : RVInst16CSS<funct3, OPC_C2, (outs), (ins cls:$rs2, CSP:$rs1, opnd:$imm),
                   OpcodeStr, "$rs2, ${imm}(${rs1})"> {
   bits<0> rs1;
 }
@@ -336,13 +336,13 @@ class CCheriStackStore<bits<3> funct3, string OpcodeStr,
 let hasSideEffects = 0, mayLoad = 1, mayStore = 0, canFoldAsLoad = 1, isReMaterializable = 1 in
 class CCheriLoad_ri<bits<3> funct3, string OpcodeStr,
                     RegisterClass cls, DAGOperand opnd>
-    : RVInst16CL<funct3, 0b00, (outs cls:$rd), (ins YGPRC:$rs1, opnd:$imm),
+    : RVInst16CL<funct3, OPC_C0, (outs cls:$rd), (ins YGPRC:$rs1, opnd:$imm),
                  OpcodeStr, "$rd, ${imm}(${rs1})">;
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
 class CCheriStore_rri<bits<3> funct3, string OpcodeStr,
                       RegisterClass cls, DAGOperand opnd>
-    : RVInst16CS<funct3, 0b00, (outs), (ins cls:$rs2, YGPRC:$rs1, opnd:$imm),
+    : RVInst16CS<funct3, OPC_C0, (outs), (ins cls:$rs2, YGPRC:$rs1, opnd:$imm),
                  OpcodeStr, "$rs2, ${imm}(${rs1})">;
 
 //===----------------------------------------------------------------------===//
@@ -1085,7 +1085,7 @@ let DecoderNamespace = "CapModeOnly_" in {
 let Predicates = [HasCheri, HasCheriRVC, HasStdExtC, IsCapMode] in {
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0, Uses = [X2_Y] in
-def C_CIncOffsetImm4CSPN : RVInst16CIW<0b000, 0b00, (outs YGPRC:$rd),
+def C_CIncOffsetImm4CSPN : RVInst16CIW<0b000, OPC_C0, (outs YGPRC:$rd),
                                        (ins CSP:$rs1, uimm10_lsb00nonzero:$imm),
                                        "c.cincoffset4cspn", "$rd, $rs1, $imm"> {
   bits<0> rs1;
@@ -1174,11 +1174,11 @@ def C_CSD : CCheriStore_rri<0b111, "c.csd", GPRC, uimm8_lsb000> {
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0, isCall = 1,
     DecoderNamespace = "RISCV32CapModeOnly_", Defs = [X1_Y],
     Predicates = [HasCheri, HasCheriRVC, HasStdExtC, IsRV32, IsCapMode]  in
-def C_CJAL : RVInst16CJ<0b001, 0b01, (outs), (ins bare_simm12_lsb0:$offset),
+def C_CJAL : RVInst16CJ<0b001, OPC_C1, (outs), (ins bare_simm12_lsb0:$offset),
                         "c.cjal", "$offset">;
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
-def C_CIncOffsetImm16CSP : RVInst16CI<0b011, 0b01, (outs CSP:$rd_wb),
+def C_CIncOffsetImm16CSP : RVInst16CI<0b011, OPC_C1, (outs CSP:$rd_wb),
                                       (ins CSP:$rs1, simm10_lsb0000nonzero:$imm),
                                       "c.cincoffset16csp", "$rs1, $imm"> {
   bits<0> rs1;
@@ -1223,7 +1223,7 @@ def C_CLDCSP : CCheriStackLoad<0b011, "c.cldcsp", GPRNoX0, uimm9_lsb000> {
 }
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
-def C_CJR : RVInst16CR<0b1000, 0b10, (outs), (ins  YGPRNoX0:$rs1),
+def C_CJR : RVInst16CR<0b1000, OPC_C2, (outs), (ins  YGPRNoX0:$rs1),
                        "c.cjr", "$rs1"> {
   let isBranch = 1;
   let isBarrier = 1;
@@ -1234,7 +1234,7 @@ def C_CJR : RVInst16CR<0b1000, 0b10, (outs), (ins  YGPRNoX0:$rs1),
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0,
     isCall = 1, Defs = [X1_Y], rs2 = 0 in
-def C_CJALR : RVInst16CR<0b1001, 0b10, (outs), (ins  YGPRNoX0:$rs1),
+def C_CJALR : RVInst16CR<0b1001, OPC_C2, (outs), (ins  YGPRNoX0:$rs1),
                          "c.cjalr", "$rs1">;
 
 let DecoderNamespace = "RISCV32CapModeOnly_",

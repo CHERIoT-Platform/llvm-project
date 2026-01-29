@@ -3396,6 +3396,7 @@ MipsGOTParser<ELFT>::getPltSym(const Entry *E) const {
   }
 }
 
+// clang-format off
 const EnumEntry<unsigned> ElfMipsISAExtType[] = {
   {"None",                    Mips::AFL_EXT_NONE},
   {"Broadcom SB-1",           Mips::AFL_EXT_SB1},
@@ -3408,7 +3409,6 @@ const EnumEntry<unsigned> ElfMipsISAExtType[] = {
   {"Loongson 2F",             Mips::AFL_EXT_LOONGSON_2F},
   {"Loongson 3A",             Mips::AFL_EXT_LOONGSON_3A},
   {"MIPS R4650",              Mips::AFL_EXT_4650},
-  {"MIPS R5900",              Mips::AFL_EXT_5900},
   {"MIPS R10000",             Mips::AFL_EXT_10000},
   {"NEC VR4100",              Mips::AFL_EXT_4100},
   {"NEC VR4111/VR4181",       Mips::AFL_EXT_4111},
@@ -3417,12 +3417,14 @@ const EnumEntry<unsigned> ElfMipsISAExtType[] = {
   {"NEC VR5500",              Mips::AFL_EXT_5500},
   {"RMI Xlr",                 Mips::AFL_EXT_XLR},
   {"Toshiba R3900",           Mips::AFL_EXT_3900},
+  {"Toshiba R5900",           Mips::AFL_EXT_5900},
   {"CHERI purecap (unknown ABI)",  Mips::AFL_EXT_CHERI},
   {"CHERI purecap (legacy)",       Mips::AFL_EXT_CHERI_ABI_LEGACY},
   {"CHERI purecap (pc-relative)",  Mips::AFL_EXT_CHERI_ABI_PCREL},
   {"CHERI purecap (PLT based)",    Mips::AFL_EXT_CHERI_ABI_PLT},
   {"CHERI purecap (function descriptor)", Mips::AFL_EXT_CHERI_ABI_FNDESC},
 };
+// clang-format on
 
 const EnumEntry<unsigned> ElfMipsASEFlags[] = {
   {"DSP",                Mips::AFL_ASE_DSP},

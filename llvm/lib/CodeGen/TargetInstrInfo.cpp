@@ -1120,7 +1120,7 @@ void TargetInstrInfo::reduceAccumulatorTree(
   if (RegistersToReduce.size() % 2 != 0)
     NewRegs.push_back(RegistersToReduce[RegistersToReduce.size() - 1]);
 
-  RegistersToReduce = NewRegs;
+  RegistersToReduce = std::move(NewRegs);
 }
 
 // The concept of the reassociation pass is that these operations can benefit

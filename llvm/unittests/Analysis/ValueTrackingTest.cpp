@@ -1665,7 +1665,7 @@ TEST_F(ComputeKnownFPClassTest, CopySignNInfSrc0_NegSign) {
       "  %A = call float @llvm.copysign.f32(float %ninf, float -1.0)"
       "  ret float %A\n"
       "}\n");
-  expectKnownFPClass(fcNegFinite | fcNan, true);
+  expectKnownFPClass(fcNegZero | fcNegNormal | fcNan, true);
 }
 
 TEST_F(ComputeKnownFPClassTest, CopySignNInfSrc0_PosSign) {
@@ -1676,7 +1676,7 @@ TEST_F(ComputeKnownFPClassTest, CopySignNInfSrc0_PosSign) {
                 "  %A = call float @llvm.copysign.f32(float %ninf, float 1.0)"
                 "  ret float %A\n"
                 "}\n");
-  expectKnownFPClass(fcPosFinite | fcNan, false);
+  expectKnownFPClass(fcPosZero | fcPosNormal | fcNan, false);
 }
 
 TEST_F(ComputeKnownFPClassTest, UIToFP) {

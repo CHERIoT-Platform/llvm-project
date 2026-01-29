@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -std=c++20 -triple riscv32e-none-cheriotrtos -target-feature +xcheriot -target-abi cheriot -cheri-compartment=test -analyze -verify %s \
+// RUN: %clang_cc1 -std=c++20 -triple riscv32-none-cheriotrtos -target-feature +xcheriot -target-abi cheriot -cheri-compartment=test -analyze -verify %s \
 // RUN:   -analyzer-checker=cheriot.CheriotHeap
 
 namespace CHERI {

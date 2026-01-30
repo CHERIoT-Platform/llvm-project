@@ -132,12 +132,12 @@ public:
   bool allowsMisalignedMemoryAccesses(EVT VT, unsigned AS, Align Alignment,
                                       MachineMemOperand::Flags Flags,
                                       unsigned *Fast) const override;
-  bool
-  findOptimalMemOpLowering(LLVMContext &Context, std::vector<EVT> &MemOps,
-                           unsigned Limit, const MemOp &Op, unsigned DstAS,
-                           unsigned SrcAS,
-                           const AttributeList &FuncAttributes,
-                           bool *ReachedLimit = nullptr) const override;
+  bool findOptimalMemOpLowering(LLVMContext &Context, std::vector<EVT> &MemOps,
+                                unsigned Limit, const MemOp &Op, unsigned DstAS,
+                                unsigned SrcAS,
+                                const AttributeList &FuncAttributes,
+                                EVT *LargestVT = nullptr,
+                                bool *ReachedLimit = nullptr) const override;
   EVT getOptimalMemOpType(LLVMContext &Context, const MemOp &Op,
                           const AttributeList &FuncAttributes) const override;
   bool isTruncateFree(Type *, Type *) const override;

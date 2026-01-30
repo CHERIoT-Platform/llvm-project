@@ -1183,6 +1183,9 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
         }
       }
 
+      if (Subtarget.hasStdExtZvbc() && VT.getVectorElementType() == MVT::i64)
+        setOperationAction({ISD::CLMUL, ISD::CLMULH}, VT, Legal);
+
       setOperationAction(ISD::VECTOR_COMPRESS, VT, Custom);
     }
 
@@ -1967,8 +1970,6 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     setTargetDAGCombine(ISD::BITCAST);
 
   setMaxDivRemBitWidthSupported(Subtarget.is64Bit() ? 128 : 64);
-
-  setMaxLargeFPConvertBitWidthSupported(Subtarget.is64Bit() ? 128 : 64);
 
   // Disable strict node mutation.
   IsStrictFPEnabled = true;

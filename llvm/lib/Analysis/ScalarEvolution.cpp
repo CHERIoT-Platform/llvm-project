@@ -1026,13 +1026,18 @@ const SCEV *ScalarEvolution::getLosslessPtrToIntExpr(const SCEV *Op,
   if (const SCEV *S = UniqueSCEVs.FindNodeOrInsertPos(ID, IP))
     return S;
 
+  auto IsCheriPointer = isCheriPointer(Op->getType(), &getDataLayout());
   // It isn't legal for optimizations to construct new ptrtoint expressions
   // for non-integral pointers, with the exception of some specific cases.
   if (getDataLayout().isNonIntegralPointerType(Op->getType()) &&
-      !isCheriPointer(Op->getType(), &getDataLayout()))
+      !IsCheriPointer)
     return getCouldNotCompute();
 
-  Type *IntPtrTy = getDataLayout().getIndexType(Op->getType());
+  Type *IntPtrTy = getDataLayout().getIntPtrType(Op->getType());
+
+  // For CHERIoT
+  if (IsCheriPointer)
+    IntPtrTy = getDataLayout().getIndexType(Op->getType());
 
   // We can only trivially model ptrtoint if SCEV's effective (integer) type
   // is sufficiently wide to represent all possible pointer values.

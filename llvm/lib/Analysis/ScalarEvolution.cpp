@@ -85,7 +85,6 @@
 #include "llvm/IR/Argument.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/CFG.h"
-#include "llvm/IR/Cheri.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/ConstantRange.h"
 #include "llvm/IR/Constants.h"
@@ -1027,12 +1026,11 @@ const SCEV *ScalarEvolution::getLosslessPtrToIntExpr(const SCEV *Op,
     return S;
 
   // It isn't legal for optimizations to construct new ptrtoint expressions
-  // for non-integral pointers, with the exception of some specific cases.
-  if (getDataLayout().isNonIntegralPointerType(Op->getType()) &&
-      !isCheriPointer(Op->getType(), &getDataLayout()))
+  // for non-integral pointers.
+  if (getDataLayout().isNonIntegralPointerType(Op->getType()))
     return getCouldNotCompute();
 
-  Type *IntPtrTy = getDataLayout().getIndexType(Op->getType());
+  Type *IntPtrTy = getDataLayout().getIntPtrType(Op->getType());
 
   // We can only trivially model ptrtoint if SCEV's effective (integer) type
   // is sufficiently wide to represent all possible pointer values.

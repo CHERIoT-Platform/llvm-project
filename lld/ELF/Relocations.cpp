@@ -753,6 +753,25 @@ static void addRelativeReloc(Ctx &ctx, InputSectionBase &isec,
                              uint64_t offsetInSec, Symbol &sym, int64_t addend,
                              RelExpr expr, RelType type) {
   Partition &part = isec.getPartition(ctx);
+  bool isAArch64Auth =
+      ctx.arg.emachine == EM_AARCH64 && type == R_AARCH64_AUTH_ABS64;
+
+  if (expr == R_ABS_CAP && !ctx.arg.useRelativeElfCheriRelocs) {
+    auto fn = [&]() {
+      part.capRelocs->addReloc(isec, offsetInSec, sym, addend, expr, type);
+    };
+
+    if constexpr (shard) {
+      std::lock_guard<std::mutex> lock(ctx.relocMutex);
+      fn();
+    } else
+      fn();
+
+    return;
+  }
+
+  assert(expr != R_ABS_CAP &&
+         "relative ELF capability relocations not currently implemented");
 
   if (expr == R_ABS_CAP && !ctx.arg.useRelativeElfCheriRelocs) {
     auto fn = [&]() {
@@ -778,9 +797,14 @@ static void addRelativeReloc(Ctx &ctx, InputSectionBase &isec,
   // don't store the addend values, so we must write it to the relocated
   // address.
   //
+  // When symbol values are determined in finalizeAddressDependentContent,
+  // some .relr.auth.dyn relocations may be moved to .rela.dyn.
+  //
   // MTE globals may need to store the original addend as well so cannot use
   // relrDyn. TODO: It should be unambiguous when not using R_ADDEND_NEG below?
   RelrBaseSection *relrDyn = part.relrDyn.get();
+  if (isAArch64Auth)
+    relrDyn = part.relrAuthDyn.get();
   if (sym.isTagged())
     relrDyn = nullptr;
   if (relrDyn && isec.addralign >= 2 && offsetInSec % 2 == 0) {
@@ -791,8 +815,10 @@ static void addRelativeReloc(Ctx &ctx, InputSectionBase &isec,
   RelType relativeType = ctx.target->relativeRel;
   if (ctx.target->relativeFuncRel && sym.isFunc())
     relativeType = *ctx.target->relativeFuncRel;
-  part.relaDyn->addRelativeReloc<shard>(relativeType, isec,
-                                        offsetInSec, sym, addend, type, expr);
+  if (isAArch64Auth)
+    relativeType = R_AARCH64_AUTH_RELATIVE;
+  part.relaDyn->addRelativeReloc<shard>(relativeType, isec, offsetInSec, sym,
+                                        addend, type, expr);
   // With MTE globals, we always want to derive the address tag by `ldg`-ing
   // the symbol. When we have a RELATIVE relocation though, we no longer have
   // a reference to the symbol. Because of this, when we have an addend that
@@ -1166,8 +1192,10 @@ void RelocScan::process(RelExpr expr, RelType type, uint64_t offset,
   if (canWrite) {
     RelType rel = ctx.target->getDynRel(type);
     if (oneof<R_GOT, RE_LOONGARCH_GOT>(expr) ||
-        ((rel == ctx.target->symbolicRel || rel == ctx.target->symbolicCapRel ||
-          type == ctx.target->symbolicCodeCapRel) &&
+        ((rel == ctx.target->symbolicRel ||
+          rel == ctx.target->symbolicCapRel ||
+          type == ctx.target->symbolicCodeCapRel ||
+          (ctx.arg.emachine == EM_AARCH64 && type == R_AARCH64_AUTH_ABS64)) &&
          !sym.isPreemptible)) {
       addRelativeReloc<true>(ctx, *sec, offset, sym, addend, expr, type);
       return;
@@ -1177,23 +1205,6 @@ void RelocScan::process(RelExpr expr, RelType type, uint64_t offset,
         rel = ctx.target->relativeRel;
       std::lock_guard<std::mutex> lock(ctx.relocMutex);
       Partition &part = sec->getPartition(ctx);
-      // For a preemptible symbol, we can't use a relative relocation. For an
-      // undefined symbol, we can't compute offset at link-time and use a
-      // relative relocation. Use a symbolic relocation instead.
-      if (ctx.arg.emachine == EM_AARCH64 && type == R_AARCH64_AUTH_ABS64 &&
-          !sym.isPreemptible) {
-        if (part.relrAuthDyn && sec->addralign >= 2 && offset % 2 == 0) {
-          // When symbol values are determined in
-          // finalizeAddressDependentContent, some .relr.auth.dyn relocations
-          // may be moved to .rela.dyn.
-          part.relrAuthDyn->addRelativeReloc(*sec, offset, sym, addend, type,
-                                             expr);
-        } else {
-          part.relaDyn->addReloc({R_AARCH64_AUTH_RELATIVE, sec, offset, false,
-                                  sym, addend, R_ABS});
-        }
-        return;
-      }
       if (LLVM_UNLIKELY(type == ctx.target->iRelSymbolicRel)) {
         if (sym.isPreemptible) {
           auto diag = Err(ctx);

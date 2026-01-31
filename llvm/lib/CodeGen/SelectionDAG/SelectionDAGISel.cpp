@@ -3591,7 +3591,7 @@ void SelectionDAGISel::SelectCodeCommon(SDNode *NodeToMatch,
 
       // Push a MatchScope which indicates where to go if the first child fails
       // to match.
-      MatchScope NewEntry;
+      MatchScope &NewEntry = MatchScopes.emplace_back();
       NewEntry.FailIndex = FailIndex;
       NewEntry.NodeStack.append(NodeStack.begin(), NodeStack.end());
       NewEntry.NumRecordedNodes = RecordedNodes.size();
@@ -3599,7 +3599,6 @@ void SelectionDAGISel::SelectCodeCommon(SDNode *NodeToMatch,
       NewEntry.InputChain = InputChain;
       NewEntry.InputGlue = InputGlue;
       NewEntry.HasChainNodesMatched = !ChainNodesMatched.empty();
-      MatchScopes.push_back(NewEntry);
       continue;
     }
     case OPC_RecordNode: {

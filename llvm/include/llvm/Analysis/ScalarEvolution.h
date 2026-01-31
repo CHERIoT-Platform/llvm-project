@@ -64,6 +64,8 @@ class TargetLibraryInfo;
 class Type;
 enum SCEVTypes : unsigned short;
 
+enum class AllowLosslessPtrToIntOnCheri { Yes, No };
+
 LLVM_ABI extern bool VerifySCEV;
 
 /// This class represents an analyzed expression in the program.  These are
@@ -563,8 +565,10 @@ public:
   LLVM_ABI const SCEV *getConstant(ConstantInt *V);
   LLVM_ABI const SCEV *getConstant(const APInt &Val);
   LLVM_ABI const SCEV *getConstant(Type *Ty, uint64_t V, bool isSigned = false);
-  LLVM_ABI const SCEV *getLosslessPtrToIntExpr(const SCEV *Op,
-                                               unsigned Depth = 0);
+  LLVM_ABI const SCEV *
+  getLosslessPtrToIntExpr(const SCEV *Op, unsigned Depth = 0,
+                          AllowLosslessPtrToIntOnCheri AllowCheriPtrToInt =
+                              AllowLosslessPtrToIntOnCheri::No);
   LLVM_ABI const SCEV *getPtrToIntExpr(const SCEV *Op, Type *Ty);
   LLVM_ABI const SCEV *getTruncateExpr(const SCEV *Op, Type *Ty,
                                        unsigned Depth = 0);

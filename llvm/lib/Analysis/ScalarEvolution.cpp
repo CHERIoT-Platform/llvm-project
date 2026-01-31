@@ -85,6 +85,7 @@
 #include "llvm/IR/Argument.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/CFG.h"
+#include "llvm/IR/Cheri.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/ConstantRange.h"
 #include "llvm/IR/Constants.h"
@@ -1004,11 +1005,12 @@ SCEVAddRecExpr::evaluateAtIteration(ArrayRef<const SCEV *> Operands,
 //                    SCEV Expression folder implementations
 //===----------------------------------------------------------------------===//
 
-const SCEV *ScalarEvolution::getLosslessPtrToIntExpr(const SCEV *Op,
-                                                     unsigned Depth) {
+const SCEV *ScalarEvolution::getLosslessPtrToIntExpr(
+    const SCEV *Op, unsigned Depth, AllowLosslessPtrToIntOnCheri AllowOnCheri) {
   assert(Depth <= 1 &&
          "getLosslessPtrToIntExpr() should self-recurse at most once.");
 
+  bool ShouldAllowOnCheri = AllowOnCheri == AllowLosslessPtrToIntOnCheri::Yes;
   // We could be called with an integer-typed operands during SCEV rewrites.
   // Since the operand is an integer already, just perform zext/trunc/self cast.
   if (!Op->getType()->isPointerTy())
@@ -1027,10 +1029,15 @@ const SCEV *ScalarEvolution::getLosslessPtrToIntExpr(const SCEV *Op,
 
   // It isn't legal for optimizations to construct new ptrtoint expressions
   // for non-integral pointers.
-  if (getDataLayout().isNonIntegralPointerType(Op->getType()))
+  if (getDataLayout().isNonIntegralPointerType(Op->getType()) &&
+      !(ShouldAllowOnCheri && isCheriPointer(Op->getType(), &getDataLayout())))
     return getCouldNotCompute();
 
   Type *IntPtrTy = getDataLayout().getIntPtrType(Op->getType());
+
+  if (ShouldAllowOnCheri) {
+    IntPtrTy = getDataLayout().getIndexType(Op->getType());
+  }
 
   // We can only trivially model ptrtoint if SCEV's effective (integer) type
   // is sufficiently wide to represent all possible pointer values.
@@ -1077,10 +1084,14 @@ const SCEV *ScalarEvolution::getLosslessPtrToIntExpr(const SCEV *Op,
     using Base = SCEVRewriteVisitor<SCEVPtrToIntSinkingRewriter>;
 
   public:
-    SCEVPtrToIntSinkingRewriter(ScalarEvolution &SE) : SCEVRewriteVisitor(SE) {}
+    AllowLosslessPtrToIntOnCheri AllowOnCheri;
+    SCEVPtrToIntSinkingRewriter(ScalarEvolution &SE,
+                                AllowLosslessPtrToIntOnCheri AllowOnCheri)
+        : SCEVRewriteVisitor(SE), AllowOnCheri(AllowOnCheri) {}
 
-    static const SCEV *rewrite(const SCEV *Scev, ScalarEvolution &SE) {
-      SCEVPtrToIntSinkingRewriter Rewriter(SE);
+    static const SCEV *rewrite(const SCEV *Scev, ScalarEvolution &SE,
+                               AllowLosslessPtrToIntOnCheri AllowOnCheri) {
+      SCEVPtrToIntSinkingRewriter Rewriter(SE, AllowOnCheri);
       return Rewriter.visit(Scev);
     }
 
@@ -1116,12 +1127,13 @@ const SCEV *ScalarEvolution::getLosslessPtrToIntExpr(const SCEV *Op,
     const SCEV *visitUnknown(const SCEVUnknown *Expr) {
       assert(Expr->getType()->isPointerTy() &&
              "Should only reach pointer-typed SCEVUnknown's.");
-      return SE.getLosslessPtrToIntExpr(Expr, /*Depth=*/1);
+      return SE.getLosslessPtrToIntExpr(Expr, /*Depth=*/1, AllowOnCheri);
     }
   };
 
   // And actually perform the cast sinking.
-  const SCEV *IntOp = SCEVPtrToIntSinkingRewriter::rewrite(Op, *this);
+  const SCEV *IntOp =
+      SCEVPtrToIntSinkingRewriter::rewrite(Op, *this, AllowOnCheri);
   assert(IntOp->getType()->isIntegerTy() &&
          "We must have succeeded in sinking the cast, "
          "and ending up with an integer-typed expression!");
@@ -9252,12 +9264,12 @@ ScalarEvolution::ExitLimit ScalarEvolution::computeExitLimitFromICmp(
   case ICmpInst::ICMP_NE: {                     // while (X != Y)
     // Convert to: while (X-Y != 0)
     if (LHS->getType()->isPointerTy()) {
-      LHS = getLosslessPtrToIntExpr(LHS);
+      LHS = getLosslessPtrToIntExpr(LHS, 0, AllowLosslessPtrToIntOnCheri::Yes);
       if (isa<SCEVCouldNotCompute>(LHS))
         return LHS;
     }
     if (RHS->getType()->isPointerTy()) {
-      RHS = getLosslessPtrToIntExpr(RHS);
+      RHS = getLosslessPtrToIntExpr(RHS, 0, AllowLosslessPtrToIntOnCheri::Yes);
       if (isa<SCEVCouldNotCompute>(RHS))
         return RHS;
     }
@@ -9270,12 +9282,12 @@ ScalarEvolution::ExitLimit ScalarEvolution::computeExitLimitFromICmp(
   case ICmpInst::ICMP_EQ: {                     // while (X == Y)
     // Convert to: while (X-Y == 0)
     if (LHS->getType()->isPointerTy()) {
-      LHS = getLosslessPtrToIntExpr(LHS);
+      LHS = getLosslessPtrToIntExpr(LHS, 0, AllowLosslessPtrToIntOnCheri::Yes);
       if (isa<SCEVCouldNotCompute>(LHS))
         return LHS;
     }
     if (RHS->getType()->isPointerTy()) {
-      RHS = getLosslessPtrToIntExpr(RHS);
+      RHS = getLosslessPtrToIntExpr(RHS, 0, AllowLosslessPtrToIntOnCheri::Yes);
       if (isa<SCEVCouldNotCompute>(RHS))
         return RHS;
     }

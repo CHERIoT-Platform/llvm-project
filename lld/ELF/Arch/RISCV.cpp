@@ -1736,4 +1736,74 @@ void elf::mergeRISCVAttributesSections(Ctx &ctx) {
                            mergeAttributesSection(ctx, sections));
 }
 
+void elf::optimizeCheriotDataSections(Ctx &ctx) {
+  //- Before OutputSection::finalizeInputSections()
+  //    - For all SHF_EXECINSTR output sections
+  //        - Iterate relocations to gather rewritable references to
+  //        non-SHF_EXECINSTR output sections
+  //            - Q: how to obtain output section for each reference?
+  //        - Perform the business logic of determining which ones to turn into
+  //        captables
+  //        - Create captable at end of current output section
+  //        - Create a new OutputSection to hold the transformed globals
+  //        - For each transformed global:
+  //            - Populate cap reloc
+  //                - Q: When during linking are cap relocs able to be created??
+  //            - Cut-and-paste the transformed global into the new
+  //            OutputSection
+  //                - Q: how exactly do we remove them from the original?
+  //                details are murky
+  //        - For each impacted relocation:
+  //            - Build an array of relocations to append to output
+  //            - Build an array of relocation indices to nop-out
+  //- During relocation emission:
+  //    - Handle appended / nop'd relocations despite -r
+  //    - Re-sort relocations at the end
+
+  DenseMap<Symbol *, uint64_t> crossSectionReferences;
+  SmallPtrSet<Symbol *, 4> symbolsToOptimize;
+  for (OutputSection *sec : ctx.outputSections) {
+    if (!(sec->flags & SHF_EXECINSTR))
+      continue;
+    for (SectionCommand *cmd : sec->commands) {
+      auto *isd = dyn_cast<InputSectionDescription>(cmd);
+      if (!isd)
+        continue;
+      for (InputSection *s : isd->sections) {
+        auto scan = [&](auto rels, InputFile *file) {
+          for (auto rel : rels) {
+            RelType type = rel.getType(ctx.arg.isMips64EL);
+            if (type != R_RISCV_CHERIOT_COMPARTMENT_HI)
+              continue;
+            uint32_t symIndex = rel.getSymbol(ctx.arg.isMips64EL);
+            Symbol &sym = file->getSymbol(symIndex);
+            OutputSection *referencedOSec = sym.getOutputSection();
+            assert(referencedOSec);
+            if (referencedOSec->flags & SHF_EXECINSTR)
+              continue;
+            crossSectionReferences[&sym] += 1;
+          }
+        };
+
+        const RelsOrRelas<llvm::object::ELF32LE> rels =
+            s->relsOrRelas<llvm::object::ELF32LE>(true);
+        if (rels.areRelocsCrel())
+          scan(rels.crels, s->file);
+        else if (rels.areRelocsRel())
+          scan(rels.rels, s->file);
+        else
+          scan(rels.relas, s->file);
+      }
+    }
+  }
+
+  uint64_t notOptimizeCount = 0;
+  for (auto &[sym, count] : crossSectionReferences) {
+    if (count >= 4 || sym->getSize(ctx) > 1024) // What is the actual size?
+      symbolsToOptimize.insert(sym);
+    else
+      notOptimizeCount += 1;
+  }
+}
+
 void elf::setRISCVTargetInfo(Ctx &ctx) { ctx.target.reset(new RISCV(ctx)); }

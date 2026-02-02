@@ -266,6 +266,7 @@ void sortArmMappingSymbols(Ctx &);
 void convertArmInstructionstoBE8(Ctx &, InputSection *sec, uint8_t *buf);
 void createTaggedSymbols(Ctx &);
 void initSymbolAnchors(Ctx &);
+void optimizeCheriotDataSections(Ctx &);
 
 void setTarget(Ctx &);
 

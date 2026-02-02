@@ -350,6 +350,9 @@ template <class ELFT> void Writer<ELFT>::run() {
   checkExecuteOnly();
   checkExecuteOnlyReport();
 
+  if (ctx.arg.emachine == EM_RISCV && ctx.arg.isCheriot && !ctx.arg.compartment)
+    optimizeCheriotDataSections(ctx);
+
   // If --compressed-debug-sections is specified, compress .debug_* sections.
   // Do it right now because it changes the size of output sections.
   for (OutputSection *sec : ctx.outputSections)

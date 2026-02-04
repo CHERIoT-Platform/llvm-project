@@ -748,18 +748,15 @@ SDValue DAGTypeLegalizer::PromoteIntRes_CTLZ(SDNode *N) {
     // Subtract off the extra leading bits in the bigger type.
     SDValue ExtractLeadingBits = DAG.getConstant(
         NVT.getScalarSizeInBits() - OVT.getScalarSizeInBits(), dl, NVT);
+    // Zero extend to the promoted type and do the count there.
+    SDValue Op = ZExtPromotedInteger(N->getOperand(0));
 
-    if (!N->isVPOpcode()) {
-      // Zero extend to the promoted type and do the count there.
-      SDValue Op = ZExtPromotedInteger(N->getOperand(0));
+    if (!N->isVPOpcode())
       return DAG.getNode(ISD::SUB, dl, NVT,
                          DAG.getNode(N->getOpcode(), dl, NVT, Op),
                          ExtractLeadingBits);
-    }
     SDValue Mask = N->getOperand(1);
     SDValue EVL = N->getOperand(2);
-    // Zero extend to the promoted type and do the count there.
-    SDValue Op = VPZExtPromotedInteger(N->getOperand(0), Mask, EVL);
     return DAG.getNode(ISD::VP_SUB, dl, NVT,
                        DAG.getNode(N->getOpcode(), dl, NVT, Op, Mask, EVL),
                        ExtractLeadingBits, Mask, EVL);
@@ -816,14 +813,12 @@ SDValue DAGTypeLegalizer::PromoteIntRes_CTPOP_PARITY(SDNode *N) {
   }
 
   // Zero extend to the promoted type and do the count or parity there.
-  if (!N->isVPOpcode()) {
-    SDValue Op = ZExtPromotedInteger(N->getOperand(0));
+  SDValue Op = ZExtPromotedInteger(N->getOperand(0));
+  if (!N->isVPOpcode())
     return DAG.getNode(N->getOpcode(), SDLoc(N), Op.getValueType(), Op);
-  }
 
   SDValue Mask = N->getOperand(1);
   SDValue EVL = N->getOperand(2);
-  SDValue Op = VPZExtPromotedInteger(N->getOperand(0), Mask, EVL);
   return DAG.getNode(N->getOpcode(), SDLoc(N), Op.getValueType(), Op, Mask,
                      EVL);
 }
@@ -1493,17 +1488,13 @@ SDValue DAGTypeLegalizer::PromoteIntRes_FFREXP(SDNode *N) {
 SDValue DAGTypeLegalizer::PromoteIntRes_SHL(SDNode *N) {
   SDValue LHS = GetPromotedInteger(N->getOperand(0));
   SDValue RHS = N->getOperand(1);
-  if (N->getOpcode() != ISD::VP_SHL) {
-    if (getTypeAction(RHS.getValueType()) == TargetLowering::TypePromoteInteger)
-      RHS = ZExtPromotedInteger(RHS);
-
+  if (getTypeAction(RHS.getValueType()) == TargetLowering::TypePromoteInteger)
+    RHS = ZExtPromotedInteger(RHS);
+  if (N->getOpcode() != ISD::VP_SHL)
     return DAG.getNode(N->getOpcode(), SDLoc(N), LHS.getValueType(), LHS, RHS);
-  }
 
   SDValue Mask = N->getOperand(2);
   SDValue EVL = N->getOperand(3);
-  if (getTypeAction(RHS.getValueType()) == TargetLowering::TypePromoteInteger)
-    RHS = VPZExtPromotedInteger(RHS, Mask, EVL);
   return DAG.getNode(N->getOpcode(), SDLoc(N), LHS.getValueType(), LHS, RHS,
                      Mask, EVL);
 }
@@ -1529,37 +1520,30 @@ SDValue DAGTypeLegalizer::PromoteIntRes_SimpleIntBinOp(SDNode *N) {
 }
 
 SDValue DAGTypeLegalizer::PromoteIntRes_SExtIntBinOp(SDNode *N) {
-  if (N->getNumOperands() == 2) {
-    // Sign extend the input.
-    SDValue LHS = SExtPromotedInteger(N->getOperand(0));
-    SDValue RHS = SExtPromotedInteger(N->getOperand(1));
+  // Sign extend the input.
+  SDValue LHS = SExtPromotedInteger(N->getOperand(0));
+  SDValue RHS = SExtPromotedInteger(N->getOperand(1));
+  if (N->getNumOperands() == 2)
     return DAG.getNode(N->getOpcode(), SDLoc(N), LHS.getValueType(), LHS, RHS);
-  }
   assert(N->getNumOperands() == 4 && "Unexpected number of operands!");
   assert(N->isVPOpcode() && "Expected VP opcode");
   SDValue Mask = N->getOperand(2);
   SDValue EVL = N->getOperand(3);
-  // Sign extend the input.
-  SDValue LHS = VPSExtPromotedInteger(N->getOperand(0), Mask, EVL);
-  SDValue RHS = VPSExtPromotedInteger(N->getOperand(1), Mask, EVL);
   return DAG.getNode(N->getOpcode(), SDLoc(N), LHS.getValueType(), LHS, RHS,
                      Mask, EVL);
 }
 
 SDValue DAGTypeLegalizer::PromoteIntRes_ZExtIntBinOp(SDNode *N) {
-  if (N->getNumOperands() == 2) {
-    // Zero extend the input.
-    SDValue LHS = ZExtPromotedInteger(N->getOperand(0));
-    SDValue RHS = ZExtPromotedInteger(N->getOperand(1));
+  // Zero extend the input.
+  SDValue LHS = ZExtPromotedInteger(N->getOperand(0));
+  SDValue RHS = ZExtPromotedInteger(N->getOperand(1));
+  if (N->getNumOperands() == 2)
     return DAG.getNode(N->getOpcode(), SDLoc(N), LHS.getValueType(), LHS, RHS);
-  }
   assert(N->getNumOperands() == 4 && "Unexpected number of operands!");
   assert(N->isVPOpcode() && "Expected VP opcode");
   // Zero extend the input.
   SDValue Mask = N->getOperand(2);
   SDValue EVL = N->getOperand(3);
-  SDValue LHS = VPZExtPromotedInteger(N->getOperand(0), Mask, EVL);
-  SDValue RHS = VPZExtPromotedInteger(N->getOperand(1), Mask, EVL);
   return DAG.getNode(N->getOpcode(), SDLoc(N), LHS.getValueType(), LHS, RHS,
                      Mask, EVL);
 }
@@ -1577,41 +1561,31 @@ SDValue DAGTypeLegalizer::PromoteIntRes_UMINUMAX(SDNode *N) {
 }
 
 SDValue DAGTypeLegalizer::PromoteIntRes_SRA(SDNode *N) {
+  // The input value must be properly sign extended.
+  SDValue LHS = SExtPromotedInteger(N->getOperand(0));
   SDValue RHS = N->getOperand(1);
-  if (N->getOpcode() != ISD::VP_SRA) {
-    // The input value must be properly sign extended.
-    SDValue LHS = SExtPromotedInteger(N->getOperand(0));
-    if (getTypeAction(RHS.getValueType()) == TargetLowering::TypePromoteInteger)
-      RHS = ZExtPromotedInteger(RHS);
+  if (getTypeAction(RHS.getValueType()) == TargetLowering::TypePromoteInteger)
+    RHS = ZExtPromotedInteger(RHS);
+  if (N->getOpcode() != ISD::VP_SRA)
     return DAG.getNode(N->getOpcode(), SDLoc(N), LHS.getValueType(), LHS, RHS);
-  }
 
   SDValue Mask = N->getOperand(2);
   SDValue EVL = N->getOperand(3);
-  // The input value must be properly sign extended.
-  SDValue LHS = VPSExtPromotedInteger(N->getOperand(0), Mask, EVL);
-  if (getTypeAction(RHS.getValueType()) == TargetLowering::TypePromoteInteger)
-    RHS = VPZExtPromotedInteger(RHS, Mask, EVL);
   return DAG.getNode(N->getOpcode(), SDLoc(N), LHS.getValueType(), LHS, RHS,
                      Mask, EVL);
 }
 
 SDValue DAGTypeLegalizer::PromoteIntRes_SRL(SDNode *N) {
   SDValue RHS = N->getOperand(1);
-  if (N->getOpcode() != ISD::VP_SRL) {
-    // The input value must be properly zero extended.
-    SDValue LHS = ZExtPromotedInteger(N->getOperand(0));
-    if (getTypeAction(RHS.getValueType()) == TargetLowering::TypePromoteInteger)
-      RHS = ZExtPromotedInteger(RHS);
+  // The input value must be properly zero extended.
+  SDValue LHS = ZExtPromotedInteger(N->getOperand(0));
+  if (getTypeAction(RHS.getValueType()) == TargetLowering::TypePromoteInteger)
+    RHS = ZExtPromotedInteger(RHS);
+  if (N->getOpcode() != ISD::VP_SRL)
     return DAG.getNode(N->getOpcode(), SDLoc(N), LHS.getValueType(), LHS, RHS);
-  }
 
   SDValue Mask = N->getOperand(2);
   SDValue EVL = N->getOperand(3);
-  // The input value must be properly zero extended.
-  SDValue LHS = VPZExtPromotedInteger(N->getOperand(0), Mask, EVL);
-  if (getTypeAction(RHS.getValueType()) == TargetLowering::TypePromoteInteger)
-    RHS = VPZExtPromotedInteger(RHS, Mask, EVL);
   return DAG.getNode(N->getOpcode(), SDLoc(N), LHS.getValueType(), LHS, RHS,
                      Mask, EVL);
 }
@@ -1681,7 +1655,7 @@ SDValue DAGTypeLegalizer::PromoteIntRes_VPFunnelShift(SDNode *N) {
   SDValue Mask = N->getOperand(3);
   SDValue EVL = N->getOperand(4);
   if (getTypeAction(Amt.getValueType()) == TargetLowering::TypePromoteInteger)
-    Amt = VPZExtPromotedInteger(Amt, Mask, EVL);
+    Amt = ZExtPromotedInteger(Amt);
   EVT AmtVT = Amt.getValueType();
 
   SDLoc DL(N);

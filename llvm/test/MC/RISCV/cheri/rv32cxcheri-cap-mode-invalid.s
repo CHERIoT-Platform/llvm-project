@@ -10,8 +10,8 @@
 ## C.JAL is only defined for RV32C:
 c.cjal 2046
 # CHECK-RV64-C: <stdin>:[[#@LINE-1]]:1: error: instruction requires the following: RV32I Base Instruction Set{{$}}
-# CHECK-RV32-NO-C: <stdin>:[[#@LINE-2]]:1: error: instruction requires the following: 'C' (Compressed Instructions){{$}}
-# CHECK-RV64-NO-C: <stdin>:[[#@LINE-3]]:1: error: instruction requires the following: 'C' (Compressed Instructions), RV32I Base Instruction Set{{$}}
+# CHECK-RV32-NO-C: <stdin>:[[#@LINE-2]]:1: error: instruction requires the following: 'C' (Compressed Instructions) or 'Zca' (part of the C extension, excluding compressed floating point loads/stores)
+# CHECK-RV64-NO-C: <stdin>:[[#@LINE-3]]:1: error: instruction requires the following: 'C' (Compressed Instructions) or 'Zca' (part of the C extension, excluding compressed floating point loads/stores)
 
 ## C.CSD needs RV64C:
 c.csd a5, 124(ca3)

@@ -223,9 +223,9 @@ int data_ptr_dereferece(A *a, int A::*ptr) {
 // N64-LABEL: define {{[^@]+}}@_Z19func_ptr_is_nonnullM1AFivE
 // N64-SAME: (i64 inreg [[PTR_COERCE0:%.*]], i64 inreg [[PTR_COERCE1:%.*]]) local_unnamed_addr #[[ATTR2]] {
 // N64-NEXT:  entry:
-// N64-NEXT:    [[MEMPTR_VIRTUALBIT:%.*]] = and i64 [[PTR_COERCE1]], 1
-// N64-NEXT:    [[TMP0:%.*]] = or i64 [[MEMPTR_VIRTUALBIT]], [[PTR_COERCE0]]
-// N64-NEXT:    [[MEMPTR_ISNONNULL:%.*]] = icmp ne i64 [[TMP0]], 0
+// N64-NEXT:    [[MEMPTR_TOBOOL:%.*]] = icmp ne i64 [[PTR_COERCE0]], 0
+// N64-NEXT:    [[MEMPTR_ISVIRTUAL:%.*]] = trunc i64 [[PTR_COERCE1]] to i1
+// N64-NEXT:    [[MEMPTR_ISNONNULL:%.*]] = or i1 [[MEMPTR_TOBOOL]], [[MEMPTR_ISVIRTUAL]]
 // N64-NEXT:    ret i1 [[MEMPTR_ISNONNULL]]
 //
 bool func_ptr_is_nonnull(AMemberFuncPtr ptr) {
@@ -256,10 +256,11 @@ bool func_ptr_is_nonnull(AMemberFuncPtr ptr) {
 // N64-LABEL: define {{[^@]+}}@_Z16func_ptr_is_nullM1AFivE
 // N64-SAME: (i64 inreg [[PTR_COERCE0:%.*]], i64 inreg [[PTR_COERCE1:%.*]]) local_unnamed_addr #[[ATTR2]] {
 // N64-NEXT:  entry:
-// N64-NEXT:    [[MEMPTR_VIRTUALBIT:%.*]] = and i64 [[PTR_COERCE1]], 1
-// N64-NEXT:    [[TMP0:%.*]] = or i64 [[MEMPTR_VIRTUALBIT]], [[PTR_COERCE0]]
-// N64-NEXT:    [[MEMPTR_ISNONNULL_NOT:%.*]] = icmp eq i64 [[TMP0]], 0
-// N64-NEXT:    ret i1 [[MEMPTR_ISNONNULL_NOT]]
+// N64-NEXT:    [[MEMPTR_TOBOOL:%.*]] = icmp ne i64 [[PTR_COERCE0]], 0
+// N64-NEXT:    [[MEMPTR_ISVIRTUAL:%.*]] = trunc i64 [[PTR_COERCE1]] to i1
+// N64-NEXT:    [[MEMPTR_ISNONNULL:%.*]] = or i1 [[MEMPTR_TOBOOL]], [[MEMPTR_ISVIRTUAL]]
+// N64-NEXT:    [[LNOT:%.*]] = xor i1 [[MEMPTR_ISNONNULL]], true
+// N64-NEXT:    ret i1 [[LNOT]]
 //
 bool func_ptr_is_null(AMemberFuncPtr ptr) {
   return !ptr;
@@ -358,13 +359,13 @@ bool func_ptr_equal(AMemberFuncPtr ptr1, AMemberFuncPtr ptr2) {
 // N64-SAME: (i64 inreg [[PTR1_COERCE0:%.*]], i64 inreg [[PTR1_COERCE1:%.*]], i64 inreg [[PTR2_COERCE0:%.*]], i64 inreg [[PTR2_COERCE1:%.*]]) local_unnamed_addr #[[ATTR2]] {
 // N64-NEXT:  entry:
 // N64-NEXT:    [[CMP_PTR:%.*]] = icmp ne i64 [[PTR1_COERCE0]], [[PTR2_COERCE0]]
+// N64-NEXT:    [[CMP_PTR_NULL:%.*]] = icmp ne i64 [[PTR1_COERCE0]], 0
 // N64-NEXT:    [[CMP_ADJ:%.*]] = icmp ne i64 [[PTR1_COERCE1]], [[PTR2_COERCE1]]
 // N64-NEXT:    [[OR_ADJ:%.*]] = or i64 [[PTR2_COERCE1]], [[PTR1_COERCE1]]
-// N64-NEXT:    [[TMP0:%.*]] = and i64 [[OR_ADJ]], 1
-// N64-NEXT:    [[TMP1:%.*]] = or i64 [[TMP0]], [[PTR1_COERCE0]]
-// N64-NEXT:    [[TMP2:%.*]] = icmp ne i64 [[TMP1]], 0
-// N64-NEXT:    [[TMP3:%.*]] = and i1 [[CMP_ADJ]], [[TMP2]]
-// N64-NEXT:    [[MEMPTR_NE:%.*]] = or i1 [[CMP_PTR]], [[TMP3]]
+// N64-NEXT:    [[CMP_OR_ADJ:%.*]] = trunc i64 [[OR_ADJ]] to i1
+// N64-NEXT:    [[TMP0:%.*]] = or i1 [[CMP_PTR_NULL]], [[CMP_OR_ADJ]]
+// N64-NEXT:    [[TMP1:%.*]] = and i1 [[CMP_ADJ]], [[TMP0]]
+// N64-NEXT:    [[MEMPTR_NE:%.*]] = or i1 [[CMP_PTR]], [[TMP1]]
 // N64-NEXT:    ret i1 [[MEMPTR_NE]]
 //
 bool func_ptr_not_equal(AMemberFuncPtr ptr1, AMemberFuncPtr ptr2) {

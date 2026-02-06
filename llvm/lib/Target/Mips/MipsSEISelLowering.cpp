@@ -3397,7 +3397,6 @@ MipsSETargetLowering::emitINSERT_FW(MachineInstr &MI,
                               : &Mips::MSA128WEvensRegClass);
 
   BuildMI(*BB, MI, DL, TII->get(Mips::SUBREG_TO_REG), Wt)
-      .addImm(0)
       .addReg(Fs)
       .addImm(Mips::sub_lo);
   BuildMI(*BB, MI, DL, TII->get(Mips::INSVE_W), Wd)
@@ -3431,7 +3430,6 @@ MipsSETargetLowering::emitINSERT_FD(MachineInstr &MI,
   Register Wt = RegInfo.createVirtualRegister(&Mips::MSA128DRegClass);
 
   BuildMI(*BB, MI, DL, TII->get(Mips::SUBREG_TO_REG), Wt)
-      .addImm(0)
       .addReg(Fs)
       .addImm(Mips::sub_64);
   BuildMI(*BB, MI, DL, TII->get(Mips::INSVE_D), Wd)
@@ -3516,7 +3514,6 @@ MachineBasicBlock *MipsSETargetLowering::emitINSERT_DF_VIDX(
   if (IsFP) {
     Register Wt = RegInfo.createVirtualRegister(VecRC);
     BuildMI(*BB, MI, DL, TII->get(Mips::SUBREG_TO_REG), Wt)
-        .addImm(0)
         .addReg(SrcValReg)
         .addImm(EltSizeInBytes == 8 ? Mips::sub_64 : Mips::sub_lo);
     SrcValReg = Wt;
@@ -3672,7 +3669,6 @@ MipsSETargetLowering::emitST_F16_PSEUDO(MachineInstr &MI,
   if(!UsingMips32) {
     Register Tmp = RegInfo.createVirtualRegister(&Mips::GPR64RegClass);
     BuildMI(*BB, MI, DL, TII->get(Mips::SUBREG_TO_REG), Tmp)
-        .addImm(0)
         .addReg(Rs)
         .addImm(Mips::sub_32);
     Rs = Tmp;

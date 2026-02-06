@@ -30,25 +30,31 @@ class RISCVTargetInfo : public TargetInfo {
     IsABICHERIoT = false;
     IsABICHERIoTBareMetal = false;
 
+    if (getTriple().getArch() == llvm::Triple::riscv32be || getTriple().getArch() == llvm::Triple::riscv64be) {
+      Layout += "E";
+    } else {
+      Layout += "e";
+    }
+
     if (ABI == "ilp32" || ABI == "ilp32f" || ABI == "ilp32d" ||
         ABI == "cheriot" || ABI == "cheriot-baremetal" ||
         ABI == "il32pc64" || ABI == "il32pc64f" || ABI == "il32pc64d" ||
         ABI == "il32pc64e") {
-      Layout += "e-m:e-p:32:32-i64:64-n32-S128";
+      Layout += "-m:e-p:32:32-i64:64-n32-S128";
       if (HasCheri)
         Layout += "-pf200:64:64:64:32";
     } else if (ABI == "ilp32e") {
-      Layout = "e-m:e-p:32:32-i64:64-n32-S32";
+      Layout += "-m:e-p:32:32-i64:64-n32-S32";
       if (HasCheri)
         Layout += "-pf200:64:64:64:32";
     } else if (ABI == "lp64" || ABI == "lp64f" || ABI == "lp64d" ||
                ABI == "l64pc128" || ABI == "l64pc128f" ||
                ABI == "l64pc128d") {
-      Layout = "e-m:e-p:64:64-i64:64-i128:128-n32:64-S128";
+      Layout += "-m:e-p:64:64-i64:64-i128:128-n32:64-S128";
       if (HasCheri)
         Layout += "-pf200:128:128:128:64";
     } else if (ABI == "lp64e") {
-      Layout = "e-m:e-p:64:64-i64:64-i128:128-n32:64-S64";
+      Layout += "-m:e-p:64:64-i64:64-i128:128-n32:64-S64";
       if (HasCheri)
         Layout += "-pf200:128:128:128:64";
     } else

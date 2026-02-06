@@ -152,32 +152,11 @@ LangAS TargetCodeGenInfo::getGlobalVarAddressSpace(CodeGenModule &CGM,
   return D ? D->getType().getAddressSpace() : LangAS::Default;
 }
 
-llvm::Value *TargetCodeGenInfo::performAddrSpaceCast(
-    CodeGen::CodeGenFunction &CGF, llvm::Value *Src, LangAS SrcAddr,
-    llvm::Type *DestTy, bool isNonNull) const {
-  // Since target may map different address spaces in AST to the same address
-  // space, an address space conversion may end up as a bitcast.
-  if (auto *C = dyn_cast<llvm::Constant>(Src))
-    return performAddrSpaceCast(CGF.CGM, C, SrcAddr, DestTy);
-  // Try to preserve the source's name to make IR more readable.
-  return CGF.Builder.CreateAddrSpaceCast(
-      Src, DestTy, Src->hasName() ? Src->getName() + ".ascast" : "");
-}
-
-llvm::Value *TargetCodeGenInfo::getPointerAddress(CodeGen::CodeGenFunction &CGF,
-                                                  llvm::Value *V,
-                                                  const Twine &Name) const {
+llvm::Value* TargetCodeGenInfo::getPointerAddress(CodeGen::CodeGenFunction& CGF,
+                                                  llvm::Value* V,
+                                                  const Twine& Name) const {
   assert(isa<llvm::PointerType>(V->getType()));
   return CGF.Builder.CreatePtrToInt(V, CGF.PtrDiffTy);
-}
-
-llvm::Constant *
-TargetCodeGenInfo::performAddrSpaceCast(CodeGenModule &CGM, llvm::Constant *Src,
-                                        LangAS SrcAddr,
-                                        llvm::Type *DestTy) const {
-  // Since target may map different address spaces in AST to the same address
-  // space, an address space conversion may end up as a bitcast.
-  return llvm::ConstantExpr::getPointerCast(Src, DestTy);
 }
 
 llvm::SyncScope::ID

@@ -323,6 +323,15 @@ declare_mlir_dialect_extension_python_bindings(
 declare_mlir_dialect_extension_python_bindings(
   ADD_TO_PARENT MLIRPythonSources.Dialects
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
+  TD_FILE dialects/X86VectorTransformOps.td
+  SOURCES
+    dialects/transform/x86vector.py
+  DIALECT_NAME transform
+  EXTENSION_NAME x86vector_transform)
+
+declare_mlir_dialect_extension_python_bindings(
+  ADD_TO_PARENT MLIRPythonSources.Dialects
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/XeGPUTransformOps.td
   SOURCES
     dialects/transform/xegpu.py
@@ -504,6 +513,13 @@ declare_mlir_dialect_python_bindings(
   DIALECT_NAME vector
   GEN_ENUM_BINDINGS_TD_FILE
     "dialects/VectorAttributes.td")
+
+declare_mlir_dialect_python_bindings(
+  ADD_TO_PARENT MLIRPythonSources.Dialects
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
+  TD_FILE dialects/X86Vector.td
+  SOURCES dialects/x86vector.py
+  DIALECT_NAME x86vector)
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT MLIRPythonSources.Dialects

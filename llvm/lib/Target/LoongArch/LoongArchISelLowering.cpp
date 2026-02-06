@@ -7266,7 +7266,6 @@ emitPseudoXVINSGR2VR(MachineInstr &MI, MachineBasicBlock *BB,
         .addImm(Idx);
 
     BuildMI(*BB, MI, DL, TII->get(LoongArch::SUBREG_TO_REG), XDst)
-        .addImm(0)
         .addReg(ScratchSubReg2)
         .addImm(LoongArch::sub_128);
   } else {

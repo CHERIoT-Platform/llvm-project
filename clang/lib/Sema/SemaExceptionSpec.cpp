@@ -1276,6 +1276,7 @@ CanThrowResult Sema::canThrow(const Stmt *S) {
   case Expr::DesignatedInitUpdateExprClass:
   case Expr::ExprWithCleanupsClass:
   case Expr::ExtVectorElementExprClass:
+  case Expr::MatrixElementExprClass:
   case Expr::InitListExprClass:
   case Expr::ArrayInitLoopExprClass:
   case Expr::MemberExprClass:
@@ -1381,6 +1382,7 @@ CanThrowResult Sema::canThrow(const Stmt *S) {
   case Expr::CXXNoexceptExprClass:
   case Expr::CXXNullPtrLiteralExprClass:
   case Expr::CXXPseudoDestructorExprClass:
+  case Expr::CXXReflectExprClass:
   case Expr::CXXScalarValueInitExprClass:
   case Expr::CXXThisExprClass:
   case Expr::CXXUuidofExprClass:

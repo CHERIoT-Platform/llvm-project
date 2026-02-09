@@ -1684,6 +1684,11 @@ void StmtProfiler::VisitExtVectorElementExpr(const ExtVectorElementExpr *S) {
   VisitName(&S->getAccessor());
 }
 
+void StmtProfiler::VisitMatrixElementExpr(const MatrixElementExpr *S) {
+  VisitExpr(S);
+  VisitName(&S->getAccessor());
+}
+
 void StmtProfiler::VisitBlockExpr(const BlockExpr *S) {
   VisitExpr(S);
   VisitDecl(S->getBlockDecl());
@@ -2190,6 +2195,11 @@ StmtProfiler::VisitLambdaExpr(const LambdaExpr *S) {
     Hasher.AddFunctionDecl(Call, /*SkipBody=*/true);
   }
   ID.AddInteger(Hasher.CalculateHash());
+}
+
+void StmtProfiler::VisitCXXReflectExpr(const CXXReflectExpr *E) {
+  // TODO(Reflection): Implement this.
+  assert(false && "not implemented yet");
 }
 
 void

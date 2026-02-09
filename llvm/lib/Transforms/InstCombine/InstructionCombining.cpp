@@ -6316,9 +6316,7 @@ bool InstructionCombiningPass::runOnFunction(Function &F) {
 
 char InstructionCombiningPass::ID = 0;
 
-InstructionCombiningPass::InstructionCombiningPass() : FunctionPass(ID) {
-  initializeInstructionCombiningPassPass(*PassRegistry::getPassRegistry());
-}
+InstructionCombiningPass::InstructionCombiningPass() : FunctionPass(ID) {}
 
 INITIALIZE_PASS_BEGIN(InstructionCombiningPass, "instcombine",
                       "Combine redundant instructions", false, false)
@@ -6334,7 +6332,7 @@ INITIALIZE_PASS_DEPENDENCY(ProfileSummaryInfoWrapperPass)
 INITIALIZE_PASS_END(InstructionCombiningPass, "instcombine",
                     "Combine redundant instructions", false, false)
 
-// Initialization Routines
+// Initialization Routines.
 void llvm::initializeInstCombine(PassRegistry &Registry) {
   initializeInstructionCombiningPassPass(Registry);
 }

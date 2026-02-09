@@ -419,6 +419,7 @@ private:
   Triple TheTriple;
   DwarfUnit &U;
 
+  MCTargetOptions MCOptions;
   std::unique_ptr<MCRegisterInfo> MRI;
   std::unique_ptr<MCAsmInfo> MAI;
   std::unique_ptr<MCContext> MC;

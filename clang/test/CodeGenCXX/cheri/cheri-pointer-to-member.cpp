@@ -514,9 +514,9 @@ struct C {
 // CHECK-NEXT:    [[AGG_TMP_ENSURED2:%.*]] = alloca %"struct.PR7556::C", align 8, addrspace(200)
 // CHECK-NEXT:    call addrspace(200) void @_ZN6PR75561AD1Ev(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[AGG_TMP_ENSURED]]) #[[ATTR6]]
 // CHECK-NEXT:    call addrspace(200) void @llvm.memset.p200.i64(ptr addrspace(200) align 4 [[AGG_TMP_ENSURED1]], i8 0, i64 4, i1 false)
-// CHECK-NEXT:    call addrspace(200) void @_ZN6PR75561BD1Ev(ptr addrspace(200) noundef nonnull align 4 dereferenceable(4) [[AGG_TMP_ENSURED1]]) #[[ATTR6]]
+// CHECK-NEXT:    call addrspace(200) void @_ZN6PR75561BD1Ev(ptr addrspace(200) noundef nonnull align 4 dead_on_return(4) dereferenceable(4) [[AGG_TMP_ENSURED1]]) #[[ATTR6]]
 // CHECK-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 8 [[AGG_TMP_ENSURED2]], ptr addrspace(200) align 8 @[[GLOB0:[0-9]+]], i64 8, i1 false)
-// CHECK-NEXT:    call addrspace(200) void @_ZN6PR75561CD1Ev(ptr addrspace(200) noundef nonnull align 8 dereferenceable(8) [[AGG_TMP_ENSURED2]]) #[[ATTR6]]
+// CHECK-NEXT:    call addrspace(200) void @_ZN6PR75561CD1Ev(ptr addrspace(200) noundef nonnull align 8 dead_on_return(8) dereferenceable(8) [[AGG_TMP_ENSURED2]]) #[[ATTR6]]
 // CHECK-NEXT:    ret void
 //
 // N64-LABEL: define {{[^@]+}}@_ZN6PR75563fooEv
@@ -527,9 +527,9 @@ struct C {
 // N64-NEXT:    [[AGG_TMP_ENSURED2:%.*]] = alloca %"struct.PR7556::C", align 8
 // N64-NEXT:    call void @_ZN6PR75561AD1Ev(ptr noundef nonnull align 1 dereferenceable(1) [[AGG_TMP_ENSURED]]) #[[ATTR5]]
 // N64-NEXT:    store i32 0, ptr [[AGG_TMP_ENSURED1]], align 4
-// N64-NEXT:    call void @_ZN6PR75561BD1Ev(ptr noundef nonnull align 4 dereferenceable(4) [[AGG_TMP_ENSURED1]]) #[[ATTR5]]
+// N64-NEXT:    call void @_ZN6PR75561BD1Ev(ptr noundef nonnull align 4 dead_on_return(4) dereferenceable(4) [[AGG_TMP_ENSURED1]]) #[[ATTR5]]
 // N64-NEXT:    store i64 -1, ptr [[AGG_TMP_ENSURED2]], align 8
-// N64-NEXT:    call void @_ZN6PR75561CD1Ev(ptr noundef nonnull align 8 dereferenceable(8) [[AGG_TMP_ENSURED2]]) #[[ATTR5]]
+// N64-NEXT:    call void @_ZN6PR75561CD1Ev(ptr noundef nonnull align 8 dead_on_return(8) dereferenceable(8) [[AGG_TMP_ENSURED2]]) #[[ATTR5]]
 // N64-NEXT:    ret void
 //
 void foo() {

@@ -1441,6 +1441,10 @@ enum NodeType {
   /// debugging purposes.
   FAKE_USE,
 
+  /// COND_LOOP is a conditional branch to self, used for implementing efficient
+  /// conditional traps.
+  COND_LOOP,
+
   /// Converts from an integer to a fat pointer.  This is only required for
   /// pointers that are not represented purely by numeric value of the base
   /// address.

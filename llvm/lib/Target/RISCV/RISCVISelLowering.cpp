@@ -870,7 +870,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
         ISD::SETCC,       ISD::FMAXIMUM,    ISD::FMINIMUM,    ISD::STRICT_FADD,
         ISD::STRICT_FSUB, ISD::STRICT_FMUL, ISD::STRICT_FDIV, ISD::STRICT_FSQRT,
         ISD::STRICT_FMA,  ISD::FNEG,        ISD::FABS,        ISD::FCOPYSIGN,
-        ISD::BR_CC,       ISD::SELECT};
+        ISD::BR_CC,       ISD::SELECT,      ISD::FREM,        ISD::STRICT_FREM};
     setOperationAction(CheriotF64ExpandOps, MVT::f64, Expand);
     setCondCodeAction(FPCCToExpand, MVT::f64, Expand);
 

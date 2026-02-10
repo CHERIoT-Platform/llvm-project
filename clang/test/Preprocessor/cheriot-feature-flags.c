@@ -1,4 +1,6 @@
-// RUN: %clang_cc1 -E -dM -ffreestanding -triple riscv32cheriot-unknown-cheriotrtos "-target-abi" "cheriot" "-target-feature" "+xcheriot" < /dev/null | FileCheck %s 
+// RUN: %clang_cc1 -E -dM -ffreestanding -triple riscv32cheriot-unknown-cheriotrtos "-target-abi" "cheriot" "-target-feature" "+xcheriot" -cheri-compartment=hello < /dev/null | FileCheck %s
+
+// CHECK: #define __CHERIOT_COMPARTMENT__ hello
 
 // CHECK: #define __CHERIOT_PERMISSION_ACCESS_SYSTEM_REGISTERS__ 128
 // CHECK: #define __CHERIOT_PERMISSION_EXECUTE__ 256
@@ -25,6 +27,6 @@
 // CHECK: #define __CHERI_CAP_PERMISSION_PERMIT_STORE__ 4
 // CHECK: #define __CHERI_CAP_PERMISSION_PERMIT_UNSEAL__ 512
 
+// CHECK: #define __CHERI_COMPARTMENT__ hello
 // CHECK: #define __CHERI__ 1
 // CHECK: #define __SIZEOF_CHERI_CAPABILITY__ 8
-

@@ -249,6 +249,10 @@ void RISCVTargetInfo::getTargetDefines(const LangOptions &Opts,
 
     // Macros for use with the set and get permissions builtins.
     if (ISAInfo->hasExtension("xcheriot")) {
+      // Export the compartment name in a CHERIOT-named macro in addition to the
+      // CHERI-named one.
+      Builder.defineMacro("__CHERIOT_COMPARTMENT__", Opts.CheriCompartmentName);
+
       // Expose CHERI-compatible macros for permissions that overlap with other
       // CHERI implementations.
       Builder.defineMacro("__CHERI_CAP_PERMISSION_GLOBAL__", Twine(1 << 0));

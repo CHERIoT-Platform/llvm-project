@@ -45,8 +45,9 @@ void *InternalRealloc(void *p, usize size,
                       InternalAllocatorCache *cache = nullptr);
 void *InternalReallocArray(void *p, usize count, usize size,
                            InternalAllocatorCache *cache = nullptr);
-void *InternalCalloc(usize count, usize size,
-                     InternalAllocatorCache *cache = nullptr);
+void* InternalCalloc(usize count, usize size,
+                     InternalAllocatorCache* cache = nullptr,
+                     usize alignment = 0);
 void InternalFree(void *p, InternalAllocatorCache *cache = nullptr);
 void InternalAllocatorLock();
 void InternalAllocatorUnlock();

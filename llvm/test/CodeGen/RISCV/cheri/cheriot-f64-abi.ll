@@ -462,15 +462,38 @@ entry:
 define dso_local noundef double @test_frem(double noundef %a, double noundef %b) local_unnamed_addr addrspace(200) #0 {
 ; CHECK-LABEL: test_frem:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    ct.cincoffset sp, sp, -16
-; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cincoffset sp, sp, -32
+; CHECK-NEXT:    ct.csc ra, 24(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc s0, 16(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc s1, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cmove s0, a1
+; CHECK-NEXT:    ct.cmove s1, a0
 ; CHECK-NEXT:  .LBB23_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_fmod)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___divdf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB23_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
-; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ct.cincoffset sp, sp, 16
+; CHECK-NEXT:  .LBB23_2: # %entry
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_trunc)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB23_2)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.csc a0, 0(sp)
+; CHECK-NEXT:    ct.clb a0, 7(sp)
+; CHECK-NEXT:    xori a0, a0, 128
+; CHECK-NEXT:    ct.csb a0, 7(sp)
+; CHECK-NEXT:    ct.clc a0, 0(sp)
+; CHECK-NEXT:    ct.cmove a1, s0
+; CHECK-NEXT:    ct.cmove a2, s1
+; CHECK-NEXT:  .LBB23_3: # %entry
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_fma)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB23_3)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.clc ra, 24(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc s0, 16(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc s1, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 32
 ; CHECK-NEXT:    ct.cret
 entry:
   %fmod = frem fast double %a, %b

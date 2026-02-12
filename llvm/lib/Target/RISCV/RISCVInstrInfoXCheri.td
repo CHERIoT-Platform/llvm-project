@@ -2196,7 +2196,7 @@ def : InstAlias<"ct.ctail $dst", (PseudoCTAIL cap_call_symbol:$dst)>;
 let Predicates = [HasCheri, IsCapMode, IsPureCapABI], isCall = 1,
     isTerminator = 1, isReturn = 1, isBarrier = 1,
     Uses = [X2_Y] in def PseudoCTAILIndirect
-    : Pseudo<(outs), (ins YGPRNoX0X1:$rs1), [(riscv_cap_tail YGPRNoX0X1:$rs1)]>,
+    : Pseudo<(outs), (ins YGPRTC:$rs1), [(riscv_cap_tail YGPRTC:$rs1)]>,
     PseudoInstExpansion<(CJALR X0_Y, YGPR:$rs1, 0)>;
 
 let Predicates = [HasCheri, IsCapMode, IsPureCapABI] in {

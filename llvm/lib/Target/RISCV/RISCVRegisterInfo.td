@@ -446,7 +446,7 @@ def GPRTCNonX7 : GPRRegisterClass<(sub GPRTC, X7)>;
 
 def YGPRTC
     : RegisterClass<"RISCV", [YLenVT, YLenFloatVT], 64,
-                    (add(sequence "X%u_Y", 5, 7), (sequence "X%u_Y", 10, 17),
+                    (add(sequence "X%u_Y", 6, 7), (sequence "X%u_Y", 10, 17),
                         (sequence "X%u_Y", 28, 31))> {
   let RegInfos = YLenRI;
 }

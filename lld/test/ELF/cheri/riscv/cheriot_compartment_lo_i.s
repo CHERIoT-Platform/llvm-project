@@ -9,6 +9,7 @@
 	.globl	_start
 	.p2align	1
 	.type	_start,@function
+	.option relax
 _start:                              # @_Z5entryv
 	ct.auipcc	t1, %cheriot_compartment_hi(near)
     ct.clc	t1, %cheriot_compartment_lo_i(_start)(t1)

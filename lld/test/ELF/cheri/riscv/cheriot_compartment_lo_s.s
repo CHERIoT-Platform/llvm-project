@@ -9,6 +9,7 @@
 	.globl	_start
 	.p2align	1
 	.type	_start,@function
+	.option relax
 .CGP_BLOCK:
 	ct.auipcc	t1, %cheriot_compartment_hi(cgp_label)
     ct.csw	ra, %cheriot_compartment_lo_s(.CGP_BLOCK)(t1)

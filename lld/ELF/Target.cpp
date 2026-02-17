@@ -41,16 +41,12 @@ using namespace lld::elf;
 
 std::string elf::toStr(Ctx &ctx, RelType type) {
   StringRef s = getELFRelocationTypeName(ctx.arg.emachine, type);
-  if (ctx.arg.emachine == EM_RISCV && s == "Unknown") {
-    auto VendorString = getRISCVVendorString(type);
-    if (VendorString)
-      s = getRISCVVendorRelocationTypeName(type & ~INTERNAL_RISCV_VENDOR_MASK,
-                                           *VendorString);
-    if (s == "Unknown")
-      return ("Unknown vendor-specific (" + Twine(type) + ")").str();
-  }
-  if (s == "Unknown")
+  if (s == "Unknown") {
+    if (ctx.arg.emachine == EM_RISCV)
+      return riscvVendorRelocToStr(type);
     return ("Unknown (" + Twine(type) + ")").str();
+  }
+
   return std::string(s);
 }
 

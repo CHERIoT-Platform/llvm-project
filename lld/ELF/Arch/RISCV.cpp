@@ -10,7 +10,6 @@
 #include "InputFiles.h"
 #include "OutputSections.h"
 #include "Relocations.h"
-#include "RISCVInternalRelocations.h"
 #include "RelocScan.h"
 #include "Symbols.h"
 #include "SyntheticSections.h"
@@ -75,6 +74,44 @@ public:
 };
 
 } // end anonymous namespace
+
+// Bit 8 of RelType is used to indicate linker-internal relocations that are
+// not vendor-specific.
+// These are internal relocation numbers for GP/X0 relaxation. They aren't part
+// of the psABI spec.
+constexpr uint32_t INTERNAL_R_RISCV_GPREL_I = 256;
+constexpr uint32_t INTERNAL_R_RISCV_GPREL_S = 257;
+constexpr uint32_t INTERNAL_R_RISCV_X0REL_I = 258;
+constexpr uint32_t INTERNAL_R_RISCV_X0REL_S = 259;
+
+// Bits 9 -> 31 of RelType are used to indicate vendor-specific relocations.
+constexpr uint32_t INTERNAL_RISCV_VENDOR_MASK = 0xFFFFFFFF << 9;
+constexpr uint32_t INTERNAL_RISCV_VENDOR_QUALCOMM = 1 << 9;
+constexpr uint32_t INTERNAL_RISCV_VENDOR_ANDES = 2 << 9;
+constexpr uint32_t INTERNAL_RISCV_VENDOR_CHERIOT1 = 3 << 9;
+
+// CHERIoT Nonstandard Relocations
+constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI =
+    INTERNAL_RISCV_VENDOR_CHERIOT1 | llvm::ELF::R_RISCV_CHERIOT1_COMPARTMENT_HI;
+constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I =
+    INTERNAL_RISCV_VENDOR_CHERIOT1 | llvm::ELF::R_RISCV_CHERIOT1_COMPARTMENT_LO_I;
+constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S =
+    INTERNAL_RISCV_VENDOR_CHERIOT1 | llvm::ELF::R_RISCV_CHERIOT1_COMPARTMENT_LO_S;
+constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_SIZE =
+    INTERNAL_RISCV_VENDOR_CHERIOT1 | llvm::ELF::R_RISCV_CHERIOT1_COMPARTMENT_SIZE;
+
+constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_I =
+    INTERNAL_RISCV_VENDOR_CHERIOT1 |  256;
+constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI =
+    INTERNAL_RISCV_VENDOR_CHERIOT1 |  257;
+
+static uint32_t getRISCVVendorRelMarker(StringRef rvVendor) {
+  return StringSwitch<uint32_t>(rvVendor)
+      .Case("QUALCOMM", INTERNAL_RISCV_VENDOR_QUALCOMM)
+      .Case("ANDES", INTERNAL_RISCV_VENDOR_ANDES)
+      .Case("CHERIOT1", INTERNAL_RISCV_VENDOR_CHERIOT1)
+      .Default(0);
+}
 
 const uint64_t dtpOffset = 0x800;
 
@@ -1099,7 +1136,7 @@ static bool relax(Ctx &ctx, int pass, InputSection &sec) {
 
   std::fill_n(aux.relocTypes.get(), relocs.size(), R_RISCV_NONE);
   aux.writes.clear();
-  for (auto [i, r] : llvm::enumerate(riscv_vendor_relocs(relocs))) {
+  for (auto [i, r] : llvm::enumerate(relocs)) {
     const uint64_t loc = secAddr + r.offset - delta;
     uint32_t &cur = aux.relocDeltas[i], remove = 0;
     switch (r.type) {
@@ -1762,15 +1799,12 @@ void elf::setRISCVTargetInfo(Ctx &ctx) { ctx.target.reset(new RISCV(ctx)); }
  */
 static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSectionBase &sec) {
   bool modified = false;
-  auto vendorRelocs = riscv_vendor_relocs(sec.relocations);
-  for (auto it = vendorRelocs.begin(); it != vendorRelocs.end(); ++it) {
-    Relocation r = *it;
-    Relocation *underlyingReloc = it.getUnderlyingRelocation();
+  for (Relocation &r :sec.relocations ) {
     if (r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI &&
         isPCCRelative(ctx, nullptr, r.sym)) {
       modified = true;
-      underlyingReloc->type = INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI;
-      underlyingReloc->expr = R_PC;
+      r.type = INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI;
+      r.expr = R_PC;
     } else if (r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I ||
                r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S) {
       // If this is PCC-relative, then the relocation points to the auicgp /
@@ -1790,9 +1824,8 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSectionBase &sec) {
       // do binary search.
       Relocation targetReloc;
       targetReloc.offset = d->value;
-      auto vendorRelocs = riscv_vendor_relocs(isec->relocations);
       auto range = std::equal_range(
-          vendorRelocs.begin(), vendorRelocs.end(), targetReloc,
+          isec->relocations.begin(), isec->relocations.end(), targetReloc,
           [](const Relocation &lhs, const Relocation &rhs) {
             return lhs.offset < rhs.offset;
           });
@@ -1815,13 +1848,13 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSectionBase &sec) {
       if (isPCCRelative(ctx, nullptr, target->sym)) {
         assert(r.type != INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S &&
                "Malformed R_RISCV_CHERIOT1_COMPARTMENT_LO_S relocation!");
-        underlyingReloc->type = INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_I;
-        underlyingReloc->expr = RE_RISCV_PC_INDIRECT;
+        r.type = INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_I;
+        r.expr = RE_RISCV_PC_INDIRECT;
         continue;
       }
       // Update our relocation to point to the target thing.
-      underlyingReloc->sym = target->sym;
-      underlyingReloc->addend = target->addend;
+      r.sym = target->sym;
+      r.addend = target->addend;
     }
   }
   return modified;
@@ -1888,23 +1921,28 @@ void RISCV::scanSection(InputSectionBase &sec) {
   invokeELFT(scanSection1, sec);
 }
 
-namespace lld::elf {
-uint32_t getRISCVVendorRelMarker(StringRef rvVendor) {
-  return StringSwitch<uint32_t>(rvVendor)
-          .Case("QUALCOMM", INTERNAL_RISCV_VENDOR_QUALCOMM)
-          .Case("ANDES", INTERNAL_RISCV_VENDOR_ANDES)
-          .Case("CHERIOT1", INTERNAL_RISCV_VENDOR_CHERIOT1)
-          .Default(0);
-}
-
-std::optional<StringRef> getRISCVVendorString(RelType ty) {
-  if (ty.v & INTERNAL_RISCV_VENDOR_QUALCOMM)
+static std::optional<StringRef> getRISCVVendorString(RelType ty) {
+  if ((ty.v & INTERNAL_RISCV_VENDOR_MASK) == INTERNAL_RISCV_VENDOR_QUALCOMM)
     return "QUALCOMM";
-  if (ty.v & INTERNAL_RISCV_VENDOR_ANDES)
+  if ((ty.v & INTERNAL_RISCV_VENDOR_MASK) == INTERNAL_RISCV_VENDOR_ANDES)
     return "ANDES";
-  if (ty.v & INTERNAL_RISCV_VENDOR_CHERIOT1)
+  if ((ty.v & INTERNAL_RISCV_VENDOR_MASK) == INTERNAL_RISCV_VENDOR_CHERIOT1)
     return "CHERIOT1";
   return std::nullopt;
 }
 
-} // namespace lld::elf
+namespace lld::elf {
+
+std::string riscvVendorRelocToStr(RelType type) {
+  auto VendorString = getRISCVVendorString(type);
+  if (!VendorString)
+    return "Unknown";
+
+  StringRef str = getRISCVVendorRelocationTypeName(
+      type & ~INTERNAL_RISCV_VENDOR_MASK, *VendorString);
+  if (str == "Unknown")
+    return ("Unknown vendor-specific (" + Twine(type) + ")").str();
+
+  return str.str();
+}
+}

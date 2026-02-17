@@ -98,11 +98,15 @@ constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S =
     INTERNAL_RISCV_VENDOR_CHERIOT1 | llvm::ELF::R_RISCV_CHERIOT1_COMPARTMENT_LO_S;
 constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_SIZE =
     INTERNAL_RISCV_VENDOR_CHERIOT1 | llvm::ELF::R_RISCV_CHERIOT1_COMPARTMENT_SIZE;
+constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_CINCOFFSET =
+    INTERNAL_RISCV_VENDOR_CHERIOT1 | llvm::ELF::R_RISCV_CHERIOT1_COMPARTMENT_LO_CINCOFFSET;
 
 constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_I =
     INTERNAL_RISCV_VENDOR_CHERIOT1 |  256;
 constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI =
     INTERNAL_RISCV_VENDOR_CHERIOT1 |  257;
+constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_CINCOFFSET =
+    INTERNAL_RISCV_VENDOR_CHERIOT1 |  258;
 
 static uint32_t getRISCVVendorRelMarker(StringRef rvVendor) {
   return StringSwitch<uint32_t>(rvVendor)
@@ -459,9 +463,11 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
     return R_PC;
   case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI:
     return RE_CHERIOT1_COMPARTMENT_CGPREL_HI;
+  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_CINCOFFSET:
   case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I:
   case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S:
     return RE_CHERIOT1_COMPARTMENT_CGPREL_LO;
+  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_CINCOFFSET:
   case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_I:
     return RE_RISCV_PC_INDIRECT;
   case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_SIZE:
@@ -710,11 +716,13 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     else
       write32le(loc + 4, val);
     break;
+  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_CINCOFFSET:
   case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I: {
     checkInt(ctx, loc, val, 12, rel);
     write32le(loc, (read32le(loc) & 0x000fffff) | (val << 20));
     break;
   }
+  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_CINCOFFSET:
   case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_I: {
     // Attach a negative sign bit to LO12 if the offset is negative.
     // However, if HI20 alone is enough to reach the target, then this should
@@ -1108,9 +1116,10 @@ static void relaxCGP(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
       remove = 4;
       break;
     }
+    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_CINCOFFSET:
     case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I: {
       // cincoffset/load rd, cs1, %lo(x) => cincoffset/load rd, cgp, %lo(x)
-      sec.relaxAux->relocTypes[i] = INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I;
+      sec.relaxAux->relocTypes[i] = r.type;
       insn = (insn & ~(31 << 15)) | (3 << 15);
       sec.relaxAux->writes.push_back(insn);
       break;
@@ -1195,6 +1204,7 @@ static bool relax(Ctx &ctx, int pass, InputSection &sec) {
         remove = 4;
       break;
     case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI:
+    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_CINCOFFSET:
     case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I:
     case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S:
       if (i + 1 != sec.relocations.size() &&
@@ -1445,6 +1455,7 @@ void RISCV::finalizeRelax(int passes) const {
             write32le(p, aux.writes[writesIdx++]);
             aux.relocTypes[i] = R_RISCV_NONE;
             break;
+          case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_CINCOFFSET:
           case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I:
           case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S:
             skip = 4;
@@ -1786,11 +1797,11 @@ void elf::setRISCVTargetInfo(Ctx &ctx) { ctx.target.reset(new RISCV(ctx)); }
  *    INTERNAL_R_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI.
  *  - All CGP-relative CHERIOT1_COMPARTMENT_HI relocations are represented as
  *    R_RISCV_CHERIOT1_COMPARTMENT_HI.
- *  - All PCC-relative CHERIOT1_COMPARTMENT_LO_I relocations are represented as
+ *  - All PCC-relative CHERIOT1_COMPARTMENT_LO_{I|CINCOFFSET} relocations are represented as
  *    INTERNAL_R_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_I.
- *  - All CGP-relative CHERIOT1_COMPARTMENT_LO_I relocations are represented as
- *    R_RISCV_CHERIOT1_COMPARTMENT_LO_I.
- *  - The targets of all CHERIOT1_COMPARTMENT_LO_I relocations are resolved to
+ *  - All CGP-relative CHERIOT1_COMPARTMENT_LO_{I|CINCOFFSET} relocations are represented as
+ *    R_RISCV_CHERIOT1_COMPARTMENT_LO_{I|CINCOFFSET}.
+ *  - The targets of all CHERIOT1_COMPARTMENT_LO_{I|CINCOFFSET} relocations are resolved to
  *    the target of their paired CHERIOT1_COMPARTMENT_HI relocation.
  *  - PCC-relative CHERIOT1_COMPARTMENT_LO_S relocations do not exist.
  *  - All CGP-relative CHERIOT1_COMPARTMENT_LO_S relocations are represented as
@@ -1805,6 +1816,7 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSectionBase &sec) {
       r.type = INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI;
       r.expr = R_PC;
     } else if (r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I ||
+               r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_CINCOFFSET ||
                r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S) {
       // If this is PCC-relative, then the relocation points to the auicgp /
       // auipcc instruction and we need to look there to find the real target.
@@ -1847,7 +1859,9 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSectionBase &sec) {
       if (isPCCRelative(ctx, nullptr, target->sym)) {
         assert(r.type != INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S &&
                "Malformed R_RISCV_CHERIOT1_COMPARTMENT_LO_S relocation!");
-        r.type = INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_I;
+        r.type = (r.type == R_RISCV_CHERIOT1_COMPARTMENT_LO_I)
+                     ? INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_I
+                     : INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_CINCOFFSET;
         r.expr = RE_RISCV_PC_INDIRECT;
         continue;
       }

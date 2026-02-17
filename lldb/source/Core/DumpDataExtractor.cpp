@@ -450,7 +450,7 @@ lldb::offset_t lldb_private::DumpDataExtractor(
         LD = MC = SD = true;
         SL = perms[2];
         LM = perms[1];
-        LD = perms[0];
+        LG = perms[0];
       } else if (perms[4] && !perms[3] && perms[2]) {
         LD = MC = true;
         LM = perms[1];

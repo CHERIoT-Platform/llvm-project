@@ -737,16 +737,15 @@ static Relocation *getPCRelHi20(Ctx &ctx, const InputSectionBase *loSec,
   hiReloc.offset = d->value + addend;
 
   if (ctx.arg.emachine == EM_RISCV) {
-    auto hiSecRelocs = riscv_vendor_relocs(hiSec->relocs());
     auto range =
-        std::equal_range(hiSecRelocs.begin(), hiSecRelocs.end(), hiReloc,
+        std::equal_range(hiSec->relocs().begin(), hiSec->relocs().end(), hiReloc,
                          [](const Relocation& lhs, const Relocation& rhs) {
                            return lhs.offset < rhs.offset;
                          });
 
     for (auto it = range.first; it != range.second; ++it)
       if (PCRel::isHiReloc(it->type))
-        return it.getUnderlyingRelocation();
+        return &*it;
   } else {
     auto range =
         std::equal_range(hiSec->relocs().begin(), hiSec->relocs().end(), hiReloc,

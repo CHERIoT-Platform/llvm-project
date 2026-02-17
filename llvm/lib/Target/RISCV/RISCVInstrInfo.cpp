@@ -3764,6 +3764,7 @@ RISCVInstrInfo::getSerializableDirectMachineOperandTargetFlags() const {
       {MO_CHERIOT1_COMPARTMENT_LO_I, "riscv-cheriot-compartment-lo-i"},
       {MO_CHERIOT1_COMPARTMENT_LO_S, "riscv-cheriot-compartment-lo-s"},
       {MO_CHERIOT1_COMPARTMENT_SIZE, "riscv-cheriot-compartment-size"},
+      {MO_CHERIOT1_COMPARTMENT_LO_CINCOFFSET, "riscv-cheriot-compartment-lo-cincoffset"},
   };
   return ArrayRef(TargetFlags);
 }

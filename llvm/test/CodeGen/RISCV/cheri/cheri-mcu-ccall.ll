@@ -13,8 +13,9 @@ define dso_local cheriot_compartmentcalleecc i32 @test2(i32 %a0, i32 %a1) local_
 ; Check that we have the first two arguments in the right registers.
 ; CHECK-LABEL: test2:
 ; CHECK:       # %bb.0: # %entry
-; CHECK:    add a0, a0, a1
-; CHECK:    cret
+; CHECK-NEXT:    add a0, a0, a1
+; CHECK-NEXT:    li a1, 0
+; CHECK-NEXT:    ct.cret
 entry:
   %add = add nsw i32 %a1, %a0
   ret i32 %add
@@ -24,7 +25,20 @@ entry:
 define dso_local cheriot_compartmentcalleecc i32 @test6(i32 addrspace(200)* nocapture readonly %a0, i32 addrspace(200)* nocapture readonly %a1, i32 addrspace(200)* nocapture readonly %a2, i32 addrspace(200)* nocapture readonly %a3, i32 addrspace(200)* nocapture readonly %a4, i32 addrspace(200)* nocapture readonly %a5) local_unnamed_addr addrspace(200) #1 {
 ; Check that we are loading the last register argument
 ; CHECK-LABEL: test6:
-; CHECK: clw     a5, 0(a5)
+; CHECK:       # %bb.0: # %entry
+; CHECK-NEXT:    ct.clw a0, 0(a0)
+; CHECK-NEXT:    ct.clw a1, 0(a1)
+; CHECK-NEXT:    ct.clw a2, 0(a2)
+; CHECK-NEXT:    ct.clw a3, 0(a3)
+; CHECK-NEXT:    ct.clw a4, 0(a4)
+; CHECK-NEXT:    ct.clw a5, 0(a5)
+; CHECK-NEXT:    add a0, a0, a1
+; CHECK-NEXT:    add a2, a2, a3
+; CHECK-NEXT:    add a0, a0, a2
+; CHECK-NEXT:    add a4, a4, a5
+; CHECK-NEXT:    add a0, a0, a4
+; CHECK-NEXT:    li a1, 0
+; CHECK-NEXT:    ct.cret
 entry:
   %0 = load i32, i32 addrspace(200)* %a0, align 4, !tbaa !5
   %1 = load i32, i32 addrspace(200)* %a1, align 4, !tbaa !5
@@ -45,10 +59,39 @@ define dso_local cheriot_compartmentcalleecc i32 @test8(i32 addrspace(200)* noca
 ; Check that the last argument (used in the multiply) is loaded from offset 8
 ; in the stack-argument capability.
 ; CHECK-LABEL: test8:
-; CHECK: clc     [[CREG:[a-z]+[0-9]+]], 8(t0)
-; CHECK: clw     [[IREG:[a-z]+[0-9]+]], 0([[CREG]])
-; CHECK: mul
-; CHECK-SAME: [[IREG]]
+; CHECK:       # %bb.0: # %entry
+; CHECK-NEXT:    ct.cgetbase t2, t0
+; CHECK-NEXT:    bne t0, t2, .LBB2_1
+; CHECK-NEXT:    blt t0, sp, .LBB2_1
+; CHECK-NEXT:    ct.cgetlen t1, t0
+; CHECK-NEXT:    li t2, 16
+; CHECK-NEXT:    blt t1, t2, .LBB2_1
+; CHECK-NEXT:    ct.cgetperm t1, t0
+; CHECK-NEXT:    li t2, 126
+; CHECK-NEXT:    bne t1, t2, .LBB2_1
+; CHECK-NEXT:    ct.clc t1, 8(t0)
+; CHECK-NEXT:    ct.clc t0, 0(t0)
+; CHECK-NEXT:    ct.clw a0, 0(a0)
+; CHECK-NEXT:    ct.clw a1, 0(a1)
+; CHECK-NEXT:    ct.clw a2, 0(a2)
+; CHECK-NEXT:    ct.clw a3, 0(a3)
+; CHECK-NEXT:    ct.clw a4, 0(a4)
+; CHECK-NEXT:    ct.clw a5, 0(a5)
+; CHECK-NEXT:    add a0, a0, a1
+; CHECK-NEXT:    add a2, a2, a3
+; CHECK-NEXT:    ct.clw a1, 0(t0)
+; CHECK-NEXT:    add a0, a0, a2
+; CHECK-NEXT:    ct.clw a2, 0(t1)
+; CHECK-NEXT:    add a4, a4, a5
+; CHECK-NEXT:    add a0, a0, a4
+; CHECK-NEXT:    add a0, a0, a1
+; CHECK-NEXT:    mul a0, a0, a2
+; CHECK-NEXT:    li a1, 0
+; CHECK-NEXT:    ct.cret
+; CHECK-NEXT:  .LBB2_1:
+; CHECK-NEXT:    li a0, -1
+; CHECK-NEXT:    li a1, -1
+; CHECK-NEXT:    ct.cret
 entry:
   %0 = load i32, i32 addrspace(200)* %a0, align 4, !tbaa !5
   %1 = load i32, i32 addrspace(200)* %a1, align 4, !tbaa !5
@@ -79,18 +122,40 @@ declare void @llvm.lifetime.end.p200i8(i64 immarg, i8 addrspace(200)* nocapture)
 
 ; Function Attrs: minsize nounwind optsize
 define dso_local i32 @testcall8() local_unnamed_addr addrspace(200) #2 {
+; CHECK-LABEL: testcall8:
+; CHECK:       # %bb.0: # %entry
+; CHECK-NEXT:    ct.cincoffset sp, sp, -64
+; CHECK-NEXT:    ct.csc ra, 56(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cincoffset a0, sp, 24
+; CHECK-NEXT:    ct.csetbounds a0, a0, 32
+; CHECK-NEXT:    ct.cincoffset a1, a0, 4
+; CHECK-NEXT:    ct.cincoffset a2, a0, 8
+; CHECK-NEXT:    ct.cincoffset a3, a0, 12
+; CHECK-NEXT:    ct.cincoffset a4, a0, 16
+; CHECK-NEXT:    ct.cincoffset a5, a0, 20
+; CHECK-NEXT:    ct.cincoffset t1, a0, 24
+; CHECK-NEXT:  .LBB3_1: # %entry
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auicgp t0, %cheriot_compartment_hi(testcall8.stack_arg)
+; CHECK-NEXT:    ct.cincoffset t0, t0, %cheriot_compartment_lo_cincoffset(.LBB3_1)
+; CHECK-NEXT:    ct.csetbounds t0, t0, %cheriot_compartment_size(testcall8.stack_arg)
+; CHECK-NEXT:    ct.csc t0, 8(sp)
+; CHECK-NEXT:    ct.csetbounds t0, sp, 16
+; CHECK-NEXT:    ct.csc t1, 0(sp)
+; CHECK-NEXT:  .LBB3_3: # %entry
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t1, %cheriot_compartment_hi(__import_other_test8callee)
+; CHECK-NEXT:    ct.clc t1, %cheriot_compartment_lo_i(.LBB3_3)(t1)
+; CHECK-NEXT:  .LBB3_2: # %entry
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(.compartment_switcher)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB3_2)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.clc ra, 56(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cincoffset sp, sp, 64
+; CHECK-NEXT:    ct.cret
 entry:
   ; Check that we have the right relocations and stack layout.
-  ; CHECK-LABEL: testcall8:
-  ; CHECK:  auicgp  t0, %cheriot_compartment_hi(testcall8.stack_arg)
-  ; CHECK:  cincoffset      t0, t0, %cheriot_compartment_lo_i
-  ; CHECK:  csetbounds      t0, t0, %cheriot_compartment_size(testcall8.stack_arg)
-  ; CHECK:  csc     t0, 8(sp)
-  ; CHECK:  auipcc  t1, %cheriot_compartment_hi(__import_other_test8callee)
-  ; CHECK:  clc     t1, %cheriot_compartment_lo_i
-  ; CHECK:  auipcc  t2, %cheriot_compartment_hi(.compartment_switcher)
-  ; CHECK:  clc     t2, %cheriot_compartment_lo_i
-  ; CHECK:  cjalr t2
   %args = alloca [8 x i32], align 4, addrspace(200)
   %0 = bitcast [8 x i32] addrspace(200)* %args to i8 addrspace(200)*
   call void @llvm.lifetime.start.p200i8(i64 32, i8 addrspace(200)* nonnull %0) #5

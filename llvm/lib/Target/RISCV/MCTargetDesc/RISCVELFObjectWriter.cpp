@@ -114,6 +114,8 @@ unsigned RISCVELFObjectWriter::getRelocType(const MCFixup &Fixup,
       return ELF::R_RISCV_CHERIOT1_COMPARTMENT_HI;
     case RISCV::fixup_riscv_cheriot1_compartment_lo_i:
       return ELF::R_RISCV_CHERIOT1_COMPARTMENT_LO_I;
+    case RISCV::fixup_riscv_cheriot1_compartment_lo_cincoffset:
+      return ELF::R_RISCV_CHERIOT1_COMPARTMENT_LO_CINCOFFSET;
     }
   }
 
@@ -175,6 +177,8 @@ unsigned RISCVELFObjectWriter::getRelocType(const MCFixup &Fixup,
     return ELF::R_RISCV_CHERIOT1_COMPARTMENT_HI;
   case RISCV::fixup_riscv_cheriot1_compartment_lo_i:
     return ELF::R_RISCV_CHERIOT1_COMPARTMENT_LO_I;
+  case RISCV::fixup_riscv_cheriot1_compartment_lo_cincoffset:
+    return ELF::R_RISCV_CHERIOT1_COMPARTMENT_LO_CINCOFFSET;
   case RISCV::fixup_riscv_cheriot1_compartment_lo_s:
     return ELF::R_RISCV_CHERIOT1_COMPARTMENT_LO_S;
   case RISCV::fixup_riscv_cheriot1_compartment_size:

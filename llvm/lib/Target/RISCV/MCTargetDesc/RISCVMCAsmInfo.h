@@ -58,6 +58,7 @@ enum {
   S_CHERIOT_COMPARTMENT_LO_I,
   S_CHERIOT_COMPARTMENT_LO_S,
   S_CHERIOT_COMPARTMENT_SIZE,
+  S_CHERIOT_COMPARTMENT_LO_CINCOFFSET
 };
 
 Specifier parseSpecifierName(StringRef name, bool IsPurecap);

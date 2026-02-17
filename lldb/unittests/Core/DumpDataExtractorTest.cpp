@@ -276,7 +276,12 @@ TEST_F(DumpDataExtractorTest, Formats) {
   // Cheriot capability formatting
   TestDump<uint64_t>(0x7608d4cd00220b34, lldb::eFormatCheriotCapability,
                      "0x00220b34 (v:? 0x00220b34-0x002211a8 l:0x674 "
-                     "o:0x0[unsealed] p: G RWc-m- -- ---)");
+                     "o:0x0[unsealed] p: G RWcgm- -- ---)");
+
+  // Again, with a displaced RW root (checks perm bits & the E=15 case)
+  TestDump<uint64_t>(0x7e3e000000200030, lldb::eFormatCheriotCapability,
+                     "0x00200030 (v:? 0x00000000-0x100000000 l:0x100000000 "
+                     "o:0x0[unsealed] p: G RWcgml -- ---)");
 }
 
 TEST_F(DumpDataExtractorTest, FormatCharArray) {

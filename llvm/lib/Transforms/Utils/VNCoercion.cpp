@@ -128,6 +128,13 @@ Value *coerceAvailableValueToLoadType(Value *StoredVal, Type *LoadedTy,
         StoredVal = Helper.CreatePtrToInt(StoredVal, StoredValTy);
       }
 
+      if (DL.isNonIntegralPointerType(LoadedTy)) {
+        ConstantInt *CI = dyn_cast<ConstantInt>(StoredVal);
+        assert(CI && CI->isZero());
+
+        return Constant::getNullValue(LoadedTy);
+      }
+
       Type *TypeToCastTo = LoadedTy;
       if (TypeToCastTo->isPtrOrPtrVectorTy())
         TypeToCastTo = DL.getIntPtrType(TypeToCastTo);

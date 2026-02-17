@@ -512,7 +512,7 @@ lldb::offset_t lldb_private::DumpDataExtractor(
 
       // Compute the base and top addresses for the bounds.
       unsigned e = (E != 15) ? E : 24;
-      uint64_t a_top = addr >> (e + 9);
+      uint64_t a_top = (e >= 23) ? 0 : (addr >> (e + 9));
       uint64_t a_mid = (addr >> e) & 0x1FF;
       uint64_t a_hi = (a_mid < B) ? 1 : 0;
       uint64_t t_hi = (T < B) ? 1 : 0;

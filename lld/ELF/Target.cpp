@@ -24,7 +24,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "Target.h"
-#include "Arch/RISCVInternalRelocations.h"
 #include "InputFiles.h"
 #include "OutputSections.h"
 #include "RelocScan.h"

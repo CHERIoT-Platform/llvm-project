@@ -151,14 +151,13 @@ EmulateInstructionMIPS64::EmulateInstructionMIPS64(
   if (arch_flags & ArchSpec::eMIPSAse_micromips)
     features += "+micromips,";
 
-  llvm::MCTargetOptions MCOptions;
-  m_reg_info.reset(target->createMCRegInfo(triple, MCOptions));
+  m_reg_info.reset(target->createMCRegInfo(triple, m_mc_options));
   assert(m_reg_info.get());
 
   m_insn_info.reset(target->createMCInstrInfo());
   assert(m_insn_info.get());
 
-  m_asm_info.reset(target->createMCAsmInfo(*m_reg_info, triple, MCOptions));
+  m_asm_info.reset(target->createMCAsmInfo(*m_reg_info, triple, m_mc_options));
   m_subtype_info.reset(target->createMCSubtargetInfo(triple, cpu, features));
   assert(m_asm_info.get() && m_subtype_info.get());
 

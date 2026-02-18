@@ -454,7 +454,7 @@ llvm::Error dwarfgen::Generator::init(Triple TheTriple, uint16_t V) {
   TripleName = TheTriple.getTriple();
 
   // Create all the MC Objects.
-  MCTargetOptions MCOptions = mc::InitMCTargetOptionsFromFlags();
+  MCOptions = mc::InitMCTargetOptionsFromFlags();
   MRI.reset(TheTarget->createMCRegInfo(TheTriple, MCOptions));
   if (!MRI)
     return make_error<StringError>(Twine("no register info for target ") +

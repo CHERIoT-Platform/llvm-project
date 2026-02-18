@@ -130,7 +130,7 @@ Value *VNCoercion::coerceAvailableValueToLoadType(Value *StoredVal,
         StoredVal = Helper.CreatePtrToInt(StoredVal, StoredValTy);
       }
 
-      if (DL.isNonIntegralPointerType(LoadedTy)) {
+      if (DL.isFatPointer(LoadedTy)) {
         ConstantInt *CI = dyn_cast<ConstantInt>(StoredVal);
         assert(CI && CI->isZero());
 
@@ -407,7 +407,12 @@ static Value *getStoreValueForLoadHelper(Value *SrcVal, unsigned Offset,
   // Compute which bits of the stored value are being used by the load.  Convert
   // to an integer type to start with.
   // FIXME: Extracting bits works differently for CHERI capabilities
-  assert(!DL.isFatPointer(SrcVal->getType()));
+  if (DL.isFatPointer(SrcVal->getType())) {
+    ConstantPointerNull *CP = dyn_cast<ConstantPointerNull>(SrcVal);
+    assert(CP);
+    return Constant::getNullValue(LoadTy);
+  }
+
   if (SrcVal->getType()->isPtrOrPtrVectorTy())
     SrcVal =
         Builder.CreatePtrToInt(SrcVal, DL.getIntPtrType(SrcVal->getType()));

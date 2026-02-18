@@ -1044,7 +1044,7 @@ Instruction *foldSetOffsetOrAddress(InstCombiner *IC, IntrinsicInst *II) {
   if (auto *Null = dyn_cast<ConstantPointerNull>(BaseBeforePointerArith)) {
     Value *Op1 = II->getArgOperand(1);
     if (auto ConstOp1 = dyn_cast<Constant>(Op1)) {
-      if (ConstOp1->isZeroValue())
+      if (ConstOp1->isNullValue())
         return IC->replaceInstUsesWith(*II, Null);
       return IC->replaceInstUsesWith(
           *II, ConstantExpr::getGetElementPtr(Type::getInt8Ty(II->getContext()),

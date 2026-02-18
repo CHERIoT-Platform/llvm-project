@@ -359,8 +359,8 @@ static bool isKnownUntaggedCapability(const Value *V, unsigned Depth,
       return isKnownUntaggedCapability(II->getOperand(0), Depth + 1, DL);
     case Intrinsic::cheri_cap_from_pointer:
       if (auto CI = dyn_cast<ConstantInt>(II->getOperand(1))) {
-        DEBUG_TAG("CFromPtr on constant -> " << CI->isZeroValue());
-        return CI->isZeroValue(); // cfromptr with zero returns NULL
+        DEBUG_TAG("CFromPtr on constant -> " << CI->isNullValue());
+        return CI->isNullValue(); // cfromptr with zero returns NULL
       }
       DEBUG_TAG("CFromPtr on nonconst -> false");
       return false; // We don't know if the source is NULL -> could be tagged
@@ -1841,7 +1841,7 @@ static void computeKnownBitsFromOperator(const Operator *I,
 
       // Handle case when index is zero.
       Constant *CIndex = dyn_cast<Constant>(Index);
-      if (CIndex && CIndex->isZeroValue())
+      if (CIndex && CIndex->isNullValue())
         continue;
 
       if (StructType *STy = GTI.getStructTypeOrNull()) {

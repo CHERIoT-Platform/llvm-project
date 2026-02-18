@@ -7299,7 +7299,7 @@ Value *llvm::simplifyBinaryIntrinsic(Intrinsic::ID IID, Type *ReturnType,
       // The non-constant case is handled in InstCombine since it requires
       // creating a new instruction
       if (auto *ConstOp1 = dyn_cast<Constant>(Op1)) {
-        if (ConstOp1->isZeroValue())
+        if (ConstOp1->isNullValue())
           return Null; // simplify setoffset(NULL, 0) -> null
         return ConstantExpr::getGetElementPtr(Type::getInt8Ty(ReturnType->getContext()),
                                               Null, ConstOp1);

@@ -15,13 +15,13 @@
 
 ## Test 1: Known vendor (QUALCOMM) - should resolve to vendor-specific name
   .reloc ., R_RISCV_VENDOR, QUALCOMM
-  .reloc ., R_RISCV_CUSTOM192, foo
+  .reloc ., R_RISCV_CHERI_CAPTAB_PCREL_HI20_DEPRECATED, foo
   nop
 
 ## Test 2: Vendor symbol is consumed after one use per RISC-V psABI.
 ## The second R_RISCV_CUSTOM192 without a preceding R_RISCV_VENDOR should
 ## remain as R_RISCV_CUSTOM192.
-  .reloc ., R_RISCV_CUSTOM192, bar
+  .reloc ., R_RISCV_CHERI_CAPTAB_PCREL_HI20_DEPRECATED, bar
   nop
 
 ## Test 3: Known vendor (ANDES) - should resolve to vendor-specific name
@@ -31,18 +31,18 @@
 
 ## Test 4: Unknown vendor - should fall back to R_RISCV_CUSTOM*
   .reloc ., R_RISCV_VENDOR, UNKNOWN_VENDOR
-  .reloc ., R_RISCV_CUSTOM200, qux
+  .reloc ., R_RISCV_CHERI_CCALL_DEPRECATED, qux
   nop
 
 ## Test 5: Another known vendor after unknown - should work correctly
   .reloc ., R_RISCV_VENDOR, QUALCOMM
-  .reloc ., R_RISCV_CUSTOM193, quux
+  .reloc ., R_RISCV_CHERI_CAPABILITY_DEPRECATED, quux
   nop
 
 ## Test 6: Unpaired R_RISCV_VENDOR followed by R_RISCV_CUSTOM* at a different
 ## offset - should NOT be treated as a valid pair.
   .reloc . - 1, R_RISCV_VENDOR, QUALCOMM
-  .reloc ., R_RISCV_CUSTOM193, barney
+  .reloc ., R_RISCV_CHERI_CAPABILITY_DEPRECATED, barney
   nop
 
 ## Test 7: A non-R_RISCV_CUSTOM* relocation in between a vendor relocation pair
@@ -50,41 +50,41 @@
 ## vendor-specific relocation per psABI.
   .reloc ., R_RISCV_VENDOR, QUALCOMM
   .reloc ., R_RISCV_32, snork
-  .reloc ., R_RISCV_CUSTOM193, zot
+  .reloc ., R_RISCV_CHERI_CAPABILITY_DEPRECATED, zot
   nop
 
 # GNU:      Relocation section '.rela.text'
 # GNU:      R_RISCV_VENDOR       {{.*}} QUALCOMM + 0
 # GNU-NEXT: R_RISCV_QC_ABS20_U   {{.*}} foo + 0
-# GNU-NEXT: R_RISCV_CUSTOM192    {{.*}} bar + 0
+# GNU-NEXT: R_RISCV_CHERI_CAPTAB_PCREL_HI20_DEPRECATED    {{.*}} bar + 0
 # GNU-NEXT: R_RISCV_VENDOR       {{.*}} ANDES + 0
 # GNU-NEXT: R_RISCV_NDS_BRANCH_10 {{.*}} baz + 0
 # GNU-NEXT: R_RISCV_VENDOR       {{.*}} UNKNOWN_VENDOR + 0
-# GNU-NEXT: R_RISCV_CUSTOM200    {{.*}} qux + 0
+# GNU-NEXT: R_RISCV_CHERI_CCALL_DEPRECATED    {{.*}} qux + 0
 # GNU-NEXT: R_RISCV_VENDOR       {{.*}} QUALCOMM + 0
 # GNU-NEXT: R_RISCV_QC_E_BRANCH  {{.*}} quux + 0
 ## Test 6: Different offsets - not a valid pair
 # GNU-NEXT: R_RISCV_VENDOR       {{.*}} QUALCOMM + 0
-# GNU-NEXT: R_RISCV_CUSTOM193    {{.*}} barney + 0
+# GNU-NEXT: R_RISCV_CHERI_CAPABILITY_DEPRECATED    {{.*}} barney + 0
 ## Test 7: Intervening relocation - not a valid pair
 # GNU-NEXT: R_RISCV_VENDOR       {{.*}} QUALCOMM + 0
 # GNU-NEXT: R_RISCV_32           {{.*}} snork + 0
-# GNU-NEXT: R_RISCV_CUSTOM193    {{.*}} zot + 0
+# GNU-NEXT: R_RISCV_CHERI_CAPABILITY_DEPRECATED    {{.*}} zot + 0
 
 # LLVM:      Relocations [
 # LLVM:        R_RISCV_VENDOR QUALCOMM 0x0
 # LLVM-NEXT:   R_RISCV_QC_ABS20_U foo 0x0
-# LLVM-NEXT:   R_RISCV_CUSTOM192 bar 0x0
+# LLVM-NEXT:   R_RISCV_CHERI_CAPTAB_PCREL_HI20_DEPRECATED bar 0x0
 # LLVM-NEXT:   R_RISCV_VENDOR ANDES 0x0
 # LLVM-NEXT:   R_RISCV_NDS_BRANCH_10 baz 0x0
 # LLVM-NEXT:   R_RISCV_VENDOR UNKNOWN_VENDOR 0x0
-# LLVM-NEXT:   R_RISCV_CUSTOM200 qux 0x0
+# LLVM-NEXT:   R_RISCV_CHERI_CCALL_DEPRECATED qux 0x0
 # LLVM-NEXT:   R_RISCV_VENDOR QUALCOMM 0x0
 # LLVM-NEXT:   R_RISCV_QC_E_BRANCH quux 0x0
 ## Test 6: Different offsets - not a valid pair
 # LLVM-NEXT:   R_RISCV_VENDOR QUALCOMM 0x0
-# LLVM-NEXT:   R_RISCV_CUSTOM193 barney 0x0
+# LLVM-NEXT:   R_RISCV_CHERI_CAPABILITY_DEPRECATED barney 0x0
 ## Test 7: Intervening relocation - not a valid pair
 # LLVM-NEXT:   R_RISCV_VENDOR QUALCOMM 0x0
 # LLVM-NEXT:   R_RISCV_32 snork 0x0
-# LLVM-NEXT:   R_RISCV_CUSTOM193 zot 0x0
+# LLVM-NEXT:   R_RISCV_CHERI_CAPABILITY_DEPRECATED zot 0x0

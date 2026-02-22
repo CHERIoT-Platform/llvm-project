@@ -285,25 +285,25 @@ TEST(ELFTest, getELFRelocationTypeNameForLoongArch) {
 
 TEST(ELFTest, getRISCVVendorRelocationTypeName) {
   EXPECT_EQ("R_RISCV_QC_ABS20_U",
-            getRISCVVendorRelocationTypeName(R_RISCV_CUSTOM192, "QUALCOMM"));
+            getRISCVVendorRelocationTypeName(R_RISCV_CHERI_CAPTAB_PCREL_HI20_DEPRECATED, "QUALCOMM"));
   EXPECT_EQ("R_RISCV_QC_E_BRANCH",
-            getRISCVVendorRelocationTypeName(R_RISCV_CUSTOM193, "QUALCOMM"));
+            getRISCVVendorRelocationTypeName(R_RISCV_CHERI_CAPABILITY_DEPRECATED, "QUALCOMM"));
   EXPECT_EQ("R_RISCV_QC_E_32",
-            getRISCVVendorRelocationTypeName(R_RISCV_CUSTOM194, "QUALCOMM"));
+            getRISCVVendorRelocationTypeName(R_RISCV_FUNC_RELATIVE_DEPRECATED, "QUALCOMM"));
   EXPECT_EQ("R_RISCV_QC_E_CALL_PLT",
-            getRISCVVendorRelocationTypeName(R_RISCV_CUSTOM195, "QUALCOMM"));
+            getRISCVVendorRelocationTypeName(R_RISCV_CHERI_CAPABILITY_CODE_DEPRECATED, "QUALCOMM"));
 
   EXPECT_EQ("R_RISCV_NDS_BRANCH_10",
             getRISCVVendorRelocationTypeName(R_RISCV_CUSTOM241, "ANDES"));
 
   EXPECT_EQ("R_RISCV_CHERIOT1_COMPARTMENT_HI",
-            getRISCVVendorRelocationTypeName(R_RISCV_CUSTOM220, "CHERIOT1"));
+            getRISCVVendorRelocationTypeName(R_RISCV_CHERIOT_COMPARTMENT_HI_DEPRECATED, "CHERIOT1"));
   EXPECT_EQ("R_RISCV_CHERIOT1_COMPARTMENT_LO_I",
-            getRISCVVendorRelocationTypeName(R_RISCV_CUSTOM221, "CHERIOT1"));
+            getRISCVVendorRelocationTypeName(R_RISCV_CHERIOT_COMPARTMENT_LO_I_DEPRECATED, "CHERIOT1"));
   EXPECT_EQ("R_RISCV_CHERIOT1_COMPARTMENT_LO_S",
-            getRISCVVendorRelocationTypeName(R_RISCV_CUSTOM222, "CHERIOT1"));
+            getRISCVVendorRelocationTypeName(R_RISCV_CHERIOT_COMPARTMENT_LO_S_DEPRECATED, "CHERIOT1"));
   EXPECT_EQ("R_RISCV_CHERIOT1_COMPARTMENT_SIZE",
-            getRISCVVendorRelocationTypeName(R_RISCV_CUSTOM223, "CHERIOT1"));
+            getRISCVVendorRelocationTypeName(R_RISCV_CHERIOT_COMPARTMENT_SIZE_DEPRECATED, "CHERIOT1"));
 }
 
 TEST(ELFTest, getELFRelativeRelocationType) {

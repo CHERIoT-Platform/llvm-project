@@ -673,7 +673,7 @@ static StringRef getRelocTypeName(const RelocationRef &Rel,
     // vendor-specific relocation at the same offset. Clear the vendor symbol
     // if this relocation doesn't form a valid pair.
     if (Offset != CurrentRISCVVendorOffset ||
-        Type < ELF::R_RISCV_CUSTOM192 || Type > ELF::R_RISCV_CUSTOM255) {
+        Type < ELF::R_RISCV_CHERI_CAPTAB_PCREL_HI20_DEPRECATED || Type > ELF::R_RISCV_CUSTOM255) {
       CurrentRISCVVendorSymbol.clear();
     } else {
       // Valid vendor relocation pair - use vendor-specific name.

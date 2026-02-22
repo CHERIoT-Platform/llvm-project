@@ -3902,7 +3902,7 @@ void ELFDumper<ELFT>::printReloc(const Relocation<ELFT> &R, unsigned RelIndex,
       // form a valid pair: either the offset doesn't match or this is not a
       // vendor-specific (CUSTOM) relocation.
       if (R.Offset != CurrentRISCVVendorOffset ||
-          R.Type < ELF::R_RISCV_CUSTOM192 || R.Type > ELF::R_RISCV_CUSTOM255) {
+          R.Type < ELF::R_RISCV_CHERI_CAPTAB_PCREL_HI20_DEPRECATED || R.Type > ELF::R_RISCV_CUSTOM255) {
         CurrentRISCVVendorSymbol.clear();
       }
       // If it IS a valid CUSTOM relocation at matching offset,
@@ -3923,7 +3923,7 @@ StringRef ELFDumper<ELFT>::getRelocTypeName(uint32_t Type,
   // Per RISC-V psABI, R_RISCV_VENDOR must be placed immediately before the
   // vendor-specific relocation, so we consume the vendor symbol after use.
   if (Obj.getHeader().e_machine == ELF::EM_RISCV &&
-      Type >= ELF::R_RISCV_CUSTOM192 && Type <= ELF::R_RISCV_CUSTOM255 &&
+      Type >= ELF::R_RISCV_CHERI_CAPTAB_PCREL_HI20_DEPRECATED && Type <= ELF::R_RISCV_CUSTOM255 &&
       !CurrentRISCVVendorSymbol.empty()) {
     StringRef VendorRelocName =
         getRISCVVendorRelocationTypeName(Type, CurrentRISCVVendorSymbol);

@@ -773,6 +773,9 @@ struct Ctx : CommonLinkerContext {
   // Number of Vernaux entries (needed shared object names).
   uint32_t vernauxNum = 0;
 
+  // CHERIoT - Whether we have should relax auicgp to cap table loads.
+  bool shouldRelaxAuicgpToCapTable = false;
+
   // Each symbol assignment and DEFINED(sym) reference is assigned an increasing
   // order. Each DEFINED(sym) evaluation checks whether the reference happens
   // before a possible `sym = expr;`.

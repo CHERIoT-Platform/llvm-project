@@ -502,12 +502,13 @@ GotSection::GotSection(Ctx &ctx)
   numEntries = ctx.target->gotHeaderEntriesNum;
 }
 
-void GotSection::addEntry(const Symbol &sym) {
+uint64_t GotSection::addEntry(const Symbol &sym) {
   // TODO: Separate out TLS IE entries for CHERI so we can pack them more
   // efficiently rather than consuming a whole capability-sized slot for an
   // integer.
   assert(sym.auxIdx == ctx.symAux.size() - 1);
   ctx.symAux.back().gotIdx = numEntries++;
+  return (numEntries - 1) * ctx.target->gotEntrySize;
 }
 
 void GotSection::addAuthEntry(const Symbol &sym) {

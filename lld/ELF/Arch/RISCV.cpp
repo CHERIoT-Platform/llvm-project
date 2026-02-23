@@ -212,6 +212,11 @@ RISCV::RISCV(Ctx &ctx) : TargetInfo(ctx) {
   if (ctx.arg.isCheriAbi)
     gotEntrySize = getCapabilitySize();
 
+  // CHERIoT may use a GOT for CGP-relative relocations that end up out side of
+  // the 12-bit displacement.
+  if (ctx.arg.isCheriot)
+    gotHeaderEntriesNum = 0;
+
   // .got.plt[0] = _dl_runtime_resolve, .got.plt[1] = link_map
   gotPltHeaderEntriesNum = 2;
 
@@ -1049,8 +1054,11 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     write32le(loc, insn | (val_high << 20) | (val_low << 7));
     break;
   }
-  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI:
   case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI: {
+    // FIXME: Unrelaxed AUICGP relocation should not occur. This is path
+    // only needed to retain compatibility with object files that predate
+    // COMPARTMENT_CGP_HI relocations, and should be removed in the future.
+
     // AUICGP
     uint32_t opcode = AUICGP;
     uint32_t existingOpcode = read32le(loc) & 0x7f;
@@ -1414,33 +1422,75 @@ static void relaxHi20Lo12(Ctx &ctx, const InputSection &sec, size_t i,
 // Relax auicgp + cincoffset/memop to cincoffset/memop cgp
 static void relaxCGP(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
                      Relocation &r, uint32_t &remove) {
-  if (isPCCRelative(ctx, nullptr, r.sym)) return;
   uint64_t hival =
       getBiasedCGPOffset(ctx, *r.sym) - getBiasedCGPOffsetLo12(ctx, *r.sym);
-  // We can only relax when imm == 0 in auicgp rd, imm.
-  if (hival != 0) return;
+
+  if (hival != 0) {
+    if (!ctx.shouldRelaxAuicgpToCapTable)
+      return;
+    // Once we have concluded that we have no hope of bringing this CGP-relative
+    // access in-range, we instead transform the entire sequence into a load
+    // through the GOT.
+    switch (r.type) {
+    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI: {
+      // AUICGP rd, sym --> AUIPCC rd, hi(got(sym))
+      sec.relaxAux->relocTypes[i] =
+          INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI;
+      uint32_t insn = read32le(sec.content().data() + r.offset);
+      uint32_t auipcc = (insn & ~0x7f) | AUIPCC;
+      sec.relaxAux->writes.push_back(auipcc);
+      break;
+    }
+    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI_NOP: {
+      // NOP -> CLC rd, rd, lo(got(sym))
+      sec.relaxAux->relocTypes[i] =
+          INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_I;
+      uint32_t insn = read32le(sec.content().data() + r.offset - 4);
+      uint32_t reg = insn & 0x00000f80;
+      uint32_t clc = CLC_64 | reg | (reg << 8);
+      sec.relaxAux->writes.push_back(clc);
+      break;
+    }
+    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I:
+    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S: {
+      // CLW rd, ra, lo(sym+off) -> CLW rd, ra, off
+      sec.relaxAux->relocTypes[i] = R_RISCV_32;
+      uint32_t insn = read32le(sec.content().data() + r.offset);
+      int32_t addend = r.addend;
+      addend <<= 20;
+      insn |= addend;
+      sec.relaxAux->writes.push_back(insn);
+      break;
+    }
+    }
+
+    return;
+  }
+
+  // Relax away the auicgp when imm == 0 in auicgp rd, imm.
   uint32_t insn = read32le(sec.content().data() + r.offset);
   switch (r.type) {
   case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI:
+  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI_NOP:
   case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI: {
-    // Remove auicgp rd, 0.
+    // Remove auicgp rd, 0 and trailing nop4.
     sec.relaxAux->relocTypes[i] = R_RISCV_RELAX;
     remove = 4;
     break;
   }
-    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I: {
-      // cincoffset/load rd, cs1, %lo(x) => cincoffset/load rd, cgp, %lo(x)
-      sec.relaxAux->relocTypes[i] = r.type;
-      insn = (insn & ~(31 << 15)) | (3 << 15);
-      sec.relaxAux->writes.push_back(insn);
-      break;
-    }
-    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S:
-      // store cs2, cs1, %lo(x) => store cs2, cgp, %lo(x)
-      sec.relaxAux->relocTypes[i] = INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S;
-      insn = (insn & ~(31 << 15)) | (3 << 15);
-      sec.relaxAux->writes.push_back(insn);
-      break;
+  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I: {
+    // cincoffset/load rd, cs1, %lo(x) => cincoffset/load rd, cgp, %lo(x)
+    sec.relaxAux->relocTypes[i] = r.type;
+    insn = (insn & ~(31 << 15)) | (3 << 15);
+    sec.relaxAux->writes.push_back(insn);
+    break;
+  }
+  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S:
+    // store cs2, cs1, %lo(x) => store cs2, cgp, %lo(x)
+    sec.relaxAux->relocTypes[i] = INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S;
+    insn = (insn & ~(31 << 15)) | (3 << 15);
+    sec.relaxAux->writes.push_back(insn);
+    break;
   }
 }
 
@@ -1522,9 +1572,14 @@ static bool relax(Ctx &ctx, int pass, InputSection &sec) {
         relaxCGP(ctx, sec, i, loc, r, remove);
       break;
     case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI_NOP:
-      // Remove the trailing nop.
-      sec.relaxAux->relocTypes[i] = R_RISCV_RELAX;
-      remove = 4;
+      if (isPCCRelative(ctx, nullptr, r.sym)) {
+        // Always remove the trailing nop if this follows an AUIPCC
+        sec.relaxAux->relocTypes[i] = R_RISCV_RELAX;
+        remove = 4;
+        break;
+      }
+
+      relaxCGP(ctx, sec, i, loc, r, remove);
       break;
     }
 
@@ -1578,6 +1633,15 @@ bool RISCV::relaxOnce(int pass) const {
       if (sec->relaxAux)
         changed |= relax(ctx, pass, *sec);
   }
+
+  if (!changed && ctx.arg.isCheriot && !ctx.shouldRelaxAuicgpToCapTable) {
+    // Once relaxation has iterated to a fixed point, toggle the option
+    // to turn out-of-range CGP-relative accesses into captable (GOT)
+    // loads. Then iterate to a fixed point again.
+    ctx.shouldRelaxAuicgpToCapTable = true;
+    changed = true;
+  }
+
   return changed;
 }
 
@@ -1726,7 +1790,7 @@ void RISCV::finalizeRelax(int passes) const {
           continue;
 
         // Copy from last location to the current relocated location.
-        const Relocation &r = rels[i];
+        Relocation &r = rels[i];
         uint64_t size = r.offset - offset;
         memcpy(p, old.data() + offset, size);
         p += size;
@@ -1772,17 +1836,84 @@ void RISCV::finalizeRelax(int passes) const {
             skip = 4;
             write32le(p, aux.writes[writesIdx++]);
             aux.relocTypes[i] = R_RISCV_NONE;
+            if (r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I ||
+                r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S) {
+              aux.relocTypes[i] = R_RISCV_RELAX;
+            }
             break;
           case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I:
           case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S:
             skip = 4;
             write32le(p, aux.writes[writesIdx++]);
             break;
-          case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI:
-            // Preserve the auicgp and drop the trailing nop.
-            skip = 4;
-            write32le(p, read32le(old.data() + r.offset));
+          case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI:
+            if (r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI) {
+              // In this case, we are mutating a CGP-relative access into a
+              // cap-table access.
+              skip = 4;
+              write32le(p, aux.writes[writesIdx++]);
+
+              for (auto *cmd : sec->getOutputSection()->commands) {
+                auto *isd = dyn_cast<InputSectionDescription>(cmd);
+                if (!isd)
+                  continue;
+                if (std::find(isd->sections.begin(), isd->sections.end(),
+                              sec) == isd->sections.end())
+                  continue;
+
+                // Create a GOT at the end of our OutputSection. The safety of
+                // this depends on the fact that the CHERIoT compartment linkage
+                // model does not permit any relative relocations across
+                // compartment boundaries. Otherwise adding this section could
+                // potentially invalidate earlier relocations.
+                auto *got = dyn_cast<GotSection>(isd->sections.back());
+                if (!got) {
+                  got = make<GotSection>(ctx);
+                  ctx.inputSections.push_back(got);
+                  isd->sections.push_back(got);
+                  sec->getOutputSection()->commitSection(got);
+                }
+
+                uint64_t gotOff = got->addEntry(*r.sym);
+                // FIXME: This is sketchy, but I don't know another solution.
+                got->finalizeContents();
+
+                // Construct the GOT entry for the symbol we need to access.
+                // FIXME: Deduplicate?
+                ctx.mainPart->capRelocs->addReloc(*got, gotOff, *r.sym, 0,
+                                                  R_ABS_CAP,
+                                                  *ctx.target->symbolicCapRel);
+                ctx.mainPart->capRelocs->finalizeContents();
+
+                // Construct an anonymous symbol pointing to the GOT
+                r.sym = addSyntheticLocal(ctx, "", STT_NOTYPE, 0, 0, *got);
+                r.sym->setFlags(USED);
+                r.addend = gotOff;
+                r.type = INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI;
+                r.expr = R_PC;
+
+                break;
+              }
+            }
             break;
+          case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_I: {
+            skip = 4;
+            write32le(p, aux.writes[writesIdx++]);
+
+            assert(r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI_NOP);
+            r.sym = nullptr;
+            // Because we are constructions a compartment_lo relocation where
+            // there wasn't one before, we need to insert an anonymous label for
+            // it to point to as the corresponding compartment_hi. Because we
+            // know that this NOP reloc was inserted following a compartment_hi
+            // one, we can just subtract for to get the right offset.
+            r.sym = addSyntheticLocal(ctx, "", STT_NOTYPE, r.offset - 4 - delta,
+                                      0, *sec);
+            assert(r.sym);
+            r.addend = 0;
+            r.expr = RE_RISCV_PC_INDIRECT;
+            break;
+          }
           default:
             llvm_unreachable("unsupported type");
           }

@@ -122,7 +122,7 @@ public:
   void writeTo(uint8_t *buf) override;
 
   void addConstant(Ctx &ctx, const Relocation &r) { addReloc(ctx, r); }
-  void addEntry(const Symbol &sym);
+  uint64_t addEntry(const Symbol &sym);
   void addAuthEntry(const Symbol &sym);
   bool addTlsDescEntry(const Symbol &sym);
   void addTlsDescAuthEntry();

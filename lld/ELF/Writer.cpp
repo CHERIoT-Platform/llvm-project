@@ -1612,7 +1612,12 @@ template <class ELFT> void Writer<ELFT>::finalizeAddressDependentContent() {
   llvm::TimeTraceScope timeScope("Finalize address dependent content");
   AArch64Err843419Patcher a64p(ctx);
   ARMErr657417Patcher a32p(ctx);
-  ctx.script->assignAddresses();
+
+  // On Cheriot, we need to delay assigning addresses to linker script
+  // symbols until after relaxation, because we might add new __cap_reloc
+  // entries during the process.
+  if (!ctx.arg.isCheriot || ctx.arg.compartment)
+    ctx.script->assignAddresses();
 
   // .ARM.exidx and SHF_LINK_ORDER do not require precise addresses, but they
   // do require the relative addresses of OutputSections because linker scripts
@@ -1735,6 +1740,10 @@ template <class ELFT> void Writer<ELFT>::finalizeAddressDependentContent() {
   if (ctx.arg.relocatable)
     for (OutputSection *sec : ctx.outputSections)
       sec->addr = 0;
+
+  // Now that relaxation is complete, assign script address on Cheriot.
+  if (ctx.arg.isCheriot && !ctx.arg.compartment)
+    ctx.script->assignAddresses();
 
   uint64_t imageBase = ctx.script->hasSectionsCommand || ctx.arg.relocatable
                            ? 0

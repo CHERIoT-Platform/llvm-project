@@ -107,6 +107,7 @@ public:
                     uint64_t Size = 0, Align ByteAlignment = Align(1),
                     TailPaddingAmount TailPadding = TailPaddingAmount::None,
                     SMLoc Loc = SMLoc()) override {}
+  void emitSubsectionsViaSymbols() override {}
   void beginCOFFSymbolDef(const MCSymbol *Symbol) override {}
   void emitCOFFSymbolStorageClass(int StorageClass) override {}
   void emitCOFFSymbolType(int Type) override {}

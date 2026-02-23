@@ -287,6 +287,7 @@ bool TypePrinter::canPrefixQualifiers(const Type *T,
     case Type::PackExpansion:
     case Type::SubstTemplateTypeParm:
     case Type::MacroQualified:
+    case Type::OverflowBehavior:
     case Type::CountAttributed:
       CanPrefixQualifiers = false;
       break;
@@ -2083,6 +2084,7 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   case attr::PreserveAll:
   case attr::PreserveMost:
   case attr::PreserveNone:
+  case attr::OverflowBehavior:
     llvm_unreachable("This attribute should have been handled already");
   case attr::CHERIMethodClass:
     OS << "cheri_method_class(" << "???" << ")"; break;
@@ -2181,6 +2183,12 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   case attr::CFISalt:
     OS << "cfi_salt(\"" << cast<CFISaltAttr>(T->getAttr())->getSalt() << "\")";
     break;
+  case attr::NoFieldProtection:
+    OS << "no_field_protection";
+    break;
+  case attr::PointerFieldProtection:
+    OS << "pointer_field_protection";
+    break;
   }
   OS << "))";
 }
@@ -2194,6 +2202,24 @@ void TypePrinter::printBTFTagAttributedBefore(const BTFTagAttributedType *T,
 void TypePrinter::printBTFTagAttributedAfter(const BTFTagAttributedType *T,
                                              raw_ostream &OS) {
   printAfter(T->getWrappedType(), OS);
+}
+
+void TypePrinter::printOverflowBehaviorBefore(const OverflowBehaviorType *T,
+                                              raw_ostream &OS) {
+  switch (T->getBehaviorKind()) {
+  case clang::OverflowBehaviorType::OverflowBehaviorKind::Wrap:
+    OS << "__ob_wrap ";
+    break;
+  case clang::OverflowBehaviorType::OverflowBehaviorKind::Trap:
+    OS << "__ob_trap ";
+    break;
+  }
+  printBefore(T->getUnderlyingType(), OS);
+}
+
+void TypePrinter::printOverflowBehaviorAfter(const OverflowBehaviorType *T,
+                                             raw_ostream &OS) {
+  printAfter(T->getUnderlyingType(), OS);
 }
 
 void TypePrinter::printHLSLAttributedResourceBefore(

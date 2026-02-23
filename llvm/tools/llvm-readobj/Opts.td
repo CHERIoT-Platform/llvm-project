@@ -23,6 +23,7 @@ def cap_relocs : FF<"cap-relocs", "Display the CHERI __cap_relocs section">;
 def cap_table : FF<"cap-table", "Display the CHERI .captable section">;
 def cap_table_mapping : FF<"cap-table-mapping", "Display the CHERI .captable_mapping section">;
 def pretty_pgo_analysis_map : FF<"pretty-pgo-analysis-map", "Display PGO analysis values with formatting rather than raw numbers">;
+def call_graph_info : FF<"call-graph-info", "Display call graph information">;
 def cg_profile : FF<"cg-profile", "Display call graph profile section">;
 def decompress : FF<"decompress", "Dump decompressed section content when used with -x or -p">;
 defm demangle : BB<"demangle", "Demangle symbol names", "Do not demangle symbol names (default)">;

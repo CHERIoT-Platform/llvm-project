@@ -411,6 +411,9 @@ ArgType::matchesType(ASTContext &C, QualType argTy) const {
     argTy = PT->getPointeeType();
   }
 
+  if (const auto *OBT = argTy->getAs<OverflowBehaviorType>())
+    argTy = OBT->getUnderlyingType();
+
   switch (K) {
     case InvalidTy:
       llvm_unreachable("ArgType must be valid");

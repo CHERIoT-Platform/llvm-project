@@ -744,6 +744,11 @@ enum class AssignConvertType {
   /// like address spaces.
   IncompatiblePointerDiscardsQualifiers,
 
+  /// IncompatiblePointerDiscardsOverflowBehavior - The assignment
+  /// discards overflow behavior annotations between otherwise compatible
+  /// pointer types.
+  IncompatiblePointerDiscardsOverflowBehavior,
+
   /// IncompatibleNestedPointerAddressSpaceMismatch - The assignment
   /// changes address spaces in nested pointer types which is not allowed.
   /// For instance, converting __private int ** to __generic int ** is
@@ -776,6 +781,13 @@ enum class AssignConvertType {
   /// IncompatibleObjCWeakRef - Assigning a weak-unavailable object to an
   /// object with __weak qualifier.
   IncompatibleObjCWeakRef,
+
+  /// IncompatibleOBTKinds - Assigning between incompatible OverflowBehaviorType
+  /// kinds, e.g., from __ob_trap to __ob_wrap or vice versa.
+  IncompatibleOBTKinds,
+
+  /// CompatibleOBTDiscards - Assignment discards overflow behavior
+  CompatibleOBTDiscards,
 
   /// Incompatible - We reject this conversion outright, it is invalid to
   /// represent it in the AST.
@@ -1359,6 +1371,10 @@ public:
   /// Is the last error level diagnostic immediate. This is used to determined
   /// whether the next info diagnostic should be immediate.
   bool IsLastErrorImmediate = true;
+
+  /// Track if we're currently analyzing overflow behavior types in assignment
+  /// context.
+  bool InOverflowBehaviorAssignmentContext = false;
 
   class DelayedDiagnostics;
 
@@ -2942,6 +2958,11 @@ public:
                                bool *ICContext = nullptr,
                                bool IsListInit = false);
 
+  /// Check for overflow behavior type related implicit conversion diagnostics.
+  /// Returns true if OBT-related diagnostic was issued, false otherwise.
+  bool CheckOverflowBehaviorTypeConversion(Expr *E, QualType T,
+                                           SourceLocation CC);
+
   bool
   BuiltinElementwiseTernaryMath(CallExpr *TheCall,
                                 EltwiseBuiltinArgTyRestriction ArgTyRestr =
@@ -3114,6 +3135,8 @@ private:
   void CheckMemaccessArguments(const CallExpr *Call, unsigned BId,
                                IdentifierInfo *FnName);
 
+  bool CheckSizeofMemaccessArgument(const Expr *SizeOfArg, const Expr *Dest,
+                                    IdentifierInfo *FnName);
   // Warn if the user has made the 'size' argument to strlcpy or strlcat
   // be the size of the source, instead of the destination.
   void CheckStrlcpycatArguments(const CallExpr *Call, IdentifierInfo *FnName);
@@ -10232,6 +10255,18 @@ public:
   /// floating-point or integral promotion.
   bool IsComplexPromotion(QualType FromType, QualType ToType);
 
+  /// IsOverflowBehaviorTypePromotion - Determines whether the conversion from
+  /// FromType to ToType involves an OverflowBehaviorType FromType being
+  /// promoted to an OverflowBehaviorType ToType which has a larger bitwidth.
+  /// If so, returns true and sets FromType to ToType.
+  bool IsOverflowBehaviorTypePromotion(QualType FromType, QualType ToType);
+
+  /// IsOverflowBehaviorTypeConversion - Determines whether the conversion from
+  /// FromType to ToType necessarily involves both an OverflowBehaviorType and
+  /// a non-OverflowBehaviorType. If so, returns true and sets FromType to
+  /// ToType.
+  bool IsOverflowBehaviorTypeConversion(QualType FromType, QualType ToType);
+
   /// IsPointerConversion - Determines whether the conversion of the
   /// expression From, which has the (possibly adjusted) type FromType,
   /// can be converted to the type ToType via a pointer conversion (C++
@@ -15644,6 +15679,7 @@ public:
   ActOnEffectExpression(Expr *CondExpr, StringRef AttributeName);
 
   void ActOnCleanupAttr(Decl *D, const Attr *A);
+  void ActOnInitPriorityAttr(Decl *D, const Attr *A);
 
 private:
   /// The implementation of RequireCompleteType

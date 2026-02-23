@@ -2666,6 +2666,19 @@ def CountedByOrNull : DeclOrTypeAttr {
   let LangOpts = [COnly];
 }
 
+def NoFieldProtection : DeclOrTypeAttr {
+  let Spellings = [Clang<"no_field_protection">];
+  let Subjects = SubjectList<[Field], ErrorDiag>;
+  let Documentation = [Undocumented];
+}
+
+def PointerFieldProtection : DeclOrTypeAttr {
+  let Spellings = [Clang<"pointer_field_protection">];
+  let Subjects = SubjectList<[CXXRecord], ErrorDiag>;
+  let Documentation = [Undocumented];
+  let SimpleHandler = 1;
+}
+
 def SizedBy : DeclOrTypeAttr {
   let Spellings = [Clang<"sized_by">];
   let Subjects = SubjectList<[Field], ErrorDiag>;
@@ -3415,6 +3428,7 @@ def InitPriority : InheritableAttr, TargetSpecificAttr<TargetSupportsInitPriorit
   let Args = [UnsignedArgument<"Priority">];
   let Subjects = SubjectList<[Var], ErrorDiag>;
   let Documentation = [InitPriorityDocs];
+  let IsTypeDependent = 1;
 }
 
 def Section : InheritableAttr {
@@ -5515,4 +5529,12 @@ def ModularFormat : InheritableAttr {
               VariadicStringArgument<"Aspects">];
   let Subjects = SubjectList<[Function]>;
   let Documentation = [ModularFormatDocs];
+}
+
+def OverflowBehavior : TypeAttr {
+  let Spellings = [Clang<"overflow_behavior">];
+  let Args = [IdentifierArgument<"BehaviorKind">];
+  let Subjects = SubjectList<[Var, TypedefName, Field], WarnDiag,
+                             "variables, typedefs, and data members">;
+  let Documentation = [Undocumented];
 }

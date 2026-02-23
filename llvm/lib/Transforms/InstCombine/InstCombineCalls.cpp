@@ -4342,6 +4342,19 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
         return II;
       }
 
+      // vector.reduce.add.vNiM(splat(%x)) -> mul(%x, N)
+      if (Value *Splat = getSplatValue(Arg)) {
+        ElementCount VecToReduceCount =
+            cast<VectorType>(Arg->getType())->getElementCount();
+        if (VecToReduceCount.isFixed()) {
+          unsigned VectorSize = VecToReduceCount.getFixedValue();
+          return BinaryOperator::CreateMul(
+              Splat,
+              ConstantInt::get(Splat->getType(), VectorSize, /*IsSigned=*/false,
+                               /*ImplicitTrunc=*/true));
+        }
+      }
+
       if (match(Arg, m_ZExtOrSExtOrSelf(m_Value(Vect)))) {
         if (auto *FTy = dyn_cast<FixedVectorType>(Vect->getType()))
           if (FTy->getElementType() == Builder.getInt1Ty()) {
@@ -4354,19 +4367,6 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
               Res = Builder.CreateNeg(Res);
             return replaceInstUsesWith(CI, Res);
           }
-      }
-
-      // vector.reduce.add.vNiM(splat(%x)) -> mul(%x, N)
-      if (Value *Splat = getSplatValue(Arg)) {
-        ElementCount VecToReduceCount =
-            cast<VectorType>(Arg->getType())->getElementCount();
-        if (VecToReduceCount.isFixed()) {
-          unsigned VectorSize = VecToReduceCount.getFixedValue();
-          return BinaryOperator::CreateMul(
-              Splat,
-              ConstantInt::get(Splat->getType(), VectorSize, /*IsSigned=*/false,
-                               /*ImplicitTrunc=*/true));
-        }
       }
     }
     [[fallthrough]];

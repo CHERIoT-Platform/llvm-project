@@ -5545,7 +5545,16 @@ Address CodeGenFunction::EmitArrayToPointerDecay(const Expr *E,
   if (!E->getType()->isVariableArrayType()) {
     assert(isa<llvm::ArrayType>(Addr.getElementType()) &&
            "Expected pointer to array");
-    Addr = Builder.CreateConstArrayGEP(Addr, 0, "arraydecay");
+
+    if (getLangOpts().EmitStructuredGEP) {
+      // Array-to-pointer decay for an SGEP is a no-op as we don't do any
+      // logical indexing. See #179951 for some additional context.
+      auto *SGEP =
+          Builder.CreateStructuredGEP(NewTy, Addr.emitRawPointer(*this), {});
+      Addr = Address(SGEP, NewTy, Addr.getAlignment(), Addr.isKnownNonNull());
+    } else {
+      Addr = Builder.CreateConstArrayGEP(Addr, 0, "arraydecay");
+    }
   }
 
   // The result of this decay conversion points to an array element within the
@@ -5620,10 +5629,31 @@ static llvm::Value *emitArraySubscriptGEP(
     CodeGenFunction &CGF, llvm::Type *elemType, llvm::Value *ptr,
     ArrayRef<llvm::Value *> indices, bool inbounds, bool signedIndices,
     const Expr *E, const llvm::Twine &name = "arrayidx") {
+  if (inbounds && CGF.getLangOpts().EmitStructuredGEP)
+    return CGF.Builder.CreateStructuredGEP(elemType, ptr, indices);
+
   return emitArraySubscriptGEP(CGF, Address(ptr, elemType, CharUnits::One()),
                                indices, elemType, inbounds, signedIndices, E,
                                CharUnits::One(), name)
       .getBasePointer();
+}
+
+static Address emitArraySubscriptGEP(
+    CodeGenFunction &CGF, Address addr,
+    ArrayRef<llvm::Value *> indices,
+    llvm::Type *arrayType, llvm::Type *elementType,
+    bool inbounds, bool signedIndices,
+    const Expr *E, CharUnits align,
+    const llvm::Twine &name = "arrayidx") {
+  if (inbounds && CGF.getLangOpts().EmitStructuredGEP)
+    return RawAddress(
+        CGF.Builder.CreateStructuredGEP(arrayType, addr.emitRawPointer(CGF),
+                                        indices.drop_front()),
+        elementType, align);
+
+  return emitArraySubscriptGEP(CGF, addr,
+                               indices, elementType, inbounds, signedIndices, E,
+                               align, name);
 }
 
 static QualType getFixedSizeElementType(const ASTContext &ctx,
@@ -5733,6 +5763,8 @@ static Address emitArraySubscriptGEP(CodeGenFunction &CGF, Address addr,
   if (!LastIndex ||
       (!CGF.IsInPreservedAIRegion && !IsPreserveAIArrayBase(CGF, Base))) {
     addr = emitArraySubscriptGEP(CGF, addr, indices,
+                                 arrayType ? CGF.ConvertTypeForMem(*arrayType)
+                                           : nullptr,
                                  CGF.ConvertTypeForMem(eltType), inbounds,
                                  signedIndices, E, eltAlign, name);
     return addr;
@@ -6602,6 +6634,14 @@ static Address emitAddrOfFieldStorage(CodeGenFunction &CGF, Address base,
 
   unsigned idx =
     CGF.CGM.getTypes().getCGRecordLayout(rec).getLLVMFieldNo(field);
+  llvm::Type *StructType =
+      CGF.CGM.getTypes().getCGRecordLayout(rec).getLLVMType();
+
+  if (CGF.getLangOpts().EmitStructuredGEP)
+    return RawAddress(
+        CGF.Builder.CreateStructuredGEP(StructType, base.emitRawPointer(CGF),
+                                        {CGF.Builder.getSize(idx)}),
+        base.getElementType(), base.getAlignment());
 
   if (!IsInBounds)
     return CGF.Builder.CreateConstGEP2_32(base, 0, idx, field->getName());

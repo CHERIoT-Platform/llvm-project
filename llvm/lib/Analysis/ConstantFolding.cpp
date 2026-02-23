@@ -332,7 +332,6 @@ bool llvm::IsConstantOffsetFromGlobal(Constant *C, GlobalValue *&GV,
   // Look through ptr->int and ptr->ptr casts.
   if (CE->getOpcode() == Instruction::PtrToInt ||
       CE->getOpcode() == Instruction::PtrToAddr ||
-      CE->getOpcode() == Instruction::BitCast ||
       (LookThroughAddrSpaces && CE->getOpcode() == Instruction::AddrSpaceCast))
     return IsConstantOffsetFromGlobal(CE->getOperand(0), GV, Offset, DL,
                                       LookThroughAddrSpaces, DSOEquiv);

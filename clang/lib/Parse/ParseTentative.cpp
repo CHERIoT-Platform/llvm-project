@@ -1193,6 +1193,7 @@ Parser::isCXXDeclarationSpecifier(ImplicitTypenameContext AllowImplicitTypename,
   case tok::kw_inline:
   case tok::kw_virtual:
   case tok::kw_explicit:
+  case tok::kw__Noreturn:
 
     // Modules
   case tok::kw___module_private__:
@@ -1255,6 +1256,7 @@ Parser::isCXXDeclarationSpecifier(ImplicitTypenameContext AllowImplicitTypename,
     // GNU
   case tok::kw_restrict:
   case tok::kw__Complex:
+  case tok::kw__Imaginary:
   case tok::kw___attribute:
   case tok::kw___auto_type:
     return TPResult::True;

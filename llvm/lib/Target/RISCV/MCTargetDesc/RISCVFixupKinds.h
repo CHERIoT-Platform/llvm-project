@@ -71,8 +71,6 @@ enum Fixups {
   fixup_riscv_cheriot1_compartment_lo_s,
   // Size of the symbol.
   fixup_riscv_cheriot1_compartment_size,
-  // $cgp- or $pcc-relative global, used with cincoffsetimm instructions
-  fixup_riscv_cheriot1_compartment_lo_cincoffset,
 
   // Used as a sentinel, must be the last
   fixup_riscv_invalid,

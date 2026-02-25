@@ -8,7 +8,7 @@ target triple = "riscv32-unknown-unknown"
 define dso_local nonnull void () addrspace(200)* @x() local_unnamed_addr addrspace(200) #0 {
 entry:
   ; CHECK: auipcc  a0, %cheriot_compartment_hi(foo)
-  ; CHECK: cincoffset      a0, a0, %cheriot_compartment_lo_cincoffset(.LBB0_1)
+  ; CHECK: cincoffset      a0, a0, %cheriot_compartment_lo_i(.LBB0_1)
   ; CHECK-NOT: csetbounds
   ; CHECK: cret
   ret void () addrspace(200)* @foo

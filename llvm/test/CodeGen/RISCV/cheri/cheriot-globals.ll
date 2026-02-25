@@ -16,7 +16,7 @@ entry:
   ; CHECK: auicgp
   ; CHECK-SAME: %cheriot_compartment_hi(x)
   ; CHECK: cincoffset
-  ; CHECK-SAME: %cheriot_compartment_lo_cincoffset
+  ; CHECK-SAME: %cheriot_compartment_lo_i
   ; CHECK: csetbounds a0, a0, %cheriot_compartment_size(x)
   ret i32 addrspace(200)* @x
 }

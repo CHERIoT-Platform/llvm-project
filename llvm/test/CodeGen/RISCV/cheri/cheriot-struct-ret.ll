@@ -117,7 +117,7 @@ entry:
   %call = tail call cheriot_compartmentcalleecc i32 @_Z8GetValuev()
 
   ;; CHECK:     auicgp	        s0, %cheriot_compartment_hi(dummies)
-  ;; CHECK:     cincoffset	s0, s0, %cheriot_compartment_lo_cincoffset(.LBB4_1)
+  ;; CHECK:     cincoffset	s0, s0, %cheriot_compartment_lo_i(.LBB4_1)
   ;; CHECK:     ct.csetbounds   s0, s0, %cheriot_compartment_size(dummies)
   ;; CHECK:     ct.cincoffset   a0, s0, a0
   %rem = urem i32 %call, 5
@@ -147,7 +147,7 @@ define dso_local cheriot_compartmentcalleecc %struct.TwoPointers @_Z7ChgPtrs11Tw
 entry:
 
   ;; CHECK: auicgp	a1, %cheriot_compartment_hi(force_use)
-  ;; CHECK: cincoffset	a1, a1, %cheriot_compartment_lo_cincoffset(.LBB5_1)
+  ;; CHECK: cincoffset	a1, a1, %cheriot_compartment_lo_i(.LBB5_1)
   ;; CHECK: ct.csc	a1, 8(sp)                     # 8-byte Folded Spill
   ;; CHECK: ct.csc	a0, 0(a1)
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
@@ -158,7 +158,7 @@ entry:
 
   ;; %call above was saved/reloaded in a0
   ;; CHECK: auicgp	  s0, %cheriot_compartment_hi(dummies)
-  ;; CHECK: cincoffset	  s0, s0, %cheriot_compartment_lo_cincoffset(.LBB5_2)
+  ;; CHECK: cincoffset	  s0, s0, %cheriot_compartment_lo_i(.LBB5_2)
   ;; CHECK: ct.csetbounds s0, s0, %cheriot_compartment_size(dummies)
   ;; CHECK: sub	          a0, a0, a1
   ;; CHECK: slli	  a0, a0, 2
@@ -215,7 +215,7 @@ entry:
   %rem = urem i32 %call, 5
 
   ;; CHECK:  	auicgp	a1, %cheriot_compartment_hi(dummies)
-  ;; CHECK:  	cincoffset	a1, a1, %cheriot_compartment_lo_cincoffset(.LBB7_1)
+  ;; CHECK:  	cincoffset	a1, a1, %cheriot_compartment_lo_i(.LBB7_1)
   ;; CHECK:  	ct.csetbounds	a1, a1, %cheriot_compartment_size(dummies)
   ;; CHECK:  	ct.cincoffset	s0, a1, a0
   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
@@ -252,7 +252,7 @@ entry:
   %rem = urem i32 %call, 5
 
   ;; CHECK:     auicgp	a1, %cheriot_compartment_hi(dummies)
-  ;; CHECK:     cincoffset	a1, a1, %cheriot_compartment_lo_cincoffset(.LBB8_2)
+  ;; CHECK:     cincoffset	a1, a1, %cheriot_compartment_lo_i(.LBB8_2)
   ;; CHECK:  	ct.csetbounds	a1, a1, %cheriot_compartment_size(dummies)
   ;; CHECK:  	ct.cincoffset	s1, a1, a0
   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
@@ -305,7 +305,7 @@ entry:
   %rem = urem i32 %call, 5
 
   ;; CHECK: 	auicgp	s0, %cheriot_compartment_hi(dummies)
-  ;; CHECK:     cincoffset	s0, s0, %cheriot_compartment_lo_cincoffset(.LBB10_1)
+  ;; CHECK:     cincoffset	s0, s0, %cheriot_compartment_lo_i(.LBB10_1)
   ;; CHECK: 	ct.csetbounds	s0, s0, %cheriot_compartment_size(dummies)
   ;; CHECK: 	ct.cincoffset	a0, s0, a0
   ;; CHECK: 	ct.csc	a0, 0(sp)                     # 8-byte Folded Spill
@@ -334,7 +334,7 @@ define dso_local cheriot_compartmentcalleecc %struct.ParentPtr @_Z12ChgParentPtr
 entry:
 
   ;; CHECK: 	auicgp	a1, %cheriot_compartment_hi(force_use)
-  ;; CHECK: 	cincoffset	a1, a1, %cheriot_compartment_lo_cincoffset(.LBB11_1)
+  ;; CHECK: 	cincoffset	a1, a1, %cheriot_compartment_lo_i(.LBB11_1)
   ;; CHECK: 	ct.csc	a1, 8(sp)                     # 8-byte Folded Spill
   ;; CHECK: 	ct.csc	a0, 0(a1)
   %x.coerce1.fca.0.extract = extractvalue %struct.InnerPtr %x.coerce1, 0
@@ -345,7 +345,7 @@ entry:
   %rem = urem i32 %call, 5
 
   ;; CHECK: 	auicgp	s0, %cheriot_compartment_hi(dummies)
-  ;; CHECK: 	cincoffset	s0, s0, %cheriot_compartment_lo_cincoffset(.LBB11_2)
+  ;; CHECK: 	cincoffset	s0, s0, %cheriot_compartment_lo_i(.LBB11_2)
   ;; CHECK: 	ct.csetbounds	s0, s0, %cheriot_compartment_size(dummies)
   ;; CHECK: 	ct.cincoffset	a0, s0, a0
   ;; CHECK: 	ct.csc	a0, 0(sp)                     # 8-byte Folded Spill
@@ -400,7 +400,7 @@ define dso_local cheriot_compartmentcalleecc %struct.TwoPointers @_Z8ChgPtrs2i11
 entry:
 
   ;; CHECK:  	auicgp	a0, %cheriot_compartment_hi(force_use)
-  ;; CHECK:  	cincoffset	a0, a0, %cheriot_compartment_lo_cincoffset(.LBB13_1)
+  ;; CHECK:  	cincoffset	a0, a0, %cheriot_compartment_lo_i(.LBB13_1)
   ;; CHECK:  	ct.csc	a0, 16(sp)                    # 8-byte Folded Spill
   ;; CHECK:  	ct.csc	a1, 0(a0)
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
@@ -411,7 +411,7 @@ entry:
   %rem = urem i32 %add, 5
 
   ;; CHECK:  	auicgp	s0, %cheriot_compartment_hi(dummies)
-  ;; CHECK:  	cincoffset	s0, s0, %cheriot_compartment_lo_cincoffset(.LBB13_2)
+  ;; CHECK:  	cincoffset	s0, s0, %cheriot_compartment_lo_i(.LBB13_2)
   ;; CHECK:  	ct.csetbounds	s0, s0, %cheriot_compartment_size(dummies)
   ;; CHECK:  	ct.cincoffset	a0, s0, a0
   ;; CHECK:  	ct.csc	a0, 8(sp)                     # 8-byte Folded Spill
@@ -449,7 +449,7 @@ define dso_local cheriot_compartmentcalleecc %struct.ParentPtr @_Z13ChgParentPtr
 entry:
 
   ;; CHECK:  	auicgp	a0, %cheriot_compartment_hi(force_use)
-  ;; CHECK:  	cincoffset	a0, a0, %cheriot_compartment_lo_cincoffset(.LBB14_1)
+  ;; CHECK:  	cincoffset	a0, a0, %cheriot_compartment_lo_i(.LBB14_1)
   ;; CHECK:  	ct.csc	a0, 16(sp)                    # 8-byte Folded Spill
   ;; CHECK:  	ct.csc	a1, 0(a0)
   %x.coerce1.fca.0.extract = extractvalue %struct.InnerPtr %x.coerce1, 0
@@ -461,7 +461,7 @@ entry:
   %rem = urem i32 %add, 5
 
   ;; CHECK:  	auicgp	s0, %cheriot_compartment_hi(dummies)
-  ;; CHECK:  	cincoffset	s0, s0, %cheriot_compartment_lo_cincoffset(.LBB14_2)
+  ;; CHECK:  	cincoffset	s0, s0, %cheriot_compartment_lo_i(.LBB14_2)
   ;; CHECK:  	ct.csetbounds	s0, s0, %cheriot_compartment_size(dummies)
   ;; CHECK:  	ct.cincoffset	a0, s0, a0
   ;; CHECK:  	ct.csc	a0, 8(sp)                     # 8-byte Folded Spill
@@ -514,7 +514,7 @@ entry:
 
 for.cond.for.cond.cleanup_crit_edge:              ; preds = %for.body
   ;; CHECK:  auicgp	a2, %cheriot_compartment_hi(dummies)
-  ;; CHECK:  cincoffset	a2, a2, %cheriot_compartment_lo_cincoffset(.LBB15_5)
+  ;; CHECK:  cincoffset	a2, a2, %cheriot_compartment_lo_i(.LBB15_5)
   ;; CHECK:  ct.csetbounds	a2, a2, %cheriot_compartment_size(dummies)
 
   ;; CHECK:  ct.cincoffset	a3, a2, s1
@@ -583,7 +583,7 @@ for.cond.for.cond.cleanup_crit_edge:              ; preds = %for.body
   %rem6.le = urem i32 %add5.le, 5
   %add.ptr7.le = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem6.le
   ;; CHECK:  	auicgp	a2, %cheriot_compartment_hi(dummies)
-  ;; CHECK:  	cincoffset	a2, a2, %cheriot_compartment_lo_cincoffset(.LBB16_6)
+  ;; CHECK:  	cincoffset	a2, a2, %cheriot_compartment_lo_i(.LBB16_6)
   ;; CHECK:  	ct.csetbounds	a2, a2, %cheriot_compartment_size(dummies)
   ;; CHECK:  	ct.cincoffset	a0, a2, s1
   ;; CHECK:  	ct.cincoffset	a1, a2, a1
@@ -630,7 +630,7 @@ define dso_local cheriot_compartmentcalleecc %struct.TwoPointers @_Z8ChgPtrs4iii
 ;; CHECK:     ct.csc	a0, 32(sp)                    # 8-byte Folded Spill
 entry:
   ;; CHECK:  auicgp	a0, %cheriot_compartment_hi(force_use)
-  ;; CHECK:  	cincoffset	a0, a0, %cheriot_compartment_lo_cincoffset(.LBB17_2)
+  ;; CHECK:  	cincoffset	a0, a0, %cheriot_compartment_lo_i(.LBB17_2)
   ;; CHECK:  	ct.csc	a0, 24(sp)                    # 8-byte Folded Spill
   ;; CHECK:  	ct.csc	a5, 0(a0)
   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !11
@@ -646,7 +646,7 @@ entry:
   %rem = urem i32 %add4, 5
 
   ;; CHECK: auicgp	a3, %cheriot_compartment_hi(dummies)
-  ;; CHECK: cincoffset	a3, a3, %cheriot_compartment_lo_cincoffset(.LBB17_3)
+  ;; CHECK: cincoffset	a3, a3, %cheriot_compartment_lo_i(.LBB17_3)
   ;; CHECK: ct.csc	a3, 8(sp)                     # 8-byte Folded Spill
   ;; CHECK: ct.cincoffset	a0, a3, a0
   ;; CHECK: ct.csc	a0, 16(sp)                    # 8-byte Folded Spill
@@ -688,7 +688,7 @@ define dso_local cheriot_compartmentcalleecc %struct.ParentPtr @_Z13ChgParentPtr
 entry:
 
   ;; CHECK:  	auicgp	a0, %cheriot_compartment_hi(force_use)
-  ;; CHECK:  	cincoffset	a0, a0, %cheriot_compartment_lo_cincoffset(.LBB18_2)
+  ;; CHECK:  	cincoffset	a0, a0, %cheriot_compartment_lo_i(.LBB18_2)
   ;; CHECK:  	ct.csc	a0, 24(sp)                    # 8-byte Folded Spill
   ;; CHECK:  	ct.csc	a5, 0(a0)
   %x.coerce1.fca.0.extract = extractvalue %struct.InnerPtr %x.coerce1, 0
@@ -704,7 +704,7 @@ entry:
   %rem = urem i32 %add5, 5
 
   ;; CHECK:  	auicgp	a3, %cheriot_compartment_hi(dummies)
-  ;; CHECK:  	cincoffset	a3, a3, %cheriot_compartment_lo_cincoffset(.LBB18_3)
+  ;; CHECK:  	cincoffset	a3, a3, %cheriot_compartment_lo_i(.LBB18_3)
   ;; CHECK:  	ct.csetbounds	a3, a3, %cheriot_compartment_size(dummies)
   ;; CHECK:  	ct.csc	a3, 8(sp)                     # 8-byte Folded Spill
   ;; CHECK:  	ct.cincoffset	a0, a3, a0

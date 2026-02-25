@@ -189,7 +189,7 @@ define i64 @load_u64() addrspace(200) {
 ; CHECK-NEXT:  .LBB12_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
 ; CHECK-NEXT:    ct.auicgp a1, %cheriot_compartment_hi(gv_u64)
-; CHECK-NEXT:    ct.cincoffset a1, a1, %cheriot_compartment_lo_cincoffset(.LBB12_1)
+; CHECK-NEXT:    ct.cincoffset a1, a1, %cheriot_compartment_lo_i(.LBB12_1)
 ; CHECK-NEXT:    ct.csetbounds a1, a1, %cheriot_compartment_size(gv_u64)
 ; CHECK-NEXT:    ct.clw a0, 0(a1)
 ; CHECK-NEXT:    ct.clw a1, 4(a1)
@@ -205,7 +205,7 @@ define void @store_u64() addrspace(200) {
 ; CHECK-NEXT:  .LBB13_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
 ; CHECK-NEXT:    ct.auicgp a0, %cheriot_compartment_hi(gv_u64)
-; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_cincoffset(.LBB13_1)
+; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB13_1)
 ; CHECK-NEXT:    ct.csetbounds a0, a0, %cheriot_compartment_size(gv_u64)
 ; CHECK-NEXT:    li a1, 3
 ; CHECK-NEXT:    ct.csw zero, 4(a0)
@@ -222,7 +222,7 @@ define i64 @load_s64() addrspace(200) {
 ; CHECK-NEXT:  .LBB14_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
 ; CHECK-NEXT:    ct.auicgp a1, %cheriot_compartment_hi(gv_s64)
-; CHECK-NEXT:    ct.cincoffset a1, a1, %cheriot_compartment_lo_cincoffset(.LBB14_1)
+; CHECK-NEXT:    ct.cincoffset a1, a1, %cheriot_compartment_lo_i(.LBB14_1)
 ; CHECK-NEXT:    ct.csetbounds a1, a1, %cheriot_compartment_size(gv_s64)
 ; CHECK-NEXT:    ct.clw a0, 0(a1)
 ; CHECK-NEXT:    ct.clw a1, 4(a1)
@@ -238,7 +238,7 @@ define void @store_s64() addrspace(200) {
 ; CHECK-NEXT:  .LBB15_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
 ; CHECK-NEXT:    ct.auicgp a0, %cheriot_compartment_hi(gv_s64)
-; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_cincoffset(.LBB15_1)
+; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB15_1)
 ; CHECK-NEXT:    ct.csetbounds a0, a0, %cheriot_compartment_size(gv_s64)
 ; CHECK-NEXT:    li a1, 3
 ; CHECK-NEXT:    ct.csw zero, 4(a0)
@@ -280,8 +280,8 @@ define i8 @load_cst_u8() addrspace(200) {
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:  .LBB18_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc a0, %cheriot_compartment_hi(cst_u8)
-; CHECK-NEXT:    ct.clb a0, %cheriot_compartment_lo_i(.LBB18_1)(a0)
+; CHECK-NEXT:    auipcc a0, %cheriot_compartment_hi(cst_u8)
+; CHECK-NEXT:    clb a0, %cheriot_compartment_lo_i(.LBB18_1)(a0)
 ; CHECK-NEXT:    ct.cret
 entry:
   %0 = load volatile i8, ptr addrspace(200) @cst_u8, align 1
@@ -293,8 +293,8 @@ define i8 @load_cst_s8() addrspace(200) {
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:  .LBB19_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc a0, %cheriot_compartment_hi(cst_s8)
-; CHECK-NEXT:    ct.clb a0, %cheriot_compartment_lo_i(.LBB19_1)(a0)
+; CHECK-NEXT:    auipcc a0, %cheriot_compartment_hi(cst_s8)
+; CHECK-NEXT:    clb a0, %cheriot_compartment_lo_i(.LBB19_1)(a0)
 ; CHECK-NEXT:    ct.cret
 entry:
   %0 = load volatile i8, ptr addrspace(200) @cst_s8, align 1
@@ -306,8 +306,8 @@ define i16 @load_cst_u16() addrspace(200) {
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:  .LBB20_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc a0, %cheriot_compartment_hi(cst_u16)
-; CHECK-NEXT:    ct.clh a0, %cheriot_compartment_lo_i(.LBB20_1)(a0)
+; CHECK-NEXT:    auipcc a0, %cheriot_compartment_hi(cst_u16)
+; CHECK-NEXT:    clh a0, %cheriot_compartment_lo_i(.LBB20_1)(a0)
 ; CHECK-NEXT:    ct.cret
 entry:
   %0 = load volatile i16, ptr addrspace(200) @cst_u16, align 2
@@ -319,8 +319,8 @@ define i16 @load_cst_s16() addrspace(200) {
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:  .LBB21_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc a0, %cheriot_compartment_hi(cst_s16)
-; CHECK-NEXT:    ct.clh a0, %cheriot_compartment_lo_i(.LBB21_1)(a0)
+; CHECK-NEXT:    auipcc a0, %cheriot_compartment_hi(cst_s16)
+; CHECK-NEXT:    clh a0, %cheriot_compartment_lo_i(.LBB21_1)(a0)
 ; CHECK-NEXT:    ct.cret
 entry:
   %0 = load volatile i16, ptr addrspace(200) @cst_s16, align 2
@@ -332,8 +332,8 @@ define i32 @load_cst_u32() addrspace(200) {
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:  .LBB22_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc a0, %cheriot_compartment_hi(cst_u32)
-; CHECK-NEXT:    ct.clw a0, %cheriot_compartment_lo_i(.LBB22_1)(a0)
+; CHECK-NEXT:    auipcc a0, %cheriot_compartment_hi(cst_u32)
+; CHECK-NEXT:    clw a0, %cheriot_compartment_lo_i(.LBB22_1)(a0)
 ; CHECK-NEXT:    ct.cret
 entry:
   %0 = load volatile i32, ptr addrspace(200) @cst_u32, align 4
@@ -345,8 +345,8 @@ define i32 @load_cst_s32() addrspace(200) {
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:  .LBB23_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc a0, %cheriot_compartment_hi(cst_s32)
-; CHECK-NEXT:    ct.clw a0, %cheriot_compartment_lo_i(.LBB23_1)(a0)
+; CHECK-NEXT:    auipcc a0, %cheriot_compartment_hi(cst_s32)
+; CHECK-NEXT:    clw a0, %cheriot_compartment_lo_i(.LBB23_1)(a0)
 ; CHECK-NEXT:    ct.cret
 entry:
   %0 = load volatile i32, ptr addrspace(200) @cst_s32, align 4
@@ -359,7 +359,7 @@ define i64 @load_cst_u64() addrspace(200) {
 ; CHECK-NEXT:  .LBB24_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
 ; CHECK-NEXT:    ct.auipcc a0, %cheriot_compartment_hi(cst_u64)
-; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_cincoffset(.LBB24_1)
+; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB24_1)
 ; CHECK-NEXT:    ct.clw a1, 4(a0)
 ; CHECK-NEXT:    ct.clw a0, 0(a0)
 ; CHECK-NEXT:    ct.cret
@@ -374,7 +374,7 @@ define i64 @load_cst_s64() addrspace(200) {
 ; CHECK-NEXT:  .LBB25_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
 ; CHECK-NEXT:    ct.auipcc a0, %cheriot_compartment_hi(cst_s64)
-; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_cincoffset(.LBB25_1)
+; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB25_1)
 ; CHECK-NEXT:    ct.clw a1, 4(a0)
 ; CHECK-NEXT:    ct.clw a0, 0(a0)
 ; CHECK-NEXT:    ct.cret

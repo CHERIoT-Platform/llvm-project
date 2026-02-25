@@ -592,16 +592,11 @@ bool RISCVExpandPseudo::expandAuicgpInstPair(
 
   BuildMI(NewMBB, DL, TII->get(RISCV::AUICGP), TmpReg)
       .addDisp(Symbol, 0, RISCVII::MO_CHERIOT1_COMPARTMENT_HI);
-
-  unsigned SecondFlags = RISCVII::MO_CHERIOT1_COMPARTMENT_LO_I;
-  if (IsStore)
-    SecondFlags = RISCVII::MO_CHERIOT1_COMPARTMENT_LO_S;
-  else if (SecondOpcode == RISCV::CIncOffsetImm)
-    SecondFlags = RISCVII::MO_CHERIOT1_COMPARTMENT_LO_CINCOFFSET;
   BuildMI(NewMBB, DL, TII->get(SecondOpcode))
       .addReg(DestReg, getRegState(MI.getOperand(IsStore ? 1 : 0)))
       .addReg(TmpReg, RegState::Kill)
-      .addMBB(NewMBB, SecondFlags);
+      .addMBB(NewMBB, IsStore ? RISCVII::MO_CHERIOT1_COMPARTMENT_LO_S
+                              : RISCVII::MO_CHERIOT1_COMPARTMENT_LO_I);
 
   if (!InBounds) {
     assert(!IsStore && "CLLC store pseudo ops must be inbounds!");
@@ -786,16 +781,10 @@ bool RISCVExpandPseudo::expandAuipccInstPair(
         .addDisp(Symbol, 0, FlagsHi);
   }
 
-  unsigned SecondFlags = RISCVII::MO_PCREL_LO;
-  if (IsCheriot) {
-    if (SecondOpcode == RISCV::CIncOffsetImm)
-      SecondFlags = RISCVII::MO_CHERIOT1_COMPARTMENT_LO_CINCOFFSET;
-    else
-      SecondFlags = RISCVII::MO_CHERIOT1_COMPARTMENT_LO_I;
-  }
   BuildMI(NewMBB, DL, TII->get(SecondOpcode), DestReg)
       .addReg(TmpReg)
-      .addMBB(NewMBB, SecondFlags);
+      .addMBB(NewMBB, IsCheriot ? RISCVII::MO_CHERIOT1_COMPARTMENT_LO_I
+                                : RISCVII::MO_PCREL_LO);
   if (!CheriotSealedValueAttr.has_value() &&
       !CheriotCapImportAttr.has_value() &&
       !CheriotSealingKeyTypeAttr.has_value() && !InBounds &&

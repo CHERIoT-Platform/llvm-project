@@ -440,6 +440,9 @@ Register ARMFastISel::ARMMoveToIntReg(MVT VT, Register SrcReg) {
 // (the high and the low) into integer registers then use a move to get
 // the combined constant into an FP reg.
 Register ARMFastISel::ARMMaterializeFP(const ConstantFP *CFP, MVT VT) {
+  if (VT != MVT::f32 && VT != MVT::f64)
+    return Register();
+
   const APFloat Val = CFP->getValueAPF();
   bool is64bit = VT == MVT::f64;
 
@@ -757,12 +760,13 @@ bool ARMFastISel::ARMComputeAddress(const Value *Obj, Address &Addr) {
     case Instruction::IntToPtr:
       // Look past no-op inttoptrs.
       if (TLI.getValueType(DL, U->getOperand(0)->getType()) ==
-          TLI.getPointerTy(DL))
+          TLI.getPointerTy(DL, DL.getAllocaAddrSpace()))
         return ARMComputeAddress(U->getOperand(0), Addr);
       break;
     case Instruction::PtrToInt:
       // Look past no-op ptrtoints.
-      if (TLI.getValueType(DL, U->getType()) == TLI.getPointerTy(DL))
+      if (TLI.getValueType(DL, U->getType()) ==
+          TLI.getPointerTy(DL, DL.getAllocaAddrSpace()))
         return ARMComputeAddress(U->getOperand(0), Addr);
       break;
     case Instruction::GetElementPtr: {

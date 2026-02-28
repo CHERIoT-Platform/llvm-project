@@ -492,8 +492,10 @@ SDValue X86TargetLowering::getPICJumpTableRelocBase(SDValue Table,
   if (!Subtarget.is64Bit())
     // This doesn't have SDLoc associated with it, but is not really the
     // same as a Register.
-    return DAG.getNode(X86ISD::GlobalBaseReg, SDLoc(),
-                       getPointerTy(DAG.getDataLayout()));
+    return DAG.getNode(
+        X86ISD::GlobalBaseReg, SDLoc(),
+        getPointerTy(DAG.getDataLayout(),
+                     DAG.getDataLayout().getDefaultGlobalsAddressSpace()));
   return Table;
 }
 
@@ -907,7 +909,7 @@ X86TargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
 
     // So here, we use RetOps[0] (i.e Chain_0) for getCopyFromReg.
     SDValue Val = DAG.getCopyFromReg(RetOps[0], dl, SRetReg,
-                                     getPointerTy(MF.getDataLayout()));
+                                     getPointerTy(MF.getDataLayout(), 0));
 
     Register RetValReg
         = (Subtarget.is64Bit() && !Subtarget.isTarget64BitILP32()) ?
@@ -917,7 +919,7 @@ X86TargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
 
     // RAX/EAX now acts like a return value.
     RetOps.push_back(
-        DAG.getRegister(RetValReg, getPointerTy(DAG.getDataLayout())));
+        DAG.getRegister(RetValReg, getPointerTy(DAG.getDataLayout(), 0)));
 
     // Add the returned register to the CalleeSaveDisableRegs list. Don't do
     // this however for preserve_most/preserve_all to minimize the number of
@@ -1309,7 +1311,7 @@ X86TargetLowering::LowerMemArgument(SDValue Chain, CallingConv::ID CallConv,
       CallConv, DAG.getTarget().Options.GuaranteedTailCallOpt);
   bool isImmutable = !AlwaysUseMutable && !Flags.isByVal();
   EVT ValVT;
-  MVT PtrVT = getPointerTy(DAG.getDataLayout());
+  MVT PtrVT = getPointerTy(DAG.getDataLayout(), DAG.getDataLayout().getAllocaAddrSpace());
 
   // If value is passed by pointer we have address passed instead of the value
   // itself. No need to extend if the mask value and location share the same
@@ -1578,14 +1580,17 @@ void VarArgsLoweringHelper::createVarArgAreaAndStoreRegisters(
 
     // Store the integer parameter registers.
     SmallVector<SDValue, 8> MemOps;
-    SDValue RSFIN =
-        DAG.getFrameIndex(FuncInfo->getRegSaveFrameIndex(),
-                          TargLowering.getPointerTy(DAG.getDataLayout()));
+    SDValue RSFIN = DAG.getFrameIndex(
+        FuncInfo->getRegSaveFrameIndex(),
+        TargLowering.getPointerTy(DAG.getDataLayout(),
+                                  DAG.getDataLayout().getAllocaAddrSpace()));
     unsigned Offset = FuncInfo->getVarArgsGPOffset();
     for (SDValue Val : LiveGPRs) {
-      SDValue FIN = DAG.getNode(ISD::ADD, DL,
-                                TargLowering.getPointerTy(DAG.getDataLayout()),
-                                RSFIN, DAG.getIntPtrConstant(Offset, DL));
+      SDValue FIN = DAG.getNode(
+          ISD::ADD, DL,
+          TargLowering.getPointerTy(DAG.getDataLayout(),
+                                    DAG.getDataLayout().getAllocaAddrSpace()),
+          RSFIN, DAG.getIntPtrConstant(Offset, DL));
       SDValue Store =
           DAG.getStore(Val.getValue(1), DL, Val, FIN,
                        MachinePointerInfo::getFixedStack(
@@ -1849,7 +1854,8 @@ SDValue X86TargetLowering::LowerFormalArguments(
     if (Ins[I].Flags.isSRet()) {
       assert(!FuncInfo->getSRetReturnReg() &&
              "SRet return has already been set");
-      MVT PtrTy = getPointerTy(DAG.getDataLayout());
+      MVT PtrTy = getPointerTy(DAG.getDataLayout(),
+                               DAG.getDataLayout().getAllocaAddrSpace());
       Register Reg =
           MF.getRegInfo().createVirtualRegister(getRegClassFor(PtrTy));
       FuncInfo->setSRetReturnReg(Reg);
@@ -1936,7 +1942,9 @@ SDValue X86TargetLowering::LowerMemOpCallTo(SDValue Chain, SDValue StackPtr,
                                             bool isByVal) const {
   unsigned LocMemOffset = VA.getLocMemOffset();
   SDValue PtrOff = DAG.getIntPtrConstant(LocMemOffset, dl);
-  PtrOff = DAG.getNode(ISD::ADD, dl, getPointerTy(DAG.getDataLayout()),
+  PtrOff = DAG.getNode(ISD::ADD, dl,
+                       getPointerTy(DAG.getDataLayout(),
+                                    DAG.getDataLayout().getAllocaAddrSpace()),
                        StackPtr, PtrOff);
   if (isByVal)
     return CreateCopyOfByValArgument(Arg, PtrOff, Chain, Flags, DAG, dl);
@@ -1957,7 +1965,8 @@ SDValue X86TargetLowering::EmitTailCallLoadRetAddr(
     SelectionDAG &DAG, SDValue &OutRetAddr, SDValue Chain, bool IsTailCall,
     bool Is64Bit, int FPDiff, const SDLoc &dl) const {
   // Adjust the Return address stack slot.
-  EVT VT = getPointerTy(DAG.getDataLayout());
+  EVT VT = getPointerTy(DAG.getDataLayout(),
+                        DAG.getDataLayout().getAllocaAddrSpace());
   OutRetAddr = getReturnAddressFrameIndex(DAG);
 
   // Load the "old" Return address.
@@ -2080,8 +2089,7 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     report_fatal_error("X86 interrupts may not be called directly");
 
   // Set type id for call site info.
-  if (MF.getTarget().Options.EmitCallGraphSection && CB && CB->isIndirectCall())
-    CSInfo = MachineFunction::CallSiteInfo(*CB);
+  setTypeIdForCallsiteInfo(CB, MF, CSInfo);
 
   if (IsIndirectCall && !IsWin64 &&
       M->getModuleFlag("import-call-optimization"))
@@ -2186,7 +2194,8 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
       if (!Flags.isByVal())
         continue;
 
-      auto PtrVT = getPointerTy(DAG.getDataLayout());
+      auto PtrVT = getPointerTy(DAG.getDataLayout(),
+                                DAG.getDataLayout().getAllocaAddrSpace());
 
       if (!StackPtr.getNode())
         StackPtr =
@@ -2221,8 +2230,10 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
         int TempFrameIdx = MFI.CreateStackObject(Flags.getByValSize(),
                                                  Flags.getNonZeroByValAlign(),
                                                  /*isSS=*/false);
-        SDValue Temp =
-            DAG.getFrameIndex(TempFrameIdx, getPointerTy(DAG.getDataLayout()));
+        SDValue Temp = DAG.getFrameIndex(
+            TempFrameIdx,
+            getPointerTy(DAG.getDataLayout(),
+                         DAG.getDataLayout().getAllocaAddrSpace()));
 
         SDValue CopyChain =
             CreateCopyOfByValArgument(Src, Temp, Chain, Flags, DAG, dl);
@@ -2328,8 +2339,9 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
         int FrameIdx = MF.getFrameInfo().CreateStackObject(
             Flags.getByValSize(),
             std::max(Align(16), Flags.getNonZeroByValAlign()), false);
-        SDValue StackSlot =
-            DAG.getFrameIndex(FrameIdx, getPointerTy(DAG.getDataLayout()));
+        SDValue StackSlot = DAG.getFrameIndex(
+            FrameIdx, getPointerTy(DAG.getDataLayout(),
+                                   DAG.getDataLayout().getAllocaAddrSpace()));
         Chain =
             CreateCopyOfByValArgument(Arg, StackSlot, Chain, Flags, DAG, dl);
         // From now on treat this as a regular pointer
@@ -2374,8 +2386,10 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     } else if (!IsSibcall && (!isTailCall || (isByVal && !IsMustTail))) {
       assert(VA.isMemLoc());
       if (!StackPtr.getNode())
-        StackPtr = DAG.getCopyFromReg(Chain, dl, RegInfo->getStackRegister(),
-                                      getPointerTy(DAG.getDataLayout()));
+        StackPtr = DAG.getCopyFromReg(
+            Chain, dl, RegInfo->getStackRegister(),
+            getPointerTy(DAG.getDataLayout(),
+                         DAG.getDataLayout().getAllocaAddrSpace()));
       MemOpChains.push_back(LowerMemOpCallTo(Chain, StackPtr, Arg,
                                              dl, DAG, VA, Flags, isByVal));
     }
@@ -2393,8 +2407,12 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
       // GOT address, just let register allocator handle it.
       if (CallConv != CallingConv::X86_RegCall)
         RegsToPass.push_back(std::make_pair(
-          Register(X86::EBX), DAG.getNode(X86ISD::GlobalBaseReg, SDLoc(),
-                                          getPointerTy(DAG.getDataLayout()))));
+            Register(X86::EBX),
+            DAG.getNode(
+                X86ISD::GlobalBaseReg, SDLoc(),
+                getPointerTy(
+                    DAG.getDataLayout(),
+                    DAG.getDataLayout().getDefaultGlobalsAddressSpace()))));
     } else {
       // If we are tail calling and generating PIC/GOT style code load the
       // address of the callee into ECX. The value in ecx is used as target of
@@ -2491,11 +2509,14 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
       int32_t Offset = VA.getLocMemOffset()+FPDiff;
       uint32_t OpSize = (VA.getLocVT().getSizeInBits()+7)/8;
       FI = MF.getFrameInfo().CreateFixedObject(OpSize, Offset, true);
-      FIN = DAG.getFrameIndex(FI, getPointerTy(DAG.getDataLayout()));
+      FIN = DAG.getFrameIndex(
+          FI, getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getAllocaAddrSpace()));
 
       if (Flags.isByVal()) {
         if (SDValue ByValSrc = ByValTemporaries[OutsIndex]) {
-          auto PtrVT = getPointerTy(DAG.getDataLayout());
+          auto PtrVT = getPointerTy(DAG.getDataLayout(),
+                                    DAG.getDataLayout().getAllocaAddrSpace());
           SDValue DstAddr = DAG.getFrameIndex(FI, PtrVT);
 
           MemOpChains2.push_back(CreateCopyOfByValArgument(
@@ -2513,9 +2534,11 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
       Chain = DAG.getNode(ISD::TokenFactor, dl, MVT::Other, MemOpChains2);
 
     // Store the return address to the appropriate stack slot.
-    Chain = EmitTailCallStoreRetAddr(DAG, MF, Chain, RetAddrFrIdx,
-                                     getPointerTy(DAG.getDataLayout()),
-                                     RegInfo->getSlotSize(), FPDiff, dl);
+    Chain = EmitTailCallStoreRetAddr(
+        DAG, MF, Chain, RetAddrFrIdx,
+        getPointerTy(DAG.getDataLayout(),
+                     DAG.getDataLayout().getAllocaAddrSpace()),
+        RegInfo->getSlotSize(), FPDiff, dl);
   }
 
   // Build a sequence of copy-to-reg nodes chained together with token chain
@@ -2695,7 +2718,8 @@ X86TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     // Add a target global address for the retainRV/claimRV runtime function
     // just before the call target.
     Function *ARCFn = *objcarc::getAttachedARCFunction(CLI.CB);
-    auto PtrVT = getPointerTy(DAG.getDataLayout());
+    auto PtrVT = getPointerTy(DAG.getDataLayout(),
+                              DAG.getDataLayout().getAllocaAddrSpace());
     auto GA = DAG.getTargetGlobalAddress(ARCFn, dl, PtrVT);
     Ops.insert(Ops.begin() + 1, GA);
     Chain = DAG.getNode(X86ISD::CALL_RVMARKER, dl, NodeTys, Ops);

@@ -78,8 +78,12 @@ INITIALIZE_PASS(SparcDAGToDAGISelLegacy, DEBUG_TYPE, PASS_NAME, false, false)
 
 SDNode* SparcDAGToDAGISel::getGlobalBaseReg() {
   Register GlobalBaseReg = Subtarget->getInstrInfo()->getGlobalBaseReg(MF);
-  return CurDAG->getRegister(GlobalBaseReg,
-                             TLI->getPointerTy(CurDAG->getDataLayout()))
+  return CurDAG
+      ->getRegister(
+          GlobalBaseReg,
+          TLI->getPointerTy(
+              CurDAG->getDataLayout(),
+              CurDAG->getDataLayout().getDefaultGlobalsAddressSpace()))
       .getNode();
 }
 
@@ -87,7 +91,7 @@ bool SparcDAGToDAGISel::SelectADDRri(SDValue Addr,
                                      SDValue &Base, SDValue &Offset) {
   if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
     Base = CurDAG->getTargetFrameIndex(
-        FIN->getIndex(), TLI->getPointerTy(CurDAG->getDataLayout()));
+        FIN->getIndex(), TLI->getPointerTy(CurDAG->getDataLayout(), 0));
     Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), MVT::i32);
     return true;
   }
@@ -103,7 +107,9 @@ bool SparcDAGToDAGISel::SelectADDRri(SDValue Addr,
                 dyn_cast<FrameIndexSDNode>(Addr.getOperand(0))) {
           // Constant offset from frame ref.
           Base = CurDAG->getTargetFrameIndex(
-              FIN->getIndex(), TLI->getPointerTy(CurDAG->getDataLayout()));
+              FIN->getIndex(),
+              TLI->getPointerTy(CurDAG->getDataLayout(),
+                                CurDAG->getDataLayout().getAllocaAddrSpace()));
         } else {
           Base = Addr.getOperand(0);
         }
@@ -148,7 +154,7 @@ bool SparcDAGToDAGISel::SelectADDRrr(SDValue Addr, SDValue &R1, SDValue &R2) {
   }
 
   R1 = Addr;
-  R2 = CurDAG->getRegister(SP::G0, TLI->getPointerTy(CurDAG->getDataLayout()));
+  R2 = CurDAG->getRegister(SP::G0, TLI->getPointerTy(CurDAG->getDataLayout(), 0));
   return true;
 }
 

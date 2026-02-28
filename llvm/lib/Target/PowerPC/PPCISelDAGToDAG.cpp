@@ -196,7 +196,10 @@ namespace {
     /// getSmallIPtrImm - Return a target constant of pointer type.
     inline SDValue getSmallIPtrImm(int64_t Imm, const SDLoc &dl) {
       return CurDAG->getSignedTargetConstant(
-          Imm, dl, PPCLowering->getPointerTy(CurDAG->getDataLayout()));
+          Imm, dl,
+          PPCLowering->getPointerTy(
+              CurDAG->getDataLayout(),
+              CurDAG->getDataLayout().getDefaultGlobalsAddressSpace()));
     }
 
     /// isRotateAndMask - Returns true if Mask and Shift can be folded into a
@@ -472,7 +475,10 @@ SDNode *PPCDAGToDAGISel::getGlobalBaseReg() {
     const Module *M = MF->getFunction().getParent();
     DebugLoc dl;
 
-    if (PPCLowering->getPointerTy(CurDAG->getDataLayout()) == MVT::i32) {
+    if (PPCLowering->getPointerTy(
+            CurDAG->getDataLayout(),
+            CurDAG->getDataLayout().getDefaultGlobalsAddressSpace()) ==
+        MVT::i32) {
       if (Subtarget->isTargetELF()) {
         GlobalBaseReg = PPC::R30;
         if (!Subtarget->isSecurePlt() &&
@@ -512,7 +518,7 @@ SDNode *PPCDAGToDAGISel::getGlobalBaseReg() {
     }
   }
   return CurDAG->getRegister(GlobalBaseReg,
-                             PPCLowering->getPointerTy(CurDAG->getDataLayout()))
+                             PPCLowering->getPointerTy(CurDAG->getDataLayout(), 0))
       .getNode();
 }
 
@@ -2925,7 +2931,7 @@ public:
   IntegerCompareEliminator(SelectionDAG *DAG,
                            PPCDAGToDAGISel *Sel) : CurDAG(DAG), S(Sel) {
     assert(CurDAG->getTargetLoweringInfo()
-           .getPointerTy(CurDAG->getDataLayout()).getSizeInBits() == 64 &&
+           .getPointerTy(CurDAG->getDataLayout(), 0).getSizeInBits() == 64 &&
            "Only expecting to use this on 64 bit targets.");
   }
   SDNode *Select(SDNode *N) {
@@ -4475,7 +4481,7 @@ bool PPCDAGToDAGISel::trySETCC(SDNode *N) {
   ISD::CondCode CC =
       cast<CondCodeSDNode>(N->getOperand(IsStrict ? 3 : 2))->get();
   EVT PtrVT =
-      CurDAG->getTargetLoweringInfo().getPointerTy(CurDAG->getDataLayout());
+      CurDAG->getTargetLoweringInfo().getPointerTy(CurDAG->getDataLayout(), 0);
   bool isPPC64 = (PtrVT == MVT::i64);
   SDValue Chain = IsStrict ? N->getOperand(0) : SDValue();
 
@@ -5494,7 +5500,9 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
   case PPCISD::ADDI_TLSLD_L_ADDR:
   case PPCISD::ADDI_TLSGD_L_ADDR: {
     const Module *Mod = MF->getFunction().getParent();
-    if (PPCLowering->getPointerTy(CurDAG->getDataLayout()) != MVT::i32 ||
+    if (PPCLowering->getPointerTy(
+            CurDAG->getDataLayout(),
+            CurDAG->getDataLayout().getDefaultGlobalsAddressSpace()) != MVT::i32 ||
         !Subtarget->isSecurePlt() || !Subtarget->isTargetELF() ||
         Mod->getPICLevel() == PICLevel::SmallPIC)
       break;
@@ -5624,9 +5632,11 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
       SDValue Chain = LD->getChain();
       SDValue Base = LD->getBasePtr();
       SDValue Ops[] = { Offset, Base, Chain };
-      SDNode *MN = CurDAG->getMachineNode(
+      SDNode* MN = CurDAG->getMachineNode(
           Opcode, dl, LD->getValueType(0),
-          PPCLowering->getPointerTy(CurDAG->getDataLayout()), MVT::Other, Ops);
+          PPCLowering->getPointerTy(CurDAG->getDataLayout(),
+                                    CurDAG->getDataLayout().getAllocaAddrSpace()),
+          MVT::Other, Ops);
       transferMemOperands(N, MN);
       ReplaceNode(N, MN);
       return;
@@ -5662,9 +5672,11 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
       SDValue Chain = LD->getChain();
       SDValue Base = LD->getBasePtr();
       SDValue Ops[] = { Base, Offset, Chain };
-      SDNode *MN = CurDAG->getMachineNode(
+      SDNode* MN = CurDAG->getMachineNode(
           Opcode, dl, LD->getValueType(0),
-          PPCLowering->getPointerTy(CurDAG->getDataLayout()), MVT::Other, Ops);
+          PPCLowering->getPointerTy(CurDAG->getDataLayout(),
+                                    CurDAG->getDataLayout().getAllocaAddrSpace()),
+          MVT::Other, Ops);
       transferMemOperands(N, MN);
       ReplaceNode(N, MN);
       return;
@@ -5853,7 +5865,7 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
   case ISD::SELECT_CC: {
     ISD::CondCode CC = cast<CondCodeSDNode>(N->getOperand(4))->get();
     EVT PtrVT =
-        CurDAG->getTargetLoweringInfo().getPointerTy(CurDAG->getDataLayout());
+        CurDAG->getTargetLoweringInfo().getPointerTy(CurDAG->getDataLayout(), 0);
     bool isPPC64 = (PtrVT == MVT::i64);
 
     // If this is a select of i1 operands, we'll pattern match it.
@@ -6238,9 +6250,12 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
     // Generate a PIC-safe GOT reference.
     assert(Subtarget->is32BitELFABI() &&
            "PPCISD::PPC32_PICGOT is only supported for 32-bit SVR4");
-    CurDAG->SelectNodeTo(N, PPC::PPC32PICGOT,
-                         PPCLowering->getPointerTy(CurDAG->getDataLayout()),
-                         MVT::i32);
+    CurDAG->SelectNodeTo(
+        N, PPC::PPC32PICGOT,
+        PPCLowering->getPointerTy(
+            CurDAG->getDataLayout(),
+            CurDAG->getDataLayout().getDefaultGlobalsAddressSpace()),
+        MVT::i32);
     return;
 
   case PPCISD::VADD_SPLAT: {

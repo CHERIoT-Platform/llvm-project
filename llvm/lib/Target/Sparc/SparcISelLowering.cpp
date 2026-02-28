@@ -322,7 +322,8 @@ SparcTargetLowering::LowerReturn_32(SDValue Chain, CallingConv::ID CallConv,
     Register Reg = SFI->getSRetReturnReg();
     if (!Reg)
       llvm_unreachable("sret virtual register not created in the entry block");
-    auto PtrVT = getPointerTy(DAG.getDataLayout());
+    auto PtrVT = getPointerTy(DAG.getDataLayout(),
+                              DAG.getDataLayout().getAllocaAddrSpace());
     SDValue Val = DAG.getCopyFromReg(Chain, DL, Reg, PtrVT);
     Chain = DAG.getCopyToReg(Chain, DL, SP::I0, Val, Glue);
     Glue = Chain.getValue(1);
@@ -440,7 +441,7 @@ SDValue SparcTargetLowering::LowerFormalArguments_32(
   MachineFunction &MF = DAG.getMachineFunction();
   MachineRegisterInfo &RegInfo = MF.getRegInfo();
   SparcMachineFunctionInfo *FuncInfo = MF.getInfo<SparcMachineFunctionInfo>();
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(), DAG.getDataLayout().getAllocaAddrSpace());
 
   // Assign locations to all of the incoming arguments.
   SmallVector<CCValAssign, 16> ArgLocs;
@@ -705,10 +706,12 @@ SDValue SparcTargetLowering::LowerFormalArguments_64(
     if (VA.isExtInLoc())
       Offset += 8 - ValSize;
     int FI = MF.getFrameInfo().CreateFixedObject(ValSize, Offset, true);
-    InVals.push_back(
-        DAG.getLoad(VA.getValVT(), DL, Chain,
-                    DAG.getFrameIndex(FI, getPointerTy(MF.getDataLayout())),
-                    MachinePointerInfo::getFixedStack(MF, FI)));
+    InVals.push_back(DAG.getLoad(
+        VA.getValVT(), DL, Chain,
+        DAG.getFrameIndex(
+            FI, getPointerTy(MF.getDataLayout(),
+                             DAG.getDataLayout().getAllocaAddrSpace())),
+        MachinePointerInfo::getFixedStack(MF, FI)));
   }
 
   if (!IsVarArg)
@@ -735,7 +738,8 @@ SDValue SparcTargetLowering::LowerFormalArguments_64(
     Register VReg = MF.addLiveIn(SP::I0 + ArgOffset/8, &SP::I64RegsRegClass);
     SDValue VArg = DAG.getCopyFromReg(Chain, DL, VReg, MVT::i64);
     int FI = MF.getFrameInfo().CreateFixedObject(8, ArgOffset + ArgArea, true);
-    auto PtrVT = getPointerTy(MF.getDataLayout());
+    auto PtrVT = getPointerTy(MF.getDataLayout(),
+                              DAG.getDataLayout().getAllocaAddrSpace());
     OutChains.push_back(
         DAG.getStore(Chain, DL, VArg, DAG.getFrameIndex(FI, PtrVT),
                      MachinePointerInfo::getFixedStack(MF, FI)));
@@ -849,7 +853,8 @@ SparcTargetLowering::LowerCall_32(TargetLowering::CallLoweringInfo &CLI,
   bool isVarArg                         = CLI.IsVarArg;
   MachineFunction &MF = DAG.getMachineFunction();
   LLVMContext &Ctx = *DAG.getContext();
-  EVT PtrVT = getPointerTy(MF.getDataLayout());
+  EVT PtrVT = getPointerTy(MF.getDataLayout(),
+                           DAG.getDataLayout().getAllocaAddrSpace());
 
   // Analyze operands of the call, assigning locations to each operand.
   SmallVector<CCValAssign, 16> ArgLocs;
@@ -881,7 +886,9 @@ SparcTargetLowering::LowerCall_32(TargetLowering::CallLoweringInfo &CLI,
 
     if (Size > 0U) {
       int FI = MFI.CreateStackObject(Size, Alignment, false);
-      SDValue FIPtr = DAG.getFrameIndex(FI, getPointerTy(DAG.getDataLayout()));
+      SDValue FIPtr = DAG.getFrameIndex(
+          FI, getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getAllocaAddrSpace()));
       SDValue SizeNode = DAG.getConstant(Size, dl, MVT::i32);
 
       Chain = DAG.getMemcpy(Chain, dl, FIPtr, Arg, SizeNode, Alignment,
@@ -1281,7 +1288,8 @@ SparcTargetLowering::LowerCall_64(TargetLowering::CallLoweringInfo &CLI,
   SelectionDAG &DAG = CLI.DAG;
   SDLoc DL = CLI.DL;
   SDValue Chain = CLI.Chain;
-  auto PtrVT = getPointerTy(DAG.getDataLayout());
+  auto PtrVT = getPointerTy(DAG.getDataLayout(),
+                            DAG.getDataLayout().getAllocaAddrSpace());
   MachineFunction &MF = DAG.getMachineFunction();
 
   // Analyze operands of the call, assigning locations to each operand.
@@ -2139,7 +2147,8 @@ SDValue SparcTargetLowering::makeHiLoPair(SDValue Op,
 // or ExternalSymbol SDNode.
 SDValue SparcTargetLowering::makeAddress(SDValue Op, SelectionDAG &DAG) const {
   SDLoc DL(Op);
-  EVT VT = getPointerTy(DAG.getDataLayout());
+  EVT VT = getPointerTy(DAG.getDataLayout(),
+                        DAG.getDataLayout().getDefaultGlobalsAddressSpace());
 
   // Handle PIC mode first. SPARC needs a got load for every variable!
   if (isPositionIndependent()) {
@@ -2215,7 +2224,8 @@ SDValue SparcTargetLowering::LowerGlobalTLSAddress(SDValue Op,
 
   SDLoc DL(GA);
   const GlobalValue *GV = GA->getGlobal();
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getDefaultGlobalsAddressSpace());
 
   TLSModel::Model model = getTargetMachine().getTLSModel(GV);
 
@@ -2321,7 +2331,7 @@ SDValue SparcTargetLowering::LowerF128_LibCallArg(SDValue Chain,
   if (ArgTy->isFP128Ty()) {
     // Create a stack object and pass the pointer to the library function.
     int FI = MFI.CreateStackObject(16, Align(8), false);
-    SDValue FIPtr = DAG.getFrameIndex(FI, getPointerTy(DAG.getDataLayout()));
+    SDValue FIPtr = DAG.getFrameIndex(FI, getPointerTy(DAG.getDataLayout(), DAG.getDataLayout().getAllocaAddrSpace()));
     Chain = DAG.getStore(Chain, DL, Arg, FIPtr, MachinePointerInfo(), Align(8));
     Args.emplace_back(FIPtr, PointerType::getUnqual(ArgTy->getContext()));
   } else {
@@ -2340,7 +2350,8 @@ SDValue SparcTargetLowering::LowerF128Op(SDValue Op, SelectionDAG &DAG,
   ArgListTy Args;
 
   MachineFrameInfo &MFI = DAG.getMachineFunction().getFrameInfo();
-  auto PtrVT = getPointerTy(DAG.getDataLayout());
+  auto PtrVT = getPointerTy(DAG.getDataLayout(),
+                            DAG.getDataLayout().getAllocaAddrSpace());
 
   SDValue Callee = DAG.getExternalFunctionSymbol(LibFuncImpl);
   Type *RetTy = Op.getValueType().getTypeForEVT(*DAG.getContext());
@@ -2712,7 +2723,8 @@ static SDValue LowerVASTART(SDValue Op, SelectionDAG &DAG,
                             const SparcTargetLowering &TLI) {
   MachineFunction &MF = DAG.getMachineFunction();
   SparcMachineFunctionInfo *FuncInfo = MF.getInfo<SparcMachineFunctionInfo>();
-  auto PtrVT = TLI.getPointerTy(DAG.getDataLayout());
+  auto PtrVT = TLI.getPointerTy(DAG.getDataLayout(),
+                                DAG.getDataLayout().getAllocaAddrSpace());
 
   // Need frame address to find the address of VarArgsFrameIndex.
   MF.getFrameInfo().setFrameAddressIsTaken(true);
@@ -2908,7 +2920,8 @@ static SDValue LowerRETURNADDR(SDValue Op, SelectionDAG &DAG,
 
   SDValue RetAddr;
   if (depth == 0) {
-    auto PtrVT = TLI.getPointerTy(DAG.getDataLayout());
+    auto PtrVT = TLI.getPointerTy(DAG.getDataLayout(),
+                                  DAG.getDataLayout().getAllocaAddrSpace());
     Register RetReg = MF.addLiveIn(SP::I7, TLI.getRegClassFor(PtrVT));
     RetAddr = DAG.getCopyFromReg(DAG.getEntryNode(), dl, RetReg, VT);
     return RetAddr;
@@ -3131,7 +3144,8 @@ SDValue SparcTargetLowering::LowerINTRINSIC_WO_CHAIN(SDValue Op,
   switch (IntNo) {
   default: return SDValue();    // Don't custom lower most intrinsics.
   case Intrinsic::thread_pointer: {
-    EVT PtrVT = getPointerTy(DAG.getDataLayout());
+    EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                             DAG.getDataLayout().getAllocaAddrSpace());
     return DAG.getRegister(SP::G7, PtrVT);
   }
   }

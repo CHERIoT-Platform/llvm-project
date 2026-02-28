@@ -17348,6 +17348,8 @@ TEST_F(FormatTest, ConfigurableSpaceBeforeParens) {
   verifyFormat("void f(int a, T b) {}", SpaceFuncDecl);
   verifyFormat("void __attribute__((asdf)) f(int a, T b) {}", SpaceFuncDecl);
   verifyFormat("A::A() : a(1) {}", SpaceFuncDecl);
+  verifyFormat("template <> void A<C> (C x);", SpaceFuncDecl);
+  verifyFormat("template <> void A<C>(C x) {}", SpaceFuncDecl);
   verifyFormat("void f () __attribute__((asdf));", SpaceFuncDecl);
   verifyFormat("void __attribute__((asdf)) f ();", SpaceFuncDecl);
   verifyFormat("#define A(x) x", SpaceFuncDecl);
@@ -17384,6 +17386,8 @@ TEST_F(FormatTest, ConfigurableSpaceBeforeParens) {
   verifyFormat("void f (int a, T b) {}", SpaceFuncDef);
   verifyFormat("void __attribute__((asdf)) f (int a, T b) {}", SpaceFuncDef);
   verifyFormat("A::A () : a(1) {}", SpaceFuncDef);
+  verifyFormat("template <> void A<C>(C x);", SpaceFuncDef);
+  verifyFormat("template <> void A<C> (C x) {}", SpaceFuncDef);
   verifyFormat("void f() __attribute__((asdf));", SpaceFuncDef);
   verifyFormat("void __attribute__((asdf)) f();", SpaceFuncDef);
   verifyFormat("#define A(x) x", SpaceFuncDef);
@@ -27335,6 +27339,23 @@ TEST_F(FormatTest, IndentAccessModifiers) {
                "    int i;\n"
                "};",
                Style);
+
+  Style.BreakBeforeBraces = FormatStyle::BS_Whitesmiths;
+  verifyFormat("struct S\n"
+               "  {\n"
+               "  public:\n"
+               "    int i;\n"
+               "\n"
+               "  private:\n"
+               "    class C\n"
+               "      {\n"
+               "      private:\n"
+               "        int j;\n"
+               "      };\n"
+               "  };",
+               Style);
+
+  Style.BreakBeforeBraces = FormatStyle::BS_Attach;
   // Enumerations are not records and should be unaffected.
   Style.AllowShortEnumsOnASingleLine = false;
   verifyFormat("enum class E {\n"

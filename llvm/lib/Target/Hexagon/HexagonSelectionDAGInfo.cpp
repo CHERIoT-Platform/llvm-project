@@ -102,7 +102,10 @@ SDValue HexagonSelectionDAGInfo::EmitTargetCodeForMemcpy(
       .setLibCallee(
           CC, Type::getVoidTy(*DAG.getContext()),
           DAG.getTargetExternalSymbol(
-              SpecialMemcpyImpl, TLI.getPointerTy(DAG.getDataLayout()), Flags),
+              SpecialMemcpyImpl,
+              TLI.getPointerTy(DAG.getDataLayout(),
+                               DAG.getDataLayout().getProgramAddressSpace()),
+              Flags),
           std::move(Args))
       .setDiscardResult();
 

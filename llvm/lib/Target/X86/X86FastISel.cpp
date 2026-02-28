@@ -776,7 +776,7 @@ bool X86FastISel::handleConstantAddresses(const Value *V, X86AddressMode &AM) {
         // Prepare for inserting code in the local-value area.
         SavePoint SaveInsertPt = enterLocalValueArea();
 
-        if (TLI.getPointerTy(DL) == MVT::i64) {
+        if (TLI.getPointerTy(DL, DL.getAllocaAddrSpace()) == MVT::i64) {
           Opc = X86::MOV64rm;
           RC  = &X86::GR64RegClass;
         } else {
@@ -860,13 +860,14 @@ redo_gep:
   case Instruction::IntToPtr:
     // Look past no-op inttoptrs.
     if (TLI.getValueType(DL, U->getOperand(0)->getType()) ==
-        TLI.getPointerTy(DL))
+        TLI.getPointerTy(DL, DL.getAllocaAddrSpace()))
       return X86SelectAddress(U->getOperand(0), AM);
     break;
 
   case Instruction::PtrToInt:
     // Look past no-op ptrtoints.
-    if (TLI.getValueType(DL, U->getType()) == TLI.getPointerTy(DL))
+    if (TLI.getValueType(DL, U->getType()) ==
+        TLI.getPointerTy(DL, DL.getAllocaAddrSpace()))
       return X86SelectAddress(U->getOperand(0), AM);
     break;
 
@@ -1037,13 +1038,14 @@ bool X86FastISel::X86SelectCallAddress(const Value *V, X86AddressMode &AM) {
     // Look past no-op inttoptrs if its operand is in the same BB.
     if (InMBB &&
         TLI.getValueType(DL, U->getOperand(0)->getType()) ==
-            TLI.getPointerTy(DL))
+            TLI.getPointerTy(DL, DL.getAllocaAddrSpace()))
       return X86SelectCallAddress(U->getOperand(0), AM);
     break;
 
   case Instruction::PtrToInt:
     // Look past no-op ptrtoints if its operand is in the same BB.
-    if (InMBB && TLI.getValueType(DL, U->getType()) == TLI.getPointerTy(DL))
+    if (InMBB && TLI.getValueType(DL, U->getType()) ==
+                     TLI.getPointerTy(DL, DL.getAllocaAddrSpace()))
       return X86SelectCallAddress(U->getOperand(0), AM);
     break;
   }
@@ -2733,7 +2735,7 @@ bool X86FastISel::fastLowerIntrinsicCall(const IntrinsicInst *II) {
   }
   case Intrinsic::stackprotector: {
     // Emit code to store the stack guard onto the stack.
-    EVT PtrTy = TLI.getPointerTy(DL);
+    EVT PtrTy = TLI.getPointerTy(DL, DL.getAllocaAddrSpace());
 
     const Value *Op1 = II->getArgOperand(0); // The guard's value.
     const AllocaInst *Slot = cast<AllocaInst>(II->getArgOperand(1));
@@ -3833,7 +3835,7 @@ Register X86FastISel::X86MaterializeGV(const GlobalValue *GV, MVT VT) {
 
     Register ResultReg = createResultReg(TLI.getRegClassFor(VT));
     if (TM.getRelocationModel() == Reloc::Static &&
-        TLI.getPointerTy(DL) == MVT::i64) {
+        TLI.getPointerTy(DL, DL.getAllocaAddrSpace()) == MVT::i64) {
       // The displacement code could be more than 32 bits away so we need to use
       // an instruction with a 64 bit immediate
       BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(X86::MOV64ri),
@@ -3841,7 +3843,7 @@ Register X86FastISel::X86MaterializeGV(const GlobalValue *GV, MVT VT) {
         .addGlobalAddress(GV);
     } else {
       unsigned Opc =
-          TLI.getPointerTy(DL) == MVT::i32
+          TLI.getPointerTy(DL, DL.getAllocaAddrSpace()) == MVT::i32
               ? (Subtarget->isTarget64BitILP32() ? X86::LEA64_32r : X86::LEA32r)
               : X86::LEA64r;
       addFullAddress(BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD,
@@ -3911,10 +3913,11 @@ Register X86FastISel::fastMaterializeAlloca(const AllocaInst *C) {
   if (!X86SelectAddress(C, AM))
     return Register();
   unsigned Opc =
-      TLI.getPointerTy(DL) == MVT::i32
+      TLI.getPointerTy(DL, DL.getAllocaAddrSpace()) == MVT::i32
           ? (Subtarget->isTarget64BitILP32() ? X86::LEA64_32r : X86::LEA32r)
           : X86::LEA64r;
-  const TargetRegisterClass *RC = TLI.getRegClassFor(TLI.getPointerTy(DL));
+  const TargetRegisterClass* RC =
+      TLI.getRegClassFor(TLI.getPointerTy(DL, DL.getAllocaAddrSpace()));
   Register ResultReg = createResultReg(RC);
   addFullAddress(BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD,
                          TII.get(Opc), ResultReg), AM);

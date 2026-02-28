@@ -1220,7 +1220,9 @@ SDNode *SystemZDAGToDAGISel::loadPoolVectorConstant(APInt Val, EVT VT, SDLoc DL)
 
   SDValue CP = CurDAG->getTargetConstantPool(
       ConstantInt::get(Type::getInt128Ty(*CurDAG->getContext()), Val),
-      TLI->getPointerTy(CurDAG->getDataLayout()));
+      TLI->getPointerTy(
+          CurDAG->getDataLayout(),
+          CurDAG->getDataLayout().getDefaultGlobalsAddressSpace()));
 
   EVT PtrVT = CP.getValueType();
   SDValue Ops[] = {

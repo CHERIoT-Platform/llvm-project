@@ -567,13 +567,16 @@ LanaiTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
     Register Reg = LanaiMFI->getSRetReturnReg();
     assert(Reg &&
            "SRetReturnReg should have been set in LowerFormalArguments().");
-    SDValue Val =
-        DAG.getCopyFromReg(Chain, DL, Reg, getPointerTy(DAG.getDataLayout()));
+    SDValue Val = DAG.getCopyFromReg(
+        Chain, DL, Reg,
+        getPointerTy(DAG.getDataLayout(),
+                     DAG.getDataLayout().getAllocaAddrSpace()));
 
     Chain = DAG.getCopyToReg(Chain, DL, Lanai::RV, Val, Glue);
     Glue = Chain.getValue(1);
-    RetOps.push_back(
-        DAG.getRegister(Lanai::RV, getPointerTy(DAG.getDataLayout())));
+    RetOps.push_back(DAG.getRegister(
+        Lanai::RV, getPointerTy(DAG.getDataLayout(),
+                                DAG.getDataLayout().getAllocaAddrSpace())));
   }
 
   RetOps[0] = Chain; // Update chain
@@ -626,7 +629,9 @@ SDValue LanaiTargetLowering::LowerCCCCallTo(
     Align Alignment = Flags.getNonZeroByValAlign();
 
     int FI = MFI.CreateStackObject(Size, Alignment, false);
-    SDValue FIPtr = DAG.getFrameIndex(FI, getPointerTy(DAG.getDataLayout()));
+    SDValue FIPtr = DAG.getFrameIndex(
+        FI, getPointerTy(DAG.getDataLayout(),
+                         DAG.getDataLayout().getAllocaAddrSpace()));
     SDValue SizeNode = DAG.getConstant(Size, DL, MVT::i32);
 
     Chain = DAG.getMemcpy(Chain, DL, FIPtr, Arg, SizeNode, Alignment,
@@ -679,12 +684,16 @@ SDValue LanaiTargetLowering::LowerCCCCallTo(
       assert(VA.isMemLoc());
 
       if (StackPtr.getNode() == nullptr)
-        StackPtr = DAG.getCopyFromReg(Chain, DL, Lanai::SP,
-                                      getPointerTy(DAG.getDataLayout()));
+        StackPtr = DAG.getCopyFromReg(
+            Chain, DL, Lanai::SP,
+            getPointerTy(DAG.getDataLayout(),
+                         DAG.getDataLayout().getAllocaAddrSpace()));
 
-      SDValue PtrOff =
-          DAG.getNode(ISD::ADD, DL, getPointerTy(DAG.getDataLayout()), StackPtr,
-                      DAG.getIntPtrConstant(VA.getLocMemOffset(), DL));
+      SDValue PtrOff = DAG.getNode(
+          ISD::ADD, DL,
+          getPointerTy(DAG.getDataLayout(),
+                       DAG.getDataLayout().getAllocaAddrSpace()),
+          StackPtr, DAG.getIntPtrConstant(VA.getLocMemOffset(), DL));
 
       MemOpChains.push_back(
           DAG.getStore(Chain, DL, Arg, PtrOff, MachinePointerInfo()));
@@ -713,7 +722,10 @@ SDValue LanaiTargetLowering::LowerCCCCallTo(
   uint8_t OpFlag = LanaiII::MO_NO_FLAG;
   if (G) {
     Callee = DAG.getTargetGlobalAddress(
-        G->getGlobal(), DL, getPointerTy(DAG.getDataLayout()), 0, OpFlag);
+        G->getGlobal(), DL,
+        getPointerTy(DAG.getDataLayout(),
+                     DAG.getDataLayout().getDefaultGlobalsAddressSpace()),
+        0, OpFlag);
   } else if (ExternalSymbolSDNode *E = dyn_cast<ExternalSymbolSDNode>(Callee)) {
     Callee = DAG.getTargetExternalFunctionSymbol(E->getSymbol(), OpFlag);
   }
@@ -983,8 +995,10 @@ SDValue LanaiTargetLowering::LowerVASTART(SDValue Op, SelectionDAG &DAG) const {
   LanaiMachineFunctionInfo *FuncInfo = MF.getInfo<LanaiMachineFunctionInfo>();
 
   SDLoc DL(Op);
-  SDValue FI = DAG.getFrameIndex(FuncInfo->getVarArgsFrameIndex(),
-                                 getPointerTy(DAG.getDataLayout()));
+  SDValue FI =
+      DAG.getFrameIndex(FuncInfo->getVarArgsFrameIndex(),
+                        getPointerTy(DAG.getDataLayout(),
+                                     DAG.getDataLayout().getAllocaAddrSpace()));
 
   // vastart just stores the address of the VarArgsFrameIndex slot into the
   // memory location argument.
@@ -1118,7 +1132,10 @@ SDValue LanaiTargetLowering::LowerGlobalAddress(SDValue Op,
   const GlobalObject *GO = GV->getAliaseeObject();
   if (TLOF->isGlobalInSmallSection(GO, getTargetMachine())) {
     SDValue Small = DAG.getTargetGlobalAddress(
-        GV, DL, getPointerTy(DAG.getDataLayout()), Offset, LanaiII::MO_NO_FLAG);
+        GV, DL,
+        getPointerTy(DAG.getDataLayout(),
+                     DAG.getDataLayout().getDefaultGlobalsAddressSpace()),
+        Offset, LanaiII::MO_NO_FLAG);
     return DAG.getNode(ISD::OR, DL, MVT::i32,
                        DAG.getRegister(Lanai::R0, MVT::i32),
                        DAG.getNode(LanaiISD::SMALL, DL, MVT::i32, Small));
@@ -1128,9 +1145,15 @@ SDValue LanaiTargetLowering::LowerGlobalAddress(SDValue Op,
 
     // Create the TargetGlobalAddress node, folding in the constant offset.
     SDValue Hi = DAG.getTargetGlobalAddress(
-        GV, DL, getPointerTy(DAG.getDataLayout()), Offset, OpFlagHi);
+        GV, DL,
+        getPointerTy(DAG.getDataLayout(),
+                     DAG.getDataLayout().getDefaultGlobalsAddressSpace()),
+        Offset, OpFlagHi);
     SDValue Lo = DAG.getTargetGlobalAddress(
-        GV, DL, getPointerTy(DAG.getDataLayout()), Offset, OpFlagLo);
+        GV, DL,
+        getPointerTy(DAG.getDataLayout(),
+                     DAG.getDataLayout().getDefaultGlobalsAddressSpace()),
+        Offset, OpFlagLo);
     Hi = DAG.getNode(LanaiISD::HI, DL, MVT::i32, Hi);
     Lo = DAG.getNode(LanaiISD::LO, DL, MVT::i32, Lo);
     return DAG.getNode(ISD::OR, DL, MVT::i32, Hi, Lo);
@@ -1161,7 +1184,10 @@ SDValue LanaiTargetLowering::LowerJumpTable(SDValue Op,
   // If the code model is small assume address will fit in 21-bits.
   if (getTargetMachine().getCodeModel() == CodeModel::Small) {
     SDValue Small = DAG.getTargetJumpTable(
-        JT->getIndex(), getPointerTy(DAG.getDataLayout()), LanaiII::MO_NO_FLAG);
+        JT->getIndex(),
+        getPointerTy(DAG.getDataLayout(),
+                     DAG.getDataLayout().getDefaultGlobalsAddressSpace()),
+        LanaiII::MO_NO_FLAG);
     return DAG.getNode(ISD::OR, DL, MVT::i32,
                        DAG.getRegister(Lanai::R0, MVT::i32),
                        DAG.getNode(LanaiISD::SMALL, DL, MVT::i32, Small));
@@ -1170,9 +1196,15 @@ SDValue LanaiTargetLowering::LowerJumpTable(SDValue Op,
     uint8_t OpFlagLo = LanaiII::MO_ABS_LO;
 
     SDValue Hi = DAG.getTargetJumpTable(
-        JT->getIndex(), getPointerTy(DAG.getDataLayout()), OpFlagHi);
+        JT->getIndex(),
+        getPointerTy(DAG.getDataLayout(),
+                     DAG.getDataLayout().getDefaultGlobalsAddressSpace()),
+        OpFlagHi);
     SDValue Lo = DAG.getTargetJumpTable(
-        JT->getIndex(), getPointerTy(DAG.getDataLayout()), OpFlagLo);
+        JT->getIndex(),
+        getPointerTy(DAG.getDataLayout(),
+                     DAG.getDataLayout().getDefaultGlobalsAddressSpace()),
+        OpFlagLo);
     Hi = DAG.getNode(LanaiISD::HI, DL, MVT::i32, Hi);
     Lo = DAG.getNode(LanaiISD::LO, DL, MVT::i32, Lo);
     SDValue Result = DAG.getNode(ISD::OR, DL, MVT::i32, Hi, Lo);

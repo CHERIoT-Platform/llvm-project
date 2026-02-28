@@ -81,7 +81,7 @@ bool AVRDAGToDAGISel::SelectAddr(SDNode *Op, SDValue N, SDValue &Base,
                                  SDValue &Disp) {
   SDLoc dl(Op);
   auto DL = CurDAG->getDataLayout();
-  MVT PtrVT = getTargetLowering()->getPointerTy(DL);
+  MVT PtrVT = getTargetLowering()->getPointerTy(DL, 0);
 
   // if the address is a frame index get the TargetFrameIndex.
   if (const FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(N)) {
@@ -143,7 +143,7 @@ bool AVRDAGToDAGISel::selectIndexedLoad(SDNode *N) {
   const LoadSDNode *LD = cast<LoadSDNode>(N);
   ISD::MemIndexedMode AM = LD->getAddressingMode();
   MVT VT = LD->getMemoryVT().getSimpleVT();
-  auto PtrVT = getTargetLowering()->getPointerTy(CurDAG->getDataLayout());
+  auto PtrVT = getTargetLowering()->getPointerTy(CurDAG->getDataLayout(), 0);
 
   // We only care if this load uses a POSTINC or PREDEC mode.
   if ((LD->getExtensionType() != ISD::NON_EXTLOAD) ||
@@ -280,7 +280,7 @@ bool AVRDAGToDAGISel::SelectInlineAsmMemoryOperand(
             CurDAG->getCopyToReg(CopyFromRegOp, dl, VReg, CopyFromRegOp);
 
         SDValue NewCopyFromRegOp =
-            CurDAG->getCopyFromReg(CopyToReg, dl, VReg, TL.getPointerTy(DL));
+            CurDAG->getCopyFromReg(CopyToReg, dl, VReg, TL.getPointerTy(DL, 0));
 
         Base = NewCopyFromRegOp;
       } else {
@@ -307,7 +307,7 @@ bool AVRDAGToDAGISel::SelectInlineAsmMemoryOperand(
 
   SDValue CopyToReg = CurDAG->getCopyToReg(Op, dl, VReg, Op);
   SDValue CopyFromReg =
-      CurDAG->getCopyFromReg(CopyToReg, dl, VReg, TL.getPointerTy(DL));
+      CurDAG->getCopyFromReg(CopyToReg, dl, VReg, TL.getPointerTy(DL, 0));
 
   OutOps.push_back(CopyFromReg);
 
@@ -321,9 +321,9 @@ template <> bool AVRDAGToDAGISel::select<ISD::FrameIndex>(SDNode *N) {
   // effective address of the final stack slot.
   int FI = cast<FrameIndexSDNode>(N)->getIndex();
   SDValue TFI =
-      CurDAG->getTargetFrameIndex(FI, getTargetLowering()->getPointerTy(DL));
+      CurDAG->getTargetFrameIndex(FI, getTargetLowering()->getPointerTy(DL, DL.getProgramAddressSpace()));
 
-  CurDAG->SelectNodeTo(N, AVR::FRMIDX, getTargetLowering()->getPointerTy(DL),
+  CurDAG->SelectNodeTo(N, AVR::FRMIDX, getTargetLowering()->getPointerTy(DL, DL.getProgramAddressSpace()),
                        TFI, CurDAG->getTargetConstant(0, SDLoc(N), MVT::i16));
   return true;
 }

@@ -268,7 +268,7 @@ void NVPTXAsmPrinter::printReturnValStr(const Function *F, raw_ostream &O) {
   } else if (auto *ITy = dyn_cast<IntegerType>(Ty)) {
     PrintScalarRetVal(ITy->getBitWidth());
   } else if (isa<PointerType>(Ty)) {
-    PrintScalarRetVal(TLI->getPointerTy(DL).getSizeInBits());
+    PrintScalarRetVal(TLI->getPointerTy(DL, cast<PointerType>(Ty)->getAddressSpace()).getSizeInBits());
   } else
     llvm_unreachable("Unknown return type");
   O << ") ";

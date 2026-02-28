@@ -149,8 +149,9 @@ bool LanaiDAGToDAGISel::selectAddrRiSpls(SDValue Addr, SDValue &Base,
   // if Address is FI, get the TargetFrameIndex.
   if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
     Base = CurDAG->getTargetFrameIndex(
-        FIN->getIndex(),
-        getTargetLowering()->getPointerTy(CurDAG->getDataLayout()));
+        FIN->getIndex(), getTargetLowering()->getPointerTy(
+                             CurDAG->getDataLayout(),
+                             CurDAG->getDataLayout().getAllocaAddrSpace()));
     Offset = CurDAG->getTargetConstant(0, DL, MVT::i32);
     AluOp = CurDAG->getTargetConstant(LPAC::ADD, DL, MVT::i32);
     return true;
@@ -174,7 +175,9 @@ bool LanaiDAGToDAGISel::selectAddrRiSpls(SDValue Addr, SDValue &Base,
                 dyn_cast<FrameIndexSDNode>(Addr.getOperand(0))) {
           Base = CurDAG->getTargetFrameIndex(
               FIN->getIndex(),
-              getTargetLowering()->getPointerTy(CurDAG->getDataLayout()));
+              getTargetLowering()->getPointerTy(
+                  CurDAG->getDataLayout(),
+                  CurDAG->getDataLayout().getAllocaAddrSpace()));
         } else {
           Base = Addr.getOperand(0);
         }

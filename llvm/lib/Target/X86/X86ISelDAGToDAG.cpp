@@ -264,7 +264,9 @@ namespace {
                                    SDValue &Segment) {
       if (AM.BaseType == X86ISelAddressMode::FrameIndexBase)
         Base = CurDAG->getTargetFrameIndex(
-            AM.Base_FrameIndex, TLI->getPointerTy(CurDAG->getDataLayout()));
+            AM.Base_FrameIndex,
+            TLI->getPointerTy(CurDAG->getDataLayout(),
+                              CurDAG->getDataLayout().getAllocaAddrSpace()));
       else if (AM.Base_Reg.getNode())
         Base = AM.Base_Reg;
       else
@@ -3320,7 +3322,10 @@ bool X86DAGToDAGISel::tryFoldBroadcast(SDNode *Root, SDNode *P, SDValue N,
 SDNode *X86DAGToDAGISel::getGlobalBaseReg() {
   Register GlobalBaseReg = getInstrInfo()->getGlobalBaseReg(MF);
   auto &DL = MF->getDataLayout();
-  return CurDAG->getRegister(GlobalBaseReg, TLI->getPointerTy(DL)).getNode();
+  return CurDAG
+      ->getRegister(GlobalBaseReg,
+                    TLI->getPointerTy(DL, DL.getDefaultGlobalsAddressSpace()))
+      .getNode();
 }
 
 bool X86DAGToDAGISel::isSExtAbsoluteSymbolRef(unsigned Width, SDNode *N) const {
@@ -6733,10 +6738,12 @@ void X86DAGToDAGISel::Select(SDNode *Node) {
     Ops[0] = CallIdValue;
     Ops[1] = ArgIndex;
     Ops[2] = Chain;
-    MachineSDNode *New = CurDAG->getMachineNode(
+    MachineSDNode* New = CurDAG->getMachineNode(
         TargetOpcode::PREALLOCATED_ARG, dl,
-        CurDAG->getVTList(TLI->getPointerTy(CurDAG->getDataLayout()),
-                          MVT::Other),
+        CurDAG->getVTList(
+            TLI->getPointerTy(CurDAG->getDataLayout(),
+                              CurDAG->getDataLayout().getAllocaAddrSpace()),
+            MVT::Other),
         Ops);
     ReplaceUses(SDValue(Node, 0), SDValue(New, 0)); // Arg pointer
     ReplaceUses(SDValue(Node, 1), SDValue(New, 1)); // Chain

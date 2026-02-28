@@ -514,7 +514,8 @@ SDValue BPFTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     break;
   }
 
-  auto PtrVT = getPointerTy(MF.getDataLayout());
+  auto PtrVT = getPointerTy(MF.getDataLayout(),
+                            DAG.getDataLayout().getAllocaAddrSpace());
   Chain = DAG.getCALLSEQ_START(Chain, NumBytes, 0, CLI.DL);
 
   SmallVector<std::pair<unsigned, SDValue>, MaxArgs> RegsToPass;
@@ -806,7 +807,8 @@ SDValue BPFTargetLowering::LowerTRAP(SDValue Op, SelectionDAG &DAG) const {
   SDLoc DL(N);
 
   Function *Fn = createBPFUnreachable(MF.getFunction().getParent());
-  auto PtrVT = getPointerTy(MF.getDataLayout());
+  auto PtrVT =
+      getPointerTy(MF.getDataLayout(), MF.getDataLayout().getAllocaAddrSpace());
   CLI.Callee = DAG.getTargetGlobalAddress(Fn, DL, PtrVT);
   CLI.Chain = N->getOperand(0);
   CLI.IsTailCall = false;

@@ -615,13 +615,14 @@ bool AArch64FastISel::computeAddress(const Value *Obj, Address &Addr, Type *Ty)
   case Instruction::IntToPtr:
     // Look past no-op inttoptrs.
     if (TLI.getValueType(DL, U->getOperand(0)->getType()) ==
-        TLI.getPointerTy(DL))
+        TLI.getPointerTy(DL, DL.getAllocaAddrSpace()))
       return computeAddress(U->getOperand(0), Addr, Ty);
     break;
 
   case Instruction::PtrToInt:
     // Look past no-op ptrtoints.
-    if (TLI.getValueType(DL, U->getType()) == TLI.getPointerTy(DL))
+    if (TLI.getValueType(DL, U->getType()) ==
+        TLI.getPointerTy(DL, DL.getAllocaAddrSpace()))
       return computeAddress(U->getOperand(0), Addr, Ty);
     break;
 
@@ -952,12 +953,13 @@ bool AArch64FastISel::computeCallAddress(const Value *V, Address &Addr) {
     // Look past no-op inttoptrs if its operand is in the same BB.
     if (InMBB &&
         TLI.getValueType(DL, U->getOperand(0)->getType()) ==
-            TLI.getPointerTy(DL))
+            TLI.getPointerTy(DL, DL.getAllocaAddrSpace()))
       return computeCallAddress(U->getOperand(0), Addr);
     break;
   case Instruction::PtrToInt:
     // Look past no-op ptrtoints if its operand is in the same BB.
-    if (InMBB && TLI.getValueType(DL, U->getType()) == TLI.getPointerTy(DL))
+    if (InMBB && TLI.getValueType(DL, U->getType()) ==
+                     TLI.getPointerTy(DL, DL.getAllocaAddrSpace()))
       return computeCallAddress(U->getOperand(0), Addr);
     break;
   }
@@ -4950,7 +4952,7 @@ Register AArch64FastISel::getRegForGEPIndex(const Value *Idx) {
     return Register();
 
   // If the index is smaller or larger than intptr_t, truncate or extend it.
-  MVT PtrVT = TLI.getPointerTy(DL);
+  MVT PtrVT = TLI.getPointerTy(DL, DL.getAllocaAddrSpace());
   EVT IdxVT = EVT::getEVT(Idx->getType(), /*HandleUnknown=*/false);
   if (IdxVT.bitsLT(PtrVT)) {
     IdxN = emitIntExt(IdxVT.getSimpleVT(), IdxN, PtrVT, /*isZExt=*/false);
@@ -4974,7 +4976,7 @@ bool AArch64FastISel::selectGetElementPtr(const Instruction *I) {
   // Keep a running tab of the total offset to coalesce multiple N = N + Offset
   // into a single N = N + TotalOffset.
   uint64_t TotalOffs = 0;
-  MVT VT = TLI.getPointerTy(DL);
+  MVT VT = TLI.getPointerTy(DL, DL.getAllocaAddrSpace());
   for (gep_type_iterator GTI = gep_type_begin(I), E = gep_type_end(I);
        GTI != E; ++GTI) {
     const Value *Idx = GTI.getOperand();

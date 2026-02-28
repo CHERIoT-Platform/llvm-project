@@ -672,8 +672,9 @@ bool ARMDAGToDAGISel::SelectAddrModeImm12(SDValue N,
       // Match frame index.
       int FI = cast<FrameIndexSDNode>(N)->getIndex();
       Base = CurDAG->getTargetFrameIndex(
-          FI, TLI->getPointerTy(CurDAG->getDataLayout()));
-      OffImm  = CurDAG->getTargetConstant(0, SDLoc(N), MVT::i32);
+          FI, TLI->getPointerTy(CurDAG->getDataLayout(),
+                                CurDAG->getDataLayout().getAllocaAddrSpace()));
+      OffImm = CurDAG->getTargetConstant(0, SDLoc(N), MVT::i32);
       return true;
     }
 
@@ -698,7 +699,9 @@ bool ARMDAGToDAGISel::SelectAddrModeImm12(SDValue N,
       if (Base.getOpcode() == ISD::FrameIndex) {
         int FI = cast<FrameIndexSDNode>(Base)->getIndex();
         Base = CurDAG->getTargetFrameIndex(
-            FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+            FI,
+            TLI->getPointerTy(CurDAG->getDataLayout(),
+                              CurDAG->getDataLayout().getAllocaAddrSpace()));
       }
       OffImm = CurDAG->getSignedTargetConstant(RHSC, SDLoc(N), MVT::i32);
       return true;
@@ -919,7 +922,8 @@ bool ARMDAGToDAGISel::SelectAddrMode3(SDValue N,
     if (N.getOpcode() == ISD::FrameIndex) {
       int FI = cast<FrameIndexSDNode>(N)->getIndex();
       Base = CurDAG->getTargetFrameIndex(
-          FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+          FI, TLI->getPointerTy(CurDAG->getDataLayout(),
+                                CurDAG->getDataLayout().getAllocaAddrSpace()));
     }
     Offset = CurDAG->getRegister(0, MVT::i32);
     Opc = CurDAG->getTargetConstant(ARM_AM::getAM3Opc(ARM_AM::add, 0), SDLoc(N),
@@ -935,7 +939,8 @@ bool ARMDAGToDAGISel::SelectAddrMode3(SDValue N,
     if (Base.getOpcode() == ISD::FrameIndex) {
       int FI = cast<FrameIndexSDNode>(Base)->getIndex();
       Base = CurDAG->getTargetFrameIndex(
-          FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+          FI, TLI->getPointerTy(CurDAG->getDataLayout(),
+                                CurDAG->getDataLayout().getAllocaAddrSpace()));
     }
     Offset = CurDAG->getRegister(0, MVT::i32);
 
@@ -985,7 +990,8 @@ bool ARMDAGToDAGISel::IsAddressingMode5(SDValue N, SDValue &Base, SDValue &Offse
     if (N.getOpcode() == ISD::FrameIndex) {
       int FI = cast<FrameIndexSDNode>(N)->getIndex();
       Base = CurDAG->getTargetFrameIndex(
-          FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+          FI, TLI->getPointerTy(CurDAG->getDataLayout(),
+                                CurDAG->getDataLayout().getAllocaAddrSpace()));
     } else if (N.getOpcode() == ARMISD::Wrapper &&
                N.getOperand(0).getOpcode() != ISD::TargetGlobalAddress &&
                N.getOperand(0).getOpcode() != ISD::TargetExternalSymbol &&
@@ -1006,7 +1012,8 @@ bool ARMDAGToDAGISel::IsAddressingMode5(SDValue N, SDValue &Base, SDValue &Offse
     if (Base.getOpcode() == ISD::FrameIndex) {
       int FI = cast<FrameIndexSDNode>(Base)->getIndex();
       Base = CurDAG->getTargetFrameIndex(
-          FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+          FI, TLI->getPointerTy(CurDAG->getDataLayout(),
+                                CurDAG->getDataLayout().getAllocaAddrSpace()));
     }
 
     ARM_AM::AddrOpc AddSub = ARM_AM::add;
@@ -1209,7 +1216,8 @@ bool ARMDAGToDAGISel::SelectThumbAddrModeSP(SDValue N,
     if (MFI.getObjectAlign(FI) < Align(4))
       MFI.setObjectAlignment(FI, Align(4));
     Base = CurDAG->getTargetFrameIndex(
-        FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+        FI, TLI->getPointerTy(CurDAG->getDataLayout(),
+                              CurDAG->getDataLayout().getAllocaAddrSpace()));
     OffImm = CurDAG->getTargetConstant(0, SDLoc(N), MVT::i32);
     return true;
   }
@@ -1234,7 +1242,9 @@ bool ARMDAGToDAGISel::SelectThumbAddrModeSP(SDValue N,
           MFI.setObjectAlignment(FI, Align(4));
         if (MFI.getObjectAlign(FI) >= Align(4)) {
           Base = CurDAG->getTargetFrameIndex(
-              FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+              FI,
+              TLI->getPointerTy(CurDAG->getDataLayout(),
+                                CurDAG->getDataLayout().getAllocaAddrSpace()));
           OffImm = CurDAG->getSignedTargetConstant(RHSC, SDLoc(N), MVT::i32);
           return true;
         }
@@ -1284,8 +1294,9 @@ bool ARMDAGToDAGISel::SelectT2AddrModeImm12(SDValue N,
       // Match frame index.
       int FI = cast<FrameIndexSDNode>(N)->getIndex();
       Base = CurDAG->getTargetFrameIndex(
-          FI, TLI->getPointerTy(CurDAG->getDataLayout()));
-      OffImm  = CurDAG->getTargetConstant(0, SDLoc(N), MVT::i32);
+          FI, TLI->getPointerTy(CurDAG->getDataLayout(),
+                                CurDAG->getDataLayout().getAllocaAddrSpace()));
+      OffImm = CurDAG->getTargetConstant(0, SDLoc(N), MVT::i32);
       return true;
     }
 
@@ -1316,7 +1327,9 @@ bool ARMDAGToDAGISel::SelectT2AddrModeImm12(SDValue N,
       if (Base.getOpcode() == ISD::FrameIndex) {
         int FI = cast<FrameIndexSDNode>(Base)->getIndex();
         Base = CurDAG->getTargetFrameIndex(
-            FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+            FI,
+            TLI->getPointerTy(CurDAG->getDataLayout(),
+                              CurDAG->getDataLayout().getAllocaAddrSpace()));
       }
       OffImm = CurDAG->getSignedTargetConstant(RHSC, SDLoc(N), MVT::i32);
       return true;
@@ -1339,7 +1352,9 @@ bool ARMDAGToDAGISel::SelectT2AddrModeImm8(SDValue N, SDValue &Base,
       if (Base.getOpcode() == ISD::FrameIndex) {
         int FI = cast<FrameIndexSDNode>(Base)->getIndex();
         Base = CurDAG->getTargetFrameIndex(
-            FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+            FI,
+            TLI->getPointerTy(CurDAG->getDataLayout(),
+                              CurDAG->getDataLayout().getAllocaAddrSpace()));
       }
 
       if (N.getOpcode() == ISD::SUB)
@@ -1373,7 +1388,9 @@ bool ARMDAGToDAGISel::SelectT2AddrModeImm8(SDValue N,
       if (Base.getOpcode() == ISD::FrameIndex) {
         int FI = cast<FrameIndexSDNode>(Base)->getIndex();
         Base = CurDAG->getTargetFrameIndex(
-            FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+            FI,
+            TLI->getPointerTy(CurDAG->getDataLayout(),
+                              CurDAG->getDataLayout().getAllocaAddrSpace()));
       }
       OffImm = CurDAG->getSignedTargetConstant(RHSC, SDLoc(N), MVT::i32);
       return true;
@@ -1411,7 +1428,9 @@ bool ARMDAGToDAGISel::SelectT2AddrModeImm7(SDValue N, SDValue &Base,
       if (Base.getOpcode() == ISD::FrameIndex) {
         int FI = cast<FrameIndexSDNode>(Base)->getIndex();
         Base = CurDAG->getTargetFrameIndex(
-            FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+            FI,
+            TLI->getPointerTy(CurDAG->getDataLayout(),
+                              CurDAG->getDataLayout().getAllocaAddrSpace()));
       }
 
       if (N.getOpcode() == ISD::SUB)
@@ -1561,7 +1580,8 @@ bool ARMDAGToDAGISel::SelectT2AddrModeExclusive(SDValue N, SDValue &Base,
   if (Base.getOpcode() == ISD::FrameIndex) {
     int FI = cast<FrameIndexSDNode>(Base)->getIndex();
     Base = CurDAG->getTargetFrameIndex(
-        FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+        FI, TLI->getPointerTy(CurDAG->getDataLayout(),
+                              CurDAG->getDataLayout().getAllocaAddrSpace()));
   }
 
   OffImm = CurDAG->getTargetConstant(RHSC/4, SDLoc(N), MVT::i32);
@@ -3650,7 +3670,9 @@ void ARMDAGToDAGISel::Select(SDNode *N) {
         !Subtarget->genExecuteOnly()) {
       SDValue CPIdx = CurDAG->getTargetConstantPool(
           ConstantInt::get(Type::getInt32Ty(*CurDAG->getContext()), Val),
-          TLI->getPointerTy(CurDAG->getDataLayout()));
+          TLI->getPointerTy(
+              CurDAG->getDataLayout(),
+              CurDAG->getDataLayout().getDefaultGlobalsAddressSpace()));
 
       SDNode *ResNode;
       if (Subtarget->isThumb()) {
@@ -3694,7 +3716,8 @@ void ARMDAGToDAGISel::Select(SDNode *N) {
     // Selects to ADDri FI, 0 which in turn will become ADDri SP, imm.
     int FI = cast<FrameIndexSDNode>(N)->getIndex();
     SDValue TFI = CurDAG->getTargetFrameIndex(
-        FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+        FI, TLI->getPointerTy(CurDAG->getDataLayout(),
+                              CurDAG->getDataLayout().getAllocaAddrSpace()));
     if (Subtarget->isThumb1Only()) {
       // Set the alignment of the frame object to 4, to avoid having to generate
       // more than one ADD

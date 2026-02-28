@@ -113,7 +113,7 @@ static SDValue getTagSymNode(int Tag, SelectionDAG *DAG) {
   assert(Tag == WebAssembly::CPP_EXCEPTION || Tag == WebAssembly::C_LONGJMP);
   auto &MF = DAG->getMachineFunction();
   const auto &TLI = DAG->getTargetLoweringInfo();
-  MVT PtrVT = TLI.getPointerTy(DAG->getDataLayout());
+  MVT PtrVT = TLI.getPointerTy(DAG->getDataLayout(), 0);
   const char *SymName = Tag == WebAssembly::CPP_EXCEPTION
                             ? MF.createExternalSymbolName("__cpp_exception")
                             : MF.createExternalSymbolName("__c_longjmp");
@@ -182,7 +182,7 @@ void WebAssemblyDAGToDAGISel::Select(SDNode *Node) {
     return;
   }
 
-  MVT PtrVT = TLI->getPointerTy(CurDAG->getDataLayout());
+  MVT PtrVT = TLI->getPointerTy(CurDAG->getDataLayout(), 0);
   auto GlobalGetIns = PtrVT == MVT::i64 ? WebAssembly::GLOBAL_GET_I64
                                         : WebAssembly::GLOBAL_GET_I32;
 
@@ -304,7 +304,7 @@ void WebAssemblyDAGToDAGISel::Select(SDNode *Node) {
   case ISD::INTRINSIC_W_CHAIN: {
     unsigned IntNo = Node->getConstantOperandVal(1);
     const auto &TLI = CurDAG->getTargetLoweringInfo();
-    MVT PtrVT = TLI.getPointerTy(CurDAG->getDataLayout());
+    MVT PtrVT = TLI.getPointerTy(CurDAG->getDataLayout(), 0);
     switch (IntNo) {
     case Intrinsic::wasm_tls_base: {
       MachineSDNode *TLSBase = CurDAG->getMachineNode(

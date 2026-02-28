@@ -200,7 +200,9 @@ HexagonTargetLowering::LowerINTRINSIC_WO_CHAIN(SDValue Op, SelectionDAG &DAG)
   default:
     return SDValue(); // Don't custom lower most intrinsics.
   case Intrinsic::thread_pointer: {
-    EVT PtrVT = getPointerTy(DAG.getDataLayout());
+    EVT PtrVT =
+        getPointerTy(DAG.getDataLayout(),
+                     DAG.getDataLayout().getDefaultGlobalsAddressSpace());
     return DAG.getNode(HexagonISD::THREAD_POINTER, dl, PtrVT);
   }
   }
@@ -454,7 +456,7 @@ HexagonTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   bool IsStructRet    = Outs.empty() ? false : Outs[0].Flags.isSRet();
   MachineFunction &MF = DAG.getMachineFunction();
   MachineFrameInfo &MFI = MF.getFrameInfo();
-  auto PtrVT = getPointerTy(MF.getDataLayout());
+  auto PtrVT = getPointerTy(MF.getDataLayout(), MF.getDataLayout().getAllocaAddrSpace());
 
   if (GlobalAddressSDNode *GAN = dyn_cast<GlobalAddressSDNode>(Callee))
     Callee = DAG.getTargetGlobalAddress(GAN->getGlobal(), dl, MVT::i32);
@@ -755,32 +757,8 @@ SDValue HexagonTargetLowering::LowerPREFETCH(SDValue Op,
   return DAG.getNode(HexagonISD::DCFETCH, DL, MVT::Other, Chain, Addr, Zero);
 }
 
-// Custom-handle ISD::READCYCLECOUNTER because the target-independent SDNode
-// is marked as having side-effects, while the register read on Hexagon does
-// not have any. TableGen refuses to accept the direct pattern from that node
-// to the A4_tfrcpp.
-SDValue HexagonTargetLowering::LowerREADCYCLECOUNTER(SDValue Op,
-                                                     SelectionDAG &DAG) const {
-  SDValue Chain = Op.getOperand(0);
-  SDLoc dl(Op);
-  SDVTList VTs = DAG.getVTList(MVT::i64, MVT::Other);
-  return DAG.getNode(HexagonISD::READCYCLE, dl, VTs, Chain);
-}
-
-// Custom-handle ISD::READSTEADYCOUNTER because the target-independent SDNode
-// is marked as having side-effects, while the register read on Hexagon does
-// not have any. TableGen refuses to accept the direct pattern from that node
-// to the A4_tfrcpp.
-SDValue HexagonTargetLowering::LowerREADSTEADYCOUNTER(SDValue Op,
-                                                      SelectionDAG &DAG) const {
-  SDValue Chain = Op.getOperand(0);
-  SDLoc dl(Op);
-  SDVTList VTs = DAG.getVTList(MVT::i64, MVT::Other);
-  return DAG.getNode(HexagonISD::READTIMER, dl, VTs, Chain);
-}
-
 SDValue HexagonTargetLowering::LowerINTRINSIC_VOID(SDValue Op,
-      SelectionDAG &DAG) const {
+                                                   SelectionDAG &DAG) const {
   SDValue Chain = Op.getOperand(0);
   unsigned IntNo = Op.getConstantOperandVal(1);
   // Lower the hexagon_prefetch builtin to DCFETCH, as above.
@@ -1022,7 +1000,8 @@ HexagonTargetLowering::LowerVASTART(SDValue Op, SelectionDAG &DAG) const {
   SDValue SavedRegAreaStartFrameIndex =
     DAG.getFrameIndex(FuncInfo.getRegSavedAreaStartFrameIndex(), MVT::i32);
 
-  auto PtrVT = getPointerTy(DAG.getDataLayout());
+  auto PtrVT = getPointerTy(DAG.getDataLayout(),
+       DAG.getDataLayout().getAllocaAddrSpace());
 
   if (HFL.FirstVarArgSavedReg & 1)
     SavedRegAreaStartFrameIndex =
@@ -1266,7 +1245,8 @@ SDValue
 HexagonTargetLowering::LowerGLOBALADDRESS(SDValue Op, SelectionDAG &DAG) const {
   SDLoc dl(Op);
   auto *GAN = cast<GlobalAddressSDNode>(Op);
-  auto PtrVT = getPointerTy(DAG.getDataLayout());
+  auto PtrVT = getPointerTy(
+      DAG.getDataLayout(), DAG.getDataLayout().getDefaultGlobalsAddressSpace());
   auto *GV = GAN->getGlobal();
   int64_t Offset = GAN->getOffset();
 
@@ -1300,7 +1280,8 @@ SDValue
 HexagonTargetLowering::LowerBlockAddress(SDValue Op, SelectionDAG &DAG) const {
   const BlockAddress *BA = cast<BlockAddressSDNode>(Op)->getBlockAddress();
   SDLoc dl(Op);
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getDefaultGlobalsAddressSpace());
 
   Reloc::Model RM = HTM.getRelocationModel();
   if (RM == Reloc::Static) {
@@ -1315,7 +1296,8 @@ HexagonTargetLowering::LowerBlockAddress(SDValue Op, SelectionDAG &DAG) const {
 SDValue
 HexagonTargetLowering::LowerGLOBAL_OFFSET_TABLE(SDValue Op, SelectionDAG &DAG)
       const {
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getDefaultGlobalsAddressSpace());
   SDValue GOTSym = DAG.getTargetExternalSymbol(HEXAGON_GOT_SYM_NAME, PtrVT,
                                                HexagonII::MO_PCREL);
   return DAG.getNode(HexagonISD::AT_PCREL, SDLoc(Op), PtrVT, GOTSym);
@@ -1363,7 +1345,8 @@ HexagonTargetLowering::LowerToTLSInitialExecModel(GlobalAddressSDNode *GA,
       SelectionDAG &DAG) const {
   SDLoc dl(GA);
   int64_t Offset = GA->getOffset();
-  auto PtrVT = getPointerTy(DAG.getDataLayout());
+  auto PtrVT = getPointerTy(
+      DAG.getDataLayout(), DAG.getDataLayout().getDefaultGlobalsAddressSpace());
 
   // Get the thread pointer.
   SDValue TP = DAG.getCopyFromReg(DAG.getEntryNode(), dl, Hexagon::UGP, PtrVT);
@@ -1405,7 +1388,8 @@ HexagonTargetLowering::LowerToTLSLocalExecModel(GlobalAddressSDNode *GA,
       SelectionDAG &DAG) const {
   SDLoc dl(GA);
   int64_t Offset = GA->getOffset();
-  auto PtrVT = getPointerTy(DAG.getDataLayout());
+  auto PtrVT = getPointerTy(
+      DAG.getDataLayout(), DAG.getDataLayout().getDefaultGlobalsAddressSpace());
 
   // Get the thread pointer.
   SDValue TP = DAG.getCopyFromReg(DAG.getEntryNode(), dl, Hexagon::UGP, PtrVT);
@@ -1427,7 +1411,8 @@ HexagonTargetLowering::LowerToTLSGeneralDynamicModel(GlobalAddressSDNode *GA,
       SelectionDAG &DAG) const {
   SDLoc dl(GA);
   int64_t Offset = GA->getOffset();
-  auto PtrVT = getPointerTy(DAG.getDataLayout());
+  auto PtrVT = getPointerTy(
+      DAG.getDataLayout(), DAG.getDataLayout().getDefaultGlobalsAddressSpace());
 
   // First generate the TLS symbol address
   SDValue TGA = DAG.getTargetGlobalAddress(GA->getGlobal(), dl, PtrVT, Offset,
@@ -1553,8 +1538,8 @@ HexagonTargetLowering::HexagonTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::INLINEASM,            MVT::Other, Custom);
   setOperationAction(ISD::INLINEASM_BR,         MVT::Other, Custom);
   setOperationAction(ISD::PREFETCH,             MVT::Other, Custom);
-  setOperationAction(ISD::READCYCLECOUNTER,     MVT::i64,   Custom);
-  setOperationAction(ISD::READSTEADYCOUNTER,    MVT::i64,   Custom);
+  setOperationAction(ISD::READCYCLECOUNTER, MVT::i64, Legal);
+  setOperationAction(ISD::READSTEADYCOUNTER, MVT::i64, Legal);
   setOperationAction(ISD::INTRINSIC_WO_CHAIN, MVT::Other, Custom);
   setOperationAction(ISD::INTRINSIC_VOID,       MVT::Other, Custom);
   setOperationAction(ISD::EH_RETURN,            MVT::Other, Custom);
@@ -2077,7 +2062,8 @@ void HexagonTargetLowering::getTgtMemIntrinsic(
   case Intrinsic::hexagon_V6_vgather_vscattermh_128B: {
     const Module &M = *I.getParent()->getParent()->getParent();
     Info.opc = ISD::INTRINSIC_W_CHAIN;
-    Type *VecTy = I.getArgOperand(1)->getType();
+    Type *VecTy = I.getArgOperand(I.arg_size() - 1)->getType();
+    assert(VecTy->isVectorTy() && "Expected vector operand for vgather");
     Info.memVT = MVT::getVT(VecTy);
     Info.ptrVal = I.getArgOperand(0);
     Info.offset = 0;
@@ -3266,7 +3252,8 @@ HexagonTargetLowering::LowerEH_RETURN(SDValue Op, SelectionDAG &DAG) const {
   SDValue Offset    = Op.getOperand(1);
   SDValue Handler   = Op.getOperand(2);
   SDLoc dl(Op);
-  auto PtrVT = getPointerTy(DAG.getDataLayout());
+  auto PtrVT = getPointerTy(DAG.getDataLayout(),
+                            DAG.getDataLayout().getAllocaAddrSpace());
 
   // Mark function as containing a call to EH_RETURN.
   HexagonMachineFunctionInfo *FuncInfo =
@@ -3344,9 +3331,8 @@ HexagonTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
     case ISD::VSELECT:              return LowerVSELECT(Op, DAG);
     case ISD::INTRINSIC_WO_CHAIN:   return LowerINTRINSIC_WO_CHAIN(Op, DAG);
     case ISD::INTRINSIC_VOID:       return LowerINTRINSIC_VOID(Op, DAG);
-    case ISD::PREFETCH:             return LowerPREFETCH(Op, DAG);
-    case ISD::READCYCLECOUNTER:     return LowerREADCYCLECOUNTER(Op, DAG);
-    case ISD::READSTEADYCOUNTER:    return LowerREADSTEADYCOUNTER(Op, DAG);
+    case ISD::PREFETCH:
+      return LowerPREFETCH(Op, DAG);
       break;
   }
 

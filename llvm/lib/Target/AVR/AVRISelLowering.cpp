@@ -544,8 +544,8 @@ SDValue AVRTargetLowering::LowerGlobalAddress(SDValue Op,
 
   // Create the TargetGlobalAddress node, folding in the constant offset.
   SDValue Result =
-      DAG.getTargetGlobalAddress(GV, SDLoc(Op), getPointerTy(DL), Offset);
-  return DAG.getNode(AVRISD::WRAPPER, SDLoc(Op), getPointerTy(DL), Result);
+      DAG.getTargetGlobalAddress(GV, SDLoc(Op), getPointerTy(DL, DL.getDefaultGlobalsAddressSpace()), Offset);
+  return DAG.getNode(AVRISD::WRAPPER, SDLoc(Op), getPointerTy(DL, DL.getDefaultGlobalsAddressSpace()), Result);
 }
 
 SDValue AVRTargetLowering::LowerBlockAddress(SDValue Op,
@@ -553,9 +553,9 @@ SDValue AVRTargetLowering::LowerBlockAddress(SDValue Op,
   auto DL = DAG.getDataLayout();
   const BlockAddress *BA = cast<BlockAddressSDNode>(Op)->getBlockAddress();
 
-  SDValue Result = DAG.getTargetBlockAddress(BA, getPointerTy(DL));
+  SDValue Result = DAG.getTargetBlockAddress(BA, getPointerTy(DL, DL.getProgramAddressSpace()));
 
-  return DAG.getNode(AVRISD::WRAPPER, SDLoc(Op), getPointerTy(DL), Result);
+  return DAG.getNode(AVRISD::WRAPPER, SDLoc(Op), getPointerTy(DL, DL.getProgramAddressSpace()), Result);
 }
 
 /// IntCCToAVRCC - Convert a DAG integer condition code to an AVR CC.
@@ -713,15 +713,17 @@ SDValue AVRTargetLowering::getAVRCmp(SDValue LHS, SDValue RHS, ISD::CondCode CC,
     break;
   }
   case ISD::SETUGT: {
-    // Turn lhs < rhs with lhs constant into rhs >= lhs+1, this allows us to
-    // fold the constant into the cmp instruction.
+    // Turn `lhs > rhs` with constant rhs into `lhs >= rhs + 1`, because this
+    // allows us to fold the constant into the cmp instruction.
     if (const ConstantSDNode *C = dyn_cast<ConstantSDNode>(RHS)) {
-      // Doing a "icmp ugt i16 65535, %0" comparison should have been converted
-      // already to something else. Assert to make sure this assumption holds.
-      assert((!C->isAllOnes()) && "integer overflow in comparison transform");
-      RHS = DAG.getConstant(C->getZExtValue() + 1, DL, VT);
-      CC = ISD::SETUGE;
-      break;
+      if (C->getConstantIntValue()->isMaxValue(false)) {
+        // Applying this optimization requires calculating rhs+1, which we can't
+        // do if that overflows; it can happen during i128->i64 lowering.
+      } else {
+        RHS = DAG.getConstant(C->getZExtValue() + 1, DL, VT);
+        CC = ISD::SETUGE;
+        break;
+      }
     }
     // Swap operands and reverse the branching condition.
     std::swap(LHS, RHS);
@@ -870,7 +872,8 @@ SDValue AVRTargetLowering::LowerVASTART(SDValue Op, SelectionDAG &DAG) const {
 
   // Vastart just stores the address of the VarArgsFrameIndex slot into the
   // memory location argument.
-  SDValue FI = DAG.getFrameIndex(AFI->getVarArgsFrameIndex(), getPointerTy(DL));
+  SDValue FI = DAG.getFrameIndex(AFI->getVarArgsFrameIndex(),
+                                 getPointerTy(DL, DL.getAllocaAddrSpace()));
 
   return DAG.getStore(Op.getOperand(0), dl, FI, Op.getOperand(1),
                       MachinePointerInfo(SV));
@@ -1398,7 +1401,8 @@ SDValue AVRTargetLowering::LowerFormalArguments(
 
       // Create the SelectionDAG nodes corresponding to a load
       // from this parameter.
-      SDValue FIN = DAG.getFrameIndex(FI, getPointerTy(DL));
+      SDValue FIN =
+          DAG.getFrameIndex(FI, getPointerTy(DL, DL.getAllocaAddrSpace()));
       InVals.push_back(DAG.getLoad(LocVT, dl, Chain, FIN,
                                    MachinePointerInfo::getFixedStack(MF, FI)));
     }
@@ -1451,8 +1455,10 @@ SDValue AVRTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     const GlobalValue *GV = G->getGlobal();
     if (isa<Function>(GV))
       F = cast<Function>(GV);
-    Callee =
-        DAG.getTargetGlobalAddress(GV, DL, getPointerTy(DAG.getDataLayout()));
+    Callee = DAG.getTargetGlobalAddress(
+        GV, DL,
+        getPointerTy(DAG.getDataLayout(),
+                     DAG.getDataLayout().getDefaultGlobalsAddressSpace()));
   } else if (const ExternalSymbolSDNode *ES =
                  dyn_cast<ExternalSymbolSDNode>(Callee)) {
     Callee = DAG.getTargetExternalFunctionSymbol(ES->getSymbol());
@@ -1529,8 +1535,12 @@ SDValue AVRTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
 
       // SP points to one stack slot further so add one to adjust it.
       SDValue PtrOff = DAG.getNode(
-          ISD::ADD, DL, getPointerTy(DAG.getDataLayout()),
-          DAG.getRegister(AVR::SP, getPointerTy(DAG.getDataLayout())),
+          ISD::ADD, DL,
+          getPointerTy(DAG.getDataLayout(),
+                       DAG.getDataLayout().getAllocaAddrSpace()),
+          DAG.getRegister(
+              AVR::SP, getPointerTy(DAG.getDataLayout(),
+                                    DAG.getDataLayout().getAllocaAddrSpace())),
           DAG.getIntPtrConstant(VA.getLocMemOffset() + 1, DL));
 
       MemOpChains.push_back(

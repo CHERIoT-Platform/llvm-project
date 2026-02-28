@@ -318,12 +318,12 @@ bool PPCFastISel::PPCComputeAddress(const Value *Obj, Address &Addr) {
     case Instruction::IntToPtr:
       // Look past no-op inttoptrs.
       if (TLI.getValueType(DL, U->getOperand(0)->getType()) ==
-          TLI.getPointerTy(DL))
+          TLI.getPointerTy(DL, 0))
         return PPCComputeAddress(U->getOperand(0), Addr);
       break;
     case Instruction::PtrToInt:
       // Look past no-op ptrtoints.
-      if (TLI.getValueType(DL, U->getType()) == TLI.getPointerTy(DL))
+      if (TLI.getValueType(DL, U->getType()) == TLI.getPointerTy(DL, 0))
         return PPCComputeAddress(U->getOperand(0), Addr);
       break;
     case Instruction::GetElementPtr: {

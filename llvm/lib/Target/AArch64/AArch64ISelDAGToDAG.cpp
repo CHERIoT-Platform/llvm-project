@@ -1083,7 +1083,8 @@ bool AArch64DAGToDAGISel::SelectAddrModeIndexedBitWidth(SDValue N, bool IsSigned
   const TargetLowering *TLI = getTargetLowering();
   if (N.getOpcode() == ISD::FrameIndex) {
     int FI = cast<FrameIndexSDNode>(N)->getIndex();
-    Base = CurDAG->getTargetFrameIndex(FI, TLI->getPointerTy(DL));
+    Base = CurDAG->getTargetFrameIndex(
+        FI, TLI->getPointerTy(DL, DL.getAllocaAddrSpace()));
     OffImm = CurDAG->getTargetConstant(0, dl, MVT::i64);
     return true;
   }
@@ -1102,7 +1103,8 @@ bool AArch64DAGToDAGISel::SelectAddrModeIndexedBitWidth(SDValue N, bool IsSigned
           Base = N.getOperand(0);
           if (Base.getOpcode() == ISD::FrameIndex) {
             int FI = cast<FrameIndexSDNode>(Base)->getIndex();
-            Base = CurDAG->getTargetFrameIndex(FI, TLI->getPointerTy(DL));
+            Base = CurDAG->getTargetFrameIndex(
+                FI, TLI->getPointerTy(DL, DL.getAllocaAddrSpace()));
           }
           OffImm = CurDAG->getTargetConstant(RHSC >> Scale, dl, MVT::i64);
           return true;
@@ -1117,7 +1119,8 @@ bool AArch64DAGToDAGISel::SelectAddrModeIndexedBitWidth(SDValue N, bool IsSigned
           Base = N.getOperand(0);
           if (Base.getOpcode() == ISD::FrameIndex) {
             int FI = cast<FrameIndexSDNode>(Base)->getIndex();
-            Base = CurDAG->getTargetFrameIndex(FI, TLI->getPointerTy(DL));
+            Base = CurDAG->getTargetFrameIndex(
+                FI, TLI->getPointerTy(DL, DL.getAllocaAddrSpace()));
           }
           OffImm = CurDAG->getTargetConstant(RHSC >> Scale, dl, MVT::i64);
           return true;
@@ -1144,7 +1147,8 @@ bool AArch64DAGToDAGISel::SelectAddrModeIndexed(SDValue N, unsigned Size,
   const TargetLowering *TLI = getTargetLowering();
   if (N.getOpcode() == ISD::FrameIndex) {
     int FI = cast<FrameIndexSDNode>(N)->getIndex();
-    Base = CurDAG->getTargetFrameIndex(FI, TLI->getPointerTy(DL));
+    Base = CurDAG->getTargetFrameIndex(
+        FI, TLI->getPointerTy(DL, DL.getAllocaAddrSpace()));
     OffImm = CurDAG->getTargetConstant(0, dl, MVT::i64);
     return true;
   }
@@ -1170,7 +1174,8 @@ bool AArch64DAGToDAGISel::SelectAddrModeIndexed(SDValue N, unsigned Size,
         Base = N.getOperand(0);
         if (Base.getOpcode() == ISD::FrameIndex) {
           int FI = cast<FrameIndexSDNode>(Base)->getIndex();
-          Base = CurDAG->getTargetFrameIndex(FI, TLI->getPointerTy(DL));
+          Base = CurDAG->getTargetFrameIndex(
+              FI, TLI->getPointerTy(DL, DL.getAllocaAddrSpace()));
         }
         OffImm = CurDAG->getTargetConstant(RHSC >> Scale, dl, MVT::i64);
         return true;
@@ -1210,7 +1215,9 @@ bool AArch64DAGToDAGISel::SelectAddrModeUnscaled(SDValue N, unsigned Size,
         int FI = cast<FrameIndexSDNode>(Base)->getIndex();
         const TargetLowering *TLI = getTargetLowering();
         Base = CurDAG->getTargetFrameIndex(
-            FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+            FI,
+            TLI->getPointerTy(CurDAG->getDataLayout(),
+                              CurDAG->getDataLayout().getAllocaAddrSpace()));
       }
       OffImm = CurDAG->getTargetConstant(RHSC, SDLoc(N), MVT::i64);
       return true;
@@ -2364,7 +2371,8 @@ bool AArch64DAGToDAGISel::SelectAddrModeFrameIndexSVE(SDValue N, SDValue &Base,
   // Try to match it for the frame address
   if (auto FINode = dyn_cast<FrameIndexSDNode>(N)) {
     int FI = FINode->getIndex();
-    Base = CurDAG->getTargetFrameIndex(FI, TLI->getPointerTy(DL));
+    Base = CurDAG->getTargetFrameIndex(
+        FI, TLI->getPointerTy(DL, DL.getAllocaAddrSpace()));
     OffImm = CurDAG->getTargetConstant(0, dl, MVT::i64);
     return true;
   }
@@ -4522,7 +4530,8 @@ bool AArch64DAGToDAGISel::trySelectStackSlotTagP(SDNode *N) {
   SDLoc DL(N);
   int FI = cast<FrameIndexSDNode>(N->getOperand(1))->getIndex();
   SDValue FiOp = CurDAG->getTargetFrameIndex(
-      FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+      FI, TLI->getPointerTy(CurDAG->getDataLayout(),
+                            CurDAG->getDataLayout().getAllocaAddrSpace()));
   int TagOffset = N->getConstantOperandVal(3);
 
   SDNode *Out = CurDAG->getMachineNode(
@@ -4935,7 +4944,8 @@ void AArch64DAGToDAGISel::Select(SDNode *Node) {
     unsigned Shifter = AArch64_AM::getShifterImm(AArch64_AM::LSL, 0);
     const TargetLowering *TLI = getTargetLowering();
     SDValue TFI = CurDAG->getTargetFrameIndex(
-        FI, TLI->getPointerTy(CurDAG->getDataLayout()));
+        FI, TLI->getPointerTy(CurDAG->getDataLayout(),
+                              CurDAG->getDataLayout().getAllocaAddrSpace()));
     SDLoc DL(Node);
     SDValue Ops[] = { TFI, CurDAG->getTargetConstant(0, DL, MVT::i32),
                       CurDAG->getTargetConstant(Shifter, DL, MVT::i32) };
@@ -7617,7 +7627,8 @@ bool AArch64DAGToDAGISel::SelectAddrModeIndexedSVE(SDNode *Root, SDValue N,
     // We can only encode VL scaled offsets, so only fold in frame indexes
     // referencing SVE objects.
     if (MFI.hasScalableStackID(FI)) {
-      Base = CurDAG->getTargetFrameIndex(FI, TLI->getPointerTy(DL));
+      Base = CurDAG->getTargetFrameIndex(
+          FI, TLI->getPointerTy(DL, DL.getAllocaAddrSpace()));
       OffImm = CurDAG->getTargetConstant(0, SDLoc(N), MVT::i64);
       return true;
     }
@@ -7663,7 +7674,9 @@ bool AArch64DAGToDAGISel::SelectAddrModeIndexedSVE(SDNode *Root, SDValue N,
     // We can only encode VL scaled offsets, so only fold in frame indexes
     // referencing SVE objects.
     if (MFI.hasScalableStackID(FI))
-      Base = CurDAG->getTargetFrameIndex(FI, TLI->getPointerTy(DL));
+      Base = CurDAG->getTargetFrameIndex(
+          FI,
+          TLI->getPointerTy(DL, CurDAG->getDataLayout().getAllocaAddrSpace()));
   }
 
   OffImm = CurDAG->getTargetConstant(Offset, SDLoc(N), MVT::i64);

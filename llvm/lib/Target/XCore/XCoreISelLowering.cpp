@@ -267,8 +267,10 @@ LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const
     Constant *GAI = ConstantExpr::getGetElementPtr(
         Type::getInt8Ty(*DAG.getContext()), const_cast<GlobalValue *>(GV), Idx);
     SDValue CP = DAG.getConstantPool(GAI, MVT::i32);
-    return DAG.getLoad(getPointerTy(DAG.getDataLayout()), DL,
-                       DAG.getEntryNode(), CP, MachinePointerInfo());
+    return DAG.getLoad(
+        getPointerTy(DAG.getDataLayout(),
+                     DAG.getDataLayout().getDefaultGlobalsAddressSpace()),
+        DL, DAG.getEntryNode(), CP, MachinePointerInfo());
   }
 }
 
@@ -276,7 +278,8 @@ SDValue XCoreTargetLowering::
 LowerBlockAddress(SDValue Op, SelectionDAG &DAG) const
 {
   SDLoc DL(Op);
-  auto PtrVT = getPointerTy(DAG.getDataLayout());
+  auto PtrVT = getPointerTy(
+      DAG.getDataLayout(), DAG.getDataLayout().getProgramAddressSpace());
   const BlockAddress *BA = cast<BlockAddressSDNode>(Op)->getBlockAddress();
   SDValue Result = DAG.getTargetBlockAddress(BA, PtrVT);
 
@@ -332,7 +335,7 @@ LowerBR_JT(SDValue Op, SelectionDAG &DAG) const
 SDValue XCoreTargetLowering::lowerLoadWordFromAlignedBasePlusOffset(
     const SDLoc &DL, SDValue Chain, SDValue Base, int64_t Offset,
     SelectionDAG &DAG) const {
-  auto PtrVT = getPointerTy(DAG.getDataLayout());
+  auto PtrVT = getPointerTy(DAG.getDataLayout(), 0);
   if ((Offset & 0x3) == 0) {
     return DAG.getLoad(PtrVT, DL, Chain, Base, MachinePointerInfo());
   }
@@ -480,8 +483,10 @@ SDValue XCoreTargetLowering::LowerSTORE(SDValue Op, SelectionDAG &DAG) const {
   TargetLowering::CallLoweringInfo CLI(DAG);
   CLI.setDebugLoc(dl).setChain(Chain).setCallee(
       CallingConv::C, Type::getVoidTy(Context),
-      DAG.getExternalSymbol("__misaligned_store",
-                            getPointerTy(DAG.getDataLayout())),
+      DAG.getExternalSymbol(
+          "__misaligned_store",
+          getPointerTy(DAG.getDataLayout(),
+                       DAG.getDataLayout().getAllocaAddrSpace())),
       std::move(Args));
 
   std::pair<SDValue, SDValue> CallResult = LowerCallTo(CLI);
@@ -751,8 +756,9 @@ LowerRETURNADDR(SDValue Op, SelectionDAG &DAG) const {
   XCoreFunctionInfo *XFI = MF.getInfo<XCoreFunctionInfo>();
   int FI = XFI->createLRSpillSlot(MF);
   SDValue FIN = DAG.getFrameIndex(FI, MVT::i32);
-  return DAG.getLoad(getPointerTy(DAG.getDataLayout()), SDLoc(Op),
-                     DAG.getEntryNode(), FIN,
+  return DAG.getLoad(getPointerTy(DAG.getDataLayout(),
+                                  DAG.getDataLayout().getAllocaAddrSpace()),
+                     SDLoc(Op), DAG.getEntryNode(), FIN,
                      MachinePointerInfo::getFixedStack(MF, FI));
 }
 

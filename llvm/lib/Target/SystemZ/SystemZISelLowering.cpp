@@ -1057,7 +1057,8 @@ SystemZTargetLowering::emitEHSjLjSetJmp(MachineInstr &MI,
   Register MainDstReg = MRI.createVirtualRegister(RC);
   Register RestoreDstReg = MRI.createVirtualRegister(RC);
 
-  MVT PVT = getPointerTy(MF->getDataLayout());
+  MVT PVT = getPointerTy(MF->getDataLayout(),
+                         MF->getDataLayout().getAllocaAddrSpace());
   assert((PVT == MVT::i64 || PVT == MVT::i32) && "Invalid Pointer Size!");
   // For v = setjmp(buf), we generate.
   // Algorithm:
@@ -1207,7 +1208,7 @@ SystemZTargetLowering::emitEHSjLjLongJmp(MachineInstr &MI,
   MachineFunction *MF = MBB->getParent();
   MachineRegisterInfo &MRI = MF->getRegInfo();
 
-  MVT PVT = getPointerTy(MF->getDataLayout());
+  MVT PVT = getPointerTy(MF->getDataLayout(), MF->getDataLayout().getAllocaAddrSpace());
   assert((PVT == MVT::i64 || PVT == MVT::i32) && "Invalid Pointer Size!");
   Register BufReg = MI.getOperand(0).getReg();
   const TargetRegisterClass *RC = MRI.getRegClass(BufReg);
@@ -2044,7 +2045,8 @@ SDValue SystemZTargetLowering::LowerFormalArguments(
   SystemZMachineFunctionInfo *FuncInfo =
       MF.getInfo<SystemZMachineFunctionInfo>();
   auto *TFL = Subtarget.getFrameLowering<SystemZELFFrameLowering>();
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getAllocaAddrSpace());
 
   // Assign locations to all of the incoming arguments.
   SmallVector<CCValAssign, 16> ArgLocs;
@@ -2200,7 +2202,9 @@ SDValue SystemZTargetLowering::LowerFormalArguments(
         unsigned Offset = TFL->getRegSpillOffset(MF, SystemZ::ELFArgFPRs[I]);
         int FI =
           MFI.CreateFixedObject(8, -SystemZMC::ELFCallFrameSize + Offset, true);
-        SDValue FIN = DAG.getFrameIndex(FI, getPointerTy(DAG.getDataLayout()));
+        SDValue FIN = DAG.getFrameIndex(
+            FI, getPointerTy(DAG.getDataLayout(),
+                             DAG.getDataLayout().getAllocaAddrSpace()));
         Register VReg = MF.addLiveIn(SystemZ::ELFArgFPRs[I],
                                      &SystemZ::FP64BitRegClass);
         SDValue ArgValue = DAG.getCopyFromReg(Chain, DL, VReg, MVT::f64);
@@ -2252,7 +2256,7 @@ static SDValue getADAEntry(SelectionDAG &DAG, SDValue Val, SDLoc DL,
   MachineFunction &MF = DAG.getMachineFunction();
   SystemZMachineFunctionInfo *MFI = MF.getInfo<SystemZMachineFunctionInfo>();
   Register ADAvReg = MFI->getADAVirtualRegister();
-  EVT PtrVT = DAG.getTargetLoweringInfo().getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = DAG.getTargetLoweringInfo().getPointerTy(DAG.getDataLayout(), 0);
 
   SDValue Reg = DAG.getRegister(ADAvReg, PtrVT);
   SDValue Ofs = DAG.getTargetConstant(Offset, DL, PtrVT);
@@ -2296,7 +2300,7 @@ static bool getzOSCalleeAndADA(SelectionDAG &DAG, SDValue &Callee, SDValue &ADA,
   unsigned ADADelta = 0; // ADA offset in desc.
   unsigned EPADelta = 8; // EPA offset in desc.
   MachineFunction &MF = DAG.getMachineFunction();
-  EVT PtrVT = DAG.getTargetLoweringInfo().getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = DAG.getTargetLoweringInfo().getPointerTy(DAG.getDataLayout(), 0);
 
   // XPLink calling convention.
   if (auto *G = dyn_cast<GlobalAddressSDNode>(Callee)) {
@@ -2349,7 +2353,8 @@ SystemZTargetLowering::LowerCall(CallLoweringInfo &CLI,
   CallingConv::ID CallConv = CLI.CallConv;
   bool IsVarArg = CLI.IsVarArg;
   MachineFunction &MF = DAG.getMachineFunction();
-  EVT PtrVT = getPointerTy(MF.getDataLayout());
+  EVT PtrVT = getPointerTy(MF.getDataLayout(),
+                           DAG.getDataLayout().getAllocaAddrSpace());
   LLVMContext &Ctx = *DAG.getContext();
   SystemZCallingConventionRegisters *Regs = Subtarget.getSpecialRegisters();
 
@@ -2577,8 +2582,9 @@ std::pair<SDValue, SDValue> SystemZTargetLowering::makeExternalCall(
     Args.push_back(Entry);
   }
 
-  SDValue Callee =
-      DAG.getExternalSymbol(CalleeName, getPointerTy(DAG.getDataLayout()));
+  SDValue Callee = DAG.getExternalSymbol(
+      CalleeName, getPointerTy(DAG.getDataLayout(),
+                               DAG.getDataLayout().getProgramAddressSpace()));
 
   Type *RetTy = RetVT.getTypeForEVT(*DAG.getContext());
   TargetLowering::CallLoweringInfo CLI(DAG);
@@ -4074,7 +4080,8 @@ SDValue SystemZTargetLowering::lowerGlobalAddress(GlobalAddressSDNode *Node,
   SDLoc DL(Node);
   const GlobalValue *GV = Node->getGlobal();
   int64_t Offset = Node->getOffset();
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getDefaultGlobalsAddressSpace());
   CodeModel::Model CM = DAG.getTarget().getCodeModel();
 
   SDValue Result;
@@ -4124,7 +4131,8 @@ SDValue SystemZTargetLowering::lowerTLSGetOffset(GlobalAddressSDNode *Node,
                                                  unsigned Opcode,
                                                  SDValue GOTOffset) const {
   SDLoc DL(Node);
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getDefaultGlobalsAddressSpace());
   SDValue Chain = DAG.getEntryNode();
   SDValue Glue;
 
@@ -4173,7 +4181,8 @@ SDValue SystemZTargetLowering::lowerTLSGetOffset(GlobalAddressSDNode *Node,
 SDValue SystemZTargetLowering::lowerThreadPointer(const SDLoc &DL,
                                                   SelectionDAG &DAG) const {
   SDValue Chain = DAG.getEntryNode();
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getAllocaAddrSpace());
 
   // The high part of the thread pointer is in access register 0.
   SDValue TPHi = DAG.getCopyFromReg(Chain, DL, SystemZ::A0, MVT::i32);
@@ -4195,7 +4204,8 @@ SDValue SystemZTargetLowering::lowerGlobalTLSAddress(GlobalAddressSDNode *Node,
     return LowerToTLSEmulatedModel(Node, DAG);
   SDLoc DL(Node);
   const GlobalValue *GV = Node->getGlobal();
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getDefaultGlobalsAddressSpace());
   TLSModel::Model model = DAG.getTarget().getTLSModel(GV);
 
   if (DAG.getMachineFunction().getFunction().getCallingConv() ==
@@ -4287,7 +4297,8 @@ SDValue SystemZTargetLowering::lowerBlockAddress(BlockAddressSDNode *Node,
   SDLoc DL(Node);
   const BlockAddress *BA = Node->getBlockAddress();
   int64_t Offset = Node->getOffset();
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getProgramAddressSpace());
 
   SDValue Result = DAG.getTargetBlockAddress(BA, PtrVT, Offset);
   Result = DAG.getNode(SystemZISD::PCREL_WRAPPER, DL, PtrVT, Result);
@@ -4297,7 +4308,8 @@ SDValue SystemZTargetLowering::lowerBlockAddress(BlockAddressSDNode *Node,
 SDValue SystemZTargetLowering::lowerJumpTable(JumpTableSDNode *JT,
                                               SelectionDAG &DAG) const {
   SDLoc DL(JT);
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getDefaultGlobalsAddressSpace());
   SDValue Result = DAG.getTargetJumpTable(JT->getIndex(), PtrVT);
 
   // Use LARL to load the address of the table.
@@ -4307,7 +4319,8 @@ SDValue SystemZTargetLowering::lowerJumpTable(JumpTableSDNode *JT,
 SDValue SystemZTargetLowering::lowerConstantPool(ConstantPoolSDNode *CP,
                                                  SelectionDAG &DAG) const {
   SDLoc DL(CP);
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getDefaultGlobalsAddressSpace());
 
   SDValue Result;
   if (CP->isMachineConstantPoolEntry())
@@ -4330,7 +4343,8 @@ SDValue SystemZTargetLowering::lowerFRAMEADDR(SDValue Op,
 
   SDLoc DL(Op);
   unsigned Depth = Op.getConstantOperandVal(0);
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getAllocaAddrSpace());
 
   // By definition, the frame address is the address of the back chain.  (In
   // the case of packed stack without backchain, return the address where the
@@ -4363,7 +4377,8 @@ SDValue SystemZTargetLowering::lowerRETURNADDR(SDValue Op,
 
   SDLoc DL(Op);
   unsigned Depth = Op.getConstantOperandVal(0);
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getAllocaAddrSpace());
 
   if (Depth > 0) {
     // FIXME The frontend should detect this case.
@@ -4456,7 +4471,8 @@ SDValue SystemZTargetLowering::lowerVASTART_XPLINK(SDValue Op,
 
   // vastart just stores the address of the VarArgsFrameIndex slot into the
   // memory location argument.
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getAllocaAddrSpace());
   SDValue FR = DAG.getFrameIndex(FuncInfo->getVarArgsFrameIndex(), PtrVT);
   const Value *SV = cast<SrcValueSDNode>(Op.getOperand(2))->getValue();
   return DAG.getStore(Op.getOperand(0), DL, FR, Op.getOperand(1),
@@ -4468,7 +4484,8 @@ SDValue SystemZTargetLowering::lowerVASTART_ELF(SDValue Op,
   MachineFunction &MF = DAG.getMachineFunction();
   SystemZMachineFunctionInfo *FuncInfo =
     MF.getInfo<SystemZMachineFunctionInfo>();
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getDataLayout(),
+                           DAG.getDataLayout().getAllocaAddrSpace());
 
   SDValue Chain   = Op.getOperand(0);
   SDValue Addr    = Op.getOperand(1);
@@ -4548,7 +4565,8 @@ SystemZTargetLowering::lowerDYNAMIC_STACKALLOC_XPLINK(SDValue Op,
   SDValue NeededSpace = Size;
 
   // Add extra space for alignment if needed.
-  EVT PtrVT = getPointerTy(MF.getDataLayout());
+  EVT PtrVT = getPointerTy(MF.getDataLayout(),
+                           DAG.getDataLayout().getAllocaAddrSpace());
   if (ExtraAlignSpace)
     NeededSpace = DAG.getNode(ISD::ADD, DL, PtrVT, NeededSpace,
                               DAG.getConstant(ExtraAlignSpace, DL, PtrVT));
@@ -4573,7 +4591,7 @@ SystemZTargetLowering::lowerDYNAMIC_STACKALLOC_XPLINK(SDValue Op,
   SDValue NewSPRegNode = DAG.getCopyFromReg(Chain, DL, SPReg, PtrVT, Glue);
   Chain = NewSPRegNode.getValue(1);
 
-  MVT PtrMVT = getPointerMemTy(MF.getDataLayout());
+  MVT PtrMVT = getPointerMemTy(MF.getDataLayout(), MF.getDataLayout().getAllocaAddrSpace());
   SDValue ArgAdjust = DAG.getNode(SystemZISD::ADJDYNALLOC, DL, PtrMVT);
   SDValue Result = DAG.getNode(ISD::ADD, DL, PtrMVT, NewSPRegNode, ArgAdjust);
 
@@ -7926,7 +7944,7 @@ SDValue SystemZTargetLowering::combineLOAD(
   EVT LdVT = N->getValueType(0);
   if (auto *LN = dyn_cast<LoadSDNode>(N)) {
     if (LN->getAddressSpace() == SYSTEMZAS::PTR32) {
-      MVT PtrVT = getPointerTy(DAG.getDataLayout());
+      MVT PtrVT = getPointerTy(DAG.getDataLayout(), 0);
       MVT LoadNodeVT = LN->getBasePtr().getSimpleValueType();
       if (PtrVT != LoadNodeVT) {
         SDLoc DL(LN);
@@ -8105,7 +8123,7 @@ SDValue SystemZTargetLowering::combineSTORE(
   EVT MemVT = SN->getMemoryVT();
 
   if (SN->getAddressSpace() == SYSTEMZAS::PTR32) {
-    MVT PtrVT = getPointerTy(DAG.getDataLayout());
+    MVT PtrVT = getPointerTy(DAG.getDataLayout(), 0);
     MVT StoreNodeVT = SN->getBasePtr().getSimpleValueType();
     if (PtrVT != StoreNodeVT) {
       SDLoc DL(SN);

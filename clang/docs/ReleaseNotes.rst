@@ -655,6 +655,7 @@ Bug Fixes to C++ Support
 - Fixed a crash when parsing the ``enable_if`` attribute on C function declarations with identifier-list parameters. (#GH173826)
 - Fixed an assertion failure triggered by nested lambdas during capture handling. (#GH172814)
 - Fixed an assertion failure in vector conversions involving instantiation-dependent template expressions. (#GH173347)
+- Fixed an issue where recursive instantiation could lead to escape of SFINAE errors. (#GH179118)
 - Fixed an assertion failure in floating conversion narrowing caused by C++ constant expression checks in C23 mode. (#GH173847)
 
 Bug Fixes to AST Handling
@@ -912,6 +913,9 @@ Crash and bug fixes
   checked arithmetic builtin functions. (#GH173795)
 - Fixed a crash introduced in clang-20 when analyzing some "swap" functions.
   (#GH178797)
+- Fixed a crash introduced in clang-20 in the ``unix.Malloc`` checker when
+  analyzing functions that had both of the ``ownership_returns`` and
+  ``ownership_takes`` attributes. (#GH183344)
 
 Improvements
 ^^^^^^^^^^^^

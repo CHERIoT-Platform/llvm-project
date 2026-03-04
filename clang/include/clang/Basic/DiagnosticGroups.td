@@ -1888,6 +1888,9 @@ def HLSLMixPackOffset : DiagGroup<"mix-packoffset">;
 // Warning for implicit resource bindings.
 def HLSLImplicitBinding : DiagGroup<"hlsl-implicit-binding">;
 
+// Warning for explicit resource bindings.
+def HLSLExplicitBinding : DiagGroup<"hlsl-explicit-binding">;
+
 // Warnings for DXIL validation
 def DXILValidation : DiagGroup<"dxil-validation">;
 

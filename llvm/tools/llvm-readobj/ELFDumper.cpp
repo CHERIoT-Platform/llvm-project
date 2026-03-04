@@ -2035,11 +2035,11 @@ void ELFDumper<ELFT>::loadDynamicTable() {
     if (!IsSecTableValid)
       reportUniqueWarning(
           "SHT_DYNAMIC dynamic table is invalid: PT_DYNAMIC will be used");
-    DynamicTable = FromPhdr;
+    DynamicTable = std::move(FromPhdr);
   } else {
     reportUniqueWarning(
         "PT_DYNAMIC dynamic table is invalid: SHT_DYNAMIC will be used");
-    DynamicTable = FromSec;
+    DynamicTable = std::move(FromSec);
   }
 
   parseDynamicTable();
@@ -2318,7 +2318,7 @@ template <typename ELFT> void ELFDumper<ELFT>::parseDynamicTable() {
   // without worrying about tag order.
   if (DynSymFromTable) {
     if (!DynSymRegion) {
-      DynSymRegion = DynSymFromTable;
+      DynSymRegion = std::move(DynSymFromTable);
     } else {
       DynSymRegion->Addr = DynSymFromTable->Addr;
       DynSymRegion->EntSize = DynSymFromTable->EntSize;

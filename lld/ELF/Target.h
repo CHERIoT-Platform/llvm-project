@@ -32,6 +32,8 @@ class TargetInfo {
 public:
   TargetInfo(Ctx &ctx) : ctx(ctx) {}
   virtual uint32_t calcEFlags() const { return 0; }
+  // Create target-specific synthetic sections, defined in Arch/ files.
+  virtual void initTargetSpecificSections() {}
   virtual int getCapabilitySize() const { return 0; }
   virtual uint64_t getCheriRequiredAlignment(uint64_t len) const;
   virtual RelExpr getRelExpr(RelType type, const Symbol &s,
@@ -247,6 +249,8 @@ uint64_t getMipsPageAddr(uint64_t addr);
 bool isMipsN32Abi(Ctx &, const InputFile &f);
 bool isMicroMips(Ctx &);
 bool isMipsR6(Ctx &);
+
+std::optional<unsigned> getMipsCheriAbiVariant(Ctx&, const SyntheticSection& sec);
 
 void writePPC32GlinkSection(Ctx &, uint8_t *buf, size_t numEntries);
 

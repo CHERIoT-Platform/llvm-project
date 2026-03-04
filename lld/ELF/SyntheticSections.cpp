@@ -91,185 +91,6 @@ MergeInputSection *elf::createCommentSection(Ctx &ctx) {
   return sec;
 }
 
-// .MIPS.abiflags section.
-template <class ELFT>
-MipsAbiFlagsSection<ELFT>::MipsAbiFlagsSection(Ctx &ctx,
-                                               Elf_Mips_ABIFlags flags)
-    : SyntheticSection(ctx, ".MIPS.abiflags", SHT_MIPS_ABIFLAGS, SHF_ALLOC, 8),
-      flags(flags) {
-  this->entsize = sizeof(Elf_Mips_ABIFlags);
-}
-
-template <class ELFT> void MipsAbiFlagsSection<ELFT>::writeTo(uint8_t *buf) {
-  memcpy(buf, &flags, sizeof(flags));
-}
-
-template <class ELFT>
-std::unique_ptr<MipsAbiFlagsSection<ELFT>>
-MipsAbiFlagsSection<ELFT>::create(Ctx &ctx) {
-  Elf_Mips_ABIFlags flags = {};
-  bool create = false;
-
-  std::string lastFile = "<internal>";
-  for (InputSectionBase *sec : ctx.inputSections) {
-    if (sec->type != SHT_MIPS_ABIFLAGS)
-      continue;
-    sec->markDead();
-    create = true;
-
-    std::string filename = toStr(ctx, sec->file);
-    const size_t size = sec->content().size();
-    // Older version of BFD (such as the default FreeBSD linker) concatenate
-    // .MIPS.abiflags instead of merging. To allow for this case (or potential
-    // zero padding) we ignore everything after the first Elf_Mips_ABIFlags
-    if (size < sizeof(Elf_Mips_ABIFlags)) {
-      Err(ctx) << sec->file << ": invalid size of .MIPS.abiflags section: got "
-               << size << " instead of " << sizeof(Elf_Mips_ABIFlags);
-      return nullptr;
-    }
-    auto *s =
-        reinterpret_cast<const Elf_Mips_ABIFlags *>(sec->content().data());
-    if (s->version != 0) {
-      Err(ctx) << sec->file << ": unexpected .MIPS.abiflags version "
-               << s->version;
-      return nullptr;
-    }
-    if (size > sizeof(Elf_Mips_ABIFlags)) {
-      warn(filename + ": .MIPS.abiflags section has multiple entries: got " +
-          Twine(size) + " instead of " + Twine(sizeof(Elf_Mips_ABIFlags)) +
-          " bytes");
-    }
-
-    // LLD checks ISA compatibility in calcMipsEFlags(). Here we just
-    // select the highest number of ISA/Rev/Ext.
-    flags.isa_level = std::max(flags.isa_level, s->isa_level);
-    flags.isa_rev = std::max(flags.isa_rev, s->isa_rev);
-    flags.isa_ext =
-        elf::getMipsIsaExt(flags.isa_ext, lastFile, s->isa_ext, filename);
-    flags.gpr_size = std::max(flags.gpr_size, s->gpr_size);
-    flags.cpr1_size = std::max(flags.cpr1_size, s->cpr1_size);
-    flags.cpr2_size = std::max(flags.cpr2_size, s->cpr2_size);
-    flags.ases |= s->ases;
-    flags.flags1 |= s->flags1;
-    flags.flags2 |= s->flags2;
-    flags.fp_abi =
-        elf::getMipsFpAbiFlag(ctx, sec->file, flags.fp_abi, s->fp_abi);
-    lastFile = std::move(filename);
-  };
-
-  if (create)
-    return std::make_unique<MipsAbiFlagsSection<ELFT>>(ctx, flags);
-  return nullptr;
-}
-
-// .MIPS.options section.
-template <class ELFT>
-MipsOptionsSection<ELFT>::MipsOptionsSection(Ctx &ctx, Elf_Mips_RegInfo reginfo)
-    : SyntheticSection(ctx, ".MIPS.options", SHT_MIPS_OPTIONS, SHF_ALLOC, 8),
-      reginfo(reginfo) {
-  this->entsize = sizeof(Elf_Mips_Options) + sizeof(Elf_Mips_RegInfo);
-}
-
-template <class ELFT> void MipsOptionsSection<ELFT>::writeTo(uint8_t *buf) {
-  auto *options = reinterpret_cast<Elf_Mips_Options *>(buf);
-  options->kind = ODK_REGINFO;
-  options->size = getSize();
-
-  if (!ctx.arg.relocatable)
-    reginfo.ri_gp_value = ctx.in.mipsGot->getGp();
-  memcpy(buf + sizeof(Elf_Mips_Options), &reginfo, sizeof(reginfo));
-}
-
-template <class ELFT>
-std::unique_ptr<MipsOptionsSection<ELFT>>
-MipsOptionsSection<ELFT>::create(Ctx &ctx) {
-  // N64 ABI only.
-  if (!ELFT::Is64Bits)
-    return nullptr;
-
-  SmallVector<InputSectionBase *, 0> sections;
-  for (InputSectionBase *sec : ctx.inputSections)
-    if (sec->type == SHT_MIPS_OPTIONS)
-      sections.push_back(sec);
-
-  if (sections.empty())
-    return nullptr;
-
-  Elf_Mips_RegInfo reginfo = {};
-  for (InputSectionBase *sec : sections) {
-    sec->markDead();
-
-    ArrayRef<uint8_t> d = sec->content();
-    while (!d.empty()) {
-      if (d.size() < sizeof(Elf_Mips_Options)) {
-        Err(ctx) << sec->file << ": invalid size of .MIPS.options section";
-        break;
-      }
-
-      auto *opt = reinterpret_cast<const Elf_Mips_Options *>(d.data());
-      if (opt->kind == ODK_REGINFO) {
-        reginfo.ri_gprmask |= opt->getRegInfo().ri_gprmask;
-        sec->getFile<ELFT>()->mipsGp0 = opt->getRegInfo().ri_gp_value;
-        break;
-      }
-
-      if (!opt->size) {
-        Err(ctx) << sec->file << ": zero option descriptor size";
-        break;
-      }
-      d = d.slice(opt->size);
-    }
-  };
-
-  return std::make_unique<MipsOptionsSection<ELFT>>(ctx, reginfo);
-}
-
-// MIPS .reginfo section.
-template <class ELFT>
-MipsReginfoSection<ELFT>::MipsReginfoSection(Ctx &ctx, Elf_Mips_RegInfo reginfo)
-    : SyntheticSection(ctx, ".reginfo", SHT_MIPS_REGINFO, SHF_ALLOC, 4),
-      reginfo(reginfo) {
-  this->entsize = sizeof(Elf_Mips_RegInfo);
-}
-
-template <class ELFT> void MipsReginfoSection<ELFT>::writeTo(uint8_t *buf) {
-  if (!ctx.arg.relocatable)
-    reginfo.ri_gp_value = ctx.in.mipsGot->getGp();
-  memcpy(buf, &reginfo, sizeof(reginfo));
-}
-
-template <class ELFT>
-std::unique_ptr<MipsReginfoSection<ELFT>>
-MipsReginfoSection<ELFT>::create(Ctx &ctx) {
-  // Section should be alive for O32 and N32 ABIs only.
-  if (ELFT::Is64Bits)
-    return nullptr;
-
-  SmallVector<InputSectionBase *, 0> sections;
-  for (InputSectionBase *sec : ctx.inputSections)
-    if (sec->type == SHT_MIPS_REGINFO)
-      sections.push_back(sec);
-
-  if (sections.empty())
-    return nullptr;
-
-  Elf_Mips_RegInfo reginfo = {};
-  for (InputSectionBase *sec : sections) {
-    sec->markDead();
-
-    if (sec->content().size() != sizeof(Elf_Mips_RegInfo)) {
-      Err(ctx) << sec->file << ": invalid size of .reginfo section";
-      return nullptr;
-    }
-
-    auto *r = reinterpret_cast<const Elf_Mips_RegInfo *>(sec->content().data());
-    reginfo.ri_gprmask |= r->ri_gprmask;
-    sec->getFile<ELFT>()->mipsGp0 = r->ri_gp_value;
-  };
-
-  return std::make_unique<MipsReginfoSection<ELFT>>(ctx, reginfo);
-}
-
 InputSection *elf::createInterpSection(Ctx &ctx) {
   // StringSaver guarantees that the returned string ends with '\0'.
   StringRef s = ctx.saver.save(ctx.arg.dynamicLinker);
@@ -1676,9 +1497,7 @@ DynamicSection<ELFT>::computeContents() {
     uint64_t targetCheriFlags = 0;
     if (ctx.arg.isCheriAbi) {
       if (ctx.in.mipsAbiFlags)
-        if (auto abi =
-                static_cast<MipsAbiFlagsSection<ELFT> &>(*ctx.in.mipsAbiFlags)
-                    .getCheriAbiVariant())
+        if (auto abi = elf::getMipsCheriAbiVariant(ctx, *ctx.in.mipsAbiFlags))
           targetCheriFlags |= *abi;
       // if (ctx.arg.CapTableScope != CapTableScopePolicy::All)
       // Add the captable scope to the CHERI flags:
@@ -4201,10 +4020,6 @@ void elf::combineEhSections(Ctx &ctx) {
   });
 }
 
-MipsRldMapSection::MipsRldMapSection(Ctx &ctx)
-    : SyntheticSection(ctx, ".rld_map", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE,
-                       ctx.arg.wordsize) {}
-
 ARMExidxSyntheticSection::ARMExidxSyntheticSection(Ctx &ctx)
     : SyntheticSection(ctx, ".ARM.exidx", SHT_ARM_EXIDX,
                        SHF_ALLOC | SHF_LINK_ORDER, ctx.arg.wordsize) {}
@@ -4480,35 +4295,6 @@ bool ThunkSection::assignOffsets() {
     changed = true;
   size = off;
   return changed;
-}
-
-PPC32Got2Section::PPC32Got2Section(Ctx &ctx)
-    : SyntheticSection(ctx, ".got2", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE, 4) {}
-
-bool PPC32Got2Section::isNeeded() const {
-  // See the comment below. This is not needed if there is no other
-  // InputSection.
-  for (SectionCommand *cmd : getParent()->commands)
-    if (auto *isd = dyn_cast<InputSectionDescription>(cmd))
-      for (InputSection *isec : isd->sections)
-        if (isec != this)
-          return true;
-  return false;
-}
-
-void PPC32Got2Section::finalizeContents() {
-  // PPC32 may create multiple GOT sections for -fPIC/-fPIE, one per file in
-  // .got2 . This function computes outSecOff of each .got2 to be used in
-  // PPC32PltCallStub::writeTo(). The purpose of this empty synthetic section is
-  // to collect input sections named ".got2".
-  for (SectionCommand *cmd : getParent()->commands)
-    if (auto *isd = dyn_cast<InputSectionDescription>(cmd)) {
-      for (InputSection *isec : isd->sections) {
-        // isec->file may be nullptr for MergeSyntheticSection.
-        if (isec != this && isec->file)
-          isec->file->ppc32Got2 = isec;
-      }
-    }
 }
 
 // If linking position-dependent code then the table will store the addresses
@@ -4895,32 +4681,7 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
       ctx, hasDataRelRo ? ".data.rel.ro.bss" : ".bss.rel.ro", 0, 1);
   add(*ctx.in.bssRelRo);
 
-  if (ctx.arg.capabilitySize > 0) {
-    if (ctx.arg.emachine == EM_MIPS) {
-      ctx.in.mipsCheriCapTable =
-          std::make_unique<MipsCheriCapTableSection>(ctx);
-      add(*ctx.in.mipsCheriCapTable);
-      if (ctx.arg.capTableScope != CapTableScopePolicy::All) {
-        ctx.in.mipsCheriCapTableMapping =
-            std::make_unique<MipsCheriCapTableMappingSection>(ctx);
-        add(*ctx.in.mipsCheriCapTableMapping);
-      }
-    }
-  }
-
-  // Add MIPS-specific sections.
-  if (ctx.arg.emachine == EM_MIPS) {
-    if (!ctx.arg.shared && ctx.hasDynsym) {
-      ctx.in.mipsRldMap = std::make_unique<MipsRldMapSection>(ctx);
-      add(*ctx.in.mipsRldMap);
-    }
-    if ((ctx.in.mipsAbiFlags = MipsAbiFlagsSection<ELFT>::create(ctx)))
-      add(*ctx.in.mipsAbiFlags);
-    if ((ctx.in.mipsOptions = MipsOptionsSection<ELFT>::create(ctx)))
-      add(*ctx.in.mipsOptions);
-    if ((ctx.in.mipsReginfo = MipsReginfoSection<ELFT>::create(ctx)))
-      add(*ctx.in.mipsReginfo);
-  }
+  ctx.target->initTargetSpecificSections();
 
   StringRef relaDynName = ctx.arg.isRela ? ".rela.dyn" : ".rel.dyn";
 
@@ -5059,17 +4820,6 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
     add(*ctx.in.got);
   }
 
-  if (ctx.arg.emachine == EM_PPC) {
-    ctx.in.ppc32Got2 = std::make_unique<PPC32Got2Section>(ctx);
-    add(*ctx.in.ppc32Got2);
-  }
-
-  if (ctx.arg.emachine == EM_PPC64) {
-    ctx.in.ppc64LongBranchTarget =
-        std::make_unique<PPC64LongBranchTargetSection>(ctx);
-    add(*ctx.in.ppc64LongBranchTarget);
-  }
-
   ctx.in.gotPlt = std::make_unique<GotPltSection>(ctx);
   add(*ctx.in.gotPlt);
   ctx.in.igotPlt = std::make_unique<IgotPltSection>(ctx);
@@ -5084,11 +4834,6 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
        ctx.script->seenRelroEnd)) {
     ctx.in.relroPadding = std::make_unique<RelroPaddingSection>(ctx);
     add(*ctx.in.relroPadding);
-  }
-
-  if (ctx.arg.emachine == EM_ARM) {
-    ctx.in.armCmseSGSection = std::make_unique<ArmCmseSGSection>(ctx);
-    add(*ctx.in.armCmseSGSection);
   }
 
   // _GLOBAL_OFFSET_TABLE_ is defined relative to either .got.plt or .got. Treat
@@ -5115,12 +4860,6 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
   if (ctx.arg.isCheriAbi)
     ctx.in.tgotCapRelocs =
         std::make_unique<CheriCapRelocsSection>(ctx, "__tgot_cap_relocs");
-
-  if ((ctx.arg.emachine == EM_386 || ctx.arg.emachine == EM_X86_64) &&
-      (ctx.arg.andFeatures & GNU_PROPERTY_X86_FEATURE_1_IBT)) {
-    ctx.in.ibtPlt = std::make_unique<IBTPltSection>(ctx);
-    add(*ctx.in.ibtPlt);
-  }
 
   if (ctx.arg.emachine == EM_PPC)
     ctx.in.plt = std::make_unique<PPC32GlinkSection>(ctx);

@@ -17,10 +17,10 @@ void func1(void **p) {
   __atomic_exchange(p, &res, &res2, 5); // libcalls-warning{{large atomic operation may incur significant performance penalty}}
   __atomic_compare_exchange(p, &res, &res2, 0, 5, 5); // libcalls-warning{{large atomic operation may incur significant performance penalty}}
 
-  // HYBRID: load atomic i64, ptr {{%.+}} seq_cst, align 8
-  // HYBRID: store atomic i64 {{%.+}}, ptr {{%.+}} seq_cst, align 8
-  // HYBRID: atomicrmw xchg ptr %{{.+}}, i64 %{{.+}} seq_cst
-  // HYBRID: cmpxchg ptr %{{.+}}, i64 %{{.+}}, i64 %{{.+}} seq_cst seq_cst
+  // HYBRID: load atomic ptr, ptr {{%.+}} seq_cst, align 8
+  // HYBRID: store atomic ptr {{%.+}}, ptr {{%.+}} seq_cst, align 8
+  // HYBRID: atomicrmw xchg ptr %{{.+}}, ptr %{{.+}} seq_cst
+  // HYBRID: cmpxchg ptr %{{.+}}, ptr %{{.+}}, ptr %{{.+}} seq_cst seq_cst
 
   // PURECAP: load atomic ptr addrspace(200), ptr addrspace(200) {{%.+}} seq_cst
   // PURECAP: store atomic ptr addrspace(200) {{%.+}}, ptr addrspace(200) {{%.+}} seq_cst

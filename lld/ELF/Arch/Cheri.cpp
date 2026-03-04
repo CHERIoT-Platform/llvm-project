@@ -32,12 +32,6 @@ bool hasDynamicLinker(Ctx &ctx) {
   return ctx.arg.shared || ctx.arg.pie || !ctx.sharedFiles.empty();
 }
 
-template <typename ELFT>
-static void getMipsCheriAbiVariant(std::optional<unsigned> &abi,
-                                   SyntheticSection &sec) {
-  abi = static_cast<MipsAbiFlagsSection<ELFT> &>(sec).getCheriAbiVariant();
-}
-
 static bool isCheriMipsTrampolineAbi(Ctx &ctx) {
   if (ctx.arg.emachine != EM_MIPS)
     return false;
@@ -45,10 +39,9 @@ static bool isCheriMipsTrampolineAbi(Ctx &ctx) {
   if (!ctx.in.mipsAbiFlags)
     return false;
 
-  std::optional<unsigned> abi;
-  invokeELFT(getMipsCheriAbiVariant, abi, *ctx.in.mipsAbiFlags);
-  if (!abi)
-    return false;
+  std::optional<unsigned> abi =
+      elf::getMipsCheriAbiVariant(ctx, *ctx.in.mipsAbiFlags);
+  if (!abi) return false;
 
   if (*abi != DF_MIPS_CHERI_ABI_PLT && *abi != DF_MIPS_CHERI_ABI_FNDESC)
     return false;

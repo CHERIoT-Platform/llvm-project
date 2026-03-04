@@ -11,7 +11,7 @@ using namespace llvm;
 using namespace VNCoercion;
 
 static bool isFirstClassAggregateOrScalableType(Type *Ty) {
-  return Ty->isStructTy() || Ty->isArrayTy() || isa<ScalableVectorType>(Ty);
+  return Ty->isStructTy() || Ty->isArrayTy() || Ty->isScalableTy();
 }
 
 /// Return true if coerceAvailableValueToLoadType will succeed.

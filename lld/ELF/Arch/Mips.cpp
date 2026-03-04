@@ -26,6 +26,7 @@ template <class ELFT> class MIPS final : public TargetInfo {
 public:
   MIPS(Ctx &);
   uint32_t calcEFlags() const override;
+  void initTargetSpecificSections() override;
   int getCapabilitySize() const override;
   uint64_t getCheriRequiredAlignment(uint64_t len) const override;
   RelExpr getRelExpr(RelType type, const Symbol &s,
@@ -45,6 +46,72 @@ public:
   void relocate(uint8_t *loc, const Relocation &rel,
                 uint64_t val) const override;
   bool usesOnlyLowPageBits(RelType type) const override;
+};
+
+// This is a MIPS specific section to hold a space within the data segment
+// of executable file which is pointed to by the DT_MIPS_RLD_MAP entry.
+// See "Dynamic section" in Chapter 5 in the following document:
+// ftp://www.linux-mips.org/pub/linux/mips/doc/ABI/mipsabi.pdf
+struct RldMapSection : SyntheticSection {
+  RldMapSection(Ctx &ctx)
+      : SyntheticSection(ctx, ".rld_map", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE,
+                         ctx.arg.wordsize) {}
+  size_t getSize() const override { return ctx.arg.wordsize; }
+  void writeTo(uint8_t *buf) override {}
+};
+
+template <class ELFT> struct AbiFlagsSection : SyntheticSection {
+  using Elf_Mips_ABIFlags = llvm::object::Elf_Mips_ABIFlags<ELFT>;
+  AbiFlagsSection(Ctx &ctx);
+  bool isNeeded() const override { return needed; }
+  size_t getSize() const override { return sizeof(Elf_Mips_ABIFlags); }
+  void writeTo(uint8_t *buf) override { memcpy(buf, &flags, sizeof(flags)); }
+  Elf_Mips_ABIFlags flags = {};
+  bool needed = false;
+
+  std::optional<unsigned> getCheriAbiVariant() const {
+    auto cheriAbiVariant = flags.isa_ext & llvm::Mips::AFL_EXT_CHERI_ABI_MASK;
+    if (!cheriAbiVariant) {
+      warn("Linking old object files without CheriABI variant flag.");
+      return std::nullopt;
+    }
+    switch (cheriAbiVariant) {
+    case llvm::Mips::AFL_EXT_CHERI_ABI_LEGACY:
+      return llvm::ELF::DF_MIPS_CHERI_ABI_LEGACY;
+    case llvm::Mips::AFL_EXT_CHERI_ABI_PCREL:
+      return llvm::ELF::DF_MIPS_CHERI_ABI_PCREL;
+    case llvm::Mips::AFL_EXT_CHERI_ABI_PLT:
+      return llvm::ELF::DF_MIPS_CHERI_ABI_PLT;
+    case llvm::Mips::AFL_EXT_CHERI_ABI_FNDESC:
+      return llvm::ELF::DF_MIPS_CHERI_ABI_FNDESC;
+    default:
+      error("Unknown CHERI ABI variant " + Twine(cheriAbiVariant));
+      return std::nullopt;
+    }
+  }
+};
+
+template <class ELFT> struct OptionsSection : SyntheticSection {
+  using Elf_Mips_Options = llvm::object::Elf_Mips_Options<ELFT>;
+  using Elf_Mips_RegInfo = llvm::object::Elf_Mips_RegInfo<ELFT>;
+  OptionsSection(Ctx &ctx);
+  bool isNeeded() const override { return needed; }
+  size_t getSize() const override {
+    return sizeof(Elf_Mips_Options) + sizeof(Elf_Mips_RegInfo);
+  }
+  void writeTo(uint8_t *buf) override;
+  Elf_Mips_RegInfo reginfo = {};
+  bool needed = false;
+};
+
+template <class ELFT> struct ReginfoSection : SyntheticSection {
+  using Elf_Mips_RegInfo = llvm::object::Elf_Mips_RegInfo<ELFT>;
+  ReginfoSection(Ctx &ctx);
+  bool isNeeded() const override { return needed; }
+  size_t getSize() const override { return sizeof(Elf_Mips_RegInfo); }
+  void writeTo(uint8_t *buf) override;
+  Elf_Mips_RegInfo reginfo = {};
+  bool needed = false;
 };
 } // namespace
 
@@ -87,6 +154,32 @@ template <class ELFT> MIPS<ELFT>::MIPS(Ctx &ctx) : TargetInfo(ctx) {
 
 template <class ELFT> uint32_t MIPS<ELFT>::calcEFlags() const {
   return calcMipsEFlags<ELFT>(ctx);
+}
+
+template <class ELFT> void MIPS<ELFT>::initTargetSpecificSections() {
+  if (ctx.arg.capabilitySize > 0) {
+    if (ctx.arg.emachine == EM_MIPS) {
+      ctx.in.mipsCheriCapTable =
+          std::make_unique<MipsCheriCapTableSection>(ctx);
+      ctx.inputSections.push_back(ctx.in.mipsCheriCapTable.get());
+      if (ctx.arg.capTableScope != CapTableScopePolicy::All) {
+        ctx.in.mipsCheriCapTableMapping =
+            std::make_unique<MipsCheriCapTableMappingSection>(ctx);
+        ctx.inputSections.push_back(ctx.in.mipsCheriCapTableMapping.get());
+      }
+    }
+  }
+
+  if (!ctx.arg.shared && ctx.hasDynsym) {
+    ctx.in.mipsRldMap = std::make_unique<RldMapSection>(ctx);
+    ctx.inputSections.push_back(ctx.in.mipsRldMap.get());
+  }
+  ctx.in.mipsAbiFlags = std::make_unique<AbiFlagsSection<ELFT>>(ctx);
+  ctx.inputSections.push_back(ctx.in.mipsAbiFlags.get());
+  ctx.in.mipsOptions = std::make_unique<OptionsSection<ELFT>>(ctx);
+  ctx.inputSections.push_back(ctx.in.mipsOptions.get());
+  ctx.in.mipsReginfo = std::make_unique<ReginfoSection<ELFT>>(ctx);
+  ctx.inputSections.push_back(ctx.in.mipsReginfo.get());
 }
 
 template <class ELFT> int MIPS<ELFT>::getCapabilitySize() const {
@@ -1009,6 +1102,140 @@ template <class ELFT> bool elf::isMipsPIC(const Defined *sym) {
   return cast<ObjFile<ELFT>>(file)->getObj().getHeader().e_flags & EF_MIPS_PIC;
 }
 
+template <class ELFT>
+AbiFlagsSection<ELFT>::AbiFlagsSection(Ctx &ctx)
+    : SyntheticSection(ctx, ".MIPS.abiflags", SHT_MIPS_ABIFLAGS, SHF_ALLOC, 8) {
+  this->entsize = sizeof(Elf_Mips_ABIFlags);
+
+  std::string lastFile = "<internal>";
+  for (InputSectionBase *sec : ctx.inputSections) {
+    if (sec->type != SHT_MIPS_ABIFLAGS)
+      continue;
+    sec->markDead();
+    needed = true;
+
+    std::string filename = toStr(ctx, sec->file);
+    const size_t size = sec->content().size();
+    // Older version of BFD (such as the default FreeBSD linker) concatenate
+    // .MIPS.abiflags instead of merging. To allow for this case (or potential
+    // zero padding) we ignore everything after the first Elf_Mips_ABIFlags
+    if (size < sizeof(Elf_Mips_ABIFlags)) {
+      Err(ctx) << sec->file << ": invalid size of .MIPS.abiflags section: got "
+               << size << " instead of " << sizeof(Elf_Mips_ABIFlags);
+      return;
+    }
+    auto *s =
+        reinterpret_cast<const Elf_Mips_ABIFlags *>(sec->content().data());
+    if (s->version != 0) {
+      Err(ctx) << sec->file << ": unexpected .MIPS.abiflags version "
+               << s->version;
+      return;
+    }
+
+    if (size > sizeof(Elf_Mips_ABIFlags)) {
+      warn(filename + ": .MIPS.abiflags section has multiple entries: got " +
+          Twine(size) + " instead of " + Twine(sizeof(Elf_Mips_ABIFlags)) +
+          " bytes");
+    }
+
+    // LLD checks ISA compatibility in calcMipsEFlags(). Here we just
+    // select the highest number of ISA/Rev/Ext.
+    flags.isa_level = std::max(flags.isa_level, s->isa_level);
+    flags.isa_rev = std::max(flags.isa_rev, s->isa_rev);
+    flags.isa_ext =
+        elf::getMipsIsaExt(flags.isa_ext, lastFile, s->isa_ext, filename);
+    flags.gpr_size = std::max(flags.gpr_size, s->gpr_size);
+    flags.cpr1_size = std::max(flags.cpr1_size, s->cpr1_size);
+    flags.cpr2_size = std::max(flags.cpr2_size, s->cpr2_size);
+    flags.ases |= s->ases;
+    flags.flags1 |= s->flags1;
+    flags.flags2 |= s->flags2;
+    flags.fp_abi =
+        elf::getMipsFpAbiFlag(ctx, sec->file, flags.fp_abi, s->fp_abi);
+    lastFile = std::move(filename);
+  }
+}
+
+template <class ELFT>
+OptionsSection<ELFT>::OptionsSection(Ctx &ctx)
+    : SyntheticSection(ctx, ".MIPS.options", SHT_MIPS_OPTIONS, SHF_ALLOC, 8) {
+  this->entsize = sizeof(Elf_Mips_Options) + sizeof(Elf_Mips_RegInfo);
+
+  // N64 ABI only.
+  if (!ELFT::Is64Bits)
+    return;
+
+  for (InputSectionBase *sec : ctx.inputSections) {
+    if (sec->type != SHT_MIPS_OPTIONS)
+      continue;
+    sec->markDead();
+    needed = true;
+
+    ArrayRef<uint8_t> d = sec->content();
+    while (!d.empty()) {
+      if (d.size() < sizeof(Elf_Mips_Options)) {
+        Err(ctx) << sec->file << ": invalid size of .MIPS.options section";
+        break;
+      }
+
+      auto *opt = reinterpret_cast<const Elf_Mips_Options *>(d.data());
+      if (opt->kind == ODK_REGINFO) {
+        reginfo.ri_gprmask |= opt->getRegInfo().ri_gprmask;
+        sec->getFile<ELFT>()->mipsGp0 = opt->getRegInfo().ri_gp_value;
+        break;
+      }
+
+      if (!opt->size) {
+        Err(ctx) << sec->file << ": zero option descriptor size";
+        break;
+      }
+      d = d.slice(opt->size);
+    }
+  }
+}
+
+template <class ELFT> void OptionsSection<ELFT>::writeTo(uint8_t *buf) {
+  auto *options = reinterpret_cast<Elf_Mips_Options *>(buf);
+  options->kind = ODK_REGINFO;
+  options->size = getSize();
+
+  if (!ctx.arg.relocatable)
+    reginfo.ri_gp_value = ctx.in.mipsGot->getGp();
+  memcpy(buf + sizeof(Elf_Mips_Options), &reginfo, sizeof(reginfo));
+}
+
+template <class ELFT>
+ReginfoSection<ELFT>::ReginfoSection(Ctx &ctx)
+    : SyntheticSection(ctx, ".reginfo", SHT_MIPS_REGINFO, SHF_ALLOC, 4) {
+  this->entsize = sizeof(Elf_Mips_RegInfo);
+
+  // Section should be alive for O32 and N32 ABIs only.
+  if (ELFT::Is64Bits)
+    return;
+
+  for (InputSectionBase *sec : ctx.inputSections) {
+    if (sec->type != SHT_MIPS_REGINFO)
+      continue;
+    sec->markDead();
+    needed = true;
+
+    if (sec->content().size() != sizeof(Elf_Mips_RegInfo)) {
+      Err(ctx) << sec->file << ": invalid size of .reginfo section";
+      return;
+    }
+
+    auto *r = reinterpret_cast<const Elf_Mips_RegInfo *>(sec->content().data());
+    reginfo.ri_gprmask |= r->ri_gprmask;
+    sec->getFile<ELFT>()->mipsGp0 = r->ri_gp_value;
+  }
+}
+
+template <class ELFT> void ReginfoSection<ELFT>::writeTo(uint8_t *buf) {
+  if (!ctx.arg.relocatable)
+    reginfo.ri_gp_value = ctx.in.mipsGot->getGp();
+  memcpy(buf, &reginfo, sizeof(reginfo));
+}
+
 void elf::setMipsTargetInfo(Ctx &ctx) {
   switch (ctx.arg.ekind) {
   case ELF32LEKind: {
@@ -1036,3 +1263,16 @@ template bool elf::isMipsPIC<ELF32LE>(const Defined *);
 template bool elf::isMipsPIC<ELF32BE>(const Defined *);
 template bool elf::isMipsPIC<ELF64LE>(const Defined *);
 template bool elf::isMipsPIC<ELF64BE>(const Defined *);
+
+template <typename ELFT>
+void getMipsCheriAbiHelper(std::optional<unsigned>& abi,
+                           const SyntheticSection& sec) {
+  abi = static_cast<const AbiFlagsSection<ELFT>&>(sec).getCheriAbiVariant();
+}
+
+std::optional<unsigned> elf::getMipsCheriAbiVariant(
+    Ctx& ctx, const SyntheticSection& sec) {
+  std::optional<unsigned> ret;
+  invokeELFT(getMipsCheriAbiHelper, ret, sec);
+  return ret;
+}

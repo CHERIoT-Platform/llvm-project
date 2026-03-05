@@ -63,9 +63,7 @@ int main() {
 // STATIC: attributes #[[ATTR0]] = { mustprogress noinline norecurse nounwind optnone "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheri128" "target-features"="+cheri128,+chericap" }
 // STATIC: attributes #[[ATTR1:[0-9]+]] = { "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheri128" "target-features"="+cheri128,+chericap" }
 //.
-// CHECK: [[META0:![0-9]+]] = !{i32 1, !"wchar_size", i32 4}
-// CHECK: [[META1:![0-9]+]] = !{!"{{.*}}clang version {{.*}}"}
+// CHECK: [[META0:![0-9]+]] = !{!"{{.*}}clang version {{.*}}"}
 //.
-// STATIC: [[META0:![0-9]+]] = !{i32 1, !"wchar_size", i32 4}
-// STATIC: [[META1:![0-9]+]] = !{!"{{.*}}clang version {{.*}}"}
+// STATIC: [[META0:![0-9]+]] = !{!"{{.*}}clang version {{.*}}"}
 //.

@@ -31,7 +31,7 @@ void *baz(void*, void*);
 // CHECK-NEXT:    store ptr [[B]], ptr [[B_ADDR]], align 8
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr, ptr [[A_ADDR]], align 8
 // CHECK-NEXT:    [[TMP1:%.*]] = load ptr, ptr [[B_ADDR]], align 8
-// CHECK-NEXT:    [[TMP2:%.*]] = load i64, ptr @__cheri_method.def.baz, align 8, !invariant.load !2
+// CHECK-NEXT:    [[TMP2:%.*]] = load i64, ptr @__cheri_method.def.baz, align 8, !invariant.load [[META1:![0-9]+]]
 // CHECK-NEXT:    [[TMP3:%.*]] = load ptr addrspace(200), ptr @def, align 16
 // CHECK-NEXT:    [[TMP4:%.*]] = load ptr addrspace(200), ptr getelementptr inbounds nuw ([[STRUCT_CHERI_CLASS:%.*]], ptr @def, i32 0, i32 1), align 16
 // CHECK-NEXT:    [[CALL:%.*]] = call cheriot_compartmentcallcc ptr @cheri_invoke(ptr addrspace(200) noundef [[TMP3]], ptr addrspace(200) noundef [[TMP4]], i64 noundef zeroext [[TMP2]], ptr noundef [[TMP0]], ptr noundef [[TMP1]])
@@ -39,7 +39,7 @@ void *baz(void*, void*);
 // CHECK-NEXT:    [[TMP6:%.*]] = addrspacecast ptr [[TMP5]] to ptr addrspace(200)
 // CHECK-NEXT:    [[TMP7:%.*]] = load ptr, ptr [[B_ADDR]], align 8
 // CHECK-NEXT:    [[TMP8:%.*]] = addrspacecast ptr [[TMP7]] to ptr addrspace(200)
-// CHECK-NEXT:    [[TMP9:%.*]] = load i64, ptr @__cheri_method.def.foo, align 8, !invariant.load !2
+// CHECK-NEXT:    [[TMP9:%.*]] = load i64, ptr @__cheri_method.def.foo, align 8, !invariant.load [[META1]]
 // CHECK-NEXT:    [[TMP10:%.*]] = load ptr addrspace(200), ptr @def, align 16
 // CHECK-NEXT:    [[TMP11:%.*]] = load ptr addrspace(200), ptr getelementptr inbounds nuw ([[STRUCT_CHERI_CLASS]], ptr @def, i32 0, i32 1), align 16
 // CHECK-NEXT:    [[CALL1:%.*]] = call cheriot_compartmentcallcc ptr addrspace(200) @cheri_invoke(ptr addrspace(200) noundef [[TMP10]], ptr addrspace(200) noundef [[TMP11]], i64 noundef zeroext [[TMP9]], ptr addrspace(200) noundef [[TMP6]], ptr addrspace(200) noundef [[TMP8]])

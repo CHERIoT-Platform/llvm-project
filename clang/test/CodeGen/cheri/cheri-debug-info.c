@@ -31,16 +31,16 @@ int foo(int* i) {
 		int j = 3;
 	}
 	return (int)i;
-// CHECK-IR: ret i32 %{{.+}}, !dbg !27
+// CHECK-IR: ret i32 %{{.+}}, !dbg !26
 // Both MIPS and purecap should have the same number of metadata nodes:
-// CHECK-IR: !12 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !3, size: {{64|128|256}})
-// CHECK-IR: !14 = !DILocalVariable(name: "i", arg: 1, scope: !8, file: !9, line: [[#FOO_DECL_LINE:]], type: !12)
+// CHECK-IR: !11 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !3, size: {{64|128|256}})
+// CHECK-IR: !13 = !DILocalVariable(name: "i", arg: 1, scope: !7, file: !8, line: [[#FOO_DECL_LINE:]], type: !11)
 // check that we have both j variables listed:
-// CHECK-IR: !18 = !DILocalVariable(name: "j", scope: !19, file: !9, line: [[#FOO_DECL_LINE + 4]], type: !3)
-// CHECK-IR: !19 = distinct !DILexicalBlock(scope: !17, file: !9, line: [[#FOO_DECL_LINE + 1]], column: 9)
-// CHECK-IR: !22 = !DILocalVariable(name: "j", scope: !23, file: !9, line: [[#FOO_DECL_LINE + 9]], type: !3)
-// CHECK-IR: !23 = distinct !DILexicalBlock(scope: !17, file: !9, line: [[#FOO_DECL_LINE + 6]], column: 7)
-// CHECK-IR: !27 = !DILocation(line: [[#FOO_DECL_LINE + 11]], column: 2, scope: !8)
+// CHECK-IR: !17 = !DILocalVariable(name: "j", scope: !18, file: !8, line: [[#FOO_DECL_LINE + 4]], type: !3)
+// CHECK-IR: !18 = distinct !DILexicalBlock(scope: !16, file: !8, line: [[#FOO_DECL_LINE + 1]], column: 9)
+// CHECK-IR: !21 = !DILocalVariable(name: "j", scope: !22, file: !8, line: [[#FOO_DECL_LINE + 9]], type: !3)
+// CHECK-IR: !22 = distinct !DILexicalBlock(scope: !16, file: !8, line: [[#FOO_DECL_LINE + 6]], column: 7)
+// CHECK-IR: !26 = !DILocation(line: [[#FOO_DECL_LINE + 11]], column: 2, scope: !7)
 }
 
 // Previoulsy llvm-dwarfdump would not handle MIPS relocations for a CHERI triple:

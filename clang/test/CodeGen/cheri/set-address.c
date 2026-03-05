@@ -101,7 +101,7 @@ void *__capability use_builtin_function(void *__capability in, ptraddr_t new_add
 // HYBRID-NEXT:    store i64 [[NEW_ADDR]], ptr [[NEW_ADDR_ADDR]], align 8
 // HYBRID-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr [[IN_ADDR]], align 16
 // HYBRID-NEXT:    [[TMP1:%.*]] = load i64, ptr [[NEW_ADDR_ADDR]], align 8
-// HYBRID-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) asm "csetaddr $0, $1, $2\0A\09", "=C,C,r,~{$1}"(ptr addrspace(200) [[TMP0]], i64 [[TMP1]]) #[[ATTR2:[0-9]+]], !srcloc !2
+// HYBRID-NEXT:    [[TMP2:%.*]] = call ptr addrspace(200) asm "csetaddr $0, $1, $2\0A\09", "=C,C,r,~{$1}"(ptr addrspace(200) [[TMP0]], i64 [[TMP1]]) #[[ATTR2:[0-9]+]], !srcloc !1
 // HYBRID-NEXT:    store ptr addrspace(200) [[TMP2]], ptr [[RESULT]], align 16
 // HYBRID-NEXT:    [[TMP3:%.*]] = load ptr addrspace(200), ptr [[RESULT]], align 16
 // HYBRID-NEXT:    ret ptr addrspace(200) [[TMP3]]
@@ -116,7 +116,7 @@ void *__capability use_builtin_function(void *__capability in, ptraddr_t new_add
 // PURECAP-NEXT:    store i64 [[NEW_ADDR]], ptr addrspace(200) [[NEW_ADDR_ADDR]], align 8
 // PURECAP-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[IN_ADDR]], align 16
 // PURECAP-NEXT:    [[TMP1:%.*]] = load i64, ptr addrspace(200) [[NEW_ADDR_ADDR]], align 8
-// PURECAP-NEXT:    [[TMP2:%.*]] = call addrspace(0) ptr addrspace(200) asm "csetaddr $0, $1, $2\0A\09", "=C,C,r,~{$1}"(ptr addrspace(200) [[TMP0]], i64 [[TMP1]]) #[[ATTR2:[0-9]+]], !srcloc !2
+// PURECAP-NEXT:    [[TMP2:%.*]] = call addrspace(0) ptr addrspace(200) asm "csetaddr $0, $1, $2\0A\09", "=C,C,r,~{$1}"(ptr addrspace(200) [[TMP0]], i64 [[TMP1]]) #[[ATTR2:[0-9]+]], !srcloc !1
 // PURECAP-NEXT:    store ptr addrspace(200) [[TMP2]], ptr addrspace(200) [[RESULT]], align 16
 // PURECAP-NEXT:    [[TMP3:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[RESULT]], align 16
 // PURECAP-NEXT:    ret ptr addrspace(200) [[TMP3]]

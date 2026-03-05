@@ -14,16 +14,16 @@ void b() {
     c();
 }
 
-// NO-STRUCT-PATH: !2 = !{!3, !3, i64 0}
-// NO-STRUCT-PATH: !3 = !{!"int", !4, i64 0}
-// NO-STRUCT-PATH: !4 = !{!"omnipotent char", !5, i64 0}
-// NO-STRUCT-PATH: !5 = !{!"Simple C/C++ TBAA"}
-// NO-STRUCT-PATH: !6 = !{!7, !7, i64 0}
-// NO-STRUCT-PATH: !7 = !{!"long", !4, i64 0}
+// NO-STRUCT-PATH: !1 = !{!2, !2, i64 0}
+// NO-STRUCT-PATH: !2 = !{!"int", !3, i64 0}
+// NO-STRUCT-PATH: !3 = !{!"omnipotent char", !4, i64 0}
+// NO-STRUCT-PATH: !4 = !{!"Simple C/C++ TBAA"}
+// NO-STRUCT-PATH: !5 = !{!6, !6, i64 0}
+// NO-STRUCT-PATH: !6 = !{!"long", !3, i64 0}
 
-// STRUCT-PATH:    !2 = !{!3, !3, i64 0, i64 4}
-// STRUCT-PATH:    !3 = !{!4, i64 4, !"int"}
-// STRUCT-PATH:    !4 = !{!5, i64 1, !"omnipotent char"}
-// STRUCT-PATH:    !5 = !{!"Simple C/C++ TBAA"}
-// STRUCT-PATH:    !6 = !{!7, !7, i64 0, i64 8}
-// STRUCT-PATH:    !7 = !{!4, i64 8, !"long"}
+// STRUCT-PATH:    !1 = !{!2, !2, i64 0, i64 4}
+// STRUCT-PATH:    !2 = !{!3, i64 4, !"int"}
+// STRUCT-PATH:    !3 = !{!4, i64 1, !"omnipotent char"}
+// STRUCT-PATH:    !4 = !{!"Simple C/C++ TBAA"}
+// STRUCT-PATH:    !5 = !{!6, !6, i64 0, i64 8}
+// STRUCT-PATH:    !6 = !{!3, i64 8, !"long"}

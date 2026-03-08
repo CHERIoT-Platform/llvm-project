@@ -5582,7 +5582,7 @@ Address CodeGenFunction::EmitArrayToPointerDecay(const Expr *E,
   if (BaseInfo) *BaseInfo = LV.getBaseInfo();
   if (TBAAInfo) *TBAAInfo = CGM.getTBAAAccessInfo(EltType);
 
-  Addr.withElementType(ConvertTypeForMem(EltType));
+  Addr = Addr.withElementType(ConvertTypeForMem(EltType));
   if (getLangOpts().getCheriBounds() >= LangOptions::CBM_SubObjectsSafe) {
     auto BoundedResult = setCHERIBoundsOnArrayDecay(Addr, E);
     assert(BoundedResult.getType() == Addr.getType());
@@ -5607,18 +5607,19 @@ static const Expr *isSimpleArrayDecayOperand(const Expr *E) {
   return SubExpr;
 }
 
-static Address
-emitArraySubscriptGEP(CodeGenFunction &CGF, Address addr,
-                      ArrayRef<llvm::Value *> indices,
-                      llvm::Type *elementType,
-                      bool inbounds, bool signedIndices,
-                      const Expr *E,
-                      CharUnits align,
-                      const llvm::Twine &name = "arrayidx") {
+static Address maybeTightenCHERIArraySubscriptBase(CodeGenFunction &CGF,
+                                                   Address addr,
+                                                   const Expr *E) {
+  assert(E && "array-subscript CHERI tightening requires an expression");
+
+  if (!CGF.InCheriContainerBoundsEmission &&
+      CGF.getLangOpts().getCheriBounds() < LangOptions::CBM_SubObjectsSafe)
+    return addr;
+
   if (CGF.InCheriContainerBoundsEmission &&
       CGF.AddCheriContainerBoundsInfo.TBR->ContainerAccessExpr == E) {
     addr = tightenCHERIBoundsForContainer(CGF, addr,
-                                         CGF.AddCheriContainerBoundsInfo);
+                                          CGF.AddCheriContainerBoundsInfo);
   }
   if (auto *ASE = dyn_cast<ArraySubscriptExpr>(E)) {
     if (CGF.getLangOpts().getCheriBounds() >= LangOptions::CBM_SubObjectsSafe) {
@@ -5629,47 +5630,58 @@ emitArraySubscriptGEP(CodeGenFunction &CGF, Address addr,
       addr = BoundedResult;
     }
   } else {
-    // For now don't setbounds for OMPArraySectionExpr
+    // For now don't setbounds for OMPArraySectionExpr.
     assert(isa<ArraySectionExpr>(E) && "Called with wrong expr type");
   }
-  if (inbounds) {
-    return CGF.EmitCheckedInBoundsGEP(addr, indices, elementType, signedIndices,
-                                      CodeGenFunction::NotSubtraction,
-                                      E->getExprLoc(), align, name);
-  } else {
-    return CGF.Builder.CreateGEP(addr, indices, elementType, align, name);
-  }
+  return addr;
 }
 
-static llvm::Value *emitArraySubscriptGEP(
-    CodeGenFunction &CGF, llvm::Type *elemType, llvm::Value *ptr,
-    ArrayRef<llvm::Value *> indices, bool inbounds, bool signedIndices,
-    const Expr *E, const llvm::Twine &name = "arrayidx") {
+static llvm::Value *emitArraySubscriptGEP(CodeGenFunction &CGF,
+                                          llvm::Type *elemType,
+                                          llvm::Value *ptr,
+                                          ArrayRef<llvm::Value *> indices,
+                                          bool inbounds, bool signedIndices,
+                                          SourceLocation loc,
+                                          const Expr *E = nullptr,
+                                          const llvm::Twine &name = "arrayidx") {
   if (inbounds && CGF.getLangOpts().EmitStructuredGEP)
     return CGF.Builder.CreateStructuredGEP(elemType, ptr, indices);
 
-  return emitArraySubscriptGEP(CGF, Address(ptr, elemType, CharUnits::One()),
-                               indices, elemType, inbounds, signedIndices, E,
-                               CharUnits::One(), name)
-      .getBasePointer();
+  Address PtrAddr = maybeTightenCHERIArraySubscriptBase(
+      CGF, Address(ptr, elemType, CharUnits::One()), E);
+  ptr = PtrAddr.emitRawPointer(CGF);
+
+  if (inbounds) {
+    return CGF.EmitCheckedInBoundsGEP(elemType, ptr, indices, signedIndices,
+                                      CodeGenFunction::NotSubtraction, loc,
+                                      name);
+  } else {
+    return CGF.Builder.CreateGEP(elemType, ptr, indices, name);
+  }
 }
 
-static Address emitArraySubscriptGEP(
-    CodeGenFunction &CGF, Address addr,
-    ArrayRef<llvm::Value *> indices,
-    llvm::Type *arrayType, llvm::Type *elementType,
-    bool inbounds, bool signedIndices,
-    const Expr *E, CharUnits align,
-    const llvm::Twine &name = "arrayidx") {
+static Address emitArraySubscriptGEP(CodeGenFunction &CGF, Address addr,
+                                     ArrayRef<llvm::Value *> indices,
+                                     llvm::Type *arrayType,
+                                     llvm::Type *elementType, bool inbounds,
+                                     bool signedIndices, SourceLocation loc,
+                                     CharUnits align, const Expr *E = nullptr,
+                                     const llvm::Twine &name = "arrayidx") {
   if (inbounds && CGF.getLangOpts().EmitStructuredGEP)
-    return RawAddress(
-        CGF.Builder.CreateStructuredGEP(arrayType, addr.emitRawPointer(CGF),
-                                        indices.drop_front()),
-        elementType, align);
+    return RawAddress(CGF.Builder.CreateStructuredGEP(arrayType,
+                                                      addr.emitRawPointer(CGF),
+                                                      indices.drop_front()),
+                      elementType, align);
 
-  return emitArraySubscriptGEP(CGF, addr,
-                               indices, elementType, inbounds, signedIndices, E,
-                               align, name);
+  addr = maybeTightenCHERIArraySubscriptBase(CGF, addr, E);
+
+  if (inbounds) {
+    return CGF.EmitCheckedInBoundsGEP(addr, indices, elementType, signedIndices,
+                                      CodeGenFunction::NotSubtraction, loc,
+                                      align, name);
+  } else {
+    return CGF.Builder.CreateGEP(addr, indices, elementType, align, name);
+  }
 }
 
 static QualType getFixedSizeElementType(const ASTContext &ctx,
@@ -5782,15 +5794,16 @@ static Address emitArraySubscriptGEP(CodeGenFunction &CGF, Address addr,
                                  arrayType ? CGF.ConvertTypeForMem(*arrayType)
                                            : nullptr,
                                  CGF.ConvertTypeForMem(eltType), inbounds,
-                                 signedIndices, E, eltAlign, name);
+                                 signedIndices, E->getExprLoc(), eltAlign, E,
+                                 name);
     return addr;
   } else {
     // Remember the original array subscript for bpf target
     unsigned idx = LastIndex->getZExtValue();
     llvm::DIType *DbgInfo = nullptr;
     if (arrayType)
-      DbgInfo = CGF.getDebugInfo()->getOrCreateStandaloneType(*arrayType,
-                                                              E->getExprLoc());
+      DbgInfo =
+          CGF.getDebugInfo()->getOrCreateStandaloneType(*arrayType, E->getExprLoc());
     eltPtr = CGF.Builder.CreatePreserveArrayAccessIndex(
         addr.getElementType(), addr.emitRawPointer(CGF), indices.size() - 1,
         idx, DbgInfo);
@@ -6059,7 +6072,8 @@ LValue CodeGenFunction::EmitArraySubscriptExpr(const ArraySubscriptExpr *E,
       getArrayElementAlign(Addr.getAlignment(), Idx, InterfaceSize);
     llvm::Value *EltPtr =
         emitArraySubscriptGEP(*this, Int8Ty, Addr.emitRawPointer(*this),
-                              ScaledIdx, false, SignedIndices, E);
+                              ScaledIdx, false, SignedIndices, E->getExprLoc(),
+                              E);
     Addr = Address(EltPtr, OrigBaseElemTy, EltAlign);
   } else if (const Expr *Array = isSimpleArrayDecayOperand(E->getBase())) {
     // If this is A[i] where A is an array, the frontend will have decayed the

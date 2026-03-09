@@ -82,10 +82,10 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers InitP
   // CHECK: entry:
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %rem = urem i32 %call, 5
-  // CHECK:   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
+  // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   // CHECK:   %call1 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %rem2 = urem i32 %call1, 5
-  // CHECK:   %add.ptr3 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem2
+  // CHECK:   %add.ptr3 = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem2
   struct TwoPointers x = {dummies + (GetValue() % LENGTH), dummies + (GetValue() % LENGTH)};
 
   // CHECK:   %.fca.0.insert = insertvalue %struct.TwoPointers poison, ptr addrspace(200) %add.ptr, 0
@@ -104,7 +104,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers ChgPt
 
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %rem = urem i32 %call, 5
-  // CHECK:   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
+  // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   x.one = dummies + (GetValue() % LENGTH);
 
   // CHECK:   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8, !tbaa !10
@@ -112,7 +112,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers ChgPt
 
   // CHECK:   %call2 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %rem3 = urem i32 %call2, 5
-  // CHECK:   %add.ptr4 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem3
+  // CHECK:   %add.ptr4 = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem3
   x.two = dummies + (GetValue() % LENGTH);
 
   // CHECK:   %.fca.0.insert = insertvalue %struct.TwoPointers poison, ptr addrspace(200) %add.ptr, 0
@@ -156,7 +156,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct PointerAndInt Ini
   // CHECK:  entry:
   // CHECK:    %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:    %rem = urem i32 %call, 5
-  // CHECK:    %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
+  // CHECK:    %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   // CHECK:    %call1 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   struct PointerAndInt x = {dummies + (GetValue() % LENGTH), GetValue()};
 
@@ -175,7 +175,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct PointerAndInt Chg
 
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %rem = urem i32 %call, 5
-  // CHECK:   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
+  // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   x.one = dummies + (GetValue() % LENGTH);
 
   // CHECK:   %call2 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -224,7 +224,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct IntAndPointer Ini
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %call1 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %rem = urem i32 %call1, 5
-  // CHECK:   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
+  // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   struct IntAndPointer x = {GetValue(), dummies + (GetValue() % LENGTH)};
 
   // CHECK:   %.fca.0.insert = insertvalue %struct.IntAndPointer poison, i32 %call, 0
@@ -247,7 +247,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct IntAndPointer Chg
 
   // CHECK:   %call1 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %rem = urem i32 %call1, 5
-  // CHECK:   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
+  // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   x.two = dummies + (GetValue() % LENGTH);
 
   // CHECK:   %.fca.0.insert = insertvalue %struct.IntAndPointer poison, i32 %sub, 0
@@ -363,10 +363,10 @@ __attribute__((cheri_compartment("example"), noinline)) struct ParentPtr InitPar
   // CHECK: entry:
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %rem = urem i32 %call, 5
-  // CHECK:   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
+  // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   // CHECK:   %call1 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %rem2 = urem i32 %call1, 5
-  // CHECK:   %add.ptr3 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem2
+  // CHECK:   %add.ptr3 = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem2
   // CHECK:   %.fca.0.insert = insertvalue %struct.ParentPtr poison, ptr addrspace(200) %add.ptr, 0
   // CHECK:   %.fca.1.0.insert = insertvalue %struct.ParentPtr %.fca.0.insert, ptr addrspace(200) %add.ptr3, 1, 0
   struct ParentPtr x = {dummies + (GetValue() % LENGTH), {dummies + (GetValue() % LENGTH)}};
@@ -386,7 +386,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct ParentPtr ChgPare
 
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %rem = urem i32 %call, 5
-  // CHECK:   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
+  // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   x.x = dummies + (GetValue() % LENGTH);
 
   // CHECK:   store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8, !tbaa !10
@@ -394,7 +394,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct ParentPtr ChgPare
 
   // CHECK:   %call3 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %rem4 = urem i32 %call3, 5
-  // CHECK:   %add.ptr5 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem4
+  // CHECK:   %add.ptr5 = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem4
   x.y.z = dummies + (GetValue() % LENGTH);
 
   // CHECK:   %.fca.0.insert = insertvalue %struct.ParentPtr poison, ptr addrspace(200) %add.ptr, 0
@@ -452,7 +452,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers ChgPt
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %add = add i32 %call, %new_int
   // CHECK:   %rem = urem i32 %add, 5
-  // CHECK:   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
+  // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   x.one = dummies + ((GetValue() + new_int) % LENGTH);
 
   // CHECK:   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8, !tbaa !10
@@ -461,7 +461,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers ChgPt
   // CHECK:   %call2 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %add3 = add i32 %call2, %new_int
   // CHECK:   %rem4 = urem i32 %add3, 5
-  // CHECK:   %add.ptr5 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem4
+  // CHECK:   %add.ptr5 = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem4
   x.two = dummies + ((GetValue() + new_int) % LENGTH);
 
   // CHECK:   %.fca.0.insert = insertvalue %struct.TwoPointers poison, ptr addrspace(200) %add.ptr, 0
@@ -482,7 +482,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct ParentPtr ChgPare
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %add = add i32 %call, %new_int
   // CHECK:   %rem = urem i32 %add, 5
-  // CHECK:   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
+  // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   x.x = dummies + ((GetValue() + new_int) % LENGTH);
 
   // CHECK:   store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8, !tbaa !10
@@ -491,7 +491,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct ParentPtr ChgPare
   // CHECK:   %call3 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %add4 = add i32 %call3, %new_int
   // CHECK:   %rem5 = urem i32 %add4, 5
-  // CHECK:   %add.ptr6 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem5
+  // CHECK:   %add.ptr6 = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem5
   x.y.z = dummies + ((GetValue() + new_int) % LENGTH);
 
   // CHECK:   %.fca.0.insert = insertvalue %struct.ParentPtr poison, ptr addrspace(200) %add.ptr, 0
@@ -647,7 +647,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers ChgPt
   // CHECK:   %add3 = add i32 %add2, %n4
   // CHECK:   %add4 = add i32 %add3, %call
   // CHECK:   %rem = urem i32 %add4, 5
-  // CHECK:   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
+  // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   x.one = dummies + ((GetValue() + n0 + n1 + n2 + n3 + n4) % LENGTH);
 
   // CHECK:   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8, !tbaa !10
@@ -660,7 +660,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers ChgPt
   // CHECK:   %add10 = add i32 %add9, %n4
   // CHECK:   %add11 = add i32 %add10, %call6
   // CHECK:   %rem12 = urem i32 %add11, 5
-  // CHECK:   %add.ptr13 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem12
+  // CHECK:   %add.ptr13 = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem12
   x.two = dummies + ((GetValue() + n0 + n1 + n2 + n3 + n4) % LENGTH);
 
   // CHECK:   %.fca.0.insert = insertvalue %struct.TwoPointers poison, ptr addrspace(200) %add.ptr, 0
@@ -686,7 +686,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct ParentPtr ChgPare
   // CHECK:   %add4 = add i32 %add3, %n4
   // CHECK:   %add5 = add i32 %add4, %call
   // CHECK:   %rem = urem i32 %add5, 5
-  // CHECK:   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
+  // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
 
 
   x.x= dummies + ((GetValue() + n0 + n1 + n2 + n3 + n4) % LENGTH);
@@ -701,7 +701,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct ParentPtr ChgPare
   // CHECK:   %add11 = add i32 %add10, %n4
   // CHECK:   %add12 = add i32 %add11, %call7
   // CHECK:   %rem13 = urem i32 %add12, 5
-  // CHECK:   %add.ptr14 = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem13
+  // CHECK:   %add.ptr14 = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem13
   x.y.z = dummies + ((GetValue() + n0 + n1 + n2 + n3 + n4) % LENGTH);
 
   // CHECK:   %.fca.0.insert = insertvalue %struct.ParentPtr poison, ptr addrspace(200) %add.ptr, 0
@@ -768,7 +768,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct OnePtr InitOnePtr
   // CHECK: entry:
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %rem = urem i32 %call, 5
-  // CHECK:   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
+  // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   // CHECK:   %.fca.0.insert = insertvalue %struct.OnePtr poison, ptr addrspace(200) %add.ptr, 0
   struct OnePtr Res = {dummies + (GetValue() % LENGTH)};
 
@@ -784,7 +784,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct OnePtr ChgOnePtr(
 
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
   // CHECK:   %rem = urem i32 %call, 5
-  // CHECK:   %add.ptr = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem
+  // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   // CHECK:   %.fca.0.insert = insertvalue %struct.OnePtr poison, ptr addrspace(200) %add.ptr, 0
   x.x = dummies + (GetValue() % LENGTH);
 

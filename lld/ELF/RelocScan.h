@@ -105,12 +105,20 @@ public:
   // Handle TLS Initial-Exec relocation.
   template <bool enableIeToLe = true>
   void handleTlsIe(RelExpr ieExpr, RelType type, uint64_t offset,
-                   int64_t addend, Symbol &sym) {
-    if (enableIeToLe && !ctx.arg.shared && !sym.isPreemptible) {
+                   int64_t addend, Symbol &sym, bool isTgot = false) {
+    if (enableIeToLe && ((!ctx.arg.shared && !sym.isPreemptible) || isTgot)) {
       // Optimize to Local Exec.
-      sec->addReloc(ctx, {R_TPREL, type, offset, addend, &sym});
+      RelExpr relaxExpr;
+      if (isTgot)
+        relaxExpr = R_RELAX_TGOT_TLS_IE_TO_LE;
+      else
+        relaxExpr = R_TPREL;
+      sec->addReloc(ctx, {relaxExpr, type, offset, addend, &sym});
     } else {
-      sym.setFlags(NEEDS_TLSIE);
+      if (isTgot)
+        sym.setFlags(NEEDS_TGOT_GOT);
+      else
+        sym.setFlags(NEEDS_TLSIE);
       // R_GOT (absolute GOT address) needs a RELATIVE dynamic relocation in
       // PIC when the relocation uses the full address (not just low page bits).
       if (ieExpr == R_GOT && ctx.arg.isPic &&
@@ -140,11 +148,15 @@ public:
   // call should be skipped (i.e., caller should ++it). Pass R_NONE for
   // ieExpr/leExpr to disable GD-to-IE/LE optimization (e.g. ARM, RISC-V).
   bool handleTlsGd(RelExpr sharedExpr, RelExpr ieExpr, RelExpr leExpr,
-                   RelType type, uint64_t offset, int64_t addend, Symbol &sym) {
+                   RelType type, uint64_t offset, int64_t addend, Symbol &sym,
+                   bool isTgot = false) {
     if (!ctx.arg.shared && ieExpr != R_NONE) {
       if (sym.isPreemptible) {
         // Optimize to Initial Exec.
-        sym.setFlags(NEEDS_TLSIE);
+        if (isTgot)
+          sym.setFlags(NEEDS_TGOT_GOT);
+        else
+          sym.setFlags(NEEDS_TLSIE);
         sec->addReloc(ctx, {ieExpr, type, offset, addend, &sym});
       } else {
         // Optimize to Local Exec.
@@ -152,7 +164,10 @@ public:
       }
       return true;
     }
-    sym.setFlags(NEEDS_TLSGD);
+    if (isTgot)
+      sym.setFlags(NEEDS_TGOT_TLSGD);
+    else
+      sym.setFlags(NEEDS_TLSGD);
     sec->addReloc(ctx, {sharedExpr, type, offset, addend, &sym});
     return false;
   }

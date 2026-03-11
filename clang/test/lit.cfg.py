@@ -144,6 +144,7 @@ tools = [
         unresolved="ignore",
     ),
     "ssaf-linker",
+    "ssaf-format",
 ]
 # XXXAR: needed by some CHERI tests:
 tools += ['llvm-readobj', 'llvm-objdump', 'llvm-dwarfdump']

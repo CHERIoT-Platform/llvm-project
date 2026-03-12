@@ -1568,7 +1568,7 @@ protected:
     }
 
     Status error;
-    lldb::addr_t addr = OptionArgParser::ToAddress(
+    lldb::addr_t addr = OptionArgParser::ToRawAddress(
         &m_exe_ctx, command[0].ref(), LLDB_INVALID_ADDRESS, &error);
 
     if (addr == LLDB_INVALID_ADDRESS) {

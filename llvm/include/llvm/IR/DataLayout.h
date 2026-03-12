@@ -109,6 +109,7 @@ public:
 
 private:
   bool BigEndian = false;
+  bool VectorsAreElementAligned = false;
   bool HasCheriCapabilities = false;
 
   unsigned AllocaAddrSpace = 0;
@@ -215,6 +216,9 @@ public:
   /// Layout endianness...
   bool isLittleEndian() const { return !BigEndian; }
   bool isBigEndian() const { return BigEndian; }
+
+  /// Whether vectors are element aligned, rather than naturally aligned.
+  bool vectorsAreElementAligned() const { return VectorsAreElementAligned; }
 
   /// Returns the string representation of the DataLayout.
   ///

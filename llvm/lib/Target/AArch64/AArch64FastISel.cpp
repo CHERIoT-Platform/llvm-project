@@ -5130,7 +5130,7 @@ bool AArch64FastISel::fastSelectInstruction(const Instruction *I) {
   case Instruction::Or:
   case Instruction::Xor:
     return selectLogicalOp(I);
-  case Instruction::Br:
+  case Instruction::CondBr:
     return selectBranch(I);
   case Instruction::IndirectBr:
     return selectIndirectBr(I);

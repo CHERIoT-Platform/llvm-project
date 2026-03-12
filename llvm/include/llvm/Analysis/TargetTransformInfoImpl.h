@@ -1457,7 +1457,8 @@ public:
       IntrinsicCostAttributes CostAttrs(Intrinsic->getIntrinsicID(), *CB);
       return TargetTTI->getIntrinsicInstrCost(CostAttrs, CostKind);
     }
-    case Instruction::Br:
+    case Instruction::UncondBr:
+    case Instruction::CondBr:
     case Instruction::Ret:
     case Instruction::PHI:
     case Instruction::Switch:

@@ -2083,7 +2083,7 @@ bool MipsFastISel::fastSelectInstruction(const Instruction *I) {
   case Instruction::Or:
   case Instruction::Xor:
     return selectLogicalOp(I);
-  case Instruction::Br:
+  case Instruction::CondBr:
     return selectBranch(I);
   case Instruction::Ret:
     return selectRet(I);

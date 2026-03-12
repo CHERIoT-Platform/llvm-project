@@ -222,6 +222,20 @@ QualTypeMapper::convertBuiltinType(const BuiltinType *BT) {
     llvm::reportFatalInternalError(
         "Fixed Point types not yet implemented in the ABI lowering library");
 
+  // We store these as capabilities (and must use capability instructions for
+  // writing them to memory), and must perform some explicit casts for
+  // arithmetic.
+  case BuiltinType::IntCap:
+  case BuiltinType::UIntCap: {
+    assert(ASTCtx.getTargetInfo().SupportsCapabilities());
+    unsigned CheriAddrSpace = (unsigned)LangAS::cheri_capability;
+    auto CapSize = ASTCtx.getTargetInfo().getCHERICapabilityWidth();
+    auto Alignment =
+        llvm::Align(ASTCtx.getTargetInfo().getCHERICapabilityAlign() / 8);
+    return Builder.getPointerType(CapSize, Alignment, CheriAddrSpace);
+    break;
+  }
+
     // OpenCL image types are represented as opaque pointers.
 #define IMAGE_TYPE(ImgType, Id, SingletonId, Access, Suffix)                   \
   case BuiltinType::Id:

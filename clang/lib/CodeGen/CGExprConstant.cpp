@@ -1644,7 +1644,8 @@ ConstantEmitter::tryEmitAbstract(const Expr *E, QualType destType) {
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
   auto ExprTy = E->getType().getCanonicalType();
   if (LLVM_UNLIKELY(ExprTy != destType.getCanonicalType() &&
-                    ExprTy != CGM.getContext().BoolTy)) {
+                    ExprTy != CGM.getContext().BoolTy &&
+                    ExprTy != CGM.getContext().LongTy)) {
     llvm::errs() << __func__ << ": E->getType(): ";
     E->getType().dump();
     llvm::errs() << __func__ << ": destType: ";

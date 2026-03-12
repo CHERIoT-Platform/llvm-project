@@ -143,7 +143,7 @@ tools = [
         command=FindTool("clang-extdef-mapping"),
         unresolved="ignore",
     ),
-    "ssaf-linker",
+    "clang-ssaf-linker",
     "ssaf-format",
 ]
 # XXXAR: needed by some CHERI tests:

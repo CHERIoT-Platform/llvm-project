@@ -1266,6 +1266,17 @@ add_header_library(
 )
 
 add_header_library(
+  fmabf16
+  HDRS
+    fmabf16.h
+  DEPENDS
+    libc.src.__support.FPUtil.fma
+    libc.src.__support.FPUtil.bfloat16
+    libc.src.__support.common
+    libc.src.__support.macros.config
+)
+
+add_header_library(
   floor
   HDRS
     floor.h
@@ -1976,6 +1987,17 @@ add_header_library(
 )
 
 add_header_library(
+  hypotbf16
+  HDRS
+    hypotbf16.h
+  DEPENDS
+    libc.src.__support.FPUtil.hypot
+    libc.src.__support.FPUtil.bfloat16
+    libc.src.__support.common
+    libc.src.__support.macros.config
+)
+
+add_header_library(
   hypotf16
   HDRS
     hypotf16.h
@@ -2573,6 +2595,25 @@ add_header_library(
   HDRS
     log10f16.h
   DEPENDS
+    .expxf16_utils
+    libc.hdr.errno_macros
+    libc.hdr.fenv_macros
+    libc.src.__support.FPUtil.cast
+    libc.src.__support.FPUtil.except_value_utils
+    libc.src.__support.FPUtil.fenv_impl
+    libc.src.__support.FPUtil.fp_bits
+    libc.src.__support.FPUtil.multiply_add
+    libc.src.__support.FPUtil.polyeval
+    libc.src.__support.macros.optimization
+    libc.src.__support.macros.properties.cpu_features
+)
+
+add_header_library(
+  log10p1f16
+  HDRS
+    log10p1f16.h
+  DEPENDS
+    .exp10_float16_constants
     .expxf16_utils
     libc.hdr.errno_macros
     libc.hdr.fenv_macros

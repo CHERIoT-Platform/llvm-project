@@ -1838,6 +1838,17 @@ add_entrypoint_object(
 )
 
 add_entrypoint_object(
+  log10p1f16
+  SRCS
+    log10p1f16.cpp
+  HDRS
+    ../log10p1f16.h
+  DEPENDS
+    libc.src.__support.math.log10p1f16
+    libc.src.errno.errno
+)
+
+add_entrypoint_object(
   log1p
   SRCS
     log1p.cpp
@@ -3018,6 +3029,16 @@ add_entrypoint_object(
     libc.src.__support.FPUtil.division_and_remainder_operations
     libc.src.__support.macros.properties.types
     libc.src.__support.macros.config
+)
+
+add_entrypoint_object(
+  hypotbf16
+  SRCS
+    hypotbf16.cpp
+  HDRS
+    ../hypotbf16.h
+  DEPENDS
+    libc.src.__support.math.hypotbf16
 )
 
 add_entrypoint_object(
@@ -4373,6 +4394,16 @@ add_entrypoint_object(
     ../fma.h
   DEPENDS
     libc.src.__support.FPUtil.fma
+)
+
+add_entrypoint_object(
+  fmabf16
+  SRCS
+    fmabf16.cpp
+  HDRS
+    ../fmabf16.h
+  DEPENDS
+    libc.src.__support.math.fmabf16
 )
 
 add_entrypoint_object(

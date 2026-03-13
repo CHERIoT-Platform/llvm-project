@@ -167,8 +167,8 @@ public:
   Instruction *visitLoadInst(LoadInst &LI);
   Instruction *visitStoreInst(StoreInst &SI);
   Instruction *visitAtomicRMWInst(AtomicRMWInst &SI);
-  Instruction *visitUnconditionalBranchInst(BranchInst &BI);
-  Instruction *visitBranchInst(BranchInst &BI);
+  Instruction *visitUncondBrInst(UncondBrInst &BI);
+  Instruction *visitCondBrInst(CondBrInst &BI);
   Instruction *visitFenceInst(FenceInst &FI);
   Instruction *visitSwitchInst(SwitchInst &SI);
   Instruction *visitReturnInst(ReturnInst &RI);

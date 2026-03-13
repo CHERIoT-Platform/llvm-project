@@ -1157,7 +1157,7 @@ void llvm::computeKnownBitsFromContext(const Value *V, KnownBits &Known,
 
   if (Q.DC && Q.DT) {
     // Handle dominating conditions.
-    for (BranchInst *BI : Q.DC->conditionsFor(V)) {
+    for (CondBrInst *BI : Q.DC->conditionsFor(V)) {
       BasicBlockEdge Edge0(BI->getParent(), BI->getSuccessor(0));
       if (Q.DT->dominates(Edge0, Q.CxtI->getParent()))
         computeKnownBitsFromCond(V, BI->getCondition(), Known, Q,
@@ -2815,7 +2815,7 @@ bool llvm::isKnownToBeAPowerOfTwo(const Value *V, bool OrZero,
 
   // Handle dominating conditions.
   if (Q.DC && Q.CxtI && Q.DT) {
-    for (BranchInst *BI : Q.DC->conditionsFor(V)) {
+    for (CondBrInst *BI : Q.DC->conditionsFor(V)) {
       Value *Cond = BI->getCondition();
 
       BasicBlockEdge Edge0(BI->getParent(), BI->getSuccessor(0));
@@ -3132,9 +3132,7 @@ static bool isKnownNonNullFromDominatingCondition(const Value *V,
             continue;
           }
 
-        if (const BranchInst *BI = dyn_cast<BranchInst>(Curr)) {
-          assert(BI->isConditional() && "uses a comparison!");
-
+        if (const CondBrInst *BI = dyn_cast<CondBrInst>(Curr)) {
           BasicBlock *NonNullSuccessor =
               BI->getSuccessor(NonNullIfTrue ? 0 : 1);
           BasicBlockEdge Edge(BI->getParent(), NonNullSuccessor);
@@ -4226,7 +4224,7 @@ static bool isKnownNonEqualFromContext(const Value *V1, const Value *V2,
   // Try to infer NonEqual based on information from dominating conditions.
   if (Q.DC && Q.DT) {
     auto IsKnownNonEqualFromDominatingCondition = [&](const Value *V) {
-      for (BranchInst *BI : Q.DC->conditionsFor(V)) {
+      for (CondBrInst *BI : Q.DC->conditionsFor(V)) {
         Value *Cond = BI->getCondition();
         BasicBlockEdge Edge0(BI->getParent(), BI->getSuccessor(0));
         if (Q.DT->dominates(Edge0, Q.CxtI->getParent()) &&
@@ -5014,7 +5012,7 @@ static KnownFPClass computeKnownFPClassFromContext(const Value *V,
 
   if (Q.DC && Q.DT) {
     // Handle dominating conditions.
-    for (BranchInst *BI : Q.DC->conditionsFor(V)) {
+    for (CondBrInst *BI : Q.DC->conditionsFor(V)) {
       Value *Cond = BI->getCondition();
 
       BasicBlockEdge Edge0(BI->getParent(), BI->getSuccessor(0));
@@ -7663,7 +7661,7 @@ OverflowResult llvm::computeOverflowForSignedSub(const Value *LHS,
 
 bool llvm::isOverflowIntrinsicNoWrap(const WithOverflowInst *WO,
                                      const DominatorTree &DT) {
-  SmallVector<const BranchInst *, 2> GuardingBranches;
+  SmallVector<const CondBrInst *, 2> GuardingBranches;
   SmallVector<const ExtractValueInst *, 2> Results;
 
   for (const User *U : WO->users()) {
@@ -7676,10 +7674,8 @@ bool llvm::isOverflowIntrinsicNoWrap(const WithOverflowInst *WO,
         assert(EVI->getIndices()[0] == 1 && "Obvious from CI's type");
 
         for (const auto *U : EVI->users())
-          if (const auto *B = dyn_cast<BranchInst>(U)) {
-            assert(B->isConditional() && "How else is it using an i1?");
+          if (const auto *B = dyn_cast<CondBrInst>(U))
             GuardingBranches.push_back(B);
-          }
       }
     } else {
       // We are using the aggregate directly in a way we don't want to analyze
@@ -7688,7 +7684,7 @@ bool llvm::isOverflowIntrinsicNoWrap(const WithOverflowInst *WO,
     }
   }
 
-  auto AllUsesGuardedByBranch = [&](const BranchInst *BI) {
+  auto AllUsesGuardedByBranch = [&](const CondBrInst *BI) {
     BasicBlockEdge NoWrapEdge(BI->getParent(), BI->getSuccessor(1));
     if (!NoWrapEdge.isSingleEdge())
       return false;
@@ -8032,9 +8028,8 @@ static bool isGuaranteedNotToBeUndefOrPoison(
       auto *TI = Dominator->getBlock()->getTerminator();
 
       Value *Cond = nullptr;
-      if (auto BI = dyn_cast_or_null<BranchInst>(TI)) {
-        if (BI->isConditional())
-          Cond = BI->getCondition();
+      if (auto BI = dyn_cast_or_null<CondBrInst>(TI)) {
+        Cond = BI->getCondition();
       } else if (auto SI = dyn_cast_or_null<SwitchInst>(TI)) {
         Cond = SI->getCondition();
       }

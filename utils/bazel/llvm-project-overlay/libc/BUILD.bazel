@@ -4045,6 +4045,17 @@ libc_support_library(
 )
 
 libc_support_library(
+    name = "__support_math_fmabf16",
+    hdrs = ["src/__support/math/fmabf16.h"],
+    deps = [
+        ":__support_common",
+        ":__support_fputil_bfloat16",
+        ":__support_fputil_fma",
+        ":__support_macros_config",
+    ],
+)
+
+libc_support_library(
     name = "__support_math_fmax",
     hdrs = ["src/__support/math/fmax.h"],
     deps = [
@@ -5495,6 +5506,17 @@ libc_support_library(
 )
 
 libc_support_library(
+    name = "__support_math_hypotbf16",
+    hdrs = ["src/__support/math/hypotbf16.h"],
+    deps = [
+        ":__support_common",
+        ":__support_fputil_bfloat16",
+        ":__support_fputil_hypot",
+        ":__support_macros_config",
+    ],
+)
+
+libc_support_library(
     name = "__support_math_hypotf16",
     hdrs = ["src/__support/math/hypotf16.h"],
     deps = [
@@ -6832,6 +6854,13 @@ libc_math_function(
 )
 
 libc_math_function(
+    name = "fmabf16",
+    additional_deps = [
+        ":__support_math_fmabf16",
+    ],
+)
+
+libc_math_function(
     name = "fmax",
     additional_deps = [
         ":__support_math_fmax",
@@ -7170,6 +7199,13 @@ libc_math_function(
     additional_deps = [
         ":__support_math_hypotf",
         ":errno",
+    ],
+)
+
+libc_math_function(
+    name = "hypotbf16",
+    additional_deps = [
+        ":__support_math_hypotbf16",
     ],
 )
 

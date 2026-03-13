@@ -426,12 +426,18 @@ TEST(LlvmLibcSharedMathTest, AllBFloat16) {
   EXPECT_FP_EQ(bfloat16(0.0), LIBC_NAMESPACE::shared::floorbf16(bfloat16(0.0)));
   EXPECT_FP_EQ(bfloat16(0.0),
                LIBC_NAMESPACE::shared::fdimbf16(bfloat16(0.0), bfloat16(0.0)));
+  EXPECT_FP_EQ(bfloat16(10.0),
+               LIBC_NAMESPACE::shared::fmabf16(bfloat16(2.0), bfloat16(3.0),
+                                               bfloat16(4.0)));
   EXPECT_FP_EQ(bfloat16(0.0),
                LIBC_NAMESPACE::shared::fmaxbf16(bfloat16(0.0), bfloat16(0.0)));
 
   bfloat16 getpayloadbf16_x = bfloat16(0.0);
   EXPECT_FP_EQ(bfloat16(-1.0),
                LIBC_NAMESPACE::shared::getpayloadbf16(&getpayloadbf16_x));
+
+  EXPECT_FP_EQ(bfloat16(5.0),
+               LIBC_NAMESPACE::shared::hypotbf16(bfloat16(4.0), bfloat16(3.0)));
 
   bfloat16 setpayloadbf16_res = bfloat16(0.0);
   EXPECT_EQ(0, LIBC_NAMESPACE::shared::setpayloadbf16(&setpayloadbf16_res,

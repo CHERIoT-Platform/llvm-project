@@ -3310,7 +3310,7 @@ bool RISCVTTIImpl::isLegalBaseRegForLSR(const SCEV *S) const {
 
     if (const auto *A = dyn_cast<SCEVAddExpr>(S)) {
       bool AllNonCst = true;
-      for (const auto *Op : A->operands()) {
+      for (const auto &Op : A->operands()) {
         const auto *OpCst = dyn_cast<SCEVConstant>(Op);
         if (OpCst && OpCst->getValue()->isNegative())
           return false;
@@ -3324,7 +3324,7 @@ bool RISCVTTIImpl::isLegalBaseRegForLSR(const SCEV *S) const {
         return false;
     } else if (const auto *M = dyn_cast<SCEVMulExpr>(S)) {
       bool AllNonCst = true;
-      for (const auto *Op : M->operands()) {
+      for (const auto &Op : M->operands()) {
         const auto *OpCst = dyn_cast<SCEVConstant>(Op);
         if (OpCst && OpCst->getValue()->isNegative())
           return false;
@@ -3641,8 +3641,7 @@ bool RISCVTTIImpl::shouldTreatInstructionLikeSelect(
     // break point in the code - the end of a block with an unconditional
     // terminator.
     if (I->getOpcode() == Instruction::Or &&
-        isa<BranchInst>(I->getNextNode()) &&
-        cast<BranchInst>(I->getNextNode())->isUnconditional())
+        isa<UncondBrInst>(I->getNextNode()))
       return true;
 
     if (I->getOpcode() == Instruction::Add ||

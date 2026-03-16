@@ -205,7 +205,7 @@ insertLoopExpansion(Instruction *InsertBefore, Value *Len,
          "At least one of the loops must be generated");
 
   BasicBlock *MainLoopBB = nullptr;
-  BranchInst *MainLoopBr = nullptr;
+  CondBrInst *MainLoopBr = nullptr;
 
   // Construct the main loop unless we statically known that it is not taken.
   if (MayTakeMainLoop) {
@@ -314,7 +314,7 @@ insertLoopExpansion(Instruction *InsertBefore, Value *Len,
     LEI.ResidualLoopIP = cast<Instruction>(ResNewIndex);
 
     // Stay in the residual loop until all ResidualUnits are handled.
-    BranchInst *BR = ResBuilder.CreateCondBr(
+    CondBrInst *BR = ResBuilder.CreateCondBr(
         ResBuilder.CreateICmpULT(ResNewIndex, ResidualUnits), ResidualLoopBB,
         PostLoopBB);
 
@@ -829,9 +829,9 @@ static void createMemMoveLoopUnknownSize(Instruction *InsertBefore,
       ResidualLoopPhi->addIncoming(CopyLen, CopyBackwardsBB);
 
       // How to get to the residual:
-      BranchInst *BrInst =
-          BranchInst::Create(IntermediateBB, ResidualLoopBB,
-                             SkipResidualCondition, ThenTerm->getIterator());
+      CondBrInst *BrInst =
+          CondBrInst::Create(SkipResidualCondition, IntermediateBB,
+                             ResidualLoopBB, ThenTerm->getIterator());
       BrInst->setDebugLoc(DbgLoc);
       ThenTerm->eraseFromParent();
 
@@ -859,8 +859,8 @@ static void createMemMoveLoopUnknownSize(Instruction *InsertBefore,
 
     // How to get to the main loop:
     Instruction *PredBBTerm = PredBB->getTerminator();
-    BranchInst *BrInst = BranchInst::Create(
-        ExitBB, MainLoopBB, SkipMainCondition, PredBBTerm->getIterator());
+    CondBrInst *BrInst = CondBrInst::Create(
+        SkipMainCondition, ExitBB, MainLoopBB, PredBBTerm->getIterator());
     BrInst->setDebugLoc(DbgLoc);
     PredBBTerm->eraseFromParent();
   }
@@ -898,8 +898,8 @@ static void createMemMoveLoopUnknownSize(Instruction *InsertBefore,
         MainLoopBB);
 
     // getting in or skipping the main loop
-    BranchInst *BrInst =
-        BranchInst::Create(SuccessorBB, MainLoopBB, SkipMainCondition,
+    CondBrInst *BrInst =
+        CondBrInst::Create(SkipMainCondition, SuccessorBB, MainLoopBB,
                            CopyFwdBBTerm->getIterator());
     BrInst->setDebugLoc(DbgLoc);
     CopyFwdBBTerm->eraseFromParent();

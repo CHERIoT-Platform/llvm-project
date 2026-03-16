@@ -229,6 +229,9 @@ set(TARGET_LIBC_ENTRYPOINTS
     libc.src.stdio.sprintf
     libc.src.stdio.asprintf
     libc.src.stdio.sscanf
+    libc.src.stdio.stderr
+    libc.src.stdio.stdin
+    libc.src.stdio.stdout
     libc.src.stdio.vsscanf
     libc.src.stdio.vfprintf
     libc.src.stdio.vprintf
@@ -377,6 +380,7 @@ set(TARGET_LIBC_ENTRYPOINTS
     libc.src.wctype.iswgraph
     libc.src.wctype.iswcntrl
     libc.src.wctype.iswdigit
+    libc.src.wctype.iswupper
     libc.src.wctype.iswalnum
     libc.src.wctype.iswlower
     libc.src.wctype.iswspace
@@ -689,6 +693,7 @@ if(LIBC_TYPES_HAS_FLOAT16)
     libc.src.math.acospif16
     libc.src.math.asinf16
     libc.src.math.asinhf16
+    libc.src.math.atan2f16
     libc.src.math.atanhf16
     libc.src.math.canonicalizef16
     libc.src.math.ceilf16
@@ -696,6 +701,7 @@ if(LIBC_TYPES_HAS_FLOAT16)
     libc.src.math.cosf16
     libc.src.math.coshf16
     libc.src.math.cospif16
+    libc.src.math.erff16
     libc.src.math.exp10f16
     libc.src.math.exp10m1f16
     libc.src.math.exp2f16

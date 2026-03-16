@@ -90,7 +90,7 @@ class CheriLoopPointerDecanonicalize : public FunctionPass {
         if (isa<SCEVIntegralCastExpr>(S))
           S = cast<SCEVIntegralCastExpr>(S)->getOperand();
         if (auto *SA = dyn_cast<SCEVAddRecExpr>(S)) {
-          auto *Start = SA->getStart();
+          const auto &Start = SA->getStart();
           if (!Start)
             continue;
           auto *StartValue = SCEVs[Start];

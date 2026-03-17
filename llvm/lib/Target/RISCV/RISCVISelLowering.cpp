@@ -869,6 +869,10 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
   if (Subtarget.hasVendorXCheri())
     setTargetDAGCombine(ISD::INTRINSIC_WO_CHAIN);
 
+  // Use an early DAG combine to lower ptrtoint->i64
+  if (Subtarget.hasVendorXCheriot())
+    setTargetDAGCombine(ISD::PTRTOINT);
+
   if (Subtarget.hasVendorXMIPSCBOP())
     setOperationAction(ISD::PREFETCH, MVT::Other, Custom);
   else if (Subtarget.hasStdExtZicbop())
@@ -22783,6 +22787,15 @@ SDValue RISCVTargetLowering::PerformDAGCombine(SDNode *N,
     return getVSlideup(DAG, Subtarget, DL, VT, SrcVec, N->getOperand(1),
                        DAG.getConstant(1, DL, XLenVT), N->getOperand(3),
                        N->getOperand(4));
+  }
+  case ISD::PTRTOINT: {
+    SDLoc DL(N);
+    MVT VT = N->getSimpleValueType(0);
+    if (!Subtarget.hasVendorXCheriot() || VT != MVT::i64)
+      break;
+    return DAG.getNode(
+        ISD::ZERO_EXTEND, DL, MVT::i64,
+        DAG.getNode(ISD::PTRTOINT, DL, MVT::i32, N->getOperand(0)));
   }
   }
 

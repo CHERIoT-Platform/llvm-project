@@ -500,6 +500,209 @@ entry:
   ret double %fmod
 }
 
+define double @test_frem_cst() addrspace(200) {
+; CHECK-LABEL: test_frem_cst:
+; CHECK:       # %bb.0: # %start
+; CHECK-NEXT:    j .LBB24_6
+; CHECK-NEXT:  # %bb.1: # %frem.compute
+; CHECK-NEXT:    ct.cincoffset sp, sp, -96
+; CHECK-NEXT:    .cfi_def_cfa_offset 96
+; CHECK-NEXT:    ct.csc ra, 88(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc s0, 80(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.csc s1, 72(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    .cfi_offset ra, -8
+; CHECK-NEXT:    .cfi_offset s0, -16
+; CHECK-NEXT:    .cfi_offset s1, -24
+; CHECK-NEXT:    ct.cincoffset a1, sp, 64
+; CHECK-NEXT:    ct.cmove a0, zero
+; CHECK-NEXT:  .LBB24_10: # %frem.compute
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_frexp)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_10)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.clw a1, 64(sp)
+; CHECK-NEXT:    ct.csw a1, 36(sp) # 4-byte Folded Spill
+; CHECK-NEXT:    li a1, 26
+; CHECK-NEXT:  .LBB24_11: # %frem.compute
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_ldexp)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_11)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.cmove s0, a0
+; CHECK-NEXT:    ct.cincoffset a1, sp, 68
+; CHECK-NEXT:    ct.cmove a0, zero
+; CHECK-NEXT:  .LBB24_12: # %frem.compute
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_frexp)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_12)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.clw a1, 68(sp)
+; CHECK-NEXT:    addi s1, a1, -1
+; CHECK-NEXT:    li a1, 1
+; CHECK-NEXT:  .LBB24_13: # %frem.compute
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_ldexp)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_13)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.cmove a1, a0
+; CHECK-NEXT:    ct.csw s1, 4(sp) # 4-byte Folded Spill
+; CHECK-NEXT:    not a0, s1
+; CHECK-NEXT:    ct.clw s1, 36(sp) # 4-byte Folded Reload
+; CHECK-NEXT:    add s1, s1, a0
+; CHECK-NEXT:    lui a0, 261888
+; CHECK-NEXT:    ct.csethigh a0, zero, a0
+; CHECK-NEXT:    ct.csc a1, 24(sp) # 8-byte Folded Spill
+; CHECK-NEXT:  .LBB24_14: # %frem.compute
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___divdf3)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_14)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.csc a0, 16(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    li a0, 26
+; CHECK-NEXT:    blt a0, s1, .LBB24_8
+; CHECK-NEXT:  # %bb.2:
+; CHECK-NEXT:    ct.csc s0, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    mv a1, s1
+; CHECK-NEXT:  .LBB24_3: # %frem.loop_exit
+; CHECK-NEXT:    addi a1, a1, -25
+; CHECK-NEXT:    ct.clc a0, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:  .LBB24_15: # %frem.loop_exit
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_ldexp)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_15)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.cmove s0, a0
+; CHECK-NEXT:    ct.clc a1, 16(sp) # 8-byte Folded Reload
+; CHECK-NEXT:  .LBB24_16: # %frem.loop_exit
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___muldf3)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_16)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:  .LBB24_17: # %frem.loop_exit
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_rint)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_17)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.csc a0, 40(sp)
+; CHECK-NEXT:    ct.clb a0, 47(sp)
+; CHECK-NEXT:    xori a0, a0, 128
+; CHECK-NEXT:    ct.csb a0, 47(sp)
+; CHECK-NEXT:    ct.clc a0, 40(sp)
+; CHECK-NEXT:    ct.clc s1, 24(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cmove a1, s1
+; CHECK-NEXT:    ct.cmove a2, s0
+; CHECK-NEXT:  .LBB24_18: # %frem.loop_exit
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_fma)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_18)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.cmove s0, a0
+; CHECK-NEXT:    ct.cmove a1, s1
+; CHECK-NEXT:  .LBB24_19: # %frem.loop_exit
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_19)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.cmove s1, a0
+; CHECK-NEXT:    ct.cmove a0, s0
+; CHECK-NEXT:    ct.cmove a1, zero
+; CHECK-NEXT:  .LBB24_20: # %frem.loop_exit
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___ltdf2)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_20)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    bltz a0, .LBB24_5
+; CHECK-NEXT:  # %bb.4: # %frem.loop_exit
+; CHECK-NEXT:    ct.cmove s1, s0
+; CHECK-NEXT:  .LBB24_5: # %frem.loop_exit
+; CHECK-NEXT:    ct.cmove a0, s1
+; CHECK-NEXT:    ct.clw a1, 4(sp) # 4-byte Folded Reload
+; CHECK-NEXT:  .LBB24_21: # %frem.loop_exit
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_ldexp)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_21)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.csc a0, 48(sp)
+; CHECK-NEXT:    ct.clbu a0, 55(sp)
+; CHECK-NEXT:    andi a0, a0, 127
+; CHECK-NEXT:    ct.csb a0, 55(sp)
+; CHECK-NEXT:    ct.clc ra, 88(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc s0, 80(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.clc s1, 72(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    .cfi_restore ra
+; CHECK-NEXT:    .cfi_restore s0
+; CHECK-NEXT:    .cfi_restore s1
+; CHECK-NEXT:    ct.cincoffset sp, sp, 96
+; CHECK-NEXT:    .cfi_def_cfa_offset 0
+; CHECK-NEXT:  .LBB24_6:
+; CHECK-NEXT:    lui a0, 524160
+; CHECK-NEXT:    ct.csethigh a0, zero, a0
+; CHECK-NEXT:    ct.cret
+; CHECK-NEXT:  .LBB24_7: # %frem.loop_body
+; CHECK-NEXT:    li a1, 26
+; CHECK-NEXT:    ct.cmove a0, s1
+; CHECK-NEXT:  .LBB24_22: # %frem.loop_body
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_ldexp)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_22)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.cmove s0, a0
+; CHECK-NEXT:    ct.clw a1, 36(sp) # 4-byte Folded Reload
+; CHECK-NEXT:    addi s1, a1, -26
+; CHECK-NEXT:    li a0, 26
+; CHECK-NEXT:    bge a0, a1, .LBB24_3
+; CHECK-NEXT:  .LBB24_8: # %frem.loop_body
+; CHECK-NEXT:    ct.csw s1, 36(sp) # 4-byte Folded Spill
+; CHECK-NEXT:    ct.cmove a0, s0
+; CHECK-NEXT:    ct.clc a1, 16(sp) # 8-byte Folded Reload
+; CHECK-NEXT:  .LBB24_23: # %frem.loop_body
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___muldf3)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_23)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:  .LBB24_24: # %frem.loop_body
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_rint)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_24)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.csc a0, 56(sp)
+; CHECK-NEXT:    ct.clb a0, 63(sp)
+; CHECK-NEXT:    xori a0, a0, 128
+; CHECK-NEXT:    ct.csb a0, 63(sp)
+; CHECK-NEXT:    ct.clc a0, 56(sp)
+; CHECK-NEXT:    ct.clc s1, 24(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ct.cmove a1, s1
+; CHECK-NEXT:    ct.csc s0, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    ct.cmove a2, s0
+; CHECK-NEXT:  .LBB24_25: # %frem.loop_body
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_fma)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_25)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.cmove s0, a0
+; CHECK-NEXT:    ct.cmove a1, s1
+; CHECK-NEXT:  .LBB24_26: # %frem.loop_body
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_26)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    ct.cmove s1, a0
+; CHECK-NEXT:    ct.cmove a0, s0
+; CHECK-NEXT:    ct.cmove a1, zero
+; CHECK-NEXT:  .LBB24_27: # %frem.loop_body
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___ltdf2)
+; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_27)(t2)
+; CHECK-NEXT:    ct.cjalr t2
+; CHECK-NEXT:    bltz a0, .LBB24_7
+; CHECK-NEXT:  # %bb.9: # %frem.loop_body
+; CHECK-NEXT:    ct.cmove s1, s0
+; CHECK-NEXT:    j .LBB24_7
+start:
+  %r = frem double 0.000000e+00, 0.000000e+00
+  ret double %r
+}
+
 attributes #0 = { mustprogress nofree norecurse nosync nounwind willreturn memory(none) "cheri-compartment"="qoi_decode" "no-builtin-longjmp" "no-builtin-printf" "no-builtin-setjmp" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+32bit,+c,+e,+m,+relax,+unaligned-scalar-mem,+xcheri,+xcheriot,+zmmul,-a,-b,-d,-experimental-sdext,-experimental-sdtrig,-experimental-smctr,-experimental-ssctr,-experimental-svukte,-experimental-xqcia,-experimental-xqciac,-experimental-xqcicli,-experimental-xqcicm,-experimental-xqcics,-experimental-xqcicsr,-experimental-xqciint,-experimental-xqcilo,-experimental-xqcilsm,-experimental-xqcisls,-experimental-zalasr,-experimental-zicfilp,-experimental-zicfiss,-experimental-zvbc32e,-experimental-zvkgs,-f,-h,-i,-sha,-shcounterenw,-shgatpa,-shtvala,-shvsatpa,-shvstvala,-shvstvecd,-smaia,-smcdeleg,-smcsrind,-smdbltrp,-smepmp,-smmpm,-smnpm,-smrnmi,-smstateen,-ssaia,-ssccfg,-ssccptr,-sscofpmf,-sscounterenw,-sscsrind,-ssdbltrp,-ssnpm,-sspm,-ssqosid,-ssstateen,-ssstrict,-sstc,-sstvala,-sstvecd,-ssu64xl,-supm,-svade,-svadu,-svbare,-svinval,-svnapot,-svpbmt,-svvptc,-v,-xcheri-norvc,-xcvalu,-xcvbi,-xcvbitmanip,-xcvelw,-xcvmac,-xcvmem,-xcvsimd,-xmipscmove,-xmipslsp,-xsfcease,-xsfvcp,-xsfvfnrclipxfqf,-xsfvfwmaccqqq,-xsfvqmaccdod,-xsfvqmaccqoq,-xsifivecdiscarddlone,-xsifivecflushdlone,-xtheadba,-xtheadbb,-xtheadbs,-xtheadcmo,-xtheadcondmov,-xtheadfmemidx,-xtheadmac,-xtheadmemidx,-xtheadmempair,-xtheadsync,-xtheadvdot,-xventanacondops,-xwchc,-za128rs,-za64rs,-zaamo,-zabha,-zacas,-zalrsc,-zama16b,-zawrs,-zba,-zbb,-zbc,-zbkb,-zbkc,-zbkx,-zbs,-zca,-zcb,-zcd,-zce,-zcf,-zcmop,-zcmp,-zcmt,-zdinx,-zfa,-zfbfmin,-zfh,-zfhmin,-zfinx,-zhinx,-zhinxmin,-zic64b,-zicbom,-zicbop,-zicboz,-ziccamoa,-ziccif,-zicclsm,-ziccrse,-zicntr,-zicond,-zicsr,-zifencei,-zihintntl,-zihintpause,-zihpm,-zimop,-zk,-zkn,-zknd,-zkne,-zknh,-zkr,-zks,-zksed,-zksh,-zkt,-ztso,-zvbb,-zvbc,-zve32f,-zve32x,-zve64d,-zve64f,-zve64x,-zvfbfmin,-zvfbfwma,-zvfh,-zvfhmin,-zvkb,-zvkg,-zvkn,-zvknc,-zvkned,-zvkng,-zvknha,-zvknhb,-zvks,-zvksc,-zvksed,-zvksg,-zvksh,-zvkt,-zvl1024b,-zvl128b,-zvl16384b,-zvl2048b,-zvl256b,-zvl32768b,-zvl32b,-zvl4096b,-zvl512b,-zvl64b,-zvl65536b,-zvl8192b" }
 attributes #1 = { mustprogress nofree norecurse nosync nounwind willreturn memory(argmem: read) "cheri-compartment"="qoi_decode" "no-builtin-longjmp" "no-builtin-printf" "no-builtin-setjmp" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+32bit,+c,+e,+m,+relax,+unaligned-scalar-mem,+xcheri,+xcheriot,+zmmul,-a,-b,-d,-experimental-sdext,-experimental-sdtrig,-experimental-smctr,-experimental-ssctr,-experimental-svukte,-experimental-xqcia,-experimental-xqciac,-experimental-xqcicli,-experimental-xqcicm,-experimental-xqcics,-experimental-xqcicsr,-experimental-xqciint,-experimental-xqcilo,-experimental-xqcilsm,-experimental-xqcisls,-experimental-zalasr,-experimental-zicfilp,-experimental-zicfiss,-experimental-zvbc32e,-experimental-zvkgs,-f,-h,-i,-sha,-shcounterenw,-shgatpa,-shtvala,-shvsatpa,-shvstvala,-shvstvecd,-smaia,-smcdeleg,-smcsrind,-smdbltrp,-smepmp,-smmpm,-smnpm,-smrnmi,-smstateen,-ssaia,-ssccfg,-ssccptr,-sscofpmf,-sscounterenw,-sscsrind,-ssdbltrp,-ssnpm,-sspm,-ssqosid,-ssstateen,-ssstrict,-sstc,-sstvala,-sstvecd,-ssu64xl,-supm,-svade,-svadu,-svbare,-svinval,-svnapot,-svpbmt,-svvptc,-v,-xcheri-norvc,-xcvalu,-xcvbi,-xcvbitmanip,-xcvelw,-xcvmac,-xcvmem,-xcvsimd,-xmipscmove,-xmipslsp,-xsfcease,-xsfvcp,-xsfvfnrclipxfqf,-xsfvfwmaccqqq,-xsfvqmaccdod,-xsfvqmaccqoq,-xsifivecdiscarddlone,-xsifivecflushdlone,-xtheadba,-xtheadbb,-xtheadbs,-xtheadcmo,-xtheadcondmov,-xtheadfmemidx,-xtheadmac,-xtheadmemidx,-xtheadmempair,-xtheadsync,-xtheadvdot,-xventanacondops,-xwchc,-za128rs,-za64rs,-zaamo,-zabha,-zacas,-zalrsc,-zama16b,-zawrs,-zba,-zbb,-zbc,-zbkb,-zbkc,-zbkx,-zbs,-zca,-zcb,-zcd,-zce,-zcf,-zcmop,-zcmp,-zcmt,-zdinx,-zfa,-zfbfmin,-zfh,-zfhmin,-zfinx,-zhinx,-zhinxmin,-zic64b,-zicbom,-zicbop,-zicboz,-ziccamoa,-ziccif,-zicclsm,-ziccrse,-zicntr,-zicond,-zicsr,-zifencei,-zihintntl,-zihintpause,-zihpm,-zimop,-zk,-zkn,-zknd,-zkne,-zknh,-zkr,-zks,-zksed,-zksh,-zkt,-ztso,-zvbb,-zvbc,-zve32f,-zve32x,-zve64d,-zve64f,-zve64x,-zvfbfmin,-zvfbfwma,-zvfh,-zvfhmin,-zvkb,-zvkg,-zvkn,-zvknc,-zvkned,-zvkng,-zvknha,-zvknhb,-zvks,-zvksc,-zvksed,-zvksg,-zvksh,-zvkt,-zvl1024b,-zvl128b,-zvl16384b,-zvl2048b,-zvl256b,-zvl32768b,-zvl32b,-zvl4096b,-zvl512b,-zvl64b,-zvl65536b,-zvl8192b" }
 attributes #2 = { mustprogress nofree norecurse nosync nounwind willreturn memory(argmem: write) "cheri-compartment"="qoi_decode" "no-builtin-longjmp" "no-builtin-printf" "no-builtin-setjmp" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+32bit,+c,+e,+m,+relax,+unaligned-scalar-mem,+xcheri,+xcheriot,+zmmul,-a,-b,-d,-experimental-sdext,-experimental-sdtrig,-experimental-smctr,-experimental-ssctr,-experimental-svukte,-experimental-xqcia,-experimental-xqciac,-experimental-xqcicli,-experimental-xqcicm,-experimental-xqcics,-experimental-xqcicsr,-experimental-xqciint,-experimental-xqcilo,-experimental-xqcilsm,-experimental-xqcisls,-experimental-zalasr,-experimental-zicfilp,-experimental-zicfiss,-experimental-zvbc32e,-experimental-zvkgs,-f,-h,-i,-sha,-shcounterenw,-shgatpa,-shtvala,-shvsatpa,-shvstvala,-shvstvecd,-smaia,-smcdeleg,-smcsrind,-smdbltrp,-smepmp,-smmpm,-smnpm,-smrnmi,-smstateen,-ssaia,-ssccfg,-ssccptr,-sscofpmf,-sscounterenw,-sscsrind,-ssdbltrp,-ssnpm,-sspm,-ssqosid,-ssstateen,-ssstrict,-sstc,-sstvala,-sstvecd,-ssu64xl,-supm,-svade,-svadu,-svbare,-svinval,-svnapot,-svpbmt,-svvptc,-v,-xcheri-norvc,-xcvalu,-xcvbi,-xcvbitmanip,-xcvelw,-xcvmac,-xcvmem,-xcvsimd,-xmipscmove,-xmipslsp,-xsfcease,-xsfvcp,-xsfvfnrclipxfqf,-xsfvfwmaccqqq,-xsfvqmaccdod,-xsfvqmaccqoq,-xsifivecdiscarddlone,-xsifivecflushdlone,-xtheadba,-xtheadbb,-xtheadbs,-xtheadcmo,-xtheadcondmov,-xtheadfmemidx,-xtheadmac,-xtheadmemidx,-xtheadmempair,-xtheadsync,-xtheadvdot,-xventanacondops,-xwchc,-za128rs,-za64rs,-zaamo,-zabha,-zacas,-zalrsc,-zama16b,-zawrs,-zba,-zbb,-zbc,-zbkb,-zbkc,-zbkx,-zbs,-zca,-zcb,-zcd,-zce,-zcf,-zcmop,-zcmp,-zcmt,-zdinx,-zfa,-zfbfmin,-zfh,-zfhmin,-zfinx,-zhinx,-zhinxmin,-zic64b,-zicbom,-zicbop,-zicboz,-ziccamoa,-ziccif,-zicclsm,-ziccrse,-zicntr,-zicond,-zicsr,-zifencei,-zihintntl,-zihintpause,-zihpm,-zimop,-zk,-zkn,-zknd,-zkne,-zknh,-zkr,-zks,-zksed,-zksh,-zkt,-ztso,-zvbb,-zvbc,-zve32f,-zve32x,-zve64d,-zve64f,-zve64x,-zvfbfmin,-zvfbfwma,-zvfh,-zvfhmin,-zvkb,-zvkg,-zvkn,-zvknc,-zvkned,-zvkng,-zvknha,-zvknhb,-zvks,-zvksc,-zvksed,-zvksg,-zvksh,-zvkt,-zvl1024b,-zvl128b,-zvl16384b,-zvl2048b,-zvl256b,-zvl32768b,-zvl32b,-zvl4096b,-zvl512b,-zvl64b,-zvl65536b,-zvl8192b" }

@@ -12477,7 +12477,8 @@ bool TargetLowering::expandMultipleResultFPLibCall(
 
   // Pass the output pointers.
   SmallVector<SDValue, 2> ResultPtrs(NumResults);
-  Type *PointerTy = PointerType::getUnqual(Ctx);
+  Type *PointerTy =
+      PointerType::get(Ctx, DAG.getDataLayout().getAllocaAddrSpace());
   for (auto [ResNo, ST] : llvm::enumerate(ResultStores)) {
     if (ResNo == CallRetResNo)
       continue;

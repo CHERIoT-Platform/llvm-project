@@ -937,6 +937,8 @@ void elf::initSymbolAnchors(Ctx &ctx) {
     if (!(osec->flags & SHF_EXECINSTR))
       continue;
     for (InputSection *sec : getInputSections(*osec, storage)) {
+      if (isa<SyntheticSection>(sec))
+        continue;
       sec->relaxAux = make<RelaxAux>();
       if (sec->relocs().size()) {
         sec->relaxAux->relocDeltas =
@@ -982,6 +984,8 @@ void elf::initSymbolAnchors(Ctx &ctx) {
     if (!(osec->flags & SHF_EXECINSTR))
       continue;
     for (InputSection *sec : getInputSections(*osec, storage)) {
+      if (!sec->relaxAux)
+        continue;
       llvm::sort(sec->relaxAux->anchors, [](auto &a, auto &b) {
         return std::make_pair(a.offset, a.end) <
                std::make_pair(b.offset, b.end);
@@ -1251,7 +1255,8 @@ bool RISCV::relaxOnce(int pass) const {
     if (!(osec->flags & SHF_EXECINSTR))
       continue;
     for (InputSection *sec : getInputSections(*osec, storage))
-      changed |= relax(ctx, pass, *sec);
+      if (sec->relaxAux)
+        changed |= relax(ctx, pass, *sec);
   }
   return changed;
 }
@@ -1375,6 +1380,8 @@ void RISCV::finalizeRelax(int passes) const {
     if (!(osec->flags & SHF_EXECINSTR))
       continue;
     for (InputSection *sec : getInputSections(*osec, storage)) {
+      if (!sec->relaxAux)
+        continue;
       RelaxAux &aux = *sec->relaxAux;
       if (!aux.relocDeltas)
         continue;

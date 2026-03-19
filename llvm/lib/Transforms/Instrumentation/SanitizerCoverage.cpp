@@ -37,6 +37,7 @@
 #include "llvm/Support/VirtualFileSystem.h"
 #include "llvm/TargetParser/Triple.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
+#include "llvm/Transforms/Utils/EscapeEnumerator.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 
 using namespace llvm;
@@ -45,6 +46,8 @@ using namespace llvm;
 
 const char SanCovTracePCIndirName[] = "__sanitizer_cov_trace_pc_indir";
 const char SanCovTracePCName[] = "__sanitizer_cov_trace_pc";
+const char SanCovTracePCEntryName[] = "__sanitizer_cov_trace_pc_entry";
+const char SanCovTracePCExitName[] = "__sanitizer_cov_trace_pc_exit";
 const char SanCovTraceCmp1[] = "__sanitizer_cov_trace_cmp1";
 const char SanCovTraceCmp2[] = "__sanitizer_cov_trace_cmp2";
 const char SanCovTraceCmp4[] = "__sanitizer_cov_trace_cmp4";
@@ -100,6 +103,10 @@ static cl::opt<int> ClCoverageLevel(
 
 static cl::opt<bool> ClTracePC("sanitizer-coverage-trace-pc",
                                cl::desc("Experimental pc tracing"), cl::Hidden);
+
+static cl::opt<bool> ClTracePCEntryExit(
+    "sanitizer-coverage-trace-pc-entry-exit",
+    cl::desc("pc tracing with separate entry/exit callbacks"), cl::Hidden);
 
 static cl::opt<bool> ClTracePCGuard("sanitizer-coverage-trace-pc-guard",
                                     cl::desc("pc tracing with a guard"),
@@ -210,6 +217,7 @@ SanitizerCoverageOptions OverrideFromCL(SanitizerCoverageOptions Options) {
   Options.TraceDiv |= ClDIVTracing;
   Options.TraceGep |= ClGEPTracing;
   Options.TracePC |= ClTracePC;
+  Options.TracePCEntryExit |= ClTracePCEntryExit;
   Options.TracePCGuard |= ClTracePCGuard;
   Options.Inline8bitCounters |= ClInline8bitCounters;
   Options.InlineBoolFlag |= ClInlineBoolFlag;
@@ -221,7 +229,7 @@ SanitizerCoverageOptions OverrideFromCL(SanitizerCoverageOptions Options) {
   Options.TraceLoads |= ClLoadTracing;
   Options.TraceStores |= ClStoreTracing;
   Options.GatedCallbacks |= ClGatedCallbacks;
-  if (!Options.TracePCGuard && !Options.TracePC &&
+  if (!Options.TracePCGuard && !Options.TracePC && !Options.TracePCEntryExit &&
       !Options.Inline8bitCounters && !Options.StackDepth &&
       !Options.InlineBoolFlag && !Options.TraceLoads && !Options.TraceStores)
     Options.TracePCGuard = true; // TracePCGuard is default.
@@ -258,6 +266,7 @@ private:
                          ArrayRef<GetElementPtrInst *> GepTraceTargets);
   void InjectTraceForLoadsAndStores(Function &F, ArrayRef<LoadInst *> Loads,
                                     ArrayRef<StoreInst *> Stores);
+  void InjectTraceForExits(Function &F);
   void InjectTraceForSwitch(Function &F,
                             ArrayRef<Instruction *> SwitchTraceTargets,
                             Value *&FunctionGateCmp);
@@ -290,6 +299,7 @@ private:
   FunctionCallee SanCovStackDepthCallback;
   FunctionCallee SanCovTracePCIndir;
   FunctionCallee SanCovTracePC, SanCovTracePCGuard;
+  FunctionCallee SanCovTracePCEntry, SanCovTracePCExit;
   std::array<FunctionCallee, 4> SanCovTraceCmpFunction;
   std::array<FunctionCallee, 4> SanCovTraceConstCmpFunction;
   std::array<FunctionCallee, 5> SanCovLoadFunction;
@@ -533,6 +543,8 @@ bool ModuleSanitizerCoverage::instrumentModule() {
   }
 
   SanCovTracePC = M.getOrInsertFunction(SanCovTracePCName, VoidTy);
+  SanCovTracePCEntry = M.getOrInsertFunction(SanCovTracePCEntryName, VoidTy);
+  SanCovTracePCExit = M.getOrInsertFunction(SanCovTracePCExitName, VoidTy);
   SanCovTracePCGuard =
       M.getOrInsertFunction(SanCovTracePCGuardName, VoidTy, PtrTy);
 
@@ -758,6 +770,9 @@ void ModuleSanitizerCoverage::instrumentFunction(Function &F) {
   InjectTraceForDiv(F, DivTraceTargets);
   InjectTraceForGep(F, GepTraceTargets);
   InjectTraceForLoadsAndStores(F, Loads, Stores);
+
+  if (Options.TracePCEntryExit)
+    InjectTraceForExits(F);
 }
 
 GlobalVariable *ModuleSanitizerCoverage::CreateFunctionLocalArrayInSection(
@@ -869,6 +884,7 @@ bool ModuleSanitizerCoverage::InjectCoverage(Function &F,
   CreateFunctionLocalArrays(F, AllBlocks);
   for (size_t i = 0, N = AllBlocks.size(); i < N; i++)
     InjectCoverageAtBlock(F, *AllBlocks[i], i, FunctionGateCmp, IsLeafFunc);
+
   return true;
 }
 
@@ -883,7 +899,7 @@ void ModuleSanitizerCoverage::InjectCoverageForIndirectCalls(
     Function &F, ArrayRef<Instruction *> IndirCalls) {
   if (IndirCalls.empty())
     return;
-  assert(Options.TracePC || Options.TracePCGuard ||
+  assert(Options.TracePC || Options.TracePCEntryExit || Options.TracePCGuard ||
          Options.Inline8bitCounters || Options.InlineBoolFlag);
   for (auto *I : IndirCalls) {
     InstrumentationIRBuilder IRB(I);
@@ -1004,6 +1020,15 @@ void ModuleSanitizerCoverage::InjectTraceForLoadsAndStores(
   }
 }
 
+void ModuleSanitizerCoverage::InjectTraceForExits(Function &F) {
+  EscapeEnumerator EE(F, "sancov_exit");
+  while (IRBuilder<> *AtExit = EE.Next()) {
+    InstrumentationIRBuilder::ensureDebugInfo(*AtExit, F);
+    AtExit->CreateCall(SanCovTracePCExit, {})
+        ->setTailCallKind(CallInst::TCK_NoTail);
+  }
+}
+
 void ModuleSanitizerCoverage::InjectTraceForCmp(
     Function &F, ArrayRef<Instruction *> CmpTraceTargets,
     Value *&FunctionGateCmp) {
@@ -1069,8 +1094,11 @@ void ModuleSanitizerCoverage::InjectCoverageAtBlock(Function &F, BasicBlock &BB,
   InstrumentationIRBuilder IRB(&*IP);
   if (EntryLoc)
     IRB.SetCurrentDebugLocation(EntryLoc);
-  if (Options.TracePC) {
-    IRB.CreateCall(SanCovTracePC)
+  if (Options.TracePC || (IsEntryBB && Options.TracePCEntryExit)) {
+    FunctionCallee Callee = IsEntryBB && Options.TracePCEntryExit
+                                ? SanCovTracePCEntry
+                                : SanCovTracePC;
+    IRB.CreateCall(Callee)
         ->setCannotMerge(); // gets the PC using GET_CALLER_PC.
   }
   if (Options.TracePCGuard) {

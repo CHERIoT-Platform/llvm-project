@@ -596,8 +596,6 @@ bool RISCVExpandPseudo::expandAuicgpInstPair(
   unsigned SecondFlags = RISCVII::MO_CHERIOT1_COMPARTMENT_LO_I;
   if (IsStore)
     SecondFlags = RISCVII::MO_CHERIOT1_COMPARTMENT_LO_S;
-  else if (SecondOpcode == RISCV::CIncOffsetImm)
-    SecondFlags = RISCVII::MO_CHERIOT1_COMPARTMENT_LO_CINCOFFSET;
   BuildMI(NewMBB, DL, TII->get(SecondOpcode))
       .addReg(DestReg, getRegState(MI.getOperand(IsStore ? 1 : 0)))
       .addReg(TmpReg, RegState::Kill)
@@ -787,12 +785,8 @@ bool RISCVExpandPseudo::expandAuipccInstPair(
   }
 
   unsigned SecondFlags = RISCVII::MO_PCREL_LO;
-  if (IsCheriot) {
-    if (SecondOpcode == RISCV::CIncOffsetImm)
-      SecondFlags = RISCVII::MO_CHERIOT1_COMPARTMENT_LO_CINCOFFSET;
-    else
-      SecondFlags = RISCVII::MO_CHERIOT1_COMPARTMENT_LO_I;
-  }
+  if (IsCheriot)
+    SecondFlags = RISCVII::MO_CHERIOT1_COMPARTMENT_LO_I;
   BuildMI(NewMBB, DL, TII->get(SecondOpcode), DestReg)
       .addReg(TmpReg)
       .addMBB(NewMBB, SecondFlags);

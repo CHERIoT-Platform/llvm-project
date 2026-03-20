@@ -478,7 +478,6 @@ enum {
   MO_CHERIOT1_COMPARTMENT_LO_I = 23,
   MO_CHERIOT1_COMPARTMENT_LO_S = 24,
   MO_CHERIOT1_COMPARTMENT_SIZE = 25,
-  MO_CHERIOT1_COMPARTMENT_LO_CINCOFFSET = 26,
 
   // Used to differentiate between target-specific "direct" flags and "bitmask"
   // flags. A machine operand can only have one "direct" flag, but can have

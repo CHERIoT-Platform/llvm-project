@@ -42,7 +42,6 @@ RISCV::Specifier RISCV::parseSpecifierName(StringRef name, bool IsPurecap) {
       .Case("gotpcrel", ELF::R_RISCV_GOT32_PCREL)
       .Case("cheriot_compartment_hi", RISCV::S_CHERIOT_COMPARTMENT_HI)
       .Case("cheriot_compartment_lo_i", RISCV::S_CHERIOT_COMPARTMENT_LO_I)
-      .Case("cheriot_compartment_lo_cincoffset", RISCV::S_CHERIOT_COMPARTMENT_LO_CINCOFFSET)
       .Case("cheriot_compartment_lo_s", RISCV::S_CHERIOT_COMPARTMENT_LO_S)
       .Case("cheriot_compartment_size", RISCV::S_CHERIOT_COMPARTMENT_SIZE)
       .Case("code", ELF::R_RISCV_CHERI_CAPABILITY_CODE)
@@ -102,8 +101,6 @@ StringRef RISCV::getSpecifierName(Specifier S) {
     return "cheriot_compartment_hi";
   case RISCV::S_CHERIOT_COMPARTMENT_LO_I:
     return "cheriot_compartment_lo_i";
-  case RISCV::S_CHERIOT_COMPARTMENT_LO_CINCOFFSET:
-    return "cheriot_compartment_lo_cincoffset";
   case RISCV::S_CHERIOT_COMPARTMENT_LO_S:
     return "cheriot_compartment_lo_s";
   case RISCV::S_CHERIOT_COMPARTMENT_SIZE:

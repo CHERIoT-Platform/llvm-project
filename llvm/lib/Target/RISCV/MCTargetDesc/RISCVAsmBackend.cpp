@@ -100,7 +100,6 @@ MCFixupKindInfo RISCVAsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
       {"fixup_riscv_cheriot_compartment_lo_i", 0, 32, 0},
       {"fixup_riscv_cheriot_compartment_lo_s", 0, 32, 0},
       {"fixup_riscv_cheriot_compartment_size", 20, 12, 0},
-      {"fixup_riscv_cheriot_compartment_lo_cincoffset", 0, 32, 0},
   };
   static_assert((std::size(Infos)) == RISCV::NumTargetFixupKinds,
                 "Not all fixup kinds added to Infos array");
@@ -809,7 +808,6 @@ void RISCVAsmBackend::maybeAddVendorReloc(const MCFragment &F,
     break;
   case RISCV::fixup_riscv_cheriot1_compartment_hi:
   case RISCV::fixup_riscv_cheriot1_compartment_lo_i:
-  case RISCV::fixup_riscv_cheriot1_compartment_lo_cincoffset:
   case RISCV::fixup_riscv_cheriot1_compartment_lo_s:
   case RISCV::fixup_riscv_cheriot1_compartment_size:
     VendorIdentifier = "CHERIOT1";

@@ -137,7 +137,7 @@ define dso_local i32 @testcall8() local_unnamed_addr addrspace(200) #2 {
 ; CHECK-NEXT:  .LBB3_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
 ; CHECK-NEXT:    ct.auicgp t0, %cheriot_compartment_hi(testcall8.stack_arg)
-; CHECK-NEXT:    ct.cincoffset t0, t0, %cheriot_compartment_lo_cincoffset(.LBB3_1)
+; CHECK-NEXT:    ct.cincoffset t0, t0, %cheriot_compartment_lo_i(.LBB3_1)
 ; CHECK-NEXT:    ct.csetbounds t0, t0, %cheriot_compartment_size(testcall8.stack_arg)
 ; CHECK-NEXT:    ct.csc t0, 8(sp)
 ; CHECK-NEXT:    ct.csetbounds t0, sp, 16

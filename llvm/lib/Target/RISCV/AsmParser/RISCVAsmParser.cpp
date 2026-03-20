@@ -975,7 +975,6 @@ public:
             VK == ELF::R_RISCV_TLSDESC_ADD_LO12 ||
             VK == RISCV::S_CHERIOT_COMPARTMENT_LO_I ||
             VK == RISCV::S_CHERIOT_COMPARTMENT_LO_S ||
-            VK == RISCV::S_CHERIOT_COMPARTMENT_LO_CINCOFFSET ||
             VK == ELF::R_RISCV_CHERI_TLS_TGOT_LO12_I);
   }
 

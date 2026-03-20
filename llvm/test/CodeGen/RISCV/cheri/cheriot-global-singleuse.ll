@@ -189,7 +189,7 @@ define i64 @load_u64() addrspace(200) {
 ; CHECK-NEXT:  .LBB12_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
 ; CHECK-NEXT:    ct.auicgp a1, %cheriot_compartment_hi(gv_u64)
-; CHECK-NEXT:    ct.cincoffset a1, a1, %cheriot_compartment_lo_cincoffset(.LBB12_1)
+; CHECK-NEXT:    ct.cincoffset a1, a1, %cheriot_compartment_lo_i(.LBB12_1)
 ; CHECK-NEXT:    ct.csetbounds a1, a1, %cheriot_compartment_size(gv_u64)
 ; CHECK-NEXT:    ct.clw a0, 0(a1)
 ; CHECK-NEXT:    ct.clw a1, 4(a1)
@@ -205,7 +205,7 @@ define void @store_u64() addrspace(200) {
 ; CHECK-NEXT:  .LBB13_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
 ; CHECK-NEXT:    ct.auicgp a0, %cheriot_compartment_hi(gv_u64)
-; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_cincoffset(.LBB13_1)
+; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB13_1)
 ; CHECK-NEXT:    ct.csetbounds a0, a0, %cheriot_compartment_size(gv_u64)
 ; CHECK-NEXT:    li a1, 3
 ; CHECK-NEXT:    ct.csw zero, 4(a0)
@@ -222,7 +222,7 @@ define i64 @load_s64() addrspace(200) {
 ; CHECK-NEXT:  .LBB14_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
 ; CHECK-NEXT:    ct.auicgp a1, %cheriot_compartment_hi(gv_s64)
-; CHECK-NEXT:    ct.cincoffset a1, a1, %cheriot_compartment_lo_cincoffset(.LBB14_1)
+; CHECK-NEXT:    ct.cincoffset a1, a1, %cheriot_compartment_lo_i(.LBB14_1)
 ; CHECK-NEXT:    ct.csetbounds a1, a1, %cheriot_compartment_size(gv_s64)
 ; CHECK-NEXT:    ct.clw a0, 0(a1)
 ; CHECK-NEXT:    ct.clw a1, 4(a1)
@@ -238,7 +238,7 @@ define void @store_s64() addrspace(200) {
 ; CHECK-NEXT:  .LBB15_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
 ; CHECK-NEXT:    ct.auicgp a0, %cheriot_compartment_hi(gv_s64)
-; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_cincoffset(.LBB15_1)
+; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB15_1)
 ; CHECK-NEXT:    ct.csetbounds a0, a0, %cheriot_compartment_size(gv_s64)
 ; CHECK-NEXT:    li a1, 3
 ; CHECK-NEXT:    ct.csw zero, 4(a0)
@@ -359,7 +359,7 @@ define i64 @load_cst_u64() addrspace(200) {
 ; CHECK-NEXT:  .LBB24_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
 ; CHECK-NEXT:    ct.auipcc a0, %cheriot_compartment_hi(cst_u64)
-; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_cincoffset(.LBB24_1)
+; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB24_1)
 ; CHECK-NEXT:    ct.clw a1, 4(a0)
 ; CHECK-NEXT:    ct.clw a0, 0(a0)
 ; CHECK-NEXT:    ct.cret
@@ -374,7 +374,7 @@ define i64 @load_cst_s64() addrspace(200) {
 ; CHECK-NEXT:  .LBB25_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
 ; CHECK-NEXT:    ct.auipcc a0, %cheriot_compartment_hi(cst_s64)
-; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_cincoffset(.LBB25_1)
+; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB25_1)
 ; CHECK-NEXT:    ct.clw a1, 4(a0)
 ; CHECK-NEXT:    ct.clw a0, 0(a0)
 ; CHECK-NEXT:    ct.cret

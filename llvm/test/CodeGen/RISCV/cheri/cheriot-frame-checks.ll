@@ -22,7 +22,7 @@ define dso_local cheriot_compartmentcalleecc noundef i32 @_Z22compartment_call_i
 ; CHECK-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:  .LBB0_2: # Label of block must be emitted
 ; CHECK-NEXT:    auipcc a0, %cheriot_compartment_hi(.L.str)
-; CHECK-NEXT:    cincoffset a0, a0, %cheriot_compartment_lo_cincoffset(.LBB0_2)
+; CHECK-NEXT:    cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB0_2)
 ; CHECK-NEXT:    csetbounds a0, a0, %cheriot_compartment_size(.L.str)
 ; CHECK-NEXT:    ccall _Z9debug_logIJEEvPKcDpT_
 ; CHECK-NEXT:    li a0, 0

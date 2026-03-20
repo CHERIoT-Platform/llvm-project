@@ -1496,7 +1496,7 @@ void Cost::RateFormula(const Formula &F, SmallPtrSetImpl<const SCEV *> &Regs,
       Lose();
       return;
     }
-    if (!IsBaseline && !TTI->isLegalBaseRegForLSR(ScaledReg)) {
+    if (!IsBaseline && !TTI->isLegalBaseRegForLSR(ScaledReg, F.Scale)) {
       Lose();
       return;
     }
@@ -1506,7 +1506,7 @@ void Cost::RateFormula(const Formula &F, SmallPtrSetImpl<const SCEV *> &Regs,
       return;
   }
   for (const SCEV *BaseReg : F.BaseRegs) {
-    if (!IsBaseline && !TTI->isLegalBaseRegForLSR(BaseReg)) {
+    if (!IsBaseline && !TTI->isLegalBaseRegForLSR(BaseReg, 1)) {
       Lose();
       return;
     }

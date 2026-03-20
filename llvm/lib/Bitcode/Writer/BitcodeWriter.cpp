@@ -781,6 +781,8 @@ static uint64_t getAttrKindEncoding(Attribute::AttrKind Kind) {
     return bitc::ATTR_KIND_HAS_SIDE_EFFECTS;
   case Attribute::FnRetThunkExtern:
     return bitc::ATTR_KIND_FNRETTHUNK_EXTERN;
+  case Attribute::Flatten:
+    return bitc::ATTR_KIND_FLATTEN;
   case Attribute::Hot:
     return bitc::ATTR_KIND_HOT;
   case Attribute::ElementType:

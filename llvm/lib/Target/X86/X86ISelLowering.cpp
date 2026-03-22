@@ -30100,13 +30100,28 @@ static SDValue LowerABD(SDValue Op, const X86Subtarget &Subtarget,
   bool IsSigned = Op.getOpcode() == ISD::ABDS;
   const TargetLowering &TLI = DAG.getTargetLoweringInfo();
 
-  if (Subtarget.canUseCMOV() && VT.isScalarInteger()) {
-    X86::CondCode CC = IsSigned ? X86::COND_L : X86::COND_B;
-    unsigned ExtOpc = IsSigned ? ISD::SIGN_EXTEND : ISD::ZERO_EXTEND;
+  if (VT.isScalarInteger()) {
+    // abdu(lhs, rhs) -> (sub(lhs,rhs) XOR mask) - mask
+    // where mask = carry ? -1 : 0 from the subtract.
+    // Branchless, no CMOV needed. Preferred for i8/i16 (no CMOV available for
+    // sub-i32 results) and when CMOV is unavailable.
+    if (!IsSigned && (VT.bitsLT(MVT::i32) || !Subtarget.canUseCMOV())) {
+      SDVTList VTs = DAG.getVTList(VT, MVT::i32);
+      SDValue LHS = Op.getOperand(0);
+      SDValue RHS = Op.getOperand(1);
+      SDValue Diff = DAG.getNode(X86ISD::SUB, dl, VTs, LHS, RHS);
+      SDValue Mask = DAG.getNode(
+          X86ISD::SETCC_CARRY, dl, VT,
+          DAG.getTargetConstant(X86::COND_B, dl, MVT::i8), Diff.getValue(1));
+      SDValue Xor = DAG.getNode(ISD::XOR, dl, VT, Diff, Mask);
+      return DAG.getNode(ISD::SUB, dl, VT, Xor, Mask);
+    }
 
+    // For i32/i64 with CMOV: two subtracts + conditional move.
     // abds(lhs, rhs) -> select(slt(lhs,rhs),sub(rhs,lhs),sub(lhs,rhs))
     // abdu(lhs, rhs) -> select(ult(lhs,rhs),sub(rhs,lhs),sub(lhs,rhs))
-    if (VT.bitsGE(MVT::i32)) {
+    if (Subtarget.canUseCMOV() && VT.bitsGE(MVT::i32)) {
+      X86::CondCode CC = IsSigned ? X86::COND_L : X86::COND_B;
       SDVTList VTs = DAG.getVTList(VT, MVT::i32);
       SDValue LHS = DAG.getFreeze(Op.getOperand(0));
       SDValue RHS = DAG.getFreeze(Op.getOperand(1));
@@ -30117,20 +30132,25 @@ static SDValue LowerABD(SDValue Op, const X86Subtarget &Subtarget,
                          Diff1.getValue(1));
     }
 
-    // abds(lhs, rhs) -> trunc(abs(sub(sext(lhs), sext(rhs))))
-    // abdu(lhs, rhs) -> trunc(abs(sub(zext(lhs), zext(rhs))))
-    unsigned WideBits = std::max<unsigned>(2 * VT.getScalarSizeInBits(), 32u);
-    MVT WideVT = MVT::getIntegerVT(WideBits);
-    if (TLI.isTypeLegal(WideVT)) {
-      SDVTList WideVTs = DAG.getVTList(WideVT, MVT::i32);
-      SDValue LHS = DAG.getNode(ExtOpc, dl, WideVT, Op.getOperand(0));
-      SDValue RHS = DAG.getNode(ExtOpc, dl, WideVT, Op.getOperand(1));
-      SDValue Diff0 = DAG.getNode(X86ISD::SUB, dl, WideVTs, LHS, RHS);
-      SDValue Diff1 = DAG.getNode(X86ISD::SUB, dl, WideVTs, RHS, LHS);
-      SDValue AbsDiff = DAG.getNode(X86ISD::CMOV, dl, WideVT, Diff1, Diff0,
-                                    DAG.getTargetConstant(CC, dl, MVT::i8),
-                                    Diff1.getValue(1));
-      return DAG.getNode(ISD::TRUNCATE, dl, VT, AbsDiff);
+    assert(IsSigned && "abdu should have been handled by carry-mask path");
+
+    // abds i8/i16 with CMOV: sign-extend to wider type, CMOV, truncate.
+    if (Subtarget.canUseCMOV()) {
+      unsigned WideBits = std::max<unsigned>(2 * VT.getScalarSizeInBits(), 32u);
+      MVT WideVT = MVT::getIntegerVT(WideBits);
+      if (TLI.isTypeLegal(WideVT)) {
+        SDVTList WideVTs = DAG.getVTList(WideVT, MVT::i32);
+        SDValue LHS =
+            DAG.getNode(ISD::SIGN_EXTEND, dl, WideVT, Op.getOperand(0));
+        SDValue RHS =
+            DAG.getNode(ISD::SIGN_EXTEND, dl, WideVT, Op.getOperand(1));
+        SDValue Diff0 = DAG.getNode(X86ISD::SUB, dl, WideVTs, LHS, RHS);
+        SDValue Diff1 = DAG.getNode(X86ISD::SUB, dl, WideVTs, RHS, LHS);
+        SDValue AbsDiff = DAG.getNode(
+            X86ISD::CMOV, dl, WideVT, Diff1, Diff0,
+            DAG.getTargetConstant(X86::COND_L, dl, MVT::i8), Diff1.getValue(1));
+        return DAG.getNode(ISD::TRUNCATE, dl, VT, AbsDiff);
+      }
     }
   }
 
@@ -31463,6 +31483,60 @@ static SDValue LowerShift(SDValue Op, const X86Subtarget &Subtarget,
     Amt = DAG.getNode(ISD::ZERO_EXTEND, dl, ExtVT, Amt);
     return DAG.getNode(ISD::TRUNCATE, dl, VT,
                        DAG.getNode(Opc, dl, ExtVT, R, Amt));
+  }
+
+  // GFNI - we can perform SHL with a GF multiplication, and can convert
+  // SRL/SRA to a SHL.
+  if (Subtarget.hasGFNI() && !(ConstantAmt && Opc == ISD::SRA) &&
+      ((VT == MVT::v16i8 && Subtarget.hasSSSE3()) ||
+       (VT == MVT::v32i8 && Subtarget.hasInt256()) ||
+       (VT == MVT::v64i8 && Subtarget.useBWIRegs() && Opc != ISD::SRA))) {
+    auto GFShiftLeft = [&](SDValue Val) {
+      // Use PSHUFB as a LUT from the shift amount to create a per-element
+      // byte mask for the shift value and an index. For shift amounts greater
+      // than 7, the result will be zero.
+      SmallVector<APInt, 8> MaskBits, IdxBits;
+      for (unsigned I = 0, E = VT.getSizeInBits() / 128; I != E; ++I) {
+        MaskBits.push_back(APInt(64, 0x0103070F1F3F7FFFULL));
+        IdxBits.push_back(APInt(64, 0x8040201008040201ULL));
+        MaskBits.push_back(APInt::getZero(64));
+        IdxBits.push_back(APInt::getZero(64));
+      }
+
+      MVT CVT = MVT::getVectorVT(MVT::i64, VT.getSizeInBits() / 64);
+      SDValue Mask = DAG.getBitcast(VT, getConstVector(MaskBits, CVT, DAG, dl));
+      SDValue Idx = DAG.getBitcast(VT, getConstVector(IdxBits, CVT, DAG, dl));
+      Mask = DAG.getNode(X86ISD::PSHUFB, dl, VT, Mask, Amt);
+      Idx = DAG.getNode(X86ISD::PSHUFB, dl, VT, Idx, Amt);
+      Mask = DAG.getNode(ISD::AND, dl, VT, Val, Mask);
+      return DAG.getNode(X86ISD::GF2P8MULB, dl, VT, Mask, Idx);
+    };
+
+    if (Opc == ISD::SHL)
+      return GFShiftLeft(R);
+
+    // srl(x,y)
+    // --> bitreverse(shl(bitreverse(x),y))
+    if (Opc == ISD::SRL) {
+      R = DAG.getNode(ISD::BITREVERSE, dl, VT, R);
+      R = GFShiftLeft(R);
+      return DAG.getNode(ISD::BITREVERSE, dl, VT, R);
+    }
+
+    // sra(x,y)
+    // --> sub(xor(srl(x,y), m),m)
+    // --> sub(xor(bitreverse(shl(bitreverse(x),y)), m),m)
+    // where m = srl(signbit, amt) --> bitreverse(shl(lsb, amt))
+    if (Opc == ISD::SRA) {
+      SDValue LSB = DAG.getConstant(APInt::getOneBitSet(8, 0), dl, VT);
+      SDValue M = DAG.getNode(ISD::BITREVERSE, dl, VT, GFShiftLeft(LSB));
+      R = DAG.getNode(ISD::BITREVERSE, dl, VT, R);
+      R = GFShiftLeft(R);
+      R = DAG.getNode(ISD::BITREVERSE, dl, VT, R);
+      R = DAG.getNode(ISD::XOR, dl, VT, R, M);
+      R = DAG.getNode(ISD::SUB, dl, VT, R, M);
+      return R;
+    }
   }
 
   // Constant ISD::SRA/SRL can be performed efficiently on vXi8 vectors as we
@@ -45482,6 +45556,22 @@ bool X86TargetLowering::SimplifyDemandedBitsForTargetNode(
     if (SimplifyDemandedBits(Op.getOperand(0), OriginalDemandedBits,
                              OriginalDemandedElts, Known, TLO, Depth + 1))
       return true;
+
+    // Check whether we can fold away a cond ? 0 : 1 cmov after shrinking
+    // operands based on demanded bits.
+    KnownBits KnownFalseVal =
+        Known & KnownBits::makeConstant(OriginalDemandedBits);
+    KnownBits KnownTrueVal =
+        Known2 & KnownBits::makeConstant(OriginalDemandedBits);
+    if (KnownFalseVal.isZero() && KnownTrueVal.isConstant() &&
+        KnownTrueVal.getConstant().isOne() &&
+        Op.getValueType().isScalarInteger()) {
+      SDLoc DL(Op);
+      X86::CondCode CC = (X86::CondCode)Op.getConstantOperandVal(2);
+      SDValue SetCC = getSETCC(CC, Op.getOperand(3), DL, TLO.DAG);
+      return TLO.CombineTo(
+          Op, TLO.DAG.getNode(ISD::ZERO_EXTEND, DL, Op.getValueType(), SetCC));
+    }
 
     // Only known if known in both the LHS and RHS.
     Known = Known.intersectWith(Known2);
@@ -60364,6 +60454,17 @@ static SDValue combineConcatVectorOps(const SDLoc &DL, MVT VT,
       if (!IsSplat && ((VT.is256BitVector() && Subtarget.hasInt256()) ||
                        (VT.is512BitVector() && Subtarget.useBWIRegs()))) {
         return DAG.getNode(Opcode, DL, VT, ConcatSubOperand(VT, Ops, 0));
+      }
+      break;
+    case X86ISD::GF2P8MULB:
+      if (!IsSplat && (VT.is256BitVector() ||
+                       (VT.is512BitVector() && Subtarget.useAVX512Regs()))) {
+        SDValue LHS = CombineSubOperand(VT, Ops, 0);
+        SDValue RHS = CombineSubOperand(VT, Ops, 1);
+        if (LHS || RHS)
+          return DAG.getNode(Opcode, DL, VT,
+                             LHS ? LHS : ConcatSubOperand(VT, Ops, 0),
+                             RHS ? RHS : ConcatSubOperand(VT, Ops, 1));
       }
       break;
     case X86ISD::GF2P8AFFINEQB:

@@ -1198,6 +1198,9 @@ UnreachableInst::UnreachableInst(LLVMContext &Context,
 //                        UncondBrInst Implementation
 //===----------------------------------------------------------------------===//
 
+// Suppress deprecation warnings from BranchInst.
+LLVM_SUPPRESS_DEPRECATED_DECLARATIONS_PUSH
+
 UncondBrInst::UncondBrInst(BasicBlock *IfTrue, InsertPosition InsertBefore)
     : BranchInst(Type::getVoidTy(IfTrue->getContext()), Instruction::UncondBr,
                  AllocMarker, InsertBefore) {
@@ -1251,6 +1254,9 @@ void CondBrInst::swapSuccessors() {
   // expectations.
   swapProfMetadata();
 }
+
+// Suppress deprecation warnings from BranchInst.
+LLVM_SUPPRESS_DEPRECATED_DECLARATIONS_POP
 
 //===----------------------------------------------------------------------===//
 //                        AllocaInst Implementation

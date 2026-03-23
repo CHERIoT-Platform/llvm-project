@@ -155,6 +155,7 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/NVPTXAddrSpace.h"
+#include "llvm/Support/NVVMAttributes.h"
 #include <queue>
 
 #define DEBUG_TYPE "nvptx-lower-args"
@@ -377,7 +378,7 @@ static CallInst *createNVVMInternalAddrspaceWrap(IRBuilder<> &IRB,
     ArgInParam->addRetAttr(
         Attribute::getWithAlignment(ArgInParam->getContext(), *ParamAlign));
 
-  Arg.addAttr(Attribute::get(Arg.getContext(), "nvvm.grid_constant"));
+  Arg.addAttr(Attribute::get(Arg.getContext(), NVVMAttr::GridConstant));
   Arg.addAttr(Attribute::ReadOnly);
 
   return ArgInParam;

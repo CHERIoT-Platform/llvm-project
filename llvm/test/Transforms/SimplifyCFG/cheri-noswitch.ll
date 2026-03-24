@@ -36,17 +36,16 @@ define void @foo(ptr addrspace(200) %x) local_unnamed_addr addrspace(200) #0 {
 ; Previously we were generating a %magicptr = ptrtoint i8 addrspace(200)* %x to i64 here
 ; CHECK-LABEL: @foo(
 ; CHECK-NEXT:  entry:
-; CHECK-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[X:%.*]], null
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[X:%.*]])
+; CHECK-NEXT:    [[CMP:%.*]] = icmp eq i64 [[TMP0]], 0
 ; CHECK-NEXT:    br i1 [[CMP]], label [[IF_THEN:%.*]], label [[IF_END:%.*]]
 ; CHECK:       if.then:
 ; CHECK-NEXT:    call addrspace(200) void @g()
-; CHECK-NEXT:    br label [[IF_END]]
-; CHECK:       if.end:
 ; CHECK-NEXT:    [[CMP1:%.*]] = icmp eq ptr addrspace(200) [[X]], null
-; CHECK-NEXT:    br i1 [[CMP1]], label [[IF_ELSE:%.*]], label [[IF_END3:%.*]]
+; CHECK-NEXT:    br i1 [[CMP1]], label [[IF_ELSE:%.*]], label [[IF_END]]
 ; CHECK:       if.else:
 ; CHECK-NEXT:    call addrspace(200) void @puts(ptr addrspace(200) @.str.1)
-; CHECK-NEXT:    br label [[IF_END3]]
+; CHECK-NEXT:    br label [[IF_END]]
 ; CHECK:       if.end3:
 ; CHECK-NEXT:    ret void
 ;
@@ -80,9 +79,8 @@ define signext i32 @issue332(ptr addrspace(200) %e, i32 %value) local_unnamed_ad
 ; CHECK-NEXT:    br i1 [[TOBOOL]], label [[IF_END2:%.*]], label [[IF_THEN:%.*]]
 ; CHECK:       if.then:
 ; CHECK-NEXT:    [[CALL:%.*]] = call signext addrspace(200) i32 @func1()
-; CHECK-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[E:%.*]], null
-; CHECK-NEXT:    [[TOBOOL3:%.*]] = icmp eq ptr addrspace(200) [[E]], null
-; CHECK-NEXT:    [[OR_COND:%.*]] = or i1 [[CMP]], [[TOBOOL3]]
+; CHECK-NEXT:    [[TMP0:%.*]] = call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[E:%.*]])
+; CHECK-NEXT:    [[OR_COND:%.*]] = icmp eq i64 [[TMP0]], 0
 ; CHECK-NEXT:    br i1 [[OR_COND]], label [[CLEANUP:%.*]], label [[LAND_RHS:%.*]]
 ; CHECK:       if.end2:
 ; CHECK-NEXT:    [[TOBOOL3_OLD:%.*]] = icmp eq ptr addrspace(200) [[E]], null

@@ -301,6 +301,10 @@ Value *getBasePtrIgnoringCapabilityAddressManipulation(Value *V,
 /// cleartag)
 Value *getBasePtrIgnoringCapabilityManipulation(Value *V, const DataLayout &DL);
 
+Value *stripAndAccumulateGEPsAndPointerCastsSameRepr(Value *V,
+                                                     const DataLayout &DL,
+                                                     APInt &OffsetAPInt);
+
 // These helper functions return a SimplifyQuery structure that contains as
 // many of the optional analysis we use as are currently valid.  This is the
 // strongly preferred way of constructing SimplifyQuery in passes.

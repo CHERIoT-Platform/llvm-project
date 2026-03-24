@@ -3440,6 +3440,27 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
                                    Intrinsic::cheri_cap_address_set>(this, II))
       return I;
     break;
+  case Intrinsic::cheri_cap_address_get: {
+    // Look through pointer casts and accumulate constant GEPs:
+    Value *V = II->getArgOperand(0);
+    APInt OffsetAPInt(DL.getIndexTypeSizeInBits(V->getType()), 0);
+    Value *BasePtr =
+        stripAndAccumulateGEPsAndPointerCastsSameRepr(V, DL, OffsetAPInt);
+
+    // If the address is null+offset+cst, then extract the address as
+    // just offset+cst.
+    auto *BaseGEP = dyn_cast<GetElementPtrInst>(BasePtr);
+    if (!BaseGEP || BaseGEP->getNumIndices() != 1 ||
+        !isa<ConstantPointerNull>(BaseGEP->getOperand(0)) ||
+        BaseGEP->getOperand(1)->getType() != II->getType())
+      break;
+
+    // NUW is save because caps don't wrap around.
+    Value *NewAddr = Builder.CreateAdd(
+        BaseGEP->getOperand(1), ConstantInt::get(II->getType(), OffsetAPInt),
+        "", /*NUW=*/true);
+    return replaceInstUsesWith(*II, NewAddr);
+  }
 
   case Intrinsic::cheri_cap_perms_and: {
     // When a when perms_and is applied to another perms_and, both with constant

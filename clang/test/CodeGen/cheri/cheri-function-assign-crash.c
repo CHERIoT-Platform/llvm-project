@@ -10,14 +10,18 @@ int d();
 int e();
 // PCREL-LABEL: @b(
 // PCREL-NEXT:  entry:
-// PCREL-NEXT:    [[TOBOOL_NOT:%.*]] = icmp eq ptr addrspace(200) @a, null
-// PCREL-NEXT:    br i1 [[TOBOOL_NOT]], label [[CLEANUP:%.*]], label [[IF_END2:%.*]]
+// PCREL-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) @a)
+// PCREL-NEXT:    [[COND:%.*]] = icmp eq i64 [[TMP0]], 0
+// PCREL-NEXT:    br i1 [[COND]], label [[CLEANUP:%.*]], label [[IF_THEN:%.*]]
+// PCREL:       if.then:
+// PCREL-NEXT:    [[CALL:%.*]] = tail call signext addrspace(200) i32 @d() #[[ATTR3:[0-9]+]]
+// PCREL-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) @a, null
+// PCREL-NEXT:    br i1 [[CMP]], label [[CLEANUP]], label [[IF_END2:%.*]]
 // PCREL:       if.end2:
-// PCREL-NEXT:    [[CALL:%.*]] = tail call signext addrspace(200) i32 @d() #[[ATTR2:[0-9]+]]
-// PCREL-NEXT:    [[CALL3:%.*]] = tail call signext addrspace(200) i32 @e() #[[ATTR2]]
+// PCREL-NEXT:    [[CALL3:%.*]] = tail call signext addrspace(200) i32 @e() #[[ATTR3]]
 // PCREL-NEXT:    br label [[CLEANUP]]
 // PCREL:       cleanup:
-// PCREL-NEXT:    [[RETVAL_0:%.*]] = phi ptr addrspace(200) [ @a, [[IF_END2]] ], [ null, [[ENTRY:%.*]] ]
+// PCREL-NEXT:    [[RETVAL_0:%.*]] = phi ptr addrspace(200) [ @a, [[IF_END2]] ], [ null, [[ENTRY:%.*]] ], [ null, [[IF_THEN]] ]
 // PCREL-NEXT:    ret ptr addrspace(200) [[RETVAL_0]]
 //
 void *b() {

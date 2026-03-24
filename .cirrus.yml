@@ -8,7 +8,7 @@ pr_task:
     image_family: ubuntu-2404-lts-arm64
     architecture: arm64
     zone: us-east1-b
-    type: c4a-standard-16
+    type: n4a-standard-16
     disk: 60
     spot: true
   env:

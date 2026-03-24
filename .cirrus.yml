@@ -8,7 +8,7 @@ pr_task:
     image_family: ubuntu-2404-lts-arm64
     architecture: arm64
     zone: us-east1-b
-    type: n4a-standard-16
+    type: n4a-standard-32
     disk: 60
     spot: true
   env:
@@ -41,7 +41,7 @@ x86_release_task:
     image_family: ubuntu-2404-lts-amd64
     architecture: amd64
     zone: us-east1-b
-    type: t2d-standard-16
+    type: t2d-standard-32
   env:
     NINJA_STATUS: "%p [%f:%s/%t] %o/s, %es: "
     CIRRUS_CLONE_DEPTH: 1

@@ -185,22 +185,15 @@ Instruction *InstCombinerImpl::SimplifyAnyMemTransfer(AnyMemTransferInst *MI) {
       return nullptr;
 
   // Use an integer load+store unless we can find something better.
-  unsigned SrcAddrSp =
-    cast<PointerType>(MI->getArgOperand(1)->getType())->getAddressSpace();
-  unsigned DstAddrSp =
-    cast<PointerType>(MI->getArgOperand(0)->getType())->getAddressSpace();
-
   if (!CpyTy)
-    CpyTy = IntegerType::get(MI->getContext(), Size<<3);
-  Type *NewSrcPtrTy = PointerType::get(MI->getContext(), SrcAddrSp);
-  Type *NewDstPtrTy = PointerType::get(MI->getContext(), DstAddrSp);
+    CpyTy = IntegerType::get(MI->getContext(), Size << 3);
 
   // If the memcpy has metadata describing the members, see if we can get the
   // TBAA, scope and noalias tags describing our copy.
   AAMDNodes AACopyMD = MI->getAAMetadata().adjustForAccess(Size);
 
-  Value *Src = Builder.CreateBitCast(MI->getArgOperand(1), NewSrcPtrTy);
-  Value *Dest = Builder.CreateBitCast(MI->getArgOperand(0), NewDstPtrTy);
+  Value *Src = MI->getArgOperand(1);
+  Value *Dest = MI->getArgOperand(0);
   LoadInst *L = Builder.CreateLoad(CpyTy, Src);
   // Alignment from the mem intrinsic will be better, so use it.
   L->setAlignment(*CopySrcAlign);

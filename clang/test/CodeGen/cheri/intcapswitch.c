@@ -67,8 +67,11 @@ char buf[16];
 
 int z_long(void) {
   // CHECK-OPT-LABEL: define {{.*}} i32 @z_long()
-  // CHECK-OPT:      [[SWITCHVAL:%.+]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull @buf)
-  // CHECK-OPT-NEXT: switch i64 [[SWITCHVAL]], label {{%.+}} [
+  // CHECK-OPT:      [[VADDR:%.+]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull @buf)
+  // CHECK-OPT-NEXT: [[VAL0:%.+]] = icmp ult i64 [[VADDR]], 5
+  // CHECK-OPT-NEXT: [[SWITCH:%.+]] = trunc i64 [[VADDR]] to i32
+  // CHECK-OPT-NEXT: [[RETVAL:%.+]] = select i1 [[VAL0]], i32 [[SWITCH]], i32 -1
+  // CHECK-OPT-NEXT: ret i32 [[RETVAL]]
 
   const char* switchval = buf;
   switch ((long)switchval) {
@@ -85,8 +88,11 @@ int z_intcap(void) {
   // Check that we actually switch on the virtual address and not the offset:
   // CHECK-OPT-LABEL: define {{.*}} i32 @z_intcap()
   // CHECK-OPT-NOT: ret i32 4
-  // CHECK-OPT:      [[SWITCHVAL:%.+]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull @buf)
-  // CHECK-OPT-NEXT: switch i64 [[SWITCHVAL]], label {{%.+}} [
+  // CHECK-OPT:      [[VADDR:%.+]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) nonnull @buf)
+  // CHECK-OPT-NEXT: [[VAL0:%.+]] = icmp ult i64 [[VADDR]], 5
+  // CHECK-OPT-NEXT: [[SWITCH:%.+]] = trunc i64 [[VADDR]] to i32
+  // CHECK-OPT-NEXT: [[RETVAL:%.+]] = select i1 [[VAL0]], i32 [[SWITCH]], i32 -1
+  // CHECK-OPT-NEXT: ret i32 [[RETVAL]]
   const char* switchval = buf;
   switch ((__intcap_t)switchval) {
     case 0: return 0;
@@ -105,14 +111,11 @@ int z_fixed_offset(void) {
   // CHECK-OPT-LABEL: define {{.*}} i32 @z_fixed_offset()
   // CHECK-OPT-NOT: ret i32 4
   // CHECK-OPT: [[CAP:%.+]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200) nonnull @buf, i64 4)
-  // CHECK-OPT-NEXT: [[SWITCHVAL:%.+]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
-  // CHECK-OPT-NEXT: switch i64 [[SWITCHVAL]], label {{%.+}} [
-  // CHECK-OPT-NEXT:   i64 0
-  // CHECK-OPT-NEXT:   i64 1
-  // CHECK-OPT-NEXT:   i64 2
-  // CHECK-OPT-NEXT:   i64 3
-  // CHECK-OPT-NEXT:   i64 4
-  // CHECK-OPT-NEXT: ]
+  // CHECK-OPT:      [[VADDR:%.+]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[CAP]])
+  // CHECK-OPT-NEXT: [[VAL0:%.+]] = icmp ult i64 [[VADDR]], 5
+  // CHECK-OPT-NEXT: [[SWITCH:%.+]] = trunc i64 [[VADDR]] to i32
+  // CHECK-OPT-NEXT: [[RETVAL:%.+]] = select i1 [[VAL0]], i32 [[SWITCH]], i32 -1
+  // CHECK-OPT-NEXT: ret i32 [[RETVAL]]
 
   const char* switchval = __builtin_cheri_offset_set(buf, 4);
   switch ((__intcap_t)switchval) {

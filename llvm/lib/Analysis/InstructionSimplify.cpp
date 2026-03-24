@@ -6582,9 +6582,9 @@ Value *llvm::getBasePtrIgnoringCapabilityManipulation(Value *V,
   return V;
 }
 
-static Value *
-stripAndAccumulateGEPsAndPointerCastsSameRepr(Value *V, const DataLayout &DL,
-                                              APInt &OffsetAPInt) {
+Value *llvm::stripAndAccumulateGEPsAndPointerCastsSameRepr(Value *V,
+                                                           const DataLayout &DL,
+                                                           APInt &OffsetAPInt) {
   Value *Result = V->stripPointerCastsSameRepresentation();
   for (int i = 0; i < 5; i++) {
     // Look through pointer casts and accumulate constant GEPs:
@@ -6639,21 +6639,19 @@ static Value *inferCapabilityOffsetOrAddr(Value *V, Type *ResultTy,
   if (Value *Ret = foldCheriGetSetPair<Intrin>(V, ResultTy, DL))
     return Ret;
 
-  APInt OffsetAPInt(DL.getIndexTypeSizeInBits(V->getType()), 0);
-  // Look through pointer casts and accumulate constant GEPs:
-  Value *BasePtr =
-      stripAndAccumulateGEPsAndPointerCastsSameRepr(V, DL, OffsetAPInt);
-
   // get{addr,offset}(GEP(NULL, B)) -> B
-  auto GEP = dyn_cast<GetElementPtrInst>(V);
-  auto BaseGEP = dyn_cast<GetElementPtrInst>(BasePtr);
-  if (GEP && BaseGEP) {
-    if (isa<ConstantPointerNull>(BaseGEP->getPointerOperand()) &&
-        BaseGEP->getNumIndices() == 1 &&
+  if (auto GEP = dyn_cast<GetElementPtrInst>(V)) {
+    if (isa<ConstantPointerNull>(GEP->getPointerOperand()) &&
+        GEP->getNumIndices() == 1 &&
         GEP->getOperand(1)->getType() == ResultTy) {
       return GEP->getOperand(1);
     }
   }
+
+  APInt OffsetAPInt(DL.getIndexTypeSizeInBits(V->getType()), 0);
+  // Look through pointer casts and accumulate constant GEPs:
+  Value *BasePtr =
+      stripAndAccumulateGEPsAndPointerCastsSameRepr(V, DL, OffsetAPInt);
 
   // If the value can be expressed as NULL+offset we can return that offset
   // for both getoffset and getaddress:
@@ -6668,6 +6666,7 @@ static Value *inferCapabilityOffsetOrAddr(Value *V, Type *ResultTy,
       return ConstantInt::get(ResultTy, IntVal->getValue() + OffsetAPInt);
     }
   }
+
   // We can also fold chains of constant GEPS:
   // For example: getoffset(GEP(setoffset(A, Const1), 100) -> Const1 + 100
   ConstantInt *ConstSetArg;

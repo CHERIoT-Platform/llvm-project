@@ -141,12 +141,6 @@ def isScalarExtractInstr
                       !instances<Pseudo>("^PseudoVFMV_F.*_S.*")
                      ])>>>;
 
-def isVExtractInstr
-    : TIIPredicate<"isVExtractInstr",
-                   MCReturnStatement<
-                     CheckOpcode<
-                      !instances<Instruction>("^PseudoRI_VEXTRACT.*")>>>;
-
 def isScalarInsertInstr
     : TIIPredicate<"isScalarInsertInstr",
                    MCReturnStatement<

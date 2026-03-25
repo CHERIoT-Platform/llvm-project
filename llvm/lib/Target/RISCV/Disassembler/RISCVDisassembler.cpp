@@ -496,7 +496,6 @@ static constexpr FeatureBitset XCVFeatureGroup = {
     RISCV::FeatureVendorXCVbi};
 
 static constexpr FeatureBitset XRivosFeatureGroup = {
-    RISCV::FeatureVendorXRivosVisni,
     RISCV::FeatureVendorXRivosVizip,
 };
 

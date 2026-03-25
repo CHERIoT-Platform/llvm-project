@@ -167,8 +167,6 @@ bool MangleContext::shouldMangleDeclName(const NamedDecl *D) {
   return shouldMangleCXXName(D);
 }
 
-static llvm::StringRef g_lldb_func_call_label_prefix = "$__lldb_func:";
-
 /// Given an LLDB function call label, this function prints the label
 /// into \c Out, together with the structor type of \c GD (if the
 /// decl is a constructor/destructor). LLDB knows how to handle mangled
@@ -182,9 +180,9 @@ static llvm::StringRef g_lldb_func_call_label_prefix = "$__lldb_func:";
 ///
 static void emitLLDBAsmLabel(llvm::StringRef label, GlobalDecl GD,
                              llvm::raw_ostream &Out) {
-  assert(label.starts_with(g_lldb_func_call_label_prefix));
+  assert(label.starts_with(LLDBManglingABI::FunctionLabelPrefix));
 
-  Out << g_lldb_func_call_label_prefix;
+  Out << LLDBManglingABI::FunctionLabelPrefix;
 
   if (auto *Ctor = llvm::dyn_cast<clang::CXXConstructorDecl>(GD.getDecl())) {
     Out << "C";
@@ -195,7 +193,7 @@ static void emitLLDBAsmLabel(llvm::StringRef label, GlobalDecl GD,
     Out << "D" << GD.getDtorType();
   }
 
-  Out << label.substr(g_lldb_func_call_label_prefix.size());
+  Out << label.substr(LLDBManglingABI::FunctionLabelPrefix.size());
 }
 
 void MangleContext::mangleName(GlobalDecl GD, raw_ostream &Out) {
@@ -231,7 +229,7 @@ void MangleContext::mangleName(GlobalDecl GD, raw_ostream &Out) {
     if (!UserLabelPrefix.empty())
       Out << '\01'; // LLVM IR Marker for __asm("foo")
 
-    if (ALA->getLabel().starts_with(g_lldb_func_call_label_prefix))
+    if (ALA->getLabel().starts_with(LLDBManglingABI::FunctionLabelPrefix))
       emitLLDBAsmLabel(ALA->getLabel(), GD, Out);
     else
       Out << ALA->getLabel();

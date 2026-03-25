@@ -78,11 +78,8 @@ struct CodeGenTypeCache {
     llvm::PointerType *GlobalsInt8PtrTy;
   };
 
-  /// void* in program address space
-  union {
-    llvm::PointerType *ProgramVoidPtrTy;
-    llvm::PointerType *ProgramInt8PtrTy;
-  };
+  /// Pointer in program address space
+  llvm::PointerType *ProgramPtrTy;
 
   /// void* in the address space for constant globals
   llvm::PointerType *ConstGlobalsPtrTy;

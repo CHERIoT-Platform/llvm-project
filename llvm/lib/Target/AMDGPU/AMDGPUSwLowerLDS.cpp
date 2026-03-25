@@ -774,6 +774,7 @@ void AMDGPUSwLowerLDS::lowerKernelLDSAccesses(Function *Func,
   auto *PrevEntryBlock = &Func->getEntryBlock();
   SetVector<Instruction *> LDSInstructions;
   getLDSMemoryInstructions(Func, LDSInstructions);
+  const DataLayout &DL = M.getDataLayout();
 
   // Create malloc block.
   auto *MallocBlock = BasicBlock::Create(Ctx, "Malloc", Func, PrevEntryBlock);
@@ -868,7 +869,7 @@ void AMDGPUSwLowerLDS::lowerKernelLDSAccesses(Function *Func,
   // Create a call to malloc function which does device global memory allocation
   // with size equals to all LDS global accesses size in this kernel.
   Value *ReturnAddress = IRB.CreateIntrinsic(
-      Intrinsic::returnaddress, IRB.getPtrTy(AMDGPUAS::FLAT_ADDRESS),
+      Intrinsic::returnaddress, IRB.getPtrTy(DL.getProgramAddressSpace()),
       {IRB.getInt32(0)});
   FunctionCallee MallocFunc = M.getOrInsertFunction(
       StringRef("__asan_malloc_impl"),
@@ -935,7 +936,7 @@ void AMDGPUSwLowerLDS::lowerKernelLDSAccesses(Function *Func,
       StringRef("__asan_free_impl"),
       FunctionType::get(IRB.getVoidTy(), {Int64Ty, Int64Ty}, false));
   Value *ReturnAddr = IRB.CreateIntrinsic(
-      Intrinsic::returnaddress, IRB.getPtrTy(AMDGPUAS::FLAT_ADDRESS),
+      Intrinsic::returnaddress, IRB.getPtrTy(DL.getProgramAddressSpace()),
       IRB.getInt32(0));
   Value *RAPToInt = IRB.CreatePtrToInt(ReturnAddr, Int64Ty);
   Value *MallocPtrToInt = IRB.CreatePtrToInt(LoadMallocPtr, Int64Ty);

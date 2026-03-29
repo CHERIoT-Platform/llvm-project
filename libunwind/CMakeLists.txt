@@ -339,8 +339,14 @@ if (RUNTIMES_EXECUTE_ONLY_CODE)
   add_compile_definitions(_LIBUNWIND_EXECUTE_ONLY_CODE)
 endif()
 
-if (LIBUNWIND_HAS_CHERI_LIB_C18N)
-  add_compile_definitions(_LIBUNWIND_HAS_CHERI_LIB_C18N)
+check_symbol_exists(getauxval "sys/auxv.h" HAVE_GETAUXVAL)
+if (HAVE_GETAUXVAL)
+  add_definitions(-D_LIBUNWIND_HAVE_GETAUXVAL)
+endif()
+
+check_symbol_exists(elf_aux_info "sys/auxv.h" HAVE_ELF_AUX_INFO)
+if (HAVE_ELF_AUX_INFO)
+  add_definitions(-D_LIBUNWIND_HAVE_ELF_AUX_INFO)
 endif()
 
 if (LIBUNWIND_HAS_CHERI_LIB_C18N)

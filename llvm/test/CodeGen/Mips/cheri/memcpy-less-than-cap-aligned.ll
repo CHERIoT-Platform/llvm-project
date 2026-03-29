@@ -1,4 +1,4 @@
-; RUN: %cheri_purecap_llc -O2 -verify-machineinstrs < %s | FileCheck %s -check-prefixes CHECK,CHERI128
+; RUN: %cheri_purecap_llc -O2 -verify-machineinstrs < %s | FileCheck %s
 
 declare void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noalias nocapture writeonly, ptr addrspace(200) noalias nocapture readonly, i64, i1 immarg) addrspace(200)
 declare void @llvm.memmove.p200.p200.i64(ptr addrspace(200) nocapture writeonly, ptr addrspace(200) nocapture readonly, i64, i1 immarg) addrspace(200)
@@ -51,12 +51,10 @@ entry:
   call void @llvm.memmove.p200.p200.i64(ptr addrspace(200) align 16 %dst, ptr addrspace(200) align 16 %src, i64 16, i1 false)
   ret void
   ; CHECK-LABEL: dst_align16_can_be_inlined_128:
-  ; CHERI128: clc	$c1, $zero, 0($c4)
-  ; CHERI128: csc	$c1, $zero, 0($c3)
-  ; CHERI128: clc	$c1, $zero, 0($c4)
-  ; CHERI128: csc	$c1, $zero, 0($c3)
-  ; CHERI256: clcbi $c12, %capcall20(memcpy)($c
-  ; CHERI256: clcbi $c12, %capcall20(memmove)($c
+  ; CHECK: clc	$c1, $zero, 0($c4)
+  ; CHECK: csc	$c1, $zero, 0($c3)
+  ; CHECK: clc	$c1, $zero, 0($c4)
+  ; CHECK: csc	$c1, $zero, 0($c3)
 }
 
 define void @dst_align32_can_be_inlined_always(ptr addrspace(200) %dst, ptr addrspace(200) %src) addrspace(200) nounwind {
@@ -67,10 +65,10 @@ entry:
   ; CHECK-LABEL: dst_align32_can_be_inlined_always:
   ; CHECK: clc	$c1, $zero, 0($c4)
   ; CHECK: csc	$c1, $zero, 0($c3)
-  ; CHERI128: clc	$c1, $zero, 16($c4)
-  ; CHERI128: csc	$c1, $zero, 16($c3)
-  ; CHECK: clc	$c1, $zero, 0($c4)
-  ; CHECK: csc	$c1, $zero, 0($c3)
-  ; CHERI128: clc	$c1, $zero, 16($c4)
-  ; CHERI128: csc	$c1, $zero, 16($c3)
+  ; CHECK: clc	$c1, $zero, 16($c4)
+  ; CHECK: csc	$c1, $zero, 16($c3)
+  ; CHECK: clc	$c1, $zero, 16($c4)
+  ; CHECK: clc	$c2, $zero, 0($c4)
+  ; CHECK: csc	$c1, $zero, 16($c3)
+  ; CHECK: csc	$c2, $zero, 0($c3)
 }

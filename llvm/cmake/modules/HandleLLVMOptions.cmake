@@ -1165,7 +1165,7 @@ if (uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG" AND LLVM_OPTIMIZE_DEBUG_BUILDS)
 endif()
 
 # lld doesn't print colored diagnostics when invoked from Ninja
-if (UNIX AND CMAKE_GENERATOR MATCHES "Ninja" AND NOT "${LLVM_RUNTIMES_TARGET}" MATCHES "^nvptx64")
+if (UNIX AND CMAKE_GENERATOR MATCHES "Ninja" AND NOT "${LLVM_DEFAULT_TARGET_TRIPLE}" MATCHES "^nvptx64")
   include(CheckLinkerFlag)
   check_linker_flag(CXX "-Wl,--color-diagnostics" LINKER_SUPPORTS_COLOR_DIAGNOSTICS)
   append_if(LINKER_SUPPORTS_COLOR_DIAGNOSTICS "-Wl,--color-diagnostics"

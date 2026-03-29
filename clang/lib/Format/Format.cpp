@@ -4116,10 +4116,14 @@ reformat(const FormatStyle &Style, StringRef Code,
   expandPresetsBraceWrapping(Expanded);
   expandPresetsSpaceBeforeParens(Expanded);
   expandPresetsSpacesInParens(Expanded);
+
+  // These are handled by separate passes.
   Expanded.InsertBraces = false;
   Expanded.RemoveBracesLLVM = false;
   Expanded.RemoveParentheses = FormatStyle::RPS_Leave;
   Expanded.RemoveSemicolon = false;
+
+  // Make some sanity adjustments.
   switch (Expanded.RequiresClausePosition) {
   case FormatStyle::RCPS_SingleLine:
   case FormatStyle::RCPS_WithPreceding:
@@ -4128,6 +4132,8 @@ reformat(const FormatStyle &Style, StringRef Code,
   default:
     break;
   }
+  if (Expanded.BraceWrapping.AfterEnum)
+    Expanded.AllowShortEnumsOnASingleLine = false;
 
   if (Expanded.DisableFormat)
     return {tooling::Replacements(), 0};

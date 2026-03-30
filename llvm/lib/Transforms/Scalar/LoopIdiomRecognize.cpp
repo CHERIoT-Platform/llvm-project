@@ -472,6 +472,12 @@ LoopIdiomRecognize::isLegalStore(StoreInst *SI) {
   Value *StoredVal = SI->getValueOperand();
   Value *StorePtr = SI->getPointerOperand();
 
+  // Don't convert stores of non-integral pointer types to memsets (which stores
+  // integers).
+  bool NonIntegralPtrStore =
+      DL->isNonIntegralPointerType(StoredVal->getType()->getScalarType()) &&
+      !isa<ConstantPointerNull>(StoredVal);
+
   // Reject stores that are so large that they overflow an unsigned.
   // When storing out scalable vectors we bail out for now, since the code
   // below currently only works for constant strides.
@@ -499,11 +505,6 @@ LoopIdiomRecognize::isLegalStore(StoreInst *SI) {
 
   // Note: memset and memset_pattern on unordered-atomic is yet not supported
   bool UnorderedAtomic = SI->isUnordered() && !SI->isSimple();
-
-  // Don't convert stores of non-integral pointer types to memsets (which stores
-  // integers).
-  bool NonIntegralPtrStore =
-      DL->isNonIntegralPointerType(StoredVal->getType()->getScalarType());
 
   // If we're allowed to form a memset, and the stored value would be
   // acceptable for memset, use it.

@@ -3752,7 +3752,7 @@ static Constant *ConstantFoldIntrinsicCall2(Intrinsic::ID IntrinsicID, Type *Ty,
     case Intrinsic::amdgcn_wave_reduce_and:
     case Intrinsic::amdgcn_wave_reduce_or:
     case Intrinsic::amdgcn_wave_reduce_xor:
-      return dyn_cast<Constant>(Operands[0]);
+      return Operands[0];
     }
 
     return nullptr;
@@ -4340,8 +4340,8 @@ static Constant *ConstantFoldScalableVectorCall(
     const TargetLibraryInfo *TLI, const CallBase *Call) {
   switch (IntrinsicID) {
   case Intrinsic::aarch64_sve_convert_from_svbool: {
-    auto *Src = dyn_cast<Constant>(Operands[0]);
-    if (!Src || !Src->isNullValue())
+    Constant *Src = Operands[0];
+    if (!Src->isNullValue())
       break;
 
     return ConstantInt::getFalse(SVTy);

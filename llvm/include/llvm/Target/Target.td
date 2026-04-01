@@ -1671,6 +1671,7 @@ def RELOC_NONE : StandardPseudoInstruction {
   let OutOperandList = (outs);
   let InOperandList = (ins unknown:$symbol);
   let hasSideEffects = true;
+  let isMeta = true;
 }
 
 let hasSideEffects = false, isMeta = true, isConvergent = true in {

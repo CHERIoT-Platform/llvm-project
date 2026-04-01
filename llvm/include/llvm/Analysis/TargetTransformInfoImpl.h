@@ -672,7 +672,8 @@ public:
   virtual unsigned getMaximumVF(unsigned ElemWidth, unsigned Opcode) const {
     return 0;
   }
-  virtual unsigned getStoreMinimumVF(unsigned VF, Type *, Type *) const {
+  virtual unsigned getStoreMinimumVF(unsigned VF, Type *, Type *, Align,
+                                     unsigned) const {
     return VF;
   }
 

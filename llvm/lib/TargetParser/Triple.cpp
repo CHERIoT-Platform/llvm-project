@@ -604,7 +604,7 @@ static Triple::ArchType parseARMArch(StringRef ArchName) {
   return arch;
 }
 
-static Triple::ArchType parseArch(StringRef ArchName) {
+Triple::ArchType Triple::parseArch(StringRef ArchName) {
   if (ArchName == "cheri") {
     ArchName = "mips64";
     WithColor::warning() << "cheri architecture name is deprecated; please use mips64 with -cheri=128 or mips64c128 instead\n";

@@ -48,6 +48,7 @@
 #include "clang/Sema/ParsedTemplate.h"
 #include "clang/Sema/Scope.h"
 #include "clang/Sema/ScopeInfo.h"
+#include "clang/Sema/SemaAMDGPU.h"
 #include "clang/Sema/SemaARM.h"
 #include "clang/Sema/SemaCUDA.h"
 #include "clang/Sema/SemaHLSL.h"
@@ -8245,6 +8246,8 @@ NamedDecl *Sema::ActOnVariableDeclarator(
     }
   }
 
+  LoadExternalExtnameUndeclaredIdentifiers();
+
   if (Expr *E = D.getAsmLabel()) {
     // The parser guarantees this is a string.
     StringLiteral *SE = cast<StringLiteral>(E);
@@ -8259,7 +8262,9 @@ NamedDecl *Sema::ActOnVariableDeclarator(
       if (isDeclExternC(NewVD)) {
         NewVD->addAttr(I->second);
         ExtnameUndeclaredIdentifiers.erase(I);
-      } else
+      } else if (NewVD->getDeclContext()
+                     ->getRedeclContext()
+                     ->isTranslationUnit())
         Diag(NewVD->getLocation(), diag::warn_redefine_extname_not_applied)
             << /*Variable*/ 1 << NewVD;
     }
@@ -10549,6 +10554,8 @@ Sema::ActOnFunctionDeclarator(Scope *S, Declarator &D, DeclContext *DC,
                        isMemberSpecialization ||
                        isFunctionTemplateSpecialization);
 
+  LoadExternalExtnameUndeclaredIdentifiers();
+
   // Handle GNU asm-label extension (encoded as an attribute).
   if (Expr *E = D.getAsmLabel()) {
     // The parser guarantees this is a string.
@@ -10562,7 +10569,9 @@ Sema::ActOnFunctionDeclarator(Scope *S, Declarator &D, DeclContext *DC,
       if (isDeclExternC(NewFD)) {
         NewFD->addAttr(I->second);
         ExtnameUndeclaredIdentifiers.erase(I);
-      } else
+      } else if (NewFD->getDeclContext()
+                     ->getRedeclContext()
+                     ->isTranslationUnit())
         Diag(NewFD->getLocation(), diag::warn_redefine_extname_not_applied)
             << /*Variable*/0 << NewFD;
     }
@@ -14014,6 +14023,16 @@ void Sema::AddInitializerToDecl(Decl *RealDecl, Expr *Init, bool DirectInit) {
     return;
   }
 
+  // __amdgpu_feature_predicate_t cannot be initialised
+  if (VDecl->getType().getDesugaredType(Context) ==
+      Context.AMDGPUFeaturePredicateTy) {
+    Diag(VDecl->getLocation(),
+         diag::err_amdgcn_predicate_type_is_not_constructible)
+        << VDecl;
+    VDecl->setInvalidDecl();
+    return;
+  }
+
   // CHERIoT-specific check: if the decl has the `cheriot_mmio` or
   // `cheriot_shared_object` attributes and also has an explicit definition, an
   // error must be generated.
@@ -14556,6 +14575,13 @@ void Sema::ActOnUninitializedDecl(Decl *RealDecl) {
   if (VarDecl *Var = dyn_cast<VarDecl>(RealDecl)) {
     QualType Type = Var->getType();
 
+    if (Type.getDesugaredType(Context) == Context.AMDGPUFeaturePredicateTy) {
+      Diag(Var->getLocation(),
+           diag::err_amdgcn_predicate_type_is_not_constructible)
+          << Var;
+      Var->setInvalidDecl();
+      return;
+    }
     // C++1z [dcl.dcl]p1 grammar implies that an initializer is mandatory.
     if (isa<DecompositionDecl>(RealDecl)) {
       Diag(Var->getLocation(), diag::err_decomp_decl_requires_init) << Var;
@@ -17129,8 +17155,12 @@ Decl *Sema::ActOnFinishFunctionBody(Decl *dcl, Stmt *Body, bool IsInstantiation,
       return nullptr;
     }
 
-    if (Body && FSI->HasPotentialAvailabilityViolations)
-      DiagnoseUnguardedAvailabilityViolations(dcl);
+    if (Body) {
+      if (FSI->HasPotentialAvailabilityViolations)
+        DiagnoseUnguardedAvailabilityViolations(dcl);
+      else if (AMDGPU().HasPotentiallyUnguardedBuiltinUsage(FD))
+        AMDGPU().DiagnoseUnguardedBuiltinUsage(FD);
+    }
 
     assert(!FSI->ObjCShouldCallSuper &&
            "This should only be set for ObjC methods, which should have been "

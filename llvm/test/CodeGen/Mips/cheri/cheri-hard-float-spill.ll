@@ -54,6 +54,8 @@ define void @eo_fermion_force(double %eps, i32 signext %nflavors, i32 signext %x
 ; CAPTABLE-NEXT:    nop
 ; CAPTABLE-NEXT:  # %bb.3: # %if.then
 ; CAPTABLE-NEXT:    clcbi $c12, %capcall20(u_shift_fermion)($c18)
+; CAPTABLE-NEXT:    # implicit-def: $c3
+; CAPTABLE-NEXT:    # implicit-def: $c4
 ; CAPTABLE-NEXT:    cjalr $c12, $c17
 ; CAPTABLE-NEXT:    daddiu $4, $zero, 0
 ; CAPTABLE-NEXT:    addiu $16, $zero, 1
@@ -91,6 +93,8 @@ define void @eo_fermion_force(double %eps, i32 signext %nflavors, i32 signext %x
 ; CAPTABLE-NEXT:    mov.d $f13, $f26
 ; CAPTABLE-NEXT:    clcbi $c12, %capcall20(add_force_to_mom)($c18)
 ; CAPTABLE-NEXT:    daddiu $4, $zero, 0
+; CAPTABLE-NEXT:    # implicit-def: $c3
+; CAPTABLE-NEXT:    # implicit-def: $c4
 ; CAPTABLE-NEXT:    cjalr $c12, $c17
 ; CAPTABLE-NEXT:    mov.d $f13, $f24
 ; CAPTABLE-NEXT:    bnez $zero, .LBB0_12
@@ -98,6 +102,9 @@ define void @eo_fermion_force(double %eps, i32 signext %nflavors, i32 signext %x
 ; CAPTABLE-NEXT:  # %bb.11: # %for.body.128.preheader
 ; CAPTABLE-NEXT:    # in Loop: Header=BB0_6 Depth=1
 ; CAPTABLE-NEXT:    clcbi $c12, %capcall20(scalar_mult_add_su3_vector)($c18)
+; CAPTABLE-NEXT:    # implicit-def: $c3
+; CAPTABLE-NEXT:    # implicit-def: $c4
+; CAPTABLE-NEXT:    # implicit-def: $c5
 ; CAPTABLE-NEXT:    cjalr $c12, $c17
 ; CAPTABLE-NEXT:    mov.d $f12, $f27
 ; CAPTABLE-NEXT:  .LBB0_12: # %for.inc.143
@@ -108,6 +115,8 @@ define void @eo_fermion_force(double %eps, i32 signext %nflavors, i32 signext %x
 ; CAPTABLE-NEXT:    # in Loop: Header=BB0_6 Depth=1
 ; CAPTABLE-NEXT:    clcbi $c12, %capcall20(add_force_to_mom)($c18)
 ; CAPTABLE-NEXT:    daddiu $4, $zero, 0
+; CAPTABLE-NEXT:    # implicit-def: $c3
+; CAPTABLE-NEXT:    # implicit-def: $c4
 ; CAPTABLE-NEXT:    cjalr $c12, $c17
 ; CAPTABLE-NEXT:    mov.d $f13, $f28
 ; CAPTABLE-NEXT:    bnez $zero, .LBB0_5
@@ -115,6 +124,9 @@ define void @eo_fermion_force(double %eps, i32 signext %nflavors, i32 signext %x
 ; CAPTABLE-NEXT:  # %bb.14: # %for.body.157.preheader
 ; CAPTABLE-NEXT:    # in Loop: Header=BB0_6 Depth=1
 ; CAPTABLE-NEXT:    clcbi $c12, %capcall20(scalar_mult_add_su3_vector)($c18)
+; CAPTABLE-NEXT:    # implicit-def: $c3
+; CAPTABLE-NEXT:    # implicit-def: $c4
+; CAPTABLE-NEXT:    # implicit-def: $c5
 ; CAPTABLE-NEXT:    cjalr $c12, $c17
 ; CAPTABLE-NEXT:    mov.d $f12, $f25
 ; CAPTABLE-NEXT:    b .LBB0_5
@@ -125,6 +137,9 @@ define void @eo_fermion_force(double %eps, i32 signext %nflavors, i32 signext %x
 ; CAPTABLE-NEXT:  .LBB0_16: # %for.body.197
 ; CAPTABLE-NEXT:    # =>This Inner Loop Header: Depth=1
 ; CAPTABLE-NEXT:    clcbi $c12, %capcall20(scalar_mult_add_su3_vector)($c18)
+; CAPTABLE-NEXT:    # implicit-def: $c3
+; CAPTABLE-NEXT:    # implicit-def: $c4
+; CAPTABLE-NEXT:    # implicit-def: $c5
 ; CAPTABLE-NEXT:    cjalr $c12, $c17
 ; CAPTABLE-NEXT:    mov.d $f12, $f25
 ; CAPTABLE-NEXT:    b .LBB0_16

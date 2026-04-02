@@ -46,7 +46,6 @@ void llvm::initializeCodeGen(PassRegistry &Registry) {
   initializeEarlyMachineLICMPass(Registry);
   initializeEarlyTailDuplicateLegacyPass(Registry);
   initializeExpandIRInstsLegacyPassPass(Registry);
-  initializeExpandMemCmpLegacyPassPass(Registry);
   initializeExpandPostRALegacyPass(Registry);
   initializeExpandReductionsPass(Registry);
   initializeFEntryInserterLegacyPass(Registry);

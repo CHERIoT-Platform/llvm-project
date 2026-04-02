@@ -27,6 +27,7 @@ define amdgpu_kernel void @clmem_read_simplified(ptr addrspace(1)  %buffer) {
 ; GFX8-NEXT:    s_mov_b64 s[2:3], s[38:39]
 ; GFX8-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX8-NEXT:    s_mov_b32 s32, 0
+; GFX8-NEXT:    ; implicit-def: $sgpr15
 ; GFX8-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX8-NEXT:    s_swappc_b64 s[30:31], s[4:5]
 ; GFX8-NEXT:    v_lshlrev_b32_e32 v1, 7, v0
@@ -109,6 +110,7 @@ define amdgpu_kernel void @clmem_read_simplified(ptr addrspace(1)  %buffer) {
 ; GFX9-NEXT:    s_mov_b64 s[2:3], s[38:39]
 ; GFX9-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX9-NEXT:    s_mov_b32 s32, 0
+; GFX9-NEXT:    ; implicit-def: $sgpr15
 ; GFX9-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX9-NEXT:    s_swappc_b64 s[30:31], s[4:5]
 ; GFX9-NEXT:    v_and_b32_e32 v1, 0xff, v0
@@ -177,6 +179,7 @@ define amdgpu_kernel void @clmem_read_simplified(ptr addrspace(1)  %buffer) {
 ; GFX10-NEXT:    s_mov_b64 s[0:1], s[36:37]
 ; GFX10-NEXT:    s_mov_b64 s[2:3], s[38:39]
 ; GFX10-NEXT:    s_mov_b32 s32, 0
+; GFX10-NEXT:    ; implicit-def: $sgpr15
 ; GFX10-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX10-NEXT:    s_swappc_b64 s[30:31], s[6:7]
 ; GFX10-NEXT:    v_lshlrev_b32_e32 v1, 7, v0
@@ -238,6 +241,7 @@ define amdgpu_kernel void @clmem_read_simplified(ptr addrspace(1)  %buffer) {
 ; GFX11-NEXT:    s_load_b64 s[0:1], s[0:1], 0x0
 ; GFX11-NEXT:    s_load_b64 s[34:35], s[4:5], 0x24
 ; GFX11-NEXT:    s_mov_b32 s32, 0
+; GFX11-NEXT:    ; implicit-def: $sgpr15
 ; GFX11-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX11-NEXT:    s_swappc_b64 s[30:31], s[0:1]
 ; GFX11-NEXT:    v_lshlrev_b32_e32 v1, 7, v0
@@ -356,6 +360,7 @@ define hidden amdgpu_kernel void @clmem_read(ptr addrspace(1)  %buffer) {
 ; GFX8-NEXT:    s_mov_b64 s[2:3], s[38:39]
 ; GFX8-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX8-NEXT:    s_mov_b32 s32, 0
+; GFX8-NEXT:    ; implicit-def: $sgpr15
 ; GFX8-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX8-NEXT:    s_swappc_b64 s[30:31], s[4:5]
 ; GFX8-NEXT:    v_lshlrev_b32_e32 v1, 17, v0
@@ -483,6 +488,7 @@ define hidden amdgpu_kernel void @clmem_read(ptr addrspace(1)  %buffer) {
 ; GFX900-NEXT:    s_mov_b64 s[2:3], s[38:39]
 ; GFX900-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX900-NEXT:    s_mov_b32 s32, 0
+; GFX900-NEXT:    ; implicit-def: $sgpr15
 ; GFX900-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX900-NEXT:    s_swappc_b64 s[30:31], s[4:5]
 ; GFX900-NEXT:    v_and_b32_e32 v1, 0xff, v0
@@ -593,6 +599,7 @@ define hidden amdgpu_kernel void @clmem_read(ptr addrspace(1)  %buffer) {
 ; GFX10-NEXT:    s_mov_b64 s[0:1], s[36:37]
 ; GFX10-NEXT:    s_mov_b64 s[2:3], s[38:39]
 ; GFX10-NEXT:    s_mov_b32 s32, 0
+; GFX10-NEXT:    ; implicit-def: $sgpr15
 ; GFX10-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX10-NEXT:    s_swappc_b64 s[30:31], s[6:7]
 ; GFX10-NEXT:    v_lshlrev_b32_e32 v1, 17, v0
@@ -705,6 +712,7 @@ define hidden amdgpu_kernel void @clmem_read(ptr addrspace(1)  %buffer) {
 ; GFX90A-NEXT:    s_mov_b64 s[2:3], s[38:39]
 ; GFX90A-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NEXT:    s_mov_b32 s32, 0
+; GFX90A-NEXT:    ; implicit-def: $sgpr15
 ; GFX90A-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NEXT:    s_swappc_b64 s[30:31], s[4:5]
 ; GFX90A-NEXT:    v_and_b32_e32 v1, 0xff, v0
@@ -806,6 +814,7 @@ define hidden amdgpu_kernel void @clmem_read(ptr addrspace(1)  %buffer) {
 ; GFX11-NEXT:    s_load_b64 s[0:1], s[0:1], 0x0
 ; GFX11-NEXT:    s_load_b64 s[34:35], s[4:5], 0x24
 ; GFX11-NEXT:    s_mov_b32 s32, 0
+; GFX11-NEXT:    ; implicit-def: $sgpr15
 ; GFX11-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX11-NEXT:    s_swappc_b64 s[30:31], s[0:1]
 ; GFX11-NEXT:    v_dual_mov_b32 v2, 0 :: v_dual_lshlrev_b32 v1, 17, v0
@@ -1030,6 +1039,7 @@ define amdgpu_kernel void @Address32(ptr addrspace(1) %buffer) {
 ; GFX8-NEXT:    s_mov_b64 s[2:3], s[38:39]
 ; GFX8-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX8-NEXT:    s_mov_b32 s32, 0
+; GFX8-NEXT:    ; implicit-def: $sgpr15
 ; GFX8-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX8-NEXT:    s_swappc_b64 s[30:31], s[4:5]
 ; GFX8-NEXT:    v_lshlrev_b32_e32 v1, 7, v0
@@ -1117,6 +1127,7 @@ define amdgpu_kernel void @Address32(ptr addrspace(1) %buffer) {
 ; GFX9-NEXT:    s_mov_b64 s[2:3], s[38:39]
 ; GFX9-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX9-NEXT:    s_mov_b32 s32, 0
+; GFX9-NEXT:    ; implicit-def: $sgpr15
 ; GFX9-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX9-NEXT:    s_swappc_b64 s[30:31], s[4:5]
 ; GFX9-NEXT:    v_and_b32_e32 v1, 0xff, v0
@@ -1172,6 +1183,7 @@ define amdgpu_kernel void @Address32(ptr addrspace(1) %buffer) {
 ; GFX10-NEXT:    s_mov_b64 s[0:1], s[36:37]
 ; GFX10-NEXT:    s_mov_b64 s[2:3], s[38:39]
 ; GFX10-NEXT:    s_mov_b32 s32, 0
+; GFX10-NEXT:    ; implicit-def: $sgpr15
 ; GFX10-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX10-NEXT:    s_swappc_b64 s[30:31], s[6:7]
 ; GFX10-NEXT:    v_lshlrev_b32_e32 v1, 7, v0
@@ -1228,6 +1240,7 @@ define amdgpu_kernel void @Address32(ptr addrspace(1) %buffer) {
 ; GFX11-NEXT:    s_load_b64 s[0:1], s[0:1], 0x0
 ; GFX11-NEXT:    s_load_b64 s[34:35], s[4:5], 0x24
 ; GFX11-NEXT:    s_mov_b32 s32, 0
+; GFX11-NEXT:    ; implicit-def: $sgpr15
 ; GFX11-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX11-NEXT:    s_swappc_b64 s[30:31], s[0:1]
 ; GFX11-NEXT:    v_lshlrev_b32_e32 v1, 7, v0
@@ -1342,6 +1355,7 @@ define amdgpu_kernel void @Offset64(ptr addrspace(1)  %buffer) {
 ; GFX8-NEXT:    s_mov_b64 s[2:3], s[38:39]
 ; GFX8-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX8-NEXT:    s_mov_b32 s32, 0
+; GFX8-NEXT:    ; implicit-def: $sgpr15
 ; GFX8-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX8-NEXT:    s_swappc_b64 s[30:31], s[4:5]
 ; GFX8-NEXT:    v_lshlrev_b32_e32 v1, 7, v0
@@ -1607,6 +1621,7 @@ define amdgpu_kernel void @p32Offset64(ptr addrspace(1)  %buffer) {
 ; GFX8-NEXT:    s_mov_b64 s[2:3], s[38:39]
 ; GFX8-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX8-NEXT:    s_mov_b32 s32, 0
+; GFX8-NEXT:    ; implicit-def: $sgpr15
 ; GFX8-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX8-NEXT:    s_swappc_b64 s[30:31], s[4:5]
 ; GFX8-NEXT:    v_lshlrev_b32_e32 v1, 7, v0
@@ -1808,6 +1823,7 @@ define amdgpu_kernel void @DiffBase(ptr addrspace(1) %buffer1,
 ; GFX8-NEXT:    s_mov_b64 s[2:3], s[50:51]
 ; GFX8-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX8-NEXT:    s_mov_b32 s32, 0
+; GFX8-NEXT:    ; implicit-def: $sgpr15
 ; GFX8-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX8-NEXT:    s_swappc_b64 s[30:31], s[4:5]
 ; GFX8-NEXT:    v_lshlrev_b32_e32 v0, 7, v0
@@ -1871,6 +1887,7 @@ define amdgpu_kernel void @DiffBase(ptr addrspace(1) %buffer1,
 ; GFX9-NEXT:    s_mov_b64 s[2:3], s[50:51]
 ; GFX9-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX9-NEXT:    s_mov_b32 s32, 0
+; GFX9-NEXT:    ; implicit-def: $sgpr15
 ; GFX9-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX9-NEXT:    s_swappc_b64 s[30:31], s[4:5]
 ; GFX9-NEXT:    v_lshlrev_b32_e32 v0, 7, v0
@@ -1930,6 +1947,7 @@ define amdgpu_kernel void @DiffBase(ptr addrspace(1) %buffer1,
 ; GFX10-NEXT:    s_mov_b64 s[0:1], s[48:49]
 ; GFX10-NEXT:    s_mov_b64 s[2:3], s[50:51]
 ; GFX10-NEXT:    s_mov_b32 s32, 0
+; GFX10-NEXT:    ; implicit-def: $sgpr15
 ; GFX10-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX10-NEXT:    s_swappc_b64 s[30:31], s[6:7]
 ; GFX10-NEXT:    v_lshlrev_b32_e32 v0, 7, v0
@@ -1980,6 +1998,7 @@ define amdgpu_kernel void @DiffBase(ptr addrspace(1) %buffer1,
 ; GFX11-NEXT:    s_load_b64 s[0:1], s[0:1], 0x0
 ; GFX11-NEXT:    s_load_b128 s[36:39], s[4:5], 0x24
 ; GFX11-NEXT:    s_mov_b32 s32, 0
+; GFX11-NEXT:    ; implicit-def: $sgpr15
 ; GFX11-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX11-NEXT:    s_swappc_b64 s[30:31], s[0:1]
 ; GFX11-NEXT:    v_lshlrev_b32_e32 v0, 7, v0
@@ -2080,6 +2099,7 @@ define amdgpu_kernel void @ReverseOrder(ptr addrspace(1) %buffer) {
 ; GFX8-NEXT:    s_mov_b64 s[2:3], s[38:39]
 ; GFX8-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX8-NEXT:    s_mov_b32 s32, 0
+; GFX8-NEXT:    ; implicit-def: $sgpr15
 ; GFX8-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX8-NEXT:    s_swappc_b64 s[30:31], s[4:5]
 ; GFX8-NEXT:    v_lshlrev_b32_e32 v1, 7, v0
@@ -2162,6 +2182,7 @@ define amdgpu_kernel void @ReverseOrder(ptr addrspace(1) %buffer) {
 ; GFX9-NEXT:    s_mov_b64 s[2:3], s[38:39]
 ; GFX9-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX9-NEXT:    s_mov_b32 s32, 0
+; GFX9-NEXT:    ; implicit-def: $sgpr15
 ; GFX9-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX9-NEXT:    s_swappc_b64 s[30:31], s[4:5]
 ; GFX9-NEXT:    v_and_b32_e32 v1, 0xff, v0
@@ -2226,6 +2247,7 @@ define amdgpu_kernel void @ReverseOrder(ptr addrspace(1) %buffer) {
 ; GFX10-NEXT:    s_mov_b64 s[0:1], s[36:37]
 ; GFX10-NEXT:    s_mov_b64 s[2:3], s[38:39]
 ; GFX10-NEXT:    s_mov_b32 s32, 0
+; GFX10-NEXT:    ; implicit-def: $sgpr15
 ; GFX10-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX10-NEXT:    s_swappc_b64 s[30:31], s[6:7]
 ; GFX10-NEXT:    v_lshlrev_b32_e32 v1, 7, v0
@@ -2291,6 +2313,7 @@ define amdgpu_kernel void @ReverseOrder(ptr addrspace(1) %buffer) {
 ; GFX11-NEXT:    s_load_b64 s[0:1], s[0:1], 0x0
 ; GFX11-NEXT:    s_load_b64 s[34:35], s[4:5], 0x24
 ; GFX11-NEXT:    s_mov_b32 s32, 0
+; GFX11-NEXT:    ; implicit-def: $sgpr15
 ; GFX11-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX11-NEXT:    s_swappc_b64 s[30:31], s[0:1]
 ; GFX11-NEXT:    v_lshlrev_b32_e32 v1, 7, v0

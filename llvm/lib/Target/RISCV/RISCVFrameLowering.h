@@ -40,6 +40,10 @@ public:
   void processFunctionBeforeFrameFinalized(MachineFunction &MF,
                                            RegScavenger *RS) const override;
 
+  void
+  processFunctionBeforeFrameIndicesReplaced(MachineFunction &MF,
+                                            RegScavenger *RS) const override;
+
   bool hasBP(const MachineFunction &MF) const;
 
   Register getFPReg() const;

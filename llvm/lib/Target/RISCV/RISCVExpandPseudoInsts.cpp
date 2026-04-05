@@ -495,7 +495,7 @@ bool RISCVExpandPseudo::expandCompartmentCall(MachineBasicBlock &MBB,
   } else {
     assert(Callee.isReg() && "Expected register operand");
     if (Callee.getReg() != RISCV::X6_Y) {
-      BuildMI(&MBB, DL, TII->get(RISCV::CMove)).addReg(RISCV::X6_Y).add(Callee);
+      BuildMI(&MBB, DL, TII->get(RISCV::CMove)).addDef(RISCV::X6_Y).add(Callee);
     }
   }
 

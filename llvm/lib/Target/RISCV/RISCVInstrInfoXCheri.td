@@ -1384,7 +1384,7 @@ let hasSideEffects = 0, mayLoad = 0, mayStore = 1, isCodeGenOnly = 1,
 
   let Predicates = [HasCheri, IsCapMode, IsRV32] in {
     def PseudoCLLCInbounds_CSC_64
-        : Pseudo<(outs YGPR:$tmp), (ins GPR:$dst, bare_symbol:$src), [],
+        : Pseudo<(outs YGPR:$tmp), (ins YGPR:$dst, bare_symbol:$src), [],
                  "cllc.inbounds.csc", "$tmp, $dst, $src">;
   }
 

@@ -3848,7 +3848,7 @@ bool InitializedEntity::allowsNRVO() const {
   switch (getKind()) {
   case EK_Result:
   case EK_Exception:
-    return LocAndNRVO.NRVO;
+    return LocAndNRVO.NRVO == NRVOKind::Allowed;
 
   case EK_StmtExprResult:
   case EK_Variable:
@@ -8859,7 +8859,7 @@ ExprResult InitializationSequence::Perform(Sema &S,
         // Check initializer is 32 bit integer constant.
         // If the initializer is taken from global variable, do not diagnose since
         // this has already been done when parsing the variable declaration.
-        if (!Init->isConstantInitializer(S.Context, false))
+        if (!Init->isConstantInitializer(S.Context))
           break;
 
         if (!SourceType->isIntegerType() ||

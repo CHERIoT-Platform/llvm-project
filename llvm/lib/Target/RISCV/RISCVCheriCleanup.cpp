@@ -121,7 +121,7 @@ static bool rewriteMemoryReference(MachineOperand &Op,
               MachineOperand::CreateReg(
                   MRI.createVirtualRegister(&RISCV::YGPRRegClass),
                   /*IsDef=*/true, /*IsImp=*/false,
-                  /*isKill=*/false, /*isDead=*/true, /*isUndef=*/true,
+                  /*isKill=*/false, /*isDead=*/true, /*isUndef=*/false,
                   /*isEarlyClobber=*/true));
   }
   II.addOperand(MachineOperand::CreateGA(Src.getGlobal(), Src.getOffset(),

@@ -2089,7 +2089,7 @@ def : Pat<(brind (cptradd YGPR:$rs1, simm12_lo:$imm12)),
 } // Predicates = [HasCheri, IsCapMode, IsPureCapABI]
 
 let Predicates = [HasCheri, IsCapMode],
-    isCall = 1, isBarrier = 1, isCodeGenOnly = 0, hasSideEffects = 0,
+    isCall = 1, isCodeGenOnly = 0, hasSideEffects = 0,
     mayStore = 0, mayLoad = 0, Size = 8 in
 def PseudoCCALLReg : Pseudo<(outs YGPR:$rd),
                             (ins cap_call_symbol:$func), []> {

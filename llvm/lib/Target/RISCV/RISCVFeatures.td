@@ -1750,6 +1750,44 @@ def HasXAIFET : Predicate<"Subtarget->hasXAIFET()">,
                           AssemblerPredicate<(all_of FeatureVendorXAIFET),
                           "'XAIFET' (AI Foundry ET Extension)">;
 
+def FeatureVendorXCheri : RISCVExtension<0, 0, "Implements CHERI extension">;
+
+def HasCheri : Predicate<"Subtarget->hasVendorXCheri()">,
+                         AssemblerPredicate<(all_of FeatureVendorXCheri),
+                         "CHERI Extension">;
+def FeatureCheriNoRVC
+    : SubtargetFeature<"xcheri-norvc", "EnableCheriRVCInstrs", "false",
+                       "Disable CHERI RVC Instructions.">;
+def HasCheriRVC : Predicate<"Subtarget->enableCheriRVCInstrs()">,
+                  AssemblerPredicate<(all_of (not FeatureCheriNoRVC)),
+                                     "CHERI RVC Instructions">;
+
+def FeatureVendorXCheriPureCap
+    : RISCVExtension<
+          0, 0, "Implements CHERI pure capability mode", [FeatureVendorXCheri]>;
+def IsCapMode : Predicate<"Subtarget->hasVendorXCheriPureCap()">,
+                AssemblerPredicate<(all_of FeatureVendorXCheriPureCap),
+                                   "Capability Mode">;
+def NotCapMode : Predicate<"!Subtarget->hasVendorXCheriPureCap()">,
+                 AssemblerPredicate<(all_of(not FeatureVendorXCheriPureCap)),
+                                    "Not Capability Mode">;
+
+def IsPureCapABI
+    : Predicate<"RISCVABI::isCheriPureCapABI(Subtarget->getTargetABI())">;
+def NotPureCapABI
+    : Predicate<"!RISCVABI::isCheriPureCapABI(Subtarget->getTargetABI())">;
+
+def FeatureVendorXCheriot
+    : RISCVExtension<1, 0, "CHERIoT extension",
+    [FeatureStdExtZca, FeatureStdExtE, FeatureStdExtM,
+     FeatureVendorXCheri, FeatureVendorXCheriPureCap]>;
+def HasCheriot
+    : Predicate<"Subtarget->hasVendorXCheriot()">,
+      AssemblerPredicate<(all_of FeatureVendorXCheriot), "'XCheriot' (CHERIoT Extension)">;
+def HasNoCheriot : Predicate<"!Subtarget->hasVendorXCheriot()">,
+                   AssemblerPredicate<(all_of(not FeatureVendorXCheriot)),
+                                      "CHERIoT Extension">;
+
 //===----------------------------------------------------------------------===//
 // LLVM specific features and extensions
 //===----------------------------------------------------------------------===//
@@ -1787,46 +1825,6 @@ def RV64 : HwMode<[IsRV64]>;
 
 def IsRVE : Predicate<"Subtarget->isRVE()">,
             AssemblerPredicate<(all_of FeatureStdExtE)>;
-
-def FeatureVendorXCheri : RISCVExtension<0, 0, "Implements CHERI extension">;
-
-def HasCheri : Predicate<"Subtarget->hasVendorXCheri()">,
-                         AssemblerPredicate<(all_of FeatureVendorXCheri),
-                         "CHERI Extension">;
-def FeatureCheriNoRVC
-    : SubtargetFeature<"xcheri-norvc", "EnableCheriRVCInstrs", "false",
-                       "Disable CHERI RVC Instructions.">;
-def HasCheriRVC : Predicate<"Subtarget->enableCheriRVCInstrs()">,
-                  AssemblerPredicate<(all_of (not FeatureCheriNoRVC)),
-                                     "CHERI RVC Instructions">;
-
-def FeatureVendorXCheriPureCap
-    : RISCVExtension<
-          0, 0, "Implements CHERI pure capability mode", [FeatureVendorXCheri]>;
-def IsCapMode : Predicate<"Subtarget->hasVendorXCheriPureCap()">,
-                AssemblerPredicate<(all_of FeatureVendorXCheriPureCap),
-                                   "Capability Mode">;
-def NotCapMode : Predicate<"!Subtarget->hasVendorXCheriPureCap()">,
-                 AssemblerPredicate<(all_of(not FeatureVendorXCheriPureCap)),
-                                    "Not Capability Mode">;
-
-def IsPureCapABI
-    : Predicate<"RISCVABI::isCheriPureCapABI(Subtarget->getTargetABI())">;
-def NotPureCapABI
-    : Predicate<"!RISCVABI::isCheriPureCapABI(Subtarget->getTargetABI())">;
-
-def FeatureVendorXCheriot
-    : RISCVExtension<1, 0, "Implements XCheriot extension",
-    [FeatureVendorXCheri, FeatureVendorXCheriPureCap, 
-     FeatureStdExtC, FeatureStdExtE, FeatureStdExtM]>;
-
-def HasCheriot
-    : Predicate<"Subtarget->hasVendorXCheriot()">,
-      AssemblerPredicate<(all_of FeatureVendorXCheriot), "CHERIoT Extension">;
-
-def HasNoCheriot : Predicate<"!Subtarget->hasVendorXCheriot()">,
-                   AssemblerPredicate<(all_of(not FeatureVendorXCheriot)),
-                                      "CHERIoT Extension">;
 
 def FeatureRelax
     : SubtargetFeature<"relax", "EnableLinkerRelax", "true",

@@ -198,7 +198,7 @@
 ; CHECK-NEXT:   xandesvsintload                  - 'XAndesVSIntLoad' (Andes Vector INT4 Load Extension).
 ; CHECK-NEXT:   xcheri                           - 'XCheri' (Implements CHERI extension).
 ; CHECK-NEXT:   xcheri-norvc                     - Disable CHERI RVC Instructions..
-; CHECK-NEXT:   xcheriot                         - 'XCheriot' (Implements XCheriot extension).
+; CHECK-NEXT:   xcheriot                         - 'XCheriot' (CHERIoT extension).
 ; CHECK-NEXT:   xcheripurecap                    - 'XCheriPureCap' (Implements CHERI pure capability mode).
 ; CHECK-NEXT:   xcvalu                           - 'XCValu' (CORE-V ALU Operations).
 ; CHECK-NEXT:   xcvbi                            - 'XCVbi' (CORE-V Immediate Branching).

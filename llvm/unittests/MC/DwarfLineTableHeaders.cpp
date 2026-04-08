@@ -41,6 +41,7 @@ public:
   std::unique_ptr<MCRegisterInfo> MRI;
   std::unique_ptr<MCAsmInfo> MAI;
   std::unique_ptr<const MCSubtargetInfo> STI;
+  MCTargetOptions MCOptions;
   const Target *TheTarget;
 
   struct StreamerContext {
@@ -61,7 +62,6 @@ public:
     if (!TheTarget)
       return;
 
-    MCTargetOptions MCOptions;
     MRI.reset(TheTarget->createMCRegInfo(TT, MCOptions));
     MAI.reset(TheTarget->createMCAsmInfo(*MRI, TT, MCOptions));
     STI.reset(TheTarget->createMCSubtargetInfo(TT, "", ""));

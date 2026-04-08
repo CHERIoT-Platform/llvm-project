@@ -597,6 +597,7 @@ enum CommandArgumentType {
   eArgTypeFilename,
   eArgTypeFormat,
   eArgTypeFrameIndex,
+  eArgTypeFrameProviderIDRange,
   eArgTypeFullName,
   eArgTypeFunctionName,
   eArgTypeFunctionOrSymbol,

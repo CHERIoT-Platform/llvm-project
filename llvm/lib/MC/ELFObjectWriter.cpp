@@ -689,7 +689,7 @@ MCSectionELF *ELFWriter::createRelocationSection(MCContext &Ctx,
 
   const StringRef SectionName = Sec.getName();
   const MCTargetOptions *TO = Ctx.getTargetOptions();
-  if (TO && TO->Crel) {
+  if (TO->Crel) {
     MCSectionELF *RelaSection =
         Ctx.createELFRelSection(".crel" + SectionName, ELF::SHT_CREL, Flags,
                                 /*EntrySize=*/1, Sec.getGroup(), &Sec);
@@ -740,8 +740,7 @@ void ELFWriter::writeSectionData(MCSection &Sec) {
   StringRef SectionName = Section.getName();
   auto &Ctx = Asm.getContext();
   const DebugCompressionType CompressionType =
-      Ctx.getTargetOptions() ? Ctx.getTargetOptions()->CompressDebugSections
-                             : DebugCompressionType::None;
+      Ctx.getTargetOptions()->CompressDebugSections;
   if (CompressionType == DebugCompressionType::None ||
       !SectionName.starts_with(".debug_")) {
     Asm.writeSectionData(W.OS, &Section);
@@ -1402,7 +1401,7 @@ bool ELFObjectWriter::usesRela(const MCTargetOptions *TO,
                                const MCSectionELF &Sec) const {
   return (hasRelocationAddend() &&
           Sec.getType() != ELF::SHT_LLVM_CALL_GRAPH_PROFILE) ||
-         (TO && TO->Crel);
+         TO->Crel;
 }
 
 bool ELFObjectWriter::isSymbolRefDifferenceFullyResolvedImpl(

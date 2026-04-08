@@ -73,7 +73,7 @@ private:
     TripleName = TheTriple.getTriple();
 
     // Create all the MC Objects.
-    MCTargetOptions MCOptions = mc::InitMCTargetOptionsFromFlags();
+    MCOptions = mc::InitMCTargetOptionsFromFlags();
     MRI.reset(TheTarget->createMCRegInfo(TheTriple, MCOptions));
     if (!MRI)
       return createStringError(std::errc::invalid_argument,

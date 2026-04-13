@@ -266,7 +266,7 @@ define void @calls_fixed_soft_split(i32, i32, i32, i32, i32, i32, i32, double %d
 ; RV32IXCHERI-IL32PC64-NEXT:    li a2, 0
 ; RV32IXCHERI-IL32PC64-NEXT:    ccall __adddf3
 ; RV32IXCHERI-IL32PC64-NEXT:    mv a7, a0
-; RV32IXCHERI-IL32PC64-NEXT:    csw a1, 16(sp)
+; RV32IXCHERI-IL32PC64-NEXT:    csw a1, 0(sp)
 ; RV32IXCHERI-IL32PC64-NEXT:    li a0, 0
 ; RV32IXCHERI-IL32PC64-NEXT:    li a1, 0
 ; RV32IXCHERI-IL32PC64-NEXT:    li a2, 0
@@ -274,25 +274,27 @@ define void @calls_fixed_soft_split(i32, i32, i32, i32, i32, i32, i32, double %d
 ; RV32IXCHERI-IL32PC64-NEXT:    li a4, 0
 ; RV32IXCHERI-IL32PC64-NEXT:    li a5, 0
 ; RV32IXCHERI-IL32PC64-NEXT:    li a6, 0
+; RV32IXCHERI-IL32PC64-NEXT:    ccall fixed_soft_split
 ; RV32IXCHERI-IL32PC64-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; RV32IXCHERI-IL32PC64-NEXT:    cincoffset sp, sp, 16
-; RV32IXCHERI-IL32PC64-NEXT:    ctail fixed_soft_split
+; RV32IXCHERI-IL32PC64-NEXT:    cret
 ;
 ; RV32IFDXCHERI-IL32PC64-LABEL: calls_fixed_soft_split:
 ; RV32IFDXCHERI-IL32PC64:       # %bb.0:
-; RV32IFDXCHERI-IL32PC64-NEXT:    cincoffset sp, sp, -16
-; RV32IFDXCHERI-IL32PC64-NEXT:    clw a0, 16(sp)
-; RV32IFDXCHERI-IL32PC64-NEXT:    csw a7, 8(sp)
+; RV32IFDXCHERI-IL32PC64-NEXT:    cincoffset sp, sp, -32
+; RV32IFDXCHERI-IL32PC64-NEXT:    csc ra, 24(sp) # 8-byte Folded Spill
+; RV32IFDXCHERI-IL32PC64-NEXT:    clw a0, 32(sp)
+; RV32IFDXCHERI-IL32PC64-NEXT:    csw a7, 16(sp)
 ; RV32IFDXCHERI-IL32PC64-NEXT:  .LBB3_1: # Label of block must be emitted
 ; RV32IFDXCHERI-IL32PC64-NEXT:    auipcc a1, %pcrel_hi(.LCPI3_0)
 ; RV32IFDXCHERI-IL32PC64-NEXT:    cincoffset a1, a1, %pcrel_lo(.LBB3_1)
 ; RV32IFDXCHERI-IL32PC64-NEXT:    cfld fa5, 0(a1)
-; RV32IFDXCHERI-IL32PC64-NEXT:    csw a0, 12(sp)
-; RV32IFDXCHERI-IL32PC64-NEXT:    cfld fa4, 8(sp)
+; RV32IFDXCHERI-IL32PC64-NEXT:    csw a0, 20(sp)
+; RV32IFDXCHERI-IL32PC64-NEXT:    cfld fa4, 16(sp)
 ; RV32IFDXCHERI-IL32PC64-NEXT:    fadd.d fa5, fa4, fa5
-; RV32IFDXCHERI-IL32PC64-NEXT:    cfsd fa5, 8(sp)
-; RV32IFDXCHERI-IL32PC64-NEXT:    clw a7, 8(sp)
-; RV32IFDXCHERI-IL32PC64-NEXT:    clw a0, 12(sp)
+; RV32IFDXCHERI-IL32PC64-NEXT:    cfsd fa5, 16(sp)
+; RV32IFDXCHERI-IL32PC64-NEXT:    clw a7, 16(sp)
+; RV32IFDXCHERI-IL32PC64-NEXT:    clw a0, 20(sp)
 ; RV32IFDXCHERI-IL32PC64-NEXT:    csw a0, 0(sp)
 ; RV32IFDXCHERI-IL32PC64-NEXT:    li a0, 0
 ; RV32IFDXCHERI-IL32PC64-NEXT:    li a1, 0
@@ -301,8 +303,10 @@ define void @calls_fixed_soft_split(i32, i32, i32, i32, i32, i32, i32, double %d
 ; RV32IFDXCHERI-IL32PC64-NEXT:    li a4, 0
 ; RV32IFDXCHERI-IL32PC64-NEXT:    li a5, 0
 ; RV32IFDXCHERI-IL32PC64-NEXT:    li a6, 0
-; RV32IFDXCHERI-IL32PC64-NEXT:    cincoffset sp, sp, 16
-; RV32IFDXCHERI-IL32PC64-NEXT:    ctail fixed_soft_split
+; RV32IFDXCHERI-IL32PC64-NEXT:    ccall fixed_soft_split
+; RV32IFDXCHERI-IL32PC64-NEXT:    clc ra, 24(sp) # 8-byte Folded Reload
+; RV32IFDXCHERI-IL32PC64-NEXT:    cincoffset sp, sp, 32
+; RV32IFDXCHERI-IL32PC64-NEXT:    cret
 ;
 ; RV32IFXCHERI-IL32PC64F-LABEL: calls_fixed_soft_split:
 ; RV32IFXCHERI-IL32PC64F:       # %bb.0:
@@ -314,7 +318,7 @@ define void @calls_fixed_soft_split(i32, i32, i32, i32, i32, i32, i32, double %d
 ; RV32IFXCHERI-IL32PC64F-NEXT:    li a2, 0
 ; RV32IFXCHERI-IL32PC64F-NEXT:    ccall __adddf3
 ; RV32IFXCHERI-IL32PC64F-NEXT:    mv a7, a0
-; RV32IFXCHERI-IL32PC64F-NEXT:    csw a1, 16(sp)
+; RV32IFXCHERI-IL32PC64F-NEXT:    csw a1, 0(sp)
 ; RV32IFXCHERI-IL32PC64F-NEXT:    li a0, 0
 ; RV32IFXCHERI-IL32PC64F-NEXT:    li a1, 0
 ; RV32IFXCHERI-IL32PC64F-NEXT:    li a2, 0
@@ -322,25 +326,27 @@ define void @calls_fixed_soft_split(i32, i32, i32, i32, i32, i32, i32, double %d
 ; RV32IFXCHERI-IL32PC64F-NEXT:    li a4, 0
 ; RV32IFXCHERI-IL32PC64F-NEXT:    li a5, 0
 ; RV32IFXCHERI-IL32PC64F-NEXT:    li a6, 0
+; RV32IFXCHERI-IL32PC64F-NEXT:    ccall fixed_soft_split
 ; RV32IFXCHERI-IL32PC64F-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; RV32IFXCHERI-IL32PC64F-NEXT:    cincoffset sp, sp, 16
-; RV32IFXCHERI-IL32PC64F-NEXT:    ctail fixed_soft_split
+; RV32IFXCHERI-IL32PC64F-NEXT:    cret
 ;
 ; RV32IFDXCHERI-IL32PC64F-LABEL: calls_fixed_soft_split:
 ; RV32IFDXCHERI-IL32PC64F:       # %bb.0:
-; RV32IFDXCHERI-IL32PC64F-NEXT:    cincoffset sp, sp, -16
-; RV32IFDXCHERI-IL32PC64F-NEXT:    clw a0, 16(sp)
-; RV32IFDXCHERI-IL32PC64F-NEXT:    csw a7, 8(sp)
+; RV32IFDXCHERI-IL32PC64F-NEXT:    cincoffset sp, sp, -32
+; RV32IFDXCHERI-IL32PC64F-NEXT:    csc ra, 24(sp) # 8-byte Folded Spill
+; RV32IFDXCHERI-IL32PC64F-NEXT:    clw a0, 32(sp)
+; RV32IFDXCHERI-IL32PC64F-NEXT:    csw a7, 16(sp)
 ; RV32IFDXCHERI-IL32PC64F-NEXT:  .LBB3_1: # Label of block must be emitted
 ; RV32IFDXCHERI-IL32PC64F-NEXT:    auipcc a1, %pcrel_hi(.LCPI3_0)
 ; RV32IFDXCHERI-IL32PC64F-NEXT:    cincoffset a1, a1, %pcrel_lo(.LBB3_1)
 ; RV32IFDXCHERI-IL32PC64F-NEXT:    cfld fa5, 0(a1)
-; RV32IFDXCHERI-IL32PC64F-NEXT:    csw a0, 12(sp)
-; RV32IFDXCHERI-IL32PC64F-NEXT:    cfld fa4, 8(sp)
+; RV32IFDXCHERI-IL32PC64F-NEXT:    csw a0, 20(sp)
+; RV32IFDXCHERI-IL32PC64F-NEXT:    cfld fa4, 16(sp)
 ; RV32IFDXCHERI-IL32PC64F-NEXT:    fadd.d fa5, fa4, fa5
-; RV32IFDXCHERI-IL32PC64F-NEXT:    cfsd fa5, 8(sp)
-; RV32IFDXCHERI-IL32PC64F-NEXT:    clw a7, 8(sp)
-; RV32IFDXCHERI-IL32PC64F-NEXT:    clw a0, 12(sp)
+; RV32IFDXCHERI-IL32PC64F-NEXT:    cfsd fa5, 16(sp)
+; RV32IFDXCHERI-IL32PC64F-NEXT:    clw a7, 16(sp)
+; RV32IFDXCHERI-IL32PC64F-NEXT:    clw a0, 20(sp)
 ; RV32IFDXCHERI-IL32PC64F-NEXT:    csw a0, 0(sp)
 ; RV32IFDXCHERI-IL32PC64F-NEXT:    li a0, 0
 ; RV32IFDXCHERI-IL32PC64F-NEXT:    li a1, 0
@@ -349,8 +355,10 @@ define void @calls_fixed_soft_split(i32, i32, i32, i32, i32, i32, i32, double %d
 ; RV32IFDXCHERI-IL32PC64F-NEXT:    li a4, 0
 ; RV32IFDXCHERI-IL32PC64F-NEXT:    li a5, 0
 ; RV32IFDXCHERI-IL32PC64F-NEXT:    li a6, 0
-; RV32IFDXCHERI-IL32PC64F-NEXT:    cincoffset sp, sp, 16
-; RV32IFDXCHERI-IL32PC64F-NEXT:    ctail fixed_soft_split
+; RV32IFDXCHERI-IL32PC64F-NEXT:    ccall fixed_soft_split
+; RV32IFDXCHERI-IL32PC64F-NEXT:    clc ra, 24(sp) # 8-byte Folded Reload
+; RV32IFDXCHERI-IL32PC64F-NEXT:    cincoffset sp, sp, 32
+; RV32IFDXCHERI-IL32PC64F-NEXT:    cret
 ;
 ; RV32IFDXCHERI-IL32PC64D-LABEL: calls_fixed_soft_split:
 ; RV32IFDXCHERI-IL32PC64D:       # %bb.0:
@@ -384,8 +392,8 @@ define void @calls_fixed_soft_stack(i32, i32, i32, i32, i32, i32, i32, i32, doub
 ; RV32IXCHERI-IL32PC64-NEXT:    lui a3, 261888
 ; RV32IXCHERI-IL32PC64-NEXT:    li a2, 0
 ; RV32IXCHERI-IL32PC64-NEXT:    ccall __adddf3
-; RV32IXCHERI-IL32PC64-NEXT:    csw a0, 16(sp)
-; RV32IXCHERI-IL32PC64-NEXT:    csw a1, 20(sp)
+; RV32IXCHERI-IL32PC64-NEXT:    csw a1, 4(sp)
+; RV32IXCHERI-IL32PC64-NEXT:    csw a0, 0(sp)
 ; RV32IXCHERI-IL32PC64-NEXT:    li a0, 0
 ; RV32IXCHERI-IL32PC64-NEXT:    li a1, 0
 ; RV32IXCHERI-IL32PC64-NEXT:    li a2, 0
@@ -394,13 +402,16 @@ define void @calls_fixed_soft_stack(i32, i32, i32, i32, i32, i32, i32, i32, doub
 ; RV32IXCHERI-IL32PC64-NEXT:    li a5, 0
 ; RV32IXCHERI-IL32PC64-NEXT:    li a6, 0
 ; RV32IXCHERI-IL32PC64-NEXT:    li a7, 0
+; RV32IXCHERI-IL32PC64-NEXT:    ccall fixed_soft_stack
 ; RV32IXCHERI-IL32PC64-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; RV32IXCHERI-IL32PC64-NEXT:    cincoffset sp, sp, 16
-; RV32IXCHERI-IL32PC64-NEXT:    ctail fixed_soft_stack
+; RV32IXCHERI-IL32PC64-NEXT:    cret
 ;
 ; RV32IFDXCHERI-IL32PC64-LABEL: calls_fixed_soft_stack:
 ; RV32IFDXCHERI-IL32PC64:       # %bb.0:
-; RV32IFDXCHERI-IL32PC64-NEXT:    cfld fa5, 0(sp)
+; RV32IFDXCHERI-IL32PC64-NEXT:    cincoffset sp, sp, -16
+; RV32IFDXCHERI-IL32PC64-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; RV32IFDXCHERI-IL32PC64-NEXT:    cfld fa5, 16(sp)
 ; RV32IFDXCHERI-IL32PC64-NEXT:  .LBB4_1: # Label of block must be emitted
 ; RV32IFDXCHERI-IL32PC64-NEXT:    auipcc a0, %pcrel_hi(.LCPI4_0)
 ; RV32IFDXCHERI-IL32PC64-NEXT:    cincoffset a0, a0, %pcrel_lo(.LBB4_1)
@@ -415,7 +426,10 @@ define void @calls_fixed_soft_stack(i32, i32, i32, i32, i32, i32, i32, i32, doub
 ; RV32IFDXCHERI-IL32PC64-NEXT:    li a5, 0
 ; RV32IFDXCHERI-IL32PC64-NEXT:    li a6, 0
 ; RV32IFDXCHERI-IL32PC64-NEXT:    li a7, 0
-; RV32IFDXCHERI-IL32PC64-NEXT:    ctail fixed_soft_stack
+; RV32IFDXCHERI-IL32PC64-NEXT:    ccall fixed_soft_stack
+; RV32IFDXCHERI-IL32PC64-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; RV32IFDXCHERI-IL32PC64-NEXT:    cincoffset sp, sp, 16
+; RV32IFDXCHERI-IL32PC64-NEXT:    cret
 ;
 ; RV32IFXCHERI-IL32PC64F-LABEL: calls_fixed_soft_stack:
 ; RV32IFXCHERI-IL32PC64F:       # %bb.0:
@@ -426,8 +440,8 @@ define void @calls_fixed_soft_stack(i32, i32, i32, i32, i32, i32, i32, i32, doub
 ; RV32IFXCHERI-IL32PC64F-NEXT:    lui a3, 261888
 ; RV32IFXCHERI-IL32PC64F-NEXT:    li a2, 0
 ; RV32IFXCHERI-IL32PC64F-NEXT:    ccall __adddf3
-; RV32IFXCHERI-IL32PC64F-NEXT:    csw a0, 16(sp)
-; RV32IFXCHERI-IL32PC64F-NEXT:    csw a1, 20(sp)
+; RV32IFXCHERI-IL32PC64F-NEXT:    csw a1, 4(sp)
+; RV32IFXCHERI-IL32PC64F-NEXT:    csw a0, 0(sp)
 ; RV32IFXCHERI-IL32PC64F-NEXT:    li a0, 0
 ; RV32IFXCHERI-IL32PC64F-NEXT:    li a1, 0
 ; RV32IFXCHERI-IL32PC64F-NEXT:    li a2, 0
@@ -436,13 +450,16 @@ define void @calls_fixed_soft_stack(i32, i32, i32, i32, i32, i32, i32, i32, doub
 ; RV32IFXCHERI-IL32PC64F-NEXT:    li a5, 0
 ; RV32IFXCHERI-IL32PC64F-NEXT:    li a6, 0
 ; RV32IFXCHERI-IL32PC64F-NEXT:    li a7, 0
+; RV32IFXCHERI-IL32PC64F-NEXT:    ccall fixed_soft_stack
 ; RV32IFXCHERI-IL32PC64F-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; RV32IFXCHERI-IL32PC64F-NEXT:    cincoffset sp, sp, 16
-; RV32IFXCHERI-IL32PC64F-NEXT:    ctail fixed_soft_stack
+; RV32IFXCHERI-IL32PC64F-NEXT:    cret
 ;
 ; RV32IFDXCHERI-IL32PC64F-LABEL: calls_fixed_soft_stack:
 ; RV32IFDXCHERI-IL32PC64F:       # %bb.0:
-; RV32IFDXCHERI-IL32PC64F-NEXT:    cfld fa5, 0(sp)
+; RV32IFDXCHERI-IL32PC64F-NEXT:    cincoffset sp, sp, -16
+; RV32IFDXCHERI-IL32PC64F-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; RV32IFDXCHERI-IL32PC64F-NEXT:    cfld fa5, 16(sp)
 ; RV32IFDXCHERI-IL32PC64F-NEXT:  .LBB4_1: # Label of block must be emitted
 ; RV32IFDXCHERI-IL32PC64F-NEXT:    auipcc a0, %pcrel_hi(.LCPI4_0)
 ; RV32IFDXCHERI-IL32PC64F-NEXT:    cincoffset a0, a0, %pcrel_lo(.LBB4_1)
@@ -457,7 +474,10 @@ define void @calls_fixed_soft_stack(i32, i32, i32, i32, i32, i32, i32, i32, doub
 ; RV32IFDXCHERI-IL32PC64F-NEXT:    li a5, 0
 ; RV32IFDXCHERI-IL32PC64F-NEXT:    li a6, 0
 ; RV32IFDXCHERI-IL32PC64F-NEXT:    li a7, 0
-; RV32IFDXCHERI-IL32PC64F-NEXT:    ctail fixed_soft_stack
+; RV32IFDXCHERI-IL32PC64F-NEXT:    ccall fixed_soft_stack
+; RV32IFDXCHERI-IL32PC64F-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
+; RV32IFDXCHERI-IL32PC64F-NEXT:    cincoffset sp, sp, 16
+; RV32IFDXCHERI-IL32PC64F-NEXT:    cret
 ;
 ; RV32IFDXCHERI-IL32PC64D-LABEL: calls_fixed_soft_stack:
 ; RV32IFDXCHERI-IL32PC64D:       # %bb.0:

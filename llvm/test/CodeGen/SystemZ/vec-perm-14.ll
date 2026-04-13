@@ -62,7 +62,8 @@ define <4 x i8> @fun1(<2 x i8> %arg) {
 ; CHECK-NEXT:        .size .LCPI1_0, 16
 ; CHECK-NEXT:        .text
 ; CHECK-NEXT:        .globl  fun1
-; CHECK-NEXT:        .p2align        4
+; CHECK-NEXT:        .p2align        1
+; CHECK-NEXT:        .prefalign      4, .Lfunc_end1, nop
 ; CHECK-NEXT:        .type   fun1,@function
 ; CHECK-NEXT: fun1:                                  # @fun1
 ; CHECK-NEXT:        .cfi_startproc
@@ -98,7 +99,8 @@ define <4 x i8> @fun2(<2 x i8> %arg) {
 ; CHECK-NEXT:        .size .LCPI2_0, 16
 ; CHECK-NEXT:        .text
 ; CHECK-NEXT:        .globl  fun2
-; CHECK-NEXT:        .p2align        4
+; CHECK-NEXT:        .p2align        1
+; CHECK-NEXT:        .prefalign      4, .Lfunc_end2, nop
 ; CHECK-NEXT:        .type   fun2,@function
 ; CHECK-NEXT:fun2:                                   # @fun2
 ; CHECK-NEXT:        .cfi_startproc

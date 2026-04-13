@@ -1524,10 +1524,10 @@ RISCVFrameLowering::getFrameIndexReference(const MachineFunction &MF, int FI,
     // If the stack was realigned, the frame pointer is set in order to allow
     // SP to be restored, so we need another base register to record the stack
     // after realignment.
-    // |--------------------------| -- <-- FP
+    // |--------------------------| --
     // | callee-allocated save    | | <----|
     // | area for register varargs| |      |
-    // |--------------------------| |      |
+    // |--------------------------| <-- FP |
     // | callee-saved registers   | |      |
     // |--------------------------| --     |
     // | realignment (the size of | |      |
@@ -1569,10 +1569,10 @@ RISCVFrameLowering::getFrameIndexReference(const MachineFunction &MF, int FI,
     // When using FP to access scalable vector objects, we need to minus
     // the frame size.
     //
-    // |--------------------------| -- <-- FP
+    // |--------------------------| --
     // | callee-allocated save    | |
     // | area for register varargs| |
-    // |--------------------------| |
+    // |--------------------------| | -- <-- FP
     // | callee-saved registers   | |
     // |--------------------------| | MFI.getStackSize()
     // | scalar local variables   | |
@@ -1601,10 +1601,10 @@ RISCVFrameLowering::getFrameIndexReference(const MachineFunction &MF, int FI,
 
   // When using SP to access frame objects, we need to add RVV stack size.
   //
-  // |--------------------------| -- <-- FP
+  // |--------------------------| --
   // | callee-allocated save    | | <----|
   // | area for register varargs| |      |
-  // |--------------------------| |      |
+  // |--------------------------| |      | <-- FP
   // | callee-saved registers   | |      |
   // |--------------------------| --     |
   // | RVV alignment padding    | |      |

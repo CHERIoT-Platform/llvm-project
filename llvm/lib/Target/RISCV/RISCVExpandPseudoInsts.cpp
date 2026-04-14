@@ -598,8 +598,8 @@ bool RISCVExpandPseudo::expandAuicgpInstPair(
 
   MF->insert(++MBB.getIterator(), NewMBB);
 
-  BuildMI(NewMBB, DL, TII->get(RISCV::AUICGP), TmpReg)
-      .addDisp(Symbol, 0, RISCVII::MO_CHERIOT1_COMPARTMENT_HI);
+  BuildMI(NewMBB, DL, TII->get(RISCV::PseudoAUICGPRelaxable), TmpReg)
+      .addDisp(Symbol, 0, RISCVII::MO_CHERIOT1_COMPARTMENT_CGP_HI);
 
   unsigned SecondFlags = RISCVII::MO_CHERIOT1_COMPARTMENT_LO_I;
   if (IsStore)

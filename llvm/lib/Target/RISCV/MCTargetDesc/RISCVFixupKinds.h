@@ -65,6 +65,7 @@ enum Fixups {
 
   // $cgp- or $pcc-relative global, used with auicgp / auipcc instructions
   fixup_riscv_cheriot1_compartment_hi,
+  fixup_riscv_cheriot1_compartment_cgp_hi,
   // $cgp- or $pcc-relative global, used with RV32 I instructions
   fixup_riscv_cheriot1_compartment_lo_i,
   // $cgp-relative global, used with RV32 S instructions

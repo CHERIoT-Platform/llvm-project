@@ -3815,6 +3815,7 @@ RISCVInstrInfo::getSerializableDirectMachineOperandTargetFlags() const {
       {MO_TLS_TGOT_GOT_HI, "riscv-tgot-tls-got-hi"},
       {MO_TLS_TGOT_GD_HI, "riscv-tgot-tls-gd-hi"},
       {MO_CHERIOT1_COMPARTMENT_HI, "riscv-cheriot-compartment-hi"},
+      {MO_CHERIOT1_COMPARTMENT_CGP_HI, "riscv-cheriot-compartment-cgp-hi"},
       {MO_CHERIOT1_COMPARTMENT_LO_I, "riscv-cheriot-compartment-lo-i"},
       {MO_CHERIOT1_COMPARTMENT_LO_S, "riscv-cheriot-compartment-lo-s"},
       {MO_CHERIOT1_COMPARTMENT_SIZE, "riscv-cheriot-compartment-size"},

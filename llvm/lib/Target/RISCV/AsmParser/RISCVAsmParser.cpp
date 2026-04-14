@@ -1096,6 +1096,22 @@ public:
     }
   }
 
+  bool isUImm20AUIGPRelaxable() const {
+    RISCV::Specifier VK = RISCV::S_None;
+    int64_t Imm;
+    bool IsValid;
+    if (!isImm())
+      return false;
+    bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);
+    if (!IsConstantImm) {
+      IsValid = RISCVAsmParser::classifySymbolRef(getExpr(), VK);
+      return IsValid && VK == RISCV::S_CHERIOT_COMPARTMENT_CGP_HI;
+    } else {
+      return isUInt<20>(Imm) &&
+             (VK == RISCV::S_None || VK == RISCV::S_CHERIOT_COMPARTMENT_CGP_HI);
+    }
+  }
+
   bool isImmZero() const {
     return isUImmPred([](int64_t Imm) { return 0 == Imm; });
   }

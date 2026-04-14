@@ -13,3 +13,7 @@ hello:
 	auicgp csp, 12345
 	# CHECK:        auicgp  sp, 12345
 	# CHECK: encoding: [0x7b,0x91,0x03,0x03]
+
+	ct.auicgp.relaxable a0, 0
+	# CHECK:        ct.auicgp.relaxable  a0, 0
+	# CHECK:        encoding: [0x7b,0x05,0x00,0x00,0x5b,0x00,0x00,0x22]

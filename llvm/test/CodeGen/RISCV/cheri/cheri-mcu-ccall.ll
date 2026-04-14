@@ -82,7 +82,7 @@ define dso_local i32 @testcall8() local_unnamed_addr addrspace(200) #2 {
 entry:
   ; Check that we have the right relocations and stack layout.
   ; CHECK-LABEL: testcall8:
-  ; CHECK:  auicgp  t0, %cheriot_compartment_hi(testcall8.stack_arg)
+  ; CHECK:  auicgp.relaxable  t0, %cheriot_compartment_cgp_hi(testcall8.stack_arg)
   ; CHECK:  cincoffset      t0, t0, %cheriot_compartment_lo_i
   ; CHECK:  csetbounds      t0, t0, %cheriot_compartment_size(testcall8.stack_arg)
   ; CHECK:  csc     t0, 8(sp)

@@ -108,6 +108,7 @@ public:
   void LowerHWASAN_CHECK_MEMACCESS(const MachineInstr &MI);
   void LowerKCFI_CHECK(const MachineInstr &MI);
   void EmitHwasanMemaccessSymbols(Module &M);
+  void LowerAUIRelaxable(const MachineInstr &MI, unsigned MCOpcode);
 
   // Wrapper needed for tblgenned pseudo lowering.
   bool lowerOperand(const MachineOperand &MO, MCOperand &MCOp) const;
@@ -1328,6 +1329,9 @@ static MCOperand lowerSymbolOperand(const MachineOperand &MO, MCSymbol *Sym,
     break;
   case RISCVII::MO_CHERIOT1_COMPARTMENT_HI:
     Kind = RISCV::S_CHERIOT_COMPARTMENT_HI;
+    break;
+  case RISCVII::MO_CHERIOT1_COMPARTMENT_CGP_HI:
+    Kind = RISCV::S_CHERIOT_COMPARTMENT_CGP_HI;
     break;
   case RISCVII::MO_CHERIOT1_COMPARTMENT_LO_I:
     Kind = RISCV::S_CHERIOT_COMPARTMENT_LO_I;

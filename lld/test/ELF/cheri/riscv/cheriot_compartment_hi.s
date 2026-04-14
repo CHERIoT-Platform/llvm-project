@@ -19,7 +19,7 @@ _start:                              # @_Z5entryv
 # CHECK-NEXT:   12004: 00001317      ct.auipcc       t1, 0x1
 
 	.type	near,@function
-	.p2align	3, 0x0
+	.align 3
 near:
 	.word 1
 
@@ -27,7 +27,7 @@ near:
 # CHECK-NEXT: 01 00 00 00   .word   0x00000001
 
 	.type	mid,@function
-	.p2align	12, 0x0
+	.align 12
 mid:
 	.word 1
 

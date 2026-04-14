@@ -76,6 +76,10 @@ public:
                              SmallVectorImpl<MCFixup> &Fixups,
                              const MCSubtargetInfo &STI, unsigned Size) const;
 
+  void expandAUICGPRelaxable(const MCInst &MI, SmallVectorImpl<char> &CB,
+                             SmallVectorImpl<MCFixup> &Fixups,
+                             const MCSubtargetInfo &STI) const;
+
   /// TableGen'erated function for getting the binary encoding for an
   /// instruction.
   uint64_t getBinaryCodeForInstr(const MCInst &MI,
@@ -485,6 +489,21 @@ void RISCVMCCodeEmitter::expandQCLongCondBrImm(const MCInst &MI,
   }
 }
 
+void RISCVMCCodeEmitter::expandAUICGPRelaxable(
+    const MCInst &MI, SmallVectorImpl<char> &CB,
+    SmallVectorImpl<MCFixup> &Fixups, const MCSubtargetInfo &STI) const {
+  MCInst NewMI = MI;
+  NewMI.setOpcode(RISCV::AUICGP);
+  encodeInstruction(NewMI, CB, Fixups, STI);
+
+  // Emit a trailing `ct.nop4`, which is equivalent to `cincoffset x0, x0, x0`
+  MCInst NopMI = MCInstBuilder(RISCV::CIncOffset)
+                     .addReg(RISCV::X0_Y)
+                     .addReg(RISCV::X0_Y)
+                     .addReg(RISCV::X0);
+  encodeInstruction(NopMI, CB, Fixups, STI);
+}
+
 void RISCVMCCodeEmitter::encodeInstruction(const MCInst &MI,
                                            SmallVectorImpl<char> &CB,
                                            SmallVectorImpl<MCFixup> &Fixups,
@@ -550,6 +569,9 @@ void RISCVMCCodeEmitter::encodeInstruction(const MCInst &MI,
   case RISCV::PseudoTLSDESCCall:
     expandTLSDESCCall(MI, CB, Fixups, STI);
     MCNumEmitted += 1;
+    return;
+  case RISCV::PseudoAUICGPRelaxable:
+    expandAUICGPRelaxable(MI, CB, Fixups, STI);
     return;
   }
 
@@ -773,6 +795,10 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
       break;
     case RISCV::S_CHERIOT_COMPARTMENT_HI:
       FixupKind = RISCV::fixup_riscv_cheriot1_compartment_hi;
+      RelaxCandidate = true;
+      break;
+    case RISCV::S_CHERIOT_COMPARTMENT_CGP_HI:
+      FixupKind = RISCV::fixup_riscv_cheriot1_compartment_cgp_hi;
       RelaxCandidate = true;
       break;
     case RISCV::S_CHERIOT_COMPARTMENT_LO_I:

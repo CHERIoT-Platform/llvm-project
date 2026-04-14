@@ -29,6 +29,5 @@
 // RUN:   -fsanitize=fuzzer %s -### 2>&1 \
 // RUN:  | FileCheck --check-prefix=FUZZER-PURECAP64 %s
 
-// FUZZER-PURECAP64: "/usr/bin/ld"
 // FUZZER-PURECAP64: "--whole-archive" "{{.+}}/lib/mips64c128-unknown-freebsd-purecap/libclang_rt.fuzzer.a" "--no-whole-archive"
 // FUZZER-PURECAP64: "--whole-archive" "{{.+}}/lib/mips64c128-unknown-freebsd-purecap/libclang_rt.ubsan_standalone.a" "--no-whole-archive"

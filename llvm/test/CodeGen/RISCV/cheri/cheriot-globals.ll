@@ -1,4 +1,4 @@
-; RUN: llc --filetype=asm --mcpu=cheriot --mtriple=riscv32-unknown-unknown -target-abi cheriot  %s -mattr=+xcheri,+xcheripurecap -o - | FileCheck %s
+; RUN: llc --filetype=asm --mcpu=cheriot --mtriple=riscv32-unknown-unknown -target-abi cheriot  %s -mattr=+xcheri,+xcheripurecap,+xcheriot -o - | FileCheck %s
 ; ModuleID = 'glob.c'
 source_filename = "glob.c"
 target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G200"
@@ -13,8 +13,8 @@ define dso_local nonnull i32 addrspace(200)* @a() local_unnamed_addr addrspace(2
 entry:
   ; CHECK-LABEL: a:
   ; If we're generating a $cgp-relative offset and a size for address-taken accesses to globals
-  ; CHECK: auicgp
-  ; CHECK-SAME: %cheriot_compartment_hi(x)
+  ; CHECK: auicgp.relaxable
+  ; CHECK-SAME: %cheriot_compartment_cgp_hi(x)
   ; CHECK: cincoffset
   ; CHECK-SAME: %cheriot_compartment_lo_i
   ; CHECK: csetbounds a0, a0, %cheriot_compartment_size(x)
@@ -26,8 +26,8 @@ define dso_local i32 @v() addrspace(200) #1 {
 entry:
   ; Check that we're not setting bounds on direct accesses to globals
   ; CHECK-LABEL: v:
-  ; XCHECK: auicgp
-  ; XCHECK-SAME: %cheriot_compartment_hi(x)
+  ; XCHECK: auicgp.relaxable
+  ; XCHECK-SAME: %cheriot_compartment_cgp_hi(x)
   ; XCHECK: clw 
   ; XCHECK-SAME: %cheriot_compartment_lo_i
   ; XCHECK-NEXT: cret

@@ -598,8 +598,8 @@ bool RISCVExpandPseudo::expandAuicgpInstPair(
 
   MF->insert(++MBB.getIterator(), NewMBB);
 
-  BuildMI(NewMBB, DL, TII->get(RISCV::AUICGP), TmpReg)
-      .addDisp(Symbol, 0, RISCVII::MO_CHERIOT1_COMPARTMENT_HI);
+  BuildMI(NewMBB, DL, TII->get(RISCV::PseudoAUICGPRelaxable), TmpReg)
+      .addDisp(Symbol, 0, RISCVII::MO_CHERIOT1_COMPARTMENT_CGP_HI);
   BuildMI(NewMBB, DL, TII->get(SecondOpcode))
       .addReg(DestReg, getRegState(MI.getOperand(IsStore ? 1 : 0)))
       .addReg(TmpReg, RegState::Kill)

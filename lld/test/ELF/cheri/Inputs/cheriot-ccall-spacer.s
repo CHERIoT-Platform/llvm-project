@@ -1,7 +1,7 @@
 
   .option norvc
   .text
-  .p2align 4
+  .align 4
   .global spacer
 spacer:
   j 1f

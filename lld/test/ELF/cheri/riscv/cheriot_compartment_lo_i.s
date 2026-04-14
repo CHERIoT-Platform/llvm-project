@@ -17,10 +17,10 @@ _start:                              # @_Z5entryv
 	ct.auipcc	t1, %cheriot_compartment_hi(mid)
     ct.clc	t1, %cheriot_compartment_lo_i(.MID_BLOCK)(t1)
 .CGP_BLOCK:
-	ct.auipcc	t1, %cheriot_compartment_hi(cgp)
+	ct.auicgp.relaxable	t1, %cheriot_compartment_cgp_hi(cgp)
     ct.clw	ra, %cheriot_compartment_lo_i(.CGP_BLOCK)(t1)
 .CGP_FAR_BLOCK:
-	ct.auipcc	t1, %cheriot_compartment_hi(cgp_far)
+	ct.auicgp.relaxable	t1, %cheriot_compartment_cgp_hi(cgp_far)
     ct.clw	ra, %cheriot_compartment_lo_i(.CGP_FAR_BLOCK)(t1)
 
 # CHECK:        00012000 <_start>:
@@ -40,7 +40,7 @@ _start:                              # @_Z5entryv
 # CHECK-NEXT: 1201c: 00032083      ct.clw  ra, 0x0(t1)
 
 	.type	near,@function
-	.p2align	3, 0x0
+	.align	3
 near:
 	.word 1
 
@@ -48,7 +48,7 @@ near:
 # CHECK-NEXT: 12020: 01 00 00 00 .word 0x00000001
 
 	.type	mid,@function
-	.p2align	12, 0x0
+	.align	12
 mid:
 	.word 1
 
@@ -58,7 +58,7 @@ mid:
 .section        .data,"aw",@progbits
 .type   cgp,@object
 .globl  cgp
-.p2align        4, 0x0
+.align        4
 cgp:
 	.word 2
 .zero 8192

@@ -419,6 +419,8 @@ def : InstAlias<"csetboundsimm $cd, $cs1, $imm",
 }
 
 let Predicates = [HasCheriot] in {
+  def : InstAlias<"ct.nop4", (CIncOffset X0_Y, X0_Y, X0), 2>;
+
   def : InstAlias<"ct.cseal $rd, $rs1, $rs2", (CSeal YGPR:$rd, YGPR:$rs1,
                                                   YGPR:$rs2)>;
   def : InstAlias<"ct.cunseal $rd, $rs1, $rs2", (CUnseal YGPR:$rd, YGPR:$rs1,
@@ -1307,11 +1309,11 @@ let Predicates = [HasCheri, IsCapMode] in {
 // PCC-relative CLLC is two instructions, but GCP-relative needs 3, so the
 // maximum expanded size of this Pseudo is 12 bytes.
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0, isCodeGenOnly = 0,
-    isAsmParserOnly = 1, Size = 12 in {
-def PseudoCLLC : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [],
-                        "cllc", "$dst, $src">;
-def PseudoCLLCInbounds : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [],
-                        "cllc.inbounds", "$dst, $src">;
+    isAsmParserOnly = 1, Size = 16 in {
+  def PseudoCLLC : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [], "cllc",
+                          "$dst, $src">;
+  def PseudoCLLCInbounds : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [],
+                                  "cllc.inbounds", "$dst, $src">;
 }
 
 def : Pat<(riscv_cllc tglobaladdr:$in), (PseudoCLLC tglobaladdr:$in)>;
@@ -1321,7 +1323,7 @@ def : Pat<(riscv_cllc tconstpool:$in), (PseudoCLLC tconstpool:$in)>;
 }
 
 let hasSideEffects = 0, mayLoad = 1, mayStore = 0, isCodeGenOnly = 1,
-    Size = 12 in {
+    Size = 16 in {
   let Predicates = [HasCheri, IsCapMode] in {
     def PseudoCLLCInbounds_CLB
         : Pseudo<(outs GPR:$dst), (ins bare_symbol:$src), [],
@@ -1366,7 +1368,7 @@ let hasSideEffects = 0, mayLoad = 1, mayStore = 0, isCodeGenOnly = 1,
 }
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 1, isCodeGenOnly = 1,
-    Size = 12 in {
+    Size = 16 in {
   let Predicates = [HasCheri, IsCapMode],
       Constraints = "@earlyclobber $tmp" in {
     def PseudoCLLCInbounds_CSB
@@ -1396,6 +1398,19 @@ let hasSideEffects = 0, mayLoad = 0, mayStore = 1, isCodeGenOnly = 1,
     def PseudoCLLCInbounds_CSC_128
         : Pseudo<(outs YGPR:$tmp), (ins YGPR:$dst, bare_symbol:$src), [],
                  "cllc.inbounds.csc", "$tmp, $dst, $src">;
+  }
+}
+
+def uimm20_auigp_relaxable : UImm20OperandMaybeSym {
+  let ParserMatchClass = UImmAsmOperand<20, "AUIGPRelaxable">;
+}
+
+let Predicates = [HasCheriot, IsCapMode] in {
+  let hasSideEffects = 0, mayLoad = 0, mayStore = 0, isCodeGenOnly = 0,
+      isAsmParserOnly = 0, Size = 8 in {
+    def PseudoAUICGPRelaxable
+        : Pseudo<(outs YGPR:$dst), (ins uimm20_auigp_relaxable:$src), [],
+                 "ct.auicgp.relaxable", "$dst, $src">;
   }
 }
 
@@ -2111,13 +2126,15 @@ let Predicates = [HasCheriot] in {
 // The PseudoCompartmentCall of expands to AUIPCC, CLC_64, C_CJALR (10 bytes),
 // but the setup to obtain the callee capability from an import table can
 // require up to 8 additional bytes.
-let Predicates = [HasCheri, IsCapMode],
-    isCall = 1, Defs = [X1_Y], isCodeGenOnly = 1, Size = 18 in
-def PseudoCompartmentCall : Pseudo<(outs), (ins cap_call_symbol:$func), []>;
+let Predicates = [HasCheri, IsCapMode], isCall = 1, Defs = [X1_Y],
+    isCodeGenOnly = 1,
+    Size = 26 in def PseudoCompartmentCall
+    : Pseudo<(outs), (ins cap_call_symbol:$func), []>;
 
-let Predicates = [HasCheri, IsCapMode],
-    isCall = 1, Defs = [X1_Y], isCodeGenOnly = 1, Size = 10 in
-def PseudoLibraryCall : Pseudo<(outs), (ins cap_call_symbol:$func), []>;
+let Predicates = [HasCheri, IsCapMode], isCall = 1, Defs = [X1_Y],
+    isCodeGenOnly = 1,
+    Size = 14 in def PseudoLibraryCall
+    : Pseudo<(outs), (ins cap_call_symbol:$func), []>;
 
 let Predicates = [HasCheri, IsCapMode, IsPureCapABI] in {
 def : Pat<(riscv_cap_call tglobaladdr:$func),

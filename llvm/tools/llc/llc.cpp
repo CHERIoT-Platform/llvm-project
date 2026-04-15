@@ -47,6 +47,7 @@
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/Support/InitLLVM.h"
+#include "llvm/Support/IOSandbox.h"
 #include "llvm/Support/PGOOptions.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/PluginLoader.h"
@@ -917,6 +918,7 @@ static int compileModule(char **argv, SmallVectorImpl<PassPlugin> &PluginList,
     DwoOut->keep();
 
   if (cheri::ShouldCollectCSetBoundsStats) {
+    auto BypassSandbox = sys::sandbox::scopedDisable();
     auto StatsFile = llvm::cheri::StatsOutputFile::open(
         cheri::CSetBoundsStatistics::outputFile(),
         [](StringRef StatsFile, const std::error_code &EC) {

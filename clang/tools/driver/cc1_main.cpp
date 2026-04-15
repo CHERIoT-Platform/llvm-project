@@ -305,6 +305,7 @@ int cc1_main(ArrayRef<const char *> Argv, const char *Argv0, void *MainAddr) {
 
   // Dump the CHERI CSetBounds stats now
   if (llvm::cheri::ShouldCollectCSetBoundsStats) {
+    auto BypassSandbox = llvm::sys::sandbox::scopedDisable();
     StringRef StatsOutput = llvm::cheri::CSetBoundsStatistics::outputFile();
     if (StatsOutput.empty())
       StatsOutput = Clang->getCodeGenOpts().CHERIStatsFile;

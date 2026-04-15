@@ -71,6 +71,7 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Hash.h"
+#include "llvm/Support/IOSandbox.h"
 #include "llvm/Support/TimeProfiler.h"
 #include "llvm/Support/YAMLParser.h"
 #include "llvm/TargetParser/AArch64TargetParser.h"
@@ -1184,6 +1185,7 @@ void CodeGenModule::Release() {
     SanStats->finish();
 
   if (CollectPointerCastStats) {
+    auto BypassSandbox = llvm::sys::sandbox::scopedDisable();
     auto StatsOS = llvm::cheri::StatsOutputFile::open(
         getCodeGenOpts().CHERIStatsFile,
         [this](StringRef StatsFile, const std::error_code &EC) {

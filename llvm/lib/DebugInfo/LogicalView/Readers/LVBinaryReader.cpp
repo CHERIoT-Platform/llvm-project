@@ -497,8 +497,8 @@ Error LVBinaryReader::createInstructions(LVScope *Scope,
     dbgs() << "\nSectionIndex: " << format_decimal(SectionIndex, 3)
            << " Scope DIE: " << hexValue(Scope->getOffset()) << "\n"
            << "Address: " << hexValue(FirstAddress)
-           << format(" - Collected instructions lines: %d\n",
-                     Instructions.size());
+           << formatv(" - Collected instructions lines: {0}\n",
+                      Instructions.size());
     for (const LVLine *Line : Instructions)
       dbgs() << format_decimal(++Index, 5) << ": "
              << hexValue(Line->getOffset()) << ", (" << Line->getName()
@@ -585,7 +585,7 @@ void LVBinaryReader::processLines(LVLines *DebugLines,
   LLVM_DEBUG({
     size_t Index = 1;
     size_t PerLine = 4;
-    dbgs() << format("\nProcess debug lines: %d\n", DebugLines->size());
+    dbgs() << formatv("\nProcess debug lines: {0}\n", DebugLines->size());
     for (const LVLine *Line : *DebugLines) {
       dbgs() << format_decimal(Index, 5) << ": " << hexValue(Line->getOffset())
              << ", (" << Line->getLineNumber() << ")"
@@ -622,8 +622,8 @@ void LVBinaryReader::processLines(LVLines *DebugLines,
       size_t Index = 0;
       dbgs() << "\nSectionIndex: " << format_decimal(SectionIndex, 3)
              << " Scope DIE: " << hexValue(Scope->getOffset()) << "\n"
-             << format("Process instruction lines: %d\n",
-                       InstructionLines.size());
+             << formatv("Process instruction lines: {0}\n",
+                        InstructionLines.size());
       for (const LVLine *Line : InstructionLines)
         dbgs() << format_decimal(++Index, 5) << ": "
                << hexValue(Line->getOffset()) << ", (" << Line->getName()
@@ -650,7 +650,7 @@ void LVBinaryReader::processLines(LVLines *DebugLines,
             dbgs() << "Line " << (IsDebug ? "dbg:" : "ins:") << " ["
                    << hexValue(DebugAddress) << "]";
             if (IsDebug)
-              dbgs() << format(" %d", (*Iter)->getLineNumber());
+              dbgs() << formatv(" {0}", (*Iter)->getLineNumber());
             dbgs() << "\n";
           });
           // Instruction address before debug line.
@@ -658,7 +658,7 @@ void LVBinaryReader::processLines(LVLines *DebugLines,
             LLVM_DEBUG({
               dbgs() << "Inserted instruction address: "
                      << hexValue(InstructionAddress) << " before line: "
-                     << format("%d", (*Iter)->getLineNumber()) << " ["
+                     << formatv("{0}", (*Iter)->getLineNumber()) << " ["
                      << hexValue(DebugAddress) << "]\n";
             });
             Iter = DebugLines->insert(Iter, InstructionLine);
@@ -682,7 +682,7 @@ void LVBinaryReader::processLines(LVLines *DebugLines,
   }
 
   LLVM_DEBUG({
-    dbgs() << format("Lines after merge: %d\n", DebugLines->size());
+    dbgs() << formatv("Lines after merge: {0}\n", DebugLines->size());
     size_t Index = 0;
     for (const LVLine *Line : *DebugLines) {
       dbgs() << format_decimal(++Index, 5) << ": "
@@ -707,7 +707,7 @@ void LVBinaryReader::processLines(LVLines *DebugLines,
             size_t Index = 0;
             dbgs() << "\nSectionIndex: " << format_decimal(SectionIndex, 3)
                    << " Scope DIE: " << hexValue(Scope->getOffset()) << "\n"
-                   << format("Instruction lines: %d\n", Lines->size());
+                   << formatv("Instruction lines: {0}\n", Lines->size());
             for (const LVLine *Line : *Lines)
               dbgs() << format_decimal(++Index, 5) << ": "
                      << hexValue(Line->getOffset()) << ", (" << Line->getName()
@@ -902,7 +902,7 @@ void LVBinaryReader::includeInlineeLines(LVSectionIndex SectionIndex,
       for (const LVLine *Line : *InlineeLines)
         dbgs() << "[" << hexValue(Line->getAddress()) << "] "
                << Line->getLineNumber() << "\n";
-      dbgs() << format("Debug lines: %d\n", CULines.size());
+      dbgs() << formatv("Debug lines: {0}\n", CULines.size());
       for (const LVLine *Line : CULines)
         dbgs() << "Line address: " << hexValue(Line->getOffset()) << ", ("
                << Line->getLineNumber() << ")\n";
@@ -939,7 +939,7 @@ void LVBinaryReader::includeInlineeLines(LVSectionIndex SectionIndex,
   }
   LLVM_DEBUG({
     dbgs() << "Merged Inlined lines for: " << Function->getName() << "\n";
-    dbgs() << format("Debug lines: %d\n", CULines.size());
+    dbgs() << formatv("Debug lines: {0}\n", CULines.size());
     for (const LVLine *Line : CULines)
       dbgs() << "Line address: " << hexValue(Line->getOffset()) << ", ("
              << Line->getLineNumber() << ")\n";

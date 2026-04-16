@@ -28,9 +28,9 @@ namespace __sanitizer {
 // Don't use directly, use __sanitizer::OpenFile() instead.
 fd_t internal_open(const char *filename, int flags);
 fd_t internal_open(const char *filename, int flags, u32 mode);
-#  if SANITIZER_FREEBSD
+// Closes all file descriptors from lowfd to highfd (inclusive).
+// Returns 0 on success or non-zero if not supported on this platform.
 uptr internal_close_range(fd_t lowfd, fd_t highfd, int flags);
-#  endif
 usize internal_close(fd_t fd);
 
 usize internal_read(fd_t fd, void *buf, usize count);

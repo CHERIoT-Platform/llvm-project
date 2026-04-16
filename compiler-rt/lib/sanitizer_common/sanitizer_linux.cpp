@@ -308,11 +308,13 @@ int internal_madvise(uptr addr, uptr length, int advice) {
   return internal_syscall(SYSCALL(madvise), addr, length, advice);
 }
 
-#    if SANITIZER_FREEBSD
 uptr internal_close_range(fd_t lowfd, fd_t highfd, int flags) {
+#    if SANITIZER_FREEBSD || (SANITIZER_LINUX && defined(__NR_close_range))
   return internal_syscall(SYSCALL(close_range), lowfd, highfd, flags);
-}
 #    endif
+  return -1;  // Not supported.
+}
+
 usize internal_close(fd_t fd) { return internal_syscall(SYSCALL(close), fd); }
 
 fd_t internal_open(const char *filename, int flags) {

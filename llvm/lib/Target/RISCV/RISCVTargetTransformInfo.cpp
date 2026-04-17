@@ -3213,8 +3213,13 @@ bool RISCVTTIImpl::isLegalBaseRegForLSR(const SCEV *S, int64_t scale) const {
     }
 
     if (const auto *AddRec = dyn_cast<SCEVAddRecExpr>(S)) {
-      if (const auto *Cst = dyn_cast<SCEVConstant>(AddRec->getStart()))
-        return !Cst->getValue()->isNegative();
+      // We know that this iteration is safe if both the base increment and the
+      // step are always in the same direction.
+      auto *StartCst = dyn_cast<SCEVConstant>(AddRec->getStart());
+      auto *StepCst = dyn_cast<SCEVConstant>(AddRec->getOperand(1));
+      if (StartCst && StepCst)
+        return StartCst->getValue()->isNegative() ==
+               StepCst->getValue()->isNegative();
       return isLegalBaseRegForLSR(AddRec->getStart(), 1);
     }
 

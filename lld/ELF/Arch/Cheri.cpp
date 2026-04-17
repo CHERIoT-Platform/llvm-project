@@ -1026,9 +1026,18 @@ void MipsCheriCapTableMappingSection::writeTo(uint8_t *buf) {
   memcpy(buf, entries.data(), entries.size() * sizeof(CaptableMappingEntry));
 }
 
-// CHERI-MIPS using the PLT and fndesc ABIs uses a different mechanism for
-// determining the bounds of PCC.
-bool needsCheriPccSegment(Ctx &ctx) { return !isCheriMipsTrampolineAbi(ctx); }
+bool needsCheriPccSegment(Ctx &ctx) {
+  // CHERIoT does not need this and it constrains the memory layout too much.
+  if (ctx.arg.isCheriot)
+    return false;
+
+  // CHERI-MIPS using the PLT and fndesc ABIs uses a different mechanism for
+  // determining the bounds of PCC.
+  if (isCheriMipsTrampolineAbi(ctx))
+    return false;
+
+  return true;
+}
 
 // Determine the required alignment for a single PT_CHERI_PCC segment.  Apply
 // the alignment to the first OutputSection and adjust the length of the padding

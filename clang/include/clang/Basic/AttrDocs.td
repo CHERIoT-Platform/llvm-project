@@ -2283,6 +2283,7 @@ attributes are ignored. Supported platforms are:
 ``visionOS``
 ``visionOSApplicationExtension``
 ``driverkit``
+``anyAppleOS``
 ``swift``
 ``android``
 ``fuchsia``
@@ -2306,6 +2307,7 @@ Some platforms have alias names:
 ``maccatalyst_app_extension``
 ``visionos``
 ``visionos_app_extension``
+``anyappleos``
 ``shadermodel``
 
 Supported environment names for the ShaderModel platform:
@@ -2325,6 +2327,13 @@ Supported environment names for the ShaderModel platform:
 ``mesh``
 ``amplification``
 ``library``
+
+The special platform ``anyAppleOS`` (alias: ``anyappleos``) is a shorthand that
+applies the availability attribute to all Apple Darwin platforms. An explicit
+platform-specific availability attribute takes precedence over an ``anyAppleOS``
+attribute for that platform. Versions specified with ``anyAppleOS`` must be at
+least 26.0, which is the first OS release where all supported Apple platforms
+share a unified version number.
 
 A declaration can typically be used even when deploying back to a platform
 version prior to when the declaration was introduced. When this happens, the

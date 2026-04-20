@@ -16,6 +16,7 @@
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLFunctionalExtras.h"
+#include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Analysis/InstSimplifyFolder.h"
 #include "llvm/Analysis/OptimizationRemarkEmitter.h"
@@ -74,16 +75,21 @@ private:
       IRBuilderBase &, Value *, Value *, Value *, Align, AtomicOrdering,
       SyncScope::ID, Value *&, Value *&, Instruction *)>;
 
-  void handleFailure(Instruction &FailedInst, const Twine &Msg) const {
+  void handleFailure(Instruction &FailedInst, const Twine &Msg,
+                     Instruction *DiagnosticInst = nullptr) const {
     LLVMContext &Ctx = FailedInst.getContext();
 
     // TODO: Do not use generic error type.
-    Ctx.emitError(&FailedInst, Msg);
+    Ctx.emitError(DiagnosticInst ? DiagnosticInst : &FailedInst, Msg);
 
     if (!FailedInst.getType()->isVoidTy())
       FailedInst.replaceAllUsesWith(PoisonValue::get(FailedInst.getType()));
     FailedInst.eraseFromParent();
   }
+
+  template <typename Inst>
+  void handleUnsupportedAtomicSize(Inst *I, const Twine &AtomicOpName,
+                                   Instruction *DiagnosticInst = nullptr) const;
 
   bool bracketInstWithFences(Instruction *I, AtomicOrdering Order);
   bool tryInsertTrailingSeqCstFence(Instruction *AtomicI);
@@ -136,7 +142,9 @@ private:
   void expandAtomicLoadToLibcall(LoadInst *LI);
   void expandAtomicStoreToLibcall(StoreInst *LI);
   void expandAtomicRMWToLibcall(AtomicRMWInst *I);
-  void expandAtomicCASToLibcall(AtomicCmpXchgInst *I);
+  void expandAtomicCASToLibcall(AtomicCmpXchgInst *I,
+                                const Twine &AtomicOpName = "cmpxchg",
+                                Instruction *DiagnosticInst = nullptr);
 
   bool expandAtomicRMWToCmpXchg(AtomicRMWInst *AI,
                                 CreateCmpXchgInstFun CreateCmpXchg);
@@ -255,9 +263,6 @@ static void copyMetadataForAtomic(Instruction &Dest,
   }
 }
 
-// Determine if a particular atomic operation has a supported size,
-// and is of appropriate alignment, to be passed through for target
-// lowering. (Versus turning into a __atomic libcall)
 template <typename Inst>
 static bool atomicSizeSupported(const TargetLowering *TLI, Inst *I, const DataLayout &DL) {
   if constexpr (std::is_same<Inst, LoadInst>::value) {
@@ -277,6 +282,40 @@ static bool atomicSizeSupported(const TargetLowering *TLI, Inst *I, const DataLa
       DL, I, I->getValOperand()->getType(),
       I->getPointerOperand()->getType(), I->getAlign());
   }
+}
+
+template <typename Inst>
+static void writeUnsupportedAtomicSizeReason(const TargetLowering *TLI, Inst *I,
+                                             raw_ostream &OS) {
+  unsigned Size = getAtomicOpSize(I);
+  Align Alignment = I->getAlign();
+  bool NeedSeparator = false;
+
+  if (Alignment < Size) {
+    OS << "instruction alignment " << Alignment.value()
+       << " is smaller than the required " << Size
+       << "-byte alignment for this atomic operation";
+    NeedSeparator = true;
+  }
+
+  unsigned MaxSize = TLI->getMaxAtomicSizeInBitsSupported() / 8;
+  if (Size > MaxSize) {
+    if (NeedSeparator)
+      OS << "; ";
+    OS << "target supports atomics up to " << MaxSize
+       << " bytes, but this atomic accesses " << Size << " bytes";
+  }
+}
+
+template <typename Inst>
+void AtomicExpandImpl::handleUnsupportedAtomicSize(
+    Inst *I, const Twine &AtomicOpName, Instruction *DiagnosticInst) const {
+  assert(!atomicSizeSupported(TLI, I, *DL) && "expected unsupported atomic size");
+  SmallString<128> FailureReason;
+  raw_svector_ostream OS(FailureReason);
+  writeUnsupportedAtomicSizeReason(TLI, I, OS);
+  handleFailure(*I, Twine("unsupported ") + AtomicOpName + ": " + FailureReason,
+                DiagnosticInst);
 }
 
 bool AtomicExpandImpl::tryInsertTrailingSeqCstFence(Instruction *AtomicI) {
@@ -1838,11 +1877,11 @@ void AtomicExpandImpl::expandAtomicLoadToLibcall(LoadInst *I) {
       RTLIB::ATOMIC_LOAD_4, RTLIB::ATOMIC_LOAD_8, RTLIB::ATOMIC_LOAD_16};
   unsigned Size = getAtomicOpSize(I);
 
-  bool expanded = expandAtomicOpToLibcall(
+  bool Expanded = expandAtomicOpToLibcall(
       I, Size, I->getType(), I->getAlign(), I->getPointerOperand(), nullptr,
       nullptr, I->getOrdering(), AtomicOrdering::NotAtomic, Libcalls);
-  if (!expanded)
-    handleFailure(*I, "unsupported atomic load");
+  if (!Expanded)
+    handleUnsupportedAtomicSize(I, "atomic load");
 }
 
 void AtomicExpandImpl::expandAtomicStoreToLibcall(StoreInst *I) {
@@ -1851,27 +1890,29 @@ void AtomicExpandImpl::expandAtomicStoreToLibcall(StoreInst *I) {
       RTLIB::ATOMIC_STORE_4, RTLIB::ATOMIC_STORE_8, RTLIB::ATOMIC_STORE_16};
   unsigned Size = getAtomicOpSize(I);
 
-  bool expanded = expandAtomicOpToLibcall(
+  bool Expanded = expandAtomicOpToLibcall(
       I, Size, I->getValueOperand()->getType(), I->getAlign(),
       I->getPointerOperand(), I->getValueOperand(), nullptr, I->getOrdering(),
       AtomicOrdering::NotAtomic, Libcalls);
-  if (!expanded)
-    handleFailure(*I, "unsupported atomic store");
+  if (!Expanded)
+    handleUnsupportedAtomicSize(I, "atomic store");
 }
 
-void AtomicExpandImpl::expandAtomicCASToLibcall(AtomicCmpXchgInst *I) {
+void AtomicExpandImpl::expandAtomicCASToLibcall(AtomicCmpXchgInst *I,
+                                                const Twine &AtomicOpName,
+                                                Instruction *DiagnosticInst) {
   static const RTLIB::Libcall Libcalls[6] = {
       RTLIB::ATOMIC_COMPARE_EXCHANGE,   RTLIB::ATOMIC_COMPARE_EXCHANGE_1,
       RTLIB::ATOMIC_COMPARE_EXCHANGE_2, RTLIB::ATOMIC_COMPARE_EXCHANGE_4,
       RTLIB::ATOMIC_COMPARE_EXCHANGE_8, RTLIB::ATOMIC_COMPARE_EXCHANGE_16};
   unsigned Size = getAtomicOpSize(I);
 
-  bool expanded = expandAtomicOpToLibcall(
+  bool Expanded = expandAtomicOpToLibcall(
       I, Size, I->getCompareOperand()->getType(), I->getAlign(),
       I->getPointerOperand(), I->getNewValOperand(), I->getCompareOperand(),
       I->getSuccessOrdering(), I->getFailureOrdering(), Libcalls);
-  if (!expanded)
-    handleFailure(*I, "unsupported cmpxchg");
+  if (!Expanded)
+    handleUnsupportedAtomicSize(I, AtomicOpName, DiagnosticInst);
 }
 
 static ArrayRef<RTLIB::Libcall> GetRMWLibcall(AtomicRMWInst::BinOp Op) {
@@ -1961,10 +2002,10 @@ void AtomicExpandImpl::expandAtomicRMWToLibcall(AtomicRMWInst *I) {
   // CAS libcall, via a CAS loop, instead.
   if (!Success) {
     expandAtomicRMWToCmpXchg(
-        I, [this](IRBuilderBase &Builder, Value *Addr, Value *Loaded,
-                  Value *NewVal, Align Alignment, AtomicOrdering MemOpOrder,
-                  SyncScope::ID SSID, Value *&Success, Value *&NewLoaded,
-                  Instruction *MetadataSrc) {
+        I, [this, I](IRBuilderBase &Builder, Value *Addr, Value *Loaded,
+                     Value *NewVal, Align Alignment, AtomicOrdering MemOpOrder,
+                     SyncScope::ID SSID, Value *&Success, Value *&NewLoaded,
+                     Instruction *MetadataSrc) {
           // Create the CAS instruction normally...
           AtomicCmpXchgInst *Pair = Builder.CreateAtomicCmpXchg(
               Addr, Loaded, NewVal, Alignment, MemOpOrder,
@@ -1976,7 +2017,10 @@ void AtomicExpandImpl::expandAtomicRMWToLibcall(AtomicRMWInst *I) {
           NewLoaded = Builder.CreateExtractValue(Pair, 0, "newloaded");
 
           // ...and then expand the CAS into a libcall.
-          expandAtomicCASToLibcall(Pair);
+          expandAtomicCASToLibcall(
+              Pair,
+              "atomicrmw " + AtomicRMWInst::getOperationName(I->getOperation()),
+              MetadataSrc);
         });
   }
 }

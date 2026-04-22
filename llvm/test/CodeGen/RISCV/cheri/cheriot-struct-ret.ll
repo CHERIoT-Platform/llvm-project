@@ -514,10 +514,10 @@ entry:
 
 for.cond.for.cond.cleanup_crit_edge:              ; preds = %for.body
   ;; CHECK:  auicgp.relaxable	a2, %cheriot_compartment_cgp_hi(dummies)
-  ;; CHECK:  cincoffset	a2, a2, %cheriot_compartment_lo_i(.LBB15_5)
+  ;; CHECK:  cincoffset	a2, a2, %cheriot_compartment_lo_i(.LBB15_6)
   ;; CHECK:  ct.csetbounds	a2, a2, %cheriot_compartment_size(dummies)
 
-  ;; CHECK:  ct.cincoffset	a3, a2, s1
+  ;; CHECK:  ct.cincoffset	s1, a2, s1
   %add.le = add i32 %call1, %0
   %rem.le = urem i32 %add.le, 5
   %add.ptr.le = getelementptr inbounds nuw i32, ptr addrspace(200) @dummies, i32 %rem.le
@@ -548,7 +548,7 @@ for.cond.cleanup:                                 ; preds = %for.cond.for.cond.c
   call void @llvm.lifetime.end.p200(i64 4, ptr addrspace(200) nonnull %_)
   call void @llvm.lifetime.end.p200(i64 8, ptr addrspace(200) nonnull %args) #8
 
-  ;; CHECK:  	ct.cmove	a0, a3
+  ;; CHECK:  	ct.cmove	a0, s1
   %.fca.0.insert = insertvalue %struct.TwoPointers poison, ptr addrspace(200) %x.sroa.0.0.lcssa, 0
   %.fca.1.insert = insertvalue %struct.TwoPointers %.fca.0.insert, ptr addrspace(200) %x.sroa.4.0.lcssa, 1
 
@@ -585,9 +585,8 @@ for.cond.for.cond.cleanup_crit_edge:              ; preds = %for.body
   ;; CHECK:  	auicgp.relaxable	a2, %cheriot_compartment_cgp_hi(dummies)
   ;; CHECK:  	cincoffset	a2, a2, %cheriot_compartment_lo_i(.LBB16_6)
   ;; CHECK:  	ct.csetbounds	a2, a2, %cheriot_compartment_size(dummies)
-  ;; CHECK:  	ct.cincoffset	a0, a2, s1
-  ;; CHECK:  	ct.cincoffset	a1, a2, a1
-  ;; CHECK:  	j	.LBB16_4
+  ;; CHECK:  	ct.cincoffset	s1, a2, s1
+  ;; CHECK:  	ct.cincoffset	a1, a2, a0
   br label %for.cond.cleanup
 
 for.body:                                         ; preds = %entry, %for.body
@@ -612,10 +611,10 @@ for.cond.cleanup:                                 ; preds = %for.cond.for.cond.c
   %.fca.1.0.insert = insertvalue %struct.ParentPtr %.fca.0.insert, ptr addrspace(200) %x.sroa.4.0.lcssa, 1, 0
 
   ;; CHECK: .LBB16_4:                               # %for.cond.cleanup
-  ;; CHECK: 	ct.clc	ra, 56(sp)                    # 8-byte Folded Reload
-  ;; CHECK: 	ct.clc	s0, 48(sp)                    # 8-byte Folded Reload
-  ;; CHECK: 	ct.clc	s1, 40(sp)                    # 8-byte Folded Reload
-  ;; CHECK: 	ct.cincoffset	sp, sp, 64
+  ;; CHECK: 	ct.clc	ra, 40(sp)                    # 8-byte Folded Reload
+  ;; CHECK: 	ct.clc	s0, 32(sp)                    # 8-byte Folded Reload
+  ;; CHECK: 	ct.clc	s1, 24(sp)                    # 8-byte Folded Reload
+  ;; CHECK: 	ct.cincoffset	sp, sp, 48
   ;; CHECK: 	ct.cret
   ret %struct.ParentPtr %.fca.1.0.insert
 

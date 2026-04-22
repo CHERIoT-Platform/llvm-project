@@ -478,11 +478,6 @@ TargetTransformInfo::getPreferredAddressingMode(const Loop *L,
   return TTIImpl->getPreferredAddressingMode(L, SE);
 }
 
-bool TargetTransformInfo::isLegalBaseRegForLSR(const SCEV *S,
-                                               int64_t scale) const {
-  return TTIImpl->isLegalBaseRegForLSR(S, scale);
-}
-
 bool TargetTransformInfo::isLegalMaskedStore(Type *DataType, Align Alignment,
                                              unsigned AddressSpace,
                                              TTI::MaskKind MaskKind) const {

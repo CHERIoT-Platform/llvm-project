@@ -875,8 +875,6 @@ public:
     ConstantMask,
   };
 
-  bool isLegalBaseRegForLSR(const SCEV *, int64_t scale) const;
-
   /// Return true if the target supports masked store.
   LLVM_ABI bool
   isLegalMaskedStore(Type *DataType, Align Alignment, unsigned AddressSpace,

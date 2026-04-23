@@ -6,7 +6,7 @@ target triple = "riscv32-unknown-cheriotrtos"
 
 ; Verify that the +8 offset to @glob is preserved
 ; CHECK-LABEL: test:
-; CHECK: auipcc {{.*}}, %cheriot_compartment_hi(glob+8)
+; CHECK: auipcc {{.*}}, %cheriot_compartment_code_hi(glob+8)
 define ptr addrspace(200) @test() addrspace(200) {
 start:
   %a = load ptr addrspace(200), ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) @glob, i32 8), align 8

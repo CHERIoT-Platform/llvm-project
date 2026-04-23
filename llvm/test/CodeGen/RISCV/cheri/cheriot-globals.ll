@@ -14,7 +14,7 @@ entry:
   ; CHECK-LABEL: a:
   ; If we're generating a $cgp-relative offset and a size for address-taken accesses to globals
   ; CHECK: auicgp.relaxable
-  ; CHECK-SAME: %cheriot_compartment_cgp_hi(x)
+  ; CHECK-SAME: %cheriot_compartment_data_hi(x)
   ; CHECK: cincoffset
   ; CHECK-SAME: %cheriot_compartment_lo_i
   ; CHECK: csetbounds a0, a0, %cheriot_compartment_size(x)
@@ -27,7 +27,7 @@ entry:
   ; Check that we're not setting bounds on direct accesses to globals
   ; CHECK-LABEL: v:
   ; XCHECK: auicgp.relaxable
-  ; XCHECK-SAME: %cheriot_compartment_cgp_hi(x)
+  ; XCHECK-SAME: %cheriot_compartment_data_hi(x)
   ; XCHECK: clw 
   ; XCHECK-SAME: %cheriot_compartment_lo_i
   ; XCHECK-NEXT: cret

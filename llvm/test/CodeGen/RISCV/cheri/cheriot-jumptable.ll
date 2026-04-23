@@ -16,13 +16,13 @@ define dso_local cheriot_compartmentcalleecc i32 @_Z2swi(i32 noundef %v) local_u
 ; CHECK-NEXT:    slli a0, a0, 2
 ; CHECK-NEXT:  .LBB0_14: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc a1, %cheriot_compartment_hi(.LJTI0_0)
+; CHECK-NEXT:    auipcc a1, %cheriot_compartment_code_hi(.LJTI0_0)
 ; CHECK-NEXT:    cincoffset a1, a1, %cheriot_compartment_lo_i(.LBB0_14)
 ; CHECK-NEXT:    cincoffset a0, a1, a0
 ; CHECK-NEXT:    clw a0, 0(a0)
 ; CHECK-NEXT:  .LBB0_15: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auipcc a1, %cheriot_compartment_hi(.L_Z2swi$jump_table_base)
+; CHECK-NEXT:    auipcc a1, %cheriot_compartment_code_hi(.L_Z2swi$jump_table_base)
 ; CHECK-NEXT:    cincoffset a1, a1, %cheriot_compartment_lo_i(.LBB0_15)
 ; CHECK-NEXT:    cincoffset a0, a1, a0
 ; CHECK-NEXT:    cjr a0

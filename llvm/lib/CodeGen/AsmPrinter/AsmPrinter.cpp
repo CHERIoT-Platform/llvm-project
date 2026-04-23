@@ -2602,33 +2602,11 @@ void AsmPrinter::emitGlobalAlias(const Module &M, const GlobalAlias &GA) {
   // other situations as the alias and aliasee having differing types but same
   // size may be intentional.
   const GlobalObject *BaseObject = GA.getAliaseeObject();
-  const MCExpr *SizeExpr = nullptr;
-  int64_t Offset = 0;
-  const DataLayout &DL = M.getDataLayout();
   if (MAI->hasDotTypeDotSizeDirective() && GA.getValueType()->isSized() &&
       (!BaseObject || BaseObject->hasPrivateLinkage())) {
+    const DataLayout &DL = M.getDataLayout();
     uint64_t Size = DL.getTypeAllocSize(GA.getValueType());
     OutStreamer->emitELFSize(Name, MCConstantExpr::create(Size, OutContext));
-  } else if (GetPointerBaseWithConstantOffset(GA.getAliasee(), Offset, DL,
-                                              false) == BaseObject) {
-    // If the base symbol has a defined ELF size and we are defining a simple
-    // alias (no non-zero GEPs), we also apply that size to the alias symbol.
-    // This is required for architectures that set bounds on globals (e.g.
-    // CHERI) and use the st_size information for those bounds.
-    if (TM.getTargetTriple().isOSBinFormatELF())
-      SizeExpr = static_cast<MCSymbolELF*>(getSymbol(BaseObject))->getSize();
-    if (SizeExpr && Offset != 0) {
-      int64_t AbsSize = 0;
-      if (SizeExpr->evaluateAsAbsolute(AbsSize)) {
-        SizeExpr = MCConstantExpr::create(AbsSize - Offset, OutContext);
-      } else {
-        SizeExpr = MCBinaryExpr::createSub(
-            SizeExpr, MCConstantExpr::create(Offset, OutContext), OutContext);
-      }
-    }
-  }
-  if (SizeExpr) {
-    OutStreamer->emitELFSize(Name, SizeExpr);
   }
 }
 

@@ -7,23 +7,18 @@
 
 ; CHECK: .globl	foo1
 ; CHECK-NEXT: foo1 = bar
-; CHECK-NEXT: .size foo1, 4
 
 ; CHECK: .globl	foo2
 ; CHECK-NEXT: foo2 = bar
-; CHECK-NEXT: .size foo2, 4
 
 ; CHECK: .weak	bar_f
 ; CHECK-NEXT: .type bar_f,%function
 ; CHECK-NEXT: bar_f = foo_f
-; CHECK-NEXT: .size bar_f, .Lfunc_end0-foo_f
 
 ; CHECK: bar_i = bar
-; CHECK-NEXT: .size bar_i, 4
 
 ; CHECK: .globl	A
 ; CHECK-NEXT: A = bar
-; CHECK-NEXT: .size A, 4
 
 ; CHECK: .globl elem0
 ; CHECK-NEXT: elem0 = .Lstructvar

@@ -13,7 +13,7 @@ hello:
         # CHECK: fixup A - offset: 0, value: %cheriot_compartment_code_hi(haha), kind: fixup_riscv_cheriot_compartment_code_hi
         auicgp  ca1, %cheriot_compartment_code_hi(haha)
         # CHECK: fixup A - offset: 0, value: %cheriot_compartment_code_hi(haha), kind: fixup_riscv_cheriot_compartment_code_hi
-        ct.auicgp.relaxable  ca1, %cheriot_compartment_data_hi(haha)
+        ct.auipcc.data  ca1, %cheriot_compartment_data_hi(haha)
         # CHECK: fixup A - offset: 0, value: %cheriot_compartment_data_hi(haha), kind: fixup_riscv_cheriot_compartment_data_hi
         cincoffset ca0, cgp, %cheriot_compartment_lo_i(haha)
         # CHECK: fixup A - offset: 0, value: %cheriot_compartment_lo_i(haha), kind: fixup_riscv_cheriot_compartment_lo_i

@@ -814,12 +814,12 @@ uint64_t RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
     case ELF::R_RISCV_TLSDESC_HI20:
       RelaxCandidate = true;
       break;
-    case RISCV::S_CHERIOT_COMPARTMENT_HI:
-      FixupKind = RISCV::fixup_riscv_cheriot1_compartment_hi;
+    case RISCV::S_CHERIOT_COMPARTMENT_CODE_HI:
+      FixupKind = RISCV::fixup_riscv_cheriot1_compartment_code_hi;
       RelaxCandidate = true;
       break;
-    case RISCV::S_CHERIOT_COMPARTMENT_CGP_HI:
-      FixupKind = RISCV::fixup_riscv_cheriot1_compartment_cgp_hi;
+    case RISCV::S_CHERIOT_COMPARTMENT_DATA_HI:
+      FixupKind = RISCV::fixup_riscv_cheriot1_compartment_data_hi;
       RelaxCandidate = true;
       break;
     case RISCV::S_CHERIOT_COMPARTMENT_LO_I:

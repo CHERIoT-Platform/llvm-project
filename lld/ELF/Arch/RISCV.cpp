@@ -90,17 +90,17 @@ constexpr uint32_t INTERNAL_RISCV_VENDOR_ANDES = 2 << 9;
 constexpr uint32_t INTERNAL_RISCV_VENDOR_CHERIOT1 = 3 << 9;
 
 // CHERIoT Nonstandard Relocations
-constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI =
-    INTERNAL_RISCV_VENDOR_CHERIOT1 | llvm::ELF::R_RISCV_CHERIOT1_COMPARTMENT_HI;
+constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CODE_HI =
+    INTERNAL_RISCV_VENDOR_CHERIOT1 | llvm::ELF::R_RISCV_CHERIOT1_COMPARTMENT_CODE_HI;
 constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I =
     INTERNAL_RISCV_VENDOR_CHERIOT1 | llvm::ELF::R_RISCV_CHERIOT1_COMPARTMENT_LO_I;
 constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S =
     INTERNAL_RISCV_VENDOR_CHERIOT1 | llvm::ELF::R_RISCV_CHERIOT1_COMPARTMENT_LO_S;
 constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_SIZE =
     INTERNAL_RISCV_VENDOR_CHERIOT1 | llvm::ELF::R_RISCV_CHERIOT1_COMPARTMENT_SIZE;
-constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI =
+constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI =
     INTERNAL_RISCV_VENDOR_CHERIOT1 |
-    llvm::ELF::R_RISCV_CHERIOT1_COMPARTMENT_CGP_HI;
+    llvm::ELF::R_RISCV_CHERIOT1_COMPARTMENT_DATA_HI;
 
 constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_I =
     INTERNAL_RISCV_VENDOR_CHERIOT1 |  256;
@@ -108,7 +108,7 @@ constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI =
     INTERNAL_RISCV_VENDOR_CHERIOT1 |  257;
 
 // Used internally to mark the post-auicgp/auipcc NOP.
-constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI_NOP =
+constexpr uint32_t INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI_NOP =
     INTERNAL_RISCV_VENDOR_CHERIOT1 | 258;
 
 static uint32_t getRISCVVendorRelMarker(StringRef rvVendor) {
@@ -432,8 +432,8 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
     return R_TGOT_TLSGD_PC;
   case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI:
     return R_PC;
-  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI:
-  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI:
+  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CODE_HI:
+  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI:
     return RE_CHERIOT1_COMPARTMENT_CGPREL_HI;
   case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I:
   case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S:
@@ -468,16 +468,16 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
  *    relocations, which would leave the second one unable to be relocated.
  *
  * The specific post-conditions are:
- *  - All PCC-relative CHERIOT1_COMPARTMENT_HI relocations are represented as
+ *  - All PCC-relative CHERIOT1_COMPARTMENT_CODE_HI relocations are represented as
  *    INTERNAL_R_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI.
- *  - All CGP-relative CHERIOT1_COMPARTMENT_HI relocations are represented as
- *    R_RISCV_CHERIOT1_COMPARTMENT_HI.
+ *  - All CGP-relative CHERIOT1_COMPARTMENT_CODE_HI relocations are represented as
+ *    R_RISCV_CHERIOT1_COMPARTMENT_CODE_HI.
  *  - All PCC-relative CHERIOT1_COMPARTMENT_LO_{I|CINCOFFSET} relocations are represented as
  *    INTERNAL_R_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_I.
  *  - All CGP-relative CHERIOT1_COMPARTMENT_LO_{I|CINCOFFSET} relocations are represented as
  *    R_RISCV_CHERIOT1_COMPARTMENT_LO_{I|CINCOFFSET}.
  *  - The targets of all CHERIOT1_COMPARTMENT_LO_{I|CINCOFFSET} relocations are resolved to
- *    the target of their paired CHERIOT1_COMPARTMENT_HI relocation.
+ *    the target of their paired CHERIOT1_COMPARTMENT_CODE_HI relocation.
  *  - PCC-relative CHERIOT1_COMPARTMENT_LO_S relocations do not exist.
  *  - All CGP-relative CHERIOT1_COMPARTMENT_LO_S relocations are represented as
  *    R_RISCV_CHERIOT1_COMPARTMENT_LO_S.
@@ -485,8 +485,8 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
 static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSectionBase &sec) {
   bool modified = false;
   for (Relocation &r :sec.relocations ) {
-    if ((r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI ||
-         r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI) &&
+    if ((r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CODE_HI ||
+         r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI) &&
         isPCCRelative(ctx, nullptr, r.sym)) {
       modified = true;
       r.type = INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI;
@@ -497,7 +497,7 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSectionBase &sec) {
       // auipcc instruction and we need to look there to find the real target.
       if (!isPCCRelative(ctx, nullptr, r.sym))
         fatal("R_RISCV_CHERIOT1_COMPARTMENT_LO_[I/S] must point to "
-              "R_RISCV_COMPARTMENT_HI");
+              "R_RISCV_COMPARTMENT_CODE_HI");
 
       const Defined *d = cast<Defined>(r.sym);
       if (!d->section)
@@ -518,15 +518,15 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSectionBase &sec) {
 
       std::optional<Relocation> target;
       for (auto it = range.first; it != range.second; ++it)
-        if (it->type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI ||
-            it->type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI ||
+        if (it->type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CODE_HI ||
+            it->type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI ||
             it->type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI) {
           target = *it;
           break;
         }
       if (!target) {
         error(
-            "Could not find R_RISCV_CHERIOT1_COMPARTMENT_HI relocation for " +
+            "Could not find R_RISCV_CHERIOT1_COMPARTMENT_CODE_HI relocation for " +
             toStr(ctx, *r.sym));
       }
       modified = true;
@@ -715,8 +715,8 @@ void RISCV::scanSectionImpl(InputSectionBase &sec, Relocs<RelTy> rels) {
     case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI:
       expr = R_PC;
       break;
-    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI:
-    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI:
+    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CODE_HI:
+    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI:
       expr = RE_CHERIOT1_COMPARTMENT_CGPREL_HI;
       break;
     case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I:
@@ -759,7 +759,7 @@ void RISCV::scanSectionImpl(InputSectionBase &sec, Relocs<RelTy> rels) {
   }
 
   if (ctx.arg.isCheriot) {
-    // Insert COMPARTMENT_CGP_HI_NOP relocations after every COMPARTMENT_CGP_HI
+    // Insert COMPARTMENT_DATA_HI_NOP relocations after every COMPARTMENT_DATA_HI
     // relocation. This creates space in the relocation array for the relocation
     // needed if we need to turn an auicgp into a cap table load. Do it prior to
     // relocation sorting so that they end up in the correct location.
@@ -768,9 +768,9 @@ void RISCV::scanSectionImpl(InputSectionBase &sec, Relocs<RelTy> rels) {
       // We don't need to check for
       // INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI because they aren't
       // introduced yet.
-      if (r.type != INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI)
+      if (r.type != INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI)
         continue;
-      r.type = INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI_NOP;
+      r.type = INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI_NOP;
       r.offset += 4;
       sec.addReloc(ctx, r);
     }
@@ -1054,16 +1054,16 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     write32le(loc, insn | (val_high << 20) | (val_low << 7));
     break;
   }
-  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI: {
+  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CODE_HI: {
     // FIXME: Unrelaxed AUICGP relocation should not occur. This is path
     // only needed to retain compatibility with object files that predate
-    // COMPARTMENT_CGP_HI relocations, and should be removed in the future.
+    // COMPARTMENT_DATA_HI relocations, and should be removed in the future.
 
     // AUICGP
     uint32_t opcode = AUICGP;
     uint32_t existingOpcode = read32le(loc) & 0x7f;
     if ((existingOpcode != AUIPCC) && (existingOpcode != AUICGP))
-      warn("R_RISCV_CHERIOT1_COMPARTMENT_HI relocation applied to instruction "
+      warn("R_RISCV_CHERIOT1_COMPARTMENT_CODE_HI relocation applied to instruction "
            "with unexpected opcode " +
            Twine(existingOpcode));
     checkInt(ctx, loc, SignExtend64(val + 0x800, bits) >> 12, 20, rel);
@@ -1081,7 +1081,7 @@ void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
     val = int64_t(val) >> 11;
     uint32_t existingOpcode = read32le(loc) & 0x7f;
     if ((existingOpcode != AUIPCC) && (existingOpcode != AUICGP))
-      warn("R_RISCV_CHERIOT1_COMPARTMENT_HI relocation applied to instruction "
+      warn("R_RISCV_CHERIOT1_COMPARTMENT_CODE_HI relocation applied to instruction "
            "with unexpected opcode " +
            Twine(existingOpcode));
     checkInt(ctx, loc, SignExtend64(val + 0x800, bits) >> 12, 20, rel);
@@ -1432,7 +1432,7 @@ static void relaxCGP(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
     // access in-range, we instead transform the entire sequence into a load
     // through the GOT.
     switch (r.type) {
-    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI: {
+    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI: {
       // AUICGP rd, sym --> AUIPCC rd, hi(got(sym))
       sec.relaxAux->relocTypes[i] =
           INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI;
@@ -1441,7 +1441,7 @@ static void relaxCGP(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
       sec.relaxAux->writes.push_back(auipcc);
       break;
     }
-    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI_NOP: {
+    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI_NOP: {
       // NOP -> CLC rd, rd, lo(got(sym))
       sec.relaxAux->relocTypes[i] =
           INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_LO_I;
@@ -1470,9 +1470,9 @@ static void relaxCGP(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
   // Relax away the auicgp when imm == 0 in auicgp rd, imm.
   uint32_t insn = read32le(sec.content().data() + r.offset);
   switch (r.type) {
-  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI:
-  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI_NOP:
-  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI: {
+  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI:
+  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI_NOP:
+  case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CODE_HI: {
     // Remove auicgp rd, 0 and trailing nop4.
     sec.relaxAux->relocTypes[i] = R_RISCV_RELAX;
     remove = 4;
@@ -1564,14 +1564,14 @@ static bool relax(Ctx &ctx, int pass, InputSection &sec) {
       if (toLeShortForm)
         remove = 4;
       break;
-    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI:
-    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI:
+    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CODE_HI:
+    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI:
     case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I:
     case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S:
       if (relaxable(relocs, i))
         relaxCGP(ctx, sec, i, loc, r, remove);
       break;
-    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI_NOP:
+    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI_NOP:
       if (isPCCRelative(ctx, nullptr, r.sym)) {
         // Always remove the trailing nop if this follows an AUIPCC
         sec.relaxAux->relocTypes[i] = R_RISCV_RELAX;
@@ -1847,7 +1847,7 @@ void RISCV::finalizeRelax(int passes) const {
             write32le(p, aux.writes[writesIdx++]);
             break;
           case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI:
-            if (r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI) {
+            if (r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI) {
               // In this case, we are mutating a CGP-relative access into a
               // cap-table access.
               skip = 4;
@@ -1900,12 +1900,12 @@ void RISCV::finalizeRelax(int passes) const {
             skip = 4;
             write32le(p, aux.writes[writesIdx++]);
 
-            assert(r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI_NOP);
+            assert(r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_DATA_HI_NOP);
             r.sym = nullptr;
             // Because we are constructions a compartment_lo relocation where
             // there wasn't one before, we need to insert an anonymous label for
-            // it to point to as the corresponding compartment_hi. Because we
-            // know that this NOP reloc was inserted following a compartment_hi
+            // it to point to as the corresponding compartment_data_hi. Because we
+            // know that this NOP reloc was inserted following a compartment_data_hi
             // one, we can just subtract for to get the right offset.
             r.sym = addSyntheticLocal(ctx, "", STT_NOTYPE, r.offset - 4 - delta,
                                       0, *sec);

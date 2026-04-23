@@ -139,7 +139,7 @@ define dso_local i32 @testcall8() local_unnamed_addr addrspace(200) #2 {
 ; CHECK-NEXT:    ct.cincoffset t1, a0, 24
 ; CHECK-NEXT:  .LBB3_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auicgp.relaxable t0, %cheriot_compartment_cgp_hi(testcall8.stack_arg)
+; CHECK-NEXT:    ct.auicgp.relaxable t0, %cheriot_compartment_data_hi(testcall8.stack_arg)
 ; CHECK-NEXT:    ct.cincoffset t0, t0, %cheriot_compartment_lo_i(.LBB3_1)
 ; CHECK-NEXT:    ct.csetbounds t0, t0, %cheriot_compartment_size(testcall8.stack_arg)
 ; CHECK-NEXT:    ct.csc t0, 8(sp)
@@ -147,11 +147,11 @@ define dso_local i32 @testcall8() local_unnamed_addr addrspace(200) #2 {
 ; CHECK-NEXT:    ct.csc t1, 0(sp)
 ; CHECK-NEXT:  .LBB3_3: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t1, %cheriot_compartment_hi(__import_other_test8callee)
+; CHECK-NEXT:    ct.auipcc t1, %cheriot_compartment_code_hi(__import_other_test8callee)
 ; CHECK-NEXT:    ct.clc t1, %cheriot_compartment_lo_i(.LBB3_3)(t1)
 ; CHECK-NEXT:  .LBB3_2: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(.compartment_switcher)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(.compartment_switcher)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB3_2)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.clc ra, 56(sp) # 8-byte Folded Reload

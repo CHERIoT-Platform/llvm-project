@@ -57,7 +57,7 @@ define dso_local noundef double @_Z6test05d(double noundef %a) local_unnamed_add
 ; CHECK-NEXT:    ct.csethigh a1, zero, a1
 ; CHECK-NEXT:  .LBB4_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___adddf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB4_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
@@ -77,7 +77,7 @@ define dso_local noundef double @_Z6test06d(double noundef %a) local_unnamed_add
 ; CHECK-NEXT:    ct.cmove a1, zero
 ; CHECK-NEXT:  .LBB5_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___adddf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB5_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
@@ -97,7 +97,7 @@ define dso_local noundef double @_Z6test07dd(double noundef %a, double noundef %
 ; CHECK-NEXT:    ct.cmove a1, zero
 ; CHECK-NEXT:  .LBB6_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___adddf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB6_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
@@ -120,7 +120,7 @@ define dso_local void @_Z6test08dPd(double noundef %a, ptr addrspace(200) nocapt
 ; CHECK-NEXT:    ct.csethigh a1, zero, a1
 ; CHECK-NEXT:  .LBB7_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___adddf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB7_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.csc a0, 0(s0)
@@ -154,7 +154,7 @@ define dso_local noundef double @_Z6test10dd(double noundef %a, double noundef %
 ; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:  .LBB9_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___subdf3)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___subdf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB9_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
@@ -173,7 +173,7 @@ define dso_local noundef double @_Z6test11dd(double noundef %a, double noundef %
 ; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:  .LBB10_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___muldf3)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___muldf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB10_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
@@ -192,7 +192,7 @@ define dso_local noundef double @_Z6test12dd(double noundef %a, double noundef %
 ; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:  .LBB11_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___divdf3)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___divdf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB11_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
@@ -215,13 +215,13 @@ define dso_local noundef double @_Z6test1310TwoDoubles(ptr addrspace(200) nocapt
 ; CHECK-NEXT:    ct.cmove a1, a0
 ; CHECK-NEXT:  .LBB12_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___adddf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB12_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.cmove a1, s0
 ; CHECK-NEXT:  .LBB12_2: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___adddf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB12_2)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
@@ -279,7 +279,7 @@ define dso_local noundef double @_Z6test15(i32 noundef %a) local_unnamed_addr ad
 ; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:  .LBB15_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___floatunsidf)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___floatunsidf)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB15_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
@@ -298,7 +298,7 @@ define dso_local noundef double @float2double(float noundef %x) local_unnamed_ad
 ; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:  .LBB16_1: # %start
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___extendsfdf2)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___extendsfdf2)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB16_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
@@ -316,7 +316,7 @@ define dso_local noundef float @double2float(double noundef %x) local_unnamed_ad
 ; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:  .LBB17_1: # %start
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___truncdfsf2)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___truncdfsf2)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB17_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.clc ra, 8(sp) # 8-byte Folded Reload
@@ -336,7 +336,7 @@ define dso_local noundef double @select_on_int(double noundef %x, double noundef
 ; CHECK-NEXT:    srli s0, a3, 31
 ; CHECK-NEXT:  .LBB18_4: # %start
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___ltdf2)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___ltdf2)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB18_4)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    srli a0, a0, 31
@@ -370,7 +370,7 @@ define dso_local void @trunc_store(ptr addrspace(200) noundef writeonly captures
 ; CHECK-NEXT:    ct.cmove a0, a1
 ; CHECK-NEXT:  .LBB19_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___truncdfsf2)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___truncdfsf2)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB19_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.csw a0, 0(s0)
@@ -394,7 +394,7 @@ define dso_local void @ext_store(ptr addrspace(200) noundef writeonly captures(n
 ; CHECK-NEXT:    mv a0, a1
 ; CHECK-NEXT:  .LBB20_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___extendsfdf2)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___extendsfdf2)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB20_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.csc a0, 0(s0)
@@ -419,7 +419,7 @@ define dso_local void @load_ext_store(ptr addrspace(200) noundef writeonly captu
 ; CHECK-NEXT:    mv a0, a1
 ; CHECK-NEXT:  .LBB21_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___extendsfdf2)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___extendsfdf2)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB21_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.csc a0, 0(s0)
@@ -444,7 +444,7 @@ define dso_local void @load_trunc_store(ptr addrspace(200) noundef readonly capt
 ; CHECK-NEXT:    ct.cmove s0, a1
 ; CHECK-NEXT:  .LBB22_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___truncdfsf2)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___truncdfsf2)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB22_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.csw a0, 0(s0)
@@ -470,12 +470,12 @@ define dso_local noundef double @test_frem(double noundef %a, double noundef %b)
 ; CHECK-NEXT:    ct.cmove s1, a0
 ; CHECK-NEXT:  .LBB23_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___divdf3)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___divdf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB23_1)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:  .LBB23_2: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_trunc)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls_trunc)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB23_2)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.csc a0, 0(sp)
@@ -487,7 +487,7 @@ define dso_local noundef double @test_frem(double noundef %a, double noundef %b)
 ; CHECK-NEXT:    ct.cmove a2, s1
 ; CHECK-NEXT:  .LBB23_3: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_fma)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls_fma)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB23_3)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.clc ra, 24(sp) # 8-byte Folded Reload
@@ -517,7 +517,7 @@ define double @test_frem_cst() addrspace(200) {
 ; CHECK-NEXT:    ct.cmove a0, zero
 ; CHECK-NEXT:  .LBB24_10: # %frem.compute
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_frexp)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls_frexp)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_10)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.clw a1, 64(sp)
@@ -525,7 +525,7 @@ define double @test_frem_cst() addrspace(200) {
 ; CHECK-NEXT:    li a1, 26
 ; CHECK-NEXT:  .LBB24_11: # %frem.compute
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_ldexp)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls_ldexp)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_11)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.cmove s0, a0
@@ -533,7 +533,7 @@ define double @test_frem_cst() addrspace(200) {
 ; CHECK-NEXT:    ct.cmove a0, zero
 ; CHECK-NEXT:  .LBB24_12: # %frem.compute
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_frexp)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls_frexp)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_12)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.clw a1, 68(sp)
@@ -541,7 +541,7 @@ define double @test_frem_cst() addrspace(200) {
 ; CHECK-NEXT:    li a1, 1
 ; CHECK-NEXT:  .LBB24_13: # %frem.compute
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_ldexp)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls_ldexp)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_13)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.cmove a1, a0
@@ -554,7 +554,7 @@ define double @test_frem_cst() addrspace(200) {
 ; CHECK-NEXT:    ct.csc a1, 24(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:  .LBB24_14: # %frem.compute
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___divdf3)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___divdf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_14)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.csc a0, 16(sp) # 8-byte Folded Spill
@@ -568,19 +568,19 @@ define double @test_frem_cst() addrspace(200) {
 ; CHECK-NEXT:    ct.clc a0, 8(sp) # 8-byte Folded Reload
 ; CHECK-NEXT:  .LBB24_15: # %frem.loop_exit
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_ldexp)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls_ldexp)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_15)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.cmove s0, a0
 ; CHECK-NEXT:    ct.clc a1, 16(sp) # 8-byte Folded Reload
 ; CHECK-NEXT:  .LBB24_16: # %frem.loop_exit
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___muldf3)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___muldf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_16)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:  .LBB24_17: # %frem.loop_exit
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_rint)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls_rint)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_17)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.csc a0, 40(sp)
@@ -593,14 +593,14 @@ define double @test_frem_cst() addrspace(200) {
 ; CHECK-NEXT:    ct.cmove a2, s0
 ; CHECK-NEXT:  .LBB24_18: # %frem.loop_exit
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_fma)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls_fma)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_18)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.cmove s0, a0
 ; CHECK-NEXT:    ct.cmove a1, s1
 ; CHECK-NEXT:  .LBB24_19: # %frem.loop_exit
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___adddf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_19)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.cmove s1, a0
@@ -608,7 +608,7 @@ define double @test_frem_cst() addrspace(200) {
 ; CHECK-NEXT:    ct.cmove a1, zero
 ; CHECK-NEXT:  .LBB24_20: # %frem.loop_exit
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___ltdf2)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___ltdf2)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_20)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    bltz a0, .LBB24_5
@@ -619,7 +619,7 @@ define double @test_frem_cst() addrspace(200) {
 ; CHECK-NEXT:    ct.clw a1, 4(sp) # 4-byte Folded Reload
 ; CHECK-NEXT:  .LBB24_21: # %frem.loop_exit
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_ldexp)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls_ldexp)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_21)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.csc a0, 48(sp)
@@ -643,7 +643,7 @@ define double @test_frem_cst() addrspace(200) {
 ; CHECK-NEXT:    ct.cmove a0, s1
 ; CHECK-NEXT:  .LBB24_22: # %frem.loop_body
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_ldexp)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls_ldexp)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_22)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.cmove s0, a0
@@ -657,12 +657,12 @@ define double @test_frem_cst() addrspace(200) {
 ; CHECK-NEXT:    ct.clc a1, 16(sp) # 8-byte Folded Reload
 ; CHECK-NEXT:  .LBB24_23: # %frem.loop_body
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___muldf3)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___muldf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_23)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:  .LBB24_24: # %frem.loop_body
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_rint)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls_rint)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_24)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.csc a0, 56(sp)
@@ -676,14 +676,14 @@ define double @test_frem_cst() addrspace(200) {
 ; CHECK-NEXT:    ct.cmove a2, s0
 ; CHECK-NEXT:  .LBB24_25: # %frem.loop_body
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls_fma)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls_fma)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_25)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.cmove s0, a0
 ; CHECK-NEXT:    ct.cmove a1, s1
 ; CHECK-NEXT:  .LBB24_26: # %frem.loop_body
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___adddf3)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___adddf3)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_26)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    ct.cmove s1, a0
@@ -691,7 +691,7 @@ define double @test_frem_cst() addrspace(200) {
 ; CHECK-NEXT:    ct.cmove a1, zero
 ; CHECK-NEXT:  .LBB24_27: # %frem.loop_body
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_hi(__library_import_libcalls___ltdf2)
+; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls___ltdf2)
 ; CHECK-NEXT:    ct.clc t2, %cheriot_compartment_lo_i(.LBB24_27)(t2)
 ; CHECK-NEXT:    ct.cjalr t2
 ; CHECK-NEXT:    bltz a0, .LBB24_7

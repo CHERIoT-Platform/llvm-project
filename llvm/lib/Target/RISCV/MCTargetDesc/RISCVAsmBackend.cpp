@@ -96,8 +96,8 @@ MCFixupKindInfo RISCVAsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
       // Andes fixups
       {"fixup_riscv_nds_branch_10", 0, 32, 0},
 
-      {"fixup_riscv_cheriot_compartment_hi", 0, 32, 0},
-      {"fixup_riscv_cheriot_compartment_cgp_hi", 0, 32, 0},
+      {"fixup_riscv_cheriot_compartment_code_hi", 0, 32, 0},
+      {"fixup_riscv_cheriot_compartment_data_hi", 0, 32, 0},
       {"fixup_riscv_cheriot_compartment_lo_i", 0, 32, 0},
       {"fixup_riscv_cheriot_compartment_lo_s", 0, 32, 0},
       {"fixup_riscv_cheriot_compartment_size", 20, 12, 0},
@@ -813,8 +813,8 @@ void RISCVAsmBackend::maybeAddVendorReloc(const MCFragment &F,
   case RISCV::fixup_riscv_nds_branch_10:
     VendorIdentifier = "ANDES";
     break;
-  case RISCV::fixup_riscv_cheriot1_compartment_hi:
-  case RISCV::fixup_riscv_cheriot1_compartment_cgp_hi:
+  case RISCV::fixup_riscv_cheriot1_compartment_code_hi:
+  case RISCV::fixup_riscv_cheriot1_compartment_data_hi:
   case RISCV::fixup_riscv_cheriot1_compartment_lo_i:
   case RISCV::fixup_riscv_cheriot1_compartment_lo_s:
   case RISCV::fixup_riscv_cheriot1_compartment_size:

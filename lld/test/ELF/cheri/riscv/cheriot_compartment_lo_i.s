@@ -11,16 +11,16 @@
 	.type	_start,@function
 	.option relax
 _start:                              # @_Z5entryv
-	ct.auipcc	t1, %cheriot_compartment_hi(near)
+	ct.auipcc	t1, %cheriot_compartment_code_hi(near)
     ct.clc	t1, %cheriot_compartment_lo_i(_start)(t1)
 .MID_BLOCK:
-	ct.auipcc	t1, %cheriot_compartment_hi(mid)
+	ct.auipcc	t1, %cheriot_compartment_code_hi(mid)
     ct.clc	t1, %cheriot_compartment_lo_i(.MID_BLOCK)(t1)
 .CGP_BLOCK:
-	ct.auicgp.relaxable	t1, %cheriot_compartment_cgp_hi(cgp)
+	ct.auicgp.relaxable	t1, %cheriot_compartment_data_hi(cgp)
     ct.clw	ra, %cheriot_compartment_lo_i(.CGP_BLOCK)(t1)
 .CGP_FAR_BLOCK:
-	ct.auicgp.relaxable	t1, %cheriot_compartment_cgp_hi(cgp_far)
+	ct.auicgp.relaxable	t1, %cheriot_compartment_data_hi(cgp_far)
     ct.clw	ra, %cheriot_compartment_lo_i(.CGP_FAR_BLOCK)(t1)
 
 # CHECK:        00012000 <_start>:

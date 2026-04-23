@@ -1059,7 +1059,7 @@ public:
            (VK == RISCV::S_PCREL_HI || VK == RISCV::S_GOT_HI ||
             VK == ELF::R_RISCV_TLS_GOT_HI20 || VK == ELF::R_RISCV_TLS_GD_HI20 ||
             VK == ELF::R_RISCV_TLSDESC_HI20 ||
-            VK == RISCV::S_CHERIOT_COMPARTMENT_HI ||
+            VK == RISCV::S_CHERIOT_COMPARTMENT_CODE_HI ||
             VK == RISCV::S_CAPTAB_PCREL_HI ||
             VK == RISCV::S_TLS_IE_CAPTAB_PCREL_HI ||
             VK == RISCV::S_TLS_GD_CAPTAB_PCREL_HI ||
@@ -1081,7 +1081,7 @@ public:
               VK == ELF::R_RISCV_TLS_GOT_HI20 ||
               VK == ELF::R_RISCV_TLS_GD_HI20 ||
               VK == ELF::R_RISCV_TLSDESC_HI20 ||
-              VK == RISCV::S_CHERIOT_COMPARTMENT_HI ||
+              VK == RISCV::S_CHERIOT_COMPARTMENT_CODE_HI ||
               VK == ELF::R_RISCV_CHERI_TLS_TGOT_GOT_HI20 ||
               VK == ELF::R_RISCV_CHERI_TLS_TGOT_GD_HI20);
     } else {
@@ -1090,7 +1090,7 @@ public:
               VK == ELF::R_RISCV_GOT_HI20 || VK == ELF::R_RISCV_TLS_GOT_HI20 ||
               VK == ELF::R_RISCV_TLS_GD_HI20 ||
               VK == ELF::R_RISCV_TLSDESC_HI20 ||
-              VK == RISCV::S_CHERIOT_COMPARTMENT_HI ||
+              VK == RISCV::S_CHERIOT_COMPARTMENT_CODE_HI ||
               VK == ELF::R_RISCV_CHERI_TLS_TGOT_GOT_HI20 ||
               VK == ELF::R_RISCV_CHERI_TLS_TGOT_GD_HI20);
     }
@@ -1105,10 +1105,10 @@ public:
     bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);
     if (!IsConstantImm) {
       IsValid = RISCVAsmParser::classifySymbolRef(getExpr(), VK);
-      return IsValid && VK == RISCV::S_CHERIOT_COMPARTMENT_CGP_HI;
+      return IsValid && VK == RISCV::S_CHERIOT_COMPARTMENT_DATA_HI;
     } else {
       return isUInt<20>(Imm) &&
-             (VK == RISCV::S_None || VK == RISCV::S_CHERIOT_COMPARTMENT_CGP_HI);
+             (VK == RISCV::S_None || VK == RISCV::S_CHERIOT_COMPARTMENT_DATA_HI);
     }
   }
 

@@ -40,8 +40,9 @@ RISCV::Specifier RISCV::parseSpecifierName(StringRef name, bool IsPurecap) {
       // Used in data directives
       .Case("pltpcrel", ELF::R_RISCV_PLT32)
       .Case("gotpcrel", ELF::R_RISCV_GOT32_PCREL)
-      .Case("cheriot_compartment_hi", RISCV::S_CHERIOT_COMPARTMENT_HI)
-      .Case("cheriot_compartment_cgp_hi", RISCV::S_CHERIOT_COMPARTMENT_CGP_HI)
+      .Case("cheriot_compartment_hi", RISCV::S_CHERIOT_COMPARTMENT_CODE_HI)
+      .Case("cheriot_compartment_code_hi", RISCV::S_CHERIOT_COMPARTMENT_CODE_HI)
+      .Case("cheriot_compartment_data_hi", RISCV::S_CHERIOT_COMPARTMENT_DATA_HI)
       .Case("cheriot_compartment_lo_i", RISCV::S_CHERIOT_COMPARTMENT_LO_I)
       .Case("cheriot_compartment_lo_s", RISCV::S_CHERIOT_COMPARTMENT_LO_S)
       .Case("cheriot_compartment_size", RISCV::S_CHERIOT_COMPARTMENT_SIZE)
@@ -98,10 +99,10 @@ StringRef RISCV::getSpecifierName(Specifier S) {
     return "tgot_tprel_add";
   case RISCV::S_CALL_PLT:
     return "call_plt";
-  case RISCV::S_CHERIOT_COMPARTMENT_HI:
-    return "cheriot_compartment_hi";
-  case RISCV::S_CHERIOT_COMPARTMENT_CGP_HI:
-    return "cheriot_compartment_cgp_hi";
+  case RISCV::S_CHERIOT_COMPARTMENT_CODE_HI:
+    return "cheriot_compartment_code_hi";
+  case RISCV::S_CHERIOT_COMPARTMENT_DATA_HI:
+    return "cheriot_compartment_data_hi";
   case RISCV::S_CHERIOT_COMPARTMENT_LO_I:
     return "cheriot_compartment_lo_i";
   case RISCV::S_CHERIOT_COMPARTMENT_LO_S:

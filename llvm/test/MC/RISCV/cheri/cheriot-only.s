@@ -4,6 +4,8 @@
 foo:
 // CHERIOT: foo:
     auipcc ct3, %cheriot_compartment_hi(foo)
-// CHERIOT: ct.auipcc	t3, %cheriot_compartment_hi(foo)
+// CHERIOT: ct.auipcc	t3, %cheriot_compartment_code_hi(foo)
+    auipcc ct3, %cheriot_compartment_code_hi(foo)
+// CHERIOT: ct.auipcc	t3, %cheriot_compartment_code_hi(foo)
     clc  ct2, %cheriot_compartment_lo_i(foo)(ct2)
 // CHERIOT: ct.clc	t2, %cheriot_compartment_lo_i(foo)(t2)

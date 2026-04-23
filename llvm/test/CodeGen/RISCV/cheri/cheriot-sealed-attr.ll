@@ -19,15 +19,15 @@ entry:
 
 ;; CHECK:        .LBB0_1:                                # %entry
 ;; CHECK-NEXT:                                           # Label of block must be emitted
-;; CHECK-NEXT:      auipcc	a0, %cheriot_compartment_hi(__import.sealed_object.test)
+;; CHECK-NEXT:      auipcc	a0, %cheriot_compartment_code_hi(__import.sealed_object.test)
 ;; CHECK-NEXT:      clc	a0, %cheriot_compartment_lo_i(.LBB0_1)(a0)
 ;; CHECK-NEXT:   .LBB0_3:                                # %entry
 ;; CHECK-NEXT:                                           # Label of block must be emitted
-;; CHECK-NEXT:  	  auipcc  t1, %cheriot_compartment_hi(__import_static_sealing_inner_test_static_sealed_object)
+;; CHECK-NEXT:  	  auipcc  t1, %cheriot_compartment_code_hi(__import_static_sealing_inner_test_static_sealed_object)
 ;; CHECK-NEXT:  	  clc	  t1, %cheriot_compartment_lo_i(.LBB0_3)(t1)
 ;; CHECK-NEXT:   .LBB0_2:                                # %entry
 ;; CHECK-NEXT:                                           # Label of block must be emitted
-;; CHECK-NEXT:  	  auipcc  t2, %cheriot_compartment_hi(.compartment_switcher)
+;; CHECK-NEXT:  	  auipcc  t2, %cheriot_compartment_code_hi(.compartment_switcher)
 ;; CHECK-NEXT:  	  clc	  t2, %cheriot_compartment_lo_i(.LBB0_2)(t2)
 ;; CHECK-NEXT:  	  cjalr	  t2
   %call = notail call cheriot_compartmentcallcc noundef i32 @test_static_sealed_object(ptr addrspace(200) @test) #2

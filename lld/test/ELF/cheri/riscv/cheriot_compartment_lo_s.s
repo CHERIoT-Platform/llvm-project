@@ -11,10 +11,10 @@
 	.type	_start,@function
 	.option relax
 .CGP_BLOCK:
-	ct.auicgp.relaxable	t1, %cheriot_compartment_cgp_hi(cgp_label)
+	ct.auicgp.relaxable	t1, %cheriot_compartment_data_hi(cgp_label)
     ct.csw	ra, %cheriot_compartment_lo_s(.CGP_BLOCK)(t1)
 .CGP_FAR_BLOCK:
-	ct.auicgp.relaxable	t1, %cheriot_compartment_cgp_hi(cgp_far_label)
+	ct.auicgp.relaxable	t1, %cheriot_compartment_data_hi(cgp_far_label)
     ct.csw	ra, %cheriot_compartment_lo_s(.CGP_FAR_BLOCK)(t1)
 
 # CHECK:      000110f8 <.CGP_BLOCK>:

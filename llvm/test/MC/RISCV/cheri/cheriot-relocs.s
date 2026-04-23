@@ -7,8 +7,14 @@ hello:
         # CHECK: fixup A - offset: 0, value: %cheriot_compartment_lo_i(haha), kind: fixup_riscv_cheriot_compartment_lo_i
         csw a0, %cheriot_compartment_lo_s(haha)(cgp)
         # CHECK: fixup A - offset: 0, value: %cheriot_compartment_lo_s(haha), kind: fixup_riscv_cheriot_compartment_lo_s
-        auicgp  ca1, %cheriot_compartment_hi(haha)
-        # CHECK: fixup A - offset: 0, value: %cheriot_compartment_hi(haha), kind: fixup_riscv_cheriot_compartment_hi
+        auipcc  ca1, %cheriot_compartment_hi(haha)
+        # CHECK: fixup A - offset: 0, value: %cheriot_compartment_code_hi(haha), kind: fixup_riscv_cheriot_compartment_code_hi
+        auipcc  ca1, %cheriot_compartment_code_hi(haha)
+        # CHECK: fixup A - offset: 0, value: %cheriot_compartment_code_hi(haha), kind: fixup_riscv_cheriot_compartment_code_hi
+        auicgp  ca1, %cheriot_compartment_code_hi(haha)
+        # CHECK: fixup A - offset: 0, value: %cheriot_compartment_code_hi(haha), kind: fixup_riscv_cheriot_compartment_code_hi
+        ct.auicgp.relaxable  ca1, %cheriot_compartment_data_hi(haha)
+        # CHECK: fixup A - offset: 0, value: %cheriot_compartment_data_hi(haha), kind: fixup_riscv_cheriot_compartment_data_hi
         cincoffset ca0, cgp, %cheriot_compartment_lo_i(haha)
         # CHECK: fixup A - offset: 0, value: %cheriot_compartment_lo_i(haha), kind: fixup_riscv_cheriot_compartment_lo_i
         csetbounds ca0, ca0, %cheriot_compartment_size(haha)

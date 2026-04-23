@@ -33,7 +33,6 @@ define void @_ZN3fooD2Ev() addrspace(200) nounwind {
 ; ASM-LABEL: .globl _ZN3fooD1Ev
 ; ASM-NEXT: .type _ZN3fooD1Ev,@function
 ; ASM-NEXT: _ZN3fooD1Ev = _ZN3fooD2Ev
-; ASM-NEXT: .size _ZN3fooD1Ev, .Lfunc_end0-_ZN3fooD2Ev
 
 ; But for the aliases using a GEP, we have to subtract the offset:
 ; ASM-LABEL: .globl elem0

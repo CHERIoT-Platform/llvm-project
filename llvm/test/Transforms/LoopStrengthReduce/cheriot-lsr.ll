@@ -8,7 +8,7 @@ target triple = "riscv32cheriotv1-unknown-cheriotrtos"
 
 ; CHECK: f:
 ; CHECK: .LBB0_6:
-; CHECK: auicgp
+; CHECK: auipcc.data
 ; CHECK: cincoffset
 ; CHECK: csetbounds
 ; CHECK-NOT: cincoffset

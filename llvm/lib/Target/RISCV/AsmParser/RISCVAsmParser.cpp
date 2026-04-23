@@ -1096,7 +1096,7 @@ public:
     }
   }
 
-  bool isUImm20AUIGPRelaxable() const {
+  bool isUImm20AUIPCCData() const {
     RISCV::Specifier VK = RISCV::S_None;
     int64_t Imm;
     bool IsValid;

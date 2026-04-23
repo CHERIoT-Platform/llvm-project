@@ -598,7 +598,7 @@ bool RISCVExpandPseudo::expandAuicgpInstPair(
 
   MF->insert(++MBB.getIterator(), NewMBB);
 
-  BuildMI(NewMBB, DL, TII->get(RISCV::PseudoAUICGPRelaxable), TmpReg)
+  BuildMI(NewMBB, DL, TII->get(RISCV::PseudoAUIPCCData), TmpReg)
       .addDisp(Symbol, 0, RISCVII::MO_CHERIOT1_COMPARTMENT_DATA_HI);
 
   unsigned SecondFlags = RISCVII::MO_CHERIOT1_COMPARTMENT_LO_I;

@@ -1401,15 +1401,15 @@ let hasSideEffects = 0, mayLoad = 0, mayStore = 1, isCodeGenOnly = 1,
   }
 }
 
-def uimm20_auigp_relaxable : UImm20OperandMaybeSym {
-  let ParserMatchClass = UImmAsmOperand<20, "AUIGPRelaxable">;
+def uimm20_auipcc_data : UImm20OperandMaybeSym {
+  let ParserMatchClass = UImmAsmOperand<20, "AUIPCCData">;
 }
 
 let Predicates = [HasCheriot, IsCapMode] in {
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0, isCodeGenOnly = 0,
     isAsmParserOnly = 0, Size = 8 in {
-def PseudoAUICGPRelaxable : Pseudo<(outs YGPR:$dst), (ins uimm20_auigp_relaxable:$src), [],
-                        "ct.auicgp.relaxable", "$dst, $src">;
+def PseudoAUIPCCData : Pseudo<(outs YGPR:$dst), (ins uimm20_auipcc_data:$src), [],
+                        "ct.auipcc.data", "$dst, $src">;
 }
 }
 

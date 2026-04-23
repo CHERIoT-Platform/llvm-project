@@ -17,10 +17,10 @@ _start:                              # @_Z5entryv
 	ct.auipcc	t1, %cheriot_compartment_code_hi(mid)
     ct.clc	t1, %cheriot_compartment_lo_i(.MID_BLOCK)(t1)
 .CGP_BLOCK:
-	ct.auicgp.relaxable	t1, %cheriot_compartment_data_hi(cgp)
+	ct.auipcc.data	t1, %cheriot_compartment_data_hi(cgp)
     ct.clw	ra, %cheriot_compartment_lo_i(.CGP_BLOCK)(t1)
 .CGP_FAR_BLOCK:
-	ct.auicgp.relaxable	t1, %cheriot_compartment_data_hi(cgp_far)
+	ct.auipcc.data	t1, %cheriot_compartment_data_hi(cgp_far)
     ct.clw	ra, %cheriot_compartment_lo_i(.CGP_FAR_BLOCK)(t1)
 
 # CHECK:        00012000 <_start>:

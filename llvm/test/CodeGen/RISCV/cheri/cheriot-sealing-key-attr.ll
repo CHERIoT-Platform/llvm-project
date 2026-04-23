@@ -24,27 +24,27 @@ entry:
   %SealingKey5 = alloca ptr, align 8, addrspace(200)
 ; CHECK: .LBB0_1:                                # %entry
 ; CHECK:                                         # Label of block must be emitted
-; CHECK:         auipcc  a0, %cheriot_compartment_hi(__import.sealing_type.static_sealing_test.StructSealingKey)
+; CHECK:         auipcc  a0, %cheriot_compartment_code_hi(__import.sealing_type.static_sealing_test.StructSealingKey)
 ; CHECK:         clc     a0, %cheriot_compartment_lo_i(.LBB0_1)(a0)
   store ptr addrspace(200) @__import.sealing_type.static_sealing_test.StructSealingKey, ptr addrspace(200) %SealingKey1, align 8
 ; CHECK: .LBB0_2:                                # %entry
 ; CHECK:                                         # Label of block must be emitted
-; CHECK:         auipcc  a0, %cheriot_compartment_hi(__import.sealing_type.static_sealing_test.EnumSealingKey)
+; CHECK:         auipcc  a0, %cheriot_compartment_code_hi(__import.sealing_type.static_sealing_test.EnumSealingKey)
 ; CHECK:         clc     a0, %cheriot_compartment_lo_i(.LBB0_2)(a0)
   store ptr addrspace(200) @__import.sealing_type.static_sealing_test.EnumSealingKey, ptr addrspace(200) %SealingKey2, align 8
 ; CHECK: .LBB0_3:                                # %entry
 ; CHECK:                                         # Label of block must be emitted
-; CHECK:         auipcc  a0, %cheriot_compartment_hi(__import.sealing_type.static_sealing_test.TypeDefSealingKey)
+; CHECK:         auipcc  a0, %cheriot_compartment_code_hi(__import.sealing_type.static_sealing_test.TypeDefSealingKey)
 ; CHECK:         clc     a0, %cheriot_compartment_lo_i(.LBB0_3)(a0)
   store ptr addrspace(200) @__import.sealing_type.static_sealing_test.TypeDefSealingKey, ptr addrspace(200) %SealingKey3, align 8
 ; CHECK: .LBB0_4:                                # %entry
 ; CHECK:                                         # Label of block must be emitted
-; CHECK:         auipcc  a0, %cheriot_compartment_hi(__import.sealing_type.static_sealing_test.int)
+; CHECK:         auipcc  a0, %cheriot_compartment_code_hi(__import.sealing_type.static_sealing_test.int)
 ; CHECK:         clc     a0, %cheriot_compartment_lo_i(.LBB0_4)(a0)
   store ptr addrspace(200) @__import.sealing_type.static_sealing_test.int, ptr addrspace(200) %SealingKey4, align 8
 ; CHECK: .LBB0_5:                                # %entry
 ; CHECK:                                         # Label of block must be emitted
-; CHECK:         auipcc  a0, %cheriot_compartment_hi(__import.sealing_type.static_sealing_test.int)
+; CHECK:         auipcc  a0, %cheriot_compartment_code_hi(__import.sealing_type.static_sealing_test.int)
 ; CHECK:         clc     a0, %cheriot_compartment_lo_i(.LBB0_5)(a0)
   store ptr addrspace(200) @__import.sealing_type.static_sealing_test.int2, ptr addrspace(200) %SealingKey5, align 8
 ; CHECK: 	cret

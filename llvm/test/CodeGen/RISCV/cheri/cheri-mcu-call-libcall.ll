@@ -11,11 +11,11 @@ entry:
 ; compartment switcher.
 ; CHECK: li    a0, 1
 ; CHECK: li    a1, 2
-; CHECK: auipcc  t2, %cheriot_compartment_hi(__library_import_libcalls_add)
+; CHECK: auipcc  t2, %cheriot_compartment_code_hi(__library_import_libcalls_add)
 ; CHECK: clc     t2, %cheriot_compartment_lo_i(.LBB0_1)(t2)
 ; CHECK: cjalr   t2
   %call = tail call cheriot_librarycallcc i32 @add(i32 1, i32 2) #2
-; CHECK: auipcc  t2, %cheriot_compartment_hi(__library_import_libcalls_foo)
+; CHECK: auipcc  t2, %cheriot_compartment_code_hi(__library_import_libcalls_foo)
 ; CHECK: clc     t2, %cheriot_compartment_lo_i(.LBB0_2)(t2)
 ; CHECK: cjalr   t2
   %call1 = tail call cheriot_librarycallcc i32 @foo() #2

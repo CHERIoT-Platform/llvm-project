@@ -110,10 +110,10 @@ unsigned RISCVELFObjectWriter::getRelocType(const MCFixup &Fixup,
       return ELF::R_RISCV_QC_E_CALL_PLT;
     case RISCV::fixup_riscv_nds_branch_10:
       return ELF::R_RISCV_NDS_BRANCH_10;
-    case RISCV::fixup_riscv_cheriot1_compartment_hi:
-      return ELF::R_RISCV_CHERIOT1_COMPARTMENT_HI;
-    case RISCV::fixup_riscv_cheriot1_compartment_cgp_hi:
-      return ELF::R_RISCV_CHERIOT1_COMPARTMENT_CGP_HI;
+    case RISCV::fixup_riscv_cheriot1_compartment_code_hi:
+      return ELF::R_RISCV_CHERIOT1_COMPARTMENT_CODE_HI;
+    case RISCV::fixup_riscv_cheriot1_compartment_data_hi:
+      return ELF::R_RISCV_CHERIOT1_COMPARTMENT_DATA_HI;
     case RISCV::fixup_riscv_cheriot1_compartment_lo_i:
       return ELF::R_RISCV_CHERIOT1_COMPARTMENT_LO_I;
     }
@@ -173,10 +173,10 @@ unsigned RISCVELFObjectWriter::getRelocType(const MCFixup &Fixup,
     if (Spec == ELF::R_RISCV_CHERI_CAPABILITY_CODE)
       return ELF::R_RISCV_CHERI_CAPABILITY_CODE;
     return ELF::R_RISCV_CHERI_CAPABILITY;
-  case RISCV::fixup_riscv_cheriot1_compartment_hi:
-    return ELF::R_RISCV_CHERIOT1_COMPARTMENT_HI;
-  case RISCV::fixup_riscv_cheriot1_compartment_cgp_hi:
-    return ELF::R_RISCV_CHERIOT1_COMPARTMENT_CGP_HI;
+  case RISCV::fixup_riscv_cheriot1_compartment_code_hi:
+    return ELF::R_RISCV_CHERIOT1_COMPARTMENT_CODE_HI;
+  case RISCV::fixup_riscv_cheriot1_compartment_data_hi:
+    return ELF::R_RISCV_CHERIOT1_COMPARTMENT_DATA_HI;
   case RISCV::fixup_riscv_cheriot1_compartment_lo_i:
     return ELF::R_RISCV_CHERIOT1_COMPARTMENT_LO_I;
   case RISCV::fixup_riscv_cheriot1_compartment_lo_s:

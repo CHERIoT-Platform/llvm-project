@@ -15,7 +15,7 @@ entry:
 ; indirectly to use the correct sentries, that we call it with an import that
 ; doesn't conflict with the normal import.
 ; CHECK: _Z15internal_callerv:
-; CHECK:         auipcc t2, %cheriot_compartment_hi(__library_import_example__Z5emptyv)
+; CHECK:         auipcc t2, %cheriot_compartment_code_hi(__library_import_example__Z5emptyv)
 ; CHECK:         clc t2, %cheriot_compartment_lo_i(
 ; CHECK:         cjalr t2
 ; CHECK: __library_import_example__Z5emptyv:

@@ -76,9 +76,9 @@ public:
                              SmallVectorImpl<MCFixup> &Fixups,
                              const MCSubtargetInfo &STI, unsigned Size) const;
 
-  void expandAUICGPRelaxable(const MCInst &MI, SmallVectorImpl<char> &CB,
-                             SmallVectorImpl<MCFixup> &Fixups,
-                             const MCSubtargetInfo &STI) const;
+  void expandAUIPCCData(const MCInst &MI, SmallVectorImpl<char> &CB,
+                        SmallVectorImpl<MCFixup> &Fixups,
+                        const MCSubtargetInfo &STI) const;
 
   /// TableGen'erated function for getting the binary encoding for an
   /// instruction.
@@ -489,11 +489,12 @@ void RISCVMCCodeEmitter::expandQCLongCondBrImm(const MCInst &MI,
   }
 }
 
-void RISCVMCCodeEmitter::expandAUICGPRelaxable(
-    const MCInst &MI, SmallVectorImpl<char> &CB,
-    SmallVectorImpl<MCFixup> &Fixups, const MCSubtargetInfo &STI) const {
+void RISCVMCCodeEmitter::expandAUIPCCData(const MCInst &MI,
+                                          SmallVectorImpl<char> &CB,
+                                          SmallVectorImpl<MCFixup> &Fixups,
+                                          const MCSubtargetInfo &STI) const {
   MCInst NewMI = MI;
-  NewMI.setOpcode(RISCV::AUICGP);
+  NewMI.setOpcode(RISCV::AUIPCC);
   encodeInstruction(NewMI, CB, Fixups, STI);
 
   // Emit a trailing `ct.nop4`, which is equivalent to `cincoffset x0, x0, x0`
@@ -570,8 +571,8 @@ void RISCVMCCodeEmitter::encodeInstruction(const MCInst &MI,
     expandTLSDESCCall(MI, CB, Fixups, STI);
     MCNumEmitted += 1;
     return;
-  case RISCV::PseudoAUICGPRelaxable:
-    expandAUICGPRelaxable(MI, CB, Fixups, STI);
+  case RISCV::PseudoAUIPCCData:
+    expandAUIPCCData(MI, CB, Fixups, STI);
     return;
   }
 

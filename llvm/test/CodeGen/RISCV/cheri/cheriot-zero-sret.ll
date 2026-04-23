@@ -18,7 +18,7 @@ entry:
   ; CHECK: csw	zero, 8(a0)
   ; CHECK: csw	zero, 4(a0)
   ; CHECK: csw	zero, 0(a0)
-  ; CHECK: auipcc	t1, %cheriot_compartment_hi(__import_sret__Z1fv)
+  ; CHECK: auipcc	t1, %cheriot_compartment_code_hi(__import_sret__Z1fv)
   notail call cheriot_compartmentcallcc void @_Z1fv(%struct.Smallish addrspace(200)* nonnull sret(%struct.Smallish) align 4 %ref.tmp) #4
   %foo.sroa.0.0..sroa_idx = getelementptr inbounds %struct.Smallish, %struct.Smallish addrspace(200)* %ref.tmp, i32 0, i32 0
   %foo.sroa.0.0.copyload = load i32, i32 addrspace(200)* %foo.sroa.0.0..sroa_idx, align 4, !tbaa.struct !4
@@ -43,7 +43,7 @@ entry:
   call void @llvm.lifetime.start.p200i8(i64 128, i8 addrspace(200)* nonnull %0) #3
   ; CHECK-LABEL: _Z1iv:
   ; Check that we do a proper memset for a big struct.
-  ; CHECK: 	auipcc	t2, %cheriot_compartment_hi(__library_import_libcalls_memset)
+  ; CHECK: 	auipcc	t2, %cheriot_compartment_code_hi(__library_import_libcalls_memset)
   notail call cheriot_compartmentcallcc void @_Z1gv(%struct.Big addrspace(200)* nonnull sret(%struct.Big) align 1 %ref.tmp) #4
   %foo.sroa.0.0.copyload = load i8, i8 addrspace(200)* %0, align 1, !tbaa.struct !9
   call void @llvm.lifetime.end.p200i8(i64 128, i8 addrspace(200)* nonnull %0) #3

@@ -18,14 +18,14 @@ define [2 x i32] @foo(i32 %searched) addrspace(200) {
 ; CHECK-NEXT:    slli a0, a0, 2
 ; CHECK-NEXT:  .LBB0_4: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc a1, %cheriot_compartment_hi(.LJTI0_0)
+; CHECK-NEXT:    ct.auipcc a1, %cheriot_compartment_code_hi(.LJTI0_0)
 ; CHECK-NEXT:    ct.cincoffset a1, a1, %cheriot_compartment_lo_i(.LBB0_4)
 ; CHECK-NEXT:    ct.cincoffset a0, a1, a0
 ; CHECK-NEXT:    ct.clw a0, 0(a0)
 ; CHECK-NEXT:    li a1, 1
 ; CHECK-NEXT:  .LBB0_5: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    ct.auipcc a2, %cheriot_compartment_hi(.Lfoo$jump_table_base)
+; CHECK-NEXT:    ct.auipcc a2, %cheriot_compartment_code_hi(.Lfoo$jump_table_base)
 ; CHECK-NEXT:    ct.cincoffset a2, a2, %cheriot_compartment_lo_i(.LBB0_5)
 ; CHECK-NEXT:    ct.cincoffset a2, a2, a0
 ; CHECK-NEXT:    li a0, -1

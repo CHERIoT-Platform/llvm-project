@@ -14,7 +14,7 @@ define dso_local i32 @example_entry(i32 addrspace(200)* nocapture readnone %inpu
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:  .LBB0_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auicgp.relaxable a1, %cheriot_compartment_cgp_hi(temp)
+; CHECK-NEXT:    auicgp.relaxable a1, %cheriot_compartment_data_hi(temp)
 ; CHECK-NEXT:    cincoffset a1, a1, %cheriot_compartment_lo_i(.LBB0_1)
 ; CHECK-NEXT:    clw a0, 0(a1)
 ; CHECK-NEXT:    addi a2, a0, 1
@@ -40,7 +40,7 @@ define dso_local i32 addrspace(200)* @getBigArray() local_unnamed_addr addrspace
 ; CHECK-NEXT:    addi a0, a0, 4
 ; CHECK-NEXT:  .LBB1_1: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
-; CHECK-NEXT:    auicgp.relaxable a1, %cheriot_compartment_cgp_hi(bigArray)
+; CHECK-NEXT:    auicgp.relaxable a1, %cheriot_compartment_data_hi(bigArray)
 ; CHECK-NEXT:    cincoffset a1, a1, %cheriot_compartment_lo_i(.LBB1_1)
 ; CHECK-NEXT:    csetbounds a0, a1, a0
 ; CHECK-NEXT:    cret

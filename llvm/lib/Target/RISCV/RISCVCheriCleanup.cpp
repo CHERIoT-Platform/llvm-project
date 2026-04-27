@@ -47,7 +47,7 @@ public:
 };
 
 static bool rewriteMemoryReference(MachineOperand &Op,
-                                   const MachineOperand &Src,
+                                   const MachineOperand &Src, size_t Offset,
                                    MachineRegisterInfo &MRI,
                                    const TargetInstrInfo *TII) {
   // Update the opcode to an appropriate CLLC pseudo which will get expanded
@@ -124,8 +124,9 @@ static bool rewriteMemoryReference(MachineOperand &Op,
                   /*isKill=*/false, /*isDead=*/true, /*isUndef=*/false,
                   /*isEarlyClobber=*/true));
   }
-  II.addOperand(MachineOperand::CreateGA(Src.getGlobal(), Src.getOffset(),
-                                         Src.getTargetFlags()));
+
+  II.addOperand(
+      MachineOperand::CreateGA(Src.getGlobal(), Offset, Src.getTargetFlags()));
 
   return true;
 }
@@ -147,6 +148,9 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
         if (!MI.getOperand(1).isGlobal())
           continue;
         uint32_t SafeSize = 0;
+        // When there is only a single derefence, keep track of its offset for
+        // emitting the optimized sequence.
+        size_t Offset = 0;
         // If this is the definition of a global, then we know the size.  Allow
         // any loads in that size to be safe.
         bool HasCheriotImportAttr = false;
@@ -194,7 +198,7 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
             OpSize = 16;
             break;
           }
-          size_t Offset = UI.getOperand(2).getImm();
+          Offset = UI.getOperand(2).getImm();
           if (Offset == 0)
             continue;
           if (Offset + OpSize <= SafeSize)
@@ -215,7 +219,7 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
             // If there is only a single inbounds use, then we can fold the low
             // bits of the address computation into the load/store itself.
             MachineOperand &UOp = *MRI.use_begin(MI.getOperand(0).getReg());
-            if (rewriteMemoryReference(UOp, MI.getOperand(1), MRI, TII))
+            if (rewriteMemoryReference(UOp, MI.getOperand(1), Offset, MRI, TII))
               ToDelete.push_back(&MI);
           }
           Modified = true;

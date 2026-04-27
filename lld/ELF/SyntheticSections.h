@@ -1121,10 +1121,17 @@ public:
   void addSection(MergeInputSection *ms);
   SmallVector<MergeInputSection *, 0> sections;
 
+  static bool classof(const SectionBase *sec) {
+    const auto *ssec = dyn_cast<SyntheticSection>(sec);
+    return ssec && ssec->isMerge;
+  }
+
 protected:
   MergeSyntheticSection(Ctx &ctx, StringRef name, uint32_t type, uint64_t flags,
                         uint32_t addralign)
-      : SyntheticSection(ctx, name, type, flags, addralign) {}
+      : SyntheticSection(ctx, name, type, flags, addralign) {
+    isMerge = true;
+  }
 };
 
 class MergeTailSection final : public MergeSyntheticSection {

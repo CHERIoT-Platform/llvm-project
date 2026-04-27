@@ -53,6 +53,7 @@ public:
   virtual void emitDirectiveOptionNoRelax();
   virtual void emitDirectiveOptionRVC();
   virtual void emitDirectiveOptionNoRVC();
+  virtual void setArchString(StringRef Arch) {}
   virtual void emitDirectiveOptionCapMode();
   virtual void emitDirectiveOptionNoCapMode();
   virtual void emitDirectiveVariantCC(MCSymbol &Symbol);

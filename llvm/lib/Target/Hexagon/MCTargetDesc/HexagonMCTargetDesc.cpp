@@ -383,7 +383,7 @@ createHexagonMCRegisterInfo(const Triple &TT, const MCTargetOptions &Options) {
 static MCAsmInfo *createHexagonMCAsmInfo(const MCRegisterInfo &MRI,
                                          const Triple &TT,
                                          const MCTargetOptions &Options) {
-  MCAsmInfo *MAI = new HexagonMCAsmInfo(TT);
+  MCAsmInfo *MAI = new HexagonMCAsmInfo(TT, Options);
 
   // VirtualFP = (R30 + #0).
   MCCFIInstruction Inst = MCCFIInstruction::cfiDefCfa(

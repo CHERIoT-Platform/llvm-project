@@ -982,11 +982,12 @@ std::optional<unsigned> getFoldedOpcode(MachineFunction &MF, MachineInstr &MI,
 }
 
 // This is the version used during InlineSpiller::spillAroundUses
-MachineInstr *RISCVInstrInfo::foldMemoryOperandImpl(
-    MachineFunction &MF, MachineInstr &MI, ArrayRef<unsigned> Ops,
-    MachineBasicBlock::iterator InsertPt, int FrameIndex, MachineInstr *&CopyMI,
-    LiveIntervals *LIS, VirtRegMap *VRM) const {
-
+MachineInstr *
+RISCVInstrInfo::foldMemoryOperandImpl(MachineFunction &MF, MachineInstr &MI,
+                                      ArrayRef<unsigned> Ops, int FrameIndex,
+                                      MachineInstr *&CopyMI, LiveIntervals *LIS,
+                                      VirtRegMap *VRM) const {
+  MachineBasicBlock::iterator InsertPt = MI;
   std::optional<unsigned> LoadOpc = getFoldedOpcode(MF, MI, Ops, STI);
   if (!LoadOpc)
     return nullptr;
@@ -1030,8 +1031,8 @@ static unsigned getLoadPredicatedOpcode(unsigned Opcode) {
 
 MachineInstr *RISCVInstrInfo::foldMemoryOperandImpl(
     MachineFunction &MF, MachineInstr &MI, ArrayRef<unsigned> Ops,
-    MachineBasicBlock::iterator InsertPt, MachineInstr &LoadMI,
-    MachineInstr *&CopyMI, LiveIntervals *LIS) const {
+    MachineInstr &LoadMI, MachineInstr *&CopyMI, LiveIntervals *LIS) const {
+  MachineBasicBlock::iterator InsertPt = MI;
   // For now, only handle RISCV::PseudoCCMOVGPR.
   if (MI.getOpcode() != RISCV::PseudoCCMOVGPR)
     return nullptr;
@@ -2097,7 +2098,7 @@ unsigned RISCVInstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {
   }
 
   if (Opcode == TargetOpcode::BUNDLE)
-    return getInstBundleLength(MI);
+    return getInstBundleSize(MI);
 
   if (MI.getParent() && MI.getParent()->getParent()) {
     if (isCompressibleInst(MI, STI))
@@ -2203,17 +2204,6 @@ unsigned RISCVInstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {
   default:
     return get(Opcode).getSize();
   }
-}
-
-unsigned RISCVInstrInfo::getInstBundleLength(const MachineInstr &MI) const {
-  unsigned Size = 0;
-  MachineBasicBlock::const_instr_iterator I = MI.getIterator();
-  MachineBasicBlock::const_instr_iterator E = MI.getParent()->instr_end();
-  while (++I != E && I->isInsideBundle()) {
-    assert(!I->isBundle() && "No nested bundle!");
-    Size += getInstSizeInBytes(*I);
-  }
-  return Size;
 }
 
 bool RISCVInstrInfo::isAsCheapAsAMove(const MachineInstr &MI) const {
@@ -4148,10 +4138,12 @@ MachineBasicBlock::iterator RISCVInstrInfo::insertOutlinedCall(
     It++;
 
     // Call: PseudoCALLReg X5
-    It = MBB.insert(
-        It, BuildMI(MF, DebugLoc(), get(RISCV::PseudoCALLReg), RISCV::X5)
-                .addGlobalAddress(M.getNamedValue(MF.getName()), 0,
-                                  RISCVII::MO_CALL));
+    It = MBB.insert(It, BuildMI(MF, DebugLoc(),
+                                get(IsPurecap ? RISCV::PseudoCCALLReg
+                                              : RISCV::PseudoCALLReg),
+                                IsPurecap ? RISCV::X5_Y : RISCV::X5)
+                            .addGlobalAddress(M.getNamedValue(MF.getName()), 0,
+                                              RISCVII::MO_CALL));
     MachineBasicBlock::iterator CallPt = It;
     It++;
 

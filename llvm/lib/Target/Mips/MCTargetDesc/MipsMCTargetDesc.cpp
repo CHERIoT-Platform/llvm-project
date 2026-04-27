@@ -180,7 +180,7 @@ static MCAsmInfo *createMipsMCAsmInfo(const MCRegisterInfo &MRI,
   MCAsmInfo *MAI;
 
   if (TT.isOSBinFormatCOFF())
-    MAI = new MipsCOFFMCAsmInfo();
+    MAI = new MipsCOFFMCAsmInfo(Options);
   else
     MAI = new MipsELFMCAsmInfo(TT, Options);
 

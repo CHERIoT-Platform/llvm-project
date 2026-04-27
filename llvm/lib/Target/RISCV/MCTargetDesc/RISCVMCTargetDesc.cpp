@@ -73,9 +73,9 @@ static MCAsmInfo *createRISCVMCAsmInfo(const MCRegisterInfo &MRI,
   RISCVABI::ABI ABI = RISCVABI::getTargetABI(Options.getABIName(), TT);
   MCAsmInfo *MAI = nullptr;
   if (TT.isOSBinFormatELF())
-    MAI = new RISCVMCAsmInfo(TT, ABI);
+    MAI = new RISCVMCAsmInfo(TT, Options, ABI);
   else if (TT.isOSBinFormatMachO())
-    MAI = new RISCVMCAsmInfoDarwin();
+    MAI = new RISCVMCAsmInfoDarwin(Options);
   else
     reportFatalUsageError("unsupported object format");
 

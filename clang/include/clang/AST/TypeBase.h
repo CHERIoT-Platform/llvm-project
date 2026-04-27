@@ -1145,6 +1145,11 @@ public:
   /// Return true if this is a trivially copyable type
   bool isTriviallyCopyConstructibleType(const ASTContext &Context) const;
 
+  /// Returns true if the type uses postfix declarator syntax, i.e. the
+  /// declarator component appears after the name (arrays, functions).
+  /// Looks through pointer-like types to the pointee.
+  bool hasPostfixDeclaratorSyntax() const;
+
   /// Return true if this QualType has the attribute signaling that it
   /// references a sealed type in CHERIoT.
   bool hasCHERIoTSealedAttr() const;

@@ -513,7 +513,7 @@ public:
                    uint32_t addralign)
       : InputSection(ctx.internalFile, name, type, flags, addralign,
                      /*entsize=*/0, {}, InputSectionBase::Synthetic),
-        ctx(ctx) {}
+        ctx(ctx), isMerge(false) {}
 
   virtual ~SyntheticSection() = default;
   virtual size_t getSize() const = 0;
@@ -527,6 +527,9 @@ public:
   static bool classof(const SectionBase *sec) {
     return sec->kind() == InputSectionBase::Synthetic;
   }
+
+  LLVM_PREFERRED_TYPE(bool)
+  uint8_t isMerge : 1;
 };
 
 inline bool isStaticRelSecType(uint32_t type) {

@@ -1827,7 +1827,8 @@ void elf::setRISCVTargetInfo(Ctx &ctx) { ctx.target.reset(new RISCV(ctx)); }
 static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSectionBase &sec) {
   bool modified = false;
   for (Relocation &r :sec.relocations ) {
-    if (r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI &&
+    if ((r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_HI ||
+         r.type == INTERNAL_RISCV_CHERIOT1_COMPARTMENT_CGP_HI) &&
         isPCCRelative(ctx, nullptr, r.sym)) {
       modified = true;
       r.type = INTERNAL_RISCV_CHERIOT1_COMPARTMENT_PCCREL_HI;

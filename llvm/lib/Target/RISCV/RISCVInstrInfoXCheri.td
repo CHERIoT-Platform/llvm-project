@@ -2128,12 +2128,12 @@ let Predicates = [HasCheriot] in {
 // require up to 8 additional bytes.
 let Predicates = [HasCheri, IsCapMode], isCall = 1, Defs = [X1_Y],
     isCodeGenOnly = 1,
-    Size = 26 in def PseudoCompartmentCall
+    Size = 18 in def PseudoCompartmentCall
     : Pseudo<(outs), (ins cap_call_symbol:$func), []>;
 
 let Predicates = [HasCheri, IsCapMode], isCall = 1, Defs = [X1_Y],
     isCodeGenOnly = 1,
-    Size = 14 in def PseudoLibraryCall
+    Size = 10 in def PseudoLibraryCall
     : Pseudo<(outs), (ins cap_call_symbol:$func), []>;
 
 let Predicates = [HasCheri, IsCapMode, IsPureCapABI] in {

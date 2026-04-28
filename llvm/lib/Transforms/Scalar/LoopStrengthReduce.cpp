@@ -1495,16 +1495,17 @@ static bool IsFormulaMonotonic(const Formula &F, LSRUse::KindType UseKind) {
   bool SignKnown = !F.BaseOffset.isZero();
   bool IsPositive = F.BaseOffset.isGreaterThanZero();
 
-  if (SignKnown && !F.UnfoldedOffset.isZero())
-    return IsPositive == F.BaseOffset.isGreaterThanZero();
+  if (SignKnown && !F.UnfoldedOffset.isZero() &&
+      IsPositive != F.BaseOffset.isGreaterThanZero())
+    return false;
   if (!SignKnown) {
     SignKnown = !F.UnfoldedOffset.isZero();
     IsPositive = F.UnfoldedOffset.isGreaterThanZero();
   }
 
-  if (F.Scale != 0) {
-    if (SignKnown)
-      return IsPositive == (F.Scale > 0);
+  if (SignKnown && F.Scale != 0 && IsPositive != (F.Scale > 0))
+    return false;
+  if (!SignKnown) {
     SignKnown = F.Scale != 0;
     IsPositive = F.Scale > 0;
   }
@@ -1513,6 +1514,22 @@ static bool IsFormulaMonotonic(const Formula &F, LSRUse::KindType UseKind) {
     SignKnown = true;
     IsPositive = true;
   }
+
+  // Search SCEV for any expression of the form %val + -C
+  auto HasNegativeBaseOffset = [](const SCEV *S) {
+    const auto *Add = dyn_cast<SCEVAddExpr>(S);
+    if (!Add)
+      return false;
+    auto *LHSCSt = dyn_cast<SCEVConstant>(Add->getOperand(0));
+    auto *RHSUnknown = dyn_cast<SCEVUnknown>(Add->getOperand(1));
+    if (LHSCSt && RHSUnknown && LHSCSt->getAPInt().isNegative())
+      return true;
+    auto *LHSUnknown = dyn_cast<SCEVUnknown>(Add->getOperand(0));
+    auto *RHSCSt = dyn_cast<SCEVConstant>(Add->getOperand(1));
+    if (LHSUnknown && RHSCSt && RHSCSt->getAPInt().isNegative())
+      return true;
+    return false;
+  };
 
   auto HasSignMismatchedAddRec = [&IsPositive](const SCEV *S) {
     const SCEVAddRecExpr *AddRec = dyn_cast<SCEVAddRecExpr>(S);
@@ -1528,18 +1545,41 @@ static bool IsFormulaMonotonic(const Formula &F, LSRUse::KindType UseKind) {
     if (StartCst && StepCst && !StartCst->getAPInt().isZero())
       return StartCst->getAPInt().isStrictlyPositive() !=
              StepCst->getAPInt().isStrictlyPositive();
+    if (const auto *StartAdd = dyn_cast<SCEVAddExpr>(AddRec->getStart())) {
+      // {(-1 + %1),+,1}
+      auto *StartOffCst = dyn_cast<SCEVConstant>(StartAdd->getOperand(0));
+      if (StartOffCst &&
+          IsPositive != StartOffCst->getAPInt().isStrictlyPositive())
+        return true;
+      StartOffCst = dyn_cast<SCEVConstant>(StartAdd->getOperand(1));
+      if (StartOffCst &&
+          IsPositive != StartOffCst->getAPInt().isStrictlyPositive())
+        return true;
+    }
     return false;
   };
 
   for (const auto &BaseReg : F.BaseRegs) {
-    if (BaseReg == F.ScaledReg)
-      continue;
+    // BaseReg has an implicit scale of +1
+    if (!IsPositive)
+      return false;
+    auto *CstReg = dyn_cast<SCEVConstant>(BaseReg);
+    if (CstReg && !CstReg->getAPInt().isZero() &&
+        IsPositive != CstReg->getAPInt().isStrictlyPositive())
+      return false;
+    if (SCEVExprContains(BaseReg, HasNegativeBaseOffset))
+      return false;
     if (SCEVExprContains(BaseReg, HasSignMismatchedAddRec))
       return false;
   }
 
   if (F.ScaledReg) {
     IsPositive ^= F.Scale < 0;
+    auto *CstReg = dyn_cast<SCEVConstant>(F.ScaledReg);
+    if (CstReg && !CstReg->getAPInt().isZero() &&
+        IsPositive != CstReg->getAPInt().isStrictlyPositive())
+      if (SCEVExprContains(F.ScaledReg, HasNegativeBaseOffset))
+        return false;
     if (SCEVExprContains(F.ScaledReg, HasSignMismatchedAddRec))
       return false;
   }

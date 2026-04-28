@@ -2126,11 +2126,11 @@ let Predicates = [HasCheriot] in {
 // but the setup to obtain the callee capability from an import table can
 // require up to 8 additional bytes.
 let Predicates = [HasCheri, IsCapMode],
-    isCall = 1, Defs = [X1_Y], isCodeGenOnly = 1, Size = 26 in
+    isCall = 1, Defs = [X1_Y], isCodeGenOnly = 1, Size = 18 in
 def PseudoCompartmentCall : Pseudo<(outs), (ins cap_call_symbol:$func), []>;
 
 let Predicates = [HasCheri, IsCapMode],
-    isCall = 1, Defs = [X1_Y], isCodeGenOnly = 1, Size = 14 in
+    isCall = 1, Defs = [X1_Y], isCodeGenOnly = 1, Size = 10 in
 def PseudoLibraryCall : Pseudo<(outs), (ins cap_call_symbol:$func), []>;
 
 let Predicates = [HasCheri, IsCapMode, IsPureCapABI] in {

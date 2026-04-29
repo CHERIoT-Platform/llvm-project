@@ -570,7 +570,7 @@ public:
     getTargetStreamer().updateABIInfo(*this);
 
     // HACK: Update the default CFA register for CHERI purecap
-    ABI.updateCheriInitialFrameStateHack(*getContext().getAsmInfo(),
+    ABI.updateCheriInitialFrameStateHack(getContext().getAsmInfo(),
                                          *getContext().getRegisterInfo());
 
     if (!isABI_O32() && !useOddSPReg() != 0)

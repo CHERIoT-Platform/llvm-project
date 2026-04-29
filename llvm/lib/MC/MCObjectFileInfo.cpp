@@ -358,7 +358,7 @@ void MCObjectFileInfo::initELFMCObjectFileInfo(const Triple &T, bool Large) {
     if (PositionIndependent)
       FDECFIEncoding = dwarf::DW_EH_PE_pcrel | dwarf::DW_EH_PE_sdata4;
     else
-      FDECFIEncoding = Ctx->getAsmInfo()->getCodePointerSize() == 4
+      FDECFIEncoding = Ctx->getAsmInfo().getCodePointerSize() == 4
                            ? dwarf::DW_EH_PE_sdata4
                            : dwarf::DW_EH_PE_sdata8;
     break;
@@ -460,7 +460,7 @@ void MCObjectFileInfo::initELFMCObjectFileInfo(const Triple &T, bool Large) {
   // pads so the section must be relocated.
   // XXX: Would be nice if there was a ELF::SHF_RELRO/SHF_INITIALIZED_DATA
   //   so I don't also have to modify lld.
-  if (Ctx->getAsmInfo()->isCheriPurecapABI()) {
+  if (Ctx->getAsmInfo().isCheriPurecapABI()) {
     // TODO: Could we (ab)use SHF_OS_NONCONFORMING
     LSDASectionFlags |= ELF::SHF_WRITE;
   }
@@ -1300,7 +1300,7 @@ MCObjectFileInfo::getBBAddrMapSection(const MCSection &TextSec) const {
                                COFF::IMAGE_SCN_MEM_READ;
     const auto &COFFSec = static_cast<const MCSectionCOFF &>(TextSec);
     if (const MCSymbol *COMDATSym = COFFSec.getCOMDATSymbol()) {
-      if (!Ctx->getAsmInfo()->hasCOFFAssociativeComdats())
+      if (!Ctx->getAsmInfo().hasCOFFAssociativeComdats())
         report_fatal_error("BB address map requires associative COMDAT "
                            "support for COMDAT functions");
       COMDATSymName = COMDATSym->getName();

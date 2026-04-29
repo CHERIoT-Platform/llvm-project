@@ -115,7 +115,7 @@ void MipsELFStreamer::emitCheriCapability(const MCExpr *Value, unsigned CapSize,
 void MipsELFStreamer::emitCheriIntcap(const MCExpr *Expr, unsigned CapSize,
                                       SMLoc Loc) {
   assert(CapSize == 16 && "Only CHERI-128 is supported");
-  assert(!getContext().getAsmInfo()->isLittleEndian() &&
+  assert(!getContext().getAsmInfo().isLittleEndian() &&
          "Only big-endian MIPS is supported");
   emitCheriIntcapGeneric(Expr, CapSize, Loc);
 }

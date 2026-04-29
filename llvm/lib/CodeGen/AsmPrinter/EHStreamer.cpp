@@ -737,7 +737,7 @@ MCSymbol *EHStreamer::emitExceptionTable() {
           Asm->emitCallSiteValue(0, CallSiteEncoding);
         } else {
           const bool IsPurecap =
-              Asm->OutContext.getAsmInfo()->isCheriPurecapABI();
+              Asm->OutContext.getAsmInfo().isCheriPurecapABI();
           if (IsPurecap) {
             // In order to avoid having to pad to capability alignment and use
             // a full capability for the no landing pad case, we emit a 0xc

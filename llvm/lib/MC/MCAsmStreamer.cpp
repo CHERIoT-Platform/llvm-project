@@ -92,7 +92,7 @@ public:
                 std::unique_ptr<MCCodeEmitter> emitter,
                 std::unique_ptr<MCAsmBackend> asmbackend)
       : MCAsmBaseStreamer(Context), OSOwner(std::move(os)), OS(*OSOwner),
-        MAI(Context.getAsmInfo()), InstPrinter(std::move(printer)),
+        MAI(&Context.getAsmInfo()), InstPrinter(std::move(printer)),
         Assembler(std::make_unique<MCAssembler>(
             Context, std::move(asmbackend), std::move(emitter),
             (asmbackend) ? asmbackend->createObjectWriter(NullStream)
@@ -118,7 +118,7 @@ public:
       break;
     case MCTargetOptions::DefaultDwarfDirectory:
       UseDwarfDirectory =
-          Context.getAsmInfo()->enableDwarfFileDirectoryDefault();
+          Context.getAsmInfo().enableDwarfFileDirectoryDefault();
       break;
     }
   }
@@ -2783,9 +2783,9 @@ void MCAsmStreamer::emitDwarfLineEndEntry(MCSection *Section,
 
   if (!EndLabel)
     EndLabel = TextSection->getEndSymbol(Ctx);
-  const MCAsmInfo *AsmInfo = Ctx.getAsmInfo();
+  const MCAsmInfo &AsmInfo = Ctx.getAsmInfo();
   emitDwarfAdvanceLineAddr(INT64_MAX, LastLabel, EndLabel,
-                           AsmInfo->getCodePointerSize());
+                           AsmInfo.getCodePointerSize());
 }
 
 // Generate DWARF line sections for assembly mode without .loc/.file

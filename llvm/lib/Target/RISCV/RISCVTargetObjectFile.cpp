@@ -209,7 +209,7 @@ void RISCVMachOTargetObjectFile::getNameWithPrefix(
 TailPaddingAmount
 RISCVELFTargetObjectFile::getTailPaddingForPreciseBounds(
     uint64_t Size, const TargetMachine &TM) const {
-  if (!getContext().getAsmInfo()->isCheriPurecapABI())
+  if (!getContext().getAsmInfo().isCheriPurecapABI())
     return TailPaddingAmount::None;
 
   return RISCVCompressedCap::getRequiredTailPadding(Size,
@@ -219,7 +219,7 @@ RISCVELFTargetObjectFile::getTailPaddingForPreciseBounds(
 Align
 RISCVELFTargetObjectFile::getAlignmentForPreciseBounds(
     uint64_t Size, const TargetMachine &TM) const {
-  if (!getContext().getAsmInfo()->isCheriPurecapABI())
+  if (!getContext().getAsmInfo().isCheriPurecapABI())
     return Align();
 
   return RISCVCompressedCap::getRequiredAlignment(Size,

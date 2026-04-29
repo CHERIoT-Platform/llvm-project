@@ -463,8 +463,8 @@ bool checkForWhileBoundVar(const Stmt *Condition, CheckerContext &C,
   if (M.size() != 1)
     return false;
 
-  const SVal &CondVal = C.getSVal(Condition);
-  if (C.getSVal(Condition).isUnknownOrUndef())
+  const SVal &CondVal = C.getSVal(cast<Expr>(Condition));
+  if (CondVal.isUnknownOrUndef())
     return false;
 
   ProgramStateRef ThenSt, ElseSt;

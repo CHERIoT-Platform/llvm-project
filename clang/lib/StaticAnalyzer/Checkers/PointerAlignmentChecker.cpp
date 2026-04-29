@@ -1058,7 +1058,7 @@ PathDiagnosticPieceRef PointerAlignmentChecker::AlignmentBugVisitor::VisitNode(
   SmallString<256> Buf;
   llvm::raw_svector_ostream OS(Buf);
 
-  if (Sym != N->getSVal(S).getAsSymbol())
+  if (Sym != N->getSVal(E).getAsSymbol())
     return nullptr;
 
   ProgramStateRef State = N->getState();

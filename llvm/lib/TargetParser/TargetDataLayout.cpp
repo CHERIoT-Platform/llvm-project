@@ -304,14 +304,6 @@ static std::string computeAMDDataLayout(const Triple &TT) {
          "v1024:1024-v2048:2048-n32:64-S32-A5-G1-ni:7:8:9";
 }
 
-static bool isRISCVCheriPureCapABI(StringRef ABIName) {
-  return StringSwitch<bool>(ABIName)
-    .Cases({"il32pc64", "il32pc64f", "il32pc64d", "il32pc64e"}, true)
-    .Cases({"l64pc128", "l64pc128f", "l64pc128d"}, true)
-    .Cases({"cheriot", "cheriot-baremetal"}, true)
-    .Default(false);
-}
-
 static std::string computeRISCVDataLayout(const Triple &TT, StringRef ABIName, StringRef FS) {
   if (TT.isOSBinFormatMachO()) {
     assert(TT.isLittleEndian() && "Invalid endianness");
@@ -329,39 +321,43 @@ static std::string computeRISCVDataLayout(const Triple &TT, StringRef ABIName, S
 
   Ret += "-m:e";
 
-  // Pointer and integer sizes.
-  if (TT.isRISCV64()) {
-    Ret += "-p:64:64-i64:64-i128:128";
-    Ret += "-n32:64";
-  } else {
-    assert(TT.isRISCV32() && "only RV32 and RV64 are currently supported");
-    Ret += "-p:32:32-i64:64";
-    Ret += "-n32";
-  }
-
-  // Stack alignment based on ABI.
-  StringRef ABI = ABIName;
-  if (ABI == "ilp32e")
-    Ret += "-S32";
-  else if (ABI == "lp64e")
-    Ret += "-S64";
-  else
-    Ret += "-S128";
+  // TODO: Maybe we should move RISCVABI to TargetParser, so we can reuse that
+  // logic here instead of duplicating the string handling?
+  bool IsPurecapABI =
+      ABIName.starts_with("il32pc64") || ABIName.starts_with("l64pc128") ||
+      ABIName.starts_with("cheriot");
 
   unsigned XLen = TT.isArch64Bit() ? 64 : 32;
   std::vector<std::string> Features;
   if (!FS.empty())
     llvm::append_range(Features, llvm::split(FS, ','));
   auto ISAInfo = cantFail(llvm::RISCVISAInfo::parseFeatures(XLen, Features));
-  if (ISAInfo->hasExtension("xcheri")) {
-    if (TT.isArch64Bit())
-      Ret += "-pf200:128:128:128:64";
-    else
-      Ret += "-pf200:64:64:64:32";
+  bool HasCheri = IsPurecapABI || ISAInfo->hasExtension("xcheri");
 
-    if (isRISCVCheriPureCapABI(ABIName))
-      Ret += "-A200-P200-G200";
+  // Pointer and integer sizes.
+  if (TT.isRISCV64()) {
+    Ret += "-p:64:64";
+    if (HasCheri)
+      Ret += "-pfe200:128:128:128:64";
+    Ret += "-i64:64-i128:128-n32:64";
+  } else {
+    assert(TT.isRISCV32() && "only RV32 and RV64 are currently supported");
+    Ret += "-p:32:32";
+    if (HasCheri)
+      Ret += "-pfe200:64:64:64:32";
+    Ret += "-i64:64-n32";
   }
+
+  // Stack alignment based on ABI.
+  if (ABIName == "ilp32e")
+    Ret += "-S32";
+  else if (ABIName == "lp64e")
+    Ret += "-S64";
+  else
+    Ret += "-S128";
+
+  if (IsPurecapABI)
+    Ret += "-A200-P200-G200";
 
   return Ret;
 }

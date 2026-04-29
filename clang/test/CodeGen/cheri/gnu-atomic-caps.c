@@ -91,7 +91,7 @@ long *__capability test_xchg_long_ptr(long *__capability *f, long *__capability 
 // HYBRID-NEXT:    br label [[CMPXCHG_CONTINUE]]
 // HYBRID:       cmpxchg.continue:
 // HYBRID-NEXT:    [[STOREDV:%.*]] = zext i1 [[TMP3]] to i8
-// HYBRID-NEXT:    [[LOADEDV:%.*]] = trunc i8 [[STOREDV]] to i1
+// HYBRID-NEXT:    [[LOADEDV:%.*]] = icmp ne i8 [[STOREDV]], 0
 // HYBRID-NEXT:    ret i1 [[LOADEDV]]
 //
 // PURECAP-LABEL: define {{[^@]+}}@test_cmpxchg_weak
@@ -107,7 +107,7 @@ long *__capability test_xchg_long_ptr(long *__capability *f, long *__capability 
 // PURECAP-NEXT:    br label [[CMPXCHG_CONTINUE]]
 // PURECAP:       cmpxchg.continue:
 // PURECAP-NEXT:    [[STOREDV:%.*]] = zext i1 [[TMP3]] to i8
-// PURECAP-NEXT:    [[LOADEDV:%.*]] = trunc i8 [[STOREDV]] to i1
+// PURECAP-NEXT:    [[LOADEDV:%.*]] = icmp ne i8 [[STOREDV]], 0
 // PURECAP-NEXT:    ret i1 [[LOADEDV]]
 //
 _Bool test_cmpxchg_weak(__uintcap_t *f, __uintcap_t *exp, __uintcap_t new) {
@@ -127,7 +127,7 @@ _Bool test_cmpxchg_weak(__uintcap_t *f, __uintcap_t *exp, __uintcap_t new) {
 // HYBRID-NEXT:    br label [[CMPXCHG_CONTINUE]]
 // HYBRID:       cmpxchg.continue:
 // HYBRID-NEXT:    [[STOREDV:%.*]] = zext i1 [[TMP3]] to i8
-// HYBRID-NEXT:    [[LOADEDV:%.*]] = trunc i8 [[STOREDV]] to i1
+// HYBRID-NEXT:    [[LOADEDV:%.*]] = icmp ne i8 [[STOREDV]], 0
 // HYBRID-NEXT:    ret i1 [[LOADEDV]]
 //
 // PURECAP-LABEL: define {{[^@]+}}@test_cmpxchg_strong
@@ -143,7 +143,7 @@ _Bool test_cmpxchg_weak(__uintcap_t *f, __uintcap_t *exp, __uintcap_t new) {
 // PURECAP-NEXT:    br label [[CMPXCHG_CONTINUE]]
 // PURECAP:       cmpxchg.continue:
 // PURECAP-NEXT:    [[STOREDV:%.*]] = zext i1 [[TMP3]] to i8
-// PURECAP-NEXT:    [[LOADEDV:%.*]] = trunc i8 [[STOREDV]] to i1
+// PURECAP-NEXT:    [[LOADEDV:%.*]] = icmp ne i8 [[STOREDV]], 0
 // PURECAP-NEXT:    ret i1 [[LOADEDV]]
 //
 _Bool test_cmpxchg_strong(__uintcap_t *f, __uintcap_t *exp, __uintcap_t new) {

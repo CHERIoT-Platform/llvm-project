@@ -32,11 +32,11 @@ void f(char *p) {
 // CHECK-NEXT:    [[B:%.*]] = alloca i8, align 1, addrspace(200)
 // CHECK-NEXT:    store i8 0, ptr addrspace(200) [[B]], align 1
 // CHECK-NEXT:    [[TMP0:%.*]] = load i8, ptr addrspace(200) [[B]], align 1
-// CHECK-NEXT:    [[TOBOOL:%.*]] = trunc i8 [[TMP0]] to i1
+// CHECK-NEXT:    [[TOBOOL:%.*]] = icmp ne i8 [[TMP0]], 0
 // CHECK-NEXT:    [[TMP1:%.*]] = call addrspace(0) i8 asm sideeffect "", "=C,0,~{$1}"(i1 [[TOBOOL]]) #[[ATTR1]]
 // CHECK-NEXT:    store i8 [[TMP1]], ptr addrspace(200) [[B]], align 1
 // CHECK-NEXT:    [[TMP2:%.*]] = load i8, ptr addrspace(200) [[B]], align 1
-// CHECK-NEXT:    [[TOBOOL1:%.*]] = trunc i8 [[TMP2]] to i1
+// CHECK-NEXT:    [[TOBOOL1:%.*]] = icmp ne i8 [[TMP2]], 0
 // CHECK-NEXT:    ret i1 [[TOBOOL1]]
 //
 _Bool f2(void) {

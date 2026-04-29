@@ -998,7 +998,7 @@ inline bool LocalAddressSpace::findUnwindSections(
     return true;
   }
 #endif
-  dl_iterate_cb_data cb_data = {this, &info, targetAddr};
+  dl_iterate_cb_data cb_data = {this, &info, static_cast<pint_t>(targetAddr)};
   CHERI_DBG("Calling dl_iterate_phdr(0x%jx)\n",
             (uintmax_t)targetAddr.address());
   int found = dl_iterate_phdr(findUnwindSectionsByPhdr, &cb_data);

@@ -13,21 +13,21 @@ class A { };
 // CHECK-NEXT:    store ptr addrspace(200) [[A1]], ptr addrspace(200) [[A2]], align 16
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[A2]], align 16
 // CHECK-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[TMP0]], getelementptr (i8, ptr addrspace(200) null, i64 19088743)
-// CHECK-NEXT:    [[FROMBOOL:%.*]] = zext i1 [[CMP]] to i8
-// CHECK-NEXT:    store i8 [[FROMBOOL]], ptr addrspace(200) [[B]], align 1
+// CHECK-NEXT:    [[STOREDV:%.*]] = zext i1 [[CMP]] to i8
+// CHECK-NEXT:    store i8 [[STOREDV]], ptr addrspace(200) [[B]], align 1
 // CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[A2]], align 16
 // CHECK-NEXT:    [[CMP1:%.*]] = icmp eq ptr addrspace(200) [[TMP1]], getelementptr (i8, ptr addrspace(200) null, i64 19088743)
-// CHECK-NEXT:    [[FROMBOOL2:%.*]] = zext i1 [[CMP1]] to i8
-// CHECK-NEXT:    store i8 [[FROMBOOL2]], ptr addrspace(200) [[B2]], align 1
+// CHECK-NEXT:    [[STOREDV2:%.*]] = zext i1 [[CMP1]] to i8
+// CHECK-NEXT:    store i8 [[STOREDV2]], ptr addrspace(200) [[B2]], align 1
 // CHECK-NEXT:    [[TMP2:%.*]] = load i8, ptr addrspace(200) [[B]], align 1
-// CHECK-NEXT:    [[TOBOOL:%.*]] = trunc i8 [[TMP2]] to i1
-// CHECK-NEXT:    br i1 [[TOBOOL]], label [[LAND_RHS:%.*]], label [[LAND_END:%.*]]
+// CHECK-NEXT:    [[LOADEDV:%.*]] = icmp ne i8 [[TMP2]], 0
+// CHECK-NEXT:    br i1 [[LOADEDV]], label [[LAND_RHS:%.*]], label [[LAND_END:%.*]]
 // CHECK:       land.rhs:
 // CHECK-NEXT:    [[TMP3:%.*]] = load i8, ptr addrspace(200) [[B2]], align 1
-// CHECK-NEXT:    [[TOBOOL3:%.*]] = trunc i8 [[TMP3]] to i1
+// CHECK-NEXT:    [[LOADEDV3:%.*]] = icmp ne i8 [[TMP3]], 0
 // CHECK-NEXT:    br label [[LAND_END]]
 // CHECK:       land.end:
-// CHECK-NEXT:    [[TMP4:%.*]] = phi i1 [ false, [[ENTRY:%.*]] ], [ [[TOBOOL3]], [[LAND_RHS]] ]
+// CHECK-NEXT:    [[TMP4:%.*]] = phi i1 [ false, [[ENTRY:%.*]] ], [ [[LOADEDV3]], [[LAND_RHS]] ]
 // CHECK-NEXT:    ret i1 [[TMP4]]
 //
 bool f() {

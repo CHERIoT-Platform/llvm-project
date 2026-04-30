@@ -153,8 +153,15 @@ __attribute__((cheriot_shared_object("SO", "gcR"))) extern int SO_gcR;
 // CHECK: @SO_gRc = external addrspace(200) global i32, align 4 #15
 __attribute__((cheriot_shared_object("SO", "gcR"))) extern int SO_gRc;
 
+
+struct MMIOWithField { int field; };
+
+// CHECK: @mmio = external addrspace(200) global %struct.MMIOWithField, align 4 #16
+__attribute__((cheriot_mmio("mmio"))) extern volatile struct MMIOWithField mmio;
+
 void doSomethingWithUart(volatile struct Uart *uart);
 void doSomethingWithSO(int *SO);
+void doSomethingWithField(int);
 
 void func() {
   doSomethingWithUart(&uart);
@@ -212,6 +219,19 @@ void func() {
   doSomethingWithSO(&SO_cgR);
   doSomethingWithSO(&SO_gcR);
   doSomethingWithSO(&SO_gRc);
+
+// CHECK:  %0 = load volatile i32, ptr addrspace(200) @mmio, align 4, !tbaa !11
+// CHECK-NEXT:  tail call addrspace(200) void @doSomethingWithField(i32 noundef %0) #19
+  doSomethingWithField(mmio.field);
+// CHECK-NEXT:  store volatile i32 10, ptr addrspace(200) @mmio, align 4, !tbaa !11
+  mmio.field = 10;
+
+// CHECK:  %1 = load volatile i32, ptr addrspace(200) @mmio, align 4, !tbaa !11
+// CHECK-NEXT:  tail call addrspace(200) void @doSomethingWithField(i32 noundef %1) #19
+  doSomethingWithField((&mmio)->field);
+// CHECK-NEXT:  store volatile i32 10, ptr addrspace(200) @mmio, align 4, !tbaa !11
+  (&mmio)->field = 10;
+
 }
 
 
@@ -231,3 +251,7 @@ void func() {
 // CHECK: attributes #13 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,-Wc--" }
 // CHECK: attributes #14 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,RWc--" }
 // CHECK: attributes #15 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,R-c-g" }
+// CHECK: attributes #16 = { "cheriot_global_cap_import"="mem,mmio,RWcmg" }
+// CHECK: attributes #17 = { minsize nounwind optsize "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+e,+m,+xcheri,+xcheriot,+xcheripurecap,+zca,+zmmul" }
+// CHECK: attributes #18 = { minsize optsize "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+e,+m,+xcheri,+xcheriot,+xcheripurecap,+zca,+zmmul" }
+// CHECK: attributes #19 = { minsize nounwind optsize }

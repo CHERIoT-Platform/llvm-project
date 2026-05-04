@@ -282,3 +282,16 @@ void RISCVTargetELFStreamer::emitNoteGnuPropertySection(
 
   OutStreamer.popSection();
 }
+
+void RISCVTargetELFStreamer::emitNoteCheriotCompartment(StringRef Name) {
+  MCStreamer &OutStreamer = getStreamer();
+  MCContext &Ctx = OutStreamer.getContext();
+  assert(Ctx.getObjectFileType() == MCContext::Environment::IsELF);
+  MCSection *const NoteSection = Ctx.getELFSection(
+      ".note.cheriot.compartment-name", ELF::SHT_NOTE, ELF::SHF_GROUP, 0,
+      ".note.cheriot.compartment-name", true);
+  OutStreamer.pushSection();
+  OutStreamer.switchSection(NoteSection);
+  OutStreamer.emitBytes(Name);
+  OutStreamer.popSection();
+}

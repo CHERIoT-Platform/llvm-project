@@ -109,6 +109,7 @@ public:
   void emitDirectiveVariantCC(MCSymbol &Symbol) override;
 
   void emitNoteGnuPropertySection(const uint32_t Feature1And);
+  void emitNoteCheriotCompartment(StringRef Name);
   void finish() override;
 };
 

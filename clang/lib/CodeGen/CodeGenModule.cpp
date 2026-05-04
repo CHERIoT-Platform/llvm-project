@@ -1355,6 +1355,12 @@ void CodeGenModule::Release() {
           llvm::Module::AppendUnique, "riscv-isa",
           llvm::MDNode::get(
               Ctx, llvm::MDString::get(Ctx, (*ParseResult)->toString())));
+
+    if (ABIStr == "cheriot" && !getLangOpts().CheriCompartmentName.empty()) {
+      getModule().addModuleFlag(
+          llvm::Module::Error, "cheriot-compartment",
+          llvm::MDString::get(Ctx, getLangOpts().CheriCompartmentName));
+    }
   }
 
   if (CodeGenOpts.SanitizeCfiCrossDso) {

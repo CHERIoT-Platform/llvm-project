@@ -60,8 +60,8 @@ __attribute__((cheri_compartment("example"))) void CheckInts() {
   // CHECK:   %call1 = tail call cheriot_compartmentcalleecc addrspace(200) [2 x i32] @_Z7ChgInts11TwoIntegers([2 x i32] %call)
   // CHECK:   %call1.fca.0.extract = extractvalue [2 x i32] %call1, 0
   // CHECK:   %call1.fca.1.extract = extractvalue [2 x i32] %call1, 1
-  // CHECK:   store i32 %call1.fca.0.extract, ptr addrspace(200) @_Z9CheckIntsv.x, align 4, !tbaa !6
-  // CHECK:   store i32 %call1.fca.1.extract, ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) @_Z9CheckIntsv.x, i32 4), align 4, !tbaa !6
+  // CHECK:   store i32 %call1.fca.0.extract, ptr addrspace(200) @_Z9CheckIntsv.x, align 4
+  // CHECK:   store i32 %call1.fca.1.extract, ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) @_Z9CheckIntsv.x, i32 4), align 4
   x = ChgInts(InitInts());
   
   // CHECK:  ret void
@@ -99,7 +99,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers InitP
 __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers ChgPtrs(struct TwoPointers x) {
 
   // CHECK: entry:
-  // CHECK:   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8
   force_use = x.one;
 
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -107,7 +107,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers ChgPt
   // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   x.one = dummies + (GetValue() % LENGTH);
 
-  // CHECK:   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8
   force_use = x.two;
 
   // CHECK:   %call2 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -134,8 +134,8 @@ __attribute__((cheri_compartment("example"))) void CheckPtrs() {
   // CHECK:   %call1 = tail call cheriot_compartmentcalleecc addrspace(200) %struct.TwoPointers @_Z7ChgPtrs11TwoPointers(ptr addrspace(200) %0, ptr addrspace(200) %1)
   // CHECK:   %2 = extractvalue %struct.TwoPointers %call1, 0
   // CHECK:   %3 = extractvalue %struct.TwoPointers %call1, 1
-  // CHECK:   store ptr addrspace(200) %2, ptr addrspace(200) @_Z9CheckPtrsv.x, align 8, !tbaa !10
-  // CHECK:   store ptr addrspace(200) %3, ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) @_Z9CheckPtrsv.x, i32 8), align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %2, ptr addrspace(200) @_Z9CheckPtrsv.x, align 8
+  // CHECK:   store ptr addrspace(200) %3, ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) @_Z9CheckPtrsv.x, i32 8), align 8
   x = ChgPtrs(InitPtrs());
 
   // CHECK:  ret void
@@ -170,7 +170,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct PointerAndInt Ini
 // CHECK: define dso_local cheriot_compartmentcalleecc %struct.PointerAndInt @_Z9ChgPtrInt13PointerAndInt(ptr addrspace(200) %x.coerce0, i32 %x.coerce1) local_unnamed_addr addrspace(200) #1 {
 __attribute__((cheri_compartment("example"), noinline)) struct PointerAndInt ChgPtrInt(struct PointerAndInt x) {
   // CHECK: entry:
-  // CHECK:   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8
   force_use = x.one;
 
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -201,8 +201,8 @@ __attribute__((cheri_compartment("example"))) void CheckPtrInt() {
   // CHECK:   %call1 = tail call cheriot_compartmentcalleecc addrspace(200) %struct.PointerAndInt @_Z9ChgPtrInt13PointerAndInt(ptr addrspace(200) %0, i32 %1)
   // CHECK:   %2 = extractvalue %struct.PointerAndInt %call1, 0
   // CHECK:   %3 = extractvalue %struct.PointerAndInt %call1, 1
-  // CHECK:   store ptr addrspace(200) %2, ptr addrspace(200) @_Z11CheckPtrIntv.x, align 8, !tbaa !10
-  // CHECK:   store i32 %3, ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) @_Z11CheckPtrIntv.x, i32 8), align 8, !tbaa !6
+  // CHECK:   store ptr addrspace(200) %2, ptr addrspace(200) @_Z11CheckPtrIntv.x, align 8
+  // CHECK:   store i32 %3, ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) @_Z11CheckPtrIntv.x, i32 8), align 8
   x = ChgPtrInt(InitPtrInt());
 
   // CHECK:   ret void
@@ -242,7 +242,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct IntAndPointer Chg
   // CHECK:   %sub = sub i32 %x.coerce0, %call
   x.one -= GetValue();
 
-  // CHECK:   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8
   force_use = x.two;
 
   // CHECK:   %call1 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -269,8 +269,8 @@ __attribute__((cheri_compartment("example"))) void CheckIntPtr() {
   // CHECK:   %call1 = tail call cheriot_compartmentcalleecc addrspace(200) %struct.IntAndPointer @_Z9ChgIntPtr13IntAndPointer(i32 %0, ptr addrspace(200) %1)
   // CHECK:   %2 = extractvalue %struct.IntAndPointer %call1, 0
   // CHECK:   %3 = extractvalue %struct.IntAndPointer %call1, 1
-  // CHECK:   store i32 %2, ptr addrspace(200) @_Z11CheckIntPtrv.x, align 8, !tbaa !6
-  // CHECK:   store ptr addrspace(200) %3, ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) @_Z11CheckIntPtrv.x, i32 8), align 8, !tbaa !10
+  // CHECK:   store i32 %2, ptr addrspace(200) @_Z11CheckIntPtrv.x, align 8
+  // CHECK:   store ptr addrspace(200) %3, ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) @_Z11CheckIntPtrv.x, i32 8), align 8
   x = ChgIntPtr(InitIntPtr());
 
   // CHECK:   ret void
@@ -339,8 +339,8 @@ __attribute__((cheri_compartment("example"))) void CheckParent() {
   // CHECK:   %call1 = tail call cheriot_compartmentcalleecc addrspace(200) [2 x i32] @_Z9ChgParent6Parent([2 x i32] %call)
   // CHECK:   %call1.fca.0.extract = extractvalue [2 x i32] %call1, 0
   // CHECK:   %call1.fca.1.extract = extractvalue [2 x i32] %call1, 1
-  // CHECK:   store i32 %call1.fca.0.extract, ptr addrspace(200) @_Z11CheckParentv.x, align 4, !tbaa !6
-  // CHECK:   store i32 %call1.fca.1.extract, ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) @_Z11CheckParentv.x, i32 4), align 4, !tbaa !6
+  // CHECK:   store i32 %call1.fca.0.extract, ptr addrspace(200) @_Z11CheckParentv.x, align 4
+  // CHECK:   store i32 %call1.fca.1.extract, ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) @_Z11CheckParentv.x, i32 4), align 4
   x = ChgParent(InitParent());
 
   // CHECK:   ret void
@@ -381,7 +381,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct ParentPtr ChgPare
   // CHECK: entry:
   // CHECK:   %x.coerce1.fca.0.extract = extractvalue %struct.InnerPtr %x.coerce1, 0
 
-  // CHECK:   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8
   force_use = x.x;
 
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -389,7 +389,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct ParentPtr ChgPare
   // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   x.x = dummies + (GetValue() % LENGTH);
 
-  // CHECK:   store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8
   force_use = x.y.z;
 
   // CHECK:   %call3 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -417,8 +417,8 @@ __attribute__((cheri_compartment("example"))) void CheckParentPtr() {
   // CHECK:   %2 = extractvalue %struct.ParentPtr %call1, 0
   // CHECK:   %3 = extractvalue %struct.ParentPtr %call1, 1
   // CHECK:   %.fca.0.extract3 = extractvalue %struct.InnerPtr %3, 0
-  // CHECK:   store ptr addrspace(200) %2, ptr addrspace(200) @_Z14CheckParentPtrv.x, align 8, !tbaa !10
-  // CHECK:   store ptr addrspace(200) %.fca.0.extract3, ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) @_Z14CheckParentPtrv.x, i32 8), align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %2, ptr addrspace(200) @_Z14CheckParentPtrv.x, align 8
+  // CHECK:   store ptr addrspace(200) %.fca.0.extract3, ptr addrspace(200) getelementptr inbounds nuw (i8, ptr addrspace(200) @_Z14CheckParentPtrv.x, i32 8), align 8
   x = ChgParentPtr(InitParentPtr());
 
   // CHECK:   ret void
@@ -446,7 +446,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoIntegers ChgIn
 // CHECK: define dso_local cheriot_compartmentcalleecc %struct.TwoPointers @_Z8ChgPtrs2i11TwoPointers(i32 noundef %new_int, ptr addrspace(200) %x.coerce0, ptr addrspace(200) %x.coerce1) local_unnamed_addr addrspace(200) #1 {
 __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers ChgPtrs2(int new_int, struct TwoPointers x) {
   // CHECK: entry:
-  // CHECK:   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8
   force_use = x.one;
 
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -455,7 +455,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers ChgPt
   // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   x.one = dummies + ((GetValue() + new_int) % LENGTH);
 
-  // CHECK:   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8
   force_use = x.two;
 
   // CHECK:   %call2 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -476,7 +476,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct ParentPtr ChgPare
   // CHECK: entry:
   // CHECK:   %x.coerce1.fca.0.extract = extractvalue %struct.InnerPtr %x.coerce1, 0
 
-  // CHECK:   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8
   force_use = x.x;
 
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -485,7 +485,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct ParentPtr ChgPare
   // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   x.x = dummies + ((GetValue() + new_int) % LENGTH);
 
-  // CHECK:   store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8
   force_use = x.y.z;
 
   // CHECK:   %call3 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -535,13 +535,13 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers ChgPt
 
   __builtin_va_start(args, x);
   
-  // CHECK: store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK: store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8
   force_use = x.one;
 
   // -- just to force the line above -- 
   volatile int _ = GetValue();
 
-  // CHECK:  store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:  store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8
   force_use = x.two;
 
   for (int i = 0; i < n; i++)  {
@@ -575,13 +575,13 @@ __attribute__((cheri_compartment("example"), noinline)) struct ParentPtr ChgPare
 
   __builtin_va_start(args, x);
   
-  // CHECK: store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK: store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8
   force_use = x.x;
 
   // -- just to force the line above -- 
   volatile int _ = GetValue();
 
-  // CHECK: store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK: store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8
   force_use = x.y.z;
 
   for (int i = 0; i < n; i++)  {
@@ -637,7 +637,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoIntegers ChgIn
 __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers ChgPtrs4(int n0, int n1, int n2, int n3, int n4, struct TwoPointers x) {
 
   // CHECK: entry:
-  // CHECK:   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8
   force_use = x.one;
 
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -650,7 +650,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers ChgPt
   // CHECK:   %add.ptr = getelementptr inbounds nuw [4 x i8], ptr addrspace(200) @dummies, i32 %rem
   x.one = dummies + ((GetValue() + n0 + n1 + n2 + n3 + n4) % LENGTH);
 
-  // CHECK:   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %x.coerce1, ptr addrspace(200) @force_use, align 8
   force_use = x.two;
 
   // CHECK:   %call6 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -676,7 +676,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct ParentPtr ChgPare
   // CHECK:   %x.coerce1.fca.0.extract = extractvalue %struct.InnerPtr %x.coerce1, 0
 
 
-  // CHECK:   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %x.coerce0, ptr addrspace(200) @force_use, align 8
   force_use = x.x;
 
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -691,7 +691,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct ParentPtr ChgPare
 
   x.x= dummies + ((GetValue() + n0 + n1 + n2 + n3 + n4) % LENGTH);
 
-  // CHECK:   store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %x.coerce1.fca.0.extract, ptr addrspace(200) @force_use, align 8
   force_use = x.y.z;
 
   // CHECK:   %call7 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -752,7 +752,7 @@ __attribute__((cheri_compartment("example"))) void CheckOneInt() {
   // CHECK: entry:
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z10InitOneIntv()
   // CHECK:   %call2 = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z9ChgOneInt6OneInt(i32 %call)
-  // CHECK:   store i32 %call2, ptr addrspace(200) @_Z11CheckOneIntv.x, align 4, !tbaa !6
+  // CHECK:   store i32 %call2, ptr addrspace(200) @_Z11CheckOneIntv.x, align 4
   x = ChgOneInt(InitOneInt());
   
   // CHECK:   ret void
@@ -779,7 +779,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct OnePtr InitOnePtr
 // CHECK: define dso_local cheriot_compartmentcalleecc %struct.OnePtr @_Z9ChgOnePtr6OnePtr(ptr addrspace(200) %x.coerce) local_unnamed_addr addrspace(200) #1 {
 __attribute__((cheri_compartment("example"), noinline)) struct OnePtr ChgOnePtr(struct OnePtr x) {
   // CHECK: entry:
-  // CHECK:   store ptr addrspace(200) %x.coerce, ptr addrspace(200) @force_use, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %x.coerce, ptr addrspace(200) @force_use, align 8
   force_use = x.x;
 
   // CHECK:   %call = tail call cheriot_compartmentcalleecc addrspace(200) i32 @_Z8GetValuev()
@@ -802,7 +802,7 @@ __attribute__((cheri_compartment("example"))) void CheckOnePtr () {
   // CHECK:   %0 = extractvalue %struct.OnePtr %call, 0
   // CHECK:   %call1 = tail call cheriot_compartmentcalleecc addrspace(200) %struct.OnePtr @_Z9ChgOnePtr6OnePtr(ptr addrspace(200) %0)
   // CHECK:   %1 = extractvalue %struct.OnePtr %call1, 0
-  // CHECK:   store ptr addrspace(200) %1, ptr addrspace(200) @_Z11CheckOnePtrv.x, align 8, !tbaa !10
+  // CHECK:   store ptr addrspace(200) %1, ptr addrspace(200) @_Z11CheckOnePtrv.x, align 8
   x = ChgOnePtr(InitOnePtr());
   
   // CHECK:   ret void

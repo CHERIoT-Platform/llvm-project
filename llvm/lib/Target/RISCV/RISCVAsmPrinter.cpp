@@ -120,6 +120,7 @@ public:
   bool emitDirectiveOptionArch();
 
   void emitNoteGnuProperty(const Module &M);
+  void emitNoteCheriotCompartment(const Module &M);
 
 private:
   /**
@@ -891,6 +892,8 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
   if (TM.getTargetTriple().isOSBinFormatELF()) {
     RTS.finishAttributeSection();
     emitNoteGnuProperty(M);
+    if (TM.getTargetTriple().getOS() == Triple::CheriotRTOS)
+      emitNoteCheriotCompartment(M);
   }
   EmitHwasanMemaccessSymbols(M);
 }
@@ -1269,6 +1272,21 @@ void RISCVAsmPrinter::emitNoteGnuProperty(const Module &M) {
         *OutStreamer->getTargetStreamer());
     RTS.emitNoteGnuPropertySection(ELF::GNU_PROPERTY_RISCV_FEATURE_1_CFI_SS);
   }
+}
+
+void RISCVAsmPrinter::emitNoteCheriotCompartment(const Module &M) {
+  assert(TM.getTargetTriple().isOSBinFormatELF() && "invalid binary format");
+  const Metadata *const Flag = M.getModuleFlag("cheriot-compartment");
+  if (!Flag)
+    return;
+
+  const MDString *const Name = dyn_cast<MDString>(Flag);
+  if (!Name)
+    return;
+
+  RISCVTargetELFStreamer &RTS =
+      static_cast<RISCVTargetELFStreamer &>(*OutStreamer->getTargetStreamer());
+  RTS.emitNoteCheriotCompartment(Name->getString());
 }
 
 static MCOperand lowerSymbolOperand(const MachineOperand &MO, MCSymbol *Sym,

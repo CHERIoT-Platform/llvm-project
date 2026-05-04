@@ -47,7 +47,7 @@
 // CHECK-NEXT:                   DW_AT_type	([[INTPTR_TYPE_INFO_ADDR:0x000.+]] "int *")
 // CHECK-EMPTY:
 // CHECK-NEXT: DW_TAG_lexical_block
-// CHECK-NEXT:                  DW_AT_low_pc	(0x0000000000000020)
+// CHECK-NEXT:                  DW_AT_low_pc	(0x000000000000001c)
 // CHECK-NEXT:                  DW_AT_high_pc	(0x000000000000002c)
 // CHECK-EMPTY:
 // CHECK-NEXT: DW_TAG_variable
@@ -61,7 +61,7 @@
 // CHECK-NEXT:  NULL
 // CHECK-EMPTY:
 // CHECK-NEXT:  DW_TAG_lexical_block
-// CHECK-NEXT:                  DW_AT_low_pc	(0x0000000000000030)
+// CHECK-NEXT:                  DW_AT_low_pc	(0x000000000000002c)
 // CHECK-NEXT:                  DW_AT_high_pc	(0x000000000000003c)
 // CHECK-EMPTY:
 // CHECK-NEXT:  DW_TAG_variable

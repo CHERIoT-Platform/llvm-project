@@ -220,16 +220,16 @@ void func() {
   doSomethingWithSO(&SO_gcR);
   doSomethingWithSO(&SO_gRc);
 
-// CHECK:  %0 = load volatile i32, ptr addrspace(200) @mmio, align 4, !tbaa !11
+// CHECK:  %0 = load volatile i32, ptr addrspace(200) @mmio, align 4
 // CHECK-NEXT:  tail call addrspace(200) void @doSomethingWithField(i32 noundef %0) #19
   doSomethingWithField(mmio.field);
-// CHECK-NEXT:  store volatile i32 10, ptr addrspace(200) @mmio, align 4, !tbaa !11
+// CHECK-NEXT:  store volatile i32 10, ptr addrspace(200) @mmio, align 4
   mmio.field = 10;
 
-// CHECK:  %1 = load volatile i32, ptr addrspace(200) @mmio, align 4, !tbaa !11
+// CHECK:  %1 = load volatile i32, ptr addrspace(200) @mmio, align 4
 // CHECK-NEXT:  tail call addrspace(200) void @doSomethingWithField(i32 noundef %1) #19
   doSomethingWithField((&mmio)->field);
-// CHECK-NEXT:  store volatile i32 10, ptr addrspace(200) @mmio, align 4, !tbaa !11
+// CHECK-NEXT:  store volatile i32 10, ptr addrspace(200) @mmio, align 4
   (&mmio)->field = 10;
 
 }

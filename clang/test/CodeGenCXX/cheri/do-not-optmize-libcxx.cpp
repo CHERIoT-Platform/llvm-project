@@ -66,7 +66,7 @@ void DoNotOptimize2(Tp const& value) {
 
 template <class Tp>
 inline void DoNotOptimize2(Tp& value) {
-  asm volatile("" : "+C,m"(value) : : "memory");  // expected-error{{couldn't allocate output register for constraint 'C'}}
+  asm volatile("" : "+C,m"(value) : : "memory");  // expected-error{{could not allocate output register for constraint 'C'}}
 }
 // PURECAP_IR-LABEL: @test2(
 // PURECAP_IR-NEXT:  entry:

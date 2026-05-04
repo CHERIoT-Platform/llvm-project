@@ -2766,8 +2766,7 @@ static bool isImpliedToBeAPowerOfTwoFromCond(const Value *V, bool OrZero,
                                              bool CondIsTrue) {
   CmpPredicate Pred;
   const APInt *RHSC;
-  if (!match(Cond, m_ICmp(Pred, m_Intrinsic<Intrinsic::ctpop>(m_Specific(V)),
-                          m_APInt(RHSC))))
+  if (!match(Cond, m_ICmp(Pred, m_Ctpop(m_Specific(V)), m_APInt(RHSC))))
     return false;
   if (!CondIsTrue)
     Pred = ICmpInst::getInversePredicate(Pred);
@@ -10778,7 +10777,7 @@ void llvm::findValuesAffectedByCondition(
         }
       }
 
-      if (HasRHSC && match(A, m_Intrinsic<Intrinsic::ctpop>(m_Value(X))))
+      if (HasRHSC && match(A, m_Ctpop(m_Value(X))))
         AddAffected(X);
     } else if (match(V, m_FCmp(Pred, m_Value(A), m_Value(B)))) {
       AddCmpOperands(A, B);

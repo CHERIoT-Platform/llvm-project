@@ -2247,9 +2247,17 @@ let Predicates = [HasCheri, HasStdExtA, IsCapMode] in {
 // Fences will be inserted for atomic load/stores according to the logic in
 // RISCVTargetLowering::{emitLeadingFence,emitTrailingFence}.
 
-defm : CheriLdPat<atomic_load_8,  CLB>;
+defm : CheriLdPat<atomic_load_8, CLB>;
+defm : CheriLdPat<atomic_load_sext_8, CLB>;
+defm : CheriLdPat<atomic_load_zext_8, CLBU>;
+
 defm : CheriLdPat<atomic_load_16, CLH>;
+defm : CheriLdPat<atomic_load_sext_16, CLH>;
+defm : CheriLdPat<atomic_load_zext_16, CLHU>;
+
 defm : CheriLdPat<atomic_load_32, CLW>;
+defm : CheriLdPat<atomic_load_sext_32, CLW>;
+defm : CheriLdPat<atomic_load_zext_32, CLWU>;
 
 defm : CheriAtomicStPat<atomic_store_8,  CSB, GPR, XLenVT>;
 defm : CheriAtomicStPat<atomic_store_16, CSH, GPR, XLenVT>;
@@ -2348,6 +2356,36 @@ defm : PseudoCheriAMOPat<"atomic_load_nand_i64", PseudoCheriAtomicLoadNand64>;
 defm : PseudoCheriCmpXchgPat<"atomic_cmp_swap_i64", PseudoCheriCmpXchg64>;
 
 } // Predicates = [HasCheri, HasStdExtA, IsRV64, IsCapMode]
+
+let Predicates = [HasCheri, HasStdExtA, IsRV64, NotCapMode] in {
+defm : CheriExplicitLdPat<atomic_load_8, LB_CAP, YGPR, YLenVT, XLenVT>;
+defm : CheriExplicitLdPat<atomic_load_sext_8, LB_CAP, YGPR, YLenVT, XLenVT>;
+defm : CheriExplicitLdPat<atomic_load_zext_8, LBU_CAP, YGPR, YLenVT, XLenVT>;
+
+defm : CheriExplicitLdPat<atomic_load_16, LH_CAP, YGPR, YLenVT, XLenVT>;
+defm : CheriExplicitLdPat<atomic_load_sext_16, LH_CAP, YGPR, YLenVT, XLenVT>;
+defm : CheriExplicitLdPat<atomic_load_zext_16, LHU_CAP, YGPR, YLenVT, XLenVT>;
+
+defm : CheriExplicitLdPat<atomic_load_32, LW_CAP, YGPR, YLenVT, XLenVT>;
+defm : CheriExplicitLdPat<atomic_load_sext_32, LW_CAP, YGPR, YLenVT, XLenVT>;
+defm : CheriExplicitLdPat<atomic_load_zext_32, LWU_CAP, YGPR, YLenVT, XLenVT>;
+
+defm : CheriExplicitLdPat<atomic_load_64, LD_CAP, YGPR, YLenVT, XLenVT>;
+defm : CheriExplicitLdPat<atomic_load_cap, LC_CAP_128, YGPR, YLenVT, YLenVT>;
+} // Predicates = [HasCheri, HasStdExtA, IsRV64, NotCapMode]
+
+let Predicates = [HasCheri, HasStdExtA, IsRV32, NotCapMode] in {
+defm : CheriExplicitLdPat<atomic_load_8, LB_CAP, YGPR, YLenVT, XLenVT>;
+defm : CheriExplicitLdPat<atomic_load_sext_8, LB_CAP, YGPR, YLenVT, XLenVT>;
+defm : CheriExplicitLdPat<atomic_load_zext_8, LBU_CAP, YGPR, YLenVT, XLenVT>;
+
+defm : CheriExplicitLdPat<atomic_load_16, LH_CAP, YGPR, YLenVT, XLenVT>;
+defm : CheriExplicitLdPat<atomic_load_sext_16, LH_CAP, YGPR, YLenVT, XLenVT>;
+defm : CheriExplicitLdPat<atomic_load_zext_16, LHU_CAP, YGPR, YLenVT, XLenVT>;
+
+defm : CheriExplicitLdPat<atomic_load_32, LW_CAP, YGPR, YLenVT, XLenVT>;
+defm : CheriExplicitLdPat<atomic_load_cap, LC_CAP_64, YGPR, YLenVT, YLenVT>;
+} // Predicates = [HasCheri, HasStdExtA, IsRV64, NotCapMode]
 
 let Predicates = [HasCheri, HasStdExtA, IsRV32, IsCapMode] in {
 defm : CheriLdPat<atomic_load_cap, CLC_64, YLenVT>;

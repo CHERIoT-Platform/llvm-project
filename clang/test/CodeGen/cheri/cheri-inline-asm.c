@@ -42,6 +42,6 @@ void f(char *p) {
 _Bool f2(void) {
   _Bool b = 0;
   asm volatile("" : "+C"(b)); // NOTE: this is invalid but is only detected when emitting asm:
-  // expected-error@-1{{couldn't allocate output register for constraint 'C'}}
+  // expected-error@-1{{could not allocate output register for constraint 'C'}}
   return b;
 }

@@ -154,6 +154,7 @@ bool DataLayout::PointerSpec::operator==(const PointerSpec &Other) const {
          IndexBitWidth == Other.IndexBitWidth &&
          HasUnstableRepresentation == Other.HasUnstableRepresentation &&
          HasExternalState == Other.HasExternalState &&
+         NullPtrValue == Other.NullPtrValue &&
          AddrSpaceName == Other.AddrSpaceName;
 }
 
@@ -195,7 +196,7 @@ DataLayout::DataLayout()
       FloatSpecs(ArrayRef(DefaultFloatSpecs)) {
   // Default pointer type specifications.
   setPointerSpec(0, 64, Align::Constant<8>(), Align::Constant<8>(), 64, false,
-                 false, "", false);
+                 false, "", APInt::getZero(64), false);
 }
 
 DataLayout::DataLayout(StringRef LayoutString) : DataLayout() {
@@ -450,6 +451,9 @@ Error DataLayout::parsePointerSpec(
   unsigned AddrSpace = 0;
   bool ExternalState = false;
   bool UnstableRepr = false;
+  // Null pointer value flags: default, z = all-zeros, o = all-ones.
+  enum class NullPtrKind { Default, Zero, AllOnes };
+  NullPtrKind NullPtrFlag = NullPtrKind::Default;
   StringRef AddrSpaceName;
   bool IsFatPointer = false;
   StringRef AddrSpaceStr = Components[0];
@@ -459,6 +463,14 @@ Error DataLayout::parsePointerSpec(
       ExternalState = true;
     } else if (C == 'u') {
       UnstableRepr = true;
+    } else if (C == 'z') {
+      if (NullPtrFlag != NullPtrKind::Default)
+        return createStringError("only one of 'z' or 'o' may be specified");
+      NullPtrFlag = NullPtrKind::Zero;
+    } else if (C == 'o') {
+      if (NullPtrFlag != NullPtrKind::Default)
+        return createStringError("only one of 'z' or 'o' may be specified");
+      NullPtrFlag = NullPtrKind::AllOnes;
     } else if (C == 'f') {
       // 'f' indicates a CHERI fat pointer.
       IsFatPointer = true;
@@ -515,8 +527,12 @@ Error DataLayout::parsePointerSpec(
     return createStringError(
         "index size cannot be larger than the pointer size");
 
+  APInt NullPtrValue = NullPtrFlag == NullPtrKind::AllOnes
+                           ? APInt::getAllOnes(BitWidth)
+                           : APInt::getZero(BitWidth);
+
   setPointerSpec(AddrSpace, BitWidth, ABIAlign, PrefAlign, IndexBitWidth,
-                 UnstableRepr, ExternalState, AddrSpaceName, IsFatPointer);
+                 UnstableRepr, ExternalState, AddrSpaceName, NullPtrValue, IsFatPointer);
   return Error::success();
 }
 
@@ -701,7 +717,7 @@ Error DataLayout::parseLayoutString(StringRef LayoutString) {
     const PointerSpec &PS = getPointerSpec(AS);
     setPointerSpec(AS, PS.BitWidth, PS.ABIAlign, PS.PrefAlign, PS.IndexBitWidth,
                    /*HasUnstableRepr=*/true, /*HasExternalState=*/false,
-                   getAddressSpaceName(AS), PS.IsFatPointer);
+                   getAddressSpaceName(AS), PS.NullPtrValue, PS.IsFatPointer);
   }
 
   return Error::success();
@@ -750,15 +766,16 @@ DataLayout::getPointerSpec(uint32_t AddrSpace) const {
 void DataLayout::setPointerSpec(uint32_t AddrSpace, uint32_t BitWidth,
                                 Align ABIAlign, Align PrefAlign,
                                 uint32_t IndexBitWidth, bool HasUnstableRepr,
-                                bool HasExternalState,
-                                StringRef AddrSpaceName,
+                                bool HasExternalState, StringRef AddrSpaceName,
+                                APInt NullPtrValue,
                                 bool IsFatPointer) {
   assert((HasExternalState || !IsFatPointer) && "IsFat requires IsNonIntegral!");
   auto I = lower_bound(PointerSpecs, AddrSpace, LessPointerAddrSpace());
   if (I == PointerSpecs.end() || I->AddrSpace != AddrSpace) {
     PointerSpecs.insert(I, PointerSpec{AddrSpace, BitWidth, ABIAlign, PrefAlign,
                                        IndexBitWidth, HasUnstableRepr,
-                                       HasExternalState, AddrSpaceName.str(), IsFatPointer});
+                                       HasExternalState, AddrSpaceName.str(),
+                                       std::move(NullPtrValue), IsFatPointer});
     HasCheriCapabilities = HasCheriCapabilities || IsFatPointer;
   } else {
     I->BitWidth = BitWidth;
@@ -768,6 +785,7 @@ void DataLayout::setPointerSpec(uint32_t AddrSpace, uint32_t BitWidth,
     I->HasUnstableRepresentation = HasUnstableRepr;
     I->HasExternalState = HasExternalState;
     I->AddrSpaceName = AddrSpaceName.str();
+    I->NullPtrValue = std::move(NullPtrValue);
     I->IsFatPointer = IsFatPointer;
     // Value was replaced, re-calculate HasCheriCapabilities
     HasCheriCapabilities = any_of(

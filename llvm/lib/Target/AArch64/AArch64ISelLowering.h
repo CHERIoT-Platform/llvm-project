@@ -358,6 +358,7 @@ public:
 
   TargetLoweringBase::AtomicExpansionKind
   shouldExpandAtomicLoadInIR(LoadInst *LI) const override;
+
   TargetLoweringBase::AtomicExpansionKind
   shouldExpandAtomicStoreInIR(StoreInst *SI) const override;
   TargetLoweringBase::AtomicExpansionKind
@@ -365,6 +366,10 @@ public:
 
   TargetLoweringBase::AtomicExpansionKind
   shouldExpandAtomicCmpXchgInIR(const AtomicCmpXchgInst *AI) const override;
+
+  bool shouldIssueAtomicLoadForAtomicEmulationLoop() const override {
+    return false;
+  }
 
   bool useLoadStackGuardNode(const Module &M) const override;
   TargetLoweringBase::LegalizeTypeAction

@@ -1,5 +1,5 @@
 ; RUN: not %cheri_purecap_llc -verify-machineinstrs %s 2>&1 | FileCheck %s -check-prefix=ERR
-; ERR: error: couldn't allocate output register for constraint 'C'
+; ERR: error: could not allocate output register for constraint 'C'
 ; Check that this results in an error instead of a crash
 
 $_Z13DoNotOptimizeIbEvRT_ = comdat any

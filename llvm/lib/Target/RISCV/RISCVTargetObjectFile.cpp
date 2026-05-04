@@ -213,7 +213,7 @@ RISCVELFTargetObjectFile::getTailPaddingForPreciseBounds(
     return TailPaddingAmount::None;
 
   return RISCVCompressedCap::getRequiredTailPadding(Size,
-                                                    *TM.getMCSubtargetInfo());
+                                                    TM.getMCSubtargetInfo());
 }
 
 Align
@@ -223,7 +223,7 @@ RISCVELFTargetObjectFile::getAlignmentForPreciseBounds(
     return Align();
 
   return RISCVCompressedCap::getRequiredAlignment(Size,
-                                                  *TM.getMCSubtargetInfo());
+                                                  TM.getMCSubtargetInfo());
 }
 
 int RISCVELFTargetObjectFile::getCheriCapabilitySize(

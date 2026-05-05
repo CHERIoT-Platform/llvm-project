@@ -2784,8 +2784,12 @@ static Instruction *combineConstantOffsets(GetElementPtrInst &GEP,
   GEPNoWrapFlags NW = GEPNoWrapFlags::all();
   SmallVector<GetElementPtrInst *> Skipped;
   auto *InnerGEP = dyn_cast<GetElementPtrInst>(GEP.getPointerOperand());
+  bool IsCheriCap = IC.getDataLayout().isFatPointer(GEP.getType());
   while (true) {
     if (!InnerGEP)
+      return nullptr;
+
+    if (IsCheriCap && !InnerGEP->isInBounds())
       return nullptr;
 
     NW = NW.intersectForReassociate(InnerGEP->getNoWrapFlags());

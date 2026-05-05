@@ -1312,7 +1312,8 @@ public:
   /// store from / to any address, not just from a specific stack slot.
   MachineInstr *foldMemoryOperand(MachineInstr &MI, ArrayRef<unsigned> Ops,
                                   MachineInstr &LoadMI, MachineInstr *&CopyMI,
-                                  LiveIntervals *LIS = nullptr) const;
+                                  LiveIntervals *LIS = nullptr,
+                                  VirtRegMap *VRM = nullptr) const;
 
   /// This function defines the logic to lower COPY instruction to
   /// target specific instruction(s).
@@ -1505,8 +1506,8 @@ protected:
   virtual MachineInstr *
   foldMemoryOperandImpl(MachineFunction &MF, MachineInstr &MI,
                         ArrayRef<unsigned> Ops, MachineInstr &LoadMI,
-                        MachineInstr *&CopyMI,
-                        LiveIntervals *LIS = nullptr) const {
+                        MachineInstr *&CopyMI, LiveIntervals *LIS = nullptr,
+                        VirtRegMap *VRM = nullptr) const {
     return nullptr;
   }
 

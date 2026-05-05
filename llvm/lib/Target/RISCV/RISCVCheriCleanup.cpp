@@ -172,6 +172,9 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
           default:
             UnsafeUse = true;
             continue;
+          case RISCV::CSetBoundsImm:
+            /* DO STUFF HERE */
+
           case RISCV::CLB:
           case RISCV::CLBU:
           case RISCV::CSB:

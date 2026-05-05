@@ -224,7 +224,7 @@ defm : MovzPats2<GPR32, CheriGPROrCNull, CMOVZ32, XORi>;
 
 class CheriPseudo<dag outs, dag ins, string asmstr,
                 list<dag> pattern> :
-  MipsInst<outs, ins, asmstr, pattern, NoItinerary, Pseudo>
+  MipsInst<outs, ins, asmstr, pattern, Pseudo>
 {
   let isPseudo = 1;
   let usesCustomInserter = 1;
@@ -873,7 +873,7 @@ def CClearHi : ClearRegs<3, "cclearhi">;
 
 
 def  CCallPseudo : PseudoSE<(outs), (ins GPR64Opnd:$rs, uimm32: $mask),
-                            [(CheriJmpLink GPR64Opnd:$rs, (i32 uimm32_pat: $mask))], NoItinerary>
+                            [(CheriJmpLink GPR64Opnd:$rs, (i32 uimm32_pat: $mask))]>
 {
   let isCall=1;
   let Defs = [RA];
@@ -887,7 +887,7 @@ def CapJmpLink : SDNode<"MipsISD::CapJmpLink",SDT_MipsCapJmpLink,
                           SDNPVariadic]>;
 let isCall=1, hasDelaySlot=1, Defs = [C17, C26], hasNoSchedulingInfo = 1 in {
 def CapJumpLinkPseudo :
-  PseudoSE<(outs), (ins CheriOpnd: $rs), [(CapJmpLink CheriOpnd: $rs)], NoItinerary>,
+  PseudoSE<(outs), (ins CheriOpnd: $rs), [(CapJmpLink CheriOpnd: $rs)]>,
   PseudoInstExpansion<(CJALR C17, CheriOpnd:$rs)>;
 }
 def CapRet : SDNode<"MipsISD::CapRet", SDTNone,

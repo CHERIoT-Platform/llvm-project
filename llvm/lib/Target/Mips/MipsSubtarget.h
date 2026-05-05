@@ -24,7 +24,6 @@
 #include "llvm/CodeGen/RegisterBankInfo.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/IR/DataLayout.h"
-#include "llvm/MC/MCInstrItineraries.h"
 #include "llvm/Support/ErrorHandling.h"
 
 #define GET_SUBTARGETINFO_HEADER
@@ -238,8 +237,6 @@ class MipsSubtarget : public MipsGenSubtargetInfo {
 
   /// The overridden stack alignment.
   MaybeAlign StackAlignOverride;
-
-  InstrItineraryData InstrItins;
 
   // We can override the determination of whether we are in mips16 mode
   // as from the command line
@@ -477,10 +474,6 @@ public:
   const MipsTargetLowering *getTargetLowering() const override {
     return TLInfo.get();
   }
-  const InstrItineraryData *getInstrItineraryData() const override {
-    return &InstrItins;
-  }
-
   void initLibcallLoweringInfo(LibcallLoweringInfo &Info) const override;
 
 protected:

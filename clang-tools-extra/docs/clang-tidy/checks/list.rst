@@ -254,7 +254,7 @@ Clang-Tidy Checks
    :doc:`llvm-twine-local <llvm/twine-local>`, "Yes"
    :doc:`llvm-type-switch-case-types <llvm/type-switch-case-types>`, "Yes"
    :doc:`llvm-use-new-mlir-op-builder <llvm/use-new-mlir-op-builder>`, "Yes"
-   :doc:`llvm-use-ranges <llvm/use-ranges>`, "Yes"
+   :doc:`llvm-use-ranges <llvm/use-ranges>`,
    :doc:`llvm-use-vector-utils <llvm/use-vector-utils>`, "Yes"
    :doc:`llvmlibc-callee-namespace <llvmlibc/callee-namespace>`,
    :doc:`llvmlibc-implementation-in-namespace <llvmlibc/implementation-in-namespace>`,

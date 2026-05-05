@@ -278,9 +278,6 @@ MipsSubtarget::initializeSubtargetDependencies(StringRef CPU, StringRef FS,
 
   // Parse features string.
   ParseSubtargetFeatures(CPUName, /*TuneCPU*/ CPUName, FullFS);
-  // Initialize scheduling itinerary for the specified CPU.
-  InstrItins = getInstrItineraryForCPU(CPUName);
-
   if (InMips16Mode && !IsSoftFloat)
     InMips16HardFloat = true;
 

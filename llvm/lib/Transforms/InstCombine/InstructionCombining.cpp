@@ -2870,6 +2870,28 @@ static Instruction *combineConstantOffsets(GetElementPtrInst &GEP,
       !InnerGEP->accumulateConstantOffset(DL, Offset))
     return nullptr;
 
+  if (IC.getDataLayout().isFatPointer(GEP.getType())) {
+    auto &SQ = IC.getSimplifyQuery();
+
+    // We are effectively sinking the offset of InnerGEP through the
+    // intervening GEPs. On CHERI, pointer arithmetic is only guaranteed
+    // to commute if the offsets have the same sign, so we need to
+    // enforce that the inner offset provably has the same sign as all
+    // of the offsets in SkippedGEP.
+    APInt InnerOffset(DL.getIndexTypeSizeInBits(Ty), 0);
+    bool S = InnerGEP->accumulateConstantOffset(DL, InnerOffset);
+    assert(S && "Could not resolve inner offset!");
+    bool Pos = InnerOffset.isNonNegative();
+    for (GetElementPtrInst *SkippedGEP : Skipped) {
+      for (Value *Idx : SkippedGEP->indices()) {
+        if (Pos && !isKnownNonNegative(Idx, SQ.getWithInstruction(&GEP)))
+          return nullptr;
+        if (!Pos && !isKnownNegative(Idx, SQ.getWithInstruction(&GEP)))
+          return nullptr;
+      }
+    }
+  }
+
   IC.replaceOperand(*Skipped.back(), 0, InnerGEP->getPointerOperand());
   for (GetElementPtrInst *SkippedGEP : Skipped)
     SkippedGEP->setNoWrapFlags(NW);

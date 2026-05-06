@@ -950,7 +950,7 @@ public:
   bool isUImm12() const {
     if (!isImm())
       return false;
-    RISCV::Specifier VK;
+    RISCV::Specifier VK = RISCV::S_None;
     int64_t Imm;
     bool IsValid;
     bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);

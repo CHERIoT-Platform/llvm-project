@@ -6,6 +6,7 @@ target triple = "riscv32-unknown-unknown"
 
 @ca = dso_local local_unnamed_addr addrspace(200) global [3 x i8] zeroinitializer, align 1
 @cca = external dso_local local_unnamed_addr addrspace(200) constant [0 x i8], align 1
+@eia = external dso_local local_unnamed_addr addrspace(200) global [4 x i32], align 1
 @ia = dso_local local_unnamed_addr addrspace(200) global [3 x i32] zeroinitializer, align 4
 @la = dso_local local_unnamed_addr addrspace(200) global [3 x i32] zeroinitializer, align 4
 @pa = dso_local local_unnamed_addr addrspace(200) global [3 x i8 addrspace(200)*] zeroinitializer, align 8
@@ -73,6 +74,62 @@ entry:
   store i32 0, i32 addrspace(200)* getelementptr inbounds ([3 x i32], [3 x i32] addrspace(200)* @la, i32 1, i32 0), align 4, !tbaa !9
   store i8 addrspace(200)* null, i8 addrspace(200)* addrspace(200)* getelementptr inbounds ([3 x i8 addrspace(200)*], [3 x i8 addrspace(200)*] addrspace(200)* @pa, i32 1, i32 0), align 8, !tbaa !11
   ret void
+}
+
+; Both the csetbounds (llvm.cheri.cap.bounds.set.i32) and the load from the
+; global are safe. We should not generate a global bound check
+define dso_local i32 @boundsAndLoadCombination() local_unnamed_addr addrspace(200) #2 {
+; CHECK-LABEL: boundsAndLoadCombination:
+; CHECK:       # %bb.0: # %entry
+; CHECK-NEXT:  .LBB5_1: # %entry
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc.data a0, %cheriot_compartment_data_hi(ia)
+; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB5_1)
+; CHECK-NEXT:    ct.csetbounds a1, a0, 8
+; CHECK-NEXT:    ct.clw a0, 4(a0)
+; CHECK-NEXT:    ct.clw a1, 0(a1)
+; The end of the function (add and ret) is only here to trick DCE
+entry:
+  %0 = tail call fastcc addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i32(ptr addrspace(200) @ia, i32 8)
+  %1 = load i32, i32 addrspace(200)* getelementptr inbounds ([3 x i32], [3 x i32] addrspace(200)* @ia, i32 0, i32 1), align 1
+  %2 = load i32, ptr addrspace(200) %0
+  ; doing something with the results to avoit DCE
+  %r = add i32 %1, %2
+  ret i32 %r
+}
+
+; linker's csetbounds should stay when trying to set bounds bigger than the
+; actual size
+define ptr addrspace(200) @biggerCsetbounds() addrspace(200) {
+; CHECK-LABEL: biggerCsetbounds:
+; CHECK:       # %bb.0: # %entry
+; CHECK-NEXT:  .LBB6_1: # %entry
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc.data a0, %cheriot_compartment_data_hi(ia)
+; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB6_1)
+; CHECK-NEXT:    ct.csetbounds a0, a0, %cheriot_compartment_size(ia)
+; CHECK-NEXT:    ct.csetbounds a0, a0, 16
+; CHECK-NEXT:    ct.cret
+entry:
+  %0 = tail call fastcc addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i32(ptr addrspace(200) @ia, i32 16)
+  ret ptr addrspace(200) %0
+}
+
+; linker's csetbounds should stay when trying to set bounds on an external
+; global.
+define ptr addrspace(200) @externalCsetbounds() addrspace(200) {
+; CHECK-LABEL: externalCsetbounds:
+; CHECK:       # %bb.0: # %entry
+; CHECK-NEXT:  .LBB7_1: # %entry
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc.data a0, %cheriot_compartment_data_hi(eia)
+; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB7_1)
+; CHECK-NEXT:    ct.csetbounds a0, a0, %cheriot_compartment_size(eia)
+; CHECK-NEXT:    ct.csetbounds a0, a0, 4
+; CHECK-NEXT:    ct.cret
+entry:
+  %0 = tail call fastcc addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i32(ptr addrspace(200) @eia, i32 4)
+  ret ptr addrspace(200) %0
 }
 
 attributes #0 = { mustprogress nofree norecurse nosync nounwind readonly willreturn "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="cheriot" "target-features"="+relax,+xcheri,-64bit,-save-restore" }

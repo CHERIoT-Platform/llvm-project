@@ -11,7 +11,11 @@ target triple = "riscv32cheriotv1-unknown-cheriotrtos"
 @gv_s32 = external addrspace(200) global i32, align 4
 @gv_u64 = external addrspace(200) global i64, align 8
 @gv_s64 = external addrspace(200) global i64, align 8
+
 @gv_cap = external addrspace(200) global ptr addrspace(200), align 8
+
+@ig_s32 = internal addrspace(200) global i32 zeroinitializer, align 4
+
 @cst_u8 = addrspace(200) constant i8 0, align 1
 @cst_s8 = addrspace(200) constant i8 0, align 1
 @cst_u16 = addrspace(200) constant i16 0, align 2
@@ -381,4 +385,18 @@ define i64 @load_cst_s64() addrspace(200) {
 entry:
   %0 = load volatile i64, ptr addrspace(200) @cst_s64, align 8
   ret i64 %0
+}
+
+define ptr addrspace(200) @redundant_csetbounds() addrspace(200) {
+; CHECK-LABEL: redundant_csetbounds:
+; CHECK:       # %bb.0: # %entry
+; CHECK-NEXT:  .LBB26_1: # %entry
+; CHECK-NEXT:    # Label of block must be emitted
+; CHECK-NEXT:    ct.auipcc.data a0, %cheriot_compartment_data_hi(ig_s32)
+; CHECK-NEXT:    ct.cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB26_1)
+; CHECK-NEXT:    ct.csetbounds a0, a0, 4
+; CHECK-NEXT:    ct.cret
+entry:
+  %0 = tail call fastcc addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i32(ptr addrspace(200) @ig_s32, i32 4)
+  ret ptr addrspace(200) %0
 }

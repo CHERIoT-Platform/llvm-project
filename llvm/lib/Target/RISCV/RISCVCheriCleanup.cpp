@@ -109,6 +109,10 @@ static bool rewriteMemoryReference(MachineOperand &Op,
     II.setDesc(TII->get(RISCV::PseudoCLLCInbounds_CSC_128));
     IsStore = true;
     break;
+  // We do not need to rewrite anything as marking the instruction as inbound
+  // will already remove the useless CSetBounds
+  case RISCV::CSetBoundsImm:
+    return false;
   }
 
   // Replace the (reg, offset) destination with the global.
@@ -168,6 +172,7 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
         bool UnsafeUse = false;
         for (auto &UI : MRI.use_instructions(MI.getOperand(0).getReg())) {
           size_t OpSize = 0;
+          bool HasOffset = true;
           switch (UI.getOpcode()) {
           default:
             UnsafeUse = true;
@@ -197,10 +202,16 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
           case RISCV::CSC_128:
             OpSize = 16;
             break;
+          case RISCV::CSetBoundsImm:
+            HasOffset = false;
+            OpSize = UI.getOperand(2).getImm();
+            break;
           }
-          Offset = UI.getOperand(2).getImm();
-          if (Offset == 0)
-            continue;
+          if (HasOffset) {
+            Offset = UI.getOperand(2).getImm();
+            if (Offset == 0)
+              continue;
+          }
           if (Offset + OpSize <= SafeSize)
             continue;
           UnsafeUse = true;

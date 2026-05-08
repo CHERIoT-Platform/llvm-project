@@ -14234,6 +14234,13 @@ static QualType getCommonPointeeType(const ASTContext &Ctx, const T *X,
 }
 
 template <class T>
+static PointerInterpretationKind getCommonPointerInterpretation(const T *X,
+                                                                const T *Y) {
+  assert(X->getPointerInterpretation() == Y->getPointerInterpretation());
+  return X->getPointerInterpretation();
+}
+
+template <class T>
 static auto *getCommonSizeExpr(const ASTContext &Ctx, T *X, T *Y) {
   assert(Ctx.hasSameExpr(X->getSizeExpr(), Y->getSizeExpr()));
   return X->getSizeExpr();
@@ -14439,7 +14446,8 @@ static QualType getCommonNonSugarTypeNode(const ASTContext &Ctx, const Type *X,
   }
   case Type::Pointer: {
     const auto *PX = cast<PointerType>(X), *PY = cast<PointerType>(Y);
-    return Ctx.getPointerType(getCommonPointeeType(Ctx, PX, PY));
+    auto PIK = getCommonPointerInterpretation(PX, PY);
+    return Ctx.getPointerType(getCommonPointeeType(Ctx, PX, PY), PIK);
   }
   case Type::BlockPointer: {
     const auto *PX = cast<BlockPointerType>(X), *PY = cast<BlockPointerType>(Y);
@@ -14463,16 +14471,18 @@ static QualType getCommonNonSugarTypeNode(const ASTContext &Ctx, const Type *X,
   case Type::LValueReference: {
     const auto *PX = cast<LValueReferenceType>(X),
                *PY = cast<LValueReferenceType>(Y);
+    auto PIK = getCommonPointerInterpretation(PX, PY);
     // FIXME: Preserve PointeeTypeAsWritten.
-    return Ctx.getLValueReferenceType(getCommonPointeeType(Ctx, PX, PY),
-                                      PX->isSpelledAsLValue() ||
-                                          PY->isSpelledAsLValue());
+    return Ctx.getLValueReferenceType(
+        getCommonPointeeType(Ctx, PX, PY),
+        PX->isSpelledAsLValue() || PY->isSpelledAsLValue(), PIK);
   }
   case Type::RValueReference: {
     const auto *PX = cast<RValueReferenceType>(X),
                *PY = cast<RValueReferenceType>(Y);
+    auto PIK = getCommonPointerInterpretation(PX, PY);
     // FIXME: Preserve PointeeTypeAsWritten.
-    return Ctx.getRValueReferenceType(getCommonPointeeType(Ctx, PX, PY));
+    return Ctx.getRValueReferenceType(getCommonPointeeType(Ctx, PX, PY), PIK);
   }
   case Type::DependentAddressSpace: {
     const auto *PX = cast<DependentAddressSpaceType>(X),

@@ -1610,7 +1610,7 @@ template <class ELFT> void Writer<ELFT>::finalizeAddressDependentContent() {
   // On Cheriot, we need to delay assigning addresses to linker script
   // symbols until after relaxation, because we might add new __cap_reloc
   // entries during the process.
-  if (!ctx.arg.isCheriot || ctx.arg.compartment)
+  if (!ctx.arg.isCheriot || ctx.arg.compartment || ctx.arg.relocatable)
     ctx.script->assignAddresses();
 
   // .ARM.exidx and SHF_LINK_ORDER do not require precise addresses, but they
@@ -1734,7 +1734,7 @@ template <class ELFT> void Writer<ELFT>::finalizeAddressDependentContent() {
       sec->addr = 0;
 
   // Now that relaxation is complete, assign script address on Cheriot.
-  if (ctx.arg.isCheriot && !ctx.arg.compartment)
+  if (ctx.arg.isCheriot && !ctx.arg.compartment && !ctx.arg.relocatable)
     ctx.script->assignAddresses();
 
   uint64_t imageBase = ctx.script->hasSectionsCommand || ctx.arg.relocatable

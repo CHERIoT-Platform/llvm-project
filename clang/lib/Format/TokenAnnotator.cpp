@@ -5761,6 +5761,12 @@ bool TokenAnnotator::mustBreakBefore(AnnotatedLine &Line,
 
   const FormatToken &Left = *Right.Previous;
 
+  if (Style.BreakFunctionDeclarationParameters && Line.MightBeFunctionDecl &&
+      !Line.mightBeFunctionDefinition() && Left.MightBeFunctionDeclParen &&
+      Left.ParameterCount > 0) {
+    return true;
+  }
+
   if (Style.BreakFunctionDefinitionParameters && Line.MightBeFunctionDecl &&
       Line.mightBeFunctionDefinition() && Left.MightBeFunctionDeclParen &&
       Left.ParameterCount > 0) {

@@ -8,7 +8,7 @@
 // CHECK-NEXT:    [[D:%.*]] = alloca double, align 8, addrspace(200)
 // CHECK-NEXT:    [[L:%.*]] = alloca i64, align 8, addrspace(200)
 // CHECK-NEXT:    [[D2:%.*]] = alloca double, align 8, addrspace(200)
-// CHECK-NEXT:    store double 0x40934A456D5CFAAD, ptr addrspace(200) [[D]], align 8
+// CHECK-NEXT:    store double f0x40934A456D5CFAAD, ptr addrspace(200) [[D]], align 8
 // CHECK-NEXT:    [[TMP0:%.*]] = load double, ptr addrspace(200) [[D]], align 8
 // CHECK-NEXT:    [[CONV:%.*]] = fptosi double [[TMP0]] to i64
 // CHECK-NEXT:    store i64 [[CONV]], ptr addrspace(200) [[L]], align 8
@@ -37,7 +37,7 @@ double test_long(void) {
 // CHECK-NEXT:    [[D:%.*]] = alloca double, align 8, addrspace(200)
 // CHECK-NEXT:    [[CAP:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // CHECK-NEXT:    [[D2:%.*]] = alloca double, align 8, addrspace(200)
-// CHECK-NEXT:    store double 0x40934A456D5CFAAD, ptr addrspace(200) [[D]], align 8
+// CHECK-NEXT:    store double f0x40934A456D5CFAAD, ptr addrspace(200) [[D]], align 8
 // CHECK-NEXT:    [[TMP0:%.*]] = load double, ptr addrspace(200) [[D]], align 8
 // CHECK-NEXT:    [[CONV:%.*]] = fptosi double [[TMP0]] to i64
 // CHECK-NEXT:    [[TMP1:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[CONV]]
@@ -68,7 +68,7 @@ double test_intcap(void) {
 // CHECK-NEXT:    [[D:%.*]] = alloca double, align 8, addrspace(200)
 // CHECK-NEXT:    [[L:%.*]] = alloca i64, align 8, addrspace(200)
 // CHECK-NEXT:    [[D2:%.*]] = alloca double, align 8, addrspace(200)
-// CHECK-NEXT:    store double 0x40934A456D5CFAAD, ptr addrspace(200) [[D]], align 8
+// CHECK-NEXT:    store double f0x40934A456D5CFAAD, ptr addrspace(200) [[D]], align 8
 // CHECK-NEXT:    [[TMP0:%.*]] = load double, ptr addrspace(200) [[D]], align 8
 // CHECK-NEXT:    [[CONV:%.*]] = fptoui double [[TMP0]] to i64
 // CHECK-NEXT:    store i64 [[CONV]], ptr addrspace(200) [[L]], align 8
@@ -97,7 +97,7 @@ double test_ulong(void) {
 // CHECK-NEXT:    [[D:%.*]] = alloca double, align 8, addrspace(200)
 // CHECK-NEXT:    [[CAP:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // CHECK-NEXT:    [[D2:%.*]] = alloca double, align 8, addrspace(200)
-// CHECK-NEXT:    store double 0x40934A456D5CFAAD, ptr addrspace(200) [[D]], align 8
+// CHECK-NEXT:    store double f0x40934A456D5CFAAD, ptr addrspace(200) [[D]], align 8
 // CHECK-NEXT:    [[TMP0:%.*]] = load double, ptr addrspace(200) [[D]], align 8
 // CHECK-NEXT:    [[CONV:%.*]] = fptoui double [[TMP0]] to i64
 // CHECK-NEXT:    [[TMP1:%.*]] = getelementptr i8, ptr addrspace(200) null, i64 [[CONV]]

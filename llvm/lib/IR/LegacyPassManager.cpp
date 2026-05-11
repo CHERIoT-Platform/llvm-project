@@ -907,9 +907,9 @@ void PMDataManager::removeNotPreservedAnalysis(Pass *P) {
     return;
 
   const AnalysisUsage::VectorType &PreservedSet = AnUsage->getPreservedSet();
-  for (DenseMap<AnalysisID, Pass*>::iterator I = AvailableAnalysis.begin(),
-         E = AvailableAnalysis.end(); I != E; ) {
-    DenseMap<AnalysisID, Pass*>::iterator Info = I++;
+  for (auto I = AvailableAnalysis.begin(), E = AvailableAnalysis.end();
+       I != E;) {
+    auto Info = I++;
     if (Info->second->getAsImmutablePass() == nullptr &&
         !is_contained(PreservedSet, Info->first)) {
       // Remove this analysis
@@ -928,10 +928,8 @@ void PMDataManager::removeNotPreservedAnalysis(Pass *P) {
     if (!IA)
       continue;
 
-    for (DenseMap<AnalysisID, Pass *>::iterator I = IA->begin(),
-                                                E = IA->end();
-         I != E;) {
-      DenseMap<AnalysisID, Pass *>::iterator Info = I++;
+    for (auto I = IA->begin(), E = IA->end(); I != E;) {
+      auto Info = I++;
       if (Info->second->getAsImmutablePass() == nullptr &&
           !is_contained(PreservedSet, Info->first)) {
         // Remove this analysis
@@ -1102,7 +1100,7 @@ void PMDataManager::initializeAnalysisImpl(Pass *P) {
 Pass *PMDataManager::findAnalysisPass(AnalysisID AID, bool SearchParent) {
 
   // Check if AvailableAnalysis map has one entry.
-  DenseMap<AnalysisID, Pass*>::const_iterator I =  AvailableAnalysis.find(AID);
+  auto I = AvailableAnalysis.find(AID);
 
   if (I != AvailableAnalysis.end())
     return I->second;

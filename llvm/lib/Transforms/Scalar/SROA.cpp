@@ -1516,8 +1516,7 @@ private:
     // FIXME: Yet another place we really should bypass this when
     // instrumenting for ASan.
     if (Offset.uge(AllocSize)) {
-      SmallDenseMap<Instruction *, unsigned>::iterator MTPI =
-          MemTransferSliceMap.find(&II);
+      auto MTPI = MemTransferSliceMap.find(&II);
       if (MTPI != MemTransferSliceMap.end())
         for (unsigned I = MTPI->second; I < AS.Slices.size(); I++) {
           if (AS.Slices[I].getUse() == nullptr)

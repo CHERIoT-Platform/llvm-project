@@ -67,7 +67,15 @@ public:
 
   /// Returns type twice as wide the input type.
   IntegerType *getExtendedType() const {
-    return Type::getIntNTy(getContext(), 2 * getScalarSizeInBits());
+    return Type::getIntNTy(getContext(), 2 * getBitWidth());
+  }
+
+  /// Returns type half as wide the input type.
+  IntegerType *getTruncatedType() const {
+    unsigned BitWidth = getBitWidth();
+    assert((BitWidth & 1) == 0 &&
+           "Cannot truncate integer type with odd bit-width");
+    return Type::getIntNTy(getContext(), BitWidth / 2);
   }
 
   /// Get the number of bits in this IntegerType
@@ -541,9 +549,9 @@ public:
   // the input type, and the element type is an integer or float type which
   // is half as wide as the elements in the input type.
   static VectorType *getTruncatedElementVectorType(VectorType *VTy) {
-    Type *EltTy;
-    if (VTy->getElementType()->isFloatingPointTy()) {
-      switch(VTy->getElementType()->getTypeID()) {
+    Type *EltTy = VTy->getElementType();
+    if (EltTy->isFloatingPointTy()) {
+      switch (EltTy->getTypeID()) {
       case DoubleTyID:
         EltTy = Type::getFloatTy(VTy->getContext());
         break;
@@ -554,10 +562,7 @@ public:
         llvm_unreachable("Cannot create narrower fp vector element type");
       }
     } else {
-      unsigned EltBits = VTy->getElementType()->getPrimitiveSizeInBits();
-      assert((EltBits & 1) == 0 &&
-             "Cannot truncate vector element with odd bit-width");
-      EltTy = IntegerType::get(VTy->getContext(), EltBits / 2);
+      EltTy = cast<IntegerType>(EltTy)->getTruncatedType();
     }
     return VectorType::get(EltTy, VTy->getElementCount());
   }
@@ -834,6 +839,16 @@ Type *Type::getExtendedType() const {
     return VectorType::getExtendedElementVectorType(
         const_cast<VectorType *>(VTy));
   return cast<IntegerType>(this)->getExtendedType();
+}
+
+Type *Type::getTruncatedType() const {
+  assert(
+      isIntOrIntVectorTy() &&
+      "Original type expected to be a vector of integers or a scalar integer.");
+  if (auto *VTy = dyn_cast<VectorType>(this))
+    return VectorType::getTruncatedElementVectorType(
+        const_cast<VectorType *>(VTy));
+  return cast<IntegerType>(this)->getTruncatedType();
 }
 
 Type *Type::getWithNewType(Type *EltTy) const {

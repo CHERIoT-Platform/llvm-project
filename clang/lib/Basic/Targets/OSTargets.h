@@ -257,7 +257,6 @@ public:
       break;
     case llvm::Triple::loongarch64:
     case llvm::Triple::riscv64:
-    case llvm::Triple::riscv64be:
       break;
     }
   }
@@ -522,7 +521,6 @@ public:
       break;
     case llvm::Triple::loongarch64:
     case llvm::Triple::riscv64:
-    case llvm::Triple::riscv64be:
       break;
     }
   }
@@ -1097,6 +1095,19 @@ protected:
   void getOSDefines(const LangOptions &Opts, const llvm::Triple &Triple,
                     MacroBuilder &Builder) const override {
     Builder.defineMacro("__qurt__");
+  }
+
+public:
+  using OSTargetInfo<Target>::OSTargetInfo;
+};
+
+// H2 Target
+template <typename Target>
+class LLVM_LIBRARY_VISIBILITY H2TargetInfo : public OSTargetInfo<Target> {
+protected:
+  void getOSDefines(const LangOptions &Opts, const llvm::Triple &Triple,
+                    MacroBuilder &Builder) const override {
+    Builder.defineMacro("__h2__");
   }
 
 public:

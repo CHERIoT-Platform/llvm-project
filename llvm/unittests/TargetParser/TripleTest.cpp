@@ -3610,4 +3610,17 @@ TEST(TripleTest, DefaultWCharSize) {
   EXPECT_EQ(1u, Triple("xcore-unknown-unknown").getDefaultWCharSize());
 }
 
+TEST(DataLayoutTest, CheriRISCV32) {
+  Triple TT = Triple("riscv32-unknown-unknown");
+
+  EXPECT_THAT(TT.computeDataLayout(""),
+              testing::Not(testing::HasSubstr("pfe200")));
+  EXPECT_THAT(TT.computeDataLayout(""),
+              testing::Not(testing::HasSubstr("A200-P200-G200")));
+  EXPECT_THAT(TT.computeDataLayout("cheriot"),
+              testing::HasSubstr("pfe200:64:64:64:32"));
+  EXPECT_THAT(TT.computeDataLayout("cheriot"),
+              testing::HasSubstr("A200-P200-G200"));
+}
+
 } // end anonymous namespace

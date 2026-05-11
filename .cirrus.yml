@@ -17,7 +17,7 @@ pr_task:
   dependencies_script:
     - set -eo pipefail
     - apt-get update
-    - apt-get install -y clang ninja-build lld cmake ccache perl
+    - apt-get install -y clang ninja-build lld cmake ccache perl sccache
   configure_script:
     - mkdir Build
     - cd Build
@@ -48,7 +48,7 @@ x86_release_task:
   dependencies_script:
     - set -eo pipefail
     - apt-get update
-    - apt-get install -y clang ninja-build lld cmake ccache
+    - apt-get install -y clang ninja-build lld cmake ccache sccache
   configure_script:
     - mkdir Build
     - cd Build
@@ -83,7 +83,7 @@ arm_release_task:
   dependencies_script:
     - set -eo pipefail
     - apt-get update
-    - apt-get install -y clang ninja-build lld cmake ccache
+    - apt-get install -y clang ninja-build lld cmake ccache sccache
   configure_script:
     - mkdir Build
     - cd Build

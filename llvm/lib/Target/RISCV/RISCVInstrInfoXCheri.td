@@ -1592,7 +1592,7 @@ class CheriSetCCPatYGPRYGPR<PatFrag CondOp, dag GprGprDag>
                (EXTRACT_SUBREG YGPR:$cs1, sub_cap_addr)),
               (XLenVT(EXTRACT_SUBREG YGPR:$cs2, sub_cap_addr)))>;
 
-multiclass CheriSetCCPatYGPRImm<PatFrag CondOp, Operand ImmTy, dag GprImmDag> {
+multiclass CheriSetCCPatYGPRImm<PatFrag CondOp, ImmLeaf ImmTy, dag GprImmDag> {
   def : Pat<(XLenVT(CondOp(cPTR YGPR:$cs1), (inttoptr ImmTy:$imm12))),
             (OutPatFrag<(ops node:$rs1, node:$imm12), GprImmDag>(XLenVT
                  (EXTRACT_SUBREG YGPR:$cs1, sub_cap_addr)),
@@ -1617,6 +1617,7 @@ multiclass CheriSetCCPatYGPRImm<PatFrag CondOp, Operand ImmTy, dag GprImmDag> {
 multiclass CheriSetCCPatYGPRSimm12<PatFrag CondOp, dag GprImmDag>
     : CheriSetCCPatYGPRImm<CondOp, simm12_lo, GprImmDag>;
 
+// A 12-bit signed immediate plus one where the imm range will be [-2047, 2048].
 multiclass CheriSetCCPatYGPRSimm12Plus1<PatFrag CondOp, dag GprImmDag>
     : CheriSetCCPatYGPRImm<CondOp, simm12_plus1, GprImmDag>;
 

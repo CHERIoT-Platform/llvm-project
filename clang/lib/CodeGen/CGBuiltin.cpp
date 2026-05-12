@@ -3992,7 +3992,6 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   case Builtin::BIstdc_leading_zeros_ui:
   case Builtin::BIstdc_leading_zeros_ul:
   case Builtin::BIstdc_leading_zeros_ull:
-  case Builtin::BIstdc_leading_zeros:
   case Builtin::BI__builtin_stdc_leading_zeros:
     return emitStdcCountIntrinsic(E, Intrinsic::ctlz, /*InvertArg=*/false);
   case Builtin::BIstdc_leading_ones_uc:
@@ -4000,7 +3999,6 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   case Builtin::BIstdc_leading_ones_ui:
   case Builtin::BIstdc_leading_ones_ul:
   case Builtin::BIstdc_leading_ones_ull:
-  case Builtin::BIstdc_leading_ones:
   case Builtin::BI__builtin_stdc_leading_ones:
     return emitStdcCountIntrinsic(E, Intrinsic::ctlz, /*InvertArg=*/true);
   case Builtin::BIstdc_trailing_zeros_uc:
@@ -4008,7 +4006,6 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   case Builtin::BIstdc_trailing_zeros_ui:
   case Builtin::BIstdc_trailing_zeros_ul:
   case Builtin::BIstdc_trailing_zeros_ull:
-  case Builtin::BIstdc_trailing_zeros:
   case Builtin::BI__builtin_stdc_trailing_zeros:
     return emitStdcCountIntrinsic(E, Intrinsic::cttz, /*InvertArg=*/false);
   case Builtin::BIstdc_trailing_ones_uc:
@@ -4016,7 +4013,6 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   case Builtin::BIstdc_trailing_ones_ui:
   case Builtin::BIstdc_trailing_ones_ul:
   case Builtin::BIstdc_trailing_ones_ull:
-  case Builtin::BIstdc_trailing_ones:
   case Builtin::BI__builtin_stdc_trailing_ones:
     return emitStdcCountIntrinsic(E, Intrinsic::cttz, /*InvertArg=*/true);
   case Builtin::BIstdc_first_leading_zero_uc:
@@ -4024,7 +4020,6 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   case Builtin::BIstdc_first_leading_zero_ui:
   case Builtin::BIstdc_first_leading_zero_ul:
   case Builtin::BIstdc_first_leading_zero_ull:
-  case Builtin::BIstdc_first_leading_zero:
   case Builtin::BI__builtin_stdc_first_leading_zero:
     return emitStdcFirstBit(E, Intrinsic::ctlz, /*InvertArg=*/true);
   case Builtin::BIstdc_first_leading_one_uc:
@@ -4032,7 +4027,6 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   case Builtin::BIstdc_first_leading_one_ui:
   case Builtin::BIstdc_first_leading_one_ul:
   case Builtin::BIstdc_first_leading_one_ull:
-  case Builtin::BIstdc_first_leading_one:
   case Builtin::BI__builtin_stdc_first_leading_one:
     return emitStdcFirstBit(E, Intrinsic::ctlz, /*InvertArg=*/false);
   case Builtin::BIstdc_first_trailing_zero_uc:
@@ -4040,7 +4034,6 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   case Builtin::BIstdc_first_trailing_zero_ui:
   case Builtin::BIstdc_first_trailing_zero_ul:
   case Builtin::BIstdc_first_trailing_zero_ull:
-  case Builtin::BIstdc_first_trailing_zero:
   case Builtin::BI__builtin_stdc_first_trailing_zero:
     return emitStdcFirstBit(E, Intrinsic::cttz, /*InvertArg=*/true);
   case Builtin::BIstdc_first_trailing_one_uc:
@@ -4048,7 +4041,6 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   case Builtin::BIstdc_first_trailing_one_ui:
   case Builtin::BIstdc_first_trailing_one_ul:
   case Builtin::BIstdc_first_trailing_one_ull:
-  case Builtin::BIstdc_first_trailing_one:
   case Builtin::BI__builtin_stdc_first_trailing_one:
     return emitStdcFirstBit(E, Intrinsic::cttz, /*InvertArg=*/false);
   case Builtin::BIstdc_count_zeros_uc:
@@ -4056,7 +4048,6 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   case Builtin::BIstdc_count_zeros_ui:
   case Builtin::BIstdc_count_zeros_ul:
   case Builtin::BIstdc_count_zeros_ull:
-  case Builtin::BIstdc_count_zeros:
   case Builtin::BI__builtin_stdc_count_zeros:
     return emitStdcBitWidthMinus(E, Intrinsic::ctpop, /*IsPop=*/true);
   case Builtin::BIstdc_count_ones_uc:
@@ -4064,7 +4055,6 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   case Builtin::BIstdc_count_ones_ui:
   case Builtin::BIstdc_count_ones_ul:
   case Builtin::BIstdc_count_ones_ull:
-  case Builtin::BIstdc_count_ones:
   case Builtin::BI__builtin_stdc_count_ones:
     return emitStdcCountIntrinsic(E, Intrinsic::ctpop, /*InvertArg=*/false,
                                   /*IsPop=*/true);
@@ -4073,7 +4063,6 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   case Builtin::BIstdc_has_single_bit_ui:
   case Builtin::BIstdc_has_single_bit_ul:
   case Builtin::BIstdc_has_single_bit_ull:
-  case Builtin::BIstdc_has_single_bit:
   case Builtin::BI__builtin_stdc_has_single_bit: {
     Value *ArgValue = EmitScalarExpr(E->getArg(0));
     llvm::Type *ArgType = ArgValue->getType();
@@ -4087,7 +4076,6 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   case Builtin::BIstdc_bit_width_ui:
   case Builtin::BIstdc_bit_width_ul:
   case Builtin::BIstdc_bit_width_ull:
-  case Builtin::BIstdc_bit_width:
   case Builtin::BI__builtin_stdc_bit_width:
     return emitStdcBitWidthMinus(E, Intrinsic::ctlz, /*IsPop=*/false);
   case Builtin::BIstdc_bit_floor_uc:
@@ -4095,7 +4083,6 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   case Builtin::BIstdc_bit_floor_ui:
   case Builtin::BIstdc_bit_floor_ul:
   case Builtin::BIstdc_bit_floor_ull:
-  case Builtin::BIstdc_bit_floor:
   case Builtin::BI__builtin_stdc_bit_floor: {
     Value *ArgValue = EmitScalarExpr(E->getArg(0));
     llvm::Type *ArgType = ArgValue->getType();
@@ -4116,7 +4103,6 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   case Builtin::BIstdc_bit_ceil_ui:
   case Builtin::BIstdc_bit_ceil_ul:
   case Builtin::BIstdc_bit_ceil_ull:
-  case Builtin::BIstdc_bit_ceil:
   case Builtin::BI__builtin_stdc_bit_ceil: {
     Value *ArgValue = EmitScalarExpr(E->getArg(0));
     llvm::Type *ArgType = ArgValue->getType();

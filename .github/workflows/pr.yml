@@ -1,0 +1,51 @@
+name: PR Build and Test
+
+on:
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build and test PR
+    runs-on: "cirun-gcp-arm64x32--${{ github.run_id }}"
+    timeout-minutes: 360
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          set -eo pipefail
+          sudo apt-get update
+          sudo apt-get install -y clang ninja-build lld cmake ccache perl
+
+      - name: Configure
+        run: |
+          mkdir Build
+          cd Build
+          cmake ../llvm \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_ENABLE_ASSERTIONS=ON \
+            -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb" \
+            -DLLVM_ENABLE_UNWIND_TABLES=NO \
+            -DLLVM_ENABLE_LLD=ON \
+            -DLLVM_PARALLEL_LINK_JOBS=1 \
+            -DLLVM_APPEND_VC_REV=ON \
+            -DLLVM_VC_REPOSITORY=${{ github.repository }} \
+            -DLLVM_FORCE_VC_REPOSITORY=${{ github.repository }} \
+            -DLLVM_VC_REVISION=${{ github.sha }} \
+            -DLLVM_CCACHE_BUILD=OFF \
+            -DLLVM_ENABLE_EXPENSIVE_CHECKS=ON \
+            -G Ninja
+
+      - name: Build
+        run: |
+          cd Build
+          ninja test-depends
+
+      - name: Test
+        run: |
+          cd Build
+          ./bin/llvm-lit -v ../llvm/test/Unit ../clang/test/Unit
+          ./bin/llvm-lit -v ../llvm/test/ ../clang/test/

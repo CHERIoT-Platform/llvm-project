@@ -15875,6 +15875,16 @@ public:
 
   void performFunctionEffectAnalysis(TranslationUnitDecl *TU);
 
+  /* CHERIoT-specific helpers. */
+public:
+  /// Check if the given statement contains any "unguarded" use of sealed
+  /// variables in the given expression.
+  ///
+  /// Unguarded, in this context, means used in an expression without being part
+  /// of an unary expression to get its address. This function will also report
+  /// the errors.
+  bool CheckUnguardedCHERIoTSealedVarUse(const Expr *S);
+
   ///@}
 };
 

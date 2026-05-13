@@ -481,6 +481,7 @@ def TargetAMDGPU : TargetArch<["amdgcn", "r600"]>;
 def TargetAnyArm : TargetArch<!listconcat(TargetARM.Arches, TargetAArch64.Arches)>;
 def TargetAVR : TargetArch<["avr"]>;
 def TargetBPF : TargetArch<["bpfel", "bpfeb"]>;
+def TargetCHERIoT : TargetSpec { let OSes = ["CheriotRTOS"]; }
 def TargetLoongArch : TargetArch<["loongarch32", "loongarch64"]>;
 def TargetMips32 : TargetArch<["mips", "mipsel"]>;
 def TargetAnyMips : TargetArch<["mips", "mipsel", "mips64", "mips64el"]>;
@@ -3164,12 +3165,18 @@ def CHERIoTSharedObject : DeclOrTypeAttr {
   let Subjects = SubjectList<[GlobalVar], ErrorDiag>;
 }
 
-def CHERIoTSealedType : TypeAttr {
+def CHERIoTSealedObject : InheritableAttr, TargetSpecificAttr<TargetCHERIoT> {
   let Spellings = [C23<"cheriot", "sealed">, CXX11<"cheriot", "sealed">,
                    GNU<"cheriot_sealed">];
+  let Subjects = SubjectList<[GlobalVar], ErrorDiag>;
   let Documentation = [CHERIoTSealedTypeDocs];
   let Args = [StringArgument<"CompartmentName">,
               StringArgument<"SealingTypeName">];
+
+  let AdditionalMembers = [{
+public:
+  std::string getSealingKeyName() { return ("sealing_type." + getCompartmentName() + "." + getSealingTypeName()).str(); }
+  }];
 }
 
 def CHERINoSubobjectBounds : DeclOrTypeAttr {

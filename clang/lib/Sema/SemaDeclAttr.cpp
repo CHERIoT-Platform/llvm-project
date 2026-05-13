@@ -2521,11 +2521,12 @@ static void handleCHERIoTSharedObject(Sema &S, Decl *D, const ParsedAttr &Attr,
       S.Context, Attr, ObjectName, OwnedPermissions));
 }
 
-static void handleCHERIoTSealedType(Sema &S, Decl *D, const ParsedAttr &Attr,
-                                    Sema::DeclAttributeLocation DAL) {
+static void handleCHERIoTSealedObject(Sema &S, Decl *D, const ParsedAttr &Attr,
+                                      Sema::DeclAttributeLocation DAL) {
 
-  auto *TDecl = dyn_cast<TypeDecl>(D);
-  if (TDecl) {
+  auto *VDecl = dyn_cast<VarDecl>(D);
+
+  if (VDecl && VDecl->hasGlobalStorage() && VDecl->isFileVarDecl()) {
     StringRef CompartmentName;
     SourceLocation CompartmentNameLiteralLoc;
     if (!S.checkStringLiteralArgumentAttr(Attr, 0, CompartmentName,
@@ -2539,10 +2540,13 @@ static void handleCHERIoTSealedType(Sema &S, Decl *D, const ParsedAttr &Attr,
       return;
 
     // Here we simply copy the attribute.
-    TDecl->addAttr(::new (S.Context) CHERIoTSealedTypeAttr(
+    D->addAttr(::new (S.Context) CHERIoTSealedObjectAttr(
         S.Context, Attr, CompartmentName, SealingTypeName));
-  } else // Ignore if it's not a type definition.
-    S.Diag(Attr.getLoc(), diag::warn_attribute_ignored) << Attr.getAttrName();
+    return;
+  }
+
+  // Ignore if it's not a global variable definition.
+  S.Diag(Attr.getLoc(), diag::warn_attribute_ignored) << Attr.getAttrName();
 }
 
 static void handleCHERICompartmentName(Sema &S, Decl *D, const ParsedAttr &Attr,
@@ -8481,8 +8485,8 @@ ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D, const ParsedAttr &AL,
   case ParsedAttr::AT_CHERIoTSharedObject:
     handleCHERIoTSharedObject(S, D, AL, DAL);
     break;
-  case ParsedAttr::AT_CHERIoTSealedType:
-    handleCHERIoTSealedType(S, D, AL, DAL);
+  case ParsedAttr::AT_CHERIoTSealedObject:
+    handleCHERIoTSealedObject(S, D, AL, DAL);
     break;
   case ParsedAttr::AT_InterruptState:
     handleInterruptState(S, D, AL);

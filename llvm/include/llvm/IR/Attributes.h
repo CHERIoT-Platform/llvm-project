@@ -1621,13 +1621,7 @@ public:
   }
 
   /// Returns the default permissions.
-  static const std::string defaultPermissions() {
-    return std::string(ReadPermissionSymbol) +
-           std::string(WritePermissionSymbol) +
-           std::string(CapPermissionSymbol) +
-           std::string(LoadMutablePermissionSymbol) +
-           std::string(LoadGlobalPermissionSymbol);
-  }
+  static const std::string defaultPermissions() { return std::string(); }
 
   ImportKind ImportKind;
   StringRef Domain;

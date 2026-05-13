@@ -16265,6 +16265,18 @@ ExprResult Sema::BuildCXXConstructExpr(
     bool HadMultipleCandidates, bool IsListInitialization,
     bool IsStdInitListInitialization, bool RequiresZeroInit,
     CXXConstructionKind ConstructKind, SourceRange ParenRange) {
+  // CHERIoT-specific check: in some cases the default constructor implicitly
+  // takes a reference to a sealed value to copy the underlying memory: this is
+  // unallowed, because the data contained in a sealed value cannot be observed
+  // without unsealing the pointer.
+  if (!isUnevaluatedContext() &&
+      Context.getTargetInfo().getABI() == "cheriot" &&
+      (FoundDecl && FoundDecl->isImplicit())) {
+    for (Expr *E : ExprArgs)
+      if (CheckUnguardedCHERIoTSealedVarUse(E))
+        return ExprError();
+  }
+
   bool Elidable = false;
 
   // C++0x [class.copy]p34:

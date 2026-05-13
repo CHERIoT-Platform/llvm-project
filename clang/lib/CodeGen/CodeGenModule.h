@@ -2105,6 +2105,35 @@ private:
 
   llvm::Metadata *CreateMetadataIdentifierImpl(QualType T, MetadataTypeMap &Map,
                                                StringRef Suffix);
+
+  /* CHERIoT-specific helpers */
+
+  /// Create an instance of the struct type that sealed values actually have,
+  /// which is of a fixed shape, parametric in the underlying type.
+  /// The shape of the type is the following:
+  /// ```
+  /// __Sealed_<T> {
+  ///    uint32_t sealing_key_ptr;
+  ///    uint32_t padding;
+  ///    <T> body;
+  /// }
+  /// ```
+  llvm::StructType *getCHERIoTSealedStructType(QualType BaseType) {
+    llvm::Module &Mod = getModule();
+    llvm::Type *Int32Ty = llvm::Type::getInt32Ty(Mod.getContext());
+    llvm::Type *LLVMBaseType = getTypes().ConvertType(BaseType);
+
+    std::string TypeName = BaseType.getCanonicalType().getAsString();
+
+    std::replace(TypeName.begin(), TypeName.end(), ':', '_');
+    std::replace(TypeName.begin(), TypeName.end(), ' ', '_');
+    std::replace(TypeName.begin(), TypeName.end(), '<', '_');
+    std::replace(TypeName.begin(), TypeName.end(), '>', '_');
+
+    llvm::Type *SealedStructElements[] = {Int32Ty, Int32Ty, LLVMBaseType};
+    return llvm::StructType::create(Mod.getContext(), SealedStructElements,
+                                    ("struct.__Sealed_" + TypeName));
+  }
 };
 
 }  // end namespace CodeGen

@@ -31,7 +31,37 @@ entry:
 ;; CHECK-NEXT:  	  clc	  t2, %cheriot_compartment_lo_i(.LBB0_2)(t2)
 ;; CHECK-NEXT:  	  cjalr	  t2
   %call = notail call cheriot_compartmentcallcc noundef i32 @test_static_sealed_object(ptr addrspace(200) @test) #2
+
+;; CHECK:        .LBB0_4:                                # %entry
+;; CHECK-NEXT:                                           # Label of block must be emitted
+;; CHECK-NEXT:           ct.auipcc       a0, %cheriot_compartment_code_hi(__import.sealed_object.__default_malloc_capability)
+;; CHECK-NEXT:           ct.clc  a0, %cheriot_compartment_lo_i(.LBB0_4)(a0)
+;; CHECK-NEXT:   .LBB0_6:                                # %entry
+;; CHECK-NEXT:                                           # Label of block must be emitted
+;; CHECK-NEXT:           ct.auipcc       t1, %cheriot_compartment_code_hi(__import_static_sealing_inner_test_static_sealed_object)
+;; CHECK-NEXT:           ct.clc  t1, %cheriot_compartment_lo_i(.LBB0_6)(t1)
+;; CHECK-NEXT:   .LBB0_5:                                # %entry
+;; CHECK-NEXT:                                           # Label of block must be emitted
+;; CHECK-NEXT:           ct.auipcc       t2, %cheriot_compartment_code_hi(.compartment_switcher)
+;; CHECK-NEXT:           ct.clc  t2, %cheriot_compartment_lo_i(.LBB0_5)(t2)
+;; CHECK-NEXT:           ct.cjalr        t2
   %call2 = notail call cheriot_compartmentcallcc noundef i32 @test_static_sealed_object(ptr addrspace(200) @__default_malloc_capability) #2
+
+;; CHECK:        .LBB0_7:                                # %entry
+;; CHECK-NEXT:                                           # Label of block must be emitted
+;; CHECK-NEXT:           ct.auipcc       a0, %cheriot_compartment_code_hi(__import.sealed_object.MyExtern)
+;; CHECK-NEXT:           ct.clc  a0, %cheriot_compartment_lo_i(.LBB0_7)(a0)
+;; CHECK-NEXT:   .LBB0_9:                                # %entry
+;; CHECK-NEXT:                                           # Label of block must be emitted
+;; CHECK-NEXT:           ct.auipcc       t1, %cheriot_compartment_code_hi(__import_static_sealing_inner_test_static_sealed_object)
+;; CHECK-NEXT:           ct.clc  t1, %cheriot_compartment_lo_i(.LBB0_9)(t1)
+;; CHECK-NEXT:   .LBB0_8:                                # %entry
+;; CHECK-NEXT:                                           # Label of block must be emitted
+;; CHECK-NEXT:           ct.auipcc       t2, %cheriot_compartment_code_hi(.compartment_switcher)
+;; CHECK-NEXT:           ct.clc  t2, %cheriot_compartment_lo_i(.LBB0_8)(t2)
+;; CHECK-NEXT:           ct.cjalr        t2
+  %call3 = notail call cheriot_compartmentcallcc noundef i32 @test_static_sealed_object(ptr addrspace(200) @MyExtern) #2
+
   ret i32 %call2
 }
 
@@ -72,11 +102,8 @@ $__default_malloc_capability = comdat any
 ;; CHECK-NEXT:  .zero   16
 ;; CHECK-NEXT:  .size   __default_malloc_capability, 32
 @__default_malloc_capability = linkonce_odr dso_local addrspace(200) global
-%struct.SealedAllocatorCapabilityState { i32 ptrtoint (ptr
-addrspace(200) @__export.sealing_type.allocator.MallocKey to i32), i32 0,
-%struct.AllocatorCapabilityState { i32 1048576, i32 0, [2 x ptr addrspace(200)]
-zeroinitializer } }, section ".sealed_objects", comdat, align 8 "cheriot_sealed_value"
-
+%struct.SealedAllocatorCapabilityState { i32 ptrtoint (ptr addrspace(200) @__export.sealing_type.allocator.MallocKey to i32), i32 0, %struct.AllocatorCapabilityState { i32 1048576, i32 0, [2 x ptr addrspace(200)] zeroinitializer } }, section ".sealed_objects", comdat, align 8 "cheriot_sealed_value"
+@MyExtern = external dso_local addrspace(200) global %struct.SealedTestType, align 4 "cheriot_sealed_value"
 @llvm.compiler.used = appending addrspace(200) global [2 x ptr addrspace(200)] [ptr addrspace(200) @test, ptr addrspace(200) @__default_malloc_capability], section "llvm.metadata"
 
 
@@ -98,7 +125,14 @@ zeroinitializer } }, section ".sealed_objects", comdat, align 8 "cheriot_sealed_
 ;; CHECK-NEXT:	  .word	__default_malloc_capability
 ;; CHECK-NEXT:	  .word
 ;; CHECK-NEXT:	  .size	__import.sealed_object.__default_malloc_capability, 8
-
+ ;; CHECK:         .section        .compartment_imports.MyExtern,"awG",@progbits,__import.sealed_object.MyExtern
+;; CHECK-NEXT:    .type   __import.sealed_object.MyExtern,@object
+;; CHECK-NEXT:    .weak   __import.sealed_object.MyExtern
+;; CHECK-NEXT:    .p2align        3, 0x0
+;; CHECK-NEXT: __import.sealed_object.MyExtern:
+;; CHECK-NEXT:    .word   MyExtern
+;; CHECK-NEXT:    .word   12
+;; CHECK-NEXT:    .size   __import.sealed_object.MyExtern, 8
 
 !0 = !{i32 1, !"wchar_size", i32 2}
 !1 = !{i32 1, !"target-abi", !"cheriot"}

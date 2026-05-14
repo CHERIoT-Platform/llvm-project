@@ -1,5 +1,5 @@
 runners:
-  - name: cirun-gcp
+  - name: cirun-gcp-aarch64-runner
     cloud: gcp
     instance_type: n4a-standard-32
     machine_image: ubuntu-minimal-2404-noble-arm64-v20260507
@@ -9,4 +9,16 @@ runners:
       baseDisk:
         diskSizeGb: 60
     labels:
-      - cirun-gcp-arm64x32
+      - cirun-gcp-aarch64
+
+  - name: cirun-gcp-x86-runner
+    cloud: gcp
+    instance_type: c4d-standard-32
+    machine_image: ubuntu-minimal-2404-noble-v20260507
+    region: us-east1-b
+    preemptible: true
+    extra_config:
+      baseDisk:
+        diskSizeGb: 60
+    labels:
+      - cirun-gcp-x86

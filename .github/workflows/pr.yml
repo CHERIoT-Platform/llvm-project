@@ -6,7 +6,7 @@ on:
 jobs:
   build-and-test:
     name: Build and test PR
-    runs-on: "cirun-gcp-arm64x32--${{ github.run_id }}"
+    runs-on: "cirun-gcp-aarch64--${{ github.run_id }}"
     timeout-minutes: 360
 
     steps:

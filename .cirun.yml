@@ -14,7 +14,7 @@ runners:
   - name: cirun-gcp-x86-runner
     cloud: gcp
     instance_type: c4d-standard-32
-    machine_image: ubuntu-minimal-2404-noble-v20260507
+    machine_image: ubuntu-2404-noble-amd64-v20260503
     region: us-east1-b
     preemptible: true
     extra_config:

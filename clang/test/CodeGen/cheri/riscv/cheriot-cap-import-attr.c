@@ -2,24 +2,17 @@
 
 struct Uart {};
 
-// No specific perm encoding means "RWcmg".
-// CHECK: @uart = external addrspace(200) global %struct.Uart, align 1 #0 
-__attribute__((cheriot_mmio("uart"))) extern volatile struct Uart uart;
-
-// CHECK: @uart_WcmRg = external addrspace(200) global %struct.Uart, align 1 #0 
+// CHECK: @uart_WcmRg = external addrspace(200) global %struct.Uart, align 1 #0
 __attribute__((cheriot_mmio("uart", "WcmRg"))) volatile struct Uart uart_WcmRg;
 
-// CHECK: @uart_cmRWg = external addrspace(200) global %struct.Uart, align 1 #0 
+// CHECK: @uart_cmRWg = external addrspace(200) global %struct.Uart, align 1 #0
 __attribute__((cheriot_mmio("uart", "cmRWg"))) volatile struct Uart uart_cmRWg;
 
-// CHECK: @uart_RmcWg = external addrspace(200) global %struct.Uart, align 1 #0 
+// CHECK: @uart_RmcWg = external addrspace(200) global %struct.Uart, align 1 #0
 __attribute__((cheriot_mmio("uart", "RmcWg"))) volatile struct Uart uart_RmcWg;
 
-// CHECK: @uart_RmcWg2 = external addrspace(200) global %struct.Uart, align 1 #0 
+// CHECK: @uart_RmcWg2 = external addrspace(200) global %struct.Uart, align 1 #0
 __attribute__((cheriot_mmio("uart", "RmcWg"))) volatile struct Uart uart_RmcWg2;
-
-// CHECK: @SO = external addrspace(200) global i32, align 4 #1
-__attribute__((cheriot_shared_object("SO"))) int SO;
 
 // CHECK: @SO_RWcmg = external addrspace(200) global i32, align 4 #1
 __attribute__((cheriot_shared_object("SO", "RWcmg"))) extern int SO_RWcmg;
@@ -151,26 +144,24 @@ __attribute__((cheriot_shared_object("SO", "cgR"))) extern int SO_cgR;
 __attribute__((cheriot_shared_object("SO", "gcR"))) extern int SO_gcR;
 
 // CHECK: @SO_gRc = external addrspace(200) global i32, align 4 #15
-__attribute__((cheriot_shared_object("SO", "gcR"))) extern int SO_gRc;
+__attribute__((cheriot_shared_object("SO", "gRc"))) extern int SO_gRc;
 
 
 struct MMIOWithField { int field; };
 
 // CHECK: @mmio = external addrspace(200) global %struct.MMIOWithField, align 4 #16
-__attribute__((cheriot_mmio("mmio"))) extern volatile struct MMIOWithField mmio;
+__attribute__((cheriot_mmio("mmio", "R"))) extern volatile struct MMIOWithField mmio;
 
 void doSomethingWithUart(volatile struct Uart *uart);
 void doSomethingWithSO(int *SO);
 void doSomethingWithField(int);
 
 void func() {
-  doSomethingWithUart(&uart);
   doSomethingWithUart(&uart_WcmRg);
   doSomethingWithUart(&uart_cmRWg);
   doSomethingWithUart(&uart_RmcWg);
   doSomethingWithUart(&uart_RmcWg2);
 
-  doSomethingWithSO(&SO);
   doSomethingWithSO(&SO_RWcmg);
   doSomethingWithSO(&SO_RWmcg);
   doSomethingWithSO(&SO_RmcWg);
@@ -251,7 +242,7 @@ void func() {
 // CHECK: attributes #13 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,-Wc--" }
 // CHECK: attributes #14 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,RWc--" }
 // CHECK: attributes #15 = { "cheriot_global_cap_import"="cheriot_shared_object,SO,R-c-g" }
-// CHECK: attributes #16 = { "cheriot_global_cap_import"="mem,mmio,RWcmg" }
+// CHECK: attributes #16 = { "cheriot_global_cap_import"="mem,mmio,R----" }
 // CHECK: attributes #17 = { minsize nounwind optsize "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+e,+m,+xcheri,+xcheriot,+xcheripurecap,+zca,+zmmul" }
 // CHECK: attributes #18 = { minsize optsize "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="+32bit,+c,+e,+m,+xcheri,+xcheriot,+xcheripurecap,+zca,+zmmul" }
 // CHECK: attributes #19 = { minsize nounwind optsize }

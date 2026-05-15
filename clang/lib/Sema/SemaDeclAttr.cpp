@@ -2426,10 +2426,9 @@ static void handleCHERIoTMMIODevice(Sema &S, Decl *D, const ParsedAttr &Attr,
   StringRef Permissions;
   SourceLocation PermissionsLiteralLoc;
 
-  if (Attr.getNumArgs() > 1) {
-    S.checkStringLiteralArgumentAttr(Attr, 1, Permissions,
-                                     &PermissionsLiteralLoc);
-  }
+  if (!S.checkStringLiteralArgumentAttr(Attr, 1, Permissions,
+                                        &PermissionsLiteralLoc))
+    return;
 
   std::string OwnedPermissions = Permissions.str();
 
@@ -2486,10 +2485,9 @@ static void handleCHERIoTSharedObject(Sema &S, Decl *D, const ParsedAttr &Attr,
   StringRef Permissions;
   SourceLocation PermissionsLiteralLoc;
 
-  if (Attr.getNumArgs() > 1) {
-    S.checkStringLiteralArgumentAttr(Attr, 1, Permissions,
-                                     &PermissionsLiteralLoc);
-  }
+  if (!S.checkStringLiteralArgumentAttr(Attr, 1, Permissions,
+                                        &PermissionsLiteralLoc))
+    return;
 
   std::string OwnedPermissions = Permissions.str();
 

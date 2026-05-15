@@ -1472,7 +1472,6 @@ public:
   /// ReadPermission  := `ReadPermissionSymbol` | "-"
   /// WritePermission := `WritePermissionSymbol` | "-"
   /// CapPermission   := `CapPermissionSymbol` | "-"
-  /// WritePermission := `WritePermissionSymbol` | "-"
   /// LoadMutablePermission  := `LoadMutablePermissionSymbol` | "-"
   /// LoadGlobalPermission  := `LoadGlobalPermissionSymbol` | "-"
   /// ```

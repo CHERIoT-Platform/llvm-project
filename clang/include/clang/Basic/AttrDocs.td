@@ -1619,8 +1619,6 @@ whose meaning is explained in the table below.
 Examples of valid encodings are: ``"RWcm"`` (all permissions), ``"R"`` (read
 only), etc. Note that the order in which symbols appear is not relevant: for
 example, `"RWcm"` and `"mcWR"` are both valid and entail the same permissions.
-
-**Warning**: The ``<permissions_encoding>`` parameter is optional, and if no encoding is given ``"RWcmg"`` is assumed.
   }];
 }
 
@@ -1654,8 +1652,6 @@ string of variable length. The symbols allowed in the string are ``R``, ``W``,
 Examples of valid encodings are: ``"RWcm"`` (all permissions), ``"R"`` (read
 only), etc. Note that the order in which symbols appear is not relevant: for
 example, `"RWcm"` and `"mcWR"` are both valid and entail the same permissions.
-
-**Warning**: The ``<permissions_encoding>`` parameter is optional, and if no encoding is given ``"RWcmg"`` is assumed.
   }];
 }
 

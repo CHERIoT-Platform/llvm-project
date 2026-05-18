@@ -116,8 +116,6 @@ ABI computeTargetABI(const Triple &TT, const FeatureBitset &FeatureBits,
 }
 
 ABI getTargetABI(StringRef ABIName, const Triple &TT) {
-  ABI Default = ABI_Unknown;
-
   auto TargetABI = StringSwitch<ABI>(ABIName)
                        .Case("ilp32", ABI_ILP32)
                        .Case("ilp32f", ABI_ILP32F)
@@ -136,7 +134,7 @@ ABI getTargetABI(StringRef ABIName, const Triple &TT) {
                        .Case("l64pc128d", ABI_L64PC128D)
                        .Case("cheriot", ABI_CHERIOT)
                        .Case("cheriot-baremetal", ABI_CHERIOT_BAREMETAL)
-                       .Default(Default);
+                       .Default(ABI_Unknown);
   return TargetABI;
 }
 

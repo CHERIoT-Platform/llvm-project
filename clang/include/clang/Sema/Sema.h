@@ -8325,6 +8325,10 @@ public:
     return currentEvaluationContext().isUnevaluated();
   }
 
+  bool isPotentiallyEvaluatedContext() const {
+    return currentEvaluationContext().isPotentiallyEvaluated();
+  }
+
   bool isImmediateFunctionContext() const {
     return currentEvaluationContext().isImmediateFunctionContext();
   }

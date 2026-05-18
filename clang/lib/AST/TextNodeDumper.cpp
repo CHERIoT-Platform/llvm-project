@@ -1683,6 +1683,7 @@ void TextNodeDumper::VisitInitListExpr(const InitListExpr *ILE) {
     OS << " field ";
     dumpBareDeclRef(Field);
   }
+  OS << ' ' << (ILE->isExplicit() ? "explicit" : "implicit");
 }
 
 void TextNodeDumper::VisitGenericSelectionExpr(const GenericSelectionExpr *E) {

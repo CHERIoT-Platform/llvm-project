@@ -270,7 +270,9 @@ protected:
   Symbol(Kind k, InputFile *file, StringRef name, uint8_t binding,
          uint8_t stOther, uint8_t type)
       : file(file), nameData(name.data()), nameSize(name.size()), type(type),
-        binding(binding), stOther(stOther), symbolKind(k), isPreemptible(false),
+        binding(binding), stOther(stOther), symbolKind(k), 
+        usedByDynReloc(false), isSectionStartSymbol(false),
+        isPreemptible(false),
         isUsedInRegularObj(false), isExported(false), ltoCanOmit(false),
         traced(false), hasVersionSuffix(false), isInIplt(false),
         gotInIgot(false), folded(false), archSpecificBit(false),

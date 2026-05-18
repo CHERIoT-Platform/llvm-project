@@ -132,7 +132,6 @@ start:
 define internal { i64, i64, i64, i64 } @get_tuple_i64_impl() unnamed_addr addrspace(200) nounwind {
 ; CHECK-LABEL: get_tuple_i64_impl:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    # kill: def $c1 killed $c3
 ; CHECK-NEXT:    daddiu $1, $zero, 10
 ; CHECK-NEXT:    csd $1, $zero, 0($c3)
 ; CHECK-NEXT:    daddiu $1, $zero, 40
@@ -149,7 +148,6 @@ define internal { i64, i64, i64, i64 } @get_tuple_i64_impl() unnamed_addr addrsp
 define internal { ptr addrspace(200), ptr addrspace(200), ptr addrspace(200), ptr addrspace(200) } @get_tuple_cap_impl() unnamed_addr addrspace(200) nounwind {
 ; CHECK-LABEL: get_tuple_cap_impl:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    # kill: def $c1 killed $c3
 ; CHECK-NEXT:    cincoffset $c1, $cnull, 10
 ; CHECK-NEXT:    csc $c1, $zero, 0($c3)
 ; CHECK-NEXT:    cincoffset $c1, $cnull, 40

@@ -1,7 +1,5 @@
-; RUN: %cheri_purecap_llc -cheri-cap-table-abi=pcrel %s -o /dev/null
-; ModuleID = '<stdin>'
-source_filename = "bugpoint-output-4bb8cd9.bc"
-target triple = "cheri-unknown-freebsd"
+; DO NOT EDIT -- This file was generated from test/CodeGen/CHERI-Generic/Inputs/cheri_case_file_crash.ll
+; RUN: llc -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+xcheripurecap,+f,+d %s -o /dev/null
 
 declare i32 @__gxx_personality_v0(...) addrspace(200)
 

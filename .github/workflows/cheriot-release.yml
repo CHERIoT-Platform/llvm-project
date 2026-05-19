@@ -77,3 +77,33 @@ jobs:
         with:
           name: llvm-${{ matrix.arch }}
           path: Build/install/**
+
+  publish:
+    name: Publish GitHub Release
+    runs-on: ubuntu-24.04
+    needs: release
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download x86_64 artefacts
+        uses: actions/download-artifact@v8
+        with:
+          name: llvm-x86_64
+          path: ./llvm-x86_64
+
+      - name: Download aarch64 artefacts
+        uses: actions/download-artifact@v8
+        with:
+          name: llvm-aarch64
+          path: ./llvm-aarch64
+
+      - name: Package and publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tar czf llvm-x86_64.tar.gz -C llvm-x86_64 .
+          tar czf llvm-aarch64.tar.gz -C llvm-aarch64 .
+          gh release create llvm-latest --title "Latest LLVM toolchain" --repo ${{ github.repository }} 2>/dev/null || true
+          gh release upload llvm-latest llvm-x86_64.tar.gz llvm-aarch64.tar.gz --clobber --repo ${{ github.repository }}

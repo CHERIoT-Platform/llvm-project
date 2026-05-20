@@ -634,6 +634,9 @@ static constexpr DecoderListEntry DecoderList16[]{
     {DecoderTableXqccmp16,
      {RISCV::FeatureVendorXqccmp},
      "Xqccmp (Qualcomm 16-bit Push/Pop & Double Move Instructions)"},
+    {DecoderTableXqccmt16,
+     {RISCV::FeatureVendorXqccmt},
+     "Xqccmt (Qualcomm 16-bit Table Jump Instructions)"},
     {DecoderTableXwchc16, {RISCV::FeatureVendorXwchc}, "WCH QingKe XW"},
     {DecoderTableCapModeOnly_16, {}, "RISCV32Only_16"},
     // Standard Extensions

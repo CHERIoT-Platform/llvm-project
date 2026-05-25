@@ -9,6 +9,12 @@ jobs:
     runs-on: "cirun-gcp-aarch64--${{ github.run_id }}"
     timeout-minutes: 360
 
+    env:
+      SCCACHE_GCS_BUCKET: ${{ vars.GCP_SCCACHE_BUCKET }}
+      SCCACHE_GCS_KEY_PATH: /tmp/sccache-key.json
+      SCCACHE_GCS_RW_MODE: READ_WRITE
+      SCCACHE_GCS_KEY_PREFIX: ${{ github.repository }}/aarch64/${{ github.ref_name }}
+
     steps:
       - uses: actions/checkout@v6
 
@@ -16,7 +22,16 @@ jobs:
         run: |
           set -eo pipefail
           sudo apt-get update
-          sudo apt-get install -y clang ninja-build lld cmake ccache perl
+          sudo apt-get install -y clang ninja-build lld cmake sccache perl
+
+      - name: Start sccache
+        run: |
+          echo '${{ secrets.GCP_SCCACHE_KEY_JSON }}' > /tmp/sccache-key.json
+          SCCACHE_GCS_BUCKET=${{ vars.GCP_SCCACHE_BUCKET }}
+          SCCACHE_GCS_KEY_PATH=/tmp/sccache-key.json
+          SCCACHE_GCS_RW_MODE=READ_WRITE
+          sccache --start-server
+          sccache --show-stats
 
       - name: Configure
         run: |
@@ -35,7 +50,8 @@ jobs:
             -DLLVM_VC_REPOSITORY=${{ github.repository }} \
             -DLLVM_FORCE_VC_REPOSITORY=${{ github.repository }} \
             -DLLVM_VC_REVISION=${{ github.sha }} \
-            -DLLVM_CCACHE_BUILD=OFF \
+            -DLLVM_CCACHE_BUILD=ON \
+            -DCCACHE_PROGRAM=`which sccache` \
             -DLLVM_ENABLE_EXPENSIVE_CHECKS=ON \
             -G Ninja
 

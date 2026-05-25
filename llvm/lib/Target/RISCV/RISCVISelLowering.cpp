@@ -24822,8 +24822,7 @@ bool RISCVTargetLowering::isEligibleForTailCallOptimization(
   // Do not tail call cross-compartment calls.  We could tail call ones that
   // are internal to the compartment, but it's unlikely that we'll see much
   // benefit from that.
-  if ((CalleeCC == CallingConv::CHERIoT_LibraryCall) ||
-      (CalleeCC == CallingConv::CHERIoT_CompartmentCall) ||
+  if ((CalleeCC == CallingConv::CHERIoT_CompartmentCall) ||
       (CalleeCC == CallingConv::CHERIoT_CompartmentCallee))
     return false;
 
@@ -24884,23 +24883,6 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
   else if (CLI.CB && CLI.CB->isMustTailCall())
     reportFatalInternalError("failed to perform tail call elimination on a "
                              "call site marked musttail");
-
-  // Anything that changes the interrupt status on CHERIoT then we must do a
-  // call via the import table.
-  if (Subtarget.getTargetABI() == RISCVABI::ABI_CHERIOT)
-    if (auto *GV = dyn_cast<GlobalAddressSDNode>(Callee)) {
-      const Constant *GlobalValue = GV->getGlobal();
-      if (auto *GA = dyn_cast<GlobalAlias>(GlobalValue))
-        GlobalValue = GA->getAliasee();
-      if (!isSafeToDirectCall(MF.getFunction(), *cast<Function>(GlobalValue))) {
-        // TODO: We should be able to tail call these, we're just missing
-        // the relevant node.
-        IsTailCall = false;
-        if ((CallConv != CallingConv::CHERIoT_CompartmentCall) &&
-            ((CallConv != CallingConv::CHERIoT_CompartmentCallee)))
-          CallConv = CallingConv::CHERIoT_LibraryCall;
-      }
-    }
 
   // Anything that changes the interrupt status on CHERIoT then we must do a
   // call via the import table.
@@ -25184,7 +25166,10 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
     unsigned CallOpc =
         NeedSWGuarded ? RISCVISD::SW_GUARDED_TAIL : RISCVISD::TAIL;
     if (RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()))
-      return DAG.getNode(RISCVISD::CAP_TAIL, DL, NodeTys, Ops);
+      return DAG.getNode(CallConv == CallingConv::CHERIoT_LibraryCall
+                             ? RISCVISD::CAP_LIBRARY_TAIL
+                             : RISCVISD::CAP_TAIL,
+                         DL, NodeTys, Ops);
     SDValue Ret = DAG.getNode(CallOpc, DL, NodeTys, Ops);
     if (CLI.CFIType)
       Ret.getNode()->setCFIType(CLI.CFIType->getZExtValue());

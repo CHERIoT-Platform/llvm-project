@@ -4219,7 +4219,10 @@ void Verifier::verifyMustTailCall(CallInst &CI) {
         "cannot guarantee tail call due to mismatched return types", &CI);
 
   // - The calling conventions of the caller and callee must match.
-  Check(F->getCallingConv() == CI.getCallingConv(),
+  bool CHERILibCallDecayToCCC =
+      F->getCallingConv() == CallingConv::C &&
+      CI.getCallingConv() == CallingConv::CHERIoT_LibraryCall;
+  Check(CHERILibCallDecayToCCC || (F->getCallingConv() == CI.getCallingConv()),
         "cannot guarantee tail call due to mismatched calling conv", &CI);
 
   // - The call must immediately precede a :ref:`ret <i_ret>` instruction,

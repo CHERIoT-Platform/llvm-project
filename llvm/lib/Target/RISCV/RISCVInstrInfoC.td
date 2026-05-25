@@ -267,7 +267,7 @@ class CA_ALU<bits<6> funct6, bits<2> funct2, string OpcodeStr>
 let Predicates = [HasStdExtZca] in {
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0,
-    Predicates = [HasStdExtZca, NotCapMode] in
+    append Predicates = [NotCapMode] in
 def C_ADDI4SPN : RVInst16CIW<0b000, OPC_C0, (outs GPRC:$rd),
                              (ins SP:$rs1, uimm10_lsb00nonzero:$imm),
                              "c.addi4spn", "$rd, $rs1, $imm">,
@@ -279,7 +279,7 @@ def C_ADDI4SPN : RVInst16CIW<0b000, OPC_C0, (outs GPRC:$rd),
   let Inst{5} = imm{3};
 }
 
-let Predicates = [HasStdExtZca, NotCapMode] in
+let append Predicates = [NotCapMode] in
 def C_LW : CLoad_ri<0b010, "c.lw", GPRC, uimm7_lsb00>,
            Sched<[WriteLDW, ReadMemBase]> {
   bits<7> imm;
@@ -288,7 +288,7 @@ def C_LW : CLoad_ri<0b010, "c.lw", GPRC, uimm7_lsb00>,
   let Inst{5} = imm{6};
 }
 
-let isCodeGenOnly = 1 in
+let isCodeGenOnly = 1, append Predicates = [NotCapMode] in
 def C_LW_INX : CLoad_ri<0b010, "c.lw", GPRF32C, uimm7_lsb00>,
                Sched<[WriteLDW, ReadMemBase]> {
   bits<7> imm;
@@ -297,7 +297,7 @@ def C_LW_INX : CLoad_ri<0b010, "c.lw", GPRF32C, uimm7_lsb00>,
   let Inst{5} = imm{6};
 }
 
-let Predicates = [HasStdExtZca, IsRV64, NotCapMode] in
+let append Predicates = [IsRV64, NotCapMode] in
 def C_LD : CLoad_ri<0b011, "c.ld", GPRC, uimm8_lsb000>,
            Sched<[WriteLDD, ReadMemBase]> {
   bits<8> imm;
@@ -305,7 +305,7 @@ def C_LD : CLoad_ri<0b011, "c.ld", GPRC, uimm8_lsb000>,
   let Inst{6-5} = imm{7-6};
 }
 
-let Predicates = [HasStdExtZca, NotCapMode] in
+let append Predicates = [NotCapMode] in
 def C_SW : CStore_rri<0b110, "c.sw", GPRC, uimm7_lsb00>,
            Sched<[WriteSTW, ReadStoreData, ReadMemBase]> {
   bits<7> imm;
@@ -314,7 +314,7 @@ def C_SW : CStore_rri<0b110, "c.sw", GPRC, uimm7_lsb00>,
   let Inst{5} = imm{6};
 }
 
-let isCodeGenOnly = 1 in
+let isCodeGenOnly = 1, append Predicates = [NotCapMode] in
 def C_SW_INX : CStore_rri<0b110, "c.sw", GPRF32C, uimm7_lsb00>,
                Sched<[WriteSTW, ReadStoreData, ReadMemBase]> {
   bits<7> imm;
@@ -323,7 +323,7 @@ def C_SW_INX : CStore_rri<0b110, "c.sw", GPRF32C, uimm7_lsb00>,
   let Inst{5} = imm{6};
 }
 
-let Predicates = [HasStdExtZca, IsRV64, NotCapMode] in
+let append Predicates = [IsRV64, NotCapMode] in
 def C_SD : CStore_rri<0b111, "c.sd", GPRC, uimm8_lsb000>,
            Sched<[WriteSTD, ReadStoreData, ReadMemBase]> {
   bits<8> imm;
@@ -355,12 +355,12 @@ def PseudoC_ADDI_NOP : Pseudo<(outs GPRX0:$rd), (ins GPRX0:$rs1, simm6:$imm),
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0, isCall = 1,
     DecoderNamespace = "RV32Only", Defs = [X1],
-    Predicates = [HasStdExtZca, IsRV32, NotCapMode]  in
+    append Predicates = [IsRV32, NotCapMode]  in
 def C_JAL : RVInst16CJ<0b001, OPC_C1, (outs), (ins bare_simm12_lsb0:$offset),
                        "c.jal", "$offset">, Sched<[WriteJal]>;
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0,
-    Predicates = [HasStdExtZca, IsRV64] in
+    append Predicates = [IsRV64] in
 def C_ADDIW : RVInst16CI<0b001, OPC_C1, (outs GPRNoX0:$rd_wb),
                          (ins GPRNoX0:$rd, simm6:$imm),
                          "c.addiw", "$rd, $imm">,
@@ -374,7 +374,7 @@ def C_LI : RVInst16CI<0b010, OPC_C1, (outs GPR:$rd), (ins simm6:$imm),
            Sched<[WriteIALU]>;
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0,
-    Predicates = [HasStdExtZca, NotCapMode] in
+    append Predicates = [NotCapMode] in
 def C_ADDI16SP : RVInst16CI<0b011, OPC_C1, (outs SP:$rd_wb),
                             (ins SP:$rd, simm10_lsb0000nonzero:$imm),
                             "c.addi16sp", "$rd, $imm">,
@@ -444,13 +444,13 @@ def C_SLLI : RVInst16CI<0b000, OPC_C2, (outs GPR:$rd_wb),
   let Constraints = "$rd = $rd_wb";
 }
 
-let Predicates = [HasStdExtZca, NotCapMode] in
+let append Predicates = [NotCapMode] in
 def C_LWSP : CStackLoad<0b010, "c.lwsp", GPRNoX0, uimm8_lsb00>,
              Sched<[WriteLDW, ReadMemBase]> {
   let Inst{3-2} = imm{7-6};
 }
 
-let isCodeGenOnly = 1 in
+let isCodeGenOnly = 1, append Predicates = [NotCapMode] in
 def C_LWSP_INX : CStackLoad<0b010, "c.lwsp", GPRF32NoX0, uimm8_lsb00>,
                  Sched<[WriteLDW, ReadMemBase]> {
   let Inst{3-2} = imm{7-6};
@@ -463,7 +463,7 @@ def C_LDSP : CStackLoad<0b011, "c.ldsp", GPRNoX0, uimm9_lsb000>,
 }
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0,
-    Predicates = [HasStdExtZca, NotCapMode] in
+    append Predicates = [NotCapMode] in
 def C_JR : RVInst16CR<0b1000, OPC_C2, (outs), (ins GPRNoX0:$rs1),
                       "c.jr", "$rs1">, Sched<[WriteJalr, ReadJalr]> {
   let isBarrier = 1;
@@ -482,7 +482,7 @@ def C_EBREAK : RVInst16CR<0b1001, OPC_C2, (outs), (ins), "c.ebreak", "">, Sched<
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0,
     isCall=1, Defs=[X1], rs2 = 0,
-    Predicates = [HasStdExtZca, NotCapMode] in
+    append Predicates = [NotCapMode] in
 def C_JALR : RVInst16CR<0b1001, OPC_C2, (outs), (ins GPRNoX0:$rs1),
                         "c.jalr", "$rs1">, Sched<[WriteJalr, ReadJalr]>;
 
@@ -494,7 +494,7 @@ def C_ADD : RVInst16CR<0b1001, OPC_C2, (outs GPR:$rd),
   let Constraints = "$rs1 = $rd";
 }
 
-let Predicates = [HasStdExtZca, NotCapMode] in
+let append Predicates = [NotCapMode] in
 def C_SWSP : CStackStore<0b110, "c.swsp", GPR, uimm8_lsb00>,
              Sched<[WriteSTW, ReadStoreData, ReadMemBase]> {
   let Inst{8-7}  = imm{7-6};
@@ -506,7 +506,7 @@ def C_SWSP_INX : CStackStore<0b110, "c.swsp", GPRF32, uimm8_lsb00>,
   let Inst{8-7}  = imm{7-6};
 }
 
-let Predicates = [HasStdExtZca, IsRV64, NotCapMode] in
+let append Predicates = [IsRV64, NotCapMode] in
 def C_SDSP : CStackStore<0b111, "c.sdsp", GPR, uimm9_lsb000>,
              Sched<[WriteSTD, ReadStoreData, ReadMemBase]> {
   let Inst{9-7}   = imm{8-6};
@@ -575,7 +575,7 @@ let Predicates = [HasStdExtZcd, NotCapMode] in {
                  Sched<[WriteFST64, ReadFStoreData, ReadFMemBase]> {
     let Inst{9-7}   = imm{8-6};
   }
-} // Predicates = [HasStdExtZcd, NotCapMode] in {
+} // Predicates = [HasStdExtZcd]
 
 //===----------------------------------------------------------------------===//
 // HINT Instructions
@@ -755,64 +755,53 @@ def : InstAlias<".insn_cj $opcode, $funct3, $imm11",
 let Predicates = [HasStdExtZca, NotCapMode] in {
 def : CompressPat<(ADDI GPRC:$rd, SP:$rs1, uimm10_lsb00nonzero:$imm),
                   (C_ADDI4SPN GPRC:$rd, SP:$rs1, uimm10_lsb00nonzero:$imm)>;
-} // Predicates = [HasStdExtZca, NotCapMode]
 
-let Predicates = [HasStdExtZca, NotCapMode] in {
 def : CompressPat<(LW GPRC:$rd, GPRCMem:$rs1, uimm7_lsb00:$imm),
                   (C_LW GPRC:$rd, GPRCMem:$rs1, uimm7_lsb00:$imm)>;
 
 let isCompressOnly = true in
 def : CompressPat<(LW_INX GPRF32C:$rd, GPRCMem:$rs1, uimm7_lsb00:$imm),
                   (C_LW_INX GPRF32C:$rd, GPRCMem:$rs1, uimm7_lsb00:$imm)>;
-} // Predicates = [HasStdExtZca, NotCapMode]
 
-let Predicates = [HasStdExtZca, IsRV64, NotCapMode] in {
+let append Predicates = [IsRV64] in {
 def : CompressPat<(LD GPRC:$rd, GPRCMem:$rs1, uimm8_lsb000:$imm),
                   (C_LD GPRC:$rd, GPRCMem:$rs1, uimm8_lsb000:$imm)>;
-} // Predicates = [HasStdExtZca, IsRV64, NotCapMode]
+} // append Predicates = [IsRV64]
 
-let Predicates = [HasStdExtZca, NotCapMode] in {
 def : CompressPat<(SW GPRC:$rs2, GPRCMem:$rs1, uimm7_lsb00:$imm),
                   (C_SW GPRC:$rs2, GPRCMem:$rs1, uimm7_lsb00:$imm)>;
 
 let isCompressOnly = true in
 def : CompressPat<(SW_INX GPRF32C:$rs2, GPRCMem:$rs1, uimm7_lsb00:$imm),
                   (C_SW_INX GPRF32C:$rs2, GPRCMem:$rs1, uimm7_lsb00:$imm)>;
-} // Predicates = [HasStdExtZca, NotCapMode]
 
-let Predicates = [HasStdExtZca, IsRV64, NotCapMode] in {
+let append Predicates = [IsRV64] in {
 def : CompressPat<(SD GPRC:$rs2, GPRCMem:$rs1, uimm8_lsb000:$imm),
                   (C_SD GPRC:$rs2, GPRCMem:$rs1, uimm8_lsb000:$imm)>;
-} // Predicates = [HasStdExtZca, IsRV64, NotCapMode]
+} // append Predicates = [IsRV64]
+} // Predicates = [HasStdExtZca, NotCapMode]
 
 // Quadrant 1
 let Predicates = [HasStdExtZca] in {
 def : CompressPat<(ADDI X0, X0, 0), (C_NOP)>;
 def : CompressPat<(ADDI GPRNoX0:$rs1, GPRNoX0:$rs1, simm6nonzero:$imm),
                   (C_ADDI GPRNoX0:$rs1, simm6nonzero:$imm)>;
-} // Predicates = [HasStdExtZca]
 
-let Predicates = [HasStdExtZca, IsRV32, NotCapMode] in {
+let append Predicates = [IsRV32, NotCapMode] in {
 def : CompressPat<(JAL X1, bare_simm12_lsb0:$offset),
                   (C_JAL bare_simm12_lsb0:$offset)>;
-} // Predicates = [HasStdExtZca, IsRV32, NotCapMode]
+} // append Predicates = [IsRV32, NotCapMode]
 
-let Predicates = [HasStdExtZca, IsRV64] in {
+let append Predicates = [IsRV64] in {
 def : CompressPat<(ADDIW GPRNoX0:$rs1, GPRNoX0:$rs1, simm6:$imm),
                   (C_ADDIW GPRNoX0:$rs1, simm6:$imm)>;
-} // Predicates = [HasStdExtZca, IsRV64]
+} // append Predicates = [IsRV64]
 
-let Predicates = [HasStdExtZca] in {
 def : CompressPat<(ADDI GPRNoX0:$rd, X0, simm6:$imm),
                   (C_LI GPRNoX0:$rd, simm6:$imm)>;
-} //  Predicates = [HasStdExtZca]
-
-let Predicates = [HasStdExtZca, NotCapMode] in {
+let append Predicates = [NotCapMode] in
 def : CompressPat<(ADDI X2, X2, simm10_lsb0000nonzero:$imm),
                   (C_ADDI16SP X2, simm10_lsb0000nonzero:$imm)>;
-} //  Predicates = [HasStdExtZca, NotCapMode]
-
-let Predicates = [HasStdExtZca] in {
 def : CompressPat<(LUI GPRNoX0X2:$rd, c_lui_imm:$imm),
                   (C_LUI GPRNoX0X2:$rd, c_lui_imm:$imm)>;
 def : CompressPat<(SRLI GPRC:$rs1, GPRC:$rs1, uimmlog2xlennonzero:$imm),
@@ -838,9 +827,8 @@ def : CompressPat<(AND GPRC:$rs1, GPRC:$rs1, GPRC:$rs2),
 let isCompressOnly = true in
 def : CompressPat<(AND GPRC:$rs1, GPRC:$rs2, GPRC:$rs1),
                   (C_AND GPRC:$rs1, GPRC:$rs2)>;
-} // Predicates = [HasStdExtZca]
 
-let Predicates = [HasStdExtZca, IsRV64] in {
+let append Predicates = [IsRV64] in {
 let isCompressOnly = true in
 def : CompressPat<(ADDIW GPRNoX0:$rd, X0, simm6:$imm),
                   (C_LI GPRNoX0:$rd, simm6:$imm)>;
@@ -851,14 +839,11 @@ def : CompressPat<(ADDW GPRC:$rs1, GPRC:$rs1, GPRC:$rs2),
 let isCompressOnly = true in
 def : CompressPat<(ADDW GPRC:$rs1, GPRC:$rs2, GPRC:$rs1),
                    (C_ADDW GPRC:$rs1, GPRC:$rs2)>;
-} // Predicates = [HasStdExtZca, IsRV64]
+} // append Predicates = [IsRV64]
 
-let Predicates = [HasStdExtZca, NotCapMode] in {
+let append Predicates = [NotCapMode] in
 def : CompressPat<(JAL X0, bare_simm12_lsb0:$offset),
                   (C_J bare_simm12_lsb0:$offset)>;
-} //  Predicates = [HasStdExtZca, NotCapMode]
-
-let Predicates = [HasStdExtZca] in {
 def : CompressPat<(BEQ GPRC:$rs1, X0, bare_simm9_lsb0:$imm),
                   (C_BEQZ GPRC:$rs1, bare_simm9_lsb0:$imm)>;
 let isCompressOnly = true in
@@ -875,28 +860,23 @@ def : CompressPat<(BNE X0, GPRC:$rs1, bare_simm9_lsb0:$imm),
 let Predicates = [HasStdExtZca] in {
 def : CompressPat<(SLLI GPRNoX0:$rs1, GPRNoX0:$rs1, uimmlog2xlennonzero:$imm),
                   (C_SLLI GPRNoX0:$rs1, uimmlog2xlennonzero:$imm)>;
-} // Predicates = [HasStdExtZca, NotCapMode]
 
-let Predicates = [HasStdExtZca, NotCapMode] in {
+let append Predicates = [NotCapMode] in
 def : CompressPat<(LW GPRNoX0:$rd, SPMem:$rs1,  uimm8_lsb00:$imm),
                   (C_LWSP GPRNoX0:$rd, SPMem:$rs1, uimm8_lsb00:$imm)>;
 
 let isCompressOnly = true in
 def : CompressPat<(LW_INX GPRF32NoX0:$rd, SPMem:$rs1,  uimm8_lsb00:$imm),
                   (C_LWSP_INX GPRF32NoX0:$rd, SPMem:$rs1, uimm8_lsb00:$imm)>;
-} // Predicates = [HasStdExtZca, NotCapMode]
 
-let Predicates = [HasStdExtZca, IsRV64, NotCapMode] in {
+let append Predicates = [IsRV64, NotCapMode] in {
 def : CompressPat<(LD GPRNoX0:$rd, SPMem:$rs1, uimm9_lsb000:$imm),
                   (C_LDSP GPRNoX0:$rd, SPMem:$rs1, uimm9_lsb000:$imm)>;
-} // Predicates = [HasStdExtZca, IsRV64, NotCapMode]
+} // append Predicates = [IsRV64, NotCapMode]
 
-let Predicates = [HasStdExtZca, NotCapMode] in {
+let append Predicates = [NotCapMode] in
 def : CompressPat<(JALR X0, GPRNoX0:$rs1, 0),
                   (C_JR GPRNoX0:$rs1)>;
-} // Predicates = [HasStdExtZca, NotCapMode]
-
-let Predicates = [HasStdExtZca] in {
 let isCompressOnly = true in {
 def : CompressPat<(ADD GPRNoX0:$rs1, X0, GPRNoX0:$rs2),
                   (C_MV GPRNoX0:$rs1, GPRNoX0:$rs2)>;
@@ -907,34 +887,28 @@ def : CompressPat<(ADDI GPRNoX0:$rs1, GPRNoX0:$rs2, 0),
                   (C_MV GPRNoX0:$rs1, GPRNoX0:$rs2)>;
 def : CompressPat<(EBREAK), (C_EBREAK)>;
 def : CompressPat<(UNIMP), (C_UNIMP)>;
-} // Predicates = [HasStdExtZca]
-
-let Predicates = [HasStdExtZca, NotCapMode] in {
+let append Predicates = [NotCapMode] in
 def : CompressPat<(JALR X1, GPRNoX0:$rs1, 0),
                   (C_JALR GPRNoX0:$rs1)>;
-} // Predicates = [HasStdExtZca, NotCapMode]
-
-let Predicates = [HasStdExtZca] in {
 def : CompressPat<(ADD GPRNoX0:$rs1, GPRNoX0:$rs1, GPRNoX0:$rs2),
                   (C_ADD GPRNoX0:$rs1, GPRNoX0:$rs2)>;
 let isCompressOnly = true in
 def : CompressPat<(ADD GPRNoX0:$rs1, GPRNoX0:$rs2, GPRNoX0:$rs1),
                   (C_ADD GPRNoX0:$rs1, GPRNoX0:$rs2)>;
-} // Predicates = [HasStdExtZca, NotCapMode]
 
-let Predicates = [HasStdExtZca, NotCapMode] in {
+let append Predicates = [NotCapMode] in
 def : CompressPat<(SW GPR:$rs2, SPMem:$rs1, uimm8_lsb00:$imm),
                   (C_SWSP GPR:$rs2, SPMem:$rs1, uimm8_lsb00:$imm)>;
 
 let isCompressOnly = true in
 def : CompressPat<(SW_INX GPRF32:$rs2, SPMem:$rs1, uimm8_lsb00:$imm),
                   (C_SWSP_INX GPRF32:$rs2, SPMem:$rs1, uimm8_lsb00:$imm)>;
-} // Predicates = [HasStdExtZca, NotCapMode]
 
-let Predicates = [HasStdExtZca, IsRV64, NotCapMode] in {
+let append Predicates = [IsRV64, NotCapMode] in {
 def : CompressPat<(SD GPR:$rs2, SPMem:$rs1, uimm9_lsb000:$imm),
                   (C_SDSP GPR:$rs2, SPMem:$rs1, uimm9_lsb000:$imm)>;
-} // Predicates = [HasStdExtZca, IsRV64, NotCapMode]
+} // append Predicates = [IsRV64, NotCapMode]
+} // Predicates = [HasStdExtZca]
 
 // Zcf Instructions
 let Predicates = [HasStdExtZcf, IsRV32] in {

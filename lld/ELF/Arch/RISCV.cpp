@@ -312,9 +312,9 @@ int64_t RISCV::getImplicitAddend(const uint8_t *buf, RelType type) const {
 
 void RISCV::writeGotHeader(uint8_t *buf) const {
   if (ctx.arg.is64)
-    write64le(buf, ctx.mainPart->dynamic->getVA());
+    write64le(buf, ctx.in.dynamic->getVA());
   else
-    write32le(buf, ctx.mainPart->dynamic->getVA());
+    write32le(buf, ctx.in.dynamic->getVA());
 }
 
 void RISCV::writeGotPlt(uint8_t *buf, const Symbol &s) const {
@@ -1887,10 +1887,10 @@ void RISCV::finalizeRelax(int passes) const {
 
                 // Construct the GOT entry for the symbol we need to access.
                 // FIXME: Deduplicate?
-                ctx.mainPart->capRelocs->addReloc(*got, gotOff, *r.sym, 0,
+                ctx.in.capRelocs->addReloc(*got, gotOff, *r.sym, 0,
                                                   R_ABS_CAP,
                                                   *ctx.target->symbolicCapRel);
-                ctx.mainPart->capRelocs->finalizeContents();
+                ctx.in.capRelocs->finalizeContents();
 
                 // Construct an anonymous symbol pointing to the GOT
                 r.sym = addSyntheticLocal(ctx, "", STT_NOTYPE, 0, 0, *got);

@@ -119,9 +119,6 @@ public:
   // building for CHERI
   uint8_t isSectionStartSymbol : 1;
 
-  // The partition whose dynamic symbol table contains this symbol's definition.
-  uint8_t partition = 1;
-
   // True if this symbol is preemptible at load time.
   //
   // Primarily set in two locations, (a) parseVersionAndComputeIsPreemptible and

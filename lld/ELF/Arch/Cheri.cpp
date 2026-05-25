@@ -261,7 +261,7 @@ void CheriCapRelocsSection::addReloc(
               verboseToString(ctx, sym));
 
     sym = &getCheriMipsTrampolineSym(ctx, type, *sym);
-    getPartition(ctx).relaDyn->addSymbolReloc(type, isec, offsetInSec, *sym,
+    ctx.in.relaDyn->addSymbolReloc(type, isec, offsetInSec, *sym,
                                               addend, type);
     return;
   }
@@ -835,13 +835,13 @@ uint64_t MipsCheriCapTableSection::assignIndices(uint64_t startIndex,
     // rather than the normal relocation section to make processing of PLT
     // relocations in RTLD more efficient.
     RelocationBaseSection &dynRelSec =
-        it.second.usedInCallExpr ? *ctx.in.relaPlt : *ctx.mainPart->relaDyn;
+        it.second.usedInCallExpr ? *ctx.in.relaPlt : *ctx.in.relaDyn;
     if (targetSym->isPreemptible)
       dynRelSec.addSymbolReloc(elfCapabilityReloc, *this, off, *targetSym);
     else if (targetSym->isUndefWeak())
       addConstant(ctx, {R_ABS_CAP, elfCapabilityReloc, off, 0, targetSym});
     else
-      ctx.mainPart->capRelocs->addReloc(*this, off, *targetSym, 0, R_ABS_CAP,
+      ctx.in.capRelocs->addReloc(*this, off, *targetSym, 0, R_ABS_CAP,
                                         elfCapabilityReloc);
   }
   assert(assignedSmallIndexes + assignedLargeIndexes == entries.size());
@@ -890,7 +890,7 @@ void MipsCheriCapTableSection::assignValuesAndAddCapTableSymbols() {
       if (!ctx.arg.shared)
         addConstant(ctx, {R_ADDEND, ctx.target->symbolicRel, offset, 1, s});
       else
-        ctx.mainPart->relaDyn->addReloc(
+        ctx.in.relaDyn->addReloc(
             {ctx.target->tlsModuleIndexRel, this, offset});
     } else {
       // When building a shared library we still need a dynamic relocation
@@ -900,7 +900,7 @@ void MipsCheriCapTableSection::assignValuesAndAddCapTableSymbols() {
       if (!s->isPreemptible && !ctx.arg.shared)
         addConstant(ctx, {R_ADDEND, ctx.target->symbolicRel, offset, 1, s});
       else
-        ctx.mainPart->relaDyn->addSymbolReloc(ctx.target->tlsModuleIndexRel,
+        ctx.in.relaDyn->addSymbolReloc(ctx.target->tlsModuleIndexRel,
                                               *this, offset, *s);
 
       offset += ctx.arg.wordsize;
@@ -910,7 +910,7 @@ void MipsCheriCapTableSection::assignValuesAndAddCapTableSymbols() {
       if (!s->isPreemptible)
         addConstant(ctx, {R_ABS, ctx.target->tlsOffsetRel, offset, 0, s});
       else
-        ctx.mainPart->relaDyn->addSymbolReloc(ctx.target->tlsOffsetRel, *this,
+        ctx.in.relaDyn->addSymbolReloc(ctx.target->tlsOffsetRel, *this,
                                               offset, *s);
     }
   }
@@ -927,7 +927,7 @@ void MipsCheriCapTableSection::assignValuesAndAddCapTableSymbols() {
     if (!s->isPreemptible && !ctx.arg.shared)
       addConstant(ctx, {R_TPREL, ctx.target->symbolicRel, offset, 0, s});
     else
-      ctx.mainPart->relaDyn->addAddendOnlyRelocIfNonPreemptible(
+      ctx.in.relaDyn->addAddendOnlyRelocIfNonPreemptible(
           ctx.target->tlsGotRel, *this, offset, *s, ctx.target->symbolicRel);
   }
 

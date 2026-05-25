@@ -1,7 +1,11 @@
 name: PR Build and Test
 
 on:
-  pull_request:
+  pull_request_target:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
@@ -17,6 +21,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Install dependencies
         run: |
@@ -34,6 +41,7 @@ jobs:
           echo '${{ secrets.GCP_SCCACHE_KEY_JSON }}' > /tmp/sccache-key.json
           /tmp/sccache --start-server
           /tmp/sccache --show-stats
+          rm /tmp/sccache-key.json
 
       - name: Configure
         run: |

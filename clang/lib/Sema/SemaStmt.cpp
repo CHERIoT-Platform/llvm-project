@@ -824,7 +824,11 @@ bool Sema::checkMustTailAttr(const Stmt *St, const Attr &MTA) {
   // strict to allow this, but if LLVM added support for this in the future, we
   // could exit early here and skip the remaining checks if the functions are
   // using such a calling convention.
-  if (CallerType.Func->getCallConv() != CalleeType.Func->getCallConv()) {
+  bool CHERILibCallDecayToCCC =
+      CallerType.Func->getCallConv() == CC_C &&
+      CalleeType.Func->getCallConv() == CC_CHERILibCall;
+  if (CallerType.Func->getCallConv() != CalleeType.Func->getCallConv() &&
+      !CHERILibCallDecayToCCC) {
     if (const auto *ND = dyn_cast_or_null<NamedDecl>(CE->getCalleeDecl()))
       Diag(St->getBeginLoc(), diag::err_musttail_callconv_mismatch)
           << true << ND->getDeclName();

@@ -37,6 +37,9 @@ def riscv_cap_library_call : RVSDNode<"CAP_LIB_CALL", SDT_RISCVCapCall,
 def riscv_cap_tail        : RVSDNode<"CAP_TAIL", SDT_RISCVCapCall,
                                    [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
                                     SDNPVariadic]>;
+def riscv_cap_library_tail
+    : RVSDNode<"CAP_LIBRARY_TAIL", SDT_RISCVCapCall,
+               [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue, SDNPVariadic]>;
 def riscv_cap_tag_get     : RVSDNode<"CAP_TAG_GET",
                                    SDT_RISCVCheriBoolUnary,
                                    [SDNPHasChain]>;
@@ -2171,6 +2174,13 @@ def PseudoCTAIL : Pseudo<(outs), (ins cap_call_symbol:$dst), []> {
   let AsmString = "ctail\t$dst";
 }
 
+let Predicates = [HasCheri, IsCapMode], isCall = 1, isTerminator = 1,
+    isReturn = 1, isBarrier = 1, Uses = [X2_Y], isCodeGenOnly = 0,
+    Size = 16 in def PseudoCTAILLibrary
+    : Pseudo<(outs), (ins cap_call_symbol:$dst), []> {
+  let AsmString = "ctail\t$dst";
+}
+
 let Predicates = [HasCheriot] in
 def : InstAlias<"ct.ctail $dst", (PseudoCTAIL cap_call_symbol:$dst)>;
 
@@ -2179,12 +2189,20 @@ let Predicates = [HasCheri, IsCapMode, IsPureCapABI],
 def PseudoCTAILIndirect : Pseudo<(outs), (ins  YGPRTC:$rs1),
                                  [(riscv_cap_tail  YGPRTC:$rs1)]>,
                           PseudoInstExpansion<(CJALR X0_Y, YGPR:$rs1, 0)>;
+def PseudoCTAILLibraryIndirect
+    : Pseudo<(outs), (ins YGPRTC:$rs1), [(riscv_cap_library_tail YGPRTC:$rs1)]>,
+      PseudoInstExpansion<(CJALR X0_Y, YGPR:$rs1, 0)>;
 
 let Predicates = [HasCheri, IsCapMode, IsPureCapABI] in {
 def : Pat<(riscv_cap_tail tglobaladdr:$dst),
           (PseudoCTAIL texternalsym:$dst)>;
 def : Pat<(riscv_cap_tail texternalsym:$dst),
           (PseudoCTAIL texternalsym:$dst)>;
+
+def : Pat<(riscv_cap_library_tail tglobaladdr:$dst),
+          (PseudoCTAILLibrary texternalsym:$dst)>;
+def : Pat<(riscv_cap_library_tail texternalsym:$dst),
+          (PseudoCTAILLibrary texternalsym:$dst)>;
 } // Predicates = [HasCheri, IsCapMode, IsPureCapABI]
 
 let Predicates = [HasCheri, IsCapMode, IsPureCapABI] in

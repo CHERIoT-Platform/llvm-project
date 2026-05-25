@@ -26,7 +26,7 @@ entry:
 ; CHECK-LABEL: callViaAlias:
 define dso_local i32 @callViaAlias() local_unnamed_addr addrspace(200) #0 {
 entry:
-; CHECK: ccall bar_alias
+; CHECK: ctail bar_alias
   %call1 = tail call cheriot_librarycallcc i32 @bar_alias() #2
   ret i32 %call1
 }

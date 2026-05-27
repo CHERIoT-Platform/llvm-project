@@ -2671,14 +2671,6 @@ bool VarDecl::checkForConstantInitialization(
   return Eval->HasConstantInitialization;
 }
 
-template<typename DeclT>
-static DeclT *getDefinitionOrSelf(DeclT *D) {
-  assert(D);
-  if (auto *Def = D->getDefinition())
-    return Def;
-  return D;
-}
-
 bool VarDecl::isEscapingByref() const {
   return hasAttr<BlocksAttr>() && NonParmVarDeclBits.EscapingByref;
 }
@@ -2720,7 +2712,7 @@ VarDecl *VarDecl::getTemplateInstantiationPattern() const {
             break;
           VTD = NewVTD;
         }
-        return getDefinitionOrSelf(VTD->getTemplatedDecl());
+        return VTD->getTemplatedDecl();
       }
       if (auto *VTPSD =
               From.dyn_cast<VarTemplatePartialSpecializationDecl *>()) {
@@ -2730,27 +2722,14 @@ VarDecl *VarDecl::getTemplateInstantiationPattern() const {
             break;
           VTPSD = NewVTPSD;
         }
-        return getDefinitionOrSelf<VarDecl>(VTPSD);
+        return VTPSD;
       }
     }
   }
 
-  // If this is the pattern of a variable template, find where it was
-  // instantiated from. FIXME: Is this necessary?
-  if (VarTemplateDecl *VarTemplate = VD->getDescribedVarTemplate()) {
-    while (!VarTemplate->isMemberSpecialization()) {
-      auto *NewVT = VarTemplate->getInstantiatedFromMemberTemplate();
-      if (!NewVT)
-        break;
-      VarTemplate = NewVT;
-    }
-
-    return getDefinitionOrSelf(VarTemplate->getTemplatedDecl());
-  }
-
   if (VD == this)
     return nullptr;
-  return getDefinitionOrSelf(const_cast<VarDecl*>(VD));
+  return const_cast<VarDecl *>(VD);
 }
 
 VarDecl *VarDecl::getInstantiatedFromStaticDataMember() const {
@@ -4274,7 +4253,7 @@ FunctionDecl::getTemplateInstantiationPattern(bool ForDefinition) const {
   if (isGenericLambdaCallOperatorSpecialization(
           dyn_cast<CXXMethodDecl>(this))) {
     assert(getPrimaryTemplate() && "not a generic lambda call operator?");
-    return getDefinitionOrSelf(getPrimaryTemplate()->getTemplatedDecl());
+    return getPrimaryTemplate()->getTemplatedDecl();
   }
 
   // Check for a declaration of this function that was instantiated from a
@@ -4287,7 +4266,7 @@ FunctionDecl::getTemplateInstantiationPattern(bool ForDefinition) const {
     if (ForDefinition &&
         !clang::isTemplateInstantiation(Info->getTemplateSpecializationKind()))
       return nullptr;
-    return getDefinitionOrSelf(cast<FunctionDecl>(Info->getInstantiatedFrom()));
+    return cast<FunctionDecl>(Info->getInstantiatedFrom());
   }
 
   if (ForDefinition &&
@@ -4304,7 +4283,7 @@ FunctionDecl::getTemplateInstantiationPattern(bool ForDefinition) const {
       Primary = NewPrimary;
     }
 
-    return getDefinitionOrSelf(Primary->getTemplatedDecl());
+    return Primary->getTemplatedDecl();
   }
 
   return nullptr;
@@ -5142,7 +5121,7 @@ EnumDecl *EnumDecl::getTemplateInstantiationPattern() const {
       EnumDecl *ED = getInstantiatedFromMemberEnum();
       while (auto *NewED = ED->getInstantiatedFromMemberEnum())
         ED = NewED;
-      return ::getDefinitionOrSelf(ED);
+      return ED;
     }
   }
 

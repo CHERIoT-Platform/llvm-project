@@ -7,8 +7,7 @@ class CheriTestMode(object):
     EXCLUDE = "exclude"
     ONLY = "only"
 
-
-class TestingConfig(object):
+class TestingConfig:
     """
     TestingConfig - Information on the tests inside a suite.
     """

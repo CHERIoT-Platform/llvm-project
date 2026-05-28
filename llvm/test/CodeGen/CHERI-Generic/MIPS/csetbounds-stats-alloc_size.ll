@@ -1,11 +1,12 @@
+; DO NOT EDIT -- This file was generated from test/CodeGen/CHERI-Generic/Inputs/csetbounds-stats-alloc_size.ll
 ; RUN: rm -f %t.csv
-; RUN: %cheri_purecap_llc -cheri-cap-table-abi=plt %s -O0 -o /dev/null \
+; RUN: llc -mtriple=mips64 -mcpu=cheri128 -mattr=+cheri128 --relocation-model=pic -target-abi purecap %s -O0 -o /dev/null \
 ; RUN:    -collect-csetbounds-output=%t.csv -collect-csetbounds-stats=csv
-; RUN: %cheri_FileCheck %s -input-file=%t.csv -check-prefix CSV
+; RUN: FileCheck %s -input-file=%t.csv -check-prefix CSV
 
 declare ptr addrspace(200) @do_alloc(i32) addrspace(200) allocsize(0)
 declare ptr addrspace(200) @do_alloc_callsite_annotated(i32, i32) addrspace(200)
-@alloc_fn_ptr = addrspace(200) global ptr addrspace(200) null, align 32
+@alloc_fn_ptr = addrspace(200) global ptr addrspace(200) null, align 16
 
 define ptr addrspace(200) @test_direct_call_1() addrspace(200) {
 entry:
@@ -24,7 +25,7 @@ entry:
 ; and https://gcc.gnu.org/bugzilla/show_bug.cgi?id=88372)
 define ptr addrspace(200) @test_indirect_call() addrspace(200) {
 entry:
-  %0 = load ptr addrspace(200), ptr addrspace(200) @alloc_fn_ptr, align 32
+  %0 = load ptr addrspace(200), ptr addrspace(200) @alloc_fn_ptr, align 16
   %result = call ptr addrspace(200) %0(i32 1, i32 8, i32 4) allocsize(1,2)
   ret ptr addrspace(200) %result
 }
@@ -32,5 +33,5 @@ entry:
 ; CSV-LABEL: alignment_bits,size,kind,source_loc,compiler_pass,details
 ; CSV-NEXT: 0,100,h,"<somewhere in test_direct_call_1>","function with alloc_size","call to do_alloc"
 ; CSV-NEXT: 0,200,h,"<somewhere in test_direct_call_2>","function with alloc_size","call to do_alloc_callsite_annotated"
-; CSV-NEXT: 5,[[#CAP_SIZE]],g,"<somewhere in test_indirect_call>","MipsTargetLowering::lowerGlobalAddress","load of global alloc_fn_ptr (alloc size=[[#CAP_SIZE]])"
+; CSV-NEXT: 4,16,g,"<somewhere in test_indirect_call>","MipsTargetLowering::lowerGlobalAddress","load of global alloc_fn_ptr (alloc size=16)"
 ; CSV-NEXT: 0,32,h,"<somewhere in test_indirect_call>","function with alloc_size","call to function pointer"

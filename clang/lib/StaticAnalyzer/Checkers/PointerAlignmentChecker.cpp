@@ -827,10 +827,10 @@ void PointerAlignmentChecker::checkPostStmt(const CastExpr *CE,
   /* Update TrailingZerosMap */
   if (DstTZC < SrcTZC) {
     if (DstVal.isUnknown()) {
-      const LocationContext *LCtx = C.getLocationContext();
+      const StackFrame *SF = C.getStackFrame();
       DstVal = C.getSValBuilder().conjureSymbolVal(
-          nullptr, C.getCFGElementRef(), LCtx, CE->getType(), C.blockCount());
-      State = State->BindExpr(CE, LCtx, DstVal);
+          nullptr, C.getCFGElementRef(), SF, CE->getType(), C.blockCount());
+      State = State->BindExpr(CE, SF, DstVal);
     }
     if (SymbolRef Sym = DstVal.getAsSymbol()) {
       State = State->set<TrailingZerosMap>(Sym, SrcTZC);
@@ -884,7 +884,7 @@ void PointerAlignmentChecker::checkPostStmt(const BinaryOperator *BO,
       /* Align check: p & (ALIGN - 1)*/
       if (ResVal.isUnknown()) {
         ResVal = C.getSValBuilder().makeIntVal(0, true);
-        State = State->BindExpr(BO, C.getLocationContext(), ResVal);
+        State = State->BindExpr(BO, C.getStackFrame(), ResVal);
         C.addTransition(State);
         return;
       } else {
@@ -945,10 +945,10 @@ void PointerAlignmentChecker::checkPostStmt(const BinaryOperator *BO,
     Res = BitWidth;
 
   if (ResVal.isUnknown()) {
-    const LocationContext *LCtx = C.getLocationContext();
+    const StackFrame *SF = C.getStackFrame();
     ResVal = C.getSValBuilder().conjureSymbolVal(
-        nullptr, C.getCFGElementRef(), LCtx, BO->getType(), C.blockCount());
-    State = State->BindExpr(BO, LCtx, ResVal);
+        nullptr, C.getCFGElementRef(), SF, BO->getType(), C.blockCount());
+    State = State->BindExpr(BO, SF, ResVal);
   }
   State = State->set<TrailingZerosMap>(ResVal.getAsSymbol(), Res);
   C.addTransition(State);
@@ -1094,7 +1094,7 @@ PathDiagnosticPieceRef PointerAlignmentChecker::AlignmentBugVisitor::VisitNode(
 
   // Generate the extra diagnostic.
   PathDiagnosticLocation const Pos(S, BRC.getSourceManager(),
-                                   N->getLocationContext());
+                                   N->getStackFrame());
   return std::make_shared<PathDiagnosticEventPiece>(Pos, OS.str(), true);
 }
 
@@ -1130,7 +1130,7 @@ PathDiagnosticPieceRef PointerAlignmentChecker::CapStorageBugVisitor::VisitNode(
 
   // Generate the extra diagnostic.
   PathDiagnosticLocation const Pos(S, BRC.getSourceManager(),
-                                   N->getLocationContext());
+                                   N->getStackFrame());
   return std::make_shared<PathDiagnosticEventPiece>(Pos, OS.str(), true);
 }
 

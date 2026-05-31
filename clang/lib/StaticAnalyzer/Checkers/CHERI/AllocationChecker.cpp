@@ -244,10 +244,10 @@ void AllocationChecker::checkPostStmt(const CastExpr *CE,
   const MemRegion *DMR = DstVal.getAsRegion();
   if (MR->getAs<ElementRegion>() && (!DMR || !DMR->getAs<ElementRegion>())) {
     if (DstVal.isUnknown()) {
-      const LocationContext *LCtx = C.getLocationContext();
+      const StackFrame *SF = C.getStackFrame();
       DstVal = C.getSValBuilder().conjureSymbolVal(
-          nullptr, C.getCFGElementRef(), LCtx, CE->getType(), C.blockCount());
-      State = State->BindExpr(CE, LCtx, DstVal);
+          nullptr, C.getCFGElementRef(), SF, CE->getType(), C.blockCount());
+      State = State->BindExpr(CE, SF, DstVal);
       DMR = DstVal.getAsRegion();
     }
     if (DMR) {
@@ -454,7 +454,7 @@ PathDiagnosticPieceRef AllocationChecker::AllocPartitionBugVisitor::VisitNode(
 
     describeCast(OS, CE, BRC.getASTContext().getLangOpts());
     PathDiagnosticLocation const Pos(S, BRC.getSourceManager(),
-                                     N->getLocationContext());
+                                     N->getStackFrame());
     auto Ev = std::make_shared<PathDiagnosticEventPiece>(Pos, OS.str(), true);
     Ev->setPrunable(false);
     return Ev;

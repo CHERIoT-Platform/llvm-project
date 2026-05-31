@@ -529,12 +529,12 @@ ProgramStateRef CheriotHeapChecker::checkPointerEscape(
 }
 
 void CheriotHeapChecker::checkBeginFunction(CheckerContext &C) const {
-  const LocationContext *LC = C.getLocationContext();
-  if (!LC->inTopFrame())
+  const StackFrame *SF = C.getStackFrame();
+  if (!SF->inTopFrame())
     return;
 
   // Only start analysis paths at functions
-  const Decl *D = C.getLocationContext()->getDecl();
+  const Decl *D = C.getStackFrame()->getDecl();
   const FunctionDecl *FD = dyn_cast_or_null<FunctionDecl>(D);
   if (!FD || !FD->hasAttr<CHERICompartmentNameAttr>()) {
     C.addSink();
@@ -549,7 +549,7 @@ void CheriotHeapChecker::checkBeginFunction(CheckerContext &C) const {
     if (!Param->getType()->isPointerType())
       continue;
 
-    const VarRegion *VR = State->getRegion(Param, LC);
+    const VarRegion *VR = State->getRegion(Param, SF);
     if (SymbolRef Sym = State->getSVal(VR).getAsLocSymbol()) {
       State = State->set<HeapPointers>(Sym, HeapPtrState::Unclaimed);
       State = State->set<CheckedPointers>(Sym, {});
@@ -568,7 +568,7 @@ void CheriotHeapChecker::checkEndFunction(const ReturnStmt *RS,
                                           CheckerContext &C) const {
   // Don't report leaks on returns from intra-compartment helper functions,
   // since the caller might contain the relevant releases.
-  const Decl *D = C.getLocationContext()->getDecl();
+  const Decl *D = C.getStackFrame()->getDecl();
   const FunctionDecl *FD = dyn_cast_or_null<FunctionDecl>(D);
   if (!FD || !FD->hasAttr<CHERICompartmentNameAttr>())
     return;

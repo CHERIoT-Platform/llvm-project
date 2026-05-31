@@ -6681,11 +6681,10 @@ static Value *inferCapabilityOffsetOrAddr(Value *V, Type *ResultTy,
   return nullptr;
 }
 
-static Value *simplifyUnaryIntrinsic(Function *F, Value *Op0,
-                                     const SimplifyQuery &Q,
-                                     const CallBase *Call) {
+Value *llvm::simplifyUnaryIntrinsic(Intrinsic::ID IID, Value *Op0,
+                                    FastMathFlags FMF, Type *RetTy,
+                                    const SimplifyQuery &Q) {
   // Idempotent functions return the same result when called repeatedly.
-  Intrinsic::ID IID = F->getIntrinsicID();
   if (isIdempotent(IID))
     if (auto *II = dyn_cast<IntrinsicInst>(Op0))
       if (II->getIntrinsicID() == IID)
@@ -6711,7 +6710,7 @@ static Value *simplifyUnaryIntrinsic(Function *F, Value *Op0,
       return Op0;
 
     if (KnownClass.cannotBeOrderedLessThanZero() &&
-        KnownClass.isKnownNeverNaN() && Call->hasNoSignedZeros())
+        KnownClass.isKnownNeverNaN() && FMF.noSignedZeros())
       return Op0;
 
     break;
@@ -6729,7 +6728,7 @@ static Value *simplifyUnaryIntrinsic(Function *F, Value *Op0,
   case Intrinsic::cheri_cap_tag_get:
   case Intrinsic::cheri_cap_tag_get_temporal:
     if (llvm::cheri::isKnownUntaggedCapability(Op0, &Q.DL))
-      return Constant::getNullValue(F->getReturnType());
+      return Constant::getNullValue(RetTy);
     break;
   case Intrinsic::cheri_cap_sealed_get:
   case Intrinsic::cheri_cap_base_get:
@@ -6745,7 +6744,7 @@ static Value *simplifyUnaryIntrinsic(Function *F, Value *Op0,
     // TODO: for some of these we could ignore more things
     if (isa<ConstantPointerNull>(
             getBasePtrIgnoringCapabilityAddressManipulation(Op0, Q.DL))) {
-      return Constant::getNullValue(F->getReturnType());
+      return Constant::getNullValue(RetTy);
     }
     break;
   case Intrinsic::cheri_cap_perms_get:
@@ -6756,7 +6755,7 @@ static Value *simplifyUnaryIntrinsic(Function *F, Value *Op0,
     if (isa<ConstantPointerNull>(
             // Maybe: getBasePtrIgnoringCapabilityManipulation(Op0, Q.DL))) {
             getBasePtrIgnoringCapabilityAddressManipulation(Op0, Q.DL))) {
-      return Constant::getNullValue(F->getReturnType());
+      return Constant::getNullValue(RetTy);
     }
     break;
   // Note: No optimizations for getting type/length since this
@@ -6766,24 +6765,24 @@ static Value *simplifyUnaryIntrinsic(Function *F, Value *Op0,
     break;
   case Intrinsic::cheri_cap_address_get:
     if (auto *V = inferCapabilityOffsetOrAddr<Intrinsic::cheri_cap_address_get>(
-            Op0, F->getReturnType(), Q.DL))
+            Op0, RetTy, Q.DL))
       return V;
     break;
   case Intrinsic::cheri_cap_flags_get: {
     if (auto *Ret = foldCheriGetSetPair<Intrinsic::cheri_cap_flags_get>(
-            Op0, F->getReturnType(), Q.DL))
+            Op0, RetTy, Q.DL))
       return Ret;
     break;
   }
   case Intrinsic::cheri_cap_high_get: {
     if (auto *Ret = foldCheriGetSetPair<Intrinsic::cheri_cap_high_get>(
-            Op0, F->getReturnType(), Q.DL))
+            Op0, RetTy, Q.DL))
       return Ret;
     break;
   }
   case Intrinsic::cheri_cap_offset_get:
     if (auto *V = inferCapabilityOffsetOrAddr<Intrinsic::cheri_cap_offset_get>(
-            Op0, F->getReturnType(), Q.DL))
+            Op0, RetTy, Q.DL))
       return V;
     break;
 
@@ -6801,31 +6800,31 @@ static Value *simplifyUnaryIntrinsic(Function *F, Value *Op0,
   }
   case Intrinsic::exp:
     // exp(log(x)) -> x
-    if (Call->hasAllowReassoc() &&
+    if (FMF.allowReassoc() &&
         match(Op0, m_Intrinsic<Intrinsic::log>(m_Value(X))))
       return X;
     break;
   case Intrinsic::exp2:
     // exp2(log2(x)) -> x
-    if (Call->hasAllowReassoc() &&
+    if (FMF.allowReassoc() &&
         match(Op0, m_Intrinsic<Intrinsic::log2>(m_Value(X))))
       return X;
     break;
   case Intrinsic::exp10:
     // exp10(log10(x)) -> x
-    if (Call->hasAllowReassoc() &&
+    if (FMF.allowReassoc() &&
         match(Op0, m_Intrinsic<Intrinsic::log10>(m_Value(X))))
       return X;
     break;
   case Intrinsic::log:
     // log(exp(x)) -> x
-    if (Call->hasAllowReassoc() &&
+    if (FMF.allowReassoc() &&
         match(Op0, m_Intrinsic<Intrinsic::exp>(m_Value(X))))
       return X;
     break;
   case Intrinsic::log2:
     // log2(exp2(x)) -> x
-    if (Call->hasAllowReassoc() &&
+    if (FMF.allowReassoc() &&
         (match(Op0, m_Intrinsic<Intrinsic::exp2>(m_Value(X))) ||
          match(Op0,
                m_Intrinsic<Intrinsic::pow>(m_SpecificFP(2.0), m_Value(X)))))
@@ -6834,7 +6833,7 @@ static Value *simplifyUnaryIntrinsic(Function *F, Value *Op0,
   case Intrinsic::log10:
     // log10(pow(10.0, x)) -> x
     // log10(exp10(x)) -> x
-    if (Call->hasAllowReassoc() &&
+    if (FMF.allowReassoc() &&
         (match(Op0, m_Intrinsic<Intrinsic::exp10>(m_Value(X))) ||
          match(Op0,
                m_Intrinsic<Intrinsic::pow>(m_SpecificFP(10.0), m_Value(X)))))
@@ -6849,7 +6848,7 @@ static Value *simplifyUnaryIntrinsic(Function *F, Value *Op0,
       return Op0;
     break;
   case Intrinsic::structured_gep:
-    return cast<StructuredGEPInst>(Call)->getPointerOperand();
+    return Op0;
   default:
     break;
   }
@@ -7542,15 +7541,12 @@ static Value *simplifyIntrinsic(CallBase *Call, Value *Callee,
   }
 
   if (NumOperands == 1)
-    return simplifyUnaryIntrinsic(F, Args[0], Q, Call);
+    return simplifyUnaryIntrinsic(IID, Args[0], Call->getFastMathFlagsOrNone(),
+                                   Call->getType(), Q);
 
-  if (NumOperands == 2) {
-    FastMathFlags FMF;
-    if (auto *FPMO = dyn_cast<FPMathOperator>(Call))
-      FMF = FPMO->getFastMathFlags();
+  if (NumOperands == 2)
     return simplifyBinaryIntrinsic(IID, F->getReturnType(), Args[0], Args[1],
-                                   FMF, Q.getWithInstruction(Call));
-  }
+                                   Call->getFastMathFlagsOrNone(), Q);
 
   // Handle intrinsics with 3 or more arguments.
   switch (IID) {
@@ -7579,8 +7575,18 @@ static Value *simplifyIntrinsic(CallBase *Call, Value *Callee,
     if (match(ShAmtArg, m_APInt(ShAmtC))) {
       // If there's effectively no shift, return the 1st arg or 2nd arg.
       APInt BitWidth = APInt(ShAmtC->getBitWidth(), ShAmtC->getBitWidth());
-      if (ShAmtC->urem(BitWidth).isZero())
+      const APInt ShAmt = ShAmtC->urem(BitWidth);
+      if (ShAmt.isZero())
         return Args[IID == Intrinsic::fshl ? 0 : 1];
+
+      // fshl (lshr X, C1), (shl X, C2), C1 -> X when C1 + C2 == BW
+      // fshr (lshr X, C1), (shl X, C2), C2 -> X when C1 + C2 == BW
+      const APInt *C1, *C2;
+      Value *X;
+      if (match(Op0, m_LShr(m_Value(X), m_APInt(C1))) &&
+          match(Op1, m_Shl(m_Specific(X), m_APInt(C2))) &&
+          *C1 + *C2 == BitWidth && ShAmt == *(IID == Intrinsic::fshl ? C1 : C2))
+        return X;
     }
 
     // Rotating zero by anything is zero.

@@ -54,7 +54,7 @@ void CheriAPIModelling::evalBoundsSet(CheckerContext &C,
                                       const CallExpr *CE) const {
   auto State = C.getState();
   SVal Cap = C.getSVal(CE->getArg(0));
-  State = State->BindExpr(CE, C.getLocationContext(), Cap);
+  State = State->BindExpr(CE, C.getStackFrame(), Cap);
   C.addTransition(State);
 }
 
@@ -62,7 +62,7 @@ void CheriAPIModelling::evalAddrSet(CheckerContext &C,
                                     const CallExpr *CE) const {
   auto State = C.getState();
   SVal Addr = C.getSVal(CE->getArg(1));
-  State = State->BindExpr(CE, C.getLocationContext(), Addr);
+  State = State->BindExpr(CE, C.getStackFrame(), Addr);
   C.addTransition(State);
 }
 

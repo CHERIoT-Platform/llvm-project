@@ -401,10 +401,10 @@ void ProvenanceSourceChecker::propagateProvenanceInfo(ExplodedNode *N,
   ProgramStateRef State = N->getState();
   SVal ResVal = C.getSVal(E);
   if (ResVal.isUnknown()) {
-    const LocationContext *LCtx = C.getLocationContext();
+    const StackFrame *SF = C.getStackFrame();
     ResVal = C.getSValBuilder().conjureSymbolVal(
-        nullptr, C.getCFGElementRef(), LCtx, E->getType(), C.blockCount());
-    State = State->BindExpr(E, LCtx, ResVal);
+        nullptr, C.getCFGElementRef(), SF, E->getType(), C.blockCount());
+    State = State->BindExpr(E, SF, ResVal);
   }
 
   if (SymbolRef ResSym = ResVal.getAsSymbol())
@@ -567,7 +567,7 @@ PathDiagnosticPieceRef ProvenanceSourceChecker::InvalidCapBugVisitor::VisitNode(
 
   // Generate the extra diagnostic.
   PathDiagnosticLocation const Pos(S, BRC.getSourceManager(),
-                                   N->getLocationContext());
+                                   N->getStackFrame());
   return std::make_shared<PathDiagnosticEventPiece>(Pos, OS.str(), true);
 }
 
@@ -593,7 +593,7 @@ PathDiagnosticPieceRef ProvenanceSourceChecker::Ptr2IntBugVisitor::VisitNode(
 
   // Generate the extra diagnostic.
   PathDiagnosticLocation const Pos(S, BRC.getSourceManager(),
-                                   N->getLocationContext());
+                                   N->getStackFrame());
   return std::make_shared<PathDiagnosticEventPiece>(Pos, OS.str(), true);
 }
 

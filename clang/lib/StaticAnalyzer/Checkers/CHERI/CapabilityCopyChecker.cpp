@@ -347,10 +347,10 @@ bool handleAlignmentCheck(const BinaryOperator *BO, ProgramStateRef State,
 
   SVal AndVal = C.getSVal(BO);
   if (AndVal.isUnknown()) {
-    const LocationContext *LCtx = C.getLocationContext();
-    AndVal = C.getSValBuilder().conjureSymbolVal(nullptr, C.getCFGElementRef(), LCtx,
+    const StackFrame *SF = C.getStackFrame();
+    AndVal = C.getSValBuilder().conjureSymbolVal(nullptr, C.getCFGElementRef(), SF,
                                                  BO->getType(), C.blockCount());
-    State = State->BindExpr(BO, LCtx, AndVal);
+    State = State->BindExpr(BO, SF, AndVal);
   }
 
   SValBuilder &SVB = C.getSValBuilder();

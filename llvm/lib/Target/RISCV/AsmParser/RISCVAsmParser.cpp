@@ -843,6 +843,11 @@ public:
     });
   }
 
+  bool isUImm7EqXLen() const {
+    return isUImmPred(
+        [this](int64_t Imm) { return isRV64Expr() ? Imm == 64 : Imm == 32; });
+  }
+
   bool isUImm8GE32() const {
     return isUImmPred([](int64_t Imm) { return isUInt<8>(Imm) && Imm >= 32; });
   }
@@ -873,6 +878,15 @@ public:
       return false;
     bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);
     return IsConstantImm && isInt<N>(fixImmediateForRV32(Imm, isRV64Expr()));
+  }
+
+  bool isYBNDSWImm() const {
+    if (!isExpr())
+      return false;
+
+    int64_t Imm;
+    bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);
+    return IsConstantImm && RISCV::isValidYBNDSWImm(Imm);
   }
 
   template <class Pred> bool isSImmPred(Pred p) const {
@@ -1973,6 +1987,17 @@ bool RISCVAsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
         ErrorLoc,
         "stack adjustment is invalid for this instruction and register list");
   }
+  case Match_InvalidYBNDSWImm: {
+    const SMLoc ErrorLoc = ((RISCVOperand &)*Operands[ErrorInfo]).getStartLoc();
+    return Error(ErrorLoc, "immediate must be an integer in the range "
+                           "[1, 255], a multiple of 8 in the range [256, 504], "
+                           "or a multiple of 16 in the range [512, 4096]");
+  }
+  case Match_InvalidUImm7EqXLen: {
+    const SMLoc ErrorLoc = ((RISCVOperand &)*Operands[ErrorInfo]).getStartLoc();
+    return Error(ErrorLoc, "immediate must be an integer equal to XLEN (" +
+                               Twine(isRV64() ? "64" : "32") + ")");
+  }
   }
 
   if (const char *MatchDiag = getMatchKindDiag((RISCVMatchResultTy)Result)) {
@@ -2741,7 +2766,11 @@ ParseStatus RISCVAsmParser::parseVTypeI(OperandVector &Operands) {
 bool RISCVAsmParser::generateVTypeError(SMLoc ErrorLoc) {
   if (STI->hasFeature(RISCV::FeatureStdExtZvfbfa) ||
       STI->hasFeature(RISCV::FeatureStdExtZvfofp8min) ||
-      STI->hasFeature(RISCV::FeatureVendorXSfvfbfexp16e))
+      STI->hasFeature(RISCV::FeatureVendorXSfvfbfexp16e) ||
+      STI->hasFeature(RISCV::FeatureStdExtZvqwbdota8i) ||
+      STI->hasFeature(RISCV::FeatureStdExtZvqwbdota16i) ||
+      STI->hasFeature(RISCV::FeatureStdExtZvfqwbdota8f) ||
+      STI->hasFeature(RISCV::FeatureStdExtZvfwbdota16bf))
     return Error(
         ErrorLoc,
         "operand must be "

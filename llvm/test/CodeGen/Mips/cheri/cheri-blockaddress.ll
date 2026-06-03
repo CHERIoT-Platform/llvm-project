@@ -5,9 +5,9 @@
 ; See address-of-label-crash.c in clang/test/CodeGen/cheri for the C source code
 
 ; Function Attrs: noinline nounwind optnone
-define i32 @addrof_label_in_static() addrspace(200) {
+define dso_local i32 @addrof_label_in_static() addrspace(200) {
 entry:
-  %0 = load ptr addrspace(200), ptr addrspace(200) @addrof_label_in_static.b, align 32
+  %0 = load ptr addrspace(200), ptr addrspace(200) @addrof_label_in_static.b, align 16
   br label %indirectgoto
 
 label1:                                           ; preds = %indirectgoto
@@ -18,7 +18,7 @@ indirectgoto:                                     ; preds = %entry
   indirectbr ptr addrspace(200) %indirect.goto.dest, [label %label1]
 }
 
-@addrof_label_in_static.b = internal addrspace(200) global ptr addrspace(200) blockaddress(@addrof_label_in_static, %label1), align 32
+@addrof_label_in_static.b = internal addrspace(200) global ptr addrspace(200) blockaddress(@addrof_label_in_static, %label1), align 16
 
 ; Create a global containing the address of the label:
 ; ASM-LABEL: .ent addrof_label_in_static
@@ -29,11 +29,11 @@ indirectgoto:                                     ; preds = %entry
 
 
 ; Function Attrs: noinline nounwind optnone
-define i32 @addrof_label_in_local() addrspace(200) {
+define dso_local i32 @addrof_label_in_local() addrspace(200) #0 {
 entry:
   %d = alloca ptr addrspace(200), align 16, addrspace(200)
-  store ptr addrspace(200) blockaddress(@addrof_label_in_local, %label2), ptr addrspace(200) %d, align 32
-  %0 = load ptr addrspace(200), ptr addrspace(200) %d, align 32
+  store ptr addrspace(200) blockaddress(@addrof_label_in_local, %label2), ptr addrspace(200) %d, align 16
+  %0 = load ptr addrspace(200), ptr addrspace(200) %d, align 16
   br label %indirectgoto
 
 label2:                                           ; preds = %indirectgoto

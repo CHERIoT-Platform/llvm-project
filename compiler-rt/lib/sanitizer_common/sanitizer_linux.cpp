@@ -2913,7 +2913,7 @@ void CheckMPROTECT() {
 #  endif
 }
 
-void CheckNoDeepBind(const char *filename, int flag) {
+void OnDlOpen(const char* filename, int flag) {
 #  ifdef RTLD_DEEPBIND
   if (flag & RTLD_DEEPBIND) {
     Report(

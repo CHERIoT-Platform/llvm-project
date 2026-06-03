@@ -67,7 +67,6 @@ RISCVMCAsmInfoDarwin::RISCVMCAsmInfoDarwin(const MCTargetOptions &Options)
     : MCAsmInfoDarwin(Options) {
   CodePointerSize = 4;
   InternalSymbolPrefix = "L";
-  PrivateLabelPrefix = "L";
   SeparatorString = "%%";
   CommentString = ";";
   AlignmentIsInBytes = false;

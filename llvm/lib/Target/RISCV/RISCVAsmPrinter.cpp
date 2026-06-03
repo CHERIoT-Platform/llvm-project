@@ -169,6 +169,9 @@ private:
   void emitAttributes(const MCSubtargetInfo &SubtargetInfo);
 
   void emitNTLHint(const MachineInstr *MI);
+
+  void emitLpadAlignedCall(const MachineInstr &MI);
+
   void emitGlobalVariable(const GlobalVariable *GV) override;
   void emitGlobalAlias(const Module &M, const GlobalAlias &GV) override;
 
@@ -180,7 +183,7 @@ private:
 
   void lowerToMCInst(const MachineInstr *MI, MCInst &OutMI);
 };
-}
+} // namespace
 
 void RISCVAsmPrinter::LowerSTACKMAP(MCStreamer &OutStreamer, StackMaps &SM,
                                     const MachineInstr &MI) {
@@ -324,6 +327,73 @@ bool RISCVAsmPrinter::EmitToStreamer(MCStreamer &S, const MCInst &Inst,
 // instructions) auto-generated.
 #include "RISCVGenMCPseudoLowering.inc"
 
+// Emit a call to a returns_twice function with LPAD.
+// When Zca is enabled, emit .p2align 2 before the call to ensure the
+// following LPAD is 4-byte aligned. For assembly output, wrap with
+// .option push/exact/pop to prevent relaxation. For object output,
+// emit the pseudo directly so MCCodeEmitter handles it without R_RISCV_RELAX.
+void RISCVAsmPrinter::emitLpadAlignedCall(const MachineInstr &MI) {
+  const MCSubtargetInfo &MCSTI = getSubtargetInfo();
+  const bool IsIndirect = MI.getOpcode() == RISCV::PseudoCALLIndirectLpadAlign,
+             HasZca = MCSTI.hasFeature(RISCV::FeatureStdExtZca),
+             HasRelax = MCSTI.hasFeature(RISCV::FeatureRelax);
+
+  if (HasZca)
+    OutStreamer->emitCodeAlignment(Align(4), &MCSTI);
+
+  if (OutStreamer->hasRawTextSupport()) {
+    // Assembly path: wrap call with .option push/exact/pop and emit LPAD
+    // separately so the output is human-readable.
+    RISCVTargetStreamer &RTS = getTargetStreamer();
+    if (HasZca && HasRelax) {
+      RTS.emitDirectiveOptionPush();
+      RTS.emitDirectiveOptionExact();
+    }
+
+    MCInst CallInst;
+    if (!IsIndirect) {
+      MCOperand MCOp;
+      lowerOperand(MI.getOperand(0), MCOp);
+      CallInst = MCInstBuilder(RISCV::PseudoCALL).addOperand(MCOp);
+    } else {
+      CallInst = MCInstBuilder(RISCV::JALR)
+                     .addReg(RISCV::X1)
+                     .addReg(MI.getOperand(0).getReg())
+                     .addImm(0);
+    }
+
+    if (HasZca && HasRelax) {
+      MCSubtargetInfo NoRelaxSTI(MCSTI);
+      NoRelaxSTI.ToggleFeature(RISCV::FeatureRelax);
+      EmitToStreamer(*OutStreamer, CallInst, NoRelaxSTI);
+      RTS.emitDirectiveOptionPop();
+    } else {
+      EmitToStreamer(*OutStreamer, CallInst, MCSTI);
+    }
+
+    // LPAD is encoded as AUIPC X0, label.
+    MCInst LpadInst = MCInstBuilder(RISCV::AUIPC)
+                          .addReg(RISCV::X0)
+                          .addImm(MI.getOperand(1).getImm());
+    EmitToStreamer(*OutStreamer, LpadInst, MCSTI);
+  } else {
+    // Object path: emit PseudoCALL(Indirect)LpadAlign directly.
+    // MCCodeEmitter::expandFunctionCallLpad expands to AUIPC+JALR+LPAD
+    // without emitting R_RISCV_RELAX on the call fixup.
+    MCInst TmpInst;
+    TmpInst.setOpcode(MI.getOpcode());
+    if (!IsIndirect) {
+      MCOperand MCOp;
+      lowerOperand(MI.getOperand(0), MCOp);
+      TmpInst.addOperand(MCOp);
+    } else {
+      TmpInst.addOperand(MCOperand::createReg(MI.getOperand(0).getReg()));
+    }
+    TmpInst.addOperand(MCOperand::createImm(MI.getOperand(1).getImm()));
+    EmitToStreamer(*OutStreamer, TmpInst, MCSTI);
+  }
+}
+
 void RISCVAsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
   auto CheriotCapImportAttrName =
       llvm::CHERIoTGlobalCapabilityImportAttr::getAttrName();
@@ -447,6 +517,10 @@ void RISCVAsmPrinter::emitInstruction(const MachineInstr *MI) {
     return;
   case TargetOpcode::PATCHABLE_TAIL_CALL:
     LowerPATCHABLE_TAIL_CALL(MI);
+    return;
+  case RISCV::PseudoCALLLpadAlign:
+  case RISCV::PseudoCALLIndirectLpadAlign:
+    emitLpadAlignedCall(*MI);
     return;
   }
 

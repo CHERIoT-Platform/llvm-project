@@ -1,4 +1,5 @@
-; RUN: not %cheri_purecap_llc -verify-machineinstrs %s 2>&1 | FileCheck %s -check-prefix=ERR
+; DO NOT EDIT -- This file was generated from test/CodeGen/CHERI-Generic/Inputs/libcxx-do-not-optimize-crash.ll
+; RUN: not llc -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+xcheripurecap,+f -verify-machineinstrs %s 2>&1 | FileCheck %s -check-prefix=ERR
 ; ERR: error: couldn't allocate output register for constraint 'C'
 ; Check that this results in an error instead of a crash
 

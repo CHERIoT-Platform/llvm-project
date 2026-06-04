@@ -1,0 +1,13 @@
+; DO NOT EDIT -- This file was generated from test/CodeGen/CHERI-Generic/Inputs/libcxx-do-not-optimize-crash.ll
+; RUN: not llc -mtriple=riscv64 --relocation-model=pic -target-abi l64pc128d -mattr=+xcheri,+xcheripurecap,+f,+d -verify-machineinstrs %s 2>&1 | FileCheck %s -check-prefix=ERR
+; ERR: error: could not allocate output register for constraint 'C'
+; Check that this results in an error instead of a crash
+
+$_Z13DoNotOptimizeIbEvRT_ = comdat any
+
+; Function Attrs: noinline nounwind optnone
+define void @_Z13DoNotOptimizeIbEvRT_() addrspace(200) #0 comdat {
+entry:
+  %0 = call i8 asm sideeffect "", "=C,0,~{memory},~{$1}"(i1 undef) #1
+  ret void
+}

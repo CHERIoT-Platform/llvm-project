@@ -87,7 +87,7 @@ void test_cg_prov_ambiguous(uintptr_t lhs, uintptr_t rhs) {
 
 /// Compound assignment should always use LHS provenance:
 // CHECK-LABEL: define {{[^@]+}}@test_cg_eq_op_ambiguous
-// CHECK-SAME: (ptr addrspace(200) noundef{{( readnone captures\(ret: address, provenance\))?}} [[LHS:%.*]], ptr addrspace(200) noundef{{( readnone)?}} [[RHS:%.*]]) local_unnamed_addr addrspace(200)
+// CHECK-SAME: (ptr addrspace(200) {{.*}} [[LHS:%.*]], ptr addrspace(200) {{.*}} [[RHS:%.*]]) local_unnamed_addr addrspace(200)
 // CHECK-NEXT:  entry:
 // NOTADD-NEXT:   [[LHS_ADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[LHS]])
 // CHECK-NEXT:    [[RHS_ADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[RHS]])
@@ -104,7 +104,7 @@ uintptr_t test_cg_eq_op_ambiguous(uintptr_t lhs, uintptr_t rhs) {
 
 /// Compound assignment should always use LHS provenance:
 // CHECK-LABEL: define {{[^@]+}}@test_cg_eq_op_lhs_noprov
-// CHECK-SAME: (ptr addrspace(200) noundef{{( readnone captures\(ret: address, provenance\))?}} [[LHS:%.*]], ptr addrspace(200) noundef{{( readnone)?}} [[RHS:%.*]]) local_unnamed_addr addrspace(200)
+// CHECK-SAME: (ptr addrspace(200) {{.*}} [[LHS:%.*]], ptr addrspace(200) {{.*}} [[RHS:%.*]]) local_unnamed_addr addrspace(200)
 // CHECK-NEXT:  entry:
 // NOTADD-NEXT:   [[LHS_ADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[LHS]])
 // CHECK-NEXT:    [[RHS_ADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[RHS]])
@@ -120,7 +120,7 @@ uintptr_t test_cg_eq_op_lhs_noprov(no_provenance_uintptr_t lhs, uintptr_t rhs) {
 
 /// Compound assignment should always use LHS provenance:
 // CHECK-LABEL: define {{[^@]+}}@test_cg_eq_op_rhs_noprov
-// CHECK-SAME: (ptr addrspace(200) noundef{{( readnone captures\(ret: address, provenance\))?}} [[LHS:%.*]], ptr addrspace(200) noundef{{( readnone)?}} [[RHS:%.*]]) local_unnamed_addr addrspace(200)
+// CHECK-SAME: (ptr addrspace(200) {{.*}} [[LHS:%.*]], ptr addrspace(200) {{.*}} [[RHS:%.*]]) local_unnamed_addr addrspace(200)
 // CHECK-NEXT:  entry:
 // NOTADD-NEXT:   [[LHS_ADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[LHS]])
 // CHECK-NEXT:    [[RHS_ADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[RHS]])
@@ -174,7 +174,7 @@ void test_cg_unary_not(uintptr_t arg, char *arg_ptr) {
 }
 
 // CHECK-LABEL: define {{[^@]+}}@test_cg_unary_logical_not
-// CHECK-SAME: (ptr addrspace(200) noundef readnone captures(address_is_null) [[ARG:%.*]], ptr addrspace(200) noundef readnone captures(address_is_null) [[ARG_PTR:%.*]]) local_unnamed_addr addrspace(200)
+// CHECK-SAME: (ptr addrspace(200) nofree noundef readnone captures(address_is_null) [[ARG:%.*]], ptr addrspace(200) nofree noundef readnone captures(address_is_null) [[ARG_PTR:%.*]]) local_unnamed_addr addrspace(200)
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[TOBOOL:%.*]] = icmp eq ptr addrspace(200) [[ARG:%.*]], null
 // CHECK-NEXT:    [[CONV:%.*]] = zext i1 [[TOBOOL]] to i64

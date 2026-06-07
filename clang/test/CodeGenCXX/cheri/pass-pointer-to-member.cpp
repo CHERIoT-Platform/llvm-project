@@ -36,7 +36,7 @@ long use_p2m_impl(A *a, long (A::*fp)());
 // RISCV64-NEXT:    ret i64 [[CALL]]
 //
 // RISCV64-PURECAP-LABEL: define {{[^@]+}}@_Z7use_p2mP1AMS_FlvE
-// RISCV64-PURECAP-SAME: (ptr addrspace(200) noundef [[A:%.*]], ptr addrspace(200) noundef readonly captures(none) dead_on_return [[TMP0:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
+// RISCV64-PURECAP-SAME: (ptr addrspace(200) noundef [[A:%.*]], ptr addrspace(200) nofree noundef readonly captures(none) dead_on_return [[TMP0:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // RISCV64-PURECAP-NEXT:  entry:
 // RISCV64-PURECAP-NEXT:    [[BYVAL_TEMP:%.*]] = alloca { ptr addrspace(200), i64 }, align 16, addrspace(200)
 // RISCV64-PURECAP-NEXT:    [[FP:%.*]] = load { ptr addrspace(200), i64 }, ptr addrspace(200) [[TMP0]], align 16, !tbaa [[TBAA6:![0-9]+]]
@@ -57,7 +57,7 @@ long use_p2m_impl(A *a, long (A::*fp)());
 // RISCV32-NEXT:    ret i32 [[CALL]]
 //
 // RISCV32-PURECAP-LABEL: define {{[^@]+}}@_Z7use_p2mP1AMS_FlvE
-// RISCV32-PURECAP-SAME: (ptr addrspace(200) noundef [[A:%.*]], ptr addrspace(200) noundef readonly captures(none) dead_on_return [[TMP0:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
+// RISCV32-PURECAP-SAME: (ptr addrspace(200) noundef [[A:%.*]], ptr addrspace(200) nofree noundef readonly captures(none) dead_on_return [[TMP0:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // RISCV32-PURECAP-NEXT:  entry:
 // RISCV32-PURECAP-NEXT:    [[BYVAL_TEMP:%.*]] = alloca { ptr addrspace(200), i32 }, align 8, addrspace(200)
 // RISCV32-PURECAP-NEXT:    [[FP:%.*]] = load { ptr addrspace(200), i32 }, ptr addrspace(200) [[TMP0]], align 8, !tbaa [[TBAA6:![0-9]+]]

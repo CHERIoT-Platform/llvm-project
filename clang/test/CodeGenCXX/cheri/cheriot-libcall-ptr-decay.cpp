@@ -2,7 +2,7 @@
 // RUN: %clang_cc1 -xc++ %s -o - "-triple" "riscv32cheriot-unknown-cheriotrtos" "-emit-llvm" "-mframe-pointer=none" "-mcmodel=small" "-target-abi" "cheriot" "-target-feature" "+xcheriot" "-Oz" "-Werror" -std=c++17 | FileCheck %s
 
 // CHECK-LABEL: define dso_local void @_Z3fooPFvvE
-// CHECK-SAME: (ptr addrspace(200) noundef readonly captures(none) [[BAR:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
+// CHECK-SAME: (ptr addrspace(200) nofree noundef readonly captures(none) [[BAR:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    tail call addrspace(200) void [[BAR]]() #[[ATTR2:[0-9]+]]
 // CHECK-NEXT:    ret void

@@ -4960,7 +4960,7 @@ public:
 //===----------------------------------------------------------------------===//
 
 /// This class represents a cast unsigned integer to floating point.
-class UIToFPInst : public CastInst {
+class UIToFPInst : public CastInst, public FastMathFlagsStorage {
 protected:
   // Note: Instruction needs to be a friend here to call cloneImpl.
   friend class Instruction;
@@ -4992,7 +4992,7 @@ public:
 //===----------------------------------------------------------------------===//
 
 /// This class represents a cast from signed integer to floating point.
-class SIToFPInst : public CastInst {
+class SIToFPInst : public CastInst, public FastMathFlagsStorage {
 protected:
   // Note: Instruction needs to be a friend here to call cloneImpl.
   friend class Instruction;

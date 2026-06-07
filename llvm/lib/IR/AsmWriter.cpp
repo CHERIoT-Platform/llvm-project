@@ -4984,6 +4984,9 @@ void AssemblyWriter::printMetadataAttachments(
 }
 
 void AssemblyWriter::writeMDNode(unsigned Slot, const MDNode *Node) {
+  if (AnnotationWriter)
+    AnnotationWriter->emitMDNodeAnnot(Node, Out);
+
   Out << '!' << Slot << " = ";
   printMDNodeBody(Node);
   Out << "\n";

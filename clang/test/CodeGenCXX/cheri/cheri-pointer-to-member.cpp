@@ -187,7 +187,7 @@ bool data_ptr_not_equal(int A::*ptr1, int A::*ptr2) {
 // CHECK-NEXT:    ret i32 [[TMP2]]
 //
 // N64-LABEL: define {{[^@]+}}@_Z19data_ptr_derefereceP1AMS_i
-// N64-SAME: (ptr noundef readonly captures(none) [[A:%.*]], i64 [[PTR:%.*]]) local_unnamed_addr #[[ATTR3:[0-9]+]] {
+// N64-SAME: (ptr nofree noundef readonly captures(none) [[A:%.*]], i64 [[PTR:%.*]]) local_unnamed_addr #[[ATTR3:[0-9]+]] {
 // N64-NEXT:  entry:
 // N64-NEXT:    [[MEMPTR_OFFSET:%.*]] = getelementptr inbounds i8, ptr [[A]], i64 [[PTR]]
 // N64-NEXT:    [[TMP0:%.*]] = load i32, ptr [[MEMPTR_OFFSET]], align 4, !tbaa [[TBAA2:![0-9]+]]

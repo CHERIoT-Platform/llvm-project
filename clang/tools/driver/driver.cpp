@@ -242,11 +242,8 @@ static int ExecuteCC1Tool(SmallVectorImpl<const char *> &ArgV,
 int clang_main(int Argc, char **Argv, const llvm::ToolContext &ToolContext) {
   noteBottomOfStack();
   llvm::setBugReportMsg("PLEASE submit a bug report to " BUG_REPORT_URL
-                        " and include the crash backtrace, preprocessed "
-                        "source, and associated run script.\n"
-                        "If you built clang from source, please provide a "
-                        "reduced test case by running:\n"
-                        "\t$LLVM_BUILD_DIR/bin/creduce_crash_testcase.py <reproducer>.sh\n");
+                        " and include the crash backtrace and"
+                        " dumped files.\n");
   SmallVector<const char *, 256> Args(Argv, Argv + Argc);
 
   if (llvm::sys::Process::FixupStandardFileDescriptors())

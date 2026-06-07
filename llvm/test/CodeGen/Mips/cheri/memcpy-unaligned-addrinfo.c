@@ -26,7 +26,7 @@ struct addrinfo {
 // OPTNONE-NEXT:    ret { ptr addrspace(200) } [[TMP1]]
 //
 // CHECK-LABEL: define {{[^@]+}}@c
-// CHECK-SAME: (ptr addrspace(200) noundef readonly captures(none) [[A:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
+// CHECK-SAME: (ptr addrspace(200) nofree noundef readonly captures(none) [[A:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[RETVAL_SROA_0_0_COPYLOAD:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[A]], align 1
 // CHECK-NEXT:    [[DOTFCA_0_INSERT:%.*]] = insertvalue { ptr addrspace(200) } poison, ptr addrspace(200) [[RETVAL_SROA_0_0_COPYLOAD]], 0

@@ -5967,22 +5967,33 @@ TEST_F(FormatTest, HashInMacroDefinition) {
   verifyFormat("#define A(c) uR#c");
   verifyFormat("#define A(c) UR#c");
   verifyFormat("#define A(c) u8R#c");
-  verifyFormat("#define A \\\n  b #c;", getLLVMStyleWithColumns(11));
+
+  auto Style = getLLVMStyleWithColumns(11);
+  verifyFormat("#define A \\\n  b #c;", Style);
   verifyFormat("#define A  \\\n"
                "  {        \\\n"
                "    f(#c); \\\n"
                "  }",
-               getLLVMStyleWithColumns(11));
+               Style);
 
+  Style.ColumnLimit = 22;
   verifyFormat("#define A(X)         \\\n"
                "  void function##X()",
-               getLLVMStyleWithColumns(22));
-
+               Style);
   verifyFormat("#define A(a, b, c)   \\\n"
                "  void a##b##c()",
-               getLLVMStyleWithColumns(22));
+               Style);
+  verifyFormat("#define A void # ## #", Style);
 
-  verifyFormat("#define A void # ## #", getLLVMStyleWithColumns(22));
+  Style.ColumnLimit = 60;
+  Style.AlignEscapedNewlines = FormatStyle::ENAS_DontAlign;
+  verifyFormat(
+      "#define MACRO(Name) \\\n"
+      "  struct LongPrefix##Name##LongSuffix< \\\n"
+      "      VeryLongTemplateArgument> {};",
+      "#define MACRO(Name) \\\n"
+      "  struct LongPrefix##Name##LongSuffix<VeryLongTemplateArgument> {};",
+      Style);
 
   verifyFormat("{\n"
                "  {\n"
@@ -14293,18 +14304,16 @@ TEST_F(FormatTest, HandlesIncludeDirectives) {
   verifyFormat("#define F __has_include_next(<a/b>)");
 
   // Protocol buffer definition or missing "#".
-  verifyFormat("import \"aaaaaaaaaaaaaaaaa/aaaaaaaaaaaaaaa\";",
-               getLLVMStyleWithColumns(30));
+  constexpr StringRef Code("import \"aaaaaaaaaaaaaaaaa/aaaaaaaaaaaaaaa\";");
+  auto Style = getLLVMStyleWithColumns(30);
+  verifyFormat(Code, Style);
+  Style.Language = FormatStyle::LK_Proto;
+  verifyFormat(Code, Style);
 
-  FormatStyle Style = getLLVMStyle();
+  Style.Language = FormatStyle::LK_Cpp;
   Style.AlwaysBreakBeforeMultilineStrings = true;
   Style.ColumnLimit = 0;
   verifyFormat("#import \"abc.h\"", Style);
-
-  // But 'import' might also be a regular C++ namespace.
-  verifyFormat("import::SomeFunction(aaaaaaaaaaaaaaaaaaaaaaaaaaa,\n"
-               "                     aaaaaaaaaaaaaaaaaaaaaaaaaaaaa);");
-  verifyFormat("import::Bar foo(val ? 2 : 1);");
 }
 
 //===----------------------------------------------------------------------===//
@@ -24805,9 +24814,7 @@ TEST_F(FormatTest, Cpp20ModulesSupport) {
   Style.AllowShortFunctionsOnASingleLine = FormatStyle::ShortFunctionStyle();
 
   verifyFormat("export import foo;", Style);
-  verifyFormat("export import foo:bar;", Style);
   verifyFormat("export import foo.bar;", Style);
-  verifyFormat("export import foo.bar:baz;", Style);
   verifyFormat("export import :bar;", Style);
   verifyFormat("export module foo:bar;", Style);
   verifyFormat("export module foo;", Style);
@@ -24835,7 +24842,6 @@ TEST_F(FormatTest, Cpp20ModulesSupport) {
 
   verifyFormat("import bar;", Style);
   verifyFormat("import foo.bar;", Style);
-  verifyFormat("import foo:bar;", Style);
   verifyFormat("import :bar;", Style);
   verifyFormat("import /* module partition */ :bar;", Style);
   verifyFormat("import <ctime>;", Style);
@@ -24851,11 +24857,10 @@ TEST_F(FormatTest, Cpp20ModulesSupport) {
                "}",
                Style);
 
-  verifyFormat("module :private;", Style);
+  verifyFormat("module : private;", Style);
   verifyFormat("import <foo/bar.h>;", Style);
   verifyFormat("import foo...bar;", Style);
   verifyFormat("import ..........;", Style);
-  verifyFormat("module foo:private;", Style);
   verifyFormat("import a", Style);
   verifyFormat("module a", Style);
   verifyFormat("export import a", Style);
@@ -24865,8 +24870,25 @@ TEST_F(FormatTest, Cpp20ModulesSupport) {
   verifyFormat("module", Style);
   verifyFormat("export", Style);
 
+  verifyFormat("import <Foo/Bar> /* comment */;", Style);
+  verifyFormat("import <Foo/Bar>; // Trailing comment", Style);
+
+  Style.ColumnLimit = 10;
+  verifyFormat("import Foo.Bar;", Style);
+  verifyFormat("export import Foo.Bar;", Style);
+  verifyFormat("export module Foo.Bar;", Style);
+  verifyFormat("export module Foo.Bar:Baz;", Style);
+  verifyFormat("import <Foo/Bar> /* comment */;", Style);
+  verifyFormat("import <Foo/Bar>; // Trailing comment", Style);
+
+  // Somewhat gracefully handle import in pre-C++20 code.
   verifyFormat("import /* not keyword */ = val ? 2 : 1;");
   verifyFormat("_world->import<engine_module>();");
+
+  // But 'import' might also be a regular C++ namespace.
+  verifyFormat("import::SomeFunction(aaaaaaaaaaaaaaaaaaaaaaaaaaa,\n"
+               "                     aaaaaaaaaaaaaaaaaaaaaaaaaaaaa);");
+  verifyFormat("import::Bar foo(val ? 2 : 1);");
 }
 
 TEST_F(FormatTest, CoroutineForCoawait) {

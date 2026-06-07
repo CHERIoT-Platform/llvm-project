@@ -59,7 +59,7 @@ define void @sitofp_v8i8_to_v8f32(ptr %src, ptr %dst) {
 ; CHECK-NEXT:    scvtf v3.4s, v3.4s, #24
 ; CHECK-NEXT:    scvtf v2.4s, v2.4s, #24
 ; CHECK-NEXT:    stp q2, q3, [x9]
-; CHECK-NEXT:    b.eq .LBB0_1
+; CHECK-NEXT:    b.ne .LBB0_1
 ; CHECK-NEXT:  // %bb.2: // %exit
 ; CHECK-NEXT:    ret
 entry:
@@ -74,7 +74,7 @@ loop:
   store <8 x float> %conv, ptr %gep.dst
   %iv.next = add i64 %iv, 1
   %ec = icmp eq i64 %iv.next, 1000
-  br i1 %ec, label %loop, label %exit
+  br i1 %ec, label %exit, label %loop
 
 exit:
   ret void
@@ -181,7 +181,7 @@ define void @sitofp_v16i8_to_v16f32(ptr %src, ptr %dst) {
 ; CHECK-NEXT:    scvtf v4.4s, v4.4s, #24
 ; CHECK-NEXT:    stp q6, q5, [x9, #32]
 ; CHECK-NEXT:    stp q4, q7, [x9]
-; CHECK-NEXT:    b.eq .LBB1_1
+; CHECK-NEXT:    b.ne .LBB1_1
 ; CHECK-NEXT:  // %bb.2: // %exit
 ; CHECK-NEXT:    ret
 entry:
@@ -196,7 +196,7 @@ loop:
   store <16 x float> %conv, ptr %gep.dst
   %iv.next = add i64 %iv, 1
   %ec = icmp eq i64 %iv.next, 1000
-  br i1 %ec, label %loop, label %exit
+  br i1 %ec, label %exit, label %loop
 
 exit:
   ret void
@@ -221,7 +221,7 @@ define void @sitofp_v8i8_to_v8f16(ptr %src, ptr %dst) {
 ; CHECK-NEXT:    str q1, [x1, x8, lsl #4]
 ; CHECK-NEXT:    add x8, x8, #1
 ; CHECK-NEXT:    cmp x8, #1000
-; CHECK-NEXT:    b.eq .LBB2_1
+; CHECK-NEXT:    b.ne .LBB2_1
 ; CHECK-NEXT:  // %bb.2: // %exit
 ; CHECK-NEXT:    ret
 entry:
@@ -236,7 +236,7 @@ loop:
   store <8 x half> %conv, ptr %gep.dst
   %iv.next = add i64 %iv, 1
   %ec = icmp eq i64 %iv.next, 1000
-  br i1 %ec, label %loop, label %exit
+  br i1 %ec, label %exit, label %loop
 
 exit:
   ret void
@@ -258,7 +258,7 @@ define void @sitofp_v2i8_to_v2f64(ptr %src, ptr %dst) {
 ; CHECK-NEXT:    str q0, [x1, x8, lsl #4]
 ; CHECK-NEXT:    add x8, x8, #1
 ; CHECK-NEXT:    cmp x8, #1000
-; CHECK-NEXT:    b.eq .LBB3_1
+; CHECK-NEXT:    b.ne .LBB3_1
 ; CHECK-NEXT:  // %bb.2: // %exit
 ; CHECK-NEXT:    ret
 entry:
@@ -273,7 +273,7 @@ loop:
   store <2 x double> %conv, ptr %gep.dst
   %iv.next = add i64 %iv, 1
   %ec = icmp eq i64 %iv.next, 1000
-  br i1 %ec, label %loop, label %exit
+  br i1 %ec, label %exit, label %loop
 
 exit:
   ret void

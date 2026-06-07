@@ -17,7 +17,7 @@ int *y;
 
 // Check that unions containing capabilities are passed as capabilities.
 // CHECK-LABEL: define {{[^@]+}}@foo
-// CHECK-SAME: (ptr addrspace(200) readnone captures(address, ret: address, provenance) [[M_COERCE:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
+// CHECK-SAME: (ptr addrspace(200) nofree readnone captures(address, ret: address, provenance) [[M_COERCE:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @x, align 16, !tbaa [[TBAA6:![0-9]+]]
 // CHECK-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[M_COERCE]], [[TMP0]]
@@ -35,7 +35,7 @@ int *foo(union u1 m)
 }
 
 // CHECK-LABEL: define {{[^@]+}}@bar
-// CHECK-SAME: (ptr addrspace(200) noundef readonly captures(none) dead_on_return [[M:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR1:[0-9]+]] {
+// CHECK-SAME: (ptr addrspace(200) nofree noundef readonly captures(none) dead_on_return [[M:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR1:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[Z:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[M]], i64 16
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[Z]], align 16, !tbaa [[TBAA11:![0-9]+]]

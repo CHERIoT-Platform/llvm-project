@@ -5,14 +5,14 @@
 
 // Check that vtable func pointers have the correct addrspace casts
 
-// CHECK: @_ZTV1B = linkonce_odr addrspace(200) constant { [5 x ptr addrspace(200)] } { [5 x ptr addrspace(200)] [
+// CHECK: @_ZTV1B = linkonce_odr unnamed_addr addrspace(200) constant { [5 x ptr addrspace(200)] } { [5 x ptr addrspace(200)] [
 // CHECK-SAME: ptr addrspace(200) null,
 // CHECK-SAME: ptr addrspace(200) null,
 // CHECK-SAME: ptr addrspace(200) @_ZN1A1fEv,
 // CHECK-SAME: ptr addrspace(200) @_ZN1B1gEv,
 // CHECK-SAME: ptr addrspace(200) @__cxa_deleted_virtual]
 // CHECK-SAME: }, comdat, align 16
-// CHECK: @_ZTV1A = linkonce_odr addrspace(200) constant { [5 x ptr addrspace(200)] } { [5 x ptr addrspace(200)] [
+// CHECK: @_ZTV1A = linkonce_odr unnamed_addr addrspace(200) constant { [5 x ptr addrspace(200)] } { [5 x ptr addrspace(200)] [
 // CHECK-SAME: ptr addrspace(200) null,
 // CHECK-SAME: ptr addrspace(200) null,
 // CHECK-SAME: ptr addrspace(200) @_ZN1A1fEv,

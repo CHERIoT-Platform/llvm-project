@@ -7,7 +7,7 @@ struct a {
 };
 
 // CHECK-LABEL: define {{[^@]+}}@test1
-// CHECK-SAME: (ptr addrspace(200) inreg readnone [[ARG_COERCE:%.*]]) local_unnamed_addr #[[ATTR0:[0-9]+]] {
+// CHECK-SAME: (ptr addrspace(200) inreg nofree readnone [[ARG_COERCE:%.*]]) local_unnamed_addr #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call ptr addrspace(200) @llvm.cheri.ddc.get()
 // CHECK-NEXT:    [[TMP1:%.*]] = tail call i64 @llvm.cheri.cap.to.pointer.i64(ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[ARG_COERCE]])
@@ -19,7 +19,7 @@ long test1(struct a arg) {
 }
 
 // CHECK-LABEL: define {{[^@]+}}@test2
-// CHECK-SAME: (ptr addrspace(200) inreg readnone [[ARG_COERCE:%.*]]) local_unnamed_addr #[[ATTR0]] {
+// CHECK-SAME: (ptr addrspace(200) inreg nofree readnone [[ARG_COERCE:%.*]]) local_unnamed_addr #[[ATTR0]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200) [[ARG_COERCE]])
 // CHECK-NEXT:    ret i64 [[TMP0]]
@@ -29,7 +29,7 @@ long test2(struct a arg) {
 }
 
 // CHECK-LABEL: define {{[^@]+}}@test3
-// CHECK-SAME: (ptr addrspace(200) inreg readnone [[ARG_COERCE:%.*]]) local_unnamed_addr #[[ATTR0]] {
+// CHECK-SAME: (ptr addrspace(200) inreg nofree readnone [[ARG_COERCE:%.*]]) local_unnamed_addr #[[ATTR0]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[TMP0:%.*]] = tail call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[ARG_COERCE]])
 // CHECK-NEXT:    ret i64 [[TMP0]]

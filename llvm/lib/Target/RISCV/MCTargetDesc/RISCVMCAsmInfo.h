@@ -51,6 +51,7 @@ enum {
   // Vendor-specific relocation types might conflict across vendors.
   // Refer to them using Specifier constants.
   S_QC_ABS20,
+  S_QC_ACCESS,
   S_CAPTAB_PCREL_HI,
   S_TPREL_CINCOFFSET,
   S_TLS_IE_CAPTAB_PCREL_HI,

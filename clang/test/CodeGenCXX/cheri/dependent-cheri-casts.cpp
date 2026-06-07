@@ -73,7 +73,7 @@ template <typename srcty> int* __capability cheri_tocap_dep(srcty arg) {
 }
 
 // CHECK-LABEL: define {{[^@]+}}@_Z12fromcap_goodU12__capabilityPi
-// CHECK-SAME: (ptr addrspace(200) noundef readnone captures(ret: address, provenance) [[CAP_PTR:%.*]]) local_unnamed_addr #[[ATTR1:[0-9]+]] {
+// CHECK-SAME: (ptr addrspace(200) nofree noundef readnone captures(ret: address, provenance) [[CAP_PTR:%.*]]) local_unnamed_addr #[[ATTR1:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[TMP0:%.*]] = addrspacecast ptr addrspace(200) [[CAP_PTR]] to ptr
 // CHECK-NEXT:    ret ptr [[TMP0]]
@@ -83,7 +83,7 @@ int* fromcap_good(int* __capability cap_ptr) {
 }
 
 // CHECK-LABEL: define {{[^@]+}}@_Z10tocap_goodPi
-// CHECK-SAME: (ptr noundef readnone captures(ret: address, provenance) [[NOT_CAP_PTR:%.*]]) local_unnamed_addr #[[ATTR1]] {
+// CHECK-SAME: (ptr nofree noundef readnone captures(ret: address, provenance) [[NOT_CAP_PTR:%.*]]) local_unnamed_addr #[[ATTR1]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[TMP0:%.*]] = addrspacecast ptr [[NOT_CAP_PTR]] to ptr addrspace(200)
 // CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]

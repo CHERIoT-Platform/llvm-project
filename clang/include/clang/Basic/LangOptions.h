@@ -723,6 +723,10 @@ public:
            !ObjCSubscriptingLegacyRuntime;
   }
 
+  bool isCompatibleWith(ClangABI Version) const {
+    return getClangABICompat() <= Version;
+  }
+
   bool isCompatibleWithMSVC() const { return MSCompatibilityVersion > 0; }
 
   bool isCompatibleWithMSVC(MSVCMajorVersion MajorVersion) const {

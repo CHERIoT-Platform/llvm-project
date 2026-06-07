@@ -8,7 +8,7 @@ void *render_char(struct thingy);
 
 // Make sure that capabilities are passed as pointers but structs containing
 // multiple integers all have their values coerced to register-sized ints.
-// CHECK: define dso_local ptr addrspace(200) @f(ptr addrspace(200) noundef readnone captures(none) %a, i64 inreg %b.coerce0, i64 inreg %b.coerce1, i64 inreg %b.coerce2, i64 inreg %b.coerce3)
+// CHECK: define dso_local ptr addrspace(200) @f(ptr addrspace(200) nofree noundef readnone captures(none) %a, i64 inreg %b.coerce0, i64 inreg %b.coerce1, i64 inreg %b.coerce2, i64 inreg %b.coerce3)
 void *f(void *a, struct thingy b)
 {
 // The magic numbers here are difficult to read in decimal, but are clearer in

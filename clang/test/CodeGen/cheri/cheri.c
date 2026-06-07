@@ -5,86 +5,86 @@
 #define static
 #define inline 
 #include <cheri.h>
-// PTRS: define dso_local noundef i32 @cheri_length_get(ptr noundef readnone captures(none)
+// PTRS: define dso_local noundef i32 @cheri_length_get(ptr nofree noundef readnone captures(none)
 // PTRS: ret i32 -1
-// PTRS: define dso_local noundef i32 @cheri_base_get(ptr noundef readnone captures(none)
+// PTRS: define dso_local noundef i32 @cheri_base_get(ptr nofree noundef readnone captures(none)
 // PTRS: ret i32 -1
-// PTRS: define dso_local noundef i32 @cheri_offset_get(ptr noundef readnone captures(none)
+// PTRS: define dso_local noundef i32 @cheri_offset_get(ptr nofree noundef readnone captures(none)
 // PTRS: ret i32 -1
-// PTRS: define dso_local noundef ptr @cheri_offset_set(ptr noundef readnone returned captures(ret: address, provenance){{( %.+)?}}, i32
+// PTRS: define dso_local noundef ptr @cheri_offset_set(ptr nofree noundef readnone returned captures(ret: address, provenance){{( %.+)?}}, i32
 // PTRS: ret ptr
-// PTRS: define dso_local noundef i32 @cheri_type_get(ptr noundef readnone captures(none)
+// PTRS: define dso_local noundef i32 @cheri_type_get(ptr nofree noundef readnone captures(none)
 // PTRS: ret i32 0
-// PTRS: define dso_local noundef zeroext i16 @cheri_perms_get(ptr noundef readnone captures(none)
+// PTRS: define dso_local noundef zeroext i16 @cheri_perms_get(ptr nofree noundef readnone captures(none)
 // PTRS: ret i16 0
-// PTRS: define dso_local noundef ptr @cheri_perms_and(ptr noundef readnone returned captures(ret: address, provenance){{( %.+)?}}, i16 noundef zeroext
+// PTRS: define dso_local noundef ptr @cheri_perms_and(ptr nofree noundef readnone returned captures(ret: address, provenance){{( %.+)?}}, i16 noundef zeroext
 // PTRS: ret ptr
-// PTRS: define dso_local noundef zeroext i16 @cheri_flags_get(ptr noundef readnone captures(none)
+// PTRS: define dso_local noundef zeroext i16 @cheri_flags_get(ptr nofree noundef readnone captures(none)
 // PTRS: ret i16 0
-// PTRS: define dso_local noundef ptr @cheri_flags_set(ptr noundef readnone returned captures(ret: address, provenance){{( %.+)?}}, i16 noundef zeroext
+// PTRS: define dso_local noundef ptr @cheri_flags_set(ptr nofree noundef readnone returned captures(ret: address, provenance){{( %.+)?}}, i16 noundef zeroext
 // PTRS: ret ptr
-// PTRS: define dso_local noundef zeroext i1 @cheri_tag_get(ptr noundef readnone captures(none)
+// PTRS: define dso_local noundef zeroext i1 @cheri_tag_get(ptr nofree noundef readnone captures(none)
 // PTRS: ret i1 false
-// PTRS: define dso_local noundef zeroext i1 @cheri_tag_get_temporal(ptr noundef readnone captures(none)
+// PTRS: define dso_local noundef zeroext i1 @cheri_tag_get_temporal(ptr nofree noundef readnone captures(none)
 // PTRS: ret i1 false
-// PTRS: define dso_local noundef zeroext i1 @cheri_sealed_get(ptr noundef readnone captures(none)
+// PTRS: define dso_local noundef zeroext i1 @cheri_sealed_get(ptr nofree noundef readnone captures(none)
 // PTRS: ret i1 false
-// PTRS: define dso_local ptr @cheri_offset_increment(ptr noundef readnone captures(ret: address, provenance){{( %.+)?}}, i32
+// PTRS: define dso_local ptr @cheri_offset_increment(ptr nofree noundef readnone captures(ret: address, provenance){{( %.+)?}}, i32
 // PTRS: %[[TEMP1:[0-9a-z.]+]] = getelementptr inbounds i8, ptr{{( %.+)?}}, i32
 // PTRS: ret ptr %[[TEMP1]]
-// PTRS: define dso_local noundef ptr @cheri_tag_clear(ptr noundef readnone returned
+// PTRS: define dso_local noundef ptr @cheri_tag_clear(ptr nofree noundef readnone returned
 // PTRS: ret ptr
-// PTRS: define dso_local noundef ptr @cheri_seal(ptr noundef readnone returned captures(ret: address, provenance){{( %.+)?}}, ptr noundef readnone captures(none)
+// PTRS: define dso_local noundef ptr @cheri_seal(ptr nofree noundef readnone returned captures(ret: address, provenance){{( %.+)?}}, ptr nofree noundef readnone captures(none)
 // PTRS: ret ptr
-// PTRS: define dso_local noundef ptr @cheri_unseal(ptr noundef readnone returned captures(ret: address, provenance){{( %.+)?}}, ptr noundef readnone captures(none)
+// PTRS: define dso_local noundef ptr @cheri_unseal(ptr nofree noundef readnone returned captures(ret: address, provenance){{( %.+)?}}, ptr nofree noundef readnone captures(none)
 // PTRS: ret ptr
-// PTRS: define dso_local noundef ptr @cheri_cap_from_pointer(ptr noundef readnone captures(none){{( %.+)?}}, ptr noundef readnone returned captures(ret: address, provenance){{( %.+)?}})
+// PTRS: define dso_local noundef ptr @cheri_cap_from_pointer(ptr nofree noundef readnone captures(none){{( %.+)?}}, ptr nofree noundef readnone returned captures(ret: address, provenance){{( %.+)?}})
 // PTRS: ret ptr
-// PTRS: define dso_local noundef ptr @cheri_cap_to_pointer(ptr noundef readnone captures(none){{( %.+)?}}, ptr noundef readnone returned captures(ret: address, provenance){{( %.+)?}})
+// PTRS: define dso_local noundef ptr @cheri_cap_to_pointer(ptr nofree noundef readnone captures(none){{( %.+)?}}, ptr nofree noundef readnone returned captures(ret: address, provenance){{( %.+)?}})
 // PTRS: ret ptr
-// PTRS: define dso_local void @cheri_perms_check(ptr noundef readnone captures(none){{( %.+)?}}, i16 noundef zeroext
+// PTRS: define dso_local void @cheri_perms_check(ptr nofree noundef readnone captures(none){{( %.+)?}}, i16 noundef zeroext
 // PTRS: ret void
-// PTRS: define dso_local void @cheri_type_check(ptr noundef readnone captures(none){{( %.+)?}}, ptr noundef readnone captures(none)
+// PTRS: define dso_local void @cheri_type_check(ptr nofree noundef readnone captures(none){{( %.+)?}}, ptr nofree noundef readnone captures(none)
 // PTRS: ret void
 // PTRS: define dso_local noalias noundef ptr @cheri_global_data_get()
 // PTRS: ret ptr null
 // PTRS: define dso_local noalias noundef ptr @cheri_program_counter_get()
 // PTRS: ret ptr null
 
-// CAPS: define dso_local i64 @cheri_length_get(ptr addrspace(200) noundef readnone
+// CAPS: define dso_local i64 @cheri_length_get(ptr addrspace(200) nofree noundef readnone
 // CAPS: call i64 @llvm.cheri.cap.length.get.i64(ptr addrspace(200)
-// CAPS: define dso_local i64 @cheri_base_get(ptr addrspace(200) noundef readnone
+// CAPS: define dso_local i64 @cheri_base_get(ptr addrspace(200) nofree noundef readnone
 // CAPS: call i64 @llvm.cheri.cap.base.get.i64(ptr addrspace(200)
-// CAPS: define dso_local i64 @cheri_offset_get(ptr addrspace(200) noundef readnone
+// CAPS: define dso_local i64 @cheri_offset_get(ptr addrspace(200) nofree noundef readnone
 // CAPS: call i64 @llvm.cheri.cap.offset.get.i64(ptr addrspace(200)
-// CAPS: define dso_local ptr addrspace(200) @cheri_offset_set(ptr addrspace(200) noundef readnone{{( %.+)?}}, i64 noundef zeroext{{( %.+)?}}
+// CAPS: define dso_local ptr addrspace(200) @cheri_offset_set(ptr addrspace(200) nofree noundef readnone{{( %.+)?}}, i64 noundef zeroext{{( %.+)?}}
 // CAPS: call ptr addrspace(200) @llvm.cheri.cap.offset.set.i64(ptr addrspace(200){{( %.+)?}}, i64{{( %.+)?}})
 // CAPS: define dso_local signext i32 @cheri_type_get(ptr addrspace(200)
 // CAPS: call i64 @llvm.cheri.cap.type.get.i64(ptr addrspace(200)
 // CAPS: define dso_local zeroext i16 @cheri_perms_get(ptr addrspace(200)
 // CAPS: call i64 @llvm.cheri.cap.perms.get.i64(ptr addrspace(200)
-// CAPS: define dso_local ptr addrspace(200) @cheri_perms_and(ptr addrspace(200) noundef readnone{{( %.+)?}}, i16 noundef zeroext
+// CAPS: define dso_local ptr addrspace(200) @cheri_perms_and(ptr addrspace(200) nofree noundef readnone{{( %.+)?}}, i16 noundef zeroext
 // CAPS: call ptr addrspace(200) @llvm.cheri.cap.perms.and.i64(ptr addrspace(200){{( %.+)?}}, i64
 // CAPS: define dso_local zeroext i16 @cheri_flags_get(ptr addrspace(200)
 // CAPS: call i64 @llvm.cheri.cap.flags.get.i64(ptr addrspace(200)
-// CAPS: define dso_local ptr addrspace(200) @cheri_flags_set(ptr addrspace(200) noundef readnone{{( %.+)?}}, i16 noundef zeroext
+// CAPS: define dso_local ptr addrspace(200) @cheri_flags_set(ptr addrspace(200) nofree noundef readnone{{( %.+)?}}, i16 noundef zeroext
 // CAPS: call ptr addrspace(200) @llvm.cheri.cap.flags.set.i64(ptr addrspace(200){{( %.+)?}}, i64
-// CAPS: define dso_local zeroext i1 @cheri_tag_get(ptr addrspace(200) noundef readnone
+// CAPS: define dso_local zeroext i1 @cheri_tag_get(ptr addrspace(200) nofree noundef readnone
 // CAPS: call i1 @llvm.cheri.cap.tag.get(ptr addrspace(200)
-// CAPS: define dso_local zeroext i1 @cheri_tag_get_temporal(ptr addrspace(200) noundef readonly
+// CAPS: define dso_local zeroext i1 @cheri_tag_get_temporal(ptr addrspace(200) nofree noundef readonly
 // CAPS: call i1 @llvm.cheri.cap.tag.get.temporal(ptr addrspace(200)
-// CAPS: define dso_local zeroext i1 @cheri_sealed_get(ptr addrspace(200) noundef readnone
+// CAPS: define dso_local zeroext i1 @cheri_sealed_get(ptr addrspace(200) nofree noundef readnone
 // CAPS: call i1 @llvm.cheri.cap.sealed.get(ptr addrspace(200)
-// CAPS: define dso_local noundef ptr addrspace(200) @cheri_offset_increment(ptr addrspace(200) noundef readnone captures(ret: address, provenance){{( %.+)?}}, i64 noundef signext
+// CAPS: define dso_local noundef ptr addrspace(200) @cheri_offset_increment(ptr addrspace(200) nofree noundef readnone captures(ret: address, provenance){{( %.+)?}}, i64 noundef signext
 // CAPS: %__builtin_cheri_offset_increment = getelementptr i8, ptr addrspace(200) %__cap, i64 %__offset
 // CAPS: ret ptr addrspace(200) %__builtin_cheri_offset_increment
-// CAPS: define dso_local ptr addrspace(200) @cheri_tag_clear(ptr addrspace(200) noundef readnone
+// CAPS: define dso_local ptr addrspace(200) @cheri_tag_clear(ptr addrspace(200) nofree noundef readnone
 // CAPS: call ptr addrspace(200) @llvm.cheri.cap.tag.clear(ptr addrspace(200)
-// CAPS: define dso_local ptr addrspace(200) @cheri_seal(ptr addrspace(200) noundef readnone{{( %.+)?}}, ptr addrspace(200) noundef readnone
+// CAPS: define dso_local ptr addrspace(200) @cheri_seal(ptr addrspace(200) nofree noundef readnone{{( %.+)?}}, ptr addrspace(200) nofree noundef readnone
 // CAPS: call ptr addrspace(200) @llvm.cheri.cap.seal(ptr addrspace(200){{( %.+)?}}, ptr addrspace(200)
-// CAPS: define dso_local ptr addrspace(200) @cheri_unseal(ptr addrspace(200) noundef readnone{{( %.+)?}}, ptr addrspace(200) noundef readnone
+// CAPS: define dso_local ptr addrspace(200) @cheri_unseal(ptr addrspace(200) nofree noundef readnone{{( %.+)?}}, ptr addrspace(200) nofree noundef readnone
 // CAPS: call ptr addrspace(200) @llvm.cheri.cap.unseal(ptr addrspace(200){{( %.+)?}}, ptr addrspace(200)
-// CAPS: define dso_local ptr addrspace(200) @cheri_cap_from_pointer(ptr addrspace(200) noundef readnone{{( %.+)?}}, ptr noundef{{( %.+)?}})
+// CAPS: define dso_local ptr addrspace(200) @cheri_cap_from_pointer(ptr addrspace(200) nofree noundef readnone{{( %.+)?}}, ptr noundef{{( %.+)?}})
 // CAPS: call ptr addrspace(200) @llvm.cheri.cap.from.pointer.i64(ptr addrspace(200){{( %.+)?}}, i64
 // CAPS: define dso_local ptr @cheri_cap_to_pointer(ptr addrspace(200) noundef{{( %.+)?}}, ptr addrspace(200) noundef{{( %.+)?}})
 // CAPS: call i64 @llvm.cheri.cap.to.pointer.i64(ptr addrspace(200){{( %.+)?}}, ptr addrspace(200)

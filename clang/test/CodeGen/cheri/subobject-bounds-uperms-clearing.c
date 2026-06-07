@@ -43,7 +43,7 @@ int *return_global_subobject() {
 extern int printf(const char*, ...);
 
 // CLEAR-PERM2-LABEL: define {{[^@]+}}@main
-// CLEAR-PERM2-SAME: (i32 noundef signext [[ARGC:%.*]], ptr addrspace(200) noundef readnone captures(none) [[ARGV:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2:[0-9]+]] {
+// CLEAR-PERM2-SAME: (i32 noundef signext [[ARGC:%.*]], ptr addrspace(200) nofree noundef readnone captures(none) [[ARGV:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2:[0-9]+]] {
 // CLEAR-PERM2-NEXT:  entry:
 // CLEAR-PERM2-NEXT:    [[F:%.*]] = alloca [[STRUCT_FOO_0:%.*]], align 4, addrspace(200)
 // CLEAR-PERM2-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[F]]) #[[ATTR4:[0-9]+]]

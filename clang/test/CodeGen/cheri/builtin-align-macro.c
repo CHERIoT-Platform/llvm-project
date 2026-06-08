@@ -146,8 +146,8 @@ int *align_up_macro(int *ptr, ptraddr_t align) {
 // PURECAP-LABEL: define {{[^@]+}}@align_up_builtin
 // PURECAP-SAME: (ptr addrspace(200) noundef readnone [[PTR:%.*]], i64 noundef signext [[ALIGN:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2:[0-9]+]] {
 // PURECAP-NEXT:  entry:
-// PURECAP-NEXT:    [[TMP0:%.*]] = getelementptr i8, ptr addrspace(200) [[PTR]], i64 [[ALIGN]]
-// PURECAP-NEXT:    [[OVER_BOUNDARY:%.*]] = getelementptr i8, ptr addrspace(200) [[TMP0]], i64 -1
+// PURECAP-NEXT:    [[MASK:%.*]] = add i64 [[ALIGN]], -1
+// PURECAP-NEXT:    [[OVER_BOUNDARY:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[PTR]], i64 [[MASK]]
 // PURECAP-NEXT:    [[INVERTED_MASK:%.*]] = sub i64 0, [[ALIGN]]
 // PURECAP-NEXT:    [[ALIGNED_RESULT:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[OVER_BOUNDARY]], i64 [[INVERTED_MASK]])
 // PURECAP-NEXT:    ret ptr addrspace(200) [[ALIGNED_RESULT]]

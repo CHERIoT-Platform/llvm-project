@@ -1,0 +1,148 @@
+; DO NOT EDIT -- This file was generated from test/CodeGen/CHERI-Generic/Inputs/memcpy-unaligned.ll
+; SROA will remove the memcpy and replace it with a single store.
+; This is not safe if it is an unaligned capability store but we just expand that to
+; a memcpy in SelectionDAG now. See https://github.com/CTSRD-CHERI/llvm-project/issues/301
+
+; RUN: opt -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+xcheripurecap,+f -passes=sroa,instsimplify %s -o - -S | FileCheck %s -check-prefix SROA
+; RUN: opt -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+xcheripurecap,+f -passes=sroa,instsimplify %s -o - -S | llc -mtriple=riscv32 --relocation-model=pic -target-abi il32pc64f -mattr=+xcheri,+xcheripurecap,+f -O2 -verify-machineinstrs - -o - 2>%t.dbg | FileCheck %s
+; RUN: FileCheck %s -check-prefix=DBG -input-file=%t.dbg
+; DBG:      warning: <unknown>:0:0: in function spgFormLeafTuple void (): found underaligned store of capability type (aligned to 1 bytes instead of 8). Will use memcpy() instead of capability load to preserve tags if it is aligned correctly at runtime
+; DBG-NEXT: warning: <unknown>:0:0: in function align2_should_call_memcpy void (): found underaligned store of capability type (aligned to 2 bytes instead of 8). Will use memcpy() instead of capability load to preserve tags if it is aligned correctly at runtime
+; DBG-NEXT: warning: <unknown>:0:0: in function align4_should_call_memcpy void (): found underaligned store of capability type (aligned to 4 bytes instead of 8). Will use memcpy() instead of capability load to preserve tags if it is aligned correctly at runtime
+; DBG-EMPTY:
+
+target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G200"
+
+@b = common addrspace(200) global ptr addrspace(200) null, align 16
+@nocaps = common addrspace(200) global [2 x i64] zeroinitializer, align 16
+@unaligned_dst = common addrspace(200) global [2 x i64] zeroinitializer, align 8
+
+declare ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200), i64) addrspace(200)
+declare void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noalias nocapture writeonly, ptr addrspace(200) noalias nocapture readonly, i64, i1 immarg) addrspace(200)
+
+
+; Function Attrs: noinline nounwind
+define void @spgFormLeafTuple() addrspace(200) nounwind {
+; SROA-LABEL: @spgFormLeafTuple(
+; SROA-NEXT:  entry:
+; SROA-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @b, align 16
+; SROA-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1), ptr addrspace(200) [[TMP0]], align 1
+; SROA-NEXT:    ret void
+;
+; This should not be turned into a store since the target is not aligned!
+entry:
+  %c = alloca ptr addrspace(200), align 16, addrspace(200)
+  store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1), ptr addrspace(200) %c, align 16
+  %0 = load ptr addrspace(200), ptr addrspace(200) @b, align 16
+  call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 1 dereferenceable(16) %0, ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) %c, i64 16, i1 false)
+  ret void
+
+  ; CHECK-LABEL: spgFormLeafTuple:
+  ; CHECK: ccall memcpy
+}
+
+; Function Attrs: noinline nounwind
+define void @copy_nocaps() addrspace(200) nounwind {
+; SROA-LABEL: @copy_nocaps(
+; SROA-NEXT:  entry:
+; SROA-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 8 dereferenceable(16) @unaligned_dst, ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) @nocaps, i64 16, i1 false)
+; SROA-NEXT:    ret void
+;
+; This should not be turned into a store since the target is not aligned!
+entry:
+  call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 8 dereferenceable(16) @unaligned_dst, ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) @nocaps, i64 16, i1 false)
+  ret void
+
+  ; CHECK-LABEL: copy_nocaps:
+  ; TODO: they type doesn't contain capabilities -> could use inlined memcpy()
+  ; CHECK-NOT: memcpy
+  ; CHECK: csc {{.+}}, 8(
+  ; CHECK: csc {{.+}}, 0(
+}
+
+define void @align2_should_call_memcpy() addrspace(200) nounwind {
+; SROA-LABEL: @align2_should_call_memcpy(
+; SROA-NEXT:  entry:
+; SROA-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @b, align 16
+; SROA-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1), ptr addrspace(200) [[TMP0]], align 2
+; SROA-NEXT:    ret void
+;
+; This should not be turned into a store since the target is not aligned!
+entry:
+  %c = alloca ptr addrspace(200), align 16, addrspace(200)
+  %0 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
+  store ptr addrspace(200) %0, ptr addrspace(200) %c, align 16
+  %1 = load ptr addrspace(200), ptr addrspace(200) @b, align 16
+  call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 2 %1, ptr addrspace(200) align 16 %c, i64 16, i1 false)
+  ret void
+
+  ; CHECK-LABEL: align2_should_call_memcpy:
+  ; CHECK: ccall memcpy
+}
+
+; Function Attrs: noinline nounwind
+define void @align4_should_call_memcpy() addrspace(200) nounwind {
+; SROA-LABEL: @align4_should_call_memcpy(
+; SROA-NEXT:  entry:
+; SROA-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @b, align 16
+; SROA-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1), ptr addrspace(200) [[TMP0]], align 4
+; SROA-NEXT:    ret void
+;
+; This should not be turned into a store since the target is not aligned!
+entry:
+  %c = alloca ptr addrspace(200), align 16, addrspace(200)
+  %0 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
+  store ptr addrspace(200) %0, ptr addrspace(200) %c, align 16
+  %1 = load ptr addrspace(200), ptr addrspace(200) @b, align 16
+  call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 4 %1, ptr addrspace(200) align 16 %c, i64 16, i1 false)
+  ret void
+
+  ; CHECK-LABEL: align4_should_call_memcpy:
+  ; CHECK: ccall memcpy
+}
+
+define void @align8_should_call_memcpy() addrspace(200) nounwind {
+; SROA-LABEL: @align8_should_call_memcpy(
+; SROA-NEXT:  entry:
+; SROA-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @b, align 16
+; SROA-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1), ptr addrspace(200) [[TMP0]], align 8
+; SROA-NEXT:    ret void
+;
+; This should not be turned into a store since the target is not aligned!
+entry:
+  %c = alloca ptr addrspace(200), align 16, addrspace(200)
+  %0 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
+  store ptr addrspace(200) %0, ptr addrspace(200) %c, align 16
+  %1 = load ptr addrspace(200), ptr addrspace(200) @b, align 16
+  call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 8 %1, ptr addrspace(200) align 16 %c, i64 16, i1 false)
+  ret void
+
+  ; CHECK-LABEL: align8_should_call_memcpy:
+  ; CHECK-NOT: ccall memcpy
+  ; CHECK: cincoffset a1, zero, 1
+  ; CHECK-NEXT: csc a1, 0(a0)
+}
+
+;; Here SROA can rewrite the memcpy to a single store:
+define void @align16_can_be_inlined() addrspace(200) nounwind {
+; SROA-LABEL: @align16_can_be_inlined(
+; SROA-NEXT:  entry:
+; SROA-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @b, align 16
+; SROA-NEXT:    store ptr addrspace(200) getelementptr (i8, ptr addrspace(200) null, i64 1), ptr addrspace(200) [[TMP0]], align 16
+; SROA-NEXT:    ret void
+;
+; The memcpy can be turned into a store by sroa:
+entry:
+  %c = alloca ptr addrspace(200), align 16, addrspace(200)
+  %0 = call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.address.set.i64(ptr addrspace(200) null, i64 1)
+  store ptr addrspace(200) %0, ptr addrspace(200) %c, align 16
+  %1 = load ptr addrspace(200), ptr addrspace(200) @b, align 16
+  call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 %1, ptr addrspace(200) align 16 %c, i64 16, i1 false)
+  ret void
+; CHECK-LABEL: align16_can_be_inlined:
+; $c1 <- global void*
+; CHECK-NOT: memcpy
+; CHECK: clc a0, 0(a0)
+; CHECK: cincoffset a1, zero, 1
+; CHECK-NEXT: csc a1, 0(a0)
+}

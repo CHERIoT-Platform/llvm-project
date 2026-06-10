@@ -2062,6 +2062,12 @@ bool AtomicExpandImpl::expandAtomicOpToLibcall(
   SmallVector<Value *, 6> Args;
   AttributeList Attr;
 
+  if (M->getTargetTriple().getOS() == Triple::CheriotRTOS) {
+    // Atomic helpers run with interrupts disabled on CHERIoT.
+    Attr = Attr.addFnAttribute(
+        Ctx, Attribute::get(Ctx, "interrupt-state", "disabled"));
+  }
+
   // 'size' argument.
   if (!UseSizedLibcall) {
     // Note, getIntPtrType is assumed equivalent to size_t.

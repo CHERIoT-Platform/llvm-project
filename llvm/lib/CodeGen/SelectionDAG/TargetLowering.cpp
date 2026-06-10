@@ -222,10 +222,6 @@ bool TargetLowering::findOptimalMemOpLowering(
     bool *ReachedLimit) const {
   if (ReachedLimit)
     *ReachedLimit = false;
-  if (Limit != ~unsigned(0) && Op.isMemcpyWithFixedDstAlign() &&
-      Op.getSrcAlign() < Op.getDstAlign())
-    return false;
-
   EVT VT = getOptimalMemOpType(Context, Op, FuncAttributes);
 
   // XXXAR: (ab)use MVT::isVoid to indicate that a memcpy call must be made
@@ -246,13 +242,22 @@ bool TargetLowering::findOptimalMemOpLowering(
 
   if (VT == MVT::Other) {
     // Use the largest integer type whose alignment constraints are satisfied.
-    // We only need to check DstAlign here as SrcAlign is always greater or
-    // equal to DstAlign (or zero).
     VT = MVT::LAST_INTEGER_VALUETYPE;
-    if (Op.isFixedDstAlign())
-      while (Op.getDstAlign() < (VT.getSizeInBits() / 8) &&
-             !allowsMisalignedMemoryAccesses(VT, DstAS, Op.getDstAlign()))
+    if (Op.isFixedDstAlign()) {
+      bool LoadsFromSrc = Op.isMemcpy() && !Op.isMemcpyStrSrc();
+      while (VT != MVT::i8) {
+        unsigned VTSize = VT.getSizeInBits() / 8;
+        bool DstOk =
+            Op.getDstAlign() >= VTSize ||
+            allowsMisalignedMemoryAccesses(VT, DstAS, Op.getDstAlign());
+        bool SrcOk =
+            !LoadsFromSrc || Op.getSrcAlign() >= VTSize ||
+            allowsMisalignedMemoryAccesses(VT, SrcAS, Op.getSrcAlign());
+        if (DstOk && SrcOk)
+          break;
         VT = (MVT::SimpleValueType)(VT.getSimpleVT().SimpleTy - 1);
+      }
+    }
     assert(VT.isInteger());
 
     // Find the largest legal integer type.
@@ -262,7 +267,7 @@ bool TargetLowering::findOptimalMemOpLowering(
     assert(LVT.isInteger());
 
     // If the type we've chosen is larger than the largest legal integer type
-    // then use that instead.
+    // then use the largest legal type.
     if (VT.bitsGT(LVT))
       VT = LVT;
   }
@@ -11396,7 +11401,7 @@ TargetLowering::expandUnalignedLoad(LoadSDNode *LD, SelectionDAG &DAG) const {
                                        DAG);
     SDValue Ch = DAG.getMemcpy(
         Chain, dl, BoundedTmpPtr, BoundedPtr,
-        DAG.getConstant(CapAlign, dl, MVT::i64), LD->getAlign(),
+        DAG.getConstant(CapAlign, dl, MVT::i64), LD->getAlign(), LD->getAlign(),
         /*isVolatile=*/false, /*AlwaysInline=*/false, nullptr, 
         /*isTailCall=*/false, PreserveCheriTags::Required, TmpPtrInfo, LD->getPointerInfo(),
         AAMDNodes(), nullptr, "!!<CHERI-NODIAG>!!");
@@ -11572,7 +11577,7 @@ SDValue TargetLowering::expandUnalignedStore(StoreSDNode *ST,
                                        CapAlign, DAG);
     auto Result = DAG.getMemcpy(
         Ch, dl, Ptr, TmpPtr, DAG.getConstant(CapAlign, dl, MVT::i64),
-        ST->getAlign(), /*isVolatile=*/false, /*AlwaysInline=*/false, nullptr,
+        ST->getAlign(), ST->getAlign(), /*isVolatile=*/false, /*AlwaysInline=*/false, nullptr,
         /*isTailCall=*/false, PreserveCheriTags::Required, ST->getPointerInfo(),
         TmpPtrInfo, AAMDNodes(), nullptr, "!!<CHERI-NODIAG>!!");
     return Result;

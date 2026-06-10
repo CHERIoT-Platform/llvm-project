@@ -9646,7 +9646,7 @@ LoongArchTargetLowering::LowerCall(CallLoweringInfo &CLI,
                          DAG.getDataLayout().getAllocaAddrSpace()));
     SDValue SizeNode = DAG.getConstant(Size, DL, GRLenVT);
 
-    Chain = DAG.getMemcpy(Chain, DL, FIPtr, Arg, SizeNode, Alignment,
+    Chain = DAG.getMemcpy(Chain, DL, FIPtr, Arg, SizeNode, Alignment, Alignment,
                           /*IsVolatile=*/false,
                           /*AlwaysInline=*/false, /*CI=*/nullptr, std::nullopt,
                           /*PreserveTags*/ PreserveCheriTags::TODO,

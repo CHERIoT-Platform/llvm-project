@@ -35,15 +35,18 @@ unsigned BPFSelectionDAGInfo::getCommonMaxStoresPerMemFunc() const {
 
 SDValue BPFSelectionDAGInfo::EmitTargetCodeForMemcpy(
     SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Dst, SDValue Src,
-    SDValue Size, Align Alignment, bool isVolatile, bool AlwaysInline,
-    PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
+    SDValue Size, Align DstAlign, Align SrcAlign, bool isVolatile,
+    bool AlwaysInline, PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
+   
     MachinePointerInfo SrcPtrInfo) const {
+  Align Alignment = std::min(DstAlign, SrcAlign);
+
   // Requires the copy size to be a constant.
   ConstantSDNode *ConstantSize = dyn_cast<ConstantSDNode>(Size);
   if (!ConstantSize)
     return SDValue();
 
-  // BPF::MEMCPY supports alignment up to 8 bytes.
+  // `BPFInstrInfo::expandMEMCPY` supports alignment up to 8 bytes.
   if (Alignment.value() > 8)
     return SDValue();
 

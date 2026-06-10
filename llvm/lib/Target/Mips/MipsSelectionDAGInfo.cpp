@@ -119,20 +119,20 @@ SDValue EmitTargetCodeForMemOp(SelectionDAG &DAG, const SDLoc &dl,
 
 SDValue MipsSelectionDAGInfo::EmitTargetCodeForMemcpy(
     SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Dst, SDValue Src,
-    SDValue Size, Align Alignment, bool isVolatile, bool AlwaysInline,
+    SDValue Size, Align DstAlign, Align SrcAlign, bool isVolatile, bool AlwaysInline,
     PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
     MachinePointerInfo SrcPtrInfo) const {
-  return EmitTargetCodeForMemOp(DAG, dl, Chain, Dst, Src, Size, Alignment,
+  return EmitTargetCodeForMemOp(DAG, dl, Chain, Dst, Src, Size, std::min(DstAlign, SrcAlign),
                                 isVolatile, AlwaysInline, PreserveTags,
                                 DstPtrInfo, SrcPtrInfo, true);
 }
 
 SDValue MipsSelectionDAGInfo::EmitTargetCodeForMemmove(
     SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Dst, SDValue Src,
-    SDValue Size, Align Alignment, bool isVolatile,
+    SDValue Size, Align DstAlign, Align SrcAlign, bool isVolatile,
     PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
     MachinePointerInfo SrcPtrInfo) const {
-  return EmitTargetCodeForMemOp(DAG, dl, Chain, Dst, Src, Size, Alignment,
+  return EmitTargetCodeForMemOp(DAG, dl, Chain, Dst, Src, Size, std::min(DstAlign, SrcAlign),
                                 isVolatile, false, PreserveTags, DstPtrInfo,
                                 SrcPtrInfo, false);
 }

@@ -5981,7 +5981,7 @@ void MipsTargetLowering::passByValArg(
       StackPtr, TypeSize::getFixed(VA.getLocMemOffset()), DL);
   Chain = DAG.getMemcpy(
       Chain, DL, Dst, Src, DAG.getIntPtrConstant(MemCpySize, DL), Alignment,
-      /*isVolatile=*/false, /*AlwaysInline=*/false,
+      Alignment, /*isVolatile=*/false, /*AlwaysInline=*/false,
       /*CI=*/nullptr, std::nullopt, llvm::PreserveCheriTags::Unknown,
       MachinePointerInfo(), MachinePointerInfo());
   MemOpChains.push_back(Chain);

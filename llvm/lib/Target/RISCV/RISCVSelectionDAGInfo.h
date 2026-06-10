@@ -71,7 +71,7 @@ public:
 
   SDValue EmitTargetCodeForMemcpy(SelectionDAG &DAG, const SDLoc &dl,
                                   SDValue Chain, SDValue Op1, SDValue Op2,
-                                  SDValue Op3, Align Alignment, bool isVolatile,
+                                  SDValue Op3, Align DstAlign, Align SrcAlign, bool isVolatile,
                                   bool AlwaysInline,
                                   PreserveCheriTags PreserveTags,
                                   MachinePointerInfo DstPtrInfo,
@@ -79,7 +79,7 @@ public:
 
   SDValue EmitTargetCodeForMemmove(
       SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Op1,
-      SDValue Op2, SDValue Op3, Align Alignment, bool isVolatile,
+      SDValue Op2, SDValue Op3, Align DstAlign, Align SrcAlign, bool isVolatile,
       PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
       MachinePointerInfo SrcPtrInfo) const override;
 };

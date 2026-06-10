@@ -75,8 +75,9 @@ static SDValue emitMemMemReg(SelectionDAG &DAG, const SDLoc &DL, unsigned Op,
 
 SDValue SystemZSelectionDAGInfo::EmitTargetCodeForMemcpy(
     SelectionDAG &DAG, const SDLoc &DL, SDValue Chain, SDValue Dst, SDValue Src,
-    SDValue Size, Align Alignment, bool IsVolatile, bool AlwaysInline,
-    PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
+    SDValue Size, Align DstAlign, Align SrcAlign, bool IsVolatile,
+    bool AlwaysInline, PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
+   
     MachinePointerInfo SrcPtrInfo) const {
   if (IsVolatile)
     return SDValue();

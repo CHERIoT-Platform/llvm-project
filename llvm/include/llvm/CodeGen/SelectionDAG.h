@@ -1355,23 +1355,21 @@ public:
   /* \p CI if not null is the memset call being lowered.
    * \p OverrideTailCall is an optional parameter that can be used to override
    * the tail call optimization decision. */
-  LLVM_ABI SDValue getMemcpy(SDValue Chain, const SDLoc &dl, SDValue Dst,
-                             SDValue Src, SDValue Size, Align Alignment,
-                             bool isVol, bool AlwaysInline, const CallInst *CI,
-                             std::optional<bool> OverrideTailCall,
+  LLVM_ABI SDValue getMemcpy(
+      SDValue Chain, const SDLoc &dl, SDValue Dst, SDValue Src, SDValue Size,
+      Align DstAlign, Align SrcAlign, bool isVol, bool AlwaysInline,
+      const CallInst *CI, std::optional<bool> OverrideTailCall,
                              PreserveCheriTags PreserveTags,
-                             MachinePointerInfo DstPtrInfo,
-                             MachinePointerInfo SrcPtrInfo,
-                             const AAMDNodes &AAInfo = AAMDNodes(),
-                             BatchAAResults *BatchAA = nullptr,
+      MachinePointerInfo DstPtrInfo, MachinePointerInfo SrcPtrInfo,
+      const AAMDNodes &AAInfo = AAMDNodes(), BatchAAResults *BatchAA = nullptr,
                              StringRef CopyType = StringRef());
 
   /* \p CI if not null is the memset call being lowered.
    * \p OverrideTailCall is an optional parameter that can be used to override
    * the tail call optimization decision. */
   LLVM_ABI SDValue getMemmove(SDValue Chain, const SDLoc &dl, SDValue Dst,
-                              SDValue Src, SDValue Size, Align Alignment,
-                              bool isVol, const CallInst *CI,
+                              SDValue Src, SDValue Size, Align DstAlign,
+                              Align SrcAlign, bool isVol, const CallInst *CI,
                               std::optional<bool> OverrideTailCall,
                               PreserveCheriTags PreserveTags,
                               MachinePointerInfo DstPtrInfo,

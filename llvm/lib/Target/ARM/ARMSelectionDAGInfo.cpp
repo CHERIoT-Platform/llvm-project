@@ -254,9 +254,11 @@ static bool shouldGenerateInlineTPLoop(const ARMSubtarget &Subtarget,
 
 SDValue ARMSelectionDAGInfo::EmitTargetCodeForMemcpy(
     SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Dst, SDValue Src,
-    SDValue Size, Align Alignment, bool isVolatile, bool AlwaysInline,
-    PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
+    SDValue Size, Align DstAlign, Align SrcAlign, bool isVolatile,
+    bool AlwaysInline, PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
+   
     MachinePointerInfo SrcPtrInfo) const {
+  Align Alignment = std::min(DstAlign, SrcAlign);
   const ARMSubtarget &Subtarget =
       DAG.getMachineFunction().getSubtarget<ARMSubtarget>();
   ConstantSDNode *ConstantSize = dyn_cast<ConstantSDNode>(Size);
@@ -373,9 +375,10 @@ SDValue ARMSelectionDAGInfo::EmitTargetCodeForMemcpy(
 
 SDValue ARMSelectionDAGInfo::EmitTargetCodeForMemmove(
     SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Dst, SDValue Src,
-    SDValue Size, Align Alignment, bool isVolatile,
+    SDValue Size, Align DstAlign, Align SrcAlign, bool isVolatile,
     PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
     MachinePointerInfo SrcPtrInfo) const {
+  Align Alignment = std::min(DstAlign, SrcAlign);
   return EmitSpecializedLibcall(DAG, dl, Chain, Dst, Src, Size, Alignment.value(),
                                 RTLIB::MEMMOVE);
 }

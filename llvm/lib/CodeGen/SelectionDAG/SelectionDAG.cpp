@@ -9429,15 +9429,15 @@ diagnoseInefficientCheriMemOp(SelectionDAG &DAG, const DiagnosticLocation &Loc,
   DAG.getContext()->diagnose(Warning);
 }
 
-static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
-                                       SDValue Chain, SDValue Dst, SDValue Src,
-                                       uint64_t Size, Align Alignment,
-                                       bool isVol, bool AlwaysInline,
-                                       PreserveCheriTags PreserveTags,
-                                       MachinePointerInfo DstPtrInfo,
-                                       MachinePointerInfo SrcPtrInfo,
-                                       const AAMDNodes &AAInfo, BatchAAResults *BatchAA,
-                                       StringRef CopyTy, CodeGenOptLevel OptLevel) {
+static SDValue
+getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl, SDValue Chain,
+                        SDValue Dst, SDValue Src, uint64_t Size, Align DstAlign,
+                        Align SrcAlign, bool isVol, bool AlwaysInline,
+                        PreserveCheriTags PreserveTags,
+                        MachinePointerInfo DstPtrInfo,
+                        MachinePointerInfo SrcPtrInfo, const AAMDNodes &AAInfo,
+                        BatchAAResults *BatchAA,
+                        StringRef CopyTy, CodeGenOptLevel OptLevel) {
   // Turn a memcpy of undef to nop.
   // FIXME: We need to honor volatile even is Src is undef.
   if (Src.isUndef())
@@ -9458,10 +9458,7 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
   FrameIndexSDNode *FI = dyn_cast<FrameIndexSDNode>(Dst);
   if (FI && !MFI.isFixedObjectIndex(FI->getIndex()))
     DstAlignCanChange = true;
-  MaybeAlign SrcAlign = DAG.InferPtrAlign(Src);
-  if (!SrcAlign || Alignment > *SrcAlign)
-    SrcAlign = Alignment;
-  assert(SrcAlign && "SrcAlign must be set");
+  SrcAlign = std::max(SrcAlign, DAG.InferPtrAlign(Src).valueOrOne());
   ConstantDataArraySlice Slice;
   // If marked as volatile, perform a copy even when marked as constant.
   bool CopyFromConstant = !isVol && isMemSrcFromConstant(Src, Slice);
@@ -9469,9 +9466,9 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
   unsigned Limit = AlwaysInline ? ~0U : TLI.getMaxStoresPerMemcpy(OptSize);
   const MemOp Op =
       isZeroConstant
-          ? MemOp::Set(Size, DstAlignCanChange, Alignment,
+          ? MemOp::Set(Size, DstAlignCanChange, DstAlign,
                        /*IsZeroMemset*/ true, isVol)
-          : MemOp::Copy(Size, DstAlignCanChange, Alignment, *SrcAlign, isVol,
+          : MemOp::Copy(Size, DstAlignCanChange, DstAlign, SrcAlign, isVol,
                         PreserveTags, CopyFromConstant);
   bool ReachedLimit;
   const bool FoundLowering = TLI.findOptimalMemOpLowering(
@@ -9496,7 +9493,7 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
       diagnoseInefficientCheriMemOp(
           DAG, dl.getDebugLoc(), "memcpy", OptLevel,
           CopyTy.empty() ? "<unknown type>" : CopyTy,
-          std::max((uint64_t)1, std::min(Alignment, *SrcAlign).value()), Size,
+          std::max((uint64_t)1, std::min(DstAlign, SrcAlign).value()), Size,
           CapSize);
       return SDValue();
     }
@@ -9506,9 +9503,9 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
 
   if (DstAlignCanChange) {
     Type *Ty = MemOps[0].getTypeForEVT(C);
-    Align NewAlign = DL.getABITypeAlign(Ty);
+    Align NewDstAlign = DL.getABITypeAlign(Ty);
     if (MemOps[0].isFatPointer()) {
-      assert(NewAlign <= *DL.getStackAlignment() &&
+      assert(NewDstAlign <= *DL.getStackAlignment() &&
              "Stack not capability-aligned?");
     }
 
@@ -9518,17 +9515,17 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
     const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
     if (!TRI->hasStackRealignment(MF))
       if (MaybeAlign StackAlign = DL.getStackAlignment())
-        NewAlign = std::min(NewAlign, *StackAlign);
+        NewDstAlign = std::min(NewDstAlign, *StackAlign);
 
     if (MemOps[0].isFatPointer()) {
-      assert(NewAlign == DL.getABITypeAlign(Ty) &&
+      assert(NewDstAlign == DL.getABITypeAlign(Ty) &&
              "Stack not capability-aligned?");
     }
-    if (NewAlign > Alignment) {
+    if (NewDstAlign > DstAlign) {
       // Give the stack frame object a larger alignment if needed.
-      if (MFI.getObjectAlign(FI->getIndex()) < NewAlign)
-        MFI.setObjectAlignment(FI->getIndex(), NewAlign);
-      Alignment = NewAlign;
+      if (MFI.getObjectAlign(FI->getIndex()) < NewDstAlign)
+        MFI.setObjectAlignment(FI->getIndex(), NewDstAlign);
+      DstAlign = NewDstAlign;
     }
   }
 
@@ -9583,7 +9580,7 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
         Store = DAG.getStore(
             Chain, dl, Value,
             DAG.getObjectPtrOffset(dl, Dst, TypeSize::getFixed(DstOff)),
-            DstPtrInfo.getWithOffset(DstOff), Alignment, MMOFlags, NewAAInfo);
+            DstPtrInfo.getWithOffset(DstOff), DstAlign, MMOFlags, NewAAInfo);
         OutChains.push_back(Store);
       }
     }
@@ -9609,13 +9606,13 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
           ISD::EXTLOAD, dl, NVT, Chain,
           DAG.getObjectPtrOffset(dl, Src, TypeSize::getFixed(SrcOff)),
           SrcPtrInfo.getWithOffset(SrcOff), VT,
-          commonAlignment(*SrcAlign, SrcOff), SrcMMOFlags, NewAAInfo);
+          commonAlignment(SrcAlign, SrcOff), SrcMMOFlags, NewAAInfo);
       OutLoadChains.push_back(Value.getValue(1));
 
       Store = DAG.getTruncStore(
           Chain, dl, Value,
           DAG.getObjectPtrOffset(dl, Dst, TypeSize::getFixed(DstOff)),
-          DstPtrInfo.getWithOffset(DstOff), VT, Alignment, MMOFlags, NewAAInfo);
+          DstPtrInfo.getWithOffset(DstOff), VT, DstAlign, MMOFlags, NewAAInfo);
       OutStoreChains.push_back(Store);
     }
     SrcOff += VTSize;
@@ -9671,10 +9668,11 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, const SDLoc &dl,
 
 static SDValue getMemmoveLoadsAndStores(
     SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Dst, SDValue Src,
-    uint64_t Size, Align Alignment, bool isVol, bool AlwaysInline,
-    PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
-    MachinePointerInfo SrcPtrInfo, const AAMDNodes &AAInfo, StringRef MoveTy,
-    CodeGenOptLevel OptLevel) {
+    uint64_t Size, Align DstAlign, Align SrcAlign, bool isVol,
+    bool AlwaysInline, PreserveCheriTags PreserveTags,
+    MachinePointerInfo DstPtrInfo,
+    MachinePointerInfo SrcPtrInfo, const AAMDNodes &AAInfo,
+    StringRef MoveTy, CodeGenOptLevel OptLevel) {
   // Turn a memmove of undef to nop.
   // FIXME: We need to honor volatile even is Src is undef.
   if (Src.isUndef())
@@ -9693,15 +9691,12 @@ static SDValue getMemmoveLoadsAndStores(
   FrameIndexSDNode *FI = dyn_cast<FrameIndexSDNode>(Dst);
   if (FI && !MFI.isFixedObjectIndex(FI->getIndex()))
     DstAlignCanChange = true;
-  MaybeAlign SrcAlign = DAG.InferPtrAlign(Src);
-  if (!SrcAlign || Alignment > *SrcAlign)
-    SrcAlign = Alignment;
-  assert(SrcAlign && "SrcAlign must be set");
+  SrcAlign = std::max(SrcAlign, DAG.InferPtrAlign(Src).valueOrOne());
   unsigned Limit = AlwaysInline ? ~0U : TLI.getMaxStoresPerMemmove(OptSize);
   bool ReachedLimit;
   const bool FoundLowering = TLI.findOptimalMemOpLowering(
       C, MemOps, Limit,
-      MemOp::Copy(Size, DstAlignCanChange, Alignment, *SrcAlign,
+      MemOp::Copy(Size, DstAlignCanChange, DstAlign, SrcAlign,
                   isVol, PreserveTags),
       DstPtrInfo.getAddrSpace(), SrcPtrInfo.getAddrSpace(),
       MF.getFunction().getAttributes(), nullptr, &ReachedLimit);
@@ -9725,7 +9720,7 @@ static SDValue getMemmoveLoadsAndStores(
       diagnoseInefficientCheriMemOp(
           DAG, dl.getDebugLoc(), "memmove", OptLevel,
           MoveTy.empty() ? "<unknown type>" : MoveTy,
-          std::max(Align(1), std::min(Alignment, *SrcAlign)).value(), Size,
+          std::max(Align(1), std::min(DstAlign, SrcAlign)).value(), Size,
           CapSize);
       return SDValue();
     }
@@ -9735,9 +9730,9 @@ static SDValue getMemmoveLoadsAndStores(
 
   if (DstAlignCanChange) {
     Type *Ty = MemOps[0].getTypeForEVT(C);
-    Align NewAlign = DL.getABITypeAlign(Ty);
+    Align NewDstAlign = DL.getABITypeAlign(Ty);
     if (MemOps[0].isFatPointer()) {
-      assert(NewAlign <= *DL.getStackAlignment() &&
+      assert(NewDstAlign <= *DL.getStackAlignment() &&
              "Stack not capability-aligned?");
     }
 
@@ -9747,13 +9742,13 @@ static SDValue getMemmoveLoadsAndStores(
     const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
     if (!TRI->hasStackRealignment(MF))
       if (MaybeAlign StackAlign = DL.getStackAlignment())
-        NewAlign = std::min(NewAlign, *StackAlign);
+        NewDstAlign = std::min(NewDstAlign, *StackAlign);
 
-    if (NewAlign > Alignment) {
+    if (NewDstAlign > DstAlign) {
       // Give the stack frame object a larger alignment if needed.
-      if (MFI.getObjectAlign(FI->getIndex()) < NewAlign)
-        MFI.setObjectAlignment(FI->getIndex(), NewAlign);
-      Alignment = NewAlign;
+      if (MFI.getObjectAlign(FI->getIndex()) < NewDstAlign)
+        MFI.setObjectAlignment(FI->getIndex(), NewDstAlign);
+      DstAlign = NewDstAlign;
     }
   }
 
@@ -9784,7 +9779,7 @@ static SDValue getMemmoveLoadsAndStores(
     // Calculate the actual alignment at the current offset. The alignment at
     // SrcOff may be lower than the base alignment, especially when using
     // overlapping loads.
-    Align SrcAlignAtOffset = commonAlignment(*SrcAlign, SrcOff);
+    Align SrcAlignAtOffset = commonAlignment(SrcAlign, SrcOff);
     if (IsOverlapping) {
       // Verify that the target allows misaligned memory accesses at the
       // adjusted offset when using overlapping loads.
@@ -9832,7 +9827,7 @@ static SDValue getMemmoveLoadsAndStores(
     // Calculate the actual alignment at the current offset. The alignment at
     // DstOff may be lower than the base alignment, especially when using
     // overlapping stores.
-    Align DstAlignAtOffset = commonAlignment(Alignment, DstOff);
+    Align DstAlignAtOffset = commonAlignment(DstAlign, DstOff);
     if (IsOverlapping) {
       // Verify that the target allows misaligned memory accesses at the
       // adjusted offset when using overlapping stores.
@@ -10160,11 +10155,12 @@ std::pair<SDValue, SDValue> SelectionDAG::getStrlen(SDValue Chain,
 
 SDValue SelectionDAG::getMemcpy(
     SDValue Chain, const SDLoc &dl, SDValue Dst, SDValue Src, SDValue Size,
-    Align Alignment, bool isVol, bool AlwaysInline, const CallInst *CI,
-    std::optional<bool> OverrideTailCall, PreserveCheriTags PreserveTags,
+    Align DstAlign, Align SrcAlign, bool isVol, bool AlwaysInline,
+    const CallInst *CI, std::optional<bool> OverrideTailCall,
+    PreserveCheriTags PreserveTags,
     MachinePointerInfo DstPtrInfo, MachinePointerInfo SrcPtrInfo,
-    const AAMDNodes &AAInfo,
-    BatchAAResults *BatchAA, StringRef CopyType) {
+    const AAMDNodes &AAInfo, BatchAAResults *BatchAA,
+    StringRef CopyType) {
   // Check to see if we should lower the memcpy to loads and stores first.
   // For cases within the target-specified limits, this is the best choice.
   ConstantSDNode *ConstantSize = dyn_cast<ConstantSDNode>(Size);
@@ -10176,8 +10172,8 @@ SDValue SelectionDAG::getMemcpy(
       return Chain;
 
     SDValue Result = getMemcpyLoadsAndStores(
-        *this, dl, Chain, Dst, Src, ConstantSize->getZExtValue(), Alignment,
-        isVol, false, PreserveTags, DstPtrInfo, SrcPtrInfo, AAInfo, BatchAA,
+        *this, dl, Chain, Dst, Src, ConstantSize->getZExtValue(), DstAlign,
+        SrcAlign, isVol, false, PreserveTags, DstPtrInfo, SrcPtrInfo, AAInfo, BatchAA,
         CopyType, OptLevel);
     if (Result.getNode())
       return Result;
@@ -10187,8 +10183,8 @@ SDValue SelectionDAG::getMemcpy(
   // code. If the target chooses to do this, this is the next best.
   if (TSI) {
     SDValue Result = TSI->EmitTargetCodeForMemcpy(
-        *this, dl, Chain, Dst, Src, Size, Alignment, isVol, AlwaysInline,
-        PreserveTags, DstPtrInfo, SrcPtrInfo);
+        *this, dl, Chain, Dst, Src, Size, DstAlign, SrcAlign, isVol,
+        AlwaysInline, PreserveTags, DstPtrInfo, SrcPtrInfo);
     if (Result.getNode())
       return Result;
   }
@@ -10198,8 +10194,8 @@ SDValue SelectionDAG::getMemcpy(
   if (AlwaysInline) {
     assert(ConstantSize && "AlwaysInline requires a constant size!");
     return getMemcpyLoadsAndStores(*this, dl, Chain, Dst, Src,
-                                   ConstantSize->getZExtValue(), Alignment,
-                                   isVol, true, PreserveTags, DstPtrInfo,
+                                   ConstantSize->getZExtValue(), DstAlign,
+                                   SrcAlign, isVol, true, PreserveTags, DstPtrInfo,
                                    SrcPtrInfo, AAInfo, BatchAA, CopyType, OptLevel);
   }
 
@@ -10278,8 +10274,8 @@ SDValue SelectionDAG::getAtomicMemcpy(SDValue Chain, const SDLoc &dl,
 }
 
 SDValue SelectionDAG::getMemmove(SDValue Chain, const SDLoc &dl, SDValue Dst,
-                                 SDValue Src, SDValue Size, Align Alignment,
-                                 bool isVol, const CallInst *CI,
+                                 SDValue Src, SDValue Size, Align DstAlign,
+                                 Align SrcAlign, bool isVol, const CallInst *CI,
                                  std::optional<bool> OverrideTailCall,
                                  PreserveCheriTags PreserveTags,
                                  MachinePointerInfo DstPtrInfo,
@@ -10296,8 +10292,8 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, const SDLoc &dl, SDValue Dst,
       return Chain;
 
     SDValue Result = getMemmoveLoadsAndStores(
-        *this, dl, Chain, Dst, Src, ConstantSize->getZExtValue(), Alignment,
-        isVol, false, PreserveTags, DstPtrInfo, SrcPtrInfo, AAInfo, MoveType,
+        *this, dl, Chain, Dst, Src, ConstantSize->getZExtValue(), DstAlign,
+        SrcAlign, isVol, false, PreserveTags, DstPtrInfo, SrcPtrInfo, AAInfo, MoveType,
         OptLevel);
     if (Result.getNode())
       return Result;
@@ -10307,7 +10303,7 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, const SDLoc &dl, SDValue Dst,
   // code. If the target chooses to do this, this is the next best.
   if (TSI) {
     SDValue Result = TSI->EmitTargetCodeForMemmove(
-        *this, dl, Chain, Dst, Src, Size, Alignment, isVol, PreserveTags,
+        *this, dl, Chain, Dst, Src, Size, DstAlign, SrcAlign, isVol, PreserveTags,
         DstPtrInfo, SrcPtrInfo);
     if (Result.getNode())
       return Result;

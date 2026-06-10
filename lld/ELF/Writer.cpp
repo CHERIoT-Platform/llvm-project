@@ -3634,6 +3634,7 @@ class CompartmentReportWriter {
           entry.insert({"start_offset", e.functionStart});
           entry.insert({"register_arguments", e.argument_registers()});
           entry.insert({"interrupt_status", e.interrupt_status()});
+          entry.insert({"minimum_stack_size", e.minimumStackSize * 8});
         }
         exports.push_back(std::move(entry));
       }

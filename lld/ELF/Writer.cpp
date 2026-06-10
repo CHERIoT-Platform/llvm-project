@@ -3351,6 +3351,7 @@ class CompartmentReportWriter {
    * to a compartment name.
    */
   std::unordered_map<std::string, json::Array> exportsByFile;
+  std::unordered_map<std::string, bool> errorHandlerByFile;
 
   template <typename T> T read(size_t offset) {
     if (offset + sizeof(T) > bufferSize)
@@ -3609,6 +3610,13 @@ class CompartmentReportWriter {
       if (inSec->getSize() <= offset)
         continue;
       uint8_t *sectionStartInOutput = buffer + sec->offset + inSec->outSecOff;
+      // errorHandler at 16, errorHandlerStackless at 18
+      // 0xffff in both means the compartment does not provide an error handler
+      // see export-table-assembly.h, respectively switcher/entry.S
+      // (cheriot-rtos)
+      uint64_t tableOffset = sec->offset + inSec->outSecOff;
+      bool hasErrorHandler = read<uint16_t>(tableOffset + 16) != 0xffff ||
+                             read<uint16_t>(tableOffset + 18) != 0xffff;
       ArrayRef<ExportTableEntry> table{
           reinterpret_cast<ExportTableEntry *>(sectionStartInOutput + offset),
           (inSec->getSize() - offset) / sizeof(ExportTableEntry)};
@@ -3640,6 +3648,7 @@ class CompartmentReportWriter {
       }
       if (!exports.empty()) {
         exportsByFile[inSec->file->getName().str()] = std::move(exports);
+        errorHandlerByFile[inSec->file->getName().str()] = hasErrorHandler;
       }
     }
   }
@@ -3822,6 +3831,9 @@ class CompartmentReportWriter {
           if (it != exportsByFile.end()) {
             compartment.insert({"exports", std::move(it->second)});
             exportsByFile.erase(it);
+            auto eh = errorHandlerByFile.find(inSec->file->getName().str());
+            if (eh != errorHandlerByFile.end())
+              compartment.insert({"error_handler", eh->second});
           }
         }
         if (inSec->name == ".compartment_import_table") {

@@ -13,7 +13,7 @@ define dso_local ptr addrspace(200) @frameaddr() addrspace(200) nounwind {
 ; PURECAP-NEXT:    csc ra, 24(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    csc s0, 16(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    cincoffset s0, sp, 32
-; PURECAP-NEXT:    csc s0, -32(s0)
+; PURECAP-NEXT:    csc s0, 0(sp)
 ; PURECAP-NEXT:    cmove a0, s0
 ; PURECAP-NEXT:    clc ra, 24(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    clc s0, 16(sp) # 8-byte Folded Reload
@@ -26,7 +26,7 @@ define dso_local ptr addrspace(200) @frameaddr() addrspace(200) nounwind {
 ; HYBRID-NEXT:    sw ra, 12(sp) # 4-byte Folded Spill
 ; HYBRID-NEXT:    sw s0, 8(sp) # 4-byte Folded Spill
 ; HYBRID-NEXT:    addi s0, sp, 16
-; HYBRID-NEXT:    sw s0, -16(s0)
+; HYBRID-NEXT:    sw s0, 0(sp)
 ; HYBRID-NEXT:    mv a0, s0
 ; HYBRID-NEXT:    lw ra, 12(sp) # 4-byte Folded Reload
 ; HYBRID-NEXT:    lw s0, 8(sp) # 4-byte Folded Reload

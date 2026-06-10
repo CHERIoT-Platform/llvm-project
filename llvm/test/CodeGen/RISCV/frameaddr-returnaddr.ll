@@ -41,7 +41,7 @@ define ptr @test_frameaddress_0_alloca() nounwind {
 ; RV32I-NEXT:    sw ra, 108(sp) # 4-byte Folded Spill
 ; RV32I-NEXT:    sw s0, 104(sp) # 4-byte Folded Spill
 ; RV32I-NEXT:    addi s0, sp, 112
-; RV32I-NEXT:    addi a0, s0, -108
+; RV32I-NEXT:    addi a0, sp, 4
 ; RV32I-NEXT:    call notdead
 ; RV32I-NEXT:    mv a0, s0
 ; RV32I-NEXT:    lw ra, 108(sp) # 4-byte Folded Reload
@@ -55,7 +55,7 @@ define ptr @test_frameaddress_0_alloca() nounwind {
 ; RV64I-NEXT:    sd ra, 120(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    sd s0, 112(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    addi s0, sp, 128
-; RV64I-NEXT:    addi a0, s0, -116
+; RV64I-NEXT:    addi a0, sp, 12
 ; RV64I-NEXT:    call notdead
 ; RV64I-NEXT:    mv a0, s0
 ; RV64I-NEXT:    ld ra, 120(sp) # 8-byte Folded Reload
@@ -105,7 +105,7 @@ define ptr @test_frameaddress_3_alloca() nounwind {
 ; RV32I-NEXT:    sw ra, 108(sp) # 4-byte Folded Spill
 ; RV32I-NEXT:    sw s0, 104(sp) # 4-byte Folded Spill
 ; RV32I-NEXT:    addi s0, sp, 112
-; RV32I-NEXT:    addi a0, s0, -108
+; RV32I-NEXT:    addi a0, sp, 4
 ; RV32I-NEXT:    call notdead
 ; RV32I-NEXT:    lw a0, -8(s0)
 ; RV32I-NEXT:    lw a0, -8(a0)
@@ -121,7 +121,7 @@ define ptr @test_frameaddress_3_alloca() nounwind {
 ; RV64I-NEXT:    sd ra, 120(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    sd s0, 112(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    addi s0, sp, 128
-; RV64I-NEXT:    addi a0, s0, -116
+; RV64I-NEXT:    addi a0, sp, 12
 ; RV64I-NEXT:    call notdead
 ; RV64I-NEXT:    ld a0, -16(s0)
 ; RV64I-NEXT:    ld a0, -16(a0)
@@ -223,7 +223,7 @@ define i8* @test_returnaddress_3_alloca() nounwind {
 ; RV32I-NEXT:    sw ra, 108(sp) # 4-byte Folded Spill
 ; RV32I-NEXT:    sw s0, 104(sp) # 4-byte Folded Spill
 ; RV32I-NEXT:    addi s0, sp, 112
-; RV32I-NEXT:    addi a0, s0, -108
+; RV32I-NEXT:    addi a0, sp, 4
 ; RV32I-NEXT:    call notdead
 ; RV32I-NEXT:    lw a0, -8(s0)
 ; RV32I-NEXT:    lw a0, -8(a0)
@@ -240,7 +240,7 @@ define i8* @test_returnaddress_3_alloca() nounwind {
 ; RV64I-NEXT:    sd ra, 120(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    sd s0, 112(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    addi s0, sp, 128
-; RV64I-NEXT:    addi a0, s0, -116
+; RV64I-NEXT:    addi a0, sp, 12
 ; RV64I-NEXT:    call notdead
 ; RV64I-NEXT:    ld a0, -16(s0)
 ; RV64I-NEXT:    ld a0, -16(a0)

@@ -3320,6 +3320,19 @@ class CompartmentReportWriter {
     bool is_sealing_type() const { return flags & 0b100000; }
   };
 
+  /// Export table header layout, see export-table-assembly.h (cheriot-rtos)
+  struct ExportTable {
+    static constexpr uint64_t pccOffset = 0;
+    static constexpr uint64_t cgpOffset = 8;
+    static constexpr uint64_t errorHandlerOffset = 16;
+    static constexpr uint64_t errorHandlerStacklessOffset = 18;
+    static constexpr uint64_t firstEntryOffset = 20;
+    /// 0xffff in both error-handler slots means no handler (switcher/entry.S)
+    static constexpr uint16_t noErrorHandler = 0xffff;
+    /// minimumStackSize is stored in units of 8 bytes (switcher/entry.S)
+    static constexpr unsigned stackSizeGranule = 8;
+  };
+
   /// The root of the report
   json::Object Json;
   /// The buffer holding the output
@@ -3604,19 +3617,18 @@ class CompartmentReportWriter {
     SmallVector<InputSection *, 0> storage;
     for (auto *inSec : getInputSections(*sec, storage)) {
       // Skip pcc, ddc, and the error handler.
-      constexpr uint64_t firstEntryOffset = 20;
-      uint64_t offset = firstEntryOffset;
+      uint64_t offset = ExportTable::firstEntryOffset;
       // Skip ones that don't actually export anything.
       if (inSec->getSize() <= offset)
         continue;
       uint8_t *sectionStartInOutput = buffer + sec->offset + inSec->outSecOff;
-      // errorHandler at 16, errorHandlerStackless at 18
-      // 0xffff in both means the compartment does not provide an error handler
-      // see export-table-assembly.h, respectively switcher/entry.S
-      // (cheriot-rtos)
       uint64_t tableOffset = sec->offset + inSec->outSecOff;
-      bool hasErrorHandler = read<uint16_t>(tableOffset + 16) != 0xffff ||
-                             read<uint16_t>(tableOffset + 18) != 0xffff;
+      bool hasErrorHandler =
+          read<uint16_t>(tableOffset + ExportTable::errorHandlerOffset) !=
+              ExportTable::noErrorHandler ||
+          read<uint16_t>(tableOffset +
+                         ExportTable::errorHandlerStacklessOffset) !=
+              ExportTable::noErrorHandler;
       ArrayRef<ExportTableEntry> table{
           reinterpret_cast<ExportTableEntry *>(sectionStartInOutput + offset),
           (inSec->getSize() - offset) / sizeof(ExportTableEntry)};
@@ -3626,7 +3638,8 @@ class CompartmentReportWriter {
         offset += sizeof(ExportTableEntry);
         if (!sym) {
           error("Export table entry " +
-                utostr((offset - firstEntryOffset - sizeof(ExportTableEntry)) /
+                utostr((offset - ExportTable::firstEntryOffset -
+                        sizeof(ExportTableEntry)) /
                        sizeof(ExportTableEntry)) +
                 " from " + toStr(ctx, inSec->file) +
                 " has no symbol associated with it");
@@ -3642,7 +3655,8 @@ class CompartmentReportWriter {
           entry.insert({"start_offset", e.functionStart});
           entry.insert({"register_arguments", e.argument_registers()});
           entry.insert({"interrupt_status", e.interrupt_status()});
-          entry.insert({"minimum_stack_size", e.minimumStackSize * 8});
+          entry.insert({"minimum_stack_size",
+                        e.minimumStackSize * ExportTable::stackSizeGranule});
         }
         exports.push_back(std::move(entry));
       }

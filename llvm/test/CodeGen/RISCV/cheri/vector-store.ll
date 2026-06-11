@@ -14,10 +14,10 @@ define <4 x i32> @vec_load(ptr addrspace(200) %src) addrspace(200) nounwind {
 ;
 ; PURECAP-LABEL: vec_load:
 ; PURECAP:       # %bb.0:
-; PURECAP-NEXT:    cld a2, 8(a1)
-; PURECAP-NEXT:    cld a1, 0(a1)
-; PURECAP-NEXT:    csd a2, 8(a0)
-; PURECAP-NEXT:    csd a1, 0(a0)
+; PURECAP-NEXT:    cld a2, 0(a1)
+; PURECAP-NEXT:    cld a1, 8(a1)
+; PURECAP-NEXT:    csd a1, 8(a0)
+; PURECAP-NEXT:    csd a2, 0(a0)
 ; PURECAP-NEXT:    cret
   %ret = load <4 x i32>, ptr addrspace(200) %src, align 16
   ret <4 x i32> %ret

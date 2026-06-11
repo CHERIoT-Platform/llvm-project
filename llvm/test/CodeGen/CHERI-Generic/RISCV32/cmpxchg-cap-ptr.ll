@@ -29,9 +29,9 @@ define { i8, i1 } @test_cmpxchg_strong_i8(ptr addrspace(200) %ptr, i8 %exp, i8 %
 ; PURECAP-LIBCALLS:       # %bb.0:
 ; PURECAP-LIBCALLS-NEXT:    cincoffset sp, sp, -16
 ; PURECAP-LIBCALLS-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; PURECAP-LIBCALLS-NEXT:    cincoffset a3, sp, 7
 ; PURECAP-LIBCALLS-NEXT:    csb a1, 7(sp)
-; PURECAP-LIBCALLS-NEXT:    cincoffset a1, sp, 7
-; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a1, 1
+; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a3, 1
 ; PURECAP-LIBCALLS-NEXT:    li a3, 4
 ; PURECAP-LIBCALLS-NEXT:    li a4, 2
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_1
@@ -84,9 +84,9 @@ define { i16, i1 } @test_cmpxchg_strong_i16(ptr addrspace(200) %ptr, i16 %exp, i
 ; PURECAP-LIBCALLS:       # %bb.0:
 ; PURECAP-LIBCALLS-NEXT:    cincoffset sp, sp, -16
 ; PURECAP-LIBCALLS-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; PURECAP-LIBCALLS-NEXT:    cincoffset a3, sp, 6
 ; PURECAP-LIBCALLS-NEXT:    csh a1, 6(sp)
-; PURECAP-LIBCALLS-NEXT:    cincoffset a1, sp, 6
-; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a1, 2
+; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a3, 2
 ; PURECAP-LIBCALLS-NEXT:    li a3, 4
 ; PURECAP-LIBCALLS-NEXT:    li a4, 2
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_2
@@ -137,9 +137,9 @@ define { i32, i1 } @test_cmpxchg_strong_i32(ptr addrspace(200) %ptr, i32 %exp, i
 ; PURECAP-LIBCALLS:       # %bb.0:
 ; PURECAP-LIBCALLS-NEXT:    cincoffset sp, sp, -16
 ; PURECAP-LIBCALLS-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; PURECAP-LIBCALLS-NEXT:    cincoffset a3, sp, 4
 ; PURECAP-LIBCALLS-NEXT:    csw a1, 4(sp)
-; PURECAP-LIBCALLS-NEXT:    cincoffset a1, sp, 4
-; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a1, 4
+; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a3, 4
 ; PURECAP-LIBCALLS-NEXT:    li a3, 4
 ; PURECAP-LIBCALLS-NEXT:    li a4, 2
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_4
@@ -182,8 +182,8 @@ define { i64, i1 } @test_cmpxchg_strong_i64(ptr addrspace(200) %ptr, i64 %exp, i
 ; PURECAP-NEXT:    cmove t0, a1
 ; PURECAP-NEXT:    cmove s0, a0
 ; PURECAP-NEXT:    csw a3, 12(sp)
-; PURECAP-NEXT:    csw a2, 8(sp)
 ; PURECAP-NEXT:    cincoffset a0, sp, 8
+; PURECAP-NEXT:    csw a2, 8(sp)
 ; PURECAP-NEXT:    csetbounds a1, a0, 8
 ; PURECAP-NEXT:    li a4, 4
 ; PURECAP-NEXT:    li a5, 2
@@ -251,9 +251,9 @@ define { ptr addrspace(200), i1 } @test_cmpxchg_strong_cap(ptr addrspace(200) %p
 ; PURECAP-LIBCALLS:       # %bb.0:
 ; PURECAP-LIBCALLS-NEXT:    cincoffset sp, sp, -16
 ; PURECAP-LIBCALLS-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; PURECAP-LIBCALLS-NEXT:    cincoffset a3, sp, 0
 ; PURECAP-LIBCALLS-NEXT:    csc a1, 0(sp)
-; PURECAP-LIBCALLS-NEXT:    cincoffset a1, sp, 0
-; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a1, 8
+; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a3, 8
 ; PURECAP-LIBCALLS-NEXT:    li a3, 4
 ; PURECAP-LIBCALLS-NEXT:    li a4, 2
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_cap
@@ -304,9 +304,9 @@ define { ptr addrspace(200), i1 } @test_cmpxchg_strong_cap_i32(ptr addrspace(200
 ; PURECAP-LIBCALLS:       # %bb.0:
 ; PURECAP-LIBCALLS-NEXT:    cincoffset sp, sp, -16
 ; PURECAP-LIBCALLS-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; PURECAP-LIBCALLS-NEXT:    cincoffset a3, sp, 0
 ; PURECAP-LIBCALLS-NEXT:    csc a1, 0(sp)
-; PURECAP-LIBCALLS-NEXT:    cincoffset a1, sp, 0
-; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a1, 8
+; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a3, 8
 ; PURECAP-LIBCALLS-NEXT:    li a3, 4
 ; PURECAP-LIBCALLS-NEXT:    li a4, 2
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_cap
@@ -360,9 +360,9 @@ define { i8, i1 } @test_cmpxchg_weak_i8(ptr addrspace(200) %ptr, i8 %exp, i8 %ne
 ; PURECAP-LIBCALLS:       # %bb.0:
 ; PURECAP-LIBCALLS-NEXT:    cincoffset sp, sp, -16
 ; PURECAP-LIBCALLS-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; PURECAP-LIBCALLS-NEXT:    cincoffset a3, sp, 7
 ; PURECAP-LIBCALLS-NEXT:    csb a1, 7(sp)
-; PURECAP-LIBCALLS-NEXT:    cincoffset a1, sp, 7
-; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a1, 1
+; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a3, 1
 ; PURECAP-LIBCALLS-NEXT:    li a3, 4
 ; PURECAP-LIBCALLS-NEXT:    li a4, 2
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_1
@@ -415,9 +415,9 @@ define { i16, i1 } @test_cmpxchg_weak_i16(ptr addrspace(200) %ptr, i16 %exp, i16
 ; PURECAP-LIBCALLS:       # %bb.0:
 ; PURECAP-LIBCALLS-NEXT:    cincoffset sp, sp, -16
 ; PURECAP-LIBCALLS-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; PURECAP-LIBCALLS-NEXT:    cincoffset a3, sp, 6
 ; PURECAP-LIBCALLS-NEXT:    csh a1, 6(sp)
-; PURECAP-LIBCALLS-NEXT:    cincoffset a1, sp, 6
-; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a1, 2
+; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a3, 2
 ; PURECAP-LIBCALLS-NEXT:    li a3, 4
 ; PURECAP-LIBCALLS-NEXT:    li a4, 2
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_2
@@ -468,9 +468,9 @@ define { i32, i1 } @test_cmpxchg_weak_i32(ptr addrspace(200) %ptr, i32 %exp, i32
 ; PURECAP-LIBCALLS:       # %bb.0:
 ; PURECAP-LIBCALLS-NEXT:    cincoffset sp, sp, -16
 ; PURECAP-LIBCALLS-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; PURECAP-LIBCALLS-NEXT:    cincoffset a3, sp, 4
 ; PURECAP-LIBCALLS-NEXT:    csw a1, 4(sp)
-; PURECAP-LIBCALLS-NEXT:    cincoffset a1, sp, 4
-; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a1, 4
+; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a3, 4
 ; PURECAP-LIBCALLS-NEXT:    li a3, 4
 ; PURECAP-LIBCALLS-NEXT:    li a4, 2
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_4
@@ -513,8 +513,8 @@ define { i64, i1 } @test_cmpxchg_weak_i64(ptr addrspace(200) %ptr, i64 %exp, i64
 ; PURECAP-NEXT:    cmove t0, a1
 ; PURECAP-NEXT:    cmove s0, a0
 ; PURECAP-NEXT:    csw a3, 12(sp)
-; PURECAP-NEXT:    csw a2, 8(sp)
 ; PURECAP-NEXT:    cincoffset a0, sp, 8
+; PURECAP-NEXT:    csw a2, 8(sp)
 ; PURECAP-NEXT:    csetbounds a1, a0, 8
 ; PURECAP-NEXT:    li a4, 4
 ; PURECAP-NEXT:    li a5, 2
@@ -582,9 +582,9 @@ define { ptr addrspace(200), i1 } @test_cmpxchg_weak_cap(ptr addrspace(200) %ptr
 ; PURECAP-LIBCALLS:       # %bb.0:
 ; PURECAP-LIBCALLS-NEXT:    cincoffset sp, sp, -16
 ; PURECAP-LIBCALLS-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; PURECAP-LIBCALLS-NEXT:    cincoffset a3, sp, 0
 ; PURECAP-LIBCALLS-NEXT:    csc a1, 0(sp)
-; PURECAP-LIBCALLS-NEXT:    cincoffset a1, sp, 0
-; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a1, 8
+; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a3, 8
 ; PURECAP-LIBCALLS-NEXT:    li a3, 4
 ; PURECAP-LIBCALLS-NEXT:    li a4, 2
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_cap
@@ -635,9 +635,9 @@ define { ptr addrspace(200), i1 } @test_cmpxchg_weak_cap_i32(ptr addrspace(200) 
 ; PURECAP-LIBCALLS:       # %bb.0:
 ; PURECAP-LIBCALLS-NEXT:    cincoffset sp, sp, -16
 ; PURECAP-LIBCALLS-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
+; PURECAP-LIBCALLS-NEXT:    cincoffset a3, sp, 0
 ; PURECAP-LIBCALLS-NEXT:    csc a1, 0(sp)
-; PURECAP-LIBCALLS-NEXT:    cincoffset a1, sp, 0
-; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a1, 8
+; PURECAP-LIBCALLS-NEXT:    csetbounds a1, a3, 8
 ; PURECAP-LIBCALLS-NEXT:    li a3, 4
 ; PURECAP-LIBCALLS-NEXT:    li a4, 2
 ; PURECAP-LIBCALLS-NEXT:    ccall __atomic_compare_exchange_cap

@@ -103,18 +103,18 @@ define hidden void @optsize_preserve_tags_memmove(i8 addrspace(200)* %dst, i8 ad
 define hidden void @default_preserve_tags_memmove(i8 addrspace(200)* %dst, i8 addrspace(200)* %src) nounwind{
 ; CHECK-LABEL: default_preserve_tags_memmove:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    clc a2, 0(a1)
-; CHECK-NEXT:    clc a3, 8(a1)
-; CHECK-NEXT:    clb a4, 30(a1)
-; CHECK-NEXT:    clh a5, 28(a1)
-; CHECK-NEXT:    clw a6, 24(a1)
-; CHECK-NEXT:    clc a1, 16(a1)
-; CHECK-NEXT:    csb a4, 30(a0)
-; CHECK-NEXT:    csh a5, 28(a0)
-; CHECK-NEXT:    csw a6, 24(a0)
-; CHECK-NEXT:    csc a1, 16(a0)
-; CHECK-NEXT:    csc a3, 8(a0)
-; CHECK-NEXT:    csc a2, 0(a0)
+; CHECK-NEXT:    clh a2, 28(a1)
+; CHECK-NEXT:    clb a3, 30(a1)
+; CHECK-NEXT:    clc a4, 16(a1)
+; CHECK-NEXT:    clw a5, 24(a1)
+; CHECK-NEXT:    clc a6, 0(a1)
+; CHECK-NEXT:    clc a1, 8(a1)
+; CHECK-NEXT:    csb a3, 30(a0)
+; CHECK-NEXT:    csh a2, 28(a0)
+; CHECK-NEXT:    csw a5, 24(a0)
+; CHECK-NEXT:    csc a4, 16(a0)
+; CHECK-NEXT:    csc a1, 8(a0)
+; CHECK-NEXT:    csc a6, 0(a0)
 ; CHECK-NEXT:    cret
   tail call void @llvm.memmove.p200i8.p200i8.i64(i8 addrspace(200)* noundef nonnull align 16 dereferenceable(31) %dst, i8 addrspace(200)* noundef nonnull align 16 dereferenceable(31) %src, i64 31, i1 false) must_preserve_cheri_tags
   ret void

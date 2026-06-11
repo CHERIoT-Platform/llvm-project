@@ -40,8 +40,8 @@ define dso_local void @hoist_csetbounds(i32 signext %cond, ptr addrspace(200) %f
 ; CHECK-NEXT:    csc s3, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    csc s4, 0(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    cmove s0, a1
-; CHECK-NEXT:    cincoffset a0, a1, 4
 ; CHECK-NEXT:    li s3, -1
+; CHECK-NEXT:    cincoffset a0, a1, 4
 ; CHECK-NEXT:    li s4, 99
 ; CHECK-NEXT:    csetbounds s1, a1, 4
 ; CHECK-NEXT:    csetbounds s2, a0, 4

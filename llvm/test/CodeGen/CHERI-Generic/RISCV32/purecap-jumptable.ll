@@ -100,8 +100,8 @@ exit:
 define void @above_threshold_all(i32 %in, i32 addrspace(200)* %out) nounwind {
 ; CHECK-LABEL: above_threshold_all:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    addi a0, a0, -1
 ; CHECK-NEXT:    li a2, 5
+; CHECK-NEXT:    addi a0, a0, -1
 ; CHECK-NEXT:    bltu a2, a0, .LBB2_9
 ; CHECK-NEXT:  # %bb.1: # %entry
 ; CHECK-NEXT:    cincoffset sp, sp, -16

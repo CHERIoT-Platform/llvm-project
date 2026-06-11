@@ -20,18 +20,18 @@ declare ptr addrspace(200) @stpncpy(ptr addrspace(200), ptr addrspace(200), i64)
 define void @test_strcpy_to_memcpy(ptr addrspace(200) align 4 %dst) addrspace(200) nounwind {
 ; CHECK-ASM-LABEL: test_strcpy_to_memcpy:
 ; CHECK-ASM:       # %bb.0: # %entry
-; CHECK-ASM-NEXT:    csb zero, 16(a0)
 ; CHECK-ASM-NEXT:    lui a1, 472870
+; CHECK-ASM-NEXT:    lui a2, 406019
 ; CHECK-ASM-NEXT:    addi a1, a1, 360
+; CHECK-ASM-NEXT:    addi a2, a2, 1585
 ; CHECK-ASM-NEXT:    csw a1, 12(a0)
-; CHECK-ASM-NEXT:    lui a1, 406019
-; CHECK-ASM-NEXT:    addi a1, a1, 1585
-; CHECK-ASM-NEXT:    csw a1, 8(a0)
+; CHECK-ASM-NEXT:    csw a2, 8(a0)
 ; CHECK-ASM-NEXT:    lui a1, 133015
 ; CHECK-ASM-NEXT:    addi a1, a1, -908
+; CHECK-ASM-NEXT:    lui a2, 407064
 ; CHECK-ASM-NEXT:    csw a1, 4(a0)
-; CHECK-ASM-NEXT:    lui a1, 407064
-; CHECK-ASM-NEXT:    addi a1, a1, -1947
+; CHECK-ASM-NEXT:    addi a1, a2, -1947
+; CHECK-ASM-NEXT:    csb zero, 16(a0)
 ; CHECK-ASM-NEXT:    csw a1, 0(a0)
 ; CHECK-ASM-NEXT:    cret
 ; CHECK-IR-LABEL: define void @test_strcpy_to_memcpy
@@ -48,18 +48,18 @@ entry:
 define void @test_stpcpy_to_memcpy(ptr addrspace(200) align 4 %dst) addrspace(200) nounwind {
 ; CHECK-ASM-LABEL: test_stpcpy_to_memcpy:
 ; CHECK-ASM:       # %bb.0: # %entry
-; CHECK-ASM-NEXT:    csb zero, 16(a0)
 ; CHECK-ASM-NEXT:    lui a1, 472870
+; CHECK-ASM-NEXT:    lui a2, 406019
 ; CHECK-ASM-NEXT:    addi a1, a1, 360
+; CHECK-ASM-NEXT:    addi a2, a2, 1585
 ; CHECK-ASM-NEXT:    csw a1, 12(a0)
-; CHECK-ASM-NEXT:    lui a1, 406019
-; CHECK-ASM-NEXT:    addi a1, a1, 1585
-; CHECK-ASM-NEXT:    csw a1, 8(a0)
+; CHECK-ASM-NEXT:    csw a2, 8(a0)
 ; CHECK-ASM-NEXT:    lui a1, 133015
 ; CHECK-ASM-NEXT:    addi a1, a1, -908
+; CHECK-ASM-NEXT:    lui a2, 407064
 ; CHECK-ASM-NEXT:    csw a1, 4(a0)
-; CHECK-ASM-NEXT:    lui a1, 407064
-; CHECK-ASM-NEXT:    addi a1, a1, -1947
+; CHECK-ASM-NEXT:    addi a1, a2, -1947
+; CHECK-ASM-NEXT:    csb zero, 16(a0)
 ; CHECK-ASM-NEXT:    csw a1, 0(a0)
 ; CHECK-ASM-NEXT:    cret
 ; CHECK-IR-LABEL: define void @test_stpcpy_to_memcpy

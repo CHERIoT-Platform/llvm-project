@@ -23,8 +23,8 @@ define i1 @test_sext_w(i64 %x, i32 %y) nounwind {
 ; CHECK-NEXT:    sd s9, 40(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    sd s10, 32(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    sd s11, 24(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    sd a0, 16(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    #APP
 ; CHECK-NEXT:    #NO_APP
 ; CHECK-NEXT:    ld a0, 16(sp) # 8-byte Folded Reload
@@ -70,8 +70,8 @@ define i1 @test_sext_w(i64 %x, i32 %y) nounwind {
 ; RV64ZB-PURECAP-NEXT:    csc s9, 48(sp) # 16-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csc s10, 32(sp) # 16-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csc s11, 16(sp) # 16-byte Folded Spill
-; RV64ZB-PURECAP-NEXT:    csd a1, 0(sp) # 8-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csd a0, 8(sp) # 8-byte Folded Spill
+; RV64ZB-PURECAP-NEXT:    csd a1, 0(sp) # 8-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    #APP
 ; RV64ZB-PURECAP-NEXT:    #NO_APP
 ; RV64ZB-PURECAP-NEXT:    cld a0, 8(sp) # 8-byte Folded Reload
@@ -128,8 +128,8 @@ define i64 @test_sext_b(i64 %x, i8 %y) nounwind {
 ; RV64I-NEXT:    sd s9, 40(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    sd s10, 32(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    sd s11, 24(sp) # 8-byte Folded Spill
-; RV64I-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    sd a0, 16(sp) # 8-byte Folded Spill
+; RV64I-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    #APP
 ; RV64I-NEXT:    #NO_APP
 ; RV64I-NEXT:    ld a0, 16(sp) # 8-byte Folded Reload
@@ -174,8 +174,8 @@ define i64 @test_sext_b(i64 %x, i8 %y) nounwind {
 ; RV64ZB-NEXT:    sd s9, 40(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    sd s10, 32(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    sd s11, 24(sp) # 8-byte Folded Spill
-; RV64ZB-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    sd a0, 16(sp) # 8-byte Folded Spill
+; RV64ZB-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    #APP
 ; RV64ZB-NEXT:    #NO_APP
 ; RV64ZB-NEXT:    ld a0, 16(sp) # 8-byte Folded Reload
@@ -220,8 +220,8 @@ define i64 @test_sext_b(i64 %x, i8 %y) nounwind {
 ; RV64ZB-PURECAP-NEXT:    csc s9, 48(sp) # 16-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csc s10, 32(sp) # 16-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csc s11, 16(sp) # 16-byte Folded Spill
-; RV64ZB-PURECAP-NEXT:    csd a1, 0(sp) # 8-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csd a0, 8(sp) # 8-byte Folded Spill
+; RV64ZB-PURECAP-NEXT:    csd a1, 0(sp) # 8-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    #APP
 ; RV64ZB-PURECAP-NEXT:    #NO_APP
 ; RV64ZB-PURECAP-NEXT:    cld a0, 8(sp) # 8-byte Folded Reload
@@ -277,8 +277,8 @@ define i64 @test_sext_h(i64 %x, i16 %y) nounwind {
 ; RV64I-NEXT:    sd s9, 40(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    sd s10, 32(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    sd s11, 24(sp) # 8-byte Folded Spill
-; RV64I-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    sd a0, 16(sp) # 8-byte Folded Spill
+; RV64I-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    #APP
 ; RV64I-NEXT:    #NO_APP
 ; RV64I-NEXT:    ld a0, 16(sp) # 8-byte Folded Reload
@@ -323,8 +323,8 @@ define i64 @test_sext_h(i64 %x, i16 %y) nounwind {
 ; RV64ZB-NEXT:    sd s9, 40(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    sd s10, 32(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    sd s11, 24(sp) # 8-byte Folded Spill
-; RV64ZB-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    sd a0, 16(sp) # 8-byte Folded Spill
+; RV64ZB-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    #APP
 ; RV64ZB-NEXT:    #NO_APP
 ; RV64ZB-NEXT:    ld a0, 16(sp) # 8-byte Folded Reload
@@ -369,8 +369,8 @@ define i64 @test_sext_h(i64 %x, i16 %y) nounwind {
 ; RV64ZB-PURECAP-NEXT:    csc s9, 48(sp) # 16-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csc s10, 32(sp) # 16-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csc s11, 16(sp) # 16-byte Folded Spill
-; RV64ZB-PURECAP-NEXT:    csd a1, 0(sp) # 8-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csd a0, 8(sp) # 8-byte Folded Spill
+; RV64ZB-PURECAP-NEXT:    csd a1, 0(sp) # 8-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    #APP
 ; RV64ZB-PURECAP-NEXT:    #NO_APP
 ; RV64ZB-PURECAP-NEXT:    cld a0, 8(sp) # 8-byte Folded Reload
@@ -426,8 +426,8 @@ define i64 @test_zext_b(i64 %x, i8 %y) nounwind {
 ; CHECK-NEXT:    sd s9, 40(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    sd s10, 32(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    sd s11, 24(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    sd a0, 16(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    #APP
 ; CHECK-NEXT:    #NO_APP
 ; CHECK-NEXT:    ld a0, 16(sp) # 8-byte Folded Reload
@@ -472,8 +472,8 @@ define i64 @test_zext_b(i64 %x, i8 %y) nounwind {
 ; RV64ZB-PURECAP-NEXT:    csc s9, 48(sp) # 16-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csc s10, 32(sp) # 16-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csc s11, 16(sp) # 16-byte Folded Spill
-; RV64ZB-PURECAP-NEXT:    csd a1, 0(sp) # 8-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csd a0, 8(sp) # 8-byte Folded Spill
+; RV64ZB-PURECAP-NEXT:    csd a1, 0(sp) # 8-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    #APP
 ; RV64ZB-PURECAP-NEXT:    #NO_APP
 ; RV64ZB-PURECAP-NEXT:    cld a0, 8(sp) # 8-byte Folded Reload
@@ -529,8 +529,8 @@ define i64 @test_zext_h(i64 %x, i16 %y) nounwind {
 ; RV64I-NEXT:    sd s9, 40(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    sd s10, 32(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    sd s11, 24(sp) # 8-byte Folded Spill
-; RV64I-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    sd a0, 16(sp) # 8-byte Folded Spill
+; RV64I-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    #APP
 ; RV64I-NEXT:    #NO_APP
 ; RV64I-NEXT:    ld a0, 16(sp) # 8-byte Folded Reload
@@ -575,8 +575,8 @@ define i64 @test_zext_h(i64 %x, i16 %y) nounwind {
 ; RV64ZB-NEXT:    sd s9, 40(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    sd s10, 32(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    sd s11, 24(sp) # 8-byte Folded Spill
-; RV64ZB-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    sd a0, 16(sp) # 8-byte Folded Spill
+; RV64ZB-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    #APP
 ; RV64ZB-NEXT:    #NO_APP
 ; RV64ZB-NEXT:    ld a0, 16(sp) # 8-byte Folded Reload
@@ -621,8 +621,8 @@ define i64 @test_zext_h(i64 %x, i16 %y) nounwind {
 ; RV64ZB-PURECAP-NEXT:    csc s9, 48(sp) # 16-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csc s10, 32(sp) # 16-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csc s11, 16(sp) # 16-byte Folded Spill
-; RV64ZB-PURECAP-NEXT:    csd a1, 0(sp) # 8-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csd a0, 8(sp) # 8-byte Folded Spill
+; RV64ZB-PURECAP-NEXT:    csd a1, 0(sp) # 8-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    #APP
 ; RV64ZB-PURECAP-NEXT:    #NO_APP
 ; RV64ZB-PURECAP-NEXT:    cld a0, 8(sp) # 8-byte Folded Reload
@@ -678,8 +678,8 @@ define i64 @test_zext_w(i64 %x, i32 %y) nounwind {
 ; RV64I-NEXT:    sd s9, 40(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    sd s10, 32(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    sd s11, 24(sp) # 8-byte Folded Spill
-; RV64I-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    sd a0, 16(sp) # 8-byte Folded Spill
+; RV64I-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64I-NEXT:    #APP
 ; RV64I-NEXT:    #NO_APP
 ; RV64I-NEXT:    ld a0, 16(sp) # 8-byte Folded Reload
@@ -724,8 +724,8 @@ define i64 @test_zext_w(i64 %x, i32 %y) nounwind {
 ; RV64ZB-NEXT:    sd s9, 40(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    sd s10, 32(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    sd s11, 24(sp) # 8-byte Folded Spill
-; RV64ZB-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    sd a0, 16(sp) # 8-byte Folded Spill
+; RV64ZB-NEXT:    sd a1, 8(sp) # 8-byte Folded Spill
 ; RV64ZB-NEXT:    #APP
 ; RV64ZB-NEXT:    #NO_APP
 ; RV64ZB-NEXT:    ld a0, 16(sp) # 8-byte Folded Reload
@@ -770,8 +770,8 @@ define i64 @test_zext_w(i64 %x, i32 %y) nounwind {
 ; RV64ZB-PURECAP-NEXT:    csc s9, 48(sp) # 16-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csc s10, 32(sp) # 16-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csc s11, 16(sp) # 16-byte Folded Spill
-; RV64ZB-PURECAP-NEXT:    csd a1, 0(sp) # 8-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    csd a0, 8(sp) # 8-byte Folded Spill
+; RV64ZB-PURECAP-NEXT:    csd a1, 0(sp) # 8-byte Folded Spill
 ; RV64ZB-PURECAP-NEXT:    #APP
 ; RV64ZB-PURECAP-NEXT:    #NO_APP
 ; RV64ZB-PURECAP-NEXT:    cld a0, 8(sp) # 8-byte Folded Reload

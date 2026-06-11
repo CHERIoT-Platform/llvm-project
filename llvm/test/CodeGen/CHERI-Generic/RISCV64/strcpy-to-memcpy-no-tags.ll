@@ -24,11 +24,11 @@ define void @test_strcpy_to_memcpy(ptr addrspace(200) align 8 %dst) addrspace(20
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
 ; CHECK-ASM-NEXT:    auipcc a1, %pcrel_hi(.LCPI0_0)
 ; CHECK-ASM-NEXT:    cincoffset a1, a1, %pcrel_lo(.LBB0_1)
-; CHECK-ASM-NEXT:    cld a1, 0(a1)
 ; CHECK-ASM-NEXT:  .LBB0_2: # %entry
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
 ; CHECK-ASM-NEXT:    auipcc a2, %pcrel_hi(.LCPI0_1)
 ; CHECK-ASM-NEXT:    cincoffset a2, a2, %pcrel_lo(.LBB0_2)
+; CHECK-ASM-NEXT:    cld a1, 0(a1)
 ; CHECK-ASM-NEXT:    cld a2, 0(a2)
 ; CHECK-ASM-NEXT:    csd a1, 8(a0)
 ; CHECK-ASM-NEXT:    csb zero, 16(a0)
@@ -51,11 +51,11 @@ define void @test_stpcpy_to_memcpy(ptr addrspace(200) align 8 %dst) addrspace(20
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
 ; CHECK-ASM-NEXT:    auipcc a1, %pcrel_hi(.LCPI1_0)
 ; CHECK-ASM-NEXT:    cincoffset a1, a1, %pcrel_lo(.LBB1_1)
-; CHECK-ASM-NEXT:    cld a1, 0(a1)
 ; CHECK-ASM-NEXT:  .LBB1_2: # %entry
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
 ; CHECK-ASM-NEXT:    auipcc a2, %pcrel_hi(.LCPI1_1)
 ; CHECK-ASM-NEXT:    cincoffset a2, a2, %pcrel_lo(.LBB1_2)
+; CHECK-ASM-NEXT:    cld a1, 0(a1)
 ; CHECK-ASM-NEXT:    cld a2, 0(a2)
 ; CHECK-ASM-NEXT:    csd a1, 8(a0)
 ; CHECK-ASM-NEXT:    csb zero, 16(a0)
@@ -110,11 +110,11 @@ define void @test_strncpy_to_memcpy(ptr addrspace(200) align 8 %dst) addrspace(2
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
 ; CHECK-ASM-NEXT:    auipcc a1, %pcrel_hi(.LCPI3_0)
 ; CHECK-ASM-NEXT:    cincoffset a1, a1, %pcrel_lo(.LBB3_1)
-; CHECK-ASM-NEXT:    cld a1, 0(a1)
 ; CHECK-ASM-NEXT:  .LBB3_2: # %entry
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
 ; CHECK-ASM-NEXT:    auipcc a2, %pcrel_hi(.LCPI3_1)
 ; CHECK-ASM-NEXT:    cincoffset a2, a2, %pcrel_lo(.LBB3_2)
+; CHECK-ASM-NEXT:    cld a1, 0(a1)
 ; CHECK-ASM-NEXT:    cld a2, 0(a2)
 ; CHECK-ASM-NEXT:    csd a1, 8(a0)
 ; CHECK-ASM-NEXT:    csb zero, 16(a0)
@@ -138,11 +138,11 @@ define void @test_stpncpy_to_memcpy(ptr addrspace(200) align 8 %dst) addrspace(2
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
 ; CHECK-ASM-NEXT:    auipcc a1, %pcrel_hi(.LCPI4_0)
 ; CHECK-ASM-NEXT:    cincoffset a1, a1, %pcrel_lo(.LBB4_1)
-; CHECK-ASM-NEXT:    cld a1, 0(a1)
 ; CHECK-ASM-NEXT:  .LBB4_2: # %entry
 ; CHECK-ASM-NEXT:    # Label of block must be emitted
 ; CHECK-ASM-NEXT:    auipcc a2, %pcrel_hi(.LCPI4_1)
 ; CHECK-ASM-NEXT:    cincoffset a2, a2, %pcrel_lo(.LBB4_2)
+; CHECK-ASM-NEXT:    cld a1, 0(a1)
 ; CHECK-ASM-NEXT:    cld a2, 0(a2)
 ; CHECK-ASM-NEXT:    csd a1, 8(a0)
 ; CHECK-ASM-NEXT:    csb zero, 16(a0)

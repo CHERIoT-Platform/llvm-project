@@ -7,15 +7,15 @@
 define dso_local i8 addrspace(200)* @cap_from_ptr(i8 addrspace(200)* addrspace(200)* %ptr, i8 addrspace(200)* %cap, i64 %offset) nounwind {
 ; ISAV9-LABEL: cap_from_ptr:
 ; ISAV9:       # %bb.0: # %entry
+; ISAV9-NEXT:    cmove a3, a0
 ; ISAV9-NEXT:    bnez a2, .LBB0_2
 ; ISAV9-NEXT:  # %bb.1: # %entry
-; ISAV9-NEXT:    cmove a1, zero
-; ISAV9-NEXT:    j .LBB0_3
+; ISAV9-NEXT:    cmove a0, zero
+; ISAV9-NEXT:    csc zero, 0(a3)
+; ISAV9-NEXT:    cret
 ; ISAV9-NEXT:  .LBB0_2:
-; ISAV9-NEXT:    csetaddr a1, a1, a2
-; ISAV9-NEXT:  .LBB0_3: # %entry
-; ISAV9-NEXT:    csc a1, 0(a0)
-; ISAV9-NEXT:    cmove a0, a1
+; ISAV9-NEXT:    csetaddr a0, a1, a2
+; ISAV9-NEXT:    csc a0, 0(a3)
 ; ISAV9-NEXT:    cret
 entry:
   %new = call i8 addrspace(200)* @llvm.cheri.cap.from.pointer.i64(i8 addrspace(200)* %cap, i64 %offset)
@@ -27,16 +27,16 @@ entry:
 define dso_local i8 addrspace(200)* @cap_from_ptr_ddc(i8 addrspace(200)* addrspace(200)* %ptr, i64 %offset) nounwind {
 ; ISAV9-LABEL: cap_from_ptr_ddc:
 ; ISAV9:       # %bb.0: # %entry
-; ISAV9-NEXT:    cspecialr a2, ddc
+; ISAV9-NEXT:    cmove a2, a0
+; ISAV9-NEXT:    cspecialr a0, ddc
 ; ISAV9-NEXT:    bnez a1, .LBB1_2
 ; ISAV9-NEXT:  # %bb.1: # %entry
-; ISAV9-NEXT:    cmove a1, zero
-; ISAV9-NEXT:    j .LBB1_3
+; ISAV9-NEXT:    cmove a0, zero
+; ISAV9-NEXT:    csc zero, 0(a2)
+; ISAV9-NEXT:    cret
 ; ISAV9-NEXT:  .LBB1_2:
-; ISAV9-NEXT:    csetaddr a1, a2, a1
-; ISAV9-NEXT:  .LBB1_3: # %entry
-; ISAV9-NEXT:    csc a1, 0(a0)
-; ISAV9-NEXT:    cmove a0, a1
+; ISAV9-NEXT:    csetaddr a0, a0, a1
+; ISAV9-NEXT:    csc a0, 0(a2)
 ; ISAV9-NEXT:    cret
 entry:
   %ddc = call i8 addrspace(200)* @llvm.cheri.ddc.get()

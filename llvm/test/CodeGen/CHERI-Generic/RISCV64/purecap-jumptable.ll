@@ -8,8 +8,8 @@
 define void @below_threshold(i32 %in, i32 addrspace(200)* %out) nounwind {
 ; CHECK-LABEL: below_threshold:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    sext.w a0, a0
 ; CHECK-NEXT:    li a2, 2
+; CHECK-NEXT:    sext.w a0, a0
 ; CHECK-NEXT:    beq a0, a2, .LBB0_3
 ; CHECK-NEXT:  # %bb.1: # %entry
 ; CHECK-NEXT:    li a2, 1
@@ -43,8 +43,8 @@ exit:
 define void @above_threshold_mips(i32 %in, i32 addrspace(200)* %out) nounwind {
 ; CHECK-LABEL: above_threshold_mips:
 ; CHECK:       # %bb.0: # %entry
-; CHECK-NEXT:    sext.w a0, a0
 ; CHECK-NEXT:    li a2, 2
+; CHECK-NEXT:    sext.w a0, a0
 ; CHECK-NEXT:    blt a2, a0, .LBB1_4
 ; CHECK-NEXT:  # %bb.1: # %entry
 ; CHECK-NEXT:    li a2, 1
@@ -102,9 +102,9 @@ exit:
 define void @above_threshold_all(i32 %in, i32 addrspace(200)* %out) nounwind {
 ; CHECK-LABEL: above_threshold_all:
 ; CHECK:       # %bb.0: # %entry
+; CHECK-NEXT:    li a2, 5
 ; CHECK-NEXT:    sext.w a0, a0
 ; CHECK-NEXT:    addi a0, a0, -1
-; CHECK-NEXT:    li a2, 5
 ; CHECK-NEXT:    bltu a2, a0, .LBB2_9
 ; CHECK-NEXT:  # %bb.1: # %entry
 ; CHECK-NEXT:    cincoffset sp, sp, -16

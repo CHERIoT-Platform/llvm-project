@@ -10,8 +10,9 @@ define dso_local i64 @cap_to_ptr(i64 addrspace(200)* %dst, i8 addrspace(200)* %a
 ; ISAV9-NEXT:    cgettag a1, a2
 ; ISAV9-NEXT:    neg a1, a1
 ; ISAV9-NEXT:    and a1, a2, a1
-; ISAV9-NEXT:    csd a1, 0(a0)
+; ISAV9-NEXT:    cmove a2, a0
 ; ISAV9-NEXT:    mv a0, a1
+; ISAV9-NEXT:    csd a1, 0(a2)
 ; ISAV9-NEXT:    cret
 entry:
   %new = call i64 @llvm.cheri.cap.to.pointer.i64(i8 addrspace(200)* %auth, i8 addrspace(200)* %cap)
@@ -25,8 +26,9 @@ define dso_local i64 @cap_from_ptr_ddc(i64 addrspace(200)* %dst, i8 addrspace(20
 ; ISAV9-NEXT:    cgettag a2, a1
 ; ISAV9-NEXT:    neg a2, a2
 ; ISAV9-NEXT:    and a1, a1, a2
-; ISAV9-NEXT:    csd a1, 0(a0)
+; ISAV9-NEXT:    cmove a2, a0
 ; ISAV9-NEXT:    mv a0, a1
+; ISAV9-NEXT:    csd a1, 0(a2)
 ; ISAV9-NEXT:    cret
 entry:
   %ddc = call i8 addrspace(200)* @llvm.cheri.ddc.get()

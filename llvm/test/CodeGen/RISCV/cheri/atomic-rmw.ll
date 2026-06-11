@@ -2952,8 +2952,8 @@ define i8 @atomicrmw_umax_i8_monotonic(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV32IXCHERI-NEXT:    li a1, 0
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV32IXCHERI-NEXT:    mv a1, a0
-; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    cincoffset a0, sp, 7
+; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV32IXCHERI-NEXT:    j .LBB45_2
 ; RV32IXCHERI-NEXT:  .LBB45_1: # %atomicrmw.start
@@ -3013,8 +3013,8 @@ define i8 @atomicrmw_umax_i8_monotonic(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 15
+; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV64IXCHERI-NEXT:    j .LBB45_2
 ; RV64IXCHERI-NEXT:  .LBB45_1: # %atomicrmw.start
@@ -3078,8 +3078,8 @@ define i8 @atomicrmw_umax_i8_acquire(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV32IXCHERI-NEXT:    li a1, 0
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV32IXCHERI-NEXT:    mv a1, a0
-; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    cincoffset a0, sp, 7
+; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV32IXCHERI-NEXT:    j .LBB46_2
 ; RV32IXCHERI-NEXT:  .LBB46_1: # %atomicrmw.start
@@ -3139,8 +3139,8 @@ define i8 @atomicrmw_umax_i8_acquire(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 15
+; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV64IXCHERI-NEXT:    j .LBB46_2
 ; RV64IXCHERI-NEXT:  .LBB46_1: # %atomicrmw.start
@@ -3204,8 +3204,8 @@ define i8 @atomicrmw_umax_i8_release(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV32IXCHERI-NEXT:    li a1, 0
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV32IXCHERI-NEXT:    mv a1, a0
-; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    cincoffset a0, sp, 7
+; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV32IXCHERI-NEXT:    j .LBB47_2
 ; RV32IXCHERI-NEXT:  .LBB47_1: # %atomicrmw.start
@@ -3265,8 +3265,8 @@ define i8 @atomicrmw_umax_i8_release(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 15
+; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV64IXCHERI-NEXT:    j .LBB47_2
 ; RV64IXCHERI-NEXT:  .LBB47_1: # %atomicrmw.start
@@ -3330,8 +3330,8 @@ define i8 @atomicrmw_umax_i8_acq_rel(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV32IXCHERI-NEXT:    li a1, 0
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV32IXCHERI-NEXT:    mv a1, a0
-; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    cincoffset a0, sp, 7
+; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV32IXCHERI-NEXT:    j .LBB48_2
 ; RV32IXCHERI-NEXT:  .LBB48_1: # %atomicrmw.start
@@ -3391,8 +3391,8 @@ define i8 @atomicrmw_umax_i8_acq_rel(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 15
+; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV64IXCHERI-NEXT:    j .LBB48_2
 ; RV64IXCHERI-NEXT:  .LBB48_1: # %atomicrmw.start
@@ -3456,8 +3456,8 @@ define i8 @atomicrmw_umax_i8_seq_cst(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV32IXCHERI-NEXT:    li a1, 0
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV32IXCHERI-NEXT:    mv a1, a0
-; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    cincoffset a0, sp, 7
+; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV32IXCHERI-NEXT:    j .LBB49_2
 ; RV32IXCHERI-NEXT:  .LBB49_1: # %atomicrmw.start
@@ -3517,8 +3517,8 @@ define i8 @atomicrmw_umax_i8_seq_cst(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 15
+; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV64IXCHERI-NEXT:    j .LBB49_2
 ; RV64IXCHERI-NEXT:  .LBB49_1: # %atomicrmw.start
@@ -3582,8 +3582,8 @@ define i8 @atomicrmw_umin_i8_monotonic(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV32IXCHERI-NEXT:    li a1, 0
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV32IXCHERI-NEXT:    mv a1, a0
-; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    cincoffset a0, sp, 7
+; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV32IXCHERI-NEXT:    j .LBB50_2
 ; RV32IXCHERI-NEXT:  .LBB50_1: # %atomicrmw.start
@@ -3643,8 +3643,8 @@ define i8 @atomicrmw_umin_i8_monotonic(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 15
+; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV64IXCHERI-NEXT:    j .LBB50_2
 ; RV64IXCHERI-NEXT:  .LBB50_1: # %atomicrmw.start
@@ -3708,8 +3708,8 @@ define i8 @atomicrmw_umin_i8_acquire(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV32IXCHERI-NEXT:    li a1, 0
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV32IXCHERI-NEXT:    mv a1, a0
-; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    cincoffset a0, sp, 7
+; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV32IXCHERI-NEXT:    j .LBB51_2
 ; RV32IXCHERI-NEXT:  .LBB51_1: # %atomicrmw.start
@@ -3769,8 +3769,8 @@ define i8 @atomicrmw_umin_i8_acquire(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 15
+; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV64IXCHERI-NEXT:    j .LBB51_2
 ; RV64IXCHERI-NEXT:  .LBB51_1: # %atomicrmw.start
@@ -3834,8 +3834,8 @@ define i8 @atomicrmw_umin_i8_release(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV32IXCHERI-NEXT:    li a1, 0
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV32IXCHERI-NEXT:    mv a1, a0
-; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    cincoffset a0, sp, 7
+; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV32IXCHERI-NEXT:    j .LBB52_2
 ; RV32IXCHERI-NEXT:  .LBB52_1: # %atomicrmw.start
@@ -3895,8 +3895,8 @@ define i8 @atomicrmw_umin_i8_release(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 15
+; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV64IXCHERI-NEXT:    j .LBB52_2
 ; RV64IXCHERI-NEXT:  .LBB52_1: # %atomicrmw.start
@@ -3960,8 +3960,8 @@ define i8 @atomicrmw_umin_i8_acq_rel(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV32IXCHERI-NEXT:    li a1, 0
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV32IXCHERI-NEXT:    mv a1, a0
-; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    cincoffset a0, sp, 7
+; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV32IXCHERI-NEXT:    j .LBB53_2
 ; RV32IXCHERI-NEXT:  .LBB53_1: # %atomicrmw.start
@@ -4021,8 +4021,8 @@ define i8 @atomicrmw_umin_i8_acq_rel(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 15
+; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV64IXCHERI-NEXT:    j .LBB53_2
 ; RV64IXCHERI-NEXT:  .LBB53_1: # %atomicrmw.start
@@ -4086,8 +4086,8 @@ define i8 @atomicrmw_umin_i8_seq_cst(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV32IXCHERI-NEXT:    li a1, 0
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV32IXCHERI-NEXT:    mv a1, a0
-; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    cincoffset a0, sp, 7
+; RV32IXCHERI-NEXT:    zext.b s3, s0
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV32IXCHERI-NEXT:    j .LBB54_2
 ; RV32IXCHERI-NEXT:  .LBB54_1: # %atomicrmw.start
@@ -4147,8 +4147,8 @@ define i8 @atomicrmw_umin_i8_seq_cst(i8 addrspace(200)* %a, i8 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_1
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 15
+; RV64IXCHERI-NEXT:    zext.b s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 1
 ; RV64IXCHERI-NEXT:    j .LBB54_2
 ; RV64IXCHERI-NEXT:  .LBB54_1: # %atomicrmw.start
@@ -7144,8 +7144,8 @@ define i16 @atomicrmw_umax_i16_monotonic(i16 addrspace(200)* %a, i16 %b) nounwin
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV32IXCHERI-NEXT:    mv a1, a0
 ; RV32IXCHERI-NEXT:    lui s3, 16
-; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    addi s3, s3, -1
+; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    and s4, s0, s3
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV32IXCHERI-NEXT:    j .LBB100_2
@@ -7209,8 +7209,8 @@ define i16 @atomicrmw_umax_i16_monotonic(i16 addrspace(200)* %a, i16 %b) nounwin
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV64IXCHERI-NEXT:    mv a1, a0
 ; RV64IXCHERI-NEXT:    lui s3, 16
-; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    addi s3, s3, -1
+; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    and s4, s0, s3
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV64IXCHERI-NEXT:    j .LBB100_2
@@ -7278,8 +7278,8 @@ define i16 @atomicrmw_umax_i16_acquire(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV32IXCHERI-NEXT:    mv a1, a0
 ; RV32IXCHERI-NEXT:    lui s3, 16
-; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    addi s3, s3, -1
+; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    and s4, s0, s3
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV32IXCHERI-NEXT:    j .LBB101_2
@@ -7343,8 +7343,8 @@ define i16 @atomicrmw_umax_i16_acquire(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV64IXCHERI-NEXT:    mv a1, a0
 ; RV64IXCHERI-NEXT:    lui s3, 16
-; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    addi s3, s3, -1
+; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    and s4, s0, s3
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV64IXCHERI-NEXT:    j .LBB101_2
@@ -7412,8 +7412,8 @@ define i16 @atomicrmw_umax_i16_release(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV32IXCHERI-NEXT:    mv a1, a0
 ; RV32IXCHERI-NEXT:    lui s3, 16
-; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    addi s3, s3, -1
+; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    and s4, s0, s3
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV32IXCHERI-NEXT:    j .LBB102_2
@@ -7477,8 +7477,8 @@ define i16 @atomicrmw_umax_i16_release(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV64IXCHERI-NEXT:    mv a1, a0
 ; RV64IXCHERI-NEXT:    lui s3, 16
-; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    addi s3, s3, -1
+; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    and s4, s0, s3
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV64IXCHERI-NEXT:    j .LBB102_2
@@ -7546,8 +7546,8 @@ define i16 @atomicrmw_umax_i16_acq_rel(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV32IXCHERI-NEXT:    mv a1, a0
 ; RV32IXCHERI-NEXT:    lui s3, 16
-; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    addi s3, s3, -1
+; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    and s4, s0, s3
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV32IXCHERI-NEXT:    j .LBB103_2
@@ -7611,8 +7611,8 @@ define i16 @atomicrmw_umax_i16_acq_rel(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV64IXCHERI-NEXT:    mv a1, a0
 ; RV64IXCHERI-NEXT:    lui s3, 16
-; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    addi s3, s3, -1
+; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    and s4, s0, s3
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV64IXCHERI-NEXT:    j .LBB103_2
@@ -7680,8 +7680,8 @@ define i16 @atomicrmw_umax_i16_seq_cst(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV32IXCHERI-NEXT:    mv a1, a0
 ; RV32IXCHERI-NEXT:    lui s3, 16
-; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    addi s3, s3, -1
+; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    and s4, s0, s3
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV32IXCHERI-NEXT:    j .LBB104_2
@@ -7745,8 +7745,8 @@ define i16 @atomicrmw_umax_i16_seq_cst(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV64IXCHERI-NEXT:    mv a1, a0
 ; RV64IXCHERI-NEXT:    lui s3, 16
-; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    addi s3, s3, -1
+; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    and s4, s0, s3
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV64IXCHERI-NEXT:    j .LBB104_2
@@ -7814,8 +7814,8 @@ define i16 @atomicrmw_umin_i16_monotonic(i16 addrspace(200)* %a, i16 %b) nounwin
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV32IXCHERI-NEXT:    mv a1, a0
 ; RV32IXCHERI-NEXT:    lui s3, 16
-; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    addi s3, s3, -1
+; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    and s4, s0, s3
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV32IXCHERI-NEXT:    j .LBB105_2
@@ -7879,8 +7879,8 @@ define i16 @atomicrmw_umin_i16_monotonic(i16 addrspace(200)* %a, i16 %b) nounwin
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV64IXCHERI-NEXT:    mv a1, a0
 ; RV64IXCHERI-NEXT:    lui s3, 16
-; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    addi s3, s3, -1
+; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    and s4, s0, s3
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV64IXCHERI-NEXT:    j .LBB105_2
@@ -7948,8 +7948,8 @@ define i16 @atomicrmw_umin_i16_acquire(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV32IXCHERI-NEXT:    mv a1, a0
 ; RV32IXCHERI-NEXT:    lui s3, 16
-; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    addi s3, s3, -1
+; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    and s4, s0, s3
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV32IXCHERI-NEXT:    j .LBB106_2
@@ -8013,8 +8013,8 @@ define i16 @atomicrmw_umin_i16_acquire(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV64IXCHERI-NEXT:    mv a1, a0
 ; RV64IXCHERI-NEXT:    lui s3, 16
-; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    addi s3, s3, -1
+; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    and s4, s0, s3
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV64IXCHERI-NEXT:    j .LBB106_2
@@ -8082,8 +8082,8 @@ define i16 @atomicrmw_umin_i16_release(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV32IXCHERI-NEXT:    mv a1, a0
 ; RV32IXCHERI-NEXT:    lui s3, 16
-; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    addi s3, s3, -1
+; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    and s4, s0, s3
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV32IXCHERI-NEXT:    j .LBB107_2
@@ -8147,8 +8147,8 @@ define i16 @atomicrmw_umin_i16_release(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV64IXCHERI-NEXT:    mv a1, a0
 ; RV64IXCHERI-NEXT:    lui s3, 16
-; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    addi s3, s3, -1
+; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    and s4, s0, s3
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV64IXCHERI-NEXT:    j .LBB107_2
@@ -8216,8 +8216,8 @@ define i16 @atomicrmw_umin_i16_acq_rel(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV32IXCHERI-NEXT:    mv a1, a0
 ; RV32IXCHERI-NEXT:    lui s3, 16
-; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    addi s3, s3, -1
+; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    and s4, s0, s3
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV32IXCHERI-NEXT:    j .LBB108_2
@@ -8281,8 +8281,8 @@ define i16 @atomicrmw_umin_i16_acq_rel(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV64IXCHERI-NEXT:    mv a1, a0
 ; RV64IXCHERI-NEXT:    lui s3, 16
-; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    addi s3, s3, -1
+; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    and s4, s0, s3
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV64IXCHERI-NEXT:    j .LBB108_2
@@ -8350,8 +8350,8 @@ define i16 @atomicrmw_umin_i16_seq_cst(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV32IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV32IXCHERI-NEXT:    mv a1, a0
 ; RV32IXCHERI-NEXT:    lui s3, 16
-; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    addi s3, s3, -1
+; RV32IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV32IXCHERI-NEXT:    and s4, s0, s3
 ; RV32IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV32IXCHERI-NEXT:    j .LBB109_2
@@ -8415,8 +8415,8 @@ define i16 @atomicrmw_umin_i16_seq_cst(i16 addrspace(200)* %a, i16 %b) nounwind 
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_2
 ; RV64IXCHERI-NEXT:    mv a1, a0
 ; RV64IXCHERI-NEXT:    lui s3, 16
-; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    addi s3, s3, -1
+; RV64IXCHERI-NEXT:    cincoffset a0, sp, 14
 ; RV64IXCHERI-NEXT:    and s4, s0, s3
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 2
 ; RV64IXCHERI-NEXT:    j .LBB109_2
@@ -9799,8 +9799,8 @@ define i32 @atomicrmw_max_i32_monotonic(i32 addrspace(200)* %a, i32 %b) nounwind
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB145_2
 ; RV64IXCHERI-NEXT:  .LBB145_1: # %atomicrmw.start
@@ -9901,8 +9901,8 @@ define i32 @atomicrmw_max_i32_acquire(i32 addrspace(200)* %a, i32 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB146_2
 ; RV64IXCHERI-NEXT:  .LBB146_1: # %atomicrmw.start
@@ -10003,8 +10003,8 @@ define i32 @atomicrmw_max_i32_release(i32 addrspace(200)* %a, i32 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB147_2
 ; RV64IXCHERI-NEXT:  .LBB147_1: # %atomicrmw.start
@@ -10105,8 +10105,8 @@ define i32 @atomicrmw_max_i32_acq_rel(i32 addrspace(200)* %a, i32 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB148_2
 ; RV64IXCHERI-NEXT:  .LBB148_1: # %atomicrmw.start
@@ -10207,8 +10207,8 @@ define i32 @atomicrmw_max_i32_seq_cst(i32 addrspace(200)* %a, i32 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB149_2
 ; RV64IXCHERI-NEXT:  .LBB149_1: # %atomicrmw.start
@@ -10309,8 +10309,8 @@ define i32 @atomicrmw_min_i32_monotonic(i32 addrspace(200)* %a, i32 %b) nounwind
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB150_2
 ; RV64IXCHERI-NEXT:  .LBB150_1: # %atomicrmw.start
@@ -10411,8 +10411,8 @@ define i32 @atomicrmw_min_i32_acquire(i32 addrspace(200)* %a, i32 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB151_2
 ; RV64IXCHERI-NEXT:  .LBB151_1: # %atomicrmw.start
@@ -10513,8 +10513,8 @@ define i32 @atomicrmw_min_i32_release(i32 addrspace(200)* %a, i32 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB152_2
 ; RV64IXCHERI-NEXT:  .LBB152_1: # %atomicrmw.start
@@ -10615,8 +10615,8 @@ define i32 @atomicrmw_min_i32_acq_rel(i32 addrspace(200)* %a, i32 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB153_2
 ; RV64IXCHERI-NEXT:  .LBB153_1: # %atomicrmw.start
@@ -10717,8 +10717,8 @@ define i32 @atomicrmw_min_i32_seq_cst(i32 addrspace(200)* %a, i32 %b) nounwind {
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB154_2
 ; RV64IXCHERI-NEXT:  .LBB154_1: # %atomicrmw.start
@@ -10819,8 +10819,8 @@ define i32 @atomicrmw_umax_i32_monotonic(i32 addrspace(200)* %a, i32 %b) nounwin
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB155_2
 ; RV64IXCHERI-NEXT:  .LBB155_1: # %atomicrmw.start
@@ -10921,8 +10921,8 @@ define i32 @atomicrmw_umax_i32_acquire(i32 addrspace(200)* %a, i32 %b) nounwind 
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB156_2
 ; RV64IXCHERI-NEXT:  .LBB156_1: # %atomicrmw.start
@@ -11023,8 +11023,8 @@ define i32 @atomicrmw_umax_i32_release(i32 addrspace(200)* %a, i32 %b) nounwind 
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB157_2
 ; RV64IXCHERI-NEXT:  .LBB157_1: # %atomicrmw.start
@@ -11125,8 +11125,8 @@ define i32 @atomicrmw_umax_i32_acq_rel(i32 addrspace(200)* %a, i32 %b) nounwind 
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB158_2
 ; RV64IXCHERI-NEXT:  .LBB158_1: # %atomicrmw.start
@@ -11227,8 +11227,8 @@ define i32 @atomicrmw_umax_i32_seq_cst(i32 addrspace(200)* %a, i32 %b) nounwind 
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB159_2
 ; RV64IXCHERI-NEXT:  .LBB159_1: # %atomicrmw.start
@@ -11329,8 +11329,8 @@ define i32 @atomicrmw_umin_i32_monotonic(i32 addrspace(200)* %a, i32 %b) nounwin
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB160_2
 ; RV64IXCHERI-NEXT:  .LBB160_1: # %atomicrmw.start
@@ -11431,8 +11431,8 @@ define i32 @atomicrmw_umin_i32_acquire(i32 addrspace(200)* %a, i32 %b) nounwind 
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB161_2
 ; RV64IXCHERI-NEXT:  .LBB161_1: # %atomicrmw.start
@@ -11533,8 +11533,8 @@ define i32 @atomicrmw_umin_i32_release(i32 addrspace(200)* %a, i32 %b) nounwind 
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB162_2
 ; RV64IXCHERI-NEXT:  .LBB162_1: # %atomicrmw.start
@@ -11635,8 +11635,8 @@ define i32 @atomicrmw_umin_i32_acq_rel(i32 addrspace(200)* %a, i32 %b) nounwind 
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB163_2
 ; RV64IXCHERI-NEXT:  .LBB163_1: # %atomicrmw.start
@@ -11737,8 +11737,8 @@ define i32 @atomicrmw_umin_i32_seq_cst(i32 addrspace(200)* %a, i32 %b) nounwind 
 ; RV64IXCHERI-NEXT:    li a1, 0
 ; RV64IXCHERI-NEXT:    ccall __atomic_load_4
 ; RV64IXCHERI-NEXT:    mv a1, a0
-; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    cincoffset a0, sp, 12
+; RV64IXCHERI-NEXT:    sext.w s3, s0
 ; RV64IXCHERI-NEXT:    csetbounds s2, a0, 4
 ; RV64IXCHERI-NEXT:    j .LBB164_2
 ; RV64IXCHERI-NEXT:  .LBB164_1: # %atomicrmw.start

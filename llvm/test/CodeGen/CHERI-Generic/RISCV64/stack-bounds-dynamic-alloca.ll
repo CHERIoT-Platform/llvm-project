@@ -50,9 +50,9 @@ define i32 @alloca_in_entry(i1 %arg) local_unnamed_addr addrspace(200) nounwind 
 ; ASM-OPT-NEXT:    cincoffset sp, sp, -32
 ; ASM-OPT-NEXT:    csc ra, 16(sp) # 16-byte Folded Spill
 ; ASM-OPT-NEXT:    li a0, 1234
+; ASM-OPT-NEXT:    cincoffset a1, sp, 0
 ; ASM-OPT-NEXT:    csd a0, 8(sp)
-; ASM-OPT-NEXT:    cincoffset a0, sp, 0
-; ASM-OPT-NEXT:    csetbounds a0, a0, 16
+; ASM-OPT-NEXT:    csetbounds a0, a1, 16
 ; ASM-OPT-NEXT:    ccall use_alloca
 ; ASM-OPT-NEXT:    clc ra, 16(sp) # 16-byte Folded Reload
 ; ASM-OPT-NEXT:    cincoffset sp, sp, 32
@@ -151,8 +151,8 @@ define i32 @alloca_not_in_entry(i1 %arg) local_unnamed_addr addrspace(200) nounw
 ; ASM-OPT-NEXT:    csetaddr a0, sp, a0
 ; ASM-OPT-NEXT:    csetbounds a1, a0, 16
 ; ASM-OPT-NEXT:    cmove sp, a0
-; ASM-OPT-NEXT:    csetbounds a0, a1, 16
 ; ASM-OPT-NEXT:    li a2, 1234
+; ASM-OPT-NEXT:    csetbounds a0, a1, 16
 ; ASM-OPT-NEXT:    csd a2, 8(a1)
 ; ASM-OPT-NEXT:    ccall use_alloca
 ; ASM-OPT-NEXT:    cincoffset sp, s0, -32

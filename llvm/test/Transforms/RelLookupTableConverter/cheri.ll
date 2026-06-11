@@ -43,9 +43,9 @@ define ptr addrspace(200) @load_from_string_table(i64 %idx) addrspace(200) {
 ;
 ; RISCV64-ASM-NOREL-LABEL: load_from_string_table:
 ; RISCV64-ASM-NOREL:       # %bb.0: # %bb
-; RISCV64-ASM-NOREL-NEXT:    slli a0, a0, 3
 ; RISCV64-ASM-NOREL-NEXT:  .Lpcrel_hi0:
 ; RISCV64-ASM-NOREL-NEXT:    auipc a1, %pcrel_hi(global)
+; RISCV64-ASM-NOREL-NEXT:    slli a0, a0, 3
 ; RISCV64-ASM-NOREL-NEXT:    addi a1, a1, %pcrel_lo(.Lpcrel_hi0)
 ; RISCV64-ASM-NOREL-NEXT:    add a0, a1, a0
 ; RISCV64-ASM-NOREL-NEXT:    ld a0, 0(a0)
@@ -53,9 +53,9 @@ define ptr addrspace(200) @load_from_string_table(i64 %idx) addrspace(200) {
 ;
 ; RISCV64-ASM-REL-LABEL: load_from_string_table:
 ; RISCV64-ASM-REL:       # %bb.0: # %bb
-; RISCV64-ASM-REL-NEXT:    slli a0, a0, 2
 ; RISCV64-ASM-REL-NEXT:  .Lpcrel_hi0:
 ; RISCV64-ASM-REL-NEXT:    auipc a1, %pcrel_hi(global.rel)
+; RISCV64-ASM-REL-NEXT:    slli a0, a0, 2
 ; RISCV64-ASM-REL-NEXT:    addi a1, a1, %pcrel_lo(.Lpcrel_hi0)
 ; RISCV64-ASM-REL-NEXT:    add a0, a1, a0
 ; RISCV64-ASM-REL-NEXT:    lw a0, 0(a0)

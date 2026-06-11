@@ -29,10 +29,10 @@ define void @memcpy_assume(i8 addrspace(200)* addrspace(200)* %local_cap_ptr, i8
 define void @memmove_assume(i8 addrspace(200)* addrspace(200)* %local_cap_ptr, i8 addrspace(200)* %align1) addrspace(200) nounwind {
 ; CHECK-LABEL: memmove_assume:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    clc a2, 16(a0)
-; CHECK-NEXT:    clc a0, 0(a0)
-; CHECK-NEXT:    csc a2, 16(a1)
-; CHECK-NEXT:    csc a0, 0(a1)
+; CHECK-NEXT:    clc a2, 0(a0)
+; CHECK-NEXT:    clc a0, 16(a0)
+; CHECK-NEXT:    csc a0, 16(a1)
+; CHECK-NEXT:    csc a2, 0(a1)
 ; CHECK-NEXT:    cret
   %ptrint = ptrtoint i8 addrspace(200)* %align1 to i64
   %maskedptr = and i64 %ptrint, 15

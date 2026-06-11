@@ -21,35 +21,35 @@ define i64 @load_global_i64_align_1(i64 %y) addrspace(200) nounwind {
 ; CHECK-NEXT:  .LBB0_2:
 ; CHECK-NEXT:    csetaddr a0, a1, a0
 ; CHECK-NEXT:  .LBB0_3:
-; CHECK-NEXT:    lbu.cap a1, (a0)
-; CHECK-NEXT:    cincoffset a2, a0, 1
+; CHECK-NEXT:    cincoffset a1, a0, 1
+; CHECK-NEXT:    lbu.cap a1, (a1)
+; CHECK-NEXT:    lbu.cap a2, (a0)
 ; CHECK-NEXT:    cincoffset a3, a0, 2
-; CHECK-NEXT:    cincoffset a4, a0, 3
-; CHECK-NEXT:    lbu.cap a2, (a2)
-; CHECK-NEXT:    cincoffset a5, a0, 4
+; CHECK-NEXT:    cincoffset a4, a0, 4
+; CHECK-NEXT:    cincoffset a5, a0, 5
+; CHECK-NEXT:    cincoffset a6, a0, 6
+; CHECK-NEXT:    slli a1, a1, 8
+; CHECK-NEXT:    or a1, a1, a2
+; CHECK-NEXT:    cincoffset a2, a0, 7
 ; CHECK-NEXT:    lbu.cap a3, (a3)
-; CHECK-NEXT:    lbu.cap a4, (a4)
-; CHECK-NEXT:    slli a2, a2, 8
-; CHECK-NEXT:    or a1, a2, a1
-; CHECK-NEXT:    cincoffset a2, a0, 5
-; CHECK-NEXT:    slli a3, a3, 16
-; CHECK-NEXT:    slli a4, a4, 24
-; CHECK-NEXT:    or a3, a4, a3
-; CHECK-NEXT:    cincoffset a4, a0, 6
-; CHECK-NEXT:    cincoffset a0, a0, 7
-; CHECK-NEXT:    lbu.cap a2, (a2)
 ; CHECK-NEXT:    lbu.cap a5, (a5)
+; CHECK-NEXT:    lbu.cap a6, (a6)
+; CHECK-NEXT:    lbu.cap a2, (a2)
+; CHECK-NEXT:    cincoffset a0, a0, 3
 ; CHECK-NEXT:    lbu.cap a4, (a4)
 ; CHECK-NEXT:    lbu.cap a0, (a0)
-; CHECK-NEXT:    slli a2, a2, 8
-; CHECK-NEXT:    or a2, a2, a5
-; CHECK-NEXT:    slli a4, a4, 16
+; CHECK-NEXT:    slli a5, a5, 8
+; CHECK-NEXT:    slli a6, a6, 16
+; CHECK-NEXT:    slli a2, a2, 24
+; CHECK-NEXT:    or a4, a5, a4
+; CHECK-NEXT:    or a2, a2, a6
+; CHECK-NEXT:    slli a3, a3, 16
 ; CHECK-NEXT:    slli a0, a0, 24
-; CHECK-NEXT:    or a0, a0, a4
-; CHECK-NEXT:    or a1, a3, a1
-; CHECK-NEXT:    or a0, a0, a2
-; CHECK-NEXT:    slli a0, a0, 32
+; CHECK-NEXT:    or a0, a0, a3
+; CHECK-NEXT:    or a2, a2, a4
 ; CHECK-NEXT:    or a0, a0, a1
+; CHECK-NEXT:    slli a2, a2, 32
+; CHECK-NEXT:    or a0, a2, a0
 ; CHECK-NEXT:    ret
   %ret = load i64, i64 addrspace(200)* addrspacecast(i64* @a1 to i64 addrspace(200)*), align 1
   ret i64 %ret
@@ -69,19 +69,19 @@ define i64 @load_global_i64_align_2(i64 %y) addrspace(200) nounwind {
 ; CHECK-NEXT:  .LBB1_2:
 ; CHECK-NEXT:    csetaddr a0, a1, a0
 ; CHECK-NEXT:  .LBB1_3:
-; CHECK-NEXT:    lhu.cap a1, (a0)
-; CHECK-NEXT:    cincoffset a2, a0, 2
-; CHECK-NEXT:    cincoffset a3, a0, 4
+; CHECK-NEXT:    cincoffset a1, a0, 2
+; CHECK-NEXT:    cincoffset a2, a0, 4
+; CHECK-NEXT:    cincoffset a3, a0, 6
+; CHECK-NEXT:    lhu.cap a1, (a1)
 ; CHECK-NEXT:    lhu.cap a2, (a2)
-; CHECK-NEXT:    cincoffset a0, a0, 6
 ; CHECK-NEXT:    lhu.cap a3, (a3)
 ; CHECK-NEXT:    lhu.cap a0, (a0)
-; CHECK-NEXT:    slli a2, a2, 16
-; CHECK-NEXT:    or a1, a2, a1
-; CHECK-NEXT:    slli a3, a3, 32
-; CHECK-NEXT:    slli a0, a0, 48
-; CHECK-NEXT:    or a0, a0, a3
-; CHECK-NEXT:    or a0, a0, a1
+; CHECK-NEXT:    slli a1, a1, 16
+; CHECK-NEXT:    slli a2, a2, 32
+; CHECK-NEXT:    slli a3, a3, 48
+; CHECK-NEXT:    or a0, a1, a0
+; CHECK-NEXT:    or a2, a3, a2
+; CHECK-NEXT:    or a0, a2, a0
 ; CHECK-NEXT:    ret
   %ret = load i64, i64 addrspace(200)* addrspacecast(i64* @a2 to i64 addrspace(200)*), align 2
   ret i64 %ret
@@ -144,21 +144,21 @@ define void @store_global_i64_align_1(i64 %y) addrspace(200) nounwind {
 ; CHECK-NEXT:  .LBB4_2:
 ; CHECK-NEXT:    csetaddr a1, a2, a1
 ; CHECK-NEXT:  .LBB4_3:
-; CHECK-NEXT:    sb.cap a0, (a1)
 ; CHECK-NEXT:    cincoffset a2, a1, 7
 ; CHECK-NEXT:    srli a3, a0, 56
+; CHECK-NEXT:    cincoffset a4, a1, 6
+; CHECK-NEXT:    srli a5, a0, 48
 ; CHECK-NEXT:    sb.cap a3, (a2)
-; CHECK-NEXT:    cincoffset a2, a1, 6
-; CHECK-NEXT:    srli a3, a0, 48
-; CHECK-NEXT:    sb.cap a3, (a2)
+; CHECK-NEXT:    sb.cap a5, (a4)
 ; CHECK-NEXT:    cincoffset a2, a1, 5
 ; CHECK-NEXT:    srli a3, a0, 40
+; CHECK-NEXT:    cincoffset a4, a1, 4
+; CHECK-NEXT:    srli a5, a0, 32
 ; CHECK-NEXT:    sb.cap a3, (a2)
-; CHECK-NEXT:    cincoffset a2, a1, 4
-; CHECK-NEXT:    srli a3, a0, 32
-; CHECK-NEXT:    sb.cap a3, (a2)
+; CHECK-NEXT:    sb.cap a5, (a4)
 ; CHECK-NEXT:    cincoffset a2, a1, 3
 ; CHECK-NEXT:    srli a3, a0, 24
+; CHECK-NEXT:    sb.cap a0, (a1)
 ; CHECK-NEXT:    sb.cap a3, (a2)
 ; CHECK-NEXT:    cincoffset a2, a1, 2
 ; CHECK-NEXT:    srli a3, a0, 16
@@ -185,9 +185,9 @@ define void @store_global_i64_align_2(i64 %y) addrspace(200) nounwind {
 ; CHECK-NEXT:  .LBB5_2:
 ; CHECK-NEXT:    csetaddr a1, a2, a1
 ; CHECK-NEXT:  .LBB5_3:
-; CHECK-NEXT:    sh.cap a0, (a1)
 ; CHECK-NEXT:    cincoffset a2, a1, 6
 ; CHECK-NEXT:    srli a3, a0, 48
+; CHECK-NEXT:    sh.cap a0, (a1)
 ; CHECK-NEXT:    sh.cap a3, (a2)
 ; CHECK-NEXT:    cincoffset a2, a1, 4
 ; CHECK-NEXT:    srli a3, a0, 32
@@ -214,10 +214,10 @@ define void @store_global_i64_align_4(i64 %y) addrspace(200) nounwind {
 ; CHECK-NEXT:  .LBB6_2:
 ; CHECK-NEXT:    csetaddr a1, a2, a1
 ; CHECK-NEXT:  .LBB6_3:
+; CHECK-NEXT:    cincoffset a2, a1, 4
+; CHECK-NEXT:    srli a3, a0, 32
 ; CHECK-NEXT:    sw.cap a0, (a1)
-; CHECK-NEXT:    cincoffset a1, a1, 4
-; CHECK-NEXT:    srli a0, a0, 32
-; CHECK-NEXT:    sw.cap a0, (a1)
+; CHECK-NEXT:    sw.cap a3, (a2)
 ; CHECK-NEXT:    ret
   store i64 %y, i64 addrspace(200)* addrspacecast(i64* @a4 to i64 addrspace(200)*), align 4
   ret void

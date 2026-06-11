@@ -107,9 +107,9 @@ define signext i32 @stack_int() local_unnamed_addr addrspace(200) nounwind {
 ; ASM-NEXT:    cincoffset sp, sp, -16
 ; ASM-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; ASM-NEXT:    li a0, 1
+; ASM-NEXT:    cincoffset a1, sp, 4
 ; ASM-NEXT:    csw a0, 4(sp)
-; ASM-NEXT:    cincoffset a0, sp, 4
-; ASM-NEXT:    csetbounds a0, a0, 4
+; ASM-NEXT:    csetbounds a0, a1, 4
 ; ASM-NEXT:    ccall use
 ; ASM-NEXT:    clw a0, 4(sp)
 ; ASM-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
@@ -156,10 +156,10 @@ define signext i32 @stack_int_inlined() local_unnamed_addr addrspace(200) nounwi
 ; ASM-NEXT:    cincoffset sp, sp, -16
 ; ASM-NEXT:    li a0, 1
 ; ASM-NEXT:    cincoffset a1, sp, 12
+; ASM-NEXT:    csetbounds a1, a1, 4
+; ASM-NEXT:    li a2, 2
 ; ASM-NEXT:    csw a0, 12(sp)
-; ASM-NEXT:    csetbounds a0, a1, 4
-; ASM-NEXT:    li a1, 2
-; ASM-NEXT:    csw a1, 0(a0)
+; ASM-NEXT:    csw a2, 0(a1)
 ; ASM-NEXT:    clw a0, 12(sp)
 ; ASM-NEXT:    cincoffset sp, sp, 16
 ; ASM-NEXT:    cret

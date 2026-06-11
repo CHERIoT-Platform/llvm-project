@@ -37,12 +37,12 @@ define i32 @main(i1 %arg.1, i64 %arg.2, i1 %arg.3, i64 %arg.4, i1 %arg.5, <vscal
 ; CHECK-NEXT:    .cfi_offset s11, -104
 ; CHECK-NEXT:    li a6, 0
 ; CHECK-NEXT:    li a7, 8
-; CHECK-NEXT:    li t0, 12
-; CHECK-NEXT:    li s0, 4
-; CHECK-NEXT:    li t1, 20
 ; CHECK-NEXT:    ld s2, 112(sp)
 ; CHECK-NEXT:    vsetivli zero, 8, e32, m2, ta, ma
 ; CHECK-NEXT:    vmv.v.i v8, 0
+; CHECK-NEXT:    li t0, 12
+; CHECK-NEXT:    li s0, 4
+; CHECK-NEXT:    li t1, 20
 ; CHECK-NEXT:    andi s10, a0, 1
 ; CHECK-NEXT:    andi t3, a4, 1
 ; CHECK-NEXT:    li t2, 4
@@ -76,8 +76,8 @@ define i32 @main(i1 %arg.1, i64 %arg.2, i1 %arg.3, i64 %arg.4, i1 %arg.5, <vscal
 ; CHECK-NEXT:    # Child Loop BB0_5 Depth 5
 ; CHECK-NEXT:    mv s11, s5
 ; CHECK-NEXT:    mv a0, s6
-; CHECK-NEXT:    mv ra, s7
-; CHECK-NEXT:    mv a3, s8
+; CHECK-NEXT:    mv a3, s7
+; CHECK-NEXT:    mv a1, s8
 ; CHECK-NEXT:    mv a4, s9
 ; CHECK-NEXT:  .LBB0_4: # %vector.ph.i
 ; CHECK-NEXT:    # Parent Loop BB0_1 Depth=1
@@ -92,18 +92,18 @@ define i32 @main(i1 %arg.1, i64 %arg.2, i1 %arg.3, i64 %arg.4, i1 %arg.5, <vscal
 ; CHECK-NEXT:    # Parent Loop BB0_3 Depth=3
 ; CHECK-NEXT:    # Parent Loop BB0_4 Depth=4
 ; CHECK-NEXT:    # => This Inner Loop Header: Depth=5
-; CHECK-NEXT:    addi a1, s1, 4
-; CHECK-NEXT:    add a5, a3, s1
-; CHECK-NEXT:    add s1, s1, a0
+; CHECK-NEXT:    add a5, a1, s1
 ; CHECK-NEXT:    vse32.v v8, (a5), v0.t
+; CHECK-NEXT:    addi a5, s1, 4
+; CHECK-NEXT:    add s1, s1, a0
 ; CHECK-NEXT:    vse32.v v8, (s1), v0.t
-; CHECK-NEXT:    mv s1, a1
-; CHECK-NEXT:    bne a1, s0, .LBB0_5
+; CHECK-NEXT:    mv s1, a5
+; CHECK-NEXT:    bne a5, s0, .LBB0_5
 ; CHECK-NEXT:  # %bb.6: # %for.cond.cleanup15.i
 ; CHECK-NEXT:    # in Loop: Header=BB0_4 Depth=4
 ; CHECK-NEXT:    addi a4, a4, 4
+; CHECK-NEXT:    addi a1, a1, 4
 ; CHECK-NEXT:    addi a3, a3, 4
-; CHECK-NEXT:    addi ra, ra, 4
 ; CHECK-NEXT:    addi a0, a0, 4
 ; CHECK-NEXT:    addi s11, s11, 4
 ; CHECK-NEXT:    beqz s10, .LBB0_4
@@ -112,8 +112,8 @@ define i32 @main(i1 %arg.1, i64 %arg.2, i1 %arg.3, i64 %arg.4, i1 %arg.5, <vscal
 ; CHECK-NEXT:    addi s9, s9, 4
 ; CHECK-NEXT:    addi s8, s8, 4
 ; CHECK-NEXT:    addi s7, s7, 4
-; CHECK-NEXT:    addi s6, s6, 4
 ; CHECK-NEXT:    andi a0, a2, 1
+; CHECK-NEXT:    addi s6, s6, 4
 ; CHECK-NEXT:    addi s5, s5, 4
 ; CHECK-NEXT:    beqz a0, .LBB0_3
 ; CHECK-NEXT:  # %bb.8: # %for.cond.cleanup7.i
@@ -141,16 +141,16 @@ define i32 @main(i1 %arg.1, i64 %arg.2, i1 %arg.3, i64 %arg.4, i1 %arg.5, <vscal
 ; CHECK-NEXT:    j .LBB0_11
 ; CHECK-NEXT:  .LBB0_12: # %for.body7.us.19
 ; CHECK-NEXT:    vsetvli a0, zero, e32, m8, ta, ma
-; CHECK-NEXT:    vmv.s.x v16, s2
 ; CHECK-NEXT:    vmv.v.i v8, 0
+; CHECK-NEXT:    vmv.s.x v16, s2
 ; CHECK-NEXT:    vsetivli zero, 2, e32, m1, tu, ma
 ; CHECK-NEXT:    vslideup.vi v8, v16, 1
 ; CHECK-NEXT:    vsetvli a0, zero, e32, m8, ta, ma
 ; CHECK-NEXT:    vmsne.vi v16, v8, 0
 ; CHECK-NEXT:    vmv.x.s a0, v16
-; CHECK-NEXT:    snez a0, a0
-; CHECK-NEXT:    sb a0, 0(zero)
+; CHECK-NEXT:    snez a1, a0
 ; CHECK-NEXT:    li a0, 0
+; CHECK-NEXT:    sb a1, 0(zero)
 ; CHECK-NEXT:    ld ra, 104(sp) # 8-byte Folded Reload
 ; CHECK-NEXT:    ld s0, 96(sp) # 8-byte Folded Reload
 ; CHECK-NEXT:    ld s1, 88(sp) # 8-byte Folded Reload

@@ -27,8 +27,8 @@
 define i32 @loadstore(i32 addrspace(200)* %intptrarg, i8 addrspace(200)* addrspace(200)* %ptrptrarg) addrspace(200) #0 {
 ; CHECK-LABEL: <loadstore>:
 ; CHECK-NEXT:    c.cincoffset16csp sp, -0x20
-; CHECK-NEXT:    c.clw a2, 0x0(a0)
 ; CHECK-NEXT:    c.li a3, 0x1
+; CHECK-NEXT:    c.clw a2, 0x0(a0)
 ; CHECK-NEXT:    c.csw a3, 0x0(a0)
 ; CHECK-NEXT:    c.clc a0, 0x0(a1)
 ; CHECK-NEXT:    c.csc a0, 0x0(a1)
@@ -41,8 +41,8 @@ define i32 @loadstore(i32 addrspace(200)* %intptrarg, i8 addrspace(200)* addrspa
 ; CHECK-NEXT:    c.cjr ra
 ; CHECK-NORVC-LABEL: <loadstore>:
 ; CHECK-NORVC-NEXT:  {{[^a-z.]}}cincoffset sp, sp, -0x20
-; CHECK-NORVC-NEXT:  {{[^a-z.]}}clw a2, 0x0(a0)
 ; CHECK-NORVC-NEXT:  {{[^a-z.]}}c.li a3, 0x1
+; CHECK-NORVC-NEXT:  {{[^a-z.]}}clw a2, 0x0(a0)
 ; CHECK-NORVC-NEXT:  {{[^a-z.]}}csw a3, 0x0(a0)
 ; CHECK-NORVC-NEXT:  {{[^a-z.]}}clc a0, 0x0(a1)
 ; CHECK-NORVC-NEXT:  {{[^a-z.]}}csc a0, 0x0(a1)

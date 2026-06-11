@@ -30,8 +30,8 @@ define i32 @caller(i32 zeroext %n) nounwind {
 ; RV32IXCHERI-NEXT:    csetaddr a0, sp, a0
 ; RV32IXCHERI-NEXT:    csetbounds a1, a0, a1
 ; RV32IXCHERI-NEXT:    cmove sp, a0
-; RV32IXCHERI-NEXT:    csetbounds a1, a1, s2
 ; RV32IXCHERI-NEXT:    cincoffset a0, s1, 0
+; RV32IXCHERI-NEXT:    csetbounds a1, a1, s2
 ; RV32IXCHERI-NEXT:    csetbounds a0, a0, 1
 ; RV32IXCHERI-NEXT:    ccall callee
 ; RV32IXCHERI-NEXT:    mv a0, s2
@@ -64,8 +64,8 @@ define i32 @caller(i32 zeroext %n) nounwind {
 ; RV64IXCHERI-NEXT:    csetaddr a0, sp, a0
 ; RV64IXCHERI-NEXT:    csetbounds a1, a0, a1
 ; RV64IXCHERI-NEXT:    cmove sp, a0
-; RV64IXCHERI-NEXT:    csetbounds a1, a1, s2
 ; RV64IXCHERI-NEXT:    cincoffset a0, s1, 0
+; RV64IXCHERI-NEXT:    csetbounds a1, a1, s2
 ; RV64IXCHERI-NEXT:    csetbounds a0, a0, 1
 ; RV64IXCHERI-NEXT:    ccall callee
 ; RV64IXCHERI-NEXT:    mv a0, s2

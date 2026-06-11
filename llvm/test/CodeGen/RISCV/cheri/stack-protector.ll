@@ -41,9 +41,9 @@ define void @caller() addrspace(200) nounwind sspstrong {
 ; IL32PC64-NEXT:    auipcc s0, %got_pcrel_hi(__stack_chk_guard)
 ; IL32PC64-NEXT:    clc s0, %pcrel_lo(.LBB0_3)(s0)
 ; IL32PC64-NEXT:    clw a0, 0(s0)
+; IL32PC64-NEXT:    cincoffset a1, sp, 11
 ; IL32PC64-NEXT:    csw a0, 12(sp)
-; IL32PC64-NEXT:    cincoffset a0, sp, 11
-; IL32PC64-NEXT:    csetbounds a0, a0, 1
+; IL32PC64-NEXT:    csetbounds a0, a1, 1
 ; IL32PC64-NEXT:    ccall callee
 ; IL32PC64-NEXT:    clc a0, 12(sp)
 ; IL32PC64-NEXT:    clc a1, 0(s0)
@@ -65,9 +65,9 @@ define void @caller() addrspace(200) nounwind sspstrong {
 ; L64PC128-NEXT:    auipcc s0, %got_pcrel_hi(__stack_chk_guard)
 ; L64PC128-NEXT:    clc s0, %pcrel_lo(.LBB0_3)(s0)
 ; L64PC128-NEXT:    cld a0, 0(s0)
+; L64PC128-NEXT:    cincoffset a1, sp, 7
 ; L64PC128-NEXT:    csd a0, 8(sp)
-; L64PC128-NEXT:    cincoffset a0, sp, 7
-; L64PC128-NEXT:    csetbounds a0, a0, 1
+; L64PC128-NEXT:    csetbounds a0, a1, 1
 ; L64PC128-NEXT:    ccall callee
 ; L64PC128-NEXT:    clc a0, 8(sp)
 ; L64PC128-NEXT:    clc a1, 0(s0)

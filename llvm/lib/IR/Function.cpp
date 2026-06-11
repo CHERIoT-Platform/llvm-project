@@ -115,9 +115,9 @@ void Argument::setParent(Function *parent) {
 
 bool Argument::hasNonNullAttr(bool AllowUndefOrPoison) const {
   if (!getType()->isPointerTy()) return false;
-  if (getParent()->hasParamAttribute(getArgNo(), Attribute::NonNull) &&
-      (AllowUndefOrPoison ||
-       getParent()->hasParamAttribute(getArgNo(), Attribute::NoUndef)))
+  AttributeSet Attrs = getAttributes();
+  if (Attrs.hasAttribute(Attribute::NonNull) &&
+      (AllowUndefOrPoison || Attrs.hasAttribute(Attribute::NoUndef)))
     return true;
   else if (getDereferenceableBytes() > 0 &&
            !NullPointerIsDefined(getParent(),
@@ -163,21 +163,21 @@ bool Argument::hasPreallocatedAttr() const {
 
 bool Argument::hasPassPointeeByValueCopyAttr() const {
   if (!getType()->isPointerTy()) return false;
-  AttributeList Attrs = getParent()->getAttributes();
-  return Attrs.hasParamAttr(getArgNo(), Attribute::ByVal) ||
-         Attrs.hasParamAttr(getArgNo(), Attribute::InAlloca) ||
-         Attrs.hasParamAttr(getArgNo(), Attribute::Preallocated);
+  AttributeSet Attrs = getAttributes();
+  return Attrs.hasAttribute(Attribute::ByVal) ||
+         Attrs.hasAttribute(Attribute::InAlloca) ||
+         Attrs.hasAttribute(Attribute::Preallocated);
 }
 
 bool Argument::hasPointeeInMemoryValueAttr() const {
   if (!getType()->isPointerTy())
     return false;
-  AttributeList Attrs = getParent()->getAttributes();
-  return Attrs.hasParamAttr(getArgNo(), Attribute::ByVal) ||
-         Attrs.hasParamAttr(getArgNo(), Attribute::StructRet) ||
-         Attrs.hasParamAttr(getArgNo(), Attribute::InAlloca) ||
-         Attrs.hasParamAttr(getArgNo(), Attribute::Preallocated) ||
-         Attrs.hasParamAttr(getArgNo(), Attribute::ByRef);
+  AttributeSet Attrs = getAttributes();
+  return Attrs.hasAttribute(Attribute::ByVal) ||
+         Attrs.hasAttribute(Attribute::StructRet) ||
+         Attrs.hasAttribute(Attribute::InAlloca) ||
+         Attrs.hasAttribute(Attribute::Preallocated) ||
+         Attrs.hasAttribute(Attribute::ByRef);
 }
 
 /// For a byval, sret, inalloca, or preallocated parameter, get the in-memory
@@ -200,17 +200,13 @@ static Type *getMemoryParamAllocType(AttributeSet ParamAttrs) {
 }
 
 uint64_t Argument::getPassPointeeByValueCopySize(const DataLayout &DL) const {
-  AttributeSet ParamAttrs =
-      getParent()->getAttributes().getParamAttrs(getArgNo());
-  if (Type *MemTy = getMemoryParamAllocType(ParamAttrs))
+  if (Type *MemTy = getMemoryParamAllocType(getAttributes()))
     return DL.getTypeAllocSize(MemTy);
   return 0;
 }
 
 Type *Argument::getPointeeInMemoryValueType() const {
-  AttributeSet ParamAttrs =
-      getParent()->getAttributes().getParamAttrs(getArgNo());
-  return getMemoryParamAllocType(ParamAttrs);
+  return getMemoryParamAllocType(getAttributes());
 }
 
 MaybeAlign Argument::getParamAlign() const {
@@ -307,9 +303,9 @@ bool Argument::hasSExtAttr() const {
 }
 
 bool Argument::onlyReadsMemory() const {
-  AttributeList Attrs = getParent()->getAttributes();
-  return Attrs.hasParamAttr(getArgNo(), Attribute::ReadOnly) ||
-         Attrs.hasParamAttr(getArgNo(), Attribute::ReadNone);
+  AttributeSet Attrs = getAttributes();
+  return Attrs.hasAttribute(Attribute::ReadOnly) ||
+         Attrs.hasAttribute(Attribute::ReadNone);
 }
 
 void Argument::addAttrs(AttrBuilder &B) {

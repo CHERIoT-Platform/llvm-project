@@ -4058,7 +4058,7 @@ def VecReturn : InheritableAttr {
 def WarnUnused : InheritableAttr {
   let Spellings = [GCC<"warn_unused">];
   let Subjects = SubjectList<[Record]>;
-  let Documentation = [Undocumented];
+  let Documentation = [WarnUnusedDocs];
   let SimpleHandler = 1;
 }
 

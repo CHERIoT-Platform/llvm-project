@@ -556,7 +556,6 @@ private:
   void visitInlineHistoryMetadata(Instruction &I, MDNode *MD);
   void visitMemCacheHintMetadata(Instruction &I, MDNode *MD);
 
-  template <class Ty> bool isValidMetadataArray(const MDTuple &N);
 #define HANDLE_SPECIALIZED_MDNODE_LEAF(CLASS) void visit##CLASS(const CLASS &N);
 #include "llvm/IR/Metadata.def"
   void visitDIType(const DIType &N);
@@ -7186,6 +7185,10 @@ void Verifier::visitIntrinsicCall(Intrinsic::ID ID, CallBase &Call) {
           "SGPR arguments must have the `inreg` attribute", &Call);
     Check(!Call.paramHasAttr(3, Attribute::InReg),
           "VGPR arguments must not have the `inreg` attribute", &Call);
+
+    auto *FlagsArg = cast<ConstantInt>(Call.getArgOperand(4));
+    Check(FlagsArg->getValue().ult(2),
+          "flags must be 0 or 1 for llvm.amdgcn.cs.chain", &Call);
 
     auto *Next = Call.getNextNode();
     bool IsAMDUnreachable = Next && isa<IntrinsicInst>(Next) &&

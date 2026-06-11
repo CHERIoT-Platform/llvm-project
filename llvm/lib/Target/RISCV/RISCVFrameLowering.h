@@ -123,6 +123,10 @@ private:
                                    const DebugLoc &DL, int64_t Amount,
                                    MachineInstr::MIFlag Flag, bool EmitCFI,
                                    bool DynAllocation) const;
+
+  /// Emit target zero call-used regs.
+  void emitZeroCallUsedRegs(BitVector RegsToZero,
+                            MachineBasicBlock &MBB) const override;
 };
 } // namespace llvm
 #endif

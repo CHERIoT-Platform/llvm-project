@@ -901,6 +901,7 @@ Triple::ArchType Triple::parseArch(StringRef ArchName) {
                   "dxilv1.9"},
                  Triple::dxil)
           .Case("xtensa", Triple::xtensa)
+          .Case("mips64c128", Triple::mips64)
           .Default(Triple::UnknownArch);
 
   // Some architectures require special parsing logic just to compute the
@@ -1627,6 +1628,25 @@ std::string Triple::normalize(StringRef Str, CanonicalForm Form) {
       Components[1] == "none" && Components[2].empty())
     std::swap(Components[1], Components[2]);
 
+  if (Components[0] == "cheri") {
+    assert(Arch == Triple::mips64);
+    Components[0] = "mips64c128";
+  }
+  // Compat to allow "mips64c128-clang" to be purecap clang
+  // TODO: remove this
+  if (Environment == UnknownEnvironment && Components.size() == 1 &&
+      Components[0].starts_with("mips64c")) {
+    // allow mips64c for purecap and mips64c128hybrid for CHERI128 (hybrid)
+    // And remove the hybrid suffix from the string representation:
+    Components.resize(4);
+    if (Components[0].ends_with("hybrid")) {
+      Components[0].consume_back("hybrid");
+      Components[3] = "gnuabi64";
+    } else {
+      Components[3] = "purecap";
+    }
+  }
+
   // Replace empty components with "unknown" value.
   for (StringRef &C : Components)
     if (C.empty())
@@ -1644,11 +1664,6 @@ std::string Triple::normalize(StringRef Str, CanonicalForm Form) {
       NormalizedEnvironment = Twine("android", AndroidVersion).str();
       Components[3] = NormalizedEnvironment;
     }
-  }
-
-  if (Components[0] == "cheri") {
-    assert(Arch == Triple::mips64);
-    Components[0] = "mips64c128";
   }
 
   // SUSE uses "gnueabi" to mean "gnueabihf"

@@ -561,6 +561,7 @@ FreeBSD::getSupportedSanitizers(StringRef BoundArch,
 
 void FreeBSD::addClangTargetOptions(const ArgList &DriverArgs,
                                     ArgStringList &CC1Args,
+                                    llvm::StringRef BoundArch,
                                     Action::OffloadKind) const {
   unsigned Major = getTriple().getOSMajorVersion();
   if (!DriverArgs.hasFlag(options::OPT_fuse_init_array,

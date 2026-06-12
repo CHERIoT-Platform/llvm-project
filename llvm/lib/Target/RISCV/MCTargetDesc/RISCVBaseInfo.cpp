@@ -65,6 +65,7 @@ ABI computeTargetABI(const Triple &TT, const FeatureBitset &FeatureBits,
   auto TargetABI = getTargetABI(ABIName, TT);
   bool IsRV64 = TT.isArch64Bit();
   bool IsRVE = FeatureBits[RISCV::FeatureStdExtE];
+  bool IsXCheriot = FeatureBits[RISCV::FeatureVendorXCheriot];
 
   if (!ABIName.empty() && TargetABI == ABI_Unknown) {
     errs()
@@ -86,12 +87,15 @@ ABI computeTargetABI(const Triple &TT, const FeatureBitset &FeatureBits,
               "doesn't support the XCheri instruction set extension (ignoring "
               "target-abi)\n";
     TargetABI = ABI_Unknown;
-  } else if (!IsRV64 && IsRVE && TargetABI != ABI_ILP32E &&
-             TargetABI != ABI_IL32PC64E && TargetABI != ABI_Unknown &&
-             TargetABI != ABI_CHERIOT && TargetABI != ABI_CHERIOT_BAREMETAL) {
+  } else if (!IsRV64 && IsRVE && !IsXCheriot && TargetABI != ABI_ILP32E &&
+             TargetABI != ABI_IL32PC64E && TargetABI != ABI_Unknown) {
     // TODO: move this checking to RISCVTargetLowering and RISCVAsmParser
-    errs() << "Only the ilp32e and il32pc64e ABIs are supported for RV32E "
-              "(ignoring target-abi)\n";
+    errs() << "Only the ilp32e and il32pc64e ABIs are supported for RV32E (ignoring target-abi)\n";
+    TargetABI = ABI_Unknown;
+  } else if (!IsRV64 && IsRVE && IsXCheriot && TargetABI != ABI_CHERIOT &&
+             TargetABI != ABI_CHERIOT_BAREMETAL && TargetABI != ABI_Unknown) {
+    errs() << "Only the cheriot and cheriot-baremetal ABIs are supported for "
+              "XCheriot (ignoring target-abi)\n";
     TargetABI = ABI_Unknown;
   } else if (IsRV64 && IsRVE && TargetABI != ABI_LP64E &&
              TargetABI != ABI_Unknown) {

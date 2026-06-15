@@ -23,7 +23,7 @@
 #include "clang/StaticAnalyzer/Core/CheckerManager.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/AnalysisManager.h"
 #include "llvm/ADT/SmallString.h"
-#include "llvm/CHERI/CapabilityFormat.h"
+#include "llvm/Support/CHERICapabilityFormat.h"
 #include "llvm/Support/raw_ostream.h"
 
 using namespace clang;
@@ -31,9 +31,50 @@ using namespace ento;
 
 namespace {
 
+llvm::Align getRequiredAlignment(uint64_t Size, ASTContext &ASTCtx) {
+  const TargetInfo &TI = ASTCtx.getTargetInfo();
+  const auto &T = TI.getTriple();
+  if (T.getArch() == llvm::Triple::riscv32) {
+    if (TI.hasFeature("xcheriot"))
+      return llvm::CHERIoTCapabilityFormat::getRequiredAlignment(Size);
+    return llvm::RV32YCapabilityFormat::getRequiredAlignment(Size);
+  }
+
+  if (T.getArch() == llvm::Triple::riscv64)
+    return llvm::RV64YCapabilityFormat::getRequiredAlignment(Size);
+
+  if (T.getArch() == llvm::Triple::mips)
+    return llvm::RV32YCapabilityFormat::getRequiredAlignment(Size);
+
+  if (T.getArch() == llvm::Triple::mips64)
+    return llvm::RV64YCapabilityFormat::getRequiredAlignment(Size);
+  
+  return {};
+}
+
+llvm::TailPaddingAmount getRequiredTailPadding(uint64_t Size, ASTContext &ASTCtx) {
+  const TargetInfo &TI = ASTCtx.getTargetInfo();
+  const auto &T = TI.getTriple();
+  if (T.getArch() == llvm::Triple::riscv32) {
+    if (TI.hasFeature("xcheriot"))
+      return llvm::CHERIoTCapabilityFormat::getRequiredTailPadding(Size);
+    return llvm::RV32YCapabilityFormat::getRequiredTailPadding(Size);
+  }
+
+  if (T.getArch() == llvm::Triple::riscv64)
+    return llvm::RV64YCapabilityFormat::getRequiredTailPadding(Size);
+
+  if (T.getArch() == llvm::Triple::mips)
+    return llvm::RV32YCapabilityFormat::getRequiredTailPadding(Size);
+
+  if (T.getArch() == llvm::Triple::mips64)
+    return llvm::RV64YCapabilityFormat::getRequiredTailPadding(Size);
+  
+  return {};
+}
+
 std::unique_ptr<BugReport> checkField(const FieldDecl *D, BugReporter &BR,
-                                      const BugType &BT,
-                                      llvm::CHERICapabilityFormat CapFormat);
+                                      const BugType &BT);
 
 class SubObjectRepresentabilityChecker
     : public Checker<check::ASTDecl<RecordDecl>, check::ASTCodeBody> {
@@ -47,10 +88,6 @@ public:
                     BugReporter &BR) const;
   void checkASTCodeBody(const Decl *D, AnalysisManager &mgr,
                         BugReporter &BR) const;
-
-private:
-  std::optional<llvm::CHERICapabilityFormat>
-  getCapabilityFormat(ASTContext &ASTCtx) const;
 };
 
 } // namespace
@@ -95,8 +132,7 @@ reportExposedFields(const FieldDecl *D, ASTContext &ASTCtx, BugReporter &BR,
 }
 
 std::unique_ptr<BugReport> checkField(const FieldDecl *D, BugReporter &BR,
-                                      const BugType &BT,
-                                      llvm::CHERICapabilityFormat CapFormat) {
+                                      const BugType &BT) {
   QualType T = D->getType();
 
   // If the parent struct is explicitly marked as packed, then don't emit a
@@ -108,7 +144,7 @@ std::unique_ptr<BugReport> checkField(const FieldDecl *D, BugReporter &BR,
   uint64_t Offset = ASTCtx.getFieldOffset(D) / 8;
   if (Offset > 0) {
     uint64_t Size = ASTCtx.getTypeSize(T) / 8;
-    uint64_t ReqAlign = CapFormat.getRequiredAlignment(Size).value();
+    uint64_t ReqAlign = getRequiredAlignment(Size, ASTCtx).value();
     uint64_t CurAlign = 1 << llvm::countr_zero(Offset);
     if (CurAlign < ReqAlign) {
       /* Emit warning */
@@ -127,7 +163,7 @@ std::unique_ptr<BugReport> checkField(const FieldDecl *D, BugReporter &BR,
       uint64_t Base = Offset - OffsetToAlign;
       uint64_t AlignedSize = Size + OffsetToAlign;
       uint64_t TailPadding =
-          static_cast<uint64_t>(CapFormat.getRequiredTailPadding(AlignedSize));
+          static_cast<uint64_t>(getRequiredTailPadding(AlignedSize, ASTCtx));
       uint64_t Top = Base + AlignedSize + TailPadding;
       OS << " Current bounds: " << Base << "-" << Top;
 
@@ -150,41 +186,13 @@ std::unique_ptr<BugReport> checkField(const FieldDecl *D, BugReporter &BR,
 
 } // namespace
 
-std::optional<llvm::CHERICapabilityFormat>
-SubObjectRepresentabilityChecker::getCapabilityFormat(
-    ASTContext &ASTCtx) const {
-  const TargetInfo &TI = ASTCtx.getTargetInfo();
-  if (!TI.areAllPointersCapabilities())
-    return std::nullopt;
-
-  const auto &T = TI.getTriple();
-  if (T.getArch() == llvm::Triple::riscv32 && TI.hasFeature("xcheriot")) {
-    return llvm::CHERICapabilityFormat::Cheriot64;
-  }
-
-  static constexpr std::array CapabilityFormatMap = {
-      std::make_pair(llvm::Triple::mips, &llvm::CHERICapabilityFormat::Cheri64),
-      std::make_pair(llvm::Triple::mips64,
-                     &llvm::CHERICapabilityFormat::Cheri128),
-      std::make_pair(llvm::Triple::riscv32,
-                     &llvm::CHERICapabilityFormat::Cheri64),
-      std::make_pair(llvm::Triple::riscv64,
-                     &llvm::CHERICapabilityFormat::Cheri128),
-  };
-
-  auto It = std::find_if(CapabilityFormatMap.begin(), CapabilityFormatMap.end(),
-                         [A = T.getArch()](auto p) { return p.first == A; });
-  if (It == CapabilityFormatMap.end())
-    return std::nullopt;
-  return *It->second;
-}
-
 void SubObjectRepresentabilityChecker::checkASTDecl(const RecordDecl *R,
                                                     AnalysisManager &mgr,
                                                     BugReporter &BR) const {
-  auto CapFormat = getCapabilityFormat(mgr.getASTContext());
-  if (!CapFormat)
-    return; // skip this target
+  ASTContext &ASTCtx = BR.getContext();
+  const TargetInfo &TI = ASTCtx.getTargetInfo();
+  if (!TI.areAllPointersCapabilities())
+    return;
 
   if (!R->isCompleteDefinition() || R->isDependentType())
     return;
@@ -193,7 +201,7 @@ void SubObjectRepresentabilityChecker::checkASTDecl(const RecordDecl *R,
     return;
 
   for (FieldDecl *D : R->fields()) {
-    auto Report = checkField(D, BR, BT_1, *CapFormat);
+    auto Report = checkField(D, BR, BT_1);
     if (Report)
       BR.emitReport(std::move(Report));
   }
@@ -202,9 +210,10 @@ void SubObjectRepresentabilityChecker::checkASTDecl(const RecordDecl *R,
 void SubObjectRepresentabilityChecker::checkASTCodeBody(const Decl *D,
                                                         AnalysisManager &mgr,
                                                         BugReporter &BR) const {
-  auto CapFormat = getCapabilityFormat(mgr.getASTContext());
-  if (!CapFormat)
-    return; // skip this target
+  ASTContext &ASTCtx = BR.getContext();
+  const TargetInfo &TI = ASTCtx.getTargetInfo();
+  if (!TI.areAllPointersCapabilities())
+    return;
 
   using namespace ast_matchers;
   auto Member = memberExpr().bind("member");
@@ -222,7 +231,7 @@ void SubObjectRepresentabilityChecker::checkASTCodeBody(const Decl *D,
       if (const MemberExpr *ME = Match.getNodeAs<MemberExpr>("member")) {
         ValueDecl *VD = ME->getMemberDecl();
         if (FieldDecl *FD = dyn_cast<FieldDecl>(VD)) {
-          auto Report = checkField(FD, BR, BT_2, *CapFormat);
+          auto Report = checkField(FD, BR, BT_2);
           if (Report) {
             PathDiagnosticLocation LN = PathDiagnosticLocation::createBegin(
                 CE, BR.getSourceManager(), mgr.getAnalysisDeclContext(D));
@@ -236,7 +245,7 @@ void SubObjectRepresentabilityChecker::checkASTCodeBody(const Decl *D,
       if (const MemberExpr *ME = Match.getNodeAs<MemberExpr>("member")) {
         ValueDecl *VD = ME->getMemberDecl();
         if (FieldDecl *FD = dyn_cast<FieldDecl>(VD)) {
-          auto Report = checkField(FD, BR, BT_2, *CapFormat);
+          auto Report = checkField(FD, BR, BT_2);
           if (Report) {
             PathDiagnosticLocation LN = PathDiagnosticLocation::createBegin(
                 UO, BR.getSourceManager(), mgr.getAnalysisDeclContext(D));

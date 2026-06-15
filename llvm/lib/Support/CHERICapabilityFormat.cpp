@@ -1,4 +1,4 @@
-//===- CHERICompressedCapability.cpp --------------------------------------===//
+//===- CHERICapabilityFormat.cpp ------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,139 +6,80 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/CHERI/CapabilityFormat.h"
-
-namespace {
-
-constexpr std::pair<uint64_t, uint64_t> Cheri64AlignmentMasks[] = {
-    {0x000000000000003F, 0x00000000FFFFFFFF},
-    {0x0000000000000078, 0x00000000FFFFFFF8},
-    {0x00000000000000F0, 0x00000000FFFFFFF0},
-    {0x00000000000001E0, 0x00000000FFFFFFE0},
-    {0x00000000000003C0, 0x00000000FFFFFFC0},
-    {0x0000000000000780, 0x00000000FFFFFF80},
-    {0x0000000000000F00, 0x00000000FFFFFF00},
-    {0x0000000000001E00, 0x00000000FFFFFE00},
-    {0x0000000000003C00, 0x00000000FFFFFC00},
-    {0x0000000000007800, 0x00000000FFFFF800},
-    {0x000000000000F000, 0x00000000FFFFF000},
-    {0x000000000001E000, 0x00000000FFFFE000},
-    {0x000000000003C000, 0x00000000FFFFC000},
-    {0x0000000000078000, 0x00000000FFFF8000},
-    {0x00000000000F0000, 0x00000000FFFF0000},
-    {0x00000000001E0000, 0x00000000FFFE0000},
-    {0x00000000003C0000, 0x00000000FFFC0000},
-    {0x0000000000780000, 0x00000000FFF80000},
-    {0x0000000000F00000, 0x00000000FFF00000},
-    {0x0000000001E00000, 0x00000000FFE00000},
-    {0x0000000003C00000, 0x00000000FFC00000},
-    {0x0000000007800000, 0x00000000FF800000},
-    {0x000000000F000000, 0x00000000FF000000},
-    {0x000000001E000000, 0x00000000FE000000},
-    {0x000000003C000000, 0x00000000FC000000},
-    {0x0000000078000000, 0x00000000F8000000},
-    {0x00000000F0000000, 0x00000000F0000000},
-    {0x00000000FFFFFFFF, 0x00000000E0000000}};
-
-static constexpr std::pair<uint64_t, uint64_t> Cheri128AlignmentMasks[] = {
-    {0x0000000000000FFF, 0xFFFFFFFFFFFFFFFF},
-    {0x0000000000001FF8, 0xFFFFFFFFFFFFFFF8},
-    {0x0000000000003FF0, 0xFFFFFFFFFFFFFFF0},
-    {0x0000000000007FE0, 0xFFFFFFFFFFFFFFE0},
-    {0x000000000000FFC0, 0xFFFFFFFFFFFFFFC0},
-    {0x000000000001FF80, 0xFFFFFFFFFFFFFF80},
-    {0x000000000003FF00, 0xFFFFFFFFFFFFFF00},
-    {0x000000000007FE00, 0xFFFFFFFFFFFFFE00},
-    {0x00000000000FFC00, 0xFFFFFFFFFFFFFC00},
-    {0x00000000001FF800, 0xFFFFFFFFFFFFF800},
-    {0x00000000003FF000, 0xFFFFFFFFFFFFF000},
-    {0x00000000007FE000, 0xFFFFFFFFFFFFE000},
-    {0x0000000000FFC000, 0xFFFFFFFFFFFFC000},
-    {0x0000000001FF8000, 0xFFFFFFFFFFFF8000},
-    {0x0000000003FF0000, 0xFFFFFFFFFFFF0000},
-    {0x0000000007FE0000, 0xFFFFFFFFFFFE0000},
-    {0x000000000FFC0000, 0xFFFFFFFFFFFC0000},
-    {0x000000001FF80000, 0xFFFFFFFFFFF80000},
-    {0x000000003FF00000, 0xFFFFFFFFFFF00000},
-    {0x000000007FE00000, 0xFFFFFFFFFFE00000},
-    {0x00000000FFC00000, 0xFFFFFFFFFFC00000},
-    {0x00000001FF800000, 0xFFFFFFFFFF800000},
-    {0x00000003FF000000, 0xFFFFFFFFFF000000},
-    {0x00000007FE000000, 0xFFFFFFFFFE000000},
-    {0x0000000FFC000000, 0xFFFFFFFFFC000000},
-    {0x0000001FF8000000, 0xFFFFFFFFF8000000},
-    {0x0000003FF0000000, 0xFFFFFFFFF0000000},
-    {0x0000007FE0000000, 0xFFFFFFFFE0000000},
-    {0x000000FFC0000000, 0xFFFFFFFFC0000000},
-    {0x000001FF80000000, 0xFFFFFFFF80000000},
-    {0x000003FF00000000, 0xFFFFFFFF00000000},
-    {0x000007FE00000000, 0xFFFFFFFE00000000},
-    {0x00000FFC00000000, 0xFFFFFFFC00000000},
-    {0x00001FF800000000, 0xFFFFFFF800000000},
-    {0x00003FF000000000, 0xFFFFFFF000000000},
-    {0x00007FE000000000, 0xFFFFFFE000000000},
-    {0x0000FFC000000000, 0xFFFFFFC000000000},
-    {0x0001FF8000000000, 0xFFFFFF8000000000},
-    {0x0003FF0000000000, 0xFFFFFF0000000000},
-    {0x0007FE0000000000, 0xFFFFFE0000000000},
-    {0x000FFC0000000000, 0xFFFFFC0000000000},
-    {0x001FF80000000000, 0xFFFFF80000000000},
-    {0x003FF00000000000, 0xFFFFF00000000000},
-    {0x007FE00000000000, 0xFFFFE00000000000},
-    {0x00FFC00000000000, 0xFFFFC00000000000},
-    {0x01FF800000000000, 0xFFFF800000000000},
-    {0x03FF000000000000, 0xFFFF000000000000},
-    {0x07FE000000000000, 0xFFFE000000000000},
-    {0x0FFC000000000000, 0xFFFC000000000000},
-    {0x1FF8000000000000, 0xFFF8000000000000},
-    {0x3FF0000000000000, 0xFFF0000000000000},
-    {0x7FE0000000000000, 0xFFE0000000000000},
-    {0xFFC0000000000000, 0xFFC0000000000000},
-    {0xFFFFFFFFFFFFFFFF, 0xFF80000000000000}};
-
-static constexpr std::pair<uint64_t, uint64_t> Cheriot64AlignmentMasks[] = {
-    {0x00000000000001FF, 0x00000000FFFFFFFF},
-    {0x00000000000003FE, 0x00000000FFFFFFFE},
-    {0x00000000000007FC, 0x00000000FFFFFFFC},
-    {0x0000000000000FF8, 0x00000000FFFFFFF8},
-    {0x0000000000001FF0, 0x00000000FFFFFFF0},
-    {0x0000000000003FE0, 0x00000000FFFFFFE0},
-    {0x0000000000007FC0, 0x00000000FFFFFFC0},
-    {0x000000000000FF80, 0x00000000FFFFFF80},
-    {0x000000000001FF00, 0x00000000FFFFFF00},
-    {0x000000000003FE00, 0x00000000FFFFFE00},
-    {0x000000000007FC00, 0x00000000FFFFFC00},
-    {0x00000000000FF800, 0x00000000FFFFF800},
-    {0x00000000001FF000, 0x00000000FFFFF000},
-    {0x00000000003FE000, 0x00000000FFFFE000},
-    {0x00000000007FC000, 0x00000000FFFFC000},
-    // FIXME: These may be enabled by a future change the cheriot spec.
-    // { 0x0000000000FF8000, 0x00000000FFFF8000 },
-    // { 0x0000000001FF0000, 0x00000000FFFF0000 },
-    // { 0x0000000003FE0000, 0x00000000FFFE0000 },
-    // { 0x0000000007FC0000, 0x00000000FFFC0000 },
-    // { 0x000000000FF80000, 0x00000000FFF80000 },
-    // { 0x000000001FF00000, 0x00000000FFF00000 },
-    // { 0x000000003FE00000, 0x00000000FFE00000 },
-    // { 0x000000007FC00000, 0x00000000FFC00000 },
-    // { 0x00000000FF800000, 0x00000000FF800000 },
-    {0x00000000FFFFFFFF, 0x00000000FF000000},
-};
-
-} // namespace
+#include "llvm/Support/CHERICapabilityFormat.h"
+#include "llvm/ADT/bit.h"
 
 namespace llvm {
 
-const CHERICapabilityFormat CHERICapabilityFormat::Cheri64 =
-    CHERICapabilityFormat(std::numeric_limits<uint32_t>::max(),
-                          Cheri64AlignmentMasks);
+template <typename Derived, typename AddressType>
+Align CHERICapabilityFormatBase<Derived, AddressType>::getRequiredAlignment(
+    AddressType Length) {
+  return Align((~Derived::getAlignmentMask(Length) + 1) & AddressMask);
+}
 
-const CHERICapabilityFormat CHERICapabilityFormat::Cheri128 =
-    CHERICapabilityFormat(std::numeric_limits<uint64_t>::max(),
-                          Cheri128AlignmentMasks);
+template <typename Derived, typename AddressType>
+TailPaddingAmount
+CHERICapabilityFormatBase<Derived, AddressType>::getRequiredTailPadding(
+    AddressType Length) {
+  return static_cast<TailPaddingAmount>(
+      llvm::alignTo(Length, getRequiredAlignment(Length)) - Length);
+}
 
-const CHERICapabilityFormat CHERICapabilityFormat::Cheriot64 =
-    CHERICapabilityFormat(std::numeric_limits<uint32_t>::max(),
-                          Cheriot64AlignmentMasks);
+template <typename Derived, typename AddressType>
+AddressType
+CHERICapabilityFormatBase<Derived, AddressType>::getRepresentableLength(
+    AddressType Length) {
+  AddressType Mask = Derived::getAlignmentMask(Length);
+  return (Length + ~Mask) & Mask;
+}
+
+template <typename AddressType, unsigned MW, unsigned MAX_E>
+AddressType
+RVYCapabilityFormat<AddressType, MW, MAX_E>::getAlignmentMask(uint64_t Length) {
+  static constexpr unsigned int IE_TAKE_BITS = 3;
+
+  if (Length == 0)
+    return RVYCapabilityFormat::AddressMask;
+
+  // Extract bits that overflow the uncompressed mantissa window.
+  uint64_t Slice = static_cast<uint64_t>(Length) >> (MW - 1);
+  unsigned int E = 64 - llvm::countl_zero(Slice);
+  // We use internal exponent if length overflows OR the denormal boundary
+  // bit is set.
+  bool IE = (E != 0) || ((static_cast<uint64_t>(Length) >> (MW - 2)) & 1);
+  // Include bits used by the internal exponent for the shift value.
+  unsigned int Eprime = IE ? (E + IE_TAKE_BITS) : 0;
+
+  assert(E <= MAX_E && "Raw exponent exceeds architecture maximum");
+  assert(Eprime <= sizeof(AddressType) * 8 &&
+         "Shift amount exceeds integer width");
+
+  // Left-shift ~0 to mask out the lost precision bits
+  return RVYCapabilityFormat::AddressMask << Eprime;
+}
+
+template struct CHERICapabilityFormatBase<RVYCapabilityFormat<uint32_t, 10, 24>,
+                                          uint32_t>;
+template struct CHERICapabilityFormatBase<RVYCapabilityFormat<uint64_t, 14, 52>,
+                                          uint64_t>;
+template struct RVYCapabilityFormat<uint32_t, 10, 24>;
+template struct RVYCapabilityFormat<uint64_t, 14, 52>;
+
+uint32_t CHERIoTCapabilityFormat::getAlignmentMask(uint32_t Length) {
+  // Per section 7.13.4 and table 7.4 in the v1.0 CHERIoT specification.
+  constexpr uint32_t NINE_SET_BITS = 511;
+  uint32_t E;
+  if (Length > NINE_SET_BITS << 14)
+    E = 24;
+  else {
+    E = Length > NINE_SET_BITS ? 32 - llvm::countl_zero(Length) - 9 : 0;
+    if (Length > NINE_SET_BITS << E)
+      ++E;
+    assert(E <= 14 && "CHERIoT capabilities cannot encode E between 14 and 24");
+  }
+  return CHERIoTCapabilityFormat::AddressMask << E;
+}
+
+template struct CHERICapabilityFormatBase<CHERIoTCapabilityFormat, uint32_t>;
 
 } // namespace llvm

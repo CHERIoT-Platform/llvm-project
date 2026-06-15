@@ -18,6 +18,7 @@
 #include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCTargetOptions.h"
 #include "llvm/Support/Alignment.h"
+#include "llvm/Support/CHERICapabilityFormat.h"
 #include "llvm/Support/Compiler.h"
 #include <cstdint>
 

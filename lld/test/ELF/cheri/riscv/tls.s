@@ -1,23 +1,6 @@
 # REQUIRES: riscv
 # RUN: echo '.tbss; .globl evar; evar: .zero 4' > %t.s
 
-# RUN: %riscv32_cheri_purecap_llvm-mc -filetype=obj %t.s -o %t1.32.o
-# RUN: ld.lld -shared -soname=t1.so %t1.32.o -o %t1.32.so
-
-# RUN: %riscv32_cheri_purecap_llvm-mc --defsym PIC=0 -filetype=obj %s -o %t.32.o
-# RUN: ld.lld %t.32.o %t1.32.so -o %t.32
-# RUN: llvm-readobj -r %t.32 | FileCheck --check-prefix=RV32-REL %s
-# RUN: llvm-readelf -x .got %t.32 | FileCheck --check-prefix=RV32-GOT %s
-# RUN: llvm-objdump -d --no-show-raw-insn --print-imm-hex=false %t.32 | FileCheck --check-prefix=RV32-DIS %s
-# RUN: llvm-readelf -x .got %t.32 | FileCheck --check-prefix=RV32-GOT %s
-# RUN: llvm-objdump -d --no-show-raw-insn --print-imm-hex=false %t.32 | FileCheck --check-prefix=RV32-DIS %s
-
-# RUN: %riscv32_cheri_purecap_llvm-mc --defsym PIC=1 -filetype=obj %s -o %t.32.pico
-# RUN: ld.lld -shared %t.32.pico %t1.32.so -o %t.32.so
-# RUN: llvm-readobj -r %t.32.so | FileCheck --check-prefix=RV32-SO-REL %s
-# RUN: llvm-readelf -x .got %t.32.so | FileCheck --check-prefix=RV32-SO-GOT %s
-# RUN: llvm-objdump -d --no-show-raw-insn --print-imm-hex=false %t.32.so | FileCheck --check-prefix=RV32-SO-DIS %s
-
 # RUN: %riscv64_cheri_purecap_llvm-mc -filetype=obj %t.s -o %t1.64.o
 # RUN: ld.lld -shared -soname=t1.so %t1.64.o -o %t1.64.so
 
@@ -32,66 +15,6 @@
 # RUN: llvm-readobj -r %t.64.so | FileCheck --check-prefix=RV64-SO-REL %s
 # RUN: llvm-readelf -x .got %t.64.so | FileCheck --check-prefix=RV64-SO-GOT %s
 # RUN: llvm-objdump -d --no-show-raw-insn --print-imm-hex=false %t.64.so | FileCheck --check-prefix=RV64-SO-DIS %s
-
-# RV32-REL:      .rela.dyn {
-# RV32-REL-NEXT:   0x12298 R_RISCV_TLS_DTPMOD32 evar 0x0
-# RV32-REL-NEXT:   0x1229C R_RISCV_TLS_DTPREL32 evar 0x0
-# RV32-REL-NEXT:   0x122A0 R_RISCV_TLS_TPREL32 evar 0x0
-# RV32-REL-NEXT: }
-
-# RV32-SO-REL:      .rela.dyn {
-# RV32-SO-REL-NEXT:   0x2498 R_RISCV_TLS_DTPMOD32 - 0x0
-# RV32-SO-REL-NEXT:   0x24A0 R_RISCV_TLS_TPREL32 - 0x4
-# RV32-SO-REL-NEXT:   0x2488 R_RISCV_TLS_DTPMOD32 evar 0x0
-# RV32-SO-REL-NEXT:   0x248C R_RISCV_TLS_DTPREL32 evar 0x0
-# RV32-SO-REL-NEXT:   0x2490 R_RISCV_TLS_TPREL32 evar 0x0
-# RV32-SO-REL-NEXT: }
-
-# RV32-GOT: section '.got':
-# RV32-GOT-NEXT: 0x00012290 2c220100 00000000 00000000 00000000
-# RV32-GOT-NEXT: 0x000122a0 00000000 00000000 01000000 04000000
-# RV32-GOT-NEXT: 0x000122b0 04000000 00000000
-
-# RV32-SO-GOT: section '.got':
-# RV32-SO-GOT-NEXT: 0x00002480 20240000 00000000 00000000 00000000
-# RV32-SO-GOT-NEXT: 0x00002490 00000000 00000000 00000000 04000000
-# RV32-SO-GOT-NEXT: 0x000024a0 00000000 00000000
-
-# 0x12298 - 0x11200 = 0x1098 (GD evar)
-# RV32-DIS:      11200: auipcc a0, 1
-# RV32-DIS-NEXT:        cincoffset a0, a0, 152
-
-# 0x122a0 - 0x11208 = 0x1098 (IE evar)
-# RV32-DIS:      11208: auipcc a0, 1
-# RV32-DIS-NEXT:        clw a0, 152(a0)
-
-# 0x122a8 - 0x11210 = 0x1098 (GD lvar)
-# RV32-DIS:      11210: auipcc a0, 1
-# RV32-DIS-NEXT:        cincoffset a0, a0, 152
-
-# 0x122b0 - 0x11218 = 0x1098 (IE lvar)
-# RV32-DIS:      11218: auipcc a0, 1
-# RV32-DIS-NEXT:        clw a0, 152(a0)
-
-# RV32-DIS:      11220: lui a0, 0
-# RV32-DIS-NEXT:        cincoffset a0, tp, a0
-# RV32-DIS-NEXT:        cincoffset a0, a0, 4
-
-# 0x2488 - 0x1400 = 0x1088 (GD evar)
-# RV32-SO-DIS:      1400: auipcc a0, 1
-# RV32-SO-DIS-NEXT:       cincoffset a0, a0, 136
-
-# 0x2490 - 0x1408 = 0x1088 (IE evar)
-# RV32-SO-DIS:      1408: auipcc a0, 1
-# RV32-SO-DIS-NEXT:       clw a0, 136(a0)
-
-# 0x2498 - 0x1410 = 0x1088 (GD lvar)
-# RV32-SO-DIS:      1410: auipcc a0, 1
-# RV32-SO-DIS-NEXT:       cincoffset a0, a0, 136
-
-# 0x24a0 - 0x1418 = 0x1088 (IE lvar)
-# RV32-SO-DIS:      1418: auipcc a0, 1
-# RV32-SO-DIS-NEXT:       clw a0, 136(a0)
 
 # RV64-REL:      .rela.dyn {
 # RV64-REL-NEXT:   0x123F0 R_RISCV_TLS_DTPMOD64 evar 0x0

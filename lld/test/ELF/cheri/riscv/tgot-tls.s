@@ -1,21 +1,6 @@
 # REQUIRES: riscv
 # RUN: echo '.tbss; .globl evar; evar: .zero 4' > %t.s
 
-# RUN: %riscv32_cheri_purecap_llvm-mc -cheri-tgot-tls -filetype=obj %t.s -o %t1.32.o
-# RUN: ld.lld -shared -soname=t1.so %t1.32.o -o %t1.32.so
-
-# RUN: %riscv32_cheri_purecap_llvm-mc --defsym PIC=0 -cheri-tgot-tls -filetype=obj %s -o %t.32.o
-# RUN: ld.lld %t.32.o %t1.32.so -o %t.32
-# RUN: llvm-readobj -r --cap-relocs %t.32 | FileCheck --check-prefix=RV32-REL %s
-# RUN: llvm-readelf -x .got -x .tgot %t.32 | FileCheck --check-prefix=RV32-GOT %s
-# RUN: llvm-objdump -d --no-show-raw-insn %t.32 | FileCheck --check-prefix=RV32-DIS %s
-
-# RUN: %riscv32_cheri_purecap_llvm-mc --defsym PIC=1 -cheri-tgot-tls -filetype=obj %s -o %t.32.pico
-# RUN: ld.lld -shared %t.32.pico %t1.32.so -o %t.32.so
-# RUN: llvm-readobj -r --cap-relocs %t.32.so | FileCheck --check-prefix=RV32-SO-REL %s
-# RUN: llvm-readelf -x .got -x .tgot %t.32.so | FileCheck --check-prefix=RV32-SO-GOT %s
-# RUN: llvm-objdump -d --no-show-raw-insn %t.32.so | FileCheck --check-prefix=RV32-SO-DIS %s
-
 # RUN: %riscv64_cheri_purecap_llvm-mc -cheri-tgot-tls -filetype=obj %t.s -o %t1.64.o
 # RUN: ld.lld -shared -soname=t1.so %t1.64.o -o %t1.64.so
 

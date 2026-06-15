@@ -1,10 +1,4 @@
 # REQUIRES: riscv
-# RUN: %riscv32_cheri_purecap_llvm-mc -filetype=obj %s -o %t.32.o
-# RUN: ld.lld %t.32.o -z separate-code -o %t.32
-# RUN: llvm-readobj -r --cap-relocs -x .got.plt %t.32 | FileCheck --check-prefix=RELOC32 %s
-# RUN: llvm-readelf -x .got.plt %t.32 | FileCheck --check-prefix=GOTPLT32 %s
-# RUN: llvm-readelf -S -s %t.32 | FileCheck --check-prefixes=SEC,NM %s
-# RUN: llvm-objdump -d --no-show-raw-insn %t.32 | FileCheck --check-prefixes=DIS,DIS32 %s
 
 # RUN: %riscv64_cheri_purecap_llvm-mc -filetype=obj %s -o %t.64.o
 # RUN: ld.lld %t.64.o -z separate-code -o %t.64

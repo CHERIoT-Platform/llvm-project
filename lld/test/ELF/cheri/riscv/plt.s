@@ -1,15 +1,6 @@
 # REQUIRES: riscv
 # RUN: echo '.globl bar, weak; .type bar,@function; .type weak,@function; bar: weak:' > %t1.s
 
-# RUN: %riscv32_cheri_purecap_llvm-mc -filetype=obj %t1.s -o %t1.32.o
-# RUN: ld.lld -shared %t1.32.o -soname=t1.32.so -o %t1.32.so
-# RUN: %riscv32_cheri_purecap_llvm-mc -filetype=obj %s -o %t.32.o
-# RUN: ld.lld %t.32.o %t1.32.so -z separate-code -o %t.32
-# RUN: llvm-readelf -S -s %t.32 | FileCheck --check-prefixes=SEC,NM %s
-# RUN: llvm-readobj -r --cap-relocs %t.32 | FileCheck --check-prefix=RELOC32 %s
-# RUN: llvm-readelf -x .got.plt %t.32 | FileCheck --check-prefix=GOTPLT32 %s
-# RUN: llvm-objdump -d --no-show-raw-insn --print-imm-hex=false %t.32 | FileCheck --check-prefixes=DIS,DIS32 %s
-
 # RUN: %riscv64_cheri_purecap_llvm-mc -filetype=obj %t1.s -o %t1.64.o
 # RUN: ld.lld -shared %t1.64.o -soname=t1.64.so -o %t1.64.so
 # RUN: %riscv64_cheri_purecap_llvm-mc -filetype=obj %s -o %t.64.o

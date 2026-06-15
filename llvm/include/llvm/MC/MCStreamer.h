@@ -24,6 +24,7 @@
 #include "llvm/MC/MCSection.h"
 #include "llvm/MC/MCWinEH.h"
 #include "llvm/MC/MCTargetOptions.h"
+#include "llvm/Support/CHERICapabilityFormat.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/MD5.h"

@@ -11,11 +11,11 @@
 #include "MipsSubtarget.h"
 #include "MipsTargetMachine.h"
 #include "llvm/BinaryFormat/ELF.h"
-#include "llvm/CHERI/CapabilityFormat.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCSectionELF.h"
+#include "llvm/Support/CHERICapabilityFormat.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Target/TargetMachine.h"
 
@@ -203,7 +203,7 @@ MipsTargetObjectFile::getTailPaddingForPreciseBounds(
   if (Subtarget.isCheri128()) {
     return static_cast<TailPaddingAmount>(
         llvm::alignTo(
-            Size, CHERICapabilityFormat::Cheri128.getRequiredAlignment(Size)) -
+            Size, RV64YCapabilityFormat::getRequiredAlignment(Size)) -
         Size);
   }
   llvm_unreachable("cheri256 is no longer supported!");
@@ -218,7 +218,7 @@ MipsTargetObjectFile::getAlignmentForPreciseBounds(
   if (!Subtarget.isCheri())
     return Align();
   if (Subtarget.isCheri128()) {
-    return CHERICapabilityFormat::Cheri128.getRequiredAlignment(Size);
+    return RV64YCapabilityFormat::getRequiredAlignment(Size);
   }
   llvm_unreachable("cheri256 is no longer supported!");
   return Align();

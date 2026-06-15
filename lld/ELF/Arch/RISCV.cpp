@@ -14,7 +14,7 @@
 #include "Symbols.h"
 #include "SyntheticSections.h"
 #include "Target.h"
-#include "llvm/CHERI/CapabilityFormat.h"
+#include "llvm/Support/CHERICapabilityFormat.h"
 #include "llvm/Support/ELFAttributes.h"
 #include "llvm/Support/LEB128.h"
 #include "llvm/Support/RISCVAttributeParser.h"
@@ -236,13 +236,11 @@ int RISCV::getCapabilitySize() const {
 }
 
 uint64_t RISCV::getCheriRequiredAlignment(uint64_t len) const {
-  auto CapFormat = llvm::CHERICapabilityFormat::Cheri128;
   if (ctx.arg.isCheriot)
-    CapFormat = llvm::CHERICapabilityFormat::Cheriot64;
+    return llvm::CHERIoTCapabilityFormat::getRequiredAlignment(len).value();
   else if (!ctx.arg.is64)
-    CapFormat = llvm::CHERICapabilityFormat::Cheri64;
-
-  return CapFormat.getRequiredAlignment(len).value();
+    return llvm::RV32YCapabilityFormat::getRequiredAlignment(len).value();
+  return llvm::RV64YCapabilityFormat::getRequiredAlignment(len).value();
 }
 
 uint32_t RISCV::calcEFlags() const {
@@ -1154,14 +1152,12 @@ static void tlsdescToLe(uint8_t *loc, const Relocation &rel, uint64_t val) {
   }
 }
 
-uint64_t RISCV::cheriRequiredAlignment(uint64_t size) const {
-  auto CapFormat = llvm::CHERICapabilityFormat::Cheri128;
+uint64_t RISCV::cheriRequiredAlignment(uint64_t len) const {
   if (ctx.arg.isCheriot)
-    CapFormat = llvm::CHERICapabilityFormat::Cheriot64;
+    return llvm::CHERIoTCapabilityFormat::getRequiredAlignment(len).value();
   else if (!ctx.arg.is64)
-    CapFormat = llvm::CHERICapabilityFormat::Cheri64;
-
-  return CapFormat.getRequiredAlignment(size).value();
+    return llvm::RV32YCapabilityFormat::getRequiredAlignment(len).value();
+  return llvm::RV64YCapabilityFormat::getRequiredAlignment(len).value();
 }
 
 void RISCV::relocateAlloc(InputSection &sec, uint8_t *buf) const {

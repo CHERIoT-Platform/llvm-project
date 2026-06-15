@@ -28,8 +28,6 @@ enum class CheriCapabilityTableABI {
                           /// approaches possible here)
 };
 
-enum class TailPaddingAmount : uint64_t { None = 0u };
-
 enum class EmitDwarfUnwindType {
   Always,          // Always emit dwarf unwind
   NoCompactUnwind, // Only emit if compact unwind isn't available

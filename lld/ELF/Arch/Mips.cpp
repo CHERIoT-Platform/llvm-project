@@ -13,7 +13,7 @@
 #include "SyntheticSections.h"
 #include "Target.h"
 #include "llvm/BinaryFormat/ELF.h"
-#include "llvm/CHERI/CapabilityFormat.h"
+#include "llvm/Support/CHERICapabilityFormat.h"
 
 using namespace llvm;
 using namespace llvm::object;
@@ -194,7 +194,7 @@ template <class ELFT> int MIPS<ELFT>::getCapabilitySize() const {
 template <class ELFT>
 uint64_t MIPS<ELFT>::getCheriRequiredAlignment(uint64_t len) const {
   if ((ctx.arg.eflags & EF_MIPS_MACH) == EF_MIPS_MACH_CHERI128)
-    return llvm::CHERICapabilityFormat::Cheri128.getRequiredAlignment(len)
+    return llvm::RV64YCapabilityFormat::getRequiredAlignment(len)
         .value();
   return 1;
 }

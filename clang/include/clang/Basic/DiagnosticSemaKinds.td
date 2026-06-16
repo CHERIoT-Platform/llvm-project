@@ -1541,6 +1541,11 @@ def err_cheri_implemented_wrong_compartment: Error<
   "CHERI compartment entry declared for compartment '%0' but implemented in '%1' (provided with -cheri-compartment=)">;
 def err_cheri_libcall_implemented_wrong_compartment: Error<
   "CHERI libcall exported from compilation unit for compartment '%0' (provided with -cheri-compartment=)">;
+def warn_cheri_libcall_no_prototype
+    : Warning<
+          "CHERI libcall should have a prototype in a header with a matching "
+          "libcall annotation">,
+      InGroup<CHERIPrototypes>;
 def err_cheri_method_class_must_exist: Error<
   "attributes '%0' requires a valid declaration">;
 def err_cheri_method_class_must_have_correct_type: Error<

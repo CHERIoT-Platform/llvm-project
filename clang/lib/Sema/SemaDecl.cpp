@@ -16575,6 +16575,14 @@ Decl *Sema::ActOnStartOfFunctionDef(Scope *FnBodyScope, Decl *D,
       getCurLexicalContext()->getDeclKind() != Decl::ObjCImplementation)
     Diag(FD->getLocation(), diag::warn_function_def_in_objc_container);
 
+  if (FD->getType()->getAs<FunctionType>()->getCallConv() == CC_CHERILibCall) {
+    if (FD->isFirstDecl() && FD->isThisDeclarationADefinition())
+      Diag(FD->getLocation(), diag::warn_cheri_libcall_no_prototype);
+    else if (getSourceManager().isInMainFile(FD->getFirstDecl()->getLocation()))
+      Diag(FD->getFirstDecl()->getLocation(),
+           diag::warn_cheri_libcall_no_prototype);
+  }
+
   if (FD->getType()->getAs<FunctionType>()->getCallConv() == CC_CHERILibCall &&
       !Context.getLangOpts().CheriCompartmentName.empty() && !FD->isInlined())
     Diag(FD->getLocation(),

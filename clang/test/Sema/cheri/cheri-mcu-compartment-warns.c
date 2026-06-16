@@ -3,6 +3,8 @@
 
 __attribute__((cheriot_libcall))
 int add(int a, int b) // wrong-compartment-error{{CHERI libcall exported from compilation unit for compartment 'wrong' (provided with -cheri-compartment=)}}
+// wrong-compartment-error@-1{{CHERI libcall should have a prototype in a header with a matching libcall annotation}}
+// libcall-error@-2{{CHERI libcall should have a prototype in a header with a matching libcall annotation}}
 {
 	return a+b;
 }
@@ -15,6 +17,8 @@ int shouldBePrototype(void) // libcall-error{{CHERI compartment entry declared f
 
 __attribute__((cheriot_libcall))
 inline int inlineDefinition(int a, int b)
+// wrong-compartment-error@-1{{CHERI libcall should have a prototype in a header with a matching libcall annotation}}
+// libcall-error@-2{{CHERI libcall should have a prototype in a header with a matching libcall annotation}}
 {
 	return a+b;
 }

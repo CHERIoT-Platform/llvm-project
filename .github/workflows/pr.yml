@@ -11,6 +11,8 @@ jobs:
   build-and-test:
     name: Build and test PR
     runs-on: "cirun-gcp-aarch64--${{ github.run_id }}"
+    container:
+      image: ghcr.io/cheriot-platform/devcontainer:latest
     timeout-minutes: 360
 
     env:

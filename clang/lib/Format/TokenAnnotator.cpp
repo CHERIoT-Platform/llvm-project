@@ -1691,7 +1691,8 @@ private:
         }
       }
       while (CurrentToken &&
-             CurrentToken->isNoneOf(tok::l_paren, tok::semi, tok::r_paren)) {
+             CurrentToken->isNoneOf(tok::l_paren, tok::semi, tok::r_paren,
+                                    tok::r_brace)) {
         if (CurrentToken->isOneOf(tok::star, tok::amp))
           CurrentToken->setType(TT_PointerOrReference);
         auto Next = CurrentToken->getNextNonComment();
@@ -2987,10 +2988,12 @@ private:
     }
 
     // Search for unexpected tokens.
-    for (Prev = BeforeRParen; Prev != LParen; Prev = Prev->Previous)
+    for (Prev = BeforeRParen; Prev != LParen; Prev = Prev->Previous) {
       if (Prev->isNoneOf(tok::kw_const, tok::identifier, tok::coloncolon) &&
-          !Keywords.isCHERICastKeyword(*Prev))
+          !Keywords.isCHERICastKeyword(*Prev)) {
         return false;
+      }
+    }
 
     return true;
   }
@@ -3041,6 +3044,14 @@ private:
     // && in C# must be a binary operator.
     if (Style.isCSharp() && Tok.is(tok::ampamp))
       return TT_BinaryOperator;
+
+    // The keyword `and` (tok::ampamp) is always binary, never a declarator.
+    // Not extended to `bitand` (tok::amp), which can be a reference.
+    if (Tok.is(tok::ampamp)) {
+      const auto *Info = Tok.Tok.getIdentifierInfo();
+      if (Info && Info->isCPlusPlusOperatorKeyword())
+        return TT_BinaryOperator;
+    }
 
     if (Style.isVerilog()) {
       // In Verilog, `*` can only be a binary operator.  `&` can be either unary

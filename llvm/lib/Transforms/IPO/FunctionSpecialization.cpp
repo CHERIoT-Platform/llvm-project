@@ -1035,6 +1035,9 @@ bool FunctionSpecializer::isCandidateFunction(Function *F) {
   if (F->isDeclaration() || F->arg_empty())
     return false;
 
+  if (F->isInterposable())
+    return false;
+
   if (F->hasFnAttribute(Attribute::NoDuplicate))
     return false;
 

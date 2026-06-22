@@ -205,8 +205,7 @@ private:
   /// The symbol being referenced.
   const MCSymbol *Symbol;
 
-  explicit MCSymbolRefExpr(const MCSymbol *Symbol, Spec specifier,
-                           const MCAsmInfo *MAI, SMLoc Loc = SMLoc());
+  explicit MCSymbolRefExpr(const MCSymbol *Symbol, Spec specifier, SMLoc Loc);
 
 public:
   /// \name Construction

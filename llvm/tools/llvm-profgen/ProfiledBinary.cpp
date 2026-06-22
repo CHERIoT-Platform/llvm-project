@@ -1167,8 +1167,8 @@ SampleContextFrameVector ProfiledBinary::symbolize(const InstructionPointer &IP,
     }
 
     LineLocation Line(LineOffset, Discriminator);
-    auto It = NameStrings.insert(FunctionName.str());
-    CallStack.emplace_back(FunctionId(StringRef(*It.first)), Line);
+    auto It = NameStrings.insert(FunctionName);
+    CallStack.emplace_back(FunctionId(It.first->getKey()), Line);
   }
 
   return CallStack;
@@ -1179,9 +1179,7 @@ StringRef ProfiledBinary::symbolizeDataAddress(uint64_t Address) {
       unwrapOrError(Symbolizer->symbolizeData(SymbolizerPath.str(),
                                               getSectionedAddress(Address)),
                     SymbolizerPath);
-  decltype(NameStrings)::iterator Iter;
-  std::tie(Iter, std::ignore) = NameStrings.insert(DataDIGlobal.Name);
-  return StringRef(*Iter);
+  return NameStrings.insert(DataDIGlobal.Name).first->getKey();
 }
 
 void ProfiledBinary::computeInlinedContextSizeForRange(uint64_t RangeBegin,
@@ -1252,7 +1250,7 @@ void ProfiledBinary::loadSymbolsFromPseudoProbe() {
                "Top level pseudo probe does not match function range");
 
         const auto *ProbeDesc = getFuncDescForGUID(InlineTreeNode->Guid);
-        auto Ret = PseudoProbeNames.emplace(Func, ProbeDesc->FuncName);
+        auto Ret = PseudoProbeNames.try_emplace(Func, ProbeDesc->FuncName);
         if (!Ret.second && Ret.first->second != ProbeDesc->FuncName &&
             ShowDetailedWarning)
           WithColor::warning()

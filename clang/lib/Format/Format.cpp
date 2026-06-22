@@ -4634,7 +4634,7 @@ loadAndParseConfigFile(StringRef ConfigFile, llvm::vfs::FileSystem *FS,
                        llvm::SourceMgr::DiagHandlerTy DiagHandler,
                        bool IsDotHFile) {
   llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> Text =
-      FS->getBufferForFile(ConfigFile.str());
+      FS->getBufferForFile(ConfigFile);
   if (auto EC = Text.getError())
     return EC;
   if (auto EC = parseConfiguration(*Text.get(), Style, AllowUnknownOptions,

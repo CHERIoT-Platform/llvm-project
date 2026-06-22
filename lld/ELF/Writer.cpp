@@ -27,6 +27,7 @@
 #include "lld/Common/Filesystem.h"
 #include "lld/Common/Strings.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/Demangle/Demangle.h"
 #include "llvm/Support/BLAKE3.h"
@@ -2575,32 +2576,30 @@ SmallVector<std::unique_ptr<PhdrEntry>, 0> Writer<ELFT>::createPhdrs() {
     load->add(ctx.out.programHeaders.get());
   }
 
-  // PT_GNU_RELRO includes all sections that should be marked as
-  // read-only by dynamic linker after processing relocations.
-  // Current dynamic loaders only support one PT_GNU_RELRO PHDR, give
-  // an error message if more than one PT_GNU_RELRO PHDR is required.
-  auto relRo = std::make_unique<PhdrEntry>(ctx, PT_GNU_RELRO, PF_R);
-  bool inRelroPhdr = false;
-  OutputSection *relroEnd = nullptr;
+  // PT_GNU_RELRO includes all sections that should be marked as read-only by
+  // dynamic linker after processing relocations. Create one PT_GNU_RELRO for
+  // each run of contiguous relro sections. No diagnostics even if some loaders
+  // only honor one PT_GNU_RELRO.
+  SmallVector<std::unique_ptr<PhdrEntry>, 0> relRos;
+  SmallPtrSet<OutputSection *, 1> relroEnds;
+  PhdrEntry *activeRelRo = nullptr;
   for (OutputSection *sec : ctx.outputSections) {
     if (!needsPtLoad(sec))
       continue;
     // Treat a CHERI PCC padding section as relro if it is preceded by a relro
     // section.
-    if (isRelroSection(ctx, sec) || (ctx.in.pccPadding && inRelroPhdr &&
+    if (isRelroSection(ctx, sec) || (ctx.in.pccPadding && activeRelRo &&
                                      sec == ctx.in.pccPadding->getParent())) {
-      inRelroPhdr = true;
-      if (!relroEnd)
-        relRo->add(sec);
-      else
-        ErrAlways(ctx) << "section: " << sec->name
-                       << " is not contiguous with other relro" << " sections";
-    } else if (inRelroPhdr) {
-      inRelroPhdr = false;
-      relroEnd = sec;
+      if (!activeRelRo) {
+        relRos.push_back(std::make_unique<PhdrEntry>(ctx, PT_GNU_RELRO, PF_R));
+        activeRelRo = relRos.back().get();
+      }
+      activeRelRo->add(sec);
+    } else if (activeRelRo) {
+      activeRelRo = nullptr;
+      relroEnds.insert(sec);
     }
   }
-  relRo->p_align = 1;
 
   // Determine the sections PCC should cover.
   std::unique_ptr<PhdrEntry> cheriBounds;
@@ -2650,7 +2649,7 @@ SmallVector<std::unique_ptr<PhdrEntry>, 0> Writer<ELFT>::createPhdrs() {
 
     bool sameLMARegion =
         load && !sec->lmaExpr && sec->lmaRegion == load->firstSec->lmaRegion;
-    if (load && sec != relroEnd &&
+    if (load && !relroEnds.contains(sec) &&
         sec->memRegion == load->firstSec->memRegion &&
         (sameLMARegion || load->lastSec == ctx.out.programHeaders.get()) &&
         (ctx.script->hasSectionsCommand || sec->type == SHT_NOBITS ||
@@ -2683,8 +2682,10 @@ SmallVector<std::unique_ptr<PhdrEntry>, 0> Writer<ELFT>::createPhdrs() {
     if (OutputSection *sec = ctx.in.dynamic->getParent())
       addHdr(PT_DYNAMIC, sec->getPhdrFlags())->add(sec);
 
-  if (relRo->firstSec)
-    ret.push_back(std::move(relRo));
+  for (std::unique_ptr<PhdrEntry> &phdr : relRos) {
+    phdr->p_align = 1;
+    ret.push_back(std::move(phdr));
+  }
 
   if (cheriBounds && cheriBounds->firstSec) {
     ctx.in.cheriBounds = cheriBounds.get();

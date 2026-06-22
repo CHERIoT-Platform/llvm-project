@@ -1969,6 +1969,7 @@ void RISCVFrameLowering::processFunctionBeforeFrameIndicesReplaced(
       InsertMBB->addSuccessor(failMBB);
       InsertMBB = NextMBB;
       NextMBB->addLiveIn(Reg);
+
       // Check that the length is at least the expected size
       BuildMI(*InsertMBB, MBBI, DL, TII->get(RISCV::CGetLen))
           .addDef(RISCV::X6)
@@ -1986,6 +1987,7 @@ void RISCVFrameLowering::processFunctionBeforeFrameIndicesReplaced(
       InsertMBB->addSuccessor(failMBB);
       NextMBB->addLiveIn(Reg);
       InsertMBB = NextMBB;
+
       // Check that we have the expected permissions
       BuildMI(*InsertMBB, MBBI, DL, TII->get(RISCV::CGetPerm))
           .addDef(RISCV::X6)
@@ -2000,6 +2002,34 @@ void RISCVFrameLowering::processFunctionBeforeFrameIndicesReplaced(
                                  .addMBB(failMBB);
       // Split the block since we just inserted a terminator
       NextMBB = InsertMBB->splitAt(*Split3);
+      InsertMBB->addSuccessor(failMBB);
+      NextMBB->addLiveIn(Reg);
+      InsertMBB = NextMBB;
+
+      // Check that we have a valid tag
+      BuildMI(*InsertMBB, MBBI, DL, TII->get(RISCV::CGetTag))
+          .addDef(RISCV::X6)
+          .addReg(Reg);
+      MachineInstr *Split4 = BuildMI(*InsertMBB, MBBI, DL, TII->get(RISCV::BEQ))
+                                 .addReg(RISCV::X6)
+                                 .addReg(RISCV::X0)
+                                 .addMBB(failMBB);
+      // Split the block since we just inserted a terminator
+      NextMBB = InsertMBB->splitAt(*Split4);
+      InsertMBB->addSuccessor(failMBB);
+      NextMBB->addLiveIn(Reg);
+      InsertMBB = NextMBB;
+
+      // Check that we are unsealed, i.e. otype == 0
+      BuildMI(*InsertMBB, MBBI, DL, TII->get(RISCV::CGetType))
+          .addDef(RISCV::X6)
+          .addReg(Reg);
+      MachineInstr *Split5 = BuildMI(*InsertMBB, MBBI, DL, TII->get(RISCV::BNE))
+                                 .addReg(RISCV::X6)
+                                 .addReg(RISCV::X0)
+                                 .addMBB(failMBB);
+      // Split the block since we just inserted a terminator
+      NextMBB = InsertMBB->splitAt(*Split5);
       InsertMBB->addSuccessor(failMBB);
     };
     if (RVFI->getStackArgumentSize() > 0)

@@ -1,8 +1,8 @@
-# RUN: llvm-mc -triple mips64-unknown-freebsd -mattr=+cheri128 -filetype=obj %s -o - \
+# RUN: llvm-mc -triple=riscv64-unknown-freebsd -mattr=+xcheri -filetype=obj %s -o - \
 # RUN:     | llvm-readobj -r - --section-details --section-data
-# RUN: llvm-mc -triple mips64-unknown-freebsd -mattr=+cheri128 -filetype=obj %s -o - \
-# RUN:     | llvm-readobj -r - --section-details --section-data | %cheri_FileCheck %s -check-prefixes CHECK
-# RUN: %cheri_purecap_llvm-mc -filetype=obj %s -o - | llvm-readobj -r - --section-details --section-data | %cheri_FileCheck %s -check-prefixes CHECK
+# RUN: llvm-mc -triple=riscv64-unknown-freebsd -mattr=+xcheri -filetype=obj %s -o - \
+# RUN:     | llvm-readobj -r - --section-details --section-data | %cheri128_FileCheck %s -check-prefixes CHECK
+# RUN: %riscv64_cheri_purecap_llvm-mc -filetype=obj %s -o - | llvm-readobj -r - --section-details --section-data | %cheri128_FileCheck %s -check-prefixes CHECK
 
 .extern foo
 .data
@@ -54,13 +54,13 @@
 # CHECK-NEXT:    SectionData (
 # CHECK-NEXT:      0000: 00000000 00000000 00000000 00000000  |
 # CHECK-NEXT:      0010: AA000000 00000000 00000000 00000000  |
-# CHECK-NEXT:      0020: 00000000 00000000 12345678 ABCDEF00  |
+# CHECK-NEXT:      0020: 00EFCDAB 78563412 00000000 00000000  |
 # CHECK-NEXT:    )
 
 # CHECK-LABEL: Relocations [
 # CHECK-NEXT:   Section ({{.+}}) .rela.data {
-# CHECK-NEXT:     R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE foo 0x0
-# CHECK-NEXT:     R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE foo 0x1
-# CHECK-NEXT:     R_MIPS_CHERI_CAPABILITY/R_MIPS_NONE/R_MIPS_NONE foo 0xFFFFFFFFFFFFFFFF
+# CHECK-NEXT:     R_RISCV_CHERI_CAPABILITY foo 0x0
+# CHECK-NEXT:     R_RISCV_CHERI_CAPABILITY foo 0x1
+# CHECK-NEXT:     R_RISCV_CHERI_CAPABILITY foo 0xFFFFFFFFFFFFFFFF
 # CHECK-NEXT:   }
 # CHECK-NEXT: ]

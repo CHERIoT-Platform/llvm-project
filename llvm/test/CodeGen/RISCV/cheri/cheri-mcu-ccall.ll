@@ -61,17 +61,23 @@ define dso_local cheriot_compartmentcalleecc i32 @test8(i32 addrspace(200)* noca
 ; CHECK-LABEL: test8:
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:    ct.cgetbase t2, t0
-; CHECK-NEXT:    bne t0, t2, .LBB2_4
-; CHECK-NEXT:    blt t0, sp, .LBB2_4
+; CHECK-NEXT:    bne t0, t2, .LBB2_6
+; CHECK-NEXT:    blt t0, sp, .LBB2_6
 ; CHECK-NEXT:    # %bb.1:
 ; CHECK-NEXT:    ct.cgetlen t1, t0
 ; CHECK-NEXT:    li t2, 16
-; CHECK-NEXT:    blt t1, t2, .LBB2_4
+; CHECK-NEXT:    blt t1, t2, .LBB2_6
 ; CHECK-NEXT:    # %bb.2:
 ; CHECK-NEXT:    ct.cgetperm t1, t0
 ; CHECK-NEXT:    li t2, 126
-; CHECK-NEXT:    bne t1, t2, .LBB2_4
+; CHECK-NEXT:    bne t1, t2, .LBB2_6
 ; CHECK-NEXT:    # %bb.3:
+; CHECK-NEXT:    ct.cgettag      t1, t0
+; CHECK-NEXT:    beqz    t1, .LBB2_6
+; CHECK-NEXT:    # %bb.4:
+; CHECK-NEXT:    ct.cgettype     t1, t0
+; CHECK-NEXT:    bnez    t1, .LBB2_6
+; CHECK-NEXT:    # %bb.5:
 ; CHECK-NEXT:    ct.clc t1, 8(t0)
 ; CHECK-NEXT:    ct.clc t0, 0(t0)
 ; CHECK-NEXT:    ct.clw a0, 0(a0)
@@ -91,7 +97,7 @@ define dso_local cheriot_compartmentcalleecc i32 @test8(i32 addrspace(200)* noca
 ; CHECK-NEXT:    mul a0, a0, a2
 ; CHECK-NEXT:    li a1, 0
 ; CHECK-NEXT:    ct.cret
-; CHECK-NEXT:  .LBB2_4:
+; CHECK-NEXT:  .LBB2_6:
 ; CHECK-NEXT:    li a0, -1
 ; CHECK-NEXT:    li a1, -1
 ; CHECK-NEXT:    ct.cret

@@ -10,22 +10,28 @@ define dso_local cheriot_compartmentcalleecc noundef i32 @_Z22compartment_call_i
 ; CHECK-LABEL: _Z22compartment_call_inneriiPKiiS0_ii:
 ; CHECK:       # %bb.0:
 ; CHECK-NEXT:    cgetbase t2, t0
-; CHECK-NEXT:    bne t0, t2, .LBB0_4
-; CHECK-NEXT:    blt t0, sp, .LBB0_4
+; CHECK-NEXT:    bne t0, t2, .LBB0_6
+; CHECK-NEXT:    blt t0, sp, .LBB0_6
 ; CHECK-NEXT:    # %bb.1:
 ; CHECK-NEXT:    cgetlen t1, t0
 ; CHECK-NEXT:    li t2, 4
-; CHECK-NEXT:    blt t1, t2, .LBB0_4
+; CHECK-NEXT:    blt t1, t2, .LBB0_6
 ; CHECK-NEXT:    # %bb.2:
 ; CHECK-NEXT:    cgetperm t1, t0
 ; CHECK-NEXT:    li t2, 126
-; CHECK-NEXT:    bne t1, t2, .LBB0_4
+; CHECK-NEXT:    bne t1, t2, .LBB0_6
 ; CHECK-NEXT:    # %bb.3:
+; CHECK-NEXT:    ct.cgettag t1, t0
+; CHECK-NEXT:    beqz t1, .LBB0_6
+; CHECK-NEXT:    # %bb.4:
+; CHECK-NEXT:    ct.cgettype t1, t0
+; CHECK-NEXT:    bnez t1, .LBB0_6
+; CHECK-NEXT:    # %bb.5:
 ; CHECK-NEXT:    cincoffset sp, sp, -16
 ; CHECK-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
-; CHECK-NEXT:  .LBB0_5: # Label of block must be emitted
+; CHECK-NEXT:  .LBB0_7: # Label of block must be emitted
 ; CHECK-NEXT:    auipcc a0, %cheriot_compartment_code_hi(.L.str)
-; CHECK-NEXT:    cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB0_5)
+; CHECK-NEXT:    cincoffset a0, a0, %cheriot_compartment_lo_i(.LBB0_7)
 ; CHECK-NEXT:    csetbounds a0, a0, %cheriot_compartment_size(.L.str)
 ; CHECK-NEXT:    ccall _Z9debug_logIJEEvPKcDpT_
 ; CHECK-NEXT:    li a0, 0
@@ -33,7 +39,7 @@ define dso_local cheriot_compartmentcalleecc noundef i32 @_Z22compartment_call_i
 ; CHECK-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; CHECK-NEXT:    cincoffset sp, sp, 16
 ; CHECK-NEXT:    cret
-; CHECK-NEXT:  .LBB0_4:
+; CHECK-NEXT:  .LBB0_6:
 ; CHECK-NEXT:    li a0, -1
 ; CHECK-NEXT:    li a1, -1
 ; CHECK-NEXT:    cret

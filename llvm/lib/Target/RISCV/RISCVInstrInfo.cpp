@@ -3804,6 +3804,7 @@ RISCVInstrInfo::getSerializableDirectMachineOperandTargetFlags() const {
       {MO_TLSDESC_LOAD_LO, "riscv-tlsdesc-load-lo"},
       {MO_TLSDESC_ADD_LO, "riscv-tlsdesc-add-lo"},
       {MO_TLSDESC_CALL, "riscv-tlsdesc-call"},
+      {MO_QC_ACCESS, "riscv-qc-access"},
       {MO_TGOT_TPREL_LO, "riscv-tgot-tprel-lo"},
       {MO_TGOT_TPREL_HI, "riscv-tgot-tprel-hi"},
       {MO_TGOT_TPREL_ADD, "riscv-tgot-tprel-add"},

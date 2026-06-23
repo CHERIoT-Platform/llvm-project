@@ -4043,9 +4043,9 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
         llvm_unreachable("Unexpected Attribute");
       case BundleAttr::Align: {
         // Try to remove redundant alignment assumptions.
-        auto [Ptr, _, Alignment, Offset] = getAssumeAlignInfo(OBU);
+        auto [Ptr, _, OffsetPtr, Alignment, Offset] = getAssumeAlignInfo(OBU);
 
-        if (!Alignment || !Offset)
+        if (!Alignment)
           break;
 
         // Remove align 1 and non-power-of-two bundles; they don't add any
@@ -4058,9 +4058,12 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
             GEP->getMaxPreservedAlignment(getDataLayout()) >= *Alignment) {
           Builder.CreateAlignmentAssumption(
               getDataLayout(), GEP->getPointerOperand(), *Alignment,
-              *Offset == 0 ? nullptr : Builder.getInt64(*Offset));
+              OffsetPtr ? const_cast<Value *>(OffsetPtr->get()) : nullptr);
           return RemoveBundle();
         }
+
+        if (!Offset)
+          break;
 
         Value *BasePtr;
         const APInt *PtrOffset;

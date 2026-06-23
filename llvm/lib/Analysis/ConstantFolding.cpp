@@ -4585,9 +4585,6 @@ static Constant *ConstantFoldScalableVectorCall(
 
 static std::pair<Constant *, Constant *>
 ConstantFoldScalarFrexpCall(Constant *Op, Type *IntTy) {
-  if (isa<PoisonValue>(Op))
-    return {Op, PoisonValue::get(IntTy)};
-
   auto *ConstFP = dyn_cast<ConstantFP>(Op);
   if (!ConstFP)
     return {};

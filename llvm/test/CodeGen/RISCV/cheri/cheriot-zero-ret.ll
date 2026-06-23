@@ -8,8 +8,6 @@ target triple = "riscv32-unknown-unknown"
 define dso_local cheriot_compartmentcalleecc void @_Z4ret0v() local_unnamed_addr addrspace(200) #0 {
 entry:
   ; CHECK-LABEL: _Z4ret0v
-  ; CHECK: li    a0, 0
-  ; CHECK: li    a1, 0
   ; CHECK: cret
   ret void
 }
@@ -19,7 +17,6 @@ define dso_local cheriot_compartmentcalleecc i32 @_Z4ret1v() local_unnamed_addr 
 entry:
   ; CHECK-LABEL: _Z4ret1v
   ; CHECK: li    a0, 1
-  ; CHECK: li    a1, 0
   ; CHECK: cret
   ret i32 1
 }

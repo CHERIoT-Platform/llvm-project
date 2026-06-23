@@ -590,6 +590,9 @@ void RISCVPassConfig::addPreEmitPass2() {
     // ensuring return instruction is detected correctly.
     addPass(createRISCVPushPopOptimizationPass());
   }
+
+  addPass(createRISCVCheriotRetZeroingPass());
+
   addPass(
       createRISCVExpandPseudoPass(getTM<RISCVTargetMachine>().ImportedObjects));
 

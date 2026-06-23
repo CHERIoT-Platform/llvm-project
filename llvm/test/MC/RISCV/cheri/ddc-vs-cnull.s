@@ -17,3 +17,15 @@ csetaddr c1, ddc, x2
 ## DDC is valid where the operand class allows it:
 cbuildcap c1, ddc, c2
 # CHECK: cbuildcap	ra, ddc, sp             # encoding: [0xdb,0x00,0x20,0x3a]
+
+## The same NULL-vs-DDC operand-class distinction holds for cmove -- both the
+## source and destination operands use the general-purpose cap register class,
+## so the null register is accepted but DDC is rejected in either position:
+cmove c1, cnull
+# CHECK: cmove	ra, zero                # encoding: [0xdb,0x00,0xa0,0xfe]
+
+cmove c1, ddc
+# ERRORS: [[@LINE-1]]:11: error: invalid operand for instruction
+
+cmove ddc, c1
+# ERRORS: [[@LINE-1]]:7: error: invalid operand for instruction

@@ -2,6 +2,7 @@ name: PR Build and Test
 
 on:
   pull_request_target:
+  merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -17,7 +18,7 @@ jobs:
       SCCACHE_GCS_BUCKET: ${{ vars.GCP_SCCACHE_BUCKET }}
       SCCACHE_GCS_KEY_PATH: /tmp/sccache-key.json
       SCCACHE_GCS_RW_MODE: READ_WRITE
-      SCCACHE_GCS_KEY_PREFIX: ${{ github.repository }}/${{ github.event_name }}/aarch64
+      SCCACHE_GCS_KEY_PREFIX: ${{ github.repository }}/pull_request_target/aarch64
 
     steps:
       - uses: actions/checkout@v6

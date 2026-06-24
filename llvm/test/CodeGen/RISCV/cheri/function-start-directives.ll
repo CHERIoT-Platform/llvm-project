@@ -62,7 +62,9 @@ declare dso_local void @__cxa_end_catch() local_unnamed_addr addrspace(200)
 ; CHECK-NEXT: .size .L_Z4testv$local, .Lfunc_end0-_Z4testv
 ; CHECK-NEXT: .cfi_endproc
 
-; CHECK: .section .gcc_except_table
+;; The .gcc_except_table is writable (RELRO) in the pure-capability ABI since it
+;; holds capability landing pads that require dynamic relocations.
+; CHECK: .section .gcc_except_table,"aw",@progbits
 ; CHECK: .word 12 # (landing pad is a capability)
 ; CHECK-NEXT: .chericap  %code(.L_Z4testv$local+(.Ltmp2-.Lfunc_begin0)) # jumps to .Ltmp2
 

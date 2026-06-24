@@ -2130,10 +2130,7 @@ void RISCVFrameLowering::processFunctionBeforeFrameIndicesReplaced(
       BuildMI(*InsertMBB, MBBI, DL, TII->get(RISCV::CGetLen))
           .addDef(RISCV::X6)
           .addReg(Reg);
-      BuildMI(*InsertMBB, MBBI, DL, TII->get(RISCV::ADDI))
-          .addDef(RISCV::X7)
-          .addReg(RISCV::X0)
-          .addImm(Size);
+      TII->movImm(*InsertMBB, MBBI, DL, RISCV::X7, Size);
       MachineInstr *Split2 = BuildMI(*InsertMBB, MBBI, DL, TII->get(RISCV::BLT))
                                  .addReg(RISCV::X6)
                                  .addReg(RISCV::X7)
@@ -2148,10 +2145,7 @@ void RISCVFrameLowering::processFunctionBeforeFrameIndicesReplaced(
       BuildMI(*InsertMBB, MBBI, DL, TII->get(RISCV::CGetPerm))
           .addDef(RISCV::X6)
           .addReg(Reg);
-      BuildMI(*InsertMBB, MBBI, DL, TII->get(RISCV::ADDI))
-          .addDef(RISCV::X7)
-          .addReg(RISCV::X0)
-          .addImm(0x7e); // RWclgm permissions.
+      TII->movImm(*InsertMBB, MBBI, DL, RISCV::X7, 0x7e); // RWclgm permissions.
       MachineInstr *Split3 = BuildMI(*InsertMBB, MBBI, DL, TII->get(RISCV::BNE))
                                  .addReg(RISCV::X6)
                                  .addReg(RISCV::X7)

@@ -475,6 +475,7 @@ bool RISCVMakeCompressibleOpt::runOnMachineFunction(MachineFunction &Fn) {
 
   const RISCVSubtarget &STI = Fn.getSubtarget<RISCVSubtarget>();
   const RISCVInstrInfo &TII = *STI.getInstrInfo();
+  const RISCVRegisterInfo &TRI = *STI.getRegisterInfo();
 
   // This optimization only makes sense if compressed instructions are emitted.
   if (!STI.hasStdExtZca())
@@ -483,6 +484,19 @@ bool RISCVMakeCompressibleOpt::runOnMachineFunction(MachineFunction &Fn) {
   for (MachineBasicBlock &MBB : Fn) {
     LLVM_DEBUG(dbgs() << "MBB: " << MBB.getName() << "\n");
     for (MachineInstr &MI : MBB) {
+      // Unconditionally turn `cmove xN, x0` into `li xN, 0`, which is
+      // compressible.
+      if (MI.getOpcode() == RISCV::CMove &&
+          MI.getOperand(1).getReg() == RISCV::X0_Y) {
+        MI.setDesc(TII.get(RISCV::ADDI));
+        MI.getOperand(0).setReg(
+            TRI.getSubReg(MI.getOperand(0).getReg(), RISCV::sub_cap_addr));
+        MI.removeOperand(1);
+        MI.addOperand(MachineOperand::CreateReg(RISCV::X0, false));
+        MI.addOperand(MachineOperand::CreateImm(0));
+        continue;
+      }
+
       // Determine if this instruction would otherwise be compressed if not for
       // an incompressible register or offset.
       RegImmPair RegImm = getRegImmPairPreventingCompression(MI);

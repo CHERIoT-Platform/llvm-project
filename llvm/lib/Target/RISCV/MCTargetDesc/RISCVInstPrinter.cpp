@@ -137,7 +137,7 @@ void RISCVInstPrinter::printCSRSystemRegister(const MCInst *MI, unsigned OpNo,
     if (Reg.IsAltName || Reg.IsDeprecatedName)
       continue;
     if (Reg.haveRequiredFeatures(STI.getFeatureBits())) {
-      markup(O, Markup::Register) << Reg.Name;
+      markup(O, Markup::Register) << RISCVSysReg::getSysRegStr(Reg.Name);
       return;
     }
   }
@@ -150,7 +150,7 @@ void RISCVInstPrinter::printSpecialCapRegister(const MCInst *MI, unsigned OpNo,
   unsigned Imm = MI->getOperand(OpNo).getImm();
   auto SpecialCapReg = RISCVSpecialCapReg::lookupSpecialCapRegByEncoding(Imm);
   if (SpecialCapReg)
-    O << SpecialCapReg->Name;
+    O << RISCVSpecialCapReg::getSpecialCapRegStr(SpecialCapReg->Name);
   else
     O << Imm;
 }

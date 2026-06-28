@@ -436,24 +436,6 @@ WebAssemblyTargetLowering::WebAssemblyTargetLowering(
   setMinimumJumpTableEntries(2);
 }
 
-MVT WebAssemblyTargetLowering::getPointerTy(const DataLayout &DL,
-                                            uint32_t AS) const {
-  if (AS == WebAssembly::WasmAddressSpace::WASM_ADDRESS_SPACE_EXTERNREF)
-    return MVT::externref;
-  if (AS == WebAssembly::WasmAddressSpace::WASM_ADDRESS_SPACE_FUNCREF)
-    return MVT::funcref;
-  return TargetLowering::getPointerTy(DL, AS);
-}
-
-MVT WebAssemblyTargetLowering::getPointerMemTy(const DataLayout &DL,
-                                               uint32_t AS) const {
-  if (AS == WebAssembly::WasmAddressSpace::WASM_ADDRESS_SPACE_EXTERNREF)
-    return MVT::externref;
-  if (AS == WebAssembly::WasmAddressSpace::WASM_ADDRESS_SPACE_FUNCREF)
-    return MVT::funcref;
-  return TargetLowering::getPointerMemTy(DL, AS);
-}
-
 TargetLowering::AtomicExpansionKind
 WebAssemblyTargetLowering::shouldExpandAtomicRMWInIR(
     const AtomicRMWInst *AI) const {
@@ -1294,6 +1276,17 @@ WebAssemblyTargetLowering::LowerCall(CallLoweringInfo &CLI,
   MachineFunction &MF = DAG.getMachineFunction();
   auto Layout = MF.getDataLayout();
 
+  // A call through a funcref is expressed in IR as a call through the pointer
+  // produced by the llvm.wasm.funcref.to_ptr intrinsic. Detect this here and
+  // recover the underlying funcref value so the call can be lowered to a
+  // table.set + call_indirect through the dedicated __funcref_call_table.
+  bool IsFuncrefCall = false;
+  if (Callee.getOpcode() == ISD::INTRINSIC_WO_CHAIN &&
+      Callee.getConstantOperandVal(0) == Intrinsic::wasm_funcref_to_ptr) {
+    Callee = Callee.getOperand(1);
+    IsFuncrefCall = true;
+  }
+
   CallingConv::ID CallConv = CLI.CallConv;
   if (!callingConvSupported(CallConv))
     fail(DL, DAG,
@@ -1391,7 +1384,7 @@ WebAssemblyTargetLowering::LowerCall(CallLoweringInfo &CLI,
                                      /*isSS=*/false);
       SDValue SizeNode =
           DAG.getConstant(Out.Flags.getByValSize(), DL, MVT::i32);
-      SDValue FINode = DAG.getFrameIndex(FI, getPointerTy(Layout));
+      SDValue FINode = DAG.getFrameIndex(FI, getPointerTy(Layout, 0));
       Align Alignment = Out.Flags.getNonZeroByValAlign();
       Chain = DAG.getMemcpy(Chain, DL, FINode, OutVal, SizeNode, Alignment,
                             Alignment,
@@ -1405,7 +1398,7 @@ WebAssemblyTargetLowering::LowerCall(CallLoweringInfo &CLI,
   }
 
   bool IsVarArg = CLI.IsVarArg;
-  auto PtrVT = getPointerTy(Layout);
+  auto PtrVT = getPointerTy(Layout, 0);
 
   // For swiftcc and swifttailcc, emit additional swiftself, swifterror, and
   // (for swifttailcc) swiftasync arguments if there aren't. These additional
@@ -1481,7 +1474,7 @@ WebAssemblyTargetLowering::LowerCall(CallLoweringInfo &CLI,
       assert(ArgLocs[ValNo].getValNo() == ValNo &&
              "ArgLocs should remain in order and only hold varargs args");
       unsigned Offset = ArgLocs[ValNo++].getLocMemOffset();
-      FINode = DAG.getFrameIndex(FI, getPointerTy(Layout));
+      FINode = DAG.getFrameIndex(FI, getPointerTy(Layout, 0));
       SDValue Add = DAG.getNode(ISD::ADD, DL, PtrVT, FINode,
                                 DAG.getConstant(Offset, DL, PtrVT));
       Chains.push_back(
@@ -1500,10 +1493,10 @@ WebAssemblyTargetLowering::LowerCall(CallLoweringInfo &CLI,
     // doesn't at MO_GOT which is not needed for direct calls.
     GlobalAddressSDNode *GA = cast<GlobalAddressSDNode>(Callee);
     Callee = DAG.getTargetGlobalAddress(GA->getGlobal(), DL,
-                                        getPointerTy(DAG.getDataLayout()),
+                                        getPointerTy(DAG.getDataLayout(), 0),
                                         GA->getOffset());
     Callee = DAG.getNode(WebAssemblyISD::Wrapper, DL,
-                         getPointerTy(DAG.getDataLayout()), Callee);
+                         getPointerTy(DAG.getDataLayout(), 0), Callee);
   }
 
   // Compute the operands for the CALLn node.
@@ -1537,8 +1530,7 @@ WebAssemblyTargetLowering::LowerCall(CallLoweringInfo &CLI,
 
   // Lastly, if this is a call to a funcref we need to add an instruction
   // table.set to the chain and transform the call.
-  if (CLI.CB && WebAssembly::isWebAssemblyFuncrefType(
-                    CLI.CB->getCalledOperand()->getType())) {
+  if (IsFuncrefCall) {
     // In the absence of function references proposal where a funcref call is
     // lowered to call_ref, using reference types we generate a table.set to set
     // the funcref to a special table used solely for this purpose, followed by
@@ -1554,11 +1546,7 @@ WebAssemblyTargetLowering::LowerCall(CallLoweringInfo &CLI,
     SDValue TableSetOps[] = {Chain, Sym, TableSlot, Callee};
     SDValue TableSet = DAG.getMemIntrinsicNode(
         WebAssemblyISD::TABLE_SET, DL, DAG.getVTList(MVT::Other), TableSetOps,
-        MVT::funcref,
-        // Machine Mem Operand args
-        MachinePointerInfo(
-            WebAssembly::WasmAddressSpace::WASM_ADDRESS_SPACE_FUNCREF),
-        CLI.CB->getCalledOperand()->getPointerAlignment(DAG.getDataLayout()),
+        MVT::funcref, MachinePointerInfo(), Align(1),
         MachineMemOperand::MOStore);
 
     Ops[0] = TableSet; // The new chain is the TableSet itself
@@ -1663,7 +1651,7 @@ SDValue WebAssemblyTargetLowering::LowerFormalArguments(
   // (for swifttailcc) swiftasync arguments if there aren't. These additional
   // arguments are also added for callee signature. They are necessary to match
   // callee and caller signature for indirect call.
-  auto PtrVT = getPointerTy(MF.getDataLayout());
+  auto PtrVT = getPointerTy(MF.getDataLayout(), 0);
   if (CallConv == CallingConv::Swift || CallConv == CallingConv::SwiftTail) {
     if (!HasSwiftSelfArg) {
       MFI->addParam(PtrVT);
@@ -1678,7 +1666,7 @@ SDValue WebAssemblyTargetLowering::LowerFormalArguments(
   // Varargs are copied into a buffer allocated by the caller, and a pointer to
   // the buffer is passed as an argument.
   if (IsVarArg) {
-    MVT PtrVT = getPointerTy(MF.getDataLayout());
+    MVT PtrVT = getPointerTy(MF.getDataLayout(), 0);
     Register VarargVreg =
         MF.getRegInfo().createVirtualRegister(getRegClassFor(PtrVT));
     MFI->setVarargBufferVreg(VarargVreg);
@@ -2091,7 +2079,7 @@ WebAssemblyTargetLowering::LowerGlobalTLSAddress(SDValue Op,
     // For DSO-local TLS variables we use offset from __tls_base, or
     // __wasm_get_tls_base() if using libcall thread context.
 
-    MVT PtrVT = getPointerTy(DAG.getDataLayout());
+    MVT PtrVT = getPointerTy(DAG.getDataLayout(), 0);
     SDValue BaseAddr(WebAssembly::getTLSBase(DAG, DL, Subtarget), 0);
 
     SDValue TLSOffset = DAG.getTargetGlobalAddress(
@@ -2129,7 +2117,7 @@ SDValue WebAssemblyTargetLowering::LowerGlobalAddress(SDValue Op,
       !WebAssembly::isWebAssemblyTableType(GV->getValueType())) {
     if (getTargetMachine().shouldAssumeDSOLocal(GV)) {
       MachineFunction &MF = DAG.getMachineFunction();
-      MVT PtrVT = getPointerTy(MF.getDataLayout());
+      MVT PtrVT = getPointerTy(MF.getDataLayout(), 0);
       const char *BaseName;
       if (GV->getValueType()->isFunctionTy()) {
         BaseName = MF.createExternalSymbolName("__table_base");
@@ -2208,7 +2196,7 @@ SDValue WebAssemblyTargetLowering::LowerBR_JT(SDValue Op,
 SDValue WebAssemblyTargetLowering::LowerVASTART(SDValue Op,
                                                 SelectionDAG &DAG) const {
   SDLoc DL(Op);
-  EVT PtrVT = getPointerTy(DAG.getMachineFunction().getDataLayout());
+  EVT PtrVT = getPointerTy(DAG.getMachineFunction().getDataLayout(), 0);
 
   auto *MFI = DAG.getMachineFunction().getInfo<WebAssemblyFunctionInfo>();
   const Value *SV = cast<SrcValueSDNode>(Op.getOperand(2))->getValue();
@@ -2241,7 +2229,7 @@ SDValue WebAssemblyTargetLowering::LowerIntrinsic(SDValue Op,
     return SDValue(); // Don't custom lower most intrinsics.
 
   case Intrinsic::wasm_lsda: {
-    auto PtrVT = getPointerTy(MF.getDataLayout());
+    auto PtrVT = getPointerTy(MF.getDataLayout(), 0);
     const char *SymName = MF.createExternalSymbolName(
         "GCC_except_table" + std::to_string(MF.getFunctionNumber()));
     if (isPositionIndependent()) {
@@ -2275,6 +2263,17 @@ SDValue WebAssemblyTargetLowering::LowerIntrinsic(SDValue Op,
       }
     }
     return DAG.getNode(WebAssemblyISD::SHUFFLE, DL, Op.getValueType(), Ops);
+  }
+
+  case Intrinsic::wasm_funcref_to_ptr: {
+    // llvm.wasm.funcref.to_ptr only has a defined lowering when its result
+    // feeds directly into an indirect call. Reaching here means the pointer
+    // escapes a direct call. We haven't implemented conversion of a funcref
+    // into a real function pointer so we crash if we get here.
+    fail(DL, DAG,
+         "a funcref can only be converted to a pointer to be directly called; "
+         "the resulting pointer cannot otherwise be used");
+    return DAG.getPOISON(Op.getValueType());
   }
 
   case Intrinsic::thread_pointer: {

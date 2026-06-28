@@ -18,6 +18,7 @@
 #include "RISCVFrameLowering.h"
 #include "RISCVISelLowering.h"
 #include "RISCVInstrInfo.h"
+#include "llvm/ADT/StringTable.h"
 #include "RISCVSelectionDAGInfo.h"
 #include "llvm/CodeGen/GlobalISel/CallLowering.h"
 #include "llvm/CodeGen/GlobalISel/InlineAsmLowering.h"
@@ -46,7 +47,7 @@ class StringRef;
 namespace RISCVTuneInfoTable {
 
 struct RISCVTuneInfo {
-  const char *Name;
+  StringTable::Offset Name;
   uint8_t PrefFunctionAlignment;
   uint8_t PrefLoopAlignment;
 
@@ -306,6 +307,16 @@ public:
     assert(i.id() < RISCV::NUM_TARGET_REGS && "Register out of range");
     return UserReservedRegister[i.id()];
   }
+
+  TargetRegisterClass const *getLargestFPRegClass() const {
+    if (HasStdExtQ)
+      return &RISCV::FPR128RegClass;
+    if (HasStdExtD)
+      return &RISCV::FPR64RegClass;
+    if (HasStdExtF)
+      return &RISCV::FPR32RegClass;
+    return nullptr;
+  };
   MVT typeForCapabilities() const {
     assert(HasVendorXCheri && "Cannot get capability type for non-CHERI");
     return is64Bit() ? MVT::c128 : MVT::c64;

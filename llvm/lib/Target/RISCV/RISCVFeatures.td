@@ -1906,18 +1906,21 @@ def HasNoCheriot : Predicate<"!Subtarget->hasVendorXCheriot()">,
 
 class RISCVTuneFeature<string name, string pos_directive, string neg_directive,
                        string field_name, string value, string description,
-                       list<RISCVTuneFeature> implied_features = []>
+                       list<RISCVTuneFeature> implied_features = [],
+                       InlineBehavior ib = InlineIgnore>
     : SubtargetFeature<name, field_name, value, description> {
   let Implies = implied_features;
+  let InlineBehavior = ib;
 
   string PositiveDirectiveName = pos_directive;
   string NegativeDirectiveName = neg_directive;
 }
 class RISCVSimpleTuneFeature<string name, string field_name, string value,
                              string description,
-                             list<RISCVTuneFeature> implied_features = []>
+                             list<RISCVTuneFeature> implied_features = [],
+                             InlineBehavior ib = InlineIgnore>
     : RISCVTuneFeature<name, name, "no-"#name, field_name, value, description,
-                       implied_features>;
+                       implied_features, ib>;
 
 // Feature32Bit exists to mark CPUs that support RV32 to distinguish them from
 // tuning CPU names.
@@ -2010,7 +2013,8 @@ def FeatureTaggedGlobals : SubtargetFeature<"tagged-globals",
 
 def TuneNLogNVRGather
    : SubtargetFeature<"log-vrgather", "RISCVVRGatherCostModel", "NLog2N",
-                      "Has vrgather.vv with LMUL*log2(LMUL) latency">;
+                      "Has vrgather.vv with LMUL*log2(LMUL) latency", [],
+                      InlineIgnore>;
 
 def TunePostRAScheduler
     : RISCVSimpleTuneFeature<"use-postra-scheduler", "UsePostRAScheduler",
@@ -2054,7 +2058,7 @@ def TuneDisableLatencySchedHeuristic
 
 def TuneEnableVsetvliSchedHeuristic
     : SubtargetFeature<"enable-vsetvli-sched-heuristic", "EnableVsetvliSchedHeuristic", "true",
-                       "Enable vsetvli-based scheduling heuristic">;
+                       "Enable vsetvli-based scheduling heuristic", [], InlineIgnore>;
 
 def TunePredictableSelectIsExpensive
     : RISCVSimpleTuneFeature<"predictable-select-expensive",
@@ -2064,24 +2068,26 @@ def TunePredictableSelectIsExpensive
 def TuneOptimizedZeroStrideLoad
    : SubtargetFeature<"optimized-zero-stride-load", "HasOptimizedZeroStrideLoad",
                       "true", "Optimized (perform fewer memory operations)"
-                      "zero-stride vector load">;
+                      "zero-stride vector load", [], InlineIgnore>;
 
 def TuneEnableSelectOptimize
     : SubtargetFeature<"enable-select-opt", "EnableSelectOptimize", "true",
-                       "Enable the select optimize pass for select loop heuristics">;
+                       "Enable the select optimize pass for select loop heuristics",
+                       [], InlineIgnore>;
 
 foreach nf = {2-8} in
   def TuneOptimizedNF#nf#SegmentLoadStore :
       SubtargetFeature<"optimized-nf"#nf#"-segment-load-store",
                        "HasOptimizedNF"#nf#"SegmentLoadStore",
                        "true", "vlseg"#nf#"eN.v and vsseg"#nf#"eN.v are "
-                       "implemented as a wide memory op and shuffle">;
+                       "implemented as a wide memory op and shuffle",
+                       [], InlineIgnore>;
 
 def TuneVLDependentLatency
     : RISCVSimpleTuneFeature<
           "vl-dependent-latency", "HasVLDependentLatency", "true",
           "Latency of vector instructions is dependent on the "
-          "dynamic value of vl">;
+          "dynamic value of vl", [], InlineIgnore>;
 
 def Experimental
    : SubtargetFeature<"experimental", "HasExperimental",
@@ -2092,7 +2098,8 @@ def Experimental
 // that can be done in parallel.
 def TuneDLenFactor2
    : SubtargetFeature<"dlen-factor-2", "DLenFactor2", "true",
-                      "Vector unit DLEN(data path width) is half of VLEN">;
+                      "Vector unit DLEN(data path width) is half of VLEN",
+                      [], InlineIgnore>;
 
 def TuneNoDefaultUnroll
     : RISCVTuneFeature<"no-default-unroll", "no-default-unroll",
@@ -2150,9 +2157,9 @@ def TuneShortForwardBranchILoad
 def HasShortForwardBranchILoad : Predicate<"Subtarget->hasShortForwardBranchILoad()">;
 
 def TuneShortForwardBranchImm
-    : SubtargetFeature<"short-forward-branch-imm", "HasShortForwardBranchImm",
-                       "true", "Enable short forward branch optimization for branches with immediates",
-                       [TuneShortForwardBranchIALU]>;
+    : RISCVSimpleTuneFeature<"short-forward-branch-imm", "HasShortForwardBranchImm",
+                             "true", "Enable short forward branch optimization for branches with immediates",
+                             [TuneShortForwardBranchIALU]>;
 def HasShortForwardBranchImm : Predicate<"Subtarget->hasShortForwardBranchImm()">;
 def NoShortForwardBranchImm : Predicate<"!Subtarget->hasShortForwardBranchImm()">;
 
@@ -2202,14 +2209,15 @@ def TunePreferVsetvliOverReadVLENB
 //===----------------------------------------------------------------------===//
 
 def TuneAndes45 : SubtargetFeature<"andes45", "RISCVProcFamily", "Andes45",
-                                   "Andes 45-Series processors">;
+                                   "Andes 45-Series processors", [], InlineIgnore>;
 
 def TuneMIPSP8700
     : SubtargetFeature<"mips-p8700", "RISCVProcFamily", "MIPSP8700",
-                       "MIPS p8700 processor">;
+                       "MIPS p8700 processor", [], InlineIgnore>;
 
 def TuneSiFive7 : SubtargetFeature<"sifive7", "RISCVProcFamily", "SiFive7",
-                                   "SiFive 7-Series processors">;
+                                   "SiFive 7-Series processors", [], InlineIgnore>;
 
 def TuneVentanaVeyron : SubtargetFeature<"ventana-veyron", "RISCVProcFamily", "VentanaVeyron",
-                                         "Ventana Veyron-Series processors">;
+                                         "Ventana Veyron-Series processors",
+                                         [], InlineIgnore>;

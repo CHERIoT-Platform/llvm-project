@@ -230,7 +230,7 @@ void WebAssemblyMCInstLower::lower(const MachineInstr *MI,
   const MachineFunction *MF = MI->getMF();
   const auto &TLI =
       *MF->getSubtarget<WebAssemblySubtarget>().getTargetLowering();
-  wasm::ValType PtrTy = TLI.getPointerTy(MF->getDataLayout()) == MVT::i32
+  wasm::ValType PtrTy = TLI.getPointerTy(MF->getDataLayout(), 0) == MVT::i32
                             ? wasm::ValType::I32
                             : wasm::ValType::I64;
 

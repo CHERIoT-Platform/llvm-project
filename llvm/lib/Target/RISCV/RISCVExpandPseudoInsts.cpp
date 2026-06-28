@@ -99,6 +99,8 @@ private:
                            MachineBasicBlock::iterator MBBI);
   bool expandPseudoReadVLENBViaVSETVLIX0(MachineBasicBlock &MBB,
                                          MachineBasicBlock::iterator MBBI);
+  bool expandPseudoClearFPR64(MachineBasicBlock &MBB,
+                              MachineBasicBlock::iterator MBBI);
   bool expandVSPILL(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI);
   bool expandVRELOAD(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI);
   /// Expand a CHERIoT cross-compartment call into a call to the switcher using
@@ -314,6 +316,8 @@ bool RISCVExpandPseudo::expandMI(MachineBasicBlock &MBB,
     return expandVMSET_VMCLR(MBB, MBBI, RISCV::VMXNOR_MM);
   case RISCV::PseudoReadVLENBViaVSETVLIX0:
     return expandPseudoReadVLENBViaVSETVLIX0(MBB, MBBI);
+  case RISCV::PseudoClearFPR64:
+    return expandPseudoClearFPR64(MBB, MBBI);
   case RISCV::PseudoCompartmentCall:
     return expandCompartmentCall(MBB, MBBI, NextMBBI);
   case RISCV::PseudoLibraryCall:
@@ -1386,6 +1390,23 @@ bool RISCVExpandPseudo::expandPseudoReadVLENBViaVSETVLIX0(
       .addReg(Dst, RegState::Define)
       .addReg(RISCV::X0, RegState::Kill)
       .addImm(VTypeImm);
+
+  MBBI->eraseFromParent();
+  return true;
+}
+
+bool RISCVExpandPseudo::expandPseudoClearFPR64(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) {
+  const DebugLoc &DL = MBBI->getDebugLoc();
+  Register Dst = MBBI->getOperand(0).getReg();
+
+  if (STI->is64Bit()) {
+    BuildMI(MBB, MBBI, DL, TII->get(RISCV::FMV_D_X), Dst).addReg(RISCV::X0);
+  } else {
+    BuildMI(MBB, MBBI, DL, TII->get(RISCV::FCVT_D_W), Dst)
+        .addReg(RISCV::X0)
+        .addImm(RISCVFPRndMode::RNE);
+  }
 
   MBBI->eraseFromParent();
   return true;

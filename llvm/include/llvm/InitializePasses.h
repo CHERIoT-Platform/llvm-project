@@ -79,7 +79,7 @@ LLVM_ABI void initializeCFIInstrInserterPass(PassRegistry &);
 LLVM_ABI void initializeCallGraphDOTPrinterPass(PassRegistry &);
 LLVM_ABI void initializeCallGraphViewerPass(PassRegistry &);
 LLVM_ABI void initializeCallGraphWrapperPassPass(PassRegistry &);
-LLVM_ABI void initializeCheckDebugMachineModulePass(PassRegistry &);
+LLVM_ABI void initializeCheckDebugMachineModuleLegacyPass(PassRegistry &);
 LLVM_ABI void initializeCheriBoundAllocasLegacyPass(PassRegistry &);
 LLVM_ABI void initializeCheriGetAddressElimPass(PassRegistry &);
 LLVM_ABI void initializeCheriotZeroSRetPass(PassRegistry &);

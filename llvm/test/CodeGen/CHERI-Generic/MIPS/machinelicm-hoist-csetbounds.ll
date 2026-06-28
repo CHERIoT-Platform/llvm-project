@@ -75,20 +75,21 @@ define dso_local void @hoist_csetbounds(i32 signext %cond, ptr addrspace(200) %f
 ; HOIST-OPT-SAME: (i32 signext [[COND:%.*]], ptr addrspace(200) [[F:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 ; HOIST-OPT-NEXT:  entry:
 ; HOIST-OPT-NEXT:    [[TOBOOL:%.*]] = icmp eq ptr addrspace(200) [[F]], null
-; HOIST-OPT-NEXT:    br i1 [[TOBOOL]], label [[FOR_COND_CLEANUP:%.*]], label [[ENTRY_SPLIT:%.*]]
+; HOIST-OPT-NEXT:    br i1 [[TOBOOL]], label [[FOR_COND_CLEANUP_SPLIT:%.*]], label [[ENTRY_SPLIT:%.*]]
 ; HOIST-OPT:       entry.split:
 ; HOIST-OPT-NEXT:    [[DST:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[F]], i64 4
 ; HOIST-OPT-NEXT:    [[ADDRESS_WITH_BOUNDS:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[F]], i64 4)
 ; HOIST-OPT-NEXT:    [[ADDRESS_WITH_BOUNDS1:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[DST]], i64 4)
 ; HOIST-OPT-NEXT:    br label [[FOR_BODY:%.*]]
-; HOIST-OPT:       for.cond.cleanup:
+; HOIST-OPT:       for.cond.cleanup.split:
 ; HOIST-OPT-NEXT:    ret void
 ; HOIST-OPT:       for.body:
 ; HOIST-OPT-NEXT:    [[I_06:%.*]] = phi i32 [ 0, [[ENTRY_SPLIT]] ], [ [[INC:%.*]], [[FOR_BODY]] ]
 ; HOIST-OPT-NEXT:    tail call addrspace(200) void @call(ptr addrspace(200) [[ADDRESS_WITH_BOUNDS]], ptr addrspace(200) [[ADDRESS_WITH_BOUNDS1]])
 ; HOIST-OPT-NEXT:    [[INC]] = add nuw nsw i32 [[I_06]], 1
 ; HOIST-OPT-NEXT:    [[EXITCOND_NOT:%.*]] = icmp eq i32 [[INC]], 100
-; HOIST-OPT-NEXT:    br i1 [[EXITCOND_NOT]], label [[FOR_COND_CLEANUP]], label [[FOR_BODY]]
+; HOIST-OPT-NEXT:    br i1 [[EXITCOND_NOT]], label [[FOR_COND_CLEANUP_SPLIT]], label [[FOR_BODY]]
+;
 entry:
   %tobool = icmp eq ptr addrspace(200) %f, null
   %dst = getelementptr inbounds %struct.foo, ptr addrspace(200) %f, i64 0, i32 1

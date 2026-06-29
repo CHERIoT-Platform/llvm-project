@@ -45,12 +45,9 @@
 ; CHECK-NEXT:       Interleaved Access Pass
 ; CHECK-NEXT:       RISC-V CodeGenPrepare
 ; CHECK-NEXT:       CHERIoT zero sret 
-; CHECK-NEXT:     CHERI add bounds to alloca instructions
-; CHECK-NEXT:     FunctionPass Manager
+; CHECK-NEXT:       CHERI add bounds to alloca instructions
 ; CHECK-NEXT:       Module Verifier
-; CHECK-NEXT:       Dominator Tree Construction
 ; CHECK-NEXT:       Basic Alias Analysis (stateless AA impl)
-; CHECK-NEXT:       Natural Loop Information
 ; CHECK-NEXT:       Canonicalize natural loops
 ; CHECK-NEXT:       Scalar Evolution Analysis
 ; CHECK-NEXT:       Loop Pass Manager

@@ -6,7 +6,6 @@
 #include "llvm/CodeGen/TargetLowering.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
-#include "llvm/InitializePasses.h"
 #include "llvm/IR/Cheri.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
@@ -14,11 +13,11 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/InstVisitor.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Transforms/Utils/CheriSetBounds.h"
@@ -97,27 +96,10 @@ STATISTIC(NumUsesWithBounds, "Number of alloca uses that had CHERI bounds added"
 STATISTIC(NumUsesWithoutBounds, "Number of alloca uses that did not needed CHERI bounds");
 STATISTIC(NumSingleIntrin, "Number of times that a single intrinisic was used instead of per-use");
 
-class CheriBoundAllocasImpl : public InstVisitor<CheriBoundAllocasImpl> {
-  Module *M;
-  llvm::SmallVector<AllocaInst *, 16> Allocas;
-  Type *I8CapTy;
-  Type *SizeTy;
-
+class CheriBoundAllocasImpl {
 public:
   StringRef getPassName() const { return "CHERI bound stack allocations"; }
-  void visitAllocaInst(AllocaInst &AI) { Allocas.push_back(&AI); }
   bool runOnModule(Module &Mod, const TargetMachine &TM) {
-    M = &Mod;
-    const DataLayout &DL = Mod.getDataLayout();
-    unsigned AllocaAS = DL.getAllocaAddrSpace();
-
-    // Early abort if we aren't using capabilities on the stack
-    if (!DL.isFatPointer(AllocaAS))
-      return false;
-
-    LLVMContext &C = M->getContext();
-    I8CapTy = PointerType::get(C, AllocaAS);
-    SizeTy = Type::getIntNTy(C, DL.getIndexSizeInBits(AllocaAS));
 
     bool Modified = false;
     for (Function &F : Mod)
@@ -127,21 +109,35 @@ public:
   }
 
   bool runOnFunction(Function &F, const TargetMachine &TM) {
+    const DataLayout &DL = F.getParent()->getDataLayout();
+    unsigned AllocaAS = DL.getAllocaAddrSpace();
+    // Early abort if we aren't using capabilities on the stack
+    if (!DL.isFatPointer(AllocaAS))
+      return false;
+
     // always set bounds with optnone
     bool IsOptNone = F.hasFnAttribute(Attribute::OptimizeNone);
     // FIXME: should still ignore lifetime-start + lifetime-end intrinsics even at -O0
     const TargetLowering *TLI = TM.getSubtargetImpl(F)->getTargetLowering();
 
-    LLVMContext &C = M->getContext();
-    Allocas.clear();
-    visit(F);
+    LLVMContext &C = F.getContext();
+    llvm::SmallVector<AllocaInst *, 4> Allocas;
+    for (auto &BB : F) {
+      for (auto &I : BB) {
+        if (auto *AI = dyn_cast<AllocaInst>(&I))
+          Allocas.push_back(AI);
+      }
+    }
+
     // Give up if this function has no allocas
     if (Allocas.empty())
       return false;
 
+    auto *I8CapTy = PointerType::get(C, AllocaAS);
+    auto *SizeTy = Type::getIntNTy(C, DL.getIndexSizeInBits(AllocaAS));
+
     LLVM_DEBUG(dbgs() << "\nChecking function " << F.getName() << "\n");
 
-    const DataLayout &DL = M->getDataLayout();
     StackBoundsMethod BoundsMode = BoundsSettingMode;
     StackBoundsAnalysis BoundsAnalysis = BoundsSettingAnalysis;
     if (BoundsAnalysis == StackBoundsAnalysis::Default)
@@ -167,7 +163,7 @@ public:
     //
     // TODO: csetboundsexact and round up sizes
     Function *BoundedStackFn = Intrinsic::getOrInsertDeclaration(
-        M, Intrinsic::cheri_bounded_stack_cap, SizeTy);
+        F.getParent(), Intrinsic::cheri_bounded_stack_cap, SizeTy);
 
     IRBuilder<> B(C);
 
@@ -250,7 +246,7 @@ public:
                     "cheri.bounded.stack.cap.dynamic intrinisic");
         MustUseSingleIntrinsic = true;
         SetBoundsIntrin = Intrinsic::getOrInsertDeclaration(
-            M, Intrinsic::cheri_bounded_stack_cap_dynamic, SizeTy);
+            F.getParent(), Intrinsic::cheri_bounded_stack_cap_dynamic, SizeTy);
       }
 
       // Reuse the result of a single csetbounds intrinisic if we are at -O0 or
@@ -379,21 +375,21 @@ public:
   }
 };
 
-class CheriBoundAllocasLegacy : public ModulePass {
+class CheriBoundAllocasLegacy : public FunctionPass {
 public:
   static char ID; // Pass identification, replacement for typeid
 
-  CheriBoundAllocasLegacy() : ModulePass(ID) {
+  CheriBoundAllocasLegacy() : FunctionPass(ID) {
     initializeCheriBoundAllocasLegacyPass(*PassRegistry::getPassRegistry());
   }
 
-  bool runOnModule(Module &M) override {
+  bool runOnFunction(Function &F) override {
     auto *TPC = getAnalysisIfAvailable<TargetPassConfig>();
     if (!TPC)
       return false;
     auto &TM = TPC->getTM<TargetMachine>();
     CheriBoundAllocasImpl CBA;
-    return CBA.runOnModule(M, TM);
+    return CBA.runOnFunction(F, TM);
   }
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.addRequired<TargetPassConfig>();
@@ -403,7 +399,7 @@ public:
 
 } // anonymous namespace
 
-ModulePass *llvm::createCheriBoundAllocasLegacyPass(void) {
+FunctionPass *llvm::createCheriBoundAllocasLegacyPass(void) {
   return new CheriBoundAllocasLegacy();
 }
 
@@ -411,8 +407,9 @@ char CheriBoundAllocasLegacy::ID = 0;
 INITIALIZE_PASS(CheriBoundAllocasLegacy, DEBUG_TYPE,
                 "CHERI add bounds to alloca instructions", false, false)
 
-PreservedAnalyses llvm::CheriBoundAllocasPass::run(Module &M, ModuleAnalysisManager &AM) {
+PreservedAnalyses
+llvm::CheriBoundAllocasPass::run(Function &F, FunctionAnalysisManager &AM) {
   CheriBoundAllocasImpl CBA;
-  CBA.runOnModule(M, *TM);
+  CBA.runOnFunction(F, *TM);
   return PreservedAnalyses::allInSet<CFGAnalyses>();
 }

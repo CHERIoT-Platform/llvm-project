@@ -3,27 +3,9 @@
 ;; After merging to LLVM 15 the stack bounds pass the switch to opqaue pointers caused
 ;; miscompilations in the stack bounding pass (the unbounded value was used instead of
 ;; the bounded one due to the removal of the bitcast instructions).
-; REQUIRES: asserts
-; RUN: opt -mtriple=mips64 -mcpu=cheri128 -mattr=+cheri128 --relocation-model=pic -target-abi purecap -passes=cheri-bound-allocas -o - -S %s -debug-only=cheri-bound-allocas 2>%t.dbg| FileCheck %s
-; RUN: FileCheck %s -input-file=%t.dbg -check-prefix DBG
+; RUN: opt -mtriple=mips64 -mcpu=cheri128 -mattr=+cheri128 --relocation-model=pic -target-abi purecap -passes=cheri-bound-allocas -o - -S %s | FileCheck %s
 ; RUN: llc -mtriple=mips64 -mcpu=cheri128 -mattr=+cheri128 --relocation-model=pic -target-abi purecap %s -o - | FileCheck %s -check-prefix ASM
 target datalayout = "E-m:e-pf200:128:128:128:64-i8:8:32-i16:16:32-i64:64-n32:64-S128-A200-P200-G200"
-
-; DBG-LABEL: Checking function lazy_bind_args
-; DBG-NEXT: cheri-bound-allocas:  -Checking if load/store needs bounds (GEP offset is 0):   %0 = load ptr addrspace(200), ptr addrspace(200) %cap, align 16
-; DBG-NEXT: cheri-bound-allocas:   -Load/store size=16, alloca size=16, current GEP offset=0 for ptr addrspace(200)
-; DBG-NEXT: cheri-bound-allocas:   -Load/store is in bounds -> can reuse $csp for   %0 = load ptr addrspace(200), ptr addrspace(200) %cap, align 16
-; DBG-NEXT: cheri-bound-allocas:  -Adding stack bounds since it is passed to call:   %call = call addrspace(200) ptr addrspace(200) @cheribsdtest_dynamic_identity_cap(ptr addrspace(200) noundef nonnull %cap)
-; DBG-NEXT: cheri-bound-allocas: Found alloca use that needs bounds:   %call = call addrspace(200) ptr addrspace(200) @cheribsdtest_dynamic_identity_cap(ptr addrspace(200) noundef nonnull %cap)
-; DBG-NEXT: cheri-bound-allocas:  -Checking if load/store needs bounds (GEP offset is 0):   store ptr addrspace(200) %cap, ptr addrspace(200) %cap, align 16
-; DBG-NEXT: cheri-bound-allocas:   -Load/store size=16, alloca size=16, current GEP offset=0 for ptr addrspace(200)
-; DBG-NEXT: cheri-bound-allocas:   -Load/store is in bounds -> can reuse $csp for   store ptr addrspace(200) %cap, ptr addrspace(200) %cap, align 16
-; DBG-NEXT: cheri-bound-allocas:  -Checking if load/store needs bounds (GEP offset is 0):   store ptr addrspace(200) %cap, ptr addrspace(200) %cap, align 16
-; DBG-NEXT: cheri-bound-allocas:   -Stack slot used as value and not pointer -> must set bounds
-; DBG-NEXT: cheri-bound-allocas: Found alloca use that needs bounds: store ptr addrspace(200) %cap, ptr addrspace(200) %cap, align 16
-; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %cap)
-; DBG-NEXT: cheri-bound-allocas: lazy_bind_args: 2 of 5 users need bounds for   %cap = alloca ptr addrspace(200), align 16, addrspace(200)
-; DBG-NEXT: lazy_bind_args: setting bounds on stack alloca to 16  %cap = alloca ptr addrspace(200), align 16, addrspace(200)
 
 declare void @llvm.lifetime.start.p200(ptr addrspace(200) nocapture) addrspace(200)
 

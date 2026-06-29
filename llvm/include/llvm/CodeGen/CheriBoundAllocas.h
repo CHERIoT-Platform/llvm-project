@@ -27,7 +27,7 @@ class CheriBoundAllocasPass : public PassInfoMixin<CheriBoundAllocasPass> {
     
     public:
     CheriBoundAllocasPass(const TargetMachine *TM) : TM(TM) {}
-      PreservedAnalyses run(Module &M, ModuleAnalysisManager &AM);
+    PreservedAnalyses run(Function &F, FunctionAnalysisManager &FM);
     };
 } // end namespace llvm
 

@@ -580,14 +580,14 @@ LLVM_ABI FunctionPass *createEHContGuardTargetsPass();
 /// Create Hardware Loop pass. \see HardwareLoops.cpp
 LLVM_ABI FunctionPass *createHardwareLoopsLegacyPass();
 
-  /// Create CHERI pass to bound alloca.s
-  ModulePass *createCheriBoundAllocasLegacyPass();
+/// Create CHERI pass to bound alloca.s
+LLVM_ABI FunctionPass *createCheriBoundAllocasLegacyPass();
 
-  /// Create CHERI pass to remove capability address reading instructions.
-  FunctionPass *createCheriGetAddressElimPass();
+/// Create CHERI pass to remove capability address reading instructions.
+LLVM_ABI FunctionPass *createCheriGetAddressElimPass();
 
-  /// Create CHERIoT pass to zero on-stack returns in cross-compartment calls.
-  FunctionPass *createCheriotZeroSRetPass();
+/// Create CHERIoT pass to zero on-stack returns in cross-compartment calls.
+LLVM_ABI FunctionPass *createCheriotZeroSRetPass();
 
 /// This pass inserts pseudo probe annotation for callsite profiling.
 LLVM_ABI FunctionPass *createPseudoProbeInserter();

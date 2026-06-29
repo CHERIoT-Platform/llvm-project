@@ -133,7 +133,6 @@ public:
     if (Allocas.empty())
       return false;
 
-    auto *I8CapTy = PointerType::get(C, AllocaAS);
     auto *SizeTy = Type::getIntNTy(C, DL.getIndexSizeInBits(AllocaAS));
 
     LLVM_DEBUG(dbgs() << "\nChecking function " << F.getName() << "\n");
@@ -177,27 +176,23 @@ public:
       B.SetInsertPoint(AI->getNextNode());
       B.SetCurrentDebugLocation(AI->getDebugLoc());
 
-      Align ForcedAlignment;
       assert(isCheriPointer(AI->getType(), &DL));
-      Type *AllocationTy = AI->getAllocatedType();
-      PointerType *AllocaPtrTy = AI->getType();
-      Value *ArraySize = B.CreateZExtOrTrunc(AI->getArraySize(), SizeTy);
 
       // For imprecise capabilities, we need to increase the alignment for
       // on-stack allocations to ensure that we can create precise bounds.
       // If not a constant then definitely a DYNAMIC_STACKALLOC; alignment
       // requirements will be added later during legalisation.
-      if (ConstantInt *CI = dyn_cast<ConstantInt>(ArraySize)) {
-        uint64_t AllocaSize = DL.getTypeAllocSize(AllocationTy);
-        AllocaSize *= CI->getValue().getLimitedValue();
-        ForcedAlignment = TLI->getAlignmentForPreciseBounds(AllocaSize);
-      }
+      std::optional<TypeSize> AllocaSize = AI->getAllocationSize(DL);
+      Align ForcedAlignment;
+      if (AllocaSize)
+        ForcedAlignment = TLI->getAlignmentForPreciseBounds(*AllocaSize);
       if (ForcedAlignment > AI->getAlign())
         AI->setAlignment(ForcedAlignment);
+
       // Only set bounds for allocas that escape this function
       bool NeedBounds = true;
       // Always set bounds if the function has the optnone attribute
-      SmallVector<Use *, 32> UsesThatNeedBounds;
+      SmallVector<Use *, 8> UsesThatNeedBounds;
       // If one of the bounded alloca users is a PHI we must reuse the single
       // intrinsic since PHIs must be the first instruction in the basic block
       // and we can't insert anything before. Theoretically we could still
@@ -257,34 +252,30 @@ public:
 
       NumUsesWithBounds += UsesThatNeedBounds.size();
       NumUsesWithoutBounds += TotalUses - UsesThatNeedBounds.size();
+
       // Get the size of the alloca
-      unsigned ElementSize = DL.getTypeAllocSize(AllocationTy);
+      TypeSize ElementSize = DL.getTypeAllocSize(AI->getAllocatedType());
       Value *Size = ConstantInt::get(SizeTy, ElementSize);
-      if (AI->isArrayAllocation())
+      if (AI->isArrayAllocation()) {
+        Value *ArraySize = B.CreateZExtOrTrunc(AI->getArraySize(), SizeTy);
         Size = B.CreateMul(Size, ArraySize);
+      }
 
       if (AI->isStaticAlloca() && ForcedAlignment != Align()) {
         // Pad to ensure bounds don't overlap adjacent objects
-        uint64_t AllocaSize =
-            cast<ConstantInt>(Size)->getValue().getLimitedValue();
         TailPaddingAmount TailPadding =
-          TLI->getTailPaddingForPreciseBounds(AllocaSize);
+            TLI->getTailPaddingForPreciseBounds(*AllocaSize);
         if (TailPadding != TailPaddingAmount::None) {
-          Type *AllocatedType =
-              AI->isArrayAllocation()
-                  ? ArrayType::get(
-                        AI->getAllocatedType(),
-                        cast<ConstantInt>(ArraySize)->getZExtValue())
-                  : AI->getAllocatedType();
-          Type *PaddingType =
-            ArrayType::get(Type::getInt8Ty(F.getContext()),
-                           static_cast<uint64_t>(TailPadding));
-          Type *TypeWithPadding = StructType::get(AllocatedType, PaddingType);
+          Type *TypeWithPadding =
+              ArrayType::get(Type::getInt8Ty(C),
+                             *AllocaSize + static_cast<uint64_t>(TailPadding));
           // Instead of cloning the alloca, mutate it in-place to avoid missing
           // some important metadata (debug info/attributes/etc.).
           AI->setAllocatedType(TypeWithPadding);
+          if (AI->getNumOperands() > 0)
+            AI->setOperand(0, ConstantInt::get(Type::getInt32Ty(C), 1));
           Size = ConstantInt::get(
-              SizeTy, AllocaSize + static_cast<uint64_t>(TailPadding));
+              SizeTy, *AllocaSize + static_cast<uint64_t>(TailPadding));
         }
       }
 
@@ -305,11 +296,7 @@ public:
         // If we use a single instrinsic for all uses, we can simply update
         // all uses to point at the newly inserted intrinsic.
         NumSingleIntrin++;
-        // We need to convert it to an i8* for the intrinisic:
-        Instruction *AllocaI8 = cast<Instruction>(B.CreateBitCast(AI, I8CapTy));
-        Value *SingleBoundedAlloc =
-            B.CreateCall(SetBoundsIntrin, {AllocaI8, Size});
-        SingleBoundedAlloc = B.CreateBitCast(SingleBoundedAlloc, AllocaPtrTy);
+        Value *SingleBoundedAlloc = B.CreateCall(SetBoundsIntrin, {AI, Size});
         for (Use *U : UsesThatNeedBounds) {
           U->set(SingleBoundedAlloc);
         }
@@ -355,13 +342,7 @@ public:
             // Bounds should have debug loc of the alloca, not the instruction
             // that happens to use them
             B.SetCurrentDebugLocation(AI->getDebugLoc());
-            // We need to convert it to an i8* for the intrinisic. Note: we have
-            // to create a new bitcast every time since reusing the same one can
-            // cause the stack pointer + alloca offset register to be spilled
-            // just so we can do the setbounds in a different basic block.
-            Value *AllocaI8 = B.CreateBitCast(AI, I8CapTy);
-            auto WithBounds = B.CreateCall(SetBoundsIntrin, {AllocaI8, Size});
-            BoundedAlloca = B.CreateBitCast(WithBounds, AllocaPtrTy);
+            BoundedAlloca = B.CreateCall(SetBoundsIntrin, {AI, Size});
             ReplacedUses.insert({{I, IncomingBB}, BoundedAlloca});
           } else {
             // Multiple uses in the same instruction -> reuse existing call.

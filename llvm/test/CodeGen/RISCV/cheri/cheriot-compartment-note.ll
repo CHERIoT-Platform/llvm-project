@@ -1,6 +1,6 @@
 ; RUN: llc --filetype=asm --mcpu=cheriot --mtriple=riscv32-unknown-cheriotrtos -target-abi cheriot  %s -mattr=+xcheri,+xcheripurecap -o - | FileCheck %s
 target datalayout = "e-m:e-p:32:32-i64:64-n32-S128-pf200:64:64:64:32-A200-P200-G200"
-target triple = "riscv32cheriot-unknown-cheriotrtos"
+target triple = "riscv32-unknown-cheriotrtos"
 
 ; Function Attrs: minsize mustprogress nofree norecurse nosync nounwind optsize willreturn memory(none)
 define dso_local noundef i32 @test() local_unnamed_addr addrspace(200) #0 {

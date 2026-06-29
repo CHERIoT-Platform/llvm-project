@@ -1,4 +1,4 @@
-// RUN: %riscv32_cheri_cc1 "-triple" "riscv32cheriot-unknown-unknown" "-target-abi" "cheriot" -verify %s 
+// RUN: %riscv32_cheri_cc1 "-triple" "riscv32-unknown-unknown" "-target-abi" "cheriot" -verify %s 
 
 int * unseal_good1(int * __sealed_capability a, void *b) {
     return __builtin_cheri_unseal(a, b);

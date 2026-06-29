@@ -1,9 +1,9 @@
-; RUN: llc --filetype=asm --mcpu=cheriot --mtriple=riscv32cheriot-unknown-cheriotrtos -target-abi cheriot -mattr=+xcheri,+xcheripurecap,+xcheriot %s -o - | FileCheck %s
+; RUN: llc --filetype=asm --mcpu=cheriot --mtriple=riscv32-unknown-cheriotrtos -target-abi cheriot -mattr=+xcheri,+xcheripurecap,+xcheriot %s -o - | FileCheck %s
 
 ; Verify that varargs doubles are aligned to 8 bytes on the stack.
 
 target datalayout = "e-m:e-p:32:32-i64:64-n32-S128-pf200:64:64:64:32-A200-P200-G200"
-target triple = "riscv32cheriot-unknown-cheriotrtos"
+target triple = "riscv32-unknown-cheriotrtos"
 
 declare hidden noundef double @_Z7va_testPKcz(ptr addrspace(200) nocapture readnone %c, ...) local_unnamed_addr addrspace(200)
 

@@ -191,8 +191,6 @@ public:
     DXILSubArch_v1_8,
     DXILSubArch_v1_9,
     LatestDXILSubArch = DXILSubArch_v1_9,
-    
-    RISCV32SubArch_cheriot_v1
   };
   enum VendorType {
     UnknownVendor,

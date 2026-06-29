@@ -1,6 +1,6 @@
 ; RUN: opt < %s -loop-reduce -S | FileCheck %s
 target datalayout = "e-m:e-p:32:32-i64:64-n32-S128-pf200:64:64:64:32-A200-P200-G200"
-target triple = "riscv32cheriot-unknown-cheriotrtos"
+target triple = "riscv32-unknown-cheriotrtos"
 
 ;; Ensure that LSR does not create traversal starting at a negative initial offset,
 ;; as those are not representable on CHERIOT.

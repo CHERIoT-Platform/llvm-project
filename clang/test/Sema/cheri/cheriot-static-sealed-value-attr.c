@@ -1,4 +1,4 @@
-// RUN: %riscv32_cheri_cc1 "-triple" "riscv32cheriot-unknown-cheriotrtos" "-target-abi" "cheriot" -verify %s 
+// RUN: %riscv32_cheri_cc1 "-triple" "riscv32-unknown-cheriotrtos" "-target-abi" "cheriot" -verify %s 
 
 struct MyObj { int val; };
 

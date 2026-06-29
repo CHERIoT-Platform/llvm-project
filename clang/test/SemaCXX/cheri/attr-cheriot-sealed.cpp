@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -std=c++11 -triple riscv32cheriot-unknown-cheriotrtos -target-feature +xcheriot -verify %s
+// RUN: %clang_cc1 -std=c++11 -triple riscv32-unknown-cheriotrtos -target-feature +xcheriot -verify %s
 
 struct test_struct {
     int b;

@@ -846,7 +846,6 @@ bool RISCVExpandPseudo::expandCapLoadLocalCap(
     MachineBasicBlock::iterator &NextMBBI, bool InBounds) {
   auto ABI = MBB.getParent()->getSubtarget<RISCVSubtarget>().getTargetABI();
   if (ABI == RISCVABI::ABI_CHERIOT || ABI == RISCVABI::ABI_CHERIOT_BAREMETAL) {
-    const DebugLoc DL = MBBI->getDebugLoc();
     const MachineOperand &Symbol = MBBI->getOperand(1);
     if (!Symbol.isGlobal() ||
         Symbol.getTargetFlags() == RISCVII::MO_JUMP_TABLE_BASE)
@@ -902,7 +901,6 @@ bool RISCVExpandPseudo::expandDerefCapLoadLocalCap(
   auto ABI = MBB.getParent()->getSubtarget<RISCVSubtarget>().getTargetABI();
   if (ABI == RISCVABI::ABI_CHERIOT || ABI == RISCVABI::ABI_CHERIOT_BAREMETAL) {
     bool IsStore = MBBI->getNumOperands() == 3;
-    const DebugLoc DL = MBBI->getDebugLoc();
     const MachineOperand &Symbol = MBBI->getOperand(IsStore ? 2 : 1);
     const GlobalVariable *GV = cast<GlobalVariable>(Symbol.getGlobal());
     if (IsStore || !GV->isConstant())

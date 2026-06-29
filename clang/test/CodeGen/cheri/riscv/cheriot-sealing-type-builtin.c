@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 %s -o - "-triple" "riscv32cheriot-unknown-unknown-cheriotrtos" "-emit-llvm" "-cheri-compartment=static_sealing_test" "-mframe-pointer=none" "-mcmodel=small" "-target-abi" "cheriot" "-target-feature" "+xcheriot" "-O0" "-Werror" -std=c2x | FileCheck %s
+// RUN: %clang_cc1 %s -o - "-triple" "riscv32-unknown-unknown-cheriotrtos" "-emit-llvm" "-cheri-compartment=static_sealing_test" "-mframe-pointer=none" "-mcmodel=small" "-target-abi" "cheriot" "-target-feature" "+xcheriot" "-O0" "-Werror" -std=c2x | FileCheck %s
 
 
 struct StructSealingKey { };

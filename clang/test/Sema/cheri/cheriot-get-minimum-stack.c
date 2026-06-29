@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 "-triple" "riscv32cheriot-unknown-cheriotrtos" "-mframe-pointer=none" "-mcmodel=small" "-target-abi" "cheriot" "-target-feature" "+xcheriot" "-Oz" "-Werror" "-cheri-compartment=example" -std=c2x -o - %s -fsyntax-only -verify
+// RUN: %clang_cc1 "-triple" "riscv32-unknown-cheriotrtos" "-mframe-pointer=none" "-mcmodel=small" "-target-abi" "cheriot" "-target-feature" "+xcheriot" "-Oz" "-Werror" "-cheri-compartment=example" -std=c2x -o - %s -fsyntax-only -verify
 
 __attribute__((cheri_compartment("example")))
 int readback(void)

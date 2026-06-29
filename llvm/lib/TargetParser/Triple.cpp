@@ -241,15 +241,6 @@ StringRef Triple::getArchName(ArchType Kind, SubArchType SubArch) {
       break;
     }
     break;
-  case Triple::riscv32: {
-    switch (SubArch) {
-    case Triple::RISCV32SubArch_cheriot_v1:
-      return "riscv32cheriotv1";
-    default:
-      break;
-    }
-    break;
-  }
   default:
     break;
   }
@@ -871,8 +862,6 @@ Triple::ArchType Triple::parseArch(StringRef ArchName) {
           .Case("riscv64", Triple::riscv64)
           .Case("riscv32be", Triple::riscv32be)
           .Case("riscv64be", Triple::riscv64be)
-          .Case("riscv32cheriot", Triple::riscv32)
-          .Case("riscv32cheriotv1", Triple::riscv32)
           .Case("hexagon", Triple::hexagon)
           .Cases({"s390x", "systemz"}, Triple::systemz)
           .Case("sparc", Triple::sparc)
@@ -1137,11 +1126,6 @@ static Triple::SubArchType parseSubArch(StringRef SubArchName,
         .EndsWith("v1.8", Triple::DXILSubArch_v1_8)
         .EndsWith("v1.9", Triple::DXILSubArch_v1_9)
         .Default(Triple::NoSubArch);
-
-  if (SubArchName.starts_with("riscv32cheriot"))
-    return StringSwitch<Triple::SubArchType>(SubArchName)
-        .Case("riscv32cheriotv1", Triple::RISCV32SubArch_cheriot_v1)
-        .Default(Triple::RISCV32SubArch_cheriot_v1);
 
   StringRef ARMSubArch = ARM::getCanonicalArchName(SubArchName);
 

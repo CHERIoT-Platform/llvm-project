@@ -1,6 +1,6 @@
 ; RUN: opt -passes=instcombine -S < %s | FileCheck %s
 target datalayout = "e-m:e-p:32:32-i64:64-n32-S128-pf200:64:64:64:32-A200-P200-G200"
-target triple = "riscv32cheriotv1-unknown-cheriotrtos"
+target triple = "riscv32-unknown-cheriotrtos"
 
 %struct.____default_malloc_capability_type = type { i32, i32, %struct.AllocatorCapabilityState }
 %struct.AllocatorCapabilityState = type { i32, i32, [2 x ptr addrspace(200)] }

@@ -1,4 +1,4 @@
-// RUN: %riscv32_cheri_cc1 "-triple" "riscv32cheriot-unknown-cheriotrtos" "-target-abi" "cheriot" -verify %s
+// RUN: %riscv32_cheri_cc1 "-triple" "riscv32-unknown-cheriotrtos" "-target-abi" "cheriot" -verify %s
 
 int a() __attribute__((cheriot_libcall)); // expected-warning{{CHERI libcall should have a prototype in a header with a matching libcall annotation}}
 int a() __attribute__((cheriot_libcall)) { return 0; }

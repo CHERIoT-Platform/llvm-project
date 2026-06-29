@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 %s -o - "-triple" "riscv32cheriot-unknown-cheriotrtos" "-mframe-pointer=none" "-mcmodel=small" "-target-abi" "cheriot" "-target-feature" "+xcheriot" "-Oz" "-Wno-atomic-alignment" "-cheri-compartment=example" -S | FileCheck %s
+// RUN: %clang_cc1 %s -o - "-triple" "riscv32-unknown-cheriotrtos" "-mframe-pointer=none" "-mcmodel=small" "-target-abi" "cheriot" "-target-feature" "+xcheriot" "-Oz" "-Wno-atomic-alignment" "-cheri-compartment=example" -S | FileCheck %s
 
 _Atomic(int) x;
 

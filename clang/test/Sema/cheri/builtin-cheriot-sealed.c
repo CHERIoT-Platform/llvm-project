@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -triple riscv32cheriot -target-abi cheriot-baremetal -target-feature +xcheriot -verify %s
+// RUN: %clang_cc1 -triple riscv32 -target-abi cheriot-baremetal -target-feature +xcheriot -verify %s
 
 void test(int * __sealed_capability sealed, int *unsealed) {
 	long num = 42;

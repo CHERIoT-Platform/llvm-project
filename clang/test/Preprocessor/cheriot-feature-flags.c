@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -E -dM -ffreestanding -triple riscv32cheriot-unknown-cheriotrtos "-target-abi" "cheriot" "-target-feature" "+xcheriot" -cheri-compartment=hello < /dev/null | FileCheck %s
+// RUN: %clang_cc1 -E -dM -ffreestanding -triple riscv32-unknown-cheriotrtos "-target-abi" "cheriot" "-target-feature" "+xcheriot" -cheri-compartment=hello < /dev/null | FileCheck %s
 
 // CHECK: #define __CHERIOT_COMPARTMENT__ hello
 

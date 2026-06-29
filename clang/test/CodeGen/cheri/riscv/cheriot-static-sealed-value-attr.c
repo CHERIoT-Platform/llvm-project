@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 %s -o - "-triple" "riscv32cheriot-unknown-cheriotrtos" "-emit-llvm" "-mframe-pointer=none" "-mcmodel=small" "-target-abi" "cheriot" "-Oz" "-Werror" "-target-feature" "+xcheriot" -std=c2x | FileCheck %s
+// RUN: %clang_cc1 %s -o - "-triple" "riscv32-unknown-cheriotrtos" "-emit-llvm" "-mframe-pointer=none" "-mcmodel=small" "-target-abi" "cheriot" "-Oz" "-Werror" "-target-feature" "+xcheriot" -std=c2x | FileCheck %s
 
 // Test that sealed variables behave like we expect them to.
 // In this test we have two global variables that refer to sealed values.

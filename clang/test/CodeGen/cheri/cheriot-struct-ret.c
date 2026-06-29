@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 %s -o - "-triple" "riscv32cheriot-unknown-cheriotrtos" "-emit-llvm" "-mframe-pointer=none" "-mcmodel=small" "-target-abi" "cheriot" "-target-feature" "+xcheriot" "-O1" "-Werror" "-cheri-compartment=example" -std=c2x | FileCheck %s
+// RUN: %clang_cc1 %s -o - "-triple" "riscv32-unknown-cheriotrtos" "-emit-llvm" "-mframe-pointer=none" "-mcmodel=small" "-target-abi" "cheriot" "-target-feature" "+xcheriot" "-O1" "-Werror" "-cheri-compartment=example" -std=c2x | FileCheck %s
 
 // Test that structs that can fit in two registers are correctly handled, both when used as return values and when passed as an argument. 
 

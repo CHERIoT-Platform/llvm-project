@@ -4,7 +4,7 @@
 ; CHECK:          Flags: 0x70009, RVC, RVE, cheriabi, capability mode, cheriot
 
 target datalayout = "e-m:e-pf200:64:64:64:32-p:32:32-i64:64-n32-S128-A200-P200-G200"
-target triple = "riscv32cheriot-unknown-cheriotrtos"
+target triple = "riscv32-unknown-cheriotrtos"
 
 
 define void @foo()  addrspace(200) #0 {

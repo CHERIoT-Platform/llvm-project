@@ -1,6 +1,6 @@
 ; RUN: llc --filetype=asm --mcpu=cheriot --mtriple=riscv32-unknown-unknown -target-abi cheriot -mattr=+xcheri,+xcheripurecap -verify-machineinstrs -o - %s | FileCheck %s
 target datalayout = "e-m:e-p:32:32-i64:64-n32-S128-pf200:64:64:64:32-A200-P200-G200"
-target triple = "riscv32cheriotv1-unknown-cheriotrtos"
+target triple = "riscv32-unknown-cheriotrtos"
 
 
 ; CHECK: _Z25test_crash_recovery_inneri:

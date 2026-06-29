@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -triple riscv32cheriot -target-abi cheriot-baremetal -target-feature +xcheriot -verify %s
+// RUN: %clang_cc1 -triple riscv32 -target-abi cheriot-baremetal -target-feature +xcheriot -verify %s
 
 int * __sealed_capability test1(int * __sealed_capability a) {
     return a; // no error

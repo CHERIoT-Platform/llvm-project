@@ -43,11 +43,10 @@ bool CheriNeedBoundsChecker::check(const Use &U, bool Simple) const {
 }
 
 void CheriNeedBoundsChecker::findUsesThatNeedBounds(
-    SmallVectorImpl<Use *> *UsesThatNeedBounds, bool BoundAllUses,
-    bool Simple) const {
+    SmallVectorImpl<Use *> *UsesThatNeedBounds, bool Simple) const {
   // TODO: don't replace load/store instructions with the bounded value
   for (Use &U : RootInst->uses()) {
-    if (BoundAllUses || check(U, Simple)) {
+    if (check(U, Simple)) {
       UsesThatNeedBounds->push_back(&U);
     }
   }

@@ -45,31 +45,8 @@ static cl::opt<unsigned> SingleIntrinsicThreshold(
              "more than N uses (default=5). A value of 0 means always."),
     cl::Hidden);
 
-// single option instead of the booleans?
-enum class StackBoundsMethod {
-  Never,
-  ForAllUsesIfOneNeedsBounds, // This is not particularly useful, just for
-                              // comparison
-  IfNeeded,
-};
-
-static cl::opt<StackBoundsMethod> BoundsSettingMode(
-    "cheri-stack-bounds",
-    cl::desc("Strategy for setting bounds on stack capabilities:"),
-    cl::init(StackBoundsMethod::IfNeeded),
-    cl::values(clEnumValN(StackBoundsMethod::Never, "never",
-                          "Do not add bounds on stack allocations (UNSAFE!)"),
-               clEnumValN(StackBoundsMethod::ForAllUsesIfOneNeedsBounds,
-                          "all-or-none",
-                          "Set stack allocation bounds for all uses if at "
-                          "least one use neededs bounds, otherwise omit"),
-               clEnumValN(StackBoundsMethod::IfNeeded, "if-needed",
-                          "Set stack allocation bounds for all uses except for "
-                          "loads/stores to statically known in-bounds offsets")));
-
 enum class StackBoundsAnalysis {
   Default,
-  None,
   Simple,
   Full,
 };
@@ -78,18 +55,19 @@ static cl::opt<StackBoundsAnalysis> BoundsSettingAnalysis(
     "cheri-stack-bounds-analysis",
     cl::desc("Strategy for analysing bounds for stack capabilities:"),
     cl::init(StackBoundsAnalysis::Default),
-    cl::values(clEnumValN(StackBoundsAnalysis::Default, "default",
-                          "Use the default strategy (simple for "
-                          "-O0/optnone, full otherwise)"),
-               clEnumValN(StackBoundsAnalysis::None, "none",
-                          "Assume all uses require bounds"),
-               clEnumValN(StackBoundsAnalysis::Simple, "simple",
-                          "Perform a simplified analysis for whether bounds are required"),
-               clEnumValN(StackBoundsAnalysis::Full, "full",
-                          "Fully analyse whether bounds are required")));
+    cl::values(
+        clEnumValN(StackBoundsAnalysis::Default, "default",
+                   "Use the default strategy (simple for "
+                   "-O0/optnone, full otherwise)"),
+        clEnumValN(
+            StackBoundsAnalysis::Simple, "simple",
+            "Perform a simplified analysis for whether bounds are required"),
+        clEnumValN(StackBoundsAnalysis::Full, "full",
+                   "Fully analyse whether bounds are required")));
 
 STATISTIC(NumProcessed,  "Number of allocas that were analyzed for CHERI bounds");
-STATISTIC(NumDynamicAllocas,  "Number of dyanmic allocas that were analyzed"); // TODO: skip them
+STATISTIC(NumDynamicAllocas,
+          "Number of dynamic allocas that were analyzed"); // TODO: skip them
 STATISTIC(NumUsesProcessed, "Total number of alloca uses that were analyzed");
 STATISTIC(NumCompletelyUnboundedAllocas, "Number of allocas where CHERI bounds were completely unncessary");
 STATISTIC(NumUsesWithBounds, "Number of alloca uses that had CHERI bounds added");
@@ -99,14 +77,6 @@ STATISTIC(NumSingleIntrin, "Number of times that a single intrinisic was used in
 class CheriBoundAllocasImpl {
 public:
   StringRef getPassName() const { return "CHERI bound stack allocations"; }
-  bool runOnModule(Module &Mod, const TargetMachine &TM) {
-
-    bool Modified = false;
-    for (Function &F : Mod)
-      Modified |= runOnFunction(F, TM);
-
-    return Modified;
-  }
 
   bool runOnFunction(Function &F, const TargetMachine &TM) {
     const DataLayout &DL = F.getParent()->getDataLayout();
@@ -121,7 +91,7 @@ public:
     const TargetLowering *TLI = TM.getSubtargetImpl(F)->getTargetLowering();
 
     LLVMContext &C = F.getContext();
-    llvm::SmallVector<AllocaInst *, 4> Allocas;
+    llvm::SmallVector<AllocaInst *> Allocas;
     for (auto &BB : F) {
       for (auto &I : BB) {
         if (auto *AI = dyn_cast<AllocaInst>(&I))
@@ -137,7 +107,6 @@ public:
 
     LLVM_DEBUG(dbgs() << "\nChecking function " << F.getName() << "\n");
 
-    StackBoundsMethod BoundsMode = BoundsSettingMode;
     StackBoundsAnalysis BoundsAnalysis = BoundsSettingAnalysis;
     if (BoundsAnalysis == StackBoundsAnalysis::Default)
       BoundsAnalysis = IsOptNone ? StackBoundsAnalysis::Simple
@@ -171,11 +140,6 @@ public:
       NumProcessed++;
       Function *SetBoundsIntrin = BoundedStackFn;
 
-      // Insert immediately after the alloca, but inherit its debug loc rather
-      // than the next instruction's which is entirely unrelated
-      B.SetInsertPoint(AI->getNextNode());
-      B.SetCurrentDebugLocation(AI->getDebugLoc());
-
       assert(isCheriPointer(AI->getType(), &DL));
 
       // For imprecise capabilities, we need to increase the alignment for
@@ -192,76 +156,57 @@ public:
       // Only set bounds for allocas that escape this function
       bool NeedBounds = true;
       // Always set bounds if the function has the optnone attribute
-      SmallVector<Use *, 8> UsesThatNeedBounds;
+      SmallVector<Use *> UsesThatNeedBounds;
       // If one of the bounded alloca users is a PHI we must reuse the single
       // intrinsic since PHIs must be the first instruction in the basic block
       // and we can't insert anything before. Theoretically we could still
       // use separate intrinsics for the other users but if we are already
       // saving a bounded stack slot we might as well reuse it.
-      if (BoundsMode == StackBoundsMethod::Never) {
-        NeedBounds = false;
-      } else {
-        CheriNeedBoundsChecker BoundsChecker(AI, DL);
-        // With None we assume bounds are needed on every stack allocation use
-        bool BoundAll = BoundsAnalysis == StackBoundsAnalysis::None;
-        bool Simple = BoundsAnalysis == StackBoundsAnalysis::Simple;
-        BoundsChecker.findUsesThatNeedBounds(&UsesThatNeedBounds, BoundAll,
-                                             Simple);
-        NeedBounds = !UsesThatNeedBounds.empty();
-        NumUsesProcessed += TotalUses;
-        DBG_MESSAGE(F.getName()
-                        << ": " << UsesThatNeedBounds.size() << " of "
-                        << TotalUses << " users need bounds for ";
-                    AI->dump());
-        // TODO: remove the all-or-nothing case
-        if (NeedBounds &&
-            BoundsMode == StackBoundsMethod::ForAllUsesIfOneNeedsBounds) {
-          // We are compiling with the all-or-nothing case and found at least
-          // one use that needs bounds -> set bounds on all uses
-          UsesThatNeedBounds.clear();
-          LLVM_DEBUG(dbgs() << "Checking if alloca needs bounds: "; AI->dump());
+      CheriNeedBoundsChecker BoundsChecker(AI, DL);
+      bool Simple = BoundsAnalysis == StackBoundsAnalysis::Simple;
+      BoundsChecker.findUsesThatNeedBounds(&UsesThatNeedBounds, Simple);
+      NeedBounds = !UsesThatNeedBounds.empty();
+      NumUsesProcessed += TotalUses;
 
-          BoundsChecker.findUsesThatNeedBounds(&UsesThatNeedBounds,
-                                               /*BoundAllUses=*/true,
-                                               Simple);
-        }
-      }
       if (!NeedBounds) {
         NumCompletelyUnboundedAllocas++;
-        DBG_MESSAGE("No need to set bounds on stack alloca"; AI->dump());
         continue;
-      }
-
-      bool MustUseSingleIntrinsic = false;
-      if (!AI->isStaticAlloca()) {
-        NumDynamicAllocas++;
-        // TODO: skip bounds on dynamic allocas (maybe add a TLI hook to check
-        // whether the backend already adds bounds to the dynamic_stackalloc)
-        DBG_MESSAGE("Found dynamic alloca: must use single intrinisic and "
-                    "cheri.bounded.stack.cap.dynamic intrinisic");
-        MustUseSingleIntrinsic = true;
-        SetBoundsIntrin = Intrinsic::getOrInsertDeclaration(
-            F.getParent(), Intrinsic::cheri_bounded_stack_cap_dynamic, SizeTy);
       }
 
       // Reuse the result of a single csetbounds intrinisic if we are at -O0 or
       // there are more than N users of this bounded stack capability.
-      const bool ReuseSingleIntrinsicCall =
-          MustUseSingleIntrinsic || IsOptNone ||
+      bool ReuseSingleIntrinsicCall =
+          !AI->isStaticAlloca() || IsOptNone ||
           UsesThatNeedBounds.size() >= SingleIntrinsicThreshold;
+
+      if (!AI->isStaticAlloca()) {
+        NumDynamicAllocas++;
+        // TODO: skip bounds on dynamic allocas (maybe add a TLI hook to check
+        // whether the backend already adds bounds to the dynamic_stackalloc)
+        SetBoundsIntrin = Intrinsic::getOrInsertDeclaration(
+            F.getParent(), Intrinsic::cheri_bounded_stack_cap_dynamic, SizeTy);
+      }
 
       NumUsesWithBounds += UsesThatNeedBounds.size();
       NumUsesWithoutBounds += TotalUses - UsesThatNeedBounds.size();
 
+      // Insert immediately after the alloca, but inherit its debug loc rather
+      // than the next instruction's which is entirely unrelated
+      B.SetInsertPoint(AI->getNextNode());
+      B.SetCurrentDebugLocation(AI->getDebugLoc());
+
       // Get the size of the alloca
-      TypeSize ElementSize = DL.getTypeAllocSize(AI->getAllocatedType());
-      Value *Size = ConstantInt::get(SizeTy, ElementSize);
-      if (AI->isArrayAllocation()) {
+      Value *DynamicSize;
+      if (AllocaSize)
+        DynamicSize = ConstantInt::get(SizeTy, *AllocaSize);
+      else {
+        Value *ElementSize = ConstantInt::get(
+            SizeTy, DL.getTypeAllocSize(AI->getAllocatedType()));
         Value *ArraySize = B.CreateZExtOrTrunc(AI->getArraySize(), SizeTy);
-        Size = B.CreateMul(Size, ArraySize);
+        DynamicSize = B.CreateMul(ElementSize, ArraySize);
       }
 
-      if (AI->isStaticAlloca() && ForcedAlignment != Align()) {
+      if (AllocaSize && ForcedAlignment != Align()) {
         // Pad to ensure bounds don't overlap adjacent objects
         TailPaddingAmount TailPadding =
             TLI->getTailPaddingForPreciseBounds(*AllocaSize);
@@ -274,29 +219,25 @@ public:
           AI->setAllocatedType(TypeWithPadding);
           if (AI->getNumOperands() > 0)
             AI->setOperand(0, ConstantInt::get(Type::getInt32Ty(C), 1));
-          Size = ConstantInt::get(
+          DynamicSize = ConstantInt::get(
               SizeTy, *AllocaSize + static_cast<uint64_t>(TailPadding));
         }
       }
 
       if (cheri::ShouldCollectCSetBoundsStats) {
-        cheri::addSetBoundsStats(AI->getAlign(), Size, getPassName(),
+        cheri::addSetBoundsStats(AI->getAlign(), DynamicSize, getPassName(),
                                  cheri::SetBoundsPointerSource::Stack,
                                  "set bounds on " +
                                      cheri::inferLocalVariableName(AI),
                                  cheri::inferSourceLocation(AI));
       }
-      LLVM_DEBUG(auto S = cheri::inferConstantValue(Size);
-                 dbgs() << AI->getFunction()->getName()
-                        << ": setting bounds on stack alloca to "
-                        << (S ? Twine(*S) : Twine("<unknown>"));
-                 AI->dump());
 
       if (ReuseSingleIntrinsicCall) {
         // If we use a single instrinsic for all uses, we can simply update
         // all uses to point at the newly inserted intrinsic.
         NumSingleIntrin++;
-        Value *SingleBoundedAlloc = B.CreateCall(SetBoundsIntrin, {AI, Size});
+        Value *SingleBoundedAlloc =
+            B.CreateCall(SetBoundsIntrin, {AI, DynamicSize});
         for (Use *U : UsesThatNeedBounds) {
           U->set(SingleBoundedAlloc);
         }
@@ -318,22 +259,20 @@ public:
         for (Use *U : UsesThatNeedBounds) {
           Instruction *I = cast<Instruction>(U->getUser());
 
-          BasicBlock *IncomingBB;
-          if (auto PHI = dyn_cast<PHINode>(I)) {
-            IncomingBB = PHI->getIncomingBlock(*U);
-          } else {
-            IncomingBB = nullptr;
-          }
+          BasicBlock *MaterializingBB = nullptr;
+          if (auto PHI = dyn_cast<PHINode>(I))
+            MaterializingBB = PHI->getIncomingBlock(*U);
 
           Value *BoundedAlloca;
-          auto It = ReplacedUses.find({I, IncomingBB});
+          auto It = ReplacedUses.find({I, MaterializingBB});
           if (It == ReplacedUses.end()) {
+            auto PHI = dyn_cast<PHINode>(I);
             // First use in this instruction -> create a new intrinsic call.
-            if (IncomingBB) {
+            if (PHI) {
               // For PHI nodes we can't insert just before the PHI, instead we
               // must insert it just before the end of the incoming BB.
               // LLVM_DEBUG(dbgs() << "PHI use coming from"; IncomingBB->dump());
-              B.SetInsertPoint(IncomingBB->getTerminator());
+              B.SetInsertPoint(PHI->getIncomingBlock(*U)->getTerminator());
             } else {
               // Insert just before the use. This should avoid spilling
               // registers when using an alloca in a different basic block.
@@ -342,8 +281,8 @@ public:
             // Bounds should have debug loc of the alloca, not the instruction
             // that happens to use them
             B.SetCurrentDebugLocation(AI->getDebugLoc());
-            BoundedAlloca = B.CreateCall(SetBoundsIntrin, {AI, Size});
-            ReplacedUses.insert({{I, IncomingBB}, BoundedAlloca});
+            BoundedAlloca = B.CreateCall(SetBoundsIntrin, {AI, DynamicSize});
+            ReplacedUses.insert({{I, MaterializingBB}, BoundedAlloca});
           } else {
             // Multiple uses in the same instruction -> reuse existing call.
             BoundedAlloca = It->second;

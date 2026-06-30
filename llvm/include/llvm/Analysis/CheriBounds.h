@@ -21,7 +21,7 @@ public:
   }
   bool check(const Use &U, bool Simple = false) const;
   void findUsesThatNeedBounds(SmallVectorImpl<Use *> *UsesThatNeedBounds,
-                              bool BoundAllUses, bool Simple = false) const;
+                              bool Simple = false) const;
   bool anyUseNeedsBounds() const;
 
 private:

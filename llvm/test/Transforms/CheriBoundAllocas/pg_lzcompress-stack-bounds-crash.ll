@@ -1,5 +1,4 @@
-; RUN: %riscv64_cheri_purecap_opt -passes=cheri-bound-allocas %s -o - -S -debug-only="cheri-bound-allocas" 2>&1 | %cheri_FileCheck %s -check-prefix DBG
-; REQUIRES: asserts
+; RUN: %riscv64_cheri_purecap_opt -passes=cheri-bound-allocas %s -o - -S
 ; This crash was found compiling postgres (due to a missing depth limitation in CheriPurecapABI.cpp)
 
 target datalayout = "E-m:e-pf200:128:128:128:64-i8:8:32-i16:16:32-i64:64-n32:64-S128-A200-P200-G200"
@@ -40,31 +39,3 @@ declare signext i32 @c(...) local_unnamed_addr addrspace(200)
 declare void @llvm.lifetime.start.p200(ptr addrspace(200) nocapture) addrspace(200) #0
 
 attributes #0 = { nocallback nofree nosync nounwind willreturn memory(argmem: readwrite) }
-
-; TODO: can we avoid bounds for mutually recursing phis? Probably not worth the effort
-; DBG-LABEL: Checking function b
-; DBG-NEXT: cheri-bound-allocas:  -Checking if phi needs stack bounds:   %ctrlp.0 = phi ptr addrspace(200) [ %d, %entry ], [ %ctrlp.1, %if.end ]
-; DBG-NEXT: cheri-bound-allocas:   -Checking if phi needs stack bounds:   %ctrlp.1 = phi ptr addrspace(200) [ @b, %if.then ], [ %ctrlp.0, %while.cond ]
-; DBG-NEXT: cheri-bound-allocas:    -Checking if phi needs stack bounds:   %ctrlp.0 = phi ptr addrspace(200) [ %d, %entry ], [ %ctrlp.1, %if.end ]
-; DBG-NEXT: cheri-bound-allocas:     -Checking if phi needs stack bounds:   %ctrlp.1 = phi ptr addrspace(200) [ @b, %if.then ], [ %ctrlp.0, %while.cond ]
-; DBG-NEXT: cheri-bound-allocas:      -Checking if phi needs stack bounds:   %ctrlp.0 = phi ptr addrspace(200) [ %d, %entry ], [ %ctrlp.1, %if.end ]
-; DBG-NEXT: cheri-bound-allocas:       -Checking if phi needs stack bounds:   %ctrlp.1 = phi ptr addrspace(200) [ @b, %if.then ], [ %ctrlp.0, %while.cond ]
-; DBG-NEXT: cheri-bound-allocas:        -Checking if phi needs stack bounds:   %ctrlp.0 = phi ptr addrspace(200) [ %d, %entry ], [ %ctrlp.1, %if.end ]
-; DBG-NEXT: cheri-bound-allocas:         -Checking if phi needs stack bounds:   %ctrlp.1 = phi ptr addrspace(200) [ @b, %if.then ], [ %ctrlp.0, %while.cond ]
-; DBG-NEXT: cheri-bound-allocas:          -Checking if phi needs stack bounds:   %ctrlp.0 = phi ptr addrspace(200) [ %d, %entry ], [ %ctrlp.1, %if.end ]
-; DBG-NEXT: cheri-bound-allocas:           -Checking if phi needs stack bounds:   %ctrlp.1 = phi ptr addrspace(200) [ @b, %if.then ], [ %ctrlp.0, %while.cond ]
-; DBG-NEXT: cheri-bound-allocas:            -reached max depth, assuming bounds needed.
-; DBG-NEXT: cheri-bound-allocas:           -Adding stack bounds since phi user needs bounds:   %ctrlp.0 = phi ptr addrspace(200) [ %d, %entry ], [ %ctrlp.1, %if.end ]
-; DBG-NEXT: cheri-bound-allocas:          -Adding stack bounds since phi user needs bounds:   %ctrlp.1 = phi ptr addrspace(200) [ @b, %if.then ], [ %ctrlp.0, %while.cond ]
-; DBG-NEXT: cheri-bound-allocas:         -Adding stack bounds since phi user needs bounds:   %ctrlp.0 = phi ptr addrspace(200) [ %d, %entry ], [ %ctrlp.1, %if.end ]
-; DBG-NEXT: cheri-bound-allocas:        -Adding stack bounds since phi user needs bounds:   %ctrlp.1 = phi ptr addrspace(200) [ @b, %if.then ], [ %ctrlp.0, %while.cond ]
-; DBG-NEXT: cheri-bound-allocas:       -Adding stack bounds since phi user needs bounds:   %ctrlp.0 = phi ptr addrspace(200) [ %d, %entry ], [ %ctrlp.1, %if.end ]
-; DBG-NEXT: cheri-bound-allocas:      -Adding stack bounds since phi user needs bounds:   %ctrlp.1 = phi ptr addrspace(200) [ @b, %if.then ], [ %ctrlp.0, %while.cond ]
-; DBG-NEXT: cheri-bound-allocas:     -Adding stack bounds since phi user needs bounds:   %ctrlp.0 = phi ptr addrspace(200) [ %d, %entry ], [ %ctrlp.1, %if.end ]
-; DBG-NEXT: cheri-bound-allocas:    -Adding stack bounds since phi user needs bounds:   %ctrlp.1 = phi ptr addrspace(200) [ @b, %if.then ], [ %ctrlp.0, %while.cond ]
-; DBG-NEXT: cheri-bound-allocas:   -Adding stack bounds since phi user needs bounds:   %ctrlp.0 = phi ptr addrspace(200) [ %d, %entry ], [ %ctrlp.1, %if.end ]
-; DBG-NEXT: cheri-bound-allocas:  -Adding stack bounds since phi user needs bounds:   %ctrlp.1 = phi ptr addrspace(200) [ @b, %if.then ], [ %ctrlp.0, %while.cond ]
-; DBG-NEXT: cheri-bound-allocas: Found alloca use that needs bounds:   %ctrlp.0 = phi ptr addrspace(200) [ %d, %entry ], [ %ctrlp.1, %if.end ]
-; DBG-NEXT: cheri-bound-allocas:  -No need for stack bounds for lifetime_{start,end}:   call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull %d)
-; DBG-NEXT: cheri-bound-allocas: b: 1 of 2 users need bounds for   %d = alloca i8, align 1, addrspace(200)
-; DBG-NEXT: b: setting bounds on stack alloca to 1  %d = alloca i8, align 1, addrspace(200)

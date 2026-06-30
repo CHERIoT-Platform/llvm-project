@@ -5,9 +5,8 @@
 
 ; REQUIRES: asserts
 ; RUN: %cheri_purecap_opt -passes="function(instsimplify),cheri-bound-allocas" %s -o - -S | FileCheck %s -check-prefix DEFAULT-OPAQUE
-; RUN: %cheri_purecap_opt -passes="function(instsimplify),cheri-bound-allocas" %s -o - -S -cheri-stack-bounds-single-intrinsic-threshold=0 -cheri-stack-bounds=if-needed | FileCheck %s -check-prefix IF-NEEDED-SINGLE-OPAQUE
-; RUN: %cheri_purecap_opt -passes="function(instsimplify),cheri-bound-allocas" %s -o - -S -cheri-stack-bounds-single-intrinsic-threshold=10 -cheri-stack-bounds=if-needed | FileCheck %s -check-prefix IF-NEEDED-PER-USE-OPAQUE
-; RUN: %cheri_purecap_opt -passes="function(instsimplify),cheri-bound-allocas" %s -o - -S -cheri-stack-bounds-single-intrinsic-threshold=10 -cheri-stack-bounds=all-or-none | FileCheck %s -check-prefix ALL-OR-NONE-PER-USE-OPAQUE
+; RUN: %cheri_purecap_opt -passes="function(instsimplify),cheri-bound-allocas" %s -o - -S -cheri-stack-bounds-single-intrinsic-threshold=0 | FileCheck %s -check-prefix IF-NEEDED-SINGLE-OPAQUE
+; RUN: %cheri_purecap_opt -passes="function(instsimplify),cheri-bound-allocas" %s -o - -S -cheri-stack-bounds-single-intrinsic-threshold=10 | FileCheck %s -check-prefix IF-NEEDED-PER-USE-OPAQUE
 
 target datalayout = "E-pf200:128:128:128:64-A200-P200-G200"
 
@@ -43,16 +42,6 @@ define void @foobar() addrspace(200) nounwind {
 ; IF-NEEDED-PER-USE-OPAQUE-NEXT:    call addrspace(200) void @bar(ptr addrspace(200) [[TMP0]])
 ; IF-NEEDED-PER-USE-OPAQUE-NEXT:    ret void
 ;
-; ALL-OR-NONE-PER-USE-OPAQUE-LABEL: @foobar(
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:  entry:
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[X:%.*]] = alloca i32, align 4, addrspace(200)
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[X]], i64 4)
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    store i32 123, ptr addrspace(200) [[TMP0]], align 4
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    call addrspace(200) void @foo()
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[X]], i64 4)
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    call addrspace(200) void @bar(ptr addrspace(200) [[TMP1]])
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    ret void
-;
 entry:
   %x = alloca i32, align 4, addrspace(200)
   store i32 123, ptr addrspace(200) %x, align 4
@@ -85,14 +74,6 @@ define i32 @only_load_store() addrspace(200) nounwind {
 ; IF-NEEDED-PER-USE-OPAQUE-NEXT:    call addrspace(200) void @foo()
 ; IF-NEEDED-PER-USE-OPAQUE-NEXT:    [[RET:%.*]] = load i32, ptr addrspace(200) [[X]], align 4
 ; IF-NEEDED-PER-USE-OPAQUE-NEXT:    ret i32 [[RET]]
-;
-; ALL-OR-NONE-PER-USE-OPAQUE-LABEL: @only_load_store(
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:  entry:
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[X:%.*]] = alloca i32, align 4, addrspace(200)
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    store i32 123, ptr addrspace(200) [[X]], align 4
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    call addrspace(200) void @foo()
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[RET:%.*]] = load i32, ptr addrspace(200) [[X]], align 4
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    ret i32 [[RET]]
 ;
 entry:
   %x = alloca i32, align 4, addrspace(200)
@@ -135,19 +116,6 @@ define i32 @load_store_and_call() addrspace(200) nounwind {
 ; IF-NEEDED-PER-USE-OPAQUE-NEXT:    call addrspace(200) void @foo()
 ; IF-NEEDED-PER-USE-OPAQUE-NEXT:    [[RET:%.*]] = load i32, ptr addrspace(200) [[X]], align 4
 ; IF-NEEDED-PER-USE-OPAQUE-NEXT:    ret i32 [[RET]]
-;
-; ALL-OR-NONE-PER-USE-OPAQUE-LABEL: @load_store_and_call(
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:  entry:
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[X:%.*]] = alloca i32, align 4, addrspace(200)
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[X]], i64 4)
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    store i32 123, ptr addrspace(200) [[TMP0]], align 4
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    call addrspace(200) void @foo()
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[X]], i64 4)
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    call addrspace(200) void @bar(ptr addrspace(200) [[TMP1]])
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    call addrspace(200) void @foo()
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[TMP2:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[X]], i64 4)
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[RET:%.*]] = load i32, ptr addrspace(200) [[TMP2]], align 4
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    ret i32 [[RET]]
 ;
 entry:
   %x = alloca i32, align 4, addrspace(200)
@@ -194,17 +162,6 @@ define void @foobar_without_store() addrspace(200) nounwind {
 ; IF-NEEDED-PER-USE-OPAQUE-NEXT:    call addrspace(200) void @bar(ptr addrspace(200) [[TMP1]])
 ; IF-NEEDED-PER-USE-OPAQUE-NEXT:    ret void
 ;
-; ALL-OR-NONE-PER-USE-OPAQUE-LABEL: @foobar_without_store(
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:  entry:
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[X:%.*]] = alloca i32, align 4, addrspace(200)
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[Y:%.*]] = alloca i32, align 4, addrspace(200)
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    call addrspace(200) void @foo()
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[X]], i64 4)
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    call addrspace(200) void @bar(ptr addrspace(200) [[TMP0]])
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[TMP1:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[Y]], i64 4)
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    call addrspace(200) void @bar(ptr addrspace(200) [[TMP1]])
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    ret void
-;
 entry:
   %x = alloca i32, align 4, addrspace(200)
   %y = alloca i32, align 4, addrspace(200)
@@ -232,12 +189,6 @@ define ptr addrspace(200) @return_alloca() addrspace(200) nounwind {
 ; IF-NEEDED-PER-USE-OPAQUE-NEXT:    [[X:%.*]] = alloca i32, align 4, addrspace(200)
 ; IF-NEEDED-PER-USE-OPAQUE-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[X]], i64 4)
 ; IF-NEEDED-PER-USE-OPAQUE-NEXT:    ret ptr addrspace(200) [[TMP0]]
-;
-; ALL-OR-NONE-PER-USE-OPAQUE-LABEL: @return_alloca(
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:  entry:
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[X:%.*]] = alloca i32, align 4, addrspace(200)
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    [[TMP0:%.*]] = call addrspace(200) ptr addrspace(200) @llvm.cheri.bounded.stack.cap.i64(ptr addrspace(200) [[X]], i64 4)
-; ALL-OR-NONE-PER-USE-OPAQUE-NEXT:    ret ptr addrspace(200) [[TMP0]]
 ;
 entry:
   %x = alloca i32, align 4, addrspace(200)

@@ -14,7 +14,7 @@ concurrency:
 jobs:
   build-and-test:
     name: Build and test PR
-    runs-on: "cirun-gcp-aarch64--${{ github.run_id }}"
+    runs-on: warp-custom-gcp-aarch64-32cpu
     timeout-minutes: 360
 
     env:

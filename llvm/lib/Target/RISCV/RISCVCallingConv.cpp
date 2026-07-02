@@ -165,7 +165,9 @@ static const MCPhysReg ArgVRN4M2s[] = {
 static const MCPhysReg ArgVRN2M4s[] = {RISCV::V8M4_V12M4, RISCV::V12M4_V16M4,
                                        RISCV::V16M4_V20M4};
 
-ArrayRef<MCPhysReg> RISCV::getArgGPRs(const RISCVABI::ABI ABI) {
+ArrayRef<MCPhysReg> RISCV::getArgGPRs(const RISCVSubtarget &STI) {
+  RISCVABI::ABI ABI = STI.getTargetABI();
+
   // The GPRs used for passing arguments in the ILP32* and LP64* ABIs, except
   // the ILP32E ABI.
   static const MCPhysReg ArgIGPRs[] = {RISCV::X10, RISCV::X11, RISCV::X12,
@@ -361,7 +363,7 @@ static bool CC_RISCVAssign2XLen(CCState &State, bool IsPureCapVarArgs,
   bool EABI = ABI == RISCVABI::ABI_ILP32E || ABI == RISCVABI::ABI_LP64E ||
     ABI == RISCVABI::ABI_IL32PC64E || ABI == RISCVABI::ABI_CHERIOT || ABI == RISCVABI::ABI_CHERIOT_BAREMETAL;
 
-  ArrayRef<MCPhysReg> ArgGPRs = RISCV::getArgGPRs(ABI);
+  ArrayRef<MCPhysReg> ArgGPRs = RISCV::getArgGPRs(Subtarget);
 
   if (Register Reg = IsPureCapVarArgs ? MCRegister{0} : State.AllocateReg(ArgGPRs)) {
     // At least one half can be passed via register.
@@ -563,7 +565,7 @@ static bool CC_RISCV_Impl(unsigned ValNo, MVT ValVT, MVT LocVT,
     }
   }
 
-  ArrayRef<MCPhysReg> ArgGPRs = RISCV::getArgGPRs(ABI);
+  ArrayRef<MCPhysReg> ArgGPRs = RISCV::getArgGPRs(Subtarget);
   ArrayRef<MCPhysReg> ArgYGPRs = RISCV::getArgYGPRs(ABI);
 
   // Zdinx use GPR without a bitcast when possible.

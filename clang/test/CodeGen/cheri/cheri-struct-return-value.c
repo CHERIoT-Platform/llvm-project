@@ -413,7 +413,7 @@ typedef struct {
 // CHECK-NEXT:    store ptr addrspace(200) [[TMP2]], ptr addrspace(200) [[C1]], align 16, !tbaa [[TBAA17:![0-9]+]]
 // CHECK-NEXT:    [[C2:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[AGG_RESULT]], i64 32
 // CHECK-NEXT:    [[TMP3:%.*]] = getelementptr i8, ptr addrspace(200) [[IN_COERCE3]], i64 3
-// CHECK-NEXT:    store ptr addrspace(200) [[TMP3]], ptr addrspace(200) [[C2]], align 16, !tbaa !19
+// CHECK-NEXT:    store ptr addrspace(200) [[TMP3]], ptr addrspace(200) [[C2]], align 16
 // CHECK-NEXT:    ret void
 //
 IntCapCap int_cap_cap(IntCapCap in) {

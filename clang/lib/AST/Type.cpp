@@ -2228,6 +2228,10 @@ public:
   Type *VisitPackExpansionType(const PackExpansionType *T) {
     return Visit(T->getPattern());
   }
+
+  Type *VisitAtomicType(const AtomicType *T) {
+    return Visit(T->getValueType());
+  }
 };
 
 } // namespace

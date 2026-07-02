@@ -219,6 +219,8 @@ def HasLSUI          : Predicate<"Subtarget->hasLSUI()">,
                                  AssemblerPredicateWithAll<(all_of FeatureLSUI), "lsui">;
 def HasOCCMO         : Predicate<"Subtarget->hasOCCMO()">,
                                  AssemblerPredicateWithAll<(all_of FeatureOCCMO), "occmo">;
+def HasHINTE         : Predicate<"Subtarget->hasHINTE()">,
+                                 AssemblerPredicateWithAll<(all_of FeatureHINTE), "hinte">;
 def HasLSCP          : Predicate<"Subtarget->hasLSCP()">,
                                  AssemblerPredicateWithAll<(all_of FeatureLSCP), "lscp">;
 def HasSVE2p2        : Predicate<"Subtarget->isSVEAvailable() && Subtarget->hasSVE2p2()">,
@@ -1552,6 +1554,9 @@ let hasSideEffects = 1, isCodeGenOnly = 1, isTerminator = 1, isBarrier = 1 in {
 //===----------------------------------------------------------------------===//
 
 def HINT : HintI<"hint">;
+let Predicates = [HasHINTE] in
+def HINTE : HintE<"hinte">;
+
 def : InstAlias<"yield",(HINT 0b001)>;
 def : InstAlias<"wfe",  (HINT 0b010)>;
 def : InstAlias<"wfi",  (HINT 0b011)>;
@@ -2757,6 +2762,12 @@ def copyFromSP: PatLeaf<(i64 GPR64:$src), [{
   return N->getOpcode() == ISD::CopyFromReg &&
          cast<RegisterSDNode>(N->getOperand(1))->getReg() == AArch64::SP;
 }]>;
+
+// Pseudo instruction for stack guard cookie unmixing (epilogue).
+// This will be expanded post-RA to use FP directly, avoiding an extra mov.
+// Pattern matching for this will be done via custom C++ code during instruction selection.
+def STACK_GUARD_UNMIX : Pseudo<(outs GPR64:$dst), (ins GPR64:$stored_val), []>,
+                        Sched<[]>;
 
 // Use SUBS instead of SUB to enable CSE between SUBS and SUB.
 def : Pat<(sub GPR32sp:$Rn, addsub_shifted_imm32:$imm),
@@ -11507,7 +11518,7 @@ defm UMIN : ComparisonOp<1, 1, "umin", umin>, Requires<[HasCSSC]>;
 def RPRFM:
     I<(outs), (ins rprfop:$Rt, GPR64:$Rm, GPR64sp:$Rn),
       "rprfm", "\t$Rt, $Rm, [$Rn]", "", []>,
-    Sched<[]> {
+    Sched<[WriteLD]> {
   bits<6> Rt;
   bits<5> Rn;
   bits<5> Rm;

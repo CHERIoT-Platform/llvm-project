@@ -990,6 +990,17 @@ public:
     return (Val >= N && Val <= M);
   }
 
+  bool isHinteUImm16() const {
+    if (!isImm())
+      return false;
+    const MCConstantExpr *MCE = dyn_cast<MCConstantExpr>(getImm());
+    if (!MCE)
+      return false;
+    int64_t Val = MCE->getValue();
+    return Val >= 0 && Val <= 65535 &&
+           !(Val >= 12319 && Val <= 16383 && ((Val - 12319) % 32) == 0);
+  }
+
   // NOTE: Also used for isLogicalImmNot as anything that can be represented as
   // a logical immediate can always be represented when inverted.
   template <typename T>
@@ -1286,16 +1297,16 @@ public:
 
   bool isNeonVectorRegLo() const {
     return Kind == k_Register && Reg.Kind == RegKind::NeonVector &&
-           (AArch64MCRegisterClasses[AArch64::FPR128_loRegClassID].contains(
-                Reg.Reg) ||
-            AArch64MCRegisterClasses[AArch64::FPR64_loRegClassID].contains(
-                Reg.Reg));
+           (getAArch64MCRegisterClass(AArch64::FPR128_loRegClassID)
+                .contains(Reg.Reg) ||
+            getAArch64MCRegisterClass(AArch64::FPR64_loRegClassID)
+                .contains(Reg.Reg));
   }
 
   bool isNeonVectorReg0to7() const {
     return Kind == k_Register && Reg.Kind == RegKind::NeonVector &&
-           (AArch64MCRegisterClasses[AArch64::FPR128_0to7RegClassID].contains(
-               Reg.Reg));
+           (getAArch64MCRegisterClass(AArch64::FPR128_0to7RegClassID)
+                .contains(Reg.Reg));
   }
 
   bool isMatrix() const { return Kind == k_MatrixRegister; }
@@ -1317,7 +1328,7 @@ public:
     }
 
     return (Kind == k_Register && Reg.Kind == RK) &&
-           AArch64MCRegisterClasses[Class].contains(getReg());
+           getAArch64MCRegisterClass(Class).contains(getReg());
   }
 
   template <unsigned Class> bool isSVEVectorReg() const {
@@ -1344,12 +1355,12 @@ public:
     }
 
     return (Kind == k_Register && Reg.Kind == RK) &&
-           AArch64MCRegisterClasses[Class].contains(getReg());
+           getAArch64MCRegisterClass(Class).contains(getReg());
   }
 
   template <unsigned Class> bool isFPRasZPR() const {
     return Kind == k_Register && Reg.Kind == RegKind::Scalar &&
-           AArch64MCRegisterClasses[Class].contains(getReg());
+           getAArch64MCRegisterClass(Class).contains(getReg());
   }
 
   template <int ElementWidth, unsigned Class>
@@ -1424,30 +1435,32 @@ public:
 
   bool isGPR32as64() const {
     return Kind == k_Register && Reg.Kind == RegKind::Scalar &&
-           AArch64MCRegisterClasses[AArch64::GPR64RegClassID].contains(Reg.Reg);
+           getAArch64MCRegisterClass(AArch64::GPR64RegClassID)
+               .contains(Reg.Reg);
   }
 
   bool isGPR64as32() const {
     return Kind == k_Register && Reg.Kind == RegKind::Scalar &&
-           AArch64MCRegisterClasses[AArch64::GPR32RegClassID].contains(Reg.Reg);
+           getAArch64MCRegisterClass(AArch64::GPR32RegClassID)
+               .contains(Reg.Reg);
   }
 
   bool isGPR64x8() const {
     return Kind == k_Register && Reg.Kind == RegKind::Scalar &&
-           AArch64MCRegisterClasses[AArch64::GPR64x8ClassRegClassID].contains(
-               Reg.Reg);
+           getAArch64MCRegisterClass(AArch64::GPR64x8ClassRegClassID)
+               .contains(Reg.Reg);
   }
 
   bool isWSeqPair() const {
     return Kind == k_Register && Reg.Kind == RegKind::Scalar &&
-           AArch64MCRegisterClasses[AArch64::WSeqPairsClassRegClassID].contains(
-               Reg.Reg);
+           getAArch64MCRegisterClass(AArch64::WSeqPairsClassRegClassID)
+               .contains(Reg.Reg);
   }
 
   bool isXSeqPair() const {
     return Kind == k_Register && Reg.Kind == RegKind::Scalar &&
-           AArch64MCRegisterClasses[AArch64::XSeqPairsClassRegClassID].contains(
-               Reg.Reg);
+           getAArch64MCRegisterClass(AArch64::XSeqPairsClassRegClassID)
+               .contains(Reg.Reg);
   }
 
   bool isSyspXzrPair() const {
@@ -1471,7 +1484,7 @@ public:
 
   template <unsigned RegClassID> bool isGPR64() const {
     return Kind == k_Register && Reg.Kind == RegKind::Scalar &&
-           AArch64MCRegisterClasses[RegClassID].contains(getReg());
+           getAArch64MCRegisterClass(RegClassID).contains(getReg());
   }
 
   template <unsigned RegClassID, int ExtWidth>
@@ -1518,7 +1531,7 @@ public:
         isTypedVectorList<VectorKind, NumRegs, NumElements, ElementWidth>();
     if (!Res)
       return DiagnosticPredicate::NoMatch;
-    if (!AArch64MCRegisterClasses[RegClass].contains(VectorList.Reg))
+    if (!getAArch64MCRegisterClass(RegClass).contains(VectorList.Reg))
       return DiagnosticPredicate::NearMatch;
     return DiagnosticPredicate::Match;
   }
@@ -1784,7 +1797,7 @@ public:
     if (!isMatrix())
       return DiagnosticPredicate::NoMatch;
     if (getMatrixKind() != Kind ||
-        !AArch64MCRegisterClasses[RegClass].contains(getMatrixReg()) ||
+        !getAArch64MCRegisterClass(RegClass).contains(getMatrixReg()) ||
         EltSize != getMatrixElementWidth())
       return DiagnosticPredicate::NearMatch;
     return DiagnosticPredicate::Match;
@@ -1828,7 +1841,7 @@ public:
   void addGPR32as64Operands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
     assert(
-        AArch64MCRegisterClasses[AArch64::GPR64RegClassID].contains(getReg()));
+        getAArch64MCRegisterClass(AArch64::GPR64RegClassID).contains(getReg()));
 
     const MCRegisterInfo *RI = Ctx.getRegisterInfo();
     MCRegister Reg = RI->getRegClass(AArch64::GPR32RegClassID)
@@ -1840,7 +1853,7 @@ public:
   void addGPR64as32Operands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
     assert(
-        AArch64MCRegisterClasses[AArch64::GPR32RegClassID].contains(getReg()));
+        getAArch64MCRegisterClass(AArch64::GPR32RegClassID).contains(getReg()));
 
     const MCRegisterInfo *RI = Ctx.getRegisterInfo();
     MCRegister Reg = RI->getRegClass(AArch64::GPR64RegClassID)
@@ -1881,15 +1894,15 @@ public:
 
   void addVectorReg64Operands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
-    assert(
-        AArch64MCRegisterClasses[AArch64::FPR128RegClassID].contains(getReg()));
+    assert(getAArch64MCRegisterClass(AArch64::FPR128RegClassID)
+               .contains(getReg()));
     Inst.addOperand(MCOperand::createReg(AArch64::D0 + getReg() - AArch64::Q0));
   }
 
   void addVectorReg128Operands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
-    assert(
-        AArch64MCRegisterClasses[AArch64::FPR128RegClassID].contains(getReg()));
+    assert(getAArch64MCRegisterClass(AArch64::FPR128RegClassID)
+               .contains(getReg()));
     Inst.addOperand(MCOperand::createReg(getReg()));
   }
 
@@ -3953,6 +3966,7 @@ constexpr EnumStringDef<FeatureBitset> ExtensionDefs[] = {
     {{"poe2"}, {AArch64::FeatureS1POE2}},
     {{"tev"}, {AArch64::FeatureTEV}},
     {{"btie"}, {AArch64::FeatureBTIE}},
+    {{"hinte"}, {AArch64::FeatureHINTE}},
     {{"dit"}, {AArch64::FeatureDIT}},
     {{"brbe"}, {AArch64::FeatureBRBE}},
     {{"bti"}, {AArch64::FeatureBranchTargetId}},
@@ -5340,9 +5354,8 @@ bool AArch64AsmParser::parseOperand(OperandVector &Operands, bool isCondCode,
         !static_cast<AArch64Operand &>(*Operands[1]).isScalarReg())
       return Error(Loc, "Only valid when first operand is register");
 
-    bool IsXReg =
-        AArch64MCRegisterClasses[AArch64::GPR64allRegClassID].contains(
-            Operands[1]->getReg());
+    bool IsXReg = getAArch64MCRegisterClass(AArch64::GPR64allRegClassID)
+                      .contains(Operands[1]->getReg());
 
     MCContext& Ctx = getContext();
     E = SMLoc::getFromPointer(Loc.getPointer() - 1);
@@ -5680,7 +5693,7 @@ bool AArch64AsmParser::validateInstruction(MCInst &Inst, SMLoc &IDLoc,
                      " source");
     }
 
-    auto PPRRegClass = AArch64MCRegisterClasses[AArch64::PPRRegClassID];
+    const auto &PPRRegClass = getAArch64MCRegisterClass(AArch64::PPRRegClassID);
     if (Prefix.isPredicated()) {
       int PgIdx = -1;
 
@@ -6309,6 +6322,11 @@ bool AArch64AsmParser::showMatchError(SMLoc Loc, unsigned ErrCode,
     return Error(Loc, "immediate must be an integer in range [0, 255].");
   case Match_InvalidImm0_65535:
     return Error(Loc, "immediate must be an integer in range [0, 65535].");
+  case Match_InvalidHinteUImm16:
+    return Error(Loc,
+                 "immediate must be an integer in range [0, 65535], excluding "
+                 "values in range [12319, 16383] where (value - 12319) is a "
+                 "multiple of 32.");
   case Match_InvalidImm1_8:
     return Error(Loc, "immediate must be an integer in range [1, 8].");
   case Match_InvalidImm1_16:
@@ -6679,8 +6697,8 @@ bool AArch64AsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
         uint64_t Op3Val = Op3CE->getValue();
         uint64_t NewOp3Val = 0;
         uint64_t NewOp4Val = 0;
-        if (AArch64MCRegisterClasses[AArch64::GPR32allRegClassID].contains(
-                Op2.getReg())) {
+        if (getAArch64MCRegisterClass(AArch64::GPR32allRegClassID)
+                .contains(Op2.getReg())) {
           NewOp3Val = (32 - Op3Val) & 0x1f;
           NewOp4Val = 31 - Op3Val;
         } else {
@@ -6714,8 +6732,8 @@ bool AArch64AsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
         uint64_t Width = WidthCE->getValue();
 
         uint64_t RegWidth = 0;
-        if (AArch64MCRegisterClasses[AArch64::GPR64allRegClassID].contains(
-                Op1.getReg()))
+        if (getAArch64MCRegisterClass(AArch64::GPR64allRegClassID)
+                .contains(Op1.getReg()))
           RegWidth = 64;
         else
           RegWidth = 32;
@@ -6770,8 +6788,8 @@ bool AArch64AsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
           uint64_t Op4Val = Op4CE->getValue();
 
           uint64_t RegWidth = 0;
-          if (AArch64MCRegisterClasses[AArch64::GPR64allRegClassID].contains(
-                  Op1.getReg()))
+          if (getAArch64MCRegisterClass(AArch64::GPR64allRegClassID)
+                  .contains(Op1.getReg()))
             RegWidth = 64;
           else
             RegWidth = 32;
@@ -6834,8 +6852,8 @@ bool AArch64AsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
           uint64_t Op4Val = Op4CE->getValue();
 
           uint64_t RegWidth = 0;
-          if (AArch64MCRegisterClasses[AArch64::GPR64allRegClassID].contains(
-                  Op1.getReg()))
+          if (getAArch64MCRegisterClass(AArch64::GPR64allRegClassID)
+                  .contains(Op1.getReg()))
             RegWidth = 64;
           else
             RegWidth = 32;
@@ -6915,8 +6933,8 @@ bool AArch64AsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   else if (NumOperands == 3 && (Tok == "sxtb" || Tok == "sxth")) {
     AArch64Operand &Op = static_cast<AArch64Operand &>(*Operands[1]);
     if (Op.isScalarReg() &&
-        AArch64MCRegisterClasses[AArch64::GPR64allRegClassID].contains(
-            Op.getReg())) {
+        getAArch64MCRegisterClass(AArch64::GPR64allRegClassID)
+            .contains(Op.getReg())) {
       // The source register can be Wn here, but the matcher expects a
       // GPR64. Twiddle it here if necessary.
       AArch64Operand &Op = static_cast<AArch64Operand &>(*Operands[2]);
@@ -6932,8 +6950,8 @@ bool AArch64AsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   else if (NumOperands == 3 && (Tok == "uxtb" || Tok == "uxth")) {
     AArch64Operand &Op = static_cast<AArch64Operand &>(*Operands[1]);
     if (Op.isScalarReg() &&
-        AArch64MCRegisterClasses[AArch64::GPR64allRegClassID].contains(
-            Op.getReg())) {
+        getAArch64MCRegisterClass(AArch64::GPR64allRegClassID)
+            .contains(Op.getReg())) {
       // The source register can be Wn here, but the matcher expects a
       // GPR32. Twiddle it here if necessary.
       AArch64Operand &Op = static_cast<AArch64Operand &>(*Operands[1]);
@@ -6998,11 +7016,9 @@ bool AArch64AsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
     // Special case the error message for the very common case where only
     // a single subtarget feature is missing (neon, e.g.).
     std::string Msg = "instruction requires:";
-    for (unsigned i = 0, e = MissingFeatures.size(); i != e; ++i) {
-      if (MissingFeatures[i]) {
-        Msg += " ";
-        Msg += getSubtargetFeatureName(i);
-      }
+    for (unsigned Feature : MissingFeatures) {
+      Msg += " ";
+      Msg += getSubtargetFeatureName(Feature);
     }
     return Error(IDLoc, Msg);
   }
@@ -7090,6 +7106,7 @@ bool AArch64AsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   case Match_InvalidImm0_127:
   case Match_InvalidImm0_255:
   case Match_InvalidImm0_65535:
+  case Match_InvalidHinteUImm16:
   case Match_InvalidImm1_8:
   case Match_InvalidImm1_16:
   case Match_InvalidImm1_32:
@@ -7457,7 +7474,7 @@ bool AArch64AsmParser::parseDirectiveArch(SMLoc L) {
 
   // Get the architecture and extension features.
   std::vector<StringRef> AArch64Features;
-  AArch64Features.push_back(ArchInfo->ArchFeature);
+  AArch64Features.push_back(AArch64::StrTab[ArchInfo->ArchFeature]);
   AArch64::getExtensionFeatures(ArchInfo->DefaultExts, AArch64Features);
 
   MCSubtargetInfo &STI = copySTI();
@@ -8718,9 +8735,9 @@ ParseStatus AArch64AsmParser::tryParseGPRSeqPair(OperandVector &Operands) {
                     "even/odd register pair");
 
   const MCRegisterClass &WRegClass =
-      AArch64MCRegisterClasses[AArch64::GPR32RegClassID];
+      getAArch64MCRegisterClass(AArch64::GPR32RegClassID);
   const MCRegisterClass &XRegClass =
-      AArch64MCRegisterClasses[AArch64::GPR64RegClassID];
+      getAArch64MCRegisterClass(AArch64::GPR64RegClassID);
 
   bool isXReg = XRegClass.contains(FirstReg),
        isWReg = WRegClass.contains(FirstReg);
@@ -8755,11 +8772,13 @@ ParseStatus AArch64AsmParser::tryParseGPRSeqPair(OperandVector &Operands) {
 
   MCRegister Pair;
   if (isXReg) {
-    Pair = RI->getMatchingSuperReg(FirstReg, AArch64::sube64,
-           &AArch64MCRegisterClasses[AArch64::XSeqPairsClassRegClassID]);
+    Pair = RI->getMatchingSuperReg(
+        FirstReg, AArch64::sube64,
+        &getAArch64MCRegisterClass(AArch64::XSeqPairsClassRegClassID));
   } else {
-    Pair = RI->getMatchingSuperReg(FirstReg, AArch64::sube32,
-           &AArch64MCRegisterClasses[AArch64::WSeqPairsClassRegClassID]);
+    Pair = RI->getMatchingSuperReg(
+        FirstReg, AArch64::sube32,
+        &getAArch64MCRegisterClass(AArch64::WSeqPairsClassRegClassID));
   }
 
   Operands.push_back(AArch64Operand::CreateReg(Pair, RegKind::Scalar, S,
@@ -8895,7 +8914,7 @@ ParseStatus AArch64AsmParser::tryParseGPR64x8(OperandVector &Operands) {
   const MCRegisterInfo *RI = ctx.getRegisterInfo();
   MCRegister X8Reg = RI->getMatchingSuperReg(
       XReg, AArch64::x8sub_0,
-      &AArch64MCRegisterClasses[AArch64::GPR64x8ClassRegClassID]);
+      &getAArch64MCRegisterClass(AArch64::GPR64x8ClassRegClassID));
   if (!X8Reg)
     return Error(SS,
                  "expected an even-numbered x-register in the range [x0,x22]");

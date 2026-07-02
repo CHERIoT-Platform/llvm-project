@@ -282,3 +282,6 @@ define void @tests.stacksave.stackrestore() {
 
 ; CHECK: declare ptr addrspace(200) @llvm.stacksave.p200()
 ; CHECK: declare void @llvm.stackrestore.p200(ptr addrspace(200))
+
+; CHECK: declare ptr @llvm.experimental.gc.get.pointer.base.p0(ptr readnone captures(none))
+declare ptr @llvm.experimental.gc.get.pointer.base.p0.p0(ptr)

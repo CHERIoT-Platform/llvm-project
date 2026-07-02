@@ -26,6 +26,7 @@
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
@@ -425,6 +426,36 @@ void DiagnosticInfoCheriInefficient::print(DiagnosticPrinter &DP) const {
   OS << getLocationStr() << ": in function " << getFunction().getName() << ' '
      << *getFunction().getFunctionType() << ": " << Msg;
   OS.flush();
+  DP << Str;
+}
+
+DiagnosticInfoUnsupportedTargetIntrinsic::
+    DiagnosticInfoUnsupportedTargetIntrinsic(const Function &Fn,
+                                             unsigned IntrinsicID,
+                                             const DiagnosticLocation &Loc)
+    : DiagnosticInfoWithLocationBase(DK_UnsupportedTargetIntrinsic, DS_Error,
+                                     Fn, Loc),
+      IntrinsicID(IntrinsicID),
+      RequiredFeatures(Intrinsic::getRequiredTargetFeatures(
+          static_cast<Intrinsic::ID>(IntrinsicID))) {
+  assert(!RequiredFeatures.empty() &&
+         "intrinsic without required features should be supported");
+}
+
+std::string DiagnosticInfoUnsupportedTargetIntrinsic::getMessage() const {
+  return (Twine(
+              Intrinsic::getBaseName(static_cast<Intrinsic::ID>(IntrinsicID))) +
+          " requires target feature '" + RequiredFeatures + "'")
+      .str();
+}
+
+void DiagnosticInfoUnsupportedTargetIntrinsic::print(
+    DiagnosticPrinter &DP) const {
+  std::string Str;
+  raw_string_ostream OS(Str);
+  OS << getLocationStr() << ": in function ";
+  getFunction().printAsOperand(OS, /*PrintType=*/false);
+  OS << ' ' << *getFunction().getFunctionType() << ": " << getMessage() << '\n';
   DP << Str;
 }
 

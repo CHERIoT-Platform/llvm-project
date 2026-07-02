@@ -15,16 +15,16 @@ c.cjal 2046
 
 ## C.CSD needs RV64C:
 c.csd a5, 124(ca3)
-# CHECK-RV32: <stdin>:[[#@LINE-1]]:11: error: invalid operand for instruction
+# CHECK-RV32: <stdin>:[[#@LINE-1]]:1: error: invalid instruction
 # CHECK-RV64-C: <stdin>:[[#@LINE-2]]:11: error: immediate must be a multiple of 8 bytes in the range [0, 248]
 # TODO-RV64-NO-C: <stdin>:[[#@LINE-3]]:11: error: instruction requires the following: 'C' (Compressed Instructions){{$}}
-# CHECK-RV64-NO-C: <stdin>:[[#@LINE-4]]:11: error: invalid operand for instruction
+# CHECK-RV64-NO-C: <stdin>:[[#@LINE-4]]:1: error: invalid instruction
 
 ## misaligned immediate:
 c.csw a5, 1(ca3)
 # CHECK-RV32-C: <stdin>:[[#@LINE-1]]:11: error: immediate must be a multiple of 4 bytes in the range [0, 124]
-# TODO-RV32-NO-C: <stdin>:[[#@LINE-2]]:11: error: instruction requires the following: 'C' (Compressed Instructions){{$}}
-# CHECK-RV32-NO-C: <stdin>:[[#@LINE-3]]:11: error: invalid operand for instruction
+# TODO-RV32-NO-C: <stdin>:[[#@LINE-2]]:1: error: invalid instruction
+# CHECK-RV32-NO-C: <stdin>:[[#@LINE-3]]:1: error: invalid instruction
 # CHECK-RV64-C: <stdin>:[[#@LINE-4]]:11: error: immediate must be a multiple of 4 bytes in the range [0, 124]
-# TODO-RV64-NO-C: <stdin>:[[#@LINE-5]]:11: error: instruction requires the following: 'C' (Compressed Instructions){{$}}
-# CHECK-RV64-NO-C: <stdin>:[[#@LINE-6]]:11: error: invalid operand for instruction
+# TODO-RV64-NO-C: <stdin>:[[#@LINE-5]]:1: error: invalid instruction
+# CHECK-RV64-NO-C: <stdin>:[[#@LINE-6]]:1: error: invalid instruction

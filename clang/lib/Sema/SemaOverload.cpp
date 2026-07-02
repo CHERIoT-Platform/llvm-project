@@ -6290,6 +6290,14 @@ ExprResult Sema::PerformImplicitObjectArgumentInitialization(
   QualType FromRecordType, DestType;
   QualType ImplicitParamRecordType = Method->getFunctionObjectParameterType();
 
+  if (getLangOpts().HLSL &&
+      From->getType().getAddressSpace() == LangAS::hlsl_constant) {
+    QualType CastType = From->getType().getLocalUnqualifiedType().withConst();
+    From = ImplicitCastExpr::Create(Context, CastType, CK_LValueToRValue, From,
+                                    /*BasePath=*/nullptr, VK_PRValue,
+                                    FPOptionsOverride());
+  }
+
   if (const auto *FromPtrTy = From->getType()->getAs<PointerType>()) {
     const auto *ThisPtrTy = Method->getThisType()->getAs<PointerType>();
     if (ThisPtrTy->getPointerInterpretation() != FromPtrTy->getPointerInterpretation()) {

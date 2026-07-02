@@ -3786,6 +3786,13 @@ void AsmMatcherEmitter::run(raw_ostream &OS) {
   OS << "  // Return a more specific error code if no mnemonics match.\n";
   OS << "  if (MnemonicRange.first == MnemonicRange.second)\n";
   OS << "    return Match_MnemonicFail;\n\n";
+
+  if (ReportMultipleNearMisses) {
+    OS << "  // First operand near-miss of each opcode that mismatched in\n";
+    OS << "  // more than one operand. Used only if no opcode yields a\n";
+    OS << "  // near-miss of its own (see below).\n";
+    OS << "  SmallVector<NearMissInfo, 4> MultiMismatchFallback;\n\n";
+  }
   if (!ReportMultipleNearMisses)
     OS << "  auto FirstValidMnemonic = MnemonicRange.first;\n";
   OS << "  bool FoundValidMnemonic = false;\n";
@@ -3841,8 +3848,9 @@ void AsmMatcherEmitter::run(raw_ostream &OS) {
   if (HasOptionalOperands)
     OS << "    OptionalOperandsMask.reset(0, "
        << MaxNumOperands + HasMnemonicFirst << ");\n";
+  OS << "    unsigned ActualIdx = " << (HasMnemonicFirst ? "1" : "SIndex")
+     << ";\n";
   OS << "    for (unsigned FormalIdx = " << (HasMnemonicFirst ? "0" : "SIndex")
-     << ", ActualIdx = " << (HasMnemonicFirst ? "1" : "SIndex")
      << "; FormalIdx != " << MaxNumOperands << "; ++FormalIdx) {\n";
   OS << "      auto Formal = "
      << "static_cast<MatchClassKind>(it->Classes[FormalIdx]);\n";
@@ -3978,6 +3986,22 @@ void AsmMatcherEmitter::run(raw_ostream &OS) {
     OS << "        break;\n";
     OS << "      }\n";
     OS << "    }\n\n";
+    OS << "    // Reject surplus operands as one more operand mismatch.\n";
+    OS << "    if (!MultipleInvalidOperands && ActualIdx < Operands.size()) "
+          "{\n";
+    OS << "      if (!OperandNearMiss) {\n";
+    OS << "        DEBUG_WITH_TYPE(\"asm-matcher\", dbgs() << \"too many "
+          "operands, recording near-miss at index \"\n";
+    OS << "                        << ActualIdx << \"\\n\");\n";
+    OS << "        OperandNearMiss = NearMissInfo::getMissedOperand(\n";
+    OS << "            Match_InvalidOperand, InvalidMatchClass, it->Opcode, "
+          "ActualIdx);\n";
+    OS << "      } else {\n";
+    OS << "        DEBUG_WITH_TYPE(\"asm-matcher\", dbgs() << \"too many "
+          "operands after an earlier mismatch, skipping this opcode\\n\");\n";
+    OS << "        MultipleInvalidOperands = true;\n";
+    OS << "      }\n";
+    OS << "    }\n\n";
   } else {
     OS << "      // If this operand is broken for all of the instances of "
           "this\n";
@@ -4007,6 +4031,13 @@ void AsmMatcherEmitter::run(raw_ostream &OS) {
   OS << "                                               \"operand mismatches, "
         "ignoring \"\n";
   OS << "                                               \"this opcode\\n\");\n";
+  if (ReportMultipleNearMisses) {
+    OS << "      // Too many invalid operands to report a single near-miss;\n";
+    OS << "      // keep the first one as a fallback in case no opcode\n";
+    OS << "      // matches more closely.\n";
+    OS << "      if (OperandNearMiss)\n";
+    OS << "        MultiMismatchFallback.push_back(OperandNearMiss);\n";
+  }
   OS << "      continue;\n";
   OS << "    }\n";
 
@@ -4245,7 +4276,13 @@ void AsmMatcherEmitter::run(raw_ostream &OS) {
   OS << "  }\n";
 
   if (ReportMultipleNearMisses) {
-    OS << "  // No instruction variants matched exactly.\n";
+    OS << "  // No instruction variants matched exactly. If nothing produced\n";
+    OS << "  // a near-miss, fall back to the multi-mismatch list so we can\n";
+    OS << "  // still give a specific diagnostic rather than a generic\n";
+    OS << "  // \"invalid instruction\".\n";
+    OS << "  if (NearMisses && NearMisses->empty())\n";
+    OS << "    NearMisses->append(MultiMismatchFallback.begin(),\n";
+    OS << "                       MultiMismatchFallback.end());\n";
     OS << "  return Match_NearMisses;\n";
   } else {
     OS << "  // Okay, we had no match.  Try to return a useful error code.\n";

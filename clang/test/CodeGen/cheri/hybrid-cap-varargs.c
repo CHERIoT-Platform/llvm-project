@@ -71,17 +71,17 @@ extern union int_or_cap int_or_cap;
 // MIPS-NEXT:    store ptr addrspace(200) [[TMP3]], ptr [[BYVAL_TEMP3]], align 16
 // MIPS-NEXT:    call void (i64, ...) @callee(i64 noundef signext 0, ptr noundef byval(ptr addrspace(200)) align 16 [[BYVAL_TEMP]], ptr noundef byval(ptr addrspace(200)) align 16 [[BYVAL_TEMP1]], ptr noundef byval(ptr addrspace(200)) align 16 [[BYVAL_TEMP2]], ptr noundef byval(ptr addrspace(200)) align 16 [[BYVAL_TEMP3]])
 // MIPS-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[BYVAL_TEMP4]], ptr align 16 @single_cap, i64 16, i1 false)
-// MIPS-NEXT:    call void (i64, ...) @callee(i64 noundef signext 1, ptr noundef dead_on_return [[BYVAL_TEMP4]])
+// MIPS-NEXT:    call void (i64, ...) @callee(i64 noundef signext 1, ptr noundef align 16 dead_on_return [[BYVAL_TEMP4]])
 // MIPS-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[BYVAL_TEMP5]], ptr align 16 @double_cap, i64 32, i1 false)
-// MIPS-NEXT:    call void (i64, ...) @callee(i64 noundef signext 2, ptr noundef dead_on_return [[BYVAL_TEMP5]])
+// MIPS-NEXT:    call void (i64, ...) @callee(i64 noundef signext 2, ptr noundef align 16 dead_on_return [[BYVAL_TEMP5]])
 // MIPS-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[BYVAL_TEMP6]], ptr align 16 @single_cap_array, i64 16, i1 false)
-// MIPS-NEXT:    call void (i64, ...) @callee(i64 noundef signext 3, ptr noundef dead_on_return [[BYVAL_TEMP6]])
+// MIPS-NEXT:    call void (i64, ...) @callee(i64 noundef signext 3, ptr noundef align 16 dead_on_return [[BYVAL_TEMP6]])
 // MIPS-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[BYVAL_TEMP7]], ptr align 16 @double_cap_array, i64 32, i1 false)
-// MIPS-NEXT:    call void (i64, ...) @callee(i64 noundef signext 4, ptr noundef dead_on_return [[BYVAL_TEMP7]])
+// MIPS-NEXT:    call void (i64, ...) @callee(i64 noundef signext 4, ptr noundef align 16 dead_on_return [[BYVAL_TEMP7]])
 // MIPS-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[BYVAL_TEMP8]], ptr align 16 @mixed, i64 32, i1 false)
-// MIPS-NEXT:    call void (i64, ...) @callee(i64 noundef signext 5, ptr noundef dead_on_return [[BYVAL_TEMP8]])
+// MIPS-NEXT:    call void (i64, ...) @callee(i64 noundef signext 5, ptr noundef align 16 dead_on_return [[BYVAL_TEMP8]])
 // MIPS-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[BYVAL_TEMP9]], ptr align 16 @int_or_cap, i64 16, i1 false)
-// MIPS-NEXT:    call void (i64, ...) @callee(i64 noundef signext 6, ptr noundef dead_on_return [[BYVAL_TEMP9]])
+// MIPS-NEXT:    call void (i64, ...) @callee(i64 noundef signext 6, ptr noundef align 16 dead_on_return [[BYVAL_TEMP9]])
 // MIPS-NEXT:    ret void
 //
 // RV32IXCHERI-LABEL: define {{[^@]+}}@caller
@@ -109,12 +109,12 @@ extern union int_or_cap int_or_cap;
 // RV32IXCHERI-NEXT:    call void (i32, ...) @callee(i32 noundef 0, ptr noundef byval(ptr addrspace(200)) align 8 [[BYVAL_TEMP]], ptr noundef byval(ptr addrspace(200)) align 8 [[BYVAL_TEMP1]], ptr noundef byval(ptr addrspace(200)) align 8 [[BYVAL_TEMP2]], ptr noundef byval(ptr addrspace(200)) align 8 [[BYVAL_TEMP3]])
 // RV32IXCHERI-NEXT:    call void (i32, ...) @callee(i32 noundef 1, ptr noundef byval([[STRUCT_SINGLE_CAP:%.*]]) align 8 @single_cap)
 // RV32IXCHERI-NEXT:    call void @llvm.memcpy.p0.p0.i32(ptr align 8 [[BYVAL_TEMP4]], ptr align 8 @double_cap, i32 16, i1 false)
-// RV32IXCHERI-NEXT:    call void (i32, ...) @callee(i32 noundef 2, ptr noundef dead_on_return [[BYVAL_TEMP4]])
+// RV32IXCHERI-NEXT:    call void (i32, ...) @callee(i32 noundef 2, ptr noundef align 8 dead_on_return [[BYVAL_TEMP4]])
 // RV32IXCHERI-NEXT:    call void (i32, ...) @callee(i32 noundef 3, ptr noundef byval([[STRUCT_SINGLE_CAP_ARRAY:%.*]]) align 8 @single_cap_array)
 // RV32IXCHERI-NEXT:    call void @llvm.memcpy.p0.p0.i32(ptr align 8 [[BYVAL_TEMP5]], ptr align 8 @double_cap_array, i32 16, i1 false)
-// RV32IXCHERI-NEXT:    call void (i32, ...) @callee(i32 noundef 4, ptr noundef dead_on_return [[BYVAL_TEMP5]])
+// RV32IXCHERI-NEXT:    call void (i32, ...) @callee(i32 noundef 4, ptr noundef align 8 dead_on_return [[BYVAL_TEMP5]])
 // RV32IXCHERI-NEXT:    call void @llvm.memcpy.p0.p0.i32(ptr align 8 [[BYVAL_TEMP6]], ptr align 8 @mixed, i32 16, i1 false)
-// RV32IXCHERI-NEXT:    call void (i32, ...) @callee(i32 noundef 5, ptr noundef dead_on_return [[BYVAL_TEMP6]])
+// RV32IXCHERI-NEXT:    call void (i32, ...) @callee(i32 noundef 5, ptr noundef align 8 dead_on_return [[BYVAL_TEMP6]])
 // RV32IXCHERI-NEXT:    call void (i32, ...) @callee(i32 noundef 6, ptr noundef byval([[UNION_INT_OR_CAP:%.*]]) align 8 @int_or_cap)
 // RV32IXCHERI-NEXT:    ret void
 //
@@ -143,12 +143,12 @@ extern union int_or_cap int_or_cap;
 // RV64IXCHERI-NEXT:    call void (i64, ...) @callee(i64 noundef 0, ptr noundef byval(ptr addrspace(200)) align 16 [[BYVAL_TEMP]], ptr noundef byval(ptr addrspace(200)) align 16 [[BYVAL_TEMP1]], ptr noundef byval(ptr addrspace(200)) align 16 [[BYVAL_TEMP2]], ptr noundef byval(ptr addrspace(200)) align 16 [[BYVAL_TEMP3]])
 // RV64IXCHERI-NEXT:    call void (i64, ...) @callee(i64 noundef 1, ptr noundef byval([[STRUCT_SINGLE_CAP:%.*]]) align 16 @single_cap)
 // RV64IXCHERI-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[BYVAL_TEMP4]], ptr align 16 @double_cap, i64 32, i1 false)
-// RV64IXCHERI-NEXT:    call void (i64, ...) @callee(i64 noundef 2, ptr noundef dead_on_return [[BYVAL_TEMP4]])
+// RV64IXCHERI-NEXT:    call void (i64, ...) @callee(i64 noundef 2, ptr noundef align 16 dead_on_return [[BYVAL_TEMP4]])
 // RV64IXCHERI-NEXT:    call void (i64, ...) @callee(i64 noundef 3, ptr noundef byval([[STRUCT_SINGLE_CAP_ARRAY:%.*]]) align 16 @single_cap_array)
 // RV64IXCHERI-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[BYVAL_TEMP5]], ptr align 16 @double_cap_array, i64 32, i1 false)
-// RV64IXCHERI-NEXT:    call void (i64, ...) @callee(i64 noundef 4, ptr noundef dead_on_return [[BYVAL_TEMP5]])
+// RV64IXCHERI-NEXT:    call void (i64, ...) @callee(i64 noundef 4, ptr noundef align 16 dead_on_return [[BYVAL_TEMP5]])
 // RV64IXCHERI-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[BYVAL_TEMP6]], ptr align 16 @mixed, i64 32, i1 false)
-// RV64IXCHERI-NEXT:    call void (i64, ...) @callee(i64 noundef 5, ptr noundef dead_on_return [[BYVAL_TEMP6]])
+// RV64IXCHERI-NEXT:    call void (i64, ...) @callee(i64 noundef 5, ptr noundef align 16 dead_on_return [[BYVAL_TEMP6]])
 // RV64IXCHERI-NEXT:    call void (i64, ...) @callee(i64 noundef 6, ptr noundef byval([[UNION_INT_OR_CAP:%.*]]) align 16 @int_or_cap)
 // RV64IXCHERI-NEXT:    ret void
 //

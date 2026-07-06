@@ -83,7 +83,7 @@ union u128 {
 extern union u128 global128;
 
 // CHECK-32-LABEL: define {{[^@]+}}@arg128
-// CHECK-32-SAME: (ptr addrspace(200) noundef dead_on_return [[U:%.*]]) addrspace(200) #[[ATTR0]] {
+// CHECK-32-SAME: (ptr addrspace(200) noundef align 16 dead_on_return [[U:%.*]]) addrspace(200) #[[ATTR0]] {
 // CHECK-32-NEXT:  entry:
 // CHECK-32-NEXT:    [[U_INDIRECT_ADDR:%.*]] = alloca ptr addrspace(200), align 8, addrspace(200)
 // CHECK-32-NEXT:    store ptr addrspace(200) [[U]], ptr addrspace(200) [[U_INDIRECT_ADDR]], align 8
@@ -107,7 +107,7 @@ __int128 arg128(union u128 u) {
 // CHECK-32-NEXT:  entry:
 // CHECK-32-NEXT:    [[BYVAL_TEMP:%.*]] = alloca [[UNION_U128:%.*]], align 16, addrspace(200)
 // CHECK-32-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i32(ptr addrspace(200) align 16 [[BYVAL_TEMP]], ptr addrspace(200) align 16 @global128, i32 16, i1 false)
-// CHECK-32-NEXT:    [[CALL:%.*]] = call addrspace(200) i128 @arg128(ptr addrspace(200) noundef dead_on_return [[BYVAL_TEMP]])
+// CHECK-32-NEXT:    [[CALL:%.*]] = call addrspace(200) i128 @arg128(ptr addrspace(200) noundef align 16 dead_on_return [[BYVAL_TEMP]])
 // CHECK-32-NEXT:    ret void
 //
 // CHECK-64-LABEL: define {{[^@]+}}@call128
@@ -159,7 +159,7 @@ union nested {
 extern union nested global_nested;
 
 // CHECK-32-LABEL: define {{[^@]+}}@arg_nested
-// CHECK-32-SAME: (ptr addrspace(200) noundef dead_on_return [[U:%.*]]) addrspace(200) #[[ATTR0]] {
+// CHECK-32-SAME: (ptr addrspace(200) noundef align 8 dead_on_return [[U:%.*]]) addrspace(200) #[[ATTR0]] {
 // CHECK-32-NEXT:  entry:
 // CHECK-32-NEXT:    [[U_INDIRECT_ADDR:%.*]] = alloca ptr addrspace(200), align 8, addrspace(200)
 // CHECK-32-NEXT:    store ptr addrspace(200) [[U]], ptr addrspace(200) [[U_INDIRECT_ADDR]], align 8
@@ -168,7 +168,7 @@ extern union nested global_nested;
 // CHECK-32-NEXT:    ret i32 [[TMP0]]
 //
 // CHECK-64-LABEL: define {{[^@]+}}@arg_nested
-// CHECK-64-SAME: (ptr addrspace(200) noundef dead_on_return [[U:%.*]]) addrspace(200) #[[ATTR0]] {
+// CHECK-64-SAME: (ptr addrspace(200) noundef align 16 dead_on_return [[U:%.*]]) addrspace(200) #[[ATTR0]] {
 // CHECK-64-NEXT:  entry:
 // CHECK-64-NEXT:    [[U_INDIRECT_ADDR:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // CHECK-64-NEXT:    store ptr addrspace(200) [[U]], ptr addrspace(200) [[U_INDIRECT_ADDR]], align 16
@@ -184,7 +184,7 @@ int arg_nested(union nested u) {
 // CHECK-32-NEXT:  entry:
 // CHECK-32-NEXT:    [[BYVAL_TEMP:%.*]] = alloca [[UNION_NESTED:%.*]], align 8, addrspace(200)
 // CHECK-32-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i32(ptr addrspace(200) align 8 [[BYVAL_TEMP]], ptr addrspace(200) align 8 @global_nested, i32 16, i1 false)
-// CHECK-32-NEXT:    [[CALL:%.*]] = call addrspace(200) i32 @arg_nested(ptr addrspace(200) noundef dead_on_return [[BYVAL_TEMP]])
+// CHECK-32-NEXT:    [[CALL:%.*]] = call addrspace(200) i32 @arg_nested(ptr addrspace(200) noundef align 8 dead_on_return [[BYVAL_TEMP]])
 // CHECK-32-NEXT:    ret void
 //
 // CHECK-64-LABEL: define {{[^@]+}}@call_nested
@@ -192,7 +192,7 @@ int arg_nested(union nested u) {
 // CHECK-64-NEXT:  entry:
 // CHECK-64-NEXT:    [[BYVAL_TEMP:%.*]] = alloca [[UNION_NESTED:%.*]], align 16, addrspace(200)
 // CHECK-64-NEXT:    call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[BYVAL_TEMP]], ptr addrspace(200) align 16 @global_nested, i64 32, i1 false)
-// CHECK-64-NEXT:    [[CALL:%.*]] = call signext addrspace(200) i32 @arg_nested(ptr addrspace(200) noundef dead_on_return [[BYVAL_TEMP]])
+// CHECK-64-NEXT:    [[CALL:%.*]] = call signext addrspace(200) i32 @arg_nested(ptr addrspace(200) noundef align 16 dead_on_return [[BYVAL_TEMP]])
 // CHECK-64-NEXT:    ret void
 //
 void call_nested(void) {

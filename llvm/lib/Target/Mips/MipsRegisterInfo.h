@@ -22,7 +22,8 @@
 
 namespace llvm {
 
-class TargetRegisterClass;
+class MCRegisterClass;
+using TargetRegisterClass = MCRegisterClass;
 class MipsSubtarget;
 
 class MipsRegisterInfo : public MipsGenRegisterInfo {

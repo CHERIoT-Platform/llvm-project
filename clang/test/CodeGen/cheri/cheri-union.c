@@ -19,7 +19,7 @@ int *y;
 // CHECK-LABEL: define {{[^@]+}}@foo
 // CHECK-SAME: (ptr addrspace(200) nofree readnone captures(address, ret: address, provenance) [[M_COERCE:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @x, align 16, !tbaa [[TBAA6:![0-9]+]]
+// CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @x, align 16, !tbaa [[TBAA10:![0-9]+]]
 // CHECK-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[M_COERCE]], [[TMP0]]
 // CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) @y, align 16
 // CHECK-NEXT:    [[RETVAL_0:%.*]] = select i1 [[CMP]], ptr addrspace(200) [[TMP1]], ptr addrspace(200) [[M_COERCE]]
@@ -35,11 +35,11 @@ int *foo(union u1 m)
 }
 
 // CHECK-LABEL: define {{[^@]+}}@bar
-// CHECK-SAME: (ptr addrspace(200) nofree noundef readonly captures(none) dead_on_return [[M:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR1:[0-9]+]] {
+// CHECK-SAME: (ptr addrspace(200) nofree noundef readonly align 16 captures(none) dead_on_return [[M:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR1:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[Z:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[M]], i64 16
-// CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[Z]], align 16, !tbaa [[TBAA11:![0-9]+]]
-// CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) @x, align 16, !tbaa [[TBAA6]]
+// CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[Z]], align 16, !tbaa [[TBAA12:![0-9]+]]
+// CHECK-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) @x, align 16, !tbaa [[TBAA10]]
 // CHECK-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[TMP0]], [[TMP1]]
 // CHECK-NEXT:    [[TMP2:%.*]] = load ptr addrspace(200), ptr addrspace(200) @y, align 16
 // CHECK-NEXT:    [[RETVAL_0:%.*]] = select i1 [[CMP]], ptr addrspace(200) [[TMP2]], ptr addrspace(200) [[TMP0]]

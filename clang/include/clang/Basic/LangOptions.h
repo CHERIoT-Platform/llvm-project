@@ -673,6 +673,9 @@ public:
   /// The allocation token mode.
   std::optional<llvm::AllocTokenMode> AllocTokenMode;
 
+  /// Name of the literal encoding to convert the internal encoding to.
+  std::string LiteralEncoding;
+
   /// The name of the CHERI compartment for this compilation unit.
   std::string CheriCompartmentName;
 

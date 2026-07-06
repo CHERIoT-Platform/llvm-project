@@ -89,7 +89,7 @@ AMemberFuncPtr return_p2f_null() {
 // RISCV64-NOCHERI-NEXT:    ret [2 x i64] [[P2F_COERCE]]
 //
 // RISCV64-PURECAP-LABEL: define {{[^@]+}}@_Z15passthrough_p2fM1AFivE
-// RISCV64-PURECAP-SAME: (ptr addrspace(200) dead_on_unwind noalias nofree writable writeonly sret({ ptr addrspace(200), i64 }) align 16 captures(none) initializes((0, 32)) [[AGG_RESULT:%.*]], ptr addrspace(200) nofree noundef readonly captures(none) dead_on_return [[TMP0:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2:[0-9]+]] {
+// RISCV64-PURECAP-SAME: (ptr addrspace(200) dead_on_unwind noalias nofree writable writeonly sret({ ptr addrspace(200), i64 }) align 16 captures(none) initializes((0, 32)) [[AGG_RESULT:%.*]], ptr addrspace(200) nofree noundef readonly align 16 captures(none) dead_on_return [[TMP0:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR2:[0-9]+]] {
 // RISCV64-PURECAP-NEXT:  entry:
 // RISCV64-PURECAP-NEXT:    tail call addrspace(200) void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) noundef nonnull align 16 dereferenceable(32) [[AGG_RESULT]], ptr addrspace(200) noundef nonnull align 16 dereferenceable(32) [[TMP0]], i64 32, i1 false)
 // RISCV64-PURECAP-NEXT:    ret void

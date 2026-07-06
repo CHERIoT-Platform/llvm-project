@@ -30,8 +30,8 @@ void foo(void) {
 
 // MEMCPY-LABEL: define dso_local void @foo()
 // MEMCPY:       call addrspace(200) void @llvm.memcpy.p200.p200.i64
-// MEMCPY-NEXT:  call addrspace(200) void @do_stuff_extern(ptr addrspace(200) noundef dead_on_return {{%.+}})
-// MEMCPY-LABEL: declare void @do_stuff_extern(ptr addrspace(200) noundef dead_on_return)
+// MEMCPY-NEXT:  call addrspace(200) void @do_stuff_extern(ptr addrspace(200) noundef align 8 dead_on_return {{%.+}})
+// MEMCPY-LABEL: declare void @do_stuff_extern(ptr addrspace(200) noundef align 8 dead_on_return)
 
 
 // EXPANDED-LABEL: define dso_local void @foo()
@@ -45,5 +45,5 @@ void foo(void) {
 
 // N64-MEMCPY-LABEL: define dso_local void @foo()
 // N64-MEMCPY: call void @llvm.memcpy.p0.p0.i64
-// N64-MEMCPY: call void @do_stuff_extern(ptr noundef dead_on_return {{%.+}})
-// N64-MEMCPY-LABEL: declare void @do_stuff_extern(ptr noundef dead_on_return)
+// N64-MEMCPY: call void @do_stuff_extern(ptr noundef align 8 dead_on_return {{%.+}})
+// N64-MEMCPY-LABEL: declare void @do_stuff_extern(ptr noundef align 8 dead_on_return)

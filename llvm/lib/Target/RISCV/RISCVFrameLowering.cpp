@@ -1262,6 +1262,7 @@ void RISCVFrameLowering::emitPrologue(MachineFunction &MF,
       if (hasBP(MF)) {
         // move BP, SP
         TII->copyPhysReg(MBB, MBBI, DL, BPReg, SPReg, false);
+        std::prev(MBBI)->setFlag(MachineInstr::FrameSetup);
       }
     }
   }

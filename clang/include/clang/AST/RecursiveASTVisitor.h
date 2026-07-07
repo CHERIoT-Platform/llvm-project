@@ -2010,6 +2010,7 @@ bool RecursiveASTVisitor<Derived>::TraverseTemplateInstantiations(
       case TSK_ExplicitInstantiationDeclaration:
       case TSK_ExplicitInstantiationDefinition:
       case TSK_ExplicitSpecialization:
+      case TSK_FriendDeclaration:
         break;
       }
     }
@@ -2030,6 +2031,7 @@ bool RecursiveASTVisitor<Derived>::TraverseTemplateInstantiations(
         TRY_TO(TraverseDecl(RD));
         break;
 
+      case TSK_FriendDeclaration:
       case TSK_ExplicitInstantiationDeclaration:
       case TSK_ExplicitInstantiationDefinition:
       case TSK_ExplicitSpecialization:
@@ -2064,6 +2066,7 @@ bool RecursiveASTVisitor<Derived>::TraverseTemplateInstantiations(
         TRY_TO(TraverseDecl(RD));
         break;
 
+      case TSK_FriendDeclaration:
       case TSK_ExplicitSpecialization:
         break;
       }
@@ -2230,8 +2233,9 @@ bool RecursiveASTVisitor<Derived>::TraverseTemplateArgumentLocsHelper(
        handles traversal of template args and qualifier.                       \
        For explicit specializations ("template<> set<int> {...};"),            \
        we traverse template args here since there is no EID. */                \
-    if (D->getTemplateSpecializationKind() == TSK_ExplicitSpecialization) {    \
-      const auto *ArgsWritten = D->getTemplateArgsAsWritten();                 \
+    if (const auto *Info = D->getExplicitSpecializationInfo()) {               \
+      const auto *ArgsWritten = Info->TemplateArgsAsWritten;                   \
+      TRY_TO(TraverseTemplateParameterListHelper(Info->TemplateParams));       \
       TRY_TO(TraverseTemplateArgumentLocsHelper(                               \
           ArgsWritten->getTemplateArgs(), ArgsWritten->NumTemplateArgs));      \
     } else if (!getDerived().shouldVisitTemplateInstantiations()) {            \

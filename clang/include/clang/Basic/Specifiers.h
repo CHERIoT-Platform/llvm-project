@@ -194,6 +194,8 @@ namespace clang {
     /// This template specialization was implicitly instantiated from a
     /// template. (C++ [temp.inst]).
     TSK_ImplicitInstantiation,
+    /// This template is a friend declaration.
+    TSK_FriendDeclaration,
     /// This template specialization was declared or defined by an
     /// explicit specialization (C++ [temp.expl.spec]) or partial
     /// specialization (C++ [temp.class.spec]).
@@ -228,6 +230,7 @@ namespace clang {
 
     case TSK_Undeclared:
     case TSK_ImplicitInstantiation:
+    case TSK_FriendDeclaration:
       return false;
     }
     llvm_unreachable("bad template specialization kind");

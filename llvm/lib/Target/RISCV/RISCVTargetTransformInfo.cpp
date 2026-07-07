@@ -1140,11 +1140,8 @@ InstructionCost RISCVTTIImpl::getInterleavedMemoryOpCost(
 
         // Otherwise, the cost is proportional to the number of elements (VL *
         // Factor ops).
-        InstructionCost MemOpCost =
-            getMemoryOpCost(Opcode, VTy->getElementType(), Alignment, 0,
-                            CostKind, {TTI::OK_AnyValue, TTI::OP_None});
         unsigned NumLoads = getEstimatedVLFor(VTy);
-        return NumLoads * MemOpCost;
+        return NumLoads * TTI::TCC_Basic;
       }
     }
   }
@@ -1304,14 +1301,8 @@ InstructionCost RISCVTTIImpl::getExpandCompressMemoryOpCost(
 InstructionCost
 RISCVTTIImpl::getStridedMemoryOpCost(const MemIntrinsicCostAttributes &MICA,
                                      TTI::TargetCostKind CostKind) const {
-
-  unsigned Opcode = MICA.getID() == Intrinsic::experimental_vp_strided_load
-                        ? Instruction::Load
-                        : Instruction::Store;
-
   Type *DataTy = MICA.getDataType();
   Align Alignment = MICA.getAlignment();
-  const Instruction *I = MICA.getInst();
 
   if (!isLegalStridedLoadStore(DataTy, Alignment))
     return BaseT::getMemIntrinsicInstrCost(MICA, CostKind);
@@ -1322,13 +1313,9 @@ RISCVTTIImpl::getStridedMemoryOpCost(const MemIntrinsicCostAttributes &MICA,
   // Cost is proportional to the number of memory operations implied.  For
   // scalable vectors, we use an estimate on that number since we don't
   // know exactly what VL will be.
-  // FIXME: This will overcost for i64 on rv32 with +zve64x.
   auto &VTy = *cast<VectorType>(DataTy);
-  InstructionCost MemOpCost =
-      getMemoryOpCost(Opcode, VTy.getElementType(), Alignment, 0, CostKind,
-                      {TTI::OK_AnyValue, TTI::OP_None}, I);
   unsigned NumLoads = getEstimatedVLFor(&VTy);
-  return NumLoads * MemOpCost;
+  return NumLoads * TTI::TCC_Basic;
 }
 
 InstructionCost

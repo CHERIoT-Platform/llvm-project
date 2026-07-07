@@ -1858,6 +1858,7 @@ void SystemZTargetLowering::LowerAsmOperandForConstraint(
 // Calling conventions
 //===----------------------------------------------------------------------===//
 
+#define GET_CALLING_CONV_IMPL
 #include "SystemZGenCallingConv.inc"
 
 const MCPhysReg *SystemZTargetLowering::getScratchRegisters(

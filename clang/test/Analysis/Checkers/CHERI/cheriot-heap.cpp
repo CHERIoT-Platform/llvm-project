@@ -29,7 +29,7 @@ int test_1(int* p) {
     unknown_call();
     heap_claim_ephemeral(nullptr, p, nullptr);
     check_pointer<PermissionSet{PermissionStore}>(p, sizeof(int));
-    return *p; // expected-warning {{Read of heap pointer 'p' without passing the appropriate permission to check_pointer. Runtime behavior will depend on the permissions provided by the caller. Use the EnforceStrictPermissions template parameter to check_pointer to enforce consistency across callers}}
+    return *p; // expected-warning {{Read of heap pointer 'p' without passing the appropriate permission (LD) to check_pointer. Runtime behavior will depend on the permissions provided by the caller. Use the EnforceStrictPermissions template parameter to check_pointer to enforce consistency across callers}}
 }
 
 __attribute__((cheri_compartment("test")))
@@ -37,7 +37,7 @@ int test_2(int* p) {
     unknown_call();
     heap_claim_ephemeral(nullptr, p, nullptr);
     check_pointer<PermissionSet{PermissionStore}, true, true>(p, sizeof(int));
-    return *p; // expected-warning {{Read of heap pointer 'p' without passing the appropriate permission to check_pointer}}
+    return *p; // expected-warning {{Read of heap pointer 'p' without passing the appropriate permission (LD) to check_pointer}}
 }
 
 __attribute__((cheri_compartment("test")))
@@ -45,7 +45,7 @@ void test_3(int* p) {
     unknown_call();
     heap_claim_ephemeral(nullptr, p, nullptr);
     check_pointer<PermissionSet{PermissionLoad}>(p, sizeof(int));
-    *p = 1; // expected-warning {{Store through heap pointer 'p' without passing the appropriate permission to check_pointer. Runtime behavior will depend on the permissions provided by the caller. Use the EnforceStrictPermissions template parameter to check_pointer to enforce consistency across callers}}
+    *p = 1; // expected-warning {{Store through heap pointer 'p' without passing the appropriate permission (SD) to check_pointer. Runtime behavior will depend on the permissions provided by the caller. Use the EnforceStrictPermissions template parameter to check_pointer to enforce consistency across callers}}
 }
 
 __attribute__((cheri_compartment("test")))
@@ -53,5 +53,5 @@ void test_4(int* p) {
     unknown_call();
     heap_claim_ephemeral(nullptr, p, nullptr);
     check_pointer<PermissionSet{PermissionLoad}, true, true>(p, sizeof(int));
-    *p = 1; // expected-warning {{Store through heap pointer 'p' without passing the appropriate permission to check_pointer}}
+    *p = 1; // expected-warning {{Store through heap pointer 'p' without passing the appropriate permission (SD) to check_pointer}}
 }

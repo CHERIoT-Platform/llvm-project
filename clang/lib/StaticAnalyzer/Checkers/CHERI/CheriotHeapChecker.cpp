@@ -482,7 +482,10 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
   }
 
   const CheckPtrState *CPS = C.getState()->get<CheckedPointers>(Sym);
-  if ((IsLoad && !CPS->canLoad()) || (!IsLoad && !CPS->canStore())) {
+  unsigned MissingLD = IsLoad && !CPS->canLoad();
+  unsigned MissingSD = !IsLoad && !CPS->canStore();
+  unsigned MissingCount = MissingLD + MissingSD;
+  if (MissingCount > 0) {
     ExplodedNode *N = C.generateErrorNode();
     if (!N)
       return;
@@ -494,7 +497,20 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
     else
       os << "Store through heap pointer ";
     printSymbolNameForError(os, Sym);
-    os << "without passing the appropriate permission to check_pointer.";
+    os << "without passing the appropriate "
+       << ((MissingCount == 1) ? "permission (" : "permissions (");
+
+    bool prependOr = false;
+    auto printPerm = [&](bool perm, const char *str) {
+      if (!perm)
+        return;
+      if (prependOr)
+        os << "|";
+      os << str;
+    };
+    printPerm(MissingLD, "LD");
+    printPerm(MissingSD, "SD");
+    os << ") to check_pointer.";
     if (!CPS->isStrict())
       os << " Runtime behavior will depend on the permissions provided by the "
             "caller. Use the EnforceStrictPermissions template parameter to "

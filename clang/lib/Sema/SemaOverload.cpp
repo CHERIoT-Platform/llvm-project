@@ -1328,10 +1328,8 @@ OverloadKind Sema::CheckOverload(Scope *S, FunctionDecl *New,
       !New->getType()->isDependentType()) {
     LookupResult TemplateSpecResult(LookupResult::Temporary, Old);
     TemplateSpecResult.addAllDecls(Old);
-    if (CheckFunctionTemplateSpecialization(New, /*TemplateParams=*/nullptr,
-                                            /*ExplicitTemplateArgs=*/nullptr,
-                                            TemplateSpecResult,
-                                            /*QualifiedFriend*/ true)) {
+    if (CheckFunctionTemplateSpecialization(New, nullptr, TemplateSpecResult,
+                                            /*QualifiedFriend*/true)) {
       New->setInvalidDecl();
       return OverloadKind::Overload;
     }

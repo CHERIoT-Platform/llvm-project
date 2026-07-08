@@ -658,10 +658,6 @@ MipsGotSection::MipsGotSection(Ctx &ctx)
     : SyntheticSection(ctx, ".got", SHT_PROGBITS,
                        SHF_ALLOC | SHF_WRITE | SHF_MIPS_GPREL, 16) {}
 
-void MipsGotSection::addConstant(const Relocation &r) {
-  relocations.push_back(r);
-}
-
 void MipsGotSection::addEntry(InputFile &file, Symbol &sym, int64_t addend,
                               RelExpr expr) {
   FileGot &g = getGot(file);
@@ -950,7 +946,7 @@ void MipsGotSection::build() {
       // for the TP-relative offset as we don't know how much other data will
       // be allocated before us in the static TLS block.
       if (!s->isPreemptible && !ctx.arg.shared)
-        addConstant({R_TPREL, ctx.target->symbolicRel, offset, 0, s});
+        addConstant(ctx, {R_TPREL, ctx.target->symbolicRel, offset, 0, s});
       else
         ctx.in.relaDyn->addAddendOnlyRelocIfNonPreemptible(
             ctx.target->tlsGotRel, *this, offset, *s, ctx.target->symbolicRel);
@@ -963,7 +959,7 @@ void MipsGotSection::build() {
           ctx.in.relaDyn->addReloc(
               {ctx.target->tlsModuleIndexRel, this, offset});
         else
-          addConstant(
+          addConstant(ctx, 
               {R_ADDEND, ctx.target->symbolicRel, offset, 1, ctx.dummySym});
       } else {
         // When building a shared library we still need a dynamic relocation
@@ -972,7 +968,7 @@ void MipsGotSection::build() {
         // thread-locals that have been marked as local through a linker script)
         if (!s->isPreemptible && !ctx.arg.shared)
           // Write one to the GOT slot.
-          addConstant({R_ADDEND, ctx.target->symbolicRel, offset, 1, s});
+          addConstant(ctx, {R_ADDEND, ctx.target->symbolicRel, offset, 1, s});
         else
           ctx.in.relaDyn->addSymbolReloc(ctx.target->tlsModuleIndexRel, *this,
                                          offset, *s);
@@ -983,7 +979,7 @@ void MipsGotSection::build() {
           ctx.in.relaDyn->addSymbolReloc(ctx.target->tlsOffsetRel, *this,
                                          offset, *s);
         else
-          addConstant({R_ABS, ctx.target->tlsOffsetRel, offset, 0, s});
+          addConstant(ctx, {R_ABS, ctx.target->tlsOffsetRel, offset, 0, s});
       }
     }
 
@@ -991,7 +987,7 @@ void MipsGotSection::build() {
     for (const std::pair<Symbol *, size_t> &p : got.global) {
       uint64_t offset = p.second * ctx.arg.wordsize;
       if (&got == primGot)
-        addConstant({R_ABS, ctx.target->relativeRel, offset, 0, p.first});
+        addConstant(ctx, {R_ABS, ctx.target->relativeRel, offset, 0, p.first});
       else
         ctx.in.relaDyn->addSymbolReloc(ctx.target->relativeRel, *this, offset,
                                        *p.first);
@@ -1003,7 +999,7 @@ void MipsGotSection::build() {
            "Relocation-only entries should only be in the primary GOT");
     for (const std::pair<Symbol *, size_t> &p : got.relocs) {
       uint64_t offset = p.second * ctx.arg.wordsize;
-      addConstant({R_ABS, ctx.target->relativeRel, offset, 0, p.first});
+      addConstant(ctx, {R_ABS, ctx.target->relativeRel, offset, 0, p.first});
     }
 
     // Relocations for "local" entries
@@ -1014,7 +1010,7 @@ void MipsGotSection::build() {
         uint64_t offset = (l.second.firstIndex + pi) * ctx.arg.wordsize;
         int64_t addend = int64_t(pi * 0x10000);
         if (!ctx.arg.isPic || &got == primGot)
-          addConstant({RE_MIPS_OSEC_LOCAL_PAGE, ctx.target->relativeRel, offset,
+          addConstant(ctx, {RE_MIPS_OSEC_LOCAL_PAGE, ctx.target->relativeRel, offset,
                        addend, l.second.repSym});
         else
           ctx.in.relaDyn->addRelativeReloc(
@@ -1025,10 +1021,10 @@ void MipsGotSection::build() {
     for (const std::pair<GotEntry, size_t> &p : got.local16) {
       uint64_t offset = p.second * ctx.arg.wordsize;
       if (p.first.first == nullptr)
-        addConstant({R_ADDEND, ctx.target->relativeRel, offset, p.first.second,
+        addConstant(ctx, {R_ADDEND, ctx.target->relativeRel, offset, p.first.second,
                      ctx.dummySym});
       else if (!ctx.arg.isPic || &got == primGot)
-        addConstant({R_ABS, ctx.target->relativeRel, offset, p.first.second,
+        addConstant(ctx, {R_ABS, ctx.target->relativeRel, offset, p.first.second,
                      p.first.first});
       else
         ctx.in.relaDyn->addRelativeReloc(ctx.target->relativeRel, *this, offset,

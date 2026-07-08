@@ -5,6 +5,7 @@ namespace CHERI {
 
 static constexpr unsigned PermissionStore = 1 << 2;
 static constexpr unsigned PermissionLoad = 1 << 5;
+static constexpr unsigned PermissionLoadStoreCap = 1 << 6;
 
 struct PermissionSet {
     unsigned rawPermissions;
@@ -29,7 +30,7 @@ int test_1(int* p) {
     unknown_call();
     heap_claim_ephemeral(nullptr, p, nullptr);
     check_pointer<PermissionSet{PermissionStore}>(p, sizeof(int));
-    return *p; // expected-warning {{Read of heap pointer 'p' without passing the appropriate permission (LD) to check_pointer. Runtime behavior will depend on the permissions provided by the caller. Use the EnforceStrictPermissions template parameter to check_pointer to enforce consistency across callers}}
+    return *p; // expected-warning {{Load through heap pointer 'p' without passing the appropriate permission (LD) to check_pointer. Runtime behavior will depend on the permissions provided by the caller. Use the EnforceStrictPermissions template parameter to check_pointer to enforce consistency across callers}}
 }
 
 __attribute__((cheri_compartment("test")))
@@ -37,7 +38,7 @@ int test_2(int* p) {
     unknown_call();
     heap_claim_ephemeral(nullptr, p, nullptr);
     check_pointer<PermissionSet{PermissionStore}, true, true>(p, sizeof(int));
-    return *p; // expected-warning {{Read of heap pointer 'p' without passing the appropriate permission (LD) to check_pointer}}
+    return *p; // expected-warning {{Load through heap pointer 'p' without passing the appropriate permission (LD) to check_pointer}}
 }
 
 __attribute__((cheri_compartment("test")))
@@ -54,4 +55,40 @@ void test_4(int* p) {
     heap_claim_ephemeral(nullptr, p, nullptr);
     check_pointer<PermissionSet{PermissionLoad}, true, true>(p, sizeof(int));
     *p = 1; // expected-warning {{Store through heap pointer 'p' without passing the appropriate permission (SD) to check_pointer}}
+}
+
+__attribute__((cheri_compartment("test")))
+void test_5(int** p) {
+    unknown_call();
+    heap_claim_ephemeral(nullptr, p, nullptr);
+    check_pointer<PermissionSet{PermissionLoad}, true, true>(p, sizeof(int*));
+    int *q = *p;
+    *q = 0; // expected-warning {{Store through pointer which may be an invalid capability because MC permission was not checked before it was loaded}}
+}
+
+__attribute__((cheri_compartment("test")))
+void test_6(int** p) {
+    unknown_call();
+    heap_claim_ephemeral(nullptr, p, nullptr);
+    check_pointer<PermissionSet{PermissionLoad|PermissionLoadStoreCap}, true, true>(p, sizeof(int*));
+    int *q = *p;
+    *q = 0;
+}
+
+__attribute__((cheri_compartment("test")))
+int test_7(int** p) {
+    unknown_call();
+    heap_claim_ephemeral(nullptr, p, nullptr);
+    check_pointer<PermissionSet{PermissionLoad}, true, true>(p, sizeof(int*));
+    int *q = *p;
+    return *q; // expected-warning {{Load through pointer which may be an invalid capability because MC permission was not checked before it was loaded}}
+}
+
+__attribute__((cheri_compartment("test")))
+int test_8(int** p) {
+    unknown_call();
+    heap_claim_ephemeral(nullptr, p, nullptr);
+    check_pointer<PermissionSet{PermissionLoad|PermissionLoadStoreCap}, true, true>(p, sizeof(int*));
+    int *q = *p;
+    return *q;
 }

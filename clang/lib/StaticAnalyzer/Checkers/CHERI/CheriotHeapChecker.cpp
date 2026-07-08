@@ -56,10 +56,17 @@ struct CheckPtrState {
       return true;
     return Permissions & PermissionLoad;
   }
+
   bool canStore() const {
     if (!Checked)
       return true;
     return Permissions & PermissionStore;
+  }
+
+  bool canLoadStoreCap() const {
+    if (!Checked)
+      return true;
+    return Permissions & PermissionLoadStoreCap;
   }
 
   bool isStrict() const { return EnforceStrictPermissions; }
@@ -79,6 +86,7 @@ struct CheckPtrState {
 
   static constexpr uint32_t PermissionStore = 1 << 2;
   static constexpr uint32_t PermissionLoad = 1 << 5;
+  static constexpr uint32_t PermissionLoadStoreCap = 1 << 6;
 };
 
 class CheriotHeapChecker
@@ -137,6 +145,14 @@ public:
 
 private:
   void reportLeak(SymbolRef Sym, CheckerContext &C) const;
+  void reportDerefOfUnclaimedPointer(SymbolRef Sym, bool IsLoad, const Stmt *S,
+                                     const HeapPtrState *HPS,
+                                     CheckerContext &C) const;
+  void reportDerefMissingPerms(SymbolRef Sym, bool IsLoad, const Stmt *S,
+                               const CheckPtrState *CPS,
+                               CheckerContext &C) const;
+  void reportDerefOfUntaggedCapability(SymbolRef Sym, bool IsLoad,
+                                       const Stmt *S, CheckerContext &C) const;
 };
 
 } // anonymous namespace
@@ -144,6 +160,7 @@ private:
 REGISTER_TRAIT_WITH_PROGRAMSTATE(ExternalStateMutated, bool)
 REGISTER_MAP_WITH_PROGRAMSTATE(HeapPointers, SymbolRef, HeapPtrState)
 REGISTER_MAP_WITH_PROGRAMSTATE(CheckedPointers, SymbolRef, CheckPtrState)
+REGISTER_SET_WITH_PROGRAMSTATE(CapabilityTagCleared, SymbolRef)
 
 static bool shouldWarnOnDereferences(ProgramStateRef State) {
   if (State->get<ExternalStateMutated>())
@@ -378,8 +395,7 @@ void CheriotHeapChecker::postHeapFreeAll(const CallEvent &Call,
 }
 
 static uint32_t
-getPermissionsFromCXXCheckPointerArg(const TemplateArgument &Arg,
-                                     ASTContext &Ctx) {
+getPermissionsFromCXXCheckPointerArg(const TemplateArgument &Arg) {
   const ValueDecl *VD = Arg.getAsDecl();
   const TemplateParamObjectDecl *TPOD = cast<TemplateParamObjectDecl>(VD);
   const APValue &PermissionSetVal = TPOD->getValue();
@@ -409,9 +425,8 @@ void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
   if (TemplateArgs->size() != 4)
     return;
 
-  ASTContext &Ctx = C.getASTContext();
   uint32_t Permissions =
-      getPermissionsFromCXXCheckPointerArg(TemplateArgs->get(0), Ctx);
+      getPermissionsFromCXXCheckPointerArg(TemplateArgs->get(0));
   bool CheckStack = TemplateArgs->get(1).getAsIntegral().getExtValue();
   bool EnforceStrictPermissions =
       TemplateArgs->get(2).getAsIntegral().getExtValue();
@@ -427,103 +442,149 @@ void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
   C.addTransition(State);
 }
 
+void CheriotHeapChecker::reportDerefOfUnclaimedPointer(
+    SymbolRef Sym, bool IsLoad, const Stmt *S, const HeapPtrState *HPS,
+    CheckerContext &C) const {
+  ExplodedNode *N = C.generateErrorNode();
+  if (!N)
+    return;
+
+  SmallString<200> buf;
+  llvm::raw_svector_ostream os(buf);
+  if (IsLoad)
+    os << "Read of heap pointer ";
+  else
+    os << "Store through heap pointer ";
+  printSymbolNameForError(os, Sym);
+  if (HPS->isUnclaimed())
+    os << "without a valid claim.";
+  else if (HPS->isInvalidatedEphemeral())
+    os << "after its ephemeral claim was released by a cross-compartment "
+          "call.";
+
+  auto Report =
+      std::make_unique<PathSensitiveBugReport>(InvalidUseBugType, os.str(), N);
+  if (S)
+    Report->addRange(S->getSourceRange());
+  Report->markInteresting(Sym);
+  C.emitReport(std::move(Report));
+}
+
+void CheriotHeapChecker::reportDerefMissingPerms(SymbolRef Sym, bool IsLoad,
+                                                 const Stmt *S,
+                                                 const CheckPtrState *CPS,
+                                                 CheckerContext &C) const {
+  ExplodedNode *N = C.generateErrorNode();
+  if (!N)
+    return;
+
+  SmallString<200> buf;
+  llvm::raw_svector_ostream os(buf);
+  if (IsLoad)
+    os << "Load through heap pointer ";
+  else
+    os << "Store through heap pointer ";
+  printSymbolNameForError(os, Sym);
+  os << "without passing the appropriate permission (";
+  os << (IsLoad ? "LD" : "SD");
+  os << ") to check_pointer.";
+  if (!CPS->isStrict())
+    os << " Runtime behavior will depend on the permissions provided by the "
+          "caller. Use the EnforceStrictPermissions template parameter to "
+          "check_pointer to enforce consistency across callers.";
+
+  auto Report =
+      std::make_unique<PathSensitiveBugReport>(InvalidUseBugType, os.str(), N);
+  if (S)
+    Report->addRange(S->getSourceRange());
+  Report->markInteresting(Sym);
+  C.emitReport(std::move(Report));
+}
+
+void CheriotHeapChecker::reportDerefOfUntaggedCapability(
+    SymbolRef Sym, bool IsLoad, const Stmt *S, CheckerContext &C) const {
+  ExplodedNode *N = C.generateErrorNode();
+  if (!N)
+    return;
+
+  SmallString<200> buf;
+  llvm::raw_svector_ostream os(buf);
+  if (IsLoad)
+    os << "Load through pointer ";
+  else
+    os << "Store through pointer ";
+  printSymbolNameForError(os, Sym);
+  os << "which may be an invalid capability because MC permission was not "
+        "checked before it was loaded.";
+
+  auto Report =
+      std::make_unique<PathSensitiveBugReport>(InvalidUseBugType, os.str(), N);
+  if (S) {
+    Report->addRange(S->getSourceRange());
+    if (isa<Expr>(S))
+      bugreporter::trackExpressionValue(N, cast<Expr>(S), *Report);
+  }
+  Report->markInteresting(Sym);
+  C.emitReport(std::move(Report));
+}
+
 void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
                                        CheckerContext &C) const {
   ProgramStateRef State = C.getState();
+  ProgramStateRef OldState = State;
   SymbolRef Sym = Loc.getLocSymbolInBase();
 
   // If this is a write to non-stack memory that is not one of the
   // tracked compartment call arguments, then it is an internal state
   // change that could cause state desynchronization on compartment
   // crash.
+  bool CompartmentCrashWarningsLive = shouldWarnOnDereferences(State);
   const HeapPtrState *HPS = Sym ? State->get<HeapPointers>(Sym) : nullptr;
-  bool WarningsLive = shouldWarnOnDereferences(State);
-  if (!WarningsLive && !IsLoad && !HPS) {
+  if (!CompartmentCrashWarningsLive && !IsLoad && !HPS) {
     const MemRegion *R = Loc.getAsRegion();
     if (R)
       R = R->StripCasts();
-    if (!R || !isa<StackSpaceRegion>(R->getMemorySpace(State))) {
+    if (!R || !isa<StackSpaceRegion>(R->getMemorySpace(State)))
       State = State->set<ExternalStateMutated>(true);
+  }
+
+  if (!Sym) {
+    if (State != OldState)
       C.addTransition(State);
-      return;
-    }
-  }
-
-  if (!WarningsLive || !Sym)
-    return;
-
-  // This is a dereference of some form, so this is a bug if the
-  // claim has already been released either by freeing or invalidation.
-  if (HPS && !HPS->isEffectivelyClaimed()) {
-    ExplodedNode *N = C.generateErrorNode();
-    if (!N)
-      return;
-
-    SmallString<200> buf;
-    llvm::raw_svector_ostream os(buf);
-    if (IsLoad)
-      os << "Read of heap pointer ";
-    else
-      os << "Store through heap pointer ";
-    printSymbolNameForError(os, Sym);
-    if (HPS->isUnclaimed())
-      os << "without a valid claim.";
-    else if (HPS->isInvalidatedEphemeral())
-      os << "after its ephemeral claim was released by a cross-compartment "
-            "call.";
-
-    auto Report = std::make_unique<PathSensitiveBugReport>(InvalidUseBugType,
-                                                           os.str(), N);
-    if (S)
-      Report->addRange(S->getSourceRange());
-    Report->markInteresting(Sym);
-    C.emitReport(std::move(Report));
     return;
   }
 
-  const CheckPtrState *CPS = C.getState()->get<CheckedPointers>(Sym);
-  unsigned MissingLD = IsLoad && !CPS->canLoad();
-  unsigned MissingSD = !IsLoad && !CPS->canStore();
-  unsigned MissingCount = MissingLD + MissingSD;
-  if (MissingCount > 0) {
-    ExplodedNode *N = C.generateErrorNode();
-    if (!N)
-      return;
+  const CheckPtrState *CPS = State->get<CheckedPointers>(Sym);
+  bool MissingMC = IsLoad &&
+                   Sym->getType()->getPointeeType()->isPointerType() && CPS &&
+                   !CPS->canLoadStoreCap();
+  if (MissingMC) {
+    SVal Loaded = State->getSVal(Loc.castAs<::clang::ento::Loc>());
+    if (SymbolRef LoadedSym = Loaded.getAsLocSymbol())
+      State = State->add<CapabilityTagCleared>(LoadedSym);
+  }
 
-    SmallString<200> buf;
-    llvm::raw_svector_ostream os(buf);
-    if (IsLoad)
-      os << "Read of heap pointer ";
-    else
-      os << "Store through heap pointer ";
-    printSymbolNameForError(os, Sym);
-    os << "without passing the appropriate "
-       << ((MissingCount == 1) ? "permission (" : "permissions (");
-
-    bool prependOr = false;
-    auto printPerm = [&](bool perm, const char *str) {
-      if (!perm)
-        return;
-      if (prependOr)
-        os << "|";
-      os << str;
-    };
-    printPerm(MissingLD, "LD");
-    printPerm(MissingSD, "SD");
-    os << ") to check_pointer.";
-    if (!CPS->isStrict())
-      os << " Runtime behavior will depend on the permissions provided by the "
-            "caller. Use the EnforceStrictPermissions template parameter to "
-            "check_pointer to enforce consistency across callers.";
-
-    auto Report = std::make_unique<PathSensitiveBugReport>(InvalidUseBugType,
-                                                           os.str(), N);
-    if (S)
-      Report->addRange(S->getSourceRange());
-    Report->markInteresting(Sym);
-    C.emitReport(std::move(Report));
+  if (!CompartmentCrashWarningsLive) {
+    if (State != OldState)
+      C.addTransition(State);
     return;
   }
+
+  if (HPS && !HPS->isEffectivelyClaimed())
+    reportDerefOfUnclaimedPointer(Sym, IsLoad, S, HPS, C);
+
+  bool MissingLD = IsLoad && CPS && !CPS->canLoad();
+  bool MissingSD = !IsLoad && CPS && !CPS->canStore();
+  if (MissingLD || MissingSD)
+    reportDerefMissingPerms(Sym, IsLoad, S, CPS, C);
+
+  bool TagCleared = State->contains<CapabilityTagCleared>(Sym);
+  if (TagCleared)
+    reportDerefOfUntaggedCapability(Sym, IsLoad, S, C);
+
+  if (State != OldState)
+    C.addTransition(State);
+  return;
 }
 
 ProgramStateRef CheriotHeapChecker::checkPointerEscape(
@@ -601,7 +662,6 @@ void CheriotHeapChecker::reportLeak(SymbolRef Sym, CheckerContext &C) const {
   if (!N)
     return;
 
-  std::string Name = "";
   SmallString<200> buf;
   llvm::raw_svector_ostream os(buf);
   os << "Claim on pointer ";

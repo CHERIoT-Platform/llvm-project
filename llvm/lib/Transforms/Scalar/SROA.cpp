@@ -2978,8 +2978,7 @@ static Value *extractVector(IRBuilderTy &IRB, Value *V, unsigned BeginIndex,
     return V;
 
   if (NumElements == 1) {
-    V = IRB.CreateExtractElement(V, IRB.getInt32(BeginIndex),
-                                 Name + ".extract");
+    V = IRB.CreateExtractElement(V, BeginIndex, Name + ".extract");
     LLVM_DEBUG(dbgs() << "     extract: " << *V << "\n");
     return V;
   }
@@ -2998,8 +2997,7 @@ static Value *insertVector(IRBuilderTy &IRB, Value *Old, Value *V,
   VectorType *Ty = dyn_cast<VectorType>(V->getType());
   if (!Ty) {
     // Single element to insert.
-    V = IRB.CreateInsertElement(Old, V, IRB.getInt32(BeginIndex),
-                                Name + ".insert");
+    V = IRB.CreateInsertElement(Old, V, BeginIndex, Name + ".insert");
     LLVM_DEBUG(dbgs() << "     insert: " << *V << "\n");
     return V;
   }

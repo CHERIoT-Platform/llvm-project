@@ -536,7 +536,8 @@ private:
                         ArrayRef<TemplateArgument> Args);
   void mangleNestedNameWithClosurePrefix(GlobalDecl GD,
                                          const NamedDecl *PrefixND,
-                                         ArrayRef<StringRef> AdditionalAbiTags);
+                                         ArrayRef<StringRef> AdditionalAbiTags,
+                                         bool NoFunction = false);
   void manglePrefix(NestedNameSpecifier Qualifier);
   void manglePrefix(const DeclContext *DC, bool NoFunction=false);
   void manglePrefix(QualType type);
@@ -1097,10 +1098,10 @@ void CXXNameMangler::mangleNameWithAbiTags(
   //         ::= <local-name>
   //
   const DeclContext *DC = Context.getEffectiveDeclContext(ND);
-  bool IsLambda = isLambda(ND);
 
   if (GetLocalClassDecl(ND) &&
-      (!IsLambda || isCompatibleWith(LangOptions::ClangABI::Ver18))) {
+      (!isLambda(ND) || isCompatibleWith(LangOptions::ClangABI::Ver18) ||
+       !isCompatibleWith(LangOptions::ClangABI::Ver22))) {
     mangleLocalName(GD, AdditionalAbiTags);
     return;
   }
@@ -1875,7 +1876,7 @@ void CXXNameMangler::mangleNestedName(const TemplateDecl *TD,
 
 void CXXNameMangler::mangleNestedNameWithClosurePrefix(
     GlobalDecl GD, const NamedDecl *PrefixND,
-    ArrayRef<StringRef> AdditionalAbiTags) {
+    ArrayRef<StringRef> AdditionalAbiTags, bool NoFunction) {
   // A <closure-prefix> represents a variable or field, not a regular
   // DeclContext, so needs special handling. In this case we're mangling a
   // limited form of <nested-name>:
@@ -1884,7 +1885,7 @@ void CXXNameMangler::mangleNestedNameWithClosurePrefix(
 
   Out << 'N';
 
-  mangleClosurePrefix(PrefixND);
+  mangleClosurePrefix(PrefixND, NoFunction);
   mangleUnqualifiedName(GD, nullptr, AdditionalAbiTags);
 
   Out << 'E';
@@ -1975,8 +1976,13 @@ void CXXNameMangler::mangleLocalName(GlobalDecl GD,
       mangleUnqualifiedBlock(BD);
     } else {
       const NamedDecl *ND = cast<NamedDecl>(D);
-      mangleNestedName(GD, Context.getEffectiveDeclContext(ND),
-                       AdditionalAbiTags, true /*NoFunction*/);
+      const NamedDecl *PrefixND = getClosurePrefix(ND);
+      if (PrefixND && !isCompatibleWith(LangOptions::ClangABI::Ver18))
+        mangleNestedNameWithClosurePrefix(GD, PrefixND, AdditionalAbiTags,
+                                          /*NoFunction=*/true);
+      else
+        mangleNestedName(GD, Context.getEffectiveDeclContext(ND),
+                         AdditionalAbiTags, /*NoFunction=*/true);
     }
   } else if (const BlockDecl *BD = dyn_cast<BlockDecl>(D)) {
     // Mangle a block in a default parameter; see above explanation for

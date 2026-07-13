@@ -13,4 +13,4 @@ camoor.d.aq.rl a4, a5, (ca6) # CHECK: :[[@LINE]]:1: error: unrecognized instruct
 camoor.d. a4, a5, (ca6) # CHECK: :[[@LINE]]:1: error: unrecognized instruction mnemonic
 
 # lr only takes two operands
-clr.d s0, (cs1), s2 # CHECK: :[[@LINE]]:18: error: invalid operand for instruction
+clr.d s0, (cs1), s2 # CHECK: :[[@LINE]]:18: error: unexpected extra operand for instruction

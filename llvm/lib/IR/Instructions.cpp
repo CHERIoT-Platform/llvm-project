@@ -1374,6 +1374,12 @@ LoadInst::LoadInst(Type *Ty, Value *Ptr, const Twine &Name, bool isVolatile,
     : LoadInst(Ty, Ptr, Name, isVolatile, Align, AtomicOrdering::NotAtomic,
                SyncScope::System, InsertBef) {}
 
+LoadInst::LoadInst(Type *Ty, Value *Ptr, const Twine &Name,
+                   const LoadStoreInstProperties &Props,
+                   InsertPosition InsertBef)
+    : LoadInst(Ty, Ptr, Name, Props.IsVolatile, Props.Alignment, Props.Ordering,
+               Props.SSID, InsertBef) {}
+
 LoadInst::LoadInst(Type *Ty, Value *Ptr, const Twine &Name, bool isVolatile,
                    Align Align, AtomicOrdering Order, SyncScope::ID SSID,
                    InsertPosition InsertBef)
@@ -1408,6 +1414,12 @@ StoreInst::StoreInst(Value *val, Value *addr, bool isVolatile, Align Align,
                      InsertPosition InsertBefore)
     : StoreInst(val, addr, isVolatile, Align, AtomicOrdering::NotAtomic,
                 SyncScope::System, InsertBefore) {}
+
+StoreInst::StoreInst(Value *Val, Value *Ptr,
+                     const LoadStoreInstProperties &Props,
+                     InsertPosition InsertBefore)
+    : StoreInst(Val, Ptr, Props.IsVolatile, Props.Alignment, Props.Ordering,
+                Props.SSID, InsertBefore) {}
 
 StoreInst::StoreInst(Value *val, Value *addr, bool isVolatile, Align Align,
                      AtomicOrdering Order, SyncScope::ID SSID,

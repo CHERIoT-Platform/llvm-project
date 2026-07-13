@@ -13,7 +13,7 @@ camoor.w.aq.rl a4, a5, (c6) # CHECK: :[[@LINE]]:1: error: unrecognized instructi
 camoor.w. a4, a5, (c6) # CHECK: :[[@LINE]]:1: error: unrecognized instruction mnemonic
 
 # lr only takes two operands
-clr.w s0, (cs1), s2 # CHECK: :[[@LINE]]:18: error: invalid operand for instruction
+clr.w s0, (cs1), s2 # CHECK: :[[@LINE]]:18: error: unexpected extra operand for instruction
 
 # Note: errors for use of RV64A instructions for RV32 are checked in
 # rv64axcheri-cap-mode-valid.s

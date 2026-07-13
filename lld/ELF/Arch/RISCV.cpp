@@ -45,8 +45,8 @@ public:
   void writePlt(uint8_t *buf, const Symbol &sym,
                 uint64_t pltEntryAddr) const override;
   template <class ELFT, class RelTy>
-  void scanSectionImpl(InputSectionBase &, Relocs<RelTy>);
-  void scanSection(InputSectionBase &) override;
+  void scanSectionImpl(InputSectionBase &, Relocs<RelTy>, unsigned shard);
+  void scanSection(InputSectionBase &, unsigned shard) override;
   RelType getDynRel(RelType type) const override;
   RelExpr getRelExpr(RelType type, const Symbol &s,
                      const uint8_t *loc) const override;
@@ -546,8 +546,9 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSectionBase &sec) {
 }
 
 template <class ELFT, class RelTy>
-void RISCV::scanSectionImpl(InputSectionBase &sec, Relocs<RelTy> rels) {
-  RelocScan rs(ctx, &sec);
+void RISCV::scanSectionImpl(InputSectionBase &sec, Relocs<RelTy> rels,
+                            unsigned shard) {
+  RelocScan rs(ctx, &sec, shard);
   // Many relocations end up in sec.relocations.
   sec.relocations.reserve(rels.size());
 
@@ -785,11 +786,11 @@ void RISCV::scanSectionImpl(InputSectionBase &sec, Relocs<RelTy> rels) {
     rewriteCheriotLowRelocs(ctx, sec);
 }
 
-void RISCV::scanSection(InputSectionBase &sec) {
+void RISCV::scanSection(InputSectionBase &sec, unsigned shard) {
   if (ctx.arg.is64)
-    elf::scanSection1<RISCV, ELF64LE>(*this, sec);
+    elf::scanSection1<RISCV, ELF64LE>(*this, sec, shard);
   else
-    elf::scanSection1<RISCV, ELF32LE>(*this, sec);
+    elf::scanSection1<RISCV, ELF32LE>(*this, sec, shard);
 }
 
 void RISCV::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {

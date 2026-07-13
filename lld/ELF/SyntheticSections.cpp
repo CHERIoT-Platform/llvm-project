@@ -1623,6 +1623,7 @@ void RelocationBaseSection::addSymbolReloc(
     addendRelType = dynType;
   addReloc(true, dynType, isec, offsetInSec, sym, addend,
            R_ADDEND, addendRelType ? *addendRelType : ctx.target->noneRel,
+           /*shard=*/0,
            writeZero);
 }
 

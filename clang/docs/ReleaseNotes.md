@@ -476,6 +476,11 @@ latest release, please see the [Clang Web Site](https://clang.llvm.org) or the
   "1". The previous functionality remains unchanged.
 - The `-fms-kernel` flag will now implicitly add `-fno-delete-null-pointer-checks`.
   Still `-fdelete-null-pointer-checks` can be used to override this behavior.
+- Extended the `-marm64x` flag to support compiling to object files. When used
+  in this mode, separate compilation jobs are run for ARM64 and ARM64EC object
+  files, which are then merged into a single file using a new `.obj.arm64ec`
+  section. Consumers must support this extension. Currently, this requires
+  LLD for linking or `llvm-ar`/`llvm-lib` for archiving.
 
 ### Removed Compiler Flags
 
@@ -927,12 +932,14 @@ latest release, please see the [Clang Web Site](https://clang.llvm.org) or the
   initializers used during aggregate initialization. (#GH196469)
 - Fixed a crash in constant evaluation using placement new on an array which was later initialized. (#GH196450)
 - Fixed an issue where Clang incorrectly accepted invalid unqualified uses of local nested class names outside their declaring scope. (#GH184622)
+- Fixed a crash when instantiating a class template whose member variable partial specialization has an invalid primary template. (#GH195988)
 - Fixed a crash when parsing invalid friend declaration with storage-class specifier. (#GH186569)
 - Fixed a missing vtable for `dynamic_cast<FinalClass *>(this)` in a function template. (#GH198511)
 - Fixed an assertion failure during init-list checking of an array whose element type is an incomplete class. (#GH140685)
 - Fixed a crash when using a pack indexing type (e.g. ``Ts...[0]``) imported from another module. (#GH204479)
 - Fixed an ODR-merging error in modules, where class-scope `using enum` declarations were not recognized as matching across module
   boundaries.  (#GH207066)
+- Fixed a crash when constant evaluation accessed a base class or member of an object wrapped in `_Atomic`. (#GH203328)
 
 #### Bug Fixes to AST Handling
 

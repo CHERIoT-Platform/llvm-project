@@ -235,7 +235,7 @@ bool TargetLowering::findOptimalMemOpLowering(
   // perform an overlapping store if the previous store was a capability store
   // since the 8-byte store will clear the the tag bit if it overlaps with the
   // prior capability store!
-  bool AllowOverlap = Op.allowOverlap();
+  bool AllowOverlap = !Op.isVolatile();
   if (VT.isFatPointer()) {
     AllowOverlap = false;
   }
@@ -244,7 +244,7 @@ bool TargetLowering::findOptimalMemOpLowering(
     // Use the largest integer type whose alignment constraints are satisfied.
     VT = MVT::LAST_INTEGER_VALUETYPE;
     if (Op.isFixedDstAlign()) {
-      bool LoadsFromSrc = Op.isMemcpy() && !Op.isMemcpyStrSrc();
+      bool LoadsFromSrc = Op.isMemcpyOrMemmove() && !Op.isMemcpyStrSrc();
       while (VT != MVT::i8) {
         unsigned VTSize = VT.getSizeInBits() / 8;
         bool DstOk =

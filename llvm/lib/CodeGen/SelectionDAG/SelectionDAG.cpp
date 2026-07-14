@@ -9738,7 +9738,7 @@ static SDValue getMemmoveLoadsAndStores(
   bool ReachedLimit;
   const bool FoundLowering = TLI.findOptimalMemOpLowering(
       C, MemOps, Limit,
-      MemOp::Copy(Size, DstAlignCanChange, DstAlign, SrcAlign,
+      MemOp::Move(Size, DstAlignCanChange, DstAlign, SrcAlign,
                   isVol, PreserveTags),
       DstPtrInfo.getAddrSpace(), SrcPtrInfo.getAddrSpace(),
       MF.getFunction().getAttributes(), nullptr, &ReachedLimit);

@@ -5,6 +5,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "clang/StaticAnalyzer/Checkers/BuiltinCheckerRegistration.h"
+#include "clang/StaticAnalyzer/Checkers/Taint.h"
 #include "clang/StaticAnalyzer/Core/BugReporter/BugType.h"
 #include "clang/StaticAnalyzer/Core/Checker.h"
 #include "clang/StaticAnalyzer/Core/CheckerManager.h"
@@ -15,6 +16,7 @@
 
 using namespace clang;
 using namespace ento;
+using namespace taint;
 
 namespace {
 
@@ -151,8 +153,8 @@ private:
   void reportDerefMissingPerms(SymbolRef Sym, bool IsLoad, const Stmt *S,
                                const CheckPtrState *CPS,
                                CheckerContext &C) const;
-  void reportDerefOfUntaggedCapability(SymbolRef Sym, bool IsLoad,
-                                       const Stmt *S, CheckerContext &C) const;
+  void reportDerefOfUntaggedCapability(SVal Loc, bool IsLoad, const Stmt *S,
+                                       CheckerContext &C) const;
 };
 
 } // anonymous namespace
@@ -160,7 +162,6 @@ private:
 REGISTER_TRAIT_WITH_PROGRAMSTATE(ExternalStateMutated, bool)
 REGISTER_MAP_WITH_PROGRAMSTATE(HeapPointers, SymbolRef, HeapPtrState)
 REGISTER_MAP_WITH_PROGRAMSTATE(CheckedPointers, SymbolRef, CheckPtrState)
-REGISTER_SET_WITH_PROGRAMSTATE(CapabilityTagCleared, SymbolRef)
 
 static bool shouldWarnOnDereferences(ProgramStateRef State) {
   if (State->get<ExternalStateMutated>())
@@ -502,7 +503,7 @@ void CheriotHeapChecker::reportDerefMissingPerms(SymbolRef Sym, bool IsLoad,
 }
 
 void CheriotHeapChecker::reportDerefOfUntaggedCapability(
-    SymbolRef Sym, bool IsLoad, const Stmt *S, CheckerContext &C) const {
+    SVal Loc, bool IsLoad, const Stmt *S, CheckerContext &C) const {
   ExplodedNode *N = C.generateErrorNode();
   if (!N)
     return;
@@ -513,7 +514,7 @@ void CheriotHeapChecker::reportDerefOfUntaggedCapability(
     os << "Load through pointer ";
   else
     os << "Store through pointer ";
-  printSymbolNameForError(os, Sym);
+  printSymbolNameForError(os, Loc.getLocSymbolInBase());
   os << "which may be an invalid capability because MC permission was not "
         "checked before it was loaded.";
 
@@ -524,7 +525,7 @@ void CheriotHeapChecker::reportDerefOfUntaggedCapability(
     if (isa<Expr>(S))
       bugreporter::trackExpressionValue(N, cast<Expr>(S), *Report);
   }
-  Report->markInteresting(Sym);
+  Report->markInteresting(Loc);
   C.emitReport(std::move(Report));
 }
 
@@ -533,6 +534,7 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
   ProgramStateRef State = C.getState();
   ProgramStateRef OldState = State;
   SymbolRef Sym = Loc.getLocSymbolInBase();
+  const MemRegion *Region = Loc.getAsRegion();
 
   // If this is a write to non-stack memory that is not one of the
   // tracked compartment call arguments, then it is an internal state
@@ -541,10 +543,7 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
   bool CompartmentCrashWarningsLive = shouldWarnOnDereferences(State);
   const HeapPtrState *HPS = Sym ? State->get<HeapPointers>(Sym) : nullptr;
   if (!CompartmentCrashWarningsLive && !IsLoad && !HPS) {
-    const MemRegion *R = Loc.getAsRegion();
-    if (R)
-      R = R->StripCasts();
-    if (!R || !isa<StackSpaceRegion>(R->getMemorySpace(State)))
+    if (!Region || !isa<StackSpaceRegion>(Region->getMemorySpace(State)))
       State = State->set<ExternalStateMutated>(true);
   }
 
@@ -560,8 +559,7 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
                    !CPS->canLoadStoreCap();
   if (MissingMC) {
     SVal Loaded = State->getSVal(Loc.castAs<::clang::ento::Loc>());
-    if (SymbolRef LoadedSym = Loaded.getAsLocSymbol())
-      State = State->add<CapabilityTagCleared>(LoadedSym);
+    State = addTaint(State, Loaded);
   }
 
   if (!CompartmentCrashWarningsLive) {
@@ -578,9 +576,9 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
   if (MissingLD || MissingSD)
     reportDerefMissingPerms(Sym, IsLoad, S, CPS, C);
 
-  bool TagCleared = State->contains<CapabilityTagCleared>(Sym);
+  bool TagCleared = isTainted(State, Loc);
   if (TagCleared)
-    reportDerefOfUntaggedCapability(Sym, IsLoad, S, C);
+    reportDerefOfUntaggedCapability(Loc, IsLoad, S, C);
 
   if (State != OldState)
     C.addTransition(State);

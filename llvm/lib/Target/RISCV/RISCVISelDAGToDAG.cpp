@@ -3632,6 +3632,10 @@ bool RISCVDAGToDAGISel::SelectRegImmCommon(SDValue Addr, SDValue &Base,
 /// compressible) standard load/store instructions.
 bool RISCVDAGToDAGISel::SelectAddrRegImm26(SDValue Addr, SDValue &Base,
                                            SDValue &Offset) {
+
+  if (SelectAddrFrameIndex(Addr, Base, Offset))
+    return true;
+
   SDLoc DL(Addr);
   MVT VT = Addr.getSimpleValueType();
 
@@ -3641,6 +3645,8 @@ bool RISCVDAGToDAGISel::SelectAddrRegImm26(SDValue Addr, SDValue &Base,
     // load/store.
     if (isInt<26>(CVal) && !isInt<12>(CVal)) {
       Base = Addr.getOperand(0);
+      if (auto *FIN = dyn_cast<FrameIndexSDNode>(Base))
+        Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), VT);
       Offset = CurDAG->getSignedTargetConstant(CVal, DL, VT);
       return true;
     }

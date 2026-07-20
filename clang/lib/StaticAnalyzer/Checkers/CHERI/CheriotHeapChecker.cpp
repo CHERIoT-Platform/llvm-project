@@ -628,8 +628,16 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
     reportDerefOfUntaggedCapability(Loc, IsLoad, S, C);
 
   bool ReadOnly = isTainted(State, Loc, TaintTagCapabilityReadOnly);
-  if (ReadOnly && !IsLoad)
-    reportWriteThroughReadOnlyCap(Loc, S, C);
+  if (ReadOnly) {
+    if (!IsLoad)
+      reportWriteThroughReadOnlyCap(Loc, S, C);
+    else if (Sym->getType()->getPointeeType()->isPointerType()) {
+      // Loading a capability through a capability that lacks LM strips LM from
+      // the loaded capability as well.
+      SVal Loaded = State->getSVal(Loc.castAs<::clang::ento::Loc>());
+      State = addTaint(State, Loaded, TaintTagCapabilityReadOnly);
+    }
+  }
 
   if (State != OldState)
     C.addTransition(State);

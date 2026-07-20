@@ -102,3 +102,23 @@ void test_9(int** p) {
     int *q = *p;
     *q = 0; // expected-warning{{Store through pointer which may be a read-only capability because LM permission was not checked before it was loaded}}
 }
+
+__attribute__((cheri_compartment("test")))
+void test_10(int*** p) {
+    unknown_call();
+    heap_claim_ephemeral(nullptr, p, nullptr);
+    check_pointer<PermissionSet{PermissionLoad|PermissionLoadStoreCap}, true, true>(p, sizeof(int*));
+    int **q = *p;
+    int *r = *q;
+    *r = 0; // expected-warning{{Store through pointer which may be a read-only capability because LM permission was not checked before it was loaded}}
+}
+
+__attribute__((cheri_compartment("test")))
+void test_11(int*** p) {
+    unknown_call();
+    heap_claim_ephemeral(nullptr, p, nullptr);
+    check_pointer<PermissionSet{PermissionLoad|PermissionLoadStoreCap|PermissionLoadMutable}, true, true>(p, sizeof(int*));
+    int **q = *p;
+    int *r = *q;
+    *r = 0;
+}

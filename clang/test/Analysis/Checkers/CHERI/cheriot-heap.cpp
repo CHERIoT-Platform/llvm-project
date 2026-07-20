@@ -4,6 +4,7 @@
 namespace CHERI {
 
 static constexpr unsigned PermissionStore = 1 << 2;
+static constexpr unsigned PermissionLoadMutable = 1 << 3;
 static constexpr unsigned PermissionLoad = 1 << 5;
 static constexpr unsigned PermissionLoadStoreCap = 1 << 6;
 
@@ -70,7 +71,7 @@ __attribute__((cheri_compartment("test")))
 void test_6(int** p) {
     unknown_call();
     heap_claim_ephemeral(nullptr, p, nullptr);
-    check_pointer<PermissionSet{PermissionLoad|PermissionLoadStoreCap}, true, true>(p, sizeof(int*));
+    check_pointer<PermissionSet{PermissionLoad|PermissionLoadStoreCap|PermissionLoadMutable}, true, true>(p, sizeof(int*));
     int *q = *p;
     *q = 0;
 }
@@ -91,4 +92,13 @@ int test_8(int** p) {
     check_pointer<PermissionSet{PermissionLoad|PermissionLoadStoreCap}, true, true>(p, sizeof(int*));
     int *q = *p;
     return *q;
+}
+
+__attribute__((cheri_compartment("test")))
+void test_9(int** p) {
+    unknown_call();
+    heap_claim_ephemeral(nullptr, p, nullptr);
+    check_pointer<PermissionSet{PermissionLoad|PermissionLoadStoreCap}, true, true>(p, sizeof(int*));
+    int *q = *p;
+    *q = 0; // expected-warning{{Store through pointer which may be a read-only capability because LM permission was not checked before it was loaded}}
 }

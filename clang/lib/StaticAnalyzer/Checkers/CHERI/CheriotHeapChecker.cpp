@@ -71,6 +71,12 @@ struct CheckPtrState {
     return Permissions & PermissionLoadStoreCap;
   }
 
+  bool canLoadMutable() const {
+    if (!Checked)
+      return true;
+    return Permissions & PermissionLoadMutable;
+  }
+
   bool isStrict() const { return EnforceStrictPermissions; }
 
   bool operator==(const CheckPtrState &X) const {
@@ -87,6 +93,7 @@ struct CheckPtrState {
   }
 
   static constexpr uint32_t PermissionStore = 1 << 2;
+  static constexpr uint32_t PermissionLoadMutable = 1 << 3;
   static constexpr uint32_t PermissionLoad = 1 << 5;
   static constexpr uint32_t PermissionLoadStoreCap = 1 << 6;
 };
@@ -155,7 +162,12 @@ private:
                                CheckerContext &C) const;
   void reportDerefOfUntaggedCapability(SVal Loc, bool IsLoad, const Stmt *S,
                                        CheckerContext &C) const;
+  void reportWriteThroughReadOnlyCap(SVal Loc, const Stmt *S,
+                                     CheckerContext &C) const;
 };
+
+static constexpr TaintTagType TaintTagCapabilityUntagged = 1;
+static constexpr TaintTagType TaintTagCapabilityReadOnly = 2;
 
 } // anonymous namespace
 
@@ -529,6 +541,30 @@ void CheriotHeapChecker::reportDerefOfUntaggedCapability(
   C.emitReport(std::move(Report));
 }
 
+void CheriotHeapChecker::reportWriteThroughReadOnlyCap(
+    SVal Loc, const Stmt *S, CheckerContext &C) const {
+  ExplodedNode *N = C.generateErrorNode();
+  if (!N)
+    return;
+
+  SmallString<200> buf;
+  llvm::raw_svector_ostream os(buf);
+  os << "Store through pointer ";
+  printSymbolNameForError(os, Loc.getLocSymbolInBase());
+  os << "which may be a read-only capability because LM permission was not "
+        "checked before it was loaded.";
+
+  auto Report =
+      std::make_unique<PathSensitiveBugReport>(InvalidUseBugType, os.str(), N);
+  if (S) {
+    Report->addRange(S->getSourceRange());
+    if (isa<Expr>(S))
+      bugreporter::trackExpressionValue(N, cast<Expr>(S), *Report);
+  }
+  Report->markInteresting(Loc);
+  C.emitReport(std::move(Report));
+}
+
 void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
                                        CheckerContext &C) const {
   ProgramStateRef State = C.getState();
@@ -554,12 +590,23 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
   }
 
   const CheckPtrState *CPS = State->get<CheckedPointers>(Sym);
+
+  // Taint-based permissions checks need to be done in increasing order of
+  // severity, as only the last applied taint will be propagated.
+  bool MissingLM = IsLoad &&
+                   Sym->getType()->getPointeeType()->isPointerType() && CPS &&
+                   !CPS->canLoadMutable();
+  if (MissingLM) {
+    SVal Loaded = State->getSVal(Loc.castAs<::clang::ento::Loc>());
+    State = addTaint(State, Loaded, TaintTagCapabilityReadOnly);
+  }
+
   bool MissingMC = IsLoad &&
                    Sym->getType()->getPointeeType()->isPointerType() && CPS &&
                    !CPS->canLoadStoreCap();
   if (MissingMC) {
     SVal Loaded = State->getSVal(Loc.castAs<::clang::ento::Loc>());
-    State = addTaint(State, Loaded);
+    State = addTaint(State, Loaded, TaintTagCapabilityUntagged);
   }
 
   if (!CompartmentCrashWarningsLive) {
@@ -576,9 +623,13 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
   if (MissingLD || MissingSD)
     reportDerefMissingPerms(Sym, IsLoad, S, CPS, C);
 
-  bool TagCleared = isTainted(State, Loc);
+  bool TagCleared = isTainted(State, Loc, TaintTagCapabilityUntagged);
   if (TagCleared)
     reportDerefOfUntaggedCapability(Loc, IsLoad, S, C);
+
+  bool ReadOnly = isTainted(State, Loc, TaintTagCapabilityReadOnly);
+  if (ReadOnly && !IsLoad)
+    reportWriteThroughReadOnlyCap(Loc, S, C);
 
   if (State != OldState)
     C.addTransition(State);

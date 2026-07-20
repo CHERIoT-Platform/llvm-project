@@ -245,17 +245,17 @@ let RegAltNameIndices = [ABIRegAltName] in {
                DwarfRegAlias<X8>;
     def X9_Y : RISCVCapReg<X9, "x9", ["s1", "c9", "cs1"]>, DwarfRegAlias<X9>;
     def X10_Y : RISCVCapReg<X10, "x10", ["a0", "c10", "ca0"]>,
-                DwarfRegAlias<X0>;
+                DwarfRegAlias<X10>;
     def X11_Y : RISCVCapReg<X11, "x11", ["a1", "c11", "ca1"]>,
-                DwarfRegAlias<X1>;
+                DwarfRegAlias<X11>;
     def X12_Y : RISCVCapReg<X12, "x12", ["a2", "c12", "ca2"]>,
-                DwarfRegAlias<X2>;
+                DwarfRegAlias<X12>;
     def X13_Y : RISCVCapReg<X13, "x13", ["a3", "c13", "ca3"]>,
-                DwarfRegAlias<X3>;
+                DwarfRegAlias<X13>;
     def X14_Y : RISCVCapReg<X14, "x14", ["a4", "c14", "ca4"]>,
-                DwarfRegAlias<X4>;
+                DwarfRegAlias<X14>;
     def X15_Y : RISCVCapReg<X15, "x15", ["a5", "c15", "ca5"]>,
-                DwarfRegAlias<X5>;
+                DwarfRegAlias<X15>;
     let CostPerUse = [0, 1] in {
       def X16_Y : RISCVCapReg<X16, "x16", ["a6", "c16", "ca6"]>,
                   DwarfRegAlias<X16>;

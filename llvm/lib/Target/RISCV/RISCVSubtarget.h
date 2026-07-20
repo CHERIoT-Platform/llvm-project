@@ -410,6 +410,9 @@ public:
   // pool if exceeded.
   unsigned getMaxBuildIntsCost() const;
 
+  unsigned getMispredictionPenalty() const override;
+  unsigned getLoadLatency() const override;
+
   unsigned getMaxLMULForFixedLengthVectors() const;
   bool useRVVForFixedLengthVectors() const;
 

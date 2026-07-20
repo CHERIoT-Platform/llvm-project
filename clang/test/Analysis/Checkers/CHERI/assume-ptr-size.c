@@ -12,7 +12,7 @@ void *f(long i64) {
     memcpy(&p, &i64, sizeof(p));
   } else {
     int i32 = i64 & 0xffffffffL;
-    memcpy(&p, &i32, sizeof(p));
+    memcpy(&p, &i32, sizeof(p)); // expected-warning{{'memcpy' reading 16 bytes from a region of size 4}}
   }
   return p;
 }
@@ -20,10 +20,10 @@ void *f(long i64) {
 void *f2(long i64){
   void *p;
   if( sizeof(i64)==i64 ){
-    memcpy(&p, &i64, sizeof(p));
+    memcpy(&p, &i64, sizeof(p)); // expected-warning{{'memcpy' reading 16 bytes from a region of size 8}}
   }else{
     int i32 = i64 & 0xffffffffL;
-    memcpy(&p, &i32, sizeof(p));
+    memcpy(&p, &i32, sizeof(p)); // expected-warning{{'memcpy' reading 16 bytes from a region of size 4}}
   }
   return p;
 }
@@ -34,7 +34,7 @@ void *f3(long i64){
     memcpy(&p, &i64, sizeof(p));
   }else{
     int i32 = i64 & 0xffffffffL;
-    memcpy(&p, &i32, sizeof(p));
+    memcpy(&p, &i32, sizeof(p)); // expected-warning{{'memcpy' reading 16 bytes from a region of size 4}}
   }
   return p;
 }
@@ -45,7 +45,7 @@ void *f4(long i64){
     memcpy(&p, &i64, sizeof(p));
   }else{
     int i32 = i64 & 0xffffffffL;
-    memcpy(&p, &i32, sizeof(p));
+    memcpy(&p, &i32, sizeof(p)); // expected-warning{{'memcpy' reading 16 bytes from a region of size 4}}
   }
   return p;
 }

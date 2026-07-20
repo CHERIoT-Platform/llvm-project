@@ -97,6 +97,9 @@ class SymbolizerProcess {
   InternalMmapVector<char> &GetBuff() { return buffer_; }
 
  private:
+  // Grants the regression test access to input_fd_ and ReadFromSymbolizer().
+  friend class Symbolizer_ReadFromSymbolizerReportsEofAsFailure_Test;
+
   virtual bool ReachedEndOfOutput(const char *buffer, usize length) const {
     UNIMPLEMENTED();
   }

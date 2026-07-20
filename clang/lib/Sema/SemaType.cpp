@@ -42,7 +42,6 @@
 #include "clang/Sema/SemaObjC.h"
 #include "clang/Sema/SemaOpenMP.h"
 #include "clang/Sema/Template.h"
-#include "clang/Sema/TemplateInstCallback.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLForwardCompat.h"
 #include "llvm/ADT/StringExtras.h"
@@ -1676,9 +1675,7 @@ QualType Sema::BuildQualifiedType(QualType T, SourceLocation Loc,
       Qs.removeRestrict();
     } else {
       if (T->isArrayType())
-        Diag(Loc, getLangOpts().C23
-                      ? diag::warn_c23_compat_restrict_on_array_of_pointers
-                      : diag::ext_restrict_on_array_of_pointers_c23);
+        DiagCompat(Loc, diag_compat::restrict_on_array_of_pointers);
     }
   }
 
@@ -10096,16 +10093,7 @@ bool Sema::RequireCompleteTypeImpl(SourceLocation Loc, QualType T,
         diagnoseMissingImport(Loc, Suggested, MissingImportKind::Definition,
                               /*Recover*/ TreatAsComplete);
       return !TreatAsComplete;
-    } else if (Def && !TemplateInstCallbacks.empty()) {
-      CodeSynthesisContext TempInst;
-      TempInst.Kind = CodeSynthesisContext::Memoization;
-      TempInst.Template = Def;
-      TempInst.Entity = Def;
-      TempInst.PointOfInstantiation = Loc;
-      atTemplateBegin(TemplateInstCallbacks, *this, TempInst);
-      atTemplateEnd(TemplateInstCallbacks, *this, TempInst);
     }
-
     return false;
   }
 
@@ -10272,7 +10260,7 @@ bool Sema::RequireLiteralType(SourceLocation Loc, QualType T,
   // cannot have any constexpr constructors or a trivial default constructor,
   // so is non-literal. This is better to diagnose than the resulting absence
   // of constexpr constructors.
-  if (RD->getNumVBases()) {
+  if (!getLangOpts().CPlusPlus26 && RD->getNumVBases()) {
     Diag(RD->getLocation(), diag::note_non_literal_virtual_base)
       << getLiteralDiagFromTagKind(RD->getTagKind()) << RD->getNumVBases();
     for (const auto &I : RD->vbases())

@@ -235,10 +235,11 @@ add_entrypoint_object(
     ../gethostname.h
   DEPENDS
     libc.hdr.types.size_t
+    libc.hdr.types.struct_utsname
     libc.include.sys_syscall
-    libc.include.sys_utsname
     libc.src.__support.OSUtil.osutil
     libc.src.errno.errno
+    libc.src.string.string_utils
 )
 
 add_entrypoint_object(
@@ -343,7 +344,7 @@ add_entrypoint_object(
   DEPENDS
     libc.hdr.unistd_macros
     libc.include.unistd
-    libc.include.sys_ioctl
+    libc.hdr.sys_ioctl_macros
     libc.src.__support.OSUtil.linux.syscall_wrappers.ioctl
     libc.src.errno.errno
 )

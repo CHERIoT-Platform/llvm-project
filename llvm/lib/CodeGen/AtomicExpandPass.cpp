@@ -152,8 +152,7 @@ private:
   bool processAtomicInstr(Instruction *I);
 
 public:
-  bool run(Function &F,
-           const LibcallLoweringModuleAnalysisResult &LibcallResult,
+  bool run(Function &F, const ModuleLibcallLoweringInfo &LibcallResult,
            const TargetMachine *TM);
 };
 
@@ -470,9 +469,9 @@ bool AtomicExpandImpl::processAtomicInstr(Instruction *I) {
   return false;
 }
 
-bool AtomicExpandImpl::run(
-    Function &F, const LibcallLoweringModuleAnalysisResult &LibcallResult,
-    const TargetMachine *TM) {
+bool AtomicExpandImpl::run(Function &F,
+                           const ModuleLibcallLoweringInfo &LibcallResult,
+                           const TargetMachine *TM) {
   const auto *Subtarget = TM->getSubtargetImpl(F);
   if (!Subtarget->enableAtomicExpand())
     return false;
@@ -511,7 +510,7 @@ bool AtomicExpandLegacy::runOnFunction(Function &F) {
     return false;
   auto *TM = &TPC->getTM<TargetMachine>();
 
-  const LibcallLoweringModuleAnalysisResult &LibcallResult =
+  const ModuleLibcallLoweringInfo &LibcallResult =
       getAnalysis<LibcallLoweringInfoWrapper>().getResult(*F.getParent());
   AtomicExpandImpl AE;
   return AE.run(F, LibcallResult, TM);
@@ -525,7 +524,7 @@ PreservedAnalyses AtomicExpandPass::run(Function &F,
                                         FunctionAnalysisManager &FAM) {
   auto &MAMProxy = FAM.getResult<ModuleAnalysisManagerFunctionProxy>(F);
 
-  const LibcallLoweringModuleAnalysisResult *LibcallResult =
+  const ModuleLibcallLoweringInfo *LibcallResult =
       MAMProxy.getCachedResult<LibcallLoweringModuleAnalysis>(*F.getParent());
 
   if (!LibcallResult) {

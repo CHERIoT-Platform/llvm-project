@@ -336,15 +336,29 @@ void RISCV::writeIgotPlt(uint8_t *buf, const Symbol &s) const {
 }
 
 void RISCV::writePltHeader(uint8_t *buf) const {
-  // 1: auipc(c) (c)t2, %pcrel_hi(.got.plt)
-  // (c)sub t1, (c)t1, (c)t3
-  // l[wdc] (c)t3, %pcrel_lo(1b)((c)t2); (c)t3 = _dl_runtime_resolve
-  // addi t1, t1, -pltHeaderSize-12; t1 = &.plt[i] - &.plt[0]
-  // addi/cincoffset (c)t0, (c)t2, %pcrel_lo(1b)
-  // (if shift != 0): srli t1, t1, shift; t1 = &.got.plt[i] - &.got.plt[0]
-  // l[wdc] (c)t0, Ptrsize((c)t0); (c)t0 = link_map
-  // (c)jr (c)t3
-  // (if shift == 0): nop
+  // If using lpad (CFI):
+  //
+  // 1:  auipc  t3, %pcrel_hi(.got.plt)
+  //     sub    t1, t1, t2
+  //     l[w|d] t2, %pcrel_lo(1b)(t3)
+  //     addi   t1, t1, -(hdr size + 16)
+  //     addi   t0, t3, %pcrel_lo(1b)
+  //     srli   t1, t1, log2(16/PTRSIZE)
+  //     l[w|d] t0, PTRSIZE(t0)
+  //     jr     t2
+  //
+  // If not using lpad:
+  //
+  // 1:  auipc  t2, %pcrel_hi(.got.plt)
+  //     sub    t1, t1, t3
+  //     l[w|d] t3, %pcrel_lo(1b)(t2)     ; t3 = _dl_runtime_resolve
+  //     addi   t1, t1, -pltHeaderSize-12 ; t1 = &.plt[i] - &.plt[0]
+  //     addi   t0, t2, %pcrel_lo(1b)
+  //     srli   t1, t1, (rv64?1:2)        ; t1 = &.got.plt[i] - &.got.plt[0]
+  //     l[w|d] t0, Wordsize(t0)          ; t0 = link_map
+  //     jr     t3
+  bool lpad =
+      ctx.arg.andFeatures & GNU_PROPERTY_RISCV_FEATURE_1_CFI_LP_UNLABELED;
   uint32_t offset = ctx.in.gotPlt->getVA() - ctx.in.plt->getVA();
   uint32_t ptrload = ctx.arg.isCheriAbi ? ctx.arg.is64 ? CLC_128 : CLC_64
                      : ctx.arg.is64     ? LD
@@ -354,33 +368,54 @@ void RISCV::writePltHeader(uint8_t *buf) const {
   uint32_t shift = 2 - ctx.arg.is64 - ctx.arg.isCheriAbi;
   uint32_t ptrsize =
       ctx.arg.isCheriAbi ? ctx.arg.capabilitySize : ctx.arg.wordsize;
-  write32le(buf + 0, utype(AUIPC, X_T2, hi20(offset)));
-  write32le(buf + 4, rtype(SUB, X_T1, X_T1, X_T3));
-  write32le(buf + 8, itype(ptrload, X_T3, X_T2, lo12(offset)));
-  write32le(buf + 12, itype(ADDI, X_T1, X_T1, -ctx.target->pltHeaderSize - 12));
-  write32le(buf + 16, itype(ptraddi, X_T0, X_T2, lo12(offset)));
+  uint32_t auipcReg = lpad ? X_T3 : X_T2;
+  uint32_t workReg = lpad ? X_T2 : X_T3;
+
+  write32le(buf + 0, utype(AUIPC, auipcReg, hi20(offset)));
+  write32le(buf + 4, rtype(SUB, X_T1, X_T1, workReg));
+  write32le(buf + 8, itype(ptrload, workReg, auipcReg, lo12(offset)));
+  write32le(buf + 12, itype(ADDI, X_T1, X_T1,
+                            -ctx.target->pltHeaderSize - (lpad ? 16 : 12)));
+  write32le(buf + 16, itype(ptraddi, X_T0, auipcReg, lo12(offset)));
   if (shift != 0)
     write32le(buf + 20, itype(SRLI, X_T1, X_T1, shift));
   write32le(buf + 24 - 4 * (shift == 0), itype(ptrload, X_T0, X_T0, ptrsize));
-  write32le(buf + 28 - 4 * (shift == 0), itype(JALR, 0, X_T3, 0));
+  write32le(buf + 28 - 4 * (shift == 0), itype(JALR, X_X0, workReg, 0));
   if (shift == 0)
     write32le(buf + 28, itype(ADDI, 0, 0, 0));
 }
 
 void RISCV::writePlt(uint8_t *buf, const Symbol &sym,
                      uint64_t pltEntryAddr) const {
-  // 1: auipc(c) (c)t3, %pcrel_hi(f@[.got.plt|.got])
-  // l[wdc] (c)t3, %pcrel_lo(1b)((c)t3)
-  // (c)jalr (c)t1, (c)t3
-  // nop
+  // If using lpad:
+  //
+  //     lpad 0
+  // 1:  auipc   t2, %pcrel_hi(function@.got.plt)
+  //     l[w|d]  t2, %pcrel_lo(1b)(t2)
+  //     jalr    t1, t2
+  //
+  // If not using lpad:
+  //
+  // 1:  auipc   t3, %pcrel_hi(f@.got.plt)
+  //     l[w|d]  t3, %pcrel_lo(1b)(t3)
+  //     jalr    t1, t3
+  //     nop
+  bool lpad =
+      ctx.arg.andFeatures & GNU_PROPERTY_RISCV_FEATURE_1_CFI_LP_UNLABELED;
+
+  uint32_t auipcOffset = lpad * 4;
+  uint32_t offset = sym.getGotPltVA(ctx) - pltEntryAddr - auipcOffset;
+  uint32_t rd = lpad ? X_T2 : X_T3;
   uint32_t ptrload = ctx.arg.isCheriAbi ? ctx.arg.is64 ? CLC_128 : CLC_64
                                         : ctx.arg.is64 ? LD : LW;
-  uint32_t entryva = sym.getGotPltVA(ctx);
-  uint32_t offset = entryva - pltEntryAddr;
-  write32le(buf + 0, utype(AUIPC, X_T3, hi20(offset)));
-  write32le(buf + 4, itype(ptrload, X_T3, X_T3, lo12(offset)));
-  write32le(buf + 8, itype(JALR, X_T1, X_T3, 0));
-  write32le(buf + 12, itype(ADDI, 0, 0, 0));
+  if (lpad)
+    write32le(buf + 0, utype(AUIPC, X_X0, 0)); // lpad 0
+  write32le(buf + 0 + auipcOffset, utype(AUIPC, rd, hi20(offset)));
+  write32le(buf + 4 + auipcOffset,
+            itype(ptrload, rd, rd, lo12(offset)));
+  write32le(buf + 8 + auipcOffset, itype(JALR, X_T1, rd, 0));
+  if (!lpad)
+    write32le(buf + 12, itype(ADDI, X_X0, X_X0, 0));
 }
 
 RelType RISCV::getDynRel(RelType type) const {

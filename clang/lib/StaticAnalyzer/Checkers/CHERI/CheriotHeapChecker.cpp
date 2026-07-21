@@ -48,48 +48,35 @@ struct HeapPtrState {
 };
 
 struct CheckPtrState {
-  bool Checked = false;
   uint32_t Permissions = 0;
+  uint32_t PermissionsKnown = 0;
   bool CheckStack = false;
-  bool EnforceStrictPermissions = false;
 
-  bool canLoad() const {
-    if (!Checked)
+  bool mayHavePermission(uint32_t P) const {
+    if (!(PermissionsKnown & P))
       return true;
-    return Permissions & PermissionLoad;
+    return Permissions & P;
   }
 
-  bool canStore() const {
-    if (!Checked)
-      return true;
-    return Permissions & PermissionStore;
+  bool mayNotHavePermission(uint32_t P) const { return !mustHavePermission(P); }
+
+  bool mustHavePermission(uint32_t P) const {
+    if (!(PermissionsKnown & P))
+      return false;
+    return Permissions & P;
   }
 
-  bool canLoadStoreCap() const {
-    if (!Checked)
-      return true;
-    return Permissions & PermissionLoadStoreCap;
-  }
-
-  bool canLoadMutable() const {
-    if (!Checked)
-      return true;
-    return Permissions & PermissionLoadMutable;
-  }
-
-  bool isStrict() const { return EnforceStrictPermissions; }
+  bool mustNotHavePermission(uint32_t P) const { return !mayHavePermission(P); }
 
   bool operator==(const CheckPtrState &X) const {
-    return Checked == X.Checked && Permissions == X.Permissions &&
-           CheckStack == X.CheckStack &&
-           EnforceStrictPermissions == X.EnforceStrictPermissions;
+    return Permissions == X.Permissions &&
+           PermissionsKnown == X.PermissionsKnown && CheckStack == X.CheckStack;
   }
 
   void Profile(llvm::FoldingSetNodeID &ID) const {
-    ID.AddBoolean(Checked);
     ID.AddInteger(Permissions);
+    ID.AddInteger(PermissionsKnown);
     ID.AddBoolean(CheckStack);
-    ID.AddBoolean(EnforceStrictPermissions);
   }
 
   static constexpr uint32_t PermissionStore = 1 << 2;
@@ -446,10 +433,9 @@ void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
 
   State = State->set<CheckedPointers>(
       Sym, CheckPtrState{
-               .Checked = true,
                .Permissions = Permissions,
+               .PermissionsKnown = EnforceStrictPermissions ? ~0U : Permissions,
                .CheckStack = CheckStack,
-               .EnforceStrictPermissions = EnforceStrictPermissions,
            });
 
   C.addTransition(State);
@@ -501,7 +487,8 @@ void CheriotHeapChecker::reportDerefMissingPerms(SymbolRef Sym, bool IsLoad,
   os << "without passing the appropriate permission (";
   os << (IsLoad ? "LD" : "SD");
   os << ") to check_pointer.";
-  if (!CPS->isStrict())
+  if (CPS->mayHavePermission(IsLoad ? CheckPtrState::PermissionLoad
+                                    : CheckPtrState::PermissionStore))
     os << " Runtime behavior will depend on the permissions provided by the "
           "caller. Use the EnforceStrictPermissions template parameter to "
           "check_pointer to enforce consistency across callers.";
@@ -589,21 +576,23 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
     return;
   }
 
-  const CheckPtrState *CPS = State->get<CheckedPointers>(Sym);
+  const CheckPtrState *CPS = State->contains<CheckedPointers>(Sym)
+                                 ? State->get<CheckedPointers>(Sym)
+                                 : nullptr;
 
   // Taint-based permissions checks need to be done in increasing order of
   // severity, as only the last applied taint will be propagated.
-  bool MissingLM = IsLoad &&
-                   Sym->getType()->getPointeeType()->isPointerType() && CPS &&
-                   !CPS->canLoadMutable();
+  bool MissingLM =
+      IsLoad && Sym->getType()->getPointeeType()->isPointerType() && CPS &&
+      CPS->mayNotHavePermission(CheckPtrState::PermissionLoadMutable);
   if (MissingLM) {
     SVal Loaded = State->getSVal(Loc.castAs<::clang::ento::Loc>());
     State = addTaint(State, Loaded, TaintTagCapabilityReadOnly);
   }
 
-  bool MissingMC = IsLoad &&
-                   Sym->getType()->getPointeeType()->isPointerType() && CPS &&
-                   !CPS->canLoadStoreCap();
+  bool MissingMC =
+      IsLoad && Sym->getType()->getPointeeType()->isPointerType() && CPS &&
+      CPS->mayNotHavePermission(CheckPtrState::PermissionLoadStoreCap);
   if (MissingMC) {
     SVal Loaded = State->getSVal(Loc.castAs<::clang::ento::Loc>());
     State = addTaint(State, Loaded, TaintTagCapabilityUntagged);
@@ -618,8 +607,10 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
   if (HPS && !HPS->isEffectivelyClaimed())
     reportDerefOfUnclaimedPointer(Sym, IsLoad, S, HPS, C);
 
-  bool MissingLD = IsLoad && CPS && !CPS->canLoad();
-  bool MissingSD = !IsLoad && CPS && !CPS->canStore();
+  bool MissingLD =
+      IsLoad && CPS && CPS->mayNotHavePermission(CheckPtrState::PermissionLoad);
+  bool MissingSD = !IsLoad && CPS &&
+                   CPS->mayNotHavePermission(CheckPtrState::PermissionStore);
   if (MissingLD || MissingSD)
     reportDerefMissingPerms(Sym, IsLoad, S, CPS, C);
 
@@ -686,7 +677,6 @@ void CheriotHeapChecker::checkBeginFunction(CheckerContext &C) const {
     const VarRegion *VR = State->getRegion(Param, SF);
     if (SymbolRef Sym = State->getSVal(VR).getAsLocSymbol()) {
       State = State->set<HeapPointers>(Sym, HeapPtrState::Unclaimed);
-      State = State->set<CheckedPointers>(Sym, {});
       Modified = true;
     }
   }

@@ -3,6 +3,9 @@ name: PR Build and Test
 on:
   pull_request:
   merge_group:
+  push:
+    branches:
+      - cheriot
 
 permissions:
   contents: read
@@ -81,6 +84,7 @@ jobs:
           ninja test-depends
 
       - name: Test
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
         run: |
           cd Build
           ./bin/llvm-lit -v ../llvm/test/Unit ../clang/test/Unit

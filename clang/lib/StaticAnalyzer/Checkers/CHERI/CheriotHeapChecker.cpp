@@ -68,11 +68,23 @@ struct CheckPtrState {
 
   bool mustNotHavePermission(uint32_t P) const { return !mayHavePermission(P); }
 
-  uint32_t getContradictingPermissions(const CheckPtrState &Other) const {
-    uint32_t NotEqualPerms = Permissions ^ Other.Permissions;
-    uint32_t KnownNotEqualPerms =
-        NotEqualPerms & (PermissionsKnown | Other.PermissionsKnown);
-    return KnownNotEqualPerms;
+  uint32_t getContradictoryPermissions(const CheckPtrState &Prior) const {
+    return (Permissions & PermissionsKnown) &
+           (~Prior.Permissions & Prior.PermissionsKnown);
+  }
+
+  CheckPtrState composeWithPriorState(const CheckPtrState &Prior) const {
+    CheckPtrState NewState = *this;
+    NewState.Permissions |=
+        Prior.Permissions & Prior.PermissionsKnown & ~NewState.PermissionsKnown;
+    NewState.Permissions &= ~(~Prior.Permissions & Prior.PermissionsKnown);
+    NewState.PermissionsKnown |= Prior.PermissionsKnown;
+
+    uint32_t Contradicting = getContradictoryPermissions(Prior);
+    NewState.Permissions &= ~Contradicting;
+    NewState.PermissionsKnown &= ~Contradicting;
+
+    return NewState;
   }
 
   bool operator==(const CheckPtrState &X) const {
@@ -166,7 +178,7 @@ private:
                                        CheckerContext &C) const;
   void reportWriteThroughReadOnlyCap(SVal Loc, const Stmt *S,
                                      CheckerContext &C) const;
-  void reportContradictingCheckPtr(SymbolRef Sym, uint32_t Contradictions,
+  void reportContradictoryCheckPtr(SymbolRef Sym, uint32_t Contradictions,
                                    const CallEvent &CE,
                                    CheckerContext &C) const;
 };
@@ -421,7 +433,7 @@ getPermissionsFromCXXCheckPointerArg(const TemplateArgument &Arg) {
   return RawPerms.getInt().getExtValue();
 }
 
-void CheriotHeapChecker::reportContradictingCheckPtr(SymbolRef Sym,
+void CheriotHeapChecker::reportContradictoryCheckPtr(SymbolRef Sym,
                                                      uint32_t Contradictions,
                                                      const CallEvent &CE,
                                                      CheckerContext &C) const {
@@ -433,7 +445,7 @@ void CheriotHeapChecker::reportContradictingCheckPtr(SymbolRef Sym,
   llvm::raw_svector_ostream os(buf);
   os << "check_pointer called multiple times on pointer ";
   printSymbolNameForError(os, Sym);
-  os << "with contradictory permission requirements (";
+  os << "with required permissions that were removed by a prior call (";
 
   bool PrintBar = false;
   auto RenderPermission = [&](uint32_t Perm, const char *S) {
@@ -502,9 +514,10 @@ void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
   };
 
   if (const CheckPtrState *CPS = State->get<CheckedPointers>(Sym)) {
-    uint32_t Contradictions = NewlyChecked.getContradictingPermissions(*CPS);
+    uint32_t Contradictions = NewlyChecked.getContradictoryPermissions(*CPS);
     if (Contradictions)
-      reportContradictingCheckPtr(Sym, Contradictions, Call, C);
+      reportContradictoryCheckPtr(Sym, Contradictions, Call, C);
+    NewlyChecked = NewlyChecked.composeWithPriorState(*CPS);
   }
 
   State = State->set<CheckedPointers>(Sym, std::move(NewlyChecked));
@@ -585,7 +598,7 @@ void CheriotHeapChecker::reportDerefOfUntaggedCapability(
     os << "Store through pointer ";
   printSymbolNameForError(os, Loc.getLocSymbolInBase());
   os << "which may be an invalid capability because MC permission was not "
-        "checked before it was loaded.";
+        "checked before the pointer was loaded.";
 
   auto Report =
       std::make_unique<PathSensitiveBugReport>(InvalidUseBugType, os.str(), N);
@@ -609,7 +622,7 @@ void CheriotHeapChecker::reportWriteThroughReadOnlyCap(
   os << "Store through pointer ";
   printSymbolNameForError(os, Loc.getLocSymbolInBase());
   os << "which may be a read-only capability because LM permission was not "
-        "checked before it was loaded.";
+        "checked before the pointer was loaded.";
 
   auto Report =
       std::make_unique<PathSensitiveBugReport>(InvalidUseBugType, os.str(), N);

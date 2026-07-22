@@ -122,3 +122,11 @@ void test_11(int*** p) {
     int *r = *q;
     *r = 0;
 }
+
+__attribute__((cheri_compartment("test")))
+void test_12(int*** p) {
+    unknown_call();
+    heap_claim_ephemeral(nullptr, p, nullptr);
+    check_pointer<PermissionSet{PermissionLoad}, true, true>(p, sizeof(int*));
+    check_pointer<PermissionSet{PermissionStore}, true, true>(p, sizeof(int*)); // expected-warning{{check_pointer called multiple times on pointer 'p' with contradictory permission requirements (SD|LD)}}
+}

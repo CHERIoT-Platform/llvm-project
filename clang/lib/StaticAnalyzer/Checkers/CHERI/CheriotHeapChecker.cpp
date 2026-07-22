@@ -68,6 +68,13 @@ struct CheckPtrState {
 
   bool mustNotHavePermission(uint32_t P) const { return !mayHavePermission(P); }
 
+  uint32_t getContradictingPermissions(const CheckPtrState &Other) const {
+    uint32_t NotEqualPerms = Permissions ^ Other.Permissions;
+    uint32_t KnownNotEqualPerms =
+        NotEqualPerms & (PermissionsKnown | Other.PermissionsKnown);
+    return KnownNotEqualPerms;
+  }
+
   bool operator==(const CheckPtrState &X) const {
     return Permissions == X.Permissions &&
            PermissionsKnown == X.PermissionsKnown && CheckStack == X.CheckStack;
@@ -79,10 +86,18 @@ struct CheckPtrState {
     ID.AddBoolean(CheckStack);
   }
 
+  static constexpr uint32_t PermissionGlobal = 1 << 0;
+  static constexpr uint32_t PermissionLoadGlobal = 1 << 1;
   static constexpr uint32_t PermissionStore = 1 << 2;
   static constexpr uint32_t PermissionLoadMutable = 1 << 3;
+  static constexpr uint32_t PermissionStoreLocal = 1 << 4;
   static constexpr uint32_t PermissionLoad = 1 << 5;
   static constexpr uint32_t PermissionLoadStoreCap = 1 << 6;
+  static constexpr uint32_t PermissionAccessSystemRegisters = 1 << 7;
+  static constexpr uint32_t PermissionExecute = 1 << 8;
+  static constexpr uint32_t PermissionUnseal = 1 << 9;
+  static constexpr uint32_t PermissionSeal = 1 << 10;
+  static constexpr uint32_t PermissionUser0 = 1 << 11;
 };
 
 class CheriotHeapChecker
@@ -151,6 +166,9 @@ private:
                                        CheckerContext &C) const;
   void reportWriteThroughReadOnlyCap(SVal Loc, const Stmt *S,
                                      CheckerContext &C) const;
+  void reportContradictingCheckPtr(SymbolRef Sym, uint32_t Contradictions,
+                                   const CallEvent &CE,
+                                   CheckerContext &C) const;
 };
 
 static constexpr TaintTagType TaintTagCapabilityUntagged = 1;
@@ -403,6 +421,52 @@ getPermissionsFromCXXCheckPointerArg(const TemplateArgument &Arg) {
   return RawPerms.getInt().getExtValue();
 }
 
+void CheriotHeapChecker::reportContradictingCheckPtr(SymbolRef Sym,
+                                                     uint32_t Contradictions,
+                                                     const CallEvent &CE,
+                                                     CheckerContext &C) const {
+  ExplodedNode *N = C.generateErrorNode();
+  if (!N)
+    return;
+
+  SmallString<200> buf;
+  llvm::raw_svector_ostream os(buf);
+  os << "check_pointer called multiple times on pointer ";
+  printSymbolNameForError(os, Sym);
+  os << "with contradictory permission requirements (";
+
+  bool PrintBar = false;
+  auto RenderPermission = [&](uint32_t Perm, const char *S) {
+    if (!(Contradictions & Perm))
+      return;
+    if (PrintBar)
+      os << "|";
+    os << S;
+    PrintBar = true;
+  };
+
+  RenderPermission(CheckPtrState::PermissionGlobal, "GL");
+  RenderPermission(CheckPtrState::PermissionLoadGlobal, "LG");
+  RenderPermission(CheckPtrState::PermissionStore, "SD");
+  RenderPermission(CheckPtrState::PermissionLoadMutable, "LM");
+  RenderPermission(CheckPtrState::PermissionStoreLocal, "SL");
+  RenderPermission(CheckPtrState::PermissionLoad, "LD");
+  RenderPermission(CheckPtrState::PermissionLoadStoreCap, "MC");
+  RenderPermission(CheckPtrState::PermissionAccessSystemRegisters, "SR");
+  RenderPermission(CheckPtrState::PermissionExecute, "EX");
+  RenderPermission(CheckPtrState::PermissionUnseal, "US");
+  RenderPermission(CheckPtrState::PermissionSeal, "SE");
+  RenderPermission(CheckPtrState::PermissionUser0, "U0");
+
+  os << ").";
+
+  auto Report =
+      std::make_unique<PathSensitiveBugReport>(InvalidUseBugType, os.str(), N);
+  Report->addRange(CE.getSourceRange());
+  Report->markInteresting(Sym);
+  C.emitReport(std::move(Report));
+}
+
 void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
                                              CheckerContext &C) const {
   ProgramStateRef State = C.getState();
@@ -431,13 +495,19 @@ void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
   bool EnforceStrictPermissions =
       TemplateArgs->get(2).getAsIntegral().getExtValue();
 
-  State = State->set<CheckedPointers>(
-      Sym, CheckPtrState{
-               .Permissions = Permissions,
-               .PermissionsKnown = EnforceStrictPermissions ? ~0U : Permissions,
-               .CheckStack = CheckStack,
-           });
+  CheckPtrState NewlyChecked = {
+      .Permissions = Permissions,
+      .PermissionsKnown = EnforceStrictPermissions ? ~0U : Permissions,
+      .CheckStack = CheckStack,
+  };
 
+  if (const CheckPtrState *CPS = State->get<CheckedPointers>(Sym)) {
+    uint32_t Contradictions = NewlyChecked.getContradictingPermissions(*CPS);
+    if (Contradictions)
+      reportContradictingCheckPtr(Sym, Contradictions, Call, C);
+  }
+
+  State = State->set<CheckedPointers>(Sym, std::move(NewlyChecked));
   C.addTransition(State);
 }
 

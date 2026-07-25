@@ -1193,10 +1193,9 @@ static bool needFuncLabelForBlockAddress(const MachineFunction &MF) {
       continue;
 
     const auto *BB = MBB.getAddressTakenIRBlock();
-    for (const auto &U : BB->users()) {
-      if (isa<BlockAddress>(U))
-        Users.push_back(U);
-    }
+    BlockAddress *BA = BlockAddress::lookup(BB);
+    if (BA)
+      Users.push_back(BA);
   }
 
   while (!Users.empty()) {

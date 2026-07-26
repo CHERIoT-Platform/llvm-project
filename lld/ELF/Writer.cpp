@@ -33,6 +33,7 @@
 #include "llvm/Support/BLAKE3.h"
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/Parallel.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/RandomNumberGenerator.h"
 #include "llvm/Support/SHA1.h"
 #include "llvm/Support/SHA256.h"
@@ -492,9 +493,24 @@ static void demoteAndCopyLocalSymbols(Ctx &ctx) {
         symsVec[i].push_back(b);
     }
   });
-  for (auto &syms : ArrayRef(symsVec.get(), ctx.objectFiles.size()))
+  for (size_t i = 0, e = ctx.objectFiles.size(); i != e; ++i) {
+    // For -r, synthesize an STT_FILE named after the input file for an input
+    // that contributes local symbols but no STT_FILE, so that its symbols are
+    // not attributed to another file's STT_FILE (matching GNU ld).
+    // --discard-all discards STT_FILE symbols.
+    auto &syms = symsVec[i];
+    if (ctx.arg.relocatable && ctx.arg.discard != DiscardPolicy::All &&
+        !syms.empty() &&
+        llvm::none_of(syms, [](Symbol *s) { return s->isFile(); })) {
+      InputFile *file = ctx.objectFiles[i];
+      ctx.in.symTab->addSymbol(
+          makeDefined(ctx, file, sys::path::filename(file->getName()),
+                      STB_LOCAL, /*stOther=*/0, STT_FILE, /*value=*/0,
+                      /*size=*/0, nullptr));
+    }
     for (Symbol *sym : syms)
       ctx.in.symTab->addSymbol(sym);
+  }
 }
 
 // Create a section symbol for each output section so that we can represent
@@ -2201,6 +2217,8 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
 
   {
     llvm::TimeTraceScope timeScope("Add symbols to symtabs");
+    if (ctx.in.symTab)
+      ctx.in.symTab->markGlobalPart();
     // Now that we have defined all possible global symbols including linker-
     // synthesized ones. Visit all symbols to give the finishing touches.
     for (Symbol *sym : ctx.symtab->getSymbols()) {
@@ -2221,7 +2239,8 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
             addVerneed(ctx, *sym);
       }
     }
-
+    if (ctx.in.symTab && !ctx.arg.relocatable)
+      ctx.in.symTab->maybeAddSttFile();
   }
 
   if (ctx.in.mipsGot)

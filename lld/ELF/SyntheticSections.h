@@ -685,6 +685,8 @@ public:
   void finalizeContents() override;
   size_t getSize() const override { return getNumSymbols() * entsize; }
   void addSymbol(Symbol *sym);
+  void maybeAddSttFile();
+  void markGlobalPart() { firstGlobalIdx = symbols.size(); }
   unsigned getNumSymbols() const { return symbols.size() + 1; }
   size_t getSymbolIndex(const Symbol &sym);
   ArrayRef<SymbolTableEntry> getSymbols() const { return symbols; }
@@ -694,6 +696,14 @@ protected:
 
   // A vector of symbols and their string table offsets.
   SmallVector<SymbolTableEntry, 0> symbols;
+
+  // Synthetic STT_FILE with an empty name, added by maybeAddSttFile and placed
+  // by sortSymTabSymbols before all locals that cannot be attributed to a file.
+  Defined *synthSttFileSym = nullptr;
+
+  // symbols.size() before the global loop. Locals from here on are not
+  // file-attributable and move behind synthSttFileSym.
+  size_t firstGlobalIdx = 0;
 
   StringTableSection &strTabSec;
 

@@ -1587,14 +1587,6 @@ def PseudoAddTPRel : Pseudo<(outs GPR:$rd),
 
 /// FrameIndex calculations
 
-// Transforms frameindex -> tframeindex.
-def to_tframeindex : SDNodeXForm<frameindex, [{
-  return CurDAG->getTargetFrameIndex(N->getIndex(), N->getValueType(0));
-}]>;
-
-def : GICustomOperandRenderer<"renderFrameIndex">,
-      GISDNodeXFormEquiv<to_tframeindex>;
-
 let Predicates = [NotCapMode] in {
 def : Pat<(frameindex:$fi), (ADDI (iPTR (to_tframeindex $fi)), 0)>;
 

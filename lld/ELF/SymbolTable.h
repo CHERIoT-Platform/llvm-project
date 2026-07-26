@@ -93,10 +93,8 @@ private:
                                             bool includeNonDefault);
 
   llvm::StringMap<SmallVector<Symbol *, 0>> &getDemangledSyms();
-  bool assignExactVersion(SymbolVersion ver, uint16_t versionId,
-                          StringRef versionName, bool includeNonDefault);
-  void assignWildcardVersion(SymbolVersion ver, uint16_t versionId,
-                             bool includeNonDefault);
+  bool assignExactVersion(SymbolVersion ver, uint16_t versionId);
+  void assignWildcardVersion(SymbolVersion ver, uint16_t versionId);
 
   Ctx &ctx;
 

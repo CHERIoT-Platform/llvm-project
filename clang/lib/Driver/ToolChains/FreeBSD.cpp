@@ -134,27 +134,6 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   const Driver &D = ToolChain.getDriver();
   const llvm::Triple &Triple = ToolChain.getTriple();
   const llvm::Triple::ArchType Arch = ToolChain.getArch();
-  bool IsCHERIPureCapABI = ToolChain.isCheriPurecap();
-  // For CheriABI default to -pie unless -static is also passed
-  // TODO: enable static PIE?
-  const bool CheriAbiPIEDefault =
-      IsCHERIPureCapABI && !Args.hasArg(options::OPT_static);
-  const bool IsPIEDefault = ToolChain.isPIEDefault(Args) || CheriAbiPIEDefault;
-  // We can't pass -pie to the linker if any of -shared,-r,-no-pie,-no-pie are
-  // set
-  Arg *ConflictsWithPie = Args.getLastArg(options::OPT_r, options::OPT_shared);
-  // Have to negate here to handle the no-pie and nopie aliases
-  Arg *LastPIEArg = Args.getLastArg(options::OPT_pie, options::OPT_no_pie,
-                                    options::OPT_nopie);
-  const bool ExplicitPIE =
-      LastPIEArg && LastPIEArg->getOption().matches(options::OPT_pie);
-  if (ExplicitPIE && ConflictsWithPie) {
-    getToolChain().getDriver().Diag(diag::err_drv_argument_not_allowed_with)
-        << LastPIEArg->getAsString(Args) << ConflictsWithPie->getAsString(Args);
-  }
-  const bool IsPIE =
-      (LastPIEArg ? ExplicitPIE : IsPIEDefault) && !ConflictsWithPie;
-
   ArgStringList CmdArgs;
 
   // Silence warning for -cheri=NNN
@@ -181,25 +160,9 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   if (!D.SysRoot.empty())
     CmdArgs.push_back(Args.MakeArgString("--sysroot=" + D.SysRoot));
 
-  if (IsPIE)
-    CmdArgs.push_back("-pie");
-
   CmdArgs.push_back("--eh-frame-hdr");
-  if (Args.hasArg(options::OPT_static)) {
-    CmdArgs.push_back("-Bstatic");
-  } else {
-    if (Args.hasArg(options::OPT_rdynamic))
-      CmdArgs.push_back("-export-dynamic");
-    if (Args.hasArg(options::OPT_shared)) {
-      CmdArgs.push_back("-shared");
-    } else if (!Args.hasArg(options::OPT_r)) {
-      CmdArgs.push_back("-dynamic-linker");
-      CmdArgs.push_back("/libexec/ld-elf.so.1");
-    }
-    if (Arch == llvm::Triple::arm || Triple.isX86())
-      CmdArgs.push_back("--hash-style=both");
-    CmdArgs.push_back("--enable-new-dtags");
-  }
+
+  bool IsCHERIPureCapABI = ToolChain.isCheriPurecap();
 
   // Explicitly set the linker emulation for platforms that might not
   // be the default emulation for the linker.
@@ -257,6 +220,34 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("-X");
     if (Args.hasArg(options::OPT_mno_relax))
       CmdArgs.push_back("--no-relax");
+  }
+
+  const bool IsShared = Args.hasArg(options::OPT_shared);
+  if (IsShared)
+    CmdArgs.push_back("-shared");
+
+  if (IsCHERIPureCapABI && Args.hasArg(options::OPT_pie) && (IsShared || Args.hasArg(options::OPT_r))) {
+    getToolChain().getDriver().Diag(diag::err_drv_argument_not_allowed_with)
+      << Args.getLastArg(options::OPT_pie)->getAsString(Args)
+      << Args.getLastArg(options::OPT_r, options::OPT_shared)->getAsString(Args);
+  }
+
+  bool IsPIE = false;
+  if (Args.hasArg(options::OPT_static)) {
+    CmdArgs.push_back("-static");
+  } else if (!Args.hasArg(options::OPT_r)) {
+    if (Args.hasArg(options::OPT_rdynamic))
+      CmdArgs.push_back("-export-dynamic");
+    if (!IsShared) {
+      IsPIE = Args.hasFlag(options::OPT_pie, options::OPT_no_pie,
+                           ToolChain.isPIEDefault(Args));
+      if (IsPIE)
+        CmdArgs.push_back("-pie");
+      CmdArgs.push_back("-dynamic-linker");
+      CmdArgs.push_back("/libexec/ld-elf.so.1");
+    }
+    if (Arch == llvm::Triple::arm || Triple.isX86())
+      CmdArgs.push_back("--hash-style=both");
   }
 
   if (Arg *A = Args.getLastArg(options::OPT_G)) {
@@ -329,7 +320,6 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
                         !Args.hasArg(options::OPT_static);
     addOpenMPRuntime(C, CmdArgs, ToolChain, Args, StaticOpenMP);
 
-    CmdArgs.push_back("--start-group");
     if (D.CCCIsCXX()) {
       if (ToolChain.ShouldLinkCXXStdlib(Args))
         ToolChain.AddCXXStdlibLibArgs(Args, CmdArgs);
@@ -520,7 +510,13 @@ FreeBSD::getDefaultUnwindTableLevel(const ArgList &Args) const {
 }
 
 bool FreeBSD::isPIEDefault(const llvm::opt::ArgList &Args) const {
-  return getSanitizerArgs(Args).requiresPIE();
+  if (isCheriPurecap())
+    return true;
+  // The FreeBSD base system builds with PIE by default since 13.1.
+  VersionTuple OSVersion = getTriple().getOSVersion();
+  if (OSVersion.getMajor() != 0 && OSVersion < VersionTuple(13, 1))
+    return getSanitizerArgs(Args).requiresPIE();
+  return true;
 }
 
 SanitizerMask

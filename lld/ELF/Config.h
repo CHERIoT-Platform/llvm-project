@@ -226,6 +226,7 @@ private:
   void createFiles(llvm::opt::InputArgList &args);
   void loadFiles();
   void inferMachineType();
+  void waitForLTOCleanup();
   void inferIsCheriAbi();
   void inferIsCheriot();
   template <class ELFT> void link(llvm::opt::InputArgList &args);

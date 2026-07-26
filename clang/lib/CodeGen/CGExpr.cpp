@@ -8285,7 +8285,7 @@ RValue CodeGenFunction::EmitCall(QualType CalleeType,
   }
 
   const CGFunctionInfo &FnInfo = CGM.getTypes().arrangeFreeFunctionCall(
-      Args, FnType, /*ChainCall=*/Chain);
+      Args, FnType, /*ChainCall=*/Chain, getCurrentFunctionDecl());
 
   if (CallCHERIInvoke)
     Callee.setFunctionPointer(CGM.getModule().getOrInsertFunction("cheri_invoke",

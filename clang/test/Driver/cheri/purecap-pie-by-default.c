@@ -9,15 +9,13 @@
 
 // RUN: %cheri_clang -### -no-canonical-prefixes %s 2>&1 | FileCheck -check-prefix HYBRID %s
 // RUN: %cheri_purecap_clang -### -no-canonical-prefixes %s 2>&1 | FileCheck -check-prefix PURECAP %s
-// HYBRID-NOT: "-pie"
-// PURECAP: "{{.+}}/ld.lld" "-pie"
+// HYBRID: "-pie"
+// PURECAP: "{{.+}}/ld.lld" {{.*}} "-pie"
 // PURECAP: "-o" "a.out" "{{[^"]*}}Scrt1.o"
 
 // But for -static, -r, and -pie we don't want to add -pie
 // RUN: %cheri_purecap_clang -### -no-canonical-prefixes %s 2>&1 -static | FileCheck -check-prefix PURECAP-STATIC %s
 // PURECAP-STATIC: "{{.+}}/ld.lld"
-// PURECAP-STATIC-NOT: "-pie"
-// PURECAP-STATIC:     "-Bstatic"
 // PURECAP-STATIC-NOT: "-pie"
 // PURECAP-STATIC: "-o" "a.out" "{{[^"]*}}crt1.o"
 // PURECAP-STATIC-NOT: "-pie"
@@ -38,8 +36,7 @@
 // PURECAP-RELOCATABLE: "-r"
 // PURECAP-RELOCATABLE-NOT: "-pie"
 
-// -no-pie and -nopie should both disable pie:
-// RUN: %cheri_purecap_clang -### -no-canonical-prefixes %s 2>&1 -nopie | FileCheck -check-prefix PURECAP-NOPIE %s
+// -no-pie should disable pie:
 // RUN: %cheri_purecap_clang -### -no-canonical-prefixes %s 2>&1 -no-pie | FileCheck -check-prefix PURECAP-NOPIE %s
 // PURECAP-NOPIE: "{{.+}}/ld.lld"
 // PURECAP-NOPIE-NOT: "-pie"

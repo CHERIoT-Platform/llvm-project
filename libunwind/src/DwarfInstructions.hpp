@@ -128,8 +128,48 @@ DwarfInstructions<A, R>::getSavedRegister(int reg, A &addressSpace,
 
   case CFI_Parser<A>::kRegisterInRegister:
     return registers.getRegister((int)savedReg.value);
+
   case CFI_Parser<A>::kRegisterUndefined:
     return 0;
+
+  case CFI_Parser<A>::kRegisterIsPseudo:
+#if defined(_LIBUNWIND_TARGET_AARCH64)
+    return savedReg.value;
+#endif
+  case CFI_Parser<A>::kRegisterUnused:
+  case CFI_Parser<A>::kRegisterOffsetFromCFA:
+    // FIX ME
+    break;
+  }
+  _LIBUNWIND_ABORT("unsupported restore location for register");
+}
+
+template <typename A, typename R>
+typename A::capability_t DwarfInstructions<A, R>::getSavedCapabilityRegister(
+    A &addressSpace, const R &registers, pint_t cfa,
+    const RegisterLocation &savedReg) {
+  switch (savedReg.location) {
+  case CFI_Parser<A>::kRegisterInCFA:
+    return addressSpace.getCapability(cfa + _pint_to_addr(savedReg.value));
+
+  case CFI_Parser<A>::kRegisterAtExpression:
+    return addressSpace.getCapability(evaluateExpression(
+        (pint_t)savedReg.value, addressSpace, registers, cfa));
+  case CFI_Parser<A>::kRegisterInRegister:
+    return registers.getCapabilityRegister((int)savedReg.value);
+
+  case CFI_Parser<A>::kRegisterIsExpression:
+#if 0
+    // TODO: should this be supported?
+    return A::to_capability_t(evaluateExpression((pint_t)savedReg.value,
+                                                 addressSpace, registers, cfa));
+#else
+    break;
+#endif
+  case CFI_Parser<A>::kRegisterUndefined:
+    return addressSpace.to_capability_t(0);
+
+  case CFI_Parser<A>::kRegisterInCFADecrypt: // sparc64 specific
   case CFI_Parser<A>::kRegisterUnused:
   case CFI_Parser<A>::kRegisterOffsetFromCFA:
     // FIX ME
@@ -190,6 +230,7 @@ double DwarfInstructions<A, R>::getSavedFloatRegister(
 #ifndef _LIBUNWIND_TARGET_ARM
     return registers.getFloatRegister((int)savedReg.value);
 #endif
+  case CFI_Parser<A>::kRegisterIsPseudo:
   case CFI_Parser<A>::kRegisterIsExpression:
   case CFI_Parser<A>::kRegisterUnused:
   case CFI_Parser<A>::kRegisterOffsetFromCFA:
@@ -213,6 +254,7 @@ v128 DwarfInstructions<A, R>::getSavedVectorRegister(
         evaluateExpression((pint_t)savedReg.value, addressSpace,
                             registers, cfa));
 
+  case CFI_Parser<A>::kRegisterIsPseudo:
   case CFI_Parser<A>::kRegisterIsExpression:
   case CFI_Parser<A>::kRegisterUnused:
   case CFI_Parser<A>::kRegisterUndefined:
@@ -266,7 +308,7 @@ int DwarfInstructions<A, R>::stepWithDwarf(
       // __unw_step_stage2 is not used for cross unwinding, so we use
       // __aarch64__ rather than LIBUNWIND_TARGET_AARCH64 to make sure we are
       // building for AArch64 natively.
-#if defined(__aarch64__) && !defined(__CHERI_PURE_CAPABILITY__)
+#if defined(__aarch64__) && !defined(__LFI__) && !defined(__CHERI_PURE_CAPABILITY__)
       if (stage2 && cieInfo.mteTaggedFrame) {
         pint_t sp = registers.getSP();
         pint_t p = sp;

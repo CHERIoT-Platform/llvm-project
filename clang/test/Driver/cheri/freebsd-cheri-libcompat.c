@@ -10,12 +10,10 @@
 // RUN:   | FileCheck --check-prefixes=CHECK-CHERI-HYBRID,CHECK-CHERI-HYBRID64 %s
 // CHECK-CHERI-HYBRID: ld{{.*}}" "--sysroot=[[SYSROOT:[^"]+]]"
 // CHECK-CHERI-HYBRID: "-dynamic-linker" "/libexec/ld-elf.so.1"
-// CHECK-CHERI-HYBRID64: "[[SYSROOT]]/usr/lib64/crt1.o"
-// CHECK-CHERI-HYBRID32: "[[SYSROOT]]/usr/lib32/crt1.o"
-// CHECK-CHERI-HYBRID: "crti.o" "crtbegin.o"
+// CHECK-CHERI-HYBRID: "Scrt1.o" "crti.o" "crtbeginS.o"
 // CHECK-CHERI-HYBRID64: "-L[[SYSROOT]]/usr/lib64"
 // CHECK-CHERI-HYBRID32: "-L[[SYSROOT]]/usr/lib32"
-// CHECK-CHERI-HYBRID: "crtend.o"
+// CHECK-CHERI-HYBRID: "crtendS.o"
 // CHECK-CHERI-HYBRID: "crtn.o"
 
 /// Check that we use the lib32c/lib64c directory if it is available

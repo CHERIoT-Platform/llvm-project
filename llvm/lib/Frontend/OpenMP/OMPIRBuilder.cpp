@@ -2184,6 +2184,25 @@ void OpenMPIRBuilder::createFlush(const LocationDescription &Loc) {
   emitFlush(Loc);
 }
 
+void OpenMPIRBuilder::createError(const LocationDescription &Loc, bool IsFatal,
+                                  Value *Message) {
+  if (!updateToLocation(Loc))
+    return;
+
+  // Build call void __kmpc_error(ident_t *loc, int severity,
+  //                              const char *message)
+  uint32_t SrcLocStrSize;
+  Constant *SrcLocStr = getOrCreateSrcLocStr(Loc, SrcLocStrSize);
+  Value *Ident = getOrCreateIdent(SrcLocStr, SrcLocStrSize);
+  // Severity: 1 = warning, 2 = fatal.
+  Value *Severity = ConstantInt::get(Int32, IsFatal ? 2 : 1);
+  Value *MessageArg = Message ? Message : ConstantPointerNull::get(Int8Ptr);
+  Value *Args[] = {Ident, Severity, MessageArg};
+
+  createRuntimeFunctionCall(getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_error),
+                            Args);
+}
+
 void OpenMPIRBuilder::emitTaskyieldImpl(const LocationDescription &Loc) {
   // Build call __kmpc_omp_taskyield(loc, thread_id, 0);
   uint32_t SrcLocStrSize;
@@ -3526,7 +3545,7 @@ Error OpenMPIRBuilder::emitReductionListCopy(
 Expected<Function *> OpenMPIRBuilder::emitInterWarpCopyFunction(
     const LocationDescription &Loc, ArrayRef<ReductionInfo> ReductionInfos,
     AttributeList FuncAttrs, ArrayRef<bool> IsByRef) {
-  InsertPointTy SavedIP = Builder.saveIP();
+  IRBuilder<>::InsertPointGuard IPG(Builder);
   LLVMContext &Ctx = M.getContext();
   FunctionType *FuncTy = FunctionType::get(
       Builder.getVoidTy(), {Builder.getPtrTy(), Builder.getInt32Ty()},
@@ -3540,6 +3559,7 @@ Expected<Function *> OpenMPIRBuilder::emitInterWarpCopyFunction(
   WcFunc->addParamAttr(1, Attribute::NoUndef);
   BasicBlock *EntryBB = BasicBlock::Create(M.getContext(), "entry", WcFunc);
   Builder.SetInsertPoint(EntryBB);
+  Builder.SetCurrentDebugLocation(llvm::DebugLoc());
 
   // ReduceList: thread local Reduce list.
   // At the stage of the computation when this function is called, partially
@@ -3646,7 +3666,7 @@ Expected<Function *> OpenMPIRBuilder::emitInterWarpCopyFunction(
 
       // kmpc_barrier.
       InsertPointOrErrorTy BarrierIP1 =
-          createBarrier(LocationDescription(Builder.saveIP(), Loc.DL),
+          createBarrier(LocationDescription(Builder.saveIP(), DebugLoc()),
                         omp::Directive::OMPD_unknown,
                         /* ForceSimpleCall */ false,
                         /* CheckCancelFlag */ true);
@@ -3705,7 +3725,7 @@ Expected<Function *> OpenMPIRBuilder::emitInterWarpCopyFunction(
       // endif
       emitBlock(MergeBB, Builder.GetInsertBlock()->getParent());
       InsertPointOrErrorTy BarrierIP2 =
-          createBarrier(LocationDescription(Builder.saveIP(), Loc.DL),
+          createBarrier(LocationDescription(Builder.saveIP(), DebugLoc()),
                         omp::Directive::OMPD_unknown,
                         /* ForceSimpleCall */ false,
                         /* CheckCancelFlag */ true);
@@ -3778,7 +3798,6 @@ Expected<Function *> OpenMPIRBuilder::emitInterWarpCopyFunction(
   }
 
   Builder.CreateRetVoid();
-  Builder.restoreIP(SavedIP);
 
   return WcFunc;
 }
@@ -3787,6 +3806,7 @@ Expected<Function *> OpenMPIRBuilder::emitShuffleAndReduceFunction(
     ArrayRef<ReductionInfo> ReductionInfos, Function *ReduceFn,
     AttributeList FuncAttrs, ArrayRef<bool> IsByRef) {
   LLVMContext &Ctx = M.getContext();
+  IRBuilder<>::InsertPointGuard IPG(Builder);
   FunctionType *FuncTy =
       FunctionType::get(Builder.getVoidTy(),
                         {Builder.getPtrTy(), Builder.getInt16Ty(),
@@ -3806,6 +3826,7 @@ Expected<Function *> OpenMPIRBuilder::emitShuffleAndReduceFunction(
   SarFunc->addParamAttr(3, Attribute::SExt);
   BasicBlock *EntryBB = BasicBlock::Create(M.getContext(), "entry", SarFunc);
   Builder.SetInsertPoint(EntryBB);
+  Builder.SetCurrentDebugLocation(llvm::DebugLoc());
 
   // Thread local Reduce list used to host the values of data to be reduced.
   Argument *ReduceListArg = SarFunc->getArg(0);
@@ -4018,7 +4039,7 @@ Expected<Value *> OpenMPIRBuilder::createReductionDescriptorCopy(
 Expected<Function *> OpenMPIRBuilder::emitListToGlobalCopyFunction(
     ArrayRef<ReductionInfo> ReductionInfos, Type *ReductionsBufferTy,
     AttributeList FuncAttrs, ArrayRef<bool> IsByRef) {
-  OpenMPIRBuilder::InsertPointTy OldIP = Builder.saveIP();
+  IRBuilder<>::InsertPointGuard IPG(Builder);
   LLVMContext &Ctx = M.getContext();
   FunctionType *FuncTy = FunctionType::get(
       Builder.getVoidTy(),
@@ -4034,6 +4055,7 @@ Expected<Function *> OpenMPIRBuilder::emitListToGlobalCopyFunction(
 
   BasicBlock *EntryBlock = BasicBlock::Create(Ctx, "entry", LtGCFunc);
   Builder.SetInsertPoint(EntryBlock);
+  Builder.SetCurrentDebugLocation(llvm::DebugLoc());
 
   // Buffer: global reduction buffer.
   Argument *BufferArg = LtGCFunc->getArg(0);
@@ -4138,14 +4160,13 @@ Expected<Function *> OpenMPIRBuilder::emitListToGlobalCopyFunction(
   }
 
   Builder.CreateRetVoid();
-  Builder.restoreIP(OldIP);
   return LtGCFunc;
 }
 
 Expected<Function *> OpenMPIRBuilder::emitListToGlobalReduceFunction(
     ArrayRef<ReductionInfo> ReductionInfos, Function *ReduceFn,
     Type *ReductionsBufferTy, AttributeList FuncAttrs, ArrayRef<bool> IsByRef) {
-  OpenMPIRBuilder::InsertPointTy OldIP = Builder.saveIP();
+  IRBuilder<>::InsertPointGuard IPG(Builder);
   LLVMContext &Ctx = M.getContext();
   FunctionType *FuncTy = FunctionType::get(
       Builder.getVoidTy(),
@@ -4161,6 +4182,7 @@ Expected<Function *> OpenMPIRBuilder::emitListToGlobalReduceFunction(
 
   BasicBlock *EntryBlock = BasicBlock::Create(Ctx, "entry", LtGRFunc);
   Builder.SetInsertPoint(EntryBlock);
+  Builder.SetCurrentDebugLocation(llvm::DebugLoc());
 
   // Buffer: global reduction buffer.
   Argument *BufferArg = LtGRFunc->getArg(0);
@@ -4246,14 +4268,13 @@ Expected<Function *> OpenMPIRBuilder::emitListToGlobalReduceFunction(
   createRuntimeFunctionCall(ReduceFn, {LocalReduceListAddrCast, ReduceList})
       ->addFnAttr(Attribute::NoUnwind);
   Builder.CreateRetVoid();
-  Builder.restoreIP(OldIP);
   return LtGRFunc;
 }
 
 Expected<Function *> OpenMPIRBuilder::emitGlobalToListCopyFunction(
     ArrayRef<ReductionInfo> ReductionInfos, Type *ReductionsBufferTy,
     AttributeList FuncAttrs, ArrayRef<bool> IsByRef) {
-  OpenMPIRBuilder::InsertPointTy OldIP = Builder.saveIP();
+  IRBuilder<>::InsertPointGuard IPG(Builder);
   LLVMContext &Ctx = M.getContext();
   FunctionType *FuncTy = FunctionType::get(
       Builder.getVoidTy(),
@@ -4269,6 +4290,7 @@ Expected<Function *> OpenMPIRBuilder::emitGlobalToListCopyFunction(
 
   BasicBlock *EntryBlock = BasicBlock::Create(Ctx, "entry", GtLCFunc);
   Builder.SetInsertPoint(EntryBlock);
+  Builder.SetCurrentDebugLocation(llvm::DebugLoc());
 
   // Buffer: global reduction buffer.
   Argument *BufferArg = GtLCFunc->getArg(0);
@@ -4369,14 +4391,13 @@ Expected<Function *> OpenMPIRBuilder::emitGlobalToListCopyFunction(
   }
 
   Builder.CreateRetVoid();
-  Builder.restoreIP(OldIP);
   return GtLCFunc;
 }
 
 Expected<Function *> OpenMPIRBuilder::emitGlobalToListReduceFunction(
     ArrayRef<ReductionInfo> ReductionInfos, Function *ReduceFn,
     Type *ReductionsBufferTy, AttributeList FuncAttrs, ArrayRef<bool> IsByRef) {
-  OpenMPIRBuilder::InsertPointTy OldIP = Builder.saveIP();
+  IRBuilder<>::InsertPointGuard IPG(Builder);
   LLVMContext &Ctx = M.getContext();
   auto *FuncTy = FunctionType::get(
       Builder.getVoidTy(),
@@ -4392,6 +4413,7 @@ Expected<Function *> OpenMPIRBuilder::emitGlobalToListReduceFunction(
 
   BasicBlock *EntryBlock = BasicBlock::Create(Ctx, "entry", GtLRFunc);
   Builder.SetInsertPoint(EntryBlock);
+  Builder.SetCurrentDebugLocation(llvm::DebugLoc());
 
   // Buffer: global reduction buffer.
   Argument *BufferArg = GtLRFunc->getArg(0);
@@ -4477,7 +4499,6 @@ Expected<Function *> OpenMPIRBuilder::emitGlobalToListReduceFunction(
   createRuntimeFunctionCall(ReduceFn, {ReduceList, ReductionList})
       ->addFnAttr(Attribute::NoUnwind);
   Builder.CreateRetVoid();
-  Builder.restoreIP(OldIP);
   return GtLRFunc;
 }
 
@@ -4491,6 +4512,7 @@ Expected<Function *> OpenMPIRBuilder::createReductionFunction(
     StringRef ReducerName, ArrayRef<ReductionInfo> ReductionInfos,
     ArrayRef<bool> IsByRef, ReductionGenCBKind ReductionGenCBKind,
     AttributeList FuncAttrs) {
+  IRBuilder<>::InsertPointGuard IPG(Builder);
   auto *FuncTy = FunctionType::get(Builder.getVoidTy(),
                                    {Builder.getPtrTy(), Builder.getPtrTy()},
                                    /* IsVarArg */ false);
@@ -4504,6 +4526,7 @@ Expected<Function *> OpenMPIRBuilder::createReductionFunction(
   BasicBlock *EntryBB =
       BasicBlock::Create(M.getContext(), "entry", ReductionFunc);
   Builder.SetInsertPoint(EntryBB);
+  Builder.SetCurrentDebugLocation(llvm::DebugLoc());
 
   // Need to alloca memory here and deal with the pointers before getting
   // LHS/RHS pointers out
@@ -4987,10 +5010,12 @@ static Error populateReductionFunction(
     Function *ReductionFunc,
     ArrayRef<OpenMPIRBuilder::ReductionInfo> ReductionInfos,
     IRBuilder<> &Builder, ArrayRef<bool> IsByRef, bool IsGPU) {
+  IRBuilder<>::InsertPointGuard IPG(Builder);
   Module *Module = ReductionFunc->getParent();
   BasicBlock *ReductionFuncBlock =
       BasicBlock::Create(Module->getContext(), "", ReductionFunc);
   Builder.SetInsertPoint(ReductionFuncBlock);
+  Builder.SetCurrentDebugLocation(llvm::DebugLoc());
   Value *LHSArrayPtr = nullptr;
   Value *RHSArrayPtr = nullptr;
   if (IsGPU) {

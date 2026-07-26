@@ -29,8 +29,6 @@ public:
                           const MCTargetOptions &Options,
                           RISCVABI::ABI ABI);
 
-  const MCExpr *getExprForFDESymbol(const MCSymbol *Sym, unsigned Encoding,
-                                    MCStreamer &Streamer) const override;
   void printSpecifierExpr(raw_ostream &OS,
                           const MCSpecifierExpr &Expr) const override;
 };

@@ -285,6 +285,8 @@ public:
 
   /// Check if section name is present
   bool hasImplicitSection() const {
+    if (isDeclarationForLinker())
+      return false;
     return getAttributes().hasAttribute("bss-section") ||
            getAttributes().hasAttribute("data-section") ||
            getAttributes().hasAttribute("relro-section") ||

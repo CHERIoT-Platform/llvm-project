@@ -2812,6 +2812,11 @@ bool AttributeFuncs::areInlineCompatible(const Function &Caller,
          isInterruptPostureCompatible(Caller, Callee);
 }
 
+bool AttributeFuncs::isStrictFPInlineCompatible(const Function &Caller,
+                                                const Function &Callee) {
+  return checkStrictFP(Caller, Callee);
+}
+
 bool AttributeFuncs::areOutlineCompatible(const Function &A,
                                           const Function &B) {
   return hasCompatibleFnAttrs(A, B);

@@ -38,6 +38,7 @@ class LitConfig:
         params,
         shardNumber=None,
         config_prefix=None,
+        pass_env=[],
         maxIndividualTestTime=None,
         maxRetriesPerTest=None,
         parallelism_groups={},
@@ -58,7 +59,9 @@ class LitConfig:
         self.isWindows = bool(isWindows)
         self.order = order
         self.params = dict(params)
-        self.shardNumber = shardNumber
+        # Extra environment variables to pass through to the test environment,
+        # in addition to the built-in allow-list (see TestingConfig).
+        self.pass_env = list(pass_env)
         self.bashPath = None
         # HACK to run only cheri tests: (status can be include, exclude, only)
         self.cheri_test_mode = CheriTestMode.INCLUDE

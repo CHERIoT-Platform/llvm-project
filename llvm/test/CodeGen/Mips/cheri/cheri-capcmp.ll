@@ -157,11 +157,13 @@ declare i1 @llvm.cheri.cap.equal.exact(ptr addrspace(200), ptr addrspace(200))
 define i32 @exeq(ptr addrspace(200) %a, ptr addrspace(200) readnone %b) nounwind {
 ; CHECK-INEXACT-LABEL: exeq:
 ; CHECK-INEXACT:       # %bb.0:
+; CHECK-INEXACT-NEXT:    # kill:
 ; CHECK-INEXACT-NEXT:    jr $ra
 ; CHECK-INEXACT-NEXT:    cexeq $2, $c3, $c4
 ;
 ; CHECK-EXACT-LABEL: exeq:
 ; CHECK-EXACT:       # %bb.0:
+; CHECK-EXACT-NEXT:    # kill:
 ; CHECK-EXACT-NEXT:    jr $ra
 ; CHECK-EXACT-NEXT:    cexeq $2, $c3, $c4
   %cmp = call i1 @llvm.cheri.cap.equal.exact(ptr addrspace(200) %a, ptr addrspace(200) %b)

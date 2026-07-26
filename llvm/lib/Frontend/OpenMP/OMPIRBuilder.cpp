@@ -8228,6 +8228,8 @@ CallInst *OpenMPIRBuilder::createOMPInteropInit(
   Value *ThreadId = getOrCreateThreadID(Ident);
   if (Device == nullptr)
     Device = Constant::getAllOnesValue(Int32);
+  else if (Device->getType() != Int32)
+    Device = Builder.CreateIntCast(Device, Int32, /*isSigned=*/true);
   Constant *InteropTypeVal = ConstantInt::get(Int32, (int)InteropType);
   if (NumDependences == nullptr) {
     NumDependences = ConstantInt::get(Int32, 0);
@@ -8256,6 +8258,8 @@ CallInst *OpenMPIRBuilder::createOMPInteropDestroy(
   Value *ThreadId = getOrCreateThreadID(Ident);
   if (Device == nullptr)
     Device = Constant::getAllOnesValue(Int32);
+  else if (Device->getType() != Int32)
+    Device = Builder.CreateIntCast(Device, Int32, /*isSigned=*/true);
   if (NumDependences == nullptr) {
     NumDependences = ConstantInt::get(Int32, 0);
     PointerType *PointerTypeVar = PointerType::getUnqual(M.getContext());
@@ -8284,6 +8288,8 @@ CallInst *OpenMPIRBuilder::createOMPInteropUse(const LocationDescription &Loc,
   Value *ThreadId = getOrCreateThreadID(Ident);
   if (Device == nullptr)
     Device = Constant::getAllOnesValue(Int32);
+  else if (Device->getType() != Int32)
+    Device = Builder.CreateIntCast(Device, Int32, /*isSigned=*/true);
   if (NumDependences == nullptr) {
     NumDependences = ConstantInt::get(Int32, 0);
     PointerType *PointerTypeVar = PointerType::getUnqual(M.getContext());

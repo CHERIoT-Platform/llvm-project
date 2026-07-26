@@ -2072,6 +2072,7 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   case attr::HLSLIsCounter:
   case attr::HLSLResourceDimension:
   case attr::HLSLIsArray:
+  case attr::HLSLIsMultiSampled:
     llvm_unreachable("HLSL resource type attributes handled separately");
 
   case attr::OpenCLPrivateAddressSpace:
@@ -2288,6 +2289,8 @@ void TypePrinter::printHLSLAttributedResourceAfter(
     OS << " [[hlsl::is_counter]]";
   if (Attrs.IsArray)
     OS << " [[hlsl::is_array]]";
+  if (Attrs.IsMultiSampled)
+    OS << " [[hlsl::is_ms]]";
 
   QualType ContainedTy = T->getContainedType();
   if (!ContainedTy.isNull()) {

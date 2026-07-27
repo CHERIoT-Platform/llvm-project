@@ -15,8 +15,8 @@ entry:
 ; CHECK-LABEL: libcheri_printf_putchar:
 ; CHECK:      .Ltmp0:
 ; CHECK-NEXT: .Lfunc_begin0 = .Ltmp0
-; CHECK-NEXT:   .file 5 "/home/alr48/cheri/build/llvm-build" "/exports/users/alr48/sources/cheribsd/lib/libc_cheri/cheri_printf.c"
-; CHECK-NEXT: 	.loc	5 528 0                 # /exports/users/alr48/sources/cheribsd/lib/libc_cheri/cheri_printf.c:528:0
+; CHECK-NEXT:   .file 1 "/home/alr48/cheri/build/llvm-build" "/exports/users/alr48/sources/cheribsd/lib/libc_cheri/cheri_printf.c"
+; CHECK-NEXT: 	.loc	1 528 0                 # /exports/users/alr48/sources/cheribsd/lib/libc_cheri/cheri_printf.c:528:0
 ; CHECK-NEXT: 	.cfi_sections .debug_frame
 ; CHECK-NEXT: 	.cfi_startproc
 ; CHECK-NEXT: 	.frame	$c24,[[#mul(CAP_SIZE,2)]],$c17
@@ -35,7 +35,7 @@ entry:
 ; CHECK-NEXT: 	cincoffset	$c24, $c11, $zero
 ; CHECK-NEXT: 	.cfi_def_cfa_register 96
 ; CHECK-NEXT: .Ltmp1:
-; CHECK-NEXT: 	.loc	5 531 1 prologue_end    # /exports/users/alr48/sources/cheribsd/lib/libc_cheri/cheri_printf.c:531:1
+; CHECK-NEXT: 	.loc	1 531 1 prologue_end    # /exports/users/alr48/sources/cheribsd/lib/libc_cheri/cheri_printf.c:531:1
 ; CHECK-NEXT: 	cincoffset	$c11, $c24, $zero
 ; CHECK-NEXT: 	clc	$c17, $zero, [[#mul(CAP_SIZE,0)]]($c11)    # [[#CAP_SIZE]]-byte Folded Reload
 ; CHECK-NEXT: 	clc	$c24, $zero, [[#mul(CAP_SIZE,1)]]($c11)    # [[#CAP_SIZE]]-byte Folded Reload

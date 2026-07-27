@@ -222,6 +222,7 @@ public:
   uint64_t getGotVA(Ctx &) const;
   uint64_t getGotPltOffset(Ctx &) const;
   uint64_t getGotPltVA(Ctx &) const;
+  uint64_t getPltOffset(Ctx &) const;
   uint64_t getPltVA(Ctx &) const;
   uint64_t getTgotOffset(Ctx &) const;
   uint64_t getTgotVA(Ctx &) const;

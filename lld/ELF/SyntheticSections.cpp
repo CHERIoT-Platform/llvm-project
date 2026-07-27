@@ -1566,7 +1566,7 @@ template <class ELFT> void DynamicSection<ELFT>::writeTo(uint8_t *buf) {
 }
 
 uint64_t DynamicReloc::getOffset() const {
-  return inputSec->getVA(offsetInSec);
+  return inputSec->getRelocVA(offsetInSec);
 }
 
 int64_t DynamicReloc::computeAddend(Ctx &ctx) const {
@@ -1668,25 +1668,30 @@ void RelocationBaseSection::finalizeContents() {
   else
     getParent()->link = 0;
 
-  if (ctx.in.relaPlt.get() == this && ctx.in.gotPlt->getParent()) {
-    getParent()->flags |= ELF::SHF_INFO_LINK;
-    // For CheriABI we use the captable as the sh_info value
-    if (ctx.arg.isCheriAbi && ctx.in.mipsCheriCapTable &&
-        ctx.in.mipsCheriCapTable->isNeeded()) {
-      assert(ctx.in.mipsCheriCapTable->getParent()->sectionIndex != UINT32_MAX);
-      getParent()->info = ctx.in.mipsCheriCapTable->getParent()->sectionIndex;
-    } else {
-      getParent()->info = ctx.in.gotPlt->getParent()->sectionIndex;
-    }
-  }
-  if (ctx.in.relaTgot.get() == this && ctx.in.tgot->getParent()) {
-    getParent()->flags |= ELF::SHF_INFO_LINK;
-    getParent()->info = ctx.in.tgot->getParent()->sectionIndex;
-  }
-  for (auto reloc : relocs) {
-    if (ctx.arg.isCheriAbi && reloc.inputSec->name == "__cap_relocs") {
-      warn("attempting to add a dynamic relocation against the __cap_relocs "
-           "section.");
+  if (ctx.in.relaPlt.get() == this) {
+    InputSection *sec = ctx.target->usesGotPlt
+                            ? static_cast<InputSection *>(ctx.in.gotPlt.get())
+                            : static_cast<InputSection *>(ctx.in.plt.get());
+    if (sec->getParent()) {
+      getParent()->flags |= ELF::SHF_INFO_LINK;
+      // For CheriABI we use the captable as the sh_info value
+      if (ctx.arg.isCheriAbi && ctx.in.mipsCheriCapTable &&
+          ctx.in.mipsCheriCapTable->isNeeded()) {
+        assert(ctx.in.mipsCheriCapTable->getParent()->sectionIndex != UINT32_MAX);
+        getParent()->info = ctx.in.mipsCheriCapTable->getParent()->sectionIndex;
+      } else {
+        getParent()->info = sec->getParent()->sectionIndex;
+      }
+      if (ctx.in.relaTgot.get() == this && ctx.in.tgot->getParent()) {
+        getParent()->flags |= ELF::SHF_INFO_LINK;
+        getParent()->info = ctx.in.tgot->getParent()->sectionIndex;
+      }
+      for (auto reloc : relocs) {
+        if (ctx.arg.isCheriAbi && reloc.inputSec->name == "__cap_relocs") {
+          warn("attempting to add a dynamic relocation against the __cap_relocs "
+              "section.");
+        }
+      }
     }
   }
 }
@@ -4742,7 +4747,7 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
   // Add .relro_padding if DATA_SEGMENT_RELRO_END is used; otherwise, add the
   // section in the absence of PHDRS/SECTIONS commands.
   if (ctx.arg.zRelro &&
-      ((ctx.script->phdrsCommands.empty() && !ctx.script->hasSectionsCommand) ||
+      ((!ctx.script->hasPhdrsCommands() && !ctx.script->hasSectionsCommand) ||
        ctx.script->seenRelroEnd)) {
     ctx.in.relroPadding = std::make_unique<RelroPaddingSection>(ctx);
     add(*ctx.in.relroPadding);

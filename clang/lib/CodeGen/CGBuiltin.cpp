@@ -2928,6 +2928,15 @@ private:
                     CGF.CGM.getTargetCodeGenInfo().getDefaultAS())});
       }
 
+      if (ASTLayout.hasOwnVBPtr()) {
+        auto Offset = ASTLayout.getVBPtrOffset().getQuantity();
+        auto StartVBPtr = StartBitOffset + Offset * CharWidth;
+        OccuppiedIntervals.push_back(BitInterval{
+            StartVBPtr,
+            StartVBPtr + DL.getPointerSizeInBits(
+                             CGF.CGM.getTargetCodeGenInfo().getDefaultAS())});
+      }
+
       const auto VisitBase = [&ASTLayout, StartBitOffset, this](
                                  const CXXBaseSpecifier &Base, auto GetOffset) {
         auto *BaseRecord = Base.getType()->getAsCXXRecordDecl();

@@ -153,6 +153,7 @@ static bool MachOIndirectSymbols;
 static bool MachOLinkerOptions;
 static bool MachOSegment;
 static bool MachOVersionMin;
+static bool MachOTargetTriple;
 
 // PE/COFF specific options.
 static bool CodeView;
@@ -311,6 +312,7 @@ static void parseOptions(const opt::InputArgList &Args) {
   opts::MachOLinkerOptions = Args.hasArg(OPT_macho_linker_options);
   opts::MachOSegment = Args.hasArg(OPT_macho_segment);
   opts::MachOVersionMin = Args.hasArg(OPT_macho_version_min);
+  opts::MachOTargetTriple = Args.hasArg(OPT_macho_target_triple);
 
   // PE/COFF specific options.
   opts::CodeView = Args.hasArg(OPT_codeview);
@@ -549,6 +551,8 @@ static void dumpObject(ObjectFile &Obj, ScopedPrinter &Writer,
       Dumper->printMachOSegment();
     if (opts::MachOVersionMin)
       Dumper->printMachOVersionMin();
+    if (opts::MachOTargetTriple)
+      Dumper->printMachOTargetTriple();
     if (opts::MachODysymtab)
       Dumper->printMachODysymtab();
     if (opts::CGProfile)

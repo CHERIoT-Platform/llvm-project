@@ -22576,6 +22576,7 @@ TEST_F(FormatTest, DoNotCrashOnInvalidInput) {
   verifyNoCrash("[[ [a] ]]");
   verifyNoCrash(
       "#xxxx??x<xxxxxxx||??x<xxxxxxx and xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+  verifyNoCrash("a &alias & =");
 }
 
 TEST_F(FormatTest, FormatsTableGenCode) {

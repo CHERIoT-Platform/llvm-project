@@ -22,11 +22,6 @@
 ; CHECK-NEXT:               DW_AT_low_pc	(0x0000000000000000)
 ; CHECK-NEXT:               DW_AT_high_pc	(0x00000000000{{.+}})
 ; CHECK-EMPTY:
-; CHECK-NEXT: [[INT_TYPE_INFO_ADDR:0x0000002f]]: DW_TAG_base_type
-; CHECK-NEXT:                 DW_AT_name	("int")
-; CHECK-NEXT:                 DW_AT_encoding	(DW_ATE_signed)
-; CHECK-NEXT:                 DW_AT_byte_size	(0x04)
-; CHECK-EMPTY:
 ; CHECK-NEXT: DW_TAG_subprogram
 ; CHECK-NEXT:                 DW_AT_low_pc	(0x0000000000000000)
 ; CHECK-NEXT:                 DW_AT_high_pc	(0x00000000000000{{.+}})
@@ -35,7 +30,7 @@
 ; CHECK-NEXT:                 DW_AT_decl_file	("/src/test/CodeGen/cheri/cheri-debug-info.c")
 ; CHECK-NEXT:                 DW_AT_decl_line	(20)
 ; CHECK-NEXT:                 DW_AT_prototyped	(0x01)
-; CHECK-NEXT:                 DW_AT_type	([[INT_TYPE_INFO_ADDR]] "int")
+; CHECK-NEXT:                 DW_AT_type	([[INT_TYPE_INFO_ADDR:.*]] "int")
 ; CHECK-NEXT:                 DW_AT_external	(0x01)
 ; CHECK-EMPTY:
 ; CHECK-NEXT: DW_TAG_formal_parameter
@@ -72,6 +67,11 @@
 ; CHECK-NEXT:   NULL
 ; CHECK-EMPTY:
 ; CHECK-NEXT:   NULL
+; CHECK-EMPTY:
+; CHECK-NEXT: [[INT_TYPE_INFO_ADDR]]: DW_TAG_base_type
+; CHECK-NEXT:                 DW_AT_name	("int")
+; CHECK-NEXT:                 DW_AT_encoding	(DW_ATE_signed)
+; CHECK-NEXT:                 DW_AT_byte_size	(0x04)
 ; CHECK-EMPTY:
 ; CHECK-NEXT:  [[INTPTR_TYPE_INFO_ADDR]]:  DW_TAG_pointer_type
 ; CHECK-NEXT:                 DW_AT_type	([[INT_TYPE_INFO_ADDR]] "int")

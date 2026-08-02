@@ -70,6 +70,7 @@ add_clang_library(clangBasic
   Attributes.cpp
   AtomicLineLogger.cpp
   Builtins.cpp
+  BuiltinTraits.cpp
   CLWarnings.cpp
   CharInfo.cpp
   CodeGenOptions.cpp
@@ -78,7 +79,6 @@ add_clang_library(clangBasic
   Diagnostic.cpp
   DiagnosticIDs.cpp
   DiagnosticOptions.cpp
-  ExpressionTraits.cpp
   FileEntry.cpp
   FileManager.cpp
   IdentifierTable.cpp
@@ -134,7 +134,6 @@ add_clang_library(clangBasic
   Targets/XCore.cpp
   Targets/Xtensa.cpp
   TokenKinds.cpp
-  TypeTraits.cpp
   Version.cpp
   Warnings.cpp
   XRayInstr.cpp

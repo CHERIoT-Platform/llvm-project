@@ -488,6 +488,19 @@ void RISCVRegisterInfo::adjustReg(MachineBasicBlock &MBB,
     }
   }
 
+  // Emit a PseudoAddUpperImm instead of LUI+ADD when the offset is a multiple
+  // of 4096 and the source is the frame register. The frame register is
+  // invariant after PEI, so MachineLateInstrsCleanup can CSE identical pseudos.
+  // The pseudo is later expanded back to LUI+ADD.
+  if (Flag == MachineInstr::NoFlags && !KillSrcReg && DestReg != SrcReg &&
+      SrcReg == getFrameRegister(MF) && isShiftedInt<20, 12>(Val) &&
+      !IsPureCapABI) {
+    BuildMI(MBB, II, DL, TII->get(RISCV::PseudoAddUpperImm), DestReg)
+        .addReg(SrcReg)
+        .addImm(static_cast<uint32_t>(Val) >> 12);
+    return;
+  }
+
   if (Val < 0 && !IsPureCapABI) {
     Val = -Val;
     Opc = RISCV::SUB;

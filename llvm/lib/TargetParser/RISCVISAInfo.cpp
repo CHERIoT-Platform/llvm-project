@@ -1087,6 +1087,8 @@ StringRef RISCVISAInfo::computeDefaultABI(const llvm::Triple &Triple) const {
     if (Exts.count("xcheriot"))
       return Triple.getOS() == llvm::Triple::CheriotRTOS ? "cheriot"
                                                          : "cheriot-baremetal";
+    if (Exts.count("xcheriot"))
+      return "cheriot";
     if (Exts.count("e"))
       return "ilp32e";
     if (Exts.count("d"))

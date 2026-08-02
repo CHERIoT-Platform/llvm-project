@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/TargetParser/RISCVISAInfo.h"
+#include "llvm/TargetParser/Triple.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/Testing/Support/Error.h"
 #include "gtest/gtest.h"
@@ -1243,6 +1244,29 @@ TEST(ParseArchString, RVYFeatureImplicationC) {
   EXPECT_FALSE((*MaybeISAInfo)->hasExtension("zcd"));
 }
 
+static StringRef GetABIFromFeatures(unsigned XLen,
+                                    std::vector<std::string> Features,
+                                    StringRef TT = "") {
+  auto ISAInfo = RISCVISAInfo::parseFeatures(XLen, Features);
+  EXPECT_THAT_EXPECTED(ISAInfo, Succeeded());
+  return (*ISAInfo)->computeDefaultABI(Triple(TT));
+}
+
+TEST(ComputeDefaultABI, SelectsExpectedABI) {
+  EXPECT_EQ(GetABIFromFeatures(32, {}), "ilp32");
+  EXPECT_EQ(GetABIFromFeatures(32, {"+f"}), "ilp32f");
+  EXPECT_EQ(GetABIFromFeatures(32, {"+f", "+d"}), "ilp32d");
+  EXPECT_EQ(GetABIFromFeatures(32, {"+e"}), "ilp32e");
+  EXPECT_EQ(GetABIFromFeatures(64, {}), "lp64");
+  EXPECT_EQ(GetABIFromFeatures(64, {"+f"}), "lp64f");
+  EXPECT_EQ(GetABIFromFeatures(64, {"+f", "+d"}), "lp64d");
+  EXPECT_EQ(GetABIFromFeatures(64, {"+e"}), "lp64e");
+
+  // CHERIoT always selects the cheriot ABI by default.
+  EXPECT_EQ(GetABIFromFeatures(32, {"+xcheriot"}, "riscv32-unknown-cheriotrtos"), "cheriot");
+  EXPECT_EQ(GetABIFromFeatures(32, {"+xcheriot"}, "riscv32-unknown-unknown"), "cheriot-baremetal");
+}
+
 TEST(ParseArchString, ZcaZcbZcmpZcmtImpliesZce) {
   // Test Zca+Zcb+Zcmp+Zcmt implies Zce behavior.
 
@@ -1641,7 +1665,9 @@ Experimental extensions
     zvvmtls              0.1
     zvvmttls             0.1
     zvzip                0.1
+    smcsps               0.19
     smpmpmt              0.6
+    sscsps               0.19
     svukte               0.3
     xqccmt               0.1
     xsfmclic             0.1

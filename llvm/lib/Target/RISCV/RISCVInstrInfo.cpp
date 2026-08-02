@@ -5619,7 +5619,8 @@ public:
 } // namespace
 
 std::unique_ptr<TargetInstrInfo::PipelinerLoopInfo>
-RISCVInstrInfo::analyzeLoopForPipelining(MachineBasicBlock *LoopBB) const {
+RISCVInstrInfo::analyzeLoopForPipelining(
+    MachineBasicBlock *LoopBB, MachineOptimizationRemarkEmitter *ORE) const {
   MachineBasicBlock *TBB = nullptr, *FBB = nullptr;
   SmallVector<MachineOperand, 4> Cond;
   if (analyzeBranch(*LoopBB, TBB, FBB, Cond, /*AllowModify=*/false))

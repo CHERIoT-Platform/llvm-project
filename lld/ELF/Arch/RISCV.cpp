@@ -1923,6 +1923,17 @@ void RISCV::finalizeRelax(int passes) const {
                                                   *ctx.target->symbolicCapRel);
                 ctx.in.capRelocs->finalizeContents();
 
+                // Since we're doing things out of order relative by adding cap
+                // relocs during relocations, we may need to remove the cap
+                // relocs section from the removed list.
+                auto it =
+                    llvm::remove_if(ctx.removedSyntheticSections,
+                                    [this](SyntheticSection *Removed) {
+                                      return Removed == ctx.in.capRelocs.get();
+                                    });
+                ctx.removedSyntheticSections.erase(
+                    it, ctx.removedSyntheticSections.end());
+
                 // Construct an anonymous symbol pointing to the GOT
                 r.sym = addSyntheticLocal(ctx, "", STT_NOTYPE, 0, 0, *got);
                 r.sym->setFlags(USED);

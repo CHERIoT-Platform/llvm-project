@@ -454,6 +454,8 @@ Makes programs 10x faster by doing Special New Thing.
 * A new `diagnostics report` command (aliased `bugreport`) assembles a diagnostics bundle and files
   a pre-filled GitHub issue, pointing at the bundle to attach. The GitHub reporter is built by
   default and can be disabled with the `LLDB_ENABLE_GITHUB_BUG_REPORTER=OFF` CMake option.
+* The script interpreter plugins are now built as shared libraries by default on Darwin and FreeBSD
+  (`LLDB_ENABLE_DYNAMIC_SCRIPTINTERPRETERS=ON`). This can be opted into on Linux also.
 
 #### Deprecated APIs
 
@@ -515,9 +517,30 @@ Makes programs 10x faster by doing Special New Thing.
   from the command-line and in the output window when using lldb-dap.
 * LLDB now uses `lldb-server.exe` to launch and manage the program being debugged,
   instead of running it within LLDB's own process. To revert to the previous behavior, set the environment variable `LLDB_USE_LLDB_SERVER=0`.
+* Support for PDB symbol servers has been added. By default, no symbol servers are used.
+  You can control this either through the [`_NT_SYMBOL_PATH`](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/symbol-path)
+  environment variable or by setting `plugin.symbol-locator.symstore.urls`
+  (see [`plugin.symbol-locator.symstore`](https://lldb.llvm.org/use/settings.html#symstore) for more info).
+* LLDB no longer depends on the Python private API on Windows. Users are now free to
+  use any Python version they want, as long as it is 3.8 or later and LLDB can find it
+  (i.e. it is on their `PATH`).
 
 
 ### Changes to BOLT
+
+* BOLT supports AArch64 binaries using Pointer Authentication (PAC) and Branch
+  Target Identification (BTI). For PAC-enabled binaries, BOLT preserves pointer
+  authentication CFI state during optimization. For BTI-enabled binaries, BOLT
+  can patch PLT entries or indirect branch targets with BTI landing pads where
+  possible.
+
+* BOLT adds compact-code-model support for Armv9.6-A FEAT_CMPBR
+  compare-and-branch instructions, including support for block reordering,
+  function splitting, branch inversion where legal.
+
+* BOLT supports AArch64 profile data collected with Arm SPE and branch-stack
+  profiles from hardware such as BRBE. LLVM 23 adds pre-parsed perf-script and
+  profile-format support for these workflows.
 
 ### Changes to Sanitizers
 

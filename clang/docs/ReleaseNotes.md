@@ -835,6 +835,7 @@ latest release, please see the [Clang Web Site](https://clang.llvm.org) or the
 - Fixed a case where function effect analysis (`nonblocking` etc.) did not visit a destructor invoked from a `delete` expression. (#GH184460)
 - Clang now defines the GCC-compatible predefined macros `__WCHAR_MIN__`, `__WINT_MIN__`, and `__SIG_ATOMIC_MIN__`. (#GH199678)
 - Fix a crash in addUnsizedArray due assert not verifying we have a Base before doing checks on it. (#GH44212)
+- Fixed an assertion that could occur when rebuilding parenthesized list initialization expressions during template instantiation or AST transformation.
 
 #### Bug Fixes to Compiler Builtins
 
@@ -951,6 +952,9 @@ latest release, please see the [Clang Web Site](https://clang.llvm.org) or the
 - Fixed a assertion when `__block` is used on global variables in C mode. (#GH183974)
 - Added missing AST nodes representing the `decltype` specifiers in destructor call to AST.
 - Fixed a missing ODR violation diagnostic introduced by the inline assembly string or clobber list. (#GH198616)
+- Fixed a non-deterministic ordering of unused local typedefs that made
+  serialized PCH/AST files and `-Wunused-local-typedef` diagnostics
+  non-reproducible across runs. (#GH209639)
 
 #### Miscellaneous Bug Fixes
 
@@ -1270,7 +1274,6 @@ latest release, please see the [Clang Web Site](https://clang.llvm.org) or the
 - Added a new `check::LifetimeEnd` callback that fires for each `CFGLifetimeEnds` element, which is useful for detecting dangling pointers. (#GH201123)
 - The `unix.StdCLibraryFunctions` standard-library summaries were optimized for binary size. (#GH202662)
 - Fixed the alignment of entries printed by `clang -cc1 -analyzer-print-analyzer-options` / `-analyzer-help`. (#GH190570)
-- Improved the models of `strchr`/`strrchr`/`memchr`/`strstr`/`strpbrk`/`strchrnul`, enabling `core.StackAddressEscape` to catch dangling pointers returned by these functions. (#GH203260)
 - Improved the modeling of symbolic ranges in the engine when calculating the largest and smallest possible values for range sets involving the `+`, `-`, and `*` binary operators. (#GH173113)
 
 #### Moved checkers

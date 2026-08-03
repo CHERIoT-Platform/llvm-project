@@ -685,6 +685,9 @@ static Instruction *combineLoadToOperationType(InstCombinerImpl &IC,
   if (!Load.isUnordered())
     return nullptr;
 
+  if (Load.isElementwise())
+    return nullptr;
+
   if (Load.use_empty())
     return nullptr;
 

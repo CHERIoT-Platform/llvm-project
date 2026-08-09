@@ -16,6 +16,7 @@
 
 #include "MCTargetDesc/RISCVBaseInfo.h"
 #include "llvm/ADT/SetVector.h"
+#include "llvm/CodeGen/SelectionDAGISel.h"
 #include "llvm/IR/Function.h"
 #include "llvm/Target/TargetMachine.h"
 #include <variant>
@@ -178,6 +179,11 @@ using CHERIoTImportedObjectSet = SetVector<
 
 FunctionPass *createRISCVISelDag(RISCVTargetMachine &TM,
                                  CodeGenOptLevel OptLevel);
+
+class RISCVISelDAGToDAGPass : public SelectionDAGISelPass {
+public:
+  RISCVISelDAGToDAGPass(RISCVTargetMachine &TM, CodeGenOptLevel OptLevel);
+};
 
 FunctionPass *createRISCVLateBranchOptPass();
 void initializeRISCVLateBranchOptPass(PassRegistry &);

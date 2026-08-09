@@ -128,6 +128,7 @@ namespace {
     const TargetRegisterInfo *TRI = nullptr;
     const MachineFrameInfo *MFI = nullptr;
     MachineRegisterInfo *MRI = nullptr;
+    const RegisterClassInfo *RegClassInfo = nullptr;
     TargetSchedModel SchedModel;
     bool PreRegAlloc = false;
     bool HasProfileData = false;
@@ -307,6 +308,7 @@ namespace {
       if (DisableHoistingToHotterBlocks != UseBFI::None)
         AU.addRequired<MachineBlockFrequencyInfoWrapperPass>();
       AU.addRequired<MachineDominatorTreeWrapperPass>();
+      AU.addRequired<MachineRegisterClassInfoWrapperPass>();
       AU.addRequired<AAResultsWrapperPass>();
       AU.addPreserved<MachineLoopInfoWrapperPass>();
       AU.addPreserved<MachineRegisterClassInfoWrapperPass>();
@@ -339,6 +341,7 @@ INITIALIZE_PASS_BEGIN(MachineLICM, DEBUG_TYPE,
 INITIALIZE_PASS_DEPENDENCY(MachineLoopInfoWrapperPass)
 INITIALIZE_PASS_DEPENDENCY(MachineBlockFrequencyInfoWrapperPass)
 INITIALIZE_PASS_DEPENDENCY(MachineDominatorTreeWrapperPass)
+INITIALIZE_PASS_DEPENDENCY(MachineRegisterClassInfoWrapperPass)
 INITIALIZE_PASS_DEPENDENCY(AAResultsWrapperPass)
 INITIALIZE_PASS_END(MachineLICM, DEBUG_TYPE,
                     "Machine Loop Invariant Code Motion", false, false)
@@ -348,6 +351,7 @@ INITIALIZE_PASS_BEGIN(EarlyMachineLICM, "early-machinelicm",
 INITIALIZE_PASS_DEPENDENCY(MachineLoopInfoWrapperPass)
 INITIALIZE_PASS_DEPENDENCY(MachineBlockFrequencyInfoWrapperPass)
 INITIALIZE_PASS_DEPENDENCY(MachineDominatorTreeWrapperPass)
+INITIALIZE_PASS_DEPENDENCY(MachineRegisterClassInfoWrapperPass)
 INITIALIZE_PASS_DEPENDENCY(AAResultsWrapperPass)
 INITIALIZE_PASS_END(EarlyMachineLICM, "early-machinelicm",
                     "Early Machine Loop Invariant Code Motion", false, false)
@@ -371,6 +375,13 @@ bool MachineLICMImpl::run(MachineFunction &MF) {
                   .getManager()
                   .getResult<AAManager>(MF.getFunction())
            : &LegacyPass->getAnalysis<AAResultsWrapperPass>().getAAResults();
+
+  RegClassInfo =
+      MFAM != nullptr
+          ? &MFAM->getResult<MachineRegisterClassAnalysis>(MF)
+          : &LegacyPass->getAnalysis<MachineRegisterClassInfoWrapperPass>()
+                 .getRCI();
+
   MachineDomTreeUpdater DTU(GET_RESULT(MachineDominatorTree, getDomTree, ),
                             MachineDomTreeUpdater::UpdateStrategy::Lazy);
   MDTU = &DTU;
@@ -403,7 +414,7 @@ bool MachineLICMImpl::run(MachineFunction &MF) {
     llvm::fill(RegPressure, 0);
     RegLimit.resize(NumRPS);
     for (unsigned i = 0, e = NumRPS; i != e; ++i)
-      RegLimit[i] = TRI->getRegPressureSetLimit(MF, i);
+      RegLimit[i] = RegClassInfo->getRegPressureSetLimit(i);
   }
 
   if (HoistConstLoads)

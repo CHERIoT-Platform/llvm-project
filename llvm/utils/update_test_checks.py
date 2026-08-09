@@ -61,19 +61,7 @@ def update_test(ti: common.TestInfo):
             common.warn("Skipping unparsable RUN line: " + l)
             continue
 
-        cropped_content = l
-        if "%if" in l:
-            match = re.search(r"%{\s*(.*?)\s*%}", l)
-            if match:
-                cropped_content = match.group(1)
-
-        commands = [cmd.strip() for cmd in cropped_content.split("|")]
-        assert len(commands) >= 2
-        preprocess_cmd = None
-        if len(commands) > 2:
-            preprocess_cmd = " | ".join(commands[:-2])
-        tool_cmd = commands[-2]
-        filecheck_cmd = commands[-1]
+        tool_cmd, filecheck_cmd, preprocess_cmd = common.split_run_line(l)
         if tool_cmd.startswith("%"):
             tool_cmd = tool_cmd.replace("%cheri_purecap_opt", "opt -mtriple=mips64-unknown-freebsd -target-abi purecap -relocation-model pic -mcpu=cheri128 -mattr=+cheri128")
             tool_cmd = tool_cmd.replace("%cheri128_purecap_opt", "opt -mtriple=mips64-unknown-freebsd -target-abi purecap -relocation-model pic -mcpu=cheri128 -mattr=+cheri128")

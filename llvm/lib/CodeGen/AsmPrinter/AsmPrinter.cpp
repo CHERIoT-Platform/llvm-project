@@ -1597,7 +1597,7 @@ void AsmPrinter::emitBBAddrMapSection(const MachineFunction &MF) {
     OutStreamer->emitULEB128IntValue(MBBSectionRanges.size());
   }
   // Number of blocks in each MBB section.
-  MapVector<MBBSectionID, unsigned> MBBSectionNumBlocks;
+  DenseMap<MBBSectionID, unsigned> MBBSectionNumBlocks;
   const MCSymbol *PrevMBBEndSymbol = nullptr;
   if (!Features.MultiBBRange) {
     OutStreamer->AddComment("function address");
@@ -2508,6 +2508,28 @@ void AsmPrinter::emitFunctionBody() {
   // Emit target-specific gunk after the function body.
   emitFunctionBodyEnd();
 
+  // Tail-pad functions that want it.
+  if (F.hasFnAttribute("tail-pad-to-size")) {
+    auto *FnEndSym = createTempSymbol("tail_pad_start");
+    OutStreamer->emitLabel(FnEndSym);
+
+    uint64_t PadToSize = F.getFnAttributeAsParsedInteger("tail-pad-to-size");
+    uint64_t FillValue =
+        PadToSize ? F.getFnAttributeAsParsedInteger("tail-pad-value") : 0;
+
+    // .fill ((PadToSize - FuncSize) & (PadToSize - FuncSize >= 0)) FillValue
+    const MCExpr *FuncSize = MCBinaryExpr::createSub(
+        MCSymbolRefExpr::create(FnEndSym, OutContext),
+        MCSymbolRefExpr::create(CurrentFnSymForSize, OutContext), OutContext);
+    const MCExpr *SizeConst = MCConstantExpr::create(PadToSize, OutContext);
+    const MCExpr *Zero = MCConstantExpr::create(0, OutContext);
+    const MCExpr *SubExpr =
+        MCBinaryExpr::createSub(SizeConst, FuncSize, OutContext);
+    const MCExpr *Cmp = MCBinaryExpr::createGTE(SubExpr, Zero, OutContext);
+    const MCExpr *FillExpr = MCBinaryExpr::createAnd(SubExpr, Cmp, OutContext);
+    OutStreamer->emitFill(*FillExpr, FillValue);
+  }
+
   // Even though wasm supports .type and .size in general, function symbols
   // are automatically sized.
   bool EmitFunctionSize = MAI.hasDotTypeDotSizeDirective() && !TT.isWasm();
@@ -3285,6 +3307,7 @@ void AsmPrinter::SetupMachineFunction(MachineFunction &MF) {
   MBBSectionExceptionSyms.clear();
   bool NeedsLocalForSize = MAI.needsLocalForSize();
   if (F.hasFnAttribute("patchable-function-entry") ||
+      F.hasFnAttribute("tail-pad-to-size") ||
       F.hasFnAttribute("function-instrument") ||
       F.hasFnAttribute("xray-instruction-threshold") ||
       needFuncLabels(MF, *this) || NeedsLocalForSize ||
@@ -3387,17 +3410,21 @@ void AsmPrinter::emitConstantPool() {
       unsigned NewOffset = alignTo(Offset, CPE.getAlign());
       OutStreamer->emitZeros(NewOffset - Offset);
 
-      const auto Size = CPE.getSizeInBytes(getDataLayout());
-      Offset = NewOffset + Size;
-
+      if (MAI.hasDotTypeDotSizeDirective())
+        OutStreamer->emitSymbolAttribute(Sym, MCSA_ELF_TypeObject);
       OutStreamer->emitLabel(Sym);
+
       if (CPE.isMachineConstantPoolEntry())
         emitMachineConstantPoolValue(CPE.Val.MachineCPVal);
       else
         emitGlobalConstant(getDataLayout(), CPE.Val.ConstVal, 0);
 
+      unsigned EntrySize = CPE.getSizeInBytes(getDataLayout());
       if (MAI.hasDotTypeDotSizeDirective())
-        OutStreamer->emitELFSize(Sym, MCConstantExpr::create(Size, OutContext));
+        OutStreamer->emitELFSize(Sym,
+                                 MCConstantExpr::create(EntrySize, OutContext));
+
+      Offset = NewOffset + EntrySize;
     }
   }
 }
@@ -3507,6 +3534,8 @@ void AsmPrinter::emitJumpTableImpl(const MachineJumpTableInfo &MJTI,
       OutStreamer->emitLabel(GetJTISymbol(JumpTableIndex, true));
 
     MCSymbol *JTISymbol = GetJTISymbol(JumpTableIndex);
+    if (JTInDiffSection && MAI.hasDotTypeDotSizeDirective())
+      OutStreamer->emitSymbolAttribute(JTISymbol, MCSA_ELF_TypeObject);
     OutStreamer->emitLabel(JTISymbol);
 
     // Defer MCAssembler based constant folding due to a performance issue. The
@@ -3514,14 +3543,10 @@ void AsmPrinter::emitJumpTableImpl(const MachineJumpTableInfo &MJTI,
     for (const MachineBasicBlock *MBB : JTBBs)
       emitJumpTableEntry(MJTI, MBB, JumpTableIndex);
 
-    if (MAI.hasDotTypeDotSizeDirective()) {
-      auto JTEnd = createTempSymbol(JTISymbol->getName() + "_end");
-      OutStreamer->emitLabel(JTEnd);
-      const MCExpr *SizeExp = MCBinaryExpr::createSub(
-        MCSymbolRefExpr::create(JTEnd, OutContext),
-        MCSymbolRefExpr::create(JTISymbol, OutContext), OutContext);
-      OutStreamer->emitELFSize(JTISymbol, SizeExp);
-    }
+    if (JTInDiffSection && MAI.hasDotTypeDotSizeDirective())
+      OutStreamer->emitELFSize(
+          JTISymbol, MCConstantExpr::create(
+                         JTBBs.size() * MJTI.getEntrySize(DL), OutContext));
   }
 
   if (EmitJumpTableSizesSection)

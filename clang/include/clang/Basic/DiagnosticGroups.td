@@ -638,6 +638,12 @@ Warning to detect dangling field references.
 This may contain false-positives, e.g. when the borrowed storage is potentially moved and is not destroyed at function exit.
   }];
 }
+def LifetimeSafetyDanglingFieldLambdaCapture : DiagGroup<"lifetime-safety-dangling-field-lambda-capture"> {
+  code Documentation = [{
+Warning to detect dangling field references.
+This may contain false-positives, e.g. when the field is captured by a lambda that resets the field before function exit.
+  }];
+}
 
 def LifetimeSafetyDanglingGlobal : DiagGroup<"lifetime-safety-dangling-global"> {
   code Documentation = [{
@@ -697,6 +703,7 @@ def LifetimeSafetyStrict : DiagGroup<"lifetime-safety-strict",
                                     LifetimeSafetyUseAfterScopeMoved,
                                     LifetimeSafetyReturnStackAddrMoved,
                                     LifetimeSafetyDanglingFieldMoved,
+                                    LifetimeSafetyDanglingFieldLambdaCapture,
                                     LifetimeSafetyDanglingGlobalMoved,
                                     LifetimeSafetyInvalidation]>;
 
@@ -2042,3 +2049,5 @@ def ExperimentalOption : DiagGroup<"experimental-option">;
 
 // Warnings about unguarded usages of AMDGPU target specific constructs
 def UnguardedBuiltinUsageAMDGPU : DiagGroup<"amdgpu-unguarded-builtin-usage">;
+
+def AvailableVisibleAMDGPU : DiagGroup<"amdgpu-av">;

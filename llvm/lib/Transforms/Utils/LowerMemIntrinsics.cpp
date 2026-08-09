@@ -19,6 +19,7 @@
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
+#include <cmath>
 #include <limits>
 #include <optional>
 

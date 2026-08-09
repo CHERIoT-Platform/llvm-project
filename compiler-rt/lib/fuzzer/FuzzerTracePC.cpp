@@ -224,22 +224,11 @@ const TracePC::PCTableEntry *TracePC::PCTableEntryByIdx(size_t Idx) {
   return nullptr;
 }
 
-static std::string GetModuleName(VirtAddr PC) {
-  char ModulePathRaw[4096] = "";  // What's PATH_MAX in portable C++?
-  size_t OffsetRaw = 0;
-  if (!EF->__sanitizer_get_module_and_offset_for_pc(
-      static_cast<uintptr_t>(PC), ModulePathRaw,
-      sizeof(ModulePathRaw), &OffsetRaw))
-    return "";
-  return ModulePathRaw;
-}
-
 template<class CallBack>
 void TracePC::IterateCoveredFunctions(CallBack CB) {
   for (size_t i = 0; i < NumPCTables; i++) {
     auto &M = ModulePCTable[i];
     assert(M.Start < M.Stop);
-    auto ModuleName = GetModuleName(M.Start->PC);
     for (auto NextFE = M.Start; NextFE < M.Stop; ) {
       auto FE = NextFE;
       assert(PcIsFuncEntry(FE) && "Not a function entry point");

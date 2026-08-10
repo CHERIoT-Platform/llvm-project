@@ -378,7 +378,26 @@ void CheriotHeapChecker::postHeapClaim(const CallEvent &Call,
 
   ProgramStateRef State =
       C.getState()->set<HeapPointers>(Sym, HeapPtrState::Claimed);
-  C.addTransition(State);
+
+  // Assume that the claim always succeeds.
+  BasicValueFactory &BVF = C.getSValBuilder().getBasicValueFactory();
+  QualType RT = Call.getResultType();
+  State = State->assumeInclusiveRange(
+      Call.getReturnValue().castAs<DefinedOrUnknownSVal>(), BVF.getValue(1, RT),
+      BVF.getMaxValue(RT), true);
+  if (!State) {
+    C.generateSink(C.getState(), C.getPredecessor());
+    return;
+  }
+
+  const NoteTag *T =
+      C.getNoteTag([=](PathSensitiveBugReport &BR, llvm::raw_ostream &OS) {
+        if (!BR.isInteresting(Sym))
+          return;
+        OS << "Claim acquired here";
+      });
+
+  C.addTransition(State, T);
 }
 
 void CheriotHeapChecker::postHeapClaimEphemeral(const CallEvent &Call,
@@ -399,7 +418,22 @@ void CheriotHeapChecker::postHeapClaimEphemeral(const CallEvent &Call,
   if (Sym2)
     State = State->set<HeapPointers>(Sym2, HeapPtrState::Ephemeral);
 
-  C.addTransition(State);
+  // Assume that the claim always succeeds.
+  State = State->assume(Call.getReturnValue().castAs<DefinedOrUnknownSVal>(),
+                        false);
+  if (!State) {
+    C.generateSink(C.getState(), C.getPredecessor());
+    return;
+  }
+
+  const NoteTag *T =
+      C.getNoteTag([=](PathSensitiveBugReport &BR, llvm::raw_ostream &OS) {
+        if (!BR.isInteresting(Sym1) && !BR.isInteresting(Sym2))
+          return;
+        OS << "Ephemeral claim acquired here";
+      });
+
+  C.addTransition(State, T);
 }
 
 void CheriotHeapChecker::postHeapFree(const CallEvent &Call,

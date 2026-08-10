@@ -533,4 +533,12 @@ def err_cir_to_cir_transform_failed : Error<
 def err_cir_verification_failed_pre_passes : Error<
     "CIR module verification error before running CIR-to-CIR passes">,
     DefaultFatal;
+
+// CHERI Compartmentalization
+def err_cheri_implemented_wrong_compartment
+    : Error<"CHERI compartment entry declared for compartment '%0' but "
+            "implemented in '%1' (provided with -cheri-compartment=)">;
+def err_cheri_libcall_implemented_wrong_compartment
+    : Error<"CHERI libcall exported from compilation unit for compartment '%0' "
+            "(provided with -cheri-compartment=)">;
 }

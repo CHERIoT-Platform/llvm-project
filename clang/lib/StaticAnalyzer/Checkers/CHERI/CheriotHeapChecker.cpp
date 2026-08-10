@@ -140,6 +140,10 @@ class CheriotHeapChecker
        &CheriotHeapChecker::postHeapFreeAll},
       {{CDM::SimpleFunc, {"CHERI", "check_pointer"}},
        &CheriotHeapChecker::postCXXCheckPointer},
+      {{CDM::SimpleFunc, {"check_timeout_pointer"}},
+       &CheriotHeapChecker::postCheckTimeoutPointer},
+      {{CDM::SimpleFunc, {"timeout_is_valid"}},
+       &CheriotHeapChecker::postCheckTimeoutPointer},
   };
 
   const CallDescriptionSet SafeFnMap{
@@ -165,6 +169,7 @@ public:
   void postHeapFree(const CallEvent &Call, CheckerContext &C) const;
   void postHeapFreeAll(const CallEvent &Call, CheckerContext &C) const;
   void postCXXCheckPointer(const CallEvent &Call, CheckerContext &C) const;
+  void postCheckTimeoutPointer(const CallEvent &Call, CheckerContext &C) const;
 
 private:
   void reportLeak(SymbolRef Sym, CheckerContext &C) const;
@@ -368,6 +373,31 @@ void CheriotHeapChecker::postHeapAddressIsValid(const CallEvent &Call,
     StateFalse = StateFalse->remove<HeapPointers>(Sym);
     C.addTransition(StateFalse);
   }
+}
+
+void CheriotHeapChecker::postCheckTimeoutPointer(const CallEvent &Call,
+                                                 CheckerContext &C) const {
+  SymbolRef Sym = Call.getArgSVal(0).getAsLocSymbol();
+  if (!Sym)
+    return;
+
+  SVal RetVal = Call.getReturnValue();
+  ProgramStateRef State = C.getState();
+  const HeapPtrState *HPS = State->get<HeapPointers>(Sym);
+  if (!HPS)
+    return;
+
+  ProgramStateRef StateTrue, StateFalse;
+  std::tie(StateTrue, StateFalse) =
+      State->assume(RetVal.castAs<DefinedOrUnknownSVal>());
+
+  if (StateTrue) {
+    StateTrue = StateTrue->remove<HeapPointers>(Sym);
+    C.addTransition(StateTrue);
+  }
+
+  if (StateFalse)
+    C.addTransition(StateFalse);
 }
 
 void CheriotHeapChecker::postHeapClaim(const CallEvent &Call,

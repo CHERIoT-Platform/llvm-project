@@ -146,6 +146,10 @@ class CheriotHeapChecker
        &CheriotHeapChecker::postCheckTimeoutPointer},
   };
 
+  const CallDescriptionSet UnsealingFns{
+      {CDM::SimpleFunc, {"token_obj_unseal"}, 2},
+  };
+
   const CallDescriptionSet SafeFnMap{
       {CDM::SimpleFunc, {"token_obj_unseal"}, 2},
   };
@@ -293,6 +297,18 @@ void CheriotHeapChecker::checkPostCall(const CallEvent &Call,
 
       State = State->set<HeapPointers>(Sym, HeapPtrState::InvalidatedEphemeral);
       Changed = true;
+    }
+  }
+  // Unsealing a pointer propagates claim state to the unsealed pointer.
+  if (UnsealingFns.contains(Call)) {
+    SymbolRef SealedSym = Call.getArgSVal(1).getAsLocSymbol();
+    if (SealedSym) {
+      const HeapPtrState *HPS = State->get<HeapPointers>(SealedSym);
+      if (HPS) {
+        State = State->set<HeapPointers>(Call.getReturnValue().getAsLocSymbol(),
+                                         *HPS);
+        Changed = true;
+      }
     }
   }
 

@@ -211,8 +211,10 @@ static bool isCrossCompartmentCall(const CallEvent &Call,
                                    const CheckerContext &C) {
   // Any call through a CC_CHERICCallback pointer is a compartment call.
   auto IsCompartmentCallbackCall = [](const CallEvent &Call) {
-    const auto *CallE =
-        dyn_cast<CallExpr>(Call.getOriginExpr()->IgnoreParenImpCasts());
+    const auto *OrigE = Call.getOriginExpr();
+    if (!OrigE)
+      return false;
+    const auto *CallE = dyn_cast<CallExpr>(OrigE->IgnoreParenImpCasts());
     if (!CallE)
       return false;
 

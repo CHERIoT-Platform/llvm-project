@@ -267,3 +267,41 @@ void test_35(int* p, int* q) {
     *p2 = 1;
     *q = 1; // expected-warning{{Store through heap pointer 'q' without a valid claim}}
 }
+
+struct Timeout { int t; };
+extern _Bool check_timeout_pointer(const struct Timeout *);
+extern _Bool timeout_is_valid(const struct Timeout *);
+
+__attribute__((cheri_compartment("test")))
+void test_36(struct Timeout* t) {
+    unknown_call();
+    t->t = 0; // expected-warning{{Store through heap pointer 't' without a valid claim}}
+}
+
+__attribute__((cheri_compartment("test")))
+void test_37(struct Timeout* t) {
+    unknown_call();
+    if (check_timeout_pointer(t))
+        t->t = 0;
+}
+
+__attribute__((cheri_compartment("test")))
+void test_38(struct Timeout* t) {
+    unknown_call();
+    if (!check_timeout_pointer(t))
+        t->t = 0; // expected-warning{{Store through heap pointer 't' without a valid claim}}
+}
+
+__attribute__((cheri_compartment("test")))
+void test_39(struct Timeout* t) {
+    unknown_call();
+    if (timeout_is_valid(t))
+        t->t = 0;
+}
+
+__attribute__((cheri_compartment("test")))
+void test_40(struct Timeout* t) {
+    unknown_call();
+    if (!timeout_is_valid(t))
+        t->t = 0; // expected-warning{{Store through heap pointer 't' without a valid claim}}
+}

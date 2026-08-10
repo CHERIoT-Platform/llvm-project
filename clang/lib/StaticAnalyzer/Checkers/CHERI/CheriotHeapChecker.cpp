@@ -288,6 +288,7 @@ void CheriotHeapChecker::checkPostCall(const CallEvent &Call,
     }
   }
 
+  llvm::SmallVector<SymbolRef, 2> Invalidated;
   if (isCrossCompartmentCall(Call, C)) {
     // All ephemeral claims are implicitly released at each cross-compartment
     // call.
@@ -296,9 +297,11 @@ void CheriotHeapChecker::checkPostCall(const CallEvent &Call,
         continue;
 
       State = State->set<HeapPointers>(Sym, HeapPtrState::InvalidatedEphemeral);
+      Invalidated.push_back(Sym);
       Changed = true;
     }
   }
+
   // Unsealing a pointer propagates claim state to the unsealed pointer.
   if (UnsealingFns.contains(Call)) {
     SymbolRef SealedSym = Call.getArgSVal(1).getAsLocSymbol();
@@ -312,8 +315,17 @@ void CheriotHeapChecker::checkPostCall(const CallEvent &Call,
     }
   }
 
+  const NoteTag *T =
+      C.getNoteTag([=](PathSensitiveBugReport &BR, llvm::raw_ostream &OS) {
+        if (llvm::none_of(Invalidated, [&](const SymbolRef &Sym) {
+              return BR.isInteresting(Sym);
+            }))
+          return;
+        OS << "Ephemeral claims dropped by cross-compartment call here";
+      });
+
   if (Changed)
-    C.addTransition(State);
+    C.addTransition(State, T);
 }
 
 static void printSymbolNameForError(llvm::raw_ostream &os, SymbolRef Sym) {
@@ -494,16 +506,36 @@ void CheriotHeapChecker::postHeapFree(const CallEvent &Call,
     return;
 
   State = State->set<HeapPointers>(Sym, HeapPtrState::Unclaimed);
-  C.addTransition(State);
+  const NoteTag *T =
+      C.getNoteTag([=](PathSensitiveBugReport &BR, llvm::raw_ostream &OS) {
+        if (!BR.isInteresting(Sym))
+          return;
+        OS << "Claim dropped here";
+      });
+
+  C.addTransition(State, T);
 }
 
 void CheriotHeapChecker::postHeapFreeAll(const CallEvent &Call,
                                          CheckerContext &C) const {
   ProgramStateRef State = C.getState();
+
+  llvm::SmallVector<SymbolRef, 2> Invalidated;
   for (const auto &[Sym, HPS] : State->get<HeapPointers>()) {
     State = State->set<HeapPointers>(Sym, HeapPtrState::Unclaimed);
+    Invalidated.push_back(Sym);
   }
-  C.addTransition(State);
+
+  const NoteTag *T =
+      C.getNoteTag([=](PathSensitiveBugReport &BR, llvm::raw_ostream &OS) {
+        if (llvm::none_of(Invalidated, [&](const SymbolRef &Sym) {
+              return BR.isInteresting(Sym);
+            }))
+          return;
+        OS << "All claims dropped here";
+      });
+
+  C.addTransition(State, T);
 }
 
 static uint32_t

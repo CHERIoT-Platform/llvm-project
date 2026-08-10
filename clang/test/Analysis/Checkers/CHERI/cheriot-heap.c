@@ -262,10 +262,10 @@ void test_34(int* p) {
 }
 
 __attribute__((cheri_compartment("test")))
-void test_35(int* p, int* q) {
+void test_35(int* p) {
     int *p2 = (int*)token_obj_unseal(0, p);
-    *p2 = 1;
-    *q = 1; // expected-warning{{Store through heap pointer 'q' without a valid claim}}
+    unknown_call();
+    *p2 = 1; // expected-warning{{Store through heap pointer without a valid claim}}
 }
 
 struct Timeout { int t; };

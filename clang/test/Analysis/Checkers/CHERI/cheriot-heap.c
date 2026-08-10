@@ -305,3 +305,11 @@ void test_40(struct Timeout* t) {
     if (!timeout_is_valid(t))
         t->t = 0; // expected-warning{{Store through heap pointer 't' without a valid claim}}
 }
+
+struct test41_struct { int i; int j; };
+__attribute__((cheri_compartment("test")))
+void test_41(struct test41_struct* t) {
+    t->i = 0;
+    unknown_call();
+    t->j = 0;
+}

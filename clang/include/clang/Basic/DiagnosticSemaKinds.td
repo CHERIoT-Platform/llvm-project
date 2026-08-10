@@ -1559,12 +1559,9 @@ def warn_objc_cdirective_format_string :
           "%select{method|CFfunction}2">,
   InGroup<ObjCCStringFormat>, DefaultIgnore;
 
-def err_cheri_ccallee_no_compartment: Error<
-  "CHERI compartment entry points require a compartment name provided with -cheri-compartment=">;
-def err_cheri_implemented_wrong_compartment: Error<
-  "CHERI compartment entry declared for compartment '%0' but implemented in '%1' (provided with -cheri-compartment=)">;
-def err_cheri_libcall_implemented_wrong_compartment: Error<
-  "CHERI libcall exported from compilation unit for compartment '%0' (provided with -cheri-compartment=)">;
+def err_cheri_ccallee_no_compartment
+    : Error<"CHERI compartment entry points require a compartment name "
+            "provided with -cheri-compartment=">;
 def warn_cheri_libcall_no_prototype
     : Warning<
           "CHERI libcall should have a prototype in a header with a matching "

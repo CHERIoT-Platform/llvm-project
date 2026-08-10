@@ -16671,19 +16671,6 @@ Decl *Sema::ActOnStartOfFunctionDef(Scope *FnBodyScope, Decl *D,
            diag::warn_cheri_libcall_no_prototype);
   }
 
-  if (FD->getType()->getAs<FunctionType>()->getCallConv() == CC_CHERILibCall &&
-      !Context.getLangOpts().CheriCompartmentName.empty() && !FD->isInlined())
-    Diag(FD->getLocation(),
-         diag::err_cheri_libcall_implemented_wrong_compartment)
-        << Context.getLangOpts().CheriCompartmentName;
-  else if (FD->hasAttr<CHERICompartmentNameAttr>() &&
-           (FD->getAttr<CHERICompartmentNameAttr>()->getCompartmentName() !=
-            Context.getLangOpts().CheriCompartmentName) &&
-           !FD->isInlined())
-    Diag(FD->getLocation(), diag::err_cheri_implemented_wrong_compartment)
-        << FD->getAttr<CHERICompartmentNameAttr>()->getCompartmentName()
-        << Context.getLangOpts().CheriCompartmentName;
-
   maybeAddDeclWithEffects(FD);
 
   if (!FD->isInvalidDecl() && FD->hasAttr<SYCLKernelEntryPointAttr>() &&

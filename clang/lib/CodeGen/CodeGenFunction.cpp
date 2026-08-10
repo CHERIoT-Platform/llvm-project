@@ -1004,9 +1004,27 @@ void CodeGenFunction::StartFunction(GlobalDecl GD, QualType RetTy,
     auto *FT =
       dyn_cast<FunctionType>(FD->getType().getDesugaredType(getContext()));
     if (FT) {
-      if (!CGM.getLangOpts().CheriCompartmentName.empty())
+      // Compartment name mismatch errors are intentionally delayed until
+      // CodeGen in order to support clang-tidy, where the command-line
+      // compartment name is often unset.
+      if (!CGM.getLangOpts().CheriCompartmentName.empty()) {
+        if (FD->hasAttr<CHERICompartmentNameAttr>() &&
+            FD->getAttr<CHERICompartmentNameAttr>()->getCompartmentName() !=
+                CGM.getLangOpts().CheriCompartmentName) {
+          CGM.getDiags().Report(FD->getLocation(),
+                                diag::err_cheri_implemented_wrong_compartment)
+              << FD->getAttr<CHERICompartmentNameAttr>()->getCompartmentName()
+              << CGM.getLangOpts().CheriCompartmentName;
+        } else if (FT->getCallConv() == CC_CHERILibCall && !FD->isInlined()) {
+          CGM.getDiags().Report(
+              FD->getLocation(),
+              diag::err_cheri_libcall_implemented_wrong_compartment)
+              << CGM.getLangOpts().CheriCompartmentName;
+        }
+
         Fn->addFnAttr("cheri-compartment",
                       CGM.getLangOpts().CheriCompartmentName);
+      }
       if (FT->getCallConv() == CC_CHERICCallee)
         if (auto *ClsAttr = FD->getAttr<CHERIMethodClassAttr>())
           CGM.EmitSandboxDefinedMethod(ClsAttr->getDefaultClass()->getName(),

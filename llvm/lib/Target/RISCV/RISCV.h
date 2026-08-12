@@ -191,9 +191,6 @@ void initializeRISCVLateBranchOptPass(PassRegistry &);
 FunctionPass *createRISCVMakeCompressibleOptPass();
 void initializeRISCVMakeCompressibleOptPass(PassRegistry &);
 
-FunctionPass *createRISCVGatherScatterLoweringPass();
-void initializeRISCVGatherScatterLoweringPass(PassRegistry &);
-
 FunctionPass *createRISCVVectorPeepholePass();
 void initializeRISCVVectorPeepholePass(PassRegistry &);
 
@@ -241,8 +238,17 @@ void initializeRISCVLoadStoreOptPass(PassRegistry &);
 FunctionPass *createRISCVPreAllocZilsdOptPass();
 void initializeRISCVPreAllocZilsdOptPass(PassRegistry &);
 
+class RISCVZacasABIFixPass
+    : public RequiredPassInfoMixin<RISCVZacasABIFixPass> {
+private:
+  const RISCVTargetMachine *TM;
+
+public:
+  RISCVZacasABIFixPass(const RISCVTargetMachine *TM) : TM(TM) {}
+  PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM);
+};
 FunctionPass *createRISCVZacasABIFixPass();
-void initializeRISCVZacasABIFixPass(PassRegistry &);
+void initializeRISCVZacasABIFixLegacyPass(PassRegistry &);
 
 FunctionPass *createRISCVCheriCleanupOptPass();
 void initializeRISCVCheriCleanupOptPass(PassRegistry &);

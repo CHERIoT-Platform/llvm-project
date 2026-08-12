@@ -377,9 +377,14 @@ ABIArgInfo MipsABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
   }
 
   if (isAggregateTypeForABI(Ty) || Ty->isVectorType()) {
-    // Ignore empty aggregates.
-    if (TySize == 0)
+    // Ignore empty aggregates, but do insert padding for over-aligned
+    // zero-sized types.
+    if (TySize == 0) {
+      if (llvm::Type *Padding = getPaddingType(OrigOffset, CurrOffset))
+        return ABIArgInfo::getExpandWithPadding(/*PaddingInReg=*/false,
+                                                Padding);
       return ABIArgInfo::getIgnore();
+    }
 
     if (CGCXXABI::RecordArgABI RAA = getRecordArgABI(Ty, getCXXABI())) {
       Offset = OrigOffset + MinABIStackAlignInBytes;
@@ -647,12 +652,30 @@ void MipsABIInfo::computeInfo(CGFunctionInfo &FI) const {
   // Check if a pointer to an aggregate is passed as a hidden argument.
   uint64_t Offset = RetInfo.isIndirect() ? MinABIStackAlignInBytes : 0;
 
+  // Zero-sized arguments are not passed, but do end the run of floats.
+  bool SawZeroSizedArg = false;
+
   int NumFixedArgs = FI.getNumRequiredArgs();
   int ArgNum = 0;
   for (auto &I : FI.arguments()) {
     bool IsFixed = ArgNum < NumFixedArgs;
     I.info = classifyArgumentType(I.type, IsFixed, Offset);
-    ArgNum++;
+    ++ArgNum;
+
+    // N32 and N64 always pass floating points in float registers.
+    if (!IsO32)
+      continue;
+
+    if (getContext().getTypeSize(I.type) == 0)
+      SawZeroSizedArg = true;
+    else if (SawZeroSizedArg && I.type->isRealFloatingType()) {
+      // A zero-sized type ends the leading run of float arguments that is
+      // passed in FPRs. Any subsequent floats must be passed via GPRs. Cast the
+      // float to an integer now because we drop the zero-sized argument here
+      // and later stages have no way of inferring that it was there.
+      I.info = ABIArgInfo::getDirect(llvm::IntegerType::get(
+          getVMContext(), getContext().getTypeSize(I.type)));
+    }
   }
 }
 

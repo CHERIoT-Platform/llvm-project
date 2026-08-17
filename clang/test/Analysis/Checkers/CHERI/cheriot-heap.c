@@ -9,6 +9,7 @@ char check_pointer(const volatile void* ptr, int space,
                    unsigned int rawPermissions, char checkStackNeeded);
 _Bool heap_address_is_valid(void *);
 void *token_obj_unseal(void*, void*);
+int setjmp(void*, int);
 
 extern void unknown_call(void);
 extern int unknown_global;
@@ -317,4 +318,13 @@ void test_41(struct test41_struct* t) {
 __attribute__((cheri_compartment("test")))
 void test_42(void* a, void* p) {
     heap_claim(a, p);
+}
+
+__attribute__((cheri_compartment("test")))
+void test_43(int* p) {
+    unknown_call();
+    if (!setjmp(0, 1)) {
+        *p = 0;
+    }
+    *p = 0; // expected-warning{{Store through heap pointer 'p' without a valid claim}}
 }

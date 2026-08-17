@@ -144,6 +144,7 @@ class CheriotHeapChecker
        &CheriotHeapChecker::postCheckTimeoutPointer},
       {{CDM::SimpleFunc, {"timeout_is_valid"}},
        &CheriotHeapChecker::postCheckTimeoutPointer},
+      {{CDM::SimpleFunc, {"setjmp"}}, &CheriotHeapChecker::postSetJmp},
   };
 
   const CallDescriptionSet UnsealingFns{
@@ -174,6 +175,7 @@ public:
   void postHeapFreeAll(const CallEvent &Call, CheckerContext &C) const;
   void postCXXCheckPointer(const CallEvent &Call, CheckerContext &C) const;
   void postCheckTimeoutPointer(const CallEvent &Call, CheckerContext &C) const;
+  void postSetJmp(const CallEvent &Call, CheckerContext &C) const;
 
 private:
   void reportLeak(SymbolRef Sym, CheckerContext &C) const;
@@ -426,6 +428,21 @@ void CheriotHeapChecker::postCheckTimeoutPointer(const CallEvent &Call,
 
   if (StateFalse)
     C.addTransition(StateFalse);
+}
+
+void CheriotHeapChecker::postSetJmp(const CallEvent &Call,
+                                    CheckerContext &C) const {
+  // Assume that setjmp always returns true, i.e. that we are not
+  // analyzing the first return. The primary use case for setjmp
+  // on CHERIoT is implementing the CHERIOT_DURING / CHERIOT_HANDLER
+  // unwinding. In that scenario, all code executed between the
+  // first and second return is guarded by the handler, in which
+  // case we assume that any heap errors that occur during that
+  // region will be properly cleaned up by the handler.
+  ProgramStateRef State = C.getState();
+  State =
+      State->assume(Call.getReturnValue().castAs<DefinedOrUnknownSVal>(), true);
+  C.addTransition(State);
 }
 
 void CheriotHeapChecker::postHeapClaim(const CallEvent &Call,

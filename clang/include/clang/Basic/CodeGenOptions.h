@@ -397,6 +397,9 @@ public:
   /// Prefix to use for -save-temps output.
   std::string SaveTempsFilePrefix;
 
+  /// Prefix to use for -save-dynamic-debugging-temps output.
+  std::string SaveDynDbgTempsFilePrefix;
+
   /// The name of the file to which the backend should save CHERI-related
   /// statistics (number of ptr->int casts, csetbounds info, etc..) as JSON.
   /// Note: This file can be a shared between multiple compiler instances

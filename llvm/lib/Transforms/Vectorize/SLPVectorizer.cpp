@@ -8431,6 +8431,15 @@ void BoUpSLP::reorderBottomToTop(bool IgnoreReorder) {
         }
         continue;
       }
+      // Do not move the operand order to the root PHI node when the root
+      // order must be preserved: the root has no user to take over the order
+      // and it cannot be dropped at the end of the reordering.
+      if (!IgnoreReorder && Data.first == VectorizableTree.front().get() &&
+          !Data.first->UserTreeIndex &&
+          Data.first->State == TreeEntry::Vectorize &&
+          Data.first->getOpcode() == Instruction::PHI &&
+          Data.first->ReuseShuffleIndices.empty())
+        continue;
       // Check that operands are used only in the User node.
       SmallVector<TreeEntry *> GatherOps;
       buildReorderableOperands(Data.first, Data.second, NonVectorized,
@@ -26531,8 +26540,14 @@ BoUpSLP::BlockScheduling::tryScheduleBundle(ArrayRef<Value *> VL, BoUpSLP *SLP,
     // previously scheduled bundle. The node that introduced the extra direct
     // use is now part of the tree, so clearing and recalculating the
     // dependencies here accounts for that use.
+    // If the schedule is not reset in this round, skip already scheduled
+    // operands: clearing their dependencies also resets the scheduled flag,
+    // so they would enter the ready list and be scheduled twice, decrementing
+    // the dependency counts of their operands once too many.
+    const bool WillReSchedule =
+        ReSchedule || (OldScheduleEnd && ScheduleEnd != OldScheduleEnd);
     for (ScheduleData *SD : RecalcCopyableOperandDeps) {
-      if (!isInSchedulingRegion(*SD))
+      if (!isInSchedulingRegion(*SD) || (!WillReSchedule && SD->isScheduled()))
         continue;
       if (SD->hasValidDependencies())
         SD->clearDirectDependencies();

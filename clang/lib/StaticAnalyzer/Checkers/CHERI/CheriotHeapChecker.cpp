@@ -437,6 +437,18 @@ void CheriotHeapChecker::postHeapClaim(const CallEvent &Call,
   ProgramStateRef State =
       C.getState()->set<HeapPointers>(Sym, HeapPtrState::Claimed);
 
+  // If the allocation capability was also a cross-compartment argument,
+  // then it's possible / likely that the caller will free the claim, so
+  // we treat it as effectively escaped.
+  //
+  // This situation arises commonly where the callee is claiming on behalf
+  // of the caller, with claim release by the caller as an explicit part
+  // of the function contract.
+  SymbolRef AllocCap = Call.getArgSVal(0).getAsLocSymbol();
+  if (AllocCap && C.getState()->contains<HeapPointers>(AllocCap)) {
+    State = C.getState()->set<HeapPointers>(Sym, HeapPtrState::Escaped);
+  }
+
   // Assume that the claim always succeeds.
   BasicValueFactory &BVF = C.getSValBuilder().getBasicValueFactory();
   QualType RT = Call.getResultType();

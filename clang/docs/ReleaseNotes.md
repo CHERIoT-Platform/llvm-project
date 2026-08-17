@@ -116,8 +116,6 @@ latest release, please see the [Clang Web Site](https://clang.llvm.org) or the
   as being of type `std::size_t` instead of `int`,
   matching the deduction of array sizes from `int(&)[N]`.
   This is a breaking change for code that depended on the previously deduced type. (#GH195033)
-- Clang now rejects C++ declarations that combine the `auto` type specifier
-  with another type specifier, such as `auto int`.
 - Clang now rejects nested local classes defined in a different
   block scope than their parent class. (#GH193472)
 
@@ -454,6 +452,11 @@ latest release, please see the [Clang Web Site](https://clang.llvm.org) or the
   reproducable builds. These macros can be redefined from the command line if
   necessary. `/d1nodatetime-` can be used to turn this feature off if
   necessary to override the common build settings.
+
+- Added `-mscs-reg=<reg>` on Hexagon to select which callee-saved register
+  (`r16`-`r27`, default `r18`) holds the shadow call stack pointer under
+  `-fsanitize=shadow-call-stack`. The selected register must also be reserved
+  with the matching `-ffixed-<reg>`.
 
 ### Deprecated Compiler Flags
 
@@ -1299,6 +1302,10 @@ latest release, please see the [Clang Web Site](https://clang.llvm.org) or the
 ### Sanitizers
 
 - UndefinedBehaviorSanitizer now supports `__ubsan_default_suppressions`.
+- UndefinedBehaviorSanitizer now performs null, alignment, and array-bounds
+  checks for aggregate (as opposed to scalar) copy operations in C; for C++,
+  this applies to trivial copy/move operations and some cases remain
+  unchecked. (#GH190739, #GH203737)
 - Sanitizer Special Case Lists (`-fsanitize-ignorelist`) now support
   Version 4 of the Special Case List format, which introduces a transition
   period for leading dot-slash (`./`) canonicalization in path matching.

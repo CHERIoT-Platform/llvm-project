@@ -313,3 +313,8 @@ void test_41(struct test41_struct* t) {
     unknown_call();
     t->j = 0;
 }
+
+__attribute__((cheri_compartment("test")))
+void test_42(void* a, void* p) {
+    heap_claim(a, p);
+}

@@ -119,6 +119,12 @@ class CheriotHeapChecker
   const BugType LeakBugType{this, "Heap claim leak", "CHERIoT heap management"};
   const BugType InvalidUseBugType{this, "Invalid pointer use",
                                   "CHERIoT heap management"};
+  const BugType CheckPointerMisuseBugType{this, "Inconsistent check_pointer",
+                                          "CHERIoT heap management"};
+
+  bool requiresGlobalStateMutation(const BugType &BT) const {
+    return &BT == &InvalidUseBugType;
+  }
 
   using CheckFn = std::function<void(const class CheriotHeapChecker *,
                                      const CallEvent &Call, CheckerContext &C)>;
@@ -199,23 +205,49 @@ static constexpr TaintTagType TaintTagCapabilityReadOnly = 2;
 
 } // anonymous namespace
 
-REGISTER_TRAIT_WITH_PROGRAMSTATE(ExternalStateMutated, bool)
+REGISTER_TRAIT_WITH_PROGRAMSTATE(ExternalStateMutated, const Stmt *)
 REGISTER_MAP_WITH_PROGRAMSTATE(HeapPointers, SymbolRef, HeapPtrState)
 REGISTER_MAP_WITH_PROGRAMSTATE(CheckedPointers, SymbolRef, CheckPtrState)
 
-static bool shouldWarnOnDereferences(ProgramStateRef State) {
+static ProgramStateRef addGlobalStateMutation(ProgramStateRef State,
+                                              const Stmt *S) {
+  if (State->get<ExternalStateMutated>())
+    return State;
+  return State->set<ExternalStateMutated>(S);
+}
+
+static bool warningsEnabled(ProgramStateRef State) {
   if (State->get<ExternalStateMutated>())
     return true;
 
-  // Any pending non-ephemeral claims count as state mutation,
-  // unexpectedly terminating the compartment call without
-  // releasing them could cause a leak.
-  for (const auto &[Sym, HPS] : State->get<HeapPointers>()) {
+  for (const auto &[Sym, HPS] : State->get<HeapPointers>())
     if (HPS.isClaimed())
       return true;
-  }
 
   return false;
+}
+
+static SymbolRef getAttributableClaim(ProgramStateRef State) {
+  SymbolRef Attributed = nullptr;
+
+  // If there are multiple live claims, choose one deterministically to report.
+  for (const auto &[Sym, HPS] : State->get<HeapPointers>()) {
+    if (!HPS.isClaimed())
+      continue;
+    if (!Attributed || Sym->getSymbolID() < Attributed->getSymbolID())
+      Attributed = Sym;
+  }
+  return Attributed;
+}
+
+static void explainWarningsEnabled(PathSensitiveBugReport &Report,
+                                   CheckerContext &C) {
+  ProgramStateRef State = C.getState();
+  if (State->get<ExternalStateMutated>())
+    return;
+
+  if (SymbolRef Claim = getAttributableClaim(State))
+    Report.markInteresting(Claim);
 }
 
 static bool isCrossCompartmentCall(const CallEvent &Call,
@@ -278,15 +310,20 @@ void CheriotHeapChecker::checkPostCall(const CallEvent &Call,
 
   // Opaque calls to unrecognized, non-builtin functions may modify
   // state, which should cause us to enable warnings.
-  ProgramStateRef State = C.getState();
-  bool Changed = false;
+  ProgramStateRef OldState = C.getState();
+  ProgramStateRef State = OldState;
+  bool GlobalStateMutation = false;
   const FunctionDecl *FD = dyn_cast_or_null<FunctionDecl>(Call.getDecl());
   bool IsBuiltin = FD && FD->getBuiltinID() != 0;
   if (!IsBuiltin && !SafeFnMap.contains(Call)) {
     const Decl *RD = Call.getRuntimeDefinition().getDecl();
     if (!RD || !C.getAnalysisManager().getCFG(RD)) {
-      State = State->set<ExternalStateMutated>(true);
-      Changed = true;
+      ProgramStateRef WithMutation =
+          addGlobalStateMutation(State, Call.getOriginExpr());
+      if (WithMutation != State) {
+        State = WithMutation;
+        GlobalStateMutation = true;
+      }
     }
   }
 
@@ -300,33 +337,36 @@ void CheriotHeapChecker::checkPostCall(const CallEvent &Call,
 
       State = State->set<HeapPointers>(Sym, HeapPtrState::InvalidatedEphemeral);
       Invalidated.push_back(Sym);
-      Changed = true;
     }
   }
 
   // Unsealing a pointer propagates claim state to the unsealed pointer.
   if (UnsealingFns.contains(Call)) {
     SymbolRef SealedSym = Call.getArgSVal(1).getAsLocSymbol();
-    if (SealedSym) {
-      const HeapPtrState *HPS = State->get<HeapPointers>(SealedSym);
-      if (HPS) {
-        State = State->set<HeapPointers>(Call.getReturnValue().getAsLocSymbol(),
-                                         *HPS);
-        Changed = true;
+    SymbolRef UnsealedSym = Call.getReturnValue().getAsLocSymbol();
+    if (SealedSym && UnsealedSym) {
+      if (const HeapPtrState *HPS = State->get<HeapPointers>(SealedSym)) {
+        State = State->set<HeapPointers>(UnsealedSym, HPS->K);
       }
     }
   }
 
-  const NoteTag *T =
-      C.getNoteTag([=](PathSensitiveBugReport &BR, llvm::raw_ostream &OS) {
-        if (llvm::none_of(Invalidated, [&](const SymbolRef &Sym) {
-              return BR.isInteresting(Sym);
-            }))
-          return;
-        OS << "Ephemeral claims dropped by cross-compartment call here";
-      });
+  const NoteTag *T = C.getNoteTag([this, Invalidated, GlobalStateMutation](
+                                      PathSensitiveBugReport &BR,
+                                      llvm::raw_ostream &OS) {
+    if (llvm::any_of(Invalidated, [&](const SymbolRef &Sym) {
+          return BR.isInteresting(Sym);
+        })) {
+      OS << "Ephemeral claims dropped by cross-compartment call here";
+    }
 
-  if (Changed)
+    if (GlobalStateMutation && requiresGlobalStateMutation(BR.getBugType())) {
+      OS << "Externally visible global state potentially mutated by external "
+            "call here";
+    }
+  });
+
+  if (State != OldState)
     C.addTransition(State, T);
 }
 
@@ -343,7 +383,7 @@ static void printSymbolNameForError(llvm::raw_ostream &os, SymbolRef Sym) {
 void CheriotHeapChecker::preCheckPointer(const CallEvent &Call,
                                          CheckerContext &C) const {
   ProgramStateRef State = C.getState();
-  if (!shouldWarnOnDereferences(State))
+  if (!warningsEnabled(State))
     return;
 
   // If the pointer argument points to memory that could be heap memory,
@@ -377,6 +417,7 @@ void CheriotHeapChecker::preCheckPointer(const CallEvent &Call,
   auto Report =
       std::make_unique<PathSensitiveBugReport>(InvalidUseBugType, os.str(), N);
   Report->markInteresting(Sym);
+  explainWarningsEnabled(*Report, C);
   C.emitReport(std::move(Report));
 }
 
@@ -432,7 +473,7 @@ void CheriotHeapChecker::postCheckTimeoutPointer(const CallEvent &Call,
 
 void CheriotHeapChecker::postSetJmp(const CallEvent &Call,
                                     CheckerContext &C) const {
-  // Assume that setjmp always returns true, i.e. that we are not
+  // Assume that setjmp always returns non-zero, i.e. that we are not
   // analyzing the first return. The primary use case for setjmp
   // on CHERIoT is implementing the CHERIOT_DURING / CHERIOT_HANDLER
   // unwinding. In that scenario, all code executed between the
@@ -442,6 +483,11 @@ void CheriotHeapChecker::postSetJmp(const CallEvent &Call,
   ProgramStateRef State = C.getState();
   State =
       State->assume(Call.getReturnValue().castAs<DefinedOrUnknownSVal>(), true);
+  if (!State) {
+    C.generateSink(C.getState(), C.getPredecessor());
+    return;
+  }
+
   C.addTransition(State);
 }
 
@@ -451,9 +497,6 @@ void CheriotHeapChecker::postHeapClaim(const CallEvent &Call,
   if (!Sym)
     return;
 
-  ProgramStateRef State =
-      C.getState()->set<HeapPointers>(Sym, HeapPtrState::Claimed);
-
   // If the allocation capability was also a cross-compartment argument,
   // then it's possible / likely that the caller will free the claim, so
   // we treat it as effectively escaped.
@@ -461,10 +504,12 @@ void CheriotHeapChecker::postHeapClaim(const CallEvent &Call,
   // This situation arises commonly where the callee is claiming on behalf
   // of the caller, with claim release by the caller as an explicit part
   // of the function contract.
+  HeapPtrState::Kind K = HeapPtrState::Claimed;
   SymbolRef AllocCap = Call.getArgSVal(0).getAsLocSymbol();
-  if (AllocCap && C.getState()->contains<HeapPointers>(AllocCap)) {
-    State = C.getState()->set<HeapPointers>(Sym, HeapPtrState::Escaped);
-  }
+  if (AllocCap && C.getState()->contains<HeapPointers>(AllocCap))
+    K = HeapPtrState::Escaped;
+
+  ProgramStateRef State = C.getState()->set<HeapPointers>(Sym, K);
 
   // Assume that the claim always succeeds.
   BasicValueFactory &BVF = C.getSValBuilder().getBasicValueFactory();
@@ -615,8 +660,8 @@ void CheriotHeapChecker::reportContradictoryCheckPtr(SymbolRef Sym,
 
   os << ").";
 
-  auto Report =
-      std::make_unique<PathSensitiveBugReport>(InvalidUseBugType, os.str(), N);
+  auto Report = std::make_unique<PathSensitiveBugReport>(
+      CheckPointerMisuseBugType, os.str(), N);
   Report->addRange(CE.getSourceRange());
   Report->markInteresting(Sym);
   C.emitReport(std::move(Report));
@@ -692,6 +737,7 @@ void CheriotHeapChecker::reportDerefOfUnclaimedPointer(
   if (S)
     Report->addRange(S->getSourceRange());
   Report->markInteresting(Sym);
+  explainWarningsEnabled(*Report, C);
   C.emitReport(std::move(Report));
 }
 
@@ -724,6 +770,7 @@ void CheriotHeapChecker::reportDerefMissingPerms(SymbolRef Sym, bool IsLoad,
   if (S)
     Report->addRange(S->getSourceRange());
   Report->markInteresting(Sym);
+  explainWarningsEnabled(*Report, C);
   C.emitReport(std::move(Report));
 }
 
@@ -751,6 +798,7 @@ void CheriotHeapChecker::reportDerefOfUntaggedCapability(
       bugreporter::trackExpressionValue(N, cast<Expr>(S), *Report);
   }
   Report->markInteresting(Loc);
+  explainWarningsEnabled(*Report, C);
   C.emitReport(std::move(Report));
 }
 
@@ -775,6 +823,7 @@ void CheriotHeapChecker::reportWriteThroughReadOnlyCap(
       bugreporter::trackExpressionValue(N, cast<Expr>(S), *Report);
   }
   Report->markInteresting(Loc);
+  explainWarningsEnabled(*Report, C);
   C.emitReport(std::move(Report));
 }
 
@@ -789,16 +838,25 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
   // tracked compartment call arguments, then it is an internal state
   // change that could cause state desynchronization on compartment
   // crash.
-  bool CompartmentCrashWarningsLive = shouldWarnOnDereferences(State);
+  bool CompartmentCrashWarningsLive = warningsEnabled(State);
   const HeapPtrState *HPS = Sym ? State->get<HeapPointers>(Sym) : nullptr;
-  if (!CompartmentCrashWarningsLive && !IsLoad && !HPS) {
+  if (!IsLoad && !HPS) {
     if (!Region || !isa<StackSpaceRegion>(Region->getMemorySpace(State)))
-      State = State->set<ExternalStateMutated>(true);
+      State = addGlobalStateMutation(State, S);
   }
+
+  bool GlobalStateMutation = State->get<ExternalStateMutated>() !=
+                             OldState->get<ExternalStateMutated>();
+  const NoteTag *T = C.getNoteTag([=](PathSensitiveBugReport &BR,
+                                      llvm::raw_ostream &OS) {
+    if (GlobalStateMutation && requiresGlobalStateMutation(BR.getBugType())) {
+      OS << "Externally visible global state mutated here";
+    }
+  });
 
   if (!Sym) {
     if (State != OldState)
-      C.addTransition(State);
+      C.addTransition(State, T);
     return;
   }
 
@@ -829,7 +887,7 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
     // not reporting compartment crashes, then we take that as an
     // assertion that the pointer is actually claimed.
     State = State->set<HeapPointers>(Sym, HeapPtrState::Escaped);
-    C.addTransition(State);
+    C.addTransition(State, T);
     return;
   }
 
@@ -860,7 +918,7 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
   }
 
   if (State != OldState)
-    C.addTransition(State);
+    C.addTransition(State, T);
   return;
 }
 

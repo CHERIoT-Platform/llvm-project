@@ -336,3 +336,16 @@ void test_44(int* p, int* q) {
     heap_free(0, p);
     *q = 2; // expected-warning{{Store through heap pointer 'q' without a valid claim}}
 }
+
+__attribute__((cheri_compartment("test")))
+void test_45(int* p, int* q) {
+    check_pointer(p, 0, 0, 0); // no warn
+    check_pointer(q, 0, 0, 0); // no warn
+}
+
+__attribute__((cheri_compartment("test")))
+void test_46(int* p, int* q) {
+    check_pointer(p, 0, 0, 0); // no warn
+    unknown_global = 1;
+    check_pointer(q, 0, 0, 0); // expected-warning{{check_pointer called on potential heap pointer 'q' without a valid claim}}
+}

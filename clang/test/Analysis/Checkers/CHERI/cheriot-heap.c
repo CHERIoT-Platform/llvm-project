@@ -328,3 +328,11 @@ void test_43(int* p) {
     }
     *p = 0; // expected-warning{{Store through heap pointer 'p' without a valid claim}}
 }
+
+__attribute__((cheri_compartment("test")))
+void test_44(int* p, int* q) {
+    heap_claim(0, p);
+    unknown_global = 1;
+    heap_free(0, p);
+    *q = 2; // expected-warning{{Store through heap pointer 'q' without a valid claim}}
+}

@@ -158,7 +158,16 @@ class CheriotHeapChecker
   };
 
   const CallDescriptionSet SafeFnMap{
+      {CDM::SimpleFunc, {"heap_address_is_valid"}, 1},
+      {CDM::SimpleFunc, {"heap_claim"}, 2},
+      {CDM::SimpleFunc, {"heap_claim_ephemeral"}, 3},
+      {CDM::SimpleFunc, {"heap_free"}, 2},
+      {CDM::SimpleFunc, {"heap_free_all"}, 1},
+      {CDM::SimpleFunc, {"check_timeout_pointer"}, 1},
+      {CDM::SimpleFunc, {"timeout_is_valid"}, 1},
+      {CDM::SimpleFunc, {"setjmp"}, 2},
       {CDM::SimpleFunc, {"token_obj_unseal"}, 2},
+      {CDM::SimpleFunc, {"check_pointer"}, 4},
   };
 
 public:

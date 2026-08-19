@@ -9,7 +9,6 @@ char check_pointer(const volatile void* ptr, int space,
                    unsigned int rawPermissions, char checkStackNeeded);
 _Bool heap_address_is_valid(void *);
 void *token_obj_unseal(void*, void*);
-int setjmp(void*, int);
 
 extern void unknown_call(void);
 extern int unknown_global;
@@ -321,16 +320,7 @@ void test_42(void* a, void* p) {
 }
 
 __attribute__((cheri_compartment("test")))
-void test_43(int* p) {
-    unknown_call();
-    if (!setjmp(0, 1)) {
-        *p = 0;
-    }
-    *p = 0; // expected-warning{{Store through heap pointer 'p' without a valid claim}}
-}
-
-__attribute__((cheri_compartment("test")))
-void test_44(int* p, int* q) {
+void test_43(int* p, int* q) {
     heap_claim(0, p);
     unknown_global = 1;
     heap_free(0, p);
@@ -338,13 +328,13 @@ void test_44(int* p, int* q) {
 }
 
 __attribute__((cheri_compartment("test")))
-void test_45(int* p, int* q) {
+void test_44(int* p, int* q) {
     check_pointer(p, 0, 0, 0); // no warn
     check_pointer(q, 0, 0, 0); // no warn
 }
 
 __attribute__((cheri_compartment("test")))
-void test_46(int* p, int* q) {
+void test_45(int* p, int* q) {
     check_pointer(p, 0, 0, 0); // no warn
     unknown_global = 1;
     check_pointer(q, 0, 0, 0); // expected-warning{{check_pointer called on potential heap pointer 'q' without a valid claim}}

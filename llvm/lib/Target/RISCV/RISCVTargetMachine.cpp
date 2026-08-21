@@ -13,7 +13,6 @@
 #include "RISCVTargetMachine.h"
 #include "MCTargetDesc/RISCVBaseInfo.h"
 #include "RISCV.h"
-#include "RISCVGatherScatterLowering.h"
 #include "RISCVMachineFunctionInfo.h"
 #include "RISCVMachineScheduler.h"
 #include "RISCVTargetObjectFile.h"
@@ -139,7 +138,7 @@ extern "C" LLVM_ABI LLVM_EXTERNAL_VISIBILITY void LLVMInitializeRISCVTarget() {
   initializeRISCVPreRAExpandPseudoPass(*PR);
   initializeRISCVExpandPseudoPass(*PR);
   initializeRISCVVectorPeepholePass(*PR);
-  initializeRISCVVLOptimizerPass(*PR);
+  initializeRISCVVLOptimizerLegacyPass(*PR);
   initializeRISCVVMV0EliminationPass(*PR);
   initializeRISCVInsertVSETVLIPass(*PR);
   initializeRISCVInsertReadWriteCSRPass(*PR);
@@ -253,16 +252,7 @@ RISCVTargetMachine::getSubtargetImpl(const Function &F) const {
                            << CPU << TuneCPU << FS;
   auto &I = SubtargetMap[Key];
   if (!I) {
-    auto ABIName = Options.MCOptions.getABIName();
-    if (const MDString *ModuleTargetABI = dyn_cast_or_null<MDString>(
-            F.getParent()->getModuleFlag("target-abi"))) {
-      auto TargetABI = RISCVABI::getTargetABI(ABIName, TargetTriple);
-      if (TargetABI != RISCVABI::ABI_Unknown &&
-          ModuleTargetABI->getString() != ABIName) {
-        report_fatal_error("-target-abi option != target-abi module flag");
-      }
-      ABIName = ModuleTargetABI->getString();
-    }
+    StringRef ABIName = getTargetABIName(*F.getParent());
     I = std::make_unique<RISCVSubtarget>(
         TargetTriple, CPU, TuneCPU, FS, ABIName, RVVBitsMin, RVVBitsMax, *this);
   }
@@ -483,13 +473,13 @@ bool RISCVPassConfig::addRegAssignAndRewriteOptimized() {
 
 void RISCVPassConfig::addIRPasses() {
   addPass(createAtomicExpandLegacyPass());
-  addPass(createRISCVZacasABIFixPass());
+  addPass(createRISCVZacasABIFixLegacyPass());
 
   if (getOptLevel() != CodeGenOptLevel::None) {
     if (EnableLoopDataPrefetch)
       addPass(createLoopDataPrefetchPass());
 
-    addPass(createRISCVGatherScatterLoweringPass());
+    addPass(createRISCVGatherScatterLoweringLegacyPass());
     addPass(createInterleavedAccessPass());
     addPass(createRISCVCodeGenPrepareLegacyPass());
   }
@@ -536,13 +526,13 @@ void RISCVPassConfig::addCodeGenPrepare() {
 }
 
 bool RISCVPassConfig::addInstSelector() {
-  addPass(createRISCVISelDag(getRISCVTargetMachine(), getOptLevel()));
+  addPass(createRISCVISelDagLegacyPass(getRISCVTargetMachine(), getOptLevel()));
 
   return false;
 }
 
 bool RISCVPassConfig::addIRTranslator() {
-  addPass(new IRTranslator(getOptLevel()));
+  addPass(new IRTranslatorLegacy(getOptLevel()));
   return false;
 }
 
@@ -555,7 +545,7 @@ void RISCVPassConfig::addPreLegalizeMachineIR() {
 }
 
 bool RISCVPassConfig::addLegalizeMachineIR() {
-  addPass(new Legalizer());
+  addPass(new LegalizerLegacy());
   return false;
 }
 
@@ -565,7 +555,7 @@ void RISCVPassConfig::addPreRegBankSelect() {
 }
 
 bool RISCVPassConfig::addRegBankSelect() {
-  addPass(new RegBankSelect());
+  addPass(new RegBankSelectLegacy());
   return false;
 }
 
@@ -628,7 +618,7 @@ void RISCVPassConfig::addPreEmitPass2() {
   }));
 
   if (EnableCFIInstrInserter)
-    addPass(createCFIInstrInserter());
+    addPass(createCFIInstrInserterLegacy());
 }
 
 void RISCVPassConfig::addMachineSSAOptimization() {
@@ -642,7 +632,7 @@ void RISCVPassConfig::addMachineSSAOptimization() {
     // vsetvli toggles, and still requires the MachineLoopInfo analysis to be
     // run.
     addPass(&EarlyMachineLICMID);
-    addPass(createRISCVVLOptimizerPass());
+    addPass(createRISCVVLOptimizerLegacyPass());
   }
 
   addPass(createRISCVVectorPeepholePass());

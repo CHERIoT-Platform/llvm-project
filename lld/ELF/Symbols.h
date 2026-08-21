@@ -58,9 +58,9 @@ enum {
   NEEDS_GOT_DTPREL = 1 << 7,
   NEEDS_TLSIE = 1 << 8,
   NEEDS_GOT_AUTH = 1 << 9,
-  NEEDS_GOT_NONAUTH = 1 << 10,
+  // 1 << 10 unused
   NEEDS_TLSDESC_AUTH = 1 << 11,
-  NEEDS_TLSDESC_NONAUTH = 1 << 12,
+  // 1 << 12 unused
   NEEDS_TGOT = 1 << 13,
   NEEDS_TGOT_GOT = 1 << 14,
   NEEDS_TGOT_TLSGD = 1 << 15,
@@ -385,7 +385,8 @@ public:
   bool needsDynReloc() const {
     return flags.load(std::memory_order_relaxed) &
            (NEEDS_COPY | NEEDS_GOT | NEEDS_PLT | NEEDS_TLSDESC | NEEDS_TLSGD |
-            NEEDS_GOT_DTPREL | NEEDS_TLSIE | NEEDS_TGOT |
+            NEEDS_GOT_DTPREL | NEEDS_TLSIE | NEEDS_GOT_AUTH |
+            NEEDS_TLSDESC_AUTH | NEEDS_TGOT |
             NEEDS_TGOT_GOT | NEEDS_TGOT_TLSGD | NEEDS_TGOT_TLSDESC);
   }
   void allocateAux(Ctx &ctx) {

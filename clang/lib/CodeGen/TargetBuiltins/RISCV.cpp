@@ -1296,7 +1296,20 @@ Value *CodeGenFunction::EmitRISCVBuiltinExpr(unsigned BuiltinID,
   case RISCV::BI__builtin_riscv_psext_b_i32x2:
   case RISCV::BI__builtin_riscv_psext_h_i32x2:
   case RISCV::BI__builtin_riscv_pzext_b_u16x4:
-  case RISCV::BI__builtin_riscv_pzext_h_u32x2: {
+  case RISCV::BI__builtin_riscv_pzext_h_u32x2:
+  // Packed Saturating and Rounding Shifts
+  case RISCV::BI__builtin_riscv_pssha_s_i16x2:
+  case RISCV::BI__builtin_riscv_psshar_s_i16x2:
+  case RISCV::BI__builtin_riscv_psshl_s_u16x2:
+  case RISCV::BI__builtin_riscv_psshlr_s_u16x2:
+  case RISCV::BI__builtin_riscv_pssha_s_i16x4:
+  case RISCV::BI__builtin_riscv_pssha_s_i32x2:
+  case RISCV::BI__builtin_riscv_psshar_s_i16x4:
+  case RISCV::BI__builtin_riscv_psshar_s_i32x2:
+  case RISCV::BI__builtin_riscv_psshl_s_u16x4:
+  case RISCV::BI__builtin_riscv_psshl_s_u32x2:
+  case RISCV::BI__builtin_riscv_psshlr_s_u16x4:
+  case RISCV::BI__builtin_riscv_psshlr_s_u32x2: {
     switch (BuiltinID) {
     default:
       llvm_unreachable("unexpected builtin ID");
@@ -1443,6 +1456,26 @@ Value *CodeGenFunction::EmitRISCVBuiltinExpr(unsigned BuiltinID,
     case RISCV::BI__builtin_riscv_pzext_h_u32x2:
       ID = Intrinsic::riscv_pzext_h;
       break;
+    case RISCV::BI__builtin_riscv_pssha_s_i16x2:
+    case RISCV::BI__builtin_riscv_pssha_s_i16x4:
+    case RISCV::BI__builtin_riscv_pssha_s_i32x2:
+      ID = Intrinsic::riscv_pssha;
+      break;
+    case RISCV::BI__builtin_riscv_psshar_s_i16x2:
+    case RISCV::BI__builtin_riscv_psshar_s_i16x4:
+    case RISCV::BI__builtin_riscv_psshar_s_i32x2:
+      ID = Intrinsic::riscv_psshar;
+      break;
+    case RISCV::BI__builtin_riscv_psshl_s_u16x2:
+    case RISCV::BI__builtin_riscv_psshl_s_u16x4:
+    case RISCV::BI__builtin_riscv_psshl_s_u32x2:
+      ID = Intrinsic::riscv_psshl;
+      break;
+    case RISCV::BI__builtin_riscv_psshlr_s_u16x2:
+    case RISCV::BI__builtin_riscv_psshlr_s_u16x4:
+    case RISCV::BI__builtin_riscv_psshlr_s_u32x2:
+      ID = Intrinsic::riscv_psshlr;
+      break;
     }
 
     IntrinsicTypes = {ResultType};
@@ -1463,7 +1496,18 @@ Value *CodeGenFunction::EmitRISCVBuiltinExpr(unsigned BuiltinID,
   case RISCV::BI__builtin_riscv_predsumu_u16x4_u32:
   case RISCV::BI__builtin_riscv_predsumu_u8x8_u64:
   case RISCV::BI__builtin_riscv_predsumu_u16x4_u64:
-  case RISCV::BI__builtin_riscv_predsumu_u32x2_u64: {
+  case RISCV::BI__builtin_riscv_predsumu_u32x2_u64:
+  // Packed Narrowing Clip Pair
+  case RISCV::BI__builtin_riscv_pnclipp_i8x4:
+  case RISCV::BI__builtin_riscv_pnclipp_i8x8:
+  case RISCV::BI__builtin_riscv_pnclipp_i16x2:
+  case RISCV::BI__builtin_riscv_pnclipp_i16x4:
+  case RISCV::BI__builtin_riscv_pnclipp_i32x2:
+  case RISCV::BI__builtin_riscv_pnclipup_u8x4:
+  case RISCV::BI__builtin_riscv_pnclipup_u8x8:
+  case RISCV::BI__builtin_riscv_pnclipup_u16x2:
+  case RISCV::BI__builtin_riscv_pnclipup_u16x4:
+  case RISCV::BI__builtin_riscv_pnclipup_u32x2: {
     switch (BuiltinID) {
     default:
       llvm_unreachable("unexpected builtin ID");
@@ -1484,6 +1528,20 @@ Value *CodeGenFunction::EmitRISCVBuiltinExpr(unsigned BuiltinID,
     case RISCV::BI__builtin_riscv_predsumu_u16x4_u64:
     case RISCV::BI__builtin_riscv_predsumu_u32x2_u64:
       ID = Intrinsic::riscv_predsumu;
+      break;
+    case RISCV::BI__builtin_riscv_pnclipp_i8x4:
+    case RISCV::BI__builtin_riscv_pnclipp_i8x8:
+    case RISCV::BI__builtin_riscv_pnclipp_i16x2:
+    case RISCV::BI__builtin_riscv_pnclipp_i16x4:
+    case RISCV::BI__builtin_riscv_pnclipp_i32x2:
+      ID = Intrinsic::riscv_pnclipp;
+      break;
+    case RISCV::BI__builtin_riscv_pnclipup_u8x4:
+    case RISCV::BI__builtin_riscv_pnclipup_u8x8:
+    case RISCV::BI__builtin_riscv_pnclipup_u16x2:
+    case RISCV::BI__builtin_riscv_pnclipup_u16x4:
+    case RISCV::BI__builtin_riscv_pnclipup_u32x2:
+      ID = Intrinsic::riscv_pnclipup;
       break;
     }
 

@@ -810,6 +810,7 @@ public:
     if (E->isStoredAsBoolean())
       return llvm::ConstantInt::get(ConvertType(E->getType()),
                                     E->getBoolValue());
+    assert(E->getType()->isIntegerType() && "not a scalar type trait");
     assert(E->getAPValue().isInt() && "APValue type not supported");
     return llvm::ConstantInt::get(ConvertType(E->getType()),
                                   E->getAPValue().getInt());
@@ -5515,26 +5516,34 @@ Value *ScalarExprEmitter::EmitSub(const BinOpInfo &op) {
 
   // Otherwise, this is a pointer subtraction.
 
-  const BinaryOperator *expr = cast<BinaryOperator>(op.E);
-  // Do the raw subtraction part.
-  llvm::Value *LHS = op.LHS;
-  llvm::Value *RHS = op.RHS;
+  // Do the raw subtraction part. When pointer overflow is defined, use ptrtoint
+  // as the pointer difference can be used to obtain the pointer without basing
+  // it on one of the pointers (e.g. via -(nullptr - ptr)).
+  Value *LHS, *RHS;
   Value *diffInChars;
-  if (expr->getLHS()->getType()->isCHERICapabilityType(CGF.getContext())) {
+  if (cast<BinaryOperator>(op.E)->getLHS()->getType()->isCHERICapabilityType(CGF.getContext())) {
     llvm::Function *CapPtrDiff =
       CGF.CGM.getIntrinsic(llvm::Intrinsic::cheri_cap_diff, CGF.PtrDiffTy);
     llvm::Type *CapTy = CapPtrDiff->getFunctionType()->getParamType(0);
-    LHS = Builder.CreateBitCast(LHS, CapTy);
-    RHS = Builder.CreateBitCast(RHS, CapTy);
+    LHS = Builder.CreateBitCast(op.LHS, CapTy);
+    RHS = Builder.CreateBitCast(op.RHS, CapTy);
     diffInChars = Builder.CreateCall(CapPtrDiff, { LHS, RHS});
-  } else {
+  } else if (CGF.getLangOpts().PointerOverflowDefined) {
     LHS = Builder.CreatePtrToInt(op.LHS, CGF.PtrDiffTy, "sub.ptr.lhs.cast");
-    RHS  = Builder.CreatePtrToInt(op.RHS, CGF.PtrDiffTy, "sub.ptr.rhs.cast");
+    RHS = Builder.CreatePtrToInt(op.RHS, CGF.PtrDiffTy, "sub.ptr.rhs.cast");
+    diffInChars = Builder.CreateSub(LHS, RHS, "sub.ptr.sub");
+  } else {
+    LHS = Builder.CreatePtrToAddr(op.LHS, "sub.ptr.lhs.cast");
+    RHS = Builder.CreatePtrToAddr(op.RHS, "sub.ptr.rhs.cast");
+    if (LHS->getType() != CGF.PtrDiffTy)
+      LHS = Builder.CreateZExtOrTrunc(LHS, CGF.PtrDiffTy, "sub.ptr.lhs.ext");
+    if (RHS->getType() != CGF.PtrDiffTy)
+      RHS = Builder.CreateZExtOrTrunc(RHS, CGF.PtrDiffTy, "sub.ptr.lhs.ext");
     diffInChars = Builder.CreateSub(LHS, RHS, "sub.ptr.sub");
   }
 
   // Okay, figure out the element size.
-  QualType elementType = expr->getLHS()->getType()->getPointeeType();
+  QualType elementType = cast<BinaryOperator>(op.E)->getLHS()->getType()->getPointeeType();
 
   llvm::Value *divisor = nullptr;
 
@@ -5915,6 +5924,9 @@ Value *ScalarExprEmitter::EmitCompare(const BinaryOperator *E,
     // vector integer type and return it (don't convert to bool).
     if (LHSTy->isVectorType() || LHSTy->isSveVLSBuiltinType())
       return Builder.CreateSExt(Result, ConvertType(E->getType()), "sext");
+
+    if (LHSTy->isMatrixType())
+      return Result;
 
   } else {
     // Complex Comparison: can only be an equality comparison.

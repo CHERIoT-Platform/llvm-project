@@ -558,8 +558,8 @@ let Class = DeducedTemplateSpecializationType in {
   def : Property<"keyword", ElaboratedTypeKeyword> {
     let Read = [{ node->getKeyword() }];
   }
-  def : Property<"templateName", Optional<TemplateName>> {
-    let Read = [{ makeOptionalFromNullable(node->getTemplateName()) }];
+  def : Property<"templateName", TemplateName> {
+    let Read = [{ node->getTemplateName() }];
   }
   def : Property<"deducedKind", DeducedKind> {
     let Read = [{ node->getDeducedKind() }];
@@ -569,8 +569,7 @@ let Class = DeducedTemplateSpecializationType in {
   }
 
   def : Creator<[{
-    return ctx.getDeducedTemplateSpecializationType(deducedKind, deducedType, keyword,
-                                     makeNullableFromOptional(templateName));
+    return ctx.getDeducedTemplateSpecializationType(deducedKind, deducedType, keyword, templateName);
   }]>;
 }
 
@@ -701,14 +700,15 @@ let Class = HLSLAttributedResourceType in {
   def : Property<"isArray", Bool> {
     let Read = [{ node->getAttrs().IsArray }];
   }
-  def : Property<"isMultiSampled", Bool> {
-    let Read = [{ node->getAttrs().IsMultiSampled }];
+  def : Property<"sampleCountExpr", Optional<ExprRef>> {
+    let Read = [{ makeOptionalFromPointer(node->getSampleCountExpr()) }];
   }
   def : Creator<[{
     HLSLAttributedResourceType::Attributes attrs(
         static_cast<llvm::dxil::ResourceClass>(resClass),
         static_cast<llvm::dxil::ResourceDimension>(resDimension), isROV,
-        rawBuffer, isCounter, isArray, isMultiSampled);
+        rawBuffer, isCounter, isArray,
+        makePointerFromOptional(sampleCountExpr));
     return ctx.getHLSLAttributedResourceType(wrappedTy, containedTy, attrs);
   }]>;
 }

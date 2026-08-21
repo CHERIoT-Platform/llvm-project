@@ -54,12 +54,12 @@ public:
   }
 
   ABIArgInfo classifyReturnType(QualType RetTy) const;
-  ABIArgInfo classifyArgumentType(QualType RetTy, bool IsFixed,
-                                  uint64_t &Offset) const;
+  ABIArgInfo classifyArgumentType(QualType RetTy, uint64_t &Offset,
+                                  bool IsNamedArg) const;
   void computeInfo(CGFunctionInfo &FI) const override;
   RValue EmitVAArg(CodeGenFunction &CGF, Address VAListAddr, QualType Ty,
                    AggValueSlot Slot) const override;
-  ABIArgInfo extendType(QualType Ty) const;
+  ABIArgInfo extendType(QualType Ty, llvm::Type *Padding = nullptr) const;
 };
 
 class MIPSTargetCodeGenInfo : public CommonCheriTargetCodeGenInfo {
@@ -343,8 +343,8 @@ llvm::Type *MipsABIInfo::getPaddingType(uint64_t OrigOffset,
   return llvm::IntegerType::get(getVMContext(), (Offset - OrigOffset) * 8);
 }
 
-ABIArgInfo MipsABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
-                                             uint64_t &Offset) const {
+ABIArgInfo MipsABIInfo::classifyArgumentType(QualType Ty, uint64_t &Offset,
+                                             bool IsNamedArg) const {
   Ty = useFirstFieldIfTransparentUnion(Ty);
 
   uint64_t OrigOffset = Offset;
@@ -357,13 +357,14 @@ ABIArgInfo MipsABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
   Offset = CurrOffset + llvm::alignTo(TySize, Align * 8) / 8;
 
   // Only pass _Complex float and _Complex double in FPRs when there are 2 free
-  // slots, otherwise use GPRs (or the stack).
+  // slots, and it's not a variadic argument otherwise use GPRs (or the stack).
   //
   // _Complex long double never uses GPRs. Its parts are an FPR pair each,
   // so passing them as they are puts each part in a pair and spills to
   // the stack the parts that don't fit.
-  bool ComplexFitsInFPRs = true;
-  if (!IsO32 && Ty->isComplexType() && isComplexGnuABI() && TySize < 256) {
+  bool ComplexFitsInFPRs = IsNamedArg;
+  if (!IsO32 && IsNamedArg && Ty->isComplexType() && isComplexGnuABI() &&
+      TySize < 256) {
     unsigned NumArgSlots = 8;
     uint64_t SlotsUsed = CurrOffset / MinABIStackAlignInBytes;
     if (SlotsUsed + 2 <= NumArgSlots)
@@ -404,7 +405,7 @@ ABIArgInfo MipsABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
     } else if (const auto *RT = Ty->getAs<RecordType>()) {
       // Aggregates containing capabilities are passed indirectly for hybrid
       // varargs, not just on the stack.
-      if (!IsFixed && getContext().containsCapabilities(RT->getDecl())) {
+      if (!IsNamedArg && getContext().containsCapabilities(RT->getDecl())) {
         PassIndirect = true;
         ByVal = false;
       }
@@ -436,23 +437,30 @@ ABIArgInfo MipsABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
          !getContext().getTargetInfo().hasInt128Type()))
       return getNaturalAlignIndirect(Ty, getDataLayout().getAllocaAddrSpace());
 
+  // Scalars never get explicit padding on O32: CC_MipsO32 already does the
+  // alignment itself based on the argument's original alignment.
+  //
+  // For __int128 and other types that are 16-byte aligned this padding ensures
+  // that the value starts in an even-numbered register or stack slot.
+  llvm::Type *Padding =
+      IsO32 ? nullptr : getPaddingType(OrigOffset, CurrOffset);
+
   // All integral types are promoted to the GPR width.
   if (Ty->isIntegralOrEnumerationType() &&
       !Ty->isCHERICapabilityType(getContext())) {
-    return extendType(Ty);
+    return extendType(Ty, Padding);
   }
 
   if (Ty->isCHERICapabilityType(getContext())) {
     // Capabilities are passed indirectly for hybrid varargs, not just on the
     // stack.
-    if (!IsFixed && !getContext().getTargetInfo().areAllPointersCapabilities())
+    if (!IsNamedArg && !getContext().getTargetInfo().areAllPointersCapabilities())
       return getNaturalAlignIndirect(Ty, /*ByVal=*/false);
     else
       return ABIArgInfo::getDirect(CGT.ConvertType(Ty));
   }
 
-  return ABIArgInfo::getDirect(
-      nullptr, 0, IsO32 ? nullptr : getPaddingType(OrigOffset, CurrOffset));
+  return ABIArgInfo::getDirect(nullptr, 0, Padding);
 }
 
 llvm::Type*
@@ -656,11 +664,9 @@ void MipsABIInfo::computeInfo(CGFunctionInfo &FI) const {
   bool SawZeroSizedArg = false;
 
   int NumFixedArgs = FI.getNumRequiredArgs();
-  int ArgNum = 0;
-  for (auto &I : FI.arguments()) {
-    bool IsFixed = ArgNum < NumFixedArgs;
-    I.info = classifyArgumentType(I.type, IsFixed, Offset);
-    ++ArgNum;
+  for (auto [ArgNo, I] : llvm::enumerate(FI.arguments())) {
+    bool IsNamedArg = ArgNo < FI.getNumRequiredArgs();
+    I.info = classifyArgumentType(I.type, Offset, IsNamedArg);
 
     // N32 and N64 always pass floating points in float registers.
     if (!IsO32)
@@ -738,14 +744,14 @@ RValue MipsABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
   return Res;
 }
 
-ABIArgInfo MipsABIInfo::extendType(QualType Ty) const {
+ABIArgInfo MipsABIInfo::extendType(QualType Ty, llvm::Type *Padding) const {
   int TySize = getContext().getTypeSize(Ty);
 
   // MIPS64 ABI requires unsigned 32 bit integers to be sign extended.
   if (Ty->isUnsignedIntegerOrEnumerationType() && TySize == 32)
-    return ABIArgInfo::getSignExtend(Ty);
+    return ABIArgInfo::getSignExtend(Ty, /*T=*/nullptr, Padding);
 
-  return ABIArgInfo::getExtend(Ty);
+  return ABIArgInfo::getExtend(Ty, /*T=*/nullptr, Padding);
 }
 
 bool

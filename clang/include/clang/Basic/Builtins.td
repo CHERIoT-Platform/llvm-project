@@ -5588,6 +5588,12 @@ def HLSLResourceLoadLevel : LangBuiltin<"HLSL_LANG"> {
   let Prototype = "void(...)";
 }
 
+def HLSLResourceLoadMS : LangBuiltin<"HLSL_LANG"> {
+  let Spellings = ["__builtin_hlsl_resource_load_ms"];
+  let Attributes = [NoThrow];
+  let Prototype = "void(...)";
+}
+
 def HLSLResourceSample : LangBuiltin<"HLSL_LANG"> {
   let Spellings = ["__builtin_hlsl_resource_sample"];
   let Attributes = [NoThrow];
@@ -5788,6 +5794,12 @@ def HLSLWaveActiveBitAnd : LangBuiltin<"HLSL_LANG"> {
 
 def HLSLInterlockedAdd : LangBuiltin<"HLSL_LANG"> {
   let Spellings = ["__builtin_hlsl_interlocked_add"];
+  let Attributes = [NoThrow];
+  let Prototype = "void (...)";
+}
+
+def HLSLInterlockedMin : LangBuiltin<"HLSL_LANG"> {
+  let Spellings = ["__builtin_hlsl_interlocked_min"];
   let Attributes = [NoThrow];
   let Prototype = "void (...)";
 }

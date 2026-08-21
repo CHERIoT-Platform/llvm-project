@@ -1415,7 +1415,9 @@ StoreInst::StoreInst(Value *Val, Value *Ptr,
                      const LoadStoreInstProperties &Props,
                      InsertPosition InsertBefore)
     : StoreInst(Val, Ptr, Props.IsVolatile, Props.Alignment, Props.Ordering,
-                Props.SSID, InsertBefore) {}
+                Props.SSID, InsertBefore) {
+  setElementwise(Props.IsElementwise);
+}
 
 StoreInst::StoreInst(Value *val, Value *addr, bool isVolatile, Align Align,
                      AtomicOrdering Order, SyncScope::ID SSID,
@@ -4519,8 +4521,8 @@ LoadInst *LoadInst::cloneImpl() const {
 }
 
 StoreInst *StoreInst::cloneImpl() const {
-  return new StoreInst(getOperand(0), getOperand(1), isVolatile(), getAlign(),
-                       getOrdering(), getSyncScopeID());
+  return new StoreInst(getOperand(0), getOperand(1), getProperties(),
+                       /*InsertBefore=*/nullptr);
 }
 
 AtomicCmpXchgInst *AtomicCmpXchgInst::cloneImpl() const {

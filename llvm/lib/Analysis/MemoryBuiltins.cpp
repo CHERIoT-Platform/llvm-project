@@ -181,8 +181,11 @@ getAllocationDataForFunction(const Function *Callee, AllocType AllocTy,
     return std::nullopt;
 
   // Make sure that the function is available.
-  LibFunc TLIFn;
-  if (!TLI || !TLI->getLibFunc(*Callee, TLIFn) || !TLI->has(TLIFn))
+  if (!TLI)
+    return std::nullopt;
+
+  LibFunc TLIFn = TLI->getLibFunc(*Callee);
+  if (!TLI->has(TLIFn))
     return std::nullopt;
 
   const auto *Iter = find_if(AllocationFnData,
@@ -495,8 +498,8 @@ getFreeFunctionDataForFunction(const Function *Callee, const LibFunc TLIFn) {
 std::optional<StringRef>
 llvm::getAllocationFamily(const Value *I, const TargetLibraryInfo *TLI) {
   if (const Function *Callee = getCalledFunction(I)) {
-    LibFunc TLIFn;
-    if (TLI && TLI->getLibFunc(*Callee, TLIFn) && TLI->has(TLIFn)) {
+    LibFunc TLIFn = TLI ? TLI->getLibFunc(*Callee) : NotLibFunc;
+    if (TLIFn != NotLibFunc && TLI->has(TLIFn)) {
       // Callee is some known library function.
       const auto AllocData =
           getAllocationDataForFunction(Callee, AnyAlloc, TLI);
@@ -549,8 +552,8 @@ bool llvm::isLibFreeFunction(const Function *F, const LibFunc TLIFn) {
 
 Value *llvm::getFreedOperand(const CallBase *CB, const TargetLibraryInfo *TLI) {
   if (const Function *Callee = getCalledFunction(CB)) {
-    LibFunc TLIFn;
-    if (TLI && TLI->getLibFunc(*Callee, TLIFn) && TLI->has(TLIFn) &&
+    LibFunc TLIFn = TLI ? TLI->getLibFunc(*Callee) : NotLibFunc;
+    if (TLIFn != NotLibFunc && TLI->has(TLIFn) &&
         isLibFreeFunction(Callee, TLIFn)) {
       if (TLIFn == LibFunc_heap_free)
         return CB->getArgOperand(1);
@@ -1112,9 +1115,11 @@ OffsetSpan ObjectSizeOffsetVisitor::findLoadOffsetRange(
       if (!Callee)
         return Unknown();
 
-      LibFunc TLIFn;
-      if (!TLI || !TLI->getLibFunc(*CB->getCalledFunction(), TLIFn) ||
-          !TLI->has(TLIFn))
+      if (!TLI)
+        return Unknown();
+
+      LibFunc TLIFn = TLI->getLibFunc(*CB->getCalledFunction());
+      if (!TLI->has(TLIFn))
         return Unknown();
 
       // TODO: There's probably more interesting case to support here.

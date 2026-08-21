@@ -144,6 +144,7 @@ int foo(int* i) {
 // DEBUG-INFO-OPT-NEXT:               DW_AT_language	(DW_LANG_C11)
 // DEBUG-INFO-OPT-NEXT:               DW_AT_name	("{{.+}}/test/CodeGen/cheri/<stdin>")
 // DEBUG-INFO-OPT-NEXT:               DW_AT_stmt_list	(0x00000000)
+// DEBUG-INFO-OPT-NEXT:               DW_AT_APPLE_optimized (0x01)
 // DEBUG-INFO-OPT-NEXT:               DW_AT_low_pc	(0x0000000000000000)
 // MIPS has one instruction less
 // CHERI-DEBUG-INFO-OPT-NEXT:         DW_AT_high_pc	(0x000000000000000c)
@@ -162,6 +163,7 @@ int foo(int* i) {
 // DEBUG-INFO-OPT-NEXT:                 DW_AT_prototyped	(0x01)
 // DEBUG-INFO-OPT-NEXT:                 DW_AT_type	([[INT_ADDR:0x.*]] "int")
 // DEBUG-INFO-OPT-NEXT:                 DW_AT_external	(0x01)
+// DEBUG-INFO-OPT-NEXT:                 DW_AT_APPLE_optimized (0x01)
 // DEBUG-INFO-OPT-EMPTY:
 // DEBUG-INFO-OPT-NEXT: 0x000000{{.+}}: DW_TAG_formal_parameter
 // MIPS-DEBUG-INFO-OPT-NEXT:                    DW_AT_location  (DW_OP_reg4 A0_64)
@@ -169,7 +171,7 @@ int foo(int* i) {
 // DEBUG-INFO-OPT-NEXT:                         DW_AT_name	("i")
 // DEBUG-INFO-OPT-NEXT:                         DW_AT_decl_file	("{{.+}}cheri-debug-info.c")
 // DEBUG-INFO-OPT-NEXT:                         DW_AT_decl_line	([[#FOO_DECL_LINE]])
-// DEBUG-INFO-OPT-NEXT:                         DW_AT_type	([[INT_PTR_INFO_LOC:0x000000(5e|60)]] "int *")
+// DEBUG-INFO-OPT-NEXT:                         DW_AT_type	([[INT_PTR_INFO_LOC:0x000000(60|62)]] "int *")
 // DEBUG-INFO-OPT-EMPTY:
 // DEBUG-INFO-OPT-NEXT: 0x000000{{.+}}:     NULL
 // DEBUG-INFO-OPT-EMPTY:

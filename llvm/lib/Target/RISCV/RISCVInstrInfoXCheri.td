@@ -1406,6 +1406,7 @@ let hasSideEffects = 0, mayLoad = 0, mayStore = 1, isCodeGenOnly = 1,
 
 def uimm20_auipcc_data : UImm20OperandMaybeSym {
   let ParserMatchClass = UImmAsmOperand<20, "AUIPCCData">;
+  let OperandType = "OPERAND_UIMM20_AUIPC";
 }
 
 let Predicates = [HasCheriot, IsCapMode] in {

@@ -44,7 +44,7 @@ public:
   PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM);
 };
 FunctionPass *createRISCVCodeGenPrepareLegacyPass();
-void initializeRISCVCodeGenPrepareLegacyPassPass(PassRegistry &);
+void initializeRISCVCodeGenPrepareLegacyPass(PassRegistry &);
 
 FunctionPass *createRISCVDeadRegisterDefinitionsPass();
 void initializeRISCVDeadRegisterDefinitionsPass(PassRegistry &);
@@ -204,33 +204,87 @@ public:
 FunctionPass *createRISCVGatherScatterLoweringLegacyPass();
 void initializeRISCVGatherScatterLoweringLegacyPass(PassRegistry &);
 
-FunctionPass *createRISCVVectorPeepholePass();
-void initializeRISCVVectorPeepholePass(PassRegistry &);
+class RISCVVectorPeepholePass
+    : public OptionalPassInfoMixin<RISCVVectorPeepholePass> {
+public:
+  PreservedAnalyses run(MachineFunction &MF,
+                        MachineFunctionAnalysisManager &MFAM);
+  MachineFunctionProperties getRequiredProperties() const {
+    return MachineFunctionProperties().setIsSSA();
+  }
+};
 
-FunctionPass *createRISCVOptWInstrsPass();
-void initializeRISCVOptWInstrsPass(PassRegistry &);
+FunctionPass *createRISCVVectorPeepholeLegacyPass();
+void initializeRISCVVectorPeepholeLegacyPass(PassRegistry &);
 
-FunctionPass *createRISCVFoldMemOffsetPass();
-void initializeRISCVFoldMemOffsetPass(PassRegistry &);
+class RISCVOptWInstrsPass : public OptionalPassInfoMixin<RISCVOptWInstrsPass> {
+public:
+  PreservedAnalyses run(MachineFunction &MF,
+                        MachineFunctionAnalysisManager &MFAM);
+};
+
+FunctionPass *createRISCVOptWInstrsLegacyPass();
+void initializeRISCVOptWInstrsLegacyPass(PassRegistry &);
+
+class RISCVFoldMemOffsetPass
+    : public OptionalPassInfoMixin<RISCVFoldMemOffsetPass> {
+public:
+  PreservedAnalyses run(MachineFunction &MF,
+                        MachineFunctionAnalysisManager &MFAM);
+};
+
+FunctionPass *createRISCVFoldMemOffsetLegacyPass();
+void initializeRISCVFoldMemOffsetLegacyPass(PassRegistry &);
 
 FunctionPass *createRISCVMergeBaseOffsetOptPass();
 void initializeRISCVMergeBaseOffsetOptPass(PassRegistry &);
 
-FunctionPass *createRISCVExpandPseudoPass(CHERIoTImportedObjectSet &);
-void initializeRISCVExpandPseudoPass(PassRegistry &);
+class RISCVExpandPseudoPass
+    : public RequiredPassInfoMixin<RISCVExpandPseudoPass> {
+public:
+  PreservedAnalyses run(MachineFunction &MF,
+                        MachineFunctionAnalysisManager &MFAM);
+};
 
-FunctionPass *createRISCVPreRAExpandPseudoPass();
-void initializeRISCVPreRAExpandPseudoPass(PassRegistry &);
+FunctionPass *createRISCVExpandPseudoLegacyPass();
+void initializeRISCVExpandPseudoLegacyPass(PassRegistry &);
 
-FunctionPass *createRISCVExpandAtomicPseudoPass();
-void initializeRISCVExpandAtomicPseudoPass(PassRegistry &);
+class RISCVPreRAExpandPseudoPass
+    : public RequiredPassInfoMixin<RISCVPreRAExpandPseudoPass> {
+public:
+  PreservedAnalyses run(MachineFunction &MF,
+                        MachineFunctionAnalysisManager &MFAM);
+  MachineFunctionProperties getRequiredProperties() const {
+    return MachineFunctionProperties().setIsSSA();
+  }
+};
+
+FunctionPass *createRISCVPreRAExpandPseudoLegacyPass();
+void initializeRISCVPreRAExpandPseudoLegacyPass(PassRegistry &);
+
+class RISCVExpandAtomicPseudoPass
+    : public RequiredPassInfoMixin<RISCVExpandAtomicPseudoPass> {
+public:
+  PreservedAnalyses run(MachineFunction &MF,
+                        MachineFunctionAnalysisManager &MFAM);
+};
+
+FunctionPass *createRISCVExpandAtomicPseudoLegacyPass();
+void initializeRISCVExpandAtomicPseudoLegacyPass(PassRegistry &);
 
 FunctionPass *createRISCVInsertVSETVLIPass();
 void initializeRISCVInsertVSETVLIPass(PassRegistry &);
 extern char &RISCVInsertVSETVLIID;
 
-FunctionPass *createRISCVPostRAExpandPseudoPass();
-void initializeRISCVPostRAExpandPseudoPass(PassRegistry &);
+class RISCVPostRAExpandPseudoPass
+    : public RequiredPassInfoMixin<RISCVPostRAExpandPseudoPass> {
+public:
+  PreservedAnalyses run(MachineFunction &MF,
+                        MachineFunctionAnalysisManager &MFAM);
+};
+
+FunctionPass *createRISCVPostRAExpandPseudoLegacyPass();
+void initializeRISCVPostRAExpandPseudoLegacyPass(PassRegistry &);
 FunctionPass *createRISCVInsertReadWriteCSRPass();
 void initializeRISCVInsertReadWriteCSRPass(PassRegistry &);
 

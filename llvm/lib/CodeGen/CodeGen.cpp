@@ -40,7 +40,7 @@ void llvm::initializeCodeGen(PassRegistry &Registry) {
   initializeDetectDeadLanesLegacyPass(Registry);
   initializeDummyCGSCCPassPass(Registry);
   initializeDwarfEHPrepareLegacyPassPass(Registry);
-  initializeEHContGuardTargetsPass(Registry);
+  initializeEHContGuardTargetsLegacyPass(Registry);
   initializeEarlyIfConverterLegacyPass(Registry);
   initializeEarlyIfPredicatorPass(Registry);
   initializeEarlyMachineLICMPass(Registry);

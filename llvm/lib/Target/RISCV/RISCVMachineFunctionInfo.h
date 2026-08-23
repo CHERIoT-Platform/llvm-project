@@ -102,6 +102,9 @@ private:
   /// Whether the function has cf-protection-branch module flag set.
   bool CFProtectionBranch = false;
 
+  /// The set of objects imported from this function.
+  CHERIoTImportedObjectSet ImportedObjects;
+
 public:
   RISCVMachineFunctionInfo(const Function &F, const RISCVSubtarget *STI);
 
@@ -248,6 +251,10 @@ public:
   void setDynamicAllocation() { HasDynamicAllocation = true; }
 
   bool hasCFProtectionBranch() const { return CFProtectionBranch; }
+
+  CHERIoTImportedObjectSet &getCheriotImportedObjects() {
+    return ImportedObjects;
+  }
 };
 
 } // end namespace llvm

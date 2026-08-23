@@ -67,6 +67,9 @@ public:
 private:
   const RISCVSubtarget *STI;
 
+  /// The set of objects imported from this compilation unit.
+  CHERIoTImportedObjectSet CHERIoTCompartmentImports;
+
 public:
   explicit RISCVAsmPrinter(TargetMachine &TM,
                            std::unique_ptr<MCStreamer> Streamer)
@@ -663,6 +666,12 @@ void RISCVAsmPrinter::emitTargetFeaturePop(const MCSubtargetInfo &STI,
 bool RISCVAsmPrinter::runOnMachineFunction(MachineFunction &MF) {
   STI = &MF.getSubtarget<RISCVSubtarget>();
 
+  auto *RMFI = MF.getInfo<RISCVMachineFunctionInfo>();
+  if (RMFI) {
+    // Merge CHERIoT imports across functions.
+    CHERIoTCompartmentImports.set_union(RMFI->getCheriotImportedObjects());
+  }
+
   bool EmittedOptionArch = emitTargetFeaturePush(*STI);
 
   SetupMachineFunction(MF);
@@ -897,8 +906,6 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
   }
 
   // Generate CHERIoT imports if there are any.
-  auto &CHERIoTCompartmentImports =
-      static_cast<RISCVTargetMachine &>(TM).ImportedObjects;
   if (!CHERIoTCompartmentImports.empty()) {
     auto &C = OutStreamer->getContext();
 

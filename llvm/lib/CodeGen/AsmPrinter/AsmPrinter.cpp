@@ -794,6 +794,16 @@ MCSymbol *AsmPrinter::getSymbolPreferLocal(const GlobalValue &GV,
 
 /// EmitGlobalVariable - Emit the specified global variable to the .s file.
 void AsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
+  MaybeAlign AlignmentGranule = std::nullopt;
+  if (!GV->hasSection())
+    AlignmentGranule = getRequiredGlobalAlignmentGranule(*GV);
+  emitGlobalVariable(GV, AlignmentGranule);
+  if (AlignmentGranule)
+    OutStreamer->emitValueToAlignment(*AlignmentGranule);
+}
+
+void AsmPrinter::emitGlobalVariable(const GlobalVariable *GV,
+                                    MaybeAlign AlignmentGranule) {
   bool IsEmuTLSVar = TM.useEmulatedTLS() && GV->isThreadLocal();
   assert(!(IsEmuTLSVar && GV->hasCommonLinkage()) &&
          "No emulated TLS variables in the common section");
@@ -859,25 +869,15 @@ void AsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
   // If the alignment is specified, we *must* obey it.  Overaligning a global
   // with a specified alignment is a prompt way to break globals emitted to
   // sections and expected to be contiguous (e.g. ObjC metadata).
+  //
+  // If we get passed in an explicit alignment granule, it is up to the caller
+  // to ensure that is not the case (i.e. that the GV is not in a section).
   Align Alignment = getGVAlignment(GV, DL);
 
-  const TailPaddingAmount TailPadding =
-      getObjFileLowering().getTailPaddingForPreciseBounds(Size, TM);
-  const Align PreciseAlignment =
-      getObjFileLowering().getAlignmentForPreciseBounds(Size, TM);
-
-  if (PreciseAlignment > Alignment) {
-    LLVM_DEBUG(dbgs() << "\nIncreased alignment for global from "
-                      << Alignment.value() << " to " << PreciseAlignment.value() << ": ";
-               GV->dump(););
-    // Don't increase alignment if a custom section has been specified:
-    if (!GV->hasSection()) {
-      Alignment = PreciseAlignment;
-    } else {
-      // TODO: add some attribute, emit a sensible warning?
-      errs() << "Not overriding global variable alignment for " << GV->getName()
-             << " since it has a section assigned.";
-    }
+  if (AlignmentGranule) {
+    Size = alignTo(Size, *AlignmentGranule);
+    if (Alignment < *AlignmentGranule)
+      Alignment = *AlignmentGranule;
   }
 
   for (auto &Handler : Handlers)
@@ -887,7 +887,7 @@ void AsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
   if (GVKind.isCommon()) {
     if (Size == 0) Size = 1;   // .comm Foo, 0 is undefined, avoid it.
     // .comm _foo, 42, 4
-    OutStreamer->emitCommonSymbol(GVSym, Size, Alignment, TailPadding);
+    OutStreamer->emitCommonSymbol(GVSym, Size, Alignment);
     return;
   }
 
@@ -901,7 +901,7 @@ void AsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
       Size = 1; // zerofill of 0 bytes is undefined.
     emitLinkage(GV, GVSym);
     // .zerofill __DATA, __bss, _foo, 400, 5
-    OutStreamer->emitZerofill(TheSection, GVSym, Size, Alignment, TailPadding);
+    OutStreamer->emitZerofill(TheSection, GVSym, Size, Alignment);
     return;
   }
 
@@ -920,14 +920,14 @@ void AsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
     // Prefer to simply fall back to .local / .comm in this case.
     if (MAI.getLCOMMDirectiveAlignmentType() != LCOMM::NoAlignment) {
       // .lcomm _foo, 42
-      OutStreamer->emitLocalCommonSymbol(GVSym, Size, Alignment, TailPadding);
+      OutStreamer->emitLocalCommonSymbol(GVSym, Size, Alignment);
       return;
     }
 
     // .local _foo
     OutStreamer->emitSymbolAttribute(GVSym, MCSA_Local);
     // .comm _foo, 42, 4
-    OutStreamer->emitCommonSymbol(GVSym, Size, Alignment, TailPadding);
+    OutStreamer->emitCommonSymbol(GVSym, Size, Alignment);
     return;
   }
 
@@ -948,15 +948,14 @@ void AsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
 
     if (GVKind.isThreadBSS()) {
       TheSection = getObjFileLowering().getTLSBSSSection();
-      OutStreamer->emitTBSSSymbol(TheSection, MangSym, Size, Alignment, TailPadding);
+      OutStreamer->emitTBSSSymbol(TheSection, MangSym, Size, Alignment);
     } else if (GVKind.isThreadData()) {
       OutStreamer->switchSection(TheSection);
 
       emitAlignment(Alignment, GV);
       OutStreamer->emitLabel(MangSym);
 
-      emitGlobalConstant(GV->getDataLayout(), GV->getInitializer(),
-                         static_cast<uint64_t>(TailPadding));
+      emitGlobalConstant(GV->getDataLayout(), GV->getInitializer());
     }
 
     OutStreamer->addBlankLine();
@@ -995,8 +994,7 @@ void AsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
   if (LocalAlias != EmittedInitSym)
     OutStreamer->emitLabel(LocalAlias);
 
-  emitGlobalConstant(GV->getDataLayout(), GV->getInitializer(),
-                     static_cast<uint64_t>(TailPadding));
+  emitGlobalConstant(GV->getDataLayout(), GV->getInitializer());
 
   if (MAI.hasDotTypeDotSizeDirective())
     // .size foo, 42
@@ -4772,7 +4770,6 @@ static void emitGlobalConstantImpl(const DataLayout &DL, const Constant *CV,
 
 /// EmitGlobalConstant - Print a general LLVM constant to the .s file.
 void AsmPrinter::emitGlobalConstant(const DataLayout &DL, const Constant *CV,
-                                    uint64_t TailPadding,
                                     AliasMapTy *AliasList) {
   uint64_t Size = DL.getTypeAllocSize(CV->getType());
   if (Size)
@@ -4781,10 +4778,6 @@ void AsmPrinter::emitGlobalConstant(const DataLayout &DL, const Constant *CV,
     // If the global has zero size, emit a single byte so that two labels don't
     // look like they are at the same location.
     OutStreamer->emitIntValue(0, 1);
-  }
-  if (TailPadding != 0) {
-    OutStreamer->AddComment("Tail padding to ensure precise bounds");
-    OutStreamer->emitZeros(TailPadding);
   }
   if (!AliasList)
     return;

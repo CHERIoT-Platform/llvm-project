@@ -54,13 +54,6 @@ public:
                                           MachineModuleInfo *MMI,
                                           MCStreamer &Streamer) const override;
 
-  TailPaddingAmount
-  getTailPaddingForPreciseBounds(uint64_t Size,
-                                 const TargetMachine &TM) const override;
-
-  Align getAlignmentForPreciseBounds(uint64_t Size,
-                                     const TargetMachine &TM) const override;
-
   int getCheriCapabilitySize(const TargetMachine &TM) const override;
 
   const MCExpr *lowerCheriCodeReference(const MCSymbol *Sym,

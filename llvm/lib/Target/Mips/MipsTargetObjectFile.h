@@ -44,11 +44,6 @@ class MipsTargetMachine;
     /// Describe a TLS variable address within debug info.
     const MCExpr *getDebugThreadLocalSymbol(const MCSymbol *Sym) const override;
 
-    TailPaddingAmount
-    getTailPaddingForPreciseBounds(uint64_t Size,
-                                   const TargetMachine &TM) const override;
-    Align getAlignmentForPreciseBounds(uint64_t Size,
-                                       const TargetMachine &TM) const override;
     int getCheriCapabilitySize(const TargetMachine &TM) const override;
   };
 } // end namespace llvm

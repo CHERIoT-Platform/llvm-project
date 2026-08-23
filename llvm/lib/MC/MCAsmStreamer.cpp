@@ -341,8 +341,7 @@ public:
   void emitXCOFFCInfoSym(StringRef Name, StringRef Metadata) override;
 
   void emitELFSize(MCSymbol *Symbol, const MCExpr *Value) override;
-  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size, Align ByteAlignment,
-                        TailPaddingAmount TailPadding) override;
+  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size, Align ByteAlignment) override;
 
   /// Emit a local common (.lcomm) symbol.
   ///
@@ -350,16 +349,14 @@ public:
   /// @param Size - The size of the common symbol.
   /// @param ByteAlignment - The alignment of the common symbol in bytes.
   void emitLocalCommonSymbol(MCSymbol *Symbol, uint64_t Size,
-                             Align ByteAlignment, TailPaddingAmount TailPadding) override;
+                             Align ByteAlignment) override;
 
   void emitZerofill(MCSection *Section, MCSymbol *Symbol = nullptr,
                     uint64_t Size = 0, Align ByteAlignment = Align(1),
-                    TailPaddingAmount TailPadding = TailPaddingAmount::None,
                     SMLoc Loc = SMLoc()) override;
 
   void emitTBSSSymbol(MCSection *Section, MCSymbol *Symbol, uint64_t Size,
-                      Align ByteAlignment = Align(1),
-                      TailPaddingAmount TailPadding = TailPaddingAmount::None) override;
+                      Align ByteAlignment = Align(1)) override;
 
   void emitBinaryData(StringRef Data) override;
 
@@ -1217,29 +1214,16 @@ void MCAsmStreamer::emitELFSize(MCSymbol *Symbol, const MCExpr *Value) {
 }
 
 void MCAsmStreamer::emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
-                                     Align ByteAlignment,
-                                     TailPaddingAmount TailPadding) {
-  if (TailPadding != TailPaddingAmount::None) {
-    AddComment("adding " + Twine(static_cast<uint64_t>(TailPadding)) +
-               " bytes of tail padding for precise bounds.");
-  }
-
+                                     Align ByteAlignment) {
   OS << "\t.comm\t";
   Symbol->print(OS, MAI);
-  OS << ',' << (Size + static_cast<uint64_t>(TailPadding));
+  OS << ',' << Size;
 
   if (MAI->getCOMMDirectiveAlignmentIsInBytes())
     OS << ',' << ByteAlignment.value();
   else
     OS << ',' << Log2(ByteAlignment);
   EmitEOL();
-  if (TailPadding != TailPaddingAmount::None) {
-    // If we added padding, we need to emit an explicit symbol size directive
-    AddComment("explicit size directive required due to " +
-               Twine(static_cast<uint64_t>(TailPadding)) +
-               " bytes of tail padding for precise bounds.");
-    emitELFSize(Symbol, MCConstantExpr::create(Size, getContext()));
-  }
 
   // Print symbol's rename (original name contains invalid character(s)) if
   // there is one.
@@ -1251,15 +1235,10 @@ void MCAsmStreamer::emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
 }
 
 void MCAsmStreamer::emitLocalCommonSymbol(MCSymbol *Symbol, uint64_t Size,
-                                          Align ByteAlign,
-                                          TailPaddingAmount TailPadding) {
-  if (TailPadding != TailPaddingAmount::None) {
-    AddComment("adding " + Twine(static_cast<uint64_t>(TailPadding)) +
-               " bytes of tail padding for precise bounds.");
-  }
+                                          Align ByteAlign) {
   OS << "\t.lcomm\t";
   Symbol->print(OS, MAI);
-  OS << ',' << (Size + static_cast<uint64_t>(TailPadding));
+  OS << ',' << Size;
 
   if (ByteAlign > 1) {
     switch (MAI->getLCOMMDirectiveAlignmentType()) {
@@ -1274,25 +1253,14 @@ void MCAsmStreamer::emitLocalCommonSymbol(MCSymbol *Symbol, uint64_t Size,
     }
   }
   EmitEOL();
-  if (TailPadding != TailPaddingAmount::None) {
-    // If we added padding, we need to emit an explicit symbol size directive
-    AddComment("explicit size directive required due to " +
-               Twine(static_cast<uint64_t>(TailPadding)) +
-               " bytes of tail padding for precise bounds.");
-    emitELFSize(Symbol, MCConstantExpr::create(Size, getContext()));
-  }
 }
 
 void MCAsmStreamer::emitZerofill(MCSection *Section, MCSymbol *Symbol,
                                  uint64_t Size, Align ByteAlignment,
-                                 TailPaddingAmount TailPadding, SMLoc Loc) {
+                                 SMLoc Loc) {
   if (Symbol)
     Symbol->setFragment(&Section->getDummyFragment());
 
-  if (TailPadding != TailPaddingAmount::None) {
-    AddComment("adding " + Twine(static_cast<uint64_t>(TailPadding)) +
-               " bytes of tail padding for precise bounds.");
-  }
   // Note: a .zerofill directive does not switch sections.
   OS << ".zerofill ";
 
@@ -1306,25 +1274,17 @@ void MCAsmStreamer::emitZerofill(MCSection *Section, MCSymbol *Symbol,
   if (Symbol) {
     OS << ',';
     Symbol->print(OS, MAI);
-    OS << ',' << (Size + static_cast<uint64_t>(TailPadding));
+    OS << ',' << Size;
     OS << ',' << Log2(ByteAlignment);
   }
   EmitEOL();
-  if (TailPadding != TailPaddingAmount::None) {
-    // If we added padding, we need to emit an explicit symbol size directive
-    AddComment("explicit size directive required due to " +
-               Twine(static_cast<uint64_t>(TailPadding)) +
-               " bytes of tail padding for precise bounds.");
-    emitELFSize(Symbol, MCConstantExpr::create(Size, getContext()));
-  }
 }
 
 // .tbss sym, size, align
 // This depends that the symbol has already been mangled from the original,
 // e.g. _a.
 void MCAsmStreamer::emitTBSSSymbol(MCSection *Section, MCSymbol *Symbol,
-                                   uint64_t Size, Align ByteAlignment,
-                                   TailPaddingAmount TailPadding) {
+                                   uint64_t Size, Align ByteAlignment) {
   Symbol->setFragment(&Section->getDummyFragment());
 
   // Instead of using the Section we'll just use the shortcut.
@@ -1332,13 +1292,9 @@ void MCAsmStreamer::emitTBSSSymbol(MCSection *Section, MCSymbol *Symbol,
   assert(getContext().getObjectFileType() == MCContext::IsMachO &&
          ".zerofill is a Mach-O specific directive");
   // This is a mach-o specific directive and section.
-  if (TailPadding != TailPaddingAmount::None) {
-    AddComment("adding " + Twine(static_cast<uint64_t>(TailPadding)) +
-               " bytes of tail padding for precise bounds.");
-  }
   OS << ".tbss ";
   Symbol->print(OS, MAI);
-  OS << ", " << (Size + static_cast<uint64_t>(TailPadding));
+  OS << ", " << Size;
 
   // Output align if we have it.  We default to 1 so don't bother printing
   // that.
@@ -1346,13 +1302,6 @@ void MCAsmStreamer::emitTBSSSymbol(MCSection *Section, MCSymbol *Symbol,
     OS << ", " << Log2(ByteAlignment);
 
   EmitEOL();
-  if (TailPadding != TailPaddingAmount::None) {
-    // If we added padding, we need to emit an explicit symbol size directive
-    AddComment("explicit size directive required due to " +
-               Twine(static_cast<uint64_t>(TailPadding)) +
-               " bytes of tail padding for precise bounds.");
-    emitELFSize(Symbol, MCConstantExpr::create(Size, getContext()));
-  }
 }
 
 static inline bool isPrintableString(StringRef Data) {

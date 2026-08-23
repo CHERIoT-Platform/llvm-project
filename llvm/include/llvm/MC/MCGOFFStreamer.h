@@ -37,8 +37,7 @@ public:
   bool emitSymbolAttribute(MCSymbol *Symbol, MCSymbolAttr Attribute) override;
 
   void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
-                        Align ByteAlignment,
-                        TailPaddingAmount TailPadding) override;
+                        Align ByteAlignment) override;
 };
 
 } // end namespace llvm

@@ -20,7 +20,7 @@ void fn1() {
 // CHECK: declare i32 @__gxx_personality_v0(...)
 
 // ASM-LABEL: # -- End function
-// ASM-NEXT:  .data{{$}}
+// ASM:       .data{{$}}
 // ASM-NEXT:  .p2align	4
 // ASM-NEXT:  .L_ZTIi.DW.stub:
 // ASM-NEXT:   .chericap       _ZTIi

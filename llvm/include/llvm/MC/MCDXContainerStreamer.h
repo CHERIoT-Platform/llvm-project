@@ -34,7 +34,7 @@ public:
                          std::move(Emitter)) {}
 
   bool emitSymbolAttribute(MCSymbol *, MCSymbolAttr) override { return false; }
-  void emitCommonSymbol(MCSymbol *, uint64_t, Align, TailPaddingAmount) override {}
+  void emitCommonSymbol(MCSymbol *, uint64_t, Align) override {}
 };
 
 } // end namespace llvm

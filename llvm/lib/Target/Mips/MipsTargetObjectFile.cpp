@@ -193,37 +193,6 @@ MipsTargetObjectFile::getDebugThreadLocalSymbol(const MCSymbol *Sym) const {
   return MCSpecifierExpr::create(Expr, Mips::S_DTPREL, getContext());
 }
 
-TailPaddingAmount
-MipsTargetObjectFile::getTailPaddingForPreciseBounds(
-    uint64_t Size, const TargetMachine &TM) const {
-  const MipsSubtarget &Subtarget =
-      *static_cast<const MipsTargetMachine &>(TM).getSubtargetImpl();
-  if (!Subtarget.isCheri())
-    return TailPaddingAmount::None;
-  if (Subtarget.isCheri128()) {
-    return static_cast<TailPaddingAmount>(
-        llvm::alignTo(
-            Size, RV64YCapabilityFormat::getRequiredAlignment(Size)) -
-        Size);
-  }
-  llvm_unreachable("cheri256 is no longer supported!");
-  return TailPaddingAmount::None;
-}
-
-Align
-MipsTargetObjectFile::getAlignmentForPreciseBounds(
-    uint64_t Size, const TargetMachine &TM) const {
-  const MipsSubtarget &Subtarget =
-      *static_cast<const MipsTargetMachine &>(TM).getSubtargetImpl();
-  if (!Subtarget.isCheri())
-    return Align();
-  if (Subtarget.isCheri128()) {
-    return RV64YCapabilityFormat::getRequiredAlignment(Size);
-  }
-  llvm_unreachable("cheri256 is no longer supported!");
-  return Align();
-}
-
 int MipsTargetObjectFile::getCheriCapabilitySize(const TargetMachine &TM) const {
   const MipsSubtarget &Subtarget =
       *static_cast<const MipsTargetMachine &>(TM).getSubtargetImpl();

@@ -198,13 +198,12 @@ public:
 
 private:
   // We only care about instructions, we don't implement this part of the API.
-  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size, Align ByteAlignment,
-                        TailPaddingAmount TailPadding) override {}
+  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size, Align ByteAlignment) override {}
   bool emitSymbolAttribute(MCSymbol *Symbol, MCSymbolAttr Attribute) override {
     return false;
   }
   void emitZerofill(MCSection *Section, MCSymbol *Symbol, uint64_t Size,
-                    Align ByteAlignment, TailPaddingAmount TailPadding, SMLoc Loc) override {}
+                    Align ByteAlignment, SMLoc Loc) override {}
 
   MCRegister findRegisterByName(const StringRef RegName) const {
     std::optional<MCRegister> RegisterNumber =

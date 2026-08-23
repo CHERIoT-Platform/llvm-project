@@ -256,8 +256,7 @@ bool MCELFStreamer::emitSymbolAttribute(MCSymbol *S, MCSymbolAttr Attribute) {
 }
 
 void MCELFStreamer::emitCommonSymbol(MCSymbol *S, uint64_t Size,
-                                     Align ByteAlignment,
-                                     TailPaddingAmount TailPadding) {
+                                     Align ByteAlignment) {
   auto *Symbol = static_cast<MCSymbolELF *>(S);
   getAssembler().registerSymbol(*Symbol);
 
@@ -274,11 +273,11 @@ void MCELFStreamer::emitCommonSymbol(MCSymbol *S, uint64_t Size,
 
     emitValueToAlignment(ByteAlignment, 0, 1, 0);
     emitLabel(Symbol);
-    emitZeros(Size + static_cast<uint64_t>(TailPadding));
+    emitZeros(Size);
 
     switchSection(P.first, P.second);
   } else {
-    if (Symbol->declareCommon(Size + static_cast<uint64_t>(TailPadding), ByteAlignment))
+    if (Symbol->declareCommon(Size, ByteAlignment))
       report_fatal_error(Twine("Symbol: ") + Symbol->getName() +
                          " redeclared as different type");
   }
@@ -298,13 +297,12 @@ void MCELFStreamer::emitELFSymverDirective(const MCSymbol *OriginalSym,
 }
 
 void MCELFStreamer::emitLocalCommonSymbol(MCSymbol *S, uint64_t Size,
-                                          Align ByteAlignment,
-                                          TailPaddingAmount TailPadding) {
+                                          Align ByteAlignment) {
   auto *Symbol = static_cast<MCSymbolELF *>(S);
   // FIXME: Should this be caught and done earlier?
   getAssembler().registerSymbol(*Symbol);
   Symbol->setBinding(ELF::STB_LOCAL);
-  emitCommonSymbol(Symbol, Size, ByteAlignment, TailPadding);
+  emitCommonSymbol(Symbol, Size, ByteAlignment);
 }
 
 void MCELFStreamer::emitCGProfileEntry(const MCSymbolRefExpr *From,

@@ -335,9 +335,7 @@ void MCWinCOFFStreamer::emitCOFFSecOffset(MCSymbol const *Symbol) {
 }
 
 void MCWinCOFFStreamer::emitCommonSymbol(MCSymbol *S, uint64_t Size,
-                                         Align ByteAlignment,
-                                         TailPaddingAmount TailPadding) {
-  assert(TailPadding == TailPaddingAmount::None && "Not supported yet");
+                                         Align ByteAlignment) {
   auto *Symbol = static_cast<MCSymbolCOFF *>(S);
 
   const Triple &T = getContext().getTargetTriple();
@@ -369,8 +367,7 @@ void MCWinCOFFStreamer::emitCommonSymbol(MCSymbol *S, uint64_t Size,
 }
 
 void MCWinCOFFStreamer::emitLocalCommonSymbol(MCSymbol *S, uint64_t Size,
-                                              Align ByteAlignment,
-                                              TailPaddingAmount TailPadding) {
+                                              Align ByteAlignment) {
   auto *Symbol = static_cast<MCSymbolCOFF *>(S);
 
   MCSection *Section = getContext().getObjectFileInfo()->getBSSSection();

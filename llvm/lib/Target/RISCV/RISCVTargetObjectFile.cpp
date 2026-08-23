@@ -206,26 +206,6 @@ void RISCVMachOTargetObjectFile::getNameWithPrefix(
   getMangler().getNameWithPrefix(OutName, GV, /*CannotUsePrivateLabel=*/true);
 }
 
-TailPaddingAmount
-RISCVELFTargetObjectFile::getTailPaddingForPreciseBounds(
-    uint64_t Size, const TargetMachine &TM) const {
-  if (!getContext().getAsmInfo().isCheriPurecapABI())
-    return TailPaddingAmount::None;
-
-  return RISCVCompressedCap::getRequiredTailPadding(Size,
-                                                    TM.getMCSubtargetInfo());
-}
-
-Align
-RISCVELFTargetObjectFile::getAlignmentForPreciseBounds(
-    uint64_t Size, const TargetMachine &TM) const {
-  if (!getContext().getAsmInfo().isCheriPurecapABI())
-    return Align();
-
-  return RISCVCompressedCap::getRequiredAlignment(Size,
-                                                  TM.getMCSubtargetInfo());
-}
-
 int RISCVELFTargetObjectFile::getCheriCapabilitySize(
     const TargetMachine &TM) const {
   const RISCVTargetMachine &RTM = static_cast<const RISCVTargetMachine &>(TM);

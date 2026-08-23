@@ -74,8 +74,7 @@ bool MCGOFFStreamer::emitSymbolAttribute(MCSymbol *Sym,
 }
 
 void MCGOFFStreamer::emitCommonSymbol(MCSymbol *S, uint64_t Size,
-                                      Align ByteAlignment,
-                                      TailPaddingAmount TailPadding) {
+                                      Align ByteAlignment) {
   auto *Symbol = static_cast<MCSymbolGOFF *>(S);
 
   MCSectionGOFF *SD = getContext().getGOFFSection(

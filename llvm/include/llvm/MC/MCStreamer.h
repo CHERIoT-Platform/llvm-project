@@ -700,8 +700,7 @@ public:
   /// \param Size - The size of the common symbol.
   /// \param ByteAlignment - The alignment of the symbol.
   virtual void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
-                                Align ByteAlignment,
-                                TailPaddingAmount TailPadding) = 0;
+                                Align ByteAlignment) = 0;
 
   /// Emit a local common (.lcomm) symbol.
   ///
@@ -709,8 +708,7 @@ public:
   /// \param Size - The size of the common symbol.
   /// \param ByteAlignment - The alignment of the common symbol in bytes.
   virtual void emitLocalCommonSymbol(MCSymbol *Symbol, uint64_t Size,
-                                     Align ByteAlignment,
-                                     TailPaddingAmount TailPadding);
+                                     Align ByteAlignment);
 
   /// Emit the zerofill section and an optional symbol.
   ///
@@ -720,7 +718,6 @@ public:
   /// \param ByteAlignment - The alignment of the zerofill symbol.
   virtual void emitZerofill(MCSection *Section, MCSymbol *Symbol = nullptr,
                             uint64_t Size = 0, Align ByteAlignment = Align(1),
-                            TailPaddingAmount TailPadding = TailPaddingAmount::None,
                             SMLoc Loc = SMLoc());
 
   /// Emit a thread local bss (.tbss) symbol.
@@ -730,8 +727,7 @@ public:
   /// \param Size - The size of the symbol.
   /// \param ByteAlignment - The alignment of the thread local common symbol.
   virtual void emitTBSSSymbol(MCSection *Section, MCSymbol *Symbol,
-                              uint64_t Size, Align ByteAlignment = Align(1),
-                              TailPaddingAmount TailPadding = TailPaddingAmount::None);
+                              uint64_t Size, Align ByteAlignment = Align(1));
 
   /// @}
   /// \name Generating Data

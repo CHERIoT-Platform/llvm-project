@@ -54,15 +54,14 @@ public:
                       uint64_t Offset) override;
   void emitWeakReference(MCSymbol *Alias, const MCSymbol *Target) override;
   bool emitSymbolAttribute(MCSymbol *Symbol, MCSymbolAttr Attribute) override;
-  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size, Align ByteAlignment,
-                        TailPaddingAmount TailPadding) override;
+  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size, Align ByteAlignment) override;
 
   void emitELFSize(MCSymbol *Symbol, const MCExpr *Value) override;
   void emitELFSymverDirective(const MCSymbol *OriginalSym, StringRef Name,
                               bool KeepOriginalSym) override;
 
   void emitLocalCommonSymbol(MCSymbol *Symbol, uint64_t Size,
-                             Align ByteAlignment, TailPaddingAmount TailPadding) override;
+                             Align ByteAlignment) override;
 
   void emitIdent(StringRef IdentString) override;
 

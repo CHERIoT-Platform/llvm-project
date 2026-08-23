@@ -2853,8 +2853,7 @@ void PPCAIXAsmPrinter::emitGlobalVariableHelper(const GlobalVariable *GV) {
           OutContext.getOrCreateSymbol(GVSym->getSymbolTableName()), Size,
           GVSym, Alignment);
     } else {
-      OutStreamer->emitCommonSymbol(GVSym, Size, Alignment,
-                                    TailPaddingAmount::None);
+      OutStreamer->emitCommonSymbol(GVSym, Size, Alignment);
     }
     return;
   }
@@ -2889,7 +2888,7 @@ void PPCAIXAsmPrinter::emitGlobalVariableHelper(const GlobalVariable *GV) {
     AliasList[getAliasOffset(GA->getAliasee())].push_back(GA);
 
   // Emit alias label and element value for global variable.
-  emitGlobalConstant(GV->getDataLayout(), GV->getInitializer(), 0,
+  emitGlobalConstant(GV->getDataLayout(), GV->getInitializer(),
                      &AliasList);
 }
 

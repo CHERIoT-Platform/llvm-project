@@ -12,7 +12,7 @@
 #include "llvm/IR/PassManager.h"
 
 namespace llvm {
-struct CheriLogSetBoundsPass : PassInfoMixin<CheriLogSetBoundsPass> {
+struct CheriLogSetBoundsPass : RequiredPassInfoMixin<CheriLogSetBoundsPass> {
   PreservedAnalyses run(Function &, FunctionAnalysisManager &);
 };
 } // namespace llvm

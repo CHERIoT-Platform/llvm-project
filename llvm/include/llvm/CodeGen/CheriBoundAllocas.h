@@ -21,7 +21,7 @@ namespace llvm {
 class Module;
 class TargetMachine;
 
-class CheriBoundAllocasPass : public PassInfoMixin<CheriBoundAllocasPass> {
+class CheriBoundAllocasPass : public RequiredPassInfoMixin<CheriBoundAllocasPass> {
     private:
       const TargetMachine *TM;
     

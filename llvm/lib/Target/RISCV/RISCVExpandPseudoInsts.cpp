@@ -15,11 +15,11 @@
 #include "MCTargetDesc/RISCVBaseInfo.h"
 #include "MCTargetDesc/RISCVMCTargetDesc.h"
 #include "RISCV.h"
+#include "RISCVExpandPseudoBase.h"
 #include "RISCVInstrInfo.h"
 #include "RISCVMachineFunctionInfo.h"
 #include "RISCVSubtarget.h"
 #include "RISCVTargetMachine.h"
-
 #include "llvm/CodeGen/LivePhysRegs.h"
 #include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineFunctionPass.h"
@@ -39,77 +39,85 @@ using namespace llvm;
 
 namespace {
 
-class RISCVExpandPseudoImpl {
-public:
-  const RISCVSubtarget *STI;
-  const RISCVInstrInfo *TII;
+class RISCVExpandPseudoImpl final : public RISCVExpandPseudoImplBase {
   CHERIoTImportedObjectSet &ImportedObjects;
 
+public:
   RISCVExpandPseudoImpl(CHERIoTImportedObjectSet &Imports)
     : ImportedObjects(Imports) {}
 
-  bool run(MachineFunction &MF);
-
 private:
-  bool expandMBB(MachineBasicBlock &MBB);
   bool expandMI(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-                MachineBasicBlock::iterator &NextMBBI);
+                MachineBasicBlock::iterator &NextMBBI) const override;
+
   bool expandAuipccInstPair(MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator MBBI,
                             MachineBasicBlock::iterator &NextMBBI,
                             unsigned FlagsHi, unsigned SecondOpcode,
-                            bool InBounds = false);
+                            bool InBounds = false) const;
   bool expandAuicgpInstPair(MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator MBBI,
                             MachineBasicBlock::iterator &NextMBBI,
-                            unsigned SecondOpcode, bool InBounds = false);
+                            unsigned SecondOpcode, bool InBounds = false) const;
   bool expandCapLoadLocalCap(MachineBasicBlock &MBB,
                              MachineBasicBlock::iterator MBBI,
                              MachineBasicBlock::iterator &NextMBBI,
-                             bool InBounds);
+                             bool InBounds) const;
   bool expandDerefCapLoadLocalCap(MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator MBBI,
                                   MachineBasicBlock::iterator &NextMBBI,
-                                  unsigned DerefOpcode);
+                                  unsigned DerefOpcode) const;
   bool expandCapLoadGlobalCap(MachineBasicBlock &MBB,
                               MachineBasicBlock::iterator MBBI,
-                              MachineBasicBlock::iterator &NextMBBI);
+                              MachineBasicBlock::iterator &NextMBBI) const;
   bool expandCapLoadTLSIEAddress(MachineBasicBlock &MBB,
                                  MachineBasicBlock::iterator MBBI,
-                                 MachineBasicBlock::iterator &NextMBBI);
+                                 MachineBasicBlock::iterator &NextMBBI) const;
   bool expandCapLoadTLSGDCap(MachineBasicBlock &MBB,
                              MachineBasicBlock::iterator MBBI,
-                             MachineBasicBlock::iterator &NextMBBI);
-  bool expandCGetAddr(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI);
+                             MachineBasicBlock::iterator &NextMBBI) const;
+  bool expandCGetAddr(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) const;
   bool expandCCOp(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-                  MachineBasicBlock::iterator &NextMBBI);
+                  MachineBasicBlock::iterator &NextMBBI) const;
+
   bool expandCCOpToCMov(MachineBasicBlock &MBB,
-                        MachineBasicBlock::iterator MBBI);
+                        MachineBasicBlock::iterator MBBI) const;
+
   bool expandVMSET_VMCLR(MachineBasicBlock &MBB,
-                         MachineBasicBlock::iterator MBBI, unsigned Opcode);
+                         MachineBasicBlock::iterator MBBI,
+                         unsigned Opcode) const;
+
   bool expandMV_FPR16INX(MachineBasicBlock &MBB,
-                         MachineBasicBlock::iterator MBBI);
+                         MachineBasicBlock::iterator MBBI) const;
+
   bool expandMV_FPR32INX(MachineBasicBlock &MBB,
-                         MachineBasicBlock::iterator MBBI);
+                         MachineBasicBlock::iterator MBBI) const;
+
   bool expandRV32ZdinxStore(MachineBasicBlock &MBB,
-                            MachineBasicBlock::iterator MBBI);
+                            MachineBasicBlock::iterator MBBI) const;
+
   bool expandRV32ZdinxLoad(MachineBasicBlock &MBB,
-                           MachineBasicBlock::iterator MBBI);
-  bool expandPseudoReadVLENBViaVSETVLIX0(MachineBasicBlock &MBB,
-                                         MachineBasicBlock::iterator MBBI);
+                           MachineBasicBlock::iterator MBBI) const;
+
+  bool
+  expandPseudoReadVLENBViaVSETVLIX0(MachineBasicBlock &MBB,
+                                    MachineBasicBlock::iterator MBBI) const;
+
   bool expandPseudoClearFPR64(MachineBasicBlock &MBB,
-                              MachineBasicBlock::iterator MBBI);
+                              MachineBasicBlock::iterator MBBI) const;
+
   bool expandVSPILL(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI);
   bool expandVRELOAD(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI);
+
   /// Expand a CHERIoT cross-compartment call into a call to the switcher using
   /// an import-table entry.
   bool expandCompartmentCall(MachineBasicBlock &MBB,
                              MachineBasicBlock::iterator MBBI,
-                             MachineBasicBlock::iterator &NextMBBI);
+                             MachineBasicBlock::iterator &NextMBBI) const;
   /// Expand a CHERIoT cross-library call into a call via an import-table entry.
   bool expandLibraryCall(MachineBasicBlock &MBB,
                          MachineBasicBlock::iterator MBBI,
-                         MachineBasicBlock::iterator &NextMBBI);
+                         MachineBasicBlock::iterator &NextMBBI) const;
   /**
    * Helper that inserts a load of the import table for `Fn` at `MBBI`.  This
    * inserts an AUIPCC and so will split `MBB`.  Calls the result if
@@ -123,7 +131,7 @@ private:
                                              Register DestReg,
                                              bool TreatAsLibrary = false,
                                              bool CallImportTarget = false,
-                                             const MachineInstr *OriginalCall = nullptr);
+                                             const MachineInstr *OriginalCall = nullptr) const;
   /**
    * Helper that inserts a load from the import table identified by an import
    * and export table entry symbol.
@@ -136,17 +144,7 @@ private:
                           MCSymbol *ImportSymbol, MCSymbol *ExportSymbol,
                           const StringRef ImportName, Register DestReg,
                           bool IsLibrary, bool IsPublic, bool CallImportTarget,
-                          const MachineInstr* OriginalCall);
-
-#ifndef NDEBUG
-  unsigned getInstSizeInBytes(const MachineFunction &MF) const {
-    unsigned Size = 0;
-    for (auto &MBB : MF)
-      for (auto &MI : MBB)
-        Size += TII->getInstSizeInBytes(MI);
-    return Size;
-  }
-#endif
+                          const MachineInstr* OriginalCall) const;
 };
 
 class RISCVExpandPseudoLegacy : public MachineFunctionPass {
@@ -163,43 +161,11 @@ public:
   StringRef getPassName() const override { return RISCV_EXPAND_PSEUDO_NAME; }
 };
 
-char RISCVExpandPseudoLegacy::ID = 0;
+} // anonymous namespace
 
-bool RISCVExpandPseudoImpl::run(MachineFunction &MF) {
-  STI = &MF.getSubtarget<RISCVSubtarget>();
-  TII = STI->getInstrInfo();
-
-#ifndef NDEBUG
-  const unsigned OldSize = getInstSizeInBytes(MF);
-#endif
-
-  bool Modified = false;
-  for (auto &MBB : MF)
-    Modified |= expandMBB(MBB);
-
-#ifndef NDEBUG
-  const unsigned NewSize = getInstSizeInBytes(MF);
-  assert(OldSize >= NewSize);
-#endif
-  return Modified;
-}
-
-bool RISCVExpandPseudoImpl::expandMBB(MachineBasicBlock &MBB) {
-  bool Modified = false;
-
-  MachineBasicBlock::iterator MBBI = MBB.begin(), E = MBB.end();
-  while (MBBI != E) {
-    MachineBasicBlock::iterator NMBBI = std::next(MBBI);
-    Modified |= expandMI(MBB, MBBI, NMBBI);
-    MBBI = NMBBI;
-  }
-
-  return Modified;
-}
-
-bool RISCVExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
-                                     MachineBasicBlock::iterator MBBI,
-                                     MachineBasicBlock::iterator &NextMBBI) {
+bool RISCVExpandPseudoImpl::expandMI(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+    MachineBasicBlock::iterator &NextMBBI) const {
   bool InBounds = true;
   // RISCVInstrInfo::getInstSizeInBytes expects that the total size of the
   // expanded instructions for each pseudo is correct in the Size field of the
@@ -345,7 +311,7 @@ MachineBasicBlock *RISCVExpandPseudoImpl::insertLoadOfImportTable(
     const Function *Fn, Register DestReg,
     bool TreatAsLibrary,
     bool CallImportTarget,
-    const MachineInstr *OriginalCall) {
+    const MachineInstr *OriginalCall) const {
   auto *MF = MBB.getParent();
   const StringRef ImportName = Fn->getName();
   // We can hit this code path if we need to do a library-style import
@@ -388,7 +354,7 @@ MachineBasicBlock *RISCVExpandPseudoImpl::insertLoadOfImportTable(
     MCSymbol *ImportSymbol, MCSymbol *ExportSymbol, const StringRef ImportName,
     Register DestReg,
     bool IsLibrary, bool IsPublic, bool CallImportTarget,
-    const MachineInstr* OriginalCall) {
+    const MachineInstr* OriginalCall) const {
   auto *MF = MBB.getParent();
   const DebugLoc DL = MBBI->getDebugLoc();
   MachineBasicBlock *NewMBB =
@@ -449,8 +415,7 @@ MachineBasicBlock *RISCVExpandPseudoImpl::insertLoadOfImportTable(
 
 bool RISCVExpandPseudoImpl::expandCompartmentCall(MachineBasicBlock &MBB,
     MachineBasicBlock::iterator MBBI,
-    MachineBasicBlock::iterator &NextMBBI) {
-
+    MachineBasicBlock::iterator &NextMBBI) const {
   const MachineOperand Callee = MBBI->getOperand(0);
   MachineInstr &MI = *MBBI;
   const DebugLoc DL = MBBI->getDebugLoc();
@@ -528,7 +493,7 @@ bool RISCVExpandPseudoImpl::expandCompartmentCall(MachineBasicBlock &MBB,
 
 bool RISCVExpandPseudoImpl::expandLibraryCall(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    MachineBasicBlock::iterator &NextMBBI) {
+    MachineBasicBlock::iterator &NextMBBI) const {
   // Expand a cross-library call into a auipcc + clc to get the import table
   // entry , followed by a compressed cjalr to invoke it.  This is running
   // post-RA, but the ABI guarantees that C7 is not required to be preserved
@@ -599,7 +564,7 @@ bool RISCVExpandPseudoImpl::expandLibraryCall(
 bool RISCVExpandPseudoImpl::expandAuicgpInstPair(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
     MachineBasicBlock::iterator &NextMBBI, unsigned SecondOpcode,
-    bool InBounds) {
+    bool InBounds) const {
   MachineInstr &MI = *MBBI;
   DebugLoc DL = MI.getDebugLoc();
   auto *MF = MBB.getParent();
@@ -663,7 +628,7 @@ bool RISCVExpandPseudoImpl::expandAuicgpInstPair(
 bool RISCVExpandPseudoImpl::expandAuipccInstPair(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
     MachineBasicBlock::iterator &NextMBBI, unsigned FlagsHi,
-    unsigned SecondOpcode, bool InBounds) {
+    unsigned SecondOpcode, bool InBounds) const {
   auto ABI = MBB.getParent()->getSubtarget<RISCVSubtarget>().getTargetABI();
   bool IsCheriot = ABI == RISCVABI::ABI_CHERIOT ||
                    ABI == RISCVABI::ABI_CHERIOT_BAREMETAL;
@@ -855,7 +820,7 @@ bool RISCVExpandPseudoImpl::expandAuipccInstPair(
 
 bool RISCVExpandPseudoImpl::expandCapLoadLocalCap(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    MachineBasicBlock::iterator &NextMBBI, bool InBounds) {
+    MachineBasicBlock::iterator &NextMBBI, bool InBounds) const {
   auto ABI = MBB.getParent()->getSubtarget<RISCVSubtarget>().getTargetABI();
   if (ABI == RISCVABI::ABI_CHERIOT || ABI == RISCVABI::ABI_CHERIOT_BAREMETAL) {
     const MachineOperand &Symbol = MBBI->getOperand(1);
@@ -909,7 +874,7 @@ bool RISCVExpandPseudoImpl::expandCapLoadLocalCap(
 
 bool RISCVExpandPseudoImpl::expandDerefCapLoadLocalCap(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    MachineBasicBlock::iterator &NextMBBI, unsigned DerefOpcode) {
+    MachineBasicBlock::iterator &NextMBBI, unsigned DerefOpcode) const {
   auto ABI = MBB.getParent()->getSubtarget<RISCVSubtarget>().getTargetABI();
   if (ABI == RISCVABI::ABI_CHERIOT || ABI == RISCVABI::ABI_CHERIOT_BAREMETAL) {
     bool IsStore = MBBI->getNumOperands() == 3;
@@ -928,7 +893,7 @@ bool RISCVExpandPseudoImpl::expandDerefCapLoadLocalCap(
 
 bool RISCVExpandPseudoImpl::expandCapLoadGlobalCap(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    MachineBasicBlock::iterator &NextMBBI) {
+    MachineBasicBlock::iterator &NextMBBI) const {
   MachineFunction *MF = MBB.getParent();
 
   const auto &STI = MF->getSubtarget<RISCVSubtarget>();
@@ -939,7 +904,7 @@ bool RISCVExpandPseudoImpl::expandCapLoadGlobalCap(
 
 bool RISCVExpandPseudoImpl::expandCapLoadTLSIEAddress(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    MachineBasicBlock::iterator &NextMBBI) {
+    MachineBasicBlock::iterator &NextMBBI) const {
   MachineFunction *MF = MBB.getParent();
   assert(!STI->hasVendorXCheriot() && "TLS is not supported on XCheriot!");
 
@@ -955,7 +920,7 @@ bool RISCVExpandPseudoImpl::expandCapLoadTLSIEAddress(
 
 bool RISCVExpandPseudoImpl::expandCapLoadTLSGDCap(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    MachineBasicBlock::iterator &NextMBBI) {
+    MachineBasicBlock::iterator &NextMBBI) const {
   assert(!STI->hasVendorXCheriot() && "TLS is not supported on XCheriot!");
   unsigned FlagsHi;
   if (MCTargetOptions::cheriTLSUseTGOT())
@@ -967,7 +932,7 @@ bool RISCVExpandPseudoImpl::expandCapLoadTLSGDCap(
 }
 
 bool RISCVExpandPseudoImpl::expandCGetAddr(MachineBasicBlock &MBB,
-                                       MachineBasicBlock::iterator MBBI) {
+                                       MachineBasicBlock::iterator MBBI) const {
   const auto &STI = MBB.getParent()->getSubtarget<RISCVSubtarget>();
   DebugLoc DL = MBBI->getDebugLoc();
   const TargetRegisterInfo *TRI = STI.getRegisterInfo();
@@ -981,9 +946,9 @@ bool RISCVExpandPseudoImpl::expandCGetAddr(MachineBasicBlock &MBB,
   return true;
 }
 
-bool RISCVExpandPseudoImpl::expandCCOp(MachineBasicBlock &MBB,
-                                       MachineBasicBlock::iterator MBBI,
-                                       MachineBasicBlock::iterator &NextMBBI) {
+bool RISCVExpandPseudoImpl::expandCCOp(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+    MachineBasicBlock::iterator &NextMBBI) const {
   // First try expanding to a Conditional Move rather than a branch+mv
   if (expandCCOpToCMov(MBB, MBBI))
     return true;
@@ -1110,8 +1075,8 @@ bool RISCVExpandPseudoImpl::expandCCOp(MachineBasicBlock &MBB,
   return true;
 }
 
-bool RISCVExpandPseudoImpl::expandCCOpToCMov(MachineBasicBlock &MBB,
-                                             MachineBasicBlock::iterator MBBI) {
+bool RISCVExpandPseudoImpl::expandCCOpToCMov(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) const {
   MachineInstr &MI = *MBBI;
   DebugLoc DL = MI.getDebugLoc();
 
@@ -1239,7 +1204,7 @@ bool RISCVExpandPseudoImpl::expandCCOpToCMov(MachineBasicBlock &MBB,
 
 bool RISCVExpandPseudoImpl::expandVMSET_VMCLR(MachineBasicBlock &MBB,
                                               MachineBasicBlock::iterator MBBI,
-                                              unsigned Opcode) {
+                                              unsigned Opcode) const {
   DebugLoc DL = MBBI->getDebugLoc();
   Register DstReg = MBBI->getOperand(0).getReg();
   const MCInstrDesc &Desc = TII->get(Opcode);
@@ -1251,7 +1216,7 @@ bool RISCVExpandPseudoImpl::expandVMSET_VMCLR(MachineBasicBlock &MBB,
 }
 
 bool RISCVExpandPseudoImpl::expandMV_FPR16INX(
-    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) {
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) const {
   DebugLoc DL = MBBI->getDebugLoc();
   const TargetRegisterInfo *TRI = STI->getRegisterInfo();
   Register DstReg = TRI->getMatchingSuperReg(
@@ -1268,7 +1233,7 @@ bool RISCVExpandPseudoImpl::expandMV_FPR16INX(
 }
 
 bool RISCVExpandPseudoImpl::expandMV_FPR32INX(
-    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) {
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) const {
   DebugLoc DL = MBBI->getDebugLoc();
   const TargetRegisterInfo *TRI = STI->getRegisterInfo();
   Register DstReg = TRI->getMatchingSuperReg(
@@ -1288,7 +1253,7 @@ bool RISCVExpandPseudoImpl::expandMV_FPR32INX(
 // floating-point value into memory by generating an equivalent instruction
 // sequence for RV32.
 bool RISCVExpandPseudoImpl::expandRV32ZdinxStore(
-    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) {
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) const {
   DebugLoc DL = MBBI->getDebugLoc();
   const TargetRegisterInfo *TRI = STI->getRegisterInfo();
   Register Lo =
@@ -1337,7 +1302,7 @@ bool RISCVExpandPseudoImpl::expandRV32ZdinxStore(
 // floating-point value from memory into an equivalent instruction sequence for
 // RV32.
 bool RISCVExpandPseudoImpl::expandRV32ZdinxLoad(
-    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) {
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) const {
   DebugLoc DL = MBBI->getDebugLoc();
   const TargetRegisterInfo *TRI = STI->getRegisterInfo();
   Register Lo =
@@ -1395,7 +1360,7 @@ bool RISCVExpandPseudoImpl::expandRV32ZdinxLoad(
 }
 
 bool RISCVExpandPseudoImpl::expandPseudoReadVLENBViaVSETVLIX0(
-    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) {
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) const {
   DebugLoc DL = MBBI->getDebugLoc();
   Register Dst = MBBI->getOperand(0).getReg();
   unsigned Mul = MBBI->getOperand(1).getImm();
@@ -1413,7 +1378,7 @@ bool RISCVExpandPseudoImpl::expandPseudoReadVLENBViaVSETVLIX0(
 }
 
 bool RISCVExpandPseudoImpl::expandPseudoClearFPR64(
-    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) {
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) const {
   const DebugLoc &DL = MBBI->getDebugLoc();
   Register Dst = MBBI->getOperand(0).getReg();
 
@@ -1429,14 +1394,12 @@ bool RISCVExpandPseudoImpl::expandPseudoClearFPR64(
   return true;
 }
 
-} // end of anonymous namespace
+char RISCVExpandPseudoLegacy::ID = 0;
 
 INITIALIZE_PASS(RISCVExpandPseudoLegacy, "riscv-expand-pseudo",
                 RISCV_EXPAND_PSEUDO_NAME, false, false)
 
-namespace llvm {
-
-FunctionPass *createRISCVExpandPseudoLegacyPass() {
+FunctionPass *llvm::createRISCVExpandPseudoLegacyPass() {
   return new RISCVExpandPseudoLegacy();
 }
 
@@ -1449,5 +1412,3 @@ RISCVExpandPseudoPass::run(MachineFunction &MF,
     return PreservedAnalyses::all();
   return getMachineFunctionPassPreservedAnalyses();
 }
-
-} // end of namespace llvm

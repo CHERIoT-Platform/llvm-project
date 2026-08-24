@@ -7890,10 +7890,6 @@ unsigned NVPTXTargetLowering::getPreferredFPToIntOpcode(unsigned Op, EVT FromVT,
     if (isOperationLegal(ISD::STRICT_FP_TO_SINT, ToVT))
       return ISD::STRICT_FP_TO_SINT;
     break;
-  case ISD::VP_FP_TO_UINT:
-    if (isOperationLegal(ISD::VP_FP_TO_SINT, ToVT))
-      return ISD::VP_FP_TO_SINT;
-    break;
   default:
     break;
   }

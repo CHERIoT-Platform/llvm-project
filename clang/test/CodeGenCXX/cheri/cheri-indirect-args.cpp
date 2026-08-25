@@ -5,7 +5,7 @@
 // address space
 
 // CHECK-LABEL: define dso_local void @_Z25notify_all_at_thread_exit11unique_lock(
-// CHECK-SAME: ptr addrspace(200) nofree noundef align 1 dead_on_return dereferenceable(1) [[LK:%.*]]) addrspace(200) #[[ATTR0:[0-9]+]] {
+// CHECK-SAME: ptr addrspace(200) nofreeobj noundef align 1 dead_on_return dereferenceable(1) [[LK:%.*]]) addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  [[ENTRY:.*:]]
 // CHECK-NEXT:    [[LK_INDIRECT_ADDR:%.*]] = alloca ptr addrspace(200), align 16, addrspace(200)
 // CHECK-NEXT:    store ptr addrspace(200) [[LK]], ptr addrspace(200) [[LK_INDIRECT_ADDR]], align 16
@@ -21,7 +21,7 @@
 // CHECK-NEXT:    store i32 0, ptr addrspace(200) [[RETVAL]], align 4
 // CHECK-NEXT:    call addrspace(200) void @_ZN11unique_lockC1Ev(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[L]])
 // CHECK-NEXT:    call addrspace(200) void @_ZN11unique_lockC1ERKS_(ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[AGG_TMP]], ptr addrspace(200) noundef nonnull align 1 dereferenceable(1) [[L]])
-// CHECK-NEXT:    call addrspace(200) void @_Z25notify_all_at_thread_exit11unique_lock(ptr addrspace(200) nofree noundef align 1 dead_on_return dereferenceable(1) [[AGG_TMP]])
+// CHECK-NEXT:    call addrspace(200) void @_Z25notify_all_at_thread_exit11unique_lock(ptr addrspace(200) nofreeobj noundef align 1 dead_on_return dereferenceable(1) [[AGG_TMP]])
 // CHECK-NEXT:    ret i32 0
 //
 

@@ -35,7 +35,7 @@ int *foo(union u1 m)
 }
 
 // CHECK-LABEL: define {{[^@]+}}@bar
-// CHECK-SAME: (ptr addrspace(200) nofree noundef readonly align 16 captures(none) dead_on_return dereferenceable(32) [[M:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR1:[0-9]+]] {
+// CHECK-SAME: (ptr addrspace(200) nofreeobj noundef readonly align 16 captures(none) dead_on_return dereferenceable(32) [[M:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR1:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[Z:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[M]], i64 16
 // CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[Z]], align 16, !tbaa [[TBAA12:![0-9]+]]

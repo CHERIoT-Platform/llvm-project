@@ -39,9 +39,11 @@ add_llvm_target(RISCVCodeGen
   RISCVConstantPoolValue.cpp
   RISCVDeadRegisterDefinitions.cpp
   RISCVCheriCleanup.cpp
-  RISCVExpandAtomicPseudoInsts.cpp
+  RISCVExpandPseudoAtomics.cpp
   RISCVExpandPseudoBase.cpp
-  RISCVExpandPseudoInsts.cpp
+  RISCVExpandPseudoPostRA.cpp
+  RISCVExpandPseudoPreEmit.cpp
+  RISCVExpandPseudoPreRA.cpp
   RISCVFoldMemOffset.cpp
   RISCVFrameLowering.cpp
   RISCVGatherScatterLowering.cpp
@@ -62,8 +64,6 @@ add_llvm_target(RISCVCodeGen
   RISCVMergeBaseOffset.cpp
   RISCVMoveMerger.cpp
   RISCVOptWInstrs.cpp
-  RISCVPostRAExpandPseudoInsts.cpp
-  RISCVPreRAExpandPseudoInsts.cpp
   RISCVPromoteConstant.cpp
   RISCVPushPopOptimizer.cpp
   RISCVQCRelaxMarking.cpp

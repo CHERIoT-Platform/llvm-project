@@ -171,3 +171,40 @@ extern "C" void same_with_union_ref() {
   // expected-remark@-1{{using size of containing type 'union U' instead of object type 'int' for subobject bounds on union member}}
   // expected-remark@-2{{setting sub-object bounds for reference to 'int' to 264 bytes}}
 }
+
+struct Outer {
+  int x;
+  struct Inner {
+    int y;
+    int z;
+  } i;
+};
+
+// CHECK-LABEL: @test_nested_struct(
+// CHECK-NEXT:  entry:
+// CHECK-NEXT:    [[I:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) %o, i64 4
+// CHECK-NEXT:    [[TMP0:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.cheri.cap.bounds.set.i64(ptr addrspace(200) nonnull [[I]], i64 8)
+// CHECK-NEXT:    ret ptr addrspace(200) [[TMP0]]
+//
+extern "C" Outer::Inner *test_nested_struct(Outer &o) {
+  return &o.i;
+  // expected-remark@-1{{setting sub-object bounds for field 'i' (pointer to 'struct Inner') to 8 bytes}}
+}
+
+
+struct X {
+  int a;
+};
+
+struct Y : public X {
+  int b;
+};
+
+// CHECK-LABEL: @noBoundsReduction(
+// CHECK-NEXT:  entry:
+// CHECK-NEXT:    ret ptr addrspace(200) %y
+//
+extern "C" X *noBoundsReduction(Y *y)
+{
+  return y;
+}

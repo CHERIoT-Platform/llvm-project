@@ -183,7 +183,7 @@ void test_dhclient_var_opt_out(void) {
   struct ip ip;
   struct ip ip2 __attribute__((cheri_no_subobject_bounds));
   do_stuff(&ip.ip_src); // expected-remark {{setting sub-object bounds for field 'ip_src' (pointer to 'struct in_addr') to 4 bytes}}
-  // CHECK-NEXT: subobj bounds check: got MemberExpr -> Bounds mode is everywhere-unsafe -> setting bounds for 'struct in_addr' address to 4
+  // CHECK-NEXT: subobj bounds check: got MemberExpr -> setting bounds for 'struct in_addr' address to 4
   do_stuff(&ip2.ip_src);
   // expected-remark@-1{{not setting bounds for pointer to 'struct ip __attribute__((cheri_no_subobject_bounds))' (base type has opt-out attribute)}}
   // CHECK-NEXT: subobj bounds check: got MemberExpr -> opt-out: base type has opt-out attribute -> not setting bounds

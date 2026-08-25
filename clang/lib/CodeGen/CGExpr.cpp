@@ -1455,6 +1455,17 @@ CodeGenFunction::canTightenCheriBounds(QualType Ty, const Expr *E,
       remarkUsingContainerSize(*this, DbgOS, E, BaseTy, Ty, "union member");
       return BoundsOnContainer(BaseTy, ME);
     }
+
+    // Any nested class or struct member that isn't itself a reference
+    // and doesn't contain a VLA can have exact bounds. There can't be any
+    // issues with downcasting since there is no indirection.
+    QualType MemberTy = ME->getMemberDecl()->getType();
+    if (BaseTy->isStructureOrClassType() &&
+        MemberTy->isStructureOrClassType() &&
+        !containsVariableLengthArray(BoundsMode, DbgOS, MemberTy)) {
+      return ExactBounds(TypeSize);
+    }
+
     *ReturnValueValid = false;
     return std::nullopt;
   };

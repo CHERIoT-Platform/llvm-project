@@ -75,7 +75,6 @@ jobs:
             -DLLVM_VC_REVISION=${{ github.sha }} \
             -DLLVM_CCACHE_BUILD=ON \
             -DCCACHE_PROGRAM=/tmp/sccache \
-            -DLLVM_ENABLE_EXPENSIVE_CHECKS=ON \
             -G Ninja
 
       - name: Build

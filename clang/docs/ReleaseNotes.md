@@ -416,6 +416,8 @@ features cannot lower the translation-unit ABI level;
 - `-Wc++98-compat` now diagnoses explicit conversion functions in C++20 and
   later, matching the behavior in C++11 through C++17. (#GH161689)
 
+- Clang now diagnoses more details when a constraint evaluates to false.
+
 ### Improvements to Clang's time-trace
 
 ### Improvements to Coverage Mapping
@@ -689,8 +691,8 @@ features cannot lower the translation-unit ABI level;
 
 ### OpenMP Support
 
-- Added parsing and semantic support for `dims` modifier in `num_teams` and
-  `thread_limit` clauses for OpenMP 6.1 or later.
+- Added parsing and semantic support for `dims` modifier in `num_teams`,
+  `thread_limit` and `num_threads` clauses for OpenMP 6.1 or later.
 - Map-type-modifying modifiers applied to a list item with a user-defined mapper
   are now propagated onto the maps the mapper expands to.
 - Mapping of expressions with base-pointers through a user-defined mapper (e.g.

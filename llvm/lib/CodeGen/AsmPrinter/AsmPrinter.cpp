@@ -1018,7 +1018,7 @@ void AsmPrinter::emitFunctionPrefix(ArrayRef<const Constant *> Prefix) {
   const Function &F = MF->getFunction();
   if (!MAI.hasSubsectionsViaSymbols()) {
     for (auto &C : Prefix)
-      emitGlobalConstant(F.getDataLayout(), C, 0);
+      emitGlobalConstant(F.getDataLayout(), C);
     return;
   }
   // Preserving prefix-like data on platforms which use subsections-via-symbols
@@ -1028,7 +1028,7 @@ void AsmPrinter::emitFunctionPrefix(ArrayRef<const Constant *> Prefix) {
   OutStreamer->emitLabel(OutContext.createLinkerPrivateTempSymbol());
 
   for (auto &C : Prefix) {
-    emitGlobalConstant(F.getDataLayout(), C, 0);
+    emitGlobalConstant(F.getDataLayout(), C);
   }
 
   // Emit an .alt_entry directive for the actual function symbol.
@@ -1176,7 +1176,7 @@ void AsmPrinter::emitFunctionHeader() {
 
   // Emit the prologue data.
   if (F.hasPrologueData())
-    emitGlobalConstant(F.getDataLayout(), F.getPrologueData(), 0);
+    emitGlobalConstant(F.getDataLayout(), F.getPrologueData());
 }
 
 static bool needFuncLabels(const MachineFunction &MF, const AsmPrinter &Asm);
@@ -1742,7 +1742,7 @@ void AsmPrinter::emitKCFITypeId(const MachineFunction &MF) {
   const Function &F = MF.getFunction();
   if (const MDNode *MD = F.getMetadata(LLVMContext::MD_kcfi_type))
     emitGlobalConstant(F.getDataLayout(),
-                       mdconst::extract<ConstantInt>(MD->getOperand(0)), 0);
+                       mdconst::extract<ConstantInt>(MD->getOperand(0)));
 }
 
 void AsmPrinter::emitPseudoProbe(const MachineInstr &MI) {
@@ -1990,7 +1990,7 @@ void AsmPrinter::emitPCSections(const MachineFunction &MF) {
               CI && ConstULEB128 && Size > 1 && Size <= 8) {
             emitULEB128(CI->getZExtValue());
           } else {
-            emitGlobalConstant(DL, C, 0);
+            emitGlobalConstant(DL, C);
           }
         }
       }
@@ -3415,7 +3415,7 @@ void AsmPrinter::emitConstantPool() {
       if (CPE.isMachineConstantPoolEntry())
         emitMachineConstantPoolValue(CPE.Val.MachineCPVal);
       else
-        emitGlobalConstant(getDataLayout(), CPE.Val.ConstVal, 0);
+        emitGlobalConstant(getDataLayout(), CPE.Val.ConstVal);
 
       unsigned EntrySize = CPE.getSizeInBytes(getDataLayout());
       if (MAI.hasDotTypeDotSizeDirective())

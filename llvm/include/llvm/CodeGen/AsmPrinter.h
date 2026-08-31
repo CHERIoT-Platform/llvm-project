@@ -662,7 +662,7 @@ public:
   /// Targets can override this to change how global constants that are part of
   /// a C++ static/global constructor list are emitted.
   virtual void emitXXStructor(const DataLayout &DL, const Constant *CV) {
-    emitGlobalConstant(DL, CV, 0);
+    emitGlobalConstant(DL, CV);
   }
 
   virtual const MCExpr *lowerConstantPtrAuth(const ConstantPtrAuth &CPA) {

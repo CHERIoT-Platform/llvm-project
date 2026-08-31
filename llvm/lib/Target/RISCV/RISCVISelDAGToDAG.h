@@ -127,12 +127,13 @@ public:
     return selectShiftMask(N, Size, ShAmt);
   }
 
-  bool selectSETCC(SDValue N, ISD::CondCode ExpectedCCVal, SDValue &Val);
-  bool selectSETNE(SDValue N, SDValue &Val) {
-    return selectSETCC(N, ISD::SETNE, Val);
+  bool selectSETCC(SDValue N, ISD::CondCode ExpectedCCVal, SDValue &Val,
+                   bool OneUse);
+  template <bool OneUse = false> bool selectSETNE(SDValue N, SDValue &Val) {
+    return selectSETCC(N, ISD::SETNE, Val, OneUse);
   }
-  bool selectSETEQ(SDValue N, SDValue &Val) {
-    return selectSETCC(N, ISD::SETEQ, Val);
+  template <bool OneUse = false> bool selectSETEQ(SDValue N, SDValue &Val) {
+    return selectSETCC(N, ISD::SETEQ, Val, OneUse);
   }
 
   bool selectSExtBits(SDValue N, unsigned Bits, SDValue &Val);
@@ -239,7 +240,6 @@ private:
   bool doPeepholeSExtW(SDNode *Node);
   bool doPeepholeMaskedRVV(MachineSDNode *Node);
   bool doPeepholeNoRegPassThru();
-  bool performCombineVMergeAndVOps(SDNode *N);
   bool selectImm64IfCheaper(int64_t Imm, int64_t OrigImm, SDValue N,
                             SDValue &Val);
 };

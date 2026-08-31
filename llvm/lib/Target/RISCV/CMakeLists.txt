@@ -98,9 +98,7 @@ add_llvm_target(RISCVCodeGen
   Core
   GlobalISel
   IPO
-  IRPrinter
   MC
-  ObjCARC
   Passes
   RISCVDesc
   RISCVInfo

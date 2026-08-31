@@ -4399,7 +4399,7 @@ public:
     return T->getTypeClass() == DependentPointer;
   }
 
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(llvm::FoldingSetNodeID &ID, const ASTContext &Context) {
     Profile(ID, Context, getPointerType(), getPointerInterpretation());
   }
 

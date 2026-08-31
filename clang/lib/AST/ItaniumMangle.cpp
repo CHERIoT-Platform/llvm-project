@@ -543,6 +543,7 @@ private:
   void manglePrefix(QualType type);
   void mangleTemplatePrefix(GlobalDecl GD, bool NoFunction=false);
   void mangleTemplatePrefix(TemplateName Template);
+  void DiagnoseUnsupportedPackIndexTemplateName();
   const NamedDecl *getClosurePrefix(const Decl *ND);
   void mangleClosurePrefix(const NamedDecl *ND, bool NoFunction = false);
   bool mangleUnresolvedTypeOrSimpleId(QualType DestroyedType,
@@ -1294,6 +1295,12 @@ void CXXNameMangler::mangleFixedPointLiteral() {
   DiagnosticsEngine &Diags = Context.getDiags();
   Diags.Report(diag::err_unsupported_itanium_mangling)
       << UnsupportedItaniumManglingKind::FixedPointLiteral;
+}
+
+void CXXNameMangler::DiagnoseUnsupportedPackIndexTemplateName() {
+  DiagnosticsEngine &Diags = Context.getDiags();
+  Diags.Report(diag::err_unsupported_itanium_mangling)
+      << UnsupportedItaniumManglingKind::PackIndexTemplateName;
 }
 
 void CXXNameMangler::mangleNullPointer(QualType T) {
@@ -2127,6 +2134,10 @@ void CXXNameMangler::mangleTemplateParameterList(
 void CXXNameMangler::mangleTypeConstraint(
     TemplateName Concept, ArrayRef<TemplateArgument> Arguments) {
   const TemplateDecl *TD = Concept.getAsTemplateDecl();
+  if (!TD) {
+    DiagnoseUnsupportedPackIndexTemplateName();
+    return;
+  }
   const DeclContext *DC = Context.getEffectiveDeclContext(TD);
   if (!Arguments.empty())
     mangleTemplateName(TD, Arguments);
@@ -2304,6 +2315,11 @@ void CXXNameMangler::mangleTemplatePrefix(TemplateName Template) {
   if (TemplateDecl *TD = Template.getAsTemplateDecl())
     return mangleTemplatePrefix(TD);
 
+  if (Template.getAsPackIndexingTemplate()) {
+    DiagnoseUnsupportedPackIndexTemplateName();
+    return;
+  }
+
   DependentTemplateName *Dependent = Template.getAsDependentTemplateName();
   assert(Dependent && "unexpected template name kind");
 
@@ -2461,6 +2477,11 @@ void CXXNameMangler::mangleType(TemplateName TN) {
     Out << "_SUBSTPACK_";
     break;
   }
+
+  case TemplateName::PackIndexingTemplate:
+    DiagnoseUnsupportedPackIndexTemplateName();
+    return;
+
   case TemplateName::DeducedTemplate:
     llvm_unreachable("Unexpected DeducedTemplate");
   }
@@ -2628,6 +2649,11 @@ bool CXXNameMangler::mangleUnresolvedTypeOrSimpleId(QualType Ty,
       Out << "_SUBSTPACK_";
       break;
     }
+
+    case TemplateName::PackIndexingTemplate:
+      DiagnoseUnsupportedPackIndexTemplateName();
+      return false;
+
     case TemplateName::UsingTemplate: {
       TemplateDecl *TD = TN.getAsTemplateDecl();
       assert(TD && !isa<TemplateTemplateParmDecl>(TD));
@@ -5386,6 +5412,10 @@ recurse:
   case Expr::DependentTemplateIdExprClass: {
     NotPrimaryExpr();
     const auto *DTI = cast<DependentTemplateIdExpr>(E);
+    if (DTI->getTemplateName().getAsPackIndexingTemplate()) {
+      DiagnoseUnsupportedPackIndexTemplateName();
+      break;
+    }
     mangleUnresolvedName(NestedNameSpecifier(), DTI->getName(),
                          DTI->template_arguments().data(),
                          DTI->getNumTemplateArgs(), Arity);

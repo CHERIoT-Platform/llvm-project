@@ -7588,6 +7588,8 @@ OpenMPIRBuilder::getOpenMPDefaultSimdAlign(const Triple &TargetTriple,
     return 128;
   if (TargetTriple.isWasm())
     return 128;
+  if (TargetTriple.isSystemZ())
+    return 64;
   return 0;
 }
 

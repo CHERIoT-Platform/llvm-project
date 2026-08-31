@@ -2034,7 +2034,7 @@ TEST_F(ComputeKnownFPClassTest, PowiInfFirst) {
   expectKnownFPClass(~fcInf, std::nullopt, A4);
   expectKnownFPClass(fcAllFlags, std::nullopt, A5);
   expectKnownFPClass(fcAllFlags, std::nullopt, A6);
-  expectKnownFPClass(~fcInf, std::nullopt, A7);
+  expectKnownFPClass(~(fcInf | fcNegNormal | fcNegSubnormal), std::nullopt, A7);
 
   auto ExpectKnownNeverInf = [&](Instruction *I, bool Expected) {
     KnownFPClass Known = computeKnownFPClass(I, M->getDataLayout(), fcInf);
@@ -2070,11 +2070,13 @@ TEST_F(ComputeKnownFPClassTest, PowiInfSecond) {
       "}\n");
   expectKnownFPClass(fcPosNormal | fcNan, std::nullopt, A);
   expectKnownFPClass(fcPositive | fcNan, std::nullopt, A2);
-  expectKnownFPClass(fcAllFlags, std::nullopt, A3);
-  expectKnownFPClass(~fcInf, std::nullopt, A4);
-  expectKnownFPClass(~fcInf, std::nullopt, A5);
+  expectKnownFPClass(~(fcNegNormal | fcNegSubnormal | fcNegZero), std::nullopt,
+                     A3);
+  expectKnownFPClass(~(fcInf | fcNegNormal | fcNegSubnormal), std::nullopt, A4);
+  expectKnownFPClass(~(fcInf | fcNegNormal | fcNegSubnormal), std::nullopt, A5);
   expectKnownFPClass(fcAllFlags, std::nullopt, A6);
-  expectKnownFPClass(fcAllFlags, std::nullopt, A7);
+  expectKnownFPClass(~(fcNegNormal | fcNegSubnormal | fcNegZero), std::nullopt,
+                     A7);
 }
 
 TEST_F(ComputeKnownFPClassTest, Atan2DemandXSign) {

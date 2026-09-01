@@ -11805,8 +11805,11 @@ QualType ASTContext::mergeFunctionTypes(QualType lhs, QualType rhs,
 
   // Compatible functions must have compatible calling conventions
   if (lbaseInfo.getCC() != rbaseInfo.getCC()) {
-    // cheriot: Allow decay of CC_CHERI_LibCall to CC_C.
-    if (!(lbaseInfo.getCC() == CC_C && rbaseInfo.getCC() == CC_CHERILibCall))
+    // cheriot: Allow decay of CC_CHERI_LibCall and CC_CHERICCallback to CC_C.
+    bool LHSIsCCC = (lbaseInfo.getCC() == CC_C);
+    bool RHSCanDecayToCCC = (rbaseInfo.getCC() == CC_CHERILibCall ||
+                             rbaseInfo.getCC() == CC_CHERICCallback);
+    if (!(LHSIsCCC && RHSCanDecayToCCC))
       return {};
   }
 

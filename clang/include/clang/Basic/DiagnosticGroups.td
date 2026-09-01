@@ -199,6 +199,7 @@ def CHERIPrototypesStrict: DiagGroup<"cheri-prototypes-strict">;
 def CheriSubobjectBoundsSuspicous : DiagGroup<"cheri-subobject-bounds-suspicious">;
 def CheriSubobjectBoundsRemarks : DiagGroup<"cheri-subobject-bounds">;
 def CHERICompartmentReturnVoid : DiagGroup<"cheri-compartment-return-void">;
+def CHERIoTCompartmentFnPtrs : DiagGroup<"cheriot-compartment-fn-ptrs">;
 
 def CheriAll : DiagGroup<"cheri",
      [CHERICaps, CHERIBitwiseOps, CHERIMisaligned, CHERIImplicitConversion, CheriSubobjectBoundsSuspicous,

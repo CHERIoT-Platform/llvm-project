@@ -1572,6 +1572,15 @@ def warn_cheri_libcall_no_prototype
           "CHERI libcall should have a prototype in a header with a matching "
           "libcall annotation">,
       InGroup<CHERIPrototypes>;
+def warn_cheriot_error_prone_fn_ptr_arg
+    : Warning<"a function pointer without the cheriot_ccallback attribute as "
+              "a parameter to a compartment call is error-prone">,
+      InGroup<CHERIoTCompartmentFnPtrs>;
+def warn_cheriot_error_prone_fn_ptr_ret
+    : Warning<"a function pointer without the cheriot_ccallback attribute as "
+              "the return value from a compartment call is error-prone">,
+      InGroup<CHERIoTCompartmentFnPtrs>;
+
 def err_cheri_method_class_must_exist: Error<
   "attributes '%0' requires a valid declaration">;
 def err_cheri_method_class_must_have_correct_type: Error<

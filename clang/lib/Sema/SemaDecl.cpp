@@ -12853,6 +12853,33 @@ bool Sema::CheckFunctionDeclaration(Scope *S, FunctionDecl *NewFD,
   if (DeclIsDefn && Context.getTargetInfo().getTriple().isAArch64())
     ARM().CheckSMEFunctionDefAttributes(NewFD);
 
+  // On CHERIoT, function pointers passing between compartments need to be
+  // marked with the cheriot_ccallback attribute to be callable.
+  bool isCheriot = Context.getTargetInfo().getTargetOpts().ABI == "cheriot";
+  const FunctionType *FT = NewFD->getType()->castAs<FunctionType>();
+  if (isCheriot && NewFD->isFirstDecl() &&
+      (FT->getCallConv() == CC_CHERICCall ||
+       FT->getCallConv() == CC_CHERICCallback)) {
+    QualType RetTy = NewFD->getReturnType().getDesugaredType(Context);
+    if (const auto *RetPT = dyn_cast<PointerType>(RetTy)) {
+      const FunctionType *RetFT = dyn_cast<FunctionType>(
+          RetPT->getPointeeType().getDesugaredType(Context));
+      if (RetFT && RetFT->getCallConv() != CC_CHERICCallback)
+        Diag(NewFD->getReturnTypeSourceRange().getBegin(),
+             diag::warn_cheriot_error_prone_fn_ptr_ret);
+    }
+
+    for (const ParmVarDecl *PV : NewFD->parameters()) {
+      QualType PVTy = PV->getType().getDesugaredType(Context);
+      if (const auto *PVPT = dyn_cast<PointerType>(PVTy)) {
+        const FunctionType *PvFnFT = dyn_cast<FunctionType>(
+            PVPT->getPointeeType().getDesugaredType(Context));
+        if (PvFnFT && PvFnFT->getCallConv() != CC_CHERICCallback)
+          Diag(PV->getLocation(), diag::warn_cheriot_error_prone_fn_ptr_arg);
+      }
+    }
+  }
+
   return Redeclaration;
 }
 

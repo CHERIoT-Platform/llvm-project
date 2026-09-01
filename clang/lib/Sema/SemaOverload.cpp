@@ -1996,8 +1996,10 @@ bool Sema::IsFunctionConversion(QualType FromType, QualType ToType) const {
 
   bool Changed = false;
 
-  // Drop CC_CHERILibCall CCif not present in target type.
-  if (FromEInfo.getCC() == CC_CHERILibCall && ToEInfo.getCC() == CC_C) {
+  // Drop CC_CHERILibCall or CC_CHERICCallback if not present in target type.
+  if ((FromEInfo.getCC() == CC_CHERILibCall ||
+       FromEInfo.getCC() == CC_CHERICCallback) &&
+      ToEInfo.getCC() == CC_C) {
     FromFn =
         Context.adjustFunctionType(FromFn, FromEInfo.withCallingConv(CC_C));
     Changed = true;

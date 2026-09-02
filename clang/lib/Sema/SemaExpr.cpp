@@ -10008,7 +10008,7 @@ AssignConvertType Sema::CheckAssignmentConstraints(QualType LHSType,
     return AssignConvertType::Compatible;
   }
 
-  // CHERI callbacks can decay to regular function pointers, but not vice-versa.
+  // CHERI callbacks may only be cast to other cheri callback types
   bool RHSIsCallback = false;
   bool LHSIsCallback = false;
   if (auto RHSPointer = RHSType->getAs<PointerType>())
@@ -10019,7 +10019,7 @@ AssignConvertType Sema::CheckAssignmentConstraints(QualType LHSType,
     if (auto LHSFnPTy = LHSPointer->getPointeeType()->getAs<FunctionType>())
       if (LHSFnPTy->getCallConv() == CC_CHERICCallback)
         LHSIsCallback = true;
-  if (LHSIsCallback && !RHSIsCallback)
+  if (RHSIsCallback != LHSIsCallback)
     return AssignConvertType::Incompatible;
 
   // Conversions to normal pointers.

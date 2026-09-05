@@ -199,9 +199,13 @@ _Bool is_aligned(TYPE ptr, unsigned align) {
 // CHECK-CAP_POINTER-NEXT:  entry:
 // CHECK-CAP_POINTER-NEXT:    [[ALIGNMENT:%.*]] = zext i32 [[ALIGN]] to i64
 // CHECK-CAP_POINTER-NEXT:    [[MASK:%.*]] = sub i64 [[ALIGNMENT]], 1
-// CHECK-CAP_POINTER-NEXT:    [[OVER_BOUNDARY:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[PTR]], i64 [[MASK]]
+// CHECK-CAP_POINTER-NEXT:    [[PTRADDR:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[PTR]])
+// CHECK-CAP_POINTER-NEXT:    [[OVER_BOUNDARY:%.*]] = add i64 [[PTRADDR]], [[MASK]]
 // CHECK-CAP_POINTER-NEXT:    [[INVERTED_MASK:%.*]] = xor i64 [[MASK]], -1
-// CHECK-CAP_POINTER-NEXT:    [[ALIGNED_RESULT:%.*]] = call ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[OVER_BOUNDARY]], i64 [[INVERTED_MASK]])
+// CHECK-CAP_POINTER-NEXT:    [[ALIGNED_INTPTR:%.*]] = and i64 [[OVER_BOUNDARY]], [[INVERTED_MASK]]
+// CHECK-CAP_POINTER-NEXT:    [[DIFF:%.*]] = sub i64 [[ALIGNED_INTPTR]], [[PTRADDR]]
+// CHECK-CAP_POINTER-NEXT:    [[ALIGNED_RESULT:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[PTR]], i64 [[DIFF]]
+// CHECK-CAP_POINTER-NEXT:    call void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) [[ALIGNED_RESULT]], i64 [[ALIGNMENT]]) ]
 // CHECK-CAP_POINTER-NEXT:    ret ptr addrspace(200) [[ALIGNED_RESULT]]
 //
 // CHECK-INTCAP-LABEL: define {{[^@]+}}@align_up
@@ -209,9 +213,13 @@ _Bool is_aligned(TYPE ptr, unsigned align) {
 // CHECK-INTCAP-NEXT:  entry:
 // CHECK-INTCAP-NEXT:    [[ALIGNMENT:%.*]] = zext i32 [[ALIGN]] to i64
 // CHECK-INTCAP-NEXT:    [[MASK:%.*]] = sub i64 [[ALIGNMENT]], 1
-// CHECK-INTCAP-NEXT:    [[OVER_BOUNDARY:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[PTR]], i64 [[MASK]]
+// CHECK-INTCAP-NEXT:    [[PTRADDR:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[PTR]])
+// CHECK-INTCAP-NEXT:    [[OVER_BOUNDARY:%.*]] = add i64 [[PTRADDR]], [[MASK]]
 // CHECK-INTCAP-NEXT:    [[INVERTED_MASK:%.*]] = xor i64 [[MASK]], -1
-// CHECK-INTCAP-NEXT:    [[ALIGNED_RESULT:%.*]] = call ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[OVER_BOUNDARY]], i64 [[INVERTED_MASK]])
+// CHECK-INTCAP-NEXT:    [[ALIGNED_INTPTR:%.*]] = and i64 [[OVER_BOUNDARY]], [[INVERTED_MASK]]
+// CHECK-INTCAP-NEXT:    [[DIFF:%.*]] = sub i64 [[ALIGNED_INTPTR]], [[PTRADDR]]
+// CHECK-INTCAP-NEXT:    [[ALIGNED_RESULT:%.*]] = getelementptr i8, ptr addrspace(200) [[PTR]], i64 [[DIFF]]
+// CHECK-INTCAP-NEXT:    call void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) [[ALIGNED_RESULT]], i64 [[ALIGNMENT]]) ]
 // CHECK-INTCAP-NEXT:    ret ptr addrspace(200) [[ALIGNED_RESULT]]
 //
 TYPE align_up(TYPE ptr, unsigned align) {
@@ -260,8 +268,12 @@ TYPE align_up(TYPE ptr, unsigned align) {
 // CHECK-CAP_POINTER-NEXT:  entry:
 // CHECK-CAP_POINTER-NEXT:    [[ALIGNMENT:%.*]] = zext i32 [[ALIGN]] to i64
 // CHECK-CAP_POINTER-NEXT:    [[MASK:%.*]] = sub i64 [[ALIGNMENT]], 1
+// CHECK-CAP_POINTER-NEXT:    [[PTRADDR:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[PTR]])
 // CHECK-CAP_POINTER-NEXT:    [[INVERTED_MASK:%.*]] = xor i64 [[MASK]], -1
-// CHECK-CAP_POINTER-NEXT:    [[ALIGNED_RESULT:%.*]] = call ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[PTR]], i64 [[INVERTED_MASK]])
+// CHECK-CAP_POINTER-NEXT:    [[ALIGNED_INTPTR:%.*]] = and i64 [[PTRADDR]], [[INVERTED_MASK]]
+// CHECK-CAP_POINTER-NEXT:    [[DIFF:%.*]] = sub i64 [[ALIGNED_INTPTR]], [[PTRADDR]]
+// CHECK-CAP_POINTER-NEXT:    [[ALIGNED_RESULT:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[PTR]], i64 [[DIFF]]
+// CHECK-CAP_POINTER-NEXT:    call void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) [[ALIGNED_RESULT]], i64 [[ALIGNMENT]]) ]
 // CHECK-CAP_POINTER-NEXT:    ret ptr addrspace(200) [[ALIGNED_RESULT]]
 //
 // CHECK-INTCAP-LABEL: define {{[^@]+}}@align_down
@@ -269,8 +281,12 @@ TYPE align_up(TYPE ptr, unsigned align) {
 // CHECK-INTCAP-NEXT:  entry:
 // CHECK-INTCAP-NEXT:    [[ALIGNMENT:%.*]] = zext i32 [[ALIGN]] to i64
 // CHECK-INTCAP-NEXT:    [[MASK:%.*]] = sub i64 [[ALIGNMENT]], 1
+// CHECK-INTCAP-NEXT:    [[PTRADDR:%.*]] = call i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[PTR]])
 // CHECK-INTCAP-NEXT:    [[INVERTED_MASK:%.*]] = xor i64 [[MASK]], -1
-// CHECK-INTCAP-NEXT:    [[ALIGNED_RESULT:%.*]] = call ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[PTR]], i64 [[INVERTED_MASK]])
+// CHECK-INTCAP-NEXT:    [[ALIGNED_INTPTR:%.*]] = and i64 [[PTRADDR]], [[INVERTED_MASK]]
+// CHECK-INTCAP-NEXT:    [[DIFF:%.*]] = sub i64 [[ALIGNED_INTPTR]], [[PTRADDR]]
+// CHECK-INTCAP-NEXT:    [[ALIGNED_RESULT:%.*]] = getelementptr i8, ptr addrspace(200) [[PTR]], i64 [[DIFF]]
+// CHECK-INTCAP-NEXT:    call void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) [[ALIGNED_RESULT]], i64 [[ALIGNMENT]]) ]
 // CHECK-INTCAP-NEXT:    ret ptr addrspace(200) [[ALIGNED_RESULT]]
 //
 TYPE align_down(TYPE ptr, unsigned align) {

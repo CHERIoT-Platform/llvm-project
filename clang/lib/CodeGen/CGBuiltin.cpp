@@ -7781,13 +7781,23 @@ RValue CodeGenFunction::EmitBuiltinIsAligned(const CallExpr *E) {
 /// TODO: actually use ptrmask once most optimization passes know about it.
 RValue CodeGenFunction::EmitBuiltinAlignTo(const CallExpr *E, bool AlignUp) {
   BuiltinAlignArgs Args(E, *this);
-  llvm::Value *SrcForMask = Args.Src;
+  llvm::Value *SrcAddr = Args.Src;
+
+  // If we are aligning a CHERI capability, then we perform the alignment on
+  // the integer address before computing the delta and adding it back to the
+  // base pointer. This prevents accidentally taking the capability outside of
+  // its representable bounds.
+  bool IsCheriCap = E->getType()->isCHERICapabilityType(CGM.getContext(), true);
+  if (IsCheriCap)
+    SrcAddr = getPtrAddr(Args, *this);
+
+  llvm::Value *SrcForMask = SrcAddr;
   if (AlignUp) {
     // When aligning up we have to first add the mask to ensure we go over the
     // next alignment value and then align down to the next valid multiple.
     // By adding the mask, we ensure that align_up on an already aligned
     // value will not change the value.
-    if (Args.Src->getType()->isPointerTy()) {
+    if (SrcAddr->getType()->isPointerTy()) {
       if (getLangOpts().PointerOverflowDefined)
         SrcForMask =
             Builder.CreateGEP(Int8Ty, SrcForMask, Args.Mask, "over_boundary");
@@ -7803,13 +7813,44 @@ RValue CodeGenFunction::EmitBuiltinAlignTo(const CallExpr *E, bool AlignUp) {
   // Invert the mask to only clear the lower bits.
   llvm::Value *InvertedMask = Builder.CreateNot(Args.Mask, "inverted_mask");
   llvm::Value *Result = nullptr;
-  if (Args.Src->getType()->isPointerTy()) {
+  if (SrcAddr->getType()->isPointerTy()) {
     Result = Builder.CreateIntrinsic(
-        Intrinsic::ptrmask, {Args.SrcType, Args.IntType},
+        Intrinsic::ptrmask, {SrcAddr->getType(), Args.IntType},
         {SrcForMask, InvertedMask}, nullptr, "aligned_result");
-    } else {
+  } else {
     Result = Builder.CreateAnd(SrcForMask, InvertedMask, "aligned_result");
   }
+
+  // If this was a CHERI capability, we now need to compute the difference
+  // and add it back to the base pointer.
+  if (IsCheriCap) {
+    llvm::Value *Difference = Builder.CreateSub(Result, SrcAddr, "diff");
+    if (E->getType()->isPointerType()) {
+      // The result must point to the same underlying allocation. This means we
+      // can use an inbounds GEP to enable better optimization.
+      if (getLangOpts().isSignedOverflowDefined())
+        Result =
+            Builder.CreateGEP(Int8Ty, Args.Src, Difference, "aligned_result");
+      else
+        Result = EmitCheckedInBoundsGEP(Int8Ty, Args.Src, Difference,
+                                        /*SignedIndices=*/true,
+                                        /*isSubtraction=*/!AlignUp,
+                                        E->getExprLoc(), "aligned_result");
+    } else {
+      // However, for when performing operations on __intcap_t (which is also
+      // a pointer type in LLVM IR), we cannot set the inbounds flag as the
+      // result could be either an arbitrary integer value or a valid pointer.
+      // Setting the inbounds flag for the arbitrary integer case is not safe.
+      assert(E->getType()->isIntCapType());
+      Result =
+          Builder.CreateGEP(Int8Ty, Args.Src, Difference, "aligned_result");
+    }
+
+    // Emit an alignment assumption to ensure that the new alignment is
+    // propagated to loads/stores, etc.
+    emitAlignmentAssumption(Result, E, E->getExprLoc(), Args.Alignment);
+  }
+
   assert(Result->getType() == Args.SrcType);
   return RValue::get(Result);
 }

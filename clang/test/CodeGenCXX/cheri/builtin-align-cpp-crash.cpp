@@ -2,12 +2,16 @@
 // RUN: %cheri_purecap_cc1 -o - -O2 -emit-llvm  %s | FileCheck %s
 // Found while trying to use the builtin in QtBase
 // CHECK-LABEL: define {{[^@]+}}@test1
-// CHECK-SAME: (ptr addrspace(200) nofree noundef readnone captures(ret: address, provenance) [[C:%.*]], i32 noundef signext [[B:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
+// CHECK-SAME: (ptr addrspace(200) noundef [[C:%.*]], i32 noundef signext [[B:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[ALIGNMENT:%.*]] = zext i32 [[B]] to i64
-// CHECK-NEXT:    [[INVERTED_MASK:%.*]] = sub nsw i64 0, [[ALIGNMENT]]
-// CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = tail call addrspace(200) ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) [[C]], i64 [[INVERTED_MASK]])
-// CHECK-NEXT:    ret ptr addrspace(200) [[ALIGNED_RESULT]]
+// CHECK-NEXT:    [[PTRADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[C]])
+// CHECK-NEXT:    [[TMP0:%.*]] = add nsw i64 [[ALIGNMENT]], -1
+// CHECK-NEXT:    [[TMP1:%.*]] = and i64 [[PTRADDR]], [[TMP0]]
+// CHECK-NEXT:    [[DIFF:%.*]] = sub i64 0, [[TMP1]]
+// CHECK-NEXT:    [[ALIGNED_RESULT1:%.*]] = getelementptr inbounds i8, ptr addrspace(200) [[C]], i64 [[DIFF]]
+// CHECK-NEXT:    call addrspace(200) void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) [[ALIGNED_RESULT1]], i64 [[ALIGNMENT]]) ]
+// CHECK-NEXT:    ret ptr addrspace(200) [[ALIGNED_RESULT1]]
 //
 extern "C" char* test1(char* c, int b) {
   return __builtin_align_down(c, b);
@@ -15,11 +19,15 @@ extern "C" char* test1(char* c, int b) {
 
 // Found while compiling libnv
 // CHECK-LABEL: define {{[^@]+}}@test2
-// CHECK-SAME: (ptr addrspace(200) nofree noundef readnone captures(ret: address, provenance) [[VALUE:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
+// CHECK-SAME: (ptr addrspace(200) noundef [[VALUE:%.*]]) local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[OVER_BOUNDARY:%.*]] = getelementptr inbounds nuw i8, ptr addrspace(200) [[VALUE]], i64 3
-// CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = tail call align 4 addrspace(200) ptr addrspace(200) @llvm.ptrmask.p200.i64(ptr addrspace(200) nonnull [[OVER_BOUNDARY]], i64 -4)
-// CHECK-NEXT:    ret ptr addrspace(200) [[ALIGNED_RESULT]]
+// CHECK-NEXT:    [[PTRADDR:%.*]] = tail call addrspace(200) i64 @llvm.cheri.cap.address.get.i64(ptr addrspace(200) [[VALUE]])
+// CHECK-NEXT:    [[OVER_BOUNDARY:%.*]] = add i64 [[PTRADDR]], 3
+// CHECK-NEXT:    [[ALIGNED_RESULT:%.*]] = and i64 [[OVER_BOUNDARY]], -4
+// CHECK-NEXT:    [[DIFF:%.*]] = sub i64 [[ALIGNED_RESULT]], [[PTRADDR]]
+// CHECK-NEXT:    [[ALIGNED_RESULT1:%.*]] = getelementptr i8, ptr addrspace(200) [[VALUE]], i64 [[DIFF]]
+// CHECK-NEXT:    call addrspace(200) void @llvm.assume(i1 true) [ "align"(ptr addrspace(200) [[ALIGNED_RESULT1]], i64 4) ]
+// CHECK-NEXT:    ret ptr addrspace(200) [[ALIGNED_RESULT1]]
 //
 extern "C" __uintcap_t test2(__uintcap_t value) {
   // There should be two casts from capability to address (one for size, one for

@@ -419,7 +419,6 @@ QualTypeMapper::convertCXXRecordType(const CXXRecordDecl *RD) {
     uint64_t BaseOffset =
         Layout.getBaseClassOffset(BaseRT->getAsCXXRecordDecl()).getQuantity() *
         8;
-
     BaseClasses.emplace_back(BaseType, BaseOffset);
   }
 
@@ -430,7 +429,6 @@ QualTypeMapper::convertCXXRecordType(const CXXRecordDecl *RD) {
         Layout.getVBaseClassOffset(VBaseRT->getAsCXXRecordDecl())
             .getQuantity() *
         8;
-
     VirtualBaseClasses.emplace_back(VBaseType, VBaseOffset);
   }
 
@@ -582,8 +580,9 @@ void QualTypeMapper::computeFieldInfo(
       IsUnnamedBitField = FD->isUnnamedBitField();
     }
 
+    bool HasNoUniqueAddress = FD->hasAttr<NoUniqueAddressAttr>();
     Fields.emplace_back(FieldType, OffsetInBits, IsBitField, BitFieldWidth,
-                        IsUnnamedBitField);
+                        IsUnnamedBitField, HasNoUniqueAddress);
     ++FieldIndex;
   }
 }

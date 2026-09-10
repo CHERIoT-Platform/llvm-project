@@ -32,6 +32,7 @@ namespace {
 struct Context {
   const Triple TT{"loongarch64-unknown-linux-gnu"};
   std::unique_ptr<MCRegisterInfo> MRI;
+  MCTargetOptions MCOptions;
   std::unique_ptr<MCAsmInfo> MAI;
   std::unique_ptr<MCContext> Ctx;
   std::unique_ptr<MCSubtargetInfo> STI;
@@ -48,8 +49,8 @@ struct Context {
     if (!TheTarget)
       return;
 
-    MRI.reset(TheTarget->createMCRegInfo(TT, MCTargetOptions()));
-    MAI.reset(TheTarget->createMCAsmInfo(*MRI, TT, MCTargetOptions()));
+    MRI.reset(TheTarget->createMCRegInfo(TT, MCOptions));
+    MAI.reset(TheTarget->createMCAsmInfo(*MRI, TT, MCOptions));
     STI.reset(TheTarget->createMCSubtargetInfo(TT, "", ""));
     Ctx = std::make_unique<MCContext>(TT, *MAI, *MRI, *STI);
     DisAsm.reset(TheTarget->createMCDisassembler(*STI, *Ctx));

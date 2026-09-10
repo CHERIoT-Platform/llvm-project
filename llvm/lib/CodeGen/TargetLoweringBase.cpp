@@ -2608,7 +2608,7 @@ bool TargetLoweringBase::supportsAtomicOperation(const DataLayout &DL,
     return supportsAtomicCapabilityOperations();
   }
   return Size <= getMaxAtomicSizeInBitsSupported() / 8 &&
-         (supportsUnalignedAtomics() || Alignment >= Size);
+         (isAtomicAlignmentSupported(Alignment, Size) || Alignment >= Size);
 }
 
 Instruction *TargetLoweringBase::emitLeadingFence(IRBuilderBase &Builder,

@@ -126,7 +126,9 @@ createDirectXMCSubtargetInfo(const Triple &TT, StringRef CPU, StringRef FS) {
   return createDirectXMCSubtargetInfoImpl(TT, CPU, /*TuneCPU*/ CPU, FS);
 }
 
-static MCRegisterInfo *createDirectXMCRegisterInfo(const Triple &Triple) {
+static MCRegisterInfo *
+createDirectXMCRegisterInfo(const Triple &Triple,
+                            const MCTargetOptions &Options) {
   return new MCRegisterInfo();
 }
 

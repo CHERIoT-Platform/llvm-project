@@ -1174,11 +1174,12 @@ SDValue VETargetLowering::lowerATOMIC_SWAP(SDValue Op,
     SDValue Aligned =
         DAG.getNode(ISD::AND, DL, Ptr.getValueType(),
                     {Ptr, DAG.getSignedConstant(-4, DL, MVT::i64)});
-    SDValue TS1AM = DAG.getAtomic(VEISD::TS1AM, DL, N->getMemoryVT(),
-                                  DAG.getVTList(Op.getNode()->getValueType(0),
-                                                Op.getNode()->getValueType(1)),
-                                  {N->getChain(), Aligned, Flag, NewVal},
-                                  N->getMemOperand());
+    SDValue TS1AM =
+        DAG.getMemIntrinsicNode(VEISD::TS1AM, DL,
+                                DAG.getVTList(Op.getNode()->getValueType(0),
+                                              Op.getNode()->getValueType(1)),
+                                {N->getChain(), Aligned, Flag, NewVal},
+                                N->getMemoryVT(), N->getMemOperand());
 
     SDValue Result = finalizeTS1AM(Op, DAG, TS1AM, Bits);
     SDValue Chain = TS1AM.getValue(1);
@@ -1194,11 +1195,12 @@ SDValue VETargetLowering::lowerATOMIC_SWAP(SDValue Op,
     SDValue Aligned =
         DAG.getNode(ISD::AND, DL, Ptr.getValueType(),
                     {Ptr, DAG.getSignedConstant(-4, DL, MVT::i64)});
-    SDValue TS1AM = DAG.getAtomic(VEISD::TS1AM, DL, N->getMemoryVT(),
-                                  DAG.getVTList(Op.getNode()->getValueType(0),
-                                                Op.getNode()->getValueType(1)),
-                                  {N->getChain(), Aligned, Flag, NewVal},
-                                  N->getMemOperand());
+    SDValue TS1AM =
+        DAG.getMemIntrinsicNode(VEISD::TS1AM, DL,
+                                DAG.getVTList(Op.getNode()->getValueType(0),
+                                              Op.getNode()->getValueType(1)),
+                                {N->getChain(), Aligned, Flag, NewVal},
+                                N->getMemoryVT(), N->getMemOperand());
 
     SDValue Result = finalizeTS1AM(Op, DAG, TS1AM, Bits);
     SDValue Chain = TS1AM.getValue(1);

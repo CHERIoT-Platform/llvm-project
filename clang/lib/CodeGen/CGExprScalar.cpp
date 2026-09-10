@@ -5555,8 +5555,17 @@ Value *ScalarExprEmitter::EmitSub(const BinOpInfo &op) {
     RHS = Builder.CreateBitCast(op.RHS, CapTy);
     diffInChars = Builder.CreateCall(CapPtrDiff, { LHS, RHS});
   } else {
-    LHS = Builder.CreatePtrToInt(op.LHS, CGF.PtrDiffTy, "sub.ptr.lhs.cast");
-    RHS = Builder.CreatePtrToInt(op.RHS, CGF.PtrDiffTy, "sub.ptr.rhs.cast");
+    if (CGF.getLangOpts().PointerOverflowDefined) {
+      LHS = Builder.CreatePtrToInt(op.LHS, CGF.PtrDiffTy, "sub.ptr.lhs.cast");
+      RHS = Builder.CreatePtrToInt(op.RHS, CGF.PtrDiffTy, "sub.ptr.rhs.cast");
+    } else {
+      LHS = Builder.CreatePtrToAddr(op.LHS, "sub.ptr.lhs.cast");
+      RHS = Builder.CreatePtrToAddr(op.RHS, "sub.ptr.rhs.cast");
+      if (LHS->getType() != CGF.PtrDiffTy)
+        LHS = Builder.CreateZExtOrTrunc(LHS, CGF.PtrDiffTy, "sub.ptr.lhs.ext");
+      if (RHS->getType() != CGF.PtrDiffTy)
+        RHS = Builder.CreateZExtOrTrunc(RHS, CGF.PtrDiffTy, "sub.ptr.lhs.ext");
+    }
     diffInChars = Builder.CreateSub(LHS, RHS, "sub.ptr.sub");
   }
 

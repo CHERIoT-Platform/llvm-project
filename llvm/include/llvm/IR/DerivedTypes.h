@@ -625,9 +625,9 @@ public:
     if (!SizeTy->getPrimitiveSizeInBits().isKnownMultipleOf(EltSize))
       return nullptr;
 
-    ElementCount EC = SizeTy->getElementCount()
-                          .multiplyCoefficientBy(SizeTy->getScalarSizeInBits())
-                          .divideCoefficientBy(EltSize);
+    ElementCount EC =
+        (SizeTy->getElementCount() * SizeTy->getScalarSizeInBits())
+            .divideCoefficientBy(EltSize);
     return VectorType::get(EltTy->getScalarType(), EC);
   }
 

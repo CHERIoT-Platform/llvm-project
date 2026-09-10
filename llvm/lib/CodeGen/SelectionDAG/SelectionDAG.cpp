@@ -1615,36 +1615,6 @@ SDValue SelectionDAG::getBitcastedAnyExtOrTrunc(SDValue Op, const SDLoc &DL,
   return getAnyExtOrTrunc(DestOp, DL, VT);
 }
 
-SDValue SelectionDAG::getBitcastedSExtOrTrunc(SDValue Op, const SDLoc &DL,
-                                               EVT VT) {
-  assert(!VT.isVector());
-  auto Type = Op.getValueType();
-  SDValue DestOp;
-  if (Type == VT)
-    return Op;
-  auto Size = Op.getValueSizeInBits();
-  DestOp = getBitcast(MVT::getIntegerVT(Size), Op);
-  if (DestOp.getValueType() == VT)
-    return DestOp;
-
-  return getSExtOrTrunc(DestOp, DL, VT);
-}
-
-SDValue SelectionDAG::getBitcastedZExtOrTrunc(SDValue Op, const SDLoc &DL,
-                                               EVT VT) {
-  assert(!VT.isVector());
-  auto Type = Op.getValueType();
-  SDValue DestOp;
-  if (Type == VT)
-    return Op;
-  auto Size = Op.getValueSizeInBits();
-  DestOp = getBitcast(MVT::getIntegerVT(Size), Op);
-  if (DestOp.getValueType() == VT)
-    return DestOp;
-
-  return getZExtOrTrunc(DestOp, DL, VT);
-}
-
 SDValue SelectionDAG::getBoolExtOrTrunc(SDValue Op, const SDLoc &SL, EVT VT,
                                         EVT OpVT) {
   if (VT.bitsLE(Op.getValueType()))
@@ -2570,7 +2540,8 @@ SDValue SelectionDAG::getBitcast(EVT VT, SDValue V) {
 }
 
 SDValue SelectionDAG::getAddrSpaceCast(const SDLoc &dl, EVT VT, SDValue Ptr,
-                                       unsigned SrcAS, unsigned DestAS) {
+                                       unsigned SrcAS, unsigned DestAS,
+                                       const SDNodeFlags Flags) {
   SDVTList VTs = getVTList(VT);
   SDValue Ops[] = {Ptr};
   SDNodeKey ID(ISD::ADDRSPACECAST, VTs, Ops);
@@ -2578,11 +2549,14 @@ SDValue SelectionDAG::getAddrSpaceCast(const SDLoc &dl, EVT VT, SDValue Ptr,
   ID.AddInteger(DestAS);
 
   FoldingSetInsertToken InsertToken;
-  if (SDNode *E = lookupNode(ID, dl, InsertToken))
+  if (SDNode *E = lookupNode(ID, dl, InsertToken)) {
+    E->intersectFlagsWith(Flags);
     return SDValue(E, 0);
+  }
 
   auto *N = newSDNode<AddrSpaceCastSDNode>(dl.getIROrder(), dl.getDebugLoc(),
                                            VTs, SrcAS, DestAS);
+  N->setFlags(Flags);
   createOperands(N, Ops);
 
   CSEMap.insert(N, InsertToken);
@@ -14592,9 +14566,9 @@ SDValue SelectionDAG::UnrollVectorOp(SDNode *N, unsigned ResNE) {
     }
     case ISD::ADDRSPACECAST: {
       const auto *ASC = cast<AddrSpaceCastSDNode>(N);
-      Scalars.push_back(getAddrSpaceCast(dl, EltVT, Operands[0],
-                                         ASC->getSrcAddressSpace(),
-                                         ASC->getDestAddressSpace()));
+      Scalars.push_back(
+          getAddrSpaceCast(dl, EltVT, Operands[0], ASC->getSrcAddressSpace(),
+                           ASC->getDestAddressSpace(), ASC->getFlags()));
       break;
     }
     }

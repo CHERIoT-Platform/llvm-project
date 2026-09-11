@@ -91,7 +91,6 @@ public:
   enum RISCVProcFamilyEnum : uint8_t {
     Others,
     SiFive7,
-    VentanaVeyron,
     MIPSP8700,
     Andes45,
   };

@@ -4286,9 +4286,9 @@ static Value *simplifyFCmpInst(CmpPredicate Pred, Value *LHS, Value *RHS,
     auto [ClassVal, ClassTest] = fcmpToClassTest(Pred, *ParentF, LHS, C);
     if (ClassVal) {
       FullKnownClassLHS = computeLHSClass();
-      if ((FullKnownClassLHS->KnownFPClasses & ClassTest) == fcNone)
+      if ((FullKnownClassLHS->getKnownFPClasses() & ClassTest) == fcNone)
         return getFalse(RetTy);
-      if ((FullKnownClassLHS->KnownFPClasses & ~ClassTest) == fcNone)
+      if ((FullKnownClassLHS->getKnownFPClasses() & ~ClassTest) == fcNone)
         return getTrue(RetTy);
     }
   }

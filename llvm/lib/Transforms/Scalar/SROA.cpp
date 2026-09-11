@@ -126,7 +126,6 @@ static cl::opt<bool> PrintStrictAlignSlices("sroa-print-strict-align-slices",
 /// Disable running mem2reg during SROA in order to test or debug SROA.
 static cl::opt<bool> SROASkipMem2Reg("sroa-skip-mem2reg", cl::init(false),
                                      cl::Hidden);
-extern cl::opt<bool> ProfcheckDisableMetadataFixes;
 } // namespace llvm
 
 namespace {
@@ -2274,8 +2273,7 @@ static void speculateSelectInstLoads(SelectInst &SI, LoadInst &LI,
   }
 
   Value *V = IRB.CreateSelect(SI.getCondition(), TL, FL,
-                              LI.getName() + ".sroa.speculated",
-                              ProfcheckDisableMetadataFixes ? nullptr : &SI);
+                              LI.getName() + ".sroa.speculated", &SI);
 
   LLVM_DEBUG(dbgs() << "          speculated to: " << *V << "\n");
   LI.replaceAllUsesWith(V);
@@ -5014,8 +5012,7 @@ private:
       Cond = SI->getCondition();
       True = SI->getTrueValue();
       False = SI->getFalseValue();
-      if (!ProfcheckDisableMetadataFixes)
-        MDFrom = SI;
+      MDFrom = SI;
     } else {
       Cond = Sel->getOperand(0);
       True = ConstantInt::get(Sel->getType(), 1);

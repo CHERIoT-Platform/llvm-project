@@ -1,0 +1,22 @@
+# RUN: llc --mcpu=cheriot --mtriple=riscv32-unknown-unknown -target-abi cheriot -mattr=+xcheri,+xcheripurecap \
+# RUN:   -run-pass=prolog-epilog -o - %s \
+# RUN:   | FileCheck %s
+
+---
+name: test
+stack:
+  - { id: 2, name: '', type: default, offset: 0, size: 2000, alignment: 4,
+      stack-id: default, callee-saved-register: '', callee-saved-restored: true,
+      local-offset: -2016, debug-info-variable: '', debug-info-expression: '',
+      debug-info-location: '' }
+  - { id: 3, name: '', type: spill-slot, offset: 0, size: 40, alignment: 8,
+      stack-id: default, callee-saved-register: '', callee-saved-restored: true,
+      debug-info-variable: '', debug-info-expression: '', debug-info-location: '' }
+body:             |
+  ; CHECK-LABEL: name: test
+  ; CHECK:      $x8_y = CIncOffsetImm $x2_y, 2047
+  ; CHECK-NEXT: $x8_y = CIncOffsetImm killed $x8_y, 5
+  ; CHECK-NOT:  CIncOffsetImm killed $x8_y, 1996
+  bb.0:
+    renamable $x8_y = CIncOffsetImm %stack.2, 1996
+...

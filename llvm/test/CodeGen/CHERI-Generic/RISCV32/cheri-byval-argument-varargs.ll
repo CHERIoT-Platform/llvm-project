@@ -25,8 +25,8 @@ define i32 @fn1() local_unnamed_addr #0 {
 ; PURECAP-NEXT:    csetaddr sp, sp, a0
 ; PURECAP-NEXT:    lui a0, 1
 ; PURECAP-NEXT:    lui a1, 1
+; PURECAP-NEXT:    addi a1, a1, 128
 ; PURECAP-NEXT:    cincoffset a1, sp, a1
-; PURECAP-NEXT:    cincoffset a1, a1, 128
 ; PURECAP-NEXT:    csetbounds s1, a1, a0
 ; PURECAP-NEXT:  .LBB0_1: # %entry
 ; PURECAP-NEXT:    # Label of block must be emitted

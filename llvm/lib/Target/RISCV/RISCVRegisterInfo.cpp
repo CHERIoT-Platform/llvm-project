@@ -679,7 +679,8 @@ bool RISCVRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     unsigned Opc = MI.getOpcode();
     bool Lo12HasSameSign = (Val < 0) == (Lo12 < 0);
 
-    if (Opc == RISCV::ADDI && !isInt<12>(Val)) {
+    if ((Opc == RISCV::ADDI || Opc == RISCV::CIncOffsetImm) &&
+        !isInt<12>(Val)) {
       // We chose to emit the canonical immediate sequence rather than folding
       // the offset into the using add under the theory that doing so doesn't
       // save dynamic instruction count and some target may fuse the canonical

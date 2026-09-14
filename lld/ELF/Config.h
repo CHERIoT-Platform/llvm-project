@@ -219,6 +219,7 @@ public:
   LinkerDriver(LinkerDriver &) = delete;
   void linkerMain(ArrayRef<const char *> args);
   void addFile(StringRef path, bool withLOption);
+  void addFile(std::unique_ptr<ELFFileBase> ef);
   void addLibrary(StringRef name);
 
 private:
@@ -696,6 +697,8 @@ struct InStruct {
   std::unique_ptr<SymtabShndxSection> symTabShndx;
   std::unique_ptr<SyntheticSection> hexagonAttributes;
   std::unique_ptr<SyntheticSection> riscvAttributes;
+  std::unique_ptr<SyntheticSection> dynDbg;
+  std::unique_ptr<SyntheticSection> dynDbgNote;
 
   PhdrEntry *cheriBounds = nullptr;
 };
@@ -842,6 +845,18 @@ struct Ctx : CommonLinkerContext {
   llvm::raw_fd_ostream openAuxiliaryFile(llvm::StringRef, std::error_code &);
 
   std::optional<AArch64PauthAbiCoreInfo> aarch64PauthAbiCoreInfo;
+
+  // True if performing the embedded unoptimized dynamic debugging relocatable
+  // link.
+  bool inDynDbgLink = false;
+  // True if performing dynamic debugging style relocatable link rather than a
+  // regular relocatable link.
+  bool dynDbgRelocatable = false;
+  // True if the link contains dynamic debugging.
+  bool hasDynDbg = false;
+  // Pointer to the output of the embedded unoptimized dynamic debugging
+  // relocatable link.
+  std::unique_ptr<llvm::FileOutputBuffer> dynDbgOutput;
 };
 
 // The first two elements of versionDefinitions represent VER_NDX_LOCAL and

@@ -969,6 +969,8 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
       setOperationAction(ISD::PTRTOINT, XLenVT, Custom);
       setOperationAction(ISD::INTTOPTR, CLenVT, Custom);
     }
+    if (RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()))
+      setTargetDAGCombine(ISD::INTTOPTR);
 
     setLibcallImpl(RTLIB::MEMSET, RTLIB::impl_memset);
   }
@@ -24340,6 +24342,40 @@ SDValue RISCVTargetLowering::PerformDAGCombine(SDNode *N,
     return DAG.getNode(
         ISD::ZERO_EXTEND, DL, MVT::i64,
         DAG.getNode(ISD::PTRTOINT, DL, MVT::i32, N->getOperand(0)));
+  }
+  case ISD::INTTOPTR: {
+    if (!RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()))
+      break;
+    SDValue Op0 = N->getOperand(0);
+    if (Op0.getValueType() != MVT::i64)
+      break;
+    const auto *C = dyn_cast<ConstantSDNode>(Op0);
+    if (!C)
+      break;
+    MVT VT = N->getSimpleValueType(0);
+    if (VT != MVT::c64)
+      break;
+
+    SDLoc DL(N);
+    uint64_t Val = C->getZExtValue();
+
+    if (Val == 0)
+      return DAG.getCopyFromReg(DAG.getEntryNode(), DL,
+                                getNullCapabilityRegister(), VT);
+
+    if ((Val & 0xFFFFFFFF) == Val)
+      return DAG.getNode(ISD::INTTOPTR, DL, VT,
+                         DAG.getConstant(Val & 0xFFFFFFFF, DL, MVT::i32));
+
+    auto Lo = DAG.getConstant(Val & 0xFFFFFFFF, DL, MVT::i32);
+    auto LoAsCap = DAG.getTargetInsertSubreg(RISCV::sub_cap_addr, DL, MVT::c64,
+                                             DAG.getUNDEF(MVT::f64), Lo);
+    auto Hi = DAG.getConstant(Val >> 32, DL, MVT::i32);
+    auto Cap = DAG.getNode(
+        ISD::INTRINSIC_WO_CHAIN, DL, MVT::c64,
+        DAG.getTargetConstant(Intrinsic::cheri_cap_high_set, DL, MVT::i32),
+        LoAsCap, Hi);
+    return Cap;
   }
   }
 

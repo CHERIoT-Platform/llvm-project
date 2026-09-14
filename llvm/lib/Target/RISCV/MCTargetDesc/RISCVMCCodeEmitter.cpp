@@ -188,6 +188,10 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
     Func = MI.getOperand(0);
     Ra = RISCVII::getTailExpandUseRegNo(STI.getFeatureBits());
     IsCap = false;
+  } else if (MI.getOpcode() == RISCV::PseudoTAILReg) {
+    Func = MI.getOperand(0);
+    Ra = MI.getOperand(1).getReg();
+    IsCap = false;
   } else if (MI.getOpcode() == RISCV::PseudoCALLReg) {
     Func = MI.getOperand(1);
     Ra = MI.getOperand(0).getReg();
@@ -226,6 +230,7 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
   if (STI.getTargetTriple().isOSBinFormatMachO()) {
     MCOperand FuncOp = MCOperand::createExpr(CallExpr);
     if (MI.getOpcode() == RISCV::PseudoTAIL ||
+        MI.getOpcode() == RISCV::PseudoTAILReg ||
         MI.getOpcode() == RISCV::PseudoJump)
       // Emit JAL X0, Func
       TmpInst = MCInstBuilder(RISCV::JAL).addReg(RISCV::X0).addOperand(FuncOp);
@@ -244,6 +249,7 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
   support::endian::write(CB, Binary, llvm::endianness::little);
 
   if (MI.getOpcode() == RISCV::PseudoTAIL ||
+      MI.getOpcode() == RISCV::PseudoTAILReg ||
       MI.getOpcode() == RISCV::PseudoJump ||
       MI.getOpcode() == RISCV::PseudoCTAIL ||
       MI.getOpcode() == RISCV::PseudoCJump)
@@ -670,6 +676,7 @@ void RISCVMCCodeEmitter::encodeInstruction(const MCInst &MI,
   case RISCV::PseudoCALLReg:
   case RISCV::PseudoCALL:
   case RISCV::PseudoTAIL:
+  case RISCV::PseudoTAILReg:
   case RISCV::PseudoJump:
   case RISCV::PseudoCCALLReg:
   case RISCV::PseudoCCALL:

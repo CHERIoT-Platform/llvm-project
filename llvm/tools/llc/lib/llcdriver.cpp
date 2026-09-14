@@ -829,9 +829,11 @@ static int compileModule(char **argv, SmallVectorImpl<PassPlugin> &PluginList,
       if (PrintMIR2Vec) {
         PM.add(createMIR2VecPrinterLegacyPass(errs()));
       }
+
       if (cheri::ShouldCollectCSetBoundsStats) {
         PM.add(createLogCheriSetBoundsPass());
       }
+
       PM.add(createFreeMachineFunctionPass());
     } else {
       if (Target->addPassesToEmitFile(PM, *OS, DwoOut ? &DwoOut->os() : nullptr,

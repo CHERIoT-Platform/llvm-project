@@ -581,7 +581,7 @@ void RISCVInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   }
 
   if (RISCV::GPRPairRegClass.contains(DstReg, SrcReg)) {
-    if (STI.isRV32()) {
+    if (!STI.is64Bit()) {
       if (STI.hasStdExtZdinx()) {
         // On RV32_Zdinx, FMV.D will move a pair of registers to another pair of
         // registers, in one instruction.
@@ -3912,8 +3912,15 @@ static bool cannotInsertTailCall(const MachineBasicBlock &MBB) {
   // that can be used for expanding PseudoTAIL instruction,
   // then we cannot insert tail call.
   const TargetSubtargetInfo &STI = MBB.getParent()->getSubtarget();
+  const RISCVMachineFunctionInfo *RVFI =
+      MBB.getParent()->getInfo<RISCVMachineFunctionInfo>();
+  // When cf-protection-branch is active, the outliner will emit PseudoTAILX7
+  // which always uses X7. Otherwise, PseudoTAIL is emitted and the register
+  // is determined by Zicfilp at encode time.
   MCRegister TailExpandUseRegNo =
-      RISCVII::getTailExpandUseRegNo(STI.getFeatureBits());
+      RVFI->hasCFProtectionBranch()
+          ? RISCV::X7
+          : RISCVII::getTailExpandUseRegNo(STI.getFeatureBits());
   for (const MachineInstr &MI : MBB) {
     if (isMIReadsReg(MI, STI.getRegisterInfo(), TailExpandUseRegNo))
       return true;
@@ -3955,8 +3962,12 @@ bool RISCVInstrInfo::analyzeCandidate(outliner::Candidate &C) const {
   // If the expansion register for tail calls is live across the candidate
   // outlined call site, we cannot outline that candidate as the expansion
   // would clobber the register.
+  const RISCVMachineFunctionInfo *RVFI =
+      C.getMF()->getInfo<RISCVMachineFunctionInfo>();
   MCRegister TailExpandUseReg =
-      RISCVII::getTailExpandUseRegNo(STI.getFeatureBits());
+      RVFI->hasCFProtectionBranch()
+          ? RISCV::X7
+          : RISCVII::getTailExpandUseRegNo(STI.getFeatureBits());
   if (C.back().isReturn() &&
       !C.isAvailableAcrossAndOutOfSeq(TailExpandUseReg, RegInfo)) {
     LLVM_DEBUG(dbgs() << "MBB:\n" << *C.getMBB());
@@ -4146,9 +4157,13 @@ MachineBasicBlock::iterator RISCVInstrInfo::insertOutlinedCall(
       MF.getSubtarget<RISCVSubtarget>().getTargetABI());
 
   if (C.CallConstructionID == MachineOutlinerTailCall) {
+    const RISCVMachineFunctionInfo *RVFI =
+        MF.getInfo<RISCVMachineFunctionInfo>();
+    unsigned TailOpc =
+        RVFI->hasCFProtectionBranch() ? RISCV::PseudoTAILX7 : RISCV::PseudoTAIL;
     It = MBB.insert(
         It, BuildMI(MF, DebugLoc(),
-                    get(IsPurecap ? RISCV::PseudoCTAIL : RISCV::PseudoTAIL))
+                    get(IsPurecap ? RISCV::PseudoCTAIL : TailOpc))
                 .addGlobalAddress(M.getNamedValue(MF.getName()),
                                   /*Offset=*/0, RISCVII::MO_CALL));
     return It;

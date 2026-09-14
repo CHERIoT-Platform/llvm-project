@@ -722,16 +722,17 @@ Constant *FoldReinterpretLoadFromConst(Constant *C, Type *LoadTy,
       // If we are loading a pointer type where not all bits can be set by an
       // inttoptr instruction (e.g. CHERI capabilities or other fat pointers),
       // we should not attempt to create bitcast here.
-      if (LoadTy->isPtrOrPtrVectorTy() &&
-          DL.getTypeSizeInBits(LoadTy->getScalarType()) !=
-              DL.getPointerAddrSizeInBits(LoadTy->getScalarType()))
-        return nullptr;
-      Res = FoldBitCast(Res, CastTy, DL);
+      bool IntToPtrChangesWidth =
+          LoadTy->isPtrOrPtrVectorTy() &&
+          (DL.getTypeSizeInBits(LoadTy->getScalarType()) !=
+           DL.getPointerAddrSizeInBits(LoadTy->getScalarType()));
+      if (!IntToPtrChangesWidth)
+        Res = FoldBitCast(Res, CastTy, DL);
       if (LoadTy->isPtrOrPtrVectorTy()) {
         // For vector of pointer, we needed to first convert to a vector of integer, then do vector inttoptr
         if (Res->isNullValue() && !LoadTy->isX86_AMXTy())
           return Constant::getNullValue(LoadTy);
-        if (DL.isNonIntegralPointerType(LoadTy->getScalarType()))
+        if (DL.hasUnstableRepresentation(LoadTy->getScalarType()))
           // Be careful not to replace a load of an addrspace value with an inttoptr here
           return nullptr;
         Res = ConstantExpr::getIntToPtr(Res, LoadTy);

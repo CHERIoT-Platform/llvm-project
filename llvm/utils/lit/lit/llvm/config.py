@@ -544,8 +544,8 @@ class LLVMConfig:
         cheri128_args = [triple_opt + '=mips64-unknown-freebsd', '-mcpu=cheri128', '-mattr=+cheri128'] + extra_args
         riscv32_cheri_args = [triple_opt + '=riscv32-unknown-freebsd', '-mattr=+xcheri'] + extra_args
         riscv64_cheri_args = [triple_opt + '=riscv64-unknown-freebsd', '-mattr=+xcheri'] + extra_args
-        riscv32_cheri_purecap_args = ['-target-abi', 'il32pc64d', '-mattr=+xcheripurecap'] + riscv32_cheri_args
-        riscv64_cheri_purecap_args = ['-target-abi', 'l64pc128d', '-mattr=+xcheripurecap'] + riscv64_cheri_args
+        riscv32_cheri_purecap_args = ['-target-abi', 'il32pc64d', '-mattr=+xcheripurecap,+d'] + riscv32_cheri_args
+        riscv64_cheri_purecap_args = ['-target-abi', 'l64pc128d', '-mattr=+xcheripurecap,+d'] + riscv64_cheri_args
 
         default_args = cheri128_args
         tool_patterns = [

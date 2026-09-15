@@ -1466,7 +1466,7 @@ public:
   /// Parse the subarchitecture encoded in the first (architecture) field of the
   /// triple (e.g. "amdgpu9.00" -> AMDGPUSubArch900). Returns NoSubArch if the
   /// string does not encode a recognized subarchitecture.
-  LLVM_ABI static SubArchType parseSubArch(StringRef Str, ArchType Arch);
+  LLVM_ABI static SubArchType parseSubArch(StringRef Str);
 
   /// @}
 

@@ -743,8 +743,7 @@ static Triple::ObjectFormatType parseFormat(StringRef EnvironmentName) {
       .Default(Triple::UnknownObjectFormat);
 }
 
-Triple::SubArchType Triple::parseSubArch(StringRef SubArchName,
-                                        Triple::ArchType Arch) {
+Triple::SubArchType Triple::parseSubArch(StringRef SubArchName) {
   if (SubArchName.starts_with("mips")) {
     if (SubArchName.ends_with("r6el") || SubArchName.ends_with("r6")) {
       return Triple::MipsSubArch_r6;
@@ -758,10 +757,6 @@ Triple::SubArchType Triple::parseSubArch(StringRef SubArchName,
         .EndsWith("c64", Triple::MipsSubArch_cheri64)
         .EndsWith("c64hybrid", Triple::MipsSubArch_cheri64)
         .Default(Triple::NoSubArch);
-  }
-  // Backwards compat:
-  if (Arch == Triple::mips64 && SubArchName == "cheri") {
-    return Triple::MipsSubArch_cheri128;
   }
 
   if (SubArchName == "powerpcspe")
@@ -1080,7 +1075,7 @@ Triple::Triple(std::string &&Str) : Data(std::move(Str)) {
   StringRef(Data).split(Components, '-', /*MaxSplit*/ 3);
   if (Components.size() > 0) {
     Arch = parseArch(Components[0]);
-    SubArch = parseSubArch(Components[0], Arch);
+    SubArch = parseSubArch(Components[0]);
     if (Components.size() > 1) {
       Vendor = parseVendor(Components[1]);
       if (Components.size() > 2) {
@@ -1131,7 +1126,7 @@ Triple::Triple(const Twine &Str) : Triple(Str.str()) {}
 /// the string representation.
 Triple::Triple(const Twine &ArchStr, const Twine &VendorStr, const Twine &OSStr)
     : Data((ArchStr + Twine('-') + VendorStr + Twine('-') + OSStr).str()),
-      Arch(parseArch(ArchStr.str())), SubArch(parseSubArch(ArchStr.str(), Arch)),
+      Arch(parseArch(ArchStr.str())), SubArch(parseSubArch(ArchStr.str())),
       Vendor(parseVendor(VendorStr.str())), OS(parseOS(OSStr.str())),
       Environment(), ObjectFormat(Triple::UnknownObjectFormat) {
   ObjectFormat = getDefaultFormat(*this);
@@ -1147,7 +1142,7 @@ Triple::Triple(const Twine &ArchStr, const Twine &VendorStr, const Twine &OSStr,
     : Data((ArchStr + Twine('-') + VendorStr + Twine('-') + OSStr + Twine('-') +
             EnvironmentStr)
                .str()),
-      Arch(parseArch(ArchStr.str())), SubArch(parseSubArch(ArchStr.str(), Arch)),
+      Arch(parseArch(ArchStr.str())), SubArch(parseSubArch(ArchStr.str())),
       Vendor(parseVendor(VendorStr.str())), OS(parseOS(OSStr.str())),
       Environment(parseEnvironment(EnvironmentStr.str())),
       ObjectFormat(parseFormat(EnvironmentStr.str())) {

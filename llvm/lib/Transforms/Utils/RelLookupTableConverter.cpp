@@ -117,13 +117,12 @@ static bool shouldConvertToRelLookupTable(LookupTableInfo &Info, Module &M,
       return false;
 
     // If operand is mutable, do not generate a relative lookup table.
-    auto *GlovalVarOp = dyn_cast<GlobalVariable>(GVOp);
-    if (!GlovalVarOp || !GlovalVarOp->isConstant())
+    auto *GlobalVarOp = dyn_cast<GlobalVariable>(GVOp);
+    if (!GlobalVarOp || !GlobalVarOp->isConstant())
       return false;
 
-    if (!GlovalVarOp->hasLocalLinkage() ||
-        !GlovalVarOp->isDSOLocal() ||
-        !GlovalVarOp->isImplicitDSOLocal())
+    if (!GlobalVarOp->hasLocalLinkage() || !GlobalVarOp->isDSOLocal() ||
+        !GlobalVarOp->isImplicitDSOLocal())
       return false;
 
     // On AArch64 small code model, the text-to-data span can be up to 4GB,
@@ -131,12 +130,12 @@ static bool shouldConvertToRelLookupTable(LookupTableInfo &Info, Module &M,
     // target operand requires dynamic relocations (placing it in .data.rel.ro
     // in the data segment rather than .rodata in the text segment).
     if (TT.isAArch64() &&
-        (!GlovalVarOp->hasInitializer() ||
-         GlovalVarOp->getInitializer()->needsDynamicRelocation()))
+        (!GlobalVarOp->hasInitializer() ||
+         GlobalVarOp->getInitializer()->needsDynamicRelocation()))
       return false;
 
     if (ShouldDropUnnamedAddr)
-      GVOps.push_back(GlovalVarOp);
+      GVOps.push_back(GlobalVarOp);
 
     Info.Ptrs.push_back(C);
   }
@@ -149,9 +148,8 @@ static bool shouldConvertToRelLookupTable(LookupTableInfo &Info, Module &M,
 }
 
 static GlobalVariable *createRelLookupTable(LookupTableInfo &Info,
-                                            Function &Func,
                                             GlobalVariable &LookupTable) {
-  Module &M = *Func.getParent();
+  Module &M = *LookupTable.getParent();
   ArrayType *IntArrayTy =
       ArrayType::get(Type::getInt32Ty(M.getContext()), Info.Ptrs.size());
 
@@ -161,17 +159,18 @@ static GlobalVariable *createRelLookupTable(LookupTableInfo &Info,
       LookupTable.getThreadLocalMode(), LookupTable.getAddressSpace(),
       LookupTable.isExternallyInitialized());
 
+  Type *IntPtrTy = M.getDataLayout().getIntPtrType(M.getContext(),
+    LookupTable.getAddressSpace());
+  Type *Int32Ty = Type::getInt32Ty(M.getContext());
+  Constant *Base = ConstantExpr::getPtrToInt(RelLookupTable, IntPtrTy);
+
   uint64_t Idx = 0;
   SmallVector<Constant *, 64> RelLookupTableContents(Info.Ptrs.size());
 
   for (Constant *Element : Info.Ptrs) {
-    Type *IntPtrTy = M.getDataLayout().getIntPtrType(
-        M.getContext(), LookupTable.getAddressSpace());
-    Constant *Base = llvm::ConstantExpr::getPtrToInt(RelLookupTable, IntPtrTy);
-    Constant *Target = llvm::ConstantExpr::getPtrToInt(Element, IntPtrTy);
-    Constant *Sub = llvm::ConstantExpr::getSub(Target, Base);
-    Constant *RelOffset =
-        llvm::ConstantExpr::getTrunc(Sub, Type::getInt32Ty(M.getContext()));
+    Constant *Target = ConstantExpr::getPtrToInt(Element, IntPtrTy);
+    Constant *Sub = ConstantExpr::getSub(Target, Base);
+    Constant *RelOffset = ConstantExpr::getTrunc(Sub, Int32Ty);
     RelLookupTableContents[Idx++] = RelOffset;
   }
 
@@ -192,11 +191,10 @@ static void convertToRelLookupTable(LookupTableInfo &Info,
   Module &M = *LookupTable.getParent();
   BasicBlock *BB = GEP->getParent();
   IRBuilder<> Builder(BB);
-  Function &Func = *BB->getParent();
 
   // Generate an array that consists of relative offsets.
   GlobalVariable *RelLookupTable =
-      createRelLookupTable(Info, Func, LookupTable);
+      createRelLookupTable(Info, LookupTable);
 
   // Place new instruction sequence before GEP.
   Builder.SetInsertPoint(GEP);

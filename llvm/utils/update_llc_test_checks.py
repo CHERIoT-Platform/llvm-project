@@ -55,8 +55,8 @@ def update_test(ti: common.TestInfo):
             llc_cmd = llc_cmd.replace("%cheri128_purecap_llc", "llc -mtriple=mips64-unknown-freebsd -target-abi purecap -relocation-model pic -mcpu=cheri128 -mattr=+cheri128")
             llc_cmd = llc_cmd.replace("%cheri_llc", "llc -mtriple=mips64-unknown-freebsd -mcpu=cheri128 -mattr=+cheri128")
             llc_cmd = llc_cmd.replace("%cheri128_llc", "llc -mtriple=mips64-unknown-freebsd -mcpu=cheri128 -mattr=+cheri128")
-            llc_cmd = llc_cmd.replace("%riscv32_cheri_purecap_llc", "llc -mtriple=riscv32-unknown-freebsd -target-abi il32pc64d -mattr=+xcheri,+xcheripurecap")
-            llc_cmd = llc_cmd.replace("%riscv64_cheri_purecap_llc", "llc -mtriple=riscv64-unknown-freebsd -target-abi l64pc128d -mattr=+xcheri,+xcheripurecap")
+            llc_cmd = llc_cmd.replace("%riscv32_cheri_purecap_llc", "llc -mtriple=riscv32-unknown-freebsd -target-abi il32pc64d -mattr=+xcheri,+xcheripurecap,+d")
+            llc_cmd = llc_cmd.replace("%riscv64_cheri_purecap_llc", "llc -mtriple=riscv64-unknown-freebsd -target-abi l64pc128d -mattr=+xcheri,+xcheripurecap,+d")
             llc_cmd = llc_cmd.replace("%riscv32_cheri_llc", "llc -mtriple=riscv32-unknown-freebsd -mattr=+xcheri")
             llc_cmd = llc_cmd.replace("%riscv64_cheri_llc", "llc -mtriple=riscv64-unknown-freebsd -mattr=+xcheri")
         if filecheck_cmd and filecheck_cmd.startswith("%cheri64_FileCheck"):

@@ -1,4 +1,4 @@
-# RUN: llvm-mc %s -triple=riscv32 -mcpu=cheriot -mattr=+xcheri -riscv-no-aliases -show-encoding \
+# RUN: llvm-mc %s -triple=riscv32-unknown-cheriotrtos -mcpu=cheriot -mattr=+xcheri -riscv-no-aliases -show-encoding \
 # RUN:     | FileCheck %s
 hello:
         cincoffset ca0, cgp, %cheriot_compartment_lo_i(haha)

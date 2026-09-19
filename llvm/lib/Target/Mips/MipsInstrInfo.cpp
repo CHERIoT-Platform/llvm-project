@@ -48,6 +48,12 @@ MipsInstrInfo::MipsInstrInfo(const MipsSubtarget &STI,
           Mips::ADJCALLSTACKCAPUP: Mips::ADJCALLSTACKUP),
       Subtarget(STI), UncondBrOpc(UncondBr) {}
 
+const TargetRegisterClass *MipsInstrInfo::getInlineAsmMemoryOperandRegClass(
+    InlineAsm::ConstraintCode C) const {
+  return Subtarget.getABI().ArePtrs64bit() ? &Mips::GPR64RegClass
+                                           : &Mips::GPR32RegClass;
+}
+
 const MipsInstrInfo *MipsInstrInfo::create(MipsSubtarget &STI) {
   if (STI.inMips16Mode())
     return createMips16InstrInfo(STI);

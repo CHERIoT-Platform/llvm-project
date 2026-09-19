@@ -533,5 +533,8 @@ using namespace __sanitizer;
 namespace __memprof {
 using namespace __sanitizer;
 }
+namespace __copyprof {
+using namespace __sanitizer;
+}
 
 #endif  // SANITIZER_DEFS_H

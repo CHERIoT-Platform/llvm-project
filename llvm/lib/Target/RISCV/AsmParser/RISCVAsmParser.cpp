@@ -81,8 +81,6 @@ class RISCVAsmParser : public MCTargetAsmParser {
   SmallVector<ParserOptionsSet, 4> ParserOptionsStack;
   ParserOptionsSet ParserOptions;
 
-  RISCVABI::ABI ABI;
-
   SMLoc getLoc() const { return getParser().getTok().getLoc(); }
   bool isRV64() const { return getSTI().hasFeature(RISCV::Feature64Bit); }
   bool isRVE() const { return getSTI().hasFeature(RISCV::FeatureStdExtE); }
@@ -392,12 +390,21 @@ public:
   // with the first token, so diagnostics can be reported with a real source
   // location instead of being printed with no location information.
   void onBeginOfFile() override {
+    // If the target streamer already has a resolved ABI (e.g. set by
+    // RISCVTargetELFStreamer for a valid -target-abi, or set by
+    // RISCVAsmPrinter during codegen), skip ABI validation.
+    if (getTargetStreamer().hasTargetABI())
+      return;
+
     Expected<RISCVABI::ABI> ABIOrErr =
         RISCVABI::computeTargetABI(getSTI(), getTargetOptions().ABIName);
-    if (!ABIOrErr)
+    if (!ABIOrErr) {
       getParser().printError(getLoc(), toString(ABIOrErr.takeError()));
-    else
-      ABI = *ABIOrErr;
+      getTargetStreamer().setTargetABI(
+          cantFail(RISCVABI::computeTargetABI(getSTI(), "")));
+      return;
+    }
+    getTargetStreamer().setTargetABI(*ABIOrErr);
   }
 };
 
@@ -770,7 +777,7 @@ public:
   /// Return true if the operand is a valid fli.s floating-point immediate.
   bool isLoadFPImm() const {
     if (isExpr())
-      return isUImm5();
+      return isUImm<5>();
     if (Kind != KindTy::FPImmediate)
       return false;
     int Idx = RISCVLoadFPImm::getLoadFPImm(
@@ -843,23 +850,6 @@ public:
       return isUImm<5>();
     return isUImm<4>();
   }
-
-  bool isUImm1() const { return isUImm<1>(); }
-  bool isUImm2() const { return isUImm<2>(); }
-  bool isUImm3() const { return isUImm<3>(); }
-  bool isUImm4() const { return isUImm<4>(); }
-  bool isUImm5() const { return isUImm<5>(); }
-  bool isUImm6() const { return isUImm<6>(); }
-  bool isUImm7() const { return isUImm<7>(); }
-  bool isUImm8() const { return isUImm<8>(); }
-  bool isUImm9() const { return isUImm<9>(); }
-  bool isUImm10() const { return isUImm<10>(); }
-  bool isUImm11() const { return isUImm<11>(); }
-  bool isUImm16() const { return isUImm<16>(); }
-  bool isUImm20() const { return isUImm<20>(); }
-  bool isUImm32() const { return isUImm<32>(); }
-  bool isUImm48() const { return isUImm<48>(); }
-  bool isUImm64() const { return isUImm<64>(); }
 
   bool isUImm5NonZero() const {
     return isUImmPred([](int64_t Imm) { return Imm != 0 && isUInt<5>(Imm); });
@@ -949,15 +939,6 @@ public:
     bool IsConstantImm = evaluateConstantExpr(getExpr(), Imm);
     return IsConstantImm && p(fixImmediateForRV32(Imm, isRV64Expr()));
   }
-
-  bool isSImm5() const { return isSImm<5>(); }
-  bool isSImm6() const { return isSImm<6>(); }
-  bool isSImm10() const { return isSImm<10>(); }
-  bool isSImm11() const { return isSImm<11>(); }
-  bool isSImm12() const { return isSImm<12>(); }
-  bool isSImm16() const { return isSImm<16>(); }
-  bool isSImm18() const { return isSImm<18>(); }
-  bool isSImm26() const { return isSImm<26>(); }
 
   bool isSImm5NonZero() const {
     return isSImmPred([](int64_t Imm) { return Imm != 0 && isInt<5>(Imm); });
@@ -2603,6 +2584,7 @@ bool RISCVAsmParser::parseExprWithSpecifier(const MCExpr *&Res, SMLoc &E) {
   if (getLexer().getKind() != AsmToken::Identifier)
     return TokError("expected '%' relocation specifier");
   StringRef Identifier = getParser().getTok().getIdentifier();
+  auto ABI = getTargetStreamer().getTargetABI();
   auto Spec =
       RISCV::parseSpecifierName(Identifier, RISCVABI::isCheriPureCapABI(ABI));
   if (!Spec)
@@ -4804,6 +4786,7 @@ void RISCVAsmParser::emitCapLoadTLSIEAddress(MCInst &Inst, SMLoc IDLoc,
   const MCExpr *Symbol = Inst.getOperand(1).getExpr();
   unsigned SecondOpcode = isRV64() ? RISCV::CLD : RISCV::CLW;
   RISCV::Specifier SpecHi;
+  auto ABI = getTargetStreamer().getTargetABI();
   if (RISCVABI::isCheriPureCapABI(ABI) && MCTargetOptions::cheriTLSUseTGOT())
     SpecHi = ELF::R_RISCV_CHERI_TLS_TGOT_GOT_HI20;
   else
@@ -4822,6 +4805,7 @@ void RISCVAsmParser::emitCapLoadTLSGDCap(MCInst &Inst, SMLoc IDLoc,
   MCOperand DestReg = Inst.getOperand(0);
   const MCExpr *Symbol = Inst.getOperand(1).getExpr();
   RISCV::Specifier SpecHi;
+  auto ABI = getTargetStreamer().getTargetABI();
   if (RISCVABI::isCheriPureCapABI(ABI) && MCTargetOptions::cheriTLSUseTGOT())
     SpecHi = ELF::R_RISCV_CHERI_TLS_TGOT_GD_HI20;
   else

@@ -812,7 +812,10 @@ void RISCVAsmPrinter::emitStartOfAsmFile(Module &M) {
   RISCVTargetStreamer &RTS = getTargetStreamer();
   if (const MDString *ModuleTargetABI =
           dyn_cast_or_null<MDString>(M.getModuleFlag("target-abi")))
-    RTS.setTargetABI(RISCVABI::getTargetABI(ModuleTargetABI->getString(), TM.getTargetTriple()));
+    RTS.setTargetABI(RISCVABI::getTargetABI(ModuleTargetABI->getString(), M.getTargetTriple()));
+  else if (!RTS.hasTargetABI())
+    RTS.setTargetABI(
+        cantFail(RISCVABI::computeTargetABI(TM.getMCSubtargetInfo(), "")));
 
   MCSubtargetInfo SubtargetInfo = TM.getMCSubtargetInfo();
 

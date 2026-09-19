@@ -27948,7 +27948,8 @@ static SDValue unpackFromRegLoc(SelectionDAG &DAG, SDValue Chain,
   RegInfo.addLiveIn(VA.getLocReg(), VReg);
   Val = DAG.getCopyFromReg(Chain, DL, VReg, LocVT);
 
-  // If input is sign extended from 32 bits, note it for the SExtWRemoval pass.
+  // If input is sign extended from 32 bits, note it for the RISCVOptWInstrs
+  // pass.
   if (In.isOrigArg()) {
     Argument *OrigArg = MF.getFunction().getArg(In.getOrigArgIndex());
     if (OrigArg->getType()->isIntegerTy()) {

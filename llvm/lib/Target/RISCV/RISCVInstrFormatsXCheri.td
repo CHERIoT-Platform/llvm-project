@@ -14,8 +14,12 @@
 // Operand definitions.
 //===----------------------------------------------------------------------===//
 
+def UImm12MaybeSymAsmOperand : ImmAsmOperand<"U", 12, ""> {
+  let PredicateMethod = "isUImm12";
+}
+
 def uimm12 : Operand<XLenVT>, ImmLeaf<XLenVT, [{return isUInt<12>(Imm);}]> {
-  let ParserMatchClass = UImmAsmOperand<12>;
+  let ParserMatchClass = UImm12MaybeSymAsmOperand;
   let DecoderMethod = "decodeUImmOperand<12>";
   let EncoderMethod = "getImmOpValue";
 }

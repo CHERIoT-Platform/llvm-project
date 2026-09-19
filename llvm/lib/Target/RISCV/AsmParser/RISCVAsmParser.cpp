@@ -956,6 +956,7 @@ public:
   bool isSImm11() const { return isSImm<11>(); }
   bool isSImm12() const { return isSImm<12>(); }
   bool isSImm16() const { return isSImm<16>(); }
+  bool isSImm18() const { return isSImm<18>(); }
   bool isSImm26() const { return isSImm<26>(); }
 
   bool isSImm5NonZero() const {
@@ -1215,10 +1216,6 @@ public:
   bool isSImm5Plus1() const {
     return isSImmPred(
         [](int64_t Imm) { return Imm != INT64_MIN && isInt<5>(Imm - 1); });
-  }
-
-  bool isSImm18() const {
-    return isSImmPred([](int64_t Imm) { return isInt<18>(Imm); });
   }
 
   bool isSImm18Lsb0() const {

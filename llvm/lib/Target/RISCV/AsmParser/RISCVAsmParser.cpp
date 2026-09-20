@@ -954,26 +954,6 @@ public:
     });
   }
 
-  bool isUImm2Lsb0() const { return isUImmShifted<1, 1>(); }
-
-  bool isUImm5Lsb0() const { return isUImmShifted<4, 1>(); }
-
-  bool isUImm6Lsb0() const { return isUImmShifted<5, 1>(); }
-
-  bool isUImm6Lsb000() const { return isUImmShifted<3, 3>(); }
-
-  bool isUImm7Lsb00() const { return isUImmShifted<5, 2>(); }
-
-  bool isUImm7Lsb000() const { return isUImmShifted<4, 3>(); }
-
-  bool isUImm8Lsb00() const { return isUImmShifted<6, 2>(); }
-
-  bool isUImm8Lsb000() const { return isUImmShifted<5, 3>(); }
-
-  bool isUImm9Lsb000() const { return isUImmShifted<6, 3>(); }
-
-  bool isUImm14Lsb00() const { return isUImmShifted<12, 2>(); }
-
   bool isUImm9Lsb0000() const {
     if (!isImm())
       return false;

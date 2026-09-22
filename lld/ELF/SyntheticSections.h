@@ -124,7 +124,7 @@ public:
   uint64_t addEntry(const Symbol &sym);
   void addAuthEntry(const Symbol &sym);
   bool addTlsDescEntry(const Symbol &sym);
-  void addTlsDescAuthEntry();
+  void addTlsDescAuthEntry(const Symbol &sym);
   bool addDynTlsEntry(const Symbol &sym);
   void addTgotEntry(Symbol &sym);
   void addTgotTlsDescEntry(Symbol &sym);
@@ -154,6 +154,7 @@ protected:
   struct AuthEntryInfo {
     size_t offset;
     bool isSymbolFunc;
+    bool isUndefinedNonPreemptible;
   };
   SmallVector<AuthEntryInfo, 0> authEntries;
 };

@@ -92,10 +92,11 @@ void CodeGenTargetMachineImpl::initAsmInfo() {
 }
 
 CodeGenTargetMachineImpl::CodeGenTargetMachineImpl(
-    const Target &T, StringRef DataLayoutString, const Triple &TT,
-    StringRef CPU, StringRef FS, const TargetOptions &Options, Reloc::Model RM,
-    CodeModel::Model CM, CodeGenOptLevel OL)
-    : TargetMachine(T, DataLayoutString, TT, CPU, FS, Options) {
+    const Target &T, const Triple &TT, StringRef CPU, StringRef FS,
+    const TargetOptions &Options, Reloc::Model RM, CodeModel::Model CM,
+    CodeGenOptLevel OL)
+    : TargetMachine(T, TT.computeDataLayout(Options.MCOptions.getABIName(), FS), TT,
+                    CPU, FS, Options) {
   this->RM = RM;
   this->CMModel = CM;
   this->OptLevel = OL;

@@ -74,6 +74,12 @@ static bool isX86BareMetal(const llvm::Triple &Triple) {
          Triple.getEnvironmentName() == "elf";
 }
 
+/// Is the triple loongarch{32,64}-*-none-elf?
+static bool isLoongArchBareMetal(const llvm::Triple &Triple) {
+  return Triple.isLoongArch() && Triple.getOS() == llvm::Triple::UnknownOS &&
+         Triple.getEnvironmentName() == "elf";
+}
+
 static bool findRISCVMultilibs(const Driver &D,
                                const llvm::Triple &TargetTriple,
                                const ArgList &Args, DetectedMultilibs &Result) {
@@ -311,7 +317,8 @@ bool BareMetal::handlesTarget(const llvm::Triple &Triple) {
   return arm::isARMEABIBareMetal(Triple) ||
          aarch64::isAArch64BareMetal(Triple) || isRISCVBareMetal(Triple) ||
          isMIPSBareMetal(Triple) ||
-         isPPCBareMetal(Triple) || isX86BareMetal(Triple);
+         isPPCBareMetal(Triple) || isX86BareMetal(Triple) ||
+         isLoongArchBareMetal(Triple);
 }
 
 Tool *BareMetal::buildLinker() const {
@@ -577,7 +584,7 @@ void baremetal::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     return;
   }
 
-  if (Triple.isRISCV()) {
+  if (Triple.isLoongArch() || Triple.isRISCV()) {
     CmdArgs.push_back("-X");
     if (Args.hasArg(options::OPT_mno_relax))
       CmdArgs.push_back("--no-relax");

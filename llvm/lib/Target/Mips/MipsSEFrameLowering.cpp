@@ -518,7 +518,7 @@ void MipsSEFrameLowering::emitPrologue(MachineFunction &MF,
 
       if (hasBP(MF)) {
         // move $s7, $sp
-        unsigned BP = ABI.GetBasePtr();
+        unsigned BP = STI.getABI().GetBasePtr();
         BuildMI(MBB, MBBI, dl, TII.get(MOVE), BP)
           .addReg(SP)
           .addReg(ZERO);

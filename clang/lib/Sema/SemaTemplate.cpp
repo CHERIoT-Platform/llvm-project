@@ -10302,32 +10302,23 @@ DeclResult Sema::ActOnExplicitInstantiation(
                                        ? TSK_ExplicitInstantiationDefinition
                                        : TSK_ExplicitInstantiationDeclaration;
 
-  bool DLLAttrAffected = false;
-  const ParsedAttr *AttachedExportAttr = nullptr;
-  const ParsedAttr *AttachedImportAttr = nullptr;
-  for (const ParsedAttr &AL : Attr) {
-    if (AL.getKind() == ParsedAttr::AT_DLLExport)
-      AttachedExportAttr = &AL;
-    else if (AL.getKind() == ParsedAttr::AT_DLLImport)
-      AttachedImportAttr = &AL;
-  }
-
   if (TSK == TSK_ExplicitInstantiationDeclaration &&
       !Context.getTargetInfo().getTriple().isOSCygMing()) {
     // Check for dllexport class template instantiation declarations,
     // except for MinGW mode.
-    if (AttachedExportAttr) {
-      Diag(ExternLoc,
-           diag::warn_attribute_dllexport_explicit_instantiation_decl);
-      Diag(AttachedExportAttr->getLoc(), diag::note_attribute);
-      DLLAttrAffected = true;
+    for (const ParsedAttr &AL : Attr) {
+      if (AL.getKind() == ParsedAttr::AT_DLLExport) {
+        Diag(ExternLoc,
+             diag::warn_attribute_dllexport_explicit_instantiation_decl);
+        Diag(AL.getLoc(), diag::note_attribute);
+        break;
+      }
     }
 
     if (auto *A = ClassTemplate->getTemplatedDecl()->getAttr<DLLExportAttr>()) {
       Diag(ExternLoc,
            diag::warn_attribute_dllexport_explicit_instantiation_decl);
       Diag(A->getLocation(), diag::note_attribute);
-      DLLAttrAffected = true;
     }
   }
 
@@ -10335,12 +10326,20 @@ DeclResult Sema::ActOnExplicitInstantiation(
   // instantiation declarations for most purposes.
   bool DLLImportExplicitInstantiationDef = false;
   if (TSK == TSK_ExplicitInstantiationDefinition &&
-      Context.getTargetInfo().shouldDLLImportComdatSymbols()) {
+      Context.getTargetInfo().getCXXABI().isMicrosoft()) {
     // Check for dllimport class template instantiation definitions.
     bool DLLImport =
         ClassTemplate->getTemplatedDecl()->getAttr<DLLImportAttr>();
-    // dllexport trumps dllimport.
-    if ((DLLImport || AttachedImportAttr) && !AttachedExportAttr) {
+    for (const ParsedAttr &AL : Attr) {
+      if (AL.getKind() == ParsedAttr::AT_DLLImport)
+        DLLImport = true;
+      if (AL.getKind() == ParsedAttr::AT_DLLExport) {
+        // dllexport trumps dllimport here.
+        DLLImport = false;
+        break;
+      }
+    }
+    if (DLLImport) {
       TSK = TSK_ExplicitInstantiationDeclaration;
       DLLImportExplicitInstantiationDef = true;
     }
@@ -10372,30 +10371,28 @@ DeclResult Sema::ActOnExplicitInstantiation(
       Context.getTargetInfo().getTriple().isOSCygMing()) {
     // Check for dllexport class template instantiation definitions in MinGW
     // mode, if a previous declaration of the instantiation was seen.
-    if (AttachedExportAttr) {
-      if (PrevDecl->hasAttr<DLLExportAttr>()) {
-        Diag(AttachedExportAttr->getLoc(),
-             diag::warn_attr_dllexport_explicit_inst_def);
-      } else {
-        Diag(AttachedExportAttr->getLoc(),
-             diag::warn_attr_dllexport_explicit_inst_def_mismatch);
-        Diag(PrevDecl->getLocation(), diag::note_prev_decl_missing_dllexport);
+    for (const ParsedAttr &AL : Attr) {
+      if (AL.getKind() == ParsedAttr::AT_DLLExport) {
+        if (PrevDecl->hasAttr<DLLExportAttr>()) {
+          Diag(AL.getLoc(), diag::warn_attr_dllexport_explicit_inst_def);
+        } else {
+          Diag(AL.getLoc(),
+               diag::warn_attr_dllexport_explicit_inst_def_mismatch);
+          Diag(PrevDecl->getLocation(), diag::note_prev_decl_missing_dllexport);
+        }
+        break;
       }
-      DLLAttrAffected = true;
-    } else if (AttachedImportAttr) {
-      Diag(AttachedImportAttr->getLoc(),
-           diag::warn_attribute_dllimport_explicit_instantiation_def);
-      DLLAttrAffected = true;
     }
   }
 
   if (TSK == TSK_ExplicitInstantiationDefinition && PrevDecl &&
       !Context.getTargetInfo().getTriple().isWindowsGNUEnvironment() &&
-      !AttachedExportAttr) {
+      llvm::none_of(Attr, [](const ParsedAttr &AL) {
+        return AL.getKind() == ParsedAttr::AT_DLLExport;
+      })) {
     if (const auto *DEA = PrevDecl->getAttr<DLLExportOnDeclAttr>()) {
       Diag(TemplateLoc, diag::warn_dllexport_on_decl_ignored);
       Diag(DEA->getLoc(), diag::note_dllexport_on_decl);
-      DLLAttrAffected = true;
     }
   }
 
@@ -10467,10 +10464,7 @@ DeclResult Sema::ActOnExplicitInstantiation(
   Specialization->setTemplateKeywordLoc(TemplateLoc);
   Specialization->setBraceRange(SourceRange());
 
-  bool PreviouslyDLLExported = Specialization->hasAttr<DLLExportAttr>() ||
-                               (PrevDecl && PrevDecl->hasAttr<DLLExportAttr>());
-  bool PreviouslyDLLImported = Specialization->hasAttr<DLLImportAttr>() ||
-                               (PrevDecl && PrevDecl->hasAttr<DLLImportAttr>());
+  bool PreviouslyDLLExported = Specialization->hasAttr<DLLExportAttr>();
   ProcessDeclAttributeList(S, Specialization, Attr);
   ProcessAPINotes(Specialization);
 
@@ -10506,12 +10500,11 @@ DeclResult Sema::ActOnExplicitInstantiation(
   ClassTemplateSpecializationDecl *Def
     = cast_or_null<ClassTemplateSpecializationDecl>(
                                               Specialization->getDefinition());
-  if (!Def) {
+  if (!Def)
     InstantiateClassTemplateSpecialization(TemplateNameLoc, Specialization, TSK,
                                            /*Complain=*/true,
                                            CTAI.StrictPackMatch);
-    DLLAttrAffected = true;
-  } else if (TSK == TSK_ExplicitInstantiationDefinition) {
+  else if (TSK == TSK_ExplicitInstantiationDefinition) {
     MarkVTableUsed(TemplateNameLoc, Specialization, true);
     Specialization->setPointOfInstantiation(Def->getPointOfInstantiation());
   }
@@ -10539,16 +10532,13 @@ DeclResult Sema::ActOnExplicitInstantiation(
         A->setInherited(true);
         Def->addAttr(A);
         dllExportImportClassTemplateSpecialization(*this, Def);
-        DLLAttrAffected = true;
       }
     }
 
     // Fix a TSK_ImplicitInstantiation followed by a
     // TSK_ExplicitInstantiationDefinition
-    bool NewlyDLLExported = !PreviouslyDLLExported && AttachedExportAttr &&
-                            Specialization->hasAttr<DLLExportAttr>();
-    bool NewlyDLLImported = !PreviouslyDLLImported && AttachedImportAttr &&
-                            Specialization->hasAttr<DLLImportAttr>();
+    bool NewlyDLLExported =
+        !PreviouslyDLLExported && Specialization->hasAttr<DLLExportAttr>();
     if (Old_TSK == TSK_ImplicitInstantiation && NewlyDLLExported &&
         Context.getTargetInfo().shouldDLLImportComdatSymbols()) {
       // An explicit instantiation definition can add a dll attribute to a
@@ -10566,7 +10556,6 @@ DeclResult Sema::ActOnExplicitInstantiation(
       assert(Def == Specialization &&
              "Def and Specialization should match for implicit instantiation");
       dllExportImportClassTemplateSpecialization(*this, Def);
-      DLLAttrAffected = true;
     }
 
     // In MinGW mode, export the template instantiation if the declaration
@@ -10575,23 +10564,6 @@ DeclResult Sema::ActOnExplicitInstantiation(
         Context.getTargetInfo().getTriple().isOSCygMing() &&
         PrevDecl->hasAttr<DLLExportAttr>()) {
       dllExportImportClassTemplateSpecialization(*this, Def);
-      DLLAttrAffected = true;
-    }
-
-    if (!DLLAttrAffected && (NewlyDLLExported || NewlyDLLImported)) {
-      if (Context.getTargetInfo().getTriple().isOSCygMing() &&
-          TSK == TSK_ExplicitInstantiationDeclaration && NewlyDLLImported) {
-        // In MinGW mode, all undefined symbols are also searched from DLLs
-        // even if they were not declared with dllimport, so doesn't warn
-        // about ignoring dllimport.
-      } else {
-        const ParsedAttr *A =
-            AttachedExportAttr ? AttachedExportAttr : AttachedImportAttr;
-        Diag(A->getLoc(), diag::warn_dllattr_ignored_already_instantiated) << A;
-        Diag(Def->getPointOfInstantiation(),
-             diag::note_instantiation_required_here)
-            << /*implicit|explicit=*/0;
-      }
     }
 
     // Set the template specialization kind. Make sure it is set before

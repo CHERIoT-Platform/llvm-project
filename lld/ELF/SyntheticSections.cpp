@@ -1407,6 +1407,12 @@ DynamicSection<ELFT>::computeContents() {
     addInt(DT_PLTREL, ctx.arg.isRela ? DT_RELA : DT_REL);
   }
 
+  if (ctx.arg.zMarkPlt && ctx.in.plt->isNeeded()) {
+    addInSec(DT_X86_64_PLT, *ctx.in.plt);
+    addInt(DT_X86_64_PLTSZ, ctx.in.plt->getSize());
+    addInt(DT_X86_64_PLTENT, ctx.target->pltEntrySize);
+  }
+
   if (ctx.in.relaTgot->isNeeded()) {
     addInSec(DT_CHERI_TGOTREL, *ctx.in.relaTgot);
     addInt(DT_CHERI_TGOTRELSZ, ctx.in.relaTgot->getSize());

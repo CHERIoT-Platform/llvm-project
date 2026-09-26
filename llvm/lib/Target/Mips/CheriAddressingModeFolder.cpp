@@ -30,10 +30,7 @@ struct CheriAddressingModeFolder : public MachineFunctionPass {
 
   CheriAddressingModeFolder() : MachineFunctionPass(ID) {
   }
-  CheriAddressingModeFolder(MipsTargetMachine &TM) : MachineFunctionPass(ID) {
-    InstrInfo = TM.getSubtargetImpl()->getInstrInfo();
-    UseCapTable = TM.getSubtargetImpl()->useCheriCapTable();
-  }
+  CheriAddressingModeFolder(MipsTargetMachine &TM) : MachineFunctionPass(ID) { }
 
   StringRef getPassName() const override { return "Cheri Addressing Mode Folder"; }
 
@@ -507,6 +504,7 @@ struct CheriAddressingModeFolder : public MachineFunctionPass {
     if (DisableAddressingModeFolder)
       return false;
     InstrInfo = MF.getSubtarget<MipsSubtarget>().getInstrInfo();
+    UseCapTable = MF.getSubtarget<MipsSubtarget>().useCheriCapTable();
     bool modified = false;
     MachineLoopInfo &MLI = getAnalysis<MachineLoopInfoWrapperPass>().getLI();
     MachineDominatorTree &MDT = getAnalysis<MachineDominatorTreeWrapperPass>().getDomTree();

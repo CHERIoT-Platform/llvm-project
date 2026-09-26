@@ -23,13 +23,12 @@ struct Cher128FailHardPass : public MachineFunctionPass {
 
   Cher128FailHardPass() : MachineFunctionPass(ID) {
   }
-  Cher128FailHardPass(MipsTargetMachine &TM) : MachineFunctionPass(ID) {
-    InstrInfo = TM.getSubtargetImpl()->getInstrInfo();
-  }
+  Cher128FailHardPass(MipsTargetMachine &TM) : MachineFunctionPass(ID){ }
 
   StringRef getPassName() const override { return "Cheri128 fail hard"; }
 
   bool runOnMachineFunction(MachineFunction &MF) override {
+    InstrInfo = MF.getSubtarget<MipsSubtarget>().getInstrInfo();
     if (!EnableCheri128FailHard)
       return false;
     InstrInfo = MF.getSubtarget<MipsSubtarget>().getInstrInfo();

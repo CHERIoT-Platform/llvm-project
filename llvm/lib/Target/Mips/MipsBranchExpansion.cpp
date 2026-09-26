@@ -909,7 +909,7 @@ bool MipsBranchExpansion::handleLoadDelaySlot() {
 }
 
 bool MipsBranchExpansion::handlePossibleLongBranch() {
-  if (STI->inMips16Mode() || !STI->enableLongBranchPass())
+  if (STI->inMips16Mode())
     return false;
 
   if (SkipLongBranch)

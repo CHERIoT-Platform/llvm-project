@@ -36,10 +36,6 @@ private:
   bool replaceUsesWithCheriNullReg(MachineRegisterInfo *MRI,
                                    const MachineInstr &GetNullMI);
 
-  std::pair<SDNode *, SDNode *> selectMULT(SDNode *N, unsigned Opc,
-                                           const SDLoc &dl, EVT Ty, bool HasLo,
-                                           bool HasHi);
-
   void selectAddE(SDNode *Node, const SDLoc &DL) const;
 
   bool selectAddrFI(SDValue Addr, SDValue &Base) const override;

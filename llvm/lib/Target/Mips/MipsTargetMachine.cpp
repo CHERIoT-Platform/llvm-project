@@ -57,6 +57,11 @@ static cl::opt<bool>
     EnableMulMulFix("mfix4300", cl::init(false),
                     cl::desc("Enable the VR4300 mulmul bug fix."), cl::Hidden);
 
+static cl::opt<bool> MipsOs16(
+    "mips-os16", cl::init(false),
+    cl::desc("Compile all functions that don't use floating point as Mips 16"),
+    cl::Hidden);
+
 extern "C" LLVM_ABI LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMipsTarget() {
   // Register the target.
   RegisterTargetMachine<MipsebTargetMachine> X(getTheMipsTarget());
@@ -80,10 +85,11 @@ extern "C" LLVM_ABI LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMipsTarget() {
   initializeMipsSetMachineRegisterFlagsPass(*PR);
 }
 
-static std::unique_ptr<TargetLoweringObjectFile> createTLOF(const Triple &TT) {
+static std::unique_ptr<TargetLoweringObjectFile>
+createTLOF(const Triple &TT, bool UseSmallSection) {
   if (TT.isOSBinFormatCOFF())
     return std::make_unique<TargetLoweringObjectFileCOFF>();
-  return std::make_unique<MipsTargetObjectFile>();
+  return std::make_unique<MipsTargetObjectFile>(UseSmallSection);
 }
 
 static Reloc::Model getEffectiveRelocModel(bool JIT,
@@ -108,15 +114,10 @@ MipsTargetMachine::MipsTargetMachine(const Target &T, const Triple &TT,
     : CodeGenTargetMachineImpl(T, TT, CPU, FS, Options,
                                getEffectiveRelocModel(JIT, RM),
                                getEffectiveCodeModel(CM, CodeModel::Small), OL),
-      isLittle(isLittle), TLOF(createTLOF(getTargetTriple())),
+      isLittle(isLittle),
       ABI(MipsABIInfo::computeTargetABI(TT, Options.MCOptions.getABIName())),
-      Subtarget(nullptr),
       DefaultSubtarget(TT, CPU, FS, isLittle, *this, std::nullopt),
-      NoMips16Subtarget(TT, CPU, FS.empty() ? "-mips16" : FS.str() + ",-mips16",
-                        isLittle, *this, std::nullopt),
-      Mips16Subtarget(TT, CPU, FS.empty() ? "+mips16" : FS.str() + ",+mips16",
-                      isLittle, *this, std::nullopt) {
-  Subtarget = &DefaultSubtarget;
+      TLOF(createTLOF(TT, DefaultSubtarget.useSmallSection())) {
   initAsmInfo();
 
   // Mips supports the debug entry values.
@@ -124,8 +125,9 @@ MipsTargetMachine::MipsTargetMachine(const Target &T, const Triple &TT,
 
   // HACK: Update the default CFA register for CHERI purecap
   ABI.updateCheriInitialFrameStateHack(*AsmInfo, *MRI);
-  if (Subtarget->isCheri()) {
-    assert(*DL.getStackAlignment() >= Subtarget->getCapAlignment());
+  if (hasCheriCapabilities()) {
+    assert(*DL.getStackAlignment() >= DefaultSubtarget.getCapAlignment());
+    CheriCapabilitySize = DefaultSubtarget.getCapSizeInBytes();
   }
 }
 
@@ -191,12 +193,6 @@ MipsTargetMachine::getSubtargetImpl(const Function &F) const {
   return I.get();
 }
 
-void MipsTargetMachine::resetSubtarget(MachineFunction *MF) {
-  LLVM_DEBUG(dbgs() << "resetSubtarget\n");
-
-  Subtarget = &MF->getSubtarget<MipsSubtarget>();
-}
-
 namespace {
 
 /// Mips Code Generator Pass Configuration Options.
@@ -206,9 +202,8 @@ public:
       : TargetPassConfig(TM, PM) {
     // The current implementation of long branch pass requires a scratch
     // register ($at) to be available before branch instructions. Tail merging
-    // can break this requirement, so disable it when long branch pass is
-    // enabled.
-    EnableTailMerge = !getMipsSubtarget().enableLongBranchPass();
+    // can break this requirement.
+    EnableTailMerge = false;
     EnableLoopTermFold = true;
   }
 
@@ -216,12 +211,8 @@ public:
     return getTM<MipsTargetMachine>();
   }
 
-  const MipsSubtarget &getMipsSubtarget() const {
-    return *getMipsTargetMachine().getSubtargetImpl();
-  }
-
   void addPostRegAlloc() override {
-    if (getMipsSubtarget().isCheri())
+    if (TM->hasCheriCapabilities())
       addPass(createCheriInvalidatePass());
   }
 
@@ -252,11 +243,10 @@ std::unique_ptr<CSEConfigBase> MipsPassConfig::getCSEConfig() const {
 void MipsPassConfig::addIRPasses() {
   TargetPassConfig::addIRPasses();
   addPass(createAtomicExpandLegacyPass());
-  if (getMipsSubtarget().os16())
+  if (MipsOs16)
     addPass(createMipsOs16Pass());
-  if (getMipsSubtarget().inMips16HardFloat())
-    addPass(createMips16HardFloatPass());
-  if (getMipsSubtarget().isCheri()) {
+  addPass(createMips16HardFloatPass());
+  if (TM->hasCheriCapabilities()) {
     addPass(createCheriLoopPointerDecanonicalize());
     addPass(createDeadCodeEliminationPass());
     addPass(createCheriRangeChecker());
@@ -266,7 +256,6 @@ void MipsPassConfig::addIRPasses() {
 // Install an instruction selector pass using
 // the ISelDag to gen Mips code.
 bool MipsPassConfig::addInstSelector() {
-  addPass(createMipsModuleISelDagPass());
   addPass(createMips16ISelDag(getMipsTargetMachine(), getOptLevel()));
   addPass(createMipsSEISelDag(getMipsTargetMachine(), getOptLevel()));
   return false;
@@ -274,7 +263,7 @@ bool MipsPassConfig::addInstSelector() {
 
 void MipsPassConfig::addPreRegAlloc() {
   addPass(createMipsOptimizePICCallPass());
-  if (getMipsSubtarget().isCheri()) {
+  if (TM->hasCheriCapabilities()) {
     addPass(createCheriAddressingModeFolder());
     // The CheriAddressingModeFolder can sometimes produce new dead instructions
     // be sure to clean them up:
@@ -287,12 +276,6 @@ void MipsPassConfig::addPreRegAlloc() {
 
 TargetTransformInfo
 MipsTargetMachine::getTargetTransformInfo(const Function &F) const {
-  if (Subtarget->allowMixed16_32()) {
-    LLVM_DEBUG(errs() << "No Target Transform Info Pass Added\n");
-    // FIXME: This is no longer necessary as the TTI returned is per-function.
-    return TargetTransformInfo(F.getDataLayout());
-  }
-
   LLVM_DEBUG(errs() << "Target Transform Info Pass Added\n");
   return TargetTransformInfo(std::make_unique<MipsTTIImpl>(this, F));
 }

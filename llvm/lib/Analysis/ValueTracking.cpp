@@ -3313,6 +3313,8 @@ static bool isNonZeroRecurrence(const PHINode *PN) {
   case Instruction::AShr:
   case Instruction::LShr:
     return BO->isExact();
+  case Instruction::Or:
+    return true;
   default:
     return false;
   }

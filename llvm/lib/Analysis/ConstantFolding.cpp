@@ -1019,8 +1019,10 @@ Constant *CastGEPIndices(Type *SrcElemTy, ArrayRef<Constant *> Ops,
   if (!Any)
     return nullptr;
 
-  Constant *C =
-      ConstantExpr::getGetElementPtr(SrcElemTy, Ops[0], NewIdxs, NW, InRange);
+  Constant *C = ConstantExpr::getGetElementPtr(DL, SrcElemTy, Ops[0], NewIdxs,
+                                               NW, InRange);
+  if (!C)
+    return nullptr;
   return ConstantFoldConstant(C, DL, TLI);
 }
 
@@ -1183,7 +1185,7 @@ Constant *ConstantFoldInstOperandsImpl(const Value *InstOrCE, unsigned Opcode,
     if (Constant *C = SymbolicallyEvaluateGEP(GEP, Ops, DL, TLI))
       return C;
 
-    return ConstantExpr::getGetElementPtr(SrcElemTy, Ops[0], Ops.slice(1),
+    return ConstantExpr::getGetElementPtr(DL, SrcElemTy, Ops[0], Ops.slice(1),
                                           GEP->getNoWrapFlags(),
                                           GEP->getInRange());
   }

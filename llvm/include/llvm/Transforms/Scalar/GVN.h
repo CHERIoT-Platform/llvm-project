@@ -425,8 +425,8 @@ private:
 
   std::optional<GVNPass::ReachingMemVal>
   accessMayModifyLocation(MemoryAccess *ClobberMA, const MemoryLocation &Loc,
-                          bool IsInvariantLoad, BasicBlock *BB, MemorySSA &MSSA,
-                          BatchAAResults &AA);
+                          Align LoadAlign, bool IsInvariantLoad, BasicBlock *BB,
+                          MemorySSA &MSSA, BatchAAResults &AA);
 
   bool collectPredecessors(BasicBlock *BB, const PHITransAddr &Addr,
                            MemoryAccess *ClobberMA, DependencyBlockSet &Blocks,

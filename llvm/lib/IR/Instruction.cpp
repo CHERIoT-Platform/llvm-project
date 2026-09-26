@@ -1388,15 +1388,6 @@ bool Instruction::isLifetimeStartOrEnd() const {
   return ID == Intrinsic::lifetime_start || ID == Intrinsic::lifetime_end;
 }
 
-bool Instruction::isLaunderOrStripInvariantGroup() const {
-  auto *II = dyn_cast<IntrinsicInst>(this);
-  if (!II)
-    return false;
-  Intrinsic::ID ID = II->getIntrinsicID();
-  return ID == Intrinsic::launder_invariant_group ||
-         ID == Intrinsic::strip_invariant_group;
-}
-
 bool Instruction::isDebugOrPseudoInst() const {
   return isa<DbgInfoIntrinsic>(this) || isa<PseudoProbeInst>(this);
 }

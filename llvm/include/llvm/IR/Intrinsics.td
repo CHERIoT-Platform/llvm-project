@@ -1926,11 +1926,6 @@ def int_launder_invariant_group : DefaultAttrsIntrinsic<[llvm_anyptr_ty],
                                     [IntrInaccessibleMemOnly,
                                      IntrSpeculatable]>;
 
-
-def int_strip_invariant_group : DefaultAttrsIntrinsic<[llvm_anyptr_ty],
-                                          [LLVMMatchType<0>],
-                                          [IntrSpeculatable, IntrNoMem]>;
-
 def int_launder_alignment : DefaultAttrsIntrinsic<[llvm_anyptr_ty],
                                             [LLVMMatchType<0>],
                                             [IntrInaccessibleMemOnly, IntrSpeculatable]>;

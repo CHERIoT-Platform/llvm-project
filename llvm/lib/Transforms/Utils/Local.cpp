@@ -1557,7 +1557,7 @@ Align llvm::tryEnforceAlignment(Value *V, Align PrefAlign,
 
 Align llvm::getOrEnforceKnownAlignment(Value *V, MaybeAlign PrefAlign,
                                        const DataLayout &DL,
-                                       const Instruction *CxtI,
+                                       const Instruction *CtxI,
                                        AssumptionCache *AC,
                                        const DominatorTree *DT) {
   assert(V->getType()->isPointerTy() &&
@@ -1565,7 +1565,7 @@ Align llvm::getOrEnforceKnownAlignment(Value *V, MaybeAlign PrefAlign,
   unsigned BitWidth = DL.getPointerAddrSizeInBits(V->getType());
 
   KnownBits Known(BitWidth);
-  computeKnownBits(V, Known, DL, AC, CxtI, DT);
+  computeKnownBits(V, Known, DL, AC, CtxI, DT);
   unsigned TrailZ = Known.countMinTrailingZeros();
 
   // Avoid trouble with ridiculously large TrailZ values, such as

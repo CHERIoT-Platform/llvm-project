@@ -1106,6 +1106,37 @@ def XUANTIE_C920V2 : RISCVProcessorModel<"xt-c920v2",
                                             FeatureUnalignedScalarMem]),
                                          [TuneVXRMPipelineFlush,
                                           TunePostRAScheduler]>;
+
+def GAISLER_GR765 : RISCVProcessorModel<"gaisler-gr765",
+                                        NoSchedModel,
+                                        [Feature64Bit,
+                                         FeatureStdExtI,
+                                         FeatureStdExtZifencei,
+                                         FeatureStdExtZicsr,
+                                         FeatureStdExtZicntr,
+                                         FeatureStdExtZihpm,
+                                         FeatureStdExtM,
+                                         FeatureStdExtA,
+                                         FeatureStdExtF,
+                                         FeatureStdExtD,
+                                         FeatureStdExtC,
+                                         FeatureStdExtB,
+                                         FeatureStdExtZbc,
+                                         FeatureStdExtZcb,
+                                         FeatureStdExtZcmop,
+                                         FeatureStdExtZfa,
+                                         FeatureStdExtZfbfmin,
+                                         FeatureStdExtZfh,
+                                         FeatureStdExtZfhmin,
+                                         FeatureStdExtZic64b,
+                                         FeatureStdExtZicbom,
+                                         FeatureStdExtZicfiss,
+                                         FeatureStdExtZicond,
+                                         FeatureStdExtZimop,
+                                         FeatureStdExtZkn,
+                                         FeatureStdExtZkt],
+                                        [TunePostRAScheduler]>;
+
 // clang-format on
 
 // NB: FeatureCheri =>'s RVC (!FeatureCheriNoRVC)

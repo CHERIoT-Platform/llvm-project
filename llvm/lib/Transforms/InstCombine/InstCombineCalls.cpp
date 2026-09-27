@@ -1387,7 +1387,7 @@ static std::optional<bool> getKnownSign(Value *Op, const SimplifyQuery &SQ) {
 
   Value *X, *Y;
   if (match(Op, m_NSWSub(m_Value(X), m_Value(Y))))
-    return isImpliedByDomCondition(ICmpInst::ICMP_SLT, X, Y, SQ.CxtI, SQ.DL);
+    return isImpliedByDomCondition(ICmpInst::ICMP_SLT, X, Y, SQ.CtxI, SQ.DL);
 
   return std::nullopt;
 }
@@ -1399,7 +1399,7 @@ static std::optional<bool> getKnownSignOrZero(Value *Op,
 
   Value *X, *Y;
   if (match(Op, m_NSWSub(m_Value(X), m_Value(Y))))
-    return isImpliedByDomCondition(ICmpInst::ICMP_SLE, X, Y, SQ.CxtI, SQ.DL);
+    return isImpliedByDomCondition(ICmpInst::ICMP_SLE, X, Y, SQ.CtxI, SQ.DL);
 
   return std::nullopt;
 }

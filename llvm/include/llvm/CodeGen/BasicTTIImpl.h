@@ -2025,6 +2025,7 @@ public:
     case Intrinsic::experimental_vp_strided_store: {
       const Value *Data = Args[0];
       const Value *Ptr = Args[1];
+      const Value *Stride = Args[2];
       const Value *Mask = Args[3];
       const Value *EVL = Args[4];
       bool VarMask = !isa<Constant>(Mask) || !isa<Constant>(EVL);
@@ -2033,11 +2034,12 @@ public:
           I->getParamAlign(1).value_or(thisT()->DL.getABITypeAlign(EltTy));
       return thisT()->getMemIntrinsicInstrCost(
           MemIntrinsicCostAttributes(IID, Data->getType(), Ptr, VarMask,
-                                     Alignment, I),
+                                     Alignment, I, Stride),
           CostKind);
     }
     case Intrinsic::experimental_vp_strided_load: {
       const Value *Ptr = Args[0];
+      const Value *Stride = Args[1];
       const Value *Mask = Args[2];
       const Value *EVL = Args[3];
       bool VarMask = !isa<Constant>(Mask) || !isa<Constant>(EVL);
@@ -2045,7 +2047,8 @@ public:
       Align Alignment =
           I->getParamAlign(0).value_or(thisT()->DL.getABITypeAlign(EltTy));
       return thisT()->getMemIntrinsicInstrCost(
-          MemIntrinsicCostAttributes(IID, RetTy, Ptr, VarMask, Alignment, I),
+          MemIntrinsicCostAttributes(IID, RetTy, Ptr, VarMask, Alignment, I,
+                                     Stride),
           CostKind);
     }
     case Intrinsic::stepvector: {

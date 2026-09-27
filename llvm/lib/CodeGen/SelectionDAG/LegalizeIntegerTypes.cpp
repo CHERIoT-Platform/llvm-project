@@ -5062,12 +5062,20 @@ void DAGTypeLegalizer::ExpandIntRes_ShiftThroughStack(SDNode *N, SDValue &Lo,
     AdjStackPtr = StackPtr;
   } else {
     AdjStackPtr = DAG.getMemBasePlusOffset(
-        StackPtr, DAG.getConstant(VTByteWidth, dl, PtrTy), dl);
+        StackPtr,
+        DAG.getConstant(
+            VTByteWidth, dl,
+            TLI.getPointerRangeTy(DAG.getDataLayout(),
+                                  DAG.getDataLayout().getAllocaAddrSpace())),
+        dl);
     ByteOffset = DAG.getNegative(ByteOffset, dl, ShAmtVT);
   }
 
   // Get the pointer somewhere into the stack slot from which we need to load.
-  ByteOffset = DAG.getSExtOrTrunc(ByteOffset, dl, PtrTy);
+  ByteOffset = DAG.getSExtOrTrunc(
+      ByteOffset, dl,
+      TLI.getPointerRangeTy(DAG.getDataLayout(),
+                            DAG.getDataLayout().getAllocaAddrSpace()));
   AdjStackPtr = DAG.getMemBasePlusOffset(AdjStackPtr, ByteOffset, dl);
 
   // And load it! While the load is not legal, legalizing it is obvious.

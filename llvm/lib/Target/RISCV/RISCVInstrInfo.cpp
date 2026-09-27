@@ -1120,27 +1120,27 @@ void RISCVInstrInfo::movImm(MachineBasicBlock &MBB,
     switch (Inst.getOpndKind()) {
     case RISCVMatInt::Imm:
       BuildMI(MBB, MBBI, DL, get(Inst.getOpcode()))
-          .addReg(DstReg, RegState::Define | DstRegState)
+          .addDef(DstReg, DstRegState)
           .addImm(Inst.getImm())
           .setMIFlag(Flag);
       break;
     case RISCVMatInt::RegX0:
       BuildMI(MBB, MBBI, DL, get(Inst.getOpcode()))
-          .addReg(DstReg, RegState::Define | DstRegState)
+          .addDef(DstReg, DstRegState)
           .addReg(SrcReg, SrcRegState)
           .addReg(RISCV::X0)
           .setMIFlag(Flag);
       break;
     case RISCVMatInt::RegReg:
       BuildMI(MBB, MBBI, DL, get(Inst.getOpcode()))
-          .addReg(DstReg, RegState::Define | DstRegState)
+          .addDef(DstReg, DstRegState)
           .addReg(SrcReg, SrcRegState)
           .addReg(SrcReg, SrcRegState)
           .setMIFlag(Flag);
       break;
     case RISCVMatInt::RegImm:
       BuildMI(MBB, MBBI, DL, get(Inst.getOpcode()))
-          .addReg(DstReg, RegState::Define | DstRegState)
+          .addDef(DstReg, DstRegState)
           .addReg(SrcReg, SrcRegState)
           .addImm(Inst.getImm())
           .setMIFlag(Flag);
@@ -1639,7 +1639,7 @@ void RISCVInstrInfo::insertIndirectBranch(MachineBasicBlock &MBB,
   auto II = MBB.end();
   // We may also update the jump target to RestoreBB later.
   MachineInstr &MI = *BuildMI(MBB, II, DL, get(PseudoOpcode))
-                          .addReg(ScratchReg, RegState::Define | RegState::Dead)
+                          .addDef(ScratchReg, RegState::Dead)
                           .addMBB(&DestBB, RISCVII::MO_CALL);
 
   RS->enterBasicBlockEnd(MBB);

@@ -382,6 +382,9 @@ features cannot lower the translation-unit ABI level;
   };
   ```
 
+- Lifetime safety analysis is now enabled for C by default. The `-fexperimental-lifetime-safety-c`
+  flag is renamed to `-flifetime-safety-c`. Use `-fno-lifetime-safety-c` to disable it.
+
 - Improved `-Wassign-enum` performance by caching enum enumerator values. (#GH176454)
 
 - Fixed a false negative in `-Warray-bounds` where the warning was suppressed
@@ -579,6 +582,10 @@ features cannot lower the translation-unit ABI level;
 #### Bug Fixes to Attribute Support
 
 - Fixed crash (assertion) when the `alloc_align` attribute was applied to a declaration whose type has a `FunctionProtoType` but which is not itself a `FunctionDecl`, such as a function-pointer variable. (#GH122058)
+
+- Fixed a crash on `bool` vectors declared with `ext_vector_type` and more than
+  2^23 elements; `ext_vector_type` and `vector_size` now both reject vectors
+  with more than 2^23 elements or larger than 2^28 bytes. (#GH165458)
 
 - The `counted_by`/`counted_by_or_null` diagnostic that rejects a pointer whose
   pointee is a struct with a flexible array member (e.g.
@@ -1011,6 +1018,8 @@ The `alpha.cplusplus.UseAfterLifetimeEnd` checker was renamed to `alpha.core.Use
 - The `holds` clause on the `assume` directive now lowers side-effect-free
   conditions to `llvm.assume`, enabling downstream optimizations. Previously
   the clause was parsed but its condition was discarded without effect.
+- Fixed a crash when the loop variable or a loop bound of an OpenMP loop has a
+  `_BitInt` type wider than any standard integer type. (#GH140074)
 
 - Added support for capturing structured bindings in OpenMP regions
   (a C++20 extension; warned as an extension in C++17). Individual bindings

@@ -482,6 +482,9 @@ MipsTargetLowering::MipsTargetLowering(const MipsTargetMachine &TM,
                        ISD::OR, ISD::ADD, ISD::SUB, ISD::AssertZext, ISD::SHL,
                        ISD::SIGN_EXTEND});
 
+  // Sink shifts into their users' blocks to expose extract patterns.
+  setHasExtractBitsInsn(Subtarget.hasExtractInsert());
+
   // Some CHERI intrinsics return i1, which isn't legal, so we have to custom
   // lower them in the DAG combine phase before the first type legalization
   // pass.

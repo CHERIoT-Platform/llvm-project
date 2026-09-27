@@ -150,6 +150,37 @@ namespace {
     return E && E->getType()->isPointerType() && tryUnwrapAllocSizeCall(E);
   }
 
+  /// Determines whether the given kind of constant expression is only ever
+  /// used for name mangling. If so, it's permitted to reference things that we
+  /// can't generate code for (in particular, dllimported functions).
+  static bool isForManglingOnly(ConstantExprKind Kind) {
+    switch (Kind) {
+    case ConstantExprKind::Normal:
+    case ConstantExprKind::ClassTemplateArgument:
+    case ConstantExprKind::ImmediateInvocation:
+      // Note that non-type template arguments of class type are emitted as
+      // template parameter objects.
+      return false;
+
+    case ConstantExprKind::NonClassTemplateArgument:
+      return true;
+    }
+    llvm_unreachable("unknown ConstantExprKind");
+  }
+
+  static bool isTemplateArgument(ConstantExprKind Kind) {
+    switch (Kind) {
+    case ConstantExprKind::Normal:
+    case ConstantExprKind::ImmediateInvocation:
+      return false;
+
+    case ConstantExprKind::ClassTemplateArgument:
+    case ConstantExprKind::NonClassTemplateArgument:
+      return true;
+    }
+    llvm_unreachable("unknown ConstantExprKind");
+  }
+
   /// The bound to claim that an array of unknown bound has.
   /// The value in MostDerivedArraySize is undefined in this case. So, set it
   /// to an arbitrary value that's likely to loudly break things if it's used.
@@ -1914,30 +1945,31 @@ static bool EvaluateIgnoredValue(EvalInfo &Info, const Expr *E) {
   return true;
 }
 
+/// Should this call expression be treated as forming an opaque constant?
+static bool IsOpaqueConstantCall(const CallExpr *E) {
+  unsigned Builtin = E->getBuiltinCallee();
+  return (Builtin == Builtin::BI__builtin___CFStringMakeConstantString ||
+          Builtin == Builtin::BI__builtin___NSStringMakeConstantString ||
+          Builtin == Builtin::BI__builtin_ptrauth_sign_constant ||
+          Builtin == Builtin::BI__builtin_function_start);
+}
+
 static bool IsOpaqueConstantCall(const LValue &LVal) {
   const auto *BaseExpr =
       llvm::dyn_cast_if_present<CallExpr>(LVal.Base.dyn_cast<const Expr *>());
-  return BaseExpr && isOpaqueConstantCall(BaseExpr);
+  return BaseExpr && IsOpaqueConstantCall(BaseExpr);
 }
 
 static bool IsGlobalLValue(APValue::LValueBase B) {
-  if (B.is<TypeInfoLValue>() || B.is<DynamicAllocLValue>())
-    return true;
-
-  return isGlobalLValue(B.dyn_cast<const ValueDecl *>(),
-                        B.dyn_cast<const Expr *>());
-}
-
-bool isGlobalLValue(const ValueDecl *D, const Expr *E) {
   // C++11 [expr.const]p3 An address constant expression is a prvalue core
   // constant expression of pointer type that evaluates to...
 
   // ... a null pointer value, or a prvalue core constant expression of type
   // std::nullptr_t.
-  if (!D && !E)
+  if (!B)
     return true;
 
-  if (D) {
+  if (const ValueDecl *D = B.dyn_cast<const ValueDecl*>()) {
     // ... the address of an object with static storage duration,
     if (const VarDecl *VD = dyn_cast<VarDecl>(D))
       return VD->hasGlobalStorage();
@@ -1949,8 +1981,10 @@ bool isGlobalLValue(const ValueDecl *D, const Expr *E) {
     return isa<FunctionDecl, MSGuidDecl, UnnamedGlobalConstantDecl>(D);
   }
 
-  assert(E);
+  if (B.is<TypeInfoLValue>() || B.is<DynamicAllocLValue>())
+    return true;
 
+  const Expr *E = B.get<const Expr*>();
   switch (E->getStmtClass()) {
   default:
     return false;
@@ -1973,7 +2007,7 @@ bool isGlobalLValue(const ValueDecl *D, const Expr *E) {
   case Expr::ObjCDictionaryLiteralClass:
     return cast<ObjCObjectLiteral>(E)->isExpressibleAsConstantInitializer();
   case Expr::CallExprClass:
-    return isOpaqueConstantCall(cast<CallExpr>(E));
+    return IsOpaqueConstantCall(cast<CallExpr>(E));
   // For GCC compatibility, &&label has static storage duration.
   case Expr::AddrLabelExprClass:
     return true;
@@ -1994,8 +2028,6 @@ bool isGlobalLValue(const ValueDecl *D, const Expr *E) {
     // an expression might be a global lvalue.
     return true;
   }
-
-  llvm_unreachable("Unhandled stmt kind in switch with default?");
 }
 
 static const ValueDecl *GetLValueBaseDecl(const LValue &LVal) {
@@ -10643,7 +10675,7 @@ static bool isOneByteCharacterType(QualType T) {
 
 bool PointerExprEvaluator::VisitBuiltinCallExpr(const CallExpr *E,
                                                 unsigned BuiltinOp) {
-  if (isOpaqueConstantCall(E))
+  if (IsOpaqueConstantCall(E))
     return Success(E);
 
   switch (BuiltinOp) {
@@ -21920,8 +21952,12 @@ static bool EvaluateAsRValue(EvalInfo &Info, const Expr *E, APValue &Result) {
   if (!CheckLiteralType(Info, E))
     return false;
 
-  if (Info.EnableNewConstInterp)
-    return Info.Ctx.getInterpContext().evaluateAsRValue(Info, E, Result);
+  if (Info.EnableNewConstInterp) {
+    if (!Info.Ctx.getInterpContext().evaluateAsRValue(Info, E, Result))
+      return false;
+    return CheckConstantExpression(Info, E->getExprLoc(), E->getType(), Result,
+                                   ConstantExprKind::Normal);
+  }
 
   if (!::Evaluate(Result, Info, E))
     return false;
@@ -22135,8 +22171,14 @@ bool Expr::EvaluateAsLValue(EvalResult &Result, const ASTContext &Ctx,
   CheckedTemporaries CheckedTemps;
 
   if (Info.EnableNewConstInterp) {
-    return Info.Ctx.getInterpContext().evaluate(Info, this, Result.Val,
-                                                ConstantExprKind::Normal);
+    if (!Info.Ctx.getInterpContext().evaluate(Info, this, Result.Val,
+                                              ConstantExprKind::Normal))
+      return false;
+
+    LV.setFrom(Ctx, Result.Val);
+    return CheckLValueConstantExpression(
+        Info, getExprLoc(), Ctx.getLValueReferenceType(getType()), LV,
+        ConstantExprKind::Normal, CheckedTemps);
   }
 
   if (!EvaluateLValue(this, LV, Info) || !Info.discardCleanups() ||
@@ -22188,8 +22230,12 @@ bool Expr::EvaluateAsConstantExpr(EvalResult &Result, const ASTContext &Ctx,
   EvalInfo Info(Ctx, Result, EM);
   Info.InConstantContext = true;
 
-  if (Info.EnableNewConstInterp)
-    return Info.Ctx.getInterpContext().evaluate(Info, this, Result.Val, Kind);
+  if (Info.EnableNewConstInterp) {
+    if (!Info.Ctx.getInterpContext().evaluate(Info, this, Result.Val, Kind))
+      return false;
+    return CheckConstantExpression(Info, getExprLoc(),
+                                   getStorageType(Ctx, this), Result.Val, Kind);
+  }
 
   // The type of the object we're initializing is 'const T' for a class NTTP.
   QualType T = getType();
@@ -22263,35 +22309,40 @@ bool Expr::EvaluateAsInitializer(const ASTContext &Ctx, const VarDecl *VD,
 
   if (Info.EnableNewConstInterp) {
     auto &InterpCtx = Ctx.getInterpContext();
-    return InterpCtx.evaluateAsInitializer(Info, VD, this, EStatus.Val);
-  }
-
-  LValue LVal;
-  LVal.set(VD);
-
-  {
-    // C++23 [intro.execution]/p5
-    // A full-expression is ... an init-declarator ([dcl.decl]) or a
-    // mem-initializer.
-    // So we need to make sure temporary objects are destroyed after having
-    // evaluated the expression (per C++23 [class.temporary]/p4).
-    //
-    // FIXME: Otherwise this may break test/Modules/pr68702.cpp because the
-    // serialization code calls ParmVarDecl::getDefaultArg() which strips the
-    // outermost FullExpr, such as ExprWithCleanups.
-    FullExpressionRAII Scope(Info);
-    if (!EvaluateInPlace(EStatus.Val, Info, LVal, this,
-                         /*AllowNonLiteralTypes=*/true) ||
-        EStatus.HasSideEffects)
+    if (!InterpCtx.evaluateAsInitializer(Info, VD, this, EStatus.Val))
       return false;
+
+    return CheckConstantExpression(Info, DeclLoc, DeclTy, EStatus.Val,
+                                   ConstantExprKind::Normal);
+  } else {
+    LValue LVal;
+    LVal.set(VD);
+
+    {
+      // C++23 [intro.execution]/p5
+      // A full-expression is ... an init-declarator ([dcl.decl]) or a
+      // mem-initializer.
+      // So we need to make sure temporary objects are destroyed after having
+      // evaluated the expression (per C++23 [class.temporary]/p4).
+      //
+      // FIXME: Otherwise this may break test/Modules/pr68702.cpp because the
+      // serialization code calls ParmVarDecl::getDefaultArg() which strips the
+      // outermost FullExpr, such as ExprWithCleanups.
+      FullExpressionRAII Scope(Info);
+      if (!EvaluateInPlace(EStatus.Val, Info, LVal, this,
+                           /*AllowNonLiteralTypes=*/true) ||
+          EStatus.HasSideEffects)
+        return false;
+    }
+
+    // At this point, any lifetime-extended temporaries are completely
+    // initialized.
+    Info.performLifetimeExtension();
+
+    if (!Info.discardCleanups())
+      llvm_unreachable("Unhandled cleanup; missing full expression marker?");
   }
 
-  // At this point, any lifetime-extended temporaries are completely
-  // initialized.
-  Info.performLifetimeExtension();
-
-  if (!Info.discardCleanups())
-    llvm_unreachable("Unhandled cleanup; missing full expression marker?");
   return CheckConstantExpression(Info, DeclLoc, DeclTy, EStatus.Val,
                                  ConstantExprKind::Normal) &&
          CheckMemoryLeaks(Info);

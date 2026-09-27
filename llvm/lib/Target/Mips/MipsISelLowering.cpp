@@ -213,7 +213,7 @@ SDValue MipsTargetLowering::getTargetNode(ConstantPoolSDNode *N, EVT Ty,
 
 MipsTargetLowering::MipsTargetLowering(const MipsTargetMachine &TM,
                                        const MipsSubtarget &STI)
-    : TargetLowering(TM, STI), Subtarget(STI), ABI(TM.getABI()) {
+    : TargetLowering(TM, STI), Subtarget(STI), ABI(STI.getABI()) {
   CapType = STI.typeForCapabilities();
   assert(cheriCapabilityType().isFatPointer());
   IsCheriPureCap = ABI.IsCheriPureCap();
@@ -550,7 +550,7 @@ FastISel *MipsTargetLowering::createFastISel(
 
   // Disable if either of the following is true:
   // We do not generate PIC, the ABI is not O32, XGOT is being used.
-  if (!TM.isPositionIndependent() || !TM.getABI().IsO32() ||
+  if (!TM.isPositionIndependent() || !Subtarget.getABI().IsO32() ||
       Subtarget.useXGOT())
     UseFastISel = false;
 

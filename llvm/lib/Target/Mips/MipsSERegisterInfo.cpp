@@ -16,7 +16,6 @@
 #include "MipsMachineFunction.h"
 #include "MipsSEInstrInfo.h"
 #include "MipsSubtarget.h"
-#include "MipsTargetMachine.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
@@ -202,8 +201,7 @@ void MipsSERegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
   MachineFrameInfo &MFI = MF.getFrameInfo();
   MipsFunctionInfo *MipsFI = MF.getInfo<MipsFunctionInfo>();
 
-  auto &TM = static_cast<const MipsTargetMachine &>(MF.getTarget());
-  MipsABIInfo ABI = TM.getABI();
+  MipsABIInfo ABI = MF.getSubtarget<MipsSubtarget>().getABI();
   const MipsRegisterInfo *RegInfo =
     static_cast<const MipsRegisterInfo *>(MF.getSubtarget().getRegisterInfo());
 
@@ -322,9 +320,9 @@ void MipsSERegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
         getLoadStoreOffsetSizeInBits(MF.getSubtarget<MipsSubtarget>(),
                                      MI.getOpcode(), MI.getOperand(OpNo - 1));
     const Align OffsetAlign(getLoadStoreOffsetAlign(MI.getOpcode()));
-    auto *STI = TM.getSubtargetImpl(MF.getFunction());
+    const auto &STI = MF.getSubtarget<MipsSubtarget>();
     const MipsSEInstrInfo &TII = *static_cast<const MipsSEInstrInfo *>(
-          STI->getInstrInfo());
+          STI.getInstrInfo());
     DebugLoc DL = II->getDebugLoc();
 
     // Convert CIncOffset <-> CIncOffsetImm depending on offset value

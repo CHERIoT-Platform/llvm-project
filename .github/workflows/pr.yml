@@ -17,7 +17,7 @@ concurrency:
 jobs:
   build-and-test:
     name: Build and test PR
-    runs-on: warp-custom-gcp-aarch64-32cpu
+    runs-on: warp-custom-fpga-builder
     timeout-minutes: 360
 
     steps:

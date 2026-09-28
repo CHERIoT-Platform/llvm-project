@@ -4199,7 +4199,7 @@ void SelectionDAGBuilder::visitAddrSpaceCast(const User &I) {
   unsigned SrcAS = SV->getType()->getPointerAddressSpace();
   unsigned DestAS = I.getType()->getPointerAddressSpace();
 
-  if (!TM.isNoopAddrSpaceCast(SrcAS, DestAS)) {
+  if (!TM.isNoopAddrSpaceCast(DAG.getDataLayout(), SrcAS, DestAS)) {
     SDNodeFlags Flags;
     if (const auto *ASC = dyn_cast<AddrSpaceCastInst>(&I))
       Flags.setNonNull(ASC->hasNonNull());

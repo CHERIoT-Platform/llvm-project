@@ -55,7 +55,8 @@ public:
     return getTargetTriple().isArch64Bit();
   }
 
-  bool isNoopAddrSpaceCast(unsigned SrcAS, unsigned DstAS) const override;
+  bool isNoopAddrSpaceCast(const DataLayout &DL, unsigned SrcAS,
+                           unsigned DstAS) const override;
 
   yaml::MachineFunctionInfo *createDefaultFuncInfoYAML() const override;
   yaml::MachineFunctionInfo *

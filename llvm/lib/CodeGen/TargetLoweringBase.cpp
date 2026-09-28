@@ -1069,9 +1069,10 @@ bool TargetLoweringBase::canOpTrap(unsigned Op, EVT VT) const {
   }
 }
 
-bool TargetLoweringBase::isFreeAddrSpaceCast(unsigned SrcAS,
+bool TargetLoweringBase::isFreeAddrSpaceCast(const DataLayout &DL,
+                                             unsigned SrcAS,
                                              unsigned DestAS) const {
-  return TM.isNoopAddrSpaceCast(SrcAS, DestAS);
+  return TM.isNoopAddrSpaceCast(DL, SrcAS, DestAS);
 }
 
 unsigned TargetLoweringBase::getBitWidthForCttzElements(

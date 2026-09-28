@@ -377,7 +377,6 @@ Register MipsRegisterInfo::
 getFrameRegister(const MachineFunction &MF) const {
   const MipsSubtarget &Subtarget = MF.getSubtarget<MipsSubtarget>();
   const TargetFrameLowering *TFI = Subtarget.getFrameLowering();
-  bool IsN64 = Subtarget.getABI().IsN64();
   auto &ABI = Subtarget.getABI();
 
   if (Subtarget.inMips16Mode())

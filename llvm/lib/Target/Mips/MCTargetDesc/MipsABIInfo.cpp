@@ -230,7 +230,7 @@ unsigned MipsABIInfo::GetGlobalCapability() const {
 
 // HACK: Update the default CFA register for CHERI purecap
 void MipsABIInfo::updateCheriInitialFrameStateHack(const MCAsmInfo &MAI,
-                                                   const MCRegisterInfo &MRI) {
+                                                   const MCRegisterInfo &MRI) const {
   if (!IsCheriPureCap()) {
     assert((MRI.getRARegister() == Mips::RA ||
             MRI.getRARegister() == Mips::RA_64) &&

@@ -251,14 +251,11 @@ void MipsFunctionInfo::initCapGlobalBaseReg(MachineFunction &MF) {
   if (!CapGlobalBaseReg)
     return;
 
-  auto &TM = static_cast<const MipsTargetMachine &>(MF.getTarget());
-  // assert(MF.getTarget().isPositionIndependent() && "CHERI CODEGEN REQUIRES -fPIC");
-
   MachineBasicBlock &MBB = MF.front();
   MachineBasicBlock::iterator I = MBB.begin();
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
   DebugLoc DL;
-  const MipsABIInfo &ABI = TM.getABI();
+  const MipsABIInfo &ABI = MF.getSubtarget<MipsSubtarget>().getABI();
 
   assert(ABI.IsCheriPureCap());
   const unsigned ABIGlobalCapReg = ABI.GetGlobalCapability();

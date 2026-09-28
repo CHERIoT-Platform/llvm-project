@@ -115,8 +115,8 @@ MipsTargetMachine::MipsTargetMachine(const Target &T, const Triple &TT,
                                getEffectiveRelocModel(JIT, RM),
                                getEffectiveCodeModel(CM, CodeModel::Small), OL),
       isLittle(isLittle),
-      ABI(MipsABIInfo::computeTargetABI(TT, Options.MCOptions.getABIName())),
-      DefaultSubtarget(TT, CPU, FS, isLittle, *this, std::nullopt),
+      DefaultSubtarget(TT, CPU, FS, Options.MCOptions.getABIName(), isLittle,
+                       *this, std::nullopt),
       TLOF(createTLOF(TT, DefaultSubtarget.useSmallSection())) {
   initAsmInfo();
 
@@ -124,7 +124,7 @@ MipsTargetMachine::MipsTargetMachine(const Target &T, const Triple &TT,
   setSupportsDebugEntryValues(true);
 
   // HACK: Update the default CFA register for CHERI purecap
-  ABI.updateCheriInitialFrameStateHack(*AsmInfo, *MRI);
+  DefaultSubtarget.getABI().updateCheriInitialFrameStateHack(*AsmInfo, *MRI);
   if (hasCheriCapabilities()) {
     assert(*DL.getStackAlignment() >= DefaultSubtarget.getCapAlignment());
     CheriCapabilitySize = DefaultSubtarget.getCapSizeInBytes();
@@ -184,10 +184,12 @@ MipsTargetMachine::getSubtargetImpl(const Function &F) const {
   if (softFloat)
     FS += FS.empty() ? "+soft-float" : ",+soft-float";
 
-  auto &I = SubtargetMap[CPU + FS];
+  StringRef ABIName = getTargetABIName(*F.getParent());
+
+  auto &I = SubtargetMap[CPU + FS + ABIName.str()];
   if (!I) {
     I = std::make_unique<MipsSubtarget>(
-        TargetTriple, CPU, FS, isLittle, *this,
+        TargetTriple, CPU, FS, ABIName, isLittle, *this,
         MaybeAlign(F.getParent()->getOverrideStackAlignment()));
   }
   return I.get();

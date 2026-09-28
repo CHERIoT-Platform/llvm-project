@@ -122,7 +122,7 @@ void MipsAsmPrinter::emitPseudoIndirectBranch(MCStreamer &OutStreamer,
   } else if (Subtarget->inMicroMipsMode())
     // microMIPS should use (JR_MM $rs)
     TmpInst0.setOpcode(Mips::JR_MM);
-  else if (static_cast<MipsTargetMachine &>(TM).getABI().IsCheriPureCap())
+  else if (Subtarget->isABI_CheriPureCap())
     // Everything else should use (JR $rs) or (CJR $rs), depending on the register.
     TmpInst0.setOpcode(
         Mips::CheriGPROrCNullRegClass.contains(MI->getOperand(0).getReg())
@@ -765,8 +765,8 @@ void MipsAsmPrinter::emitStartOfAsmFile(Module &M) {
     // for a feature string that doesn't match the default one.
     StringRef CPU = MIPS_MC::selectMipsCPU(TT, TM.getTargetCPU());
     const MipsTargetMachine &MTM = static_cast<const MipsTargetMachine &>(TM);
-    const MipsSubtarget STI(TT, CPU, StringRef(strFS), MTM.isLittleEndian(),
-                            MTM, std::nullopt);
+    const MipsSubtarget STI(TT, CPU, StringRef(strFS), MTM.getTargetABIName(M),
+                            MTM.isLittleEndian(), MTM, std::nullopt);
 
     bool IsABICalls = STI.isABICalls();
     const MipsABIInfo &ABI = STI.getABI();

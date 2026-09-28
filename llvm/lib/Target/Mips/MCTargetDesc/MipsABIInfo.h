@@ -134,7 +134,7 @@ public:
 
   // Update the initial CFA register from SP to C11 if needed
   void updateCheriInitialFrameStateHack(const MCAsmInfo &MAI,
-                                        const MCRegisterInfo &MRI);
+                                        const MCRegisterInfo &MRI) const;
 };
 }
 

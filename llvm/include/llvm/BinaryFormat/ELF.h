@@ -1373,6 +1373,12 @@ enum : unsigned {
   GRP_MASKPROC = 0xf0000000
 };
 
+// Combine a symbol's binding and type into st_info (ELF32_ST_INFO,
+// ELF64_ST_INFO).
+constexpr uint8_t getSymbolInfo(uint8_t Binding, uint8_t Type) {
+  return (Binding << 4) | (Type & 0x0f);
+}
+
 // Symbol table entries for ELF32.
 struct Elf32_Sym {
   Elf32_Word st_name;     // Symbol name (index into string table)
@@ -1389,7 +1395,7 @@ struct Elf32_Sym {
   void setBinding(unsigned char b) { setBindingAndType(b, getType()); }
   void setType(unsigned char t) { setBindingAndType(getBinding(), t); }
   void setBindingAndType(unsigned char b, unsigned char t) {
-    st_info = (b << 4) + (t & 0x0f);
+    st_info = getSymbolInfo(b, t);
   }
 };
 
@@ -1409,7 +1415,7 @@ struct Elf64_Sym {
   void setBinding(unsigned char b) { setBindingAndType(b, getType()); }
   void setType(unsigned char t) { setBindingAndType(getBinding(), t); }
   void setBindingAndType(unsigned char b, unsigned char t) {
-    st_info = (b << 4) + (t & 0x0f);
+    st_info = getSymbolInfo(b, t);
   }
 };
 

@@ -199,6 +199,7 @@ add_llvm_component_library(LLVMSupport
   DebugCounter.cpp
   DeltaAlgorithm.cpp
   DeltaTree.cpp
+  DenseMap.cpp
   DivisionByConstantInfo.cpp
   DAGDeltaAlgorithm.cpp
   DJB.cpp

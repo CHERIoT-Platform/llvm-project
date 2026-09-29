@@ -92,7 +92,7 @@ define i32 @test_clobber_c3(i32 signext %intval, ptr addrspace(200) %ptrval, ptr
 ; MIR-NEXT:   CFI_INSTRUCTION def_cfa_offset 16
 ; MIR-NEXT:   STORECAP $c3, $zero_64, 0, $c11 :: (store (s128) into %stack.0)
 ; MIR-NEXT:   $v1 = OR $a0, $zero, implicit killed $a0_64
-; MIR-NEXT:   INLINEASM &"syscall\0A", sideeffect attdialect, clobber, implicit-def dead early-clobber $a0, clobber, implicit-def early-clobber $c3, clobber, implicit-def dead early-clobber $at
+; MIR-NEXT:   INLINEASM &"syscall\0A", sideeffect attdialect, clobber, implicit-def dead early-clobber $a0, clobber, implicit-def dead early-clobber $c3, clobber, implicit-def dead early-clobber $at
 ; MIR-NEXT:   $c3 = LOADCAP $zero_64, 0, $c11 :: (load (s128) from %stack.0)
 ; MIR-NEXT:   renamable $v0 = CAPLOAD832 $zero_64, 0, killed renamable $c3 :: (volatile load (s8) from %ir.ptrval, addrspace 200)
 ; MIR-NEXT:   renamable $at = CAPLOAD832 $zero_64, 0, killed renamable $c4 :: (volatile load (s8) from %ir.ptrval2, addrspace 200)
@@ -142,7 +142,7 @@ define i32 @test_clobber_c4(i32 signext %intval, ptr addrspace(200) %ptrval, ptr
 ; MIR-NEXT:   CFI_INSTRUCTION def_cfa_offset 16
 ; MIR-NEXT:   STORECAP $c4, $zero_64, 0, $c11 :: (store (s128) into %stack.0)
 ; MIR-NEXT:   $v1 = OR $a0, $zero, implicit killed $a0_64
-; MIR-NEXT:   INLINEASM &"syscall\0A", sideeffect attdialect, clobber, implicit-def dead early-clobber $a0, clobber, implicit-def early-clobber $c4, clobber, implicit-def dead early-clobber $at
+; MIR-NEXT:   INLINEASM &"syscall\0A", sideeffect attdialect, clobber, implicit-def dead early-clobber $a0, clobber, implicit-def dead early-clobber $c4, clobber, implicit-def dead early-clobber $at
 ; MIR-NEXT:   $c4 = LOADCAP $zero_64, 0, $c11 :: (load (s128) from %stack.0)
 ; MIR-NEXT:   renamable $v0 = CAPLOAD832 $zero_64, 0, killed renamable $c3 :: (volatile load (s8) from %ir.ptrval, addrspace 200)
 ; MIR-NEXT:   renamable $at = CAPLOAD832 $zero_64, 0, killed renamable $c4 :: (volatile load (s8) from %ir.ptrval2, addrspace 200)
@@ -194,7 +194,7 @@ define i32 @test_clobber_c3_c4(i32 signext %intval, ptr addrspace(200) %ptrval, 
 ; MIR-NEXT:   STORECAP $c4, $zero_64, 0, $c11 :: (store (s128) into %stack.1)
 ; MIR-NEXT:   STORECAP $c3, $zero_64, 16, $c11 :: (store (s128) into %stack.0)
 ; MIR-NEXT:   $v1 = OR $a0, $zero, implicit killed $a0_64
-; MIR-NEXT:   INLINEASM &"syscall\0A", sideeffect attdialect, clobber, implicit-def dead early-clobber $a0, clobber, implicit-def early-clobber $c3, clobber, implicit-def early-clobber $c4, clobber, implicit-def dead early-clobber $at
+; MIR-NEXT:   INLINEASM &"syscall\0A", sideeffect attdialect, clobber, implicit-def dead early-clobber $a0, clobber, implicit-def dead early-clobber $c3, clobber, implicit-def dead early-clobber $c4, clobber, implicit-def dead early-clobber $at
 ; MIR-NEXT:   $c4 = LOADCAP $zero_64, 0, $c11 :: (load (s128) from %stack.1)
 ; MIR-NEXT:   $c3 = LOADCAP $zero_64, 16, $c11 :: (load (s128) from %stack.0)
 ; MIR-NEXT:   renamable $v0 = CAPLOAD832 $zero_64, 0, killed renamable $c3 :: (volatile load (s8) from %ir.ptrval, addrspace 200)

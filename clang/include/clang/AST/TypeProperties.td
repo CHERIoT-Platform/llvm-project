@@ -262,9 +262,12 @@ let Class = ConstantMatrixType in {
   def : Property<"numColumns", UInt32> {
     let Read = [{ node->getNumColumns() }];
   }
+  def : Property<"layout", Optional<MatrixLayoutKind>> {
+    let Read = [{ node->getLayout() }];
+  }
 
   def : Creator<[{
-    return ctx.getConstantMatrixType(elementType, numRows, numColumns);
+    return ctx.getConstantMatrixType(elementType, numRows, numColumns, layout);
   }]>;
 }
 

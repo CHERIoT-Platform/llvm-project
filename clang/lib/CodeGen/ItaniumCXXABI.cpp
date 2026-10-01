@@ -3821,6 +3821,8 @@ static bool TypeInfoIsInStandardLibrary(const BuiltinType *Ty) {
 #include "clang/Basic/AMDGPUTypes.def"
 #define HLSL_INTANGIBLE_TYPE(Name, Id, SingletonId) case BuiltinType::Id:
 #include "clang/Basic/HLSLIntangibleTypes.def"
+#define HLSL_PACKED_TYPE(Name, Id, SingletonId) case BuiltinType::Id:
+#include "clang/Basic/HLSLPackedTypes.def"
 #define SPIRV_TYPE(Name, Id, SingletonId) case BuiltinType::Id:
 #include "clang/Basic/SPIRVTypes.def"
     case BuiltinType::ShortAccum:
@@ -4821,7 +4823,19 @@ ItaniumCXXABI::RTTIUniquenessKind ItaniumCXXABI::classifyRTTIUniqueness(
 // Find out how to codegen the complete destructor and constructor
 namespace {
 enum class StructorCodegen { Emit, RAUW, Alias, COMDAT };
+} // namespace
+
+// Returns true if the complete constructor/destructor variant must be retained
+// as a distinct symbol rather than being silently replaced in the IR (RAUW).
+static bool
+structorSymbolMustBeRetained(CodeGenModule &CGM, const CXXMethodDecl *MD,
+                             llvm::GlobalValue::LinkageTypes Linkage) {
+  if (MD->hasAttr<UsedAttr>())
+    return true;
+  return CGM.getCodeGenOpts().KeepInlineFunctions && MD->isInlined() &&
+         Linkage != llvm::GlobalValue::AvailableExternallyLinkage;
 }
+
 static StructorCodegen getCodegenToUse(CodeGenModule &CGM,
                                        const CXXMethodDecl *MD) {
   if (!CGM.getCodeGenOpts().CXXCtorDtorAliases)
@@ -4841,7 +4855,8 @@ static StructorCodegen getCodegenToUse(CodeGenModule &CGM,
   }
   llvm::GlobalValue::LinkageTypes Linkage = CGM.getFunctionLinkage(AliasDecl);
 
-  if (llvm::GlobalValue::isDiscardableIfUnused(Linkage))
+  if (llvm::GlobalValue::isDiscardableIfUnused(Linkage) &&
+      !structorSymbolMustBeRetained(CGM, MD, Linkage))
     return StructorCodegen::RAUW;
 
   // FIXME: Should we allow available_externally aliases?
@@ -5352,7 +5367,7 @@ WebAssemblyCXXABI::emitTerminateForUnexpectedException(CodeGenFunction &CGF,
   // and call __clang_call_terminate only in Emscripten EH.
   // TODO Consider code transformation that makes calling __clang_call_terminate
   // in Wasm EH possible.
-  if (Exn && !EHPersonality::get(CGF).isWasmPersonality()) {
+  if (Exn && !getEHPersonality(CGF).isWasmPersonality()) {
     assert(CGF.CGM.getLangOpts().CPlusPlus);
     return CGF.EmitNounwindRuntimeCall(getClangCallTerminateFn(CGF.CGM), Exn);
   }

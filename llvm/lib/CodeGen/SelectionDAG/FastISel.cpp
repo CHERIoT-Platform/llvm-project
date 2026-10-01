@@ -1986,7 +1986,8 @@ Register FastISel::fastEmitInst_(unsigned MachineInstOpcode,
   Register ResultReg = createResultReg(RC);
   const MCInstrDesc &II = TII.get(MachineInstOpcode);
 
-  BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, II, ResultReg);
+  BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, II, ResultReg)
+      ->setImplicitPhysRegDefsDead();
   return ResultReg;
 }
 
@@ -1998,7 +1999,9 @@ Register FastISel::fastEmitInst_r(unsigned MachineInstOpcode,
   Op0 = constrainOperandRegClass(II, Op0, II.getNumDefs());
 
   assert(II.getNumDefs() >= 1 && "instruction must define the result");
-  BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, II, ResultReg).addReg(Op0);
+  BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, II, ResultReg)
+      .addReg(Op0)
+      ->setImplicitPhysRegDefsDead();
 
   return ResultReg;
 }
@@ -2015,7 +2018,8 @@ Register FastISel::fastEmitInst_rr(unsigned MachineInstOpcode,
   assert(II.getNumDefs() >= 1 && "instruction must define the result");
   BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, II, ResultReg)
       .addReg(Op0)
-      .addReg(Op1);
+      .addReg(Op1)
+      ->setImplicitPhysRegDefsDead();
   return ResultReg;
 }
 
@@ -2033,7 +2037,8 @@ Register FastISel::fastEmitInst_rrr(unsigned MachineInstOpcode,
   BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, II, ResultReg)
       .addReg(Op0)
       .addReg(Op1)
-      .addReg(Op2);
+      .addReg(Op2)
+      ->setImplicitPhysRegDefsDead();
   return ResultReg;
 }
 
@@ -2048,7 +2053,8 @@ Register FastISel::fastEmitInst_ri(unsigned MachineInstOpcode,
   assert(II.getNumDefs() >= 1 && "instruction must define the result");
   BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, II, ResultReg)
       .addReg(Op0)
-      .addImm(Imm);
+      .addImm(Imm)
+      ->setImplicitPhysRegDefsDead();
   return ResultReg;
 }
 
@@ -2064,7 +2070,8 @@ Register FastISel::fastEmitInst_rii(unsigned MachineInstOpcode,
   BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, II, ResultReg)
       .addReg(Op0)
       .addImm(Imm1)
-      .addImm(Imm2);
+      .addImm(Imm2)
+      ->setImplicitPhysRegDefsDead();
   return ResultReg;
 }
 
@@ -2077,7 +2084,8 @@ Register FastISel::fastEmitInst_f(unsigned MachineInstOpcode,
 
   assert(II.getNumDefs() >= 1 && "instruction must define the result");
   BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, II, ResultReg)
-      .addFPImm(FPImm);
+      .addFPImm(FPImm)
+      ->setImplicitPhysRegDefsDead();
   return ResultReg;
 }
 
@@ -2094,7 +2102,8 @@ Register FastISel::fastEmitInst_rri(unsigned MachineInstOpcode,
   BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, II, ResultReg)
       .addReg(Op0)
       .addReg(Op1)
-      .addImm(Imm);
+      .addImm(Imm)
+      ->setImplicitPhysRegDefsDead();
   return ResultReg;
 }
 
@@ -2104,7 +2113,9 @@ Register FastISel::fastEmitInst_i(unsigned MachineInstOpcode,
   const MCInstrDesc &II = TII.get(MachineInstOpcode);
 
   assert(II.getNumDefs() >= 1 && "instruction must define the result");
-  BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, II, ResultReg).addImm(Imm);
+  BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, II, ResultReg)
+      .addImm(Imm)
+      ->setImplicitPhysRegDefsDead();
   return ResultReg;
 }
 

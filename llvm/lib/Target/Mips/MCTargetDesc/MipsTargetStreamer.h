@@ -57,6 +57,8 @@ public:
   virtual void emitDirectiveSetNoVirt();
   virtual void emitDirectiveSetGINV();
   virtual void emitDirectiveSetNoGINV();
+  virtual void emitDirectiveSetEVA();
+  virtual void emitDirectiveSetNoEVA();
   virtual void emitDirectiveSetAt();
   virtual void emitDirectiveSetAtWithArg(unsigned RegNo);
   virtual void emitDirectiveSetNoAt();
@@ -249,6 +251,8 @@ public:
   void emitDirectiveSetNoVirt() override;
   void emitDirectiveSetGINV() override;
   void emitDirectiveSetNoGINV() override;
+  void emitDirectiveSetEVA() override;
+  void emitDirectiveSetNoEVA() override;
   void emitDirectiveSetAt() override;
   void emitDirectiveSetAtWithArg(unsigned RegNo) override;
   void emitDirectiveSetNoAt() override;

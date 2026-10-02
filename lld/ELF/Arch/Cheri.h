@@ -324,15 +324,15 @@ inline void readOnlyCapRelocsError(Ctx &ctx, Symbol &sym, const Twine &sourceMsg
 // globals section for a given compartment, with bounds set to include all of
 // that compartment's globals.  Calculate the address of the symbol relative
 // to the middle of $cgp.
-inline uint64_t getBiasedCGPOffset(Ctx &ctx, const Symbol &sym)
-{
+inline uint64_t getBiasedCGPOffset(Ctx &ctx, const Symbol &sym,
+                                   int64_t addend) {
   auto *OutputSection = sym.getOutputSection();
   if (!OutputSection)
     fatal("Unable to compute bias for CGP-relative relocation"
           " against symbol " + sym.getName() +
           " which does not appear in any section");
   uint64_t CGP = OutputSection->addr + OutputSection->size / 2;
-  return sym.getVA(ctx) - CGP;
+  return sym.getVA(ctx) + addend - CGP;
 }
 
 /// CHERIoT relocations apply differently depending on whether the target is
@@ -356,9 +356,9 @@ inline bool isPCCRelative(Ctx &ctx, const uint8_t *loc, const Symbol *sym) {
 
 // Same with getBiasedCGPOffset(), but we only care about the bottom 12 bits
 // to be used by COMPARTMENT_CGPREL_LO
-inline uint64_t getBiasedCGPOffsetLo12(Ctx &ctx, const Symbol &sym)
-{
-  int64_t Displacement = getBiasedCGPOffset(ctx, sym);
+inline uint64_t getBiasedCGPOffsetLo12(Ctx &ctx, const Symbol &sym,
+                                       int64_t addend) {
+  int64_t Displacement = getBiasedCGPOffset(ctx, sym, addend);
   uint64_t mask = Displacement < 0 ? -1 : 0;
   return (mask << 11) | (Displacement & ((1L << 11) - 1));
 }

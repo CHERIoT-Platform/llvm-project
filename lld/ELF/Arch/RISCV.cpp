@@ -1419,8 +1419,8 @@ static void relaxHi20Lo12(Ctx &ctx, const InputSection &sec, size_t i,
 // Relax auicgp + cincoffset/memop to cincoffset/memop cgp
 static void relaxCGP(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
                      Relocation &r, uint32_t &remove) {
-  uint64_t hival =
-      getBiasedCGPOffset(ctx, *r.sym) - getBiasedCGPOffsetLo12(ctx, *r.sym);
+  uint64_t hival = getBiasedCGPOffset(ctx, *r.sym, r.addend) -
+                   getBiasedCGPOffsetLo12(ctx, *r.sym, r.addend);
 
   if (hival != 0) {
     if (!ctx.shouldRelaxAuicgpToCapTable)
@@ -1448,14 +1448,25 @@ static void relaxCGP(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
       sec.relaxAux->writes.push_back(clc);
       break;
     }
-    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I:
-    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S: {
+    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_I: {
       // CLW rd, ra, lo(sym+off) -> CLW rd, ra, off
       sec.relaxAux->relocTypes[i] = R_RISCV_32;
       uint32_t insn = read32le(sec.content().data() + r.offset);
       int32_t addend = r.addend;
       addend <<= 20;
       insn |= addend;
+      sec.relaxAux->writes.push_back(insn);
+      break;
+    }
+    case INTERNAL_RISCV_CHERIOT1_COMPARTMENT_LO_S: {
+      // CSW rd, ra, lo(sym+off) -> CSW rd, ra, off
+      sec.relaxAux->relocTypes[i] = R_RISCV_32;
+      uint32_t insn = read32le(sec.content().data() + r.offset);
+      int32_t addend = r.addend;
+      addend <<= 20;
+      // S-type instructions split the immediate into two fields.
+      insn |= (addend >> 5) << 25;
+      insn |= (addend & 0x1F) << 7;
       sec.relaxAux->writes.push_back(insn);
       break;
     }

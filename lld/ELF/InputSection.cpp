@@ -1112,10 +1112,10 @@ uint64_t InputSectionBase::getRelocTargetVA(Ctx &ctx, const Relocation &r,
   case RE_CHERIOT1_COMPARTMENT_CGPREL_LO:
     assert(!isPCCRelative(ctx, nullptr, r.sym) &&
            "Malformed RE_CHERIOT_COMPARTMENT_CGPREL_LO relocation!");
-    return getBiasedCGPOffsetLo12(ctx, *r.sym);
+    return getBiasedCGPOffsetLo12(ctx, *r.sym, r.addend);
   case RE_CHERIOT1_COMPARTMENT_CGPREL_HI:
-    return (getBiasedCGPOffset(ctx, *r.sym) -
-            getBiasedCGPOffsetLo12(ctx, *r.sym)) >>
+    return (getBiasedCGPOffset(ctx, *r.sym, r.addend) -
+            getBiasedCGPOffsetLo12(ctx, *r.sym, r.addend)) >>
            11;
   case RE_CHERIOT1_COMPARTMENT_SIZE:
     return r.sym->getSize(ctx);

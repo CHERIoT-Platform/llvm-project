@@ -1488,7 +1488,7 @@ static void relaxCGP(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
       // CLW rd, ra, lo(sym+off) -> CLW rd, ra, off
       sec.relaxAux->relocTypes[i] = R_RISCV_32;
       uint32_t insn = read32le(sec.content().data() + r.offset);
-      int32_t addend = r.addend;
+      uint32_t addend = r.addend;
       addend <<= 20;
       insn |= addend;
       sec.relaxAux->writes.push_back(insn);
@@ -1498,8 +1498,7 @@ static void relaxCGP(Ctx &ctx, const InputSection &sec, size_t i, uint64_t loc,
       // CSW rd, ra, lo(sym+off) -> CSW rd, ra, off
       sec.relaxAux->relocTypes[i] = R_RISCV_32;
       uint32_t insn = read32le(sec.content().data() + r.offset);
-      int32_t addend = r.addend;
-      addend <<= 20;
+      uint32_t addend = r.addend;
       // S-type instructions split the immediate into two fields.
       insn |= (addend >> 5) << 25;
       insn |= (addend & 0x1F) << 7;

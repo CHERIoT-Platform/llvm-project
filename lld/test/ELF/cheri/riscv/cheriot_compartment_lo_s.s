@@ -23,7 +23,7 @@
 # CHECK:      000110f8 <.CGP_BLOCK>:
 # CHECK-NEXT: 110f8: 00000317      ct.auipcc t1, 0x0
 # CHECK-NEXT: 110fc: 02033303      ct.clc  t1, 0x20(t1)
-# CHECK-NEXT: 11100: 00132023      ct.csw  ra, 0x0(t1)
+# CHECK-NEXT: 11100: 00132223      ct.csw  ra, 0x4(t1)
 
 # CHECK:      00011104 <.CGP_MID_BLOCK>:
 # CHECK-NEXT: 11104: 0011a323      ct.csw ra, 0x6(gp)
@@ -31,7 +31,7 @@
 # CHECK:      00011108 <.CGP_FAR_BLOCK>:
 # CHECK-NEXT: 11108: 00000317      ct.auipcc t1, 0x0
 # CHECK-NEXT: 1110c: 01833303      ct.clc  t1, 0x18(t1)
-# CHECK-NEXT: 11110: 00132023      ct.csw  ra, 0x0(t1)
+# CHECK-NEXT: 11110: 00132623      ct.csw  ra, 0xc(t1)
 
 .section        .data,"aw",@progbits
 .type   cgp_label,@object

@@ -711,6 +711,7 @@ void LinkerDriver::linkerMain(ArrayRef<const char *> argsArr) {
     }
   }
 
+  initLLVM();
   readConfigs(ctx, args);
   checkZOptions(ctx, args);
 
@@ -728,7 +729,6 @@ void LinkerDriver::linkerMain(ArrayRef<const char *> argsArr) {
   {
     llvm::TimeTraceScope timeScope("ExecuteLinker");
 
-    initLLVM();
     createFiles(args);
     if (errCount(ctx))
       return;
@@ -1397,6 +1397,8 @@ static void parseClangOption(Ctx &ctx, StringRef opt, const Twine &msg) {
   raw_string_ostream os(err);
 
   const char *argv[] = {ctx.arg.progName.data(), opt.data()};
+  // Called after initLLVM() to ensure target-specific RegisterLibraryOptions
+  // have been called.
   if (cl::ParseCommandLineOptions(2, argv, "", &os))
     return;
   ErrAlways(ctx) << msg << ": " << StringRef(err).trim();

@@ -1290,10 +1290,10 @@ void RISCVFrameLowering::emitPrologue(MachineFunction &MF,
       }
 
       const RISCVInstrInfo *TII = STI.getInstrInfo();
-      if (isInt<12>(-(int)MaxAlignment.value())) {
+      if (isInt<12>(-(int64_t)MaxAlignment.value())) {
         BuildMI(MBB, MBBI, DL, TII->get(RISCV::ANDI), SPAddrDstReg)
             .addReg(SPAddrSrcReg)
-            .addImm(-(int)MaxAlignment.value())
+            .addImm(-(int64_t)MaxAlignment.value())
             .setMIFlag(MachineInstr::FrameSetup);
       } else {
         unsigned ShiftAmount = Log2(MaxAlignment);

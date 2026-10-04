@@ -16,7 +16,6 @@ define void @call_memset(ptr addrspace(200) align 4 %dst) nounwind {
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 40
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -28,7 +27,6 @@ define void @call_memset(ptr addrspace(200) align 4 %dst) nounwind {
 ; HYBRID-NEXT:    sw ra, 12(sp) # 4-byte Folded Spill
 ; HYBRID-NEXT:    li a2, 40
 ; HYBRID-NEXT:    li a1, 0
-; HYBRID-NEXT:    li a3, 0
 ; HYBRID-NEXT:    call memset_c
 ; HYBRID-NEXT:    lw ra, 12(sp) # 4-byte Folded Reload
 ; HYBRID-NEXT:    addi sp, sp, 16
@@ -44,7 +42,6 @@ define void @call_memcpy(ptr addrspace(200) align 4 %dst, ptr addrspace(200) ali
 ; PURECAP-NEXT:    cincoffset sp, sp, -16
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 40
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memcpy
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -55,7 +52,6 @@ define void @call_memcpy(ptr addrspace(200) align 4 %dst, ptr addrspace(200) ali
 ; HYBRID-NEXT:    addi sp, sp, -16
 ; HYBRID-NEXT:    sw ra, 12(sp) # 4-byte Folded Spill
 ; HYBRID-NEXT:    li a2, 40
-; HYBRID-NEXT:    li a3, 0
 ; HYBRID-NEXT:    call memcpy_c
 ; HYBRID-NEXT:    lw ra, 12(sp) # 4-byte Folded Reload
 ; HYBRID-NEXT:    addi sp, sp, 16
@@ -71,7 +67,6 @@ define void @call_memmove(ptr addrspace(200) align 4 %dst, ptr addrspace(200) al
 ; PURECAP-NEXT:    cincoffset sp, sp, -16
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 40
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memmove
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -82,7 +77,6 @@ define void @call_memmove(ptr addrspace(200) align 4 %dst, ptr addrspace(200) al
 ; HYBRID-NEXT:    addi sp, sp, -16
 ; HYBRID-NEXT:    sw ra, 12(sp) # 4-byte Folded Spill
 ; HYBRID-NEXT:    li a2, 40
-; HYBRID-NEXT:    li a3, 0
 ; HYBRID-NEXT:    call memmove_c
 ; HYBRID-NEXT:    lw ra, 12(sp) # 4-byte Folded Reload
 ; HYBRID-NEXT:    addi sp, sp, 16

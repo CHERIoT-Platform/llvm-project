@@ -44,7 +44,6 @@ define void @zero65(ptr addrspace(200) nocapture %out) local_unnamed_addr nounwi
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 65
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -61,7 +60,6 @@ define void @zero66(ptr addrspace(200) nocapture %out) local_unnamed_addr nounwi
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 66
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -78,7 +76,6 @@ define void @zero67(ptr addrspace(200) nocapture %out) local_unnamed_addr nounwi
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 67
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -95,7 +92,6 @@ define void @zero68(ptr addrspace(200) nocapture %out) local_unnamed_addr nounwi
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 68
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -112,7 +108,6 @@ define void @zero69(ptr addrspace(200) nocapture %out) local_unnamed_addr nounwi
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 69
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -129,7 +124,6 @@ define void @zero70(ptr addrspace(200) nocapture %out) local_unnamed_addr nounwi
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 70
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -146,7 +140,6 @@ define void @zero71(ptr addrspace(200) nocapture %out) local_unnamed_addr nounwi
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 71
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -163,7 +156,6 @@ define void @zero72(ptr addrspace(200) nocapture %out) local_unnamed_addr nounwi
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 72
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -180,7 +172,6 @@ define void @zero73(ptr addrspace(200) nocapture %out) local_unnamed_addr nounwi
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 73
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -197,7 +188,6 @@ define void @zero74(ptr addrspace(200) nocapture %out) local_unnamed_addr nounwi
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 74
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -214,7 +204,6 @@ define void @zero75(ptr addrspace(200) nocapture %out) local_unnamed_addr nounwi
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 75
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -231,7 +220,6 @@ define void @zero76(ptr addrspace(200) nocapture %out) local_unnamed_addr nounwi
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 76
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -248,7 +236,6 @@ define void @zero77(ptr addrspace(200) nocapture %out) local_unnamed_addr nounwi
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 77
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -265,7 +252,6 @@ define void @zero78(ptr addrspace(200) nocapture %out) local_unnamed_addr nounwi
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 78
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16
@@ -282,7 +268,6 @@ define void @zero79(ptr addrspace(200) nocapture %out) local_unnamed_addr nounwi
 ; PURECAP-NEXT:    csc ra, 8(sp) # 8-byte Folded Spill
 ; PURECAP-NEXT:    li a2, 79
 ; PURECAP-NEXT:    li a1, 0
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memset
 ; PURECAP-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; PURECAP-NEXT:    cincoffset sp, sp, 16

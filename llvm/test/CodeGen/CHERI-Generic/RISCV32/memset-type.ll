@@ -34,7 +34,6 @@ define void @align64_nonzero_value(ptr addrspace(200) nocapture %out) addrspace(
 ; CHECK-NEXT:    .cfi_offset ra, -8
 ; CHECK-NEXT:    li a1, 1
 ; CHECK-NEXT:    li a2, 36
-; CHECK-NEXT:    li a3, 0
 ; CHECK-NEXT:    ccall memset
 ; CHECK-NEXT:    clc ra, 8(sp) # 8-byte Folded Reload
 ; CHECK-NEXT:    .cfi_restore ra

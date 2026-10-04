@@ -30,7 +30,6 @@ define cheriot_compartmentcalleecc void @test(ptr addrspace(200) sret(%struct.No
 ; CHECK-NEXT:    ct.csc ra, 8(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    lui a2, 2
 ; CHECK-NEXT:    li a1, 0
-; CHECK-NEXT:    li a3, 0
 ; CHECK-NEXT:  .LBB0_7: # %entry
 ; CHECK-NEXT:    # Label of block must be emitted
 ; CHECK-NEXT:    ct.auipcc t2, %cheriot_compartment_code_hi(__library_import_libcalls_memset)

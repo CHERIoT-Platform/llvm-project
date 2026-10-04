@@ -34,7 +34,6 @@ define i32 @fn1() local_unnamed_addr #0 {
 ; PURECAP-NEXT:    clc a1, %pcrel_lo(.LBB0_1)(a1)
 ; PURECAP-NEXT:    lui a2, 1
 ; PURECAP-NEXT:    cmove a0, s1
-; PURECAP-NEXT:    li a3, 0
 ; PURECAP-NEXT:    ccall memcpy
 ; PURECAP-NEXT:    cincoffset a0, sp, 128
 ; PURECAP-NEXT:    lui a2, 1

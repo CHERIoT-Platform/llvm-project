@@ -26,6 +26,7 @@ namespace llvm {
 
 class MipsTargetMachine : public CodeGenTargetMachineImpl {
   bool isLittle;
+  bool IsJIT;
   // Used to initialize module-wide object-file policy.
   MipsSubtarget DefaultSubtarget;
   std::unique_ptr<TargetLoweringObjectFile> TLOF;
@@ -71,6 +72,8 @@ public:
   }
 
   bool isLittleEndian() const { return isLittle; }
+  bool isJIT() const { return IsJIT; }
+
   unsigned getCheriCapabilitySize() const { return CheriCapabilitySize; }
 };
 

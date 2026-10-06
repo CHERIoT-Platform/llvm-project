@@ -1942,8 +1942,7 @@ void LoopIdiomRecognize::optimizeCRCLoopUsingTableLookup(
       return LoByte(Builder, Op, Name + ".lo.byte");
     };
 
-    IRBuilder<> Builder(CurLoop->getHeader(),
-                        CurLoop->getHeader()->getFirstNonPHIIt());
+    IRBuilder<> Builder(CurLoop->getHeader()->getFirstNonPHIIt());
 
     // Create the CRC PHI, and initialize its incoming value to the initial
     // value of CRC.

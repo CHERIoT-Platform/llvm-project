@@ -113,6 +113,15 @@ RISCVSelectionDAGInfo::~RISCVSelectionDAGInfo() = default;
 
 void RISCVSelectionDAGInfo::verifyTargetNode(const SelectionDAG &DAG,
                                              const SDNode *N) const {
+
+  switch (N->getOpcode()) {
+  case RISCVISD::CLLC:
+  case RISCVISD::LOAD_TGOT:
+  case RISCVISD::CLGC:
+    // Default SDTCisPtrTy checking doesn't handle
+    return;
+  }
+
   SelectionDAGGenTargetInfo::verifyTargetNode(DAG, N);
 
 #ifndef NDEBUG

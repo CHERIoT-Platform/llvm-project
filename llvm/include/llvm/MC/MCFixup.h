@@ -20,14 +20,18 @@ class MCExpr;
 
 /// Extensible enumeration to represent the type of a fixup.
 using MCFixupKind = uint16_t;
+
+// [0, FirstLiteralRelocationKind) encodes raw relocation types.
+//
+// [FirstLiteralRelocationKind, FK_NONE) encodes raw relocation types coming
+// from .reloc directives. Fixup kind FirstLiteralRelocationKind+t encodes
+// relocation type t.
+//
+// The range boundaries are not enumerators, so that arithmetic with ELF::R_*
+// or target fixup enumerators does not mix enumeration types.
+constexpr MCFixupKind FirstLiteralRelocationKind = 2000;
+
 enum {
-  // [0, FirstLiteralRelocationKind) encodes raw relocation types.
-
-  // [FirstLiteralRelocationKind, FK_NONE) encodes raw relocation types coming
-  // from .reloc directives. Fixup kind
-  // FirstLiteralRelocationKind+t encodes relocation type t.
-  FirstLiteralRelocationKind = 2000,
-
   // Other kinds indicate the fixup may resolve to a constant, allowing the
   // assembler to update the instruction or data directly without a relocation.
   FK_NONE = 4000, ///< A no-op fixup.
@@ -43,9 +47,9 @@ enum {
   FK_Cap_8,       ///< A eight-byte capability fixup.
   FK_Cap_16,      ///< A sixteen-byte capability fixup.
   FK_Cap_32,      ///< A thirty-two-byte capability fixup.
-
-  FirstTargetFixupKind,
 };
+
+constexpr MCFixupKind FirstTargetFixupKind = FK_Cap_32 + 1;
 
 /// Encode information on a single operation to perform on a byte
 /// sequence (e.g., an encoded instruction) which requires assemble- or run-

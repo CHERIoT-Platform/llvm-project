@@ -176,6 +176,13 @@ public:
   BasicBlock::iterator GetInsertPoint() const { return InsertPt; }
   LLVMContext &getContext() const { return Context; }
 
+  /// Get data layout. Requires that an insertion point is set and connected
+  /// to a module.
+  const DataLayout &getDataLayout() const {
+    assert(BB && "Must have insertion point to get data layout");
+    return BB->getDataLayout();
+  }
+
   /// This specifies that created instructions should be appended to the
   /// end of the specified block.
   void SetInsertPoint(BasicBlock *TheBB) {
@@ -194,7 +201,7 @@ public:
 
   /// This specifies that created instructions should be inserted at the
   /// specified point.
-  // TODO: Deprecate this method.
+  [[deprecated("Use the overload without BasicBlock argument instead")]]
   void SetInsertPoint(BasicBlock *TheBB, BasicBlock::iterator IP) {
     SetInsertPoint(IP);
   }
@@ -1141,7 +1148,7 @@ public:
 
   /// Create a call to llvm.stacksave
   CallInst *CreateStackSave(const Twine &Name = "") {
-    const DataLayout &DL = BB->getDataLayout();
+    const DataLayout &DL = getDataLayout();
     return CreateIntrinsicWithoutFolding(Intrinsic::stacksave,
                                          {DL.getAllocaPtrType(Context)}, {},
                                          nullptr, Name);
@@ -1886,14 +1893,14 @@ public:
 
   AllocaInst *CreateAlloca(Type *Ty, unsigned AddrSpace,
                            Value *ArraySize = nullptr, const Twine &Name = "") {
-    const DataLayout &DL = BB->getDataLayout();
+    const DataLayout &DL = getDataLayout();
     Align AllocaAlign = DL.getPrefTypeAlign(Ty);
     return Insert(new AllocaInst(Ty, AddrSpace, ArraySize, AllocaAlign), Name);
   }
 
   AllocaInst *CreateAlloca(Type *Ty, Value *ArraySize = nullptr,
                            const Twine &Name = "") {
-    const DataLayout &DL = BB->getDataLayout();
+    const DataLayout &DL = getDataLayout();
     Align AllocaAlign = DL.getPrefTypeAlign(Ty);
     unsigned AddrSpace = DL.getAllocaAddrSpace();
     return Insert(new AllocaInst(Ty, AddrSpace, ArraySize, AllocaAlign), Name);
@@ -1914,7 +1921,6 @@ public:
   LoadInst *CreateLoad(Type *Ty, Value *Ptr, const char *Name) {
     return CreateAlignedLoad(Ty, Ptr, MaybeAlign(), Name);
   }
-
   LoadInst *CreateLoad(Type *Ty, Value *Ptr, const Twine &Name = "") {
     return CreateAlignedLoad(Ty, Ptr, MaybeAlign(), Name);
   }
@@ -1952,7 +1958,7 @@ public:
   LoadInst *CreateAlignedLoad(Type *Ty, Value *Ptr, MaybeAlign Align,
                               bool isVolatile, const Twine &Name = "") {
     if (!Align) {
-      const DataLayout &DL = BB->getDataLayout();
+      const DataLayout &DL = getDataLayout();
       Align = DL.getABITypeAlign(Ty);
     }
     return Insert(new LoadInst(Ty, Ptr, Twine(), isVolatile, *Align), Name);
@@ -1961,7 +1967,7 @@ public:
   StoreInst *CreateAlignedStore(Value *Val, Value *Ptr, MaybeAlign Align,
                                 bool isVolatile = false) {
     if (!Align) {
-      const DataLayout &DL = BB->getDataLayout();
+      const DataLayout &DL = getDataLayout();
       Align = DL.getABITypeAlign(Val->getType());
     }
     return Insert(new StoreInst(Val, Ptr, isVolatile, *Align));
@@ -1978,7 +1984,7 @@ public:
                       AtomicOrdering FailureOrdering,
                       SyncScope::ID SSID = SyncScope::System) {
     if (!Align) {
-      const DataLayout &DL = BB->getDataLayout();
+      const DataLayout &DL = getDataLayout();
       Align = llvm::Align(DL.getTypeStoreSize(New->getType()));
     }
 
@@ -1992,7 +1998,7 @@ public:
                                  SyncScope::ID SSID = SyncScope::System,
                                  bool Elementwise = false) {
     if (!Align) {
-      const DataLayout &DL = BB->getDataLayout();
+      const DataLayout &DL = getDataLayout();
       Align = llvm::Align(DL.getTypeStoreSize(Val->getType()));
     }
 
@@ -2019,7 +2025,7 @@ public:
   Value *CreateGEP(Type *Ty, Value *Ptr, ArrayRef<Value *> IdxList,
                    const Twine &Name = "",
                    GEPNoWrapFlags NW = GEPNoWrapFlags::none()) {
-    if (auto *V = Folder.FoldGEP(BB->getDataLayout(), Ty, Ptr, IdxList, NW))
+    if (auto *V = Folder.FoldGEP(getDataLayout(), Ty, Ptr, IdxList, NW))
       return V;
     return Insert(GetElementPtrInst::Create(Ty, Ptr, IdxList, NW), Name);
   }
@@ -2236,7 +2242,7 @@ public:
   }
   Value *CreatePtrToAddr(Value *V, const Twine &Name = "") {
     return CreateCast(Instruction::PtrToAddr, V,
-                      BB->getDataLayout().getAddressType(V->getType()), Name);
+                      getDataLayout().getAddressType(V->getType()), Name);
   }
   Value *CreatePtrToInt(Value *V, Type *DestTy,
                         const Twine &Name = "") {
@@ -2946,16 +2952,36 @@ public:
     SetInsertPoint(IP);
   }
 
-  // TODO: Remove BasicBlock argument.
+  [[deprecated("Use the overload without BasicBlock argument instead")]]
   IRBuilder(BasicBlock *TheBB, BasicBlock::iterator IP, FolderTy Folder)
       : IRBuilderBase(TheBB->getContext(), this->Folder, this->Inserter),
         Folder(Folder) {
     SetInsertPoint(IP);
   }
 
-  // TODO: Remove BasicBlock argument.
+  [[deprecated("Use the overload without BasicBlock argument instead")]]
   IRBuilder(BasicBlock *TheBB, BasicBlock::iterator IP)
       : IRBuilderBase(TheBB->getContext(), this->Folder, this->Inserter) {
+    SetInsertPoint(IP);
+  }
+
+  IRBuilder(BasicBlock::iterator IP, FolderTy Folder, InserterTy Inserter)
+      : IRBuilderBase(IP.getNodeParent()->getContext(), this->Folder,
+                      this->Inserter),
+        Folder(Folder), Inserter(Inserter) {
+    SetInsertPoint(IP);
+  }
+
+  IRBuilder(BasicBlock::iterator IP, FolderTy Folder)
+      : IRBuilderBase(IP.getNodeParent()->getContext(), this->Folder,
+                      this->Inserter),
+        Folder(Folder) {
+    SetInsertPoint(IP);
+  }
+
+  explicit IRBuilder(BasicBlock::iterator IP)
+      : IRBuilderBase(IP.getNodeParent()->getContext(), this->Folder,
+                      this->Inserter) {
     SetInsertPoint(IP);
   }
 
@@ -2978,6 +3004,12 @@ IRBuilder(Instruction *) -> IRBuilder<>;
 template <typename FolderTy>
 IRBuilder(BasicBlock *, BasicBlock::iterator, FolderTy) -> IRBuilder<FolderTy>;
 IRBuilder(BasicBlock *, BasicBlock::iterator) -> IRBuilder<>;
+template <typename FolderTy, typename InserterTy>
+IRBuilder(BasicBlock::iterator, FolderTy, InserterTy)
+    -> IRBuilder<FolderTy, InserterTy>;
+template <typename FolderTy>
+IRBuilder(BasicBlock::iterator, FolderTy) -> IRBuilder<FolderTy>;
+IRBuilder(BasicBlock::iterator) -> IRBuilder<>;
 
 // Create wrappers for C Binding types (see CBindingWrapping.h).
 DEFINE_SIMPLE_CONVERSION_FUNCTIONS(IRBuilder<>, LLVMBuilderRef)

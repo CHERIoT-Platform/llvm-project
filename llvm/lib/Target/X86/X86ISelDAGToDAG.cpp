@@ -41,16 +41,6 @@ using namespace llvm;
 
 STATISTIC(NumLoadMoved, "Number of loads moved below TokenFactor");
 
-static cl::opt<bool> AndImmShrink("x86-and-imm-shrink", cl::init(true),
-    cl::desc("Enable setting constant bits to reduce size of mask immediates"),
-    cl::Hidden);
-
-static cl::opt<bool> EnablePromoteAnyextLoad(
-    "x86-promote-anyext-load", cl::init(true),
-    cl::desc("Enable promoting aligned anyext load to wider load"), cl::Hidden);
-
-extern cl::opt<bool> IndirectBranchTracking;
-
 //===----------------------------------------------------------------------===//
 //                      Pattern Matcher Implementation
 //===----------------------------------------------------------------------===//
@@ -1020,7 +1010,8 @@ void X86DAGToDAGISel::PreprocessISelDAG() {
         Metadata *CFProtectionBranch =
             MF->getFunction().getParent()->getModuleFlag(
                 "cf-protection-branch");
-        if (CFProtectionBranch || IndirectBranchTracking) {
+        if (CFProtectionBranch ||
+            Subtarget->getCLOpts().indirect_branch_tracking) {
           SDLoc dl(N);
           uint64_t ComplementImm =
               (~Imm) & maskTrailingOnes<uint64_t>(VT.getSizeInBits());
@@ -5817,7 +5808,7 @@ void X86DAGToDAGISel::Select(SDNode *Node) {
     }
     if (matchBitExtract(Node))
       return;
-    if (AndImmShrink && shrinkAndImmediate(Node))
+    if (Subtarget->getCLOpts().and_imm_shrink && shrinkAndImmediate(Node))
       return;
 
     [[fallthrough]];

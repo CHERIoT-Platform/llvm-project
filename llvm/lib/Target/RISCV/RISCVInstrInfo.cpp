@@ -3914,7 +3914,8 @@ static bool cannotInsertTailCall(const MachineBasicBlock &MBB) {
 }
 
 static Register findRegisterToSaveX5To(outliner::Candidate &C,
-                                       const TargetRegisterInfo &TRI) {
+                                       const TargetRegisterInfo &TRI,
+                                       bool IsRVY) {
   // Candidate registers for saving X5: t1-t6
   static const MCPhysReg TempRegs[] = {
       RISCV::X6,  // t1
@@ -3929,6 +3930,10 @@ static Register findRegisterToSaveX5To(outliner::Candidate &C,
   const MachineRegisterInfo &MRI = MF->getRegInfo();
 
   for (MCPhysReg Reg : TempRegs) {
+    if (IsRVY) {
+      Reg = TRI.getMatchingSuperReg(Reg, RISCV::sub_cap_addr,
+                                    &RISCV::YGPRRegClass);
+    }
     if (MRI.isReserved(Reg))
       continue;
 
@@ -3976,7 +3981,9 @@ bool RISCVInstrInfo::analyzeCandidate(outliner::Candidate &C) const {
     return false;
 
   // Otherwise, try to save X5 into t1-t6 (MachineOutlinerRegSave).
-  if (OutlinerEnableRegSave && findRegisterToSaveX5To(C, RegInfo))
+  bool IsPurecap = RISCVABI::isCheriPureCapABI(
+      C.getMF()->getSubtarget<RISCVSubtarget>().getTargetABI());
+  if (OutlinerEnableRegSave && findRegisterToSaveX5To(C, RegInfo, IsPurecap))
     return false;
 
   return true;
@@ -4145,13 +4152,18 @@ MachineBasicBlock::iterator RISCVInstrInfo::insertOutlinedCall(
   }
 
   if (C.CallConstructionID == MachineOutlinerRegSave) {
-    Register SaveReg = findRegisterToSaveX5To(C, RegInfo);
+    Register SaveReg = findRegisterToSaveX5To(C, RegInfo, IsPurecap);
     assert(SaveReg && "Cannot find an available register to save/restore X5.");
 
     // Save: ADDI SaveReg, X5, 0 (equivalent to MV SaveReg, X5)
-    It = MBB.insert(It, BuildMI(MF, DebugLoc(), get(RISCV::ADDI), SaveReg)
-                            .addReg(RISCV::X5)
-                            .addImm(0));
+    if (IsPurecap) {
+      It = MBB.insert(It, BuildMI(MF, DebugLoc(), get(RISCV::CMove), SaveReg)
+                              .addReg(RISCV::X5_Y));
+    } else {
+      It = MBB.insert(It, BuildMI(MF, DebugLoc(), get(RISCV::ADDI), SaveReg)
+                              .addReg(RISCV::X5)
+                              .addImm(0));
+    }
     It++;
 
     // Call: PseudoCALLReg X5
@@ -4165,9 +4177,15 @@ MachineBasicBlock::iterator RISCVInstrInfo::insertOutlinedCall(
     It++;
 
     // Restore: ADDI X5, SaveReg, 0 (equivalent to MV X5, SaveReg)
-    It = MBB.insert(It, BuildMI(MF, DebugLoc(), get(RISCV::ADDI), RISCV::X5)
-                            .addReg(SaveReg)
-                            .addImm(0));
+    if (IsPurecap) {
+      It =
+          MBB.insert(It, BuildMI(MF, DebugLoc(), get(RISCV::CMove), RISCV::X5_Y)
+                             .addReg(SaveReg));
+    } else {
+      It = MBB.insert(It, BuildMI(MF, DebugLoc(), get(RISCV::ADDI), RISCV::X5)
+                              .addReg(SaveReg)
+                              .addImm(0));
+    }
 
     return CallPt;
   }

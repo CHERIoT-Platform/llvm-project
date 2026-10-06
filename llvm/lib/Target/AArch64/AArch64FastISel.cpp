@@ -3853,6 +3853,9 @@ bool AArch64FastISel::selectRet(const Instruction *I) {
   if (!FuncInfo.CanLowerReturn)
     return false;
 
+  if (FuncInfo.MF->getInfo<AArch64FunctionInfo>()->getSRetReturnReg())
+    return false;
+
   if (F.isVarArg())
     return false;
 

@@ -18,18 +18,16 @@ JsValue throwException(ExecState *, JsValue);
 // MIPS-LABEL: define {{[^@]+}}@_Z4testv
 // MIPS-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // MIPS-NEXT:  entry:
-// MIPS-NEXT:    [[J_SROA_0_0_COPYLOAD:%.*]] = load ptr addrspace(200), ptr addrspace(200) @__const._Z4testv.j, align 16
-// MIPS-NEXT:    [[CALL:%.*]] = tail call inreg addrspace(200) ptr addrspace(200) @_Z14throwExceptionP9ExecState7JsValue(ptr addrspace(200) noundef null, ptr addrspace(200) inreg [[J_SROA_0_0_COPYLOAD]]) #[[ATTR3:[0-9]+]]
-// MIPS-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[J_SROA_0_0_COPYLOAD]], [[CALL]]
+// MIPS-NEXT:    [[CALL:%.*]] = tail call inreg addrspace(200) ptr addrspace(200) @_Z14throwExceptionP9ExecState7JsValue(ptr addrspace(200) noundef null, ptr addrspace(200) inreg nonnull inttoptr (i128 18446744073709551616 to ptr addrspace(200))) #[[ATTR3:[0-9]+]]
+// MIPS-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[CALL]], inttoptr (i128 18446744073709551616 to ptr addrspace(200))
 // MIPS-NEXT:    ret i1 [[CMP]]
 //
 // RV64-LABEL: define {{[^@]+}}@_Z4testv
 // RV64-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // RV64-NEXT:  entry:
-// RV64-NEXT:    [[J_SROA_0_0_COPYLOAD:%.*]] = load ptr addrspace(200), ptr addrspace(200) @__const._Z4testv.j, align 16
-// RV64-NEXT:    [[CALL:%.*]] = tail call addrspace(200) [[UNION_JSVALUE:%.*]] @_Z14throwExceptionP9ExecState7JsValue(ptr addrspace(200) noundef null, ptr addrspace(200) [[J_SROA_0_0_COPYLOAD]]) #[[ATTR3:[0-9]+]]
+// RV64-NEXT:    [[CALL:%.*]] = tail call addrspace(200) [[UNION_JSVALUE:%.*]] @[[_Z14THROWEXCEPTIONP9EXECSTATE7JSVALUE:[a-zA-Z0-9_$\"\\.-]*[a-zA-Z_$\"\\.-][a-zA-Z0-9_$\"\\.-]*]](ptr addrspace(200) noundef null, ptr addrspace(200) nonnull inttoptr (i128 1 to ptr addrspace(200))) #[[ATTR3:[0-9]+]]
 // RV64-NEXT:    [[TMP0:%.*]] = extractvalue [[UNION_JSVALUE]] [[CALL]], 0
-// RV64-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[J_SROA_0_0_COPYLOAD]], [[TMP0]]
+// RV64-NEXT:    [[CMP:%.*]] = icmp eq ptr addrspace(200) [[TMP0]], inttoptr (i128 1 to ptr addrspace(200))
 // RV64-NEXT:    ret i1 [[CMP]]
 //
 bool test() {
@@ -46,32 +44,50 @@ long ptr(union JsValue *);
 long cptr(const JsValue *);
 long val(JsValue);
 
-// CHECK-LABEL: define {{[^@]+}}@_Z8test_refv
-// CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
-// CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[J:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
-// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3:[0-9]+]]
-// CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @__const._Z8test_refv.j, align 16
-// CHECK-NEXT:    store ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[J]], align 16
-// CHECK-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z3refR7JsValue(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[J]]) #[[ATTR3]]
-// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
-// CHECK-NEXT:    ret i64 [[CALL]]
+// MIPS-LABEL: define {{[^@]+}}@_Z8test_refv
+// MIPS-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
+// MIPS-NEXT:  entry:
+// MIPS-NEXT:    [[J:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
+// MIPS-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// MIPS-NEXT:    store ptr addrspace(200) inttoptr (i128 18446744073709551616 to ptr addrspace(200)), ptr addrspace(200) [[J]], align 16
+// MIPS-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z3refR7JsValue(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[J]]) #[[ATTR3]]
+// MIPS-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// MIPS-NEXT:    ret i64 [[CALL]]
+//
+// RV64-LABEL: define {{[^@]+}}@_Z8test_refv
+// RV64-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
+// RV64-NEXT:  entry:
+// RV64-NEXT:    [[J:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
+// RV64-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// RV64-NEXT:    store ptr addrspace(200) inttoptr (i128 1 to ptr addrspace(200)), ptr addrspace(200) [[J]], align 16
+// RV64-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z3refR7JsValue(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[J]]) #[[ATTR3]]
+// RV64-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// RV64-NEXT:    ret i64 [[CALL]]
 //
 long test_ref() {
   JsValue j{1};
   return ref(j);
 }
 
-// CHECK-LABEL: define {{[^@]+}}@_Z9test_crefv
-// CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
-// CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[J:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
-// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
-// CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @__const._Z9test_crefv.j, align 16
-// CHECK-NEXT:    store ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[J]], align 16
-// CHECK-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z4crefRK7JsValue(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[J]]) #[[ATTR3]]
-// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
-// CHECK-NEXT:    ret i64 [[CALL]]
+// MIPS-LABEL: define {{[^@]+}}@_Z9test_crefv
+// MIPS-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
+// MIPS-NEXT:  entry:
+// MIPS-NEXT:    [[J:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
+// MIPS-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// MIPS-NEXT:    store ptr addrspace(200) inttoptr (i128 18446744073709551616 to ptr addrspace(200)), ptr addrspace(200) [[J]], align 16
+// MIPS-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z4crefRK7JsValue(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[J]]) #[[ATTR3]]
+// MIPS-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// MIPS-NEXT:    ret i64 [[CALL]]
+//
+// RV64-LABEL: define {{[^@]+}}@_Z9test_crefv
+// RV64-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
+// RV64-NEXT:  entry:
+// RV64-NEXT:    [[J:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
+// RV64-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// RV64-NEXT:    store ptr addrspace(200) inttoptr (i128 1 to ptr addrspace(200)), ptr addrspace(200) [[J]], align 16
+// RV64-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z4crefRK7JsValue(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[J]]) #[[ATTR3]]
+// RV64-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// RV64-NEXT:    ret i64 [[CALL]]
 //
 long test_cref() {
   JsValue j{1};
@@ -83,7 +99,7 @@ long test_cref() {
 // MIPS-NEXT:  entry:
 // MIPS-NEXT:    [[REF_TMP:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
 // MIPS-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[REF_TMP]]) #[[ATTR3]]
-// MIPS-NEXT:    store i64 1, ptr addrspace(200) [[REF_TMP]], align 16, !tbaa [[TBAA2:![0-9]+]]
+// MIPS-NEXT:    store i64 1, ptr addrspace(200) [[REF_TMP]], align 16, !tbaa [[TBAA6:![0-9]+]]
 // MIPS-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z4rrefO7JsValue(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[REF_TMP]]) #[[ATTR3]]
 // MIPS-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[REF_TMP]]) #[[ATTR3]]
 // MIPS-NEXT:    ret i64 [[CALL]]
@@ -93,7 +109,7 @@ long test_cref() {
 // RV64-NEXT:  entry:
 // RV64-NEXT:    [[REF_TMP:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
 // RV64-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[REF_TMP]]) #[[ATTR3]]
-// RV64-NEXT:    store i64 1, ptr addrspace(200) [[REF_TMP]], align 16, !tbaa [[TBAA4:![0-9]+]]
+// RV64-NEXT:    store i64 1, ptr addrspace(200) [[REF_TMP]], align 16, !tbaa [[TBAA10:![0-9]+]]
 // RV64-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z4rrefO7JsValue(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[REF_TMP]]) #[[ATTR3]]
 // RV64-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[REF_TMP]]) #[[ATTR3]]
 // RV64-NEXT:    ret i64 [[CALL]]
@@ -105,7 +121,7 @@ long test_rref() { return rref(JsValue{1}); }
 // MIPS-NEXT:  entry:
 // MIPS-NEXT:    [[REF_TMP:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
 // MIPS-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[REF_TMP]]) #[[ATTR3]]
-// MIPS-NEXT:    store i64 1, ptr addrspace(200) [[REF_TMP]], align 16, !tbaa [[TBAA2]]
+// MIPS-NEXT:    store i64 1, ptr addrspace(200) [[REF_TMP]], align 16, !tbaa [[TBAA6]]
 // MIPS-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z5crrefOK7JsValue(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[REF_TMP]]) #[[ATTR3]]
 // MIPS-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[REF_TMP]]) #[[ATTR3]]
 // MIPS-NEXT:    ret i64 [[CALL]]
@@ -115,39 +131,57 @@ long test_rref() { return rref(JsValue{1}); }
 // RV64-NEXT:  entry:
 // RV64-NEXT:    [[REF_TMP:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
 // RV64-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[REF_TMP]]) #[[ATTR3]]
-// RV64-NEXT:    store i64 1, ptr addrspace(200) [[REF_TMP]], align 16, !tbaa [[TBAA4]]
+// RV64-NEXT:    store i64 1, ptr addrspace(200) [[REF_TMP]], align 16, !tbaa [[TBAA10]]
 // RV64-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z5crrefOK7JsValue(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[REF_TMP]]) #[[ATTR3]]
 // RV64-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[REF_TMP]]) #[[ATTR3]]
 // RV64-NEXT:    ret i64 [[CALL]]
 //
 long test_crref() { return crref(JsValue{1}); }
 
-// CHECK-LABEL: define {{[^@]+}}@_Z8test_ptrv
-// CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
-// CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[J:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
-// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
-// CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @__const._Z8test_ptrv.j, align 16
-// CHECK-NEXT:    store ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[J]], align 16
-// CHECK-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z3ptrP7JsValue(ptr addrspace(200) noundef nonnull [[J]]) #[[ATTR3]]
-// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
-// CHECK-NEXT:    ret i64 [[CALL]]
+// MIPS-LABEL: define {{[^@]+}}@_Z8test_ptrv
+// MIPS-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
+// MIPS-NEXT:  entry:
+// MIPS-NEXT:    [[J:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
+// MIPS-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// MIPS-NEXT:    store ptr addrspace(200) inttoptr (i128 18446744073709551616 to ptr addrspace(200)), ptr addrspace(200) [[J]], align 16
+// MIPS-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z3ptrP7JsValue(ptr addrspace(200) noundef nonnull [[J]]) #[[ATTR3]]
+// MIPS-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// MIPS-NEXT:    ret i64 [[CALL]]
+//
+// RV64-LABEL: define {{[^@]+}}@_Z8test_ptrv
+// RV64-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
+// RV64-NEXT:  entry:
+// RV64-NEXT:    [[J:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
+// RV64-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// RV64-NEXT:    store ptr addrspace(200) inttoptr (i128 1 to ptr addrspace(200)), ptr addrspace(200) [[J]], align 16
+// RV64-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z3ptrP7JsValue(ptr addrspace(200) noundef nonnull [[J]]) #[[ATTR3]]
+// RV64-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// RV64-NEXT:    ret i64 [[CALL]]
 //
 long test_ptr() {
   JsValue j{1};
   return ptr(&j);
 }
 
-// CHECK-LABEL: define {{[^@]+}}@_Z9test_cptrv
-// CHECK-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
-// CHECK-NEXT:  entry:
-// CHECK-NEXT:    [[J:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
-// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
-// CHECK-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) @__const._Z9test_cptrv.j, align 16
-// CHECK-NEXT:    store ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[J]], align 16
-// CHECK-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z4cptrPK7JsValue(ptr addrspace(200) noundef nonnull [[J]]) #[[ATTR3]]
-// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
-// CHECK-NEXT:    ret i64 [[CALL]]
+// MIPS-LABEL: define {{[^@]+}}@_Z9test_cptrv
+// MIPS-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
+// MIPS-NEXT:  entry:
+// MIPS-NEXT:    [[J:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
+// MIPS-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// MIPS-NEXT:    store ptr addrspace(200) inttoptr (i128 18446744073709551616 to ptr addrspace(200)), ptr addrspace(200) [[J]], align 16
+// MIPS-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z4cptrPK7JsValue(ptr addrspace(200) noundef nonnull [[J]]) #[[ATTR3]]
+// MIPS-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// MIPS-NEXT:    ret i64 [[CALL]]
+//
+// RV64-LABEL: define {{[^@]+}}@_Z9test_cptrv
+// RV64-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
+// RV64-NEXT:  entry:
+// RV64-NEXT:    [[J:%.*]] = alloca [[UNION_JSVALUE:%.*]], align 16, addrspace(200)
+// RV64-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// RV64-NEXT:    store ptr addrspace(200) inttoptr (i128 1 to ptr addrspace(200)), ptr addrspace(200) [[J]], align 16
+// RV64-NEXT:    [[CALL:%.*]] = call noundef addrspace(200) i64 @_Z4cptrPK7JsValue(ptr addrspace(200) noundef nonnull [[J]]) #[[ATTR3]]
+// RV64-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[J]]) #[[ATTR3]]
+// RV64-NEXT:    ret i64 [[CALL]]
 //
 long test_cptr() {
   JsValue j{1};
@@ -157,18 +191,18 @@ long test_cptr() {
 // MIPS-LABEL: define {{[^@]+}}@_Z8test_valv
 // MIPS-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // MIPS-NEXT:  entry:
-// MIPS-NEXT:    [[J_SROA_0_0_COPYLOAD:%.*]] = load ptr addrspace(200), ptr addrspace(200) @__const._Z8test_valv.j, align 16
-// MIPS-NEXT:    [[CALL:%.*]] = tail call noundef addrspace(200) i64 @_Z3val7JsValue(ptr addrspace(200) inreg [[J_SROA_0_0_COPYLOAD]]) #[[ATTR3]]
+// MIPS-NEXT:    [[CALL:%.*]] = tail call noundef addrspace(200) i64 @_Z3val7JsValue(ptr addrspace(200) inreg nonnull inttoptr (i128 18446744073709551616 to ptr addrspace(200))) #[[ATTR3]]
 // MIPS-NEXT:    ret i64 [[CALL]]
 //
 // RV64-LABEL: define {{[^@]+}}@_Z8test_valv
 // RV64-SAME: () local_unnamed_addr addrspace(200) #[[ATTR0]] {
 // RV64-NEXT:  entry:
-// RV64-NEXT:    [[J_SROA_0_0_COPYLOAD:%.*]] = load ptr addrspace(200), ptr addrspace(200) @__const._Z8test_valv.j, align 16
-// RV64-NEXT:    [[CALL:%.*]] = tail call noundef addrspace(200) i64 @_Z3val7JsValue(ptr addrspace(200) [[J_SROA_0_0_COPYLOAD]]) #[[ATTR3]]
+// RV64-NEXT:    [[CALL:%.*]] = tail call noundef addrspace(200) i64 @_Z3val7JsValue(ptr addrspace(200) nonnull inttoptr (i128 1 to ptr addrspace(200))) #[[ATTR3]]
 // RV64-NEXT:    ret i64 [[CALL]]
 //
 long test_val() {
   JsValue j{1};
   return val(j);
 }
+//// NOTE: These prefixes are unused and the list is autogenerated. Do not add tests below this line:
+// CHECK: {{.*}}

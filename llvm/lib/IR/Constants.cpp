@@ -2499,9 +2499,6 @@ Constant *ConstantExpr::getIntToPtr(Constant *C, Type *DstTy,
     assert(cast<VectorType>(C->getType())->getElementCount() ==
                cast<VectorType>(DstTy)->getElementCount() &&
            "Invalid cast between a different number of vector elements");
-  if (DstTy->getPointerAddressSpace() == 200) {  // FIXME: hardcoded AS200
-    assert(C->getType()->getIntegerBitWidth() <= 64);
-  }
   return getFoldedCast(Instruction::IntToPtr, C, DstTy, OnlyIfReduced);
 }
 

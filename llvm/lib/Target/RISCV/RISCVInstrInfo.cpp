@@ -2019,6 +2019,7 @@ int RISCVInstrInfo::getJumpTableIndex(const MachineInstr &MI) const {
   case RISCV::LXSW:
   case RISCV::LXWU:
   case RISCV::LXSD:
+  case RISCV::QC_LRW:
     if (!isJumpTableLoad(*Def))
       return -1;
 

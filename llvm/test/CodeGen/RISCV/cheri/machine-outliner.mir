@@ -126,10 +126,10 @@ body:             |
 # CHECK-NEXT: {{  $}}
 # CHECK-NEXT:     renamable $x14 = CLHU renamable $x10_y, 0
 # CHECK-NEXT:     renamable $x15 = SRLI renamable $x14, 3
-# CHECK-NEXT:     renamable $x15_y = CIncOffset renamable $x12_y, killed renamable $x15
-# CHECK-NEXT:     renamable $x15 = CLBU killed renamable $x15_y, 0
-# CHECK-NEXT:     renamable $x14 = ANDI killed renamable $x14, 7
-# CHECK-NEXT:     renamable $x14 = SRLW killed renamable $x15, killed renamable $x14
+# CHECK-NEXT:     renamable $x15_y = CIncOffset renamable $x12_y, renamable $x15
+# CHECK-NEXT:     renamable $x15 = CLBU renamable $x15_y, 0
+# CHECK-NEXT:     renamable $x14 = ANDI renamable $x14, 7
+# CHECK-NEXT:     renamable $x14 = SRLW renamable $x15, renamable $x14
 # FIXME: This should not be a JALR:
 # CHECK-NEXT:     $x0_y = CJALR $x5_y, 0
 # CHECK-NEXT: ...

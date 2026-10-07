@@ -24095,6 +24095,21 @@ SDValue RISCVTargetLowering::PerformDAGCombine(SDNode *N,
       return DAG.getMemIntrinsicNode(ISD::INTRINSIC_VOID, DL, VTs, Ops, MemVT,
                                      MMO);
     }
+    case Intrinsic::cheri_cap_untagged_from_int:
+      SDValue Input = N->getOperand(1);
+      EVT CapVT = N->getValueType(0);
+      EVT IntVT = CapVT == MVT::c128 ? MVT::i64 : MVT::i32;
+      SDValue Lo = DAG.getNode(ISD::EXTRACT_ELEMENT, DL, IntVT, Input,
+                               DAG.getTargetConstant(0, DL, MVT::i32));
+      SDValue Hi = DAG.getNode(ISD::EXTRACT_ELEMENT, DL, IntVT, Input,
+                               DAG.getTargetConstant(1, DL, MVT::i32));
+
+      auto LoAsCap = DAG.getTargetInsertSubreg(
+          RISCV::sub_cap_addr, DL, MVT::c64, DAG.getUNDEF(CapVT), Lo);
+      return DAG.getNode(
+          ISD::INTRINSIC_WO_CHAIN, DL, CapVT,
+          DAG.getTargetConstant(Intrinsic::cheri_cap_high_set, DL, MVT::i32),
+          LoAsCap, Hi);
     }
   }
   case ISD::VECTOR_SPLICE_RIGHT:

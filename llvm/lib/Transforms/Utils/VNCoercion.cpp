@@ -56,25 +56,23 @@ bool VNCoercion::canCoerceMustAliasedValueToLoad(Value *StoredVal, Type *LoadTy,
 
   bool StoredNI = DL.isNonIntegralPointerType(StoredTy->getScalarType());
   bool LoadNI = DL.isNonIntegralPointerType(LoadTy->getScalarType());
-  // Don't coerce non-integral pointers to integers or vice versa.
-  if (StoredNI != LoadNI) {
-    // As a special case, allow coercion of memset used to initialize
-    // an array w/null.  Despite non-integral pointers not generally having a
-    // specific bit pattern, we do assume null is zero.
-    if (auto *CI = dyn_cast<Constant>(StoredVal))
-      return CI->isNullValue();
+  bool StoredUR = DL.hasUnstableRepresentation(StoredTy->getScalarType());
+  bool LoadUR = DL.hasUnstableRepresentation(LoadTy->getScalarType());
+
+  auto *CI = dyn_cast<Constant>(StoredVal);
+  bool StoredNull = CI && CI->isNullValue();
+
+  // Don't assume anything about the bit patterns of unstable representation
+  // pointers.
+  if (StoredUR || LoadUR)
+    return StoredNull; // Except null
+  // Don't coerce non-integral pointers to integers.
+  if (StoredNI && !LoadNI)
+    return StoredNull; // Except null
+  // Don't coerce across non-integral address spaces.
+  if (StoredNI && LoadNI &&
+      StoredTy->getPointerAddressSpace() != LoadTy->getPointerAddressSpace())
     return false;
-  } else if (StoredNI && LoadNI &&
-             StoredTy->getPointerAddressSpace() !=
-                 LoadTy->getPointerAddressSpace()) {
-    return false;
-  }
-  // We can't coerce a store of a fat pointer to a load of anything that isn't
-  // a fat pointer. We also can't coerce a store of a non fat pointer to
-  // anything that is a fat pointer.
-  if (DL.isFatPointer(StoredVal->getType()) != DL.isFatPointer(LoadTy))
-    return false;
-  // FIXME: we should be able to transform fat pointers
 
   // The implementation below uses inttoptr for vectors of unequal size; we
   // can't allow this for non integral pointers. We could teach it to extract
@@ -132,9 +130,13 @@ Value *VNCoercion::coerceAvailableValueToLoadType(Value *StoredVal,
 
       if (DL.isFatPointer(LoadedTy)) {
         ConstantInt *CI = dyn_cast<ConstantInt>(StoredVal);
-        assert(CI && CI->isZero());
+        if (CI && CI->isZero())
+          return Constant::getNullValue(LoadedTy);
 
-        return Constant::getNullValue(LoadedTy);
+        Value *AsInt = Helper.CreateBitCast(
+            StoredVal, Helper.getIntNTy(StoredValSize.getFixedValue()));
+        return Helper.CreateIntrinsic(
+            LoadedTy, Intrinsic::cheri_cap_untagged_from_int, {AsInt});
       }
 
       Type *TypeToCastTo = LoadedTy;

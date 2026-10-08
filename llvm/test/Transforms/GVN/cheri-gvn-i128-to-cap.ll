@@ -30,8 +30,8 @@ define void @_Z1el(i64 signext %k) local_unnamed_addr {
 ; CHECK-NEXT:    [[B:%.*]] = alloca ptr addrspace(200), align 16
 ; CHECK-NEXT:    [[CONV_I_I:%.*]] = sext i64 [[K]] to i128
 ; CHECK-NEXT:    store i128 [[CONV_I_I]], ptr [[A_SROA_0]], align 16
-; CHECK-NEXT:    [[A_SROA_0_0_A_SROA_0_0_:%.*]] = load ptr addrspace(200), ptr [[A_SROA_0]], align 16
-; CHECK-NEXT:    store ptr addrspace(200) [[A_SROA_0_0_A_SROA_0_0_]], ptr [[B]], align 16
+; CHECK-NEXT:    [[TMP0:%.*]] = call ptr addrspace(200) @llvm.cheri.cap.untagged.from.int.i128(i128 [[CONV_I_I]])
+; CHECK-NEXT:    store ptr addrspace(200) [[TMP0]], ptr [[B]], align 16
 ; CHECK-NEXT:    call void @_ZmiInnEv1jIT_ERS0_IT0_E(i64 inreg 0, i64 inreg 0, ptr nonnull dereferenceable(16) [[B]])
 ; CHECK-NEXT:    ret void
 ;

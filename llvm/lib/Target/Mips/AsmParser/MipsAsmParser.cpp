@@ -7816,6 +7816,7 @@ bool MipsAsmParser::parseSetMips16Directive() {
     return false;
   }
 
+  clearFeatureBits(Mips::FeatureMicroMips, "micromips");
   setFeatureBits(Mips::FeatureMips16, "mips16");
   getTargetStreamer().emitDirectiveSetMips16();
   Parser.Lex(); // Consume the EndOfStatement.
@@ -8169,6 +8170,7 @@ bool MipsAsmParser::parseSetFeature(uint64_t Feature) {
     getTargetStreamer().emitDirectiveSetDspr2();
     break;
   case Mips::FeatureMicroMips:
+    clearFeatureBits(Mips::FeatureMips16, "mips16");
     setFeatureBits(Mips::FeatureMicroMips, "micromips");
     getTargetStreamer().emitDirectiveSetMicroMips();
     break;

@@ -38,12 +38,13 @@ using namespace llvm;
 //                              Generic Code
 //===----------------------------------------------------------------------===//
 
-/// Initialize - this method must be called before any actual lowering is
+/// initialize - this method must be called before any actual lowering is
 /// done.  This specifies the current context for codegen, and gives the
 /// lowering implementations a chance to set up their default sections.
-void TargetLoweringObjectFile::Initialize(MCContext &ctx,
-                                          const TargetMachine &TM) {
-  // `Initialize` can be called more than once.
+void TargetLoweringObjectFile::initialize(MCContext &ctx,
+                                          const TargetMachine &TM,
+                                          const Module &M) {
+  // `initialize` can be called more than once.
   delete Mang;
   Mang = new Mangler();
   initMCObjectFileInfo(ctx, TM.isPositionIndependent(),
@@ -169,7 +170,7 @@ static bool needsCapabilityRelocation(const GlobalVariable* GV,
   return isCapabilityType(GV->getValueType(), DL);
 }
 void TargetLoweringObjectFile::emitCGProfileMetadata(MCStreamer &Streamer,
-                                                     Module &M) const {
+                                                     const Module &M) const {
   MCContext &C = getContext();
   SmallVector<Module::ModuleFlagEntry, 8> ModuleFlags;
   M.getModuleFlagsMetadata(ModuleFlags);
@@ -215,7 +216,7 @@ void TargetLoweringObjectFile::emitCGProfileMetadata(MCStreamer &Streamer,
 }
 
 void TargetLoweringObjectFile::emitPseudoProbeDescMetadata(
-    MCStreamer &Streamer, Module &M,
+    MCStreamer &Streamer, const Module &M,
     std::function<void(MCStreamer &Streamer)> COMDATSymEmitter) const {
   NamedMDNode *FuncInfo = M.getNamedMetadata(PseudoProbeDescMetadataName);
   if (!FuncInfo)

@@ -19,7 +19,7 @@ define i64 @i64_test(i64 %i) nounwind readnone {
 ; CHECK-NEXT:    t19: ch = SI_RETURN Register:i32 $vgpr0, Register:i32 $vgpr1, t18, t18:1
 ; CHECK-EMPTY:
   %loc = alloca i64, addrspace(5)
-  %j = load i64, ptr addrspace(5) %loc
+  %j = load volatile i64, ptr addrspace(5) %loc
   %r = add i64 %i, %j
   ret i64 %r
 }
@@ -37,7 +37,7 @@ define i64 @i32_test(i32 %i) nounwind readnone {
 ; CHECK-NEXT:    t18: ch = SI_RETURN Register:i32 $vgpr0, Register:i32 $vgpr1, t17, t17:1
 ; CHECK-EMPTY:
   %loc = alloca i32, addrspace(5)
-  %j = load i32, ptr addrspace(5) %loc
+  %j = load volatile i32, ptr addrspace(5) %loc
   %r = add i32 %i, %j
   %ext = zext i32 %r to i64
   ret i64 %ext
@@ -58,7 +58,7 @@ define i64 @i16_test(i16 %i) nounwind readnone {
 ; CHECK-NEXT:    t19: ch = SI_RETURN Register:i32 $vgpr0, Register:i32 $vgpr1, t18, t18:1
 ; CHECK-EMPTY:
   %loc = alloca i16, addrspace(5)
-  %j = load i16, ptr addrspace(5) %loc
+  %j = load volatile i16, ptr addrspace(5) %loc
   %r = add i16 %i, %j
   %ext = zext i16 %r to i64
   ret i64 %ext
@@ -79,7 +79,7 @@ define i64 @i8_test(i8 %i) nounwind readnone {
 ; CHECK-NEXT:    t19: ch = SI_RETURN Register:i32 $vgpr0, Register:i32 $vgpr1, t18, t18:1
 ; CHECK-EMPTY:
   %loc = alloca i8, addrspace(5)
-  %j = load i8, ptr addrspace(5) %loc
+  %j = load volatile i8, ptr addrspace(5) %loc
   %r = add i8 %i, %j
   %ext = zext i8 %r to i64
   ret i64 %ext

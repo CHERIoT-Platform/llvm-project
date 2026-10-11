@@ -473,7 +473,7 @@ define protected amdgpu_kernel void @kernel_round1(ptr addrspace(1) nocapture no
 ; CHECK-NEXT:    v_xor_b32_e32 v2, v60, v58
 ; CHECK-NEXT:    v_lshrrev_b64 v[0:1], 16, v[56:57]
 ; CHECK-NEXT:    v_lshlrev_b32_e32 v8, 16, v46
-; CHECK-NEXT:    v_mad_u64_u32 v[4:5], null, 0x180, v74, v[44:45]
+; CHECK-NEXT:    v_mad_u64_u32 v[4:5], null, v74, 0x180, v[44:45]
 ; CHECK-NEXT:    v_lshlrev_b32_e32 v9, 6, v73
 ; CHECK-NEXT:    v_lshlrev_b32_e32 v10, 12, v72
 ; CHECK-NEXT:    v_lshrrev_b64 v[6:7], 16, v[2:3]

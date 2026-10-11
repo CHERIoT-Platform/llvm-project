@@ -159,10 +159,10 @@
 ; CHECK-NEXT:       Process Implicit Definitions
 ; CHECK-NEXT:       Remove unreachable machine basic blocks
 ; CHECK-NEXT:       Live Variable Analysis
-; CHECK-NEXT:       Machine Natural Loop Construction
-; CHECK-NEXT:       Eliminate PHI nodes for register allocation
 ; CHECK-NEXT:       Slot index numbering
 ; CHECK-NEXT:       Live Interval Analysis
+; CHECK-NEXT:       Machine Natural Loop Construction
+; CHECK-NEXT:       Eliminate PHI nodes for register allocation
 ; CHECK-NEXT:       Two-Address instruction pass
 ; CHECK-NEXT:       Machine Register Class Info Analysis
 ; CHECK-NEXT:       Register Coalescer

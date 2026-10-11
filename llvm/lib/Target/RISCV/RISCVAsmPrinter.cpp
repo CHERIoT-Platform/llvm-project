@@ -170,8 +170,6 @@ private:
   SmallDenseMap<const Function *, SmallVector<const GlobalAlias *, 1>, 1>
       FnCompartmentEntryAliases;
 
-  void emitAttributes(const MCSubtargetInfo &SubtargetInfo);
-
   void emitNTLHint(const MachineInstr *MI);
 
   void emitLpadAlignedCall(const MachineInstr &MI);
@@ -850,7 +848,7 @@ void RISCVAsmPrinter::emitStartOfAsmFile(Module &M) {
   }
 
   if (M.getTargetTriple().isOSBinFormatELF())
-    emitAttributes(SubtargetInfo);
+    RTS.emitTargetAttributes(SubtargetInfo, /*EmitStackAlign=*/true);
 }
 
 void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
@@ -1008,14 +1006,6 @@ void RISCVAsmPrinter::emitEndOfAsmFile(Module &M) {
       emitNoteCheriotCompartment(M);
   }
   EmitHwasanMemaccessSymbols(M);
-}
-
-void RISCVAsmPrinter::emitAttributes(const MCSubtargetInfo &SubtargetInfo) {
-  RISCVTargetStreamer &RTS = getTargetStreamer();
-  // Use MCSubtargetInfo from TargetMachine. Individual functions may have
-  // attributes that differ from other functions in the module and we have no
-  // way to know which function is correct.
-  RTS.emitTargetAttributes(SubtargetInfo, /*EmitStackAlign*/ true);
 }
 
 void RISCVAsmPrinter::emitFunctionEntryLabel() {

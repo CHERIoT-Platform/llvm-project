@@ -5019,11 +5019,11 @@ public:
   }
 
   LifetimeExtendedTemporaryDecl *getLifetimeExtendedTemporaryDecl() {
-    return State.dyn_cast<LifetimeExtendedTemporaryDecl *>();
+    return dyn_cast<LifetimeExtendedTemporaryDecl *>(State);
   }
   const LifetimeExtendedTemporaryDecl *
   getLifetimeExtendedTemporaryDecl() const {
-    return State.dyn_cast<LifetimeExtendedTemporaryDecl *>();
+    return dyn_cast<LifetimeExtendedTemporaryDecl *>(State);
   }
 
   /// Get the declaration which triggered the lifetime-extension of this

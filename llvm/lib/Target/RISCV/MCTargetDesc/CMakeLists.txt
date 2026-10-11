@@ -17,6 +17,7 @@ add_llvm_component_library(LLVMRISCVDesc
   LINK_COMPONENTS
   BinaryFormat
   MC
+  Option
   RISCVInfo
   Support
   TargetParser

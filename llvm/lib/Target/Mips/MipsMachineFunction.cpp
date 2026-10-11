@@ -16,13 +16,8 @@
 #include "llvm/CodeGen/PseudoSourceValueManager.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
 #include "llvm/MC/MCContext.h"
-#include "llvm/Support/CommandLine.h"
 
 using namespace llvm;
-
-static cl::opt<bool>
-FixGlobalBaseReg("mips-fix-global-base-reg", cl::Hidden, cl::init(true),
-                 cl::desc("Always use $gp as the global base register."));
 
 MachineFunctionInfo *
 MipsFunctionInfo::clone(BumpPtrAllocator &Allocator, MachineFunction &DestMF,

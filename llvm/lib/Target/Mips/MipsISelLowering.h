@@ -439,7 +439,7 @@ extern bool LargeCapTable;
     virtual void
     getOpndList(SmallVectorImpl<SDValue> &Ops,
                 std::deque<std::pair<unsigned, SDValue>> &RegsToPass,
-                bool IsPICCall, bool GlobalOrExternal, bool InternalLinkage,
+                bool IsPICCall, bool GlobalOrExternal, bool LocalLinkage,
                 bool IsCallReloc, CallLoweringInfo &CLI, SDValue Callee,
                 SDValue Chain) const;
 

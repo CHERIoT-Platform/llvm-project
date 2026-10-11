@@ -29,7 +29,7 @@ using namespace llvm;
 
 static void appendToGlobalArray(StringRef ArrayName, Module &M, Function *F,
                                 int Priority, Constant *Data) {
-  IRBuilder<> IRB(M.getContext());
+  IRBuilder<> IRB(M);
 
   unsigned CtorPtrAS = M.getDataLayout().getProgramAddressSpace();
   llvm::Type *CtorPFTy = llvm::PointerType::get(M.getContext(), CtorPtrAS);
@@ -91,7 +91,7 @@ static void transformGlobalArray(StringRef ArrayName, Module &M,
   if (!GVCtor)
     return;
 
-  IRBuilder<> IRB(M.getContext());
+  IRBuilder<> IRB(M);
   SmallVector<Constant *, 16> CurrentCtors;
   bool Changed = false;
   StructType *EltTy =
@@ -270,7 +270,7 @@ std::pair<Function *, FunctionCallee> llvm::createSanitizerCtorAndInitFunctions(
   FunctionCallee InitFunction =
       declareSanitizerInitFunction(M, InitName, InitArgTypes, Weak);
   Function *Ctor = createSanitizerCtor(M, CtorName);
-  IRBuilder<> IRB(M.getContext());
+  IRBuilder<> IRB(M);
 
   BasicBlock *RetBB = &Ctor->getEntryBlock();
   if (Weak) {

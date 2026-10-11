@@ -143,7 +143,7 @@ public:
   /// Return the alignment of the memory that is being allocated by the
   /// instruction.
   Align getAlign() const {
-    return Align(1ULL << getSubclassData<AlignmentField>());
+    return Align::fromLog2(getSubclassData<AlignmentField>());
   }
 
   void setAlignment(Align Align) {
@@ -249,7 +249,7 @@ public:
 
   /// Return the alignment of the access that is being performed.
   Align getAlign() const {
-    return Align(1ULL << (getSubclassData<AlignmentField>()));
+    return Align::fromLog2(getSubclassData<AlignmentField>());
   }
 
   void setAlignment(Align Align) {
@@ -397,7 +397,7 @@ public:
   DECLARE_TRANSPARENT_OPERAND_ACCESSORS(Value);
 
   Align getAlign() const {
-    return Align(1ULL << (getSubclassData<AlignmentField>()));
+    return Align::fromLog2(getSubclassData<AlignmentField>());
   }
 
   void setAlignment(Align Align) {
@@ -621,7 +621,7 @@ public:
   /// Return the alignment of the memory that is being allocated by the
   /// instruction.
   Align getAlign() const {
-    return Align(1ULL << getSubclassData<AlignmentField>());
+    return Align::fromLog2(getSubclassData<AlignmentField>());
   }
 
   void setAlignment(Align Align) {
@@ -927,7 +927,7 @@ public:
   /// Return the alignment of the memory that is being allocated by the
   /// instruction.
   Align getAlign() const {
-    return Align(1ULL << getSubclassData<AlignmentField>());
+    return Align::fromLog2(getSubclassData<AlignmentField>());
   }
 
   void setAlignment(Align Align) {

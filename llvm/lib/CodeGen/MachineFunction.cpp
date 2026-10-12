@@ -748,6 +748,16 @@ bool MachineFunction::needsFrameMoves() const {
          !F.getParent()->debug_compile_units().empty();
 }
 
+bool MachineFunction::usesWindowsUnwindInfo() const {
+  const MCAsmInfo &MAI = getTarget().getMCAsmInfo();
+  return MAI.getExceptionHandlingType() == ExceptionHandling::WinEH &&
+         MAI.usesWindowsCFI();
+}
+
+bool MachineFunction::needsWinCFI() const {
+  return usesWindowsUnwindInfo() && getFunction().needsUnwindTableEntry();
+}
+
 bool MachineFunction::disableFramePointerElim() const {
   FramePointerKind FP = getFrameInfo().getFramePointerPolicy();
   switch (FP) {

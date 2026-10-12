@@ -51,7 +51,6 @@ FunctionPass *createMipsExpandPseudoPass();
 FunctionPass *createMipsPreLegalizeCombiner();
 FunctionPass *createMipsPostLegalizeCombiner(bool IsOptNone);
 FunctionPass *createMipsMulMulBugPass();
-FunctionPass *createMipsSetMachineRegisterFlagsPass();
 
 FunctionPass *createCheriInvalidatePass();
 FunctionPass *createCheriRangeChecker();
@@ -74,7 +73,6 @@ void initializeCheriAddressingModeFolderPass(PassRegistry &);
 void initializeCheriRangeCheckerPass(PassRegistry &);
 void initializeMipsPostLegalizerCombinerPass(PassRegistry &);
 void initializeMipsPreLegalizerCombinerPass(PassRegistry &);
-void initializeMipsSetMachineRegisterFlagsPass(PassRegistry &);
 } // namespace llvm
 
 #endif

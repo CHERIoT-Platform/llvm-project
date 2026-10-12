@@ -61,7 +61,6 @@
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CHERICapabilityFormat.h"
 #include "llvm/Support/CodeGen.h"
-#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MathExtras.h"
@@ -83,35 +82,6 @@ using namespace llvm;
 #define DEBUG_TYPE "mips-lower"
 
 STATISTIC(NumTailCalls, "Number of tail calls");
-
-static cl::opt<bool>
-HugeGOT("mxmxgot", cl::Hidden,
-         cl::desc("MIPS: Use large GOT relocations even for local symbols."), cl::init(false),
-         cl::ZeroOrMore);
-
-bool llvm::LargeCapTable = true;
-
-static cl::opt<bool, true> LargeCapTableOption(
-    "mxcaptable", cl::Hidden, cl::location(llvm::LargeCapTable),
-    cl::desc("CHERI: Enable capability immediates larget than 11 bits"),
-    cl::init(false));
-
-extern cl::opt<bool> EmitJalrReloc;
-extern cl::opt<bool> NoZeroDivCheck;
-
-static cl::opt<bool> UseMipsTailCalls("mips-tail-calls", cl::Hidden,
-                                      cl::desc("MIPS: permit tail calls."),
-                                      cl::init(false));
-
-cl::opt<bool>
-UseClearRegs("cheri-use-clearregs",
-  cl::desc("Zero registers using the ClearRegs instructions"),
-  cl::init(false));
-
-cl::opt<bool>
-SkipGlobalBounds("cheri-no-global-bounds",
-  cl::desc("Skip bounds checks on globals"),
-  cl::init(false));
 
 static const MCPhysReg Mips64DPRegs[8] = {
   Mips::D12_64, Mips::D13_64, Mips::D14_64, Mips::D15_64,
@@ -1712,10 +1682,10 @@ addLiveIn(MachineFunction &MF, unsigned PReg, const TargetRegisterClass *RC)
 }
 
 static MachineBasicBlock *
-insertDivByZeroTrap(MachineInstr &MI, MachineBasicBlock &MBB,
-                    const TargetInstrInfo &TII, bool Is64Bit,
-                    const DivByZeroTrapKind TrapKind) {
-  if (NoZeroDivCheck)
+insertDivByZeroTrap(const MipsMCOptions &MCCLOpts, MachineInstr &MI,
+                    MachineBasicBlock &MBB, const TargetInstrInfo &TII,
+                    bool Is64Bit, const DivByZeroTrapKind TrapKind) {
+  if (MCCLOpts.mno_check_zero_division)
     return &MBB;
 
   MachineOperand &Divisor = MI.getOperand(2);
@@ -1968,8 +1938,8 @@ MipsTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
     const DivByZeroTrapKind TrapKind = !Subtarget.hasMips2()
                                            ? DivByZeroTrapKind::Break
                                            : DivByZeroTrapKind::Teq;
-    return insertDivByZeroTrap(MI, *BB, *Subtarget.getInstrInfo(), false,
-                               TrapKind);
+    return insertDivByZeroTrap(Subtarget.getMCCLOpts(), MI, *BB,
+                               *Subtarget.getInstrInfo(), false, TrapKind);
   }
   case Mips::SDIV_MM_Pseudo:
   case Mips::UDIV_MM_Pseudo:
@@ -1979,7 +1949,8 @@ MipsTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   case Mips::DIVU_MMR6:
   case Mips::MOD_MMR6:
   case Mips::MODU_MMR6:
-    return insertDivByZeroTrap(MI, *BB, *Subtarget.getInstrInfo(), false,
+    return insertDivByZeroTrap(Subtarget.getMCCLOpts(), MI, *BB,
+                               *Subtarget.getInstrInfo(), false,
                                DivByZeroTrapKind::TeqMM);
   case Mips::PseudoDSDIV:
   case Mips::PseudoDUDIV:
@@ -1987,7 +1958,8 @@ MipsTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   case Mips::DDIVU:
   case Mips::DMOD:
   case Mips::DMODU:
-    return insertDivByZeroTrap(MI, *BB, *Subtarget.getInstrInfo(), true,
+    return insertDivByZeroTrap(Subtarget.getMCCLOpts(), MI, *BB,
+                               *Subtarget.getInstrInfo(), true,
                                DivByZeroTrapKind::Teq);
 
   case Mips::PseudoSELECT_I:
@@ -2843,7 +2815,7 @@ SDValue MipsTargetLowering::lowerADDRSPACECAST(SDValue Op, SelectionDAG &DAG)
     if (auto *N = dyn_cast<GlobalAddressSDNode>(Src)) {
       const GlobalValue *GV = N->getGlobal();
       auto *Ty = GV->getValueType();
-      if (Ty->isSized() && GV->isDefinitionExact() && !SkipGlobalBounds){
+      if (Ty->isSized() && GV->isDefinitionExact()){
         uint64_t SizeBytes = DAG.getDataLayout().getTypeAllocSize(Ty);
         if (cheri::ShouldCollectCSetBoundsStats) {
           addGlobalsCSetBoundsStats(GV, DAG, "MipsTargetLowering::lowerADDRSPACECAST",
@@ -2951,7 +2923,7 @@ SDValue MipsTargetLowering::lowerGlobalAddress(SDValue Op,
     EVT GlobalTy = Ty.isFatPointer() ? Ty : CapType;
     auto PtrInfo = MachinePointerInfo::getCapTable(DAG.getMachineFunction());
     auto Addr = getDataFromCapTable(N, SDLoc(N), GlobalTy, DAG,
-                                    DAG.getEntryNode(), PtrInfo);
+                                    DAG.getEntryNode(), PtrInfo, Subtarget.getCLOpts().mxcaptable);
     // Also handle the case where a ptrtoint is used on a global:
     if (Ty.isFatPointer())
       return Addr;
@@ -2999,7 +2971,7 @@ SDValue MipsTargetLowering::lowerGlobalAddress(SDValue Op,
     return getAddrLocal(N, SDLoc(N), Ty, DAG, ABI.IsN32() || ABI.IsN64(),
                         GV->isThreadLocal());
 
-  if (Subtarget.useXGOT() || HugeGOT)
+  if (Subtarget.useXGOT())
     return getAddrGlobalLargeGOT(
         N, SDLoc(N), Ty, DAG, MipsII::MO_GOT_HI16, MipsII::MO_GOT_LO16,
         DAG.getEntryNode(),
@@ -3075,7 +3047,7 @@ lowerGlobalTLSAddress(SDValue Op, SelectionDAG &DAG) const
         }
 
         SDValue Argument = getCapToCapTable(GA, DL, DAG, HiFlag, LoFlag, 0,
-                                            MipsISD::TlsHi);
+                                            MipsISD::TlsHi, Subtarget.getCLOpts().mxcaptable);
         // Set bounds to sizeof(tls_index)
         if (cheri::ShouldCollectCSetBoundsStats)
           addGlobalsCSetBoundsStats(GV, DAG, "set bounds on tls_index",
@@ -3117,7 +3089,8 @@ lowerGlobalTLSAddress(SDValue Op, SelectionDAG &DAG) const
         Offset =
           getFromCapTable(GA, DL, OffsetVT, DAG, DAG.getEntryNode(), PtrInfo,
                           MipsII::MO_CAPTAB_TPREL_HI16,
-                          MipsII::MO_CAPTAB_TPREL_LO16, 0, MipsISD::TlsHi);
+                          MipsII::MO_CAPTAB_TPREL_LO16, 0, MipsISD::TlsHi,
+                        Subtarget.getCLOpts().mxcaptable);
       } else {
         // Local Exec TLS Model
         assert(model == TLSModel::LocalExec);
@@ -3216,7 +3189,7 @@ lowerJumpTable(SDValue Op, SelectionDAG &DAG) const
   if (ABI.IsCheriPureCap()) {
     auto PtrInfo = MachinePointerInfo::getCapTable(DAG.getMachineFunction());
     return getDataFromCapTable(N, SDLoc(N), CapType, DAG, DAG.getEntryNode(),
-                               PtrInfo);
+                               PtrInfo, Subtarget.getCLOpts().mxcaptable);
   }
 
   if (!isPositionIndependent())
@@ -3240,7 +3213,9 @@ lowerConstantPool(SDValue Op, SelectionDAG &DAG) const
   if (ABI.IsCheriPureCap()) {
     auto PtrInfo = MachinePointerInfo::getCapTable(DAG.getMachineFunction());
     assert(Ty.isFatPointer());
-    auto Result = getDataFromCapTable(N, SDLoc(N), Ty, DAG, DAG.getEntryNode(), PtrInfo);
+    auto Result =
+        getDataFromCapTable(N, SDLoc(N), Ty, DAG, DAG.getEntryNode(), PtrInfo,
+                            Subtarget.getCLOpts().mxcaptable);
     assert(Result.getValueType() == Ty);
     return Result;
   }
@@ -4019,7 +3994,8 @@ SDValue MipsTargetLowering::lowerBR_JT(SDValue Op,
   // FIXME: or should this be something else? like in lowerCall?
   auto PtrInfo = MachinePointerInfo::getCapTable(DAG.getMachineFunction());
   SDValue Jumptable = getDataFromCapTable(
-      cast<JumpTableSDNode>(Table.getNode()), dl, PTy, DAG, Chain, PtrInfo);
+      cast<JumpTableSDNode>(Table.getNode()), dl, PTy, DAG, Chain, PtrInfo,
+    Subtarget.getCLOpts().mxcaptable);
   // TODO: use a mul here and let the code later on convert it to a shift?
   Index = DAG.getNode(ISD::SHL, dl, MVT::i64, Index,
                       DAG.getConstant(Log2_32(EntrySize), dl, MVT::i64));
@@ -4338,10 +4314,8 @@ void MipsTargetLowering::AdjustInstrPostInstrSelection(MachineInstr &MI,
     case Mips::TAILCALL64R6REG:
     case Mips::TAILCALLREG_MM:
     case Mips::TAILCALLREG_MMR6: {
-      if (!EmitJalrReloc ||
-          Subtarget.inMips16Mode() ||
-          !isPositionIndependent() ||
-          Node->getNumOperands() < 1 ||
+      if (!Subtarget.getMCCLOpts().jalr_reloc || Subtarget.inMips16Mode() ||
+          !isPositionIndependent() || Node->getNumOperands() < 1 ||
           Node->getOperand(0).getNumOperands() < 2) {
         return;
       }
@@ -4349,30 +4323,32 @@ void MipsTargetLowering::AdjustInstrPostInstrSelection(MachineInstr &MI,
       // If added to MI, asm printer will emit .reloc R_MIPS_JALR for the
       // symbol.
       const SDValue TargetAddr = Node->getOperand(0).getOperand(1);
-      StringRef Sym;
+      MCSymbol *S = nullptr;
       if (const GlobalAddressSDNode *G =
               dyn_cast_or_null<const GlobalAddressSDNode>(TargetAddr)) {
+        const GlobalValue *GV = G->getGlobal();
+
         // We must not emit the R_MIPS_JALR relocation against data symbols
         // since this will cause run-time crashes if the linker replaces the
         // call instruction with a relative branch to the data symbol.
-        if (!isa<Function>(G->getGlobal())) {
+        if (!isa<Function>(GV)) {
           LLVM_DEBUG(dbgs() << "Not adding R_MIPS_JALR against data symbol "
-                            << G->getGlobal()->getName() << "\n");
+                            << GV->getName() << "\n");
           return;
         }
-        Sym = G->getGlobal()->getName();
+        S = getTargetMachine().getSymbol(GV);
       }
       else if (const ExternalSymbolSDNode *ES =
                    dyn_cast_or_null<const ExternalSymbolSDNode>(TargetAddr)) {
-        Sym = ES->getSymbol();
+        S = MI.getParent()->getParent()->getContext().getOrCreateSymbol(
+            ES->getSymbol());
       }
 
-      if (Sym.empty())
+      if (!S)
         return;
 
-      MachineFunction *MF = MI.getParent()->getParent();
-      MCSymbol *S = MF->getContext().getOrCreateSymbol(Sym);
-      LLVM_DEBUG(dbgs() << "Adding R_MIPS_JALR against " << Sym << "\n");
+      LLVM_DEBUG(dbgs() << "Adding R_MIPS_JALR against " << S->getName()
+                        << "\n");
       MI.addOperand(MachineOperand::CreateMCSymbol(S, MipsII::MO_JALR));
     }
   }
@@ -4472,7 +4448,7 @@ MipsTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   }
 
   if (IsTailCall) {
-    if (!UseMipsTailCalls) {
+    if (!Subtarget.getCLOpts().tail_calls) {
       IsTailCall = false;
       if (IsMustTail)
         report_fatal_error("failed to perform tail call elimination on a call "
@@ -4734,7 +4710,8 @@ MipsTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     const GlobalValue *Val = G->getGlobal();
     if (CheriCapTable) {
       Callee = getCallTargetFromCapTable(G, DL, CapType, DAG, Chain,
-                                         FuncInfo->callPtrInfo(MF, Val));
+                                         FuncInfo->callPtrInfo(MF, Val),
+                                        Subtarget.getCLOpts().mxcaptable);
       IsCallReloc = true;
       } else if (Subtarget.isTargetCOFF() &&
         G->getGlobal()->hasDLLImportStorageClass()) {
@@ -4776,7 +4753,8 @@ MipsTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
 
     if (CheriCapTable) {
       Callee = getCallTargetFromCapTable(S, DL, CapType, DAG, Chain,
-                                         FuncInfo->callPtrInfo(MF, Sym));
+                                         FuncInfo->callPtrInfo(MF, Sym),
+                                        Subtarget.getCLOpts().mxcaptable);
       IsCallReloc = true;
     } else if (!IsPIC) { // static
       assert(!ABI.IsCheriPureCap());

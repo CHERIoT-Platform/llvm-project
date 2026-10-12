@@ -11,6 +11,7 @@
 #include "MCTargetDesc/MipsBaseInfo.h"
 #include "MCTargetDesc/MipsInstPrinter.h"
 #include "MCTargetDesc/MipsMCAsmInfo.h"
+#include "MCTargetDesc/MipsMCOptions.h"
 #include "MCTargetDesc/MipsMCTargetDesc.h"
 #include "MCTargetDesc/MipsTargetStreamer.h"
 #include "TargetInfo/MipsTargetInfo.h"
@@ -43,7 +44,6 @@
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Alignment.h"
 #include "llvm/Support/Casting.h"
-#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -72,14 +72,6 @@ namespace llvm {
 class MCInstrInfo;
 
 } // end namespace llvm
-
-extern cl::opt<bool> EmitJalrReloc;
-extern cl::opt<bool> NoZeroDivCheck;
-
-static cl::opt<bool> CheriStrictC0(
-    "cheri-strict-c0-asm", cl::Hidden,
-    cl::desc("Require $ddc or $cnull instead of $c0."),
-    cl::init(true), cl::ZeroOrMore);
 
 namespace {
 
@@ -152,6 +144,7 @@ class MipsAsmParser : public MCTargetAsmParser {
     return static_cast<MipsTargetStreamer &>(TS);
   }
 
+  const MipsMCOptions &CLOpts;
   MipsABIInfo ABI;
   SmallVector<std::unique_ptr<MipsAssemblerOptions>, 2> AssemblerOptions;
   MCSymbol *CurrentFn; // Pointer to the function being parsed. It may be a
@@ -542,7 +535,7 @@ public:
 
   MipsAsmParser(const MCSubtargetInfo &sti, MCAsmParser &parser,
                 const MCInstrInfo &MII)
-      : MCTargetAsmParser(sti, MII),
+      : MCTargetAsmParser(sti, MII), CLOpts(MipsMCOptions::Global),
         ABI(MipsABIInfo::computeTargetABI(
             sti.getTargetTriple(),
             parser.getContext().getTargetOptions().getABIName())) {
@@ -606,7 +599,7 @@ public:
   }
 
   bool isJalrRelocAvailable(const MCExpr *JalExpr) {
-    if (!EmitJalrReloc)
+    if (!CLOpts.jalr_reloc)
       return false;
     MCValue Res;
     if (!JalExpr->evaluateAsRelocatable(Res, nullptr, false))
@@ -4586,7 +4579,7 @@ bool MipsAsmParser::expandDivRem(MCInst &Inst, SMLoc IDLoc, MCStreamer &Out,
     if (!ATReg)
       return true;
 
-    if (!NoZeroDivCheck && ImmValue == 0) {
+    if (!CLOpts.mno_check_zero_division && ImmValue == 0) {
       if (UseTraps)
         TOut.emitRRI(Mips::TEQ, ZeroReg, ZeroReg, 0x7, IDLoc, STI);
       else
@@ -4618,7 +4611,8 @@ bool MipsAsmParser::expandDivRem(MCInst &Inst, SMLoc IDLoc, MCStreamer &Out,
   // break, insert the trap/break and exit. This gives a different result to
   // GAS. GAS has an inconsistency/missed optimization in that not all cases
   // are handled equivalently. As the observed behaviour is the same, we're ok.
-  if (!NoZeroDivCheck && (RtReg == Mips::ZERO || RtReg == Mips::ZERO_64)) {
+  if (!CLOpts.mno_check_zero_division &&
+      (RtReg == Mips::ZERO || RtReg == Mips::ZERO_64)) {
     if (UseTraps) {
       TOut.emitRRI(Mips::TEQ, ZeroReg, ZeroReg, 0x7, IDLoc, STI);
       return false;
@@ -4640,7 +4634,7 @@ bool MipsAsmParser::expandDivRem(MCInst &Inst, SMLoc IDLoc, MCStreamer &Out,
   MCOperand LabelOp;
 
   TOut.emitRR(DivOp, RsReg, RtReg, IDLoc, STI);
-  if (!NoZeroDivCheck) {
+  if (!CLOpts.mno_check_zero_division) {
     if (UseTraps) {
       TOut.emitRRI(Mips::TEQ, RtReg, ZeroReg, 0x7, IDLoc, STI);
     } else {
@@ -6669,13 +6663,8 @@ int MipsAsmParser::matchCheriRegisterName(StringRef Name,
             "register name $c0 is invalid as this operand. It will no longer "
             "refer to $ddc but instead be NULL. If this is what you want use "
             "$cnull, otherwise use CGetDefault/CSetDefault to manipulate $ddc.";
-        if (CheriStrictC0) {
-          Error(Parser.getTok().getLoc(), ErrMsg, Parser.getTok().getLocRange());
-          return -2;
-        } else {
-          Warning(Parser.getTok().getLoc(), ErrMsg);
-          return Mips::CNULL;
-        }
+        Error(Parser.getTok().getLoc(), ErrMsg, Parser.getTok().getLocRange());
+        return -2;
       }
       // Otherwise $c0 means $ddc so just print a deprecation warning
       Warning(Parser.getTok().getLoc(),

@@ -53,7 +53,6 @@ class TargetLibraryInfo;
 class MCRegisterClass;
 using TargetRegisterClass = MCRegisterClass;
 
-extern bool LargeCapTable;
 
   //===--------------------------------------------------------------------===//
   // TargetLowering Implementation
@@ -340,22 +339,26 @@ extern bool LargeCapTable;
     template <class NodeTy>
     SDValue getCallTargetFromCapTable(NodeTy *N, const SDLoc &DL, EVT Ty,
                                       SelectionDAG &DAG, SDValue Chain,
-                                      const MachinePointerInfo &PtrInfo) const {
+                                      const MachinePointerInfo &PtrInfo,
+                                    bool LargeCapTable) const {
       assert(ABI.IsCheriPureCap());
       return getFromCapTable(N, DL, Ty, DAG, Chain, PtrInfo,
                              MipsII::MO_CAPTAB_CALL_HI16,
                              MipsII::MO_CAPTAB_CALL_LO16,
-                             MipsII::MO_CAPTAB_CALL20, MipsISD::GotHi);
+                             MipsII::MO_CAPTAB_CALL20, MipsISD::GotHi,
+                            LargeCapTable);
     }
 
     template <class NodeTy>
     SDValue getDataFromCapTable(NodeTy *N, const SDLoc &DL, EVT Ty,
                                 SelectionDAG &DAG, SDValue Chain,
-                                const MachinePointerInfo &PtrInfo) const {
+                                const MachinePointerInfo &PtrInfo,
+                              bool LargeCapTable) const {
       assert(ABI.IsCheriPureCap());
       return getFromCapTable(N, DL, Ty, DAG, Chain, PtrInfo,
                              MipsII::MO_CAPTAB_HI16, MipsII::MO_CAPTAB_LO16,
-                             MipsII::MO_CAPTAB20, MipsISD::GotHi);
+                             MipsII::MO_CAPTAB20, MipsISD::GotHi,
+                            LargeCapTable);
     }
 
     template <class NodeTy>
@@ -363,7 +366,8 @@ extern bool LargeCapTable;
                             SelectionDAG &DAG, SDValue Chain,
                             const MachinePointerInfo &PtrInfo,
                             unsigned HiFlag, unsigned LoFlag,
-                            unsigned SmallFlag, unsigned HiOpc) const {
+                            unsigned SmallFlag, unsigned HiOpc,
+                            bool LargeCapTable) const {
       assert(ABI.IsCheriPureCap());
       if (LargeCapTable || SmallFlag == 0) {
         return _getGlobalCapBigImmediate(N, SDLoc(N), Ty, DAG, HiFlag, LoFlag,
@@ -377,7 +381,8 @@ extern bool LargeCapTable;
     template <class NodeTy>
     SDValue getCapToCapTable(NodeTy *N, const SDLoc &DL, SelectionDAG &DAG,
                              unsigned HiFlag, unsigned LoFlag,
-                             unsigned SmallFlag, unsigned HiOpc) const {
+                             unsigned SmallFlag, unsigned HiOpc,
+                            bool LargeCapTable) const {
       assert(ABI.IsCheriPureCap());
       if (LargeCapTable || SmallFlag == 0) {
         return _getGlobalCapBigImmediate(N, SDLoc(N), CapType, DAG, HiFlag, LoFlag,

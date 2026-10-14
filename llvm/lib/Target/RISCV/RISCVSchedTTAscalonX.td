@@ -1102,6 +1102,7 @@ multiclass TTAscalonSchedResources<bit ReducedFP64Vec> {
   defm : UnsupportedSchedZvk;
   defm : UnsupportedSchedSFB;
   defm : UnsupportedSchedXsf;
+  defm : UnsupportedSchedXcheri;
 }
 
 foreach model = [TTAscalonXModel, TTAscalonXGModel] in {

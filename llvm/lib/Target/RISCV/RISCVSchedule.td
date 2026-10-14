@@ -33,6 +33,7 @@ def WriteLDB        : SchedWrite;    // Load byte
 def WriteLDH        : SchedWrite;    // Load half-word
 def WriteLDW        : SchedWrite;    // Load word
 def WriteLDD        : SchedWrite;    // Load double-word
+def WriteLDC        : SchedWrite;    // Load capability
 def WriteCSR        : SchedWrite;    // CSR instructions
 def WriteSTB        : SchedWrite;    // Store byte
 def WriteSTH        : SchedWrite;    // Store half-word
@@ -543,4 +544,10 @@ multiclass UnsupportedSchedXsf {
   defm : UnsupportedSchedXSfvfwmaccqqq;
   defm : UnsupportedSchedXSfvqmaccdod;
   defm : UnsupportedSchedXSfvqmaccqoq;
+}
+
+multiclass UnsupportedSchedXcheri {
+let Unsupported = true in {
+  def : WriteRes<WriteLDC, []>;
+} // Unsupported = true
 }

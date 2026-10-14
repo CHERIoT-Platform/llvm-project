@@ -314,4 +314,5 @@ defm : UnsupportedSchedSFB;
 defm : UnsupportedSchedZabha;
 defm : UnsupportedSchedZvk;
 defm : UnsupportedSchedXsf;
+defm : UnsupportedSchedXcheri;
 }

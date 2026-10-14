@@ -429,5 +429,6 @@ defm : UnsupportedSchedSFB;
 defm : UnsupportedSchedZabha;
 defm : UnsupportedSchedXsf;
 defm : UnsupportedSchedZvk;
+defm : UnsupportedSchedXcheri;
 
 } // SchedModel

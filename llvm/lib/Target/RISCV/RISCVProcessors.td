@@ -1148,12 +1148,13 @@ def CHERIOT
                            FeatureUnalignedScalarMem]>;
 
 def CHERIOT_IBEX
-    : RISCVProcessorModel<"cheriot-ibex", NoSchedModel,
+    : RISCVProcessorModel<"cheriot-ibex", CheriotIbexModel,
                           [Feature32Bit, FeatureVendorXCheri,
                            FeatureVendorXCheriot, FeatureVendorXCheriPureCap,
                            FeatureStdExtB, FeatureStdExtC, FeatureStdExtE,
                            FeatureStdExtM, FeatureStdExtZbkb, FeatureStdExtZbkc,
-                           FeatureUnalignedScalarMem]>;
+                           FeatureUnalignedScalarMem],
+                           [TunePostRAScheduler]>;
 
 def CHERIOT_KUDU
     : RISCVProcessorModel<"cheriot-kudu", NoSchedModel,

@@ -103,16 +103,16 @@ define hidden void @optsize_preserve_tags_memmove(i8 addrspace(200)* %dst, i8 ad
 define hidden void @default_preserve_tags_memmove(i8 addrspace(200)* %dst, i8 addrspace(200)* %src) nounwind{
 ; CHECK-LABEL: default_preserve_tags_memmove:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    clh a2, 28(a1)
+; CHECK-NEXT:    clc a2, 16(a1)
 ; CHECK-NEXT:    clb a3, 30(a1)
-; CHECK-NEXT:    clc a4, 16(a1)
-; CHECK-NEXT:    clw a5, 24(a1)
+; CHECK-NEXT:    clw a4, 24(a1)
+; CHECK-NEXT:    clh a5, 28(a1)
 ; CHECK-NEXT:    clc a6, 0(a1)
 ; CHECK-NEXT:    clc a1, 8(a1)
+; CHECK-NEXT:    csc a2, 16(a0)
 ; CHECK-NEXT:    csb a3, 30(a0)
-; CHECK-NEXT:    csh a2, 28(a0)
-; CHECK-NEXT:    csw a5, 24(a0)
-; CHECK-NEXT:    csc a4, 16(a0)
+; CHECK-NEXT:    csh a5, 28(a0)
+; CHECK-NEXT:    csw a4, 24(a0)
 ; CHECK-NEXT:    csc a1, 8(a0)
 ; CHECK-NEXT:    csc a6, 0(a0)
 ; CHECK-NEXT:    cret

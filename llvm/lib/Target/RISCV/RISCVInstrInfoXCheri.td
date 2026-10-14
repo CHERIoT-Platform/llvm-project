@@ -592,24 +592,33 @@ def CLoadTags : Cheri_r<0x12, "cloadtags", GPR, YGPRMemZeroOffset>;
 //===----------------------------------------------------------------------===//
 
 let Predicates = [HasCheri] in {
-def LB_DDC  : CheriLoad_r<0b00000, "lb.ddc",  GPR, GPRMemZeroOffset>;
-def LH_DDC  : CheriLoad_r<0b00001, "lh.ddc",  GPR, GPRMemZeroOffset>;
-def LW_DDC  : CheriLoad_r<0b00010, "lw.ddc",  GPR, GPRMemZeroOffset>;
-def LBU_DDC : CheriLoad_r<0b00100, "lbu.ddc", GPR, GPRMemZeroOffset>;
-def LHU_DDC : CheriLoad_r<0b00101, "lhu.ddc", GPR, GPRMemZeroOffset>;
+def LB_DDC  : CheriLoad_r<0b00000, "lb.ddc",  GPR, GPRMemZeroOffset>,
+              Sched<[WriteLDB, ReadMemBase]>;
+def LH_DDC  : CheriLoad_r<0b00001, "lh.ddc",  GPR, GPRMemZeroOffset>,
+              Sched<[WriteLDH, ReadMemBase]>;
+def LW_DDC  : CheriLoad_r<0b00010, "lw.ddc",  GPR, GPRMemZeroOffset>,
+              Sched<[WriteLDW, ReadMemBase]>;
+def LBU_DDC : CheriLoad_r<0b00100, "lbu.ddc", GPR, GPRMemZeroOffset>,
+              Sched<[WriteLDB, ReadMemBase]>;
+def LHU_DDC : CheriLoad_r<0b00101, "lhu.ddc", GPR, GPRMemZeroOffset>,
+              Sched<[WriteLDH, ReadMemBase]>;
 }
 
 let Predicates = [HasCheri, IsRV64] in {
-def LWU_DDC : CheriLoad_r<0b00110, "lwu.ddc", GPR, GPRMemZeroOffset>;
-def LD_DDC  : CheriLoad_r<0b00011, "ld.ddc",  GPR, GPRMemZeroOffset>;
+def LWU_DDC : CheriLoad_r<0b00110, "lwu.ddc", GPR, GPRMemZeroOffset>,
+              Sched<[WriteLDW, ReadMemBase]>;
+def LD_DDC  : CheriLoad_r<0b00011, "ld.ddc",  GPR, GPRMemZeroOffset>,
+              Sched<[WriteLDD, ReadMemBase]>;
 }
 
 let DecoderNamespace = "RISCV32Only_",
     Predicates = [HasCheri, IsRV32] in
-def LC_DDC_64  : CheriLoad_r<0b00011, "lc.ddc", YGPR, GPRMemZeroOffset>;
+def LC_DDC_64  : CheriLoad_r<0b00011, "lc.ddc", YGPR, GPRMemZeroOffset>,
+                 Sched<[WriteLDC, ReadMemBase]>;
 
 let Predicates = [HasCheri, IsRV64] in
-def LC_DDC_128 : CheriLoad_r<0b10111, "lc.ddc", YGPR, GPRMemZeroOffset>;
+def LC_DDC_128 : CheriLoad_r<0b10111, "lc.ddc", YGPR, GPRMemZeroOffset>,
+                 Sched<[WriteLDC, ReadMemBase]>;
 
 let Predicates = [HasCheri] in {
 def SB_DDC  : CheriStore_r<0b00000, "sb.ddc", GPR, GPRMemZeroOffset>;
@@ -877,11 +886,11 @@ multiclass CPrefixedInstAlias<string Asm, dag Result> {
 
 
 let Predicates = [HasCheri, IsCapMode] in {
-defm CLB  : CheriLoad_ri<0b000, "lb">;
-defm CLH  : CheriLoad_ri<0b001, "lh">;
-defm CLW  : CheriLoad_ri<0b010, "lw">;
-defm CLBU : CheriLoad_ri<0b100, "lbu">;
-defm CLHU : CheriLoad_ri<0b101, "lhu">;
+defm CLB  : CheriLoad_ri<0b000, "lb">, Sched<[WriteLDB, ReadMemBase]>;
+defm CLH  : CheriLoad_ri<0b001, "lh">, Sched<[WriteLDH, ReadMemBase]>;
+defm CLW  : CheriLoad_ri<0b010, "lw">, Sched<[WriteLDW, ReadMemBase]>;
+defm CLBU : CheriLoad_ri<0b100, "lbu">, Sched<[WriteLDB, ReadMemBase]>;
+defm CLHU : CheriLoad_ri<0b101, "lhu">, Sched<[WriteLDH, ReadMemBase]>;
 
 defm CSB : CheriStore_ri<0b000, "sb">;
 defm CSH : CheriStore_ri<0b001, "sh">;
@@ -909,8 +918,8 @@ let Predicates = [HasCheriot] in {
 }
 
 let Predicates = [HasCheri, IsRV64, IsCapMode] in {
-defm CLWU   : CheriLoad_ri<0b110, "lwu">;
-defm CLD    : CheriLoad_ri<0b011, "ld">;
+defm CLWU   : CheriLoad_ri<0b110, "lwu">, Sched<[WriteLDW, ReadMemBase]>;
+defm CLD    : CheriLoad_ri<0b011, "ld">, Sched<[WriteLDD, ReadMemBase]>;
 defm CSD    : CheriStore_ri<0b011, "sd">;
 } // Predicates = [HasCheri, IsRV64, IsCapMode]
 
@@ -918,7 +927,7 @@ let Predicates = [HasCheri, IsRV32, IsCapMode] in {
   let DecoderNamespace = "RISCV32CapModeOnly_", hasSideEffects = 0,
       mayLoad = 1, mayStore = 0, canFoldAsLoad = 1, isReMaterializable = 1 in {
     def CLC_64 : RVInstI<0x3, OPC_LOAD, (outs YGPR:$rd), (ins YGPR:$rs1, simm12_lo:$imm12),
-                        "clc", "$rd, ${imm12}(${rs1})">;
+                        "clc", "$rd, ${imm12}(${rs1})">, Sched<[WriteLDC, ReadMemBase]>;
   }
   def : InstAlias<"lc $rd, ${imm12}(${rs1})",
                   (CLC_64 YGPR:$rd, YGPR:$rs1, simm12_lo:$imm12), 0>;
@@ -947,7 +956,7 @@ let Predicates = [HasCheri, IsRV64, IsCapMode] in {
   let DecoderNamespace = "CapModeOnly_", hasSideEffects = 0,
       mayLoad = 1, mayStore = 0, canFoldAsLoad = 1, isReMaterializable = 1 in {
     def CLC_128 : RVInstI<0x2, OPC_MISC_MEM, (outs YGPR:$rd), (ins YGPR:$rs1, simm12_lo:$imm12),
-                          "clc", "$rd, ${imm12}(${rs1})">;
+                          "clc", "$rd, ${imm12}(${rs1})">, Sched<[WriteLDC, ReadMemBase]>;
   }
   def : InstAlias<"lc $rd, ${imm12}(${rs1})",
                   (CLC_128 YGPR:$rd, YGPR:$rs1, simm12_lo:$imm12), 0>;
@@ -1106,14 +1115,16 @@ def C_CFLD : CCheriLoad_ri<0b001, "c.cfld", FPR64C, uimm8_lsb000> {
 }
 
 let Predicates = [HasCheri, HasCheriRVC, HasStdExtZca, IsRV64, IsCapMode] in
-def C_CLC_128 : CCheriLoad_ri<0b001, "c.clc", YGPRC, uimm9_lsb0000> {
+def C_CLC_128 : CCheriLoad_ri<0b001, "c.clc", YGPRC, uimm9_lsb0000>,
+                Sched<[WriteLDC, ReadMemBase]>  {
   bits<9> imm;
   let Inst{12-11} = imm{5-4};
   let Inst{10} = imm{8};
   let Inst{6-5} = imm{7-6};
 }
 
-def C_CLW : CCheriLoad_ri<0b010, "c.clw", GPRC, uimm7_lsb00> {
+def C_CLW : CCheriLoad_ri<0b010, "c.clw", GPRC, uimm7_lsb00>,
+            Sched<[WriteLDW, ReadMemBase]> {
   bits<7> imm;
   let Inst{12-10} = imm{5-3};
   let Inst{6} = imm{2};
@@ -1122,14 +1133,16 @@ def C_CLW : CCheriLoad_ri<0b010, "c.clw", GPRC, uimm7_lsb00> {
 
 let DecoderNamespace = "RISCV32CapModeOnly_",
     Predicates = [HasCheri, HasCheriRVC, HasStdExtZca, IsRV32, IsCapMode] in
-def C_CLC_64 : CCheriLoad_ri<0b011, "c.clc", YGPRC, uimm8_lsb000> {
+def C_CLC_64 : CCheriLoad_ri<0b011, "c.clc", YGPRC, uimm8_lsb000>,
+               Sched<[WriteLDC, ReadMemBase]> {
   bits<8> imm;
   let Inst{12-10} = imm{5-3};
   let Inst{6-5} = imm{7-6};
 }
 
 let Predicates = [HasCheri, HasCheriRVC, HasStdExtZca, IsRV64, IsCapMode] in
-def C_CLD : CCheriLoad_ri<0b011, "c.cld", GPRC, uimm8_lsb000> {
+def C_CLD : CCheriLoad_ri<0b011, "c.cld", GPRC, uimm8_lsb000>,
+            Sched<[WriteLDD, ReadMemBase]> {
   bits<8> imm;
   let Inst{12-10} = imm{5-3};
   let Inst{6-5} = imm{7-6};
@@ -1201,25 +1214,29 @@ def C_CFLDCSP : CCheriStackLoad<0b001, "c.cfldcsp", FPR64, uimm9_lsb000> {
 }
 
 let Predicates = [HasCheri, HasCheriRVC, HasStdExtZca, IsRV64, IsCapMode] in
-def C_CLCCSP_128 : CCheriStackLoad<0b001, "c.clccsp",  YGPRNoX0, uimm10_lsb0000> {
+def C_CLCCSP_128 : CCheriStackLoad<0b001, "c.clccsp",  YGPRNoX0, uimm10_lsb0000>,
+                   Sched<[WriteLDC, ReadMemBase]> {
   let Inst{6} = imm{4};
   let Inst{5-2} = imm{9-6};
 }
 
-def C_CLWCSP : CCheriStackLoad<0b010, "c.clwcsp", GPRNoX0, uimm8_lsb00> {
+def C_CLWCSP : CCheriStackLoad<0b010, "c.clwcsp", GPRNoX0, uimm8_lsb00>,
+               Sched<[WriteLDW, ReadMemBase]> {
   let Inst{6-4} = imm{4-2};
   let Inst{3-2} = imm{7-6};
 }
 
 let DecoderNamespace = "RISCV32CapModeOnly_",
     Predicates = [HasCheri, HasCheriRVC, HasStdExtZca, IsRV32, IsCapMode] in
-def C_CLCCSP_64 : CCheriStackLoad<0b011, "c.clccsp",  YGPRNoX0, uimm9_lsb000> {
+def C_CLCCSP_64 : CCheriStackLoad<0b011, "c.clccsp",  YGPRNoX0, uimm9_lsb000>,
+                  Sched<[WriteLDC, ReadMemBase]> {
   let Inst{6-5} = imm{4-3};
   let Inst{4-2} = imm{8-6};
 }
 
 let Predicates = [HasCheri, HasCheriRVC, HasStdExtZca, IsRV64, IsCapMode] in
-def C_CLDCSP : CCheriStackLoad<0b011, "c.cldcsp", GPRNoX0, uimm9_lsb000> {
+def C_CLDCSP : CCheriStackLoad<0b011, "c.cldcsp", GPRNoX0, uimm9_lsb000>,
+               Sched<[WriteLDD, ReadMemBase]> {
   let Inst{6-5} = imm{4-3};
   let Inst{4-2} = imm{8-6};
 }
@@ -1349,7 +1366,8 @@ let hasSideEffects = 0, mayLoad = 1, mayStore = 0, isCodeGenOnly = 1,
   let Predicates = [HasCheri, IsCapMode, IsRV32] in {
     def PseudoCLLCInbounds_CLC_64
         : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [],
-                 "cllc.inbounds.clc", "$dst, $src">;
+                 "cllc.inbounds.clc", "$dst, $src">,
+          Sched<[WriteLDC, ReadMemBase]>;
   }
 
   let Predicates = [HasCheri, IsCapMode, IsRV64] in {
@@ -1363,7 +1381,8 @@ let hasSideEffects = 0, mayLoad = 1, mayStore = 0, isCodeGenOnly = 1,
 
     def PseudoCLLCInbounds_CLC_128
         : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [],
-                 "cllc.inbounds.clc", "$dst, $src">;
+                 "cllc.inbounds.clc", "$dst, $src">,
+          Sched<[WriteLDC, ReadMemBase]>;
   }
 }
 
@@ -1434,7 +1453,8 @@ def PseudoCLA_TLS_IE : Pseudo<(outs GPR:$dst),
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0, isCodeGenOnly = 0,
     isAsmParserOnly = 1, Size = 8 in
 def PseudoCLC_TLS_GD : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [],
-                              "clc.tls.gd", "$dst, $src">;
+                              "clc.tls.gd", "$dst, $src">,
+                       Sched<[WriteLDC, ReadMemBase]>;
 
   def : Pat<(riscv_clc_tls_gd tglobaltlsaddr:$in),
             (PseudoCLC_TLS_GD tglobaltlsaddr:$in)>;

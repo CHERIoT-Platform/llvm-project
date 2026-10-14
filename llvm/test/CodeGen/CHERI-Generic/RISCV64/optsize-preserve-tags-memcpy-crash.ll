@@ -98,13 +98,13 @@ define hidden void @default_preserve_tags_memmove(i8 addrspace(200)* %dst, i8 ad
 ; CHECK-NEXT:    clb a2, 30(a1)
 ; CHECK-NEXT:    clw a3, 24(a1)
 ; CHECK-NEXT:    clh a4, 28(a1)
-; CHECK-NEXT:    clc a5, 0(a1)
-; CHECK-NEXT:    cld a1, 16(a1)
+; CHECK-NEXT:    cld a5, 16(a1)
+; CHECK-NEXT:    clc a1, 0(a1)
 ; CHECK-NEXT:    csb a2, 30(a0)
 ; CHECK-NEXT:    csh a4, 28(a0)
 ; CHECK-NEXT:    csw a3, 24(a0)
-; CHECK-NEXT:    csd a1, 16(a0)
-; CHECK-NEXT:    csc a5, 0(a0)
+; CHECK-NEXT:    csd a5, 16(a0)
+; CHECK-NEXT:    csc a1, 0(a0)
 ; CHECK-NEXT:    cret
   tail call void @llvm.memmove.p200i8.p200i8.i64(i8 addrspace(200)* noundef nonnull align 16 dereferenceable(31) %dst, i8 addrspace(200)* noundef nonnull align 16 dereferenceable(31) %src, i64 31, i1 false) must_preserve_cheri_tags
   ret void

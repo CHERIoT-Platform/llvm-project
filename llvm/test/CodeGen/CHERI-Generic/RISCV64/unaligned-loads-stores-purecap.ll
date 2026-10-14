@@ -15,22 +15,22 @@ define i64 @load_global_i64_align_1(i64 %y) addrspace(200) nounwind {
 ; CHECK-NEXT:    clc a0, %pcrel_lo(.LBB0_1)(a0)
 ; CHECK-NEXT:    clbu a1, 1(a0)
 ; CHECK-NEXT:    clbu a2, 0(a0)
-; CHECK-NEXT:    clbu a3, 2(a0)
-; CHECK-NEXT:    clbu a4, 5(a0)
-; CHECK-NEXT:    clbu a5, 6(a0)
-; CHECK-NEXT:    clbu a6, 7(a0)
+; CHECK-NEXT:    clbu a3, 5(a0)
+; CHECK-NEXT:    clbu a4, 6(a0)
+; CHECK-NEXT:    clbu a5, 7(a0)
+; CHECK-NEXT:    clbu a6, 2(a0)
+; CHECK-NEXT:    clbu a7, 4(a0)
+; CHECK-NEXT:    clbu a0, 3(a0)
 ; CHECK-NEXT:    slli a1, a1, 8
 ; CHECK-NEXT:    or a1, a1, a2
-; CHECK-NEXT:    clbu a2, 4(a0)
-; CHECK-NEXT:    clbu a0, 3(a0)
-; CHECK-NEXT:    slli a4, a4, 8
-; CHECK-NEXT:    slli a5, a5, 16
-; CHECK-NEXT:    slli a6, a6, 24
-; CHECK-NEXT:    or a2, a4, a2
-; CHECK-NEXT:    or a4, a6, a5
-; CHECK-NEXT:    slli a3, a3, 16
+; CHECK-NEXT:    slli a3, a3, 8
+; CHECK-NEXT:    slli a4, a4, 16
+; CHECK-NEXT:    slli a5, a5, 24
+; CHECK-NEXT:    or a2, a3, a7
+; CHECK-NEXT:    or a4, a5, a4
+; CHECK-NEXT:    slli a6, a6, 16
 ; CHECK-NEXT:    slli a0, a0, 24
-; CHECK-NEXT:    or a0, a0, a3
+; CHECK-NEXT:    or a0, a0, a6
 ; CHECK-NEXT:    or a2, a4, a2
 ; CHECK-NEXT:    or a0, a0, a1
 ; CHECK-NEXT:    slli a2, a2, 32

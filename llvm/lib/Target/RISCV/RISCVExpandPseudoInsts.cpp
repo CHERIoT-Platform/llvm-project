@@ -321,7 +321,6 @@ bool RISCVExpandPseudo::expandMI(MachineBasicBlock &MBB,
   case RISCV::PseudoCompartmentCall:
     return expandCompartmentCall(MBB, MBBI, NextMBBI);
   case RISCV::PseudoLibraryCall:
-  case RISCV::PseudoCTAILLibrary:
     return expandLibraryCall(MBB, MBBI, NextMBBI);
   }
 
@@ -396,13 +395,8 @@ MachineBasicBlock *RISCVExpandPseudo::insertLoadOfImportTable(
       .addMBB(NewMBB, RISCVII::MO_CHERIOT1_COMPARTMENT_LO_I);
 
   if (CallImportTarget) {
-    bool ShouldTailCall =
-        OriginalCall->getOpcode() == RISCV::PseudoCTAILLibrary;
-    auto NewCallMI =
-        BuildMI(NewMBB, DL,
-                TII->get(ShouldTailCall ? RISCV::PseudoCTAILIndirect
-                                        : RISCV::C_CJALR))
-            .addReg(DestReg, RegState::Kill);
+    auto NewCallMI = BuildMI(NewMBB, DL, TII->get(RISCV::C_CJALR))
+                         .addReg(DestReg, RegState::Kill);
     if (OriginalCall && OriginalCall->shouldUpdateAdditionalCallInfo())
       MF->moveAdditionalCallInfo(OriginalCall, NewCallMI);
   }
@@ -524,14 +518,12 @@ bool RISCVExpandPseudo::expandLibraryCall(
   const MachineOperand Callee = MBBI->getOperand(0);
   MachineInstr &MI = *MBBI;
   auto *MF = MBB.getParent();
-  bool IsTailCall = MI.getOpcode() == RISCV::PseudoCTAILLibrary;
   if (Callee.isGlobal()) {
     auto *Fn = cast<Function>(resolveGlobalAlias(Callee.getGlobal()));
     // If this is a global, check if it's defined in the same module and has a
     // compatible interrupt status.  If so, we want to lower as a direct ccall.
     if (!Fn->isDeclaration() && isSafeToDirectCall(MF->getFunction(), *Fn)) {
-      MI.setDesc(
-          TII->get(IsTailCall ? RISCV::PseudoCTAIL : RISCV::PseudoCCALL));
+      MI.setDesc(TII->get(RISCV::PseudoCCALL));
       return true;
     }
     insertLoadOfImportTable(MBB, MBBI, Fn, RISCV::X7_Y, true, true, &MI);
@@ -547,8 +539,7 @@ bool RISCVExpandPseudo::expandLibraryCall(
       // If baremetal just blindly use a direct call
       DEBUG_WITH_TYPE("baremetal", llvm::dbgs() <<
         "baremetal library call of " << Callee.getSymbolName() << "\n");
-      MI.setDesc(
-          TII->get(IsTailCall ? RISCV::PseudoCTAIL : RISCV::PseudoCCALL));
+      MI.setDesc(TII->get(RISCV::PseudoCCALL));
       return true;
     }
     auto ImportEntryName = getImportExportTableName(
@@ -572,10 +563,8 @@ bool RISCVExpandPseudo::expandLibraryCall(
   } else {
     assert(Callee.isReg() && "Expected register operand");
     // Indirect library calls are just cjalr instructions.
-    auto NewCallMI = BuildMI(&MBB, MI.getDebugLoc(),
-                             TII->get(IsTailCall ? RISCV::PseudoCTAILIndirect
-                                                 : RISCV::C_CJALR))
-                         .add(Callee);
+    auto NewCallMI =
+        BuildMI(&MBB, MI.getDebugLoc(), TII->get(RISCV::C_CJALR)).add(Callee);
     if (MI.shouldUpdateAdditionalCallInfo())
       MF->moveAdditionalCallInfo(NewCallMI, &MI);
   }

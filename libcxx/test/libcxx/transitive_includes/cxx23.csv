@@ -398,6 +398,7 @@ fstream cstdint
 fstream cstdio
 fstream cstdlib
 fstream cstring
+fstream ctime
 fstream cwchar
 fstream cwctype
 fstream initializer_list
@@ -460,6 +461,7 @@ iomanip cstdint
 iomanip cstdio
 iomanip cstdlib
 iomanip cstring
+iomanip ctime
 iomanip cwchar
 iomanip cwctype
 iomanip initializer_list
@@ -593,6 +595,7 @@ locale cstdint
 locale cstdio
 locale cstdlib
 locale cstring
+locale ctime
 locale cwchar
 locale cwctype
 locale initializer_list

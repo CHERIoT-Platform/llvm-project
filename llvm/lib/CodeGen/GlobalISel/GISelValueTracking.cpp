@@ -1476,7 +1476,6 @@ void GISelValueTracking::computeKnownFPClass(Register R,
     break;
   }
   case TargetOpcode::G_FMA:
-  case TargetOpcode::G_STRICT_FMA:
   case TargetOpcode::G_FMAD: {
     if ((InterestedClasses & fcNegative) == fcNone)
       break;
@@ -1759,9 +1758,20 @@ void GISelValueTracking::computeKnownFPClass(Register R,
     DenormalMode Mode = MF->getDenormalMode(FltSem);
     const bool IsMultiUnitFPType = &FltSem == &APFloat::PPCDoubleDouble();
 
-    const bool IsTrunc = Opcode == TargetOpcode::G_INTRINSIC_TRUNC;
-    Known = KnownFPClass::roundToIntegral(KnownSrc, IsTrunc, IsMultiUnitFPType,
-                                          Mode);
+    switch (Opcode) {
+    case TargetOpcode::G_INTRINSIC_TRUNC:
+      Known = KnownFPClass::trunc(KnownSrc, Mode);
+      break;
+    case TargetOpcode::G_FFLOOR:
+      Known = KnownFPClass::floor(KnownSrc, IsMultiUnitFPType, Mode);
+      break;
+    case TargetOpcode::G_FCEIL:
+      Known = KnownFPClass::ceil(KnownSrc, IsMultiUnitFPType, Mode);
+      break;
+    default:
+      Known = KnownFPClass::roundToIntegral(KnownSrc, IsMultiUnitFPType, Mode);
+      break;
+    }
     break;
   }
   case TargetOpcode::G_FEXP:
@@ -1877,8 +1887,7 @@ void GISelValueTracking::computeKnownFPClass(Register R,
     Known = KnownFPClass::powi(KnownSrc, ExponentKnownBits);
     break;
   }
-  case TargetOpcode::G_FLDEXP:
-  case TargetOpcode::G_STRICT_FLDEXP: {
+  case TargetOpcode::G_FLDEXP: {
     Register Val = MI.getOperand(1).getReg();
     KnownFPClass KnownSrc;
     computeKnownFPClass(Val, DemandedElts, InterestedClasses, KnownSrc,
@@ -1901,13 +1910,10 @@ void GISelValueTracking::computeKnownFPClass(Register R,
     break;
   }
   case TargetOpcode::G_FADD:
-  case TargetOpcode::G_STRICT_FADD:
-  case TargetOpcode::G_FSUB:
-  case TargetOpcode::G_STRICT_FSUB: {
+  case TargetOpcode::G_FSUB: {
     Register LHS = MI.getOperand(1).getReg();
     Register RHS = MI.getOperand(2).getReg();
-    bool IsAdd = (Opcode == TargetOpcode::G_FADD ||
-                  Opcode == TargetOpcode::G_STRICT_FADD);
+    bool IsAdd = Opcode == TargetOpcode::G_FADD;
     bool WantNegative =
         IsAdd &&
         (InterestedClasses & KnownFPClass::OrderedLessThanZeroMask) != fcNone;
@@ -1954,8 +1960,7 @@ void GISelValueTracking::computeKnownFPClass(Register R,
       Known = KnownFPClass::fsub(KnownLHS, KnownRHS, Mode);
     break;
   }
-  case TargetOpcode::G_FMUL:
-  case TargetOpcode::G_STRICT_FMUL: {
+  case TargetOpcode::G_FMUL: {
     Register LHS = MI.getOperand(1).getReg();
     Register RHS = MI.getOperand(2).getReg();
     DenormalMode Mode =

@@ -239,7 +239,7 @@ bool CodeGenTargetMachineImpl::addPassesToEmitFile(
   if (!PassConfig)
     return true;
 
-  if (TargetPassConfig::willCompleteCodeGenPipeline()) {
+  if (PassConfig->willCompleteCodeGenPipeline()) {
     if (addAsmPrinter(PM, Out, DwoOut, FileType, MMIWP->getMMI().getContext()))
       return true;
   } else {
@@ -269,7 +269,7 @@ bool CodeGenTargetMachineImpl::addPassesToEmitMC(PassManagerBase &PM,
       addPassesToGenerateCode(*this, PM, DisableVerify, *MMIWP);
   if (!PassConfig)
     return true;
-  assert(TargetPassConfig::willCompleteCodeGenPipeline() &&
+  assert(PassConfig->willCompleteCodeGenPipeline() &&
          "Cannot emit MC with limited codegen pipeline");
 
   Ctx = &MMIWP->getMMI().getContext();

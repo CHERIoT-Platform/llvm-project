@@ -1592,6 +1592,13 @@ template <class ELFT> void Writer<ELFT>::finalizeAddressDependentContent() {
   AArch64Err843419Patcher a64p(ctx);
   ARMErr657417Patcher a32p(ctx);
 
+  // Transforms that move input sections without reading addresses go here.
+  // After the first assignAddresses, only the loop below may change layout.
+  if (ctx.arg.randomizeSectionPadding)
+    randomizeSectionPadding(ctx);
+  if (ctx.arg.branchToBranch)
+    ctx.target->relaxCFIJumpTables();
+
   // On Cheriot, we need to delay assigning addresses to linker script
   // symbols until after relaxation, because we might add new __cap_reloc
   // entries during the process.
@@ -1608,12 +1615,6 @@ template <class ELFT> void Writer<ELFT>::finalizeAddressDependentContent() {
     resolveShfLinkOrder();
   };
   finalizeOrderDependentContent();
-
-  if (ctx.arg.randomizeSectionPadding)
-    randomizeSectionPadding(ctx);
-
-  if (ctx.arg.branchToBranch)
-    ctx.target->relaxCFIJumpTables();
 
   // Iterate until a fixed point is reached, skipping relocatable links since
   // the final addresses are unavailable.

@@ -111,7 +111,7 @@ def uimm32_pat:  PatLeaf<(imm), [{ return isInt<32>(N->getZExtValue()); }]>;
 // Flow control
 ////////////////////////////////////////////////////////////////////////////////
 let hasDelaySlot=1, isTerminator=1 in {
-let isBranch=1, Defs = [AT] in {
+let isBranch=1, Defs = [R1] in {
 def CBTS : CheriFmtCBT<0x0a, (outs), (ins CheriOpnd:$cb, brtarget:$offset),
                         "cbts\t$cb, $offset",
                         [(brcond (i32 (trunc (assertzext (CapTagGet CheriOpnd:$cb)))), bb:$offset)]>;
@@ -507,7 +507,7 @@ def STORECAP_BigImm : CheriFmtCLS_BigImm<0x1E, (outs), (ins CheriOpnd:$cs, simm1
 
 }
 def : Pat<(store CheriOpnd:$cs, CheriOpnd:$cb),
-          (STORECAP CheriOpnd:$cs, ZERO_64, (i64 0), $cb)>;
+          (STORECAP CheriOpnd:$cs, R0_64, (i64 0), $cb)>;
 def : Pat<(store CheriOpnd:$cs, GPR64Opnd:$rt),
           (STORECAP CheriOpnd:$cs, GPR64Opnd:$rt, (i64 0), DDC)>;
 
@@ -544,7 +544,7 @@ multiclass LoadViaCap<bits<2> t, bit e, string instr_asm, RegisterOperand RC, Pa
 
 multiclass LoadViaCap0<Instruction Op, PatFrag loadType> {
   def : Pat<(loadType CheriOpnd:$cb),
-            (Op ZERO_64, (i64 0), CheriOpnd:$cb)>;
+            (Op R0_64, (i64 0), CheriOpnd:$cb)>;
 }
 
 // Store via a capability register
@@ -561,7 +561,7 @@ multiclass StoreViaCap<bits<2> t, bit e, string instr_asm, RegisterOperand RC, P
 
 multiclass StoreViaCap0<Instruction Op, RegisterOperand RC, PatFrag storeType> {
   def : Pat<(storeType RC:$rs, CheriOpnd0IsDDC:$cb),
-            (Op RC:$rs, ZERO_64, (i64 0), CheriOpnd0IsDDC:$cb)>;
+            (Op RC:$rs, R0_64, (i64 0), CheriOpnd0IsDDC:$cb)>;
   def : Pat<(storeType RC:$rs, (add (ptrtoint CheriOpnd0IsDDC:$cb), GPR64Opnd:$rt)),
             (Op RC:$rs, GPR64Opnd:$rt, (i64 0), CheriOpnd0IsDDC:$cb)>;
 }
@@ -619,7 +619,7 @@ defm CAPSTORE64     : StoreViaCapScaled<3, 0, "csd", GPR64Opnd, store, simm8s3, 
 
 // TODO: replace these by CReadHwr
 def : Pat<(int_cheri_ddc_get), (CReadHwr CAPHWR0)>;
-def : Pat<(int_mips_idc_get),  (CIncOffset C26, ZERO_64)>;
+def : Pat<(int_mips_idc_get),  (CIncOffset C26, R0_64)>;
 def : Pat<(int_mips_kr1c_get), (CReadHwr CAPHWR22)>;
 def : Pat<(int_mips_kr2c_get), (CReadHwr CAPHWR23)>;
 def : Pat<(int_mips_kcc_get),  (CReadHwr CAPHWR29)>;
@@ -686,7 +686,7 @@ def : InstAlias<"csetkr2c $src",    (CWriteHwr CAPHWR23, CheriOpnd:$src), 0>;
 
 // Must come before cfromddc to have a higher priority when disassembling
 def : InstAlias<"cgetnull $dst", (CMove CheriOpnd:$dst, CNULL), 1>;
-def : InstAlias<"cgetnull_old $dst", (CFromPtr CheriOpnd:$dst, DDC, ZERO_64), 1>;
+def : InstAlias<"cgetnull_old $dst", (CFromPtr CheriOpnd:$dst, DDC, R0_64), 1>;
 // def : InstAlias<"cfromint $dst, $src", (CIncOffset CheriOpnd:$dst, CNULL, GPR64Opnd:$src), 1>;
 
 // So that we can use ptr -> int without a warning that $c0 access is deprecated in .s files
@@ -820,28 +820,28 @@ def CAP_ATOMIC_CMP_SWAP_CAP_POSTRA  : CapAtomicCmpSwapPostRA<CheriOpnd>;
 
 // Atomic load patterns.  These (and the store patterns) expand to simple loads
 // because an IR pass adds the required barriers.
-def : MipsPat<(atomic_load_8 CheriOpnd0IsDDC:$a), (CAPLOAD832 ZERO_64, (i64 0), CheriOpnd0IsDDC:$a)>;
-def : MipsPat<(atomic_load_16 CheriOpnd0IsDDC:$a), (CAPLOAD1632 ZERO_64, (i64 0), CheriOpnd0IsDDC:$a)>;
-def : MipsPat<(atomic_load_32 CheriOpnd0IsDDC:$a), (CAPLOAD32 ZERO_64, (i64 0), CheriOpnd0IsDDC:$a)>;
-def : MipsPat<(atomic_load_64 CheriOpnd0IsDDC:$a), (CAPLOAD64 ZERO_64, (i64 0), CheriOpnd0IsDDC:$a)>;
-def : MipsPat<(atomic_load_cap CheriOpnd0IsDDC:$a), (LOADCAP ZERO_64, (i64 0), CheriOpnd0IsDDC:$a)>;
+def : MipsPat<(atomic_load_8 CheriOpnd0IsDDC:$a), (CAPLOAD832 R0_64, (i64 0), CheriOpnd0IsDDC:$a)>;
+def : MipsPat<(atomic_load_16 CheriOpnd0IsDDC:$a), (CAPLOAD1632 R0_64, (i64 0), CheriOpnd0IsDDC:$a)>;
+def : MipsPat<(atomic_load_32 CheriOpnd0IsDDC:$a), (CAPLOAD32 R0_64, (i64 0), CheriOpnd0IsDDC:$a)>;
+def : MipsPat<(atomic_load_64 CheriOpnd0IsDDC:$a), (CAPLOAD64 R0_64, (i64 0), CheriOpnd0IsDDC:$a)>;
+def : MipsPat<(atomic_load_cap CheriOpnd0IsDDC:$a), (LOADCAP R0_64, (i64 0), CheriOpnd0IsDDC:$a)>;
 // Atomic store patterns.
 def : MipsPat<(atomic_store_8 GPR64:$v, CheriOpnd0IsDDC:$a),
-              (CAPSTORE8 $v, ZERO_64, (i64 0), $a)>;
+              (CAPSTORE8 $v, R0_64, (i64 0), $a)>;
 def : MipsPat<(atomic_store_8 GPR32:$v, CheriOpnd0IsDDC:$a),
-              (CAPSTORE832 $v, ZERO_64, (i64 0), $a)>;
+              (CAPSTORE832 $v, R0_64, (i64 0), $a)>;
 def : MipsPat<(atomic_store_16 GPR64:$v, CheriOpnd0IsDDC:$a),
-              (CAPSTORE16 $v, ZERO_64, (i64 0), $a)>;
+              (CAPSTORE16 $v, R0_64, (i64 0), $a)>;
 def : MipsPat<(atomic_store_16 GPR32:$v, CheriOpnd0IsDDC:$a),
-              (CAPSTORE1632 $v, ZERO_64, (i64 0), $a)>;
+              (CAPSTORE1632 $v, R0_64, (i64 0), $a)>;
 def : MipsPat<(atomic_store_32 GPR64:$v, CheriOpnd0IsDDC:$a),
-              (CAPSTORE3264 $v, ZERO_64, (i64 0), $a)>;
+              (CAPSTORE3264 $v, R0_64, (i64 0), $a)>;
 def : MipsPat<(atomic_store_32 GPR32:$v, CheriOpnd0IsDDC:$a),
-              (CAPSTORE32 $v, ZERO_64, (i64 0), $a)>;
+              (CAPSTORE32 $v, R0_64, (i64 0), $a)>;
 def : MipsPat<(atomic_store_64 GPR64:$v, CheriOpnd0IsDDC:$a),
-              (CAPSTORE64 $v, ZERO_64, (i64 0), $a)>;
+              (CAPSTORE64 $v, R0_64, (i64 0), $a)>;
 def : MipsPat<(atomic_store_cap CheriOpnd:$v, CheriOpnd0IsDDC:$a),
-              (STORECAP $v, ZERO_64, (i64 0), $a)>;
+              (STORECAP $v, R0_64, (i64 0), $a)>;
 }
 let Predicates=[IsCHERI,NotCHERIABI] in {
 def : MipsPat<(atomic_load_cap GPR64Opnd:$a), (LOADCAP GPR64Opnd:$a, (i64 0), DDC)>;
@@ -876,7 +876,7 @@ def  CCallPseudo : PseudoSE<(outs), (ins GPR64Opnd:$rs, uimm32: $mask),
                             [(CheriJmpLink GPR64Opnd:$rs, (i32 uimm32_pat: $mask))]>
 {
   let isCall=1;
-  let Defs = [RA];
+  let Defs = [R31];
   let hasNoSchedulingInfo = 1;
 }
 
@@ -940,20 +940,20 @@ def CapFI : ComplexPattern<cPTR, 1, "selectAddrFI", [frameindex], []>;
 // FIXME: truncstore/extload nodes are not being used?
 
 multiclass FrameIndexStorePatterns<PatFrag storeOp, ValueType intTy, Instruction OutOp, PatFrag immfrag> {
-  def : Pat<(storeOp intTy:$rs, (cptradd CapFI:$addr, immfrag:$offset)), (OutOp $rs, ZERO_64, immfrag:$offset, $addr)>;
-  def : Pat<(storeOp intTy:$rs, CapFI:$addr), (OutOp $rs, ZERO_64, (i64 0), $addr)>;
+  def : Pat<(storeOp intTy:$rs, (cptradd CapFI:$addr, immfrag:$offset)), (OutOp $rs, R0_64, immfrag:$offset, $addr)>;
+  def : Pat<(storeOp intTy:$rs, CapFI:$addr), (OutOp $rs, R0_64, (i64 0), $addr)>;
 }
 multiclass FrameIndexLoadPatterns<PatFrag loadOp, ValueType intTy, Instruction OutOp, PatFrag immfrag> {
-  def : Pat<(intTy (loadOp (cptradd CapFI:$addr, immfrag:$offset))), (OutOp ZERO_64, immfrag:$offset, $addr)>;
-  def : Pat<(intTy (loadOp CapFI:$addr)), (OutOp ZERO_64, (i64 0), $addr)>;
+  def : Pat<(intTy (loadOp (cptradd CapFI:$addr, immfrag:$offset))), (OutOp R0_64, immfrag:$offset, $addr)>;
+  def : Pat<(intTy (loadOp CapFI:$addr)), (OutOp R0_64, (i64 0), $addr)>;
 }
 
 // FIXME: avoid this pattern for i8/i16 stack loads
-def : Pat<(store CheriOpnd:$cs, (cptradd CapFI:$addr, simm11s4Pattern:$offset)), (STORECAP $cs, ZERO_64, imm:$offset, $addr)>;
-def : Pat<(store CheriOpnd:$cs, CapFI:$addr), (STORECAP $cs, ZERO_64, (i64 0), $addr)>;
+def : Pat<(store CheriOpnd:$cs, (cptradd CapFI:$addr, simm11s4Pattern:$offset)), (STORECAP $cs, R0_64, imm:$offset, $addr)>;
+def : Pat<(store CheriOpnd:$cs, CapFI:$addr), (STORECAP $cs, R0_64, (i64 0), $addr)>;
 
-def : Pat<(load (cptradd CapFI:$addr, simm11s4Pattern:$offset)), (LOADCAP ZERO_64, imm:$offset, $addr)>;
-def : Pat<(load CapFI:$addr), (LOADCAP ZERO_64, (i64 0), $addr)>;
+def : Pat<(load (cptradd CapFI:$addr, simm11s4Pattern:$offset)), (LOADCAP R0_64, imm:$offset, $addr)>;
+def : Pat<(load CapFI:$addr), (LOADCAP R0_64, (i64 0), $addr)>;
 
 // i64 load
 defm: FrameIndexLoadPatterns<load, i64, CAPLOAD64, simm8s3Pattern>;
@@ -994,7 +994,7 @@ defm: FrameIndexLoadPatterns<extloadi1, i64, CAPLOADU8, simm8Pattern>;
 // stores
 
 // This pattern allows omitting lots of unnncessary sll instructions
-def : Pat<(store (i32 (trunc GPR64:$rs)), CapFI:$addr), (CAPSTORE3264 $rs, ZERO_64, (i64 0), $addr)>;
+def : Pat<(store (i32 (trunc GPR64:$rs)), CapFI:$addr), (CAPSTORE3264 $rs, R0_64, (i64 0), $addr)>;
 
 defm: FrameIndexStorePatterns<truncstorei32, i64, CAPSTORE3264, simm8s2Pattern>;
 defm: FrameIndexStorePatterns<truncstorei16, i64, CAPSTORE16, simm8s1Pattern>;
@@ -1042,7 +1042,7 @@ def : Pat<(int_cheri_bounded_stack_cap CapFI:$fi, GPR64Opnd:$size),
 
 // NOTE: removing the parentheses around (CapFI:$fi) in the output pattern will result in
 // an invalid CIncOffset: %2:cherigpr = CIncOffset %2:cherigpr, $zero_64
-def : Pat<(cPTR CapFI:$fi), (CIncOffset (CapFI:$fi), ZERO_64)>;
+def : Pat<(cPTR CapFI:$fi), (CIncOffset (CapFI:$fi), R0_64)>;
 let AddedComplexity = 5 in {
   // Add complexity to select this before the generic CIncOffsetImm pattern
   def : Pat<(cptradd CapFI:$fi, simm11s0Pattern:$offset), (CIncOffsetImm (CapFI:$fi), imm:$offset)>;
@@ -1058,7 +1058,7 @@ def : Pat<(int_cheri_bounded_stack_cap_dynamic CheriOpnd:$cs, uimm11s0Pattern:$i
 //   auto FI = cast<FrameIndexSDNode>(N);
 //   return CurDAG->getTargetFrameIndex(FI->getIndex(), MVT::i32);
 // }]>;
-// def : Pat<(c128 frameindex:$fi), (CIncOffset (frameindex_to_targetframeindex $fi), ZERO_64)>;
+// def : Pat<(c128 frameindex:$fi), (CIncOffset (frameindex_to_targetframeindex $fi), R0_64)>;
 //
 // Using a Pseudo instruction also seems to work fine:
 // def StackToCapPseudo : CheriPseudo<(outs CheriOpnd: $cd), (ins CheriOpnd:$fi), "#StackToCapPseudo $cd, $fi", [(set CheriOpnd:$cd, CapFI:$fi)]>;
@@ -1099,7 +1099,7 @@ class CapTableWrapperPat<SDNode node>:
 //          (cptradd $cgp, (shl imm:$in, 4))>;
 
 
-def shift_imm_by_4 : OutPatFrag<(ops node:$in), (DSLL (DADDiu ZERO_64, $in), 4)>;
+def shift_imm_by_4 : OutPatFrag<(ops node:$in), (DSLL (DADDiu R0_64, $in), 4)>;
 
 //def : Pat<(select GPR64Opnd:$cond,
 //                  (WrapperCapOp CheriOpnd:$cgp, imm:$in),
@@ -1125,7 +1125,7 @@ def : CapTableWrapperPat<texternalsym>;
 def : Pat<(load GPR64Opnd:$rt),
           (LOADCAP GPR64Opnd:$rt, (i64 0), DDC)>;
 def : Pat<(load CheriOpnd:$cb),
-          (LOADCAP ZERO_64, (i64 0), CheriOpnd:$cb)>;
+          (LOADCAP R0_64, (i64 0), CheriOpnd:$cb)>;
 
 
 let isReMaterializable = 1 /*, isAsCheapAsAMove = 1 */ in

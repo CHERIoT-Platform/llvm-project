@@ -55,7 +55,7 @@ MipsRegisterInfo::MipsRegisterInfo(const MipsSubtarget &STI)
   MIPS_MC::initLLVMToCVRegMapping(this);
 }
 
-unsigned MipsRegisterInfo::getPICCallReg() { return Mips::T9; }
+unsigned MipsRegisterInfo::getPICCallReg() { return Mips::R25; }
 
 unsigned
 MipsRegisterInfo::getRegPressureLimit(const TargetRegisterClass *RC,
@@ -187,13 +187,11 @@ const uint32_t *MipsRegisterInfo::getMips16RetHelperMask() {
 
 BitVector MipsRegisterInfo::
 getReservedRegs(const MachineFunction &MF) const {
-  static const MCPhysReg ReservedGPR32[] = {
-    Mips::ZERO, Mips::K0, Mips::K1
-  };
+  static const MCPhysReg ReservedGPR32[] = {Mips::R0, Mips::R26, Mips::R27,
+                                            Mips::SP};
 
-  static const MCPhysReg ReservedGPR64[] = {
-    Mips::ZERO_64, Mips::K0_64, Mips::K1_64
-  };
+  static const MCPhysReg ReservedGPR64[] = {Mips::R0_64, Mips::R26_64,
+                                            Mips::R27_64, Mips::SP_64};
 
   static const uint16_t ReservedCheriRegs[] = {
       Mips::CNULL,
@@ -248,7 +246,7 @@ getReservedRegs(const MachineFunction &MF) const {
   // including jumps within a function. Keep it out of register allocation.
   const auto &TM = static_cast<const MipsTargetMachine &>(MF.getTarget());
   if (TM.isJIT() && TM.getRelocationModel() == Reloc::Static)
-    markSuperRegs(Reserved, Mips::T9);
+    markSuperRegs(Reserved, Mips::R25);
 
   // Mark user-reserved GPRs and their 64-bit super-registers.
   for (unsigned I = 1; I < 32; ++I)
@@ -300,7 +298,7 @@ getReservedRegs(const MachineFunction &MF) const {
   // Reserve FP if this function should have a dedicated frame pointer register.
   if (Subtarget.getFrameLowering()->hasFP(MF)) {
     if (Subtarget.inMips16Mode())
-      Reserved.set(Mips::S0);
+      Reserved.set(Mips::R16);
     else {
       Reserved.set(Mips::FP);
       Reserved.set(Mips::FP_64);
@@ -309,8 +307,9 @@ getReservedRegs(const MachineFunction &MF) const {
       // allocate variable-sized objects at runtime. This should test the
       // same conditions as MipsFrameLowering::hasBP().
       if (hasStackRealignment(MF) && MF.getFrameInfo().hasVarSizedObjects()) {
-        Reserved.set(Mips::S7);
-        Reserved.set(Mips::S7_64);
+        const MipsABIInfo &ABI = Subtarget.getABI();
+        Reserved.set(ABI.getSavedReg(7, false));
+        Reserved.set(ABI.getSavedReg(7, true));
       }
     }
   }
@@ -337,10 +336,10 @@ getReservedRegs(const MachineFunction &MF) const {
     const MipsFunctionInfo *MipsFI = MF.getInfo<MipsFunctionInfo>();
     Reserved.set(Mips::RA);
     Reserved.set(Mips::RA_64);
-    Reserved.set(Mips::T0);
-    Reserved.set(Mips::T1);
+    Reserved.set(Mips::R8);
+    Reserved.set(Mips::R9);
     if (MF.getFunction().hasFnAttribute("saveS2") || MipsFI->hasSaveS2())
-      Reserved.set(Mips::S2);
+      Reserved.set(Mips::R18);
   }
 
   // Reserve GP if small section is used.
@@ -387,7 +386,7 @@ getFrameRegister(const MachineFunction &MF) const {
   auto &ABI = Subtarget.getABI();
 
   if (Subtarget.inMips16Mode())
-    return TFI->hasFP(MF) ? Mips::S0 : Mips::SP;
+    return TFI->hasFP(MF) ? Mips::R16 : Mips::SP;
   else
     return TFI->hasFP(MF) ? ABI.GetFramePtr() : ABI.GetStackPtr();
 }

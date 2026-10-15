@@ -71,7 +71,7 @@ int foo(int* i) {
 // DEBUG-INFO-NEXT: DW_TAG_subprogram
 // DEBUG-INFO-NEXT:                 DW_AT_low_pc	(0x0000000000000000)
 // DEBUG-INFO-NEXT:                 DW_AT_high_pc	(0x00000000000000{{.+}})
-// MIPS-DEBUG-INFO-NEXT:            DW_AT_frame_base	(DW_OP_reg29 SP_64)
+// MIPS-DEBUG-INFO-NEXT:            DW_AT_frame_base	(DW_OP_reg29 R29_64)
 // CHERI-DEBUG-INFO-NEXT:           DW_AT_frame_base	(DW_OP_regx C11)
 // DEBUG-INFO-NEXT:                 DW_AT_name	("foo")
 // DEBUG-INFO-NEXT:                 DW_AT_decl_file	("{{.+}}/test/CodeGen/cheri/cheri-debug-info.c")
@@ -156,7 +156,7 @@ int foo(int* i) {
 // CHERI-DEBUG-INFO-OPT-NEXT:           DW_AT_high_pc	(0x000000000000000c)
 // MIPS-DEBUG-INFO-OPT-NEXT:            DW_AT_high_pc	(0x0000000000000008)
 // CHERI-DEBUG-INFO-OPT-NEXT:           DW_AT_frame_base	(DW_OP_regx C11)
-// MIPS-DEBUG-INFO-OPT-NEXT:            DW_AT_frame_base	(DW_OP_reg29 SP_64)
+// MIPS-DEBUG-INFO-OPT-NEXT:            DW_AT_frame_base	(DW_OP_reg29 R29_64)
 // DEBUG-INFO-OPT-NEXT:                 DW_AT_name	("foo")
 // DEBUG-INFO-OPT-NEXT:                 DW_AT_decl_file	("{{.+}}cheri-debug-info.c")
 // DEBUG-INFO-OPT-NEXT:                 DW_AT_decl_line	([[#FOO_DECL_LINE:]])
@@ -166,7 +166,7 @@ int foo(int* i) {
 // DEBUG-INFO-OPT-NEXT:                 DW_AT_APPLE_optimized (0x01)
 // DEBUG-INFO-OPT-EMPTY:
 // DEBUG-INFO-OPT-NEXT: 0x000000{{.+}}: DW_TAG_formal_parameter
-// MIPS-DEBUG-INFO-OPT-NEXT:                    DW_AT_location  (DW_OP_reg4 A0_64)
+// MIPS-DEBUG-INFO-OPT-NEXT:                    DW_AT_location  (DW_OP_reg4 R4_64)
 // CHERI-DEBUG-INFO-OPT-NEXT:                   DW_AT_location	(DW_OP_regx C3)
 // DEBUG-INFO-OPT-NEXT:                         DW_AT_name	("i")
 // DEBUG-INFO-OPT-NEXT:                         DW_AT_decl_file	("{{.+}}cheri-debug-info.c")

@@ -65,7 +65,7 @@ struct CheriAddressingModeFolder : public MachineFunctionPass {
       return false;
     }
     // We potentially could fold non-zero adds, but we'll leave them for now.
-    if (reg != Mips::ZERO_64)
+    if (reg != Mips::R0_64)
       return false;
     off += offset;
     // If the result is too big to fit in the offset field, give up
@@ -196,7 +196,7 @@ struct CheriAddressingModeFolder : public MachineFunctionPass {
         // it up to use relative addressing, but we may be able to modify it so
         // that it is...
         int64_t offset = MI.getOperand(2).getImm();
-        if (MI.getOperand(1).getReg() != Mips::ZERO_64) {
+        if (MI.getOperand(1).getReg() != Mips::R0_64) {
           // Don't try to fold in things that have relocations yet
           if (!MI.getOperand(2).isImm())
             continue;
@@ -206,7 +206,7 @@ struct CheriAddressingModeFolder : public MachineFunctionPass {
           if (tryToFoldAdd(Op, MI.getOperand(1).getReg(), RI, AddInst, offset)) {
             Adds.insert(AddInst);
             MI.getOperand(2).setImm(offset);
-            MI.getOperand(1).setReg(Mips::ZERO_64);
+            MI.getOperand(1).setReg(Mips::R0_64);
           } else
             continue;
         }
@@ -232,7 +232,7 @@ struct CheriAddressingModeFolder : public MachineFunctionPass {
           // FIXME: this does the wrong thing if the MIPS register is zero!
           // For now just assume it's fine if it's not the zero register
           if (IncOffset->getOperand(1).getReg() == Mips::DDC &&
-              IncOffset->getOperand(2).getReg() != Mips::ZERO_64)
+              IncOffset->getOperand(2).getReg() != Mips::R0_64)
             DDCOps.emplace_back(&MI, IncOffset);
           continue;
         }
@@ -298,7 +298,7 @@ struct CheriAddressingModeFolder : public MachineFunctionPass {
               // Note: The first operand to CIncOffset could also be a frame Index in which case we
               // cannot fold it.
               assert(ImmInput->getOperand(1).isReg() || ImmInput->getOperand(1).isFI());
-              if (ImmInput->getOperand(1).isReg() && (MemopRegOff == Mips::ZERO_64 || MemopRegOff == Mips::ZERO)) {
+              if (ImmInput->getOperand(1).isReg() && (MemopRegOff == Mips::R0_64 || MemopRegOff == Mips::R0)) {
                 auto IncRegOff = ImmInput->getOperand(2).getReg();
                 auto CapReg = ImmInput->getOperand(1).getReg();
                 auto OffsetDef = RI.getUniqueVRegDef(IncRegOff);
@@ -412,7 +412,7 @@ struct CheriAddressingModeFolder : public MachineFunctionPass {
             // If we managed to pull the offset calculation entirely away, then
             // just use the computed immediate
             Adds.insert(AddInst);
-            MI.getOperand(1).setReg(Mips::ZERO_64);
+            MI.getOperand(1).setReg(Mips::R0_64);
             MI.getOperand(2).setImm(offset);
           } else {
             // If we didn't, then use the CIncOffset's register value as our

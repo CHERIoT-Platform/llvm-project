@@ -109,6 +109,10 @@ using signed_integer_types =
               ,
               __int128_t
 #endif
+#if __has_feature(cheri)
+               ,
+               __intcap
+#endif
               >;
 
 using unsigned_integer_types =
@@ -120,6 +124,10 @@ using unsigned_integer_types =
 #ifndef TEST_HAS_NO_INT128
               ,
               __uint128_t
+#endif
+#if __has_feature(cheri)
+               ,
+               unsigned __intcap
 #endif
               >;
 

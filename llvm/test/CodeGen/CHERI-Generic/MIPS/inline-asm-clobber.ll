@@ -41,16 +41,16 @@ define i32 @test_clobber_c2(i32 signext %intval, ptr addrspace(200) %ptrval, ptr
 ; CHECK-NEXT:    addu $2, $3, $1
 ; MIR-LABEL: name: test_clobber_c2
 ; MIR: bb.0.entry:
-; MIR-NEXT:   liveins: $a0_64, $c3, $c4
+; MIR-NEXT:   liveins: $r4_64, $c3, $c4
 ; MIR-NEXT: {{  $}}
-; MIR-NEXT:   $v1 = OR $a0, $zero, implicit killed $a0_64
-; MIR-NEXT:   INLINEASM &"syscall\0A", sideeffect attdialect, clobber, implicit-def dead early-clobber $a0, clobber, implicit-def dead early-clobber $c2, clobber, implicit-def dead early-clobber $at
-; MIR-NEXT:   renamable $v0 = CAPLOAD832 $zero_64, 0, killed renamable $c3 :: (volatile load (s8) from %ir.ptrval, addrspace 200)
-; MIR-NEXT:   renamable $at = CAPLOAD832 $zero_64, 0, killed renamable $c4 :: (volatile load (s8) from %ir.ptrval2, addrspace 200)
-; MIR-NEXT:   renamable $v0 = nsw ADDu killed renamable $v0, killed renamable $v1
-; MIR-NEXT:   renamable $v0 = nsw ADDu killed renamable $at, killed renamable $v0
+; MIR-NEXT:   $r3 = OR $r4, $r0, implicit killed $r4_64
+; MIR-NEXT:   INLINEASM &"syscall\0A", sideeffect attdialect, clobber, implicit-def dead early-clobber $r4, clobber, implicit-def dead early-clobber $c2, clobber, implicit-def dead early-clobber $r1
+; MIR-NEXT:   renamable $r2 = CAPLOAD832 $r0_64, 0, killed renamable $c3 :: (volatile load (s8) from %ir.ptrval, addrspace 200)
+; MIR-NEXT:   renamable $r1 = CAPLOAD832 $r0_64, 0, killed renamable $c4 :: (volatile load (s8) from %ir.ptrval2, addrspace 200)
+; MIR-NEXT:   renamable $r2 = nsw ADDu killed renamable $r2, killed renamable $r3
+; MIR-NEXT:   renamable $r2 = nsw ADDu killed renamable $r1, killed renamable $r2
 ; MIR-NEXT:   PseudoReturnCap $c17 {
-; MIR-NEXT:     $zero = SLL $zero, 0
+; MIR-NEXT:     $r0 = SLL $r0, 0
 ; MIR-NEXT:   }
 entry:
   tail call void asm sideeffect "syscall\0A", "~{$4},~{$c2},~{$1}"()
@@ -86,21 +86,21 @@ define i32 @test_clobber_c3(i32 signext %intval, ptr addrspace(200) %ptrval, ptr
 ; CHECK-NEXT:    addu $2, $3, $1
 ; MIR-LABEL: name: test_clobber_c3
 ; MIR: bb.0.entry:
-; MIR-NEXT:   liveins: $a0_64, $c3, $c4
+; MIR-NEXT:   liveins: $r4_64, $c3, $c4
 ; MIR-NEXT: {{  $}}
 ; MIR-NEXT:   $c11 = CIncOffsetImm $c11, -16
 ; MIR-NEXT:   CFI_INSTRUCTION def_cfa_offset 16
-; MIR-NEXT:   STORECAP $c3, $zero_64, 0, $c11 :: (store (s128) into %stack.0)
-; MIR-NEXT:   $v1 = OR $a0, $zero, implicit killed $a0_64
-; MIR-NEXT:   INLINEASM &"syscall\0A", sideeffect attdialect, clobber, implicit-def dead early-clobber $a0, clobber, implicit-def dead early-clobber $c3, clobber, implicit-def dead early-clobber $at
-; MIR-NEXT:   $c3 = LOADCAP $zero_64, 0, $c11 :: (load (s128) from %stack.0)
-; MIR-NEXT:   renamable $v0 = CAPLOAD832 $zero_64, 0, killed renamable $c3 :: (volatile load (s8) from %ir.ptrval, addrspace 200)
-; MIR-NEXT:   renamable $at = CAPLOAD832 $zero_64, 0, killed renamable $c4 :: (volatile load (s8) from %ir.ptrval2, addrspace 200)
-; MIR-NEXT:   renamable $v0 = nsw ADDu killed renamable $v0, killed renamable $v1
-; MIR-NEXT:   renamable $v0 = nsw ADDu killed renamable $at, killed renamable $v0
+; MIR-NEXT:   STORECAP $c3, $r0_64, 0, $c11 :: (store (s128) into %stack.0)
+; MIR-NEXT:   $r3 = OR $r4, $r0, implicit killed $r4_64
+; MIR-NEXT:   INLINEASM &"syscall\0A", sideeffect attdialect, clobber, implicit-def dead early-clobber $r4, clobber, implicit-def dead early-clobber $c3, clobber, implicit-def dead early-clobber $r1
+; MIR-NEXT:   $c3 = LOADCAP $r0_64, 0, $c11 :: (load (s128) from %stack.0)
+; MIR-NEXT:   renamable $r2 = CAPLOAD832 $r0_64, 0, killed renamable $c3 :: (volatile load (s8) from %ir.ptrval, addrspace 200)
+; MIR-NEXT:   renamable $r1 = CAPLOAD832 $r0_64, 0, killed renamable $c4 :: (volatile load (s8) from %ir.ptrval2, addrspace 200)
+; MIR-NEXT:   renamable $r2 = nsw ADDu killed renamable $r2, killed renamable $r3
+; MIR-NEXT:   renamable $r2 = nsw ADDu killed renamable $r1, killed renamable $r2
 ; MIR-NEXT:   $c11 = CIncOffsetImm $c11, 16
 ; MIR-NEXT:   PseudoReturnCap $c17 {
-; MIR-NEXT:     $zero = SLL $zero, 0
+; MIR-NEXT:     $r0 = SLL $r0, 0
 ; MIR-NEXT:   }
 entry:
   tail call void asm sideeffect "syscall\0A", "~{$4},~{$c3},~{$1}"()
@@ -136,21 +136,21 @@ define i32 @test_clobber_c4(i32 signext %intval, ptr addrspace(200) %ptrval, ptr
 ; CHECK-NEXT:    addu $2, $3, $1
 ; MIR-LABEL: name: test_clobber_c4
 ; MIR: bb.0.entry:
-; MIR-NEXT:   liveins: $a0_64, $c3, $c4
+; MIR-NEXT:   liveins: $r4_64, $c3, $c4
 ; MIR-NEXT: {{  $}}
 ; MIR-NEXT:   $c11 = CIncOffsetImm $c11, -16
 ; MIR-NEXT:   CFI_INSTRUCTION def_cfa_offset 16
-; MIR-NEXT:   STORECAP $c4, $zero_64, 0, $c11 :: (store (s128) into %stack.0)
-; MIR-NEXT:   $v1 = OR $a0, $zero, implicit killed $a0_64
-; MIR-NEXT:   INLINEASM &"syscall\0A", sideeffect attdialect, clobber, implicit-def dead early-clobber $a0, clobber, implicit-def dead early-clobber $c4, clobber, implicit-def dead early-clobber $at
-; MIR-NEXT:   $c4 = LOADCAP $zero_64, 0, $c11 :: (load (s128) from %stack.0)
-; MIR-NEXT:   renamable $v0 = CAPLOAD832 $zero_64, 0, killed renamable $c3 :: (volatile load (s8) from %ir.ptrval, addrspace 200)
-; MIR-NEXT:   renamable $at = CAPLOAD832 $zero_64, 0, killed renamable $c4 :: (volatile load (s8) from %ir.ptrval2, addrspace 200)
-; MIR-NEXT:   renamable $v0 = nsw ADDu killed renamable $v0, killed renamable $v1
-; MIR-NEXT:   renamable $v0 = nsw ADDu killed renamable $at, killed renamable $v0
+; MIR-NEXT:   STORECAP $c4, $r0_64, 0, $c11 :: (store (s128) into %stack.0)
+; MIR-NEXT:   $r3 = OR $r4, $r0, implicit killed $r4_64
+; MIR-NEXT:   INLINEASM &"syscall\0A", sideeffect attdialect, clobber, implicit-def dead early-clobber $r4, clobber, implicit-def dead early-clobber $c4, clobber, implicit-def dead early-clobber $r1
+; MIR-NEXT:   $c4 = LOADCAP $r0_64, 0, $c11 :: (load (s128) from %stack.0)
+; MIR-NEXT:   renamable $r2 = CAPLOAD832 $r0_64, 0, killed renamable $c3 :: (volatile load (s8) from %ir.ptrval, addrspace 200)
+; MIR-NEXT:   renamable $r1 = CAPLOAD832 $r0_64, 0, killed renamable $c4 :: (volatile load (s8) from %ir.ptrval2, addrspace 200)
+; MIR-NEXT:   renamable $r2 = nsw ADDu killed renamable $r2, killed renamable $r3
+; MIR-NEXT:   renamable $r2 = nsw ADDu killed renamable $r1, killed renamable $r2
 ; MIR-NEXT:   $c11 = CIncOffsetImm $c11, 16
 ; MIR-NEXT:   PseudoReturnCap $c17 {
-; MIR-NEXT:     $zero = SLL $zero, 0
+; MIR-NEXT:     $r0 = SLL $r0, 0
 ; MIR-NEXT:   }
 entry:
   tail call void asm sideeffect "syscall\0A", "~{$4},~{$c4},~{$1}"()
@@ -187,23 +187,23 @@ define i32 @test_clobber_c3_c4(i32 signext %intval, ptr addrspace(200) %ptrval, 
 ; CHECK-NEXT:    addu $2, $3, $1
 ; MIR-LABEL: name: test_clobber_c3_c4
 ; MIR: bb.0.entry:
-; MIR-NEXT:   liveins: $a0_64, $c3, $c4
+; MIR-NEXT:   liveins: $r4_64, $c3, $c4
 ; MIR-NEXT: {{  $}}
 ; MIR-NEXT:   $c11 = CIncOffsetImm $c11, -32
 ; MIR-NEXT:   CFI_INSTRUCTION def_cfa_offset 32
-; MIR-NEXT:   STORECAP $c4, $zero_64, 0, $c11 :: (store (s128) into %stack.1)
-; MIR-NEXT:   STORECAP $c3, $zero_64, 16, $c11 :: (store (s128) into %stack.0)
-; MIR-NEXT:   $v1 = OR $a0, $zero, implicit killed $a0_64
-; MIR-NEXT:   INLINEASM &"syscall\0A", sideeffect attdialect, clobber, implicit-def dead early-clobber $a0, clobber, implicit-def dead early-clobber $c3, clobber, implicit-def dead early-clobber $c4, clobber, implicit-def dead early-clobber $at
-; MIR-NEXT:   $c4 = LOADCAP $zero_64, 0, $c11 :: (load (s128) from %stack.1)
-; MIR-NEXT:   $c3 = LOADCAP $zero_64, 16, $c11 :: (load (s128) from %stack.0)
-; MIR-NEXT:   renamable $v0 = CAPLOAD832 $zero_64, 0, killed renamable $c3 :: (volatile load (s8) from %ir.ptrval, addrspace 200)
-; MIR-NEXT:   renamable $at = CAPLOAD832 $zero_64, 0, killed renamable $c4 :: (volatile load (s8) from %ir.ptrval2, addrspace 200)
-; MIR-NEXT:   renamable $v0 = nsw ADDu killed renamable $v0, killed renamable $v1
-; MIR-NEXT:   renamable $v0 = nsw ADDu killed renamable $at, killed renamable $v0
+; MIR-NEXT:   STORECAP $c4, $r0_64, 0, $c11 :: (store (s128) into %stack.1)
+; MIR-NEXT:   STORECAP $c3, $r0_64, 16, $c11 :: (store (s128) into %stack.0)
+; MIR-NEXT:   $r3 = OR $r4, $r0, implicit killed $r4_64
+; MIR-NEXT:   INLINEASM &"syscall\0A", sideeffect attdialect, clobber, implicit-def dead early-clobber $r4, clobber, implicit-def dead early-clobber $c3, clobber, implicit-def dead early-clobber $c4, clobber, implicit-def dead early-clobber $r1
+; MIR-NEXT:   $c4 = LOADCAP $r0_64, 0, $c11 :: (load (s128) from %stack.1)
+; MIR-NEXT:   $c3 = LOADCAP $r0_64, 16, $c11 :: (load (s128) from %stack.0)
+; MIR-NEXT:   renamable $r2 = CAPLOAD832 $r0_64, 0, killed renamable $c3 :: (volatile load (s8) from %ir.ptrval, addrspace 200)
+; MIR-NEXT:   renamable $r1 = CAPLOAD832 $r0_64, 0, killed renamable $c4 :: (volatile load (s8) from %ir.ptrval2, addrspace 200)
+; MIR-NEXT:   renamable $r2 = nsw ADDu killed renamable $r2, killed renamable $r3
+; MIR-NEXT:   renamable $r2 = nsw ADDu killed renamable $r1, killed renamable $r2
 ; MIR-NEXT:   $c11 = CIncOffsetImm $c11, 32
 ; MIR-NEXT:   PseudoReturnCap $c17 {
-; MIR-NEXT:     $zero = SLL $zero, 0
+; MIR-NEXT:     $r0 = SLL $r0, 0
 ; MIR-NEXT:   }
 entry:
   tail call void asm sideeffect "syscall\0A", "~{$4},~{$c3},~{$c4},~{$1}"()

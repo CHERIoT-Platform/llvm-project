@@ -351,7 +351,7 @@ void MipsSERegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
         // (where n < 16) and doesn't, but does fit into 16-bits then use an ADDiu
         bool isFrameRegLoad = MI.getOperand(0).getReg() == FrameReg && MI.getOpcode() != Mips::STORECAP;
         // bounded stack caps always need inc-offset (except for offset 0)
-        bool needsIncOffset = MI.isPseudo() || MI.getOperand(1).getReg() != Mips::ZERO_64;
+        bool needsIncOffset = MI.isPseudo() || MI.getOperand(1).getReg() != Mips::R0_64;
         MachineRegisterInfo &RegInfo = MBB.getParent()->getRegInfo();
 #if 0
         // This was the original code which avoids allocating a new capreg.
@@ -367,7 +367,7 @@ void MipsSERegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
           if (!isFrameReg) {
             unsigned NegReg = RegInfo.createVirtualRegister(PtrRC);
             BuildMI(MBB, (++II), DL, TII.get(Mips::DSUBu), NegReg)
-              .addReg(Mips::ZERO_64)
+              .addReg(Mips::R0_64)
               .addReg(Reg, RegState::Kill);
             BuildMI(MBB, II, DL, TII.get(Mips::CIncOffset), FrameReg)
               .addReg(FrameReg)

@@ -488,7 +488,7 @@ void RegDefsUses::init(const MachineInstr &MI) {
   // register AT.
   if (MI.isBranch()) {
     update(MI, MI.getDesc().getNumOperands(), MI.getNumOperands());
-    Defs.reset(Mips::AT);
+    Defs.reset(Mips::R1);
   }
 }
 
@@ -507,8 +507,8 @@ void RegDefsUses::setCallerSaved(const MachineInstr &MI) {
   // If MI is a call, add all caller-saved registers to Defs.
   BitVector CallerSavedRegs(TRI.getNumRegs(), true);
 
-  CallerSavedRegs.reset(Mips::ZERO);
-  CallerSavedRegs.reset(Mips::ZERO_64);
+  CallerSavedRegs.reset(Mips::R0);
+  CallerSavedRegs.reset(Mips::R0_64);
 
   for (const MCPhysReg *R = TRI.getCalleeSavedRegs(MI.getParent()->getParent());
        *R; ++R)
@@ -525,8 +525,8 @@ void RegDefsUses::setUnallocatableRegs(const MachineFunction &MF) {
     for (MCRegAliasIterator AI(R, &TRI, false); AI.isValid(); ++AI)
       AllocSet.set(*AI);
 
-  AllocSet.set(Mips::ZERO);
-  AllocSet.set(Mips::ZERO_64);
+  AllocSet.set(Mips::R0);
+  AllocSet.set(Mips::R0_64);
   if (MF.getSubtarget<MipsSubtarget>().isCheri()) {
     AllocSet.set(Mips::CNULL);
     AllocSet.set(Mips::DDC); // All writes to DDC are marked as hasSideEffects.

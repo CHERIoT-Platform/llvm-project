@@ -242,9 +242,9 @@ long read_int_and_long_2() {
 IntAndLong int_and_long2(IntAndLong arg) {
   // TODO-ASM: daddiu  $2, $zero, 3
   // ASM-LABEL: int_and_long2
-  // ASM:     move     $2, $4
+  // ASM:     move     $3, $5
   // ASM-NEXT: cjr     $c17
-  // ASM-NEXT: move     $3, $5
+  // ASM-NEXT: move     $2, $4
   return arg;
 }
 

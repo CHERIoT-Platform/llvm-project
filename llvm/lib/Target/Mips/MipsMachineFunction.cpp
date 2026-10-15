@@ -170,7 +170,7 @@ void MipsFunctionInfo::initGlobalBaseReg(MachineFunction &MF) {
       BuildMI(MBB, I, DL, TII.get(TargetOpcode::COPY), CapABIEntryPointReg)
           .addReg(Mips::C12);
       BuildMI(MBB, I, DL, TII.get(Mips::CGetOffset))
-        .addReg(Mips::T9_64, RegState::Define)
+        .addReg(Mips::R25_64, RegState::Define)
         .addReg(CapABIEntryPointReg);
     } else {
       MF.getRegInfo().addLiveIn(T9);
@@ -233,13 +233,13 @@ void MipsFunctionInfo::initGlobalBaseReg(MachineFunction &MF) {
   // The two instructions are emitted during lowering to MC layer in order to
   // avoid any reordering.
   //
-  // Register $2 (Mips::V0) is added to the list of live-in registers to ensure
+  // Register $2 (Mips::R2) is added to the list of live-in registers to ensure
   // the value instruction 1 (addiu) defines is valid when instruction 2 (addu)
   // reads it.
-  MF.getRegInfo().addLiveIn(Mips::V0);
-  MBB.addLiveIn(Mips::V0);
+  MF.getRegInfo().addLiveIn(Mips::R2);
+  MBB.addLiveIn(Mips::R2);
   BuildMI(MBB, I, DL, TII.get(Mips::ADDu), GlobalBaseReg)
-      .addReg(Mips::V0).addReg(Mips::T9);
+      .addReg(Mips::R2).addReg(Mips::R25);
 }
 
 void MipsFunctionInfo::initCapGlobalBaseReg(MachineFunction &MF) {

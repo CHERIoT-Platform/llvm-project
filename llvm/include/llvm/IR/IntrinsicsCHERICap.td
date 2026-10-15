@@ -87,6 +87,11 @@ def int_cheri_cap_tag_clear  :
             [llvm_cap_ty],
             [IntrNoMem, IntrWillReturn]>;
 
+def int_cheri_cap_untagged_from_int  :
+  Intrinsic<[llvm_cap_ty],
+            [llvm_anyint_ty],
+            [IntrNoMem, IntrWillReturn]>;
+
 def int_cheri_cap_seal :
   ClangBuiltin<"__builtin_cheri_seal">,
   Intrinsic<[llvm_cap_ty],

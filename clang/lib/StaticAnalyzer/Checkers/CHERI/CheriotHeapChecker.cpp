@@ -48,53 +48,49 @@ struct HeapPtrState {
 };
 
 struct CheckPtrState {
-  uint32_t Permissions = 0;
-  uint32_t PermissionsKnown = 0;
+  // Each permission bit is tracked on a four-point lattice, encoded across the
+  // KnownZero and KnownOne masks:
+  //
+  // clang-format off
+  //   KnownZero  KnownOne  Value
+  //       0         0      Top      (unconstrained)
+  //       1         0      Known(0) (permission removed by a strict check_pointer)
+  //       0         1      Known(1) (permission enforced by a check_pointer)
+  //       1         1      Bottom   (contradicted)
+  // clang-format on
+  uint32_t KnownZero = 0;
+  uint32_t KnownOne = 0;
   bool CheckStack = false;
 
-  bool mayHavePermission(uint32_t P) const {
-    if (!(PermissionsKnown & P))
-      return true;
-    return Permissions & P;
-  }
+  bool mayHavePermission(uint32_t P) const { return !(KnownZero & P); }
+  bool mayNotHavePermission(uint32_t P) const { return !(KnownOne & P); }
 
-  bool mayNotHavePermission(uint32_t P) const { return !mustHavePermission(P); }
-
-  bool mustHavePermission(uint32_t P) const {
-    if (!(PermissionsKnown & P))
-      return false;
-    return Permissions & P;
-  }
-
-  bool mustNotHavePermission(uint32_t P) const { return !mayHavePermission(P); }
-
+  // Returns the permission bits that this check requires but a prior check
+  // removed, excluding bits that were already Bottom.
   uint32_t getContradictoryPermissions(const CheckPtrState &Prior) const {
-    return (Permissions & PermissionsKnown) &
-           (~Prior.Permissions & Prior.PermissionsKnown);
+    return KnownOne & Prior.KnownZero & ~Prior.KnownOne;
   }
 
+  // Apply this check on top of a prior state:
+  // * A strict removal overrides a prior Known(1) to Known(0).
+  // * An enforcement over a prior Known(0) yields Bottom.
+  // * Bottom is sticky.
   CheckPtrState composeWithPriorState(const CheckPtrState &Prior) const {
     CheckPtrState NewState = *this;
-    NewState.Permissions |=
-        Prior.Permissions & Prior.PermissionsKnown & ~NewState.PermissionsKnown;
-    NewState.Permissions &= ~(~Prior.Permissions & Prior.PermissionsKnown);
-    NewState.PermissionsKnown |= Prior.PermissionsKnown;
-
-    uint32_t Contradicting = getContradictoryPermissions(Prior);
-    NewState.Permissions &= ~Contradicting;
-    NewState.PermissionsKnown &= ~Contradicting;
-
+    uint32_t PriorBottom = Prior.KnownZero & Prior.KnownOne;
+    NewState.KnownZero = KnownZero | Prior.KnownZero;
+    NewState.KnownOne = KnownOne | (Prior.KnownOne & ~KnownZero) | PriorBottom;
     return NewState;
   }
 
   bool operator==(const CheckPtrState &X) const {
-    return Permissions == X.Permissions &&
-           PermissionsKnown == X.PermissionsKnown && CheckStack == X.CheckStack;
+    return KnownZero == X.KnownZero && KnownOne == X.KnownOne &&
+           CheckStack == X.CheckStack;
   }
 
   void Profile(llvm::FoldingSetNodeID &ID) const {
-    ID.AddInteger(Permissions);
-    ID.AddInteger(PermissionsKnown);
+    ID.AddInteger(KnownZero);
+    ID.AddInteger(KnownOne);
     ID.AddBoolean(CheckStack);
   }
 
@@ -110,6 +106,8 @@ struct CheckPtrState {
   static constexpr uint32_t PermissionUnseal = 1 << 9;
   static constexpr uint32_t PermissionSeal = 1 << 10;
   static constexpr uint32_t PermissionUser0 = 1 << 11;
+
+  static constexpr uint32_t PermissionsMask = 0xFFF;
 };
 
 class CheriotHeapChecker
@@ -202,9 +200,10 @@ private:
                                        CheckerContext &C) const;
   void reportWriteThroughReadOnlyCap(SVal Loc, const Stmt *S,
                                      CheckerContext &C) const;
-  void reportContradictoryCheckPtr(SymbolRef Sym, uint32_t Contradictions,
-                                   const CallEvent &CE,
-                                   CheckerContext &C) const;
+  ExplodedNode *reportContradictoryCheckPtr(SymbolRef Sym,
+                                            uint32_t Contradictions,
+                                            const CallEvent &CE,
+                                            CheckerContext &C) const;
 };
 
 static constexpr TaintTagType TaintTagCapabilityUntagged = 1;
@@ -608,13 +607,14 @@ getPermissionsFromCXXCheckPointerArg(const TemplateArgument &Arg) {
   return RawPerms.getInt().getExtValue();
 }
 
-void CheriotHeapChecker::reportContradictoryCheckPtr(SymbolRef Sym,
-                                                     uint32_t Contradictions,
-                                                     const CallEvent &CE,
-                                                     CheckerContext &C) const {
-  ExplodedNode *N = C.generateErrorNode();
+ExplodedNode *CheriotHeapChecker::reportContradictoryCheckPtr(
+    SymbolRef Sym, uint32_t Contradictions, const CallEvent &CE,
+    CheckerContext &C) const {
+  // Report this as a non-fatal error so that the other permission
+  // bits can continue to be analyzed.
+  ExplodedNode *N = C.generateNonFatalErrorNode();
   if (!N)
-    return;
+    return nullptr;
 
   SmallString<200> buf;
   llvm::raw_svector_ostream os(buf);
@@ -652,6 +652,7 @@ void CheriotHeapChecker::reportContradictoryCheckPtr(SymbolRef Sym,
   Report->addRange(CE.getSourceRange());
   Report->markInteresting(Sym);
   C.emitReport(std::move(Report));
+  return N;
 }
 
 void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
@@ -683,20 +684,25 @@ void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
       TemplateArgs->get(2).getAsIntegral().getExtValue();
 
   CheckPtrState NewlyChecked = {
-      .Permissions = Permissions,
-      .PermissionsKnown = EnforceStrictPermissions ? ~0U : Permissions,
+      .KnownZero = EnforceStrictPermissions
+                       ? (~Permissions & CheckPtrState::PermissionsMask)
+                       : 0,
+      .KnownOne = Permissions,
       .CheckStack = CheckStack,
   };
 
+  ExplodedNode *Pred = C.getPredecessor();
   if (const CheckPtrState *CPS = State->get<CheckedPointers>(Sym)) {
     uint32_t Contradictions = NewlyChecked.getContradictoryPermissions(*CPS);
     if (Contradictions)
-      reportContradictoryCheckPtr(Sym, Contradictions, Call, C);
+      if (ExplodedNode *N =
+              reportContradictoryCheckPtr(Sym, Contradictions, Call, C))
+        Pred = N;
     NewlyChecked = NewlyChecked.composeWithPriorState(*CPS);
   }
 
   State = State->set<CheckedPointers>(Sym, std::move(NewlyChecked));
-  C.addTransition(State);
+  C.addTransition(State, Pred);
 }
 
 void CheriotHeapChecker::reportDerefOfUnclaimedPointer(

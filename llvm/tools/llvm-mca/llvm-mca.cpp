@@ -56,6 +56,7 @@
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/InitLLVM.h"
+#include "llvm/Support/LibraryOptionsContext.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
@@ -379,7 +380,8 @@ int main(int argc, char **argv) {
   cl::HideUnrelatedOptions({&ToolOptions, &ViewOptions, &MCScheduleOptions});
 
   // Parse flags and initialize target options.
-  cl::ParseCommandLineOptions(argc, argv,
+  cl::LibraryOptionsContext LibraryOptions;
+  cl::parseCommandLineOptions(LibraryOptions, ArrayRef(argv, argc),
                               "llvm machine code performance analyzer.\n");
 
   Triple TheTriple(TripleNameOpt.empty()
@@ -453,6 +455,7 @@ int main(int argc, char **argv) {
   processViewOptions(IsOutOfOrder);
 
   MCTargetOptions MCOptions = mc::InitMCTargetOptionsFromFlags();
+  MCOptions.LibraryOptions = &LibraryOptions;
   std::unique_ptr<MCRegisterInfo> MRI(
       TheTarget->createMCRegInfo(TheTriple, MCOptions));
   assert(MRI && "Unable to create target register info!");
@@ -625,8 +628,8 @@ int main(int argc, char **argv) {
       TheTarget->createMCCodeEmitter(*MCII, ACtx));
   assert(MCE && "Unable to create code emitter!");
 
-  std::unique_ptr<MCAsmBackend> MAB(TheTarget->createMCAsmBackend(
-      *STI, *MRI, mc::InitMCTargetOptionsFromFlags()));
+  std::unique_ptr<MCAsmBackend> MAB(
+      TheTarget->createMCAsmBackend(*STI, *MRI, MCOptions));
   assert(MAB && "Unable to create asm backend!");
 
   json::Object JSONOutput;

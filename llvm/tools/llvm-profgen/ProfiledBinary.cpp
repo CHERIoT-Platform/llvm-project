@@ -202,10 +202,12 @@ void BinarySizeContextTracker::trackInlineesOptimizedAway(
   ProbeContext.pop_back();
 }
 
-ProfiledBinary::ProfiledBinary(const StringRef ExeBinPath,
+ProfiledBinary::ProfiledBinary(const cl::LibraryOptionsContext &LibraryOptions,
+                               const StringRef ExeBinPath,
                                const StringRef DebugBinPath)
-    : Path(ExeBinPath), DebugBinaryPath(DebugBinPath),
-      SymbolizerOpts(getSymbolizerOpts()), ProEpilogTracker(this),
+    : LibraryOptions(LibraryOptions), Path(ExeBinPath),
+      DebugBinaryPath(DebugBinPath), SymbolizerOpts(getSymbolizerOpts()),
+      ProEpilogTracker(this),
       Symbolizer(std::make_unique<symbolize::LLVMSymbolizer>(SymbolizerOpts)),
       TrackFuncContextSize(EnableCSPreInliner && UseContextCostForPreInliner) {
   // Point to executable binary if debug info binary is not specified.
@@ -749,6 +751,7 @@ void ProfiledBinary::setUpDisassembler(const ObjectFile *Obj) {
   StringRef FileName = Obj->getFileName();
 
   MCTargetOptions MCOptions;
+  MCOptions.LibraryOptions = &LibraryOptions;
   MRI.reset(TheTarget->createMCRegInfo(TheTriple, MCOptions));
   if (!MRI)
     exitWithError("no register info for target " + TheTriple.str(), FileName);

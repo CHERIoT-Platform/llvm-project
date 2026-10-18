@@ -3322,6 +3322,9 @@ static Value *upgradeNVVMIntrinsicCall(StringRef Name, CallBase *CI,
     Rep = Builder.CreateAtomicRMW(
         AtomicRMWInst::FAdd, Ptr, Val, MaybeAlign(), AtomicOrdering::Monotonic,
         CI->getContext().getOrInsertSyncScopeID("device"));
+    cast<Instruction>(Rep)->setMetadata(
+        LLVMContext::MD_atomic_ignore_denormal_mode,
+        MDNode::get(CI->getContext(), {}));
     // The default scope for atomic.load.* intrinsics is device
     // (= gpu scope in ptx), but the default LLVM atomic scope is
     // "system"
@@ -3368,6 +3371,11 @@ static Value *upgradeNVVMIntrinsicCall(StringRef Name, CallBase *CI,
              "unexpected nvvm scoped atomic intrinsic");
       Rep = Builder.CreateAtomicRMW(BinOp, Ptr, Val, MaybeAlign(),
                                     AtomicOrdering::Monotonic, SSID);
+      if (BinOp == AtomicRMWInst::FAdd) {
+        cast<Instruction>(Rep)->setMetadata(
+            LLVMContext::MD_atomic_ignore_denormal_mode,
+            MDNode::get(CI->getContext(), {}));
+      }
     }
   } else if (Name == "clz.ll") {
     // llvm.nvvm.clz.ll returns an i32, but llvm.ctlz.i64 returns an i64.

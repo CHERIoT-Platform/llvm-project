@@ -733,6 +733,8 @@ public:
   void print(raw_ostream &OS) const;
   void dump(const_iterator I) const;
   void dump() const;
+
+  raw_ostream *strict_align_slices_dbgs();
 #endif
 
 private:
@@ -1761,12 +1763,15 @@ private:
   }
 };
 
-static raw_ostream *strict_align_slices_dbgs() {
+raw_ostream *AllocaSlices::strict_align_slices_dbgs() {
   // Determine the output stream where we need to print strict align slice
   // procesing debug. If -debug was passed just print to dbgs(). Otherwise
   // for -sroa-print-strict-align-slices print to errs().
   LLVM_DEBUG(return &dbgs());
-  if (ScalarOptions::Global.sroa_print_strict_align_slices)
+  if (AI.getContext()
+          .getLibraryOptions()
+          .get<ScalarOptions>()
+          .sroa_print_strict_align_slices)
     return &errs();
   return nullptr;
 }
@@ -2120,7 +2125,7 @@ static StoreInst *getPHIStoreToRewrite(PHINode &PN, bool PreserveCFG,
 
   BasicBlock *BB = PN.getParent();
   // TODO: Allow a harmless prefix between the PHIs and the store.
-  if (&*BB->getFirstNonPHIOrDbg() != SI)
+  if (&*BB->getFirstNonPHIOrPseudoProbe() != SI)
     return nullptr;
 
   Value *StoredValue = SI->getValueOperand();
@@ -6959,7 +6964,7 @@ bool SROA::promoteAllocas() {
   if (PromotableAllocas.empty())
     return false;
 
-  if (ScalarOptions::Global.sroa_skip_mem2reg) {
+  if (C->getLibraryOptions().get<ScalarOptions>().sroa_skip_mem2reg) {
     LLVM_DEBUG(dbgs() << "Not promoting allocas with mem2reg!\n");
   } else {
     LLVM_DEBUG(dbgs() << "Promoting allocas with mem2reg...\n");

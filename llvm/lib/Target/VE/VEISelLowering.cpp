@@ -2220,7 +2220,7 @@ VETargetLowering::emitEHSjLjSetJmp(MachineInstr &MI,
       .addImm(0)
       .addImm(0);
   BuildMI(MainMBB, DL, TII->get(TargetOpcode::COPY), MainDestReg32)
-      .addReg(MainDestReg, RegState::Kill, VE::sub_i32);
+      .addReg(MainDestReg, {}, VE::sub_i32);
   MainMBB->addSuccessor(SinkMBB);
 
   // SinkMBB:
@@ -2247,7 +2247,7 @@ VETargetLowering::emitEHSjLjSetJmp(MachineInstr &MI,
       .addImm(0)
       .addImm(1);
   BuildMI(RestoreMBB, DL, TII->get(TargetOpcode::COPY), RestoreDestReg32)
-      .addReg(RestoreDestReg, RegState::Kill, VE::sub_i32);
+      .addReg(RestoreDestReg, {}, VE::sub_i32);
   BuildMI(RestoreMBB, DL, TII->get(VE::BRCFLa_t)).addMBB(SinkMBB);
   RestoreMBB->addSuccessor(SinkMBB);
 

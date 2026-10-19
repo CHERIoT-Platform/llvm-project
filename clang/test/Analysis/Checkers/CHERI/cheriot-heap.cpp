@@ -3,8 +3,11 @@
 
 namespace CHERI {
 
+static constexpr unsigned PermissionGlobal = 1 << 0;
+static constexpr unsigned PermissionLoadGlobal = 1 << 1;
 static constexpr unsigned PermissionStore = 1 << 2;
 static constexpr unsigned PermissionLoadMutable = 1 << 3;
+static constexpr unsigned PermissionLoadStoreLocal = 1 << 4;
 static constexpr unsigned PermissionLoad = 1 << 5;
 static constexpr unsigned PermissionLoadStoreCap = 1 << 6;
 
@@ -149,4 +152,33 @@ void test_14(int*** p) {
     ***p = 0;
     **p = 0;
     *p = 0;
+}
+
+__attribute__((cheri_compartment("test")))
+void test_15(int* p, int** q) {
+    unknown_call();
+    heap_claim_ephemeral(nullptr, q, nullptr);
+    check_pointer<PermissionSet{0}, true, true>(p, sizeof(int*));
+    check_pointer<PermissionSet{PermissionStore|PermissionLoadStoreCap}, true, true>(q, sizeof(int**));
+    *q = p; // expected-warning{{Store of locally-scoped capability 'p' (lacking GL permission) through a globally-scoped pointer 'q' (lacking SL permission). The stored capability will be untagged}}
+}
+
+__attribute__((cheri_compartment("test")))
+void test_16(int** p, int** q) {
+    unknown_call();
+    heap_claim_ephemeral(nullptr, p, q);
+    check_pointer<PermissionSet{PermissionLoad|PermissionLoadStoreCap}, true, true>(p, sizeof(int*));
+    check_pointer<PermissionSet{PermissionStore|PermissionLoadStoreCap}, true, true>(q, sizeof(int**));
+    int *r = *p;
+    *q = r; // expected-warning{{Store of locally-scoped capability (lacking GL permission) through a globally-scoped pointer 'q' (lacking SL permission). The stored capability will be untagged}}
+}
+
+__attribute__((cheri_compartment("test")))
+void test_17(int** p, int** q) {
+    unknown_call();
+    heap_claim_ephemeral(nullptr, p, q);
+    check_pointer<PermissionSet{PermissionLoad|PermissionLoadStoreCap|PermissionLoadGlobal}, true, true>(p, sizeof(int*));
+    check_pointer<PermissionSet{PermissionStore|PermissionLoadStoreCap}, true, true>(q, sizeof(int**));
+    int *r = *p;
+    *q = r;
 }

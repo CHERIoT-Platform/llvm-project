@@ -119,13 +119,16 @@ struct CheckPtrState {
 
 class CheriotHeapChecker
     : public Checker<check::PreCall, check::PostCall, check::Location,
-                     check::BeginFunction, check::EndFunction,
+                     check::Bind, check::BeginFunction, check::EndFunction,
                      check::PointerEscape> {
   const BugType LeakBugType{this, "Heap claim leak", "CHERIoT heap management"};
   const BugType InvalidUseBugType{this, "Invalid pointer use",
                                   "CHERIoT heap management"};
   const BugType CheckPointerMisuseBugType{this, "Inconsistent check_pointer",
                                           "CHERIoT heap management"};
+  const BugType LocalCapStoreBugType{
+      this, "Locally-scoped capability stored through globally-scoped pointer",
+      "CHERIoT heap management"};
 
   bool requiresGlobalStateMutation(const BugType &BT) const {
     return &BT == &InvalidUseBugType;
@@ -179,6 +182,8 @@ public:
   void checkPostCall(const CallEvent &Call, CheckerContext &C) const;
   void checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
                      CheckerContext &C) const;
+  void checkBind(SVal Loc, SVal Val, const Stmt *S, bool AtDeclInit,
+                 CheckerContext &C) const;
   void checkBeginFunction(CheckerContext &C) const;
   void checkEndFunction(const ReturnStmt *RS, CheckerContext &C) const;
   ProgramStateRef checkPointerEscape(ProgramStateRef State,
@@ -968,6 +973,45 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
   if (State != OldState)
     C.addTransition(State, T);
   return;
+}
+
+void CheriotHeapChecker::checkBind(SVal Loc, SVal Val, const Stmt *S,
+                                   bool AtDeclInit, CheckerContext &C) const {
+  SymbolRef DestSym = Loc.getLocSymbolInBase();
+  SymbolRef ValSym = Val.getAsLocSymbol(/*IncludeBaseRegions=*/true);
+  if (!DestSym || !ValSym)
+    return;
+
+  // Local capabilities can't be stored through global pointers.
+  // The former is indicated by !GL on the stored value, the latter by
+  // !SL on the pointer.
+  ProgramStateRef State = C.getState();
+  const CheckPtrState *DestCPS = State->get<CheckedPointers>(DestSym);
+  const CheckPtrState *ValCPS = State->get<CheckedPointers>(ValSym);
+  if (!DestCPS || !ValCPS ||
+      !DestCPS->isKnownZeroPermission(CheckPtrState::PermissionStoreLocal) ||
+      !ValCPS->isKnownZeroPermission(CheckPtrState::PermissionGlobal))
+    return;
+
+  ExplodedNode *N = C.generateNonFatalErrorNode();
+  if (!N)
+    return;
+
+  SmallString<200> buf;
+  llvm::raw_svector_ostream os(buf);
+  os << "Store of locally-scoped capability ";
+  printSymbolNameForError(os, ValSym);
+  os << "(lacking GL permission) through a globally-scoped pointer ";
+  printSymbolNameForError(os, DestSym);
+  os << "(lacking SL permission). The stored capability will be untagged.";
+
+  auto Report = std::make_unique<PathSensitiveBugReport>(LocalCapStoreBugType,
+                                                         os.str(), N);
+  if (S)
+    Report->addRange(S->getSourceRange());
+  Report->markInteresting(DestSym);
+  Report->markInteresting(ValSym);
+  C.emitReport(std::move(Report));
 }
 
 ProgramStateRef CheriotHeapChecker::checkPointerEscape(

@@ -61,9 +61,16 @@ struct CheckPtrState {
   uint32_t KnownZero = 0;
   uint32_t KnownOne = 0;
   bool CheckStack = false;
+  bool ExplicitCheck = false;
+
+  bool isKnownZeroPermission(uint32_t P) const { return (KnownZero & P); }
 
   bool mayHavePermission(uint32_t P) const { return !(KnownZero & P); }
   bool mayNotHavePermission(uint32_t P) const { return !(KnownOne & P); }
+
+  bool isOverDeterminedPermission(uint32_t P) const {
+    return (P & KnownZero & KnownOne);
+  }
 
   // Returns the permission bits that this check requires but a prior check
   // removed, excluding bits that were already Bottom.
@@ -198,8 +205,6 @@ private:
                                CheckerContext &C) const;
   void reportDerefOfUntaggedCapability(SVal Loc, bool IsLoad, const Stmt *S,
                                        CheckerContext &C) const;
-  void reportWriteThroughReadOnlyCap(SVal Loc, const Stmt *S,
-                                     CheckerContext &C) const;
   ExplodedNode *reportContradictoryCheckPtr(SymbolRef Sym,
                                             uint32_t Contradictions,
                                             const CallEvent &CE,
@@ -207,7 +212,6 @@ private:
 };
 
 static constexpr TaintTagType TaintTagCapabilityUntagged = 1;
-static constexpr TaintTagType TaintTagCapabilityReadOnly = 2;
 
 } // anonymous namespace
 
@@ -607,24 +611,11 @@ getPermissionsFromCXXCheckPointerArg(const TemplateArgument &Arg) {
   return RawPerms.getInt().getExtValue();
 }
 
-ExplodedNode *CheriotHeapChecker::reportContradictoryCheckPtr(
-    SymbolRef Sym, uint32_t Contradictions, const CallEvent &CE,
-    CheckerContext &C) const {
-  // Report this as a non-fatal error so that the other permission
-  // bits can continue to be analyzed.
-  ExplodedNode *N = C.generateNonFatalErrorNode();
-  if (!N)
-    return nullptr;
-
-  SmallString<200> buf;
-  llvm::raw_svector_ostream os(buf);
-  os << "check_pointer called multiple times on pointer ";
-  printSymbolNameForError(os, Sym);
-  os << "with required permissions that were removed by a prior call (";
-
+// Print the permissions in Perms as a '|'-separated list, e.g. "LG|SD".
+static void printPermissions(llvm::raw_ostream &os, uint32_t Perms) {
   bool PrintBar = false;
   auto RenderPermission = [&](uint32_t Perm, const char *S) {
-    if (!(Contradictions & Perm))
+    if (!(Perms & Perm))
       return;
     if (PrintBar)
       os << "|";
@@ -644,7 +635,23 @@ ExplodedNode *CheriotHeapChecker::reportContradictoryCheckPtr(
   RenderPermission(CheckPtrState::PermissionUnseal, "US");
   RenderPermission(CheckPtrState::PermissionSeal, "SE");
   RenderPermission(CheckPtrState::PermissionUser0, "U0");
+}
 
+ExplodedNode *CheriotHeapChecker::reportContradictoryCheckPtr(
+    SymbolRef Sym, uint32_t Contradictions, const CallEvent &CE,
+    CheckerContext &C) const {
+  // Report this as a non-fatal error so that the other permission
+  // bits can continue to be analyzed.
+  ExplodedNode *N = C.generateNonFatalErrorNode();
+  if (!N)
+    return nullptr;
+
+  SmallString<200> buf;
+  llvm::raw_svector_ostream os(buf);
+  os << "check_pointer called multiple times on pointer ";
+  printSymbolNameForError(os, Sym);
+  os << "with required permissions that were removed by a prior call (";
+  printPermissions(os, Contradictions);
   os << ").";
 
   auto Report = std::make_unique<PathSensitiveBugReport>(
@@ -689,6 +696,7 @@ void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
                        : 0,
       .KnownOne = Permissions,
       .CheckStack = CheckStack,
+      .ExplicitCheck = true,
   };
 
   ExplodedNode *Pred = C.getPredecessor();
@@ -745,13 +753,19 @@ void CheriotHeapChecker::reportDerefMissingPerms(SymbolRef Sym, bool IsLoad,
   SmallString<200> buf;
   llvm::raw_svector_ostream os(buf);
   if (IsLoad)
-    os << "Load through heap pointer ";
+    os << "Load through pointer ";
   else
-    os << "Store through heap pointer ";
+    os << "Store through pointer ";
   printSymbolNameForError(os, Sym);
-  os << "without passing the appropriate permission (";
+  os << "with missing ";
   os << (IsLoad ? "LD" : "SD");
-  os << ") to check_pointer.";
+  os << " permission.";
+
+  if (CPS->isOverDeterminedPermission(IsLoad ? CheckPtrState::PermissionLoad
+                                             : CheckPtrState::PermissionStore))
+    os << " Permission value is over-determined and may differ along different "
+          "code paths.";
+
   if (CPS->mayHavePermission(IsLoad ? CheckPtrState::PermissionLoad
                                     : CheckPtrState::PermissionStore))
     os << " Runtime behavior will depend on the permissions provided by the "
@@ -795,29 +809,77 @@ void CheriotHeapChecker::reportDerefOfUntaggedCapability(
   C.emitReport(std::move(Report));
 }
 
-void CheriotHeapChecker::reportWriteThroughReadOnlyCap(
-    SVal Loc, const Stmt *S, CheckerContext &C) const {
-  ExplodedNode *N = C.generateErrorNode();
-  if (!N)
-    return;
+// A capability loaded through a pointer known to lack LM or LG removes
+// permissions from the loaded pointer.
+static ProgramStateRef stripLoadedCapPermissions(ProgramStateRef State,
+                                                 SymbolRef Sym,
+                                                 const CheckPtrState &CPS,
+                                                 SVal Loc, CheckerContext &C,
+                                                 const NoteTag *&T) {
+  bool MissingLM =
+      CPS.isKnownZeroPermission(CheckPtrState::PermissionLoadMutable);
+  bool MissingLG =
+      CPS.isKnownZeroPermission(CheckPtrState::PermissionLoadGlobal);
 
-  SmallString<200> buf;
-  llvm::raw_svector_ostream os(buf);
-  os << "Store through pointer ";
-  printSymbolNameForError(os, Loc.getLocSymbolInBase());
-  os << "which may be a read-only capability because LM permission was not "
-        "checked before the pointer was loaded.";
+  uint32_t Removed = 0;
 
-  auto Report =
-      std::make_unique<PathSensitiveBugReport>(InvalidUseBugType, os.str(), N);
-  if (S) {
-    Report->addRange(S->getSourceRange());
-    if (isa<Expr>(S))
-      bugreporter::trackExpressionValue(N, cast<Expr>(S), *Report);
+  // Missing LM removes LM and SD from the loaded cap.
+  if (MissingLM) {
+    Removed |=
+        CheckPtrState::PermissionLoadMutable | CheckPtrState::PermissionStore;
   }
-  Report->markInteresting(Loc);
-  explainWarningsEnabled(*Report, C);
-  C.emitReport(std::move(Report));
+
+  // Missing LG removes LG and GL from the loaded cap.
+  if (MissingLG) {
+    Removed |=
+        CheckPtrState::PermissionLoadGlobal | CheckPtrState::PermissionGlobal;
+  }
+
+  if (!Removed)
+    return State;
+
+  SVal Loaded = State->getSVal(Loc.castAs<::clang::ento::Loc>());
+  SymbolRef LoadedSym = Loaded.getAsLocSymbol();
+  if (!LoadedSym)
+    return State;
+
+  CheckPtrState LoadedCheck = {.KnownZero = Removed, .KnownOne = 0};
+  if (const CheckPtrState *Prior = State->get<CheckedPointers>(LoadedSym)) {
+    // This is not a real check_pointer call, so keep the prior CheckStack.
+    LoadedCheck.CheckStack = Prior->CheckStack;
+    // Keep track of which bits actually changed.
+    Removed &= ~Prior->KnownZero;
+    LoadedCheck = LoadedCheck.composeWithPriorState(*Prior);
+  }
+  State = State->set<CheckedPointers>(LoadedSym, LoadedCheck);
+
+  if (!Removed)
+    return State;
+
+  uint32_t Causes = 0;
+
+  // Report the cause of permission removal for any permissions that were
+  // actually removed.
+  if (Removed &
+      (CheckPtrState::PermissionLoadMutable | CheckPtrState::PermissionStore))
+    Causes |= CheckPtrState::PermissionLoadMutable;
+  if (Removed &
+      (CheckPtrState::PermissionLoadGlobal | CheckPtrState::PermissionGlobal))
+    Causes |= CheckPtrState::PermissionLoadGlobal;
+
+  T = C.getNoteTag([=](PathSensitiveBugReport &BR, llvm::raw_ostream &OS) {
+    if (!BR.isInteresting(LoadedSym))
+      return;
+    BR.markInteresting(Sym);
+
+    OS << "Loaded pointer has permissions ";
+    printPermissions(OS, Removed);
+    OS << " removed because the pointer ";
+    printSymbolNameForError(OS, Sym);
+    OS << "it was loaded through lacks ";
+    printPermissions(OS, Causes);
+  });
+  return State;
 }
 
 void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
@@ -857,19 +919,16 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
                                  ? State->get<CheckedPointers>(Sym)
                                  : nullptr;
 
-  // Taint-based permissions checks need to be done in increasing order of
-  // severity, as only the last applied taint will be propagated.
-  bool MissingLM =
-      IsLoad && Sym->getType()->getPointeeType()->isPointerType() && CPS &&
-      CPS->mayNotHavePermission(CheckPtrState::PermissionLoadMutable);
-  if (MissingLM) {
-    SVal Loaded = State->getSVal(Loc.castAs<::clang::ento::Loc>());
-    State = addTaint(State, Loaded, TaintTagCapabilityReadOnly);
-  }
+  bool LoadsCap =
+      IsLoad && Sym->getType()->getPointeeType()->isPointerType() && CPS;
+  if (LoadsCap)
+    State = stripLoadedCapPermissions(State, Sym, *CPS, Loc, C, T);
 
   bool MissingMC =
       IsLoad && Sym->getType()->getPointeeType()->isPointerType() && CPS &&
-      CPS->mayNotHavePermission(CheckPtrState::PermissionLoadStoreCap);
+      ((CPS->ExplicitCheck &&
+        CPS->mayNotHavePermission(CheckPtrState::PermissionLoadStoreCap)) ||
+       CPS->isKnownZeroPermission(CheckPtrState::PermissionLoadStoreCap));
   if (MissingMC) {
     SVal Loaded = State->getSVal(Loc.castAs<::clang::ento::Loc>());
     State = addTaint(State, Loaded, TaintTagCapabilityUntagged);
@@ -887,28 +946,24 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
   if (HPS && !HPS->isEffectivelyClaimed())
     reportDerefOfUnclaimedPointer(Sym, IsLoad, S, HPS, C);
 
-  bool MissingLD =
-      IsLoad && CPS && CPS->mayNotHavePermission(CheckPtrState::PermissionLoad);
-  bool MissingSD = !IsLoad && CPS &&
-                   CPS->mayNotHavePermission(CheckPtrState::PermissionStore);
-  if (MissingLD || MissingSD)
-    reportDerefMissingPerms(Sym, IsLoad, S, CPS, C);
+  if (CPS) {
+    bool MissingLD =
+        (CPS->isKnownZeroPermission(CheckPtrState::PermissionLoad) ||
+         (CPS->ExplicitCheck &&
+          CPS->mayNotHavePermission(CheckPtrState::PermissionLoad))) &&
+        IsLoad;
+    bool MissingSD =
+        (CPS->isKnownZeroPermission(CheckPtrState::PermissionStore) ||
+         (CPS->ExplicitCheck &&
+          CPS->mayNotHavePermission(CheckPtrState::PermissionStore))) &&
+        !IsLoad;
+    if (MissingLD || MissingSD)
+      reportDerefMissingPerms(Sym, IsLoad, S, CPS, C);
+  }
 
   bool TagCleared = isTainted(State, Loc, TaintTagCapabilityUntagged);
   if (TagCleared)
     reportDerefOfUntaggedCapability(Loc, IsLoad, S, C);
-
-  bool ReadOnly = isTainted(State, Loc, TaintTagCapabilityReadOnly);
-  if (ReadOnly) {
-    if (!IsLoad)
-      reportWriteThroughReadOnlyCap(Loc, S, C);
-    else if (Sym->getType()->getPointeeType()->isPointerType()) {
-      // Loading a capability through a capability that lacks LM strips LM from
-      // the loaded capability as well.
-      SVal Loaded = State->getSVal(Loc.castAs<::clang::ento::Loc>());
-      State = addTaint(State, Loaded, TaintTagCapabilityReadOnly);
-    }
-  }
 
   if (State != OldState)
     C.addTransition(State, T);

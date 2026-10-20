@@ -1462,6 +1462,13 @@ bool llvm::inferNonMandatoryLibFuncAttrs(Function &F,
   return Changed;
 }
 
+static void setI8ArgExtAttr(Function &F, unsigned ArgNo,
+                            const TargetLibraryInfo &TLI, bool Signed = true) {
+  Attribute::AttrKind ExtAttr = TLI.getExtAttrForI8Param(Signed);
+  if (ExtAttr != Attribute::None && !F.hasParamAttribute(ArgNo, ExtAttr))
+    F.addParamAttr(ArgNo, ExtAttr);
+}
+
 static void setArgExtAttr(Function &F, unsigned ArgNo,
                           const TargetLibraryInfo &TLI, bool Signed = true) {
   Attribute::AttrKind ExtAttr = TLI.getExtAttrForI32Param(Signed);
@@ -1545,6 +1552,25 @@ FunctionCallee llvm::getOrInsertLibFunc(Module *M, const TargetLibraryInfo &TLI,
     break;
   case LibFunc_memccpy:
     setArgExtAttr(*F, 2, TLI);
+    break;
+
+  // The last argument of the hot-cold operator new variants is an i8
+  // __hot_cold_t hint.
+  case LibFunc_Znwm12__hot_cold_t:
+  case LibFunc_Znam12__hot_cold_t:
+  case LibFunc_size_returning_new_hot_cold:
+    setI8ArgExtAttr(*F, 1, TLI, /*Signed=*/false);
+    break;
+  case LibFunc_ZnwmRKSt9nothrow_t12__hot_cold_t:
+  case LibFunc_ZnamRKSt9nothrow_t12__hot_cold_t:
+  case LibFunc_ZnwmSt11align_val_t12__hot_cold_t:
+  case LibFunc_ZnamSt11align_val_t12__hot_cold_t:
+  case LibFunc_size_returning_new_aligned_hot_cold:
+    setI8ArgExtAttr(*F, 2, TLI, /*Signed=*/false);
+    break;
+  case LibFunc_ZnwmSt11align_val_tRKSt9nothrow_t12__hot_cold_t:
+  case LibFunc_ZnamSt11align_val_tRKSt9nothrow_t12__hot_cold_t:
+    setI8ArgExtAttr(*F, 3, TLI, /*Signed=*/false);
     break;
 
     // These are functions that are known to not need any argument extension
@@ -2085,8 +2111,8 @@ Value *llvm::emitHotColdSizeReturningNew(Value *Num, IRBuilderBase &B,
   // __sized_ptr_t struct return type { void*, size_t }
   StructType *SizedPtrT =
       StructType::get(M->getContext(), {B.getPtrTy(), Num->getType()});
-  FunctionCallee Func =
-      M->getOrInsertFunction(Name, SizedPtrT, Num->getType(), B.getInt8Ty());
+  FunctionCallee Func = getOrInsertLibFunc(
+      M, *TLI, SizeFeedbackNewFunc, SizedPtrT, Num->getType(), B.getInt8Ty());
   inferNonMandatoryLibFuncAttrs(M, Name, *TLI);
   CallInst *CI = B.CreateCall(Func, {Num, HotCold}, "sized_ptr");
 
@@ -2110,8 +2136,9 @@ Value *llvm::emitHotColdSizeReturningNewAligned(Value *Num, Value *Align,
   // __sized_ptr_t struct return type { void*, size_t }
   StructType *SizedPtrT =
       StructType::get(M->getContext(), {B.getPtrTy(), Num->getType()});
-  FunctionCallee Func = M->getOrInsertFunction(Name, SizedPtrT, Num->getType(),
-                                               Align->getType(), B.getInt8Ty());
+  FunctionCallee Func =
+      getOrInsertLibFunc(M, *TLI, SizeFeedbackNewFunc, SizedPtrT,
+                         Num->getType(), Align->getType(), B.getInt8Ty());
   inferNonMandatoryLibFuncAttrs(M, Name, *TLI);
   CallInst *CI = B.CreateCall(Func, {Num, Align, HotCold}, "sized_ptr");
 
@@ -2132,8 +2159,8 @@ Value *llvm::emitHotColdNew(Value *Num, IRBuilderBase &B,
   const DataLayout &DL = M->getDataLayout();
   auto VoidPtrTy =
       PointerType::get(M->getContext(), DL.getDefaultGlobalsAddressSpace());
-  FunctionCallee Func =
-      M->getOrInsertFunction(Name, VoidPtrTy, Num->getType(), B.getInt8Ty());
+  FunctionCallee Func = getOrInsertLibFunc(M, *TLI, NewFunc, VoidPtrTy,
+                                           Num->getType(), B.getInt8Ty());
   inferNonMandatoryLibFuncAttrs(M, Name, *TLI);
   CallInst *CI = B.CreateCall(Func, {Num, HotCold}, Name);
 
@@ -2152,11 +2179,8 @@ Value *llvm::emitHotColdNewNoThrow(Value *Num, Value *NoThrow, IRBuilderBase &B,
     return nullptr;
 
   StringRef Name = TLI->getName(NewFunc);
-  const DataLayout &DL = M->getDataLayout();
-  auto VoidPtrTy =
-      PointerType::get(M->getContext(), DL.getDefaultGlobalsAddressSpace());
   FunctionCallee Func = M->getOrInsertFunction(
-      Name, VoidPtrTy, Num->getType(), NoThrow->getType(), B.getInt8Ty());
+      Name, B.getPtrTy(), Num->getType(), NoThrow->getType(), B.getInt8Ty());
   inferNonMandatoryLibFuncAttrs(M, Name, *TLI);
   CallInst *CI = B.CreateCall(Func, {Num, NoThrow, HotCold}, Name);
 
@@ -2175,11 +2199,8 @@ Value *llvm::emitHotColdNewAligned(Value *Num, Value *Align, IRBuilderBase &B,
     return nullptr;
 
   StringRef Name = TLI->getName(NewFunc);
-  const DataLayout &DL = M->getDataLayout();
-  auto VoidPtrTy =
-      PointerType::get(M->getContext(), DL.getDefaultGlobalsAddressSpace());
   FunctionCallee Func = M->getOrInsertFunction(
-      Name, VoidPtrTy, Num->getType(), Align->getType(), B.getInt8Ty());
+      Name, B.getPtrTy(), Num->getType(), Align->getType(), B.getInt8Ty());
   inferNonMandatoryLibFuncAttrs(M, Name, *TLI);
   CallInst *CI = B.CreateCall(Func, {Num, Align, HotCold}, Name);
 
@@ -2199,11 +2220,8 @@ Value *llvm::emitHotColdNewAlignedNoThrow(Value *Num, Value *Align,
     return nullptr;
 
   StringRef Name = TLI->getName(NewFunc);
-  const DataLayout &DL = M->getDataLayout();
-  auto VoidPtrTy =
-      PointerType::get(M->getContext(), DL.getDefaultGlobalsAddressSpace());
   FunctionCallee Func = M->getOrInsertFunction(
-      Name, VoidPtrTy, Num->getType(), Align->getType(), NoThrow->getType(),
+      Name, B.getPtrTy(), Num->getType(), Align->getType(), NoThrow->getType(),
       B.getInt8Ty());
   inferNonMandatoryLibFuncAttrs(M, Name, *TLI);
   CallInst *CI = B.CreateCall(Func, {Num, Align, NoThrow, HotCold}, Name);

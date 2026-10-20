@@ -1753,12 +1753,12 @@ static bool isColdCallSite(CallBase &CB, BlockFrequencyInfo &CallerBFI) {
 
 // This function checks if the input function F is cold at all call sites. It
 // also looks each call site's containing function, returning false if the
-// caller function contains other non cold calls. The input vector AllCallsCold
-// contains a list of functions that only have call sites in cold blocks.
+// caller function contains other non cold calls. HasOnlyColdCalls returns
+// whether a function only has call sites in cold blocks.
 static bool
 isValidCandidateForColdCC(Function &F,
                           function_ref<BlockFrequencyInfo &(Function &)> GetBFI,
-                          const std::vector<Function *> &AllCallsCold) {
+                          function_ref<bool(Function &)> HasOnlyColdCalls) {
 
   if (F.user_empty())
     return false;
@@ -1771,7 +1771,7 @@ isValidCandidateForColdCC(Function &F,
     BlockFrequencyInfo &CallerBFI = GetBFI(*CallerFunc);
     if (!isColdCallSite(*CB, CallerBFI))
       return false;
-    if (!llvm::is_contained(AllCallsCold, CallerFunc))
+    if (!HasOnlyColdCalls(*CallerFunc))
       return false;
   }
   return true;
@@ -1926,10 +1926,15 @@ OptimizeFunctions(Module &M,
   bool Changed = false;
 
   ChangeableCCCacheTy ChangeableCCCache;
-  std::vector<Function *> AllCallsCold;
-  for (Function &F : llvm::make_early_inc_range(M))
-    if (hasOnlyColdCalls(F, GetBFI, ChangeableCCCache))
-      AllCallsCold.push_back(&F);
+  // Whether each function only has cold calls. This is only needed for
+  // functions the target wants to use coldcc for, so compute it lazily.
+  DenseMap<Function *, bool> AllCallsColdCache;
+  auto HasOnlyColdCalls = [&](Function &Caller) {
+    auto Res = AllCallsColdCache.try_emplace(&Caller, false);
+    if (Res.second)
+      Res.first->second = hasOnlyColdCalls(Caller, GetBFI, ChangeableCCCache);
+    return Res.first->second;
+  };
 
   // Optimize functions.
   for (Function &F : llvm::make_early_inc_range(M)) {
@@ -2003,7 +2008,7 @@ OptimizeFunctions(Module &M,
       // calls.
       if (EnableColdCCStressTest ||
           (TTI.useColdCCForColdCall(F) &&
-           isValidCandidateForColdCC(F, GetBFI, AllCallsCold))) {
+           isValidCandidateForColdCC(F, GetBFI, HasOnlyColdCalls))) {
         ChangeableCCCache.erase(&F);
         F.setCallingConv(CallingConv::Cold);
         changeCallSitesToColdCC(&F);

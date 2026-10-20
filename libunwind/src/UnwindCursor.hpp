@@ -1099,6 +1099,8 @@ private:
     if ( compactSaysUseDwarf() )
       return stepWithDwarfFDE(stage2);
 #endif
+    // Compact encodings can't describe signal frames.
+    _isSignalFrame = false;
     R dummy;
     return stepWithCompactEncoding(dummy);
   }

@@ -2178,7 +2178,6 @@ void Parser::SkipMalformedDecl() {
     case tok::annot_module_begin:
     case tok::annot_module_end:
     case tok::annot_module_include:
-    case tok::annot_repl_input_end:
       return;
 
     default:
@@ -5945,9 +5944,8 @@ Parser::DeclGroupPtrTy Parser::ParseTopLevelStmtDecl() {
     TLSD->setStmt(R.get());
   }
 
-  if (Tok.is(tok::annot_repl_input_end) &&
-      Tok.getAnnotationValue() != nullptr) {
-    ConsumeAnnotationToken();
+  if (Tok.is(tok::eof) && Tok.getEofData()) {
+    ConsumeToken();
     TLSD->setSemiMissing();
   }
 

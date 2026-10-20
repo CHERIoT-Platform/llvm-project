@@ -4038,7 +4038,11 @@ bool IRTranslatorImpl::translateAlloca(const User &U,
   if (AI.isStaticAlloca()) {
     Register Res = getOrCreateVReg(AI);
     int FI = getOrCreateFrameIndex(AI);
-    MIRBuilder.buildFrameIndex(Res, FI);
+    auto MIB = MIRBuilder.buildFrameIndex(Res, FI);
+    // The frame address may be materialized before the alloca's source line is
+    // reached. Clear its debug location to avoid reporting that line early.
+    if (AI.getDebugLoc())
+      MIB->setDebugLoc(DebugLoc::getDropped());
     return true;
   }
 

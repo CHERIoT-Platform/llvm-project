@@ -1896,4 +1896,9 @@ let ParentPackage = CHERIoT in {
       : Checker<"CheriotHeap">,
         HelpText<"Check use of CHERIoT heap allocations APIs">,
         Documentation<NotDocumented>;
+
+  def CheriotCompartmentCallbackChecker
+      : Checker<"CheriotCompartmentCallback">,
+        HelpText<"Check use of function pointer callbacks across compartments">,
+        Documentation<NotDocumented>;
 } // end cheriot

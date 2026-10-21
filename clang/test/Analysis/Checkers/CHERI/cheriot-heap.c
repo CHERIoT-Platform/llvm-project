@@ -265,7 +265,7 @@ __attribute__((cheri_compartment("test")))
 void test_35(int* p) {
     int *p2 = (int*)token_obj_unseal(0, p);
     unknown_call();
-    *p2 = 1; // expected-warning{{Store through heap pointer without a valid claim}}
+    *p2 = 1; // expected-warning{{Store through heap pointer 'p2' without a valid claim}}
 }
 
 struct Timeout { int t; };
@@ -346,4 +346,20 @@ void test_46(void* p1, void *p2) {
     heap_claim(0, p2);
     //expected-warning@-1{{Claim on pointer 'p1' must be released with heap_free or heap_free_all before returning from a compartment call}}
     //expected-warning@-2{{Claim on pointer 'p2' must be released with heap_free or heap_free_all before returning from a compartment call}}
+}
+
+struct test47_struct { int x; int buf[4]; };
+__attribute__((cheri_compartment("test")))
+int test_47(struct test47_struct* s) {
+    heap_claim(0, &s->buf[1]);
+    unknown_call();
+    int x = s->x; // no warn
+    heap_free(0, &s->buf[1]);
+    return x;
+}
+
+__attribute__((cheri_compartment("test")))
+void test_48(struct test47_struct* s) {
+    heap_claim(0, s);
+    heap_free(0, &s->buf[2]); // no warn
 }

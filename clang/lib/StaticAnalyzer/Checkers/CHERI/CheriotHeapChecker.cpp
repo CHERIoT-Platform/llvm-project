@@ -201,14 +201,15 @@ public:
   void postCheckTimeoutPointer(const CallEvent &Call, CheckerContext &C) const;
 
 private:
-  void reportLeak(SymbolRef Sym, CheckerContext &C) const;
+  void reportLeak(SymbolRef Sym, ExplodedNode *N, CheckerContext &C) const;
   void reportDerefOfUnclaimedPointer(SymbolRef Sym, bool IsLoad, const Stmt *S,
-                                     const HeapPtrState *HPS,
+                                     const HeapPtrState *HPS, ExplodedNode *N,
                                      CheckerContext &C) const;
   void reportDerefMissingPerms(SymbolRef Sym, bool IsLoad, const Stmt *S,
-                               const CheckPtrState *CPS,
+                               const CheckPtrState *CPS, ExplodedNode *N,
                                CheckerContext &C) const;
   void reportDerefOfUntaggedCapability(SVal Loc, bool IsLoad, const Stmt *S,
+                                       ExplodedNode *N,
                                        CheckerContext &C) const;
   ExplodedNode *reportContradictoryCheckPtr(SymbolRef Sym,
                                             uint32_t Contradictions,
@@ -720,11 +721,7 @@ void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
 
 void CheriotHeapChecker::reportDerefOfUnclaimedPointer(
     SymbolRef Sym, bool IsLoad, const Stmt *S, const HeapPtrState *HPS,
-    CheckerContext &C) const {
-  ExplodedNode *N = C.generateErrorNode();
-  if (!N)
-    return;
-
+    ExplodedNode *N, CheckerContext &C) const {
   SmallString<200> buf;
   llvm::raw_svector_ostream os(buf);
   if (IsLoad)
@@ -750,11 +747,8 @@ void CheriotHeapChecker::reportDerefOfUnclaimedPointer(
 void CheriotHeapChecker::reportDerefMissingPerms(SymbolRef Sym, bool IsLoad,
                                                  const Stmt *S,
                                                  const CheckPtrState *CPS,
+                                                 ExplodedNode *N,
                                                  CheckerContext &C) const {
-  ExplodedNode *N = C.generateErrorNode();
-  if (!N)
-    return;
-
   SmallString<200> buf;
   llvm::raw_svector_ostream os(buf);
   if (IsLoad)
@@ -787,11 +781,8 @@ void CheriotHeapChecker::reportDerefMissingPerms(SymbolRef Sym, bool IsLoad,
 }
 
 void CheriotHeapChecker::reportDerefOfUntaggedCapability(
-    SVal Loc, bool IsLoad, const Stmt *S, CheckerContext &C) const {
-  ExplodedNode *N = C.generateErrorNode();
-  if (!N)
-    return;
-
+    SVal Loc, bool IsLoad, const Stmt *S, ExplodedNode *N,
+    CheckerContext &C) const {
   SmallString<200> buf;
   llvm::raw_svector_ostream os(buf);
   if (IsLoad)
@@ -948,9 +939,9 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
     return;
   }
 
-  if (HPS && !HPS->isEffectivelyClaimed())
-    reportDerefOfUnclaimedPointer(Sym, IsLoad, S, HPS, C);
+  bool Unclaimed = HPS && !HPS->isEffectivelyClaimed();
 
+  bool MissingPerms = false;
   if (CPS) {
     bool MissingLD =
         (CPS->isKnownZeroPermission(CheckPtrState::PermissionLoad) ||
@@ -962,13 +953,25 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
          (CPS->ExplicitCheck &&
           CPS->mayNotHavePermission(CheckPtrState::PermissionStore))) &&
         !IsLoad;
-    if (MissingLD || MissingSD)
-      reportDerefMissingPerms(Sym, IsLoad, S, CPS, C);
+    MissingPerms = MissingLD || MissingSD;
   }
 
   bool TagCleared = isTainted(State, Loc, TaintTagCapabilityUntagged);
-  if (TagCleared)
-    reportDerefOfUntaggedCapability(Loc, IsLoad, S, C);
+
+  if (Unclaimed || MissingPerms || TagCleared) {
+    // Report all errors against the same analysis node so that we don't
+    // drop errors if there are more than one.
+    ExplodedNode *N = C.generateErrorNode();
+    if (!N)
+      return;
+    if (Unclaimed)
+      reportDerefOfUnclaimedPointer(Sym, IsLoad, S, HPS, N, C);
+    if (MissingPerms)
+      reportDerefMissingPerms(Sym, IsLoad, S, CPS, N, C);
+    if (TagCleared)
+      reportDerefOfUntaggedCapability(Loc, IsLoad, S, N, C);
+    return;
+  }
 
   if (State != OldState)
     C.addTransition(State, T);
@@ -1076,18 +1079,23 @@ void CheriotHeapChecker::checkEndFunction(const ReturnStmt *RS,
   if (!FD || !FD->hasAttr<CHERICompartmentNameAttr>())
     return;
 
+  // Report every leaked claim on a single error node
   ProgramStateRef State = C.getState();
+  ExplodedNode *N = nullptr;
   for (const auto &[Sym, HPS] : State->get<HeapPointers>()) {
-    if (HPS.isClaimed())
-      reportLeak(Sym, C);
+    if (!HPS.isClaimed())
+      continue;
+    if (!N) {
+      N = C.generateErrorNode();
+      if (!N)
+        return;
+    }
+    reportLeak(Sym, N, C);
   }
 }
 
-void CheriotHeapChecker::reportLeak(SymbolRef Sym, CheckerContext &C) const {
-  ExplodedNode *N = C.generateErrorNode();
-  if (!N)
-    return;
-
+void CheriotHeapChecker::reportLeak(SymbolRef Sym, ExplodedNode *N,
+                                    CheckerContext &C) const {
   SmallString<200> buf;
   llvm::raw_svector_ostream os(buf);
   os << "Claim on pointer ";

@@ -458,6 +458,15 @@ static bool shouldSkipFunction(const Decl *D,
       return false;
   }
 
+  // We want to re-analyse CHERIoT compartment entry points even if they
+  // were inlined, as we want to flag cases where incorrect usage is made
+  // of cross-compartment heap parameters and function pointers.
+  if (const auto *FD = dyn_cast<FunctionDecl>(D))
+    if (llvm::any_of(FD->redecls(), [](const FunctionDecl *R) {
+          return R->hasAttr<CHERICompartmentNameAttr>();
+        }))
+      return false;
+
   // Otherwise, if we visited the function before, do not reanalyze it.
   return Visited.count(D);
 }

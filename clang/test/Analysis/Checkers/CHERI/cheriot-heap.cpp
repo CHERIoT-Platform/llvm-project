@@ -67,7 +67,9 @@ void test_5(int** p) {
     heap_claim_ephemeral(nullptr, p, nullptr);
     check_pointer<PermissionSet{PermissionLoad}, true, true>(p, sizeof(int*));
     int *q = *p;
-    *q = 0; // expected-warning {{Store through pointer with missing SD permission}}
+    *q = 0;
+    // expected-warning@-1 {{Store through pointer with missing SD permission}}
+    // expected-warning@-2 {{Store through pointer which may be an invalid capability because MC permission was not checked before the pointer was loaded}}
 }
 
 __attribute__((cheri_compartment("test")))

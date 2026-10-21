@@ -339,3 +339,11 @@ void test_45(int* p, int* q) {
     unknown_global = 1;
     check_pointer(q, 0, 0, 0); // expected-warning{{check_pointer called on potential heap pointer 'q' without a valid claim}}
 }
+
+__attribute__((cheri_compartment("test")))
+void test_46(void* p1, void *p2) {
+    heap_claim(0, p1);
+    heap_claim(0, p2);
+    //expected-warning@-1{{Claim on pointer 'p1' must be released with heap_free or heap_free_all before returning from a compartment call}}
+    //expected-warning@-2{{Claim on pointer 'p2' must be released with heap_free or heap_free_all before returning from a compartment call}}
+}

@@ -13,6 +13,7 @@
 #include "clang/StaticAnalyzer/Core/PathSensitive/CallEvent.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/CheckerContext.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/ProgramStateTrait.h"
+#include "llvm/ADT/STLExtras.h"
 
 using namespace clang;
 using namespace ento;
@@ -81,24 +82,26 @@ struct CheckPtrState {
   // Apply this check on top of a prior state:
   // * A strict removal overrides a prior Known(1) to Known(0).
   // * An enforcement over a prior Known(0) yields Bottom.
-  // * Bottom is sticky.
+  // * Bottom and ExplicitCheck sticky.
   CheckPtrState composeWithPriorState(const CheckPtrState &Prior) const {
     CheckPtrState NewState = *this;
     uint32_t PriorBottom = Prior.KnownZero & Prior.KnownOne;
     NewState.KnownZero = KnownZero | Prior.KnownZero;
     NewState.KnownOne = KnownOne | (Prior.KnownOne & ~KnownZero) | PriorBottom;
+    NewState.ExplicitCheck = ExplicitCheck || Prior.ExplicitCheck;
     return NewState;
   }
 
   bool operator==(const CheckPtrState &X) const {
     return KnownZero == X.KnownZero && KnownOne == X.KnownOne &&
-           CheckStack == X.CheckStack;
+           CheckStack == X.CheckStack && ExplicitCheck == X.ExplicitCheck;
   }
 
   void Profile(llvm::FoldingSetNodeID &ID) const {
     ID.AddInteger(KnownZero);
     ID.AddInteger(KnownOne);
     ID.AddBoolean(CheckStack);
+    ID.AddBoolean(ExplicitCheck);
   }
 
   static constexpr uint32_t PermissionGlobal = 1 << 0;
@@ -201,10 +204,11 @@ public:
   void postCheckTimeoutPointer(const CallEvent &Call, CheckerContext &C) const;
 
 private:
-  void reportLeak(SymbolRef Sym, ExplodedNode *N, CheckerContext &C) const;
-  void reportDerefOfUnclaimedPointer(SymbolRef Sym, bool IsLoad, const Stmt *S,
-                                     const HeapPtrState *HPS, ExplodedNode *N,
-                                     CheckerContext &C) const;
+  void reportLeak(const SymbolicRegion *ObjR, ExplodedNode *N,
+                  CheckerContext &C) const;
+  void reportDerefOfUnclaimedPointer(const SymbolicRegion *ObjR, bool IsLoad,
+                                     const Stmt *S, const HeapPtrState *HPS,
+                                     ExplodedNode *N, CheckerContext &C) const;
   void reportDerefMissingPerms(SymbolRef Sym, bool IsLoad, const Stmt *S,
                                const CheckPtrState *CPS, ExplodedNode *N,
                                CheckerContext &C) const;
@@ -222,8 +226,37 @@ static constexpr TaintTagType TaintTagCapabilityUntagged = 1;
 } // anonymous namespace
 
 REGISTER_TRAIT_WITH_PROGRAMSTATE(ExternalStateMutated, const Stmt *)
-REGISTER_MAP_WITH_PROGRAMSTATE(HeapPointers, SymbolRef, HeapPtrState)
+
+// Claim state, include the where claiming is being tracked at all, is tracked
+// per symbolic region.
+REGISTER_MAP_WITH_PROGRAMSTATE(HeapClaims, const SymbolicRegion *, HeapPtrState)
+
+// Pointer checking state, which is tracked on the individual pointer.
 REGISTER_MAP_WITH_PROGRAMSTATE(CheckedPointers, SymbolRef, CheckPtrState)
+
+// An additional mapping of symbolic regions that are known to be the same as
+// each other. This is required to work around an analyzer limitation: after a
+// check_pointer, we need to conjure a new pointer SVal to carry the newly
+// gained information, but the analyzer does not permit this pointer to point to
+// the same symbolic region as the original. This mapping lets us paper over
+// that.
+REGISTER_MAP_WITH_PROGRAMSTATE(SameObjectAs, const SymbolicRegion *,
+                               const SymbolicRegion *)
+
+// Return the symbolic region that a pointer points to, taking into account
+// our local SameObjectAs relationship.
+static const SymbolicRegion *getObjectRegion(ProgramStateRef State,
+                                             SVal PtrVal) {
+  const MemRegion *R = PtrVal.getAsRegion();
+  if (!R)
+    return nullptr;
+  const auto *SR = dyn_cast<SymbolicRegion>(R->getBaseRegion());
+  if (!SR)
+    return nullptr;
+  if (const SymbolicRegion *const *Same = State->get<SameObjectAs>(SR))
+    return *Same;
+  return SR;
+}
 
 static ProgramStateRef addGlobalStateMutation(ProgramStateRef State,
                                               const Stmt *S) {
@@ -236,24 +269,27 @@ static bool warningsEnabled(ProgramStateRef State) {
   if (State->get<ExternalStateMutated>())
     return true;
 
-  for (const auto &[Sym, HPS] : State->get<HeapPointers>())
+  for (const auto &[ObjR, HPS] : State->get<HeapClaims>())
     if (HPS.isClaimed())
       return true;
 
   return false;
 }
 
-static SymbolRef getAttributableClaim(ProgramStateRef State) {
-  SymbolRef Attributed = nullptr;
+static const SymbolicRegion *getAttributableClaim(ProgramStateRef State) {
+  HeapClaimsTy Claims = State->get<HeapClaims>();
 
-  // If there are multiple live claims, choose one deterministically to report.
-  for (const auto &[Sym, HPS] : State->get<HeapPointers>()) {
-    if (!HPS.isClaimed())
-      continue;
-    if (!Attributed || Sym->getSymbolID() < Attributed->getSymbolID())
-      Attributed = Sym;
-  }
-  return Attributed;
+  auto It = llvm::min_element(Claims, [](const auto &A, const auto &B) {
+    if (A.second.isClaimed() != B.second.isClaimed())
+      return A.second.isClaimed();
+    return A.first->getSymbol()->getSymbolID() <
+           B.first->getSymbol()->getSymbolID();
+  });
+
+  if (It == Claims.end() || !It->second.isClaimed())
+    return nullptr;
+
+  return It->first;
 }
 
 static void explainWarningsEnabled(PathSensitiveBugReport &Report,
@@ -262,7 +298,7 @@ static void explainWarningsEnabled(PathSensitiveBugReport &Report,
   if (State->get<ExternalStateMutated>())
     return;
 
-  if (SymbolRef Claim = getAttributableClaim(State))
+  if (const SymbolicRegion *Claim = getAttributableClaim(State))
     Report.markInteresting(Claim);
 }
 
@@ -343,35 +379,35 @@ void CheriotHeapChecker::checkPostCall(const CallEvent &Call,
     }
   }
 
-  llvm::SmallVector<SymbolRef, 2> Invalidated;
+  llvm::SmallVector<const SymbolicRegion *, 2> Invalidated;
   if (isCrossCompartmentCall(Call, C)) {
     // All ephemeral claims are implicitly released at each cross-compartment
     // call.
-    for (const auto &[Sym, HPS] : State->get<HeapPointers>()) {
+    for (const auto &[ObjR, HPS] : State->get<HeapClaims>()) {
       if (!HPS.isEphemeral())
         continue;
 
-      State = State->set<HeapPointers>(Sym, HeapPtrState::InvalidatedEphemeral);
-      Invalidated.push_back(Sym);
+      State = State->set<HeapClaims>(ObjR, HeapPtrState::InvalidatedEphemeral);
+      Invalidated.push_back(ObjR);
     }
   }
 
-  // Unsealing a pointer propagates claim state to the unsealed pointer.
   if (UnsealingFns.contains(Call)) {
-    SymbolRef SealedSym = Call.getArgSVal(1).getAsLocSymbol();
-    SymbolRef UnsealedSym = Call.getReturnValue().getAsLocSymbol();
-    if (SealedSym && UnsealedSym) {
-      if (const HeapPtrState *HPS = State->get<HeapPointers>(SealedSym)) {
-        State = State->set<HeapPointers>(UnsealedSym, HPS->K);
-      }
-    }
+    // Sealed pointers can't be claimed, but we still need to propagate their
+    // state to the unsealed pointer so that we know they should be tracked.
+    const auto *Sealed = getObjectRegion(State, Call.getArgSVal(1));
+    const auto *Unsealed = getObjectRegion(State, Call.getReturnValue());
+    const HeapPtrState *HPS = Sealed ? State->get<HeapClaims>(Sealed) : nullptr;
+    if (Unsealed && HPS)
+      State = State->set<HeapClaims>(Unsealed, *HPS);
   }
 
-  const NoteTag *T = C.getNoteTag([this, Invalidated, GlobalStateMutation](
+  const NoteTag *T = C.getNoteTag([this, Invalidated = std::move(Invalidated),
+                                   GlobalStateMutation](
                                       PathSensitiveBugReport &BR,
                                       llvm::raw_ostream &OS) {
-    if (llvm::any_of(Invalidated, [&](const SymbolRef &Sym) {
-          return BR.isInteresting(Sym);
+    if (llvm::any_of(Invalidated, [&](const SymbolicRegion *ObjR) {
+          return BR.isInteresting(ObjR);
         })) {
       OS << "Ephemeral claims dropped by cross-compartment call here";
     }
@@ -386,14 +422,37 @@ void CheriotHeapChecker::checkPostCall(const CallEvent &Call,
     C.addTransition(State, T);
 }
 
-static void printSymbolNameForError(llvm::raw_ostream &os, SymbolRef Sym) {
-  if (const auto *SymName = dyn_cast<SymbolData>(Sym)) {
-    if (const VarRegion *VR =
-            dyn_cast_or_null<VarRegion>(SymName->getOriginRegion())) {
-      if (const VarDecl *VD = VR->getDecl())
-        os << "'" << VD->getNameAsString() << "' ";
-    }
-  }
+static std::string getObjectNameForError(SVal PtrVal, ProgramStateRef State) {
+  const auto *SR = getObjectRegion(State, PtrVal);
+  if (!SR)
+    return "";
+  const auto *SymName = dyn_cast<SymbolData>(SR->getSymbol());
+  if (!SymName)
+    return "";
+  const auto *VR = dyn_cast_or_null<VarRegion>(SymName->getOriginRegion());
+  if (!VR)
+    return "";
+  return "'" + VR->getDecl()->getNameAsString() + "' ";
+}
+
+static std::string getExprNameForError(const Expr *E) {
+  if (!E)
+    return "";
+  const auto *DRE = dyn_cast<DeclRefExpr>(E->IgnoreParenImpCasts());
+  if (!DRE)
+    return "";
+  const auto *VD = dyn_cast<VarDecl>(DRE->getDecl());
+  if (!VD)
+    return "";
+  return "'" + VD->getNameAsString() + "' ";
+}
+
+// Get the deref expression that a checkLocation's statement corresponds to.
+static const Expr *getDerefPointerExpr(const Stmt *S) {
+  const auto *E = dyn_cast_or_null<Expr>(S);
+  if (!E)
+    return nullptr;
+  return bugreporter::getDerefExpr(E->IgnoreParenLValueCasts());
 }
 
 void CheriotHeapChecker::preCheckPointer(const CallEvent &Call,
@@ -402,16 +461,13 @@ void CheriotHeapChecker::preCheckPointer(const CallEvent &Call,
   if (!warningsEnabled(State))
     return;
 
-  // If the pointer argument points to memory that could be heap memory,
-  // check that it is in Claimed state, and report an error if not. This should
-  // make sure to include arguments that are pointers to known stack or constant
-  // memory.
-  SVal PtrVal = Call.getArgSVal(0);
-  SymbolRef Sym = PtrVal.getAsLocSymbol();
-  if (!Sym)
+  // If the pointer argument points into an object that could be heap memory,
+  // check that the object is in Claimed state, and report an error if not.
+  const auto *ObjR = getObjectRegion(State, Call.getArgSVal(0));
+  if (!ObjR)
     return;
 
-  const HeapPtrState *HPS = State->get<HeapPointers>(Sym);
+  const HeapPtrState *HPS = State->get<HeapClaims>(ObjR);
   if (!HPS || HPS->isEffectivelyClaimed())
     return;
 
@@ -423,7 +479,7 @@ void CheriotHeapChecker::preCheckPointer(const CallEvent &Call,
   SmallString<200> buf;
   llvm::raw_svector_ostream os(buf);
   os << "check_pointer called on potential heap pointer ";
-  printSymbolNameForError(os, Sym);
+  os << getExprNameForError(Call.getArgExpr(0));
 
   if (HPS->isUnclaimed())
     os << "without a valid claim.";
@@ -432,23 +488,20 @@ void CheriotHeapChecker::preCheckPointer(const CallEvent &Call,
 
   auto Report =
       std::make_unique<PathSensitiveBugReport>(InvalidUseBugType, os.str(), N);
-  Report->markInteresting(Sym);
+  Report->markInteresting(ObjR);
+  bugreporter::trackExpressionValue(N, Call.getArgExpr(0), *Report);
   explainWarningsEnabled(*Report, C);
   C.emitReport(std::move(Report));
 }
 
 void CheriotHeapChecker::postHeapAddressIsValid(const CallEvent &Call,
                                                 CheckerContext &C) const {
-  SymbolRef Sym = Call.getArgSVal(0).getAsLocSymbol();
-  if (!Sym)
+  ProgramStateRef State = C.getState();
+  const auto *ObjR = getObjectRegion(State, Call.getArgSVal(0));
+  if (!ObjR || !State->get<HeapClaims>(ObjR))
     return;
 
   SVal RetVal = Call.getReturnValue();
-  ProgramStateRef State = C.getState();
-  const HeapPtrState *HPS = State->get<HeapPointers>(Sym);
-  if (!HPS)
-    return;
-
   ProgramStateRef StateTrue, StateFalse;
   std::tie(StateTrue, StateFalse) =
       State->assume(RetVal.castAs<DefinedOrUnknownSVal>());
@@ -457,29 +510,25 @@ void CheriotHeapChecker::postHeapAddressIsValid(const CallEvent &Call,
     C.addTransition(StateTrue);
 
   if (StateFalse) {
-    StateFalse = StateFalse->remove<HeapPointers>(Sym);
+    StateFalse = StateFalse->remove<HeapClaims>(ObjR);
     C.addTransition(StateFalse);
   }
 }
 
 void CheriotHeapChecker::postCheckTimeoutPointer(const CallEvent &Call,
                                                  CheckerContext &C) const {
-  SymbolRef Sym = Call.getArgSVal(0).getAsLocSymbol();
-  if (!Sym)
+  ProgramStateRef State = C.getState();
+  const auto *ObjR = getObjectRegion(State, Call.getArgSVal(0));
+  if (!ObjR || !State->get<HeapClaims>(ObjR))
     return;
 
   SVal RetVal = Call.getReturnValue();
-  ProgramStateRef State = C.getState();
-  const HeapPtrState *HPS = State->get<HeapPointers>(Sym);
-  if (!HPS)
-    return;
-
   ProgramStateRef StateTrue, StateFalse;
   std::tie(StateTrue, StateFalse) =
       State->assume(RetVal.castAs<DefinedOrUnknownSVal>());
 
   if (StateTrue) {
-    StateTrue = StateTrue->remove<HeapPointers>(Sym);
+    StateTrue = StateTrue->remove<HeapClaims>(ObjR);
     C.addTransition(StateTrue);
   }
 
@@ -489,8 +538,8 @@ void CheriotHeapChecker::postCheckTimeoutPointer(const CallEvent &Call,
 
 void CheriotHeapChecker::postHeapClaim(const CallEvent &Call,
                                        CheckerContext &C) const {
-  SymbolRef Sym = Call.getArgSVal(1).getAsLocSymbol();
-  if (!Sym)
+  const auto *ObjR = getObjectRegion(C.getState(), Call.getArgSVal(1));
+  if (!ObjR)
     return;
 
   // If the allocation capability was also a cross-compartment argument,
@@ -501,11 +550,11 @@ void CheriotHeapChecker::postHeapClaim(const CallEvent &Call,
   // of the caller, with claim release by the caller as an explicit part
   // of the function contract.
   HeapPtrState::Kind K = HeapPtrState::Claimed;
-  SymbolRef AllocCap = Call.getArgSVal(0).getAsLocSymbol();
-  if (AllocCap && C.getState()->contains<HeapPointers>(AllocCap))
+  const auto *AllocCap = getObjectRegion(C.getState(), Call.getArgSVal(0));
+  if (AllocCap && C.getState()->contains<HeapClaims>(AllocCap))
     K = HeapPtrState::Escaped;
 
-  ProgramStateRef State = C.getState()->set<HeapPointers>(Sym, K);
+  ProgramStateRef State = C.getState()->set<HeapClaims>(ObjR, K);
 
   // Assume that the claim always succeeds.
   BasicValueFactory &BVF = C.getSValBuilder().getBasicValueFactory();
@@ -518,11 +567,13 @@ void CheriotHeapChecker::postHeapClaim(const CallEvent &Call,
     return;
   }
 
+  std::string Name = getExprNameForError(Call.getArgExpr(1));
   const NoteTag *T =
-      C.getNoteTag([=](PathSensitiveBugReport &BR, llvm::raw_ostream &OS) {
-        if (!BR.isInteresting(Sym))
+      C.getNoteTag([ObjR, Name = std::move(Name)](PathSensitiveBugReport &BR,
+                                                  llvm::raw_ostream &OS) {
+        if (!BR.isInteresting(ObjR))
           return;
-        OS << "Claim acquired here";
+        OS << "Claim " << (Name.empty() ? "" : "on " + Name) << "acquired here";
       });
 
   C.addTransition(State, T);
@@ -530,21 +581,20 @@ void CheriotHeapChecker::postHeapClaim(const CallEvent &Call,
 
 void CheriotHeapChecker::postHeapClaimEphemeral(const CallEvent &Call,
                                                 CheckerContext &C) const {
-  SymbolRef Sym1 = Call.getArgSVal(1).getAsLocSymbol();
-  SymbolRef Sym2 = Call.getArgSVal(2).getAsLocSymbol();
-
   ProgramStateRef State = C.getState();
+  const auto *Obj1 = getObjectRegion(State, Call.getArgSVal(1));
+  const auto *Obj2 = getObjectRegion(State, Call.getArgSVal(2));
 
   // All existing ephemeral claims are released
-  for (const auto &[Sym, HPS] : State->get<HeapPointers>()) {
+  for (const auto &[ObjR, HPS] : State->get<HeapClaims>()) {
     if (HPS.isEphemeral())
-      State = State->set<HeapPointers>(Sym, HeapPtrState::Unclaimed);
+      State = State->set<HeapClaims>(ObjR, HeapPtrState::Unclaimed);
   }
 
-  if (Sym1)
-    State = State->set<HeapPointers>(Sym1, HeapPtrState::Ephemeral);
-  if (Sym2)
-    State = State->set<HeapPointers>(Sym2, HeapPtrState::Ephemeral);
+  if (Obj1)
+    State = State->set<HeapClaims>(Obj1, HeapPtrState::Ephemeral);
+  if (Obj2)
+    State = State->set<HeapClaims>(Obj2, HeapPtrState::Ephemeral);
 
   // Assume that the claim always succeeds.
   State = State->assume(Call.getReturnValue().castAs<DefinedOrUnknownSVal>(),
@@ -554,11 +604,18 @@ void CheriotHeapChecker::postHeapClaimEphemeral(const CallEvent &Call,
     return;
   }
 
-  const NoteTag *T =
-      C.getNoteTag([=](PathSensitiveBugReport &BR, llvm::raw_ostream &OS) {
-        if (!BR.isInteresting(Sym1) && !BR.isInteresting(Sym2))
+  std::string Name1 = getExprNameForError(Call.getArgExpr(1));
+  std::string Name2 = getExprNameForError(Call.getArgExpr(2));
+  const NoteTag *T = C.getNoteTag(
+      [Obj1, Obj2, Name1 = std::move(Name1), Name2 = std::move(Name2)](
+          PathSensitiveBugReport &BR, llvm::raw_ostream &OS) {
+        bool First = Obj1 && BR.isInteresting(Obj1);
+        bool Second = Obj2 && BR.isInteresting(Obj2);
+        if (!First && !Second)
           return;
-        OS << "Ephemeral claim acquired here";
+        const std::string &Name = First ? Name1 : Name2;
+        OS << "Ephemeral claim " << (Name.empty() ? "" : "on " + Name)
+           << "acquired here";
       });
 
   C.addTransition(State, T);
@@ -566,21 +623,23 @@ void CheriotHeapChecker::postHeapClaimEphemeral(const CallEvent &Call,
 
 void CheriotHeapChecker::postHeapFree(const CallEvent &Call,
                                       CheckerContext &C) const {
-  SymbolRef Sym = Call.getArgSVal(1).getAsLocSymbol();
-  if (!Sym)
+  ProgramStateRef State = C.getState();
+  const auto *ObjR = getObjectRegion(State, Call.getArgSVal(1));
+  if (!ObjR)
     return;
 
-  ProgramStateRef State = C.getState();
-  const HeapPtrState *HPS = State->get<HeapPointers>(Sym);
+  const HeapPtrState *HPS = State->get<HeapClaims>(ObjR);
   if (!HPS || !HPS->isEffectivelyClaimed())
     return;
 
-  State = State->set<HeapPointers>(Sym, HeapPtrState::Unclaimed);
+  State = State->set<HeapClaims>(ObjR, HeapPtrState::Unclaimed);
+  std::string Name = getExprNameForError(Call.getArgExpr(1));
   const NoteTag *T =
-      C.getNoteTag([=](PathSensitiveBugReport &BR, llvm::raw_ostream &OS) {
-        if (!BR.isInteresting(Sym))
+      C.getNoteTag([ObjR, Name = std::move(Name)](PathSensitiveBugReport &BR,
+                                                  llvm::raw_ostream &OS) {
+        if (!BR.isInteresting(ObjR))
           return;
-        OS << "Claim dropped here";
+        OS << "Claim " << (Name.empty() ? "" : "on " + Name) << "dropped here";
       });
 
   C.addTransition(State, T);
@@ -590,16 +649,17 @@ void CheriotHeapChecker::postHeapFreeAll(const CallEvent &Call,
                                          CheckerContext &C) const {
   ProgramStateRef State = C.getState();
 
-  llvm::SmallVector<SymbolRef, 2> Invalidated;
-  for (const auto &[Sym, HPS] : State->get<HeapPointers>()) {
-    State = State->set<HeapPointers>(Sym, HeapPtrState::Unclaimed);
-    Invalidated.push_back(Sym);
+  llvm::SmallVector<const SymbolicRegion *, 2> Invalidated;
+  for (const auto &[ObjR, HPS] : State->get<HeapClaims>()) {
+    State = State->set<HeapClaims>(ObjR, HeapPtrState::Unclaimed);
+    Invalidated.push_back(ObjR);
   }
 
   const NoteTag *T =
-      C.getNoteTag([=](PathSensitiveBugReport &BR, llvm::raw_ostream &OS) {
-        if (llvm::none_of(Invalidated, [&](const SymbolRef &Sym) {
-              return BR.isInteresting(Sym);
+      C.getNoteTag([Invalidated = std::move(Invalidated)](
+                       PathSensitiveBugReport &BR, llvm::raw_ostream &OS) {
+        if (llvm::none_of(Invalidated, [&](const SymbolicRegion *ObjR) {
+              return BR.isInteresting(ObjR);
             }))
           return;
         OS << "All claims dropped here";
@@ -655,7 +715,7 @@ ExplodedNode *CheriotHeapChecker::reportContradictoryCheckPtr(
   SmallString<200> buf;
   llvm::raw_svector_ostream os(buf);
   os << "check_pointer called multiple times on pointer ";
-  printSymbolNameForError(os, Sym);
+  os << getExprNameForError(CE.getArgExpr(0));
   os << "with required permissions that were removed by a prior call (";
   printPermissions(os, Contradictions);
   os << ").";
@@ -671,8 +731,13 @@ ExplodedNode *CheriotHeapChecker::reportContradictoryCheckPtr(
 void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
                                              CheckerContext &C) const {
   ProgramStateRef State = C.getState();
-  SVal RefArg = Call.getArgSVal(0);
-  SVal PtrVal = State->getSVal(RefArg.castAs<Loc>());
+  std::optional<Loc> PtrLoc = Call.getArgSVal(0).getAs<Loc>();
+  if (!PtrLoc)
+    return;
+  QualType PtrTy = Call.getArgExpr(0)->getType();
+  if (!PtrTy->isAnyPointerType())
+    return;
+  SVal PtrVal = State->getSVal(*PtrLoc);
   SymbolRef Sym = PtrVal.getAsLocSymbol();
   if (!Sym)
     return;
@@ -715,20 +780,36 @@ void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
     NewlyChecked = NewlyChecked.composeWithPriorState(*CPS);
   }
 
-  State = State->set<CheckedPointers>(Sym, std::move(NewlyChecked));
+  // In order to have separate properties on the pointe post-check_pointer,
+  // we have to conjure a new value and copy over some properties.
+  SVal Checked =
+      C.getSValBuilder().conjureSymbolVal(Call, PtrTy, C.blockCount(), this);
+  SymbolRef CheckedSym = Checked.getAsLocSymbol();
+  assert(CheckedSym && "a conjured pointer value is always symbolic");
+
+  if (State->isNonNull(PtrVal).isConstrainedTrue())
+    if (ProgramStateRef NonNull =
+            State->assume(Checked.castAs<DefinedOrUnknownSVal>(), true))
+      State = NonNull;
+  if (const auto *Obj = getObjectRegion(State, PtrVal))
+    State = State->set<SameObjectAs>(
+        cast<SymbolicRegion>(Checked.getAsRegion()), Obj);
+  State = State->bindLoc(*PtrLoc, Checked, C.getStackFrame());
+  State = State->set<CheckedPointers>(CheckedSym, std::move(NewlyChecked));
   C.addTransition(State, Pred);
 }
 
 void CheriotHeapChecker::reportDerefOfUnclaimedPointer(
-    SymbolRef Sym, bool IsLoad, const Stmt *S, const HeapPtrState *HPS,
-    ExplodedNode *N, CheckerContext &C) const {
+    const SymbolicRegion *ObjR, bool IsLoad, const Stmt *S,
+    const HeapPtrState *HPS, ExplodedNode *N, CheckerContext &C) const {
   SmallString<200> buf;
   llvm::raw_svector_ostream os(buf);
   if (IsLoad)
     os << "Read of heap pointer ";
   else
     os << "Store through heap pointer ";
-  printSymbolNameForError(os, Sym);
+  const Expr *DerefE = getDerefPointerExpr(S);
+  os << getExprNameForError(DerefE);
   if (HPS->isUnclaimed())
     os << "without a valid claim.";
   else if (HPS->isInvalidatedEphemeral())
@@ -739,7 +820,9 @@ void CheriotHeapChecker::reportDerefOfUnclaimedPointer(
       std::make_unique<PathSensitiveBugReport>(InvalidUseBugType, os.str(), N);
   if (S)
     Report->addRange(S->getSourceRange());
-  Report->markInteresting(Sym);
+  Report->markInteresting(ObjR);
+  if (DerefE)
+    bugreporter::trackExpressionValue(N, DerefE, *Report);
   explainWarningsEnabled(*Report, C);
   C.emitReport(std::move(Report));
 }
@@ -755,7 +838,8 @@ void CheriotHeapChecker::reportDerefMissingPerms(SymbolRef Sym, bool IsLoad,
     os << "Load through pointer ";
   else
     os << "Store through pointer ";
-  printSymbolNameForError(os, Sym);
+  const Expr *DerefE = getDerefPointerExpr(S);
+  os << getExprNameForError(DerefE);
   os << "with missing ";
   os << (IsLoad ? "LD" : "SD");
   os << " permission.";
@@ -776,6 +860,8 @@ void CheriotHeapChecker::reportDerefMissingPerms(SymbolRef Sym, bool IsLoad,
   if (S)
     Report->addRange(S->getSourceRange());
   Report->markInteresting(Sym);
+  if (DerefE)
+    bugreporter::trackExpressionValue(N, DerefE, *Report);
   explainWarningsEnabled(*Report, C);
   C.emitReport(std::move(Report));
 }
@@ -789,17 +875,17 @@ void CheriotHeapChecker::reportDerefOfUntaggedCapability(
     os << "Load through pointer ";
   else
     os << "Store through pointer ";
-  printSymbolNameForError(os, Loc.getLocSymbolInBase());
+  const Expr *DerefE = getDerefPointerExpr(S);
+  os << getExprNameForError(DerefE);
   os << "which may be an invalid capability because MC permission was not "
         "checked before the pointer was loaded.";
 
   auto Report =
       std::make_unique<PathSensitiveBugReport>(InvalidUseBugType, os.str(), N);
-  if (S) {
+  if (S)
     Report->addRange(S->getSourceRange());
-    if (isa<Expr>(S))
-      bugreporter::trackExpressionValue(N, cast<Expr>(S), *Report);
-  }
+  if (DerefE)
+    bugreporter::trackExpressionValue(N, DerefE, *Report);
   Report->markInteresting(Loc);
   explainWarningsEnabled(*Report, C);
   C.emitReport(std::move(Report));
@@ -863,16 +949,18 @@ static ProgramStateRef stripLoadedCapPermissions(ProgramStateRef State,
       (CheckPtrState::PermissionLoadGlobal | CheckPtrState::PermissionGlobal))
     Causes |= CheckPtrState::PermissionLoadGlobal;
 
-  T = C.getNoteTag([=](PathSensitiveBugReport &BR, llvm::raw_ostream &OS) {
+  std::string SymName = getObjectNameForError(Loc, State);
+  T = C.getNoteTag([LoadedSym, Sym, Removed, Causes,
+                    SymName = std::move(SymName)](PathSensitiveBugReport &BR,
+                                                  llvm::raw_ostream &OS) {
     if (!BR.isInteresting(LoadedSym))
       return;
     BR.markInteresting(Sym);
 
     OS << "Loaded pointer has permissions ";
     printPermissions(OS, Removed);
-    OS << " removed because the pointer ";
-    printSymbolNameForError(OS, Sym);
-    OS << "it was loaded through lacks ";
+    OS << " removed because the pointer " << SymName
+       << "it was loaded through lacks ";
     printPermissions(OS, Causes);
   });
   return State;
@@ -890,7 +978,8 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
   // change that could cause state desynchronization on compartment
   // crash.
   bool CompartmentCrashWarningsLive = warningsEnabled(State);
-  const HeapPtrState *HPS = Sym ? State->get<HeapPointers>(Sym) : nullptr;
+  const auto *ObjR = getObjectRegion(State, Loc);
+  const HeapPtrState *HPS = ObjR ? State->get<HeapClaims>(ObjR) : nullptr;
   if (!IsLoad && !HPS) {
     if (!Region || !isa<StackSpaceRegion>(Region->getMemorySpace(State)))
       State = addGlobalStateMutation(State, S);
@@ -934,7 +1023,7 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
     // If we see a write through a heap pointer at a time when we're
     // not reporting compartment crashes, then we take that as an
     // assertion that the pointer is actually claimed.
-    State = State->set<HeapPointers>(Sym, HeapPtrState::Escaped);
+    State = State->set<HeapClaims>(ObjR, HeapPtrState::Escaped);
     C.addTransition(State, T);
     return;
   }
@@ -965,7 +1054,7 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
     if (!N)
       return;
     if (Unclaimed)
-      reportDerefOfUnclaimedPointer(Sym, IsLoad, S, HPS, N, C);
+      reportDerefOfUnclaimedPointer(ObjR, IsLoad, S, HPS, N, C);
     if (MissingPerms)
       reportDerefMissingPerms(Sym, IsLoad, S, CPS, N, C);
     if (TagCleared)
@@ -1003,9 +1092,9 @@ void CheriotHeapChecker::checkBind(SVal Loc, SVal Val, const Stmt *S,
   SmallString<200> buf;
   llvm::raw_svector_ostream os(buf);
   os << "Store of locally-scoped capability ";
-  printSymbolNameForError(os, ValSym);
+  os << getObjectNameForError(Val, State);
   os << "(lacking GL permission) through a globally-scoped pointer ";
-  printSymbolNameForError(os, DestSym);
+  os << getObjectNameForError(Loc, State);
   os << "(lacking SL permission). The stored capability will be untagged.";
 
   auto Report = std::make_unique<PathSensitiveBugReport>(LocalCapStoreBugType,
@@ -1028,10 +1117,18 @@ ProgramStateRef CheriotHeapChecker::checkPointerEscape(
         PostFnMap.lookup(*Call))
       return State;
   }
-  for (SymbolRef Sym : Escaped) {
-    if (State->get<HeapPointers>(Sym))
-      State = State->set<HeapPointers>(Sym, HeapPtrState::Escaped);
+
+  for (const auto &[ObjR, HPS] : State->get<HeapClaims>()) {
+    if (Escaped.count(ObjR->getSymbol())) {
+      State = State->set<HeapClaims>(ObjR, HeapPtrState::Escaped);
+    }
   }
+  for (const auto &[R, ObjR] : State->get<SameObjectAs>()) {
+    if (Escaped.count(R->getSymbol()) && State->contains<HeapClaims>(ObjR)) {
+      State = State->set<HeapClaims>(ObjR, HeapPtrState::Escaped);
+    }
+  }
+
   return State;
 }
 
@@ -1057,8 +1154,8 @@ void CheriotHeapChecker::checkBeginFunction(CheckerContext &C) const {
       continue;
 
     const VarRegion *VR = State->getRegion(Param, SF);
-    if (SymbolRef Sym = State->getSVal(VR).getAsLocSymbol()) {
-      State = State->set<HeapPointers>(Sym, HeapPtrState::Unclaimed);
+    if (const auto *ObjR = getObjectRegion(State, State->getSVal(VR))) {
+      State = State->set<HeapClaims>(ObjR, HeapPtrState::Unclaimed);
       Modified = true;
     }
   }
@@ -1082,7 +1179,7 @@ void CheriotHeapChecker::checkEndFunction(const ReturnStmt *RS,
   // Report every leaked claim on a single error node
   ProgramStateRef State = C.getState();
   ExplodedNode *N = nullptr;
-  for (const auto &[Sym, HPS] : State->get<HeapPointers>()) {
+  for (const auto &[ObjR, HPS] : State->get<HeapClaims>()) {
     if (!HPS.isClaimed())
       continue;
     if (!N) {
@@ -1090,22 +1187,22 @@ void CheriotHeapChecker::checkEndFunction(const ReturnStmt *RS,
       if (!N)
         return;
     }
-    reportLeak(Sym, N, C);
+    reportLeak(ObjR, N, C);
   }
 }
 
-void CheriotHeapChecker::reportLeak(SymbolRef Sym, ExplodedNode *N,
+void CheriotHeapChecker::reportLeak(const SymbolicRegion *ObjR, ExplodedNode *N,
                                     CheckerContext &C) const {
   SmallString<200> buf;
   llvm::raw_svector_ostream os(buf);
   os << "Claim on pointer ";
-  printSymbolNameForError(os, Sym);
+  os << getObjectNameForError(loc::MemRegionVal(ObjR), C.getState());
   os << "must be released with heap_free or heap_free_all before returning "
         "from a compartment call.";
 
   auto Report =
       std::make_unique<PathSensitiveBugReport>(LeakBugType, os.str(), N);
-  Report->markInteresting(Sym);
+  Report->markInteresting(ObjR);
   C.emitReport(std::move(Report));
 }
 

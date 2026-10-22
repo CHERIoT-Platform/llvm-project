@@ -1029,11 +1029,13 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
   }
 
   if (!CompartmentCrashWarningsLive) {
-    // If we see a write through a heap pointer at a time when we're
-    // not reporting compartment crashes, then we take that as an
-    // assertion that the pointer is actually claimed.
-    State = State->set<HeapClaims>(ObjR, HeapPtrState::Escaped);
-    C.addTransition(State, T);
+    // If we see a write through a tracked heap pointer at a time when we're not
+    // reporting compartment crashes, then we take that as an assertion that the
+    // pointer is actually claimed.
+    if (HPS)
+      State = State->set<HeapClaims>(ObjR, HeapPtrState::Escaped);
+    if (State != OldState)
+      C.addTransition(State, T);
     return;
   }
 

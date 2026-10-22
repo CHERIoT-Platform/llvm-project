@@ -363,3 +363,10 @@ void test_48(struct test47_struct* s) {
     heap_claim(0, s);
     heap_free(0, &s->buf[2]); // no warn
 }
+
+__attribute__((cheri_compartment("test")))
+void test_49(void* p, char** caps) {
+    char *cap = *caps;
+    char c = *cap;
+    heap_claim(cap, p); // expected-warning{{Claim on pointer 'p' must be released with heap_free or heap_free_all before returning from a compartment call}}
+}

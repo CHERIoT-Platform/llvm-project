@@ -225,6 +225,9 @@ static constexpr TaintTagType TaintTagCapabilityUntagged = 1;
 
 } // anonymous namespace
 
+// Track whether analysis is currently enabled on this trace
+REGISTER_TRAIT_WITH_PROGRAMSTATE(AnalyzingCompartmentEntry, bool)
+
 REGISTER_TRAIT_WITH_PROGRAMSTATE(ExternalStateMutated, const Stmt *)
 
 // Claim state, include the where claiming is being tracked at all, is tracked
@@ -349,12 +352,18 @@ static bool isCrossCompartmentCall(const CallEvent &Call,
 
 void CheriotHeapChecker::checkPreCall(const CallEvent &Call,
                                       CheckerContext &C) const {
+  if (!C.getState()->get<AnalyzingCompartmentEntry>())
+    return;
   if (const auto *PreFN = PreFnMap.lookup(Call))
     (*PreFN)(this, Call, C);
 }
 
 void CheriotHeapChecker::checkPostCall(const CallEvent &Call,
                                        CheckerContext &C) const {
+  ProgramStateRef OldState = C.getState();
+  ProgramStateRef State = OldState;
+  if (!State->get<AnalyzingCompartmentEntry>())
+    return;
   if (const auto *PostFN = PostFnMap.lookup(Call)) {
     (*PostFN)(this, Call, C);
     return;
@@ -362,8 +371,6 @@ void CheriotHeapChecker::checkPostCall(const CallEvent &Call,
 
   // Opaque calls to unrecognized, non-builtin functions may modify
   // state, which should cause us to enable warnings.
-  ProgramStateRef OldState = C.getState();
-  ProgramStateRef State = OldState;
   bool GlobalStateMutation = false;
   const FunctionDecl *FD = dyn_cast_or_null<FunctionDecl>(Call.getDecl());
   bool IsBuiltin = FD && FD->getBuiltinID() != 0;
@@ -969,6 +976,8 @@ static ProgramStateRef stripLoadedCapPermissions(ProgramStateRef State,
 void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
                                        CheckerContext &C) const {
   ProgramStateRef State = C.getState();
+  if (!State->get<AnalyzingCompartmentEntry>())
+    return;
   ProgramStateRef OldState = State;
   SymbolRef Sym = Loc.getLocSymbolInBase();
   const MemRegion *Region = Loc.getAsRegion();
@@ -1069,6 +1078,9 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
 
 void CheriotHeapChecker::checkBind(SVal Loc, SVal Val, const Stmt *S,
                                    bool AtDeclInit, CheckerContext &C) const {
+  ProgramStateRef State = C.getState();
+  if (!State->get<AnalyzingCompartmentEntry>())
+    return;
   SymbolRef DestSym = Loc.getLocSymbolInBase();
   SymbolRef ValSym = Val.getAsLocSymbol(/*IncludeBaseRegions=*/true);
   if (!DestSym || !ValSym)
@@ -1077,7 +1089,6 @@ void CheriotHeapChecker::checkBind(SVal Loc, SVal Val, const Stmt *S,
   // Local capabilities can't be stored through global pointers.
   // The former is indicated by !GL on the stored value, the latter by
   // !SL on the pointer.
-  ProgramStateRef State = C.getState();
   const CheckPtrState *DestCPS = State->get<CheckedPointers>(DestSym);
   const CheckPtrState *ValCPS = State->get<CheckedPointers>(ValSym);
   if (!DestCPS || !ValCPS ||
@@ -1109,6 +1120,8 @@ void CheriotHeapChecker::checkBind(SVal Loc, SVal Val, const Stmt *S,
 ProgramStateRef CheriotHeapChecker::checkPointerEscape(
     ProgramStateRef State, const InvalidatedSymbols &Escaped,
     const CallEvent *Call, PointerEscapeKind Kind) const {
+  if (!State->get<AnalyzingCompartmentEntry>())
+    return State;
   // FIXME: Unsure why this is needed.
   if (Kind == PointerEscapeKind::PSK_EscapeOnBind)
     return State;
@@ -1137,13 +1150,11 @@ void CheriotHeapChecker::checkBeginFunction(CheckerContext &C) const {
   if (!SF->inTopFrame())
     return;
 
-  // Only start analysis paths at functions
+  // Only analyze paths starting at compartment entry points.
   const Decl *D = C.getStackFrame()->getDecl();
   const FunctionDecl *FD = dyn_cast_or_null<FunctionDecl>(D);
-  if (!FD || !FD->hasAttr<CHERICompartmentNameAttr>()) {
-    C.addSink();
+  if (!FD || !FD->hasAttr<CHERICompartmentNameAttr>())
     return;
-  }
 
   // Mark all pointer arguments as initially unclaimed
   ProgramStateRef State = C.getState();
@@ -1160,15 +1171,19 @@ void CheriotHeapChecker::checkBeginFunction(CheckerContext &C) const {
     }
   }
 
-  // Only proceed with the analysis if at least one argument was a pointer.
-  if (Modified)
-    C.addTransition(State);
-  else
-    C.addSink();
+  // Only analyze entry points with at least one pointer argument.
+  if (!Modified)
+    return;
+
+  State = State->set<AnalyzingCompartmentEntry>(true);
+  C.addTransition(State);
 }
 
 void CheriotHeapChecker::checkEndFunction(const ReturnStmt *RS,
                                           CheckerContext &C) const {
+  ProgramStateRef State = C.getState();
+  if (!State->get<AnalyzingCompartmentEntry>())
+    return;
   // Don't report leaks on returns from intra-compartment helper functions,
   // since the caller might contain the relevant releases.
   const Decl *D = C.getStackFrame()->getDecl();
@@ -1177,7 +1192,6 @@ void CheriotHeapChecker::checkEndFunction(const ReturnStmt *RS,
     return;
 
   // Report every leaked claim on a single error node
-  ProgramStateRef State = C.getState();
   ExplodedNode *N = nullptr;
   for (const auto &[ObjR, HPS] : State->get<HeapClaims>()) {
     if (!HPS.isClaimed())

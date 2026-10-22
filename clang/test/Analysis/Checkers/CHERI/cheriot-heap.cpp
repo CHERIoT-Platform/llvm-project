@@ -220,3 +220,8 @@ int test_20(int* p) {
     int b = *q;  // expected-warning{{Read of heap pointer 'q' after its ephemeral claim was released by a cross-compartment call}}
     return b;
 }
+
+int test_21(int* p) {
+    check_pointer<PermissionSet{PermissionStore}, true, true>(p, sizeof(int));
+    return *p; // no warning
+}

@@ -1,0 +1,34 @@
+# RUN: llc --mcpu=cheriot --mtriple=riscv32-unknown-unknown -target-abi cheriot -mattr=+xcheri,+xcheripurecap \
+# RUN:   -run-pass=prolog-epilog -o - %s \
+# RUN:   | FileCheck %s
+
+---
+name: test
+fixedStack:
+  - { id: 0, type: default, offset: 0, size: 8, alignment: 8 }
+stack:
+  - { id: 0, name: '', type: default, offset: 0, size: 64, alignment: 8 }
+  - { id: 1, name: '', type: default, offset: 64, size: 2048, alignment: 8 }
+body:             |
+  bb.0:
+    ; CHECK-LABEL: name: test
+    ; CHECK: $x2_y = frame-setup CIncOffsetImm $x2_y, -2048
+    ; CHECK-NEXT: $x2_y = frame-setup CIncOffsetImm killed $x2_y, -80
+    ; CHECK-NEXT: frame-setup CFI_INSTRUCTION def_cfa_offset 2128
+    ; CHECK-NEXT: $x10_y = CIncOffsetImm $x2_y, 2047
+    ; CHECK-NEXT: $x10_y = CIncOffsetImm killed $x10_y, 89
+    ; CHECK-NEXT: renamable $x10 = CLW killed $x10_y, 0 :: (load (s32) from %fixed-stack.0, align 16)
+    ; CHECK-NEXT: $x10_y = CIncOffsetImm $x2_y, 2047
+    ; CHECK-NEXT: $x10_y = CIncOffsetImm killed $x10_y, 33
+    ; CHECK-NEXT: CSC_64 killed undef renamable $x10_y, killed $x10_y, 0 :: (store (s64), addrspace 200)
+    ; CHECK-NEXT: $x10_y = CIncOffsetImm $x2_y, 2047
+    ; CHECK-NEXT: $x10_y = CIncOffsetImm killed $x10_y, 41
+    ; CHECK-NEXT: CSW $x0, killed $x10_y, 0 :: (store (s32), align 8, addrspace 200)
+    ; CHECK-NEXT: $x10_y = CIncOffsetImm $x2_y, 2047
+    ; CHECK-NEXT: $x10_y = CIncOffsetImm killed $x10_y, 89
+    ; CHECK-NEXT: renamable $x10_y = CLC_64 killed $x10_y, 0 :: (load (s64) from %fixed-stack.0)
+    renamable $x10 = CLW %fixed-stack.0, 8 :: (load (s32) from %fixed-stack.0, align 16)
+    CSC_64 killed undef renamable $x10_y, %stack.0, 16 :: (store (s64), addrspace 200)
+    CSW $x0, %stack.0, 24 :: (store (s32), align 8, addrspace 200)
+    renamable $x10_y = CLC_64 %fixed-stack.0, 8 :: (load (s64) from %fixed-stack.0)
+...

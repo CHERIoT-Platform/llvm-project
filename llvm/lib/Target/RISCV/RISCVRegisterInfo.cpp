@@ -718,6 +718,11 @@ bool RISCVRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
       MI.getOperand(FIOperandNum + 1).ChangeToImmediate(Lo12);
       Offset = StackOffset::get((uint64_t)Val - (uint64_t)Lo12,
                                 Offset.getScalable());
+    } else {
+      // We are on CHERIoT and the offset does not fit in the immediate.
+      // We leave the full offset to `adjustReg`, so clear the portion of
+      // it encoded in the immediate here.
+      MI.getOperand(FIOperandNum + 1).ChangeToImmediate(0);
     }
   }
 

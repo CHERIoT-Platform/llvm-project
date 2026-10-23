@@ -4205,8 +4205,10 @@ static bool performBranchToCommonDestFolding(CondBrInst *BI, CondBrInst *PBI,
 
     // TODO: If BB is reachable from all paths through PredBlock, then we
     // could replace PBI's branch probabilities with BI's.
-  } else
+  } else {
     PBI->setMetadata(LLVMContext::MD_prof, nullptr);
+    setExplicitlyUnknownBranchWeightsIfProfiled(*PBI, DEBUG_TYPE);
+  }
 
   // Now, update the CFG.
   PBI->setSuccessor(PBI->getSuccessor(0) != BB, UniqueSucc);
@@ -4237,12 +4239,15 @@ static bool performBranchToCommonDestFolding(CondBrInst *BI, CondBrInst *PBI,
   Value *BICond = VMap[BI->getCondition()];
   PBI->setCondition(
       createLogicalOp(Builder, Opc, PBI->getCondition(), BICond, "or.cond"));
-  if (auto *SI = dyn_cast<SelectInst>(PBI->getCondition()))
+  if (auto *SI = dyn_cast<SelectInst>(PBI->getCondition())) {
     if (!MDWeights.empty()) {
       assert(isSelectInRoleOfConjunctionOrDisjunction(SI));
       setFittedBranchWeights(*SI, {MDWeights[0], MDWeights[1]},
                              /*IsExpected=*/false, /*ElideAllZero=*/true);
+    } else {
+      setExplicitlyUnknownBranchWeightsIfProfiled(*SI, DEBUG_TYPE);
     }
+  }
 
   ++NumFoldBranchToCommonDest;
   return true;

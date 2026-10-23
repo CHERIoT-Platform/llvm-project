@@ -298,7 +298,7 @@ static void writeUnsupportedAtomicSizeReason(const TargetLowering *TLI, Inst *I,
   Align Alignment = I->getAlign();
   bool NeedSeparator = false;
 
-  if (Alignment < Size) {
+  if (!TLI->isAtomicAlignmentSupported(Alignment, Size)) {
     OS << "instruction alignment " << Alignment.value()
        << " is smaller than the required " << Size
        << "-byte alignment for this atomic operation";

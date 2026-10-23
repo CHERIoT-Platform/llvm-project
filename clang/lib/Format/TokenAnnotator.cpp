@@ -4377,15 +4377,13 @@ void TokenAnnotator::calculateFormattingInformation(AnnotatedLine &Line) const {
       const auto *RParen = Prev->MatchingParen;
       for (auto *ParamTok = Current; ParamTok && ParamTok != RParen;
            ParamTok = ParamTok->Next) {
-        if (ParamTok->opensScope()) {
-          ParamTok = ParamTok->MatchingParen;
-          continue;
-        }
 
         if (startsNextParameter(*ParamTok, Style)) {
           ParamTok->MustBreakBefore = true;
           ParamTok->CanBreakBefore = true;
         }
+        if (ParamTok->opensScope())
+          ParamTok = ParamTok->MatchingParen;
       }
     }
 

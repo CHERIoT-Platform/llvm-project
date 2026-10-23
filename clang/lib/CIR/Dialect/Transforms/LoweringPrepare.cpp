@@ -3316,7 +3316,7 @@ void LoweringPreparePass::buildCUDARegisterVars(cir::CIRBaseBuilderTy &builder,
   PointerType voidPtrTy = builder.getVoidPtrTy();
   PointerType voidPtrPtrTy = builder.getPointerTo(voidPtrTy);
   IntType intTy = builder.getSIntNTy(32);
-  IntType sizeTy = builder.getUIntNTy(getTargetInfo().getMaxPointerWidth());
+  IntType sizeTy = builder.getUIntNTy(getTargetInfo().getMaxPointerRange());
   IntType charTy =
       cir::IntType::get(&getContext(), getTargetInfo().getCharWidth(),
                         /*isSigned=*/false);

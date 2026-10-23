@@ -63,8 +63,9 @@ public:
       assert(!cir::MissingFeatures::atomicInfo());
       cgf.cgm.errorNYI(loc, "AtomicInfo: non-simple lvalue");
     }
+    // FIXME: not cheri safe
     useLibCall = !ctx.getTargetInfo().hasBuiltinAtomic(
-        atomicSizeInBits, ctx.toBits(lvalue.getAlignment()));
+        atomicSizeInBits, ctx.toBits(lvalue.getAlignment()), false);
   }
 
   QualType getValueType() const { return valueTy; }

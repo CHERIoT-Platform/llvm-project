@@ -283,8 +283,9 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     if (crt1)
       CmdArgs.push_back(Args.MakeArgString(ToolChain.GetFilePath(crt1)));
 
+    // LoongArch does not provide the obsolete _init/_fini interface.
     // Don't support .init and .fini sections for CheriABI.
-    if (!IsCHERIPureCapABI)
+    if (ToolChain.getArch() != llvm::Triple::loongarch64 && !IsCHERIPureCapABI)
       CmdArgs.push_back(Args.MakeArgString(ToolChain.GetFilePath("crti.o")));
 
     const char *crtbegin = nullptr;
@@ -404,9 +405,8 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     else
       crtend = "crtend.o";
     CmdArgs.push_back(Args.MakeArgString(ToolChain.GetFilePath(crtend)));
-
     // Don't support .init and .fini sections for CheriABI.
-    if (!IsCHERIPureCapABI)
+    if (ToolChain.getArch() != llvm::Triple::loongarch64 && !IsCHERIPureCapABI)
       CmdArgs.push_back(Args.MakeArgString(ToolChain.GetFilePath("crtn.o")));
   }
 

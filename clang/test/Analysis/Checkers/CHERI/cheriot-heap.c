@@ -370,3 +370,49 @@ void test_49(void* p, char** caps) {
     char c = *cap;
     heap_claim(cap, p); // expected-warning{{Claim on pointer 'p' must be released with heap_free or heap_free_all before returning from a compartment call}}
 }
+
+static void *test_50_static;
+void *test_50_global;
+struct test50_ctx { void *p; };
+extern struct test50_ctx *test_50_ctx;
+
+__attribute__((cheri_compartment("test")))
+void test_50(void* p) {
+    heap_claim(0, p);
+    test_50_static = p; // no warn
+}
+
+__attribute__((cheri_compartment("test")))
+void test_51(void* p) {
+    heap_claim(0, p);
+    test_50_global = p; // no warn
+}
+
+__attribute__((cheri_compartment("test")))
+void test_52(void* p) {
+    heap_claim(0, p);
+    test_50_ctx->p = p; // no warn
+}
+
+__attribute__((cheri_compartment("test")))
+void test_53(void* p) {
+    heap_claim(0, p);
+    void *local = p; // expected-warning{{Claim on pointer 'p' must be released with heap_free or heap_free_all before returning from a compartment call}}
+}
+
+struct test54_pair { int n; void *p; };
+static struct test54_pair test_54_saved;
+
+__attribute__((cheri_compartment("test")))
+void test_54(void* p) {
+    heap_claim(0, p);
+    struct test54_pair pair = { 1, p };
+    test_54_saved = pair; // no warn
+}
+
+__attribute__((cheri_compartment("test")))
+void test_55(void* p) {
+    static void *saved;
+    heap_claim(0, p);
+    saved = p; // expected-warning{{Claim on pointer 'p' must be released with heap_free or heap_free_all before returning from a compartment call}}
+}

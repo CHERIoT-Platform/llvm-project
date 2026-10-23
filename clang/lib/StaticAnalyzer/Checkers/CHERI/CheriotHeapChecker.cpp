@@ -1124,9 +1124,6 @@ ProgramStateRef CheriotHeapChecker::checkPointerEscape(
     const CallEvent *Call, PointerEscapeKind Kind) const {
   if (!State->get<AnalyzingCompartmentEntry>())
     return State;
-  // FIXME: Unsure why this is needed.
-  if (Kind == PointerEscapeKind::PSK_EscapeOnBind)
-    return State;
   if (Call) {
     if (SafeFnMap.contains(*Call) || PreFnMap.lookup(*Call) ||
         PostFnMap.lookup(*Call))

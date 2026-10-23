@@ -150,7 +150,6 @@ add_llvm_component_library(LLVMAnalysis
   ProfileSummaryInfo.cpp
   PtrUseVisitor.cpp
   RegionInfo.cpp
-  RegionPass.cpp
   RegionPrinter.cpp
   ReplayInlineAdvisor.cpp
   RuntimeLibcallInfo.cpp

@@ -15,11 +15,11 @@
 // PTRS: ret ptr
 // PTRS: define dso_local noundef i32 @cheri_type_get(ptr nofree noundef readnone captures(none)
 // PTRS: ret i32 0
-// PTRS: define dso_local noundef zeroext i16 @cheri_perms_get(ptr nofree noundef readnone captures(none)
+// PTRS: define dso_local noundef i16 @cheri_perms_get(ptr nofree noundef readnone captures(none)
 // PTRS: ret i16 0
 // PTRS: define dso_local noundef ptr @cheri_perms_and(ptr nofree noundef readnone returned captures(ret: address, provenance){{( %.+)?}}, i16 noundef zeroext
 // PTRS: ret ptr
-// PTRS: define dso_local noundef zeroext i16 @cheri_flags_get(ptr nofree noundef readnone captures(none)
+// PTRS: define dso_local noundef i16 @cheri_flags_get(ptr nofree noundef readnone captures(none)
 // PTRS: ret i16 0
 // PTRS: define dso_local noundef ptr @cheri_flags_set(ptr nofree noundef readnone returned captures(ret: address, provenance){{( %.+)?}}, i16 noundef zeroext
 // PTRS: ret ptr

@@ -416,3 +416,14 @@ void test_55(void* p) {
     heap_claim(0, p);
     saved = p; // expected-warning{{Claim on pointer 'p' must be released with heap_free or heap_free_all before returning from a compartment call}}
 }
+
+__attribute__((cheri_compartment("test")))
+int test_56_callee(int x) { return x + 1; }
+
+__attribute__((cheri_compartment("test")))
+int test_56(int* p) {
+    heap_claim(0, p);
+    int x = test_56_callee(1); // no warn
+    heap_free(0, p);
+    return x;
+}

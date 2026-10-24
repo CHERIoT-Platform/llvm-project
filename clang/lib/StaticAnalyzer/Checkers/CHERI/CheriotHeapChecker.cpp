@@ -228,7 +228,9 @@ static constexpr TaintTagType TaintTagCapabilityUntagged = 1;
 // Track whether analysis is currently enabled on this trace
 REGISTER_TRAIT_WITH_PROGRAMSTATE(AnalyzingCompartmentEntry, bool)
 
-REGISTER_TRAIT_WITH_PROGRAMSTATE(ExternalStateMutated, const Stmt *)
+// Tracker whether we've observed an external state mutation, which
+// indicates that the compartment call can no longer safely "just fail".
+REGISTER_TRAIT_WITH_PROGRAMSTATE(ExternalStateMutated, bool)
 
 // Claim state, include the where claiming is being tracked at all, is tracked
 // per symbolic region.
@@ -259,13 +261,6 @@ static const SymbolicRegion *getObjectRegion(ProgramStateRef State,
   if (const SymbolicRegion *const *Same = State->get<SameObjectAs>(SR))
     return *Same;
   return SR;
-}
-
-static ProgramStateRef addGlobalStateMutation(ProgramStateRef State,
-                                              const Stmt *S) {
-  if (State->get<ExternalStateMutated>())
-    return State;
-  return State->set<ExternalStateMutated>(S);
 }
 
 static bool warningsEnabled(ProgramStateRef State) {
@@ -377,8 +372,7 @@ void CheriotHeapChecker::checkPostCall(const CallEvent &Call,
   if (!IsBuiltin && !SafeFnMap.contains(Call)) {
     const Decl *RD = Call.getRuntimeDefinition().getDecl();
     if (!RD || !C.getAnalysisManager().getCFG(RD)) {
-      ProgramStateRef WithMutation =
-          addGlobalStateMutation(State, Call.getOriginExpr());
+      ProgramStateRef WithMutation = State->set<ExternalStateMutated>(true);
       if (WithMutation != State) {
         State = WithMutation;
         GlobalStateMutation = true;
@@ -995,7 +989,7 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
   const HeapPtrState *HPS = ObjR ? State->get<HeapClaims>(ObjR) : nullptr;
   if (!IsLoad && !HPS) {
     if (!Region || !isa<StackSpaceRegion>(Region->getMemorySpace(State)))
-      State = addGlobalStateMutation(State, S);
+      State = State->set<ExternalStateMutated>(true);
   }
 
   bool GlobalStateMutation = State->get<ExternalStateMutated>() !=

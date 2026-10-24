@@ -60,6 +60,7 @@ IRBuilderBase::CreateGlobalString(StringRef Str, const Twine &Name,
 }
 
 Type *IRBuilderBase::getCurrentFunctionReturnType() const {
+  BasicBlock *BB = GetInsertBlock();
   assert(BB && BB->getParent() && "No current function!");
   return BB->getParent()->getReturnType();
 }
@@ -312,7 +313,7 @@ CallInst *IRBuilderBase::CreateMemTransferInst(
   auto *MCI =
       cast<MemTransferInst>(CreateIntrinsicWithoutFolding(IntrID, Tys, Ops));
 
-  Module *M = BB->getParent()->getParent();
+  Module *M = GetInsertBlock()->getParent()->getParent();
   if (M->getDataLayout().hasCheriCapabilities())
     MCI->setPreserveCheriTags(PreserveTags, M->getDataLayout());
   if (DstAlign)
@@ -338,7 +339,7 @@ CallInst *IRBuilderBase::CreateElementUnorderedAtomicMemCpy(
       Intrinsic::memcpy_element_unordered_atomic, Tys, Ops));
 
   // Set the alignment of the pointer args.
-  Module *M = BB->getParent()->getParent();
+  Module *M = GetInsertBlock()->getParent()->getParent();
   if (M->getDataLayout().hasCheriCapabilities())
     AMCI->setPreserveCheriTags(PreserveTags, M->getDataLayout());
   AMCI->setDestAlignment(DstAlign);
@@ -435,7 +436,7 @@ CallInst *IRBuilderBase::CreateElementUnorderedAtomicMemMove(
   Value *Ops[] = {Dst, Src, Size, getInt32(ElementSize)};
   Type *Tys[] = {Dst->getType(), Src->getType(), Size->getType()};
 
-  Module *M = BB->getParent()->getParent();
+  Module *M = GetInsertBlock()->getParent()->getParent();
   CallInst *CI = CreateIntrinsicWithoutFolding(
       Intrinsic::memmove_element_unordered_atomic, Tys, Ops);
   if (M->getDataLayout().hasCheriCapabilities())

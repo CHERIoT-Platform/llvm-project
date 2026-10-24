@@ -1477,7 +1477,7 @@ void GISelValueTracking::computeKnownFPClass(Register R,
   }
   case TargetOpcode::G_FMA:
   case TargetOpcode::G_FMAD: {
-    if ((InterestedClasses & fcNegative) == fcNone)
+    if ((InterestedClasses & (fcNegative | fcNan)) == fcNone)
       break;
 
     const bool IsFMA = Opcode == TargetOpcode::G_FMA;

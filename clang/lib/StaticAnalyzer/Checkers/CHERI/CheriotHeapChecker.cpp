@@ -1183,11 +1183,10 @@ void CheriotHeapChecker::checkEndFunction(const ReturnStmt *RS,
   ProgramStateRef State = C.getState();
   if (!State->get<AnalyzingCompartmentEntry>())
     return;
-  // Don't report leaks on returns from intra-compartment helper functions,
-  // since the caller might contain the relevant releases.
-  const Decl *D = C.getStackFrame()->getDecl();
-  const FunctionDecl *FD = dyn_cast_or_null<FunctionDecl>(D);
-  if (!FD || !FD->hasAttr<CHERICompartmentNameAttr>())
+
+  // Only report leaks on returning from the compartment entry point the
+  // analysis started at.
+  if (!C.inTopFrame())
     return;
 
   // Report every leaked claim on a single error node

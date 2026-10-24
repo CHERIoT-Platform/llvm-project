@@ -427,3 +427,10 @@ int test_56(int* p) {
     heap_free(0, p);
     return x;
 }
+
+__attribute__((cheri_compartment("test")))
+void test_57(void* p) {
+    heap_claim(0, p);
+    if (p)
+        heap_free(0, p); // no warn
+}

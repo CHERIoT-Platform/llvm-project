@@ -563,12 +563,16 @@ void CheriotHeapChecker::postHeapClaim(const CallEvent &Call,
 
   ProgramStateRef State = C.getState()->set<HeapClaims>(ObjR, K);
 
-  // Assume that the claim always succeeds.
+  // Assume that the claim always succeeds, which also implies that the
+  // pointer wasn't null.
   BasicValueFactory &BVF = C.getSValBuilder().getBasicValueFactory();
   QualType RT = Call.getResultType();
   State = State->assumeInclusiveRange(
       Call.getReturnValue().castAs<DefinedOrUnknownSVal>(), BVF.getValue(1, RT),
       BVF.getMaxValue(RT), true);
+  if (State)
+    State =
+        State->assume(Call.getArgSVal(1).castAs<DefinedOrUnknownSVal>(), true);
   if (!State) {
     C.generateSink(C.getState(), C.getPredecessor());
     return;

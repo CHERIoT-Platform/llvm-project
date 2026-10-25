@@ -434,3 +434,17 @@ void test_57(void* p) {
     if (p)
         heap_free(0, p); // no warn
 }
+
+void *test_58_get(void);
+
+__attribute__((cheri_compartment("test")))
+void test_58(void* p) {
+    heap_claim(0, test_58_get()); // no warn
+}
+
+struct test59_holder { void *ptr; };
+
+__attribute__((cheri_compartment("test")))
+void test_59(struct test59_holder* h) {
+    heap_claim(0, h->ptr); // no warn
+}

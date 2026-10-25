@@ -225,3 +225,25 @@ int test_21(int* p) {
     check_pointer<PermissionSet{PermissionStore}, true, true>(p, sizeof(int));
     return *p; // no warning
 }
+
+__attribute__((cheri_compartment("test")))
+int test_22(int* p) {
+    unknown_call();
+    int *q = p;
+    check_pointer<PermissionSet{PermissionLoad}>(q, sizeof(int));
+    heap_claim_ephemeral(nullptr, q, nullptr);
+    other_compartment_call();
+    return *q; // expected-warning{{Read of heap pointer 'q' after its ephemeral claim was released by a cross-compartment call}}
+}
+
+__attribute__((cheri_compartment("test")))
+int test_23(int* p) {
+    unknown_call();
+    int *q = p;
+    check_pointer<PermissionSet{PermissionLoad}>(q, 2 * sizeof(int));
+    heap_claim_ephemeral(nullptr, q, nullptr);
+    int *r = q + 1;
+    q = nullptr;
+    other_compartment_call();
+    return *r; // expected-warning{{Read of heap pointer 'r' after its ephemeral claim was released by a cross-compartment call}}
+}

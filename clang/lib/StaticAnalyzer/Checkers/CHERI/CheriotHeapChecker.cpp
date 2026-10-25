@@ -123,7 +123,7 @@ struct CheckPtrState {
 class CheriotHeapChecker
     : public Checker<check::PreCall, check::PostCall, check::Location,
                      check::Bind, check::BeginFunction, check::EndFunction,
-                     check::PointerEscape> {
+                     check::PointerEscape, check::DeadSymbols> {
   const BugType LeakBugType{this, "Heap claim leak", "CHERIoT heap management"};
   const BugType InvalidUseBugType{this, "Invalid pointer use",
                                   "CHERIoT heap management"};
@@ -189,6 +189,7 @@ public:
                  CheckerContext &C) const;
   void checkBeginFunction(CheckerContext &C) const;
   void checkEndFunction(const ReturnStmt *RS, CheckerContext &C) const;
+  void checkDeadSymbols(SymbolReaper &SymReaper, CheckerContext &C) const;
   ProgramStateRef checkPointerEscape(ProgramStateRef State,
                                      const InvalidatedSymbols &Escaped,
                                      const CallEvent *Call,
@@ -1142,6 +1143,40 @@ ProgramStateRef CheriotHeapChecker::checkPointerEscape(
   }
 
   return State;
+}
+
+void CheriotHeapChecker::checkDeadSymbols(SymbolReaper &SymReaper,
+                                          CheckerContext &C) const {
+  ProgramStateRef State = C.getState();
+  if (!State->get<AnalyzingCompartmentEntry>())
+    return;
+
+  for (const auto &[Sym, CPS] : State->get<CheckedPointers>()) {
+    if (SymReaper.isDead(Sym))
+      State = State->remove<CheckedPointers>(Sym);
+  }
+
+  llvm::SmallPtrSet<const SymbolicRegion *, 2> AliasedObjects;
+  for (const auto &[R, ObjR] : State->get<SameObjectAs>()) {
+    AliasedObjects.insert(ObjR);
+    if (SymReaper.isDead(R->getSymbol()))
+      State = State->remove<SameObjectAs>(R);
+  }
+
+  SameObjectAsTy Same = State->get<SameObjectAs>();
+  for (const auto &[ObjR, HPS] : State->get<HeapClaims>()) {
+    if (!SymReaper.isDead(ObjR->getSymbol()))
+      continue;
+    // Keep claimed entries around so that we can report leaks.
+    if (HPS.isClaimed())
+      continue;
+    // Make sure there are no aliases before removing the entry.
+    if (AliasedObjects.count(ObjR))
+      continue;
+    State = State->remove<HeapClaims>(ObjR);
+  }
+
+  C.addTransition(State);
 }
 
 void CheriotHeapChecker::checkBeginFunction(CheckerContext &C) const {

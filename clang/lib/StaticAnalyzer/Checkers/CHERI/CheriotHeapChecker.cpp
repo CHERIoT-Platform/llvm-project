@@ -539,8 +539,9 @@ void CheriotHeapChecker::postCheckTimeoutPointer(const CallEvent &Call,
 
 void CheriotHeapChecker::postHeapClaim(const CallEvent &Call,
                                        CheckerContext &C) const {
+  // Only pointers received from the cross-compartment caller are tracked.
   const auto *ObjR = getObjectRegion(C.getState(), Call.getArgSVal(1));
-  if (!ObjR)
+  if (!ObjR || !C.getState()->contains<HeapClaims>(ObjR))
     return;
 
   // If the allocation capability was also a cross-compartment argument,
@@ -596,9 +597,10 @@ void CheriotHeapChecker::postHeapClaimEphemeral(const CallEvent &Call,
       State = State->set<HeapClaims>(ObjR, HeapPtrState::Unclaimed);
   }
 
-  if (Obj1)
+  // Only pointers received from the cross-compartment caller are tracked.
+  if (Obj1 && State->contains<HeapClaims>(Obj1))
     State = State->set<HeapClaims>(Obj1, HeapPtrState::Ephemeral);
-  if (Obj2)
+  if (Obj2 && State->contains<HeapClaims>(Obj2))
     State = State->set<HeapClaims>(Obj2, HeapPtrState::Ephemeral);
 
   // Assume that the claim always succeeds.

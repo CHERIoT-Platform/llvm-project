@@ -193,6 +193,8 @@ public:
   Instruction *simplifyBinOpSplats(ShuffleVectorInst &SVI);
   Instruction *visitShuffleVectorInst(ShuffleVectorInst &SVI);
   Instruction *visitExtractValueInst(ExtractValueInst &EV);
+  Instruction *visitBitInsertInst(BitInsertInst &BI);
+  Instruction *visitBitExtractInst(BitExtractInst &BE);
   Instruction *visitLandingPadInst(LandingPadInst &LI);
   Instruction *visitVAEndInst(VAEndInst &I);
   Value *pushFreezeToPreventPoisonFromPropagating(FreezeInst &FI);

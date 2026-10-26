@@ -54,35 +54,35 @@ extern "C" LLVM_ABI LLVM_EXTERNAL_VISIBILITY void LLVMInitializeRISCVTarget() {
   initializeRISCVPreLegalizerCombinerPass(*PR);
   initializeRISCVPostLegalizerCombinerPass(*PR);
   initializeMachineKCFILegacyPass(*PR);
-  initializeRISCVDeadRegisterDefinitionsPass(*PR);
-  initializeRISCVLateBranchOptPass(*PR);
-  initializeRISCVMakeCompressibleOptPass(*PR);
-  initializeRISCVQCRelaxMarkingPass(*PR);
+  initializeRISCVDeadRegisterDefinitionsLegacyPass(*PR);
+  initializeRISCVLateBranchOptLegacyPass(*PR);
+  initializeRISCVMakeCompressibleLegacyPass(*PR);
+  initializeRISCVQCRelaxMarkingLegacyPass(*PR);
   initializeRISCVGatherScatterLoweringLegacyPass(*PR);
   initializeRISCVCodeGenPrepareLegacyPass(*PR);
   initializeRISCVZacasABIFixLegacyPass(*PR);
   initializeRISCVExpandPseudoPostRALegacyPass(*PR);
-  initializeRISCVMergeBaseOffsetOptPass(*PR);
+  initializeRISCVMergeBaseOffsetLegacyPass(*PR);
   initializeRISCVOptWInstrsLegacyPass(*PR);
   initializeRISCVFoldMemOffsetLegacyPass(*PR);
   initializeRISCVExpandPseudoPreRALegacyPass(*PR);
   initializeRISCVExpandPseudoPreEmitLegacyPass(*PR);
   initializeRISCVVectorPeepholeLegacyPass(*PR);
   initializeRISCVVLOptimizerLegacyPass(*PR);
-  initializeRISCVVMV0EliminationPass(*PR);
-  initializeRISCVInsertVSETVLIPass(*PR);
-  initializeRISCVInsertReadWriteCSRPass(*PR);
-  initializeRISCVInsertWriteVXRMPass(*PR);
+  initializeRISCVVMV0EliminationLegacyPass(*PR);
+  initializeRISCVInsertVSETVLILegacyPass(*PR);
+  initializeRISCVInsertReadWriteCSRLegacyPass(*PR);
+  initializeRISCVInsertWriteVXRMLegacyPass(*PR);
   initializeRISCVDAGToDAGISelLegacyPass(*PR);
-  initializeRISCVMoveMergePass(*PR);
-  initializeRISCVPushPopOptPass(*PR);
-  initializeRISCVIndirectBranchTrackingPass(*PR);
-  initializeRISCVLoadStoreOptPass(*PR);
-  initializeRISCVPreAllocZilsdOptPass(*PR);
+  initializeRISCVMoveMergeLegacyPass(*PR);
+  initializeRISCVPushPopOptLegacyPass(*PR);
+  initializeRISCVIndirectBranchTrackingLegacyPass(*PR);
+  initializeRISCVLoadStoreOptLegacyPass(*PR);
+  initializeRISCVPreAllocZilsdOptLegacyPass(*PR);
   initializeRISCVExpandPseudoAtomicsLegacyPass(*PR);
-  initializeRISCVRedundantCopyEliminationPass(*PR);
+  initializeRISCVRedundantCopyEliminationLegacyPass(*PR);
   initializeRISCVAsmPrinterPass(*PR);
-  initializeRISCVPromoteConstantPass(*PR);
+  initializeRISCVPromoteConstantLegacyPass(*PR);
 }
 
 static Reloc::Model getEffectiveRelocModel(const Triple &TT,
@@ -388,18 +388,18 @@ FunctionPass *RISCVPassConfig::createRVVRegAllocPass(bool Optimized) {
 
 bool RISCVPassConfig::addRegAssignAndRewriteFast() {
   addPass(createRVVRegAllocPass(false));
-  addPass(createRISCVInsertVSETVLIPass());
+  addPass(createRISCVInsertVSETVLILegacyPass());
   if (TM->getOptLevel() != CodeGenOptLevel::None && CLOpts.enable_dead_defs)
-    addPass(createRISCVDeadRegisterDefinitionsPass());
+    addPass(createRISCVDeadRegisterDefinitionsLegacyPass());
   return TargetPassConfig::addRegAssignAndRewriteFast();
 }
 
 bool RISCVPassConfig::addRegAssignAndRewriteOptimized() {
   addPass(createRVVRegAllocPass(true));
   addPass(createVirtRegRewriter(false));
-  addPass(createRISCVInsertVSETVLIPass());
+  addPass(createRISCVInsertVSETVLILegacyPass());
   if (TM->getOptLevel() != CodeGenOptLevel::None && CLOpts.enable_dead_defs)
-    addPass(createRISCVDeadRegisterDefinitionsPass());
+    addPass(createRISCVDeadRegisterDefinitionsLegacyPass());
   return TargetPassConfig::addRegAssignAndRewriteOptimized();
 }
 
@@ -426,7 +426,7 @@ void RISCVPassConfig::addIRPasses() {
 
 bool RISCVPassConfig::addPreISel() {
   if (TM->getOptLevel() != CodeGenOptLevel::None)
-    addPass(createRISCVPromoteConstantPass());
+    addPass(createRISCVPromoteConstantLegacyPass());
   if (TM->getOptLevel() != CodeGenOptLevel::None) {
     // Add a barrier before instruction selection so that we will not get
     // deleted block address after enabling default outlining. See D99707 for
@@ -500,7 +500,7 @@ void RISCVPassConfig::addPreSched2() {
   // Emit KCFI checks for indirect calls.
   addPass(createKCFIPass());
   if (TM->getOptLevel() != CodeGenOptLevel::None)
-    addPass(createRISCVLoadStoreOptPass());
+    addPass(createRISCVLoadStoreOptLegacyPass());
 }
 
 void RISCVPassConfig::addPreEmitPass() {
@@ -513,28 +513,28 @@ void RISCVPassConfig::addPreEmitPass() {
       CLOpts.enable_copy_propagation)
     addPass(createMachineCopyPropagationPass(true));
   if (TM->getOptLevel() >= CodeGenOptLevel::Default)
-    addPass(createRISCVLateBranchOptPass());
+    addPass(createRISCVLateBranchOptLegacyPass());
   // The IndirectBranchTrackingPass inserts lpad and could have changed the
   // basic block alignment. It must be done before Branch Relaxation to
   // prevent the adjusted offset exceeding the branch range.
-  addPass(createRISCVIndirectBranchTrackingPass());
+  addPass(createRISCVIndirectBranchTrackingLegacyPass());
   addPass(&BranchRelaxationPassID);
-  addPass(createRISCVMakeCompressibleOptPass());
+  addPass(createRISCVMakeCompressibleLegacyPass());
 }
 
 void RISCVPassConfig::addPreEmitPass2() {
   if (TM->getOptLevel() != CodeGenOptLevel::None) {
-    addPass(createRISCVMoveMergePass());
+    addPass(createRISCVMoveMergeLegacyPass());
     // Schedule PushPop Optimization before expansion of Pseudo instruction,
     // ensuring return instruction is detected correctly.
-    addPass(createRISCVPushPopOptimizationPass());
+    addPass(createRISCVPushPopOptLegacyPass());
   }
   addPass(createRISCVExpandPseudoPreEmitLegacyPass());
 
   // Add QC Relaxation Markers as late as possible, and only for RV32
   if (TM->getOptLevel() != CodeGenOptLevel::None &&
       TM->getTargetTriple().isRISCV32())
-    addPass(createRISCVQCRelaxMarkingPass());
+    addPass(createRISCVQCRelaxMarkingLegacyPass());
 
   // Schedule the expansion of AMOs at the last possible moment, avoiding the
   // possibility for other passes to break the requirements for forward
@@ -578,19 +578,15 @@ void RISCVPassConfig::addPreRegAlloc() {
   addPass(createRISCVExpandPseudoPreRALegacyPass());
   if (TM->getOptLevel() != CodeGenOptLevel::None) {
     addPass(createRISCVCheriCleanupOptPass());
-    addPass(createRISCVMergeBaseOffsetOptPass());
+    addPass(createRISCVMergeBaseOffsetLegacyPass());
     addPass(createCheriGetAddressElimPass());
     // Add Zilsd pre-allocation load/store optimization
-    addPass(createRISCVPreAllocZilsdOptPass());
+    addPass(createRISCVPreAllocZilsdOptLegacyPass());
   }
-  addPass(createRISCVInsertReadWriteCSRPass());
-  addPass(createRISCVInsertWriteVXRMPass());
-  addPass(createRISCVLandingPadSetupPass());
-
-  if (TM->getOptLevel() != CodeGenOptLevel::None && CLOpts.enable_pipeliner)
-    addPass(&MachinePipelinerID);
-
-  addPass(createRISCVVMV0EliminationPass());
+  addPass(createRISCVInsertReadWriteCSRLegacyPass());
+  addPass(createRISCVInsertWriteVXRMLegacyPass());
+  addPass(createRISCVLandingPadSetupLegacyPass());
+  addPass(createRISCVVMV0EliminationLegacyPass());
 }
 
 void RISCVPassConfig::addFastRegAlloc() {
@@ -601,7 +597,7 @@ void RISCVPassConfig::addFastRegAlloc() {
 
 void RISCVPassConfig::addPostRegAlloc() {
   if (TM->getOptLevel() != CodeGenOptLevel::None && CLOpts.enable_copyelim)
-    addPass(createRISCVRedundantCopyEliminationPass());
+    addPass(createRISCVRedundantCopyEliminationLegacyPass());
 }
 
 bool RISCVPassConfig::addILPOpts() {

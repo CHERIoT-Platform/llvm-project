@@ -17,6 +17,7 @@
 #include "clang/StaticAnalyzer/Core/CheckerManager.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/CheckerContext.h"
 #include <clang/Basic/DiagnosticSema.h>
+#include <clang/Lex/Lexer.h>
 #include <clang/StaticAnalyzer/Core/BugReporter/BugReporter.h>
 
 using namespace clang;

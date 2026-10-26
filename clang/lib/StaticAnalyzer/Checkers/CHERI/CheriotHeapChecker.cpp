@@ -63,6 +63,13 @@ struct CheckPtrState {
   uint32_t KnownOne = 0;
   bool CheckStack = false;
   bool ExplicitCheck = false;
+  uint64_t Space = 0;
+  bool ExactSpace = false;
+
+  bool hasSpace() const { return ExactSpace || Space; }
+  bool hasSameSpace(const CheckPtrState &X) const {
+    return Space == X.Space && ExactSpace == X.ExactSpace;
+  }
 
   bool isKnownZeroPermission(uint32_t P) const { return (KnownZero & P); }
 
@@ -79,22 +86,41 @@ struct CheckPtrState {
     return KnownOne & Prior.KnownZero & ~Prior.KnownOne;
   }
 
+  // Whether this check asks for more than a prior strict check's bounds.
+  bool hasContradictorySpace(const CheckPtrState &Prior) const {
+    return Prior.ExactSpace && Space > Prior.Space;
+  }
+
   // Apply this check on top of a prior state:
   // * A strict removal overrides a prior Known(1) to Known(0).
   // * An enforcement over a prior Known(0) yields Bottom.
   // * Bottom and ExplicitCheck sticky.
+  // * Exact spaces combine as the minimum and dominate non-exact ones.
+  // * Non-exact spaces combine as the maximum.
   CheckPtrState composeWithPriorState(const CheckPtrState &Prior) const {
     CheckPtrState NewState = *this;
     uint32_t PriorBottom = Prior.KnownZero & Prior.KnownOne;
     NewState.KnownZero = KnownZero | Prior.KnownZero;
     NewState.KnownOne = KnownOne | (Prior.KnownOne & ~KnownZero) | PriorBottom;
     NewState.ExplicitCheck = ExplicitCheck || Prior.ExplicitCheck;
+    if (ExactSpace && Prior.ExactSpace) {
+      NewState.Space = std::min(Space, Prior.Space);
+    } else if (Prior.ExactSpace) {
+      NewState.Space = Prior.Space;
+      NewState.ExactSpace = true;
+    } else if (!ExactSpace) {
+      NewState.Space = std::max(Space, Prior.Space);
+    } else {
+      NewState.Space = Space;
+      NewState.ExactSpace = true;
+    }
     return NewState;
   }
 
   bool operator==(const CheckPtrState &X) const {
     return KnownZero == X.KnownZero && KnownOne == X.KnownOne &&
-           CheckStack == X.CheckStack && ExplicitCheck == X.ExplicitCheck;
+           CheckStack == X.CheckStack && ExplicitCheck == X.ExplicitCheck &&
+           hasSameSpace(X);
   }
 
   void Profile(llvm::FoldingSetNodeID &ID) const {
@@ -102,6 +128,8 @@ struct CheckPtrState {
     ID.AddInteger(KnownOne);
     ID.AddBoolean(CheckStack);
     ID.AddBoolean(ExplicitCheck);
+    ID.AddInteger(Space);
+    ID.AddBoolean(ExactSpace);
   }
 
   static constexpr uint32_t PermissionGlobal = 1 << 0;
@@ -129,12 +157,20 @@ class CheriotHeapChecker
                                   "CHERIoT heap management"};
   const BugType CheckPointerMisuseBugType{this, "Inconsistent check_pointer",
                                           "CHERIoT heap management"};
+  const BugType OutsideCheckedSpaceBugType{this, "Access outside checked space",
+                                           "CHERIoT heap management"};
+  const BugType CheckPointerSpaceMisuseBugType{
+      this, "Inconsistent check_pointer space", "CHERIoT heap management"};
   const BugType LocalCapStoreBugType{
       this, "Locally-scoped capability stored through globally-scoped pointer",
       "CHERIoT heap management"};
 
   bool requiresGlobalStateMutation(const BugType &BT) const {
-    return &BT == &InvalidUseBugType;
+    return &BT == &InvalidUseBugType || &BT == &OutsideCheckedSpaceBugType;
+  }
+  bool isCheckedSpaceBug(const BugType &BT) const {
+    return &BT == &OutsideCheckedSpaceBugType ||
+           &BT == &CheckPointerSpaceMisuseBugType;
   }
 
   using CheckFn = std::function<void(const class CheriotHeapChecker *,
@@ -213,11 +249,18 @@ private:
   void reportDerefMissingPerms(SymbolRef Sym, bool IsLoad, const Stmt *S,
                                const CheckPtrState *CPS, ExplodedNode *N,
                                CheckerContext &C) const;
+  void emitAccessReport(const BugType &BT, StringRef Msg, SymbolRef Sym,
+                        const Stmt *S, ExplodedNode *N,
+                        CheckerContext &C) const;
+  void reportDerefOutsideCheckedSpace(SymbolRef Sym, bool IsLoad, const Stmt *S,
+                                      const CheckPtrState *CPS, ExplodedNode *N,
+                                      CheckerContext &C) const;
   void reportDerefOfUntaggedCapability(SVal Loc, bool IsLoad, const Stmt *S,
                                        ExplodedNode *N,
                                        CheckerContext &C) const;
   ExplodedNode *reportContradictoryCheckPtr(SymbolRef Sym,
-                                            uint32_t Contradictions,
+                                            const CheckPtrState &Checked,
+                                            const CheckPtrState &Prior,
                                             const CallEvent &CE,
                                             CheckerContext &C) const;
 };
@@ -712,27 +755,44 @@ static void printPermissions(llvm::raw_ostream &os, uint32_t Perms) {
 }
 
 ExplodedNode *CheriotHeapChecker::reportContradictoryCheckPtr(
-    SymbolRef Sym, uint32_t Contradictions, const CallEvent &CE,
-    CheckerContext &C) const {
-  // Report this as a non-fatal error so that the other permission
-  // bits can continue to be analyzed.
+    SymbolRef Sym, const CheckPtrState &Checked, const CheckPtrState &Prior,
+    const CallEvent &CE, CheckerContext &C) const {
+  uint32_t PermContradictions = Checked.getContradictoryPermissions(Prior);
+  bool SpaceContradiction = Checked.hasContradictorySpace(Prior);
+  if (!PermContradictions && !SpaceContradiction)
+    return nullptr;
+
   ExplodedNode *N = C.generateNonFatalErrorNode();
   if (!N)
     return nullptr;
 
-  SmallString<200> buf;
-  llvm::raw_svector_ostream os(buf);
-  os << "check_pointer called multiple times on pointer ";
-  os << getExprNameForError(CE.getArgExpr(0));
-  os << "with required permissions that were removed by a prior call (";
-  printPermissions(os, Contradictions);
-  os << ").";
+  auto Emit = [&](const BugType &BT, StringRef Msg) {
+    auto Report = std::make_unique<PathSensitiveBugReport>(BT, Msg, N);
+    Report->addRange(CE.getSourceRange());
+    Report->markInteresting(Sym);
+    C.emitReport(std::move(Report));
+  };
+  std::string Prefix = "check_pointer called multiple times on pointer " +
+                       getExprNameForError(CE.getArgExpr(0));
 
-  auto Report = std::make_unique<PathSensitiveBugReport>(
-      CheckPointerMisuseBugType, os.str(), N);
-  Report->addRange(CE.getSourceRange());
-  Report->markInteresting(Sym);
-  C.emitReport(std::move(Report));
+  if (PermContradictions) {
+    SmallString<200> buf;
+    llvm::raw_svector_ostream os(buf);
+    os << Prefix
+       << "with required permissions that were removed by a prior call (";
+    printPermissions(os, PermContradictions);
+    os << ").";
+    Emit(CheckPointerMisuseBugType, os.str());
+  }
+
+  if (SpaceContradiction) {
+    Emit(CheckPointerSpaceMisuseBugType,
+         (Twine(Prefix) +
+          "with a larger space than a prior call set its bounds to (" +
+          Twine(Checked.Space) + " > " + Twine(Prior.Space) + " bytes).")
+             .str());
+  }
+
   return N;
 }
 
@@ -769,6 +829,11 @@ void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
   bool EnforceStrictPermissions =
       TemplateArgs->get(2).getAsIntegral().getExtValue();
 
+  // Track the validated space if it's a known constant.
+  const llvm::APSInt *ConstSpace = Call.getArgSVal(1).getAsInteger();
+  if (ConstSpace && ConstSpace->isNegative())
+    ConstSpace = nullptr;
+
   CheckPtrState NewlyChecked = {
       .KnownZero = EnforceStrictPermissions
                        ? (~Permissions & CheckPtrState::PermissionsMask)
@@ -776,16 +841,25 @@ void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
       .KnownOne = Permissions,
       .CheckStack = CheckStack,
       .ExplicitCheck = true,
+      .Space = ConstSpace ? ConstSpace->getZExtValue() : 0,
+      .ExactSpace = EnforceStrictPermissions && ConstSpace,
   };
 
   ExplodedNode *Pred = C.getPredecessor();
-  if (const CheckPtrState *CPS = State->get<CheckedPointers>(Sym)) {
-    uint32_t Contradictions = NewlyChecked.getContradictoryPermissions(*CPS);
-    if (Contradictions)
-      if (ExplodedNode *N =
-              reportContradictoryCheckPtr(Sym, Contradictions, Call, C))
-        Pred = N;
-    NewlyChecked = NewlyChecked.composeWithPriorState(*CPS);
+  bool SpaceFromPrior = false;
+  if (const CheckPtrState *Prior = State->get<CheckedPointers>(Sym)) {
+    if (ExplodedNode *N =
+            reportContradictoryCheckPtr(Sym, NewlyChecked, *Prior, Call, C))
+      Pred = N;
+    // An unknown space discards a prior non-strict one, since later accesses
+    // presumably rely on this check. A prior strict one still applies, since
+    // bounds can only shrink.
+    CheckPtrState Base = *Prior;
+    if (!ConstSpace && !Base.ExactSpace)
+      Base.Space = 0;
+    CheckPtrState Composed = NewlyChecked.composeWithPriorState(Base);
+    SpaceFromPrior = !Composed.hasSameSpace(NewlyChecked);
+    NewlyChecked = Composed;
   }
 
   // In order to have separate properties on the pointe post-check_pointer,
@@ -803,8 +877,31 @@ void CheriotHeapChecker::postCXXCheckPointer(const CallEvent &Call,
     State = State->set<SameObjectAs>(
         cast<SymbolicRegion>(Checked.getAsRegion()), Obj);
   State = State->bindLoc(*PtrLoc, Checked, C.getStackFrame());
+
+  // Explain which call set the space.
+  const NoteTag *T = nullptr;
+  if (NewlyChecked.hasSpace())
+    T = C.getNoteTag([this, Sym, CheckedSym, SpaceFromPrior,
+                      CheckedSpace = NewlyChecked.Space,
+                      Exact = NewlyChecked.ExactSpace,
+                      Name = getExprNameForError(Call.getArgExpr(0))](
+                         PathSensitiveBugReport &BR, llvm::raw_ostream &OS) {
+      if (!isCheckedSpaceBug(BR.getBugType()) || !BR.isInteresting(CheckedSym))
+        return;
+      if (SpaceFromPrior) {
+        BR.markInteresting(Sym);
+        return;
+      }
+      OS << "check_pointer checked that "
+         << (Name.empty() ? "the pointer " : Name) << "has at least "
+         << CheckedSpace << " accessible bytes ";
+      if (Exact)
+        OS << "and set its bounds to exactly " << CheckedSpace << " bytes ";
+      OS << "here";
+    });
+
   State = State->set<CheckedPointers>(CheckedSym, std::move(NewlyChecked));
-  C.addTransition(State, Pred);
+  C.addTransition(State, Pred, T);
 }
 
 void CheriotHeapChecker::reportDerefOfUnclaimedPointer(
@@ -835,6 +932,23 @@ void CheriotHeapChecker::reportDerefOfUnclaimedPointer(
   C.emitReport(std::move(Report));
 }
 
+void CheriotHeapChecker::emitAccessReport(const BugType &BT, StringRef Msg,
+                                          SymbolRef Sym, const Stmt *S,
+                                          ExplodedNode *N,
+                                          CheckerContext &C) const {
+  auto Report = std::make_unique<PathSensitiveBugReport>(BT, Msg, N);
+  if (S)
+    Report->addRange(S->getSourceRange());
+  Report->markInteresting(Sym);
+  // For a checked space report, the note on the check_pointer call that set
+  // the space already explains where the pointer came from.
+  if (!isCheckedSpaceBug(BT))
+    if (const Expr *DerefE = getDerefPointerExpr(S))
+      bugreporter::trackExpressionValue(N, DerefE, *Report);
+  explainWarningsEnabled(*Report, C);
+  C.emitReport(std::move(Report));
+}
+
 void CheriotHeapChecker::reportDerefMissingPerms(SymbolRef Sym, bool IsLoad,
                                                  const Stmt *S,
                                                  const CheckPtrState *CPS,
@@ -846,8 +960,7 @@ void CheriotHeapChecker::reportDerefMissingPerms(SymbolRef Sym, bool IsLoad,
     os << "Load through pointer ";
   else
     os << "Store through pointer ";
-  const Expr *DerefE = getDerefPointerExpr(S);
-  os << getExprNameForError(DerefE);
+  os << getExprNameForError(getDerefPointerExpr(S));
   os << "with missing ";
   os << (IsLoad ? "LD" : "SD");
   os << " permission.";
@@ -863,15 +976,24 @@ void CheriotHeapChecker::reportDerefMissingPerms(SymbolRef Sym, bool IsLoad,
           "caller. Use the EnforceStrictPermissions template parameter to "
           "check_pointer to enforce consistency across callers.";
 
-  auto Report =
-      std::make_unique<PathSensitiveBugReport>(InvalidUseBugType, os.str(), N);
-  if (S)
-    Report->addRange(S->getSourceRange());
-  Report->markInteresting(Sym);
-  if (DerefE)
-    bugreporter::trackExpressionValue(N, DerefE, *Report);
-  explainWarningsEnabled(*Report, C);
-  C.emitReport(std::move(Report));
+  emitAccessReport(InvalidUseBugType, os.str(), Sym, S, N, C);
+}
+
+void CheriotHeapChecker::reportDerefOutsideCheckedSpace(
+    SymbolRef Sym, bool IsLoad, const Stmt *S, const CheckPtrState *CPS,
+    ExplodedNode *N, CheckerContext &C) const {
+  SmallString<200> buf;
+  llvm::raw_svector_ostream os(buf);
+  os << (IsLoad ? "Load through pointer " : "Store through pointer ");
+  os << getExprNameForError(getDerefPointerExpr(S));
+  os << "may access memory outside the " << CPS->Space
+     << " bytes checked by check_pointer.";
+  if (!CPS->ExactSpace)
+    os << " Runtime behavior will depend on the bounds provided by the "
+          "caller. Use the EnforceStrictPermissions template parameter to "
+          "check_pointer to enforce consistency across callers.";
+
+  emitAccessReport(OutsideCheckedSpaceBugType, os.str(), Sym, S, N, C);
 }
 
 void CheriotHeapChecker::reportDerefOfUntaggedCapability(
@@ -974,6 +1096,28 @@ static ProgramStateRef stripLoadedCapPermissions(ProgramStateRef State,
   return State;
 }
 
+static bool accessesOutsideCheckedSpace(ASTContext &Ctx, SVal Loc,
+                                        uint64_t Space) {
+  const MemRegion *R = Loc.getAsRegion();
+  if (!R)
+    return false;
+  RegionOffset Offset = R->getAsOffset();
+  if (!Offset.isValid() || Offset.hasSymbolicOffset())
+    return false;
+
+  QualType AccessTy;
+  if (const auto *TR = dyn_cast<TypedValueRegion>(R))
+    AccessTy = TR->getValueType();
+  else if (const auto *SR = dyn_cast<SymbolicRegion>(R))
+    AccessTy = SR->getPointeeStaticType();
+  if (AccessTy.isNull() || AccessTy->isIncompleteType())
+    return false;
+
+  int64_t Begin = Offset.getOffset() / Ctx.getCharWidth();
+  uint64_t Size = Ctx.getTypeSizeInChars(AccessTy).getQuantity();
+  return Begin < 0 || static_cast<uint64_t>(Begin) + Size > Space;
+}
+
 void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
                                        CheckerContext &C) const {
   ProgramStateRef State = C.getState();
@@ -1057,9 +1201,13 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
     MissingPerms = MissingLD || MissingSD;
   }
 
+  bool OutsideCheckedSpace =
+      CPS && CPS->hasSpace() &&
+      accessesOutsideCheckedSpace(C.getASTContext(), Loc, CPS->Space);
+
   bool TagCleared = isTainted(State, Loc, TaintTagCapabilityUntagged);
 
-  if (Unclaimed || MissingPerms || TagCleared) {
+  if (Unclaimed || MissingPerms || OutsideCheckedSpace || TagCleared) {
     // Report all errors against the same analysis node so that we don't
     // drop errors if there are more than one.
     ExplodedNode *N = C.generateErrorNode();
@@ -1069,6 +1217,8 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
       reportDerefOfUnclaimedPointer(ObjR, IsLoad, S, HPS, N, C);
     if (MissingPerms)
       reportDerefMissingPerms(Sym, IsLoad, S, CPS, N, C);
+    if (OutsideCheckedSpace)
+      reportDerefOutsideCheckedSpace(Sym, IsLoad, S, CPS, N, C);
     if (TagCleared)
       reportDerefOfUntaggedCapability(Loc, IsLoad, S, N, C);
     return;

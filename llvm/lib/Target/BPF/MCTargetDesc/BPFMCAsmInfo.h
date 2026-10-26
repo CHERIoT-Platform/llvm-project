@@ -33,7 +33,6 @@ public:
     HasDotTypeDotSizeDirective = true;
 
     SupportsDebugInformation = true;
-    ExceptionsType = ExceptionHandling::DwarfCFI;
     MinInstAlignment = 8;
 
     // the default is 4 and it only affects dwarf elf output

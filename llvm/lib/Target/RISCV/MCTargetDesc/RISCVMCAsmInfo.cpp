@@ -31,7 +31,6 @@ RISCVMCAsmInfo::RISCVMCAsmInfo(const Triple &TT, const MCTargetOptions &Options,
   CommentString = "#";
   AlignmentIsInBytes = false;
   SupportsDebugInformation = true;
-  ExceptionsType = ExceptionHandling::DwarfCFI;
   Data16bitsDirective = "\t.half\t";
   Data32bitsDirective = "\t.word\t";
   // The default symbol subtraction results in an ADD/SUB relocation pair.
@@ -61,7 +60,6 @@ RISCVMCAsmInfoDarwin::RISCVMCAsmInfoDarwin(const MCTargetOptions &Options)
   AlignmentIsInBytes = false;
   SupportsDebugInformation = true;
   UseDataRegionDirectives = true;
-  ExceptionsType = ExceptionHandling::DwarfCFI;
   Data16bitsDirective = "\t.half\t";
   Data32bitsDirective = "\t.word\t";
 }

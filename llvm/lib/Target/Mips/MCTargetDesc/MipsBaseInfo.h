@@ -22,14 +22,6 @@
 
 namespace llvm {
 
-namespace Mips {
-enum OperandType {
-  /// Operands with register or 32-bit immediate
-  OPERAND_CHERI_GPR_OR_DDC = MCOI::OPERAND_FIRST_TARGET,
-  OPERAND_CHERI_GPR_OR_NULL
-};
-}
-
 /// MipsII - This namespace holds all of the target specific flags that
 /// instruction info tracks.
 ///
@@ -184,7 +176,11 @@ enum {
 enum OperandType : unsigned {
   OPERAND_FIRST_MIPS_MEM_IMM = MCOI::OPERAND_FIRST_TARGET,
   OPERAND_MEM_SIMM9 = OPERAND_FIRST_MIPS_MEM_IMM,
-  OPERAND_LAST_MIPS_MEM_IMM = OPERAND_MEM_SIMM9
+  OPERAND_LAST_MIPS_MEM_IMM = OPERAND_MEM_SIMM9,
+  OPERAND_JUMP_TARGET,
+  OPERAND_JUMP_TARGET_MM,
+  OPERAND_CHERI_GPR_OR_DDC,
+  OPERAND_CHERI_GPR_OR_NULL
 };
 
 static inline unsigned getFormat(uint64_t TSFlags) {

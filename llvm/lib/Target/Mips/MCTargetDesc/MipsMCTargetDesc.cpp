@@ -316,11 +316,15 @@ public:
     if (NumOps == 0 || NumOps > Info->get(Inst.getOpcode()).getNumOperands())
       return false;
     switch (Info->get(Inst.getOpcode()).operands()[NumOps - 1].OperandType) {
-    case MCOI::OPERAND_UNKNOWN:
-    case MCOI::OPERAND_IMMEDIATE: {
-      // j, jal, jalx, jals
+    case MipsII::OPERAND_JUMP_TARGET: {
       // Absolute branch within the current 256 MB-aligned region
       uint64_t Region = Addr & ~uint64_t(0xfffffff);
+      Target = Region + Inst.getOperand(NumOps - 1).getImm();
+      return true;
+    }
+    case MipsII::OPERAND_JUMP_TARGET_MM: {
+      // Absolute branch within the current 128 MB-aligned region
+      uint64_t Region = Addr & ~uint64_t(0x7ffffff);
       Target = Region + Inst.getOperand(NumOps - 1).getImm();
       return true;
     }
@@ -352,7 +356,7 @@ public:
     return false;
   }
 };
-}
+} // anonymous namespace
 
 static MCInstrAnalysis *createMipsMCInstrAnalysis(const MCInstrInfo *Info) {
   return new MipsMCInstrAnalysis(Info);

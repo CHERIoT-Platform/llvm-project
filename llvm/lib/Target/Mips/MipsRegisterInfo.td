@@ -814,13 +814,13 @@ def COP2AsmOperand : MipsAsmRegOperand {
 
 def CheriOpnd : RegisterOperand<CheriGPROrCNull> {
   let ParserMatchClass = CheriAsmOperand;
-  let OperandNamespace = "Mips";
+  let OperandNamespace = "MipsII";
   let OperandType = "OPERAND_CHERI_GPR_OR_NULL";
 }
 
 def CheriOpnd0IsDDC : RegisterOperand<CheriGPROrDDC> {
   let ParserMatchClass = CheriAsmOperand0IsDDC;
-  let OperandNamespace = "Mips";
+  let OperandNamespace = "MipsII";
   let OperandType = "OPERAND_CHERI_GPR_OR_DDC";
 }
 

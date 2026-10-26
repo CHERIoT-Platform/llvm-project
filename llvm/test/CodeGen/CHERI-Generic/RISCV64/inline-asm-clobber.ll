@@ -37,10 +37,10 @@ define i32 @test_clobber_c2(i32 signext %intval, ptr addrspace(200) %ptrval, ptr
 ; MIR-NEXT: {{  $}}
 ; MIR-NEXT:   $x2_y = frame-setup CIncOffsetImm $x2_y, -16
 ; MIR-NEXT:   frame-setup CFI_INSTRUCTION def_cfa_offset 16
-; MIR-NEXT:   CSC_128 $x12_y, $x2_y, 0 :: (store (s128) into %stack.0)
+; MIR-NEXT:   CSC_128 $x12_y, $x2_y, 0 :: (store (s128) into %stack.0, addrspace 200)
 ; MIR-NEXT:   $x12 = ADDI killed $x10, 0
 ; MIR-NEXT:   INLINEASM &ecall, sideeffect attdialect, clobber, implicit-def dead early-clobber $x10, clobber, implicit-def dead early-clobber $x13_y, clobber, implicit-def dead early-clobber $x5_y
-; MIR-NEXT:   $x10_y = CLC_128 $x2_y, 0 :: (load (s128) from %stack.0)
+; MIR-NEXT:   $x10_y = CLC_128 $x2_y, 0 :: (load (s128) from %stack.0, addrspace 200)
 ; MIR-NEXT:   renamable $x11 = CLB killed renamable $x11_y, 0 :: (volatile load (s8) from %ir.ptrval, addrspace 200)
 ; MIR-NEXT:   renamable $x10 = CLB killed renamable $x10_y, 0 :: (volatile load (s8) from %ir.ptrval2, addrspace 200)
 ; MIR-NEXT:   renamable $x11 = ADD killed renamable $x11, killed renamable $x12
@@ -78,12 +78,12 @@ define i32 @test_clobber_c3(i32 signext %intval, ptr addrspace(200) %ptrval, ptr
 ; MIR-NEXT: {{  $}}
 ; MIR-NEXT:   $x2_y = frame-setup CIncOffsetImm $x2_y, -32
 ; MIR-NEXT:   frame-setup CFI_INSTRUCTION def_cfa_offset 32
-; MIR-NEXT:   CSC_128 $x12_y, $x2_y, 16 :: (store (s128) into %stack.0)
-; MIR-NEXT:   CSC_128 $x11_y, $x2_y, 0 :: (store (s128) into %stack.1)
+; MIR-NEXT:   CSC_128 $x12_y, $x2_y, 16 :: (store (s128) into %stack.0, addrspace 200)
+; MIR-NEXT:   CSC_128 $x11_y, $x2_y, 0 :: (store (s128) into %stack.1, addrspace 200)
 ; MIR-NEXT:   $x12 = ADDI killed $x10, 0
 ; MIR-NEXT:   INLINEASM &ecall, sideeffect attdialect, clobber, implicit-def dead early-clobber $x10, clobber, implicit-def dead early-clobber $x11_y, clobber, implicit-def dead early-clobber $x5_y
-; MIR-NEXT:   $x11_y = CLC_128 $x2_y, 0 :: (load (s128) from %stack.1)
-; MIR-NEXT:   $x10_y = CLC_128 $x2_y, 16 :: (load (s128) from %stack.0)
+; MIR-NEXT:   $x11_y = CLC_128 $x2_y, 0 :: (load (s128) from %stack.1, addrspace 200)
+; MIR-NEXT:   $x10_y = CLC_128 $x2_y, 16 :: (load (s128) from %stack.0, addrspace 200)
 ; MIR-NEXT:   renamable $x11 = CLB killed renamable $x11_y, 0 :: (volatile load (s8) from %ir.ptrval, addrspace 200)
 ; MIR-NEXT:   renamable $x10 = CLB killed renamable $x10_y, 0 :: (volatile load (s8) from %ir.ptrval2, addrspace 200)
 ; MIR-NEXT:   renamable $x11 = ADD killed renamable $x11, killed renamable $x12
@@ -121,11 +121,11 @@ define i32 @test_clobber_c4(i32 signext %intval, ptr addrspace(200) %ptrval, ptr
 ; MIR-NEXT: {{  $}}
 ; MIR-NEXT:   $x2_y = frame-setup CIncOffsetImm $x2_y, -32
 ; MIR-NEXT:   frame-setup CFI_INSTRUCTION def_cfa_offset 32
-; MIR-NEXT:   CSC_128 $x12_y, $x2_y, 16 :: (store (s128) into %stack.0)
-; MIR-NEXT:   CSD $x10, $x2_y, 8 :: (store (s64) into %stack.1)
+; MIR-NEXT:   CSC_128 $x12_y, $x2_y, 16 :: (store (s128) into %stack.0, addrspace 200)
+; MIR-NEXT:   CSD $x10, $x2_y, 8 :: (store (s64) into %stack.1, addrspace 200)
 ; MIR-NEXT:   INLINEASM &ecall, sideeffect attdialect, clobber, implicit-def dead early-clobber $x10, clobber, implicit-def dead early-clobber $x12_y, clobber, implicit-def dead early-clobber $x5_y
-; MIR-NEXT:   $x12 = CLD $x2_y, 8 :: (load (s64) from %stack.1)
-; MIR-NEXT:   $x10_y = CLC_128 $x2_y, 16 :: (load (s128) from %stack.0)
+; MIR-NEXT:   $x12 = CLD $x2_y, 8 :: (load (s64) from %stack.1, addrspace 200)
+; MIR-NEXT:   $x10_y = CLC_128 $x2_y, 16 :: (load (s128) from %stack.0, addrspace 200)
 ; MIR-NEXT:   renamable $x11 = CLB killed renamable $x11_y, 0 :: (volatile load (s8) from %ir.ptrval, addrspace 200)
 ; MIR-NEXT:   renamable $x10 = CLB killed renamable $x10_y, 0 :: (volatile load (s8) from %ir.ptrval2, addrspace 200)
 ; MIR-NEXT:   renamable $x11 = ADD killed renamable $x11, killed renamable $x12
@@ -164,13 +164,13 @@ define i32 @test_clobber_c3_c4(i32 signext %intval, ptr addrspace(200) %ptrval, 
 ; MIR-NEXT: {{  $}}
 ; MIR-NEXT:   $x2_y = frame-setup CIncOffsetImm $x2_y, -48
 ; MIR-NEXT:   frame-setup CFI_INSTRUCTION def_cfa_offset 48
-; MIR-NEXT:   CSC_128 $x12_y, $x2_y, 32 :: (store (s128) into %stack.0)
-; MIR-NEXT:   CSC_128 $x11_y, $x2_y, 16 :: (store (s128) into %stack.1)
-; MIR-NEXT:   CSD $x10, $x2_y, 8 :: (store (s64) into %stack.2)
+; MIR-NEXT:   CSC_128 $x12_y, $x2_y, 32 :: (store (s128) into %stack.0, addrspace 200)
+; MIR-NEXT:   CSC_128 $x11_y, $x2_y, 16 :: (store (s128) into %stack.1, addrspace 200)
+; MIR-NEXT:   CSD $x10, $x2_y, 8 :: (store (s64) into %stack.2, addrspace 200)
 ; MIR-NEXT:   INLINEASM &ecall, sideeffect attdialect, clobber, implicit-def dead early-clobber $x10, clobber, implicit-def dead early-clobber $x11_y, clobber, implicit-def dead early-clobber $x12_y, clobber, implicit-def dead early-clobber $x5_y
-; MIR-NEXT:   $x12 = CLD $x2_y, 8 :: (load (s64) from %stack.2)
-; MIR-NEXT:   $x11_y = CLC_128 $x2_y, 16 :: (load (s128) from %stack.1)
-; MIR-NEXT:   $x10_y = CLC_128 $x2_y, 32 :: (load (s128) from %stack.0)
+; MIR-NEXT:   $x12 = CLD $x2_y, 8 :: (load (s64) from %stack.2, addrspace 200)
+; MIR-NEXT:   $x11_y = CLC_128 $x2_y, 16 :: (load (s128) from %stack.1, addrspace 200)
+; MIR-NEXT:   $x10_y = CLC_128 $x2_y, 32 :: (load (s128) from %stack.0, addrspace 200)
 ; MIR-NEXT:   renamable $x11 = CLB killed renamable $x11_y, 0 :: (volatile load (s8) from %ir.ptrval, addrspace 200)
 ; MIR-NEXT:   renamable $x10 = CLB killed renamable $x10_y, 0 :: (volatile load (s8) from %ir.ptrval2, addrspace 200)
 ; MIR-NEXT:   renamable $x11 = ADD killed renamable $x11, killed renamable $x12

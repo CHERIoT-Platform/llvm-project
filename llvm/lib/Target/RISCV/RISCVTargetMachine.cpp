@@ -630,3 +630,27 @@ bool RISCVTargetMachine::parseMachineFunctionInfo(
   PFS.MF.getInfo<RISCVMachineFunctionInfo>()->initializeBaseYamlFields(YamlMFI);
   return false;
 }
+
+unsigned
+RISCVTargetMachine::getAddressSpaceForPseudoSourceKind(unsigned Kind) const {
+  if (hasCheriCapabilities()) {
+    switch (Kind) {
+    case PseudoSourceValue::Stack:
+    case PseudoSourceValue::FixedStack:
+      return DL.getAllocaAddrSpace();
+    case PseudoSourceValue::ConstantPool:
+    case PseudoSourceValue::GOT:
+    case PseudoSourceValue::TGOT:
+    // CapTable is not used on AMDGPU but we still need to handle it to
+    // avoid assertions during PseudoSourceValueManager ctor
+    case PseudoSourceValue::CapTable:
+    case PseudoSourceValue::JumpTable:
+      return DL.getDefaultGlobalsAddressSpace();
+    case PseudoSourceValue::GlobalValueCallEntry:
+    case PseudoSourceValue::ExternalSymbolCallEntry:
+      return DL.getProgramAddressSpace();
+    }
+  }
+
+  return TargetMachine::getAddressSpaceForPseudoSourceKind(Kind);
+}

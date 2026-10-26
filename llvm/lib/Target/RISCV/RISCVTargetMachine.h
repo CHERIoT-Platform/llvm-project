@@ -77,6 +77,8 @@ public:
   createMachineScheduler(MachineSchedContext *C) const override;
   ScheduleDAGInstrs *
   createPostMachineScheduler(MachineSchedContext *C) const override;
+
+  unsigned getAddressSpaceForPseudoSourceKind(unsigned Kind) const override;
 };
 
 std::unique_ptr<ScheduleDAGMutation>

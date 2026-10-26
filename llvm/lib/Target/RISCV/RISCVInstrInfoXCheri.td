@@ -24,6 +24,9 @@ def SDT_RISCVCheriBoolBinary : SDTypeProfile<1, 2, [
 def SDT_RISCVLoadTGOT
     : SDTypeProfile<1, 2, [SDTCisPtrTy<0>, SDTCisSameAs<0, 1>, SDTCisInt<2>]>;
 
+def SDT_RISCVLoadCLA_TLS_IE
+    : SDTypeProfile<1, 1, [SDTCisInt<0>, SDTCisPtrTy<1>]>;
+
 // Target-dependent nodes.
 def riscv_cap_call        : RVSDNode<"CAP_CALL", SDT_RISCVCapCall,
                                    [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
@@ -49,7 +52,7 @@ def riscv_cap_equal_exact : RVSDNode<"CAP_EQUAL_EXACT",
 def riscv_cllc            : RVSDNode<"CLLC", SDT_RISCVSymLoad>;
 def riscv_clgc            : RVSDNode<"CLGC", SDT_RISCVSymLoad,
                                    [SDNPHasChain, SDNPMayLoad, SDNPMemOperand]>;
-def riscv_cla_tls_ie      : RVSDNode<"CLA_TLS_IE", SDT_RISCVSymLoad,
+def riscv_cla_tls_ie      : RVSDNode<"CLA_TLS_IE", SDT_RISCVLoadCLA_TLS_IE,
                                    [SDNPHasChain, SDNPMayLoad, SDNPMemOperand]>;
 def riscv_clc_tls_gd      : RVSDNode<"CLC_TLS_GD", SDT_RISCVSymLoad>;
 def riscv_load_tgot
@@ -1448,7 +1451,7 @@ def PseudoCLA_TLS_IE : Pseudo<(outs GPR:$dst),
                               (ins bare_symbol:$src), [], "cla.tls.ie",
                               "$dst, $src">;
 
-  def : Pat<(riscv_cla_tls_ie tglobaltlsaddr:$in),
+  def : Pat<(XLenVT (riscv_cla_tls_ie (cPTR tglobaltlsaddr:$in))),
             (PseudoCLA_TLS_IE tglobaltlsaddr:$in)>;
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0, isCodeGenOnly = 0,

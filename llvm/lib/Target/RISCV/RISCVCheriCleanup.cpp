@@ -251,18 +251,27 @@ bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
     // pseudo for later expansion.  This is necessary because CLLC is expanded
     // *after* register allocation and so can't introduce a new virtual
     // register.
-    Register SizeReg;
+    Register SizeReg = RISCV::X0;
     const RISCVMatInt::InstSeq Seq = RISCVMatInt::generateInstSeq(
         SafeSize, MF.getSubtarget());
     for (auto &SeqMI : Seq) {
       const Register Out = MRI.createVirtualRegister(&RISCV::GPRRegClass);
-      auto &MID = TII->get(SeqMI.getOpcode());
-      auto MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), MID, Out);
-      if (MID.getNumOperands() == 3)
-        MIB.addReg(SizeReg);
-      else
-        assert(MID.getNumOperands() == 2);
-      MIB.addImm(SeqMI.getImm());
+      auto MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+                         TII->get(SeqMI.getOpcode()), Out);
+      switch (SeqMI.getOpndKind()) {
+      case RISCVMatInt::Imm:
+        MIB.addImm(SeqMI.getImm());
+        break;
+      case RISCVMatInt::RegX0:
+        MIB.addReg(SizeReg).addReg(RISCV::X0);
+        break;
+      case RISCVMatInt::RegReg:
+        MIB.addReg(SizeReg).addReg(SizeReg);
+        break;
+      case RISCVMatInt::RegImm:
+        MIB.addReg(SizeReg).addImm(SeqMI.getImm());
+        break;
+      }
       SizeReg = Out;
     }
     const Register DstReg = MI.getOperand(0).getReg();

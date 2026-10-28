@@ -580,7 +580,6 @@ void RISCVPassConfig::addPreRegAlloc() {
     addPass(createRISCVCheriCleanupOptPass());
     addPass(createRISCVMergeBaseOffsetLegacyPass());
     addPass(createCheriGetAddressElimPass());
-    // Add Zilsd pre-allocation load/store optimization
     addPass(createRISCVPreAllocZilsdOptLegacyPass());
   }
   addPass(createRISCVInsertReadWriteCSRLegacyPass());

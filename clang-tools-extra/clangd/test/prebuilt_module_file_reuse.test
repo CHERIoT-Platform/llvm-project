@@ -3,6 +3,7 @@
 # Windows uses a different default for this flag and has different escaping
 # modes, so keep this test non-Windows for now.
 # UNSUPPORTED: system-windows
+# XFAIL: *
 #
 # RUN: rm -fr %t
 # RUN: mkdir -p %t

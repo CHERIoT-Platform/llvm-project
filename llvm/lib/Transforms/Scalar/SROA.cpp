@@ -710,7 +710,6 @@ public:
   iterator end() { return Slices.end(); }
 
   using const_iterator = SmallVectorImpl<Slice>::const_iterator;
-  using const_range = iterator_range<const_iterator>;
 
   const_iterator begin() const { return Slices.begin(); }
   const_iterator end() const { return Slices.end(); }
@@ -5904,6 +5903,7 @@ bool SROA::presplitLoadsAndStores(AllocaInst &AI, AllocaSlices &AS) {
       for (auto Part : Splitter) {
         LoadInst *PLoad = SplitLoads[Part.Idx];
         StoreInst *PStore = Splitter.createStore(PLoad, StoreBasePtr, Part, SI);
+        (void)PStore;
         LLVM_DEBUG(dbgs() << "      +" << Part.getOffset() << ":" << *PStore
                           << "\n");
       }

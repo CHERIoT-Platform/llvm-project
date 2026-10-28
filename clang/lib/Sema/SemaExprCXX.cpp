@@ -6953,6 +6953,10 @@ ExprResult Sema::ActOnDecltypeExpression(Expr *E) {
              ExpressionEvaluationContextRecord::EK_Decltype &&
          "not in a decltype expression");
 
+  // Give up here so we don't try to evaluate it later.
+  if (isa<RecoveryExpr>(E))
+    return ExprError();
+
   ExprResult Result = CheckPlaceholderExpr(E);
   if (Result.isInvalid())
     return ExprError();
@@ -8143,7 +8147,7 @@ Sema::BuildExprRequirement(
     assert(IDC && "ImmediatelyDeclaredConstraint can't be null here.");
 
     SFINAETrap Trap(*this);
-    ExprResult Constraint = SubstExpr(IDC, MLTAL);
+    ExprResult Constraint = SubstConstraintExpr(IDC, MLTAL);
     bool HasError = Constraint.isInvalid();
     if (!HasError) {
       SubstitutedConstraintExpr =

@@ -474,7 +474,7 @@ void CheriotHeapChecker::preCheckPointer(const CallEvent &Call,
     return;
 
   // Generate an error if the pointer doesn't have a valid claim
-  ExplodedNode *N = C.generateErrorNode();
+  ExplodedNode *N = C.addSink();
   if (!N)
     return;
 
@@ -1062,7 +1062,7 @@ void CheriotHeapChecker::checkLocation(SVal Loc, bool IsLoad, const Stmt *S,
   if (Unclaimed || MissingPerms || TagCleared) {
     // Report all errors against the same analysis node so that we don't
     // drop errors if there are more than one.
-    ExplodedNode *N = C.generateErrorNode();
+    ExplodedNode *N = C.addSink();
     if (!N)
       return;
     if (Unclaimed)
@@ -1230,7 +1230,7 @@ void CheriotHeapChecker::checkEndFunction(const ReturnStmt *RS,
     if (!HPS.isClaimed())
       continue;
     if (!N) {
-      N = C.generateErrorNode();
+      N = C.addSink();
       if (!N)
         return;
     }

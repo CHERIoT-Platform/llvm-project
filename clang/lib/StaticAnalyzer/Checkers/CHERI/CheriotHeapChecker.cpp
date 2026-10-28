@@ -570,7 +570,7 @@ void CheriotHeapChecker::postHeapClaim(const CallEvent &Call,
     State =
         State->assume(Call.getArgSVal(1).castAs<DefinedOrUnknownSVal>(), true);
   if (!State) {
-    C.generateSink(C.getState(), C.getPredecessor());
+    C.addSink(C.getState(), C.getPredecessor());
     return;
   }
 
@@ -608,7 +608,7 @@ void CheriotHeapChecker::postHeapClaimEphemeral(const CallEvent &Call,
   State = State->assume(Call.getReturnValue().castAs<DefinedOrUnknownSVal>(),
                         false);
   if (!State) {
-    C.generateSink(C.getState(), C.getPredecessor());
+    C.addSink(C.getState(), C.getPredecessor());
     return;
   }
 

@@ -689,8 +689,6 @@ public:
     return NeedsGCBarriers_t(ObjCGCFlag);
   }
 
-  llvm::Value *getPointer(QualType PointeeTy, CodeGenFunction &CGF) const;
-
   llvm::Value *emitRawPointer(CodeGenFunction &CGF) const {
     return Addr.isValid() ? Addr.emitRawPointer(CGF) : nullptr;
   }

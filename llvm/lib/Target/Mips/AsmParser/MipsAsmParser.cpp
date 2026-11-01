@@ -5367,8 +5367,6 @@ bool MipsAsmParser::expandDRotationImm(MCInst &Inst, SMLoc IDLoc,
   unsigned FirstShift = Mips::NOP;
   unsigned SecondShift = Mips::NOP;
 
-  MCInst TmpInst;
-
   if (hasMips64r2()) {
     unsigned FinalOpcode = Mips::NOP;
     if (ImmValue == 0)

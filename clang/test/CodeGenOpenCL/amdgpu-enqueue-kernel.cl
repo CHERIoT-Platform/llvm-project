@@ -770,7 +770,7 @@ kernel void test_target_features_kernel(global int *i) {
 // NOCPU: attributes #[[ATTR4:[0-9]+]] = { nocallback nofree nosync nounwind willreturn memory(argmem: readwrite) }
 // NOCPU: attributes #[[ATTR5]] = { convergent noinline nounwind optnone denormal_fpenv(float: preservesign) "no-trapping-math"="true" "stack-protector-buffer-size"="8" }
 // NOCPU: attributes #[[ATTR6]] = { convergent nounwind denormal_fpenv(float: preservesign) "no-trapping-math"="true" "stack-protector-buffer-size"="8" }
-// NOCPU: attributes #[[ATTR7:[0-9]+]] = { hassideeffects nocallback nofree nosync nounwind willreturn }
+// NOCPU: attributes #[[ATTR7:[0-9]+]] = { nocallback nofree nosync nounwind willreturn }
 // NOCPU: attributes #[[ATTR8]] = { convergent nounwind }
 //.
 // GFX900: attributes #[[ATTR0:[0-9]+]] = { "objc_arc_inert" }
@@ -779,7 +779,7 @@ kernel void test_target_features_kernel(global int *i) {
 // GFX900: attributes #[[ATTR3]] = { alwaysinline convergent norecurse nounwind denormal_fpenv(float: preservesign) "amdgpu-flat-work-group-size"="1,256" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="-sram-ecc" }
 // GFX900: attributes #[[ATTR4:[0-9]+]] = { nocallback nofree nosync nounwind willreturn memory(argmem: readwrite) }
 // GFX900: attributes #[[ATTR5]] = { convergent nounwind denormal_fpenv(float: preservesign) "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-features"="-sram-ecc" }
-// GFX900: attributes #[[ATTR6:[0-9]+]] = { hassideeffects nocallback nofree nosync nounwind willreturn }
+// GFX900: attributes #[[ATTR6:[0-9]+]] = { nocallback nofree nosync nounwind willreturn }
 // GFX900: attributes #[[ATTR7]] = { convergent nounwind }
 // GFX900: attributes #[[ATTR8]] = { nounwind }
 //.

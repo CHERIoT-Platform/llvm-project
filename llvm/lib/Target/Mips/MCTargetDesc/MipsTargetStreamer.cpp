@@ -1383,7 +1383,6 @@ void MipsTargetELFStreamer::emitDirectiveCpsetup(MCRegister Reg,
   forbidModuleDirective();
 
   MCAssembler &MCA = getStreamer().getAssembler();
-  MCInst Inst;
 
   // Either store the old $gp in a register or on the stack
   if (IsReg) {

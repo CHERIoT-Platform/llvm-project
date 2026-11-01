@@ -734,7 +734,7 @@ declare void @llvm.experimental.noalias.scope.decl(metadata)
 !3 = distinct !{!3, !4, !"scope1"}
 !4 = distinct !{!4, i1 false, !"domain"}
 ;.
-; CHECK: attributes #[[ATTR0:[0-9]+]] = { hassideeffects nocallback nofree nosync nounwind willreturn memory(inaccessiblemem: readwrite) }
+; CHECK: attributes #[[ATTR0:[0-9]+]] = { nocallback nofree nosync nounwind willreturn memory(inaccessiblemem: readwrite) }
 ;.
 ; CHECK: [[META0:![0-9]+]] = !{!"function_entry_count", i32 10}
 ; CHECK: [[PROF1]] = !{!"branch_weights", i32 3, i32 5}

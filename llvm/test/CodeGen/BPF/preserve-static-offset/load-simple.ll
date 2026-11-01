@@ -47,7 +47,7 @@ entry:
 ; CHECK:      declare i32
 ; CHECK-SAME:    @llvm.bpf.getelementptr.and.load.i32(ptr captures(none), {{.*}}) #[[v2:.*]]
 
-; CHECK:      attributes #[[v2]] = { nocallback nofree nounwind willreturn }
+; CHECK:      attributes #[[v2]] = { hassideeffects nocallback nofree nounwind willreturn }
 ; CHECK:      attributes #[[v1]] = { memory(argmem: read) }
 
 declare void @consume(i32 noundef) #1

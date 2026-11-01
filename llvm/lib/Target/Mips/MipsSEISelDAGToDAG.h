@@ -128,9 +128,6 @@ public:
   explicit MipsSEDAGToDAGISelLegacy(MipsTargetMachine &TM, CodeGenOptLevel OL);
   void getAnalysisUsage(AnalysisUsage &AU) const override;
 };
-
-FunctionPass *createMipsSEISelDag(MipsTargetMachine &TM,
-                                  CodeGenOptLevel OptLevel);
 }
 
 #endif

@@ -840,15 +840,12 @@ void CGRecordLowering::computeVolatileBitfields() {
 }
 
 void CGRecordLowering::accumulateVPtrs() {
-  unsigned AS = Types.getCGM().getTargetCodeGenInfo().getDefaultAS();
+  llvm::Type *VPtrTy = Types.getCGM().GlobalsInt8PtrTy;
   if (Layout.hasOwnVFPtr())
-    Members.push_back(
-        MemberInfo(CharUnits::Zero(), MemberInfo::VFPtr,
-                   llvm::PointerType::get(Types.getLLVMContext(), AS)));
+    Members.push_back(MemberInfo(CharUnits::Zero(), MemberInfo::VFPtr, VPtrTy));
   if (Layout.hasOwnVBPtr())
     Members.push_back(
-        MemberInfo(Layout.getVBPtrOffset(), MemberInfo::VBPtr,
-                   llvm::PointerType::get(Types.getLLVMContext(), AS)));
+        MemberInfo(Layout.getVBPtrOffset(), MemberInfo::VBPtr, VPtrTy));
 }
 
 CharUnits

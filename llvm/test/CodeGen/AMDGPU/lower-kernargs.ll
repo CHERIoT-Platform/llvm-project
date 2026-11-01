@@ -1910,12 +1910,12 @@ attributes #1 = { nounwind "amdgpu-implicitarg-num-bytes"="40" }
 
 
 ;.
-; HSA: attributes #[[ATTR0:[0-9]+]] = { hassideeffects nocallback nofree nosync nounwind willreturn memory(inaccessiblemem: readwrite) }
+; HSA: attributes #[[ATTR0:[0-9]+]] = { nocallback nofree nosync nounwind willreturn memory(inaccessiblemem: readwrite) }
 ; HSA: attributes #[[ATTR1:[0-9]+]] = { nounwind }
 ; HSA: attributes #[[ATTR2:[0-9]+]] = { nounwind "amdgpu-implicitarg-num-bytes"="40" }
 ; HSA: attributes #[[ATTR3:[0-9]+]] = { nocallback nofree nosync nounwind speculatable willreturn memory(none) }
 ;.
-; MESA: attributes #[[ATTR0:[0-9]+]] = { hassideeffects nocallback nofree nosync nounwind willreturn memory(inaccessiblemem: readwrite) }
+; MESA: attributes #[[ATTR0:[0-9]+]] = { nocallback nofree nosync nounwind willreturn memory(inaccessiblemem: readwrite) }
 ; MESA: attributes #[[ATTR1:[0-9]+]] = { nounwind }
 ; MESA: attributes #[[ATTR2:[0-9]+]] = { nounwind "amdgpu-implicitarg-num-bytes"="40" }
 ; MESA: attributes #[[ATTR3:[0-9]+]] = { nocallback nofree nosync nounwind speculatable willreturn memory(none) }

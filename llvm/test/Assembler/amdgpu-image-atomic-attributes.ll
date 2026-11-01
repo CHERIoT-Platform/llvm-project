@@ -187,5 +187,5 @@ declare i32 @llvm.amdgcn.image.atomic.add.2dmsaa.i32.i32(i32, i32, i32, i32, <8 
 declare i32 @llvm.amdgcn.image.atomic.add.2darraymsaa.i32.i32(i32, i32, i32, i32, i32, <8 x i32>, i32, i32) #0
 
 ;.
-; CHECK: attributes #[[ATTR0:[0-9]+]] = { nocallback nofree nounwind willreturn }
+; CHECK: attributes #[[ATTR0:[0-9]+]] = { hassideeffects nocallback nofree nounwind willreturn }
 ;.

@@ -1175,7 +1175,7 @@ define i8 @invert_bitcasted_fcmp_fast(<8 x float> %a, <8 x float> %b) {
 !0 = !{!"function_entry_count", i64 1000}
 !1 = !{!"branch_weights", i32 2, i32 3}
 ;.
-; CHECK: attributes #[[ATTR0:[0-9]+]] = { hassideeffects nocallback nofree nosync nounwind willreturn memory(inaccessiblemem: readwrite) }
+; CHECK: attributes #[[ATTR0:[0-9]+]] = { nocallback nofree nosync nounwind willreturn memory(inaccessiblemem: readwrite) }
 ;.
 ; CHECK: [[META0:![0-9]+]] = !{!"function_entry_count", i64 1000}
 ; CHECK: [[PROF1]] = !{!"branch_weights", i32 2, i32 3}

@@ -1148,7 +1148,7 @@ attributes #2 = { sanitize_address "amdgpu-agpr-alloc"="0" }
 ; CHECK: attributes #[[ATTR32:[0-9]+]] = { nocallback nofree nosync nounwind speculatable willreturn memory(none) }
 ; CHECK: attributes #[[ATTR33:[0-9]+]] = { nocallback nofree nosync nounwind willreturn memory(argmem: readwrite) }
 ; CHECK: attributes #[[ATTR34:[0-9]+]] = { nocallback nofree nosync nounwind willreturn memory(read) }
-; CHECK: attributes #[[ATTR35:[0-9]+]] = { hassideeffects nounwind }
+; CHECK: attributes #[[ATTR35:[0-9]+]] = { nounwind }
 ; CHECK: attributes #[[ATTR36:[0-9]+]] = { nocallback nounwind }
 ; CHECK: attributes #[[ATTR37]] = { "amdgpu-agpr-alloc"="0" }
 ;.

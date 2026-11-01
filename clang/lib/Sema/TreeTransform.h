@@ -3920,8 +3920,8 @@ public:
   concepts::NestedRequirement *
   RebuildNestedRequirement(StringRef InvalidConstraintEntity,
                            const ASTConstraintSatisfaction &Satisfaction) {
-    return SemaRef.BuildNestedRequirement(InvalidConstraintEntity,
-                                          Satisfaction);
+    return new (getSema().Context)
+        concepts::NestedRequirement(InvalidConstraintEntity, &Satisfaction);
   }
 
   concepts::NestedRequirement *RebuildNestedRequirement(Expr *Constraint) {
@@ -5368,7 +5368,6 @@ bool TreeTransform<Derived>::TransformTemplateArguments(
         PackLocIterator;
 
       TemplateArgumentListInfo *PackOutput = &Outputs;
-      TemplateArgumentListInfo New;
 
       if (TransformTemplateArguments(
               PackLocIterator(*this, In.getArgument().pack_begin()),

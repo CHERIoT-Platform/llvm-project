@@ -189,8 +189,8 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
     Ra = RISCVII::getTailExpandUseRegNo(STI.getFeatureBits());
     IsCap = false;
   } else if (MI.getOpcode() == RISCV::PseudoTAILReg) {
-    Func = MI.getOperand(0);
-    Ra = MI.getOperand(1).getReg();
+    Func = MI.getOperand(1);
+    Ra = MI.getOperand(0).getReg();
     IsCap = false;
   } else if (MI.getOpcode() == RISCV::PseudoCALLReg) {
     Func = MI.getOperand(1);

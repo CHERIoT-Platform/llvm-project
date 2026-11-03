@@ -594,6 +594,8 @@ public:
   instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const override;
 
   bool shouldDropLSRSolutionIfLessProfitable() const override;
+
+  bool shouldBuildLookupTablesForConstant(Constant *C) const override;
 };
 
 } // end namespace llvm

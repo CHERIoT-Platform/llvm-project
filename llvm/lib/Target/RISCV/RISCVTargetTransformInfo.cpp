@@ -3746,3 +3746,26 @@ RISCVTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
 bool RISCVTTIImpl::shouldDropLSRSolutionIfLessProfitable() const {
   return getST()->hasVendorXCheriot();
 }
+
+bool RISCVTTIImpl::shouldBuildLookupTablesForConstant(Constant *C) const {
+  if (const auto *GV = dyn_cast<GlobalVariable>(C)) {
+    // MMIO and sealing imports must be lowered specially during code
+    // generation, so we can't transform them into table lookups.
+    auto CheriotCapImportAttrName =
+        llvm::CHERIoTGlobalCapabilityImportAttr::getAttrName();
+    if (GV->hasAttribute(CheriotCapImportAttrName))
+      return false;
+
+    auto CheriotSealedValueAttrName =
+        llvm::CHERIoTSealedValueAttr::getAttrName();
+    if (GV->hasAttribute(CheriotSealedValueAttrName))
+      return false;
+
+    auto CheriotSealingKeyTypeAttrName =
+        llvm::CHERIoTSealingKeyTypeAttr::getAttrName();
+    if (GV->hasAttribute(CheriotSealingKeyTypeAttrName))
+      return false;
+  }
+
+  return true;
+}

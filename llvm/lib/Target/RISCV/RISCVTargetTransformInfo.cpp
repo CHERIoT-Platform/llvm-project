@@ -4202,3 +4202,10 @@ bool RISCVTTIImpl::shouldBuildLookupTablesForConstant(Constant *C) const {
 
   return true;
 }
+
+bool RISCVTTIImpl::useFastCCForInternalCall(Function &F) const {
+  // Calls that change the interrupt posture must be libcall ABI compatible.
+  if (getInterruptStatus(F) != Interrupts::Inherit)
+    return false;
+  return true;
+}

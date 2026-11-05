@@ -596,6 +596,8 @@ public:
   bool shouldDropLSRSolutionIfLessProfitable() const override;
 
   bool shouldBuildLookupTablesForConstant(Constant *C) const override;
+
+  bool useFastCCForInternalCall(Function &F) const override;
 };
 
 } // end namespace llvm

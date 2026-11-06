@@ -295,7 +295,7 @@ define private ptr @get_B_ptr() sanitize_address {
 ; CHECK: attributes #[[ATTR2]] = { sanitize_address }
 ; CHECK: attributes #[[ATTR3:[0-9]+]] = { nocallback nofree nosync nounwind speculatable willreturn memory(none) }
 ; CHECK: attributes #[[ATTR4:[0-9]+]] = { nocallback nofree nosync nounwind willreturn memory(none) }
-; CHECK: attributes #[[ATTR5:[0-9]+]] = { convergent hassideeffects nocallback nofree nounwind willreturn }
+; CHECK: attributes #[[ATTR5:[0-9]+]] = { convergent nocallback nofree nounwind willreturn }
 ;.
 ; CHECK: [[META0]] = !{i32 0, i32 1}
 ; CHECK: [[META1]] = !{i32 8, i32 9}

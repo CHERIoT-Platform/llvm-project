@@ -910,6 +910,7 @@ Function *CodeExtractor::constructFunctionDeclaration(
       case Attribute::HybridPatchable:
       case Attribute::NoRecurse:
       case Attribute::InlineHint:
+      case Attribute::LikelyModuleLocal:
       case Attribute::MinSize:
       case Attribute::NoCallback:
       case Attribute::NoDuplicate:

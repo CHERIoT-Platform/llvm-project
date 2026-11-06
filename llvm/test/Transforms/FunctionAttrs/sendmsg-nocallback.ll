@@ -80,12 +80,12 @@ define void @user() {
 ;.
 ; FNATTRS: attributes #[[ATTR0]] = { mustprogress nofree norecurse nounwind willreturn }
 ; FNATTRS: attributes #[[ATTR1]] = { nofree norecurse nounwind }
-; FNATTRS: attributes #[[ATTR2:[0-9]+]] = { hassideeffects nocallback nofree nounwind willreturn }
+; FNATTRS: attributes #[[ATTR2:[0-9]+]] = { nocallback nofree nounwind willreturn }
 ; FNATTRS: attributes #[[ATTR3:[0-9]+]] = { nocallback nofree nounwind }
 ;.
 ; ATTRIBUTOR: attributes #[[ATTR0]] = { mustprogress nofree norecurse nounwind willreturn }
 ; ATTRIBUTOR: attributes #[[ATTR1]] = { nofree norecurse nounwind }
-; ATTRIBUTOR: attributes #[[ATTR2:[0-9]+]] = { hassideeffects nocallback nofree nounwind willreturn }
+; ATTRIBUTOR: attributes #[[ATTR2:[0-9]+]] = { nocallback nofree nounwind willreturn }
 ; ATTRIBUTOR: attributes #[[ATTR3:[0-9]+]] = { nocallback nofree nounwind }
 ; ATTRIBUTOR: attributes #[[ATTR4]] = { nofree willreturn }
 ; ATTRIBUTOR: attributes #[[ATTR5]] = { nofree }

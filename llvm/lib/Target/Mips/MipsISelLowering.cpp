@@ -631,7 +631,7 @@ static SDValue createFPCmp(SelectionDAG &DAG, const SDValue &Op) {
 
   // Assume the 3rd operand is a CondCodeSDNode. Add code to check the type of
   // node if necessary.
-  ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(2))->get();
+  ISD::CondCode CC = Op.getOperandCondCode(2);
 
   return DAG.getNode(MipsISD::FPCmp, DL, MVT::Glue, LHS, RHS,
                      DAG.getConstant(condCodeToFCC(CC), DL, MVT::i32));
@@ -668,7 +668,7 @@ static SDValue performSELECTCombine(SDNode *N, SelectionDAG &DAG,
 
   // r6 selects can test canonical words directly in i64.
   SDValue LHS = SetCC.getOperand(0);
-  ISD::CondCode CC = cast<CondCodeSDNode>(SetCC.getOperand(2))->get();
+  ISD::CondCode CC = SetCC.getOperandCondCode(2);
   if (Subtarget.hasMips64r6() && FalseTy == MVT::i64 &&
       LHS.getOpcode() == ISD::TRUNCATE && LHS.getValueType() == MVT::i32 &&
       LHS.getOperand(0).getValueType() == MVT::i64 &&
@@ -697,7 +697,7 @@ static SDValue performSELECTCombine(SDNode *N, SelectionDAG &DAG,
   const SDLoc DL(N);
 
   if (!FalseC->getZExtValue()) {
-    ISD::CondCode CC = cast<CondCodeSDNode>(SetCC.getOperand(2))->get();
+    ISD::CondCode CC = SetCC.getOperandCondCode(2);
     SDValue True = N->getOperand(1);
 
     SetCC = DAG.getSetCC(DL, SetCC.getValueType(), SetCC.getOperand(0),
@@ -734,7 +734,7 @@ static SDValue performSELECTCombine(SDNode *N, SelectionDAG &DAG,
   //  xor $reg1, $reg1, 1
   //  addiu $reg2, $reg1, y-1
   if (Diff == -1) {
-    ISD::CondCode CC = cast<CondCodeSDNode>(SetCC.getOperand(2))->get();
+    ISD::CondCode CC = SetCC.getOperandCondCode(2);
     assert(True.getValueType().isInteger());
     SetCC = DAG.getSetCC(DL, SetCC.getValueType(), SetCC.getOperand(0),
                          SetCC.getOperand(1),
@@ -2923,7 +2923,7 @@ SDValue MipsTargetLowering::lowerFSETCC(SDValue Op, SelectionDAG &DAG) const {
   SDValue Chain = Op.getOperand(0);
   SDValue LHS = Op.getOperand(1);
   SDValue RHS = Op.getOperand(2);
-  ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(3))->get();
+  ISD::CondCode CC = Op.getOperandCondCode(3);
 
   SDValue Cond = DAG.getNode(MipsISD::FPCmp, DL, MVT::Glue, LHS, RHS,
                              DAG.getConstant(condCodeToFCC(CC), DL, MVT::i32));

@@ -145,7 +145,7 @@ attributes #0 = { sanitize_address "amdgpu-no-lds-kernel-id" }
 ; CHECK: attributes #[[ATTR2:[0-9]+]] = { nocallback nocreateundeforpoison nofree nosync nounwind speculatable willreturn memory(none) }
 ; CHECK: attributes #[[ATTR3:[0-9]+]] = { nocallback nofree nosync nounwind speculatable willreturn memory(none) }
 ; CHECK: attributes #[[ATTR4:[0-9]+]] = { nocallback nofree nosync nounwind willreturn memory(none) }
-; CHECK: attributes #[[ATTR5:[0-9]+]] = { convergent hassideeffects nocallback nofree nounwind willreturn }
+; CHECK: attributes #[[ATTR5:[0-9]+]] = { convergent nocallback nofree nounwind willreturn }
 ;.
 ; CHECK: [[META0]] = !{i32 0, i32 1}
 ; CHECK: [[META1:![0-9]+]] = !{i32 4, !"nosanitize_address", i32 1}

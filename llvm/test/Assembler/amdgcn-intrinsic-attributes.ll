@@ -45,4 +45,4 @@ define i32 @wavefrontsize() {
 
 ; CHECK: attributes #0 = { nocallback nofree nosync nounwind speculatable willreturn memory(none) }
 ; CHECK: attributes #1 = { convergent nocallback nofree nounwind willreturn memory(argmem: readwrite) }
-; CHECK: attributes #2 = { hassideeffects nocallback nofree nounwind willreturn }
+; CHECK: attributes #2 = { nocallback nofree nounwind willreturn }

@@ -94,7 +94,7 @@ attributes #1 = { convergent nounwind }
 attributes #2 = { nounwind readnone }
 ;.
 ; CHECK: attributes #[[ATTR0]] = { nounwind }
-; CHECK: attributes #[[ATTR1:[0-9]+]] = { convergent hassideeffects nocallback nofree nounwind willreturn }
+; CHECK: attributes #[[ATTR1:[0-9]+]] = { convergent nocallback nofree nounwind willreturn }
 ;.
 ; CHECK: [[META0]] = !{i32 5, i32 6}
 ; CHECK: [[META1]] = !{i32 7, i32 8}

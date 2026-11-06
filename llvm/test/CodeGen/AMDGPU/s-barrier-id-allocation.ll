@@ -80,7 +80,7 @@ define amdgpu_kernel void @kernel4(ptr addrspace(1) %out, ptr addrspace(15) %in)
 
 
 ;.
-; CHECK: attributes #[[ATTR0:[0-9]+]] = { convergent hassideeffects nocallback nofree nounwind willreturn }
+; CHECK: attributes #[[ATTR0:[0-9]+]] = { convergent nocallback nofree nounwind willreturn }
 ;.
 ; CHECK: [[META0]] = !{i32 1, i32 2}
 ;.

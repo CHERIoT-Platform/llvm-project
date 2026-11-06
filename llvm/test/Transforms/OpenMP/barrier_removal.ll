@@ -1247,14 +1247,14 @@ exit:
 ;.
 ; MODULE: attributes #[[ATTR0:[0-9]+]] = { "llvm.assume"="ompx_aligned_barrier" }
 ; MODULE: attributes #[[ATTR1:[0-9]+]] = { convergent nocallback nounwind }
-; MODULE: attributes #[[ATTR2:[0-9]+]] = { convergent hassideeffects nocallback nofree nounwind willreturn }
+; MODULE: attributes #[[ATTR2:[0-9]+]] = { convergent nocallback nofree nounwind willreturn }
 ; MODULE: attributes #[[ATTR3:[0-9]+]] = { nocallback nofree nosync nounwind willreturn memory(inaccessiblemem: write) }
 ; MODULE: attributes #[[ATTR4]] = { "kernel" }
 ; MODULE: attributes #[[ATTR5]] = { nosync memory(none) }
 ;.
 ; CGSCC: attributes #[[ATTR0]] = { "llvm.assume"="ompx_aligned_barrier" }
 ; CGSCC: attributes #[[ATTR1:[0-9]+]] = { convergent nocallback nounwind }
-; CGSCC: attributes #[[ATTR2:[0-9]+]] = { convergent hassideeffects nocallback nofree nounwind willreturn }
+; CGSCC: attributes #[[ATTR2:[0-9]+]] = { convergent nocallback nofree nounwind willreturn }
 ; CGSCC: attributes #[[ATTR3:[0-9]+]] = { nocallback nofree nosync nounwind willreturn memory(inaccessiblemem: write) }
 ; CGSCC: attributes #[[ATTR4]] = { "kernel" }
 ; CGSCC: attributes #[[ATTR5]] = { nosync memory(none) }

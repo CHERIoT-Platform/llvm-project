@@ -198,6 +198,9 @@ SANITIZER("scudo", Scudo)
 // AllocToken
 SANITIZER("alloc-token", AllocToken)
 
+// ConcurrencySanitizer.
+SANITIZER("concurrency", Concurrency)
+
 // -fsanitize=cheri includes all the sanitizers that make use of capability
 // metadata and don't have any ABI implications.
 SANITIZER("cheri-unrepresentable", CheriUnrepresentable)

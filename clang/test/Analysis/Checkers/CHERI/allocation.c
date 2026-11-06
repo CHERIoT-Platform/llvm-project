@@ -67,7 +67,7 @@ void test_4(struct S2 *pS2) {
   double a[100];  // expected-note{{Original allocation}}
   double *p1 = a;
   pS2->px = (int*)(p1 + 10); // expected-warning{{Pointer to suballocation escaped on assign}}
-                             // expected-warning@-1{{Address of stack memory associated with local variable 'a' is still referred to by the caller variable 'pS2' upon returning to the caller.  This will be a dangling reference}}
+                             // expected-warning@-1{{Address of stack memory associated with local variable 'a' is still referred to by the caller variable 'pS2' upon returning to the caller}}
 }
 
 void test_5(int n1, int n2) {

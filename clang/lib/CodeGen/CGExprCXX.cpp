@@ -254,12 +254,7 @@ RValue CodeGenFunction::EmitCXXMemberOrOperatorMemberCallExpr(
     }
   }
 
-  bool TrivialForCodegen =
-      MD->isTrivial() || (MD->isDefaulted() && MD->getParent()->isUnion());
-  bool TrivialAssignment =
-      TrivialForCodegen &&
-      (MD->isCopyAssignmentOperator() || MD->isMoveAssignmentOperator()) &&
-      !MD->getParent()->mayInsertExtraPadding();
+  bool TrivialAssignment = MD->isMemcpyEquivalentSpecialMember(getContext());
 
   // C++17 demands that we evaluate the RHS of a (possibly-compound) assignment
   // operator before the LHS.
@@ -325,30 +320,25 @@ RValue CodeGenFunction::EmitCXXMemberOrOperatorMemberCallExpr(
     return RValue::get(nullptr);
   }
 
-  if (TrivialForCodegen) {
-    if (isa<CXXDestructorDecl>(MD)) {
-      (void)getLValueForThis(); // Emit LHS for side effects.
-      return RValue::get(nullptr);
-    }
+  if (isa<CXXDestructorDecl>(MD) && MD->isTrivial()) {
+    (void)getLValueForThis(); // Emit LHS for side effects.
+    return RValue::get(nullptr);
+  }
 
-    if (TrivialAssignment) {
-      // We don't like to generate the trivial copy/move assignment operator
-      // when it isn't necessary; just produce the proper effect here.
-      LValue This = getLValueForThis(/*EmitCheckedForStore=*/true);
+  if (TrivialAssignment) {
+    // We don't like to generate the trivial copy/move assignment operator
+    // when it isn't necessary; just produce the proper effect here.
+    LValue This = getLValueForThis(/*EmitCheckedForStore=*/true);
 
-      // It's important that we use the result of EmitCheckedLValue here rather
-      // than emitting call arguments, in order to preserve TBAA information
-      // from the RHS.
-      LValue RHS = isa<CXXOperatorCallExpr>(CE)
-                       ? TrivialAssignmentRHS
-                       : EmitCheckedLValue(*CE->arg_begin(), TCK_Load);
-      EmitAggregateAssign(This, RHS, CE->getType());
-      return RValue::get(This.getPointer(*this),
+    // It's important that we use the result of EmitCheckedLValue here rather
+    // than emitting call arguments, in order to preserve TBAA information
+    // from the RHS.
+    LValue RHS = isa<CXXOperatorCallExpr>(CE)
+                     ? TrivialAssignmentRHS
+                     : EmitCheckedLValue(*CE->arg_begin(), TCK_Load);
+    EmitAggregateAssign(This, RHS, CE->getType());
+    return RValue::get(This.getPointer(*this),
                          This.getAlignment().getQuantity());
-    }
-
-    assert(MD->getParent()->mayInsertExtraPadding() &&
-           "unknown trivial member function");
   }
 
   // Compute the function type we're calling.

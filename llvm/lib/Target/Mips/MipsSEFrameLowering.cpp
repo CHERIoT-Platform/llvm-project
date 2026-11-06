@@ -581,7 +581,6 @@ void MipsSEFrameLowering::emitInterruptPrologueStub(
     MBB.addLiveIn(Mips::COP013);
     BuildMI(MBB, MBBI, DL, STI.getInstrInfo()->get(Mips::MFC0), Mips::R26)
         .addReg(Mips::COP013)
-        .addImm(0)
         .setMIFlag(MachineInstr::FrameSetup);
 
     BuildMI(MBB, MBBI, DL, STI.getInstrInfo()->get(Mips::EXT), Mips::R26)
@@ -595,7 +594,6 @@ void MipsSEFrameLowering::emitInterruptPrologueStub(
   MBB.addLiveIn(Mips::COP014);
   BuildMI(MBB, MBBI, DL, STI.getInstrInfo()->get(Mips::MFC0), Mips::R27)
       .addReg(Mips::COP014)
-      .addImm(0)
       .setMIFlag(MachineInstr::FrameSetup);
 
   STI.getInstrInfo()->storeRegToStack(MBB, MBBI, Mips::R27, false,
@@ -605,7 +603,6 @@ void MipsSEFrameLowering::emitInterruptPrologueStub(
   MBB.addLiveIn(Mips::COP012);
   BuildMI(MBB, MBBI, DL, STI.getInstrInfo()->get(Mips::MFC0), Mips::R27)
       .addReg(Mips::COP012)
-      .addImm(0)
       .setMIFlag(MachineInstr::FrameSetup);
 
   STI.getInstrInfo()->storeRegToStack(MBB, MBBI, Mips::R27, false,
@@ -663,7 +660,6 @@ void MipsSEFrameLowering::emitInterruptPrologueStub(
   // Set the new status
   BuildMI(MBB, MBBI, DL, STI.getInstrInfo()->get(Mips::MTC0), Mips::COP012)
       .addReg(Mips::R27)
-      .addImm(0)
       .setMIFlag(MachineInstr::FrameSetup);
 }
 
@@ -757,15 +753,13 @@ void MipsSEFrameLowering::emitInterruptEpilogueStub(
   STI.getInstrInfo()->loadRegFromStackSlot(
       MBB, MBBI, Mips::R27, MipsFI->getISRRegFI(0), PtrRC, Register());
   BuildMI(MBB, MBBI, DL, STI.getInstrInfo()->get(Mips::MTC0), Mips::COP014)
-      .addReg(Mips::R27)
-      .addImm(0);
+      .addReg(Mips::R27);
 
   // Restore Status
   STI.getInstrInfo()->loadRegFromStackSlot(
       MBB, MBBI, Mips::R27, MipsFI->getISRRegFI(1), PtrRC, Register());
   BuildMI(MBB, MBBI, DL, STI.getInstrInfo()->get(Mips::MTC0), Mips::COP012)
-      .addReg(Mips::R27)
-      .addImm(0);
+      .addReg(Mips::R27);
 }
 
 StackOffset

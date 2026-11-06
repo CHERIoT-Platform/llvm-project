@@ -206,6 +206,12 @@ static IntegerType *getSizeTType(LLVMContext &Ctx, const DataLayout &DL) {
   return DL.getIndexType(Ctx, /*AddressSpace=*/0);
 }
 
+static unsigned getLongSize(const Triple &TT, const DataLayout &DL) {
+  if (TT.isOSWindowsOrUEFI() && !TT.isWindowsCygwinEnvironment())
+    return 32;
+  return std::max(32u, DL.getPointerSizeInBits(/*AS=*/0));
+}
+
 // TODO: NoCallback probably unsafe in general
 static constexpr Attribute::AttrKind CommonFnAttrs[] = {
     Attribute::NoCallback, Attribute::NoFree, Attribute::NoSync,
@@ -229,9 +235,9 @@ static Type *getLongDoubleType(LLVMContext &Ctx, LongDoubleFormat Format) {
 }
 
 static std::pair<Type *, Attribute>
-convertToIRTypeAndAttr(FuncArgTypeID ID, LLVMContext &Ctx, const DataLayout &DL,
-                       unsigned IntBits, LongDoubleFormat LdblFormat) {
-
+convertToIRTypeAndAttr(FuncArgTypeID ID, LLVMContext &Ctx, const Triple &TT,
+                       const DataLayout &DL, unsigned IntBits,
+                       LongDoubleFormat LdblFormat) {
   // FIXME: Use the llvm/ABI library to get accurate IR types and attributes.
   switch (ID) {
   case Void:
@@ -251,11 +257,12 @@ convertToIRTypeAndAttr(FuncArgTypeID ID, LLVMContext &Ctx, const DataLayout &DL,
   case UInt:
   case IntPlus:
   case UIntPlus:
-  case Long:
-  case ULong:
   case IntX:
   case UIntX:
     return {IntegerType::get(Ctx, IntBits), Attribute()};
+  case Long:
+  case ULong:
+    return {IntegerType::get(Ctx, getLongSize(TT, DL)), Attribute()};
   case Int64:
   case UInt64:
   case LLong:
@@ -390,7 +397,7 @@ RuntimeLibcallsInfo::getDefaultFunctionTy(
 
   FuncArgTypeID LastID = ProtoTypes[0];
   auto [RetTy, RetAttr] =
-      convertToIRTypeAndAttr(LastID, Ctx, DL, IntBits, LongDoubleFmt);
+      convertToIRTypeAndAttr(LastID, Ctx, TT, DL, IntBits, LongDoubleFmt);
   if (RetAttr.isValid())
     Attrs = Attrs.addRetAttribute(Ctx, RetAttr);
   if (Attribute::AttrKind AK =
@@ -416,7 +423,7 @@ RuntimeLibcallsInfo::getDefaultFunctionTy(
       LastID = TyID;
 
     auto [ArgTy, ArgAttr] =
-        convertToIRTypeAndAttr(TyID, Ctx, DL, IntBits, LongDoubleFmt);
+        convertToIRTypeAndAttr(TyID, Ctx, TT, DL, IntBits, LongDoubleFmt);
     ArgTys.push_back(ArgTy);
     if (ArgAttr.isValid())
       Attrs = Attrs.addParamAttribute(Ctx, Idx - 1, ArgAttr);
@@ -640,10 +647,24 @@ RuntimeLibcallsInfo::getFunctionTy(LLVMContext &Ctx, const Triple &TT,
     return {FuncTy, Attrs};
 
   Type *VecTy = FuncTy->getParamType(0);
+  Align PtrAlign = DL.getABITypeAlign(VecTy->getScalarType());
+  switch (LibcallImpl) {
+  case RTLIB::impl_amd_vrd2_sincos:
+  case RTLIB::impl_amd_vrd4_sincos:
+  case RTLIB::impl_amd_vrd8_sincos:
+  case RTLIB::impl_amd_vrs4_sincosf:
+  case RTLIB::impl_amd_vrs8_sincosf:
+  case RTLIB::impl_amd_vrs16_sincosf:
+    PtrAlign = DL.getABITypeAlign(VecTy);
+    break;
+  default:
+    break;
+  }
+
   AttrBuilder ArgAttrBuilder(Ctx);
   for (Attribute::AttrKind AK : CommonPtrArgAttrs)
     ArgAttrBuilder.addAttribute(AK);
-  ArgAttrBuilder.addAlignmentAttr(DL.getABITypeAlign(VecTy));
+  ArgAttrBuilder.addAlignmentAttr(PtrAlign);
 
   bool HasPtrArg = false;
   for (auto [Idx, ParamTy] : enumerate(FuncTy->params())) {

@@ -24,7 +24,6 @@
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSubtargetInfo.h"
-#include "llvm/MC/MCTargetOptionsCommandFlags.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/FileSystem.h"
@@ -37,8 +36,6 @@
 
 using namespace llvm;
 using namespace dwarf;
-
-mc::RegisterMCTargetOptionsFlags MOF;
 
 namespace {} // end anonymous namespace
 
@@ -454,7 +451,6 @@ llvm::Error dwarfgen::Generator::init(Triple TheTriple, uint16_t V) {
   TripleName = TheTriple.getTriple();
 
   // Create all the MC Objects.
-  MCOptions = mc::InitMCTargetOptionsFromFlags();
   MRI.reset(TheTarget->createMCRegInfo(TheTriple, MCOptions));
   if (!MRI)
     return make_error<StringError>(Twine("no register info for target ") +

@@ -251,7 +251,7 @@ void MipsSEInstrInfo::storeRegToStack(MachineBasicBlock &MBB,
       Register IntReg = RegInfo.createVirtualRegister(&Mips::GPR64RegClass);
       BuildMI(MBB, I, DL, get(Mips::DMFC1), IntReg)
         .addReg(SrcReg);
-      BuildMI(MBB, I, DL, get(Mips::CAPSTORE64)).addReg(IntReg, getKillRegState(true))
+      BuildMI(MBB, I, DL, get(Mips::CAPSTORE64)).addReg(IntReg)
         .addReg(Mips::R0_64).addFrameIndex(FI).addImm(Offset).addMemOperand(MMO);
       return;
     } else if (Mips::CheriGPROrCNullRegClass.hasSubClassEq(RC)) {

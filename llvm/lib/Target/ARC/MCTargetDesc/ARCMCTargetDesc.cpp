@@ -82,6 +82,10 @@ static MCTargetStreamer *createTargetAsmStreamer(MCStreamer &S,
   return new ARCTargetStreamer(S);
 }
 
+static MCTargetStreamer *createNullTargetStreamer(MCStreamer &S) {
+  return new ARCTargetStreamer(S);
+}
+
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeARCTargetMC() {
   // Register the MC asm info.
@@ -103,4 +107,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeARCTargetMC() {
 
   TargetRegistry::RegisterAsmTargetStreamer(TheARCTarget,
                                             createTargetAsmStreamer);
+
+  TargetRegistry::RegisterNullTargetStreamer(TheARCTarget,
+                                             createNullTargetStreamer);
 }

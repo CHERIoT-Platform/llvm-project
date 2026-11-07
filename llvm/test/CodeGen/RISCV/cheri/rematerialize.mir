@@ -77,7 +77,7 @@ body:             |
     %0:ygpr = COPY $x0_y
     %1:ygpr = CIncOffsetImm %0, 123
     %2:ygpr = PseudoCLGC @external_fn
-    %2:ygpr = CMove killed %0
+    %2:ygpr = CMove %0
     $x23_y = COPY $x2_y
     %3:ygpr = COPY $x23_y
     %4:ygpr = CIncOffsetImm %3, 321
@@ -93,7 +93,7 @@ body:             |
     PseudoCCALL target-flags(riscv-call) @external_fn, csr_il32pc64_l64pc128, implicit-def dead $x1_y, implicit killed $x10_y, implicit killed $x11_y, implicit killed $x12_y, implicit-def $x2_y
     ADJCALLSTACKUPCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
     ADJCALLSTACKDOWNCAP 0, 0, implicit-def dead $x2_y, implicit $x2_y
-    $x10_y = COPY killed %1
+    $x10_y = COPY %1
     $x11_y = COPY %2
     $x12_y = COPY %4
     PseudoCCALL target-flags(riscv-call) @external_fn, csr_il32pc64_l64pc128, implicit-def dead $x1_y, implicit killed $x10_y, implicit killed $x11_y, implicit killed $x12_y, implicit-def $x2_y

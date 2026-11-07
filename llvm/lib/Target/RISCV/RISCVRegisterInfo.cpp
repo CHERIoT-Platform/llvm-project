@@ -46,12 +46,23 @@ static_assert(RISCV::F31_Q == RISCV::F0_Q + 31,
 static_assert(RISCV::V1 == RISCV::V0 + 1, "Register list not consecutive");
 static_assert(RISCV::V31 == RISCV::V0 + 31, "Register list not consecutive");
 
-RISCVRegisterInfo::RISCVRegisterInfo(const RISCVSubtarget &STI)
+RISCVRegisterInfo::RISCVRegisterInfo(const RISCVSubtarget &STI,
+                                     const std::bitset<32> &UserReservedXRegs)
     : RISCVGenRegisterInfo(RISCVABI::isPurecap(STI.getTargetABI())
                                ? RISCV::X1_Y
                                : RISCV::X1,
-                           /*DwarfFlavour*/ 0, /*EHFlavor*/ 0,
-                           /*PC*/ 0, STI.getHwMode()) {}
+                           /*DwarfFlavour*/  0, /*EHFlavor*/  0,
+                           /*PC*/  0, STI.getHwMode()),
+      UserReservedRegs(getNumRegs()) {
+  // Expand the reserve-xN features to include aliases.
+  for (unsigned I = 1; I != 32; ++I) {
+    if (!UserReservedXRegs[I])
+      continue;
+    for (MCRegAliasIterator AI(RISCV::X0 + I, this, /*IncludeSelf=*/true);
+         AI.isValid(); ++AI)
+      UserReservedRegs.set((*AI).id());
+  }
+}
 
 const MCPhysReg *
 RISCVRegisterInfo::getIPRACSRegs(const MachineFunction *MF) const {
@@ -178,21 +189,16 @@ BitVector RISCVRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
   auto &Subtarget = MF.getSubtarget<RISCVSubtarget>();
 
-  for (size_t Reg = 0; Reg < getNumRegs(); Reg++) {
-    // Mark any GPRs requested to be reserved as such
-    if (Subtarget.isRegisterReservedByUser(Reg)) {
-      for (MCPhysReg Sub : subregs_inclusive(Reg))
-        markSuperRegs(Reserved, Sub);
-    }
-
-    // Mark all the registers defined as constant in TableGen as reserved.
-    if (isConstantPhysReg(Reg)) {
-      for (MCPhysReg Sub : subregs_inclusive(Reg))
-        markSuperRegs(Reserved, Sub);
-    }
+  // Mark any GPRs requested to be reserved as such.
+  const std::bitset<32> &UserReservedXRegs = Subtarget.getUserReservedXRegs();
+  for (unsigned I = 1; I != 32; ++I) {
+    if (!UserReservedXRegs[I])
+      continue;
+    markSuperRegs(Reserved, RISCV::X0 + I);
   }
 
   // Use markSuperRegs to ensure any register aliases are also reserved
+  markSuperRegs(Reserved, RISCV::X0_H); // x0
   markSuperRegs(Reserved, RISCV::X2_H); // sp
   markSuperRegs(Reserved, RISCV::X3_H); // gp
   if (STI.getTargetABI() != RISCVABI::ABI::CHERIOT && STI.getTargetABI() != RISCVABI::ABI::CHERIOT_BAREMETAL)
@@ -226,6 +232,7 @@ BitVector RISCVRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   markSuperRegs(Reserved, RISCV::VTYPE);
   markSuperRegs(Reserved, RISCV::VXSAT);
   markSuperRegs(Reserved, RISCV::VXRM);
+  markSuperRegs(Reserved, RISCV::VLENB);
 
   // Floating point environment registers.
   markSuperRegs(Reserved, RISCV::FRM);

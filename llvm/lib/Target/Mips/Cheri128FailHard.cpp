@@ -65,8 +65,8 @@ struct Cher128FailHardPass : public MachineFunctionPass {
       assert(Sink->getParent() == &MF);
       after = BuildMI(MBB, ++after,
           MI->getDebugLoc(), InstrInfo->get(Mips::BEQ64))
-        .addUse(tag_after, RegState::Kill)
-        .addUse(tag_before, RegState::Kill)
+        .addUse(tag_after)
+        .addUse(tag_before)
         .addMBB(Sink);
       BuildMI(MBB, ++after, MI->getDebugLoc(), InstrInfo->get(Mips::TRAP));
     }

@@ -23,7 +23,6 @@
 #include "llvm/MC/MCSectionMachO.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSubtargetInfo.h"
-#include "llvm/MC/MCTargetOptionsCommandFlags.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileUtilities.h"
@@ -37,8 +36,6 @@
 #include "llvm/TargetParser/SubtargetFeature.h"
 
 using namespace llvm;
-
-static mc::RegisterMCTargetOptionsFlags MOF;
 
 static cl::opt<std::string>
     TripleName("triple", cl::desc("Target triple to assemble for, "
@@ -155,7 +152,7 @@ int AssembleOneInput(const uint8_t *Data, size_t Size) {
     abort();
   }
 
-  MCTargetOptions MCOptions = mc::InitMCTargetOptionsFromFlags();
+  MCTargetOptions MCOptions;
   std::unique_ptr<MCRegisterInfo> MRI(
       TheTarget->createMCRegInfo(TheTriple, MCOptions));
   if (!MRI) {

@@ -66,7 +66,7 @@
 
 using namespace llvm;
 
-static mc::RegisterMCTargetOptionsFlags MOF;
+static mc::RegisterMCToolOptions MOF;
 
 static cl::OptionCategory ToolOptions("Tool Options");
 static cl::OptionCategory ViewOptions("View Options");
@@ -454,10 +454,10 @@ int main(int argc, char **argv) {
   bool IsOutOfOrder = STI->getSchedModel().isOutOfOrder();
   processViewOptions(IsOutOfOrder);
 
-  MCTargetOptions MCOptions = mc::InitMCTargetOptionsFromFlags();
+  MCTargetOptions MCOptions = mc::getMCTargetOptions(LibraryOptions);
   MCOptions.LibraryOptions = &LibraryOptions;
-  std::unique_ptr<MCRegisterInfo> MRI(
-      TheTarget->createMCRegInfo(TheTriple, MCOptions));
+
+  std::unique_ptr<MCRegisterInfo> MRI(TheTarget->createMCRegInfo(TheTriple, MCOptions));
   assert(MRI && "Unable to create target register info!");
 
   std::unique_ptr<MCAsmInfo> MAI(

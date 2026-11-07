@@ -5,7 +5,6 @@
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineLoopInfo.h"
-#include "llvm/CodeGen/MachinePostDominators.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/Support/CommandLine.h"
 #include "Mips.h"
@@ -38,7 +37,6 @@ struct CheriAddressingModeFolder : public MachineFunctionPass {
     AU.setPreservesCFG();
     AU.addRequired<MachineLoopInfoWrapperPass>();
     AU.addRequired<MachineDominatorTreeWrapperPass>();
-    AU.addRequired<MachinePostDominatorTreeWrapperPass>();
     AU.addPreserved<MachineLoopInfoWrapperPass>();
     MachineFunctionPass::getAnalysisUsage(AU);
   }
@@ -158,7 +156,6 @@ struct CheriAddressingModeFolder : public MachineFunctionPass {
     llvm::SmallVector<std::pair<MachineInstr *, MachineInstr *>, 8> DDCOps;
     std::set<MachineInstr *> GetPCCs;
     bool modified = false;
-    auto& MPDT = getAnalysis<MachinePostDominatorTreeWrapperPass>().getPostDomTree();
 
     for (auto &MBB : MF) {
       // Iterate backwards to update the last use of the CIncOffsets first
@@ -253,28 +250,11 @@ struct CheriAddressingModeFolder : public MachineFunctionPass {
           if (IsValidOffset(Op, offset + offsetImm)) {
             if (IncOffset->getOperand(1).isReg()) {
               auto IncOffsetArg = IncOffset->getOperand(1).getReg();
-              auto OldBaseReg = IncOffset->getOperand(0).getReg();
-              auto BaseCapDef = RI.getUniqueVRegDef(IncOffsetArg);
               LLVM_DEBUG(dbgs() << "IncOffset:"; IncOffset->dump(););
               LLVM_DEBUG(dbgs() << "MI:"; MI.dump(););
-              LLVM_DEBUG(dbgs() << "BaseCapDef:"; BaseCapDef->dump(););
-              // Only kill cap reg if they are in the same basic block
-              // and the only use is the incoffset for this load/store (and that
-              // incoffset only has one use)
-              bool KillCapOpnd = false;
-              if (RI.hasOneUse(IncOffsetArg) && RI.hasOneUse(OldBaseReg) &&
-                  MPDT.dominates(BaseCapDef->getParent(), MI.getParent()))
-                KillCapOpnd = true;
+              LLVM_DEBUG(dbgs() << "BaseCapDef:";
+                         RI.getUniqueVRegDef(IncOffsetArg)->dump(););
               MI.getOperand(3).setReg(IncOffsetArg);
-              // IncOffset->getOperand(1).setIsKill(false);
-              MI.getOperand(3).setIsKill(KillCapOpnd);
-              for (auto& Earlier : RI.use_operands(IncOffsetArg)) {
-                if (Earlier.getParent() == &MI)
-                  break;
-                // In case the register was killed earlier, remove the flag
-                // since we are now using the register in another instruction
-                Earlier.setIsKill(false);
-              }
             } else {
               // If it is a frame index we can just replace the register operand with a frame index operand
               assert(IncOffset->getOperand(1).isFI());
@@ -301,49 +281,16 @@ struct CheriAddressingModeFolder : public MachineFunctionPass {
               if (ImmInput->getOperand(1).isReg() && (MemopRegOff == Mips::R0_64 || MemopRegOff == Mips::R0)) {
                 auto IncRegOff = ImmInput->getOperand(2).getReg();
                 auto CapReg = ImmInput->getOperand(1).getReg();
-                auto OffsetDef = RI.getUniqueVRegDef(IncRegOff);
-                auto CheriRegDef = RI.getUniqueVRegDef(CapReg);
                 LLVM_DEBUG(dbgs() << "ImmInput:"; ImmInput->dump(););
                 LLVM_DEBUG(dbgs() << "IncOffset:"; IncOffset->dump(););
-                LLVM_DEBUG(dbgs() << "CheriRegDef:"; CheriRegDef->dump(););
-                LLVM_DEBUG(dbgs() << "OffsetDef:"; OffsetDef->dump(););
+                LLVM_DEBUG(dbgs() << "CheriRegDef:";
+                           RI.getUniqueVRegDef(CapReg)->dump(););
+                LLVM_DEBUG(dbgs() << "OffsetDef:";
+                           RI.getUniqueVRegDef(IncRegOff)->dump(););
                 LLVM_DEBUG(dbgs() << "MI:"; MI.dump(););
-                bool KillGPROpnd = false;
-                // Only kill GPR reg if they are in the same basic block
-                // and the only use is the incoffset for this load/store (and that
-                // incoffset only has one use)
-                auto ImmInputReg = ImmInput->getOperand(0).getReg();
-                if (RI.hasOneUse(IncRegOff) && RI.hasOneUse(ImmInputReg) &&
-                    MPDT.dominates(OffsetDef->getParent(), MI.getParent()))
-                  KillGPROpnd = true;
-                // Only kill IncOffset source if they are in the same basic
-                // block and the only use is the incoffset for this load/store
-                // (and that incoffset only has one use)
-                bool KillIncOpnd = false;
-                if (RI.hasOneUse(CapReg) && RI.hasOneUse(ImmInputReg) &&
-                    MPDT.dominates(CheriRegDef->getParent(), IncOffset->getParent()))
-                  KillIncOpnd = true;
-                LLVM_DEBUG(dbgs() << "KillGPROpnd: " << KillGPROpnd
-                                  << " KillIncOpnd: " << KillIncOpnd << "\n");
                 MI.getOperand(1).setReg(IncRegOff);
-                MI.getOperand(1).setIsKill(KillGPROpnd);
-                for (auto& Earlier : RI.use_operands(IncRegOff)) {
-                  if (Earlier.getParent() == &MI)
-                    break;
-                  // In case the register was killed earlier, remove the flag
-                  // since we are now using the register in another instruction
-                  Earlier.setIsKill(false);
-                }
                 assert(IncOffset->getOperand(1).getReg() == ImmInput->getOperand(0).getReg());
                 IncOffset->getOperand(1).setReg(CapReg);
-                IncOffset->getOperand(1).setIsKill(KillIncOpnd);
-                for (auto& Earlier : RI.use_operands(CapReg)) {
-                  if (Earlier.getParent() == IncOffset)
-                    break;
-                  // In case the register was killed earlier, remove the flag
-                  // since we are now using the register in another instruction
-                  Earlier.setIsKill(false);
-                }
                 IncOffsets.insert(ImmInput);
                 modified = true;
                 LLVM_DEBUG(dbgs() << "Folded register offset from CIncOffsetImm"
@@ -418,37 +365,13 @@ struct CheriAddressingModeFolder : public MachineFunctionPass {
             // If we didn't, then use the CIncOffset's register value as our
             // offset
             MI.getOperand(1).setReg(Offset.getReg());
-            // transfer the kill state to the capability load instruction
-            MI.getOperand(1).setIsKill(Offset.isKill());
-            Offset.setIsKill(false);
           }
         } else {
           // If it has a relocation, then use the CIncOffset's register value
           // as our offset
           MI.getOperand(1).setReg(Offset.getReg());
-          // transfer the kill state to the capability load instruction
-          MI.getOperand(1).setIsKill(Offset.isKill());
-          Offset.setIsKill(false);
-        }
-        // If we were using a unique vreg here it will probably have kill set to
-        // true, so if we retain this kill state the machine instr verifier will
-        // complain if there is any other instruction later on that uses the
-        // cap reg.
-        // We can kill the capreg if the only uses are the CIncOffset
-        bool CanKillCap = RI.hasOneUse(Cap.getReg());
-        if (auto *CapRegDef = RI.getUniqueVRegDef(Cap.getReg())) {
-          // But we can't kill it if it is defined in a different BB since we
-          // might jump somewhere else that requires that vreg
-          if (CapRegDef->getParent() != MI.getParent()) {
-            LLVM_DEBUG(dbgs() << "capreg defined in different BB -> not "
-                                 "killing operand 3: ";
-                       MI.dump(););
-            CanKillCap = false;
-          }
         }
         MI.getOperand(3).setReg(Cap.getReg());
-        MI.getOperand(3).setIsKill(CanKillCap);
-        Cap.setIsKill(false);
 
         IncOffsets.insert(IncOffset);
         modified = true;
@@ -485,14 +408,9 @@ struct CheriAddressingModeFolder : public MachineFunctionPass {
           InstrInfo->get(MipsOpForCHERIOp(I.first->getOpcode())))
         .addReg(FirstReg, getDefRegState(FirstOperand.isDef()))
         .addReg(BaseOperand->getReg()).add(Offset);
-      BaseOperand->setIsKill(false); // we used this register -> can't kill it
       I.first->eraseFromBundle();
-      if (AddInst) {
-        // If we've folded the base of the add into the load's immediate, then
-        // we the add is no longer able to kill the register.
-        AddInst->getOperand(1).setIsKill(false);
+      if (AddInst)
         Adds.insert(AddInst);
-      }
       modified = true;
     }
     Remove(GetPCCs, RI);
@@ -530,7 +448,6 @@ INITIALIZE_PASS_BEGIN(CheriAddressingModeFolder, DEBUG_TYPE,
                     "CHERI addressing mode folder", false, false)
 INITIALIZE_PASS_DEPENDENCY(MachineLoopInfoWrapperPass)
 INITIALIZE_PASS_DEPENDENCY(MachineDominatorTreeWrapperPass)
-INITIALIZE_PASS_DEPENDENCY(MachinePostDominatorTreeWrapperPass)
 INITIALIZE_PASS_END(CheriAddressingModeFolder, DEBUG_TYPE,
                     "CHERI addressing mode folder", false, false)
 

@@ -12,7 +12,6 @@
 #include "llvm/MC/MCInstPrinter.h"
 #include "llvm/MC/MCObjectWriter.h"
 #include "llvm/MC/MCTargetOptions.h"
-#include "llvm/MC/MCTargetOptionsCommandFlags.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/FormattedStream.h"
 
@@ -33,7 +32,6 @@ Error DwarfEmitterImpl::init(Triple TheTriple,
   TripleName = TheTriple.getTriple();
 
   // Create all the MC Objects.
-  MCOptions = mc::InitMCTargetOptionsFromFlags();
   MCOptions.AsmVerbose = true;
   MCOptions.MCUseDwarfDirectory = MCTargetOptions::EnableDwarfDirectory;
   MRI.reset(TheTarget->createMCRegInfo(TheTriple, MCOptions));

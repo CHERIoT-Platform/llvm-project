@@ -13,7 +13,6 @@
 #include "llvm/DWARFLinker/AddressesMap.h"
 #include "llvm/DWARFLinker/Parallel/DWARFLinker.h"
 #include "llvm/DebugInfo/DWARF/DWARFObject.h"
-#include "llvm/MC/MCTargetOptionsCommandFlags.h"
 #include "llvm/MC/TargetRegistry.h"
 
 namespace llvm {
@@ -76,7 +75,6 @@ private:
     TripleName = TheTriple.getTriple();
 
     // Create all the MC Objects.
-    MCOptions = mc::InitMCTargetOptionsFromFlags();
     MRI.reset(TheTarget->createMCRegInfo(TheTriple, MCOptions));
     if (!MRI)
       return createStringError(std::errc::invalid_argument,

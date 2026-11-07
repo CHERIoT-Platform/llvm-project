@@ -3897,7 +3897,7 @@ emitCapFloatStore(const MipsSubtarget &Subtarget,
   BuildMI(*BB, MI, DL, TII->get(MFC1), IntReg)
       .add(MI.getOperand(0));
   BuildMI(*BB, MI, DL, TII->get(CAPSTORE))
-      .addReg(IntReg, RegState::Kill)
+      .addReg(IntReg)
       .add(MI.getOperand(1))
       .add(MI.getOperand(2))
       .add(MI.getOperand(3));

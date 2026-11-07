@@ -9,6 +9,9 @@ llvm_tablegen(NVPTXGenRegisterInfo.inc -gen-register-info)
 llvm_tablegen(NVPTXGenSDNodeInfo.inc -gen-sd-node-info)
 llvm_tablegen(NVPTXGenSubtargetInfo.inc -gen-subtarget)
 
+set(LLVM_TARGET_DEFINITIONS NVPTXOptions.td)
+llvm_tablegen(NVPTXOptions.inc -gen-opt-parser-defs)
+
 add_public_tablegen_target(NVPTXCommonTableGen)
 
 set(NVPTXCodeGen_sources
@@ -69,6 +72,7 @@ add_llvm_target(NVPTXCodeGen
   MC
   NVPTXDesc
   NVPTXInfo
+  Option
   Passes
   Scalar
   SelectionDAG

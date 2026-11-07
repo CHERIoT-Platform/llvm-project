@@ -6212,6 +6212,10 @@ void LSRInstance::RewriteForPHI(PHINode *PN, const LSRUse &LU,
             i = PN->getBasicBlockIndex(BB);
 
             needUpdateFixups = true;
+
+            if (auto *OldIncomingInst =
+                    dyn_cast<Instruction>(PN->getIncomingValue(i)))
+              DeadInsts.emplace_back(OldIncomingInst);
           }
         }
       }

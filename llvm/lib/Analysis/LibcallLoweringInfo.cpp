@@ -32,6 +32,14 @@ LibcallLoweringInfo::LibcallLoweringInfo(
     ApplyContextRules(*this);
 }
 
+void LibcallLoweringInfo::enableCheriAtomicLibcalls() {
+  for (RTLIB::LibcallImpl Impl : RTLIB::libcall_impls()) {
+    RTLIB::Libcall LC = RTLCI.getLibcallFromImpl(Impl);
+    if (RTLIB::RuntimeLibcallsInfo::isCheriAtomicLibcall(LC))
+      LibcallImpls[LC] = Impl;
+  }
+}
+
 AnalysisKey LibcallLoweringModuleAnalysis::Key;
 
 bool ModuleLibcallLoweringInfo::invalidate(

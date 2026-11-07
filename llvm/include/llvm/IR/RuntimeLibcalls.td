@@ -740,6 +740,27 @@ defset list<RuntimeLibcall> LibCalls__atomic = {
   }
 }
 
+// CHERI `__atomic_*' libcalls operating on capability (uintcap_t) values.
+// The value operand is a capability, modeled here as a pointer.
+// FIXME: Pointer arguments are listed as Ptr (address space 0); AtomicExpand
+// fixes up the address spaces of pointer and capability operands.
+defset list<RuntimeLibcall> LibCalls__atomic_cap = {
+  def ATOMIC_LOAD_CAP : RuntimeLibcall<Ptr, [Ptr, Int]>;
+  def ATOMIC_STORE_CAP : RuntimeLibcall<Void, [Ptr, Ptr, Int]>;
+  def ATOMIC_EXCHANGE_CAP : RuntimeLibcall<Ptr, [Ptr, Ptr, Int]>;
+  def ATOMIC_COMPARE_EXCHANGE_CAP
+      : RuntimeLibcall<Bool, [Ptr, Ptr, Ptr, Int, Int]>;
+}
+
+// CHERI hybrid-mode `__atomic_*_c' variants, which take a capability as the
+// pointer operand (cf. memcpy_c).
+defset list<RuntimeLibcall> LibCalls__atomic_cheri_hybrid = {
+  foreach lc = !listconcat(LibCalls__atomic, LibCalls__atomic_cap) in {
+    def !strconcat(!cast<string>(lc), "_C")
+        : RuntimeLibcall<lc.ReturnType, lc.ArgumentTypes>;
+  }
+}
+
 multiclass AtomicOrderSizeLibcall<FuncArgType RetType,
                                   list<FuncArgType> ArgTypes> {
   def _RELAX : RuntimeLibcall<RetType, ArgTypes>;
@@ -1444,6 +1465,16 @@ def __clear_cache : RuntimeLibcallImpl<CLEAR_CACHE>;
 // Atomic `__atomic_*' libcalls.
 defset list<RuntimeLibcallImpl> LibatomicImpls = {
   foreach lc = LibCalls__atomic in {
+    def __#!tolower(!cast<string>(lc)) : RuntimeLibcallImpl<lc>;
+  }
+}
+
+// CHERI capability `__atomic_*' libcalls. These are not part of any default
+// library; CHERI subtargets enable them with
+// LibcallLoweringInfo::enableCheriAtomicLibcalls().
+defset list<RuntimeLibcallImpl> CheriLibatomicImpls = {
+  foreach lc = !listconcat(LibCalls__atomic_cap,
+                           LibCalls__atomic_cheri_hybrid) in {
     def __#!tolower(!cast<string>(lc)) : RuntimeLibcallImpl<lc>;
   }
 }

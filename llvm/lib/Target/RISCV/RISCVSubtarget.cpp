@@ -19,6 +19,7 @@
 #include "RISCVSelectionDAGInfo.h"
 #include "RISCVTargetMachine.h"
 #include "llvm/ADT/Statistic.h"
+#include "llvm/Analysis/LibcallLoweringInfo.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineTraceMetrics.h"
 #include "llvm/MC/MCSchedule.h"
@@ -112,6 +113,11 @@ RISCVSubtarget::RISCVSubtarget(const Triple &TT, StringRef CPU,
 }
 
 RISCVSubtarget::~RISCVSubtarget() = default;
+
+void RISCVSubtarget::initLibcallLoweringInfo(LibcallLoweringInfo &Info) const {
+  if (hasVendorXCheri())
+    Info.enableCheriAtomicLibcalls();
+}
 
 const SelectionDAGTargetInfo *RISCVSubtarget::getSelectionDAGInfo() const {
   return TSInfo.get();

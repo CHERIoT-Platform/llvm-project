@@ -343,4 +343,7 @@ void MipsSubtarget::initLibcallLoweringInfo(LibcallLoweringInfo &Info) const {
       Info.setLibcallImpl(LC, HardFloatLibCalls[I]);
     }
   }
+
+  if (isCheri())
+    Info.enableCheriAtomicLibcalls();
 }

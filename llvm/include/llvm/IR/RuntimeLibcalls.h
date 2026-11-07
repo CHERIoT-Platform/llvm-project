@@ -224,6 +224,18 @@ public:
   /// RTLIB::UNKNOWN_LIBCALL if \p LC has no masked variant.
   LLVM_ABI static RTLIB::Libcall getMaskedVectorLibcall(RTLIB::Libcall LC);
 
+  /// Return the CHERI capability-value (`_cap`) variant of the generic
+  /// `__atomic_*` libcall \p LC, or RTLIB::UNKNOWN_LIBCALL if there is none.
+  LLVM_ABI static RTLIB::Libcall getCheriCapAtomicLibcall(RTLIB::Libcall LC);
+
+  /// Return the CHERI hybrid-mode capability-pointer (`_c`) variant of the
+  /// `__atomic_*` libcall \p LC, or RTLIB::UNKNOWN_LIBCALL if there is none.
+  LLVM_ABI static RTLIB::Libcall
+  getCheriHybridAtomicLibcall(RTLIB::Libcall LC);
+
+  /// Return true if \p LC is one of the CHERI-specific `__atomic_*` libcalls.
+  LLVM_ABI static bool isCheriAtomicLibcall(RTLIB::Libcall LC);
+
   /// Returns true if the function has a vector mask argument, which is assumed
   /// to be the last argument.
   static bool hasVectorMaskArgument(RTLIB::LibcallImpl Impl) {

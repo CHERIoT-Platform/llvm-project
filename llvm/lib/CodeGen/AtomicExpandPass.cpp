@@ -20,7 +20,6 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Analysis/InstSimplifyFolder.h"
 #include "llvm/Analysis/OptimizationRemarkEmitter.h"
-#include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/Analysis/VectorUtils.h"
 #include "llvm/CodeGen/AtomicExpand.h"
 #include "llvm/CodeGen/TargetLowering.h"
@@ -139,10 +138,9 @@ private:
   bool isIdempotentRMW(AtomicRMWInst *RMWI);
   bool simplifyIdempotentRMW(AtomicRMWInst *RMWI);
 
-  bool expandAtomicOpToLibcall(Instruction *I, unsigned Size, Type *ValTy,
-                               Align Alignment, Value *PointerOperand,
-                               Value *ValueOperand, Value *CASExpected,
-                               AtomicOrdering Ordering,
+  bool expandAtomicOpToLibcall(Instruction *I, unsigned Size, Align Alignment,
+                               Value *PointerOperand, Value *ValueOperand,
+                               Value *CASExpected, AtomicOrdering Ordering,
                                AtomicOrdering Ordering2,
                                ArrayRef<RTLIB::Libcall> Libcalls);
   void expandAtomicLoadToLibcall(LoadInst *LI);
@@ -2107,8 +2105,8 @@ void AtomicExpandImpl::expandAtomicLoadToLibcall(LoadInst *I) {
   unsigned Size = getAtomicOpSize(I);
 
   bool Expanded = expandAtomicOpToLibcall(
-      I, Size, I->getType(), I->getAlign(), I->getPointerOperand(), nullptr,
-      nullptr, I->getOrdering(), AtomicOrdering::NotAtomic, Libcalls);
+      I, Size, I->getAlign(), I->getPointerOperand(), nullptr, nullptr,
+      I->getOrdering(), AtomicOrdering::NotAtomic, Libcalls);
   if (!Expanded)
     handleUnsupportedAtomicSize(I, "atomic load");
 }
@@ -2120,9 +2118,8 @@ void AtomicExpandImpl::expandAtomicStoreToLibcall(StoreInst *I) {
   unsigned Size = getAtomicOpSize(I);
 
   bool Expanded = expandAtomicOpToLibcall(
-      I, Size, I->getValueOperand()->getType(), I->getAlign(),
-      I->getPointerOperand(), I->getValueOperand(), nullptr, I->getOrdering(),
-      AtomicOrdering::NotAtomic, Libcalls);
+      I, Size, I->getAlign(), I->getPointerOperand(), I->getValueOperand(),
+      nullptr, I->getOrdering(), AtomicOrdering::NotAtomic, Libcalls);
   if (!Expanded)
     handleUnsupportedAtomicSize(I, "atomic store");
 }
@@ -2137,9 +2134,9 @@ void AtomicExpandImpl::expandAtomicCASToLibcall(AtomicCmpXchgInst *I,
   unsigned Size = getAtomicOpSize(I);
 
   bool Expanded = expandAtomicOpToLibcall(
-      I, Size, I->getCompareOperand()->getType(), I->getAlign(),
-      I->getPointerOperand(), I->getNewValOperand(), I->getCompareOperand(),
-      I->getSuccessOrdering(), I->getFailureOrdering(), Libcalls);
+      I, Size, I->getAlign(), I->getPointerOperand(), I->getNewValOperand(),
+      I->getCompareOperand(), I->getSuccessOrdering(), I->getFailureOrdering(),
+      Libcalls);
   if (!Expanded)
     handleUnsupportedAtomicSize(I, AtomicOpName, DiagnosticInst);
 }
@@ -2221,9 +2218,8 @@ void AtomicExpandImpl::expandAtomicRMWToLibcall(AtomicRMWInst *I) {
   bool Success = false;
   if (!Libcalls.empty())
     Success = expandAtomicOpToLibcall(
-        I, Size, I->getValOperand()->getType(), I->getAlign(),
-        I->getPointerOperand(), I->getValOperand(), nullptr, I->getOrdering(),
-        AtomicOrdering::NotAtomic, Libcalls);
+        I, Size, I->getAlign(), I->getPointerOperand(), I->getValOperand(),
+        nullptr, I->getOrdering(), AtomicOrdering::NotAtomic, Libcalls);
 
   // The expansion failed: either there were no libcalls at all for
   // the operation (min/max), or there were only size-specialized
@@ -2262,10 +2258,9 @@ void AtomicExpandImpl::expandAtomicRMWToLibcall(AtomicRMWInst *I) {
 // 'I' are extracted from the Instruction subclass by the
 // caller. Depending on the particular call, some will be null.
 bool AtomicExpandImpl::expandAtomicOpToLibcall(
-    Instruction *I, unsigned Size, Type *ValTy, Align Alignment,
-    Value *PointerOperand, Value *ValueOperand, Value *CASExpected,
-    AtomicOrdering Ordering, AtomicOrdering Ordering2,
-    ArrayRef<RTLIB::Libcall> Libcalls) {
+    Instruction *I, unsigned Size, Align Alignment, Value *PointerOperand,
+    Value *ValueOperand, Value *CASExpected, AtomicOrdering Ordering,
+    AtomicOrdering Ordering2, ArrayRef<RTLIB::Libcall> Libcalls) {
   assert(Libcalls.size() == 6);
 
   LLVMContext &Ctx = I->getContext();
@@ -2274,48 +2269,27 @@ bool AtomicExpandImpl::expandAtomicOpToLibcall(
   IRBuilder<> Builder(I);
   IRBuilder<> AllocaBuilder(&I->getFunction()->getEntryBlock().front());
 
+  // The type of the value being loaded, stored or exchanged. For cmpxchg the
+  // new value has the same type as the compare operand.
+  Type *ValTy = ValueOperand ? ValueOperand->getType() : I->getType();
   const bool ValueOperandIsCap = DL.isFatPointer(ValTy);
+  const bool PointerOperandIsCap = DL.isFatPointer(PointerOperand->getType());
   bool UseSizedLibcall =
       ValueOperandIsCap || canUseSizedAtomicCall(Size, Alignment, DL);
-  bool PointerOperandIsCap = DL.isFatPointer(PointerOperand->getType());
-  Type *SizedIntTy = nullptr;
-  Type *I8CapTy = nullptr;
-  if (ValueOperandIsCap) {
-    I8CapTy = PointerType::get(Ctx, ValTy->getPointerAddressSpace());
-  } else {
-    SizedIntTy = Type::getIntNTy(Ctx, Size * 8);
-  }
+  const Align AllocaAlignment = DL.getPrefTypeAlign(
+      ValueOperandIsCap ? ValTy : Type::getIntNTy(Ctx, Size * 8));
 
-  if (M->getTargetTriple().isOSWindowsOrUEFI() &&
-      M->getTargetTriple().isX86_64() && Size == 16) {
-    // x86_64 Windows passes i128 as an XMM vector; on return, it is in
-    // XMM0, and as a parameter, it is passed indirectly. The generic lowering
-    // rules handles this correctly if we pass it as a v2i64 rather than
-    // i128. This is what Clang does in the frontend for such types as well
-    // (see WinX86_64ABIInfo::classify in Clang).
-    SizedIntTy = FixedVectorType::get(Type::getInt64Ty(Ctx), 2);
-  }
-
-  const Align AllocaAlignment =
-      DL.getPrefTypeAlign(ValueOperandIsCap ? I8CapTy : SizedIntTy);
-
-  // TODO: Take the signature from RuntimeLibcallsInfo
-  IntegerType *OrderingTy =
-      Type::getIntNTy(Ctx, LibcallLowering->getRuntimeLibcallsInfo().getIntSize(
-                               M->getTargetTriple()));
   assert(Ordering != AtomicOrdering::NotAtomic && "expect atomic MO");
-  Constant *OrderingVal = ConstantInt::get(OrderingTy, (int)toCABI(Ordering));
-  Constant *Ordering2Val = nullptr;
-  if (CASExpected) {
-    assert(Ordering2 != AtomicOrdering::NotAtomic && "expect atomic MO");
-    Ordering2Val = ConstantInt::get(OrderingTy, (int)toCABI(Ordering2));
-  }
+  assert((!CASExpected || Ordering2 != AtomicOrdering::NotAtomic) &&
+         "expect atomic MO");
   bool HasResult = I->getType() != Type::getVoidTy(Ctx);
 
-  RTLIB::Libcall RTLibType;
+  RTLIB::Libcall RTLibType = RTLIB::UNKNOWN_LIBCALL;
   if (ValueOperandIsCap) {
     assert(UseSizedLibcall && "Must use specialized libcall for capabilities");
-    RTLibType = Libcalls[0]; // Ugly workaround, see below
+    // Capability values use the __atomic_*_cap variant of the generic libcall.
+    RTLibType =
+        RTLIB::RuntimeLibcallsInfo::getCheriCapAtomicLibcall(Libcalls[0]);
   } else if (UseSizedLibcall) {
     switch (Size) {
     case 1:
@@ -2334,9 +2308,17 @@ bool AtomicExpandImpl::expandAtomicOpToLibcall(
       RTLibType = Libcalls[5];
       break;
     }
-  } else if (Libcalls[0] != RTLIB::UNKNOWN_LIBCALL) {
-    RTLibType = Libcalls[0];
   } else {
+    RTLibType = Libcalls[0];
+  }
+
+  // In CHERI hybrid mode, use the __atomic_*_c variant (cf. memcpy_c) when the
+  // pointer operand is a capability.
+  if (PointerOperandIsCap && !TLI->isCheriPureCap())
+    RTLibType = RTLIB::RuntimeLibcallsInfo::getCheriHybridAtomicLibcall(
+        RTLibType);
+
+  if (RTLibType == RTLIB::UNKNOWN_LIBCALL) {
     // Can't use sized function, and there's no generic for this
     // operation, so give up.
     return false;
@@ -2348,6 +2330,10 @@ bool AtomicExpandImpl::expandAtomicOpToLibcall(
     return false;
   }
 
+  auto [FnType, Attr] = LibcallLowering->getRuntimeLibcallsInfo().getFunctionTy(
+      Ctx, M->getTargetTriple(), DL, LibcallImpl);
+  assert(FnType && "missing signature for atomic libcall");
+
   // Build up the function call. There's two kinds. First, the sized
   // variants.  These calls are going to be one of the following (with
   // N=1,2,4,8,16):
@@ -2357,15 +2343,18 @@ bool AtomicExpandImpl::expandAtomicOpToLibcall(
   //  bool  __atomic_compare_exchange_N(iN *ptr, iN *expected, iN desired,
   //                                    int success_order, int failure_order)
   //
-  // If the value argument is a capability we use _cap as a suffix and pass
-  // uintcap_t arguments:
-  //  uintcap_t    __atomic_load_cap(uintcap_t *ptr, int ordering)
-  //  void  __atomic_store_cap(uintcap_t *ptr, uintcap_t val, int ordering)
-  //  uintcap_t __atomic_{exchange|fetch_*}_cap(uintcap_t *ptr, uintcap_t val,
-  //                                            int ordering)
-  //  bool __atomic_compare_exchange_cap(uintcap_t *ptr, uintcap_t *expected,
-  //                                     uintcap_t desired, int success_order,
-  //                                     int failure_order)
+  // If the value argument is a CHERI capability we use the _cap variants,
+  // which take uintcap_t arguments:
+  //  uintcap_t __atomic_load_cap(uintcap_t *ptr, int ordering)
+  //  void      __atomic_store_cap(uintcap_t *ptr, uintcap_t val, int ordering)
+  //  uintcap_t __atomic_exchange_cap(uintcap_t *ptr, uintcap_t val,
+  //                                  int ordering)
+  //  bool      __atomic_compare_exchange_cap(uintcap_t *ptr, uintcap_t *expected,
+  //                                          uintcap_t desired,
+  //                                          int success_order,
+  //                                          int failure_order)
+  // There are no __atomic_fetch_*_cap libcalls; those operations are expanded
+  // to a CAS loop instead.
   //
   // Note that these functions can be used for non-integer atomic
   // operations, the values just need to be bitcast to integers on the
@@ -2384,28 +2373,19 @@ bool AtomicExpandImpl::expandAtomicOpToLibcall(
   // 'UseSizedLibcall', 'CASExpected', 'ValueOperand', and 'HasResult'
   // variables.
   //
-  // Note: For CHERI hybrid mode we add another _c suffix (this match memcpy_c,
-  // etc.) to handle cases where the pointer is a capability type.
+  // In CHERI hybrid mode, if the pointer operand is a capability we use the
+  // _c variant of each of the above (cf. memcpy_c), which takes a capability
+  // as the 'ptr' argument.
 
   AllocaInst *AllocaCASExpected = nullptr;
   AllocaInst *AllocaValue = nullptr;
   AllocaInst *AllocaResult = nullptr;
 
-  Type *ResultTy;
   SmallVector<Value *, 6> Args;
-  AttributeList Attr;
-
-  if (M->getTargetTriple().getOS() == Triple::CheriotRTOS) {
-    // Atomic helpers run with interrupts disabled on CHERIoT.
-    Attr = Attr.addFnAttribute(
-        Ctx, Attribute::get(Ctx, "interrupt-state", "disabled"));
-  }
 
   // 'size' argument.
-  if (!UseSizedLibcall) {
-    // Note, getIntPtrType is assumed equivalent to size_t.
-    Args.push_back(ConstantInt::get(DL.getIntPtrType(Ctx), Size));
-  }
+  if (!UseSizedLibcall)
+    Args.push_back(ConstantInt::get(FnType->getParamType(0), Size));
 
   // 'ptr' argument.
   // note: This assumes all address spaces share a common libfunc
@@ -2431,10 +2411,11 @@ bool AtomicExpandImpl::expandAtomicOpToLibcall(
   // 'val' argument ('desired' for cas), if present.
   if (ValueOperand) {
     if (ValueOperandIsCap) {
-      Args.push_back(Builder.CreateBitCast(ValueOperand, I8CapTy));
+      // Capabilities are passed as-is to the __atomic_*_cap libcalls.
+      Args.push_back(ValueOperand);
     } else if (UseSizedLibcall) {
-      Value *IntValue =
-          Builder.CreateBitPreservingCastChain(DL, ValueOperand, SizedIntTy);
+      Value *IntValue = Builder.CreateBitPreservingCastChain(
+          DL, ValueOperand, FnType->getParamType(Args.size()));
       Args.push_back(IntValue);
     } else {
       AllocaValue = AllocaBuilder.CreateAlloca(ValueOperand->getType());
@@ -2453,52 +2434,43 @@ bool AtomicExpandImpl::expandAtomicOpToLibcall(
     Args.push_back(AllocaResult);
   }
 
-  // The ordering arguments are C ints, which may need to be extended.
-  // FIXME: Once runtime libcall attribute derivation is centralized in
-  // RuntimeLibcalls, TargetLibraryInfo should not be used here.
-  Attribute::AttrKind OrderingExt =
-      TargetLibraryInfo::getExtAttrForI32Param(M->getTargetTriple());
-
   // 'ordering' ('success_order' for cas) argument.
-  Args.push_back(OrderingVal);
-  Attr = Attr.maybeAddParamAttribute(Ctx, Args.size() - 1, OrderingExt);
+  Args.push_back(ConstantInt::get(FnType->getParamType(Args.size()),
+                                  (int)toCABI(Ordering)));
 
   // 'failure_order' argument, if present.
-  if (Ordering2Val) {
-    Args.push_back(Ordering2Val);
-    Attr = Attr.maybeAddParamAttribute(Ctx, Args.size() - 1, OrderingExt);
-  }
-
-  // Now, the return type.  FIXME: Properly add extension attributes.
   if (CASExpected) {
-    ResultTy = Type::getInt1Ty(Ctx);
-    Attr = Attr.addRetAttribute(Ctx, Attribute::ZExt);
-  } else if (HasResult && UseSizedLibcall)
-    ResultTy = ValueOperandIsCap ? I8CapTy : SizedIntTy;
-  else
-    ResultTy = Type::getVoidTy(Ctx);
+    Args.push_back(ConstantInt::get(FnType->getParamType(Args.size()),
+                                    (int)toCABI(Ordering2)));
+  }
 
-  // Done with setting up arguments and return types, create the call:
-  SmallVector<Type *, 6> ArgTys;
-  for (Value *Arg : Args)
-    ArgTys.push_back(Arg->getType());
-  FunctionType *FnType = FunctionType::get(ResultTy, ArgTys, false);
-  // XXXAR: ugly hack to reduce size of the diff: for capability types we set
-  // RTLibType to the generic one and then manually append _cap instead of
-  // adding the 20+ new entries to RuntimeLibcalls.def. We also suffix with
-  // _c for capability pointer arguments in hybrid mode.
-  std::string LibcallName = TLI->getLibcallName(RTLibType);
-  if (ValueOperandIsCap) {
-    LibcallName += "_cap";
+  assert(Args.size() == FnType->getNumParams() &&
+         "atomic libcall signature mismatch");
+
+  // RuntimeLibcallsInfo models pointer and capability operands as address
+  // space 0 pointers. For CHERI, they may be capabilities (or pointers in
+  // another address space), so take the pointer types from the actual operands.
+  if (DL.hasCheriCapabilities()) {
+    SmallVector<Type *, 6> ArgTys;
+    for (auto [Idx, Arg] : enumerate(Args)) {
+      assert((Arg->getType() == FnType->getParamType(Idx) ||
+              (Arg->getType()->isPointerTy() &&
+               FnType->getParamType(Idx)->isPointerTy())) &&
+             "atomic libcall argument type mismatch");
+      ArgTys.push_back(Arg->getType());
+    }
+    Type *RetTy = FnType->getReturnType();
+    if (RetTy->isPointerTy()) {
+      assert(ValueOperandIsCap && "only _cap libcalls return a pointer");
+      RetTy = ValTy;
+    }
+    FnType = FunctionType::get(RetTy, ArgTys, FnType->isVarArg());
   }
-  if (PointerOperandIsCap && !TLI->isCheriPureCap()) {
-    // Add a _c suffix if the function uses capability pointer operands in
-    // hybrid mode.
-    assert(StringRef(LibcallName).starts_with("__atomic"));
-    LibcallName += "_c";
-  }
-  FunctionCallee LibcallFn = M->getOrInsertFunction(LibcallName, FnType, Attr);
-  auto CC = TLI->getLibcallCallingConv(RTLibType);
+
+  FunctionCallee LibcallFn = M->getOrInsertFunction(
+      RTLIB::RuntimeLibcallsInfo::getLibcallImplName(LibcallImpl), FnType,
+      Attr);
+  CallingConv::ID CC = LibcallLowering->getLibcallImplCallingConv(LibcallImpl);
   if (auto *Fn = dyn_cast<Function>(
           LibcallFn.getCallee()->stripPointerCastsAndAliases()))
     Fn->setCallingConv(CC);

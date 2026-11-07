@@ -80,6 +80,11 @@ public:
     LibcallImpls[Call] = Impl;
   }
 
+  /// Enable the CHERI capability `__atomic_*_cap` and hybrid-mode
+  /// `__atomic_*_c` libcalls. These are not available by default and must be
+  /// enabled by subtargets with CHERI support.
+  LLVM_ABI void enableCheriAtomicLibcalls();
+
   // FIXME: Remove this wrapper in favor of directly using
   // getLibcallImplCallingConv
   CallingConv::ID getLibcallCallingConv(RTLIB::Libcall Call) const {

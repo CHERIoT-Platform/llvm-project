@@ -659,6 +659,17 @@ RuntimeLibcallsInfo::getFunctionTy(LLVMContext &Ctx, const Triple &TT,
   }
 
   auto [FuncTy, Attrs] = getDefaultFunctionTy(Ctx, TT, DL, LibcallImpl);
+
+  // On CHERIoT, the `__atomic_*' helpers run with interrupts disabled.
+  if (FuncTy && TT.getOS() == Triple::CheriotRTOS) {
+    RTLIB::Libcall LC = ImplToLibcall[LibcallImpl];
+    // Every `__atomic_*' libcall either has a hybrid `_c' variant or is a
+    // CHERI-specific one.
+    if (getCheriHybridAtomicLibcall(LC) != RTLIB::UNKNOWN_LIBCALL ||
+        isCheriAtomicLibcall(LC))
+      return {FuncTy, Attrs.addFnAttribute(Ctx, "interrupt-state", "disabled")};
+  }
+
   if (!FuncTy || FuncTy->getNumParams() == 0 ||
       !isFPVectorTy(FuncTy->getParamType(0)))
     return {FuncTy, Attrs};
@@ -701,3 +712,74 @@ RuntimeLibcallsInfo::getFunctionTy(LLVMContext &Ctx, const Triple &TT,
 
   return {FuncTy, Attrs};
 }
+
+#define CHERI_ATOMIC_SIZED(M, OP)                                              \
+  M(OP##_1) M(OP##_2) M(OP##_4) M(OP##_8) M(OP##_16)
+#define CHERI_ATOMIC_CAP_LIBCALLS(M)                                           \
+  M(ATOMIC_LOAD_CAP)                                                           \
+  M(ATOMIC_STORE_CAP)                                                          \
+  M(ATOMIC_EXCHANGE_CAP)                                                       \
+  M(ATOMIC_COMPARE_EXCHANGE_CAP)
+// Every libcall that has a hybrid-mode `_c' variant.
+#define CHERI_ATOMIC_HYBRID_BASE_LIBCALLS(M)                                   \
+  M(ATOMIC_LOAD)                                                               \
+  M(ATOMIC_STORE)                                                              \
+  M(ATOMIC_EXCHANGE)                                                           \
+  M(ATOMIC_COMPARE_EXCHANGE)                                                   \
+  CHERI_ATOMIC_SIZED(M, ATOMIC_LOAD)                                           \
+  CHERI_ATOMIC_SIZED(M, ATOMIC_STORE)                                          \
+  CHERI_ATOMIC_SIZED(M, ATOMIC_EXCHANGE)                                       \
+  CHERI_ATOMIC_SIZED(M, ATOMIC_COMPARE_EXCHANGE)                               \
+  CHERI_ATOMIC_SIZED(M, ATOMIC_FETCH_ADD)                                      \
+  CHERI_ATOMIC_SIZED(M, ATOMIC_FETCH_SUB)                                      \
+  CHERI_ATOMIC_SIZED(M, ATOMIC_FETCH_AND)                                      \
+  CHERI_ATOMIC_SIZED(M, ATOMIC_FETCH_OR)                                       \
+  CHERI_ATOMIC_SIZED(M, ATOMIC_FETCH_XOR)                                      \
+  CHERI_ATOMIC_SIZED(M, ATOMIC_FETCH_NAND)                                     \
+  CHERI_ATOMIC_CAP_LIBCALLS(M)
+
+RTLIB::Libcall RuntimeLibcallsInfo::getCheriCapAtomicLibcall(RTLIB::Libcall LC) {
+  switch (LC) {
+  case RTLIB::ATOMIC_LOAD:
+    return RTLIB::ATOMIC_LOAD_CAP;
+  case RTLIB::ATOMIC_STORE:
+    return RTLIB::ATOMIC_STORE_CAP;
+  case RTLIB::ATOMIC_EXCHANGE:
+    return RTLIB::ATOMIC_EXCHANGE_CAP;
+  case RTLIB::ATOMIC_COMPARE_EXCHANGE:
+    return RTLIB::ATOMIC_COMPARE_EXCHANGE_CAP;
+  default:
+    return RTLIB::UNKNOWN_LIBCALL;
+  }
+}
+
+RTLIB::Libcall
+RuntimeLibcallsInfo::getCheriHybridAtomicLibcall(RTLIB::Libcall LC) {
+  switch (LC) {
+#define CHERI_HYBRID_CASE(LC)                                                  \
+  case RTLIB::LC:                                                              \
+    return RTLIB::LC##_C;
+    CHERI_ATOMIC_HYBRID_BASE_LIBCALLS(CHERI_HYBRID_CASE)
+#undef CHERI_HYBRID_CASE
+  default:
+    return RTLIB::UNKNOWN_LIBCALL;
+  }
+}
+
+bool RuntimeLibcallsInfo::isCheriAtomicLibcall(RTLIB::Libcall LC) {
+  switch (LC) {
+#define CHERI_CAP_CASE(LC) case RTLIB::LC:
+#define CHERI_HYBRID_CASE(LC) case RTLIB::LC##_C:
+    CHERI_ATOMIC_CAP_LIBCALLS(CHERI_CAP_CASE)
+    CHERI_ATOMIC_HYBRID_BASE_LIBCALLS(CHERI_HYBRID_CASE)
+#undef CHERI_HYBRID_CASE
+#undef CHERI_CAP_CASE
+    return true;
+  default:
+    return false;
+  }
+}
+
+#undef CHERI_ATOMIC_HYBRID_BASE_LIBCALLS
+#undef CHERI_ATOMIC_CAP_LIBCALLS
+#undef CHERI_ATOMIC_SIZED

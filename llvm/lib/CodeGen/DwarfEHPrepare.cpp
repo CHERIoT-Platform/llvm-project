@@ -213,30 +213,40 @@ bool DwarfEHPrepare::InsertUnwindResumeCalls() {
     return true; // We pruned them all.
 
   // RewindFunction - _Unwind_Resume or the target equivalent.
-  FunctionCallee RewindFunction;
-  CallingConv::ID RewindFunctionCallingConv;
-  FunctionType *FTy;
-  StringRef RewindName;
-  bool DoesRewindFunctionNeedExceptionObject;
-  ResumeInst *RI = Resumes.front();
-  Type *ExTy = cast<StructType>(RI->getValue()->getType())->elements()[0];
-
-  if ((Pers == EHPersonality::GNU_CXX || Pers == EHPersonality::GNU_CXX_SjLj) &&
-      TargetTriple.isTargetEHABICompatible()) {
-    RewindName = Libcalls.getLibcallName(RTLIB::CXA_END_CLEANUP);
-    FTy = FunctionType::get(Type::getVoidTy(Ctx), false);
-    RewindFunctionCallingConv =
-        Libcalls.getLibcallCallingConv(RTLIB::CXA_END_CLEANUP);
-    DoesRewindFunctionNeedExceptionObject = false;
-  } else {
-    RewindName = Libcalls.getLibcallName(RTLIB::UNWIND_RESUME);
-    FTy =
-        FunctionType::get(Type::getVoidTy(Ctx), ExTy, false);
-    RewindFunctionCallingConv =
-        Libcalls.getLibcallCallingConv(RTLIB::UNWIND_RESUME);
-    DoesRewindFunctionNeedExceptionObject = true;
+  RTLIB::Libcall RewindLibcall =
+      (Pers == EHPersonality::GNU_CXX || Pers == EHPersonality::GNU_CXX_SjLj) &&
+              TargetTriple.isTargetEHABICompatible()
+          ? RTLIB::CXA_END_CLEANUP
+          : RTLIB::UNWIND_RESUME;
+  RTLIB::LibcallImpl RewindImpl = Libcalls.getLibcallImpl(RewindLibcall);
+  if (RewindImpl == RTLIB::Unsupported) {
+    Ctx.emitError("no libcall available for resume");
+    return true;
   }
-  RewindFunction = F.getParent()->getOrInsertFunction(RewindName, FTy);
+
+  Module &M = *F.getParent();
+  auto [FTy, RewindAttrs] = Libcalls.getRuntimeLibcallsInfo().getFunctionTy(
+      Ctx, TargetTriple, M.getDataLayout(), RewindImpl);
+  assert(FTy && "missing signature for rewind libcall");
+
+  // The exception object is the first element of the landingpad's value. For
+  // CHERI purecap it is a capability, but RuntimeLibcallsInfo models the
+  // _Unwind_Resume argument as an address space 0 pointer, so use the exception
+  // object's actual type.
+  Type *ExTy =
+      cast<StructType>(Resumes.front()->getValue()->getType())->getElementType(0);
+  if (FTy->getNumParams() == 1 && FTy->getParamType(0) != ExTy) {
+    assert(FTy->getParamType(0)->isPointerTy() && ExTy->isPointerTy() &&
+           "unexpected rewind libcall signature");
+    FTy = FunctionType::get(FTy->getReturnType(), {ExTy}, FTy->isVarArg());
+  }
+
+  FunctionCallee RewindFunction = M.getOrInsertFunction(
+      RTLIB::RuntimeLibcallsInfo::getLibcallImplName(RewindImpl), FTy,
+      RewindAttrs);
+  CallingConv::ID RewindFunctionCallingConv =
+      Libcalls.getLibcallImplCallingConv(RewindImpl);
+  bool DoesRewindFunctionNeedExceptionObject = FTy->getNumParams() != 0;
 
   // Create the basic block where the _Unwind_Resume call will live.
   if (ResumesLeft == 1) {

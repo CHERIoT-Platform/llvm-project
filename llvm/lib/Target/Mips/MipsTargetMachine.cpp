@@ -67,10 +67,10 @@ extern "C" LLVM_ABI LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMipsTarget() {
   initializeMipsAsmPrinterPass(*PR);
   initializeMipsDelaySlotFillerPass(*PR);
   initializeMipsBranchExpansionPass(*PR);
-  initializeMicroMipsSizeReducePass(*PR);
+  initializeMicroMipsSizeReduceLegacyPass(*PR);
   initializeMipsPreLegalizerCombinerPass(*PR);
   initializeMipsPostLegalizerCombinerPass(*PR);
-  initializeMipsMulMulBugFixPass(*PR);
+  initializeMipsMulMulBugFixLegacyPass(*PR);
   initializeMipsDAGToDAGISelLegacyPass(*PR);
 }
 
@@ -279,16 +279,16 @@ MachineFunctionInfo *MipsTargetMachine::createMachineFunctionInfo(
 // machine code is emitted.
 void MipsPassConfig::addPreEmitPass() {
   // Expand pseudo instructions that are sensitive to register allocation.
-  addPass(createMipsExpandPseudoPass());
+  addPass(createMipsExpandPseudoLegacyPass());
 
   // The microMIPS size reduction pass performs instruction reselection for
   // instructions which can be remapped to a 16 bit instruction.
-  addPass(createMicroMipsSizeReducePass());
+  addPass(createMicroMipsSizeReduceLegacyPass());
 
   // This pass inserts a nop instruction between two back-to-back multiplication
   // instructions when the "mfix4300" flag is passed.
   if (getMipsTargetMachine().getCLOpts().mfix4300)
-    addPass(createMipsMulMulBugPass());
+    addPass(createMipsMulMulBugFixLegacyPass());
 
   // The delay slot filler pass can potientially create forbidden slot hazards
   // for MIPSR6 and therefore it should go before MipsBranchExpansion pass.

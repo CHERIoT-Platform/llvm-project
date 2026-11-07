@@ -62,17 +62,16 @@ void MipsCodeGenPassBuilder::addPreRegAlloc(PassManagerWrapper &PMW) {
 
 void MipsCodeGenPassBuilder::addPreEmitPass(PassManagerWrapper &PMW) {
   // Expand pseudo instructions that are sensitive to register allocation.
-  // TODO(boomanaiden154): Add MipsExpandPseudosPass
+  addMachineFunctionPass(MipsExpandPseudoPass(), PMW);
 
   // The microMIPS size reduction pass performs instruction reselection for
   // instructions which can be remapped to a 16 bit instruction.
-  // TODO(boomanaiden154): Add MicroMipsSizeReducePass
+  addMachineFunctionPass(MicroMipsSizeReducePass(), PMW);
 
   // This pass inserts a nop instruction between two back-to-back multiplication
   // instructions when the "mfix4300" flag is passed.
-  if (getTM().getCLOpts().mfix4300) {
-    // TODO(boomanaiden154): Add MipsMulMulBugPass
-  }
+  if (getTM().getCLOpts().mfix4300)
+    addMachineFunctionPass(MipsMulMulBugFixPass(), PMW);
 
   // The delay slot filler pass can potientially create forbidden slot hazards
   // for MIPSR6 and therefore it should go before MipsBranchExpansion pass.

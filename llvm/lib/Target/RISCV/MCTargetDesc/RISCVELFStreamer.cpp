@@ -122,22 +122,30 @@ void RISCVTargetELFStreamer::finish() {
   if (hasTSO())
     EFlags |= ELF::EF_RISCV_TSO;
 
+  if (RISCVABI::isRVE(ABI))
+    EFlags |= ELF::EF_RISCV_RVE;
+
   if (isCapMode())
     EFlags |= ELF::EF_RISCV_CAP_MODE;
 
   switch (ABI) {
   case RISCVABI::ABI_ILP32:
+  case RISCVABI::ABI_ILP32E:
   case RISCVABI::ABI_LP64:
+  case RISCVABI::ABI_LP64E:
+    EFlags |= ELF::EF_RISCV_FLOAT_ABI_SOFT;
+    break;
+  case RISCVABI::ABI_IL32PC64:
+  case RISCVABI::ABI_IL32PC64E:
+  case RISCVABI::ABI_L64PC128:
+    EFlags |= ELF::EF_RISCV_FLOAT_ABI_SOFT;
+    EFlags |= ELF::EF_RISCV_CHERIABI;
     break;
   case RISCVABI::ABI_CHERIOT:
   case RISCVABI::ABI_CHERIOT_BAREMETAL:
-    EFlags |= ELF::EF_RISCV_RVE;
+    EFlags |= ELF::EF_RISCV_FLOAT_ABI_SOFT;
     EFlags |= ELF::EF_RISCV_CHERIABI;
     EFlags |= ELF::EF_RISCV_CHERIOT;
-    break;
-  case RISCVABI::ABI_IL32PC64:
-  case RISCVABI::ABI_L64PC128:
-    EFlags |= ELF::EF_RISCV_CHERIABI;
     break;
   case RISCVABI::ABI_ILP32F:
   case RISCVABI::ABI_LP64F:
@@ -155,14 +163,6 @@ void RISCVTargetELFStreamer::finish() {
   case RISCVABI::ABI_IL32PC64D:
   case RISCVABI::ABI_L64PC128D:
     EFlags |= ELF::EF_RISCV_FLOAT_ABI_DOUBLE;
-    EFlags |= ELF::EF_RISCV_CHERIABI;
-    break;
-  case RISCVABI::ABI_ILP32E:
-  case RISCVABI::ABI_LP64E:
-    EFlags |= ELF::EF_RISCV_RVE;
-    break;
-  case RISCVABI::ABI_IL32PC64E:
-    EFlags |= ELF::EF_RISCV_RVE;
     EFlags |= ELF::EF_RISCV_CHERIABI;
     break;
   case RISCVABI::ABI_Unknown:

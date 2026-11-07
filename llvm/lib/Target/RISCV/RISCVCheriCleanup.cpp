@@ -137,7 +137,7 @@ static bool rewriteMemoryReference(MachineOperand &Op,
 
 bool RISCVCheriCleanupOpt::runOnMachineFunction(MachineFunction &MF) {
   auto ABI = static_cast<const RISCVSubtarget &>(MF.getSubtarget()).getTargetABI();
-  if (ABI != RISCVABI::ABI_CHERIOT && ABI != RISCVABI::ABI_CHERIOT_BAREMETAL)
+  if (ABI != RISCVABI::ABI::CHERIOT && ABI != RISCVABI::ABI::CHERIOT_BAREMETAL)
     return false;
 
   auto &MRI = MF.getRegInfo();

@@ -905,6 +905,7 @@ lltok::Kind LLLexer::LexIdentifier() {
   KEYWORD(versions);
   KEYWORD(memProf);
   KEYWORD(notcold);
+  KEYWORD(ambiguous);
 
 #undef KEYWORD
 

@@ -64,7 +64,7 @@ Expected<ABI> computeTargetABI(const MCSubtargetInfo &STI, StringRef ABIName) {
   bool IsRVE = FeatureBits[RISCV::FeatureStdExtE];
   bool IsXCheriot = FeatureBits[RISCV::FeatureVendorXCheriot];
 
-  if (!ABIName.empty() && TargetABI == ABI_Unknown) {
+  if (!ABIName.empty() && TargetABI == ABI::Unknown) {
     return createStringError(Twine("'") + ABIName +
                              "' is not a recognized ABI for this target");
   }
@@ -83,12 +83,12 @@ Expected<ABI> computeTargetABI(const MCSubtargetInfo &STI, StringRef ABIName) {
     return createStringError("pure-capability ABI can't be used for a target that "
               "doesn't support the XCheri instruction set extension");
   }
-  if (ABIName.ends_with('f') && !FeatureBits[RISCV::FeatureStdExtF]) {
+  if (isSingleFP(TargetABI) && !FeatureBits[RISCV::FeatureStdExtF]) {
     return createStringError(
         "hard-float 'f' ABI can't be used for a target that doesn't "
         "support the F instruction set extension");
   }
-  if (ABIName.ends_with('d') && !FeatureBits[RISCV::FeatureStdExtD]) {
+  if (isDoubleFP(TargetABI) && !FeatureBits[RISCV::FeatureStdExtD]) {
     return createStringError(
         "hard-float 'd' ABI can't be used for a target that doesn't "
         "support the D instruction set extension");
@@ -98,25 +98,25 @@ Expected<ABI> computeTargetABI(const MCSubtargetInfo &STI, StringRef ABIName) {
     return createStringError(Twine('\'') + ABIName +
                              "' ABI is only supported for RVY targets");
   }
-  if (!IsRV64 && IsRVE && !IsXCheriot && TargetABI != ABI_ILP32E &&
-      TargetABI != ABI_IL32PC64E && TargetABI != ABI_Unknown) {
+  if (!IsRV64 && IsRVE && !IsXCheriot && TargetABI != ABI::ILP32E &&
+      TargetABI != ABI::IL32PC64E && TargetABI != ABI::Unknown) {
     return createStringError("only the ilp32e and il32pc64e ABIs are supported for RV32E");
   }
-  if (!IsRV64 && IsRVE && IsXCheriot && TargetABI != ABI_CHERIOT &&
-      TargetABI != ABI_CHERIOT_BAREMETAL && TargetABI != ABI_Unknown) {
+  if (!IsRV64 && IsRVE && IsXCheriot && TargetABI != ABI::CHERIOT &&
+      TargetABI != ABI::CHERIOT_BAREMETAL && TargetABI != ABI::Unknown) {
     return createStringError("only the cheriot and cheriot-baremetal ABIs are supported for XCheriot");
   }
-  if (IsRV64 && IsRVE && TargetABI != ABI_LP64E && TargetABI != ABI_Unknown) {
+  if (IsRV64 && IsRVE && TargetABI != ABI::LP64E && TargetABI != ABI::Unknown) {
     return createStringError("only the lp64e ABI is supported for RV64E");
   }
 
   // Unconditionally fatal: no sensible default ABI to fall back to here.
-  if ((TargetABI == ABI_ILP32E ||
-       (TargetABI == ABI_Unknown && IsRVE && !IsRV64)) &&
+  if ((TargetABI == ABI::ILP32E ||
+       (TargetABI == ABI::Unknown && IsRVE && !IsRV64)) &&
       FeatureBits[RISCV::FeatureStdExtD])
     reportFatalUsageError("ILP32E cannot be used with the D ISA extension");
 
-  if (TargetABI != ABI_Unknown)
+  if (TargetABI != ABI::Unknown)
     return TargetABI;
 
   // If no explicit ABI is given, try to compute the default ABI.
@@ -128,24 +128,24 @@ Expected<ABI> computeTargetABI(const MCSubtargetInfo &STI, StringRef ABIName) {
 
 ABI getTargetABI(StringRef ABIName, const Triple &TT) {
   auto TargetABI = StringSwitch<ABI>(ABIName)
-                       .Case("ilp32", ABI_ILP32)
-                       .Case("ilp32f", ABI_ILP32F)
-                       .Case("ilp32d", ABI_ILP32D)
-                       .Case("ilp32e", ABI_ILP32E)
-                       .Case("il32pc64", ABI_IL32PC64)
-                       .Case("il32pc64f", ABI_IL32PC64F)
-                       .Case("il32pc64d", ABI_IL32PC64D)
-                       .Case("il32pc64e", ABI_IL32PC64E)
-                       .Case("lp64", ABI_LP64)
-                       .Case("lp64f", ABI_LP64F)
-                       .Case("lp64d", ABI_LP64D)
-                       .Case("lp64e", ABI_LP64E)
-                       .Case("l64pc128", ABI_L64PC128)
-                       .Case("l64pc128f", ABI_L64PC128F)
-                       .Case("l64pc128d", ABI_L64PC128D)
-                       .Case("cheriot", ABI_CHERIOT)
-                       .Case("cheriot-baremetal", ABI_CHERIOT_BAREMETAL)
-                       .Default(ABI_Unknown);
+                       .Case("ilp32", ABI::ILP32)
+                       .Case("ilp32f", ABI::ILP32F)
+                       .Case("ilp32d", ABI::ILP32D)
+                       .Case("ilp32e", ABI::ILP32E)
+                       .Case("il32pc64", ABI::IL32PC64)
+                       .Case("il32pc64f", ABI::IL32PC64F)
+                       .Case("il32pc64d", ABI::IL32PC64D)
+                       .Case("il32pc64e", ABI::IL32PC64E)
+                       .Case("lp64", ABI::LP64)
+                       .Case("lp64f", ABI::LP64F)
+                       .Case("lp64d", ABI::LP64D)
+                       .Case("lp64e", ABI::LP64E)
+                       .Case("l64pc128", ABI::L64PC128)
+                       .Case("l64pc128f", ABI::L64PC128F)
+                       .Case("l64pc128d", ABI::L64PC128D)
+                       .Case("cheriot", ABI::CHERIOT)
+                       .Case("cheriot-baremetal", ABI::CHERIOT_BAREMETAL)
+                       .Default(ABI::Unknown);
   return TargetABI;
 }
 
@@ -153,7 +153,7 @@ ABI getTargetABI(StringRef ABIName, const Triple &TT) {
 // callee saved register to save the value. RV32E only has X8 and X9 as callee
 // saved registers and X8 will be used as fp. So we choose X9 as bp.
 MCRegister getBPReg(ABI TargetABI) {
-  return isCheriPureCapABI(TargetABI) ? RISCV::X9_Y : RISCV::X9;
+  return isPurecap(TargetABI) ? RISCV::X9_Y : RISCV::X9;
 }
 
 // Returns the register holding shadow call stack pointer.

@@ -19,7 +19,6 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Statistic.h"
-#include "llvm/ADT/StringMap.h"
 #include "llvm/Analysis/MemoryLocation.h"
 #include "llvm/Analysis/ValueTracking.h"
 #include "llvm/CodeGen/LiveIntervals.h"
@@ -67,10 +66,10 @@ namespace llvm::RISCV {
 } // end namespace llvm::RISCV
 
 RISCVInstrInfo::RISCVInstrInfo(const RISCVSubtarget &STI)
-    : RISCVGenInstrInfo(STI, RegInfo, RISCVABI::isCheriPureCapABI(STI.getTargetABI())
+    : RISCVGenInstrInfo(STI, RegInfo, RISCVABI::isPurecap(STI.getTargetABI())
                             ? RISCV::ADJCALLSTACKDOWNCAP
                             : RISCV::ADJCALLSTACKDOWN,
-                        RISCVABI::isCheriPureCapABI(STI.getTargetABI())
+                        RISCVABI::isPurecap(STI.getTargetABI())
                             ? RISCV::ADJCALLSTACKUPCAP
                             : RISCV::ADJCALLSTACKUP),
       RegInfo(STI), STI(STI) {}
@@ -699,7 +698,7 @@ void RISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
   Align Alignment = MFI.getObjectAlign(FI);
 
   unsigned Opcode;
-  if (RISCVABI::isCheriPureCapABI(STI.getTargetABI())) {
+  if (RISCVABI::isPurecap(STI.getTargetABI())) {
     if (RISCV::GPRRegClass.hasSubClassEq(RC)) {
       Opcode = TRI.getRegSizeInBits(RISCV::GPRRegClass) == 32 ? RISCV::CSW
                                                                : RISCV::CSD;
@@ -809,7 +808,7 @@ void RISCVInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
       Flags & MachineInstr::FrameDestroy ? MBB.findDebugLoc(I) : DebugLoc();
 
   unsigned Opcode;
-  if (RISCVABI::isCheriPureCapABI(STI.getTargetABI())) {
+  if (RISCVABI::isPurecap(STI.getTargetABI())) {
     if (RISCV::GPRRegClass.hasSubClassEq(RC)) {
       Opcode = TRI.getRegSizeInBits(RISCV::GPRRegClass) == 32 ? RISCV::CLW
                                                                : RISCV::CLD;
@@ -917,7 +916,7 @@ std::optional<unsigned> getFoldedOpcode(MachineFunction &MF, MachineInstr &MI,
   if (Ops.size() != 1 || Ops[0] != 1)
     return std::nullopt;
 
-  bool Purecap = RISCVABI::isCheriPureCapABI(ST.getTargetABI());
+  bool Purecap = RISCVABI::isPurecap(ST.getTargetABI());
   switch (MI.getOpcode()) {
   default:
     if (RISCVInstrInfo::isSEXT_W(MI))
@@ -1552,7 +1551,7 @@ unsigned RISCVInstrInfo::insertBranch(
   const RISCVSubtarget &ST = MF->getSubtarget<RISCVSubtarget>();
 
   unsigned PseudoOpcode;
-  if (RISCVABI::isCheriPureCapABI(ST.getTargetABI()))
+  if (RISCVABI::isPurecap(ST.getTargetABI()))
     PseudoOpcode = RISCV::PseudoCBR;
   else
     PseudoOpcode = RISCV::PseudoBR;
@@ -1608,7 +1607,7 @@ void RISCVInstrInfo::insertIndirectBranch(MachineBasicBlock &MBB,
 
   const TargetRegisterClass *RC;
   unsigned PseudoOpcode;
-  if (RISCVABI::isCheriPureCapABI(ST.getTargetABI())) {
+  if (RISCVABI::isPurecap(ST.getTargetABI())) {
     RC = &RISCV::YGPRRegClass;
     PseudoOpcode = RISCV::PseudoCJump;
   } else {
@@ -1643,7 +1642,7 @@ void RISCVInstrInfo::insertIndirectBranch(MachineBasicBlock &MBB,
     // The case when there is no scavenged register needs special handling.
 
     // Pick s11(or s1 for rve) because it doesn't make a difference.
-    if (RISCVABI::isCheriPureCapABI(ST.getTargetABI())) {
+    if (RISCVABI::isPurecap(ST.getTargetABI())) {
       TmpGPR = STI.hasStdExtE() ? RISCV::X9_Y : RISCV::X27_Y;
       // Force t2 if Zicfilp is on
       if (STI.hasStdExtZicfilp())
@@ -4086,7 +4085,7 @@ bool RISCVInstrInfo::analyzeCandidate(outliner::Candidate &C) const {
     return false;
 
   // Otherwise, try to save X5 into t1-t6 (MachineOutlinerRegSave).
-  bool IsPurecap = RISCVABI::isCheriPureCapABI(
+  bool IsPurecap = RISCVABI::isPurecap(
       C.getMF()->getSubtarget<RISCVSubtarget>().getTargetABI());
   if (STI.getCLOpts().outliner_regsave && findRegisterToSaveX5To(C, RegInfo, IsPurecap))
     return false;
@@ -4228,7 +4227,7 @@ void RISCVInstrInfo::buildOutlinedFrame(
   if (OF.FrameConstructionID == MachineOutlinerTailCall)
     return;
 
-  bool IsPurecap = RISCVABI::isCheriPureCapABI(
+  bool IsPurecap = RISCVABI::isPurecap(
       MF.getSubtarget<RISCVSubtarget>().getTargetABI());
   MBB.addLiveIn(IsPurecap ? RISCV::X5_Y : RISCV::X5);
 
@@ -4244,7 +4243,7 @@ void RISCVInstrInfo::buildOutlinedFrame(
 MachineBasicBlock::iterator RISCVInstrInfo::insertOutlinedCall(
     Module &M, MachineBasicBlock &MBB, MachineBasicBlock::iterator &It,
     MachineFunction &MF, outliner::Candidate &C) const {
-  bool IsPurecap = RISCVABI::isCheriPureCapABI(
+  bool IsPurecap = RISCVABI::isPurecap(
       MF.getSubtarget<RISCVSubtarget>().getTargetABI());
 
   if (C.CallConstructionID == MachineOutlinerTailCall) {

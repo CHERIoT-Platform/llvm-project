@@ -576,7 +576,7 @@ uint64_t RISCVFrameLowering::getStackSizeWithRVVPadding(
 
 // Returns the register used to hold the frame pointer.
 Register RISCVFrameLowering::getFPReg() const {
-  if (RISCVABI::isCheriPureCapABI(STI.getTargetABI()))
+  if (RISCVABI::isPurecap(STI.getTargetABI()))
     return RISCV::X8_Y;
   else
     return RISCV::X8;
@@ -584,7 +584,7 @@ Register RISCVFrameLowering::getFPReg() const {
 
 // Returns the register used to hold the stack pointer.
 Register RISCVFrameLowering::getSPReg() const {
-  if (RISCVABI::isCheriPureCapABI(STI.getTargetABI()))
+  if (RISCVABI::isPurecap(STI.getTargetABI()))
     return RISCV::X2_Y;
   else
     return RISCV::X2;
@@ -1252,7 +1252,7 @@ void RISCVFrameLowering::emitPrologue(MachineFunction &MF,
       Register SPAddrDstReg;
       // For purecap we need a temporary register for the address of SP since
       // we don't have a capability-based ANDI/ALIGN instruction.
-      if (RISCVABI::isCheriPureCapABI(STI.getTargetABI())) {
+      if (RISCVABI::isPurecap(STI.getTargetABI())) {
         SPAddrDstReg =
             MF.getRegInfo().createVirtualRegister(&RISCV::GPRRegClass);
         SPAddrSrcReg = RI->getSubReg(SPReg, RISCV::sub_cap_addr);
@@ -1270,7 +1270,7 @@ void RISCVFrameLowering::emitPrologue(MachineFunction &MF,
       } else {
         unsigned ShiftAmount = Log2(MaxAlignment);
         Register VR;
-        if (RISCVABI::isCheriPureCapABI(STI.getTargetABI()))
+        if (RISCVABI::isPurecap(STI.getTargetABI()))
           VR = SPAddrDstReg;
         else
           VR = MF.getRegInfo().createVirtualRegister(&RISCV::GPRRegClass);
@@ -1285,7 +1285,7 @@ void RISCVFrameLowering::emitPrologue(MachineFunction &MF,
             .setMIFlag(MachineInstr::FrameSetup);
       }
 
-      if (RISCVABI::isCheriPureCapABI(STI.getTargetABI()))
+      if (RISCVABI::isPurecap(STI.getTargetABI()))
         BuildMI(MBB, MBBI, DL, TII->get(RISCV::CSetAddr), SPReg)
             .addReg(SPReg)
             .addReg(SPAddrDstReg);
@@ -1927,7 +1927,7 @@ void RISCVFrameLowering::determineCalleeSaves(MachineFunction &MF,
   // Unconditionally spill RA and FP only if the function uses a frame
   // pointer.
   if (hasFP(MF)) {
-    if (RISCVABI::isCheriPureCapABI(STI.getTargetABI())) {
+    if (RISCVABI::isPurecap(STI.getTargetABI())) {
       SavedRegs.set(RISCV::X1_Y);
       SavedRegs.set(RISCV::X8_Y);
     } else {
@@ -2194,7 +2194,7 @@ void RISCVFrameLowering::processFunctionBeforeFrameFinalized(
   const RISCVInstrInfo *TII = MF.getSubtarget<RISCVSubtarget>().getInstrInfo();
   MachineFrameInfo &MFI = MF.getFrameInfo();
   const TargetRegisterClass *RC;
-  if (RISCVABI::isCheriPureCapABI(STI.getTargetABI()))
+  if (RISCVABI::isPurecap(STI.getTargetABI()))
     RC = &RISCV::YGPRRegClass;
   else
     RC = &RISCV::GPRRegClass;
@@ -2404,7 +2404,7 @@ MachineBasicBlock::iterator RISCVFrameLowering::eliminateCallFramePseudoInstr(
 
   assert((Opcode == RISCV::ADJCALLSTACKDOWNCAP ||
           Opcode == RISCV::ADJCALLSTACKUPCAP) ==
-         RISCVABI::isCheriPureCapABI(STI.getTargetABI()) &&
+         RISCVABI::isPurecap(STI.getTargetABI()) &&
          "Should use capability adjustments if and only if ABI is purecap");
 
   if (!hasReservedCallFrame(MF)) {
@@ -2717,7 +2717,7 @@ bool RISCVFrameLowering::spillCalleeSavedRegisters(
         PushBuilder.addUse(FixedCSRFIMap[i], RegState::Implicit);
     }
   } else if (const char *SpillLibCall = getSpillLibCallName(*MF, CSI)) {
-    assert(!RISCVABI::isCheriPureCapABI(STI.getTargetABI()) &&
+    assert(!RISCVABI::isPurecap(STI.getTargetABI()) &&
            "Save/restore libcall not implemented for purecap");
     // Add spill libcall via non-callee-saved register t0.
     MachineInstrBuilder NewMI =
@@ -2877,7 +2877,7 @@ bool RISCVFrameLowering::restoreCalleeSavedRegisters(
     assert(RVFI->useSaveRestoreLibCalls(*MF) &&
            "Expected restore with libcall to use save restore libcalls");
 
-    assert(!RISCVABI::isCheriPureCapABI(STI.getTargetABI()) &&
+    assert(!RISCVABI::isPurecap(STI.getTargetABI()) &&
             "Save/restore libcall not implemented for purecap");
     // Restore is not compatible with shadow stacks, so do the restore manually.
     // This ensures we still get the code size saving of `__riscv_save_<N>`.

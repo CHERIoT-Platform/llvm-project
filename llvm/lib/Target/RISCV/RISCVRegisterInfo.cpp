@@ -47,7 +47,7 @@ static_assert(RISCV::V1 == RISCV::V0 + 1, "Register list not consecutive");
 static_assert(RISCV::V31 == RISCV::V0 + 31, "Register list not consecutive");
 
 RISCVRegisterInfo::RISCVRegisterInfo(const RISCVSubtarget &STI)
-    : RISCVGenRegisterInfo(RISCVABI::isCheriPureCapABI(STI.getTargetABI())
+    : RISCVGenRegisterInfo(RISCVABI::isPurecap(STI.getTargetABI())
                                ? RISCV::X1_Y
                                : RISCV::X1,
                            /*DwarfFlavour*/ 0, /*EHFlavor*/ 0,
@@ -100,40 +100,27 @@ RISCVRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
       MF->getFunction().getCallingConv() == CallingConv::RISCV_VectorCall &&
       Subtarget.hasVInstructions();
 
-  switch (Subtarget.getTargetABI()) {
-  default:
-    llvm_unreachable("Unrecognized ABI");
-  case RISCVABI::ABI_ILP32E:
-  case RISCVABI::ABI_LP64E:
-    return CSR_ILP32E_LP64E_SaveList;
-  case RISCVABI::ABI_ILP32:
-  case RISCVABI::ABI_LP64:
-    if (HasVectorCSR)
-      return CSR_ILP32_LP64_V_SaveList;
-    return CSR_ILP32_LP64_SaveList;
-  case RISCVABI::ABI_CHERIOT:
-  case RISCVABI::ABI_CHERIOT_BAREMETAL:
-    return CSR_CHERIOT_SaveList;
-  case RISCVABI::ABI_IL32PC64:
-  case RISCVABI::ABI_L64PC128:
+  RISCVABI::ABI ABI = Subtarget.getTargetABI();
+  assert(ABI != RISCVABI::ABI::Unknown && "Unrecognized ABI");
+
+  if (ABI == RISCVABI::ABI::IL32PC64 || ABI == RISCVABI::ABI::L64PC128)
     return CSR_IL32PC64_L64PC128_SaveList;
-  case RISCVABI::ABI_ILP32F:
-  case RISCVABI::ABI_LP64F:
-    if (HasVectorCSR)
-      return CSR_ILP32F_LP64F_V_SaveList;
-    return CSR_ILP32F_LP64F_SaveList;
-  case RISCVABI::ABI_IL32PC64F:
-  case RISCVABI::ABI_L64PC128F:
+  if (ABI == RISCVABI::ABI::IL32PC64F || ABI == RISCVABI::ABI::L64PC128F)
     return CSR_IL32PC64F_L64PC128F_SaveList;
-  case RISCVABI::ABI_ILP32D:
-  case RISCVABI::ABI_LP64D:
-    if (HasVectorCSR)
-      return CSR_ILP32D_LP64D_V_SaveList;
-    return CSR_ILP32D_LP64D_SaveList;
-  case RISCVABI::ABI_IL32PC64D:
-  case RISCVABI::ABI_L64PC128D:
+  if (ABI == RISCVABI::ABI::IL32PC64D || ABI == RISCVABI::ABI::L64PC128D)
     return CSR_IL32PC64D_L64PC128D_SaveList;
-  }
+  if (ABI == RISCVABI::ABI::CHERIOT || ABI == RISCVABI::ABI::CHERIOT_BAREMETAL)
+    return CSR_CHERIOT_SaveList;
+
+  if (RISCVABI::isRVE(ABI))
+    return CSR_ILP32E_LP64E_SaveList;
+  if (RISCVABI::isSoftFP(ABI))
+    return HasVectorCSR ? CSR_ILP32_LP64_V_SaveList : CSR_ILP32_LP64_SaveList;
+  if (RISCVABI::isSingleFP(ABI))
+    return HasVectorCSR ? CSR_ILP32F_LP64F_V_SaveList
+                        : CSR_ILP32F_LP64F_SaveList;
+  assert(RISCVABI::isDoubleFP(ABI) && "Unrecognized ABI");
+  return HasVectorCSR ? CSR_ILP32D_LP64D_V_SaveList : CSR_ILP32D_LP64D_SaveList;
 }
 
 const TargetRegisterClass *RISCVRegisterInfo::getConstrainedRegClassForReg(
@@ -208,7 +195,7 @@ BitVector RISCVRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   // Use markSuperRegs to ensure any register aliases are also reserved
   markSuperRegs(Reserved, RISCV::X2_H); // sp
   markSuperRegs(Reserved, RISCV::X3_H); // gp
-  if (STI.getTargetABI() != RISCVABI::ABI_CHERIOT && STI.getTargetABI() != RISCVABI::ABI_CHERIOT_BAREMETAL)
+  if (STI.getTargetABI() != RISCVABI::ABI::CHERIOT && STI.getTargetABI() != RISCVABI::ABI::CHERIOT_BAREMETAL)
     markSuperRegs(Reserved, RISCV::X4_H); // tp
   if (TFI->hasFP(MF))
     markSuperRegs(Reserved, RISCV::X8_H); // fp
@@ -220,7 +207,7 @@ BitVector RISCVRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   markSuperRegs(Reserved, RISCV::X0_Y); // cnull
   markSuperRegs(Reserved, RISCV::X2_Y); // csp
   markSuperRegs(Reserved, RISCV::X3_Y); // cgp
-  if (STI.getTargetABI() != RISCVABI::ABI_CHERIOT && STI.getTargetABI() != RISCVABI::ABI_CHERIOT_BAREMETAL)
+  if (STI.getTargetABI() != RISCVABI::ABI::CHERIOT && STI.getTargetABI() != RISCVABI::ABI::CHERIOT_BAREMETAL)
     markSuperRegs(Reserved, RISCV::X4_Y); // ctp
   if (TFI->hasFP(MF))
     markSuperRegs(Reserved, RISCV::X8_Y); // cfp
@@ -314,7 +301,7 @@ void RISCVRegisterInfo::adjustReg(MachineBasicBlock &MBB,
 
   unsigned Opc;
   unsigned OpcImm;
-  const bool IsPureCapABI = RISCVABI::isCheriPureCapABI(ST.getTargetABI());
+  const bool IsPureCapABI = RISCVABI::isPurecap(ST.getTargetABI());
   if (IsPureCapABI) {
     Opc = RISCV::CIncOffset;
     OpcImm = RISCV::CIncOffsetImm;
@@ -730,7 +717,7 @@ bool RISCVRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     Register DestReg;
     if (MI.getOpcode() == RISCV::ADDI || MI.getOpcode() == RISCV::CIncOffsetImm)
       DestReg = MI.getOperand(0).getReg();
-    else if (RISCVABI::isCheriPureCapABI(ST.getTargetABI()))
+    else if (RISCVABI::isPurecap(ST.getTargetABI()))
       DestReg = MRI.createVirtualRegister(&RISCV::YGPRRegClass);
     else
       DestReg = MRI.createVirtualRegister(&RISCV::GPRRegClass);
@@ -892,7 +879,7 @@ Register RISCVRegisterInfo::materializeFrameBaseRegister(MachineBasicBlock *MBB,
 
   unsigned Opc;
   Register BaseReg;
-  if (RISCVABI::isCheriPureCapABI(ST.getTargetABI())) {
+  if (RISCVABI::isPurecap(ST.getTargetABI())) {
     Opc = RISCV::CIncOffsetImm;
     BaseReg = MFI.createVirtualRegister(&RISCV::YGPRRegClass);
   } else {
@@ -971,45 +958,31 @@ RISCVRegisterInfo::getCallPreservedMask(const MachineFunction & MF,
   if (CC == CallingConv::GHC)
     return CSR_NoRegs_RegMask;
   RISCVABI::ABI ABI = Subtarget.getTargetABI();
+  assert(ABI != RISCVABI::ABI::Unknown && "Unrecognized ABI");
+
+  if (ABI == RISCVABI::ABI::CHERIOT || ABI == RISCVABI::ABI::CHERIOT_BAREMETAL)
+    return CSR_CHERIOT_RegMask;
+  if (ABI == RISCVABI::ABI::IL32PC64 || ABI == RISCVABI::ABI::L64PC128)
+    return CSR_IL32PC64_L64PC128_RegMask;
+  if (ABI == RISCVABI::ABI::IL32PC64F || ABI == RISCVABI::ABI::L64PC128F)
+    return CSR_IL32PC64F_L64PC128F_RegMask;
+  if (ABI == RISCVABI::ABI::IL32PC64D || ABI == RISCVABI::ABI::L64PC128D)
+    return CSR_IL32PC64D_L64PC128D_RegMask;
+
   if (CC == CallingConv::PreserveMost) {
     if (RISCVABI::isRVE(ABI))
       return CSR_RT_MostRegs_RVE_RegMask;
     return CSR_RT_MostRegs_RegMask;
   }
-  switch (ABI) {
-  default:
-    llvm_unreachable("Unrecognized ABI");
-  case RISCVABI::ABI_ILP32E:
-  case RISCVABI::ABI_LP64E:
+  if (RISCVABI::isRVE(ABI))
     return CSR_ILP32E_LP64E_RegMask;
-  case RISCVABI::ABI_ILP32:
-  case RISCVABI::ABI_LP64:
-    if (CC == CallingConv::RISCV_VectorCall)
-      return CSR_ILP32_LP64_V_RegMask;
-    return CSR_ILP32_LP64_RegMask;
-  case RISCVABI::ABI_CHERIOT:
-  case RISCVABI::ABI_CHERIOT_BAREMETAL:
-    return CSR_CHERIOT_RegMask;
-  case RISCVABI::ABI_IL32PC64:
-  case RISCVABI::ABI_L64PC128:
-    return CSR_IL32PC64_L64PC128_RegMask;
-  case RISCVABI::ABI_ILP32F:
-  case RISCVABI::ABI_LP64F:
-    if (CC == CallingConv::RISCV_VectorCall)
-      return CSR_ILP32F_LP64F_V_RegMask;
-    return CSR_ILP32F_LP64F_RegMask;
-  case RISCVABI::ABI_IL32PC64F:
-  case RISCVABI::ABI_L64PC128F:
-    return CSR_IL32PC64F_L64PC128F_RegMask;
-  case RISCVABI::ABI_ILP32D:
-  case RISCVABI::ABI_LP64D:
-    if (CC == CallingConv::RISCV_VectorCall)
-      return CSR_ILP32D_LP64D_V_RegMask;
-    return CSR_ILP32D_LP64D_RegMask;
-  case RISCVABI::ABI_IL32PC64D:
-  case RISCVABI::ABI_L64PC128D:
-    return CSR_IL32PC64D_L64PC128D_RegMask;
-  }
+  bool IsVectorCall = CC == CallingConv::RISCV_VectorCall;
+  if (RISCVABI::isSoftFP(ABI))
+    return IsVectorCall ? CSR_ILP32_LP64_V_RegMask : CSR_ILP32_LP64_RegMask;
+  if (RISCVABI::isSingleFP(ABI))
+    return IsVectorCall ? CSR_ILP32F_LP64F_V_RegMask : CSR_ILP32F_LP64F_RegMask;
+  assert(RISCVABI::isDoubleFP(ABI) && "Unrecognized ABI");
+  return IsVectorCall ? CSR_ILP32D_LP64D_V_RegMask : CSR_ILP32D_LP64D_RegMask;
 }
 
 const TargetRegisterClass *
@@ -1308,7 +1281,7 @@ void RISCVRegisterInfo::updateRegAllocHint(Register Reg, Register NewReg,
   }
 }
 
-Register
+MCRegister
 RISCVRegisterInfo::findVRegWithEncoding(const TargetRegisterClass &RegClass,
                                         uint16_t Encoding) const {
   MCRegister Reg = RISCV::V0 + Encoding;

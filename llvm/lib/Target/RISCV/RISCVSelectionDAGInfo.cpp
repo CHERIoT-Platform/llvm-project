@@ -42,7 +42,7 @@ SDValue callFunction(SelectionDAG &DAG, SDLoc dl, SDValue Chain, const char
   TargetLowering::CallLoweringInfo CLI(DAG);
   CLI.setDebugLoc(dl)
       .setChain(Chain)
-      .setLibCallee(STI.getTargetABI() == RISCVABI::ABI_CHERIOT
+      .setLibCallee(STI.getTargetABI() == RISCVABI::ABI::CHERIOT
                         ? CallingConv::CHERIoT_LibraryCall
                         : CallingConv::C,
                     Dst.getValueType().getTypeForEVT(Ctx), memOpFn,
@@ -80,8 +80,8 @@ SDValue EmitTargetCodeForMemOp(SelectionDAG &DAG, const SDLoc &dl,
     Src = DAG.getAddrSpaceCast(dl, CapType, Src, 0, 200);
 
   const char *memFnName = isMemCpy ?
-    (RISCVABI::isCheriPureCapABI(STI.getTargetABI()) ?  "memcpy" : "memcpy_c") :
-    (RISCVABI::isCheriPureCapABI(STI.getTargetABI()) ?  "memmove" : "memmove_c");
+    (RISCVABI::isPurecap(STI.getTargetABI()) ?  "memcpy" : "memcpy_c") :
+    (RISCVABI::isPurecap(STI.getTargetABI()) ?  "memmove" : "memmove_c");
   return callFunction(DAG, dl, Chain, memFnName, Dst, Src, Size);
 }
 }
@@ -289,7 +289,7 @@ SDValue RISCVSelectionDAGInfo::EmitTargetCodeForMemsetCHERI(
   }
 
   const char *memFnName =
-      RISCVABI::isCheriPureCapABI(STI.getTargetABI()) ? "memset" : "memset_c";
+      RISCVABI::isPurecap(STI.getTargetABI()) ? "memset" : "memset_c";
   return callFunction(DAG, dl, Chain, memFnName, Dst, Src, Size);
 }
 

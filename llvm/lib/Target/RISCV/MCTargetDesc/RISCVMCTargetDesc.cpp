@@ -63,7 +63,7 @@ createRISCVMCRegisterInfo(const Triple &TT, const MCTargetOptions &Options) {
   RISCVABI::ABI ABI = RISCVABI::getTargetABI(Options.getABIName(), TT);
 
   MCRegister RAReg;
-  if (ABI != RISCVABI::ABI_Unknown && RISCVABI::isCheriPureCapABI(ABI))
+  if (RISCVABI::isPurecap(ABI))
     RAReg = RISCV::X1_Y;
   else
     RAReg = RISCV::X1;
@@ -85,7 +85,7 @@ static MCAsmInfo *createRISCVMCAsmInfo(const MCRegisterInfo &MRI,
     reportFatalUsageError("unsupported object format");
 
   MCRegister SPReg;
-  if (ABI != RISCVABI::ABI_Unknown && RISCVABI::isCheriPureCapABI(ABI))
+  if (RISCVABI::isPurecap(ABI))
     SPReg = RISCV::X2_Y;
   else
     SPReg = RISCV::X2;

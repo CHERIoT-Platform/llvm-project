@@ -2565,10 +2565,10 @@ bool RISCVAsmParser::parseExprWithSpecifier(const MCExpr *&Res, SMLoc &E) {
   StringRef Identifier = getParser().getTok().getIdentifier();
   auto ABI = getTargetStreamer().getTargetABI();
   auto Spec =
-      RISCV::parseSpecifierName(Identifier, RISCVABI::isCheriPureCapABI(ABI));
+      RISCV::parseSpecifierName(Identifier, RISCVABI::isPurecap(ABI));
   if (!Spec)
     return TokError("invalid relocation specifier");
-  if (RISCVABI::isCheriPureCapABI(ABI) && MCTargetOptions::cheriTLSUseTGOT()) {
+  if (RISCVABI::isPurecap(ABI) && MCTargetOptions::cheriTLSUseTGOT()) {
     if (Spec == ELF::R_RISCV_TPREL_LO12_I ||
         Spec == ELF::R_RISCV_TPREL_LO12_S || Spec == ELF::R_RISCV_TPREL_HI20 ||
         Spec == ELF::R_RISCV_TPREL_ADD)
@@ -4802,7 +4802,7 @@ void RISCVAsmParser::emitCapLoadTLSIEAddress(MCInst &Inst, SMLoc IDLoc,
   unsigned SecondOpcode = isRV64() ? RISCV::CLD : RISCV::CLW;
   RISCV::Specifier SpecHi;
   auto ABI = getTargetStreamer().getTargetABI();
-  if (RISCVABI::isCheriPureCapABI(ABI) && MCTargetOptions::cheriTLSUseTGOT())
+  if (RISCVABI::isPurecap(ABI) && MCTargetOptions::cheriTLSUseTGOT())
     SpecHi = ELF::R_RISCV_CHERI_TLS_TGOT_GOT_HI20;
   else
     SpecHi = ELF::R_RISCV_TLS_GOT_HI20;
@@ -4821,7 +4821,7 @@ void RISCVAsmParser::emitCapLoadTLSGDCap(MCInst &Inst, SMLoc IDLoc,
   const MCExpr *Symbol = Inst.getOperand(1).getExpr();
   RISCV::Specifier SpecHi;
   auto ABI = getTargetStreamer().getTargetABI();
-  if (RISCVABI::isCheriPureCapABI(ABI) && MCTargetOptions::cheriTLSUseTGOT())
+  if (RISCVABI::isPurecap(ABI) && MCTargetOptions::cheriTLSUseTGOT())
     SpecHi = ELF::R_RISCV_CHERI_TLS_TGOT_GD_HI20;
   else
     SpecHi = ELF::R_RISCV_TLS_GD_HI20;

@@ -128,46 +128,19 @@ void RISCVTargetELFStreamer::finish() {
   if (isCapMode())
     EFlags |= ELF::EF_RISCV_CAP_MODE;
 
-  switch (ABI) {
-  case RISCVABI::ABI_ILP32:
-  case RISCVABI::ABI_ILP32E:
-  case RISCVABI::ABI_LP64:
-  case RISCVABI::ABI_LP64E:
+  if (RISCVABI::isSoftFP(ABI))
     EFlags |= ELF::EF_RISCV_FLOAT_ABI_SOFT;
-    break;
-  case RISCVABI::ABI_IL32PC64:
-  case RISCVABI::ABI_IL32PC64E:
-  case RISCVABI::ABI_L64PC128:
-    EFlags |= ELF::EF_RISCV_FLOAT_ABI_SOFT;
+  else if (RISCVABI::isSingleFP(ABI))
+    EFlags |= ELF::EF_RISCV_FLOAT_ABI_SINGLE;
+  else if (RISCVABI::isDoubleFP(ABI))
+    EFlags |= ELF::EF_RISCV_FLOAT_ABI_DOUBLE;
+  else
+    assert(ABI == RISCVABI::ABI::Unknown);
+
+  if (RISCVABI::isPurecap(ABI))
     EFlags |= ELF::EF_RISCV_CHERIABI;
-    break;
-  case RISCVABI::ABI_CHERIOT:
-  case RISCVABI::ABI_CHERIOT_BAREMETAL:
-    EFlags |= ELF::EF_RISCV_FLOAT_ABI_SOFT;
-    EFlags |= ELF::EF_RISCV_CHERIABI;
+  if (ABI == RISCVABI::ABI::CHERIOT || ABI == RISCVABI::ABI::CHERIOT_BAREMETAL)
     EFlags |= ELF::EF_RISCV_CHERIOT;
-    break;
-  case RISCVABI::ABI_ILP32F:
-  case RISCVABI::ABI_LP64F:
-    EFlags |= ELF::EF_RISCV_FLOAT_ABI_SINGLE;
-    break;
-  case RISCVABI::ABI_IL32PC64F:
-  case RISCVABI::ABI_L64PC128F:
-    EFlags |= ELF::EF_RISCV_FLOAT_ABI_SINGLE;
-    EFlags |= ELF::EF_RISCV_CHERIABI;
-    break;
-  case RISCVABI::ABI_ILP32D:
-  case RISCVABI::ABI_LP64D:
-    EFlags |= ELF::EF_RISCV_FLOAT_ABI_DOUBLE;
-    break;
-  case RISCVABI::ABI_IL32PC64D:
-  case RISCVABI::ABI_L64PC128D:
-    EFlags |= ELF::EF_RISCV_FLOAT_ABI_DOUBLE;
-    EFlags |= ELF::EF_RISCV_CHERIABI;
-    break;
-  case RISCVABI::ABI_Unknown:
-    break;
-  }
 
   W.setELFHeaderEFlags(EFlags);
 }

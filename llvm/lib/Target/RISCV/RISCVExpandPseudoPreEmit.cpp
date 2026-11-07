@@ -500,7 +500,7 @@ bool RISCVExpandPseudoPreEmitImpl::expandLibraryCall(
     // intrinsic.  These don't have accompanying LLVM functions and so we just
     // need to treat them as an external library call.
     const auto &STI = MF->getSubtarget<RISCVSubtarget>();
-    if (STI.getTargetABI() == RISCVABI::ABI_CHERIOT_BAREMETAL) {
+    if (STI.getTargetABI() == RISCVABI::ABI::CHERIOT_BAREMETAL) {
       // If baremetal just blindly use a direct call
       DEBUG_WITH_TYPE("baremetal", llvm::dbgs() <<
         "baremetal library call of " << Callee.getSymbolName() << "\n");
@@ -607,8 +607,8 @@ bool RISCVExpandPseudoPreEmitImpl::expandAuipccInstPair(
     MachineBasicBlock::iterator &NextMBBI, unsigned FlagsHi,
     unsigned SecondOpcode, bool InBounds) const {
   auto ABI = MBB.getParent()->getSubtarget<RISCVSubtarget>().getTargetABI();
-  bool IsCheriot = ABI == RISCVABI::ABI_CHERIOT ||
-                   ABI == RISCVABI::ABI_CHERIOT_BAREMETAL;
+  bool IsCheriot = ABI == RISCVABI::ABI::CHERIOT ||
+                   ABI == RISCVABI::ABI::CHERIOT_BAREMETAL;
   MachineFunction *MF = MBB.getParent();
   MachineInstr &MI = *MBBI;
   DebugLoc DL = MI.getDebugLoc();
@@ -799,7 +799,7 @@ bool RISCVExpandPseudoPreEmitImpl::expandCapLoadLocalCap(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
     MachineBasicBlock::iterator &NextMBBI, bool InBounds) const {
   auto ABI = MBB.getParent()->getSubtarget<RISCVSubtarget>().getTargetABI();
-  if (ABI == RISCVABI::ABI_CHERIOT || ABI == RISCVABI::ABI_CHERIOT_BAREMETAL) {
+  if (ABI == RISCVABI::ABI::CHERIOT || ABI == RISCVABI::ABI::CHERIOT_BAREMETAL) {
     const MachineOperand &Symbol = MBBI->getOperand(1);
     if (!Symbol.isGlobal() ||
         Symbol.getTargetFlags() == RISCVII::MO_JUMP_TABLE_BASE)
@@ -853,7 +853,7 @@ bool RISCVExpandPseudoPreEmitImpl::expandDerefCapLoadLocalCap(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
     MachineBasicBlock::iterator &NextMBBI, unsigned DerefOpcode) const {
   auto ABI = MBB.getParent()->getSubtarget<RISCVSubtarget>().getTargetABI();
-  if (ABI == RISCVABI::ABI_CHERIOT || ABI == RISCVABI::ABI_CHERIOT_BAREMETAL) {
+  if (ABI == RISCVABI::ABI::CHERIOT || ABI == RISCVABI::ABI::CHERIOT_BAREMETAL) {
     bool IsStore = MBBI->getNumOperands() == 3;
     const MachineOperand &Symbol = MBBI->getOperand(IsStore ? 2 : 1);
     const GlobalVariable *GV = cast<GlobalVariable>(Symbol.getGlobal());

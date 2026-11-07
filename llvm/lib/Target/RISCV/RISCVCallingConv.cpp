@@ -213,9 +213,9 @@ ArrayRef<MCPhysReg> RISCV::getArgYGPRs(const RISCVABI::ABI ABI) {
                                         RISCV::X12_Y, RISCV::X13_Y,
                                         RISCV::X14_Y, RISCV::X15_Y};
 
-  if (ABI == RISCVABI::ABI_ILP32E || ABI == RISCVABI::ABI_LP64E ||
-      ABI == RISCVABI::ABI_IL32PC64E ||
-      ABI == RISCVABI::ABI_CHERIOT || ABI == RISCVABI::ABI_CHERIOT_BAREMETAL)
+  if (ABI == RISCVABI::ABI::ILP32E || ABI == RISCVABI::ABI::LP64E ||
+      ABI == RISCVABI::ABI::IL32PC64E ||
+      ABI == RISCVABI::ABI::CHERIOT || ABI == RISCVABI::ABI::CHERIOT_BAREMETAL)
     return ArrayRef(ArgEYGPRs);
 
   return ArrayRef(ArgIYGPRs);
@@ -234,9 +234,9 @@ static ArrayRef<MCPhysReg> getFastCCArgYGPRs(const RISCVABI::ABI ABI) {
       RISCV::X10_Y, RISCV::X11_Y, RISCV::X12_Y, RISCV::X13_Y,
       RISCV::X14_Y, RISCV::X15_Y, RISCV::X7_Y};
 
-  if (ABI == RISCVABI::ABI_ILP32E || ABI == RISCVABI::ABI_LP64E ||
-      ABI == RISCVABI::ABI_IL32PC64E ||
-      ABI == RISCVABI::ABI_CHERIOT || ABI == RISCVABI::ABI_CHERIOT_BAREMETAL)
+  if (ABI == RISCVABI::ABI::ILP32E || ABI == RISCVABI::ABI::LP64E ||
+      ABI == RISCVABI::ABI::IL32PC64E ||
+      ABI == RISCVABI::ABI::CHERIOT || ABI == RISCVABI::ABI::CHERIOT_BAREMETAL)
     return ArrayRef(FastCCEYGPRs);
 
   return ArrayRef(FastCCIYGPRs);
@@ -359,8 +359,8 @@ static bool CC_RISCVAssign2XLen(CCState &State, bool IsPureCapVarArgs,
     // alignment. This behavior may be changed when RV32E/ILP32E is ratified.
     // NOTE: Cheriot does not use the GCC workaround behavior.
     Align StackAlign(XLenInBytes);
-    bool IsCheriot = (ABI == RISCVABI::ABI_CHERIOT) ||
-                     (ABI == RISCVABI::ABI_CHERIOT_BAREMETAL);
+    bool IsCheriot = (ABI == RISCVABI::ABI::CHERIOT) ||
+                     (ABI == RISCVABI::ABI::CHERIOT_BAREMETAL);
     if (!EABI || XLen != 32 || IsCheriot)
       StackAlign = std::max(StackAlign, ArgFlags1.getNonZeroOrigAlign());
     State.addLoc(
@@ -486,32 +486,12 @@ static bool CC_RISCV_Impl(unsigned ValNo, MVT ValVT, MVT LocVT,
   bool AllowFPRForF64 = false;
 
   RISCVABI::ABI ABI = Subtarget.getTargetABI();
-  bool IsPureCapVarArgs = ArgFlags.isVarArg() && RISCVABI::isCheriPureCapABI(ABI);
-  switch (ABI) {
-  default:
-    llvm_unreachable("Unexpected ABI");
-  case RISCVABI::ABI_ILP32:
-  case RISCVABI::ABI_ILP32E:
-  case RISCVABI::ABI_LP64:
-  case RISCVABI::ABI_LP64E:
-  case RISCVABI::ABI_IL32PC64:
-  case RISCVABI::ABI_L64PC128:
-  case RISCVABI::ABI_CHERIOT:
-  case RISCVABI::ABI_CHERIOT_BAREMETAL:
-    break;
-  case RISCVABI::ABI_ILP32D:
-  case RISCVABI::ABI_LP64D:
-  case RISCVABI::ABI_IL32PC64D:
-  case RISCVABI::ABI_L64PC128D:
-    AllowFPRForF64 = !ArgFlags.isVarArg();
-    [[fallthrough]];
-  case RISCVABI::ABI_ILP32F:
-  case RISCVABI::ABI_LP64F:
-  case RISCVABI::ABI_IL32PC64F:
-  case RISCVABI::ABI_L64PC128F:
+  bool IsPureCapVarArgs = ArgFlags.isVarArg() && RISCVABI::isPurecap(ABI);
+  bool IsDoubleFPABI = RISCVABI::isDoubleFP(ABI);
+  if (IsDoubleFPABI || RISCVABI::isSingleFP(ABI))
     AllowFPRForF16_F32 = !ArgFlags.isVarArg();
-    break;
-  }
+  if (IsDoubleFPABI)
+    AllowFPRForF64 = !ArgFlags.isVarArg();
 
   if ((LocVT == MVT::f16 || LocVT == MVT::bf16) && AllowFPRForF16_F32) {
     if (MCRegister Reg = State.AllocateReg(ArgFPR16s)) {
@@ -599,10 +579,10 @@ static bool CC_RISCV_Impl(unsigned ValNo, MVT ValVT, MVT LocVT,
   // currently if we are using ILP32E calling convention. This behavior may be
   // changed when RV32E/ILP32E is ratified.
   unsigned TwoXLenInBytes = (2 * XLen) / 8;
-  if (ArgFlags.isVarArg() && !RISCVABI::isCheriPureCapABI(ABI) &&
+  if (ArgFlags.isVarArg() && !RISCVABI::isPurecap(ABI) &&
       ArgFlags.getNonZeroOrigAlign() == TwoXLenInBytes &&
       DL.getTypeAllocSize(OrigTy) == TwoXLenInBytes &&
-      ABI != RISCVABI::ABI_ILP32E) {
+      ABI != RISCVABI::ABI::ILP32E) {
     unsigned RegIdx = State.getFirstUnallocated(ArgGPRs);
     // Skip 'odd' register if necessary.
     if (RegIdx != std::size(ArgGPRs) && RegIdx % 2 == 1)
@@ -722,7 +702,7 @@ static bool CC_RISCV_Impl(unsigned ValNo, MVT ValVT, MVT LocVT,
         StackAlign = MaybeAlign(LocVT.getScalarSizeInBits() / 8).valueOrOne();
       }
     }
-  } else if (RISCVABI::isCheriPureCapABI(ABI) && !PendingLocs.empty()) {
+  } else if (RISCVABI::isPurecap(ABI) && !PendingLocs.empty()) {
     // Allocate a cap register to hold the pointer to indirectly-passed
     // split arguments.
     assert(ArgFlags.isSplitEnd() && "Expected ArgFlags.isSplitEnd()");
@@ -745,7 +725,7 @@ static bool CC_RISCV_Impl(unsigned ValNo, MVT ValVT, MVT LocVT,
       if (Reg) {
         State.addLoc(CCValAssign::getReg(
             It.getValNo(), It.getValVT(), Reg,
-            RISCVABI::isCheriPureCapABI(ABI) ? CLenVT : XLenVT,
+            RISCVABI::isPurecap(ABI) ? CLenVT : XLenVT,
             CCValAssign::Indirect));
       } else
         State.addLoc(CCValAssign::getMem(It.getValNo(), It.getValVT(),

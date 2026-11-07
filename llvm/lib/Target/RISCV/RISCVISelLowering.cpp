@@ -46,12 +46,10 @@
 #include "llvm/IR/IntrinsicsRISCV.h"
 #include "llvm/MC/MCCodeEmitter.h"
 #include "llvm/MC/MCInstBuilder.h"
-#include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/InstructionCost.h"
 #include "llvm/Support/KnownBits.h"
 #include "llvm/Support/MathExtras.h"
-#include "llvm/Support/raw_ostream.h"
 #include <optional>
 
 using namespace llvm;
@@ -75,27 +73,28 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
   RISCVABI::ABI ABI = Subtarget.getTargetABI();
   // Note: Hard-float ABIs that don't match the F/D extensions are already
   // rejected/ by RISCVABI::computeTargetABI() during subtarget construction.
-  assert(ABI != RISCVABI::ABI_Unknown && "Improperly initialised target ABI");
+  assert(ABI != RISCVABI::ABI::Unknown && "Improperly initialised target ABI");
 
+  // Unlike upstream, purecap ABIs are supported.
   switch (ABI) {
   default:
     reportFatalUsageError("Don't know how to lower this ABI");
-  case RISCVABI::ABI_ILP32:
-  case RISCVABI::ABI_ILP32E:
-  case RISCVABI::ABI_LP64E:
-  case RISCVABI::ABI_ILP32F:
-  case RISCVABI::ABI_ILP32D:
-  case RISCVABI::ABI_CHERIOT:
-  case RISCVABI::ABI_CHERIOT_BAREMETAL:
-  case RISCVABI::ABI_IL32PC64:
-  case RISCVABI::ABI_IL32PC64F:
-  case RISCVABI::ABI_IL32PC64D:
-  case RISCVABI::ABI_LP64:
-  case RISCVABI::ABI_LP64F:
-  case RISCVABI::ABI_LP64D:
-  case RISCVABI::ABI_L64PC128:
-  case RISCVABI::ABI_L64PC128F:
-  case RISCVABI::ABI_L64PC128D:
+  case RISCVABI::ABI::ILP32:
+  case RISCVABI::ABI::ILP32E:
+  case RISCVABI::ABI::LP64E:
+  case RISCVABI::ABI::ILP32F:
+  case RISCVABI::ABI::ILP32D:
+  case RISCVABI::ABI::CHERIOT:
+  case RISCVABI::ABI::CHERIOT_BAREMETAL:
+  case RISCVABI::ABI::IL32PC64:
+  case RISCVABI::ABI::IL32PC64F:
+  case RISCVABI::ABI::IL32PC64D:
+  case RISCVABI::ABI::LP64:
+  case RISCVABI::ABI::LP64F:
+  case RISCVABI::ABI::LP64D:
+  case RISCVABI::ABI::L64PC128:
+  case RISCVABI::ABI::L64PC128F:
+  case RISCVABI::ABI::L64PC128D:
     break;
   }
 
@@ -127,7 +126,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     CapType = Subtarget.typeForCapabilities();
     NullCapabilityRegister = RISCV::X0_Y;
     addRegisterClass(CapType, &RISCV::YGPRRegClass);
-    IsCheriPureCap = RISCVABI::isCheriPureCapABI(ABI);
+    IsCheriPureCap = RISCVABI::isPurecap(ABI);
   }
 
   if (Subtarget.hasVendorXCheriot()) {
@@ -287,7 +286,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
   // Compute derived properties from the register classes.
   computeRegisterProperties(STI.getRegisterInfo());
 
-  if (RISCVABI::isCheriPureCapABI(ABI))
+  if (RISCVABI::isPurecap(ABI))
     setStackPointerRegisterToSaveRestore(RISCV::X2_Y);
   else
     setStackPointerRegisterToSaveRestore(RISCV::X2);
@@ -920,7 +919,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     setOperationAction(ISD::GlobalTLSAddress, CLenVT, Custom);
     setOperationAction(ISD::ADDRSPACECAST, CLenVT, Custom);
     setOperationAction(ISD::ADDRSPACECAST, XLenVT, Custom);
-    if (!RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI())) {
+    if (!RISCVABI::isPurecap(Subtarget.getTargetABI())) {
       setOperationAction(ISD::PTRTOINT, XLenVT, Custom);
       setOperationAction(ISD::INTTOPTR, CLenVT, Custom);
     }
@@ -996,7 +995,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     if (Subtarget.hasStdExtZabha() && Subtarget.hasStdExtZacas())
       setMinCmpXchgSizeInBits(8);
     else
-      if (RISCVABI::isCheriPureCapABI(ABI))
+      if (RISCVABI::isPurecap(ABI))
         setMinCmpXchgSizeInBits(8);
     else
       setMinCmpXchgSizeInBits(32);
@@ -8696,7 +8695,7 @@ SDValue RISCVTargetLowering::LowerOperation(SDValue Op,
   case ISD::INTTOPTR: {
     SDValue Op0 = Op.getOperand(0);
     if (Op.getValueType().isFatPointer()) {
-      assert(!RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()));
+      assert(!RISCVABI::isPurecap(Subtarget.getTargetABI()));
       if (isNullConstant(Op0)) {
         // Do not custom lower (inttoptr 0) here as that is the canonical
         // representation of capability NULL, and expanding it here disables
@@ -8722,7 +8721,7 @@ SDValue RISCVTargetLowering::LowerOperation(SDValue Op,
   case ISD::PTRTOINT: {
     SDValue Op0 = Op.getOperand(0);
     if (Op0.getValueType().isFatPointer()) {
-      assert(!RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()));
+      assert(!RISCVABI::isPurecap(Subtarget.getTargetABI()));
       // In purecap ptrtoint is lowered to an address read using a tablegen
       // pattern, but for hybrid mode we need to emit the expansion here as
       // CToPtr is no longer part of ISAv9.
@@ -10497,9 +10496,9 @@ SDValue RISCVTargetLowering::getAddr(NodeTy *N, EVT Ty, SelectionDAG &DAG,
                                      bool IsExternWeak) const {
   SDLoc DL(N);
 
-  if (RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI())) {
-    bool IsCheriot = Subtarget.getTargetABI() == RISCVABI::ABI_CHERIOT ||
-                     Subtarget.getTargetABI() == RISCVABI::ABI_CHERIOT_BAREMETAL;
+  if (RISCVABI::isPurecap(Subtarget.getTargetABI())) {
+    bool IsCheriot = Subtarget.getTargetABI() == RISCVABI::ABI::CHERIOT ||
+                     Subtarget.getTargetABI() == RISCVABI::ABI::CHERIOT_BAREMETAL;
     SDValue Addr = getTargetNode(N, DL, Ty, DAG, 0);
     if ((IsLocal && CanDeriveFromPcc) || IsCheriot) {
       // Use PC-relative addressing to access the symbol. This generates the
@@ -10679,7 +10678,7 @@ SDValue RISCVTargetLowering::getStaticTLSAddr(GlobalAddressSDNode *N,
   const GlobalValue *GV = N->getGlobal();
   MVT XLenVT = Subtarget.getXLenVT();
 
-  if (RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI())) {
+  if (RISCVABI::isPurecap(Subtarget.getTargetABI())) {
     if (UseGOT) {
       // Use PC-relative addressing to access the GOT for this TLS symbol, then
       // load the address from the GOT and add the thread pointer. This
@@ -10826,7 +10825,7 @@ SDValue RISCVTargetLowering::getDynamicTLSAddr(GlobalAddressSDNode *N,
   // For pure capability TLS, this generates the pattern (PseudoCLC_TLS_GD sym),
   // which expands to
   // (cincoffset (auipcc %tls_gd_pcrel_hi(sym)) %pcrel_lo(auipc)).
-  unsigned Opcode = RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI())
+  unsigned Opcode = RISCVABI::isPurecap(Subtarget.getTargetABI())
                         ? RISCV::PseudoCLC_TLS_GD
                         : RISCV::PseudoLA_TLS_GD;
   SDValue Addr = DAG.getTargetGlobalAddress(GV, DL, Ty, 0, 0);
@@ -13500,7 +13499,7 @@ SDValue RISCVTargetLowering::LowerINTRINSIC_WO_CHAIN(SDValue Op,
     // behaviour of Morello's CVT instruction when CCTLR.DDCBO is off.
     return emitCToPtrReplacement(DAG, DL, Op->getOperand(2), XLenVT);
   case Intrinsic::thread_pointer: {
-    MCPhysReg PhysReg = RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI())
+    MCPhysReg PhysReg = RISCVABI::isPurecap(Subtarget.getTargetABI())
                             ? RISCV::X4_Y
                             : RISCV::X4;
     EVT PtrVT =
@@ -28398,7 +28397,7 @@ bool RISCVTargetLowering::canCreateUndefOrPoisonForTargetNode(
 
 TailPaddingAmount
 RISCVTargetLowering::getTailPaddingForPreciseBounds(uint64_t Size) const {
-  if (!RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()))
+  if (!RISCVABI::isPurecap(Subtarget.getTargetABI()))
     return TailPaddingAmount::None;
 
   return RISCVCompressedCap::getRequiredTailPadding(Size, Subtarget);
@@ -28406,7 +28405,7 @@ RISCVTargetLowering::getTailPaddingForPreciseBounds(uint64_t Size) const {
 
 Align
 RISCVTargetLowering::getAlignmentForPreciseBounds(uint64_t Size) const {
-  if (!RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()))
+  if (!RISCVABI::isPurecap(Subtarget.getTargetABI()))
     return Align();
 
   return RISCVCompressedCap::getRequiredAlignment(Size, Subtarget);
@@ -28552,7 +28551,7 @@ static MachineBasicBlock *emitSplitF64Pseudo(MachineInstr &MI,
       MPI.getWithOffset(4), MachineMemOperand::MOLoad, 4, Align(8));
   RISCVABI::ABI ABI = MF.getSubtarget<RISCVSubtarget>().getTargetABI();
   unsigned LoadOpcode =
-      RISCVABI::isCheriPureCapABI(ABI) ? RISCV::CLW : RISCV::LW;
+      RISCVABI::isPurecap(ABI) ? RISCV::CLW : RISCV::LW;
 
   // For big-endian, the high part is at offset 0 and the low part at offset 4.
   if (!Subtarget.isLittleEndian())
@@ -28620,7 +28619,7 @@ static MachineBasicBlock *emitBuildPairF64Pseudo(MachineInstr &MI,
       MPI.getWithOffset(4), MachineMemOperand::MOStore, 4, Align(8));
   RISCVABI::ABI ABI = MF.getSubtarget<RISCVSubtarget>().getTargetABI();
   unsigned StoreOpcode =
-      RISCVABI::isCheriPureCapABI(ABI) ? RISCV::CSW : RISCV::SW;
+      RISCVABI::isPurecap(ABI) ? RISCV::CSW : RISCV::SW;
 
   // For big-endian, store the high part at offset 0 and the low part at
   // offset 4.
@@ -29664,7 +29663,7 @@ SDValue RISCVTargetLowering::LowerFormalArguments(
              [](CCValAssign &VA) { return VA.getLocVT().isScalableVector(); }))
     MF.getInfo<RISCVMachineFunctionInfo>()->setIsVectorCall();
 
-  if (IsVarArg && RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI())) {
+  if (IsVarArg && RISCVABI::isPurecap(Subtarget.getTargetABI())) {
     // Record the frame index of the first variable argument
     // which is a value necessary to VASTART.
     int FI = MFI.CreateFixedObject(XLenInBytes, CCInfo.getStackSize(),
@@ -29885,7 +29884,7 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
 
   // Anything that changes the interrupt status on CHERIoT then we must do a
   // call via the import table.
-  if (Subtarget.getTargetABI() == RISCVABI::ABI_CHERIOT)
+  if (Subtarget.getTargetABI() == RISCVABI::ABI::CHERIOT)
     if (auto *GV = dyn_cast<GlobalAddressSDNode>(Callee)) {
       const Constant *GlobalValue = GV->getGlobal();
       if (auto *GA = dyn_cast<GlobalAlias>(GlobalValue))
@@ -29902,7 +29901,7 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
 
   // Anything that changes the interrupt status on CHERIoT then we must do a
   // call via the import table.
-  if (Subtarget.getTargetABI() == RISCVABI::ABI_CHERIOT)
+  if (Subtarget.getTargetABI() == RISCVABI::ABI::CHERIOT)
     if (auto *GV = dyn_cast<GlobalAddressSDNode>(Callee)) {
       const Constant *GlobalValue = GV->getGlobal();
       if (auto *GA = dyn_cast<GlobalAlias>(GlobalValue))
@@ -30307,7 +30306,7 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
     }
   } else if (GlobalAddressSDNode *S = dyn_cast<GlobalAddressSDNode>(Callee)) {
     const GlobalValue *GV = S->getGlobal();
-    if (RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()) &&
+    if (RISCVABI::isPurecap(Subtarget.getTargetABI()) &&
         CLOpts.legacy_indirect_purecap_calls) {
       Callee = getAddr(S, Callee.getValueType(), DAG, /*IsLocal=*/false,
                        /*CanDeriveFromPcc=*/true);
@@ -30315,7 +30314,7 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
       Callee = DAG.getTargetGlobalAddress(GV, DL, PtrVT, 0, RISCVII::MO_CALL);
     }
   } else if (ExternalSymbolSDNode *S = dyn_cast<ExternalSymbolSDNode>(Callee)) {
-    if (RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()) &&
+    if (RISCVABI::isPurecap(Subtarget.getTargetABI()) &&
         CLOpts.legacy_indirect_purecap_calls) {
       Callee = getAddr(S, Callee.getValueType(), DAG, /*IsLocal=*/false,
                        /*CanDeriveFromPcc=*/true);
@@ -30375,7 +30374,7 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
     MF.getFrameInfo().setHasTailCall();
     unsigned CallOpc =
         NeedSWGuardedTail ? RISCVISD::SW_GUARDED_TAIL : RISCVISD::TAIL;
-    if (RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()))
+    if (RISCVABI::isPurecap(Subtarget.getTargetABI()))
       return DAG.getNode(RISCVISD::CAP_TAIL, DL, NodeTys, Ops);
     SDValue Ret = DAG.getNode(CallOpc, DL, NodeTys, Ops);
     if (CLI.CFIType)
@@ -30394,12 +30393,12 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
     CallOpc = RISCVISD::LPAD_CALL_INDIRECT;
   else if (NeedLpadCall)
     CallOpc = RISCVISD::LPAD_CALL;
-  else if (RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI())) {
+  else if (RISCVABI::isPurecap(Subtarget.getTargetABI())) {
     if ((CallConv == CallingConv::CHERIoT_CompartmentCall) ||
         (CallConv == CallingConv::CHERIoT_CompartmentCallee)) {
       CallOpc = RISCVISD::CAP_COMPARTMENT_CALL;
     } else if (CallConv == CallingConv::CHERIoT_LibraryCall) {
-      assert(Subtarget.getTargetABI() != RISCVABI::ABI_CHERIOT_BAREMETAL &&
+      assert(Subtarget.getTargetABI() != RISCVABI::ABI::CHERIOT_BAREMETAL &&
              "Cheri libcall on baremetal");
       CallOpc = RISCVISD::CAP_LIB_CALL;
     } else {
@@ -31222,12 +31221,12 @@ RISCVTargetLowering::shouldExpandAtomicRMWInIR(const AtomicRMWInst *AI) const {
         (Size >= 32 || Subtarget.hasStdExtZabha()))
       return AtomicExpansionKind::CmpXChg;
     if ((Size < 32) &&
-        !RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()))
+        !RISCVABI::isPurecap(Subtarget.getTargetABI()))
       return AtomicExpansionKind::MaskedIntrinsic;
   }
 
   if ((Size == 8 || Size == 16) && !Subtarget.hasStdExtZabha() &&
-      !RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()))
+      !RISCVABI::isPurecap(Subtarget.getTargetABI()))
     return AtomicExpansionKind::MaskedIntrinsic;
 
   return AtomicExpansionKind::None;
@@ -31260,7 +31259,7 @@ getIntrinsicForMaskedAtomicRMWBinOp(unsigned XLen, AtomicRMWInst::BinOp BinOp) {
 Value *RISCVTargetLowering::emitMaskedAtomicRMWIntrinsic(
     IRBuilderBase &Builder, AtomicRMWInst *AI, Value *AlignedAddr, Value *Incr,
     Value *Mask, Value *ShiftAmt, AtomicOrdering Ord) const {
-  assert(!RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()));
+  assert(!RISCVABI::isPurecap(Subtarget.getTargetABI()));
   // In the case of an atomicrmw xchg with a constant 0/-1 operand, replace
   // the atomic instruction with an AtomicRMWInst::And/Or with appropriate
   // mask, as this produces better code than the LR/SC loop emitted by
@@ -31327,7 +31326,7 @@ RISCVTargetLowering::shouldExpandAtomicCmpXchgInIR(
   unsigned Size = CI->getCompareOperand()->getType()->getPrimitiveSizeInBits();
   if (!(Subtarget.hasStdExtZabha() && Subtarget.hasStdExtZacas()) &&
       ((Size == 8 || Size == 16)) &&
-      !RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()))
+      !RISCVABI::isPurecap(Subtarget.getTargetABI()))
     return AtomicExpansionKind::MaskedIntrinsic;
   return AtomicExpansionKind::None;
 }
@@ -31335,7 +31334,7 @@ RISCVTargetLowering::shouldExpandAtomicCmpXchgInIR(
 Value *RISCVTargetLowering::emitMaskedAtomicCmpXchgIntrinsic(
     IRBuilderBase &Builder, AtomicCmpXchgInst *CI, Value *AlignedAddr,
     Value *CmpVal, Value *NewVal, Value *Mask, AtomicOrdering Ord) const {
-  assert(!RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()));
+  assert(!RISCVABI::isPurecap(Subtarget.getTargetABI()));
   unsigned XLen = Subtarget.getXLen();
   Value *Ordering = Builder.getIntN(XLen, static_cast<uint64_t>(Ord));
   Intrinsic::ID CmpXchgIntrID = Intrinsic::riscv_masked_cmpxchg;
@@ -31361,7 +31360,7 @@ bool RISCVTargetLowering::supportsAtomicOperation(const DataLayout &DL,
   // missing the SelectionDAG nodes+expansions to use the explicit addressing
   // mode instructions.
   if (DL.isFatPointer(PointerTy) &&
-      !RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()) &&
+      !RISCVABI::isPurecap(Subtarget.getTargetABI()) &&
       (isa<AtomicRMWInst>(AI) || isa<AtomicCmpXchgInst>(AI)))
     return false;
   return TargetLowering::supportsAtomicOperation(DL, AI, ValueTy, PointerTy,
@@ -31396,7 +31395,7 @@ bool RISCVTargetLowering::shouldConvertFpToSat(unsigned Op, EVT FPVT,
 }
 
 unsigned RISCVTargetLowering::getJumpTableEncoding() const {
-  if (RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()))
+  if (RISCVABI::isPurecap(Subtarget.getTargetABI()))
     return MachineJumpTableInfo::EK_LabelDifference32;
   // If we are using the small code model, we can reduce size of jump table
   // entry to 4 bytes.
@@ -31543,7 +31542,7 @@ bool RISCVTargetLowering::isFMAFasterThanFMulAndFAdd(const MachineFunction &MF,
 }
 
 bool RISCVTargetLowering::isJumpTableRelative() const {
-  if (!RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()))
+  if (!RISCVABI::isPurecap(Subtarget.getTargetABI()))
     return TargetLowering::isJumpTableRelative();
 
   return true;
@@ -31552,7 +31551,7 @@ bool RISCVTargetLowering::isJumpTableRelative() const {
 SDValue
 RISCVTargetLowering::getPICJumpTableRelocBase(SDValue Table,
                                               SelectionDAG &DAG) const {
-  if (!RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()))
+  if (!RISCVABI::isPurecap(Subtarget.getTargetABI()))
     return TargetLowering::getPICJumpTableRelocBase(Table, DAG);
 
   SDLoc DL(Table);
@@ -31567,7 +31566,7 @@ const MCExpr *
 RISCVTargetLowering::getPICJumpTableRelocBaseExpr(const MachineFunction *MF,
                                                   unsigned JTI,
                                                   MCContext &Ctx) const {
-  if (!RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()))
+  if (!RISCVABI::isPurecap(Subtarget.getTargetABI()))
     return TargetLowering::getPICJumpTableRelocBaseExpr(MF, JTI, Ctx);
 
   const TargetMachine &TM = getTargetMachine();
@@ -31604,7 +31603,7 @@ ISD::NodeType RISCVTargetLowering::getExtendForAtomicRMWArg(unsigned Op) const {
 
 Register RISCVTargetLowering::getExceptionPointerRegister(
     ExceptionHandling EH, const Constant *PersonalityFn) const {
-  return RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()) ? RISCV::X10_Y
+  return RISCVABI::isPurecap(Subtarget.getTargetABI()) ? RISCV::X10_Y
                                                                : RISCV::X10;
 }
 
@@ -31615,7 +31614,7 @@ Register RISCVTargetLowering::getExceptionSelectorRegister(
 }
 
 uint32_t RISCVTargetLowering::getExceptionPointerAS() const {
-  return RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()) ? 200 : 0;
+  return RISCVABI::isPurecap(Subtarget.getTargetABI()) ? 200 : 0;
 }
 
 bool RISCVTargetLowering::shouldExtendTypeInLibCall(EVT Type) const {

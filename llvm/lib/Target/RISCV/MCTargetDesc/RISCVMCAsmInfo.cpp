@@ -25,8 +25,7 @@ RISCVMCAsmInfo::RISCVMCAsmInfo(const Triple &TT, const MCTargetOptions &Options,
     : MCAsmInfoELF(Options) {
   IsLittleEndian = TT.isLittleEndian();
   CodePointerSize = CalleeSaveStackSlotSize = TT.isArch64Bit() ? 8 : 4;
-  IsCheriPurecapABI =
-      ABI != RISCVABI::ABI_Unknown && RISCVABI::isCheriPureCapABI(ABI);
+  IsCheriPurecapABI = RISCVABI::isPurecap(ABI);
 
   CommentString = "#";
   AlignmentIsInBytes = false;

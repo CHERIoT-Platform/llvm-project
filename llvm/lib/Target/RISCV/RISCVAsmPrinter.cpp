@@ -819,7 +819,7 @@ void RISCVAsmPrinter::emitStartOfAsmFile(Module &M) {
   StringRef ABIName = M.getTargetABIFromMD();
   if (!ABIName.empty()) {
     RISCVABI::ABI ABI = RISCVABI::getTargetABI(ABIName, M.getTargetTriple());
-    if (ABI == RISCVABI::ABI_Unknown) {
+    if (ABI == RISCVABI::ABI::Unknown) {
       M.getContext().emitError(Twine('\'') + ABIName +
                                "' is not a recognized ABI for this target");
     } else {
@@ -1023,7 +1023,7 @@ void RISCVAsmPrinter::emitFunctionEntryLabel() {
   AsmPrinter::emitFunctionEntryLabel();
   auto &Subtarget = MF->getSubtarget<RISCVSubtarget>();
   const MachineJumpTableInfo *MJTI = MF->getJumpTableInfo();
-  if (RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()) &&
+  if (RISCVABI::isPurecap(Subtarget.getTargetABI()) &&
       MJTI && !MJTI->isEmpty()) {
     MCSymbol *Sym = getSymbolWithGlobalValueBase(&MF->getFunction(),
                                                  "$jump_table_base");

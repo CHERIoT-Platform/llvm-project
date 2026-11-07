@@ -2811,6 +2811,11 @@ static void findKeepUniqueSections(Ctx &ctx, opt::InputArgList &args) {
           Err(ctx) << f << ": could not decode addrsig section: " << err;
           break;
         }
+        if (symIndex >= syms.size()) {
+          Err(ctx) << f << ": out of range symbol index " << symIndex
+                   << " in addrsig section";
+          break;
+        }
         markAddrsig(icfSafe, syms[symIndex]);
         cur += size;
       }

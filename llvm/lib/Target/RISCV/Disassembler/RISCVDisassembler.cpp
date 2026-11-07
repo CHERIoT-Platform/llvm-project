@@ -123,9 +123,6 @@ static DecodeStatus DecodeSingleRegister(MCInst &Inst, uint32_t RegNo,
   return MCDisassembler::Success;
 }
 
-constexpr auto DecodeYGPRRegisterClass =
-    DecodeSimpleRegisterClass<RISCV::X0_Y, 32, /*RVELimit=*/16>;
-
 template <unsigned PhysReg, unsigned Encoding>
 static DecodeStatus DecodeSingleRegister(MCInst &Inst,
                                          const MCDisassembler *Decoder) {
@@ -135,6 +132,8 @@ static DecodeStatus DecodeSingleRegister(MCInst &Inst,
 
 constexpr auto DecodeGPRRegisterClass =
     DecodeSimpleRegisterClass<RISCV::X0, 32, /*RVELimit=*/16>;
+constexpr auto DecodeYGPRRegisterClass =
+    DecodeSimpleRegisterClass<RISCV::X0_Y, 32, /*RVELimit=*/16>;
 
 static DecodeStatus DecodeCSPRegisterClass(MCInst &Inst,
                                           const MCDisassembler *Decoder) {
@@ -169,6 +168,8 @@ constexpr bool PredX1OrX5(uint32_t RegNo) { return RegNo == 1 || RegNo == 5; }
 
 constexpr auto DecodeGPRNoX0RegisterClass =
     DecodeFilteredRegisterClass<DecodeGPRRegisterClass, PredNoX0>;
+constexpr auto DecodeYGPRNoX0RegisterClass =
+    DecodeFilteredRegisterClass<DecodeYGPRRegisterClass, PredNoX0>;
 constexpr auto DecodeGPRNoX2RegisterClass =
     DecodeFilteredRegisterClass<DecodeGPRRegisterClass, PredNoX2>;
 constexpr auto DecodeGPRNoX31RegisterClass =
@@ -178,9 +179,6 @@ constexpr auto DecodeGPRX1X5RegisterClass =
 
 constexpr auto DecodeYGPRCRegisterClass =
     DecodeSimpleRegisterClass<RISCV::X8_Y, 8>;
-
-constexpr auto DecodeYGPRNoX0RegisterClass =
-    DecodeFilteredRegisterClass<DecodeYGPRRegisterClass, PredNoX0>;
 
 static DecodeStatus decodeTHMemIdxRs1Operand(MCInst &Inst, uint32_t RegNo,
                                              uint64_t Address,

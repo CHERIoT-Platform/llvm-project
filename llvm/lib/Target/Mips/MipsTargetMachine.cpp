@@ -69,9 +69,6 @@ extern "C" LLVM_ABI LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMipsTarget() {
   initializeMipsBranchExpansionPass(*PR);
   initializeMicroMipsSizeReducePass(*PR);
   initializeMipsPreLegalizerCombinerPass(*PR);
-  initializeMipsOptimizePICCallPass(*PR);
-  initializeCheriAddressingModeFolderPass(*PR);
-  initializeCheriRangeCheckerPass(*PR);
   initializeMipsPostLegalizerCombinerPass(*PR);
   initializeMipsMulMulBugFixPass(*PR);
   initializeMipsDAGToDAGISelLegacyPass(*PR);
@@ -237,8 +234,8 @@ void MipsPassConfig::addIRPasses() {
   TargetPassConfig::addIRPasses();
   addPass(createAtomicExpandLegacyPass());
   if (getMipsTargetMachine().getCLOpts().os16)
-    addPass(createMipsOs16Pass());
-  addPass(createMips16HardFloatPass());
+    addPass(createMipsOs16LegacyPass());
+  addPass(createMips16HardFloatLegacyPass());
   if (TM->hasCheriCapabilities()) {
     addPass(createCheriLoopPointerDecanonicalize());
     addPass(createDeadCodeEliminationPass());
@@ -255,7 +252,7 @@ bool MipsPassConfig::addInstSelector() {
 }
 
 void MipsPassConfig::addPreRegAlloc() {
-  addPass(createMipsOptimizePICCallPass());
+  addPass(createMipsOptimizePICCallLegacyPass());
   if (TM->hasCheriCapabilities()) {
     addPass(createCheriAddressingModeFolder());
     // The CheriAddressingModeFolder can sometimes produce new dead instructions

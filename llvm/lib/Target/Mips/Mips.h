@@ -15,7 +15,11 @@
 #define LLVM_LIB_TARGET_MIPS_MIPS_H
 
 #include "MCTargetDesc/MipsMCTargetDesc.h"
+#include "llvm/CodeGen/MachineFunction.h"
+#include "llvm/CodeGen/MachineFunctionAnalysisManager.h"
 #include "llvm/CodeGen/SelectionDAGISel.h"
+#include "llvm/IR/Analysis.h"
+#include "llvm/IR/PassManager.h"
 #include "llvm/Support/CodeGen.h"
 #include "llvm/Target/TargetMachine.h"
 
@@ -55,8 +59,23 @@ public:
 
 FunctionPass *createMips16ISelDAGLegacyPass(MipsTargetMachine &TM,
                                             CodeGenOptLevel OptLevel);
-ModulePass *createMipsOs16Pass();
-ModulePass *createMips16HardFloatPass();
+
+class MipsOs16Pass : public RequiredPassInfoMixin<MipsOs16Pass> {
+public:
+  PreservedAnalyses run(Module &M, ModuleAnalysisManager &MAM);
+};
+
+ModulePass *createMipsOs16LegacyPass();
+
+class Mips16HardFloatPass : public RequiredPassInfoMixin<Mips16HardFloatPass> {
+  MipsTargetMachine &TM;
+
+public:
+  Mips16HardFloatPass(MipsTargetMachine &TM) : TM(TM) {}
+  PreservedAnalyses run(Module &M, ModuleAnalysisManager &MAM);
+};
+
+ModulePass *createMips16HardFloatLegacyPass();
 
 class MipsSEISelDAGPass : public SelectionDAGISelPass {
 public:
@@ -72,7 +91,15 @@ public:
 
 FunctionPass *createMipsSEISelDAGLegacyPass(MipsTargetMachine &TM,
                                             CodeGenOptLevel OptLevel);
-FunctionPass *createMipsOptimizePICCallPass();
+
+class MipsOptimizePICCallPass
+    : public RequiredPassInfoMixin<MipsOptimizePICCallPass> {
+public:
+  PreservedAnalyses run(MachineFunction &MF,
+                        MachineFunctionAnalysisManager &MFAM);
+};
+
+FunctionPass *createMipsOptimizePICCallLegacyPass();
 FunctionPass *createMipsDelaySlotFillerPass();
 FunctionPass *createMipsBranchExpansion();
 FunctionPass *createMipsConstantIslandPass();
@@ -98,7 +125,6 @@ void initializeMipsBranchExpansionPass(PassRegistry &);
 void initializeMipsDAGToDAGISelLegacyPass(PassRegistry &);
 void initializeMipsDelaySlotFillerPass(PassRegistry &);
 void initializeMipsMulMulBugFixPass(PassRegistry &);
-void initializeMipsOptimizePICCallPass(PassRegistry &);
 void initializeCheriAddressingModeFolderPass(PassRegistry &);
 void initializeCheriRangeCheckerPass(PassRegistry &);
 void initializeMipsPostLegalizerCombinerPass(PassRegistry &);

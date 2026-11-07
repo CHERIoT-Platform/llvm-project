@@ -238,6 +238,12 @@ static Type *getLongDoubleType(LLVMContext &Ctx, LongDoubleFormat Format) {
   llvm_unreachable("unhandled long double format");
 }
 
+static Type *getInt128Type(LLVMContext &Ctx, const Triple &TT) {
+  if (TT.isOSWindowsOrUEFI() && TT.isX86_64())
+    return FixedVectorType::get(Type::getInt64Ty(Ctx), 2);
+  return Type::getInt128Ty(Ctx);
+}
+
 static Type *convertToIRType(FuncArgTypeID ID, LLVMContext &Ctx,
                              const Triple &TT, const DataLayout &DL,
                              LongDoubleFormat LdblFormat) {
@@ -273,7 +279,7 @@ static Type *convertToIRType(FuncArgTypeID ID, LLVMContext &Ctx,
     return IntegerType::get(Ctx, 64);
   case Int128:
   case UInt128:
-    return IntegerType::get(Ctx, 128);
+    return getInt128Type(Ctx, TT);
   case SizeT:
   case SSizeT:
     return getSizeTType(Ctx, DL);
@@ -377,7 +383,7 @@ static Attribute::AttrKind getIntExtAttr(FuncArgTypeID ID, Type *Ty,
     return shouldZExtBool(TT) ? Attribute::ZExt : Attribute::None;
 
   std::optional<bool> Signed = isSignedIntArgType(ID);
-  if (!Signed)
+  if (!Signed || !Ty->isIntegerTy())
     return Attribute::None;
 
   // All targets currently extend types narrower than int according to their
@@ -394,6 +400,10 @@ static Attribute::AttrKind getIntExtAttr(FuncArgTypeID ID, Type *Ty,
   if (IsReturn ? shouldSignExtI32Return(TT) : shouldSignExtI32Param(TT))
     return Attribute::SExt;
   return Attribute::None;
+}
+
+static bool isFPVectorTy(Type *Ty) {
+  return Ty->isVectorTy() && Ty->isFPOrFPVectorTy();
 }
 
 std::pair<FunctionType *, AttributeList>
@@ -439,7 +449,7 @@ RuntimeLibcallsInfo::getDefaultFunctionTy(
       Attrs = Attrs.addParamAttribute(Ctx, Idx - 1, AK);
   }
 
-  if (RetTy->isVectorTy()) {
+  if (RetTy->isVectorTy() && !ArgTys.empty() && isFPVectorTy(ArgTys[0])) {
     AttrBuilder FuncAttrBuilder(Ctx);
     for (Attribute::AttrKind Attr : CommonFnAttrs)
       FuncAttrBuilder.addAttribute(Attr);
@@ -650,7 +660,7 @@ RuntimeLibcallsInfo::getFunctionTy(LLVMContext &Ctx, const Triple &TT,
 
   auto [FuncTy, Attrs] = getDefaultFunctionTy(Ctx, TT, DL, LibcallImpl);
   if (!FuncTy || FuncTy->getNumParams() == 0 ||
-      !FuncTy->getParamType(0)->isVectorTy())
+      !isFPVectorTy(FuncTy->getParamType(0)))
     return {FuncTy, Attrs};
 
   Type *VecTy = FuncTy->getParamType(0);

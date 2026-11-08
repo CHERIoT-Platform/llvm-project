@@ -122,7 +122,7 @@ std::string SDNode::getOperationName(const SelectionDAG *G) const {
   default:
     // If this assert fails, add/remove the newly added/removed opcode from the
     // switch and update the expected value.
-    static_assert(ISD::BUILTIN_OP_END == 481, "Unexpected number of opcodes");
+    static_assert(ISD::BUILTIN_OP_END == 482, "Unexpected number of opcodes");
     if (getOpcode() < ISD::BUILTIN_OP_END)
       return "<<Unknown DAG Node>>";
     if (isMachineOpcode()) {
@@ -542,6 +542,7 @@ std::string SDNode::getOperationName(const SelectionDAG *G) const {
   case ISD::MGATHER:                    return "masked_gather";
   case ISD::MSCATTER:                   return "masked_scatter";
   case ISD::VECTOR_COMPRESS:            return "vector_compress";
+  case ISD::VECTOR_SHUFFLE_VAR:         return "vector_shuffle_var";
   case ISD::VAARG:                      return "vaarg";
   case ISD::VACOPY:                     return "vacopy";
   case ISD::VAEND:                      return "vaend";

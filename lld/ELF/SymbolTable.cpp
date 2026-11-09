@@ -79,12 +79,8 @@ void SymbolTable::wrap(Symbol *sym, Symbol *real, Symbol *wrap) {
     CachedHashStringRef key(name);
     return getShard(key).map[key];
   };
-  Symbol *&sym1 = lookup(sym->getName());
-  Symbol *&sym2 = lookup(real->getName());
-  Symbol *&sym3 = lookup(wrap->getName());
-
-  sym2 = sym1;
-  sym1 = sym3;
+  lookup(real->getName()) = sym;
+  lookup(sym->getName()) = wrap;
 
   // Propagate symbol usage information to the redirected symbols.
   if (sym->isUsedInRegularObj)
@@ -155,7 +151,7 @@ Symbol *SymbolTable::intern(CachedHashStringRef name) {
 
 // This variant of addSymbol is used by BinaryFile::parse to check duplicate
 // symbol errors.
-Symbol *SymbolTable::addAndCheckDuplicate(Ctx &ctx, const Defined &newSym) {
+Symbol *SymbolTable::addAndCheckDuplicate(const Defined &newSym) {
   Symbol *sym = insert(newSym.getName());
   if (sym->isDefined())
     sym->checkDuplicate(ctx, newSym);

@@ -4076,7 +4076,8 @@ bool RISCVInstrInfo::analyzeCandidate(outliner::Candidate &C) const {
   // Otherwise, try to save X5 into t1-t6 (MachineOutlinerRegSave).
   bool IsPurecap = RISCVABI::isPurecap(
       C.getMF()->getSubtarget<RISCVSubtarget>().getTargetABI());
-  if (STI.getCLOpts().outliner_regsave && findRegisterToSaveX5To(C, RegInfo, IsPurecap))
+  if (STI.getCLOpts().outliner_regsave && !C.getMF()->isOutlined() &&
+      findRegisterToSaveX5To(C, RegInfo, IsPurecap))
     return false;
 
   return true;

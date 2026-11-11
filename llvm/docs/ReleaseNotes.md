@@ -184,6 +184,10 @@ Makes programs 10x faster by doing Special New Thing.
   GNU-vs-EABI distinction is now derived entirely from the target triple's
   environment (e.g. `arm-none-gnueabi` vs `arm-none-eabi`).
 
+* Removed `TargetOptions::DebuggerTuning` and the `llc`/`opt`
+  `-debugger-tune=` flag. The debugger to tune debug info for is now
+  controlled by setting the `"debugger-tuning"` module flag.
+
 * Replaced `TargetOptions::EnableMachineFunctionSplitter` with
   `TargetOptions::FunctionSplitting`, and the `-split-machine-functions` and
   `-enable-split-machine-functions` flags with
@@ -303,6 +307,9 @@ Makes programs 10x faster by doing Special New Thing.
   ARM64 ABI (calling convention, callee saved registers, stack probing and SEH
   unwind information) and produces PE/COFF objects.
 
+* Added support for the Apple M6, A20 Pro, and S11 CPUs (exposed as,
+  respectively, `apple-m6`, `apple-a20`, and `apple-s11`)
+
 ### Changes to the AMDGPU Backend
 
 * Replaced `xnack` and `sramecc` target features with `amdgpu.xnack`
@@ -401,6 +408,7 @@ Makes programs 10x faster by doing Special New Thing.
 * Removed X5 from the preserve_most register list.
 * Added `-mcpu=chipsalliance-veer-eh1` for the CHIPS Alliance VeeR EH1
   processor.
+* The behavior of i128 arguments with the LP64E ABI now matches gcc.
 
 ### Changes to the WebAssembly Backend
 
@@ -489,6 +497,9 @@ Makes programs 10x faster by doing Special New Thing.
 * The new `LLVMParseCommandLineOptionsWithError()` function provides an
   alternative to `LLVMParseCommandLineOptions()` that also captures any error
   during parsing.
+
+* Added `LLVMPrintMetadataToString()` to obtain a `LLVMMetadataRef`'s string
+  representation without having to convert it to a `LLVMValueRef` first.
 
 ### Changes to the CodeGen infrastructure
 

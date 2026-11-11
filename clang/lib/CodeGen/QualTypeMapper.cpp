@@ -459,6 +459,22 @@ QualTypeMapper::convertMemberPointerType(const clang::MemberPointerType *MPT) {
   return Builder.getMemberPointerType(IsFunctionPointer, Size, Align);
 }
 
+/// Returns the record flags that describe C++ class properties of \p RD.
+static llvm::abi::RecordFlags getCXXRecordFlags(const CXXRecordDecl *RD) {
+  llvm::abi::RecordFlags RecFlags = llvm::abi::RecordFlags::IsCXXRecord;
+  if (RD->isPolymorphic())
+    RecFlags |= llvm::abi::RecordFlags::IsPolymorphic;
+  if (RD->isEmpty())
+    RecFlags |= llvm::abi::RecordFlags::IsCXXEmpty;
+  if (RD->hasNonTrivialCopyAssignment())
+    RecFlags |= llvm::abi::RecordFlags::HasNonTrivialCopyAssignment;
+  if (RD->hasNonTrivialDestructor())
+    RecFlags |= llvm::abi::RecordFlags::HasNonTrivialDestructor;
+  if (RD->hasNonTrivialDefaultConstructor())
+    RecFlags |= llvm::abi::RecordFlags::HasNonTrivialDefaultConstructor;
+  return RecFlags;
+}
+
 /// Converts record types (struct/class/union) to LLVM ABI representations.
 /// This is the main dispatch method that handles different record kinds
 /// and delegates to specialized converters.
@@ -539,9 +555,7 @@ QualTypeMapper::convertCXXRecordType(const CXXRecordDecl *RD) {
   llvm::Align UnadjustedAlign =
       llvm::Align(Layout.getUnadjustedAlignment().getQuantity());
 
-  llvm::abi::RecordFlags RecFlags = llvm::abi::RecordFlags::IsCXXRecord;
-  if (RD->isPolymorphic())
-    RecFlags |= llvm::abi::RecordFlags::IsPolymorphic;
+  llvm::abi::RecordFlags RecFlags = getCXXRecordFlags(RD);
   if (RD->canPassInRegisters())
     RecFlags |= llvm::abi::RecordFlags::CanPassInRegisters;
   if (RD->hasFlexibleArrayMember())
@@ -579,7 +593,6 @@ const llvm::abi::RecordType *
 QualTypeMapper::convertStructType(const clang::RecordDecl *RD) {
   const ASTRecordLayout &Layout = ASTCtx.getASTRecordLayout(RD);
 
-  bool IsCXXRecord = isa<CXXRecordDecl>(RD);
   SmallVector<llvm::abi::FieldInfo, 16> Fields;
   computeFieldInfo(RD, Fields, Layout);
 
@@ -590,8 +603,8 @@ QualTypeMapper::convertStructType(const clang::RecordDecl *RD) {
       llvm::Align(Layout.getUnadjustedAlignment().getQuantity());
 
   llvm::abi::RecordFlags RecFlags = llvm::abi::RecordFlags::None;
-  if (IsCXXRecord)
-    RecFlags |= llvm::abi::RecordFlags::IsCXXRecord;
+  if (const auto *CXXRD = dyn_cast<CXXRecordDecl>(RD))
+    RecFlags |= getCXXRecordFlags(CXXRD);
   if (RD->canPassInRegisters())
     RecFlags |= llvm::abi::RecordFlags::CanPassInRegisters;
   if (RD->hasFlexibleArrayMember())
@@ -626,8 +639,8 @@ QualTypeMapper::convertUnionType(const clang::RecordDecl *RD) {
     RecFlags |= llvm::abi::RecordFlags::IsTransparent;
   if (RD->canPassInRegisters())
     RecFlags |= llvm::abi::RecordFlags::CanPassInRegisters;
-  if (isa<CXXRecordDecl>(RD))
-    RecFlags |= llvm::abi::RecordFlags::IsCXXRecord;
+  if (const auto *CXXRD = dyn_cast<CXXRecordDecl>(RD))
+    RecFlags |= getCXXRecordFlags(CXXRD);
 
   return Builder.getUnionType(AllFields, Size, Alignment, UnadjustedAlign,
                               llvm::abi::StructPacking::Default, RecFlags);

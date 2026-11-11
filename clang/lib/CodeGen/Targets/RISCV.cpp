@@ -870,7 +870,7 @@ ABIArgInfo RISCVABIInfo::classifyArgumentType(QualType Ty, bool IsFixed,
   // int/fp pairs (requires thought for fp+cap when out of FPRs).
   int NeededArgGPRs = 1;
   if (!IsSingleCapability && !IsFixed && NeededAlign == 2 * XLen)
-    NeededArgGPRs = 2 + (EABI && XLen == 32 ? 0 : (ArgGPRsLeft % 2));
+    NeededArgGPRs = 2 + (EABI ? 0 : (ArgGPRsLeft % 2));
   else if (!IsSingleCapability && Size > XLen && Size <= 2 * XLen)
     NeededArgGPRs = 2;
 
@@ -969,13 +969,14 @@ RValue RISCVABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
 
   // TODO: To be compatible with GCC's behaviors, we force arguments with
   // 2×XLEN-bit alignment and size at most 2×XLEN bits like `long long`,
-  // `unsigned long long` and `double` to have 4-byte alignment. This
-  // behavior may be changed when RV32E/ILP32E is ratified.
+  // `unsigned long long`, `double` and `__int128` to have XLEN-byte alignment
+  // for ILP32E and LP64E. This behavior may be changed when RV32E/ILP32E is
+  // ratified.
   // NOTE: Cheriot does not use the GCC workaround behavior.
   StringRef TargetABI = getTarget().getABI();
   bool IsCheriot = TargetABI == "cheriot" || TargetABI == "cheriot-baremetal";
-  if (EABI && XLen == 32 && !IsCheriot)
-    TInfo.Align = std::min(TInfo.Align, CharUnits::fromQuantity(4));
+  if (EABI && !IsCheriot)
+    TInfo.Align = std::min(TInfo.Align, SlotSize);
 
   uint64_t Size = TInfo.Width.getQuantity() * 8;
 

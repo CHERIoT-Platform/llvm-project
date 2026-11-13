@@ -25,6 +25,7 @@
 #include "lld/Common/Arrays.h"
 #include "lld/Common/CommonLinkerContext.h"
 #include "lld/Common/Filesystem.h"
+#include "lld/Common/Parallel.h"
 #include "lld/Common/Strings.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallPtrSet.h"
@@ -482,7 +483,7 @@ static void demoteAndCopyLocalSymbols(Ctx &ctx) {
   llvm::TimeTraceScope timeScope("Add local symbols");
   auto symsVec =
       std::make_unique<SmallVector<Symbol *, 0>[]>(ctx.objectFiles.size());
-  parallelFor(0, ctx.objectFiles.size(), [&](size_t i) {
+  parallelForFineGrained(ctx.objectFiles.size(), [&](size_t i) {
     DenseMap<SectionBase *, size_t> sectionIndexMap;
     for (Symbol *b : ctx.objectFiles[i]->getLocalSymbols()) {
       assert(b->isLocal() && "should have been caught in initializeSymbols()");
@@ -2158,7 +2159,7 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
     // that we can correctly decide if a dynamic relocation is needed. This is
     // called after processSymbolAssignments() because it needs to know whether
     // a linker-script-defined symbol is absolute.
-    scanRelocations<ELFT>(ctx);
+    scanRelocations(ctx);
 
     // Process symbols referenced by the embedded unoptimized part of dynamic
     // debugging. Report references to undefined symbols and ensure that

@@ -820,6 +820,8 @@ lltok::Kind LLLexer::LexIdentifier() {
   KEYWORD(summaries);
   KEYWORD(flags);
   KEYWORD(blockcount);
+  KEYWORD(cfiFunctionDefs);
+  KEYWORD(cfiFunctionDecls);
   KEYWORD(linkage);
   KEYWORD(visibility);
   KEYWORD(notEligibleToImport);

@@ -699,6 +699,7 @@ void AtomicExpandImpl::expandElementwiseAtomicRMW(AtomicRMWInst *AI) {
   Value *Val = AI->getValOperand();
 
   ReplacementIRBuilder Builder(AI, *DL);
+  Builder.disableGEPCanonicalization();
   IntegerType *IdxTy =
       DL->getIndexType(AI->getContext(), AI->getPointerAddressSpace());
 

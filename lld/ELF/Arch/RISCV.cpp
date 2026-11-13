@@ -44,7 +44,7 @@ public:
   void writePltHeader(uint8_t *buf) const override;
   void writePlt(uint8_t *buf, const Symbol &sym,
                 uint64_t pltEntryAddr) const override;
-  template <class ELFT, class RelTy>
+  template <class RelTy>
   void scanSectionImpl(InputSectionBase &, Relocs<RelTy>, unsigned shard);
   void scanSection(InputSectionBase &, unsigned shard) override;
   RelType getDynRel(RelType type) const override;
@@ -488,7 +488,6 @@ RelExpr RISCV::getRelExpr(const RelType type, const Symbol &s,
   }
 }
 
-
 /**
  * Perform a substantial pre-pass of Cheriot relocations ahead of relaxation
  * and relocation. This pre-pass has two goals:
@@ -579,7 +578,7 @@ static bool rewriteCheriotLowRelocs(Ctx &ctx, InputSectionBase &sec) {
   return modified;
 }
 
-template <class ELFT, class RelTy>
+template <class RelTy>
 void RISCV::scanSectionImpl(InputSectionBase &sec, Relocs<RelTy> rels,
                             unsigned shard) {
   RelocScan rs(ctx, &sec, shard);
@@ -590,7 +589,7 @@ void RISCV::scanSectionImpl(InputSectionBase &sec, Relocs<RelTy> rels,
   for (auto it = rels.begin(); it != rels.end(); ++it) {
     RelType type = it->getType(false);
     uint32_t symIndex = it->getSymbol(false);
-    Symbol &sym = sec.getFile<ELFT>()->getSymbol(symIndex);
+    Symbol &sym = sec.file->getSymbol(symIndex);
     uint64_t offset = it->r_offset;
     if (sym.isUndefined() && symIndex != 0 &&
         rs.maybeReportUndefined(cast<Undefined>(sym), offset))
@@ -607,7 +606,7 @@ void RISCV::scanSectionImpl(InputSectionBase &sec, Relocs<RelTy> rels,
       type.v |= VendorFlag;
       vendor = "";
     }
-    int64_t addend = rs.getAddend<ELFT>(*it, type);
+    int64_t addend = rs.getAddend(*it, type);
     RelExpr expr;
     // Relocation types that only need a RelExpr set `expr` and break out of
     // the switch to reach rs.process(). Types that need special handling

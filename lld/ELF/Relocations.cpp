@@ -994,10 +994,11 @@ bool RelocScan::isStaticLinkTimeConstant(RelExpr e, RelType type,
   // Cheri capability relocations are never static link time constants since
   // even if we know the exact value of the capability we can't write it since
   // there is no way to store the tag bit
-  // The exception is for non-preemptible undef weak symbols, which are
-  // NULL-derived constants.
+  // The exception is undef weak symbols, which are NULL-derived constants when
+  // non-preemptible, or (like other undefined preemptible references, see
+  // below) for -no-pie links.
   if (e == R_ABS_CAP)
-    return !sym.isPreemptible && sym.isUndefWeak();
+    return sym.isUndefWeak() && (!sym.isPreemptible || !ctx.arg.isPic);
 
   // These never do, except if the entire file is position dependent or if
   // only the low bits are used.
@@ -1147,19 +1148,7 @@ void RelocScan::processAux(RelExpr expr, RelType type, uint64_t offset,
   // If the relocation is known to be a link-time constant, we know no dynamic
   // relocation will be created, pass the control to relocateAlloc() or
   // relocateNonAlloc() to resolve it.
-  //
-  // The behavior of an undefined weak reference is implementation defined. For
-  // non-link-time constants, we resolve relocations statically (let
-  // relocate{,Non}Alloc() resolve them) for -no-pie and try producing dynamic
-  // relocations for -pie and -shared.
-  //
-  // The general expectation of -no-pie static linking is that there is no
-  // dynamic relocation (except IRELATIVE). Emitting dynamic relocations for
-  // -shared matches the spirit of its -z undefs default. -pie has freedom on
-  // choices, and we choose dynamic relocations to be consistent with the
-  // handling of GOT-generating relocations.
-  if (isStaticLinkTimeConstant(expr, type, sym, offset) ||
-      (!ctx.arg.isPic && sym.isUndefWeak())) {
+  if (isStaticLinkTimeConstant(expr, type, sym, offset)) {
     sec->addReloc(ctx, {expr, type, offset, addend, &sym});
     return;
   }

@@ -2182,8 +2182,9 @@ Value *llvm::emitHotColdNewNoThrow(Value *Num, Value *NoThrow, IRBuilderBase &B,
     return nullptr;
 
   StringRef Name = TLI->getName(NewFunc);
-  FunctionCallee Func = M->getOrInsertFunction(
-      Name, B.getPtrTy(), Num->getType(), NoThrow->getType(), B.getInt8Ty());
+  FunctionCallee Func =
+      getOrInsertLibFunc(M, *TLI, NewFunc, B.getPtrTy(), Num->getType(),
+                         NoThrow->getType(), B.getInt8Ty());
   inferNonMandatoryLibFuncAttrs(M, Name, *TLI);
   CallInst *CI = B.CreateCall(Func, {Num, NoThrow, HotCold}, Name);
 
@@ -2202,8 +2203,9 @@ Value *llvm::emitHotColdNewAligned(Value *Num, Value *Align, IRBuilderBase &B,
     return nullptr;
 
   StringRef Name = TLI->getName(NewFunc);
-  FunctionCallee Func = M->getOrInsertFunction(
-      Name, B.getPtrTy(), Num->getType(), Align->getType(), B.getInt8Ty());
+  FunctionCallee Func =
+      getOrInsertLibFunc(M, *TLI, NewFunc, B.getPtrTy(), Num->getType(),
+                         Align->getType(), B.getInt8Ty());
   inferNonMandatoryLibFuncAttrs(M, Name, *TLI);
   CallInst *CI = B.CreateCall(Func, {Num, Align, HotCold}, Name);
 
@@ -2223,9 +2225,9 @@ Value *llvm::emitHotColdNewAlignedNoThrow(Value *Num, Value *Align,
     return nullptr;
 
   StringRef Name = TLI->getName(NewFunc);
-  FunctionCallee Func = M->getOrInsertFunction(
-      Name, B.getPtrTy(), Num->getType(), Align->getType(), NoThrow->getType(),
-      B.getInt8Ty());
+  FunctionCallee Func =
+      getOrInsertLibFunc(M, *TLI, NewFunc, B.getPtrTy(), Num->getType(),
+                         Align->getType(), NoThrow->getType(), B.getInt8Ty());
   inferNonMandatoryLibFuncAttrs(M, Name, *TLI);
   CallInst *CI = B.CreateCall(Func, {Num, Align, NoThrow, HotCold}, Name);
 

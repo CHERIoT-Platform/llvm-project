@@ -26,57 +26,16 @@ namespace targets {
 
 // RISC-V Target
 class RISCVTargetInfo : public TargetInfo {
-  void setDataLayout() {
-    std::string Layout;
-    IsABICHERIoT = false;
-    IsABICHERIoTBareMetal = false;
-
-    if (getTriple().getArch() == llvm::Triple::riscv32be || getTriple().getArch() == llvm::Triple::riscv64be) {
-      Layout += "E";
-    } else {
-      Layout += "e";
-    }
-
-    if (ABI == "ilp32" || ABI == "ilp32f" || ABI == "ilp32d" ||
-        ABI == "cheriot" || ABI == "cheriot-baremetal" ||
-        ABI == "il32pc64" || ABI == "il32pc64f" || ABI == "il32pc64d" ||
-        ABI == "il32pc64e") {
-      Layout += "-m:e-p:32:32";
-      if (HasCheri)
-        Layout += "-pfe200:64:64:64:32";
-      Layout += "-i64:64-n32-S128";
-    } else if (ABI == "ilp32e") {
-      Layout += "-m:e-p:32:32";
-      if (HasCheri)
-        Layout += "-pfe200:64:64:64:32";
-      Layout += "-i64:64-n32-S32";
-    } else if (ABI == "lp64" || ABI == "lp64f" || ABI == "lp64d" ||
-               ABI == "l64pc128" || ABI == "l64pc128f" ||
-               ABI == "l64pc128d") {
-      Layout += "-m:e-p:64:64";
-      if (HasCheri)
-        Layout += "-pfe200:128:128:128:64";
-      Layout += "-i64:64-i128:128-n32:64-S128";
-    } else if (ABI == "lp64e") {
-      Layout += "-m:e-p:64:64";
-      if (HasCheri)
-        Layout += "-pfe200:128:128:128:64";
-      Layout += "-i64:64-i128:128-n32:64-S64";
-    } else
-      llvm_unreachable("Invalid ABI");
-
-    if (ABI == "cheriot" || ABI == "cheriot-baremetal") {
-      IsABICHERIoT = true;
-      if (ABI == "cheriot-baremetal")
-        IsABICHERIoTBareMetal = true;
+  // Compute the data layout with the shared LLVM implementation (which also
+  // handles CHERI: the xcheri feature and the purecap/CHERIoT ABIs) and set the
+  // CHERIoT ABI flags.
+  void setDataLayout(ArrayRef<std::string> Features) {
+    IsABICHERIoT = ABI == "cheriot" || ABI == "cheriot-baremetal";
+    IsABICHERIoTBareMetal = ABI == "cheriot-baremetal";
+    if (IsABICHERIoT)
       EmptyParameterListIsVoid = true;
-    }
-
-    // Only set globals address space to 200 for cap-table mode
-    if (CapabilityABI)
-      Layout += "-A200-P200-G200";
-
-    resetDataLayout(Layout);
+    resetDataLayout(
+        getTriple().computeDataLayout(ABI, llvm::join(Features, ",")));
   }
 
 protected:

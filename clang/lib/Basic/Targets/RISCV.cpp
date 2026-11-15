@@ -561,8 +561,8 @@ bool RISCVTargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
     return false;
   }
   
-  setDataLayout();
-  
+  setDataLayout(Features);
+
   return true;
 }
 

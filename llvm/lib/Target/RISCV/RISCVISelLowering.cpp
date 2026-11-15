@@ -2071,8 +2071,6 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
   setPrefFunctionAlignment(Subtarget.getPrefFunctionAlignment());
   setPrefLoopAlignment(Subtarget.getPrefLoopAlignment());
 
-  setMinimumJumpTableEntries(5);
-
   setTargetDAGCombine({ISD::INTRINSIC_VOID, ISD::INTRINSIC_W_CHAIN,
                        ISD::INTRINSIC_WO_CHAIN, ISD::ADD, ISD::SUB, ISD::MUL,
                        ISD::AND, ISD::OR, ISD::XOR, ISD::SETCC, ISD::SELECT,

@@ -744,28 +744,15 @@ static Relocation *getPCRelHi20(Ctx &ctx, const InputSectionBase *loSec,
   // binary search.
   Relocation hiReloc;
   hiReloc.offset = d->value + addend;
+  auto range =
+      std::equal_range(hiSec->relocs().begin(), hiSec->relocs().end(), hiReloc,
+                       [](const Relocation &lhs, const Relocation &rhs) {
+                         return lhs.offset < rhs.offset;
+                       });
 
-  if (ctx.arg.emachine == EM_RISCV) {
-    auto range =
-        std::equal_range(hiSec->relocs().begin(), hiSec->relocs().end(), hiReloc,
-                         [](const Relocation& lhs, const Relocation& rhs) {
-                           return lhs.offset < rhs.offset;
-                         });
-
-    for (auto it = range.first; it != range.second; ++it)
-      if (PCRel::isHiReloc(it->type))
-        return &*it;
-  } else {
-    auto range =
-        std::equal_range(hiSec->relocs().begin(), hiSec->relocs().end(), hiReloc,
-                         [](const Relocation& lhs, const Relocation& rhs) {
-                           return lhs.offset < rhs.offset;
-                         });
-
-    for (auto it = range.first; it != range.second; ++it)
-      if (PCRel::isHiReloc(it->type))
-        return &*it;
-  }
+  for (auto it = range.first; it != range.second; ++it)
+    if (PCRel::isHiReloc(it->type))
+      return &*it;
 
   Err(ctx) << loSec->getLocation(loReloc.offset) << ": " << PCRel::loReloc
            << " relocation points to " << hiSec->getObjMsg(d->value)
@@ -1268,12 +1255,6 @@ void InputSection::relocateNonAlloc(Ctx &ctx, uint8_t *buf,
         expr == RE_RISCV_ADD || expr == RE_ARM_SBREL) {
       target.relocateNoSym(bufLoc, type,
                            SignExtend64<bits>(sym.getVA(ctx, addend)));
-      continue;
-    }
-
-    if (expr == R_SIZE) {
-      target.relocateNoSym(bufLoc, type,
-                           SignExtend64<bits>(sym.getSize(ctx) + addend));
       continue;
     }
 

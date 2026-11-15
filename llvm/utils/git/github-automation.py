@@ -1036,5 +1036,3 @@ elif args.command == "setup-llvmbot-git":
     setup_llvmbot_git()
 elif args.command == "request-release-note":
     request_release_note(args.token, args.repo, args.pr_number)
-elif args.command == "request-release-note":
-    request_release_note(args.token, args.repo, args.pr_number)

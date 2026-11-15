@@ -9696,9 +9696,6 @@ static SDValue getMemsetStringVal(EVT VT, const SDLoc &dl, SelectionDAG &DAG,
 SDValue SelectionDAG::getMemBasePlusOffset(SDValue Base, TypeSize Offset,
                                            const SDLoc &DL,
                                            const SDNodeFlags Flags) {
-  if (Offset.isZero())
-    return Base;
-
   // For integer pointers the offset and pointer type must be identical
   // (otherwise we assert later). For CHERI capabilities we use the the pointer
   // range type as the offset type.
@@ -9714,10 +9711,6 @@ SDValue SelectionDAG::getMemBasePlusOffset(SDValue Ptr, SDValue Offset,
                                            const SDLoc &DL,
                                            const SDNodeFlags Flags) {
   assert(Offset.getValueType().isInteger());
-  if (auto *Constant = dyn_cast<ConstantSDNode>(Offset.getNode())) {
-    if (Constant->isZero())
-      return Ptr;
-  }
   EVT BasePtrVT = Ptr.getValueType();
   if (TLI->shouldPreservePtrArith(this->getMachineFunction().getFunction(),
                                   BasePtrVT))

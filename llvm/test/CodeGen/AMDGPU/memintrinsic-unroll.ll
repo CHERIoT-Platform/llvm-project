@@ -4209,16 +4209,16 @@ define void @memcpy_p0_p5_sz2048(ptr addrspace(0) align 1 %dst, ptr addrspace(5)
 ; ALIGNED-NEXT:    buffer_load_ubyte v84, v2, s[0:3], 0 offen offset:206
 ; ALIGNED-NEXT:    buffer_load_ubyte v82, v2, s[0:3], 0 offen offset:207
 ; ALIGNED-NEXT:    buffer_load_ubyte v81, v2, s[0:3], 0 offen offset:208
-; ALIGNED-NEXT:    buffer_load_ubyte v68, v2, s[0:3], 0 offen offset:209
-; ALIGNED-NEXT:    buffer_load_ubyte v70, v2, s[0:3], 0 offen offset:210
-; ALIGNED-NEXT:    buffer_load_ubyte v67, v2, s[0:3], 0 offen offset:211
-; ALIGNED-NEXT:    buffer_load_ubyte v71, v2, s[0:3], 0 offen offset:212
-; ALIGNED-NEXT:    buffer_load_ubyte v55, v2, s[0:3], 0 offen offset:213
+; ALIGNED-NEXT:    buffer_load_ubyte v69, v2, s[0:3], 0 offen offset:209
+; ALIGNED-NEXT:    buffer_load_ubyte v71, v2, s[0:3], 0 offen offset:210
+; ALIGNED-NEXT:    buffer_load_ubyte v68, v2, s[0:3], 0 offen offset:211
+; ALIGNED-NEXT:    buffer_load_ubyte v70, v2, s[0:3], 0 offen offset:212
+; ALIGNED-NEXT:    buffer_load_ubyte v53, v2, s[0:3], 0 offen offset:213
 ; ALIGNED-NEXT:    buffer_load_ubyte v64, v2, s[0:3], 0 offen offset:214
 ; ALIGNED-NEXT:    buffer_load_ubyte v52, v2, s[0:3], 0 offen offset:215
-; ALIGNED-NEXT:    buffer_load_ubyte v69, v2, s[0:3], 0 offen offset:216
+; ALIGNED-NEXT:    buffer_load_ubyte v67, v2, s[0:3], 0 offen offset:216
 ; ALIGNED-NEXT:    buffer_load_ubyte v65, v2, s[0:3], 0 offen offset:217
-; ALIGNED-NEXT:    buffer_load_ubyte v53, v2, s[0:3], 0 offen offset:218
+; ALIGNED-NEXT:    buffer_load_ubyte v55, v2, s[0:3], 0 offen offset:218
 ; ALIGNED-NEXT:    buffer_load_ubyte v54, v2, s[0:3], 0 offen offset:219
 ; ALIGNED-NEXT:    buffer_load_ubyte v66, v2, s[0:3], 0 offen offset:220
 ; ALIGNED-NEXT:    buffer_load_ubyte v49, v2, s[0:3], 0 offen offset:221
@@ -4414,17 +4414,17 @@ define void @memcpy_p0_p5_sz2048(ptr addrspace(0) align 1 %dst, ptr addrspace(5)
 ; ALIGNED-NEXT:    v_lshl_or_b32 v3, v87, 8, v98
 ; ALIGNED-NEXT:    v_lshl_or_b32 v4, v86, 8, v85
 ; ALIGNED-NEXT:    v_lshl_or_b32 v61, v4, 16, v3
-; ALIGNED-NEXT:    v_lshl_or_b32 v3, v55, 8, v71
+; ALIGNED-NEXT:    v_lshl_or_b32 v3, v53, 8, v70
 ; ALIGNED-NEXT:    v_lshl_or_b32 v4, v52, 8, v64
 ; ALIGNED-NEXT:    v_lshl_or_b32 v117, v4, 16, v3
-; ALIGNED-NEXT:    v_lshl_or_b32 v3, v65, 8, v69
-; ALIGNED-NEXT:    v_lshl_or_b32 v4, v54, 8, v53
+; ALIGNED-NEXT:    v_lshl_or_b32 v3, v65, 8, v67
+; ALIGNED-NEXT:    v_lshl_or_b32 v4, v54, 8, v55
 ; ALIGNED-NEXT:    v_lshl_or_b32 v115, v4, 16, v3
 ; ALIGNED-NEXT:    v_lshl_or_b32 v3, v49, 8, v66
 ; ALIGNED-NEXT:    v_lshl_or_b32 v4, v48, 8, v50
 ; ALIGNED-NEXT:    v_lshl_or_b32 v99, v4, 16, v3
-; ALIGNED-NEXT:    v_lshl_or_b32 v3, v68, 8, v81
-; ALIGNED-NEXT:    v_lshl_or_b32 v4, v67, 8, v70
+; ALIGNED-NEXT:    v_lshl_or_b32 v3, v69, 8, v81
+; ALIGNED-NEXT:    v_lshl_or_b32 v4, v68, 8, v71
 ; ALIGNED-NEXT:    v_lshl_or_b32 v97, v4, 16, v3
 ; ALIGNED-NEXT:    v_lshl_or_b32 v3, v35, 8, v38
 ; ALIGNED-NEXT:    v_lshl_or_b32 v4, v34, 8, v33
@@ -4544,21 +4544,21 @@ define void @memcpy_p0_p5_sz2048(ptr addrspace(0) align 1 %dst, ptr addrspace(5)
 ; ALIGNED-NEXT:    buffer_store_dword v99, off, s[0:3], s32 offset:204
 ; ALIGNED-NEXT:    buffer_store_dword v115, off, s[0:3], s32 offset:200
 ; ALIGNED-NEXT:    buffer_store_dword v117, off, s[0:3], s32 offset:196
-; ALIGNED-NEXT:    flat_store_byte v[5:6], v68 offset:206
-; ALIGNED-NEXT:    flat_store_byte v[5:6], v67 offset:208
-; ALIGNED-NEXT:    flat_store_byte v[5:6], v70 offset:207
-; ALIGNED-NEXT:    flat_store_byte v[5:6], v55 offset:210
+; ALIGNED-NEXT:    flat_store_byte v[5:6], v53 offset:210
 ; ALIGNED-NEXT:    flat_store_byte v[5:6], v52 offset:212
+; ALIGNED-NEXT:    flat_store_byte v[5:6], v69 offset:206
+; ALIGNED-NEXT:    flat_store_byte v[5:6], v68 offset:208
+; ALIGNED-NEXT:    flat_store_byte v[5:6], v71 offset:207
 ; ALIGNED-NEXT:    flat_store_byte v[5:6], v64 offset:211
-; ALIGNED-NEXT:    flat_store_byte v[5:6], v71 offset:209
-; ALIGNED-NEXT:    flat_store_byte v[5:6], v53 offset:215
+; ALIGNED-NEXT:    flat_store_byte v[5:6], v70 offset:209
+; ALIGNED-NEXT:    flat_store_byte v[5:6], v55 offset:215
 ; ALIGNED-NEXT:    flat_store_byte v[5:6], v54 offset:216
 ; ALIGNED-NEXT:    flat_store_byte v[5:6], v65 offset:214
 ; ALIGNED-NEXT:    flat_store_byte v[5:6], v48 offset:220
 ; ALIGNED-NEXT:    flat_store_byte v[5:6], v49 offset:218
 ; ALIGNED-NEXT:    flat_store_byte v[5:6], v50 offset:219
 ; ALIGNED-NEXT:    flat_store_byte v[5:6], v66 offset:217
-; ALIGNED-NEXT:    flat_store_byte v[5:6], v69 offset:213
+; ALIGNED-NEXT:    flat_store_byte v[5:6], v67 offset:213
 ; ALIGNED-NEXT:    flat_store_byte v[5:6], v81 offset:205
 ; ALIGNED-NEXT:    buffer_store_dword v61, off, s[0:3], s32 offset:216
 ; ALIGNED-NEXT:    buffer_store_dword v63, off, s[0:3], s32 offset:220

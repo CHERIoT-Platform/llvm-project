@@ -22,7 +22,6 @@
 #include "RISCVConstantPoolValue.h"
 #include "RISCVMachineFunctionInfo.h"
 #include "RISCVRegisterInfo.h"
-#include "RISCVTargetMachine.h"
 #include "TargetInfo/RISCVTargetInfo.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/Statistic.h"

@@ -27,10 +27,6 @@
 namespace llvm {
 class FunctionPass;
 class InstructionSelector;
-class MCInst;
-class MCOperand;
-class MachineInstr;
-class MachineOperand;
 class ModulePass;
 class PassRegistry;
 class RISCVRegisterBankInfo;

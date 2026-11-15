@@ -1509,10 +1509,6 @@ void SelectionDAGISel::reportIPToStateForBlocks(MachineFunction *MF) {
       if (MBBb == MBB.end())
         continue;
 
-
-      if (MBBb == MBB.end())
-        continue;
-
       MachineInstr *MIb = &*MBBb;
       if (MIb->isTerminator())
         continue;

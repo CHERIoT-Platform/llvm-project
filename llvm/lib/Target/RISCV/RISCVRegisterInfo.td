@@ -376,13 +376,6 @@ def YGPR : YGPRRegisterClass<(add (sequence "X%u_Y", 10, 17),
   let DiagnosticString = GPR.DiagnosticString;
 }
 
-def YGPRE : YGPRRegisterClass<(add (sequence "X%u_Y", 10, 15),
-                                  (sequence "X%u_Y", 5, 7),
-                                  (sequence "X%u_Y", 8, 9),
-                                  (sequence "X%u_Y", 0, 4))> {
-  let DiagnosticString = GPR.DiagnosticString;
-}
-
 def YGPRX0IsDDC : YGPRRegisterClass<
                     (add(sequence "X%u_Y", 10, 17), (sequence "X%u_Y", 5, 7),
                         (sequence "X%u_Y", 28, 31), (sequence "X%u_Y", 8, 9),
@@ -390,6 +383,7 @@ def YGPRX0IsDDC : YGPRRegisterClass<
                         DDC)> {
   let DiagnosticString = GPR.DiagnosticString;
   let DecoderMethod = "DecodeYGPRX0IsDDCRegisterClass";
+  let GeneratePressureSet = 0;
 }
 
 def GPRX0 : GPRRegisterClass<(add X0)> {

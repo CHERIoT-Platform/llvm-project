@@ -2932,7 +2932,7 @@ SDValue DAGCombiner::visitPTRADD(SDNode *N) {
   //
   // Note we must be careful to handle the case that both are
   // constants, as opaque constants will not be constant-folded.
-  if (N0.getOpcode() == ISD::PTRADD &&
+  if (PtrVT.isFatPointer() && N0.getOpcode() == ISD::PTRADD &&
       !reassociationCanBreakAddressingModePattern(ISD::PTRADD, DL, N, N0, N1)) {
     SDValue X = N0.getOperand(0);
     SDValue Y = N0.getOperand(1);
@@ -2977,7 +2977,7 @@ SDValue DAGCombiner::visitPTRADD(SDNode *N) {
   //     implicitly not z due to the previous transform).
   //
   // As above, this allows for immediate addressing modes.
-  if (N1.getOpcode() == ISD::ADD) {
+  if (PtrVT.isFatPointer() && N1.getOpcode() == ISD::ADD) {
     SDValue X = N0;
     SDValue Y = N1.getOperand(0);
     SDValue Z = N1.getOperand(1);
@@ -2987,6 +2987,21 @@ SDValue DAGCombiner::visitPTRADD(SDNode *N) {
       if (DAG.isConstantIntBuildVectorOrConstantInt(Y))
         return GetPTRADD2(X, Z, Y);
     }
+  }
+
+  // Transform (ptradd a, b) -> (or disjoint a, b) if it is equivalent and if
+  // that transformation can't block an offset folding at any use of the ptradd.
+  // This should be done late, after legalization, so that it doesn't block
+  // other ptradd combines that could enable more offset folding.
+  // Not valid for fat pointers (capabilities), which aren't plain integers.
+  if (!PtrVT.isFatPointer() && LegalOperations &&
+      DAG.haveNoCommonBitsSet(N0, N1)) {
+    bool TransformCannotBreakAddrMode = none_of(N->users(), [&](SDNode *User) {
+      return canFoldInAddressingMode(N, User, DAG, TLI);
+    });
+
+    if (TransformCannotBreakAddrMode)
+      return DAG.getNode(ISD::OR, DL, PtrVT, N0, N1, SDNodeFlags::Disjoint);
   }
 
   return SDValue();

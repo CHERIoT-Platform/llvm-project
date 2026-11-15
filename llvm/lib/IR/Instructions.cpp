@@ -3455,8 +3455,12 @@ CastInst::getCastOpcode(
       }
 
   // Get the bit sizes, we'll need these
-  unsigned SrcBits = SrcTy->getPrimitiveSizeInBits();   // 0 for ptr
-  unsigned DestBits = DestTy->getPrimitiveSizeInBits(); // 0 for ptr
+  // FIXME: This doesn't work for scalable vector types with different element
+  // counts that don't call getElementType above.
+  unsigned SrcBits =
+      SrcTy->getPrimitiveSizeInBits().getFixedValue(); // 0 for ptr
+  unsigned DestBits =
+      DestTy->getPrimitiveSizeInBits().getFixedValue(); // 0 for ptr
 
   // Run through the possibilities ...
   if (DestTy->isByteTy()) {     // Casting to byte

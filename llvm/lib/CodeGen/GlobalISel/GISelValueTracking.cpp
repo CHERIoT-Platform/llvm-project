@@ -1216,6 +1216,14 @@ void GISelValueTracking::computeKnownBits(Register R, KnownBits &Known,
     Known = Known.intersectWith(Known2);
     break;
   }
+  case TargetOpcode::G_ABS: {
+    Register SrcReg = MI.getOperand(1).getReg();
+    computeKnownBitsImpl(SrcReg, Known, DemandedElts, Depth + 1);
+    Known = Known.abs();
+    Known.Zero.setHighBits(computeNumSignBits(SrcReg, DemandedElts, Depth + 1) -
+                           1);
+    break;
+  }
   }
 
   LLVM_DEBUG(dumpResult(MI, Known, Depth));

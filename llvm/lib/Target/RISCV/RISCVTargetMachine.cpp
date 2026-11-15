@@ -420,8 +420,10 @@ void RISCVPassConfig::addIRPasses() {
     addPass(createRISCVCodeGenPrepareLegacyPass());
   }
 
-  addPass(createCheriotZeroSRetPass());
-  addPass(createCheriBoundAllocasLegacyPass());
+  if (TM->hasCheriCapabilities()) {
+    addPass(createCheriotZeroSRetPass());
+    addPass(createCheriBoundAllocasLegacyPass());
+  }
   TargetPassConfig::addIRPasses();
 
   if (getOptLevel() == CodeGenOptLevel::Aggressive && CLOpts.select_opt)
@@ -582,9 +584,11 @@ void RISCVPassConfig::addMachineSSAOptimization() {
 void RISCVPassConfig::addPreRegAlloc() {
   addPass(createRISCVExpandPseudoPreRALegacyPass());
   if (TM->getOptLevel() != CodeGenOptLevel::None) {
-    addPass(createRISCVCheriCleanupOptPass());
+    if (TM->hasCheriCapabilities())
+      addPass(createRISCVCheriCleanupOptPass());
     addPass(createRISCVMergeBaseOffsetLegacyPass());
-    addPass(createCheriGetAddressElimPass());
+    if (TM->hasCheriCapabilities())
+      addPass(createCheriGetAddressElimPass());
     addPass(createRISCVPreAllocZilsdOptLegacyPass());
   }
   addPass(createRISCVInsertReadWriteCSRLegacyPass());

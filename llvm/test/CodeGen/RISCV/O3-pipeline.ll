@@ -45,8 +45,6 @@
 ; CHECK-NEXT:       RISC-V gather/scatter lowering
 ; CHECK-NEXT:       Interleaved Access Pass
 ; CHECK-NEXT:       RISC-V CodeGenPrepare
-; CHECK-NEXT:       CHERIoT zero sret 
-; CHECK-NEXT:       CHERI add bounds to alloca instructions
 ; CHECK-NEXT:       Module Verifier
 ; CHECK-NEXT:       Basic Alias Analysis (stateless AA impl)
 ; CHECK-NEXT:       Canonicalize natural loops
@@ -138,9 +136,7 @@
 ; CHECK-NEXT:       Remove dead machine instructions
 ; RV64-NEXT:        RISC-V Optimize W Instructions
 ; CHECK-NEXT:       RISC-V Pseudo Instruction Expansion - Pre-RA
-; CHECK-NEXT:       RISCV CHERIoT early bounds check elision pass
 ; CHECK-NEXT:       RISC-V Merge Base Offset
-; CHECK-NEXT:       Cheri Get Address Elimination
 ; CHECK-NEXT:       RISC-V pre-allocation Zilsd load/store optimization
 ; CHECK-NEXT:       RISC-V Insert Read/Write CSR Pass
 ; CHECK-NEXT:       RISC-V Insert Write VXRM Pass
@@ -153,14 +149,10 @@
 ; CHECK-NEXT:       MachineDominator Tree Construction
 ; CHECK-NEXT:       Slot index numbering
 ; CHECK-NEXT:       Live Interval Analysis
-; CHECK-NEXT:       Machine Natural Loop Construction
 ; CHECK-NEXT:       Eliminate PHI nodes for register allocation
 ; CHECK-NEXT:       Two-Address instruction pass
-; CHECK-NEXT:       Machine Register Class Info Analysis
 ; CHECK-NEXT:       Register Coalescer
 ; CHECK-NEXT:       Rename Disconnected Subregister Components
-; CHECK-NEXT:       Machine Cycle Info Analysis
-; CHECK-NEXT:       Machine Block Frequency Analysis
 ; CHECK-NEXT:       Machine Instruction Scheduler
 ; CHECK-NEXT:       Debug Variable Analysis
 ; CHECK-NEXT:       Live Stack Slot Analysis

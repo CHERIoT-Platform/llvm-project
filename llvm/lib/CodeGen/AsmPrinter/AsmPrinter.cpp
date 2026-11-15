@@ -964,7 +964,8 @@ void AsmPrinter::emitGlobalVariable(const GlobalVariable *GV,
       emitAlignment(Alignment, GV);
       OutStreamer->emitLabel(MangSym);
 
-      emitGlobalConstant(GV->getDataLayout(), GV->getInitializer());
+      emitGlobalConstant(GV->getDataLayout(),
+                         GV->getInitializer());
     }
 
     OutStreamer->addBlankLine();

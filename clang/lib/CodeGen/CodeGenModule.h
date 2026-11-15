@@ -1429,7 +1429,8 @@ public:
                         bool Local = false, bool AssumeConvergent = false);
 
   /// Create a new runtime global variable with the specified type and name.
-  llvm::Constant *CreateRuntimeVariable(llvm::Type *Ty, StringRef Name);
+  llvm::Constant *CreateRuntimeVariable(llvm::Type *Ty,
+                                        StringRef Name);
 
   ///@name Custom Blocks Runtime Interfaces
   ///@{

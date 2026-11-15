@@ -859,11 +859,11 @@ static bool upgradeArmOrAarch64IntrinsicFunction(bool IsArm, Function *F,
           return true;
         }
         return false; // No other '(arm|aarch64).neon.bfm*.v16i8'.
-    }
+      }
       return false; // No other '(arm|aarch64).neon.bfm*.
     }
     // Continue on to Aarch64 Neon or Arm Neon.
-    }
+  }
   // Continue on to Arm or Aarch64.
 
   if (IsArm) {
@@ -903,16 +903,16 @@ static bool upgradeArmOrAarch64IntrinsicFunction(bool IsArm, Function *F,
               Intrinsic::arm_neon_vst2lane, Intrinsic::arm_neon_vst3lane,
               Intrinsic::arm_neon_vst4lane};
 
-      auto fArgs = F->getFunctionType()->params();
-      Type *Tys[] = {fArgs[0], fArgs[1]};
+          auto fArgs = F->getFunctionType()->params();
+          Type *Tys[] = {fArgs[0], fArgs[1]};
           if (Groups[1].size() == 1)
             NewFn = Intrinsic::getOrInsertDeclaration(
                 F->getParent(), StoreInts[fArgs.size() - 3], Tys);
           else
             NewFn = Intrinsic::getOrInsertDeclaration(
                 F->getParent(), StoreLaneInts[fArgs.size() - 5], Tys);
-      return true;
-    }
+          return true;
+        }
         return false; // No other 'arm.neon.vst*'.
       }
 
@@ -926,8 +926,8 @@ static bool upgradeArmOrAarch64IntrinsicFunction(bool IsArm, Function *F,
           // A vctp64 returning a v4i1 is converted to return a v2i1. Rename
           // the function and deal with it below in UpgradeIntrinsicCall.
           rename(F);
-      return true;
-    }
+          return true;
+        }
         return false; // Not 'arm.mve.vctp64'.
       }
 
@@ -967,7 +967,7 @@ static bool upgradeArmOrAarch64IntrinsicFunction(bool IsArm, Function *F,
           return false; // No other 'arm.mve.*.v2i64.v4i1'.
         }
         return false; // No other 'arm.mve.*.v4i1'.
-    }
+      }
       return false; // No other 'arm.mve.*'.
     }
 
@@ -1011,7 +1011,7 @@ static bool upgradeArmOrAarch64IntrinsicFunction(bool IsArm, Function *F,
 
       if (Name.starts_with("addp")) {
         // 'aarch64.neon.addp*'.
-      if (F->arg_size() != 2)
+        if (F->arg_size() != 2)
           return false; // Invalid IR.
         VectorType *Ty = dyn_cast<VectorType>(F->getReturnType());
         if (Ty && Ty->getElementType()->isFloatingPointTy()) {
@@ -1048,11 +1048,11 @@ static bool upgradeArmOrAarch64IntrinsicFunction(bool IsArm, Function *F,
         if (Name.consume_back(".lane")) {
           // 'aarch64.sve.bf*.lane'.
           Intrinsic::ID ID =
-          StringSwitch<Intrinsic::ID>(Name)
+              StringSwitch<Intrinsic::ID>(Name)
                   .Case("dot", Intrinsic::aarch64_sve_bfdot_lane_v2)
                   .Case("mlalb", Intrinsic::aarch64_sve_bfmlalb_lane_v2)
                   .Case("mlalt", Intrinsic::aarch64_sve_bfmlalt_lane_v2)
-              .Default(Intrinsic::not_intrinsic);
+                  .Default(Intrinsic::not_intrinsic);
           if (ID != Intrinsic::not_intrinsic) {
             NewFn = Intrinsic::getOrInsertDeclaration(F->getParent(), ID);
             return true;
@@ -2365,7 +2365,7 @@ static bool upgradeIntrinsicFunction1(Function *F, Function *&NewFn,
           return true;
         }
         break; // No other applicable upgrades.
-    }
+      }
 
       ID = StringSwitch<Intrinsic::ID>(Name)
                .StartsWith("sm4ks", Intrinsic::riscv_sm4ks)
@@ -2379,7 +2379,7 @@ static bool upgradeIntrinsicFunction1(Function *F, Function *&NewFn,
           return true;
         }
         break; // No other applicable upgrades.
-    }
+      }
 
       ID = StringSwitch<Intrinsic::ID>(Name)
                .StartsWith("sha256sig0", Intrinsic::riscv_sha256sig0)

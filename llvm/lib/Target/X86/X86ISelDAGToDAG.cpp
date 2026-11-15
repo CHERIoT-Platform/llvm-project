@@ -7054,7 +7054,7 @@ void X86DAGToDAGISel::Select(SDNode *Node) {
     Ops[0] = CallIdValue;
     Ops[1] = ArgIndex;
     Ops[2] = Chain;
-    MachineSDNode* New = CurDAG->getMachineNode(
+    MachineSDNode *New = CurDAG->getMachineNode(
         TargetOpcode::PREALLOCATED_ARG, dl,
         CurDAG->getVTList(
             TLI->getPointerTy(CurDAG->getDataLayout(),

@@ -962,7 +962,6 @@ Value *LibCallSimplifier::optimizeStringNCpy(CallInst *CI, bool RetEnd,
     Src = B.CreateGlobalString(SrcStr, "str", /*AddressSpace=*/0,
                                /*M=*/nullptr, /*AddNull=*/false);
   }
-
   // st{p,r}ncpy(D, S, N) -> memcpy(align 1 D, align 1 S, N) when both
   // S and N are constant.
   CallInst *NewCI = B.CreateMemCpy(Dst, Align(1), Src, Align(1),

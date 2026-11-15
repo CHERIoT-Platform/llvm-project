@@ -2477,7 +2477,8 @@ static RValue EmitCheckedMixedSignMultiply(
         IsNegative, CGF.Builder.CreateIsNotNull(UnsignedResult));
     Overflow = CGF.Builder.CreateOr(UnsignedOverflow, Underflow);
     if (ResultInfo.Width < OpWidth) {
-      auto IntMax = llvm::APInt::getMaxValue(ResultInfo.Width).zext(OpWidth);
+      auto IntMax =
+          llvm::APInt::getMaxValue(ResultInfo.Width).zext(OpWidth);
       llvm::Value *TruncOverflow = CGF.Builder.CreateICmpUGT(
           UnsignedResult, llvm::ConstantInt::get(OpTy, IntMax));
       Overflow = CGF.Builder.CreateOr(Overflow, TruncOverflow);

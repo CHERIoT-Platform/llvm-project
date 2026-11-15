@@ -646,6 +646,7 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     // XXXAR: If Rty is capability, use AS200 otherwise the same as LangAS as
     // the underlying type
     unsigned AS = RTy->isCHERICapability()
+
                       ? CGM.getTargetCodeGenInfo().getCHERICapabilityAS()
                       : getTargetAddressSpace(ETy);
     ResultType = llvm::PointerType::get(getLLVMContext(), AS);

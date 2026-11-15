@@ -8674,7 +8674,7 @@ void SelectionDAGBuilder::visitIntrinsicCall(const CallInst &I,
       auto HighOnes = DAG.getNode(
           ISD::SHL, sdl, PtrVT, DAG.getAllOnesConstant(sdl, PtrVT),
           DAG.getShiftAmountConstant(Mask.getValueType().getFixedSizeInBits(),
-                                    PtrVT, sdl));
+                                     PtrVT, sdl));
       Mask = DAG.getNode(ISD::OR, sdl, PtrVT,
                         DAG.getZExtOrTrunc(Mask, sdl, PtrVT), HighOnes);
     } else if (!IsCapability && MemVT != PtrVT)

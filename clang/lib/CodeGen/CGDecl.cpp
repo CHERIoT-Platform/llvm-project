@@ -1286,10 +1286,9 @@ void CodeGenFunction::emitStoresForConstant(const VarDecl &D, Address Loc,
           (STy != Loc.getElementType() && IsTrivialAutoVarInitPattern)) {
         if (STy == Loc.getElementType() || IsTrivialAutoVarInitPattern) {
         const llvm::StructLayout *Layout =
-              CGM.getDataLayout().getStructLayout(STy);
-          for (unsigned i = 0; i != constant->getNumOperands(); i++) {
-            CharUnits CurOff =
-             
+            CGM.getDataLayout().getStructLayout(STy);
+        for (unsigned i = 0; i != constant->getNumOperands(); i++) {
+          CharUnits CurOff =
               CharUnits::fromQuantity(Layout->getElementOffset(i));
             Address EltPtr = Builder.CreateConstInBoundsByteGEP(
                 Loc.withElementType(CGM.Int8Ty), CurOff);

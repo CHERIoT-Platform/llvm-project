@@ -45,7 +45,8 @@ public:
   void emitLabelAtPos(MCSymbol *Symbol, SMLoc Loc, MCFragment &F,
                       uint64_t Offset) override;
   bool emitSymbolAttribute(MCSymbol *Symbol, MCSymbolAttr Attribute) override;
-  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size, Align ByteAlignment) override;
+  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
+                        Align ByteAlignment) override;
 
   void emitELFSize(MCSymbol *Symbol, const MCExpr *Value) override;
 

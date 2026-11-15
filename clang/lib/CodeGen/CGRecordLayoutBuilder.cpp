@@ -328,7 +328,8 @@ void CGRecordLowering::lowerUnion(bool isNonVirtualBaseType) {
     if (!IsZeroInitializable)
       continue;
     // Conditionally update our storage type if we've got a new "better" one.
-    if (!StorageType || getAlignment(FieldType) > getAlignment(StorageType) ||
+    if (!StorageType ||
+        getAlignment(FieldType) >  getAlignment(StorageType) ||
         (getAlignment(FieldType) == getAlignment(StorageType) &&
          getSize(FieldType) > getSize(StorageType)) ||
         (DataLayout.isFatPointer(FieldType) &&

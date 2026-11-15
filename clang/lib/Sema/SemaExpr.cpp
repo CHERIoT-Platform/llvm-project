@@ -5110,6 +5110,7 @@ static QualType CheckRealImagOperand(Sema &S, ExprResult &V, SourceLocation Loc,
   S.Diag(Loc, diag::err_realimag_invalid_type) << V.get()->getType()
     << (IsReal ? "__real" : "__imag");
   return QualType();
+
 }
 
 
@@ -9119,6 +9120,7 @@ OpenCLConvertScalarsToVectors(Sema &S, ExprResult &LHS, ExprResult &RHS,
   // Determine the vector result type
   unsigned NumElements = CV->getNumElements();
   QualType VectorTy = S.Context.getExtVectorType(ResTy, NumElements);
+
 
   // Ensure that all types have the same number of bits
   if (S.Context.getTypeSize(CV->getElementType())

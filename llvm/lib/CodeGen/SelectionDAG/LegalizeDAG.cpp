@@ -1851,8 +1851,8 @@ void SelectionDAGLegalize::ExpandDYNAMIC_STACKALLOC(SDNode* Node,
   Align Alignment = cast<ConstantSDNode>(Tmp3)->getAlignValue();
   const TargetFrameLowering *TFL = DAG.getSubtarget().getFrameLowering();
   unsigned Opc =
-      TFL->getStackGrowthDirection() == TargetFrameLowering::StackGrowsUp ?
-      ISD::ADD : ISD::SUB;
+    TFL->getStackGrowthDirection() == TargetFrameLowering::StackGrowsUp ?
+    ISD::ADD : ISD::SUB;
 
   Align StackAlign = TFL->getStackAlign();
   if (VT.isFatPointer()) {

@@ -1597,7 +1597,7 @@ void MCStreamer::emitXCOFFRefDirective(const MCSymbol *Symbol) {
 }
 
 void MCStreamer::emitXCOFFExceptDirective(const MCSymbol *Symbol,
-                                          const MCSymbol *Trap, 
+                                          const MCSymbol *Trap,
                                           unsigned Lang, unsigned Reason,
                                           unsigned FunctionSize,
                                           bool hasDebug) {
@@ -1615,8 +1615,7 @@ void MCStreamer::emitELFSymverDirective(const MCSymbol *OriginalSym,
                                         StringRef Name, bool KeepOriginalSym) {}
 void MCStreamer::emitLocalCommonSymbol(MCSymbol *Symbol, uint64_t Size,
                                        Align ByteAlignment) {}
-void MCStreamer::emitZerofill(MCSection *, MCSymbol *, uint64_t, Align,
-                              SMLoc) {
+void MCStreamer::emitZerofill(MCSection *, MCSymbol *, uint64_t, Align, SMLoc) {
 }
 void MCStreamer::emitTBSSSymbol(MCSection *Section, MCSymbol *Symbol,
                                 uint64_t Size, Align ByteAlignment) {}

@@ -15728,7 +15728,6 @@ void Sema::FinalizeDeclaration(Decl *ThisDecl) {
 
   if (VD->getTLSKind())
     CheckThreadLocalForLargeAlignment(VD);
-
   // Perform check for initializers of device-side global variables.
   // CUDA allows empty constructors as initializers (see E.2.3.1, CUDA
   // 7.5). We must also apply the same checks to all __shared__

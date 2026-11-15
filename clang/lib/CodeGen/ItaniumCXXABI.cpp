@@ -1289,8 +1289,6 @@ llvm::Constant *ItaniumCXXABI::BuildMemberPointer(const CXXMethodDecl *MD,
   return Result;
 }
 
-
-
 llvm::Constant *ItaniumCXXABI::EmitMemberPointer(const APValue &MP,
                                                  QualType MPType) {
   const MemberPointerType *MPT = MPType->castAs<MemberPointerType>();
@@ -1880,7 +1878,8 @@ bool ItaniumCXXABI::EmitBadCastCall(CodeGenFunction &CGF) {
 }
 
 llvm::Value *
-ItaniumCXXABI::GetVirtualBaseClassOffset(CodeGenFunction &CGF, Address This,
+ItaniumCXXABI::GetVirtualBaseClassOffset(CodeGenFunction &CGF,
+                                         Address This,
                                          const CXXRecordDecl *ClassDecl,
                                          const CXXRecordDecl *BaseClassDecl) {
   llvm::Value *VTablePtr = CGF.GetVTablePtr(This, CGM.Int8PtrTy, ClassDecl);

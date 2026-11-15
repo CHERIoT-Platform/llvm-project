@@ -711,7 +711,7 @@ public:
                           MaybeAlign SrcAlign, uint64_t Size,
                           PreserveCheriTags PreserveTags = PreserveCheriTags::TODO,
                           bool isVolatile = false,
-                         const AAMDNodes &AAInfo = AAMDNodes()) {
+                          const AAMDNodes &AAInfo = AAMDNodes()) {
     return CreateMemMove(Dst, DstAlign, Src, SrcAlign, getInt64(Size),
                          PreserveTags, isVolatile, AAInfo);
   }
@@ -720,7 +720,7 @@ public:
                           MaybeAlign SrcAlign, Value *Size,
                           PreserveCheriTags PreserveTags = PreserveCheriTags::TODO,
                           bool isVolatile = false,
-                         const AAMDNodes &AAInfo = AAMDNodes()) {
+                          const AAMDNodes &AAInfo = AAMDNodes()) {
     return CreateMemTransferInst(Intrinsic::memmove, Dst, DstAlign, Src,
                                  SrcAlign, Size, PreserveTags, isVolatile,
                                  AAInfo);

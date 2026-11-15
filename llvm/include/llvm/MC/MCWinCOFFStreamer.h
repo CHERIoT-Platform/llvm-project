@@ -58,7 +58,8 @@ public:
   void emitCOFFImgRel32(MCSymbol const *Symbol, int64_t Offset) override;
   void emitCOFFSecNumber(MCSymbol const *Symbol) override;
   void emitCOFFSecOffset(MCSymbol const *Symbol) override;
-  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size, Align ByteAlignment) override;
+  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
+                        Align ByteAlignment) override;
   void emitLocalCommonSymbol(MCSymbol *Symbol, uint64_t Size,
                              Align ByteAlignment) override;
   void emitWeakReference(MCSymbol *Alias, const MCSymbol *Symbol) override;

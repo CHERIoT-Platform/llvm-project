@@ -379,8 +379,8 @@ SDValue ARMSelectionDAGInfo::EmitTargetCodeForMemmove(
     PreserveCheriTags PreserveTags, MachinePointerInfo DstPtrInfo,
     MachinePointerInfo SrcPtrInfo) const {
   Align Alignment = std::min(DstAlign, SrcAlign);
-  return EmitSpecializedLibcall(DAG, dl, Chain, Dst, Src, Size, Alignment.value(),
-                                RTLIB::MEMMOVE);
+  return EmitSpecializedLibcall(DAG, dl, Chain, Dst, Src, Size,
+                                Alignment.value(), RTLIB::MEMMOVE);
 }
 
 SDValue ARMSelectionDAGInfo::EmitTargetCodeForMemset(

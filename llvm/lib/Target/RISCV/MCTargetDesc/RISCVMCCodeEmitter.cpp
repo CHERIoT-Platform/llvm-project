@@ -650,7 +650,6 @@ void RISCVMCCodeEmitter::expandAUIPCCData(
   MCInst NewMI = MI;
   NewMI.setOpcode(RISCV::AUIPCC);
   encodeInstruction(NewMI, CB, Fixups, STI);
-
   // Emit a trailing `ct.nop4`, which is equivalent to `cincoffset x0, x0, x0`
   MCInst NopMI = MCInstBuilder(RISCV::CIncOffset)
                      .addReg(RISCV::X0_Y)

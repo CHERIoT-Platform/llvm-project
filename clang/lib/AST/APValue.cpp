@@ -441,7 +441,6 @@ APValue::APValue(const APValue &RHS)
 }
 
 APValue::APValue(APValue &&RHS)
-   
     : Kind(RHS.Kind), AllowConstexprUnknown(RHS.AllowConstexprUnknown),
       MustBeNullDerivedCap(RHS.MustBeNullDerivedCap),
       Data(RHS.Data) {

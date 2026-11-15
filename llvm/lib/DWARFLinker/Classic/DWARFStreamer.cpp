@@ -64,8 +64,7 @@ Error DwarfStreamer::init(Triple TheTriple,
   MAI.reset(TheTarget->createMCAsmInfo(*MRI, TheTriple, MCOptions));
   if (!MAI)
     return createStringError(std::errc::invalid_argument,
-                            "no asm info for target %s", TripleName.c_str());
-
+                             "no asm info for target %s", TripleName.c_str());
 
   MSTI.reset(TheTarget->createMCSubtargetInfo(TheTriple, "", ""));
   if (!MSTI)

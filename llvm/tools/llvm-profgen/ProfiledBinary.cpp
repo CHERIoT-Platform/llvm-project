@@ -26,7 +26,6 @@
 
 #define DEBUG_TYPE "load-binary"
 
-
 namespace llvm {
 
 using namespace object;

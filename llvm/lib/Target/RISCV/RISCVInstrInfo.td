@@ -1966,7 +1966,6 @@ def PseudoCALLIndirectLpadAlign : Pseudo<(outs),
                                               uimm20_auipc:$lpad_label),
                                          []>,
                                   Sched<[WriteJalr, ReadJalr]>;
-
 def : Pat<(riscv_sret_glue), (SRET)>;
 def : Pat<(riscv_mret_glue), (MRET)>;
 let Predicates = [HasStdExtSmrnmi] in

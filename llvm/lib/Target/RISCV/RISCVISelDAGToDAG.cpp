@@ -2112,8 +2112,8 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
         break;
 
       ReplaceNode(Node, CurDAG->getMachineNode(Opcode, DL, XLenVT, XLenVT,
-                                                Chain.getSimpleValueType(), Base,
-                                                Offset, Chain));
+                                               Chain.getSimpleValueType(), Base,
+                                               Offset, Chain));
       return;
     }
     break;

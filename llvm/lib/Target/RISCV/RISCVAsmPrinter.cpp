@@ -584,7 +584,6 @@ bool RISCVAsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNo,
     }
     }
   }
-
   switch (MO.getType()) {
   case MachineOperand::MO_Immediate:
     OS << MO.getImm();

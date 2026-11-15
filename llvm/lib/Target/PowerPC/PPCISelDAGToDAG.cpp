@@ -5636,7 +5636,7 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
       SDValue Chain = LD->getChain();
       SDValue Base = LD->getBasePtr();
       SDValue Ops[] = { Offset, Base, Chain };
-      SDNode* MN = CurDAG->getMachineNode(
+      SDNode *MN = CurDAG->getMachineNode(
           Opcode, dl, LD->getValueType(0),
           PPCLowering->getPointerTy(CurDAG->getDataLayout(),
                                     CurDAG->getDataLayout().getAllocaAddrSpace()),
@@ -5676,7 +5676,7 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
       SDValue Chain = LD->getChain();
       SDValue Base = LD->getBasePtr();
       SDValue Ops[] = { Base, Offset, Chain };
-      SDNode* MN = CurDAG->getMachineNode(
+      SDNode *MN = CurDAG->getMachineNode(
           Opcode, dl, LD->getValueType(0),
           PPCLowering->getPointerTy(CurDAG->getDataLayout(),
                                     CurDAG->getDataLayout().getAllocaAddrSpace()),

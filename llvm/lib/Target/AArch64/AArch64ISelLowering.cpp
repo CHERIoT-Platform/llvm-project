@@ -34168,7 +34168,7 @@ Value *AArch64TargetLowering::emitLoadLinked(IRBuilderBase &Builder,
     return Builder.CreateBitCast(Or, ValueTy);
   }
 
-  Type *Tys[] = {Addr->getType()};
+  Type *Tys[] = { Addr->getType() };
   Intrinsic::ID Int =
       IsAcquire ? Intrinsic::aarch64_ldaxr : Intrinsic::aarch64_ldxr;
 
@@ -34220,7 +34220,7 @@ Value *AArch64TargetLowering::emitStoreConditional(IRBuilderBase &Builder,
 
   Intrinsic::ID Int =
       IsRelease ? Intrinsic::aarch64_stlxr : Intrinsic::aarch64_stxr;
-  Type *Tys[] = {Addr->getType()};
+  Type *Tys[] = { Addr->getType() };
   Function *Stxr = Intrinsic::getOrInsertDeclaration(M, Int, Tys);
 
   const DataLayout &DL = M->getDataLayout();

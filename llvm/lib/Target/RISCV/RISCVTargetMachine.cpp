@@ -575,6 +575,7 @@ void RISCVPassConfig::addMachineSSAOptimization() {
 
   if (TM->getTargetTriple().isRISCV64()) {
     addPass(createRISCVOptWInstrsLegacyPass());
+
   }
 }
 

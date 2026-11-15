@@ -4148,7 +4148,7 @@ class ArrayParameterType : public ConstantArrayType {
   ArrayParameterType(const ConstantArrayType *ATy, QualType CanTy)
       : ConstantArrayType(ArrayParameter, ATy, CanTy, std::nullopt) {}
 
- public:
+public:
   static bool classof(const Type *T) {
     return T->getTypeClass() == ArrayParameter;
   }

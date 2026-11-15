@@ -88,6 +88,7 @@ public:
         DiscriminatorOverride(DiscriminatorOverride) {
     AllPointersAreCapabilities =
         Context.getTargetInfo().areAllPointersCapabilities();
+
   }
 
   /// @name Mangler Entry Points

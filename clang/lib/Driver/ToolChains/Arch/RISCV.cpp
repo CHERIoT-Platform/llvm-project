@@ -255,6 +255,7 @@ void riscv::getRISCVTargetFeatures(const Driver &D, const llvm::Triple &Triple,
     if (ABI == "cheriot" || ABI == "cheriot-baremetal") {
       // +xcheriot implies both +xcheri and +xcheripurecap
       Features.push_back("+xcheriot");
+
     } else if (IsPureCapability) {
       if (!ISAInfo->hasExtension("xcheri")) {
         D.Diag(diag::err_riscv_invalid_abi)

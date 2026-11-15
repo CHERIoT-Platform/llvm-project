@@ -3689,9 +3689,9 @@ ExprResult Sema::PerformMoveOrCopyInitialization(
          VerifyInitializationSequenceCXX98(*this, Seq))) {
       // Promote "AsRvalue" to the heap, since we now need this
       // expression node to persist.
-      Value = ImplicitCastExpr::Create(Context, Value->getType(), CK_NoOp,
-                                       Value, nullptr, VK_XValue,
-                                       FPOptionsOverride());
+      Value =
+          ImplicitCastExpr::Create(Context, Value->getType(), CK_NoOp, Value,
+                                   nullptr, VK_XValue, FPOptionsOverride());
       // Complete type-checking the initialization of the return type
       // using the constructor we found.
       return Seq.Perform(*this, Entity, Kind, Value);

@@ -790,8 +790,8 @@ void ASTDeclReader::VisitEnumDecl(EnumDecl *ED) {
   ED->setScopedUsingClassTag(EnumDeclBits.getNextBit());
   ED->setFixed(EnumDeclBits.getNextBit());
 
-    ED->setHasODRHash(true);
-    ED->ODRHash = Record.readInt();
+  ED->setHasODRHash(true);
+  ED->ODRHash = Record.readInt();
 
   // If this is a definition subject to the ODR, and we already have a
   // definition, merge this one into it.
@@ -2015,9 +2015,9 @@ void ASTDeclReader::ReadCXXDefinitionData(
 #include "clang/AST/CXXRecordDeclDefinitionBits.def"
 #undef FIELD
 
-    // Note: the caller has deserialized the IsLambda bit already.
-    Data.ODRHash = Record.readInt();
-    Data.HasODRHash = true;
+  // Note: the caller has deserialized the IsLambda bit already.
+  Data.ODRHash = Record.readInt();
+  Data.HasODRHash = true;
 
   if (Record.readInt()) {
     Reader.DefinitionSource[D] =

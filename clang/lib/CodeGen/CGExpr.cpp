@@ -5865,8 +5865,9 @@ static Address maybeTightenCHERIArraySubscriptBase(CodeGenFunction &CGF,
 static llvm::Value *emitArraySubscriptGEP(CodeGenFunction &CGF,
                                           llvm::Type *elemType,
                                           llvm::Value *ptr,
-                                          ArrayRef<llvm::Value *> indices,
-                                          bool inbounds, bool signedIndices,
+                                          ArrayRef<llvm::Value*> indices,
+                                          bool inbounds,
+                                          bool signedIndices,
                                           SourceLocation loc,
                                           const Expr *E = nullptr,
                                           const llvm::Twine &name = "arrayidx") {
@@ -6299,7 +6300,6 @@ LValue CodeGenFunction::EmitArraySubscriptExpr(const ArraySubscriptExpr *E,
 
     // The element count here is the total number of non-VLA elements.
     llvm::Value *numElements = getVLASize(vla).NumElts;
-
     // Effectively, the multiply by the VLA size is part of the GEP.
     // GEP indexes are signed, and scaling an index isn't permitted to
     // signed-overflow, so we use the same semantics for our explicit

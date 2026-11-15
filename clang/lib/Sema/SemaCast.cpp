@@ -924,7 +924,7 @@ void CastOperation::CheckDynamicCast() {
     DestPointee = DestReference->getPointeeType();
   } else {
     Self.Diag(OpRange.getBegin(), diag::err_bad_dynamic_cast_not_ref_or_ptr)
-        << this->DestType << DestRange;
+      << this->DestType << DestRange;
     SrcExpr = ExprError();
     return;
   }

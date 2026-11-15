@@ -342,14 +342,15 @@ public:
 
   void emitXCOFFRefDirective(const MCSymbol *Symbol) override;
 
-  void emitXCOFFExceptDirective(const MCSymbol *Symbol, 
+  void emitXCOFFExceptDirective(const MCSymbol *Symbol,
                                 const MCSymbol *Trap,
                                 unsigned Lang, unsigned Reason,
                                 unsigned FunctionSize, bool hasDebug) override;
   void emitXCOFFCInfoSym(StringRef Name, StringRef Metadata) override;
 
   void emitELFSize(MCSymbol *Symbol, const MCExpr *Value) override;
-  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size, Align ByteAlignment) override;
+  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
+                        Align ByteAlignment) override;
 
   /// Emit a local common (.lcomm) symbol.
   ///
@@ -1295,6 +1296,7 @@ void MCAsmStreamer::emitZerofill(MCSection *Section, MCSymbol *Symbol,
 // e.g. _a.
 void MCAsmStreamer::emitTBSSSymbol(MCSection *Section, MCSymbol *Symbol,
                                    uint64_t Size, Align ByteAlignment) {
+
   Symbol->setFragment(&Section->getDummyFragment());
 
   // Instead of using the Section we'll just use the shortcut.

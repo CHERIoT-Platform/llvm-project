@@ -2938,7 +2938,7 @@ void CodeGenModule::EmitCtorList(CtorList &Fns, const char *GlobalName) {
 
   // Ctor function type is ptr.
   llvm::PointerType *PtrTy = llvm::PointerType::get(
-       getLLVMContext(), TheModule.getDataLayout().getProgramAddressSpace());
+      getLLVMContext(), TheModule.getDataLayout().getProgramAddressSpace());
 
   // Get the type of a ctor entry, { i32, ptr, ptr }.
   llvm::StructType *CtorStructTy = llvm::StructType::get(Int32Ty, PtrTy, PtrTy);
@@ -6486,8 +6486,8 @@ llvm::GlobalVariable *CodeGenModule::CreateOrReplaceCXXRuntimeVariable(
   }
 
   // Create a new variable.
-  GV = new llvm::GlobalVariable(getModule(), Ty, /*isConstant=*/true, Linkage,
-                                nullptr, Name);
+  GV = new llvm::GlobalVariable(getModule(), Ty, /*isConstant=*/true,
+                                Linkage, nullptr, Name);
 
   if (OldGV) {
     // Replace occurrences of the old variable if needed.

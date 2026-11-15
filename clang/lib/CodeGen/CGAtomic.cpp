@@ -1376,12 +1376,12 @@ RValue CodeGenFunction::EmitAtomicExpr(AtomicExpr *E) {
     }
     // By default, assume we return a value of the atomic type.
     if (!HaveRetTy) {
-        // Value is returned through parameter before the order.
-        RetTy = getContext().VoidTy;
+      // Value is returned through parameter before the order.
+      RetTy = getContext().VoidTy;
       Args.add(RValue::get(
                    CastToGenericAddrSpace(Dest.emitRawPointer(*this), RetTy)),
                getContext().VoidPtrTy);
-      }
+    }
     // Order is always the last parameter.
     Args.add(RValue::get(Order),
              getContext().IntTy);

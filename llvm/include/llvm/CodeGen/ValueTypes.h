@@ -24,6 +24,7 @@
 #include <string>
 
 namespace llvm {
+
   class LLVMContext;
   class Type;
   struct fltSemantics;

@@ -1438,7 +1438,6 @@ public:
     assert(Expr && "Expr shouldn't be null!");
     int64_t Imm = 0;
     bool IsConstant = evaluateConstantExpr(Expr, Imm);
-
     if (IsConstant)
       Inst.addOperand(
           MCOperand::createImm(fixImmediateForRV32(Imm, IsRV64Imm)));

@@ -435,7 +435,6 @@ Error DataLayout::parseAggregateSpec(StringRef Spec) {
   StructPrefAlignment = PrefAlign;
   return Error::success();
 }
-
 Error DataLayout::parsePointerSpec(
     StringRef Spec, SmallDenseSet<StringRef, 8> &AddrSpaceNames) {
   // p[f][<n>]:<size>:<abi>[:<pref>[:<idx>]]

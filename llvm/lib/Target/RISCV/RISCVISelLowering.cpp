@@ -29543,6 +29543,7 @@ static SDValue convertValVTToLocVT(SelectionDAG &DAG, SDValue Val,
       return DAG.getNode(RISCVISD::FMV_X_ANYEXTH, DL, LocVT, Val);
     if (LocVT == MVT::i64 && VA.getValVT() == MVT::f32)
       return DAG.getNode(RISCVISD::FMV_X_ANYEXTW_RV64, DL, MVT::i64, Val);
+
     if (VA.getValVT().isFixedLengthVector() && LocVT.isScalableVector())
       return convertToScalableVector(LocVT, Val, DAG, Subtarget);
     llvm_unreachable("Unexpected Custom handling.");
@@ -29648,7 +29649,6 @@ static SDValue unpackGPRVecOnRV32(SelectionDAG &DAG, SDValue Chain,
   MachineRegisterInfo &RegInfo = MF.getRegInfo();
 
   assert(VA.isRegLoc() && "Expected register VA assignment");
-
   Register LoVReg = RegInfo.createVirtualRegister(&RISCV::GPRRegClass);
   RegInfo.addLiveIn(VA.getLocReg(), LoVReg);
   SDValue Lo = DAG.getCopyFromReg(Chain, DL, LoVReg, MVT::i32);

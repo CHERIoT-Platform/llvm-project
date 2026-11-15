@@ -9354,7 +9354,6 @@ public:
       if (!handleLValueToRValueConversion(Info, E, SubExpr->getType(),
                                           LVal, RVal))
         return false;
-
       return DerivedSuccess(RVal, E);
     }
     case CK_LValueToRValueBitCast: {
@@ -20487,7 +20486,6 @@ bool IntExprEvaluator::VisitCastExpr(const CastExpr *E) {
       return false;
     return Success(Dst, E);
   }
-
   case CK_MemberPointerToBoolean:
   case CK_PointerToBoolean:
   case CK_IntegralToBoolean:

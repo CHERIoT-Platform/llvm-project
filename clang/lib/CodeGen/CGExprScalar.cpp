@@ -722,6 +722,7 @@ public:
     return EmitScalarPrePostIncDec(E, LV, false, false);
   }
   Value *VisitUnaryPostInc(const UnaryOperator *E) {
+
     LValue LV = EmitLValue(E->getSubExpr());
     return EmitScalarPrePostIncDec(E, LV, true, false);
   }

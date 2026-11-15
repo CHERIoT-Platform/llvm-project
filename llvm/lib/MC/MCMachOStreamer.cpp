@@ -98,7 +98,8 @@ public:
   void emitTargetTriple(StringRef TargetTriple) override;
   bool emitSymbolAttribute(MCSymbol *Symbol, MCSymbolAttr Attribute) override;
   void emitSymbolDesc(MCSymbol *Symbol, unsigned DescValue) override;
-  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size, Align ByteAlignment) override;
+  void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
+                        Align ByteAlignment) override;
 
   void emitLocalCommonSymbol(MCSymbol *Symbol, uint64_t Size,
                              Align ByteAlignment) override;

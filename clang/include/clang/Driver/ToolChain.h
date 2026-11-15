@@ -1,4 +1,3 @@
-
 //===- ToolChain.h - Collections of tools for one platform ------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.

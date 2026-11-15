@@ -613,17 +613,18 @@ static constexpr DecoderListEntry DecoderList32[]{
     {DecoderTableXAndes32, XAndesGroup, "Andes extensions"},
     {DecoderTableXSMT32, XSMTGroup, "SpacemiT extensions"},
     {DecoderTableXAIF32, XAIFGroup, "AI Foundry extensions"},
+    {DecoderTableRISCV32CapModeOnly_32,
+     {RISCV::FeatureVendorXCheriPureCap},
+     "RISCV32CapModeOnly_32"},
+    // XCheri RV32-only instructions. Kept out of RV32Only because LC_64
+    // conflicts with Zilsd's LD_RV32 encoding.
+    {DecoderTableRISCV32Only_32, {}, "RISCV32Only_32"},
     {DecoderTableCapModeOnly_32, {RISCV::FeatureVendorXCheriPureCap}, "CapModeOnly_32"},
     // Standard Extensions
     {DecoderTable32, {}, "standard 32-bit instructions"},
     {DecoderTableRV32Only32, {}, "RV32-only standard 32-bit instructions"},
     {DecoderTableZfinx32, {}, "Zfinx (Float in Integer)"},
     {DecoderTableZdinxRV32Only32, {}, "RV32-only Zdinx (Double in Integer)"},
-};
-
-static constexpr DecoderListEntry DecoderList32_Not64Bit[]{
-  {DecoderTableRISCV32CapModeOnly_32, {RISCV::FeatureVendorXCheriPureCap}, "RISCV32CapModeOnly_32"},
-  {DecoderTableRISCV32Only_32, {}, "RISCV32Only_32"},
 };
 
 namespace {
@@ -645,21 +646,6 @@ DecodeStatus RISCVDisassembler::getInstruction32(MCInst &MI, uint64_t &Size,
   Size = 4;
 
   uint32_t Insn = support::endian::read32le(Bytes.data());
-
-  if (!STI.hasFeature(RISCV::Feature64Bit)) {
-    for (const DecoderListEntry &Entry : DecoderList32_Not64Bit) {
-      if (!Entry.haveContainedFeatures(STI.getFeatureBits()))
-        continue;
-  
-      LLVM_DEBUG(dbgs() << "Trying " << Entry.Desc << "table:\n");
-      DecodeStatus Result =
-          decodeInstruction(Entry.Table, MI, Insn, Address, this, STI);
-      if (Result == MCDisassembler::Fail)
-        continue;
-  
-      return Result;
-    }
-  }
 
   for (const DecoderListEntry &Entry : DecoderList32) {
     if (!Entry.haveContainedFeatures(STI.getFeatureBits()))
@@ -690,7 +676,12 @@ static constexpr DecoderListEntry DecoderList16[]{
      {RISCV::FeatureVendorXqccmt},
      "Xqccmt (Qualcomm 16-bit Table Jump Instructions)"},
     {DecoderTableXwchc16, {RISCV::FeatureVendorXwchc}, "WCH QingKe XW"},
-    {DecoderTableCapModeOnly_16, {}, "RISCV32Only_16"},
+    {DecoderTableRISCV32CapModeOnly_16,
+     {RISCV::FeatureVendorXCheriPureCap},
+     "RISCV32CapModeOnly_16"},
+    {DecoderTableCapModeOnly_16,
+     {RISCV::FeatureVendorXCheriPureCap},
+     "CapModeOnly_16"},
     // Standard Extensions
     {DecoderTable16, {}, "standard 16-bit instructions"},
     {DecoderTableRV32Only16, {}, "RV32-only 16-bit instructions"},
@@ -698,10 +689,6 @@ static constexpr DecoderListEntry DecoderList16[]{
     {DecoderTableZcOverlap16,
      {},
      "ZcOverlap (16-bit Instructions overlapping with Zcf/Zcd)"},
-};
-
-static constexpr DecoderListEntry DecoderList16_Not64Bit[]{
-  {DecoderTableRISCV32CapModeOnly_16, {RISCV::FeatureVendorXCheriPureCap}, "RISCV32CapModeOnly_16"},
 };
 
 DecodeStatus RISCVDisassembler::getInstruction16(MCInst &MI, uint64_t &Size,
@@ -715,19 +702,6 @@ DecodeStatus RISCVDisassembler::getInstruction16(MCInst &MI, uint64_t &Size,
   Size = 2;
 
   uint16_t Insn = support::endian::read16le(Bytes.data());
-
-  if (!STI.hasFeature(RISCV::Feature64Bit)) {
-    for (const DecoderListEntry &Entry : DecoderList16_Not64Bit) {
-      if (!Entry.haveContainedFeatures(STI.getFeatureBits()))
-        continue;
-  
-      LLVM_DEBUG(dbgs() << "Trying " << Entry.Desc << "table:\n");
-      DecodeStatus Result =
-          decodeInstruction(Entry.Table, MI, Insn, Address, this, STI);
-      if (Result != MCDisassembler::Fail)
-        return Result;
-    }  
-  }
 
   for (const DecoderListEntry &Entry : DecoderList16) {
     if (!Entry.haveContainedFeatures(STI.getFeatureBits()))

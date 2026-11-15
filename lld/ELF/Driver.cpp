@@ -2020,9 +2020,6 @@ static void readConfigs(Ctx &ctx, opt::InputArgList &args) {
       ctx.arg.symbolOrderingFile = getSymbolOrderingFile(ctx, *buffer);
   }
 
-  for (auto *arg : args.filtered(OPT_warn_file_linked))
-  ctx.arg.warnIfFileLinked.push_back(arg->getValue());
-
   assert(ctx.arg.versionDefinitions.empty());
   ctx.arg.versionDefinitions.push_back(
       {"local", (uint16_t)VER_NDX_LOCAL, {}, {}});

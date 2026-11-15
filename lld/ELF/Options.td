@@ -228,9 +228,6 @@ defm entry: Eq<"entry", "Name of entry point symbol">,
 defm error_limit:
   EEq<"error-limit", "Maximum number of errors to emit before stopping (0 = no limit)">;
 
-defm warning_limit:
-  Eq<"warning-limit", "Maximum number of warnings to emit before stopping (0 = no limit)">;
-
 def error_unresolved_symbols: F<"error-unresolved-symbols">,
   HelpText<"Report unresolved symbols as errors">;
 
@@ -577,8 +574,6 @@ defm warn_symbol_ordering: BB<"warn-symbol-ordering",
 
 def warn_unresolved_symbols: F<"warn-unresolved-symbols">,
   HelpText<"Report unresolved symbols as warnings">;
-
-defm warn_file_linked: Eq<"warn-if-file-linked", "Warn when the given file is linked">;
 
 defm whole_archive: B<"whole-archive",
     "Force load of all members in a static library",

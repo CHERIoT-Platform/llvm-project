@@ -98,8 +98,6 @@ public:
   uint64_t errorLimit = 20;
   StringRef errorLimitExceededMsg = "too many errors emitted, stopping now";
   StringRef errorHandlingScript;
-  uint64_t warningLimit = 20;
-  StringRef warningLimitExceededMsg = "too many warnings emitted, stopping now";
   StringRef logName = "lld";
   bool exitEarly = true;
   bool fatalWarnings = false;

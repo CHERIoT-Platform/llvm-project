@@ -328,7 +328,6 @@ struct Config {
   llvm::SmallVector<llvm::StringRef, 0> dtltoCompilerPrependArgs;
   llvm::SmallVector<llvm::StringRef, 0> dtltoCompilerArgs;
   llvm::SmallVector<llvm::StringRef, 0> undefined;
-  llvm::SmallVector<llvm::StringRef, 0> warnIfFileLinked;
   llvm::SmallVector<SymbolVersion, 0> dynamicList;
   llvm::SmallVector<uint8_t, 0> buildIdVector;
   llvm::SmallVector<llvm::StringRef, 0> mllvmOpts;

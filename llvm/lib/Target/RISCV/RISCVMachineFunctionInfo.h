@@ -76,7 +76,7 @@ private:
 
 
   /// Size of on-stack arguments
-  uint64_t StackArgumentSize;
+  uint64_t StackArgumentSize = 0;
 
   /// Is there any vector argument or return?
   bool IsVectorCall = false;
@@ -116,8 +116,8 @@ public:
   int getVarArgsFrameIndex() const { return VarArgsFrameIndex; }
   void setVarArgsFrameIndex(int Index) { VarArgsFrameIndex = Index; }
 
-  unsigned getStackArgumentSize() const { return StackArgumentSize; }
-  void setStackArgumentSize(int Size) { StackArgumentSize = Size; }
+  uint64_t getStackArgumentSize() const { return StackArgumentSize; }
+  void setStackArgumentSize(uint64_t Size) { StackArgumentSize = Size; }
 
   unsigned getVarArgsSaveSize() const { return VarArgsSaveSize; }
   void setVarArgsSaveSize(int Size) { VarArgsSaveSize = Size; }

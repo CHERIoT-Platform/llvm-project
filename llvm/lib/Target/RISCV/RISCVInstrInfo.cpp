@@ -226,7 +226,7 @@ Register RISCVInstrInfo::isStoreToStackSlot(const MachineInstr &MI,
     break;
   case RISCV::SC_128:
   case RISCV::CSC_128:
-    MemBytes = TypeSize::getFixed(16);;
+    MemBytes = TypeSize::getFixed(16);
     break;
   case RISCV::VS1R_V:
   case RISCV::VS2R_V:

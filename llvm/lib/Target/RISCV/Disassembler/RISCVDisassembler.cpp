@@ -603,6 +603,7 @@ static constexpr FeatureBitset XAIFGroup = {RISCV::FeatureVendorXAIFET};
 
 static constexpr DecoderListEntry DecoderList32[]{
     // Vendor Extensions
+    {DecoderTableXCheriot32, {RISCV::FeatureVendorXCheriot}, "CHERIoT"},
     {DecoderTableXCV32, XCVFeatureGroup, "CORE-V extensions"},
     {DecoderTableXqci32, XqciFeatureGroup, "Qualcomm uC Extensions"},
     {DecoderTableXTHead32, XTHeadGroup, "T-Head extensions"},

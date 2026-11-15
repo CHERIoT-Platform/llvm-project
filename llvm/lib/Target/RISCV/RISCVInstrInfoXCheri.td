@@ -511,16 +511,21 @@ def : InstAlias<"ret.pcc",       (JALR_PCC X0,       X1), 2>;
 // Assertion Instructions
 //===----------------------------------------------------------------------===//
 
-let Predicates = [HasCheri] in {
+let Predicates = [HasCheri, HasNoCheriot] in
 def CTestSubset : Cheri_rr<0x20, "ctestsubset", GPR, YGPR, YGPRX0IsDDC>;
+// CHERIoT has no DDC, so rs1 is an ordinary capability register.
+let Predicates = [HasCheriot], DecoderNamespace = "XCheriot" in
+def CT_CTestSubset : Cheri_rr<0x20, "ct.ctestsubset", GPR, YGPR, YGPR>;
+
+let Predicates = [HasCheri] in {
 def CSEQX       : Cheri_rr<0x21, "csetequalexact", GPR, YGPR, YGPR>;
 
 def : InstAlias<"cseqx $rd, $cs1, $cs2", (CSEQX GPR:$rd, YGPR:$cs1, YGPR:$cs2)>;
 }
 
 let Predicates = [HasCheriot] in {
-  def : InstAlias<"ct.ctestsubset $rd, $rs1, $rs2",
-                  (CTestSubset GPR:$rd, YGPRX0IsDDC:$rs1, YGPR:$rs2)>;
+  def : InstAlias<"ctestsubset $rd, $rs1, $rs2",
+                  (CT_CTestSubset GPR:$rd, YGPR:$rs1, YGPR:$rs2), 0>;
   def : InstAlias<"ct.csetequalexact $rd, $rs1, $rs2",
                   (CSEQX GPR:$rd, YGPR:$rs1, YGPR:$rs2), 0>;
   def : InstAlias<"ct.cseqx $rd, $cs1, $cs2",
@@ -1717,7 +1722,10 @@ def : CheriBccSwapPat<setule, BGEU>;
 
 /// Assertion Instructions
 
+let Predicates = [HasNoCheriot] in
 def : PatYGPRYGPR<riscv_cap_subset_test, CTestSubset, XLenVT>;
+let Predicates = [HasCheriot] in
+def : PatYGPRYGPR<riscv_cap_subset_test, CT_CTestSubset, XLenVT>;
 def : PatYGPRYGPR<riscv_cap_equal_exact, CSEQX, XLenVT>;
 
 /// Special Capability Register Access Instructions

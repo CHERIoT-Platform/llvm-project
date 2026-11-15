@@ -136,7 +136,6 @@ def ElementType : TypeAttr<"elementtype", IntersectPreserve, [RetAttr, ParamAttr
 def Flatten : EnumAttr<"flatten", IntersectPreserve, [FnAttr]>;
 
 /// Function has additional side-effects.
-def HasSideEffects : EnumAttr<"hassideeffects", IntersectPreserve, [FnAttr]>;
 
 /// Whether to keep return instructions, or replace with a jump to an external
 /// symbol.

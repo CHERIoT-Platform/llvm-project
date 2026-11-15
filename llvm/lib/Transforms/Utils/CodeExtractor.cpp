@@ -878,7 +878,6 @@ Function *CodeExtractor::constructFunctionDeclaration(
       case Attribute::AllocSize:
       case Attribute::Builtin:
       case Attribute::Convergent:
-      case Attribute::HasSideEffects:
       case Attribute::JumpTable:
       case Attribute::MustPreserveCheriTags:
       case Attribute::NoPreserveCheriTags:

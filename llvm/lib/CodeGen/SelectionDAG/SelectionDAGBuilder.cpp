@@ -5686,10 +5686,9 @@ void SelectionDAGBuilder::visitAtomicStore(const StoreInst &I) {
 std::pair<bool, bool>
 SelectionDAGBuilder::getTargetIntrinsicCallProperties(const CallBase &I) {
   const Function *F = I.getCalledFunction();
-  bool MayAccessMemory = !F->doesNotAccessMemory();
-  bool HasChain = MayAccessMemory || F->hasSideEffects();
+  bool HasChain = !F->doesNotAccessMemory();
   bool OnlyLoad =
-      MayAccessMemory && F->onlyReadsMemory() && F->willReturn() && F->doesNotThrow();
+      HasChain && F->onlyReadsMemory() && F->willReturn() && F->doesNotThrow();
 
   return {HasChain, OnlyLoad};
 }

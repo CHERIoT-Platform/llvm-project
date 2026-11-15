@@ -1991,9 +1991,6 @@ public:
   LLVM_ABI bool isNoInline() const;
   void setIsNoInline() { addFnAttr(Attribute::NoInline); }
 
-  /// Determine if the function has additional side-effects.
-  bool hasSideEffects() const { return hasFnAttr(Attribute::HasSideEffects); }
-  void setHasSideEffects() { addFnAttr(Attribute::HasSideEffects); }
 
   LLVM_ABI MemoryEffects getMemoryEffects() const;
   LLVM_ABI void setMemoryEffects(MemoryEffects ME);

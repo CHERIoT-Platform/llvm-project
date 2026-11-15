@@ -2160,8 +2160,6 @@ static Attribute::AttrKind getAttrFromCode(uint64_t Code) {
     return Attribute::DisableSanitizerInstrumentation;
   case bitc::ATTR_KIND_ELEMENTTYPE:
     return Attribute::ElementType;
-  case bitc::ATTR_KIND_HAS_SIDE_EFFECTS:
-    return Attribute::HasSideEffects;
   case bitc::ATTR_KIND_FNRETTHUNK_EXTERN:
     return Attribute::FnRetThunkExtern;
   case bitc::ATTR_KIND_FLATTEN:

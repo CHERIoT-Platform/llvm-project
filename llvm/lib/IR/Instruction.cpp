@@ -1386,14 +1386,8 @@ bool Instruction::mayThrow(bool IncludePhaseOneUnwind) const {
   }
 }
 
-bool Instruction::hasSideEffects() const {
-  if (const CallBase *CB = dyn_cast<CallBase>(this))
-    return CB->hasSideEffects();
-  return false;
-}
-
 bool Instruction::mayHaveSideEffects() const {
-  return mayWriteToMemory() || mayThrow() || hasSideEffects() || !willReturn();
+  return mayWriteToMemory() || mayThrow() || !willReturn();
 }
 
 bool Instruction::isSafeToRemove() const {

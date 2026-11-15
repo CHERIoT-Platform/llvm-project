@@ -2864,7 +2864,7 @@ llvm::Value* CodeGenFunction::EmitPointerCast(llvm::Value *From,
   unsigned FromAddrSpace = FromTy->getAddressSpace();
   unsigned ToAddrSpace = ToType->getAddressSpace();
   if (FromAddrSpace == ToAddrSpace)
-      return Builder.CreateBitCast(From, ToType);
+    return From;
   else
     return Builder.CreateAddrSpaceCast(From, ToType);
 }
@@ -2891,12 +2891,8 @@ llvm::Value* CodeGenFunction::EmitPointerCast(llvm::Value *From,
 
     if (flags != 0xffff) {
       llvm::Function *F = CGM.getIntrinsic(llvm::Intrinsic::cheri_cap_perms_and, SizeTy);
-      if (F->getFunctionType()->getParamType(0) != result->getType())
-        result = Builder.CreateBitCast(result, F->getFunctionType()->getParamType(0));
       result = Builder.CreateCall(F, {result,
           llvm::ConstantInt::get(SizeTy, flags)});
-      if (toTy != result->getType())
-        result = Builder.CreateBitCast(result, toTy);
     }
   }
   return result;
@@ -3383,7 +3379,7 @@ Value *ScalarExprEmitter::VisitCastExpr(CastExpr *CE) {
     if (SrcIsCheriCap) {
       // If we're casting to a capability pointer, then it's just a bitcast:
       if (DestTy->isCHERICapabilityType(CGF.getContext()))
-        return Builder.CreateBitCast(Src, DestLLVMTy);
+        return Src;
       // Otherwise, it's some kind of non-capability pointer, so we need to
       // create an integer value first
       if (IsPureCap) {
@@ -3402,11 +3398,9 @@ Value *ScalarExprEmitter::VisitCastExpr(CastExpr *CE) {
     llvm::Value* IntToPtr = nullptr;
 
     if (IsPureCap && DestTy->isCHERICapabilityType(CGF.getContext())) {
-      IntToPtr = Builder.CreateBitCast(
-          Builder.CreateGEP(CGF.Int8Ty,
-                            llvm::ConstantPointerNull::get(CGF.Int8CheriCapTy),
-                            IntResult),
-          DestLLVMTy);
+      IntToPtr = Builder.CreateGEP(
+          CGF.Int8Ty, llvm::ConstantPointerNull::get(CGF.Int8CheriCapTy),
+          IntResult);
     } else {
       // assert(!SrcIsCheriCap);
       // TODO: generate CFromPtr/CFromInt depending on value (for constants use
@@ -3443,7 +3437,7 @@ Value *ScalarExprEmitter::VisitCastExpr(CastExpr *CE) {
     if (DestTy->isCHERICapabilityType(C)) {
       assert(DestTy->isIntCapType());
       if (E->getType()->isCHERICapabilityType(C))
-        return Builder.CreateBitCast(PtrExpr, ResultType);
+        return PtrExpr;
 
       assert(!IsPureCap);
       PtrExpr = Builder.CreatePtrToInt(PtrExpr, CGF.PtrDiffTy);
@@ -5549,9 +5543,8 @@ Value *ScalarExprEmitter::EmitSub(const BinOpInfo &op) {
   if (cast<BinaryOperator>(op.E)->getLHS()->getType()->isCHERICapabilityType(CGF.getContext())) {
     llvm::Function *CapPtrDiff =
       CGF.CGM.getIntrinsic(llvm::Intrinsic::cheri_cap_diff, CGF.PtrDiffTy);
-    llvm::Type *CapTy = CapPtrDiff->getFunctionType()->getParamType(0);
-    LHS = Builder.CreateBitCast(op.LHS, CapTy);
-    RHS = Builder.CreateBitCast(op.RHS, CapTy);
+    LHS = op.LHS;
+    RHS = op.RHS;
     diffInChars = Builder.CreateCall(CapPtrDiff, { LHS, RHS});
   } else {
     if (CGF.getLangOpts().PointerOverflowDefined) {

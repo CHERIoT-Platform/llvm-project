@@ -1720,7 +1720,7 @@ static llvm::Value *CreateCoercedLoad(Address Src, QualType SrcFETy,
       if (!structContainsExactlyOneFieldThatIsACapability(SrcSTy, CGF)) {
         if (llvm::PointerType* PTy = dyn_cast<llvm::PointerType>(Ty)) {
           if (PTy->getAddressSpace() == CGF.CGM.getTargetCodeGenInfo().getCHERICapabilityAS()) {
-            return CGF.Builder.CreateBitCast(Src.getBasePointer(), Ty);
+            return Src.getBasePointer();
           }
         }
       }
@@ -1862,8 +1862,6 @@ void CodeGenFunction::CreateCoercedStore(llvm::Value *Src, QualType SrcFETy,
           if (llvm::PointerType* PTy = dyn_cast<llvm::PointerType>(SrcTy)) {
             unsigned CapAS = CGM.getTargetCodeGenInfo().getCHERICapabilityAS();
             if (PTy->getAddressSpace() == CapAS) {
-              Src = Builder.CreateBitCast(
-                  Src, llvm::PointerType::get(CGM.getLLVMContext(), CapAS));
               Src =
                   Builder.CreateLoad(Address(Src, DstSTy, Dst.getAlignment()));
               Builder.CreateStore(Src, Dst, DstIsVolatile);

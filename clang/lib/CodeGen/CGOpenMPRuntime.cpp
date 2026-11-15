@@ -49,9 +49,6 @@
 #include <numeric>
 #include <optional>
 
-// XXXAR: TODO fix default address space in this file as well
-#define getUnqual(arg) get(arg, 0u)
-
 using namespace clang;
 using namespace CodeGen;
 using namespace llvm::omp;

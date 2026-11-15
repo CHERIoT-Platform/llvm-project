@@ -795,7 +795,7 @@ tightenCHERIBounds(CodeGenFunction &CGF, SubObjectBoundsKind Kind,
   if (TBR.UseRemainingSize) {
     SizeStr = TBR.Size ? ("min(" + Twine(*TBR.Size) + ", remaining)").str()
                        : "remaining";
-    auto SrcAsI8 = CGF.Builder.CreateBitCast(ValueToBound, CGF.Int8CheriCapTy);
+    auto SrcAsI8 = ValueToBound;
     // CHERIoT does not directly implement cheri_cap_offset_get, so it's better
     // to lower the bounds in terms of cheri_cap_top_get / cheri_cap_addr_get.
     auto Top =
@@ -839,14 +839,12 @@ tightenCHERIBounds(CodeGenFunction &CGF, SubObjectBoundsKind Kind,
     // Clear the given software permission bit to differentiate subobject-bounds
     // violations from normal CHERI traps
     if (!SrcLength) {
-      auto SrcAsI8 =
-          CGF.Builder.CreateBitCast(ValueToBound, CGF.Int8CheriCapTy);
+      auto SrcAsI8 = ValueToBound;
       SrcLength = CGF.Builder.CreateIntrinsic(
           llvm::Intrinsic::cheri_cap_length_get, CGF.PtrDiffTy, SrcAsI8,
           nullptr, "cur_len");
     }
-    auto ResultAsI8 =
-        CGF.Builder.CreateBitCast(Result, CGF.Int8CheriCapTy);
+    auto ResultAsI8 = Result;
     auto ResultLength = CGF.Builder.CreateIntrinsic(
         llvm::Intrinsic::cheri_cap_length_get, CGF.PtrDiffTy, ResultAsI8,
         nullptr, "new_len");
@@ -3749,9 +3747,7 @@ RValue CodeGenFunction::EmitLoadOfGlobalRegLValue(LValue LV) {
   llvm::Function *F = CGM.getIntrinsic(llvm::Intrinsic::read_register, Types);
   llvm::Value *Call = Builder.CreateCall(
       F, llvm::MetadataAsValue::get(Ty->getContext(), RegName));
-  if (CGM.getDataLayout().isFatPointer(OrigTy))
-    Call = Builder.CreateBitCast(Call, OrigTy);
-  else if (OrigTy->isPointerTy())
+  if (!CGM.getDataLayout().isFatPointer(OrigTy) && OrigTy->isPointerTy())
     Call = Builder.CreateIntToPtr(Call, OrigTy);
   return RValue::get(Call);
 }
@@ -4228,9 +4224,7 @@ void CodeGenFunction::EmitStoreThroughGlobalRegLValue(RValue Src, LValue Dst) {
 
   llvm::Function *F = CGM.getIntrinsic(llvm::Intrinsic::write_register, Types);
   llvm::Value *Value = Src.getScalarVal();
-  if (CGM.getDataLayout().isFatPointer(OrigTy))
-    Value = Builder.CreateBitCast(Value, Ty);
-  else if (OrigTy->isPointerTy())
+  if (!CGM.getDataLayout().isFatPointer(OrigTy) && OrigTy->isPointerTy())
     Value = Builder.CreatePtrToInt(Value, Ty);
   Builder.CreateCall(
       F, {llvm::MetadataAsValue::get(Ty->getContext(), RegName), Value});
@@ -8253,8 +8247,7 @@ RValue CodeGenFunction::EmitCall(QualType CalleeType,
         AlignedCalleePtr = CalleePtr;
       }
 
-      llvm::Value *CalleePrefixStruct = Builder.CreateBitCast(
-          AlignedCalleePtr, CGM.getPointerInDefaultAS(PrefixStructTy));
+      llvm::Value *CalleePrefixStruct = AlignedCalleePtr;
       llvm::Value *CalleeSigPtr =
           Builder.CreateConstGEP2_32(PrefixStructTy, CalleePrefixStruct, -1, 0);
       llvm::Value *CalleeSig =

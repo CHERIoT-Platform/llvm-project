@@ -45,13 +45,12 @@ public:
                                        CGF.SizeTy);
     llvm::Type *DstTy = Ptr->getType();
     auto &B = CGF.Builder;
-    Ptr = B.CreateBitCast(Ptr, getI8CapTy(CGF));
     assert(Offset->getType()->getIntegerBitWidth() ==
            CGF.CGM.getDataLayout().getIndexTypeSizeInBits(DstTy));
     llvm::Value *Result = B.CreateCall(SetOffset, {Ptr, Offset}, Name);
     if (CGF.SanOpts.has(SanitizerKind::CheriUnrepresentable))
       Result = CGF.EmitCapabilityArithmeticCheck(Ptr, Result, Loc);
-    return B.CreateBitCast(Result, DstTy);
+    return Result;
   }
 
   llvm::Value *setPointerAddress(CodeGen::CodeGenFunction &CGF,
@@ -67,13 +66,12 @@ public:
                                      CGF.IntPtrTy);
     llvm::Type *DstTy = Ptr->getType();
     auto &B = CGF.Builder;
-    Ptr = B.CreateBitCast(Ptr, getI8CapTy(CGF));
     assert(Addr->getType()->getIntegerBitWidth() ==
            CGF.CGM.getDataLayout().getIndexTypeSizeInBits(DstTy));
     llvm::Value *Result = B.CreateCall(SetAddr, {Ptr, Addr}, Name);
     if (CGF.SanOpts.has(SanitizerKind::CheriUnrepresentable))
       Result = CGF.EmitCapabilityArithmeticCheck(Ptr, Result, Loc);
-    return B.CreateBitCast(Result, DstTy);
+    return Result;
   }
 
   llvm::Value *setPointerBounds(CodeGen::CodeGenFunction &CGF, llvm::Value *Ptr,
@@ -84,17 +82,15 @@ public:
                                        CGF.SizeTy);
     llvm::Type *DstTy = Ptr->getType();
     auto &B = CGF.Builder;
-    Ptr = B.CreateBitCast(Ptr, getI8CapTy(CGF));
     assert(Size->getType()->getIntegerBitWidth() ==
            CGF.CGM.getDataLayout().getIndexTypeSizeInBits(DstTy));
-    return B.CreateBitCast(B.CreateCall(SetBounds, {Ptr, Size}), DstTy, Name);
+    return B.CreateCall(SetBounds, {Ptr, Size}, Name);
   }
 
   llvm::Value *getPointerValidity(CodeGen::CodeGenFunction &CGF, llvm::Value *V,
                                   const llvm::Twine &Name) const override {
     if (!GetTag)
       GetTag = CGF.CGM.getIntrinsic(llvm::Intrinsic::cheri_cap_tag_get);
-    V = CGF.Builder.CreateBitCast(V, getI8CapTy(CGF));
     return CGF.Builder.CreateCall(GetTag, V, Name);
   }
 
@@ -103,7 +99,6 @@ public:
     if (!GetBase)
       GetBase = CGF.CGM.getIntrinsic(llvm::Intrinsic::cheri_cap_base_get,
                                      CGF.IntPtrTy);
-    V = CGF.Builder.CreateBitCast(V, getI8CapTy(CGF));
     return CGF.Builder.CreateCall(GetBase, V);
   }
 
@@ -113,7 +108,6 @@ public:
     if (!GetOffset)
       GetOffset = CGF.CGM.getIntrinsic(llvm::Intrinsic::cheri_cap_offset_get,
                                        CGF.SizeTy);
-    V = CGF.Builder.CreateBitCast(V, getI8CapTy(CGF));
     return CGF.Builder.CreateCall(GetOffset, V);
   }
 
@@ -126,7 +120,6 @@ public:
     if (!GetAddress)
       GetAddress = CGF.CGM.getIntrinsic(llvm::Intrinsic::cheri_cap_address_get,
                                         CGF.IntPtrTy);
-    V = CGF.Builder.CreateBitCast(V, getI8CapTy(CGF));
     return CGF.Builder.CreateCall(GetAddress, V, Name);
   }
 };

@@ -2850,8 +2850,7 @@ static bool isInterruptPostureCompatible(const Function &caller,
 
 bool AttributeFuncs::areInlineCompatible(const Function &Caller,
                                          const Function &Callee) {
-  return hasCompatibleFnAttrs(Caller, Callee) &&
-         isInterruptPostureCompatible(Caller, Callee);
+  return hasCompatibleFnAttrs(Caller, Callee);
 }
 
 bool AttributeFuncs::isStrictFPInlineCompatible(const Function &Caller,

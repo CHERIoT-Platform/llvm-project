@@ -2607,7 +2607,7 @@ def : CompressPat<(CSD GPR:$rs2, CSP:$rs1, uimm9_lsb000:$imm),
 } // Predicates = [HasCheri, HasCheriRVC, HasStdExtZca, IsRV64, IsCapMode]
 
 
-let Predicates = [HasCheri, IsRV32, IsCapMode, IsRVE] in {
+let Predicates = [HasCheri, IsRV32, IsCapMode, HasStdExtE] in {
 let mayLoad = true, mayStore = false, hasSideEffects = false in
 def PseudoCLLW : Pseudo<(outs YGPR:$dst), (ins bare_symbol:$src), [],
                         "cllc", "$dst, $src">;
@@ -2615,7 +2615,7 @@ def : Pat<(c64(load(cPTR(load(iPTR globaladdr:$src))))),
           (PseudoCLLW bare_symbol:$src)>;
 def : Pat<(f64(load(cPTR(load(iPTR globaladdr:$src))))),
           (PseudoCLLW bare_symbol:$src)>;
-} // Predicates = [HasCheri, IsRV32, IsCapMode, IsRVE]
+} // Predicates = [HasCheri, IsRV32, IsCapMode, HasStdExtE]
 
 // Cheriot stores f64 in cap registers, so bitcasting between f64 and c64
 // is a no-op.

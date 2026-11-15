@@ -77,6 +77,9 @@ def FeatureStdExtI
 def FeatureStdExtE
     : RISCVExtension<2, 0, "Embedded Instruction Set with 16 GPRs">,
       RISCVExtensionBitmask<0, 4>;
+def HasStdExtE : Predicate<"Subtarget->hasStdExtE()">,
+                 AssemblerPredicate<(all_of FeatureStdExtE),
+                                    "'E' (Embedded Instruction Set with 16 GPRs)">;
 
 def FeatureStdExtZibi
     : RISCVExperimentalExtension<0, 1, "Branch with Immediate">,
@@ -2058,9 +2061,6 @@ def IsRV64 : Predicate<"Subtarget->is64Bit()">,
 def IsRV32 : Predicate<"!Subtarget->is64Bit()">,
              AssemblerPredicate<(none_of Feature64Bit),
                                 "RV32I Base Instruction Set">;
-
-def IsRVE : Predicate<"Subtarget->isRVE()">,
-            AssemblerPredicate<(all_of FeatureStdExtE)>;
 
 def FeatureRelax
     : SubtargetFeature<"relax", "EnableLinkerRelax", "true",

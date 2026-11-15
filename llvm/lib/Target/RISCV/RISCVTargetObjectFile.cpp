@@ -216,7 +216,7 @@ void RISCVMachOTargetObjectFile::getNameWithPrefix(
 int RISCVELFTargetObjectFile::getCheriCapabilitySize(
     const TargetMachine &TM) const {
   const RISCVTargetMachine &RTM = static_cast<const RISCVTargetMachine &>(TM);
-  return RTM.IsRV64() ? 16 : 8;
+  return RTM.getTargetTriple().isRISCV64() ? 16 : 8;
 }
 
 const MCExpr *

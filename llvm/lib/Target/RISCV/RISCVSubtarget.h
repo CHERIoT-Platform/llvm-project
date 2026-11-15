@@ -243,9 +243,6 @@ public:
   bool is64Bit() const { return IsRV64; }
   bool isLittleEndian() const { return IsLittleEndian; }
 
-  bool isRVE() const { return HasStdExtE; }
-  bool isRV32E() const { return isRVE() && !IsRV64; }
-
   MVT getXLenVT() const {
     return is64Bit() ? MVT::i64 : MVT::i32;
   }

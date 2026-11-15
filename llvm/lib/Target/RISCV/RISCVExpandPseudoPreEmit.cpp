@@ -771,7 +771,8 @@ bool RISCVExpandPseudoPreEmitImpl::expandAuipccInstPair(
   if (!CheriotSealedValueAttr.has_value() &&
       !CheriotCapImportAttr.has_value() &&
       !CheriotSealingKeyTypeAttr.has_value() && !InBounds &&
-      MF->getSubtarget<RISCVSubtarget>().isRV32E() && Symbol.isGlobal() &&
+      MF->getSubtarget<RISCVSubtarget>().hasStdExtE() &&
+      !MF->getSubtarget<RISCVSubtarget>().is64Bit() && Symbol.isGlobal() &&
       isa<GlobalVariable>(Symbol.getGlobal()) &&
       (cast<GlobalVariable>(Symbol.getGlobal())->getSection() !=
        ".compartment_imports"))

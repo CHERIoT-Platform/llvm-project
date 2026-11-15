@@ -11,10 +11,6 @@
 ; RUN:   | FileCheck -check-prefixes=ALL,FAST,RV32I-FAST %s
 ; RUN: llc -mtriple=riscv64 -mattr=+unaligned-scalar-mem -verify-machineinstrs < %s \
 ; RUN:   | FileCheck -check-prefixes=ALL,FAST,RV64I-FAST %s
-; RUN: llc -mtriple=riscv32 -mattr=+unaligned-scalar-mem -verify-machineinstrs < %s \
-; RUN:   | FileCheck -check-prefixes=ALL,FAST,RV32I-FAST %s
-; RUN: llc -mtriple=riscv64 -mattr=+unaligned-scalar-mem -verify-machineinstrs < %s \
-; RUN:   | FileCheck -check-prefixes=ALL,FAST,RV64I-FAST %s
 
 ; A collection of cases showing codegen for unaligned loads and stores
 

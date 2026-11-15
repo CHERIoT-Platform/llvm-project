@@ -27602,7 +27602,7 @@ SDValue RISCVTargetLowering::PerformDAGCombine(SDNode *N,
                                DAG.getTargetConstant(1, DL, MVT::i32));
 
       auto LoAsCap = DAG.getTargetInsertSubreg(
-          RISCV::sub_cap_addr, DL, MVT::c64, DAG.getUNDEF(CapVT), Lo);
+          RISCV::sub_cap_addr, DL, CapVT, DAG.getUNDEF(CapVT), Lo);
       return DAG.getNode(
           ISD::INTRINSIC_WO_CHAIN, DL, CapVT,
           DAG.getTargetConstant(Intrinsic::cheri_cap_high_set, DL, MVT::i32),

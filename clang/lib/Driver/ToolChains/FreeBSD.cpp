@@ -321,6 +321,9 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
                         !Args.hasArg(options::OPT_static);
     addOpenMPRuntime(C, CmdArgs, ToolChain, Args, StaticOpenMP);
 
+    // Group the standard libraries so that one-pass linkers (GNU ld) resolve
+    // references between them, e.g. libgcc's atomic.c calling memcmp in libc.
+    CmdArgs.push_back("--start-group");
     if (D.CCCIsCXX()) {
       if (ToolChain.ShouldLinkCXXStdlib(Args))
         ToolChain.AddCXXStdlibLibArgs(Args, CmdArgs);

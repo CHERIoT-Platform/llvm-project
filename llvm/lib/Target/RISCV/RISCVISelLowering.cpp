@@ -29772,7 +29772,7 @@ SDValue RISCVTargetLowering::LowerFormalArguments(
   CCState CCInfo(CallConv, IsVarArg, MF, ArgLocs, *DAG.getContext());
 
   CCInfo.AnalyzeFormalArguments(Ins, CC_RISCV);
-  uint64_t stackArgumentSize = 0;
+  uint64_t StackArgumentSize = 0;
   for (unsigned i = 0, e = ArgLocs.size(), InsIdx = 0; i != e; ++i, ++InsIdx) {
     CCValAssign &VA = ArgLocs[i];
     SDValue ArgValue;
@@ -29798,8 +29798,8 @@ SDValue RISCVTargetLowering::LowerFormalArguments(
         // the vector itself.
         VT = VA.getLocVT();
       }
-      stackArgumentSize =
-          std::max(stackArgumentSize, VA.getLocMemOffset() + VT.getStoreSize());
+      StackArgumentSize =
+          std::max(StackArgumentSize, VA.getLocMemOffset() + VT.getStoreSize());
     }
 
     if (VA.getLocInfo() == CCValAssign::Indirect) {
@@ -29837,11 +29837,11 @@ SDValue RISCVTargetLowering::LowerFormalArguments(
     InVals.push_back(ArgValue);
   }
 
-  if (stackArgumentSize && isCHERIoTCompartmentCall)
+  if (StackArgumentSize && isCHERIoTCompartmentCall)
     MF.getRegInfo().addLiveIn(RISCV::X5_Y);
 
   MachineFrameInfo &MFI = MF.getFrameInfo();
-  RVFI->setStackArgumentSize(stackArgumentSize);
+  RVFI->setStackArgumentSize(StackArgumentSize);
   unsigned XLenInBytes = Subtarget.getXLen() / 8;
   if (any_of(ArgLocs,
              [](CCValAssign &VA) { return VA.getLocVT().isScalableVector(); }))
@@ -29886,16 +29886,16 @@ SDValue RISCVTargetLowering::LowerFormalArguments(
 
       SDValue FIN = DAG.getFrameIndex(FI, PtrVT);
 
-    // Copy the integer registers that may have been used for passing varargs
-    // to the vararg save area.
+      // Copy the integer registers that may have been used for passing varargs
+      // to the vararg save area.
       for (unsigned I = Idx; I < ArgRegs.size(); ++I) {
-      const Register Reg = RegInfo.createVirtualRegister(RC);
-      RegInfo.addLiveIn(ArgRegs[I], Reg);
-      SDValue ArgValue = DAG.getCopyFromReg(Chain, DL, Reg, XLenVT);
+        const Register Reg = RegInfo.createVirtualRegister(RC);
+        RegInfo.addLiveIn(ArgRegs[I], Reg);
+        SDValue ArgValue = DAG.getCopyFromReg(Chain, DL, Reg, XLenVT);
         SDValue Store = DAG.getStore(
             Chain, DL, ArgValue, FIN,
             MachinePointerInfo::getFixedStack(MF, FI, (I - Idx) * XLenInBytes));
-      OutChains.push_back(Store);
+        OutChains.push_back(Store);
         FIN =
             DAG.getMemBasePlusOffset(FIN, TypeSize::getFixed(XLenInBytes), DL);
       }

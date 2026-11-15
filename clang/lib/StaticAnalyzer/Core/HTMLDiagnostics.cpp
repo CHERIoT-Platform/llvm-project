@@ -603,7 +603,7 @@ void HTMLDiagnostics::FinalizeHTML(const PathDiagnostic &D, Rewriter &R,
        << D.getVerboseDescription() << "</td></tr>\n";
 
     // The navigation across the extra notes pieces.
-    unsigned NumExtraPieces = 1;
+    unsigned NumExtraPieces = 0;
     for (const auto &Piece : path) {
       if (const auto *P = dyn_cast<PathDiagnosticNotePiece>(Piece.get())) {
         int LineNumber =

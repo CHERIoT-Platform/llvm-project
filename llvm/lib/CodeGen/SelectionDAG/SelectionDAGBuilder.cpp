@@ -4220,6 +4220,21 @@ void SelectionDAGBuilder::visitPtrToAddr(const User &I) {
   // By definition the type of the ptrtoaddr must be equal to the address type.
   const auto &TLI = DAG.getTargetLoweringInfo();
   EVT AddrVT = TLI.getValueType(DAG.getDataLayout(), I.getType());
+  // Capabilities are not integers, so they can't be truncated. Read their
+  // address with cheri_cap_address_get. ISD::PTRTOINT is not equivalent: its
+  // lowering is target- and ABI-dependent (e.g. RISC-V hybrid mode expands it
+  // to a CToPtr replacement).
+  if (N.getValueType().isFatPointer()) {
+    SDLoc DL = getCurSDLoc();
+    unsigned AS = I.getOperand(0)->getType()->getPointerAddressSpace();
+    EVT RangeVT = TLI.getPointerRangeTy(DAG.getDataLayout(), AS);
+    SDValue Addr = DAG.getNode(
+        ISD::INTRINSIC_WO_CHAIN, DL, RangeVT,
+        DAG.getTargetConstant(Intrinsic::cheri_cap_address_get, DL, RangeVT),
+        N);
+    setValue(&I, DAG.getZExtOrTrunc(Addr, DL, AddrVT));
+    return;
+  }
   // The address width must be smaller or equal to the pointer representation
   // width, so we lower ptrtoaddr as a truncate (possibly folded to a no-op).
   N = DAG.getNode(ISD::TRUNCATE, getCurSDLoc(), AddrVT, N);

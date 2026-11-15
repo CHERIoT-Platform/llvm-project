@@ -29,7 +29,6 @@
 namespace llvm {
 
 using namespace object;
-using namespace sampleprof;
 
 cl::opt<bool> ShowDisassemblyOnly("show-disassembly-only",
                                   cl::desc("Print disassembled code."),

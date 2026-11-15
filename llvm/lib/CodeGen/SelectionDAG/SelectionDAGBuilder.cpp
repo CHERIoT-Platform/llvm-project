@@ -4995,11 +4995,6 @@ void SelectionDAGBuilder::visitLoad(const LoadInst &I) {
   if (isVolatile)
     Root = TLI.prepareVolatileOrAtomicLoad(Root, dl, DAG);
 
-  // An aggregate load cannot wrap around the address space, so offsets to its
-  // parts don't wrap either.
-  SDNodeFlags Flags;
-  Flags.setNoUnsignedWrap(true);
-
   SmallVector<SDValue, 4> Values(NumValues);
   SmallVector<SDValue, 4> Chains(std::min(MaxParallelChains, NumValues));
 
@@ -12033,9 +12028,6 @@ TargetLowering::LowerCallTo(TargetLowering::CallLoweringInfo &CLI) const {
 
     // An aggregate return value cannot wrap around the address space, so
     // offsets to its parts don't wrap either.
-    SDNodeFlags Flags;
-    Flags.setNoUnsignedWrap(true);
-
     MachineFunction &MF = CLI.DAG.getMachineFunction();
     Align HiddenSRetAlign = MF.getFrameInfo().getObjectAlign(DemoteStackIdx);
     for (unsigned i = 0; i < NumValues; ++i) {

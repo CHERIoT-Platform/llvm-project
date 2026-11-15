@@ -300,8 +300,8 @@ int VNCoercion::analyzeLoadFromClobberingLoad(Type *LoadTy, Value *LoadPtr,
                                               LoadInst *DepLI,
                                               const DataLayout &DL,
                                               const TargetLibraryInfo *TLI) {
-  // Cannot handle reading from store of first-class aggregate yet.
-  if (DepLI->getType()->isStructTy() || DepLI->getType()->isArrayTy())
+  // Cannot handle reading from store of first-class aggregate or scalable type.
+  if (isFirstClassAggregateOrScalableType(DepLI->getType()))
     return -1;
 
   if (!canCoerceMustAliasedValueToLoad(DepLI, LoadTy, DepLI->getFunction()))

@@ -30221,43 +30221,6 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
       continue;
     }
 
-    // Handle passing 64-bit vector on RV32 as a special case.
-    if (VA.getLocVT() == MVT::i32 &&
-        Subtarget.isPExtPackedDoubleType(VA.getValVT()) &&
-        VA.getLocInfo() != CCValAssign::Indirect) {
-      assert(VA.isRegLoc() && "Expected register VA assignment");
-      assert(VA.needsCustom());
-      SDValue SplitGPRVec =
-          DAG.getNode(RISCVISD::SplitGPRVec, DL,
-                      DAG.getVTList(MVT::i32, MVT::i32), ArgValue);
-      SDValue Lo = SplitGPRVec.getValue(0);
-      SDValue Hi = SplitGPRVec.getValue(1);
-
-      Register RegLo = VA.getLocReg();
-      RegsToPass.push_back(std::make_pair(RegLo, Lo));
-
-      // Get the CCValAssign for the Hi part.
-      CCValAssign &HiVA = ArgLocs[++i];
-
-      if (HiVA.isMemLoc()) {
-        // Second half of vector is passed on the stack.
-        if (!StackPtr.getNode())
-          StackPtr = DAG.getCopyFromReg(Chain, DL, RISCV::X2, PtrVT);
-        SDValue Address =
-            DAG.getNode(ISD::ADD, DL, PtrVT, StackPtr,
-                        DAG.getIntPtrConstant(HiVA.getLocMemOffset(), DL));
-        // Emit the store.
-        MemOpChains.push_back(DAG.getStore(
-            Chain, DL, Hi, Address,
-            MachinePointerInfo::getStack(MF, HiVA.getLocMemOffset())));
-      } else {
-        // Second half of vector is passed in another GPR.
-        Register RegHigh = HiVA.getLocReg();
-        RegsToPass.push_back(std::make_pair(RegHigh, Hi));
-      }
-      continue;
-    }
-
     // Promote the value if needed.
     // For now, only handle fully promoted and indirect arguments.
     if (VA.getLocInfo() == CCValAssign::Indirect) {

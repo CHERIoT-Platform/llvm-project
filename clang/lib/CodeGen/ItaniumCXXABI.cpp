@@ -673,9 +673,7 @@ CGCallee ItaniumCXXABI::EmitLoadOfMemberFunctionPointer(
   // Apply the adjustment and cast back to the original struct type
   // for consistency.
   llvm::Value *This = ThisAddr.emitRawPointer(CGF);
-  llvm::Value *VTableAddr = Builder.CreateBitCast(This, CGM.Int8PtrTy);
-  VTableAddr = Builder.CreateInBoundsGEP(Builder.getInt8Ty(), VTableAddr, Adj);
-  This = Builder.CreateBitCast(VTableAddr, This->getType(), "this.adjusted");
+  This = Builder.CreateInBoundsGEP(Builder.getInt8Ty(), This, Adj);
   ThisPtrForCall = This;
 
   // Load the function pointer.

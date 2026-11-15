@@ -2840,8 +2840,6 @@ CGObjCGNU::GenerateMessageSendSuper(CodeGenFunction &CGF,
         Class->getSuperClass()->getNameAsString(), /*isWeak*/false);
     if (IsClassMessage)  {
       // Load the isa pointer of the superclass is this is a class method.
-      ReceiverClass = Builder.CreateBitCast(
-          ReceiverClass, CGF.CGM.getPointerInDefaultAS(IdTy));
       ReceiverClass =
         Builder.CreateAlignedLoad(IdTy, ReceiverClass, CGF.getPointerAlign());
     }
@@ -2882,8 +2880,6 @@ CGObjCGNU::GenerateMessageSendSuper(CodeGenFunction &CGF,
     }
     // Cast the pointer to a simplified version of the class structure
     llvm::Type *CastTy = llvm::StructType::get(IdTy, IdTy);
-    ReceiverClass = Builder.CreateBitCast(
-        ReceiverClass, CGF.CGM.getPointerInDefaultAS(CastTy));
     // Get the superclass pointer
     ReceiverClass = Builder.CreateStructGEP(CastTy, ReceiverClass, 1);
     // Load the superclass pointer
@@ -3123,7 +3119,7 @@ CGObjCGNU::GenerateMessageSend(CodeGenFunction &CGF,
   // Reset the receiver in case the lookup modified it
   ActualArgs[0] = CallArg(RValue::get(Receiver), ASTIdTy);
 
-  imp = CGF.Builder.CreateBitCast(imp, MSI.MessengerType);
+  imp = EnforceType(Builder, imp, MSI.MessengerType);
 
   llvm::CallBase *call;
   CGCallee callee(CGCalleeInfo(), imp);
@@ -3448,10 +3444,7 @@ CGObjCGNU::GenerateProtocolList(ArrayRef<std::string> Protocols) {
 
 llvm::Value *CGObjCGNU::GenerateProtocolRef(CodeGenFunction &CGF,
                                             const ObjCProtocolDecl *PD) {
-  auto protocol = GenerateProtocolRef(PD);
-  unsigned AS = CGF.CGM.getTargetCodeGenInfo().getDefaultAS();
-  return CGF.Builder.CreateBitCast(
-      protocol, llvm::PointerType::get(CGF.CGM.getLLVMContext(), AS));
+  return GenerateProtocolRef(PD);
 }
 
 llvm::Constant *CGObjCGNU::GenerateProtocolRef(const ObjCProtocolDecl *PD) {

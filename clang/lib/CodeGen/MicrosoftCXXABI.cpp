@@ -3639,10 +3639,6 @@ CGCallee MicrosoftCXXABI::EmitLoadOfMemberFunctionPointer(
     ThisPtrForCall = Builder.CreateInBoundsGEP(CGF.Int8Ty, ThisPtrForCall,
                                                NonVirtualBaseAdjustment);
 
-  unsigned DefaultAS = CGM.getTargetCodeGenInfo().getDefaultAS();
-  FunctionPointer =
-    Builder.CreateBitCast(FunctionPointer,
-      llvm::PointerType::get(CGM.getLLVMContext(), DefaultAS));
   CGCallee Callee(FPT, FunctionPointer);
   return Callee;
 }

@@ -519,9 +519,9 @@ def scrub_asm_mips(asm, args):
     asm = stackframe_inc_return_regex.sub('cjr $c17\n  cincoffset $c11, $c11, [[#STACKFRAME_SIZE]]', asm)
     # Finally try to replace all other stack cincoffsets
     if last_frame_size:
-      asm = re.sub("cincoffset\s+\$c11,\s+\$c11, " + str(last_frame_size), "cincoffset $c11, $c11, [[#STACKFRAME_SIZE]]", asm)
-      asm = re.sub("daddiu \$1, \$zero, " + str(last_frame_size), "daddiu $1, $zero, [[#STACKFRAME_SIZE]]", asm)
-      asm = re.sub("daddiu\s+\$sp,\s+\$sp, " + str(last_frame_size), "daddiu $sp, $sp, [[#STACKFRAME_SIZE]]", asm)
+      asm = re.sub(r"cincoffset\s+\$c11,\s+\$c11, " + str(last_frame_size), "cincoffset $c11, $c11, [[#STACKFRAME_SIZE]]", asm)
+      asm = re.sub(r"daddiu \$1, \$zero, " + str(last_frame_size), "daddiu $1, $zero, [[#STACKFRAME_SIZE]]", asm)
+      asm = re.sub(r"daddiu\s+\$sp,\s+\$sp, " + str(last_frame_size), "daddiu $sp, $sp, [[#STACKFRAME_SIZE]]", asm)
     return asm
 
 def scrub_asm_msp430(asm, args):

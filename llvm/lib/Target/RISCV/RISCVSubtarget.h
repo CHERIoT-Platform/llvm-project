@@ -40,9 +40,6 @@
 #define GET_RISCV_MACRO_FUSION_PRED_DECL
 #include "RISCVGenMacroFusion.inc"
 
-#define GET_RISCV_MACRO_FUSION_PRED_DECL
-#include "RISCVGenMacroFusion.inc"
-
 #define GET_SUBTARGETINFO_HEADER
 #include "RISCVGenSubtargetInfo.inc"
 

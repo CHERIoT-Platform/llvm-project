@@ -739,18 +739,19 @@ bool FunctionSpecializer::run() {
           BFI.getBlockProfileCount(Call->getParent());
       if (Count) {
         std::optional<uint64_t> MaybeCloneCount = Clone->getEntryCount();
-        assert(MaybeCloneCount && "Clone entry count was not set!");
-        uint64_t CallCount = *Count + *MaybeCloneCount;
-        Clone->setEntryCount(CallCount);
-        if (std::optional<uint64_t> MaybeOriginalCount =
-                S.F->getEntryCount()) {
-          uint64_t OriginalCount = *MaybeOriginalCount;
-          if (OriginalCount >= *Count) {
-            S.F->setEntryCount(OriginalCount - *Count);
-          } else {
-            // This should generally not happen as that would mean there are
-            // more computed calls to the function than what was recorded.
-            LLVM_DEBUG(S.F->setEntryCount(0));
+        if (MaybeCloneCount) {
+          uint64_t CallCount = *Count + *MaybeCloneCount;
+          Clone->setEntryCount(CallCount);
+          if (std::optional<uint64_t> MaybeOriginalCount =
+                  S.F->getEntryCount()) {
+            uint64_t OriginalCount = *MaybeOriginalCount;
+            if (OriginalCount >= *Count) {
+              S.F->setEntryCount(OriginalCount - *Count);
+            } else {
+              // This should generally not happen as that would mean there are
+              // more computed calls to the function than what was recorded.
+              LLVM_DEBUG(S.F->setEntryCount(0));
+            }
           }
         }
       }

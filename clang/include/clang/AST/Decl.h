@@ -3848,13 +3848,10 @@ private:
 /// Represents the declaration of a typedef-name via the 'typedef'
 /// type specifier.
 class TypedefDecl : public TypedefNameDecl {
-  VarDecl *Key;
-
   TypedefDecl(ASTContext &C, DeclContext *DC, SourceLocation StartLoc,
               SourceLocation IdLoc, const IdentifierInfo *Id,
               TypeSourceInfo *TInfo)
-      : TypedefNameDecl(Typedef, C, DC, StartLoc, IdLoc, Id, TInfo),
-        Key(nullptr) {}
+      : TypedefNameDecl(Typedef, C, DC, StartLoc, IdLoc, Id, TInfo) {}
 
 public:
   static TypedefDecl *Create(ASTContext &C, DeclContext *DC,
@@ -3863,9 +3860,6 @@ public:
   static TypedefDecl *CreateDeserialized(ASTContext &C, GlobalDeclID ID);
 
   SourceRange getSourceRange() const override LLVM_READONLY;
-
-  void setOpaqueKey(VarDecl *VD) { Key = VD; }
-  VarDecl *getOpaqueKey() const { return Key; }
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }

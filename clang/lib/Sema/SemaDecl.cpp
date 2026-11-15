@@ -21720,28 +21720,6 @@ Decl *Sema::ActOnFileScopeAsmDecl(Expr *expr, SourceLocation StartLoc,
   return New;
 }
 
-void Sema::ActOnPragmaOpaque(IdentifierInfo *TypeName, IdentifierInfo *KeyName,
-                             SourceLocation PragmaLoc, SourceLocation TypeLoc,
-                             SourceLocation KeyLoc) {
-  Decl *TD = LookupSingleName(TUScope, TypeName, TypeLoc, LookupOrdinaryName);
-  TypedefDecl *TypeDecl = TD ? dyn_cast<TypedefDecl>(TD) : 0;
-  // Check that this is a valid typedef of an opaque type
-  if (!TypeDecl || !TypeDecl->getUnderlyingType()->isPointerType()) {
-    Diag(TypeLoc, diag::err_pragma_opaque_invalid_type);
-    return;
-  }
-
-  Decl *KD = LookupSingleName(TUScope, KeyName, KeyLoc, LookupOrdinaryName);
-  VarDecl *KeyDecl = KD ? dyn_cast<VarDecl>(KD) : 0;
-
-  if (!KeyDecl) {
-    Diag(KeyLoc, diag::err_pragma_opaque_invalid_key);
-    return;
-  }
-
-  TypeDecl->setOpaqueKey(KeyDecl);
-}
-
 TopLevelStmtDecl *Sema::ActOnStartTopLevelStmtDecl(Scope *S) {
   auto *New = TopLevelStmtDecl::Create(Context, /*Statement=*/nullptr);
   CurContext->addDecl(New);

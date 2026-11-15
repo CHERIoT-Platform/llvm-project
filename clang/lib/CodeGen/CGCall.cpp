@@ -6863,47 +6863,6 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
             llvm::Value *V = CI;
             if (V->getType() != RetIRTy)
               V = Builder.CreateBitCast(V, RetIRTy);
-            if (TargetDecl && RetTy->isPointerType()) {
-              // By the time this is called, we've got the canonical form of the
-              // function type, stripping typedefs.  We need to rediscover them to
-              // create the opaque form.
-              QualType Ty = cast<ValueDecl>(TargetDecl)->getType();
-              if (const FunctionType *FT = dyn_cast<FunctionType>(Ty)) {
-                if (const TypedefType *TT = dyn_cast<TypedefType>(FT->getReturnType())) {
-                  // If this is a #pragma opaque return type, and we can see the
-                  // key, then we should decode it so that we can use it.  DCE
-                  // should later strip away the decoding if we don't use the
-                  // result.
-  
-                  // TT->getDecl() could be a TypedefDecl or a TypedefNameDecl
-                  const TypedefDecl* TD = dyn_cast<TypedefDecl>(TT->getDecl());
-                  VarDecl *Key = TD ? TD->getOpaqueKey() : nullptr;
-                  if (Key) {
-                    llvm::Value *KeyV = CGM.GetAddrOfGlobalVar(Key);
-                    CharUnits Alignment = getContext().getDeclAlign(Key);
-                    Address Addr(V, ConvertTypeForMem(Key->getType()), Alignment);
-                    KeyV = Builder.CreateLoad(Addr);
-                    // If this is CHERI, enforce this in hardware
-                    if (RetTy->isCHERICapabilityType(CGM.getContext())) {
-                      unsigned CapAS = CGM.getTargetCodeGenInfo().getCHERICapabilityAS();
-                      llvm::Function *F =
-                          CGM.getIntrinsic(llvm::Intrinsic::cheri_cap_unseal);
-                      llvm::Type *CapPtrTy =
-                          llvm::PointerType::get(CGM.getLLVMContext(), CapAS);
-                      V = Builder.CreateCall(F,
-                            {Builder.CreateBitCast(V, CapPtrTy),
-                              Builder.CreateBitCast(KeyV, CapPtrTy)});
-                      V = Builder.CreateBitCast(V, RetIRTy);
-                    } else {
-                      KeyV = Builder.CreatePtrToInt(KeyV, IntPtrTy);
-                      V = Builder.CreatePtrToInt(V, IntPtrTy);
-                      V = Builder.CreateXor(V, KeyV);
-                      V = Builder.CreateIntToPtr(V, RetIRTy);
-                    }
-                  }
-                }
-              }
-            }
             return RValue::get(V);
           }
           }

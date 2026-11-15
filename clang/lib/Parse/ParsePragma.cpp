@@ -90,18 +90,6 @@ struct PragmaRedefineExtnameHandler : public PragmaHandler {
                     Token &FirstToken) override;
 };
 
-struct  PragmaOpaqueHandler : public PragmaHandler {
-
-  explicit PragmaOpaqueHandler(Sema &A) : PragmaHandler("opaque"), Actions(A)
-    {}
-
-  void HandlePragma(Preprocessor &PP, PragmaIntroducer Introducer,
-                    Token &FirstToken) override;
-  private:
-    Sema &Actions;
-};
-
-
 struct PragmaOpenCLExtensionHandler : public PragmaHandler {
   PragmaOpenCLExtensionHandler() : PragmaHandler("EXTENSION") {}
   void HandlePragma(Preprocessor &PP, PragmaIntroducer Introducer,
@@ -459,9 +447,6 @@ void Parser::initializePragmaHandlers() {
   RedefineExtnameHandler = std::make_unique<PragmaRedefineExtnameHandler>();
   PP.AddPragmaHandler(RedefineExtnameHandler.get());
 
-  OpaqueHandler = std::make_unique<PragmaOpaqueHandler>(Actions);
-  PP.AddPragmaHandler(OpaqueHandler.get());
-
   FPContractHandler = std::make_unique<PragmaFPContractHandler>();
   PP.AddPragmaHandler("STDC", FPContractHandler.get());
 
@@ -619,8 +604,6 @@ void Parser::resetPragmaHandlers() {
   WeakHandler.reset();
   PP.RemovePragmaHandler(RedefineExtnameHandler.get());
   RedefineExtnameHandler.reset();
-  PP.RemovePragmaHandler(OpaqueHandler.get());
-  OpaqueHandler.reset();
 
   if (getLangOpts().OpenCL) {
     PP.RemovePragmaHandler("OPENCL", OpenCLExtensionHandler.get());
@@ -2696,46 +2679,6 @@ void PragmaWeakHandler::HandlePragma(Preprocessor &PP,
                         /*IsReinject=*/false);
   }
 }
-
-/// Handle #pragma opaque {type} {lock variable}
-void PragmaOpaqueHandler::HandlePragma(Preprocessor &PP, 
-                                       PragmaIntroducer Introducer,
-                                       Token &OpaqueToken) {
-  SourceLocation OpaqueLoc = OpaqueToken.getLocation();
-
-  Token Tok;
-  PP.Lex(Tok);
-  if (Tok.isNot(tok::identifier)) {
-    PP.Diag(Tok.getLocation(), diag::warn_pragma_expected_identifier) <<
-      "opaque";
-    return;
-  }
-
-
-
-  IdentifierInfo *TypeName = Tok.getIdentifierInfo(), *KeyName = 0;
-  SourceLocation TypeNameLoc = Tok.getLocation(), KeyNameLoc;
-
-  PP.Lex(Tok);
-  if (Tok.isNot(tok::identifier)) {
-    PP.Diag(Tok.getLocation(), diag::warn_pragma_expected_identifier)
-        << "opaque";
-    return;
-  }
-  KeyName = Tok.getIdentifierInfo();
-  KeyNameLoc = Tok.getLocation();
-  PP.Lex(Tok);
-
-  if (Tok.isNot(tok::eod)) {
-    PP.Diag(Tok.getLocation(), diag::warn_pragma_extra_tokens_at_eol) <<
-      "opaque";
-    return;
-  }
-
-  Actions.ActOnPragmaOpaque(TypeName, KeyName, OpaqueLoc,
-      TypeNameLoc, KeyNameLoc);
-}
-
 
 // #pragma redefine_extname identifier identifier
 void PragmaRedefineExtnameHandler::HandlePragma(Preprocessor &PP,

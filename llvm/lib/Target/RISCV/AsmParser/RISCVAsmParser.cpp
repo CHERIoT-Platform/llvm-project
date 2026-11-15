@@ -2631,7 +2631,7 @@ ParseStatus RISCVAsmParser::parseCallSymbol(OperandVector &Operands) {
 
   if (getLexer().getKind() != AsmToken::Identifier)
     return ParseStatus::NoMatch;
-  StringRef Identifier(getTok().getIdentifier());
+  std::string Identifier(getTok().getIdentifier());
 
   if (getLexer().peekTok().is(AsmToken::At)) {
     Lex();

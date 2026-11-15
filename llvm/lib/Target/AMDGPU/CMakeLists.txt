@@ -232,9 +232,7 @@ add_llvm_target(AMDGPUCodeGen
 
 add_subdirectory(AsmParser)
 add_subdirectory(Disassembler)
-if (NOT DEFINED LLVM_TOOL_LLVM_MCA_BUILD OR LLVM_TOOL_LLVM_MCA_BUILD)
-  add_subdirectory(MCA)
-endif()
+add_subdirectory(MCA)
 add_subdirectory(MCTargetDesc)
 add_subdirectory(TargetInfo)
 add_subdirectory(Utils)

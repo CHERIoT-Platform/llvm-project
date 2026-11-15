@@ -825,7 +825,7 @@ bool RISCVRegisterInfo::needsFrameBaseReg(MachineInstr *MI,
 
       if (RISCV::GPRRegClass.contains(Reg))
         CalleeSavedSize += getSpillSize(RISCV::GPRRegClass);
-      if (RISCV::YGPRRegClass.contains(Reg))
+      else if (RISCV::YGPRRegClass.contains(Reg))
         CalleeSavedSize += getSpillSize(RISCV::YGPRRegClass);
       else if (RISCV::FPR64RegClass.contains(Reg))
         CalleeSavedSize += getSpillSize(RISCV::FPR64RegClass);
@@ -1125,7 +1125,6 @@ bool RISCVRegisterInfo::getRegAllocationHints(
     // physical register is even (or vice versa), we should not add the hint.
     if (PhysReg && (!NeedGPRC || RISCV::GPRCRegClass.contains(PhysReg)) &&
         !MO.getSubReg() && !VRRegMO.getSubReg()) {
-      assert(!MO.getSubReg() && !VRRegMO.getSubReg() && "Unexpected subreg!");
       if (!MRI->isReserved(PhysReg) && !Hints.contains(PhysReg))
         TwoAddrHints.insert(PhysReg);
     }

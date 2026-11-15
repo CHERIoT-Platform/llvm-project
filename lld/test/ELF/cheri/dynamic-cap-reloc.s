@@ -1,3 +1,4 @@
+# REQUIRES: mips
 # RUN: %cheri128_purecap_llvm-mc %s -filetype=obj -o %t.o
 # NOT: llvm-readobj -r %t.o
 # RUN: ld.lld -shared %t.o -o %t-new.so -verbose -verbose-cap-relocs

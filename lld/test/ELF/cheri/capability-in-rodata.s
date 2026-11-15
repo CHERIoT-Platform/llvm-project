@@ -1,3 +1,4 @@
+# REQUIRES: mips
 # Check that capability relocations in .rodata sections cause errors (since they
 # will trap when being processed at runtime). This is true both for static as well
 # as dynamic binaries. Currently the kernel just gives us a read-write mapping to

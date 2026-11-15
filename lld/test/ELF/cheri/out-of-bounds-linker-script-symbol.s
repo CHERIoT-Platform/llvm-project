@@ -1,3 +1,4 @@
+# REQUIRES: mips
 ## Previously having a linker-script defined symbol point before the start of the section would crash
 ## This was found when using linkcmds.base from RTEMS
 ## A simpler version exposing the same issue:

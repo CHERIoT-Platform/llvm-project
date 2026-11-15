@@ -1,3 +1,4 @@
+# REQUIRES: mips
 # After the cheri capabitliy table relocations were added to relocations.h, RelExpr now has
 # more than 64 members and the fast path using a single 64-bit bitmask no longer works for those values
 # Check that we no longer trigger this assertion with R_* values >= 64

@@ -7692,7 +7692,7 @@ RValue CodeGenFunction::EmitBuiltinAlignTo(const CallExpr *E, bool AlignUp) {
     if (E->getType()->isPointerType()) {
       // The result must point to the same underlying allocation. This means we
       // can use an inbounds GEP to enable better optimization.
-      if (getLangOpts().isSignedOverflowDefined())
+      if (getLangOpts().PointerOverflowDefined)
         Result =
             Builder.CreateGEP(Int8Ty, Args.Src, Difference, "aligned_result");
       else

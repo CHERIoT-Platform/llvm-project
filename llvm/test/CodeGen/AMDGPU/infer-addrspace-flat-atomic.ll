@@ -69,8 +69,10 @@ define protected amdgpu_kernel void @InferMixed(i32 %a, ptr addrspace(1) %b, dou
 ; CHECK-NEXT:    s_lshl_b64 s[2:3], s[6:7], 3
 ; CHECK-NEXT:    s_add_u32 s0, s0, s2
 ; CHECK-NEXT:    s_addc_u32 s1, s1, s3
-; CHECK-NEXT:    s_add_u32 s0, s0, -7
+; CHECK-NEXT:    s_add_u32 s0, s0, -8
 ; CHECK-NEXT:    s_addc_u32 s1, s1, -1
+; CHECK-NEXT:    s_add_u32 s0, s0, 1
+; CHECK-NEXT:    s_addc_u32 s1, s1, 0
 ; CHECK-NEXT:    flat_atomic_add_f64 v[0:1], v[2:3]
 ; CHECK-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; CHECK-NEXT:    buffer_wbinvl1_vol
@@ -109,11 +111,11 @@ define protected amdgpu_kernel void @InferPHI(i32 %a, ptr addrspace(1) %b, doubl
 ; CHECK-NEXT:    s_waitcnt lgkmcnt(0)
 ; CHECK-NEXT:    s_ashr_i32 s7, s6, 31
 ; CHECK-NEXT:    s_lshl_b64 s[4:5], s[6:7], 3
-; CHECK-NEXT:    s_add_u32 s4, s0, s4
-; CHECK-NEXT:    s_addc_u32 s5, s1, s5
-; CHECK-NEXT:    s_add_u32 s0, s4, -8
-; CHECK-NEXT:    s_addc_u32 s1, s5, -1
-; CHECK-NEXT:    s_cmp_eq_u64 s[4:5], 9
+; CHECK-NEXT:    s_add_u32 s0, s0, s4
+; CHECK-NEXT:    s_addc_u32 s1, s1, s5
+; CHECK-NEXT:    s_add_u32 s0, s0, -8
+; CHECK-NEXT:    s_addc_u32 s1, s1, -1
+; CHECK-NEXT:    s_cmp_eq_u64 s[0:1], 1
 ; CHECK-NEXT:    s_cselect_b64 s[4:5], -1, 0
 ; CHECK-NEXT:  .LBB3_1: ; %bb0
 ; CHECK-NEXT:    ; =>This Inner Loop Header: Depth=1

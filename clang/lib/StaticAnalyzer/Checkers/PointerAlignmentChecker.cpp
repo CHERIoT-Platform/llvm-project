@@ -920,7 +920,13 @@ void PointerAlignmentChecker::checkPostStmt(const BinaryOperator *BO,
     break;
   case clang::BO_Div:
   case clang::BO_DivAssign:
-    Res = LeftTZ - RightTZ;
+    // Only division by a known power of two removes a known number of trailing
+    // zeros (8 / 3 == 2 has one, not 3 - 0). Otherwise nothing is known.
+    Res = 0;
+    if (auto NV = RHSVal.getAs<nonloc::ConcreteInt>())
+      if (NV->getValue()->isStrictlyPositive() &&
+          NV->getValue()->isPowerOf2())
+        Res = LeftTZ - static_cast<int>(NV->getValue()->logBase2());
     break;
   case clang::BO_Shl:
   case clang::BO_ShlAssign:
@@ -933,7 +939,8 @@ void PointerAlignmentChecker::checkPostStmt(const BinaryOperator *BO,
     if (BO->getOpcode() == BO_Shl || BO->getOpcode() == BO_ShlAssign)
       Res = LeftTZ + RHSConst;
     else
-      Res = RHSVal.isConstant() ? LeftTZ - RHSConst : BitWidth;
+      // A right shift by an unknown amount gives no alignment information.
+      Res = RHSVal.isConstant() ? LeftTZ - RHSConst : 0;
     break;
   default:
     return;

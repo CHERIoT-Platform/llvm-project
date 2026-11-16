@@ -30084,23 +30084,6 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
       }
     }
 
-  // Anything that changes the interrupt status on CHERIoT then we must do a
-  // call via the import table.
-  if (Subtarget.getTargetABI() == RISCVABI::ABI::CHERIOT)
-    if (auto *GV = dyn_cast<GlobalAddressSDNode>(Callee)) {
-      const Constant *GlobalValue = GV->getGlobal();
-      if (auto *GA = dyn_cast<GlobalAlias>(GlobalValue))
-        GlobalValue = GA->getAliasee();
-      if (!isSafeToDirectCall(MF.getFunction(), *cast<Function>(GlobalValue))) {
-        // TODO: We should be able to tail call these, we're just missing
-        // the relevant node.
-        IsTailCall = false;
-        if ((CallConv != CallingConv::CHERIoT_CompartmentCall) &&
-            ((CallConv != CallingConv::CHERIoT_CompartmentCallee)))
-          CallConv = CallingConv::CHERIoT_LibraryCall;
-      }
-    }
-
   // Get a count of how many bytes are to be pushed on the stack.
   unsigned NumBytes = ArgCCInfo.getStackSize();
 

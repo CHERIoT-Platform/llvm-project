@@ -3656,9 +3656,11 @@ static bool isKnownNonZeroFromOperator(const Operator *I,
                                        const SimplifyQuery &Q, unsigned Depth) {
   unsigned BitWidth = getBitWidth(I->getType()->getScalarType(), Q.DL);
   switch (I->getOpcode()) {
-  case Instruction::Alloca:
-    // Alloca never returns null, malloc might.
-    return I->getType()->getPointerAddressSpace() == 0;
+  case Instruction::Alloca: {
+    // Alloca never returns null, malloc might. Nor does a capability alloca.
+    unsigned AS = I->getType()->getPointerAddressSpace();
+    return AS == 0 || Q.DL.isFatPointer(AS);
+  }
   case Instruction::GetElementPtr:
     if (I->getType()->isPointerTy())
       return isGEPKnownNonNull(cast<GEPOperator>(I), Q, Depth);
@@ -4218,14 +4220,6 @@ bool isKnownNonZero(const Value *V, const APInt &DemandedElts,
   // Check for pointer simplifications.
 
   if (PointerType *PtrTy = dyn_cast<PointerType>(Ty)) {
-    // Alloca never returns null, malloc might.
-    if (isa<AllocaInst>(V)) {
-      unsigned AS = PtrTy->getAddressSpace();
-      // XXXAR: AMDGPU broke this because their allocaAddressSpace is weird
-      if (AS == 0 || Q.DL.isFatPointer(AS))
-        return true;
-    }
-
     // A byval, inalloca may not be null in a non-default addres space. A
     // nonnull argument is assumed never 0.
     if (const Argument *A = dyn_cast<Argument>(V)) {

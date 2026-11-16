@@ -146,7 +146,6 @@ public:
   PreserveCheriTags PreserveTags; // Whether we must preserve CHERI tags even
                                   // if SrcAlign < CapSize (since it could be
                                   // aligned at run time)
-public:
   static MemOp Copy(uint64_t Size, bool DstAlignCanChange, Align DstAlign,
                     Align SrcAlign, bool IsVolatile,
                     PreserveCheriTags PreserveTags, bool MemcpyStrSrc = false) {

@@ -244,11 +244,6 @@ void riscv::getRISCVTargetFeatures(const Driver &D, const llvm::Triple &Triple,
   for (const std::string &TF : TuneFeatures)
     Features.push_back(Args.MakeArgString(TF));
 
-  // Now add any that the user explicitly requested on the command line,
-  // which may override the defaults.
-  handleTargetFeaturesGroup(D, Triple, Args, Features,
-                            options::OPT_m_riscv_Features_Group);
-
   if (Arg *A = Args.getLastArg(options::OPT_mabi_EQ)) {
     StringRef ABI = A->getValue();
     bool IsPureCapability = isCheriPurecapABIName(ABI);
@@ -265,40 +260,6 @@ void riscv::getRISCVTargetFeatures(const Driver &D, const llvm::Triple &Triple,
       }
       Features.push_back("+xcheripurecap");
     }
-  }
-
-  // If -mstrict-align, -mno-strict-align, -mscalar-strict-align, or
-  // -mno-scalar-strict-align is passed, use it. Otherwise, the
-  // unaligned-scalar-mem is enabled if the CPU supports it or the target is
-  // Android.
-  if (const Arg *A = Args.getLastArg(
-          options::OPT_mno_strict_align, options::OPT_mscalar_strict_align,
-          options::OPT_mstrict_align, options::OPT_mno_scalar_strict_align)) {
-    if (A->getOption().matches(options::OPT_mno_strict_align) ||
-        A->getOption().matches(options::OPT_mno_scalar_strict_align)) {
-      Features.push_back("+unaligned-scalar-mem");
-    } else {
-      Features.push_back("-unaligned-scalar-mem");
-    }
-  } else if (CPUFastScalarUnaligned || Triple.isAndroid()) {
-    Features.push_back("+unaligned-scalar-mem");
-  }
-
-  // If -mstrict-align, -mno-strict-align, -mvector-strict-align, or
-  // -mno-vector-strict-align is passed, use it. Otherwise, the
-  // unaligned-vector-mem is enabled if the CPU supports it or the target is
-  // Android.
-  if (const Arg *A = Args.getLastArg(
-          options::OPT_mno_strict_align, options::OPT_mvector_strict_align,
-          options::OPT_mstrict_align, options::OPT_mno_vector_strict_align)) {
-    if (A->getOption().matches(options::OPT_mno_strict_align) ||
-        A->getOption().matches(options::OPT_mno_vector_strict_align)) {
-      Features.push_back("+unaligned-vector-mem");
-    } else {
-      Features.push_back("-unaligned-vector-mem");
-    }
-  } else if (CPUFastVectorUnaligned || Triple.isAndroid()) {
-    Features.push_back("+unaligned-vector-mem");
   }
 
   // Now add any that the user explicitly requested on the command line,

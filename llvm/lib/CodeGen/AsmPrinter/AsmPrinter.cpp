@@ -4819,9 +4819,6 @@ static void emitGlobalConstantImpl(const DataLayout &DL, const Constant *CV,
   if (CV->getType()->isPointerTy() && DL.isFatPointer(CV->getType()))
     return emitGlobalConstantCHERICap(DL, CV, AP);
 
-  if (CV->getType()->isPointerTy() && DL.isFatPointer(CV->getType()))
-    return emitGlobalConstantCHERICap(DL, CV, AP);
-
   // Otherwise, it must be a ConstantExpr.  Lower it to an MCExpr, then emit it
   // thread the streamer with EmitValue.
   const MCExpr *ME = AP.lowerConstant(CV, BaseCV, Offset);

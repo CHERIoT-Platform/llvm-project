@@ -310,10 +310,6 @@ CodeGenIntrinsic::CodeGenIntrinsic(const Record *R,
   ClangBuiltinName =
       R->getValueAsOptionalString("ClangBuiltinName").value_or("");
   // Ignore a missing GCCBuiltinAliasName field.
-  if (R->getValue("GCCBuiltinAliasName"))
-    GCCBuiltinAliasName =
-        std::string(R->getValueAsString("GCCBuiltinAliasName"));
-  // Ignore a missing GCCBuiltinAliasName field.
   GCCBuiltinAliasName =
       R->getValueAsOptionalString("GCCBuiltinAliasName").value_or("");
   // Ignore a missing MSBuiltinName field.

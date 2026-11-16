@@ -445,13 +445,13 @@ unsigned RISCVExpandPseudoAtomicsImpl::getLRForRMW32(
     return PtrIsCap ? RISCV::CLR_W : RISCV::LR_W;
   case AtomicOrdering::Acquire:
     if (STI->hasStdExtZtso())
-      return RISCV::LR_W;
+      return PtrIsCap ? RISCV::CLR_W : RISCV::LR_W;
     return PtrIsCap ? RISCV::CLR_W_AQ : RISCV::LR_W_AQ;
   case AtomicOrdering::Release:
     return PtrIsCap ? RISCV::CLR_W : RISCV::LR_W;
   case AtomicOrdering::AcquireRelease:
     if (STI->hasStdExtZtso())
-      return RISCV::LR_W;
+      return PtrIsCap ? RISCV::CLR_W : RISCV::LR_W;
     return PtrIsCap ? RISCV::CLR_W_AQ : RISCV::LR_W_AQ;
   case AtomicOrdering::SequentiallyConsistent:
     return PtrIsCap ? RISCV::CLR_W_AQ_RL : RISCV::LR_W_AQRL;
@@ -469,11 +469,11 @@ unsigned RISCVExpandPseudoAtomicsImpl::getSCForRMW32(
     return PtrIsCap ? RISCV::CSC_W : RISCV::SC_W;
   case AtomicOrdering::Release:
     if (STI->hasStdExtZtso())
-      return RISCV::SC_W;
+      return PtrIsCap ? RISCV::CSC_W : RISCV::SC_W;
     return PtrIsCap ? RISCV::CSC_W_RL : RISCV::SC_W_RL;
   case AtomicOrdering::AcquireRelease:
     if (STI->hasStdExtZtso())
-      return RISCV::SC_W;
+      return PtrIsCap ? RISCV::CSC_W : RISCV::SC_W;
     return PtrIsCap ? RISCV::CSC_W_RL : RISCV::SC_W_RL;
   case AtomicOrdering::SequentiallyConsistent:
     return PtrIsCap ? RISCV::CSC_W_RL : RISCV::SC_W_RL;
@@ -489,13 +489,13 @@ unsigned RISCVExpandPseudoAtomicsImpl::getLRForRMW64(
     return PtrIsCap ? RISCV::CLR_D : RISCV::LR_D;
   case AtomicOrdering::Acquire:
     if (STI->hasStdExtZtso())
-      return RISCV::LR_D;
+      return PtrIsCap ? RISCV::CLR_D : RISCV::LR_D;
     return PtrIsCap ? RISCV::CLR_D_AQ : RISCV::LR_D_AQ;
   case AtomicOrdering::Release:
     return PtrIsCap ? RISCV::CLR_D : RISCV::LR_D;
   case AtomicOrdering::AcquireRelease:
     if (STI->hasStdExtZtso())
-      return RISCV::LR_D;
+      return PtrIsCap ? RISCV::CLR_D : RISCV::LR_D;
     return PtrIsCap ? RISCV::CLR_D_AQ : RISCV::LR_D_AQ;
   case AtomicOrdering::SequentiallyConsistent:
     return PtrIsCap ? RISCV::CLR_D_AQ_RL : RISCV::LR_D_AQRL;
@@ -587,11 +587,11 @@ unsigned RISCVExpandPseudoAtomicsImpl::getSCForRMW64(
     return PtrIsCap ? RISCV::CSC_D : RISCV::SC_D;
   case AtomicOrdering::Release:
     if (STI->hasStdExtZtso())
-      return RISCV::SC_D;
+      return PtrIsCap ? RISCV::CSC_D : RISCV::SC_D;
     return PtrIsCap ? RISCV::CSC_D_RL : RISCV::SC_D_RL;
   case AtomicOrdering::AcquireRelease:
     if (STI->hasStdExtZtso())
-      return RISCV::SC_D;
+      return PtrIsCap ? RISCV::CSC_D : RISCV::SC_D;
     return PtrIsCap ? RISCV::CSC_D_RL : RISCV::SC_D_RL;
   case AtomicOrdering::SequentiallyConsistent:
     return PtrIsCap ? RISCV::CSC_D_RL : RISCV::SC_D_RL;

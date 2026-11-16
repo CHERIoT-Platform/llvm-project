@@ -2455,6 +2455,8 @@ static Address emitPointerArithmetic(CodeGenFunction &CGF,
                                             NotKnownNonNull);
     index = CGF.EmitScalarExpr(indexOperand);
   }
+  if (index->getType()->isPointerTy())
+    index = CGF.getCapabilityIntegerValue(index);
 
   llvm::Value *pointer = BaseAddr.getBasePointer();
   llvm::Value *Res = CGF.EmitPointerArithmetic(

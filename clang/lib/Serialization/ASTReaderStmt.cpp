@@ -1251,6 +1251,9 @@ void ASTStmtReader::VisitCStyleCastExpr(CStyleCastExpr *E) {
   VisitExplicitCastExpr(E);
   E->setLParenLoc(readSourceLocation());
   E->setRParenLoc(readSourceLocation());
+  auto DependentCastKind = static_cast<CastKind>(Record.readInt());
+  if (E->getCastKind() == CK_Dependent)
+    E->setDependentCastKind(DependentCastKind);
 }
 
 void ASTStmtReader::VisitCompoundLiteralExpr(CompoundLiteralExpr *E) {

@@ -1257,6 +1257,10 @@ void ASTStmtWriter::VisitCStyleCastExpr(CStyleCastExpr *E) {
   VisitExplicitCastExpr(E);
   Record.AddSourceLocation(E->getLParenLoc());
   Record.AddSourceLocation(E->getRParenLoc());
+  // The __cheri_* cast kind of a dependent cast, used to rebuild it on
+  // template instantiation.
+  Record.push_back(E->getCastKind() == CK_Dependent ? E->getDependentCastKind()
+                                                     : CK_Dependent);
   Code = serialization::EXPR_CSTYLE_CAST;
 }
 

@@ -1874,6 +1874,9 @@ void SelectionDAGLegalize::ExpandDYNAMIC_STACKALLOC(SDNode* Node,
 
     Tmp1 = DAG.getNode(Opc, dl, SizeVT, Tmp1, Tmp2);
     Tmp1 = DAG.getNode(ISD::AND, dl, SizeVT, Tmp1, Tmp3);
+    if (Alignment > StackAlign)
+      Tmp1 = DAG.getNode(ISD::AND, dl, SizeVT, Tmp1,
+                         DAG.getSignedConstant(-Alignment.value(), dl, SizeVT));
 
     Tmp1 =
       DAG.getNode(ISD::INTRINSIC_WO_CHAIN, dl, VT, SetAddr, SP, Tmp1);

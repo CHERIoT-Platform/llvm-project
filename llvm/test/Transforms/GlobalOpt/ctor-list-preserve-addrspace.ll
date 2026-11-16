@@ -8,7 +8,7 @@
 @llvm.global_ctors = appending addrspace(1) global [1 x %ini] [%ini { i32 65534, ptr @ctor1, ptr null }]
 
 ;.
-; CHECK: @llvm.global_ctors = appending addrspace(1) externally_initialized global [0 x %ini] zeroinitializer
+; CHECK: @llvm.global_ctors = appending addrspace(1) global [0 x %ini] zeroinitializer
 ;.
 define void @ctor1() {
 ; CHECK-LABEL: define void @ctor1() local_unnamed_addr {

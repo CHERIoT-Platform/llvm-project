@@ -47,8 +47,7 @@ static void removeGlobalCtors(GlobalVariable *GCL, const BitVector &CtorsToRemov
   // Create the new global and insert it next to the existing list.
   GlobalVariable *NGV = new GlobalVariable(
       CA->getType(), GCL->isConstant(), GCL->getLinkage(), CA, "",
-      GCL->getThreadLocalMode(), GCL->getAddressSpace(),
-                         GCL->getType()->getAddressSpace());
+      GCL->getThreadLocalMode(), GCL->getAddressSpace());
   GCL->getParent()->insertGlobalVariable(GCL->getIterator(), NGV);
   NGV->takeName(GCL);
 

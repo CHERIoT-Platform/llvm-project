@@ -513,7 +513,7 @@ RISCVExpandPseudoAtomicsImpl::getLRForRMWCap64(bool PtrIsCap,
   case AtomicOrdering::Acquire:
     return PtrIsCap ? RISCV::CLR_C_AQ_64 : RISCV::LR_C_AQ_64;
   case AtomicOrdering::Release:
-    return PtrIsCap ? RISCV::CLR_C_RL_64 : RISCV::LR_C_RL_64;
+    return PtrIsCap ? RISCV::CLR_C_64 : RISCV::LR_C_64;
   case AtomicOrdering::AcquireRelease:
     return PtrIsCap ? RISCV::CLR_C_AQ_64 : RISCV::LR_C_AQ_64;
   case AtomicOrdering::SequentiallyConsistent:
@@ -530,11 +530,11 @@ RISCVExpandPseudoAtomicsImpl::getSCForRMWCap64(bool PtrIsCap,
   case AtomicOrdering::Monotonic:
     return PtrIsCap ? RISCV::CSC_C_64 : RISCV::SC_C_64;
   case AtomicOrdering::Acquire:
-    return PtrIsCap ? RISCV::CSC_C_AQ_64 : RISCV::SC_C_AQ_64;
-  case AtomicOrdering::Release:
     return PtrIsCap ? RISCV::CSC_C_64 : RISCV::SC_C_64;
+  case AtomicOrdering::Release:
+    return PtrIsCap ? RISCV::CSC_C_RL_64 : RISCV::SC_C_RL_64;
   case AtomicOrdering::AcquireRelease:
-    return PtrIsCap ? RISCV::CSC_C_AQ_64 : RISCV::SC_C_AQ_64;
+    return PtrIsCap ? RISCV::CSC_C_RL_64 : RISCV::SC_C_RL_64;
   case AtomicOrdering::SequentiallyConsistent:
     return PtrIsCap ? RISCV::CSC_C_AQ_RL_64 : RISCV::SC_C_AQ_RL_64;
   }
@@ -550,7 +550,7 @@ RISCVExpandPseudoAtomicsImpl::getLRForRMWCap128(bool PtrIsCap, AtomicOrdering Or
   case AtomicOrdering::Acquire:
     return PtrIsCap ? RISCV::CLR_C_AQ_128 : RISCV::LR_C_AQ_128;
   case AtomicOrdering::Release:
-    return PtrIsCap ? RISCV::CLR_C_RL_128 : RISCV::LR_C_RL_128;
+    return PtrIsCap ? RISCV::CLR_C_128 : RISCV::LR_C_128;
   case AtomicOrdering::AcquireRelease:
     return PtrIsCap ? RISCV::CLR_C_AQ_128 : RISCV::LR_C_AQ_128;
   case AtomicOrdering::SequentiallyConsistent:
@@ -566,11 +566,11 @@ RISCVExpandPseudoAtomicsImpl::getSCForRMWCap128(bool PtrIsCap, AtomicOrdering Or
   case AtomicOrdering::Monotonic:
     return PtrIsCap ? RISCV::CSC_C_128 : RISCV::SC_C_128;
   case AtomicOrdering::Acquire:
-    return PtrIsCap ? RISCV::CSC_C_AQ_128 : RISCV::SC_C_AQ_128;
-  case AtomicOrdering::Release:
     return PtrIsCap ? RISCV::CSC_C_128 : RISCV::SC_C_128;
+  case AtomicOrdering::Release:
+    return PtrIsCap ? RISCV::CSC_C_RL_128 : RISCV::SC_C_RL_128;
   case AtomicOrdering::AcquireRelease:
-    return PtrIsCap ? RISCV::CSC_C_AQ_128 : RISCV::SC_C_AQ_128;
+    return PtrIsCap ? RISCV::CSC_C_RL_128 : RISCV::SC_C_RL_128;
   case AtomicOrdering::SequentiallyConsistent:
     return PtrIsCap ? RISCV::CSC_C_AQ_RL_128 : RISCV::SC_C_AQ_RL_128;
   }

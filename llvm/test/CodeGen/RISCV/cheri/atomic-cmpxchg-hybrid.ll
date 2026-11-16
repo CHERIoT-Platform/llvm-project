@@ -80,7 +80,7 @@ define void @cmpxchg_cap_acquire_monotonic(i8 addrspace(200)** %ptr, i8 addrspac
 ; RV32IAXCHERI-NEXT:    lr.c.aq a3, (a0)
 ; RV32IAXCHERI-NEXT:    bne a3, a1, .LBB1_3
 ; RV32IAXCHERI-NEXT:  # %bb.2: # in Loop: Header=BB1_1 Depth=1
-; RV32IAXCHERI-NEXT:    sc.c.aq a4, a2, (a0)
+; RV32IAXCHERI-NEXT:    sc.c a4, a2, (a0)
 ; RV32IAXCHERI-NEXT:    bnez a4, .LBB1_1
 ; RV32IAXCHERI-NEXT:  .LBB1_3:
 ; RV32IAXCHERI-NEXT:    ret
@@ -104,7 +104,7 @@ define void @cmpxchg_cap_acquire_monotonic(i8 addrspace(200)** %ptr, i8 addrspac
 ; RV64IAXCHERI-NEXT:    lr.c.aq a3, (a0)
 ; RV64IAXCHERI-NEXT:    bne a3, a1, .LBB1_3
 ; RV64IAXCHERI-NEXT:  # %bb.2: # in Loop: Header=BB1_1 Depth=1
-; RV64IAXCHERI-NEXT:    sc.c.aq a4, a2, (a0)
+; RV64IAXCHERI-NEXT:    sc.c a4, a2, (a0)
 ; RV64IAXCHERI-NEXT:    bnez a4, .LBB1_1
 ; RV64IAXCHERI-NEXT:  .LBB1_3:
 ; RV64IAXCHERI-NEXT:    ret
@@ -132,7 +132,7 @@ define void @cmpxchg_cap_acquire_acquire(i8 addrspace(200)** %ptr, i8 addrspace(
 ; RV32IAXCHERI-NEXT:    lr.c.aq a3, (a0)
 ; RV32IAXCHERI-NEXT:    bne a3, a1, .LBB2_3
 ; RV32IAXCHERI-NEXT:  # %bb.2: # in Loop: Header=BB2_1 Depth=1
-; RV32IAXCHERI-NEXT:    sc.c.aq a4, a2, (a0)
+; RV32IAXCHERI-NEXT:    sc.c a4, a2, (a0)
 ; RV32IAXCHERI-NEXT:    bnez a4, .LBB2_1
 ; RV32IAXCHERI-NEXT:  .LBB2_3:
 ; RV32IAXCHERI-NEXT:    ret
@@ -156,7 +156,7 @@ define void @cmpxchg_cap_acquire_acquire(i8 addrspace(200)** %ptr, i8 addrspace(
 ; RV64IAXCHERI-NEXT:    lr.c.aq a3, (a0)
 ; RV64IAXCHERI-NEXT:    bne a3, a1, .LBB2_3
 ; RV64IAXCHERI-NEXT:  # %bb.2: # in Loop: Header=BB2_1 Depth=1
-; RV64IAXCHERI-NEXT:    sc.c.aq a4, a2, (a0)
+; RV64IAXCHERI-NEXT:    sc.c a4, a2, (a0)
 ; RV64IAXCHERI-NEXT:    bnez a4, .LBB2_1
 ; RV64IAXCHERI-NEXT:  .LBB2_3:
 ; RV64IAXCHERI-NEXT:    ret
@@ -181,10 +181,10 @@ define void @cmpxchg_cap_release_monotonic(i8 addrspace(200)** %ptr, i8 addrspac
 ; RV32IAXCHERI-LABEL: cmpxchg_cap_release_monotonic:
 ; RV32IAXCHERI:       # %bb.0:
 ; RV32IAXCHERI-NEXT:  .LBB3_1: # =>This Inner Loop Header: Depth=1
-; RV32IAXCHERI-NEXT:    lr.c.rl a3, (a0)
+; RV32IAXCHERI-NEXT:    lr.c a3, (a0)
 ; RV32IAXCHERI-NEXT:    bne a3, a1, .LBB3_3
 ; RV32IAXCHERI-NEXT:  # %bb.2: # in Loop: Header=BB3_1 Depth=1
-; RV32IAXCHERI-NEXT:    sc.c a4, a2, (a0)
+; RV32IAXCHERI-NEXT:    sc.c.rl a4, a2, (a0)
 ; RV32IAXCHERI-NEXT:    bnez a4, .LBB3_1
 ; RV32IAXCHERI-NEXT:  .LBB3_3:
 ; RV32IAXCHERI-NEXT:    ret
@@ -205,10 +205,10 @@ define void @cmpxchg_cap_release_monotonic(i8 addrspace(200)** %ptr, i8 addrspac
 ; RV64IAXCHERI-LABEL: cmpxchg_cap_release_monotonic:
 ; RV64IAXCHERI:       # %bb.0:
 ; RV64IAXCHERI-NEXT:  .LBB3_1: # =>This Inner Loop Header: Depth=1
-; RV64IAXCHERI-NEXT:    lr.c.rl a3, (a0)
+; RV64IAXCHERI-NEXT:    lr.c a3, (a0)
 ; RV64IAXCHERI-NEXT:    bne a3, a1, .LBB3_3
 ; RV64IAXCHERI-NEXT:  # %bb.2: # in Loop: Header=BB3_1 Depth=1
-; RV64IAXCHERI-NEXT:    sc.c a4, a2, (a0)
+; RV64IAXCHERI-NEXT:    sc.c.rl a4, a2, (a0)
 ; RV64IAXCHERI-NEXT:    bnez a4, .LBB3_1
 ; RV64IAXCHERI-NEXT:  .LBB3_3:
 ; RV64IAXCHERI-NEXT:    ret
@@ -236,7 +236,7 @@ define void @cmpxchg_cap_release_acquire(i8 addrspace(200)** %ptr, i8 addrspace(
 ; RV32IAXCHERI-NEXT:    lr.c.aq a3, (a0)
 ; RV32IAXCHERI-NEXT:    bne a3, a1, .LBB4_3
 ; RV32IAXCHERI-NEXT:  # %bb.2: # in Loop: Header=BB4_1 Depth=1
-; RV32IAXCHERI-NEXT:    sc.c.aq a4, a2, (a0)
+; RV32IAXCHERI-NEXT:    sc.c.rl a4, a2, (a0)
 ; RV32IAXCHERI-NEXT:    bnez a4, .LBB4_1
 ; RV32IAXCHERI-NEXT:  .LBB4_3:
 ; RV32IAXCHERI-NEXT:    ret
@@ -260,7 +260,7 @@ define void @cmpxchg_cap_release_acquire(i8 addrspace(200)** %ptr, i8 addrspace(
 ; RV64IAXCHERI-NEXT:    lr.c.aq a3, (a0)
 ; RV64IAXCHERI-NEXT:    bne a3, a1, .LBB4_3
 ; RV64IAXCHERI-NEXT:  # %bb.2: # in Loop: Header=BB4_1 Depth=1
-; RV64IAXCHERI-NEXT:    sc.c.aq a4, a2, (a0)
+; RV64IAXCHERI-NEXT:    sc.c.rl a4, a2, (a0)
 ; RV64IAXCHERI-NEXT:    bnez a4, .LBB4_1
 ; RV64IAXCHERI-NEXT:  .LBB4_3:
 ; RV64IAXCHERI-NEXT:    ret
@@ -288,7 +288,7 @@ define void @cmpxchg_cap_acq_rel_monotonic(i8 addrspace(200)** %ptr, i8 addrspac
 ; RV32IAXCHERI-NEXT:    lr.c.aq a3, (a0)
 ; RV32IAXCHERI-NEXT:    bne a3, a1, .LBB5_3
 ; RV32IAXCHERI-NEXT:  # %bb.2: # in Loop: Header=BB5_1 Depth=1
-; RV32IAXCHERI-NEXT:    sc.c.aq a4, a2, (a0)
+; RV32IAXCHERI-NEXT:    sc.c.rl a4, a2, (a0)
 ; RV32IAXCHERI-NEXT:    bnez a4, .LBB5_1
 ; RV32IAXCHERI-NEXT:  .LBB5_3:
 ; RV32IAXCHERI-NEXT:    ret
@@ -312,7 +312,7 @@ define void @cmpxchg_cap_acq_rel_monotonic(i8 addrspace(200)** %ptr, i8 addrspac
 ; RV64IAXCHERI-NEXT:    lr.c.aq a3, (a0)
 ; RV64IAXCHERI-NEXT:    bne a3, a1, .LBB5_3
 ; RV64IAXCHERI-NEXT:  # %bb.2: # in Loop: Header=BB5_1 Depth=1
-; RV64IAXCHERI-NEXT:    sc.c.aq a4, a2, (a0)
+; RV64IAXCHERI-NEXT:    sc.c.rl a4, a2, (a0)
 ; RV64IAXCHERI-NEXT:    bnez a4, .LBB5_1
 ; RV64IAXCHERI-NEXT:  .LBB5_3:
 ; RV64IAXCHERI-NEXT:    ret
@@ -340,7 +340,7 @@ define void @cmpxchg_cap_acq_rel_acquire(i8 addrspace(200)** %ptr, i8 addrspace(
 ; RV32IAXCHERI-NEXT:    lr.c.aq a3, (a0)
 ; RV32IAXCHERI-NEXT:    bne a3, a1, .LBB6_3
 ; RV32IAXCHERI-NEXT:  # %bb.2: # in Loop: Header=BB6_1 Depth=1
-; RV32IAXCHERI-NEXT:    sc.c.aq a4, a2, (a0)
+; RV32IAXCHERI-NEXT:    sc.c.rl a4, a2, (a0)
 ; RV32IAXCHERI-NEXT:    bnez a4, .LBB6_1
 ; RV32IAXCHERI-NEXT:  .LBB6_3:
 ; RV32IAXCHERI-NEXT:    ret
@@ -364,7 +364,7 @@ define void @cmpxchg_cap_acq_rel_acquire(i8 addrspace(200)** %ptr, i8 addrspace(
 ; RV64IAXCHERI-NEXT:    lr.c.aq a3, (a0)
 ; RV64IAXCHERI-NEXT:    bne a3, a1, .LBB6_3
 ; RV64IAXCHERI-NEXT:  # %bb.2: # in Loop: Header=BB6_1 Depth=1
-; RV64IAXCHERI-NEXT:    sc.c.aq a4, a2, (a0)
+; RV64IAXCHERI-NEXT:    sc.c.rl a4, a2, (a0)
 ; RV64IAXCHERI-NEXT:    bnez a4, .LBB6_1
 ; RV64IAXCHERI-NEXT:  .LBB6_3:
 ; RV64IAXCHERI-NEXT:    ret

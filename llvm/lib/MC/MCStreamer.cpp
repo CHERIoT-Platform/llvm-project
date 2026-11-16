@@ -181,15 +181,21 @@ void MCStreamer::emitValue(const MCExpr *Value, unsigned Size, SMLoc Loc) {
   emitValueImpl(Value, Size, Loc);
 }
 
-void MCStreamer::emitSymbolValue(const MCSymbol *Sym, unsigned Size,
-                                 bool IsSectionRelative) {
-  assert((!IsSectionRelative || Size == 4) &&
-         "SectionRelative value requires 4-bytes");
+void MCStreamer::emitSymbolValue(const MCSymbol *Sym, unsigned Size) {
+  emitValueImpl(MCSymbolRefExpr::create(Sym, getContext()), Size);
+}
 
-  if (!IsSectionRelative)
-    emitValueImpl(MCSymbolRefExpr::create(Sym, getContext()), Size);
-  else
-    emitCOFFSecRel32(Sym, /*Offset=*/0);
+void MCStreamer::emitDwarfSectionOffset(const MCSymbol *Sym, uint64_t Offset,
+                                        unsigned Size) {
+  const MCAsmInfo &MAI = getContext().getAsmInfo();
+  if (MAI.needsDwarfSectionOffsetDirective()) {
+    emitCOFFSecRel32(Sym, Offset);
+    if (Size > 4)
+      emitZeros(Size - 4);
+    return;
+  }
+
+  emitValueImpl(MAI.getDwarfSectionOffsetExpr(Sym, Offset, getContext()), Size);
 }
 
 void MCStreamer::emitCheriCapability(const MCExpr *Value, unsigned CapSize,

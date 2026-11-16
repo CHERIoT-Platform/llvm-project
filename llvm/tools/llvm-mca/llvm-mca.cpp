@@ -454,7 +454,6 @@ int main(int argc, char **argv) {
   processViewOptions(IsOutOfOrder);
 
   MCTargetOptions MCOptions = mc::getMCTargetOptions(LibraryOptions);
-  MCOptions.LibraryOptions = &LibraryOptions;
 
   std::unique_ptr<MCRegisterInfo> MRI(TheTarget->createMCRegInfo(TheTriple, MCOptions));
   assert(MRI && "Unable to create target register info!");

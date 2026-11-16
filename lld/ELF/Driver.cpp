@@ -1465,7 +1465,11 @@ static void readConfigs(Ctx &ctx, opt::InputArgList &args) {
   ctx.arg.dependencyFile = args.getLastArgValue(OPT_dependency_file);
   ctx.arg.dependentLibraries =
       args.hasFlag(OPT_dependent_libraries, OPT_no_dependent_libraries, true);
+#ifdef NDEBUG
+  ctx.arg.disableVerify = true;
+#else
   ctx.arg.disableVerify = args.hasArg(OPT_disable_verify);
+#endif
   ctx.arg.discard = getDiscard(args);
   ctx.arg.dtltoDistributor = args.getLastArgValue(OPT_thinlto_distributor_eq);
   ctx.arg.dtltoDistributorArgs =
@@ -1887,8 +1891,6 @@ static void readConfigs(Ctx &ctx, opt::InputArgList &args) {
     else
       ErrAlways(ctx) << errPrefix << pat.takeError() << ": " << kv.first;
   }
-
-  cl::ResetAllOptionOccurrences();
 
   // Parse LTO options.
   if (auto *arg = args.getLastArg(OPT_plugin_opt_mcpu_eq))

@@ -7,7 +7,7 @@
 // CHECK-SAME: ) local_unnamed_addr addrspace(200) #[[ATTR0:[0-9]+]] {
 // CHECK-NEXT:  [[ENTRY:.*]]:
 // CHECK-NEXT:    [[P:%.*]] = alloca ptr addrspace(200), align 8, addrspace(200)
-// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[P]]) #[[ATTR2:[0-9]+]]
+// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.start.p200(ptr addrspace(200) nonnull [[P]])
 // CHECK-NEXT:    [[ATOMIC_LOAD:%.*]] = load atomic ptr addrspace(200), ptr addrspace(200) [[P]] seq_cst, align 8, !tbaa [[TBAA11:![0-9]+]]
 // CHECK-NEXT:    br label %[[ATOMIC_OP:.*]]
 // CHECK:       [[ATOMIC_OP]]:
@@ -18,15 +18,16 @@
 // CHECK-NEXT:    [[TMP4:%.*]] = extractvalue { ptr addrspace(200), i1 } [[TMP2]], 1
 // CHECK-NEXT:    br i1 [[TMP4]], label %[[ATOMIC_CONT:.*]], label %[[ATOMIC_OP]]
 // CHECK:       [[ATOMIC_CONT]]:
-// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[P]]) #[[ATTR2]]
+// CHECK-NEXT:    call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull [[P]])
 // CHECK-NEXT:    ret void
 //
 void test1() {
   _Atomic(__UINTPTR_TYPE__) p;
   ++p;
 }
+
 //.
 // CHECK: [[META9:![0-9]+]] = !{!"omnipotent char", [[META10:![0-9]+]], i64 0}
 // CHECK: [[META10]] = !{!"Simple C/C++ TBAA"}
 // CHECK: [[TBAA11]] = !{[[META9]], [[META9]], i64 0}
-
+//.

@@ -25,6 +25,7 @@
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Sema/Initialization.h"
 #include "clang/Sema/SemaAMDGPU.h"
+#include "clang/Sema/SemaBPF.h"
 #include "clang/Sema/SemaCUDA.h"
 #include "clang/Sema/SemaHLSL.h"
 #include "clang/Sema/SemaObjC.h"
@@ -2524,6 +2525,7 @@ static void checkIntToPointerCast(bool CStyle, const SourceRange &OpRange,
   if (CStyle && SrcType->isIntegralType(Self.Context) &&
       !SrcType->isBooleanType() && !SrcType->isEnumeralType() &&
       !SrcExpr->isIntegerConstantExpr(Self.Context) &&
+      !SemaBPF::isPreserveAIEnumeratorRef(SrcExpr->IgnoreParens()) &&
       Self.Context.getIntRange(DestType) > Self.Context.getIntRange(SrcType)) {
     // Separate between casts to void* and non-void* pointers.
     // Some APIs use (abuse) void* for something like a user context,

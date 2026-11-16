@@ -971,6 +971,8 @@ uint32_t GVNValueTable::lookupOrAdd(Value *V) {
     case Instruction::InsertElement:
     case Instruction::ShuffleVector:
     case Instruction::InsertValue:
+    case Instruction::BitExtract:
+    case Instruction::BitInsert:
       Exp = createExpr(I);
       break;
     case Instruction::ICmp:
@@ -2758,7 +2760,7 @@ std::optional<GVNPassImpl::ReachingMemVal> GVNPassImpl::accessMayModifyLocation(
     }
 
     // Skip over volatile loads (the original load is non-volatile, non-atomic).
-    if (!ClobberI->isAtomic() && isa<LoadInst>(ClobberI))
+    if (auto *LI = dyn_cast<LoadInst>(ClobberI); LI && !LI->isAtomic())
       return std::nullopt;
 
     // A store that writes back a value already at the memory location leaves

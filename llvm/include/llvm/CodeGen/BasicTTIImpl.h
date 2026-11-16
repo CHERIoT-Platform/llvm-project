@@ -2381,6 +2381,12 @@ public:
     case Intrinsic::ldexp:
       ISD = ISD::FLDEXP;
       break;
+    case Intrinsic::frexp:
+      ISD = ISD::FFREXP;
+      break;
+    case Intrinsic::powi:
+      ISD = ISD::FPOWI;
+      break;
     case Intrinsic::fabs:
       ISD = ISD::FABS;
       break;

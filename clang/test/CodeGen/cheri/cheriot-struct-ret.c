@@ -516,7 +516,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoIntegers ChgIn
 	// CHECK: for.cond.cleanup:                                 ; preds = %for.cond.cleanup.loopexit, %entry
 	// CHECK:   %.fca.1.insert.merged = phi [2 x i32] [ %x.coerce, %entry ], [ %1, %for.cond.cleanup.loopexit ]
 	// CHECK:   call addrspace(200) void @llvm.va_end.p200(ptr addrspace(200) %args)
-	// CHECK:   call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %args) #7
+	// CHECK:   call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %args)
 	// CHECK:   ret [2 x i32] %.fca.1.insert.merged
 
     x.one += v;
@@ -553,7 +553,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct TwoPointers ChgPt
 	// CHECK:  	%x.sroa.4.0.lcssa = phi ptr addrspace(200) [ %add.ptr6.le, %for.cond.for.cond.cleanup_crit_edge ], [ %x.coerce1, %entry ]
 	// CHECK:  	call addrspace(200) void @llvm.va_end.p200(ptr addrspace(200) %args)
 	// CHECK:  	call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %_)
-	// CHECK:  	call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %args) #7
+	// CHECK:  	call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %args)
 	// CHECK:  	%.fca.0.insert = insertvalue %struct.TwoPointers poison, ptr addrspace(200) %x.sroa.0.0.lcssa, 0
 	// CHECK:  	%.fca.1.insert = insertvalue %struct.TwoPointers %.fca.0.insert, ptr addrspace(200) %x.sroa.4.0.lcssa, 1
 	// CHECK:  	ret %struct.TwoPointers %.fca.1.insert
@@ -593,7 +593,7 @@ __attribute__((cheri_compartment("example"), noinline)) struct ParentPtr ChgPare
 	// CHECK:   %x.sroa.4.0.lcssa = phi ptr addrspace(200) [ %add.ptr7.le, %for.cond.for.cond.cleanup_crit_edge ], [ %x.coerce1.fca.0.extract, %entry ]
 	// CHECK:   call addrspace(200) void @llvm.va_end.p200(ptr addrspace(200) %args)
 	// CHECK:   call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %_)
-	// CHECK:   call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %args) #7
+	// CHECK:   call addrspace(200) void @llvm.lifetime.end.p200(ptr addrspace(200) nonnull %args)
 	// CHECK:   %.fca.0.insert = insertvalue %struct.ParentPtr poison, ptr addrspace(200) %x.sroa.0.0.lcssa, 0
 	// CHECK:   %.fca.1.0.insert = insertvalue %struct.ParentPtr %.fca.0.insert, ptr addrspace(200) %x.sroa.4.0.lcssa, 1, 0
 	// CHECK:   ret %struct.ParentPtr %.fca.1.0.insert

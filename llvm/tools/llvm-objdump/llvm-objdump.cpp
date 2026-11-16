@@ -288,6 +288,7 @@ std::string objdump::MCPU;
 std::vector<std::string> objdump::MAttrs;
 bool objdump::ShowRawInsn;
 bool objdump::LeadingAddr;
+cl::LibraryOptionsContext objdump::LibraryOptions;
 static bool Offloading;
 static bool RawClangAST;
 bool objdump::Relocations;
@@ -1147,6 +1148,7 @@ DisassemblerTarget::DisassemblerTarget(const Target *TheTarget, ObjectFile &Obj,
     reportError(Obj.getFileName(), "no register info for target " + TripleName);
 
   // Set up disassembler.
+  Options.LibraryOptions = &LibraryOptions;
   AsmInfo.reset(TheTarget->createMCAsmInfo(*RegisterInfo, TheTriple, Options));
   if (!AsmInfo)
     reportError(Obj.getFileName(), "no assembly info for target " + TripleName);
@@ -4020,7 +4022,7 @@ static void parseObjdumpOptions(const llvm::opt::InputArgList &InputArgs) {
   if (AsmSyntax)
     Args.push_back(AsmSyntax);
   if (Args.size() > 1)
-    llvm::cl::ParseCommandLineOptions(Args.size(), Args.data());
+    cl::parseCommandLineOptions(LibraryOptions, Args);
 
   // Look up any provided build IDs, then append them to the input filenames.
   for (const opt::Arg *A : InputArgs.filtered(OBJDUMP_build_id)) {

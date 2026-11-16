@@ -77,7 +77,7 @@ def pseudo_cap_jump_symbol : Operand<YLenVT> {
 
 def CheriZeroOffsetMemOpOperand : AsmOperandClass {
   let Name = "CheriZeroOffsetMemOpOperand";
-  let RenderMethod = "addRegOperands";
+  let RenderMethod = "addYGPROperands";
   let PredicateMethod = "isYGPR";
   let ParserMethod = "parseZeroOffsetMemOp";
 }

@@ -28,6 +28,7 @@
 #include "llvm/Support/ModRef.h"
 #include "llvm/Support/PointerLikeTypeTraits.h"
 #include <cassert>
+#include <climits>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -398,6 +399,47 @@ inline Attribute unwrap(LLVMAttributeRef Attr) {
   return Attribute::fromRawPointer(Attr);
 }
 
+/// A bitset with a bit for each enum attribute kind.
+class AttributeBitSet {
+  uint8_t AvailableAttrs[16] = {};
+  static_assert(Attribute::EndAttrKinds <= sizeof(AvailableAttrs) * CHAR_BIT,
+                "Too many attributes");
+
+public:
+  bool hasAttribute(Attribute::AttrKind Kind) const {
+    return AvailableAttrs[Kind / 8] & (1 << (Kind % 8));
+  }
+
+  void addAttribute(Attribute::AttrKind Kind) {
+    AvailableAttrs[Kind / 8] |= 1 << (Kind % 8);
+  }
+};
+
+/// The enum attributes available in an AttributeSetNode, so that AttributeSet
+/// can query them inline.
+class AttributeSetNodeBase {
+protected:
+  AttributeBitSet AvailableAttrs;
+
+public:
+  bool hasAttribute(Attribute::AttrKind Kind) const {
+    return AvailableAttrs.hasAttribute(Kind);
+  }
+};
+
+/// The enum function attributes available in an AttributeListImpl, so that
+/// AttributeList can query them inline.
+class AttributeListImplBase {
+protected:
+  AttributeBitSet AvailableFunctionAttrs;
+
+public:
+  /// Return true if the function has an enum attribute of the given kind.
+  bool hasFnAttribute(Attribute::AttrKind Kind) const {
+    return AvailableFunctionAttrs.hasAttribute(Kind);
+  }
+};
+
 //===----------------------------------------------------------------------===//
 /// \class
 /// This class holds the attributes for a particular argument, parameter,
@@ -413,10 +455,13 @@ class AttributeSet {
   // removeAttribute for enum attrs.
 
   /// Private implementation pointer.
-  AttributeSetNode *SetNode = nullptr;
+  AttributeSetNodeBase *SetNode = nullptr;
 
 private:
-  explicit AttributeSet(AttributeSetNode *ASN) : SetNode(ASN) {}
+  LLVM_ABI explicit AttributeSet(AttributeSetNode *ASN);
+
+  /// Return the implementation of this set.
+  AttributeSetNode *getNode() const;
 
 public:
   /// AttributeSet is a trivially copyable value type.
@@ -485,7 +530,9 @@ public:
   bool hasAttributes() const { return SetNode != nullptr; }
 
   /// Return true if the attribute exists in this set.
-  LLVM_ABI bool hasAttribute(Attribute::AttrKind Kind) const;
+  bool hasAttribute(Attribute::AttrKind Kind) const {
+    return SetNode && SetNode->hasAttribute(Kind);
+  }
 
   /// Return true if the attribute exists in this set.
   LLVM_ABI bool hasAttribute(StringRef Kind) const;
@@ -577,7 +624,10 @@ private:
 
   /// The attributes that we are managing. This can be null to represent
   /// the empty attributes list.
-  AttributeListImpl *pImpl = nullptr;
+  AttributeListImplBase *pImpl = nullptr;
+
+  /// Return the implementation of this list.
+  AttributeListImpl *getListImpl() const;
 
 public:
   /// Create an AttributeList with the specified parameters in it.
@@ -593,7 +643,7 @@ public:
                                     ArrayRef<AttributeSet> ArgAttrs);
 
 private:
-  explicit AttributeList(AttributeListImpl *LI) : pImpl(LI) {}
+  LLVM_ABI explicit AttributeList(AttributeListImpl *LI);
 
   static AttributeList getImpl(LLVMContext &C, ArrayRef<AttributeSet> AttrSets);
 
@@ -954,7 +1004,9 @@ public:
   bool hasRetAttrs() const { return hasAttributesAtIndex(ReturnIndex); }
 
   /// Return true if the attribute exists for the function.
-  LLVM_ABI bool hasFnAttr(Attribute::AttrKind Kind) const;
+  bool hasFnAttr(Attribute::AttrKind Kind) const {
+    return pImpl && pImpl->hasFnAttribute(Kind);
+  }
 
   /// Return true if the attribute exists for the function.
   LLVM_ABI bool hasFnAttr(StringRef Kind) const;

@@ -25,11 +25,11 @@ void bar(int *&);
 // CHECK-MIPS-NEXT:    [[TMP2:%.*]] = extractvalue { ptr addrspace(200), i32 } [[TMP0]], 1
 // CHECK-MIPS-NEXT:    br label [[CATCH_DISPATCH:%.*]]
 // CHECK-MIPS:       catch.dispatch:
-// CHECK-MIPS-NEXT:    [[TMP3:%.*]] = call addrspace(200) i32 @llvm.eh.typeid.for.p200(ptr addrspace(200) @_ZTIPi) #[[ATTR3:[0-9]+]]
+// CHECK-MIPS-NEXT:    [[TMP3:%.*]] = call addrspace(200) i32 @llvm.eh.typeid.for.p200(ptr addrspace(200) @_ZTIPi)
 // CHECK-MIPS-NEXT:    [[MATCHES:%.*]] = icmp eq i32 [[TMP2]], [[TMP3]]
 // CHECK-MIPS-NEXT:    br i1 [[MATCHES]], label [[CATCH:%.*]], label [[EH_RESUME:%.*]]
 // CHECK-MIPS:       catch:
-// CHECK-MIPS-NEXT:    [[TMP4:%.*]] = call addrspace(200) ptr addrspace(200) @__cxa_begin_catch(ptr addrspace(200) [[TMP1]]) #[[ATTR3]]
+// CHECK-MIPS-NEXT:    [[TMP4:%.*]] = call addrspace(200) ptr addrspace(200) @__cxa_begin_catch(ptr addrspace(200) [[TMP1]]) #[[ATTR3:[0-9]+]]
 // CHECK-MIPS-NEXT:    [[TMP5:%.*]] = getelementptr i8, ptr addrspace(200) [[TMP1]], i32 64
 // CHECK-MIPS-NEXT:    invoke addrspace(200) void @_Z3barRPi(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[TMP5]])
 // CHECK-MIPS-NEXT:            to label [[INVOKE_CONT2:%.*]] unwind label [[LPAD1:%.*]]
@@ -66,11 +66,11 @@ void bar(int *&);
 // CHECK-RV32-NEXT:    [[TMP2:%.*]] = extractvalue { ptr addrspace(200), i32 } [[TMP0]], 1
 // CHECK-RV32-NEXT:    br label [[CATCH_DISPATCH:%.*]]
 // CHECK-RV32:       catch.dispatch:
-// CHECK-RV32-NEXT:    [[TMP3:%.*]] = call addrspace(200) i32 @llvm.eh.typeid.for.p200(ptr addrspace(200) @_ZTIPi) #[[ATTR3:[0-9]+]]
+// CHECK-RV32-NEXT:    [[TMP3:%.*]] = call addrspace(200) i32 @llvm.eh.typeid.for.p200(ptr addrspace(200) @_ZTIPi)
 // CHECK-RV32-NEXT:    [[MATCHES:%.*]] = icmp eq i32 [[TMP2]], [[TMP3]]
 // CHECK-RV32-NEXT:    br i1 [[MATCHES]], label [[CATCH:%.*]], label [[EH_RESUME:%.*]]
 // CHECK-RV32:       catch:
-// CHECK-RV32-NEXT:    [[TMP4:%.*]] = call addrspace(200) ptr addrspace(200) @__cxa_begin_catch(ptr addrspace(200) [[TMP1]]) #[[ATTR3]]
+// CHECK-RV32-NEXT:    [[TMP4:%.*]] = call addrspace(200) ptr addrspace(200) @__cxa_begin_catch(ptr addrspace(200) [[TMP1]]) #[[ATTR3:[0-9]+]]
 // CHECK-RV32-NEXT:    [[TMP5:%.*]] = getelementptr i8, ptr addrspace(200) [[TMP1]], i32 32
 // CHECK-RV32-NEXT:    invoke addrspace(200) void @_Z3barRPi(ptr addrspace(200) noundef nonnull align 8 dereferenceable(8) [[TMP5]])
 // CHECK-RV32-NEXT:            to label [[INVOKE_CONT2:%.*]] unwind label [[LPAD1:%.*]]
@@ -107,11 +107,11 @@ void bar(int *&);
 // CHECK-RV64-NEXT:    [[TMP2:%.*]] = extractvalue { ptr addrspace(200), i32 } [[TMP0]], 1
 // CHECK-RV64-NEXT:    br label [[CATCH_DISPATCH:%.*]]
 // CHECK-RV64:       catch.dispatch:
-// CHECK-RV64-NEXT:    [[TMP3:%.*]] = call addrspace(200) i32 @llvm.eh.typeid.for.p200(ptr addrspace(200) @_ZTIPi) #[[ATTR3:[0-9]+]]
+// CHECK-RV64-NEXT:    [[TMP3:%.*]] = call addrspace(200) i32 @llvm.eh.typeid.for.p200(ptr addrspace(200) @_ZTIPi)
 // CHECK-RV64-NEXT:    [[MATCHES:%.*]] = icmp eq i32 [[TMP2]], [[TMP3]]
 // CHECK-RV64-NEXT:    br i1 [[MATCHES]], label [[CATCH:%.*]], label [[EH_RESUME:%.*]]
 // CHECK-RV64:       catch:
-// CHECK-RV64-NEXT:    [[TMP4:%.*]] = call addrspace(200) ptr addrspace(200) @__cxa_begin_catch(ptr addrspace(200) [[TMP1]]) #[[ATTR3]]
+// CHECK-RV64-NEXT:    [[TMP4:%.*]] = call addrspace(200) ptr addrspace(200) @__cxa_begin_catch(ptr addrspace(200) [[TMP1]]) #[[ATTR3:[0-9]+]]
 // CHECK-RV64-NEXT:    [[TMP5:%.*]] = getelementptr i8, ptr addrspace(200) [[TMP1]], i32 64
 // CHECK-RV64-NEXT:    invoke addrspace(200) void @_Z3barRPi(ptr addrspace(200) noundef nonnull align 16 dereferenceable(16) [[TMP5]])
 // CHECK-RV64-NEXT:            to label [[INVOKE_CONT2:%.*]] unwind label [[LPAD1:%.*]]

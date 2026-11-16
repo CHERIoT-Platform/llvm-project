@@ -23,6 +23,7 @@
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/MCTargetOptions.h"
 #include "llvm/MC/TargetRegistry.h"
+#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/Support/raw_ostream.h"
@@ -53,6 +54,7 @@ LLVMCreateDisasmCPUFeatures(const char *TT, const char *CPU,
     return nullptr;
 
   MCTargetOptions MCOptions;
+  MCOptions.LibraryOptions = &cl::getCAPILibraryOptions();
   std::unique_ptr<const MCRegisterInfo> MRI(
       TheTarget->createMCRegInfo(TheTriple, MCOptions));
   if (!MRI)

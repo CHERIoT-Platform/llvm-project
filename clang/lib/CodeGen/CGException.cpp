@@ -973,7 +973,6 @@ static void emitWasmCatchPadBlock(CodeGenFunction &CGF,
 
     // Figure out the catch type's index in the LSDA's type table.
     llvm::CallInst *TypeIndex = CGF.Builder.CreateCall(TypeIDFn, TypeInfo.RTTI);
-    TypeIndex->setDoesNotThrow();
 
     llvm::Value *MatchesTypeIndex =
         CGF.Builder.CreateICmpEQ(Selector, TypeIndex, "matches");
@@ -1057,7 +1056,6 @@ static void emitCatchDispatchBlock(CodeGenFunction &CGF,
     // Figure out the catch type's index in the LSDA's type table.
     llvm::CallInst *typeIndex =
       CGF.Builder.CreateCall(llvm_eh_typeid_for, typeValue);
-    typeIndex->setDoesNotThrow();
 
     llvm::Value *matchesTypeIndex =
       CGF.Builder.CreateICmpEQ(selector, typeIndex, "matches");

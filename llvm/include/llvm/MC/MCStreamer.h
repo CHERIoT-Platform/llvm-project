@@ -796,8 +796,12 @@ public:
 
   /// Special case of EmitValue that avoids the client having to pass in
   /// a MCExpr for MCSymbols.
-  void emitSymbolValue(const MCSymbol *Sym, unsigned Size,
-                       bool IsSectionRelative = false);
+  void emitSymbolValue(const MCSymbol *Sym, unsigned Size);
+
+  /// Emit the offset of \p Sym + \p Offset from the start of its DWARF section
+  /// as a section-relative relocation.
+  void emitDwarfSectionOffset(const MCSymbol *Sym, uint64_t Offset,
+                              unsigned Size);
 
   // TODO: it would be nice if we could get CapSize from somewhere else but
   // MCAsmInfo only knowns about the triple which is not enough

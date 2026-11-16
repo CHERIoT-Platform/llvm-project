@@ -986,6 +986,8 @@ void CodeGenModule::computeABIInfoUsingLib(CGFunctionInfo &FI) {
     case ABIArgInfo::Extend:
       CheckSimple(Target.isSignExt(), Res.isSignExt(), "SignExt");
       CheckSimple(Target.isZeroExt(), Res.isZeroExt(), "ZeroExt");
+      CheckSimple(Target.isConservative(), Res.isConservative(),
+                  "Conservative");
       [[fallthrough]];
     case ABIArgInfo::Direct:
       CheckSimple(Target.getDirectAlign(), Res.getDirectAlign(), "DirectAlign");
@@ -1072,11 +1074,15 @@ ABIArgInfo CodeGenModule::convertABIArgInfo(const llvm::abi::ArgInfo &AbiInfo,
     // useFirstFieldIfTransparentUnion.  Passing the union type to
     // ABIArgInfo::getSignExtend would trip its integral-type assert.
     QualType ExtendType = useFirstFieldIfTransparentUnion(Type);
+    ABIArgInfo Res;
     if (AbiInfo.isSignExt())
-      return ABIArgInfo::getSignExtend(ExtendType, CoercedType);
-    if (AbiInfo.isZeroExt())
-      return ABIArgInfo::getZeroExtend(ExtendType, CoercedType);
-    return ABIArgInfo::getExtend(ExtendType, CoercedType);
+      Res = ABIArgInfo::getSignExtend(ExtendType, CoercedType);
+    else if (AbiInfo.isZeroExt())
+      Res = ABIArgInfo::getZeroExtend(ExtendType, CoercedType);
+    else
+      Res = ABIArgInfo::getNoExtend(cast<llvm::IntegerType>(CoercedType));
+    Res.setConservative(AbiInfo.isConservative());
+    return Res;
   }
   case llvm::abi::ArgInfo::Indirect: {
     CharUnits Alignment =
@@ -3119,6 +3125,7 @@ void CodeGenModule::ConstructAttributeList(StringRef Name,
 
   switch (RetAI.getKind()) {
   case ABIArgInfo::Extend:
+    assert(!RetAI.isConservative() && "Conservative return not supported");
     if (RetAI.isSignExt())
       RetAttrs.addAttribute(llvm::Attribute::SExt);
     else if (RetAI.isZeroExt())
@@ -3252,6 +3259,15 @@ void CodeGenModule::ConstructAttributeList(StringRef Name,
     }
   }
 
+  if (const auto *Fn = dyn_cast_if_present<FunctionDecl>(TargetDecl)) {
+    if (Fn->isReplaceableGlobalAllocationFunction() &&
+        Fn->getDeclName().isAnyOperatorDelete()) {
+      auto IRArgs = IRFunctionArgs.getIRArgs(0);
+      assert(IRArgs.second == 1 && "Expected only a single pointer to delete.");
+      ArgAttrs[IRArgs.first].addAttribute(llvm::Attribute::AllocatedPointer);
+    }
+  }
+
   unsigned ArgNo = 0;
   for (CGFunctionInfo::const_arg_iterator I = FI.arg_begin(), E = FI.arg_end();
        I != E; ++I, ++ArgNo) {
@@ -3278,12 +3294,16 @@ void CodeGenModule::ConstructAttributeList(StringRef Name,
     // sense to do it here because parameters are so messed up.
     switch (AI.getKind()) {
     case ABIArgInfo::Extend:
-      if (AI.isSignExt())
-        Attrs.addAttribute(llvm::Attribute::SExt);
-      else if (AI.isZeroExt())
-        Attrs.addAttribute(llvm::Attribute::ZExt);
-      else
-        Attrs.addAttribute(llvm::Attribute::NoExt);
+      // Under conservative extension, add sext/zext only on the call site; the
+      // callee does not get to assume extension.
+      if (AttrOnCallSite || !AI.isConservative()) {
+        if (AI.isSignExt())
+          Attrs.addAttribute(llvm::Attribute::SExt);
+        else if (AI.isZeroExt())
+          Attrs.addAttribute(llvm::Attribute::ZExt);
+        else
+          Attrs.addAttribute(llvm::Attribute::NoExt);
+      }
       [[fallthrough]];
     case ABIArgInfo::TargetSpecific:
     case ABIArgInfo::Direct:

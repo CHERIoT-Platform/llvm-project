@@ -6861,9 +6861,9 @@ Instruction *InstCombinerImpl::foldICmpWithCastOp(ICmpInst &ICmp) {
 
     // For ptrtoaddr, IntWidth == IndexWidth is implied and we don't need to
     // check PtrWidth.
-    if ((!HasPtrToInt || CompatibleSizes(SrcTy, DestTy) ||
-         isa<ConstantPointerNull>(NewOp1)) &&
-        (NewOp1 && NewOp1->getType() == Op0Src->getType()))
+    if (NewOp1 && NewOp1->getType() == Op0Src->getType() &&
+        (!HasPtrToInt || CompatibleSizes(SrcTy, DestTy) ||
+         isa<ConstantPointerNull>(NewOp1)))
       return new ICmpInst(ICmp.getPredicate(), Op0Src, NewOp1);
   }
 

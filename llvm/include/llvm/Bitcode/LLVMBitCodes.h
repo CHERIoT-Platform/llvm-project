@@ -837,8 +837,11 @@ enum AttributeKindCodes {
   ATTR_KIND_NOFREEOBJ = 110,
   ATTR_KIND_SANITIZE_CONCURRENCY = 111,
   ATTR_KIND_LIKELY_MODULE_LOCAL = 112,
-  ATTR_KIND_MUST_PRESERVE_CHERI_TAGS = 114,
-  ATTR_KIND_NO_PRESERVE_CHERI_TAGS = 115,
+
+  // CHERI attribute kinds are numbered well above upstream's so that they don't
+  // collide with kinds added upstream.
+  ATTR_KIND_MUST_PRESERVE_CHERI_TAGS = 65536,
+  ATTR_KIND_NO_PRESERVE_CHERI_TAGS = 65537,
 };
 
 enum ComdatSelectionKindCodes {

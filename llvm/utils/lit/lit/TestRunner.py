@@ -2148,7 +2148,10 @@ def parseIntegratedTestScript(test, additional_parsers=[], require_script=True):
         assert isinstance(test.path_in_suite, tuple)
         if "cheri" in test.path_in_suite or "CHERI" in test.path_in_suite or "CHERI-Generic" in test.path_in_suite:
             is_cheri_test = True
-        if not is_cheri_test and (script and any("%cheri" in command for command in script)):
+        # script contains directive objects, not strings.
+        if not is_cheri_test and script and any(
+                "%cheri" in getattr(directive, "command", "")
+                for directive in script):
             # print("Test", test.getFullName(), "uses cheri substitutions")
             is_cheri_test = True
 

@@ -180,6 +180,7 @@ if( NOT CLANG_BUILT_STANDALONE )
     llvm-objdump
     llvm-pdbutil
     llvm-profdata
+    llvm-rc
     llvm-readelf
     llvm-readobj
     llvm-readtapi
@@ -197,9 +198,6 @@ if( NOT CLANG_BUILT_STANDALONE )
     list(APPEND CLANG_TEST_DEPS lld)
   endif()
 
-  if (TARGET llvm-rc)
-    list(APPEND LLVM_TEST_DEPENDS llvm-rc llvm-windres)
-  endif()
   if(TARGET llvm-lto)
     list(APPEND CLANG_TEST_DEPS llvm-lto)
   endif()

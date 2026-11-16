@@ -1498,11 +1498,6 @@ if( LLVM_INCLUDE_TESTS )
   add_subdirectory(unittests)
 
   umbrella_lit_testsuite_end(check-all)
-    # Add shorter target aliases for the check-all-cheri128-only
-  add_custom_target(check-cheri128 DEPENDS check-all-cheri128-only)
-  set_target_properties(check-cheri128 PROPERTIES FOLDER "Tests")
-  add_custom_target(check-cheri256 DEPENDS check-all-cheri256-only)
-  set_target_properties(check-cheri256 PROPERTIES FOLDER "Tests")
   get_property(LLVM_ALL_LIT_DEPENDS GLOBAL PROPERTY LLVM_ALL_LIT_DEPENDS)
   get_property(LLVM_ALL_ADDITIONAL_TEST_DEPENDS
       GLOBAL PROPERTY LLVM_ALL_ADDITIONAL_TEST_DEPENDS)

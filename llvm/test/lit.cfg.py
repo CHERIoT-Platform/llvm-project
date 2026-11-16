@@ -265,6 +265,7 @@ tools.extend(
         "llvm-bcanalyzer",
         "llvm-bitcode-strip",
         "llvm-cas",
+        "llvm-cgdata",
         "llvm-config",
         "llvm-cov",
         "llvm-ctxprof-util",

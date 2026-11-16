@@ -7,8 +7,6 @@
 // RUN: %clang_cc1 -triple spirv64-intel -fobjc-runtime=gnustep-2.0 -emit-llvm -o - %s | FileCheck %s --check-prefixes=CHECK,GEN
 // RUN: %clang_cc1 -triple spirv64-intel -fobjc-runtime=gnustep-2.0 -fexperimental-abi-lowering -emit-llvm -o - %s | FileCheck %s --check-prefixes=CHECK,GEN
 
-// XFAIL: *
-
 // CHECK: define spir_func ptr @pass_id(ptr noundef %x)
 id pass_id(id x) { return x; }
 

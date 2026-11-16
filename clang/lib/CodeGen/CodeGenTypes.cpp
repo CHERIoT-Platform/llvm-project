@@ -34,6 +34,14 @@
 using namespace clang;
 using namespace CodeGen;
 
+/// Address space for nullptr_t and Objective-C object pointers: the
+/// capability address space in purecap, otherwise 0.
+unsigned CodeGenTypes::getPurecapDefaultAS() const {
+  if (CGM.getTarget().areAllPointersCapabilities())
+    return CGM.getTargetCodeGenInfo().getDefaultAS();
+  return 0;
+}
+
 CodeGenTypes::CodeGenTypes(CodeGenModule &cgm)
     : CGM(cgm), Context(cgm.getContext()), TheModule(cgm.getModule()),
       Target(cgm.getTarget()) {
@@ -501,7 +509,7 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     case BuiltinType::NullPtr:
       // Model std::nullptr_t as i8*
       ResultType = llvm::PointerType::get(getLLVMContext(),
-        CGM.getTargetCodeGenInfo().getDefaultAS());
+                                          getPurecapDefaultAS());
       break;
 
     case BuiltinType::MetaInfo:
@@ -755,8 +763,8 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
   }
 
   case Type::ObjCObjectPointer:
-    ResultType = llvm::PointerType::get(
-        getLLVMContext(), CGM.getTargetCodeGenInfo().getDefaultAS());
+    ResultType =
+        llvm::PointerType::get(getLLVMContext(), getPurecapDefaultAS());
     break;
 
   case Type::Enum: {

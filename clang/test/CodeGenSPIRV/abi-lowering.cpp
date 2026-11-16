@@ -13,8 +13,6 @@
 // AMDGCN-flavored SPIR-V keeps using Clang's AMDGPU-based lowering.
 // RUN: %clang_cc1 -triple spirv64-amd-amdhsa -x cuda -fcuda-is-device -fexperimental-abi-lowering -emit-llvm -o - %s | FileCheck %s --check-prefix=AMDGCN
 
-// XFAIL: *
-
 #ifdef __CUDA__
 #define DEVICE __attribute__((device))
 #define KERNEL __attribute__((global))

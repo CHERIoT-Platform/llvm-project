@@ -102,6 +102,8 @@ class CodeGenTypes {
       RequiredArgs required, CanQualType resultType,
       ArrayRef<CanQualType> argTypes);
 
+  unsigned getPurecapDefaultAS() const;
+
 public:
   CodeGenTypes(CodeGenModule &cgm);
   ~CodeGenTypes();

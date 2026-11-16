@@ -19592,31 +19592,39 @@ void Sema::ActOnTagFinishDefinition(Scope *S, Decl *TagD,
     // is ignored.
     if (RecordDecl *RD = dyn_cast<RecordDecl>(Tag))
       if (!RD->isDependentContext() && !Diags.isIgnored(diag::warn_excess_padding, RD->getLocation())) {
-        unsigned CharBitNum = Context.getTargetInfo().getCharWidth();
-        unsigned NumFields = 0;
-        unsigned LastFieldEnd = 0;
-        unsigned Padding = 0;
+        // Padding is the record size minus the space used by its fields. For a
+        // union, that is its largest member.
+        const unsigned CharBitNum = Context.getTargetInfo().getCharWidth();
         const ASTRecordLayout &Layout = Context.getASTRecordLayout(RD);
-        unsigned BitEnd = 0;
-        for (auto F : RD->fields()) {
-          unsigned Offset = Layout.getFieldOffset(NumFields);
-          NumFields++;
-          // Count the bits in a bitfield.
-          if (F->isBitField()) {
-            BitEnd += F->getBitWidthValue();
+        const uint64_t SizeBits = Context.toBits(Layout.getSize());
+        unsigned NumFields = 0;
+        uint64_t UsedBits = 0;
+        uint64_t BitFieldRun = 0;
+        auto FlushBitFields = [&] {
+          // A run of bit-fields occupies whole chars.
+          UsedBits += llvm::alignTo(BitFieldRun, CharBitNum);
+          BitFieldRun = 0;
+        };
+        for (const FieldDecl *F : RD->fields()) {
+          ++NumFields;
+          if (RD->isUnion()) {
+            uint64_t Width = F->isBitField()
+                                 ? llvm::alignTo(F->getBitWidthValue(), CharBitNum)
+                                 : Context.getTypeSize(F->getType());
+            UsedBits = std::max(UsedBits, Width);
             continue;
           }
-          // If the last field was a bitfield then round the width up to a char
-          // and use that.
-          if (BitEnd) {
-            LastFieldEnd += (BitEnd + (CharBitNum - 1)) / CharBitNum;
-            BitEnd = 0;
+          if (F->isBitField()) {
+            BitFieldRun += F->getBitWidthValue();
+            continue;
           }
-          Padding += Offset - LastFieldEnd;
-          LastFieldEnd = Offset + Context.getTypeSizeInChars(F->getType()).getQuantity();
+          FlushBitFields();
+          UsedBits += Context.getTypeSize(F->getType());
         }
+        FlushBitFields();
         unsigned Size = Layout.getSize().getQuantity();
-        Padding += Size - LastFieldEnd;
+        unsigned Padding =
+            UsedBits >= SizeBits ? 0 : (SizeBits - UsedBits) / CharBitNum;
         unsigned UnpaddedSize = Size - Padding;
 
         // Don't warn for empty structs even though they have 1 byte padding in

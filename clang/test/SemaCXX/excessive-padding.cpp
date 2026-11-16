@@ -46,6 +46,23 @@ struct BadBigStruct2 { // expected-warning {{'BadBigStruct2' contains 31 bytes o
   char c;
 };
 
+// For unions, padding is the size minus the largest member.
+union UnionOK { // fine
+  char c;
+  long l;
+};
+
+union alignas(32) UnionPadded { // expected-warning {{'UnionPadded' contains 31 bytes of padding in a 32 byte structure}}
+  char c;
+};
+
+// Consecutive bit-fields are packed into whole bytes.
+struct BitFieldsOK { // fine
+  unsigned a : 3;
+  unsigned b : 5;
+  char c;
+};
+
 // The following are 1 byte padding with 1 byte total size but should not warn:
 struct Empty1 {
 }; // fine

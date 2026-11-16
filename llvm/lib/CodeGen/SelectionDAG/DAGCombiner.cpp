@@ -2828,6 +2828,90 @@ SDValue DAGCombiner::visitPTRADD(SDNode *N) {
     }
   }
 
+  // Reassociate: (ptradd (ptradd x, y), z) -> (ptradd x, (add y, z)) if:
+  //   * x is a null pointer; or
+  //   * the add can be constant-folded; or
+  //   * the add can be combined and z is not a constant; or
+  //   * y is a constant and z has one use and z is not a constant; or
+  //   * y is a constant and (ptradd x, y) has one use and z is not a
+  //     constant; or
+  //   * (ptradd x, y) and z have one use and z is not a constant.
+  //
+  // Some of these overly-restrictive conditions are to not obfuscate CAndAddr
+  // patterns. Once we represent that with PTRMASK that will be less of a
+  // concern, though we might still want to detect code not using the builtins
+  // and canonicalise it to a PTRMASK.
+  //
+  // Commute: (ptradd (ptradd x, y), z) -> (ptradd (ptradd x, z), y) if:
+  //   * y and z have the same sign and only y is a constant.
+  //
+  // This allows immediate addressing modes to be used. Note that we need to be
+  // careful to ensure we don't transiently become unrepresentable if the
+  // original DAG does not already do so, and this is the case if both PTRADDs
+  // have the same sign.
+  //
+  // Note we must be careful to handle the case that both are
+  // constants, as opaque constants will not be constant-folded.
+  if (PtrVT.isFatPointer() && N0.getOpcode() == ISD::PTRADD &&
+      !reassociationCanBreakAddressingModePattern(ISD::PTRADD, DL, N, N0, N1)) {
+    SDValue X = N0.getOperand(0);
+    SDValue Y = N0.getOperand(1);
+    SDValue Z = N1;
+
+    SDValue Add = DAG.getNode(ISD::ADD, DL, IntVT, {Y, Z});
+    // Calling visit() can replace the Add node with ISD::DELETED_NODE if there
+    // aren't any users, so keep a handle around whilst we visit it.
+    HandleSDNode ADDHandle(Add);
+    SDValue VisitedAdd = visit(Add.getNode());
+    if (VisitedAdd) {
+      // If visit() returns the same node, it means the SDNode was RAUW'd, and
+      // therefore we have to load the new value to perform the checks whether
+      // the reassociation fold is profitable.
+      if (VisitedAdd.getNode() == Add.getNode())
+        Add = ADDHandle.getValue();
+      else
+        Add = VisitedAdd;
+    }
+    LLVM_DEBUG(dbgs() << "visitPTRADD() add operand:"; Add.dump(&DAG));
+    assert(Add->getOpcode() != ISD::DELETED_NODE && "Deleted Node used");
+    bool IsZConst = DAG.isConstantIntBuildVectorOrConstantInt(Z);
+    if (isNullConstant(X) || DAG.isConstantIntBuildVectorOrConstantInt(Add) ||
+        (VisitedAdd && !IsZConst) ||
+        (DAG.isConstantIntBuildVectorOrConstantInt(Y) && Z.hasOneUse() &&
+         !IsZConst) ||
+        (DAG.isConstantIntBuildVectorOrConstantInt(Y) && N0.hasOneUse() &&
+         !IsZConst) ||
+        (N0.hasOneUse() && Z.hasOneUse() && !IsZConst))
+      return DAG.getMemBasePlusOffset(X, Add, DL);
+    if (DAG.SignBitIsSame(Y, Z) &&
+        DAG.isConstantIntBuildVectorOrConstantInt(Y) &&
+        !DAG.isConstantIntBuildVectorOrConstantInt(Z))
+      return GetPTRADD2(X, Z, Y);
+  }
+
+  // Transform: (ptradd x, (add y, z)) -> (ptradd (ptradd x, y), z) if:
+  //   * both y and z have the same sign and z is a constant.
+  //
+  // Transform: (ptradd x, (add y, z)) -> (ptradd (ptradd x, z), y) if:
+  //   * both y and z have the same sign and y is a constant and z is not.
+  //
+  // As above, this allows for immediate addressing modes.
+  if (PtrVT.isFatPointer() && N1.getOpcode() == ISD::ADD) {
+    SDValue X = N0;
+    SDValue Y = N1.getOperand(0);
+    SDValue Z = N1.getOperand(1);
+    bool YIsConst = DAG.isConstantIntBuildVectorOrConstantInt(Y);
+    bool ZIsConst = DAG.isConstantIntBuildVectorOrConstantInt(Z);
+    // If both are constants (one may be opaque, so the add isn't folded),
+    // leave it: splitting would undo the (ptradd (ptradd x, c1), c2) ->
+    // (ptradd x, (add c1, c2)) fold above and loop forever.
+    if (YIsConst != ZIsConst && DAG.SignBitIsSame(Y, Z)) {
+      if (ZIsConst)
+        return GetPTRADD2(X, Y, Z);
+      return GetPTRADD2(X, Z, Y);
+    }
+  }
+
   // The following combines can turn in-bounds pointer arithmetic out of bounds.
   // That is problematic for settings like AArch64's CPA, which checks that
   // intermediate results of pointer arithmetic remain in bounds. The target
@@ -2900,102 +2984,6 @@ SDValue DAGCombiner::visitPTRADD(SDNode *N) {
   // This should be done late, after legalization, so that it doesn't block
   // other ptradd combines that could enable more offset folding.
   if (LegalOperations && DAG.haveNoCommonBitsSet(N0, N1)) {
-    bool TransformCannotBreakAddrMode = none_of(N->users(), [&](SDNode *User) {
-      return canFoldInAddressingMode(N, User, DAG, TLI);
-    });
-
-    if (TransformCannotBreakAddrMode)
-      return DAG.getNode(ISD::OR, DL, PtrVT, N0, N1, SDNodeFlags::Disjoint);
-  }
-
-  // Reassociate: (ptradd (ptradd x, y), z) -> (ptradd x, (add y, z)) if:
-  //   * x is a null pointer; or
-  //   * the add can be constant-folded; or
-  //   * the add can be combined and z is not a constant; or
-  //   * y is a constant and z has one use and z is not a constant; or
-  //   * y is a constant and (ptradd x, y) has one use and z is not a
-  //     constant; or
-  //   * (ptradd x, y) and z have one use and z is not a constant.
-  //
-  // Some of these overly-restrictive conditions are to not obfuscate CAndAddr
-  // patterns. Once we represent that with PTRMASK that will be less of a
-  // concern, though we might still want to detect code not using the builtins
-  // and canonicalise it to a PTRMASK.
-  //
-  // Commute: (ptradd (ptradd x, y), z) -> (ptradd (ptradd x, z), y) if:
-  //   * y and z have the same sign and only y is a constant.
-  //
-  // This allows immediate addressing modes to be used. Note that we need to be
-  // careful to ensure we don't transiently become unrepresentable if the
-  // original DAG does not already do so, and this is the case if both PTRADDs
-  // have the same sign.
-  //
-  // Note we must be careful to handle the case that both are
-  // constants, as opaque constants will not be constant-folded.
-  if (PtrVT.isFatPointer() && N0.getOpcode() == ISD::PTRADD &&
-      !reassociationCanBreakAddressingModePattern(ISD::PTRADD, DL, N, N0, N1)) {
-    SDValue X = N0.getOperand(0);
-    SDValue Y = N0.getOperand(1);
-    SDValue Z = N1;
-
-    SDValue Add = DAG.getNode(ISD::ADD, DL, IntVT, {Y, Z});
-    // Calling visit() can replace the Add node with ISD::DELETED_NODE if there
-    // aren't any users, so keep a handle around whilst we visit it.
-    HandleSDNode ADDHandle(Add);
-    SDValue VisitedAdd = visit(Add.getNode());
-    if (VisitedAdd) {
-      // If visit() returns the same node, it means the SDNode was RAUW'd, and
-      // therefore we have to load the new value to perform the checks whether
-      // the reassociation fold is profitable.
-      if (VisitedAdd.getNode() == Add.getNode())
-        Add = ADDHandle.getValue();
-      else
-        Add = VisitedAdd;
-    }
-    LLVM_DEBUG(dbgs() << "visitPTRADD() add operand:"; Add.dump(&DAG));
-    assert(Add->getOpcode() != ISD::DELETED_NODE && "Deleted Node used");
-    bool IsZConst = DAG.isConstantIntBuildVectorOrConstantInt(Z);
-    if (isNullConstant(X) || DAG.isConstantIntBuildVectorOrConstantInt(Add) ||
-        (VisitedAdd && !IsZConst) ||
-        (DAG.isConstantIntBuildVectorOrConstantInt(Y) && Z.hasOneUse() &&
-         !IsZConst) ||
-        (DAG.isConstantIntBuildVectorOrConstantInt(Y) && N0.hasOneUse() &&
-         !IsZConst) ||
-        (N0.hasOneUse() && Z.hasOneUse() && !IsZConst))
-      return DAG.getMemBasePlusOffset(X, Add, DL);
-    if (DAG.SignBitIsSame(Y, Z) &&
-        DAG.isConstantIntBuildVectorOrConstantInt(Y) &&
-        !DAG.isConstantIntBuildVectorOrConstantInt(Z))
-      return GetPTRADD2(X, Z, Y);
-  }
-
-  // Transform: (ptradd x, (add y, z)) -> (ptradd (ptradd x, y), z) if:
-  //   * both y and z have the same sign and z is a constant.
-  //
-  // Transform: (ptradd x, (add y, z)) -> (ptradd (ptradd x, z), y) if:
-  //   * both y and z have the same sign and y is a constant (and
-  //     implicitly not z due to the previous transform).
-  //
-  // As above, this allows for immediate addressing modes.
-  if (PtrVT.isFatPointer() && N1.getOpcode() == ISD::ADD) {
-    SDValue X = N0;
-    SDValue Y = N1.getOperand(0);
-    SDValue Z = N1.getOperand(1);
-    if (DAG.SignBitIsSame(Y, Z)) {
-      if (DAG.isConstantIntBuildVectorOrConstantInt(Z))
-        return GetPTRADD2(X, Y, Z);
-      if (DAG.isConstantIntBuildVectorOrConstantInt(Y))
-        return GetPTRADD2(X, Z, Y);
-    }
-  }
-
-  // Transform (ptradd a, b) -> (or disjoint a, b) if it is equivalent and if
-  // that transformation can't block an offset folding at any use of the ptradd.
-  // This should be done late, after legalization, so that it doesn't block
-  // other ptradd combines that could enable more offset folding.
-  // Not valid for fat pointers (capabilities), which aren't plain integers.
-  if (!PtrVT.isFatPointer() && LegalOperations &&
-      DAG.haveNoCommonBitsSet(N0, N1)) {
     bool TransformCannotBreakAddrMode = none_of(N->users(), [&](SDNode *User) {
       return canFoldInAddressingMode(N, User, DAG, TLI);
     });

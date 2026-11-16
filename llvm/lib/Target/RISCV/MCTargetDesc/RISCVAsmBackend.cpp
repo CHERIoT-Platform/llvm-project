@@ -737,7 +737,6 @@ const MCFixup *getPCRelHiFixup(const MCSpecifierExpr &Expr,
     case ELF::R_RISCV_TLSDESC_HI20:
     case ELF::R_RISCV_CHERI_TLS_TGOT_GOT_HI20:
     case ELF::R_RISCV_CHERI_TLS_TGOT_GD_HI20:
-    case ELF::R_RISCV_PCREL_HI20:
       *DFOut = DF;
       return &F;
     }

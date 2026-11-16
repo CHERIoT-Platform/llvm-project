@@ -1116,8 +1116,7 @@ public:
     if (!IsConstantImm) {
       IsValid = RISCVAsmParser::classifySymbolRef(getExpr(), VK);
       return IsValid &&
-             (VK == ELF::R_RISCV_PCREL_HI20 || VK == ELF::R_RISCV_GOT_HI20 ||
-              VK == ELF::R_RISCV_TLS_GOT_HI20 ||
+             (VK == ELF::R_RISCV_TLS_GOT_HI20 ||
               VK == ELF::R_RISCV_TLS_GD_HI20 ||
               VK == ELF::R_RISCV_TLSDESC_HI20 ||
               VK == RISCV::S_CHERIOT_COMPARTMENT_CODE_HI ||
@@ -1125,8 +1124,7 @@ public:
               VK == ELF::R_RISCV_CHERI_TLS_TGOT_GD_HI20);
     } else {
       return isUInt<20>(Imm) &&
-             (VK == RISCV::S_None || VK == ELF::R_RISCV_PCREL_HI20 ||
-              VK == ELF::R_RISCV_GOT_HI20 || VK == ELF::R_RISCV_TLS_GOT_HI20 ||
+             (VK == RISCV::S_None || VK == ELF::R_RISCV_TLS_GOT_HI20 ||
               VK == ELF::R_RISCV_TLS_GD_HI20 ||
               VK == ELF::R_RISCV_TLSDESC_HI20 ||
               VK == RISCV::S_CHERIOT_COMPARTMENT_CODE_HI ||
@@ -4767,8 +4765,7 @@ void RISCVAsmParser::emitCapLoadLocalCap(MCInst &Inst, SMLoc IDLoc,
   //             CINCOFFSET cdest, cdest, %pcrel_lo(TmpLabel)
   MCOperand DestReg = Inst.getOperand(0);
   const MCExpr *Symbol = Inst.getOperand(1).getExpr();
-  emitAuipccInstPair(DestReg, DestReg, Symbol,
-                     ELF::R_RISCV_PCREL_HI20,
+  emitAuipccInstPair(DestReg, DestReg, Symbol, RISCV::S_PCREL_HI,
                      RISCV::CIncOffsetImm, IDLoc, Out);
 }
 
@@ -4783,7 +4780,7 @@ void RISCVAsmParser::emitCapLoadGlobalCap(MCInst &Inst, SMLoc IDLoc,
   MCOperand DestReg = Inst.getOperand(0);
   const MCExpr *Symbol = Inst.getOperand(1).getExpr();
   unsigned SecondOpcode = isRV64() ? RISCV::CLC_128 : RISCV::CLC_64;
-  emitAuipccInstPair(DestReg, DestReg, Symbol, ELF::R_RISCV_GOT_HI20,
+  emitAuipccInstPair(DestReg, DestReg, Symbol, RISCV::S_GOT_HI,
                      SecondOpcode, IDLoc, Out);
 }
 

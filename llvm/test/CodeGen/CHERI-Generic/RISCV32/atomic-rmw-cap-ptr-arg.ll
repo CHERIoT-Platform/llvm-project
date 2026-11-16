@@ -823,7 +823,7 @@ define i32 addrspace(200)* @atomic_cap_ptr_max(i32 addrspace(200)* addrspace(200
 ; PURECAP-ATOMICS-NEXT:    cmove a3, a2
 ; PURECAP-ATOMICS-NEXT:    bge a3, a1, .LBB12_3
 ; PURECAP-ATOMICS-NEXT:  # %bb.2: # in Loop: Header=BB12_1 Depth=1
-; PURECAP-ATOMICS-NEXT:    cmove a3, a2
+; PURECAP-ATOMICS-NEXT:    cmove a3, a1
 ; PURECAP-ATOMICS-NEXT:  .LBB12_3: # in Loop: Header=BB12_1 Depth=1
 ; PURECAP-ATOMICS-NEXT:    csc.c.aqrl a3, a3, (a0)
 ; PURECAP-ATOMICS-NEXT:    bnez a3, .LBB12_1
@@ -952,7 +952,7 @@ define i32 addrspace(200)* @atomic_cap_ptr_min(i32 addrspace(200)* addrspace(200
 ; PURECAP-ATOMICS-NEXT:    cmove a3, a2
 ; PURECAP-ATOMICS-NEXT:    bge a1, a3, .LBB13_3
 ; PURECAP-ATOMICS-NEXT:  # %bb.2: # in Loop: Header=BB13_1 Depth=1
-; PURECAP-ATOMICS-NEXT:    cmove a3, a2
+; PURECAP-ATOMICS-NEXT:    cmove a3, a1
 ; PURECAP-ATOMICS-NEXT:  .LBB13_3: # in Loop: Header=BB13_1 Depth=1
 ; PURECAP-ATOMICS-NEXT:    csc.c.aqrl a3, a3, (a0)
 ; PURECAP-ATOMICS-NEXT:    bnez a3, .LBB13_1
@@ -1081,7 +1081,7 @@ define i32 addrspace(200)* @atomic_cap_ptr_umax(i32 addrspace(200)* addrspace(20
 ; PURECAP-ATOMICS-NEXT:    cmove a3, a2
 ; PURECAP-ATOMICS-NEXT:    bgeu a3, a1, .LBB14_3
 ; PURECAP-ATOMICS-NEXT:  # %bb.2: # in Loop: Header=BB14_1 Depth=1
-; PURECAP-ATOMICS-NEXT:    cmove a3, a2
+; PURECAP-ATOMICS-NEXT:    cmove a3, a1
 ; PURECAP-ATOMICS-NEXT:  .LBB14_3: # in Loop: Header=BB14_1 Depth=1
 ; PURECAP-ATOMICS-NEXT:    csc.c.aqrl a3, a3, (a0)
 ; PURECAP-ATOMICS-NEXT:    bnez a3, .LBB14_1
@@ -1210,7 +1210,7 @@ define i32 addrspace(200)* @atomic_cap_ptr_umin(i32 addrspace(200)* addrspace(20
 ; PURECAP-ATOMICS-NEXT:    cmove a3, a2
 ; PURECAP-ATOMICS-NEXT:    bgeu a1, a3, .LBB15_3
 ; PURECAP-ATOMICS-NEXT:  # %bb.2: # in Loop: Header=BB15_1 Depth=1
-; PURECAP-ATOMICS-NEXT:    cmove a3, a2
+; PURECAP-ATOMICS-NEXT:    cmove a3, a1
 ; PURECAP-ATOMICS-NEXT:  .LBB15_3: # in Loop: Header=BB15_1 Depth=1
 ; PURECAP-ATOMICS-NEXT:    csc.c.aqrl a3, a3, (a0)
 ; PURECAP-ATOMICS-NEXT:    bnez a3, .LBB15_1

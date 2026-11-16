@@ -964,7 +964,7 @@ void RISCVExpandPseudoAtomicsImpl::doAtomicMinMaxOpExpansion(
   //   mv scratch, incr
   if (VT.isFatPointer())
     BuildMI(LoopIfBodyMBB, DL, TII->get(RISCV::CMove), ScratchReg)
-        .addReg(DestReg);
+        .addReg(IncrReg);
   else
   BuildMI(LoopIfBodyMBB, DL, TII->get(RISCV::ADDI), ScratchReg)
       .addReg(IncrReg)

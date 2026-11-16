@@ -10549,6 +10549,15 @@ bool SelectionDAG::hasSwiftErrorArg() const {
              Attribute::SwiftError);
 }
 
+
+/// Argument type for a pointer passed to a mem* libcall.
+static Type *getMemLibcallPtrArgTy(SDValue Ptr, LLVMContext &Ctx) {
+  EVT VT = Ptr.getValueType();
+  if (VT.isFatPointer())
+    return VT.getTypeForEVT(Ctx);
+  return PointerType::getUnqual(Ctx);
+}
+
 SDValue SelectionDAG::getMemcpy(
     SDValue Chain, const SDLoc &dl, SDValue Dst, SDValue Src, SDValue Size,
     Align DstAlign, Align SrcAlign, bool isVol, bool AlwaysInline,
@@ -10617,8 +10626,8 @@ SDValue SelectionDAG::getMemcpy(
 
   // Emit a library call.
   TargetLowering::ArgListTy Args;
-  Args.emplace_back(Dst, Dst.getValueType().getTypeForEVT(*getContext()));
-  Args.emplace_back(Src, Src.getValueType().getTypeForEVT(*getContext()));
+  Args.emplace_back(Dst, getMemLibcallPtrArgTy(Dst, *getContext()));
+  Args.emplace_back(Src, getMemLibcallPtrArgTy(Src, *getContext()));
   Args.emplace_back(Size, getDataLayout().getIntPtrType(*getContext()));
   // FIXME: pass in SDLoc
   TargetLowering::CallLoweringInfo CLI(*this);
@@ -10743,8 +10752,8 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, const SDLoc &dl, SDValue Dst,
 
   // Emit a library call.
   TargetLowering::ArgListTy Args;
-  Args.emplace_back(Dst, Dst.getValueType().getTypeForEVT(*getContext()));
-  Args.emplace_back(Src, Src.getValueType().getTypeForEVT(*getContext()));
+  Args.emplace_back(Dst, getMemLibcallPtrArgTy(Dst, *getContext()));
+  Args.emplace_back(Src, getMemLibcallPtrArgTy(Src, *getContext()));
   Args.emplace_back(Size, getDataLayout().getIntPtrType(*getContext()));
   // FIXME:  pass in SDLoc
   TargetLowering::CallLoweringInfo CLI(*this);
@@ -10876,7 +10885,7 @@ SDValue SelectionDAG::getMemset(SDValue Chain, const SDLoc &dl, SDValue Dst,
   // If zeroing out and bzero is present, use it.
   if (UseBZero) {
     TargetLowering::ArgListTy Args;
-    Args.emplace_back(Dst, Dst.getValueType().getTypeForEVT(Ctx));
+    Args.emplace_back(Dst, getMemLibcallPtrArgTy(Dst, Ctx));
     Args.emplace_back(Size, DL.getIntPtrType(Ctx));
     CLI.setLibCallee(
         Libcalls->getLibcallImplCallingConv(BzeroImpl), Type::getVoidTy(Ctx),
@@ -10887,7 +10896,7 @@ SDValue SelectionDAG::getMemset(SDValue Chain, const SDLoc &dl, SDValue Dst,
 
     MVT IntVT = MVT::getIntegerVT(LibInfo->getIntSize());
     TargetLowering::ArgListTy Args;
-    Args.emplace_back(Dst, Dst.getValueType().getTypeForEVT(Ctx));
+    Args.emplace_back(Dst, getMemLibcallPtrArgTy(Dst, Ctx));
     Args.emplace_back(getAnyExtOrTrunc(Src, dl, IntVT),
                       Type::getIntNTy(Ctx, LibInfo->getIntSize()),
                       LibInfo->getExtAttrForI32Param());

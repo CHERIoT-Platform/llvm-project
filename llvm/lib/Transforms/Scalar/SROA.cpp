@@ -762,9 +762,9 @@ public:
   void print(raw_ostream &OS) const;
   void dump(const_iterator I) const;
   void dump() const;
+#endif
 
   raw_ostream *strict_align_slices_dbgs();
-#endif
 
 private:
   class SliceBuilder;

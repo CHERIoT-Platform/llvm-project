@@ -23,7 +23,7 @@ class StringRef;
 
 class MipsABIInfo {
 public:
-  enum class ABI { Unknown, O32, N32, N64 };
+  enum class ABI { Unknown, O32, N32, N64, P32 };
 
 protected:
   ABI ThisABI;
@@ -37,6 +37,7 @@ public:
   static MipsABIInfo O32() { return MipsABIInfo(ABI::O32); }
   static MipsABIInfo N32() { return MipsABIInfo(ABI::N32); }
   static MipsABIInfo N64() { return MipsABIInfo(ABI::N64); }
+  static MipsABIInfo P32() { return MipsABIInfo(ABI::P32); }
   static MipsABIInfo CheriPureCap() { return MipsABIInfo(ABI::N64, true); }
   static MipsABIInfo computeTargetABI(const Triple &TT, StringRef ABIName);
 
@@ -44,6 +45,7 @@ public:
   bool IsO32() const { return ThisABI == ABI::O32; }
   bool IsN32() const { return ThisABI == ABI::N32; }
   bool IsN64() const { return ThisABI == ABI::N64; }
+  bool IsP32() const { return ThisABI == ABI::P32; }
   bool IsCheriPureCap() const { return isCheriPureCap; }
   CheriCapabilityTableABI CapabilityTableABI() const {
     assert(IsCheriPureCap());

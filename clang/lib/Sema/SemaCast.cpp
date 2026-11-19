@@ -391,6 +391,9 @@ Sema::BuildCXXNamedCast(SourceLocation OpLoc, tok::TokenKind Kind,
                         SourceRange AngleBrackets, SourceRange Parens) {
   ExprResult Ex = E;
   QualType DestType = DestTInfo->getType();
+  if (!CheckVariablyModifiedTypeUse(DestType,
+                                    DestTInfo->getTypeLoc().getBeginLoc()))
+    return ExprError();
 
   // If the type is dependent, we won't do the semantic analysis now.
   bool TypeDependent =
@@ -3866,6 +3869,10 @@ ExprResult Sema::BuildCStyleCastExpr(SourceLocation LPLoc,
                                      TypeSourceInfo *CastTypeInfo,
                                      SourceLocation RPLoc,
                                      Expr *CastExpr) {
+  if (!CheckVariablyModifiedTypeUse(CastTypeInfo->getType(),
+                                    CastTypeInfo->getTypeLoc().getBeginLoc()))
+    return ExprError();
+
   CastOperation Op(*this, CastTypeInfo->getType(), CastExpr);
   Op.DestRange = CastTypeInfo->getTypeLoc().getSourceRange();
   Op.OpRange = CastOperation::OpRangeType(LPLoc, LPLoc, CastExpr->getEndLoc());
@@ -3898,6 +3905,10 @@ ExprResult Sema::BuildCXXFunctionalCastExpr(TypeSourceInfo *CastTypeInfo,
                                             Expr *CastExpr,
                                             SourceLocation RPLoc) {
   assert(LPLoc.isValid() && "List-initialization shouldn't get here.");
+  if (!CheckVariablyModifiedTypeUse(Type,
+                                    CastTypeInfo->getTypeLoc().getBeginLoc()))
+    return ExprError();
+
   CastOperation Op(*this, Type, CastExpr);
   Op.DestRange = CastTypeInfo->getTypeLoc().getSourceRange();
   Op.OpRange =

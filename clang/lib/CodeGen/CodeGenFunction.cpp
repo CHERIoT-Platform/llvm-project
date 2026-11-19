@@ -718,7 +718,11 @@ void CodeGenFunction::markAsIgnoreThreadCheckingAtRuntime(llvm::Function *Fn) {
 bool CodeGenFunction::requiresReturnValueCheck() const {
   return requiresReturnValueNullabilityCheck() ||
          (SanOpts.has(SanitizerKind::ReturnsNonnullAttribute) && CurCodeDecl &&
-          CurCodeDecl->getAttr<ReturnsNonNullAttr>());
+          CurCodeDecl->getAttr<ReturnsNonNullAttr>()) ||
+         (SanOpts.has(SanitizerKind::Alignment) && CurCodeDecl &&
+          ((isa<FunctionDecl>(CurCodeDecl) &&
+            CurCodeDecl->getAttr<AllocAlignAttr>()) ||
+           CurCodeDecl->getAttr<AssumeAlignedAttr>()));
 }
 
 static bool matchesStlAllocatorFn(const Decl *D, const ASTContext &Ctx) {
@@ -1204,10 +1208,8 @@ void CodeGenFunction::StartFunction(GlobalDecl GD, QualType RetTy,
     Fn->removeFnAttr("zero-call-used-regs");
 
   // Add vscale_range attribute if appropriate.
-  llvm::StringMap<bool> FeatureMap;
   auto IsArmStreaming = TargetInfo::ArmStreamingKind::NotStreaming;
   if (FD) {
-    getContext().getFunctionFeatureMap(FeatureMap, FD);
     if (const auto *T = FD->getType()->getAs<FunctionProtoType>())
       if (T->getAArch64SMEAttributes() &
           FunctionType::SME_PStateSMCompatibleMask)
@@ -1216,13 +1218,12 @@ void CodeGenFunction::StartFunction(GlobalDecl GD, QualType RetTy,
     if (IsArmStreamingFunction(FD, true))
       IsArmStreaming = TargetInfo::ArmStreamingKind::Streaming;
   }
-  std::optional<std::pair<unsigned, unsigned>> VScaleRange =
-      getContext().getTargetInfo().getVScaleRange(getLangOpts(), IsArmStreaming,
-                                                  &FeatureMap);
-  if (VScaleRange) {
+  const auto *FeatureMap =
+      FD ? &getContext().getFunctionFeatureMap(FD) : nullptr;
+  if (auto VScaleRange = getContext().getTargetInfo().getVScaleRange(
+          getLangOpts(), IsArmStreaming, FeatureMap))
     CurFn->addFnAttr(llvm::Attribute::getWithVScaleRangeArgs(
         getLLVMContext(), VScaleRange->first, VScaleRange->second));
-  }
 
   llvm::BasicBlock *EntryBB = createBasicBlock("entry", CurFn);
 
@@ -3369,21 +3370,23 @@ void CodeGenFunction::EmitX86MultiVersionResolver(
   EmitTrapCallAndMakeUnreachable();
 }
 
-// Loc - where the diagnostic will point, where in the source code this
-//  alignment has failed.
+// Loc / DynamicLoc - where the diagnostic will point, where in the source code
+//  this alignment has failed.
 // AssumptionLoc - if present (will be present if sufficiently different from
 //  Loc), the diagnostic will additionally point a "Note:" to this location.
 //  It should be the location where the __attribute__((assume_aligned))
 //  was written e.g.
-void CodeGenFunction::emitAlignmentAssumptionCheck(llvm::Value *Ptr,
-                                                   QualType Ty,
-                                                   SourceLocation Loc,
-                                                   SourceLocation AssumptionLoc,
-                                                   llvm::Value *Alignment,
-                                                   llvm::Value *OffsetValue) {
-  if (!SanOpts.has(SanitizerKind::Alignment))
+static void emitAlignmentAssumptionCheck(CodeGenFunction &CGF, llvm::Value *Ptr,
+                                         QualType Ty, SourceLocation Loc,
+                                         llvm::Value *DynamicLoc,
+                                         SourceLocation AssumptionLoc,
+                                         llvm::Value *Alignment,
+                                         llvm::Value *OffsetValue) {
+  if (!CGF.SanOpts.has(SanitizerKind::Alignment))
     return;
 
+  CGBuilderTy &Builder = CGF.Builder;
+  llvm::IntegerType *IntPtrTy = CGF.IntPtrTy;
   if (Alignment->getType() != IntPtrTy)
     Alignment =
         Builder.CreateIntCast(Alignment, IntPtrTy, false, "casted.align");
@@ -3414,18 +3417,45 @@ void CodeGenFunction::emitAlignmentAssumptionCheck(llvm::Value *Ptr,
     return;
 
   auto CheckOrdinal = SanitizerKind::SO_Alignment;
-  auto CheckHandler = SanitizerHandler::AlignmentAssumption;
-  SanitizerDebugLocation SanScope(this, {CheckOrdinal}, CheckHandler);
+  auto CheckHandler = !DynamicLoc ? SanitizerHandler::AlignmentAssumption
+                                  : SanitizerHandler::ReturnAlignmentAssumption;
+  SanitizerDebugLocation SanScope(&CGF, {CheckOrdinal}, CheckHandler);
 
   if (!OffsetValue)
     OffsetValue = Builder.getInt1(false); // no offset.
 
-  llvm::Constant *StaticData[] = {EmitCheckSourceLocation(Loc),
-                                  EmitCheckSourceLocation(AssumptionLoc),
-                                  EmitCheckTypeDescriptor(Ty)};
-  llvm::Value *DynamicData[] = {Ptr, Alignment, OffsetValue};
-  EmitCheck({std::make_pair(TheCheck, CheckOrdinal)}, CheckHandler, StaticData,
-            DynamicData);
+  if (!DynamicLoc) {
+    llvm::Constant *StaticData[] = {CGF.EmitCheckSourceLocation(Loc),
+                                    CGF.EmitCheckSourceLocation(AssumptionLoc),
+                                    CGF.EmitCheckTypeDescriptor(Ty)};
+    llvm::Value *DynamicData[] = {Ptr, Alignment, OffsetValue};
+    CGF.EmitCheck({std::make_pair(TheCheck, CheckOrdinal)}, CheckHandler,
+                  StaticData, DynamicData);
+  } else {
+    llvm::Constant *StaticData[] = {CGF.EmitCheckSourceLocation(AssumptionLoc),
+                                    CGF.EmitCheckTypeDescriptor(Ty)};
+    llvm::Value *DynamicData[] = {DynamicLoc, Ptr, Alignment, OffsetValue};
+    CGF.EmitCheck({std::make_pair(TheCheck, CheckOrdinal)}, CheckHandler,
+                  StaticData, DynamicData);
+  }
+}
+
+void CodeGenFunction::emitAlignmentAssumptionCheck(llvm::Value *Ptr,
+                                                   QualType Ty,
+                                                   SourceLocation Loc,
+                                                   SourceLocation AssumptionLoc,
+                                                   llvm::Value *Alignment,
+                                                   llvm::Value *OffsetValue) {
+  ::emitAlignmentAssumptionCheck(*this, Ptr, Ty, Loc, nullptr, AssumptionLoc,
+                                 Alignment, OffsetValue);
+}
+
+void CodeGenFunction::emitReturnAlignmentAssumptionCheck(
+    llvm::Value *Ptr, QualType Ty, SourceLocation AssumptionLoc,
+    llvm::Value *Alignment, llvm::Value *OffsetValue) {
+  llvm::Value *SLocPtr = Builder.CreateLoad(ReturnLocation, "return.sloc.load");
+  ::emitAlignmentAssumptionCheck(*this, Ptr, Ty, SourceLocation(), SLocPtr,
+                                 AssumptionLoc, Alignment, OffsetValue);
 }
 
 llvm::DebugLoc CodeGenFunction::SourceLocToDebugLoc(SourceLocation Location) {

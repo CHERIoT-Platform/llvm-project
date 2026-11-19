@@ -406,7 +406,7 @@ void MipsSEFrameLowering::emitPrologue(MachineFunction &MF,
   unsigned ZERO = ABI.GetNullPtr();
   unsigned MOVE = ABI.GetSPMoveOp();
   unsigned ADDiu = ABI.GetPtrAddiuOp();
-  unsigned AND = ABI.IsN64() ? Mips::AND64 : Mips::AND;
+  unsigned AND = ABI.GetPtrAndOp();
 
   const TargetRegisterClass *RC = ABI.ArePtrs64bit() ?
         &Mips::GPR64RegClass : &Mips::GPR32RegClass;

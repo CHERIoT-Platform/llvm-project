@@ -230,7 +230,9 @@ StringRef MIPS_MC::selectMipsCPU(const Triple &TT, StringRef CPU) {
     } else if (TT.getEnvironment() == Triple::CheriPurecap) {
       CPU = "cheri128";
     } else {
-      if (TT.isMIPS32())
+      if (TT.isNanoMips())
+        CPU = "nanomips";
+      else if (TT.isMIPS32())
         CPU = "mips32";
       else
         CPU = "mips64";
@@ -373,8 +375,9 @@ static MCInstrAnalysis *createMipsMCInstrAnalysis(const MCInstrInfo *Info) {
 
 extern "C" LLVM_ABI LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMipsTargetMC() {
   static opt::RegisterLibraryOptions<MipsMCOptions> O;
-  for (Target *T : {&getTheMipsTarget(), &getTheMipselTarget(),
-                    &getTheMips64Target(), &getTheMips64elTarget()}) {
+  for (Target *T :
+       {&getTheMipsTarget(), &getTheMipselTarget(), &getTheMips64Target(),
+        &getTheMips64elTarget(), &getTheNanoMipsTarget()}) {
     // Register the MC asm info.
     RegisterMCAsmInfoFn X(*T, createMipsMCAsmInfo);
 
@@ -415,6 +418,7 @@ extern "C" LLVM_ABI LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMipsTargetMC() {
   for (Target *T : {&getTheMipsTarget(), &getTheMips64Target()})
     TargetRegistry::RegisterMCCodeEmitter(*T, createMipsMCCodeEmitterEB);
 
-  for (Target *T : {&getTheMipselTarget(), &getTheMips64elTarget()})
+  for (Target *T : {&getTheMipselTarget(), &getTheMips64elTarget(),
+                    &getTheNanoMipsTarget()})
     TargetRegistry::RegisterMCCodeEmitter(*T, createMipsMCCodeEmitterEL);
 }

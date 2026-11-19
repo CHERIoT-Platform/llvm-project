@@ -953,7 +953,12 @@ class AsmOperandClass {
   /// default to "isFoo", where Foo is the AsmOperandClass name. The method
   /// signature should be:
   ///   bool isFoo() const;
+  /// or, when PredicateUsesSubtarget is set:
+  ///   bool isFoo(const MCSubtargetInfo &STI) const;
   string PredicateMethod = ?;
+
+  /// Set to true if PredicateMethod takes `const MCSubtargetInfo &STI`.
+  bit PredicateUsesSubtarget = false;
 
   /// The name of the method on the target specific operand to call to add the
   /// target specific operand to an MCInst. If not set, this will default to
@@ -1306,6 +1311,14 @@ def INIT_UNDEF : StandardPseudoInstruction {
   let AsmString = "";
   let hasSideEffects = false;
   let Size = 0;
+}
+def FREEZE : StandardPseudoInstruction {
+  let OutOperandList = (outs unknown:$dst);
+  let InOperandList = (ins unknown:$src);
+  let AsmString = "";
+  let hasSideEffects = false;
+  let Size = 0;
+  let isMeta = true;
 }
 def SUBREG_TO_REG : StandardPseudoInstruction {
   let OutOperandList = (outs unknown:$dst);

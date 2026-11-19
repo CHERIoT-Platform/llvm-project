@@ -5755,6 +5755,7 @@ bool SelectionDAG::isGuaranteedNotToBeUndefOrPoison(SDValue Op,
                                                     UndefPoisonKind Kind,
                                                     unsigned Depth) const {
   unsigned Opcode = Op.getOpcode();
+  unsigned NumElts = DemandedElts.getBitWidth();
 
   // Early out for FREEZE.
   if (Opcode == ISD::FREEZE)
@@ -5944,8 +5945,8 @@ bool SelectionDAG::isGuaranteedNotToBeUndefOrPoison(SDValue Op,
   case ISD::VECTOR_SHUFFLE: {
     APInt DemandedLHS, DemandedRHS;
     auto *SVN = cast<ShuffleVectorSDNode>(Op);
-    if (!getShuffleDemandedElts(DemandedElts.getBitWidth(), SVN->getMask(),
-                                DemandedElts, DemandedLHS, DemandedRHS,
+    if (!getShuffleDemandedElts(NumElts, SVN->getMask(), DemandedElts,
+                                DemandedLHS, DemandedRHS,
                                 /*AllowUndefElts=*/false))
       return false;
     if (!DemandedLHS.isZero() &&
@@ -6008,17 +6009,39 @@ bool SelectionDAG::isGuaranteedNotToBeUndefOrPoison(SDValue Op,
   case ISD::LOAD: {
     // If we're loading an unindexed constant pool, check if the constant
     // contains poison/undef - skip ANYEXT loads.
-    // TODO: DemandedElts and type size mismatch handling.
+    // TODO: type size mismatch handling.
     auto *LD = cast<LoadSDNode>(Op);
     if (ISD::isUNINDEXEDLoad(LD) && !ISD::isEXTLoad(LD)) {
       if (const Constant *Cst = TLI->getTargetConstantFromLoad(LD)) {
-        // TODO: expose isGuaranteedNotToBeUndefOrPoison(UndefPoisonKind)
-        if (includesPoison(Kind) && includesUndef(Kind))
-          return ::isGuaranteedNotToBeUndefOrPoison(Cst);
-        if (includesPoison(Kind))
-          return ::isGuaranteedNotToBePoison(Cst);
-        assert(includesUndef(Kind) && "UndefOnly expected");
-        return ::isGuaranteedNotToBeUndef(Cst);
+        EVT VT = Op.getValueType();
+        Type *CstTy = Cst->getType();
+
+        auto IsSafe = [Kind](const Constant *C) -> bool {
+          // TODO: expose isGuaranteedNotToBeUndefOrPoison(UndefPoisonKind)
+          if (includesPoison(Kind) && includesUndef(Kind))
+            return ::isGuaranteedNotToBeUndefOrPoison(C);
+          if (includesPoison(Kind))
+            return ::isGuaranteedNotToBePoison(C);
+          assert(includesUndef(Kind) && "UndefOnly expected");
+          return ::isGuaranteedNotToBeUndef(C);
+        };
+
+        // If Cst matches VT vector dimensions, then check per-element.
+        if (CstTy->isVectorTy() && VT.isFixedLengthVector() &&
+            VT.getSizeInBits() == CstTy->getPrimitiveSizeInBits() &&
+            VT.getScalarSizeInBits() == CstTy->getScalarSizeInBits()) {
+          for (unsigned I = 0; I != NumElts; ++I) {
+            if (!DemandedElts[I])
+              continue;
+            if (Constant *Elt = Cst->getAggregateElement(I)) {
+              if (IsSafe(Elt))
+                continue;
+            }
+            return false;
+          }
+        } else {
+          return IsSafe(Cst);
+        }
       }
     }
     break;
@@ -9139,6 +9162,9 @@ SDValue SelectionDAG::getNode(unsigned Opcode, const SDLoc &DL, EVT VT,
            "VECTOR_SHUFFLE_VAR mask must be a vector of integers.");
     assert(VT.getVectorElementCount() == MaskVT.getVectorElementCount() &&
            "VECTOR_SHUFFLE_VAR mask has the wrong number of elements.");
+    // The only in-range index is 0; any other index gives poison.
+    if (VT.getVectorElementCount().isScalar())
+      return N1;
     break;
   }
   case ISD::EXTRACT_SUBVECTOR: {
@@ -12697,8 +12723,10 @@ SDNode *SelectionDAG::UpdateNodeOperands(SDNode *N, SDValue Op) {
 
   // See if the modified node already exists.
   FoldingSetInsertToken InsertToken;
-  if (SDNode *Existing = FindModifiedNodeSlot(N, Op, InsertToken))
+  if (SDNode *Existing = FindModifiedNodeSlot(N, Op, InsertToken)) {
+    Existing->intersectFlagsWith(N->getFlags());
     return Existing;
+  }
 
   // Nope it doesn't.  Remove the node from its current place in the maps.
   if (InsertToken)
@@ -12724,8 +12752,10 @@ SDNode *SelectionDAG::UpdateNodeOperands(SDNode *N, SDValue Op1, SDValue Op2) {
 
   // See if the modified node already exists.
   FoldingSetInsertToken InsertToken;
-  if (SDNode *Existing = FindModifiedNodeSlot(N, Op1, Op2, InsertToken))
+  if (SDNode *Existing = FindModifiedNodeSlot(N, Op1, Op2, InsertToken)) {
+    Existing->intersectFlagsWith(N->getFlags());
     return Existing;
+  }
 
   // Nope it doesn't.  Remove the node from its current place in the maps.
   if (InsertToken)
@@ -12777,8 +12807,10 @@ UpdateNodeOperands(SDNode *N, ArrayRef<SDValue> Ops) {
 
   // See if the modified node already exists.
   FoldingSetInsertToken InsertToken;
-  if (SDNode *Existing = FindModifiedNodeSlot(N, Ops, InsertToken))
+  if (SDNode *Existing = FindModifiedNodeSlot(N, Ops, InsertToken)) {
+    Existing->intersectFlagsWith(N->getFlags());
     return Existing;
+  }
 
   // Nope it doesn't.  Remove the node from its current place in the maps.
   if (InsertToken)
@@ -14781,10 +14813,22 @@ SDValue SelectionDAG::UnrollVectorOp(SDNode *N, unsigned ResNE) {
                                 N->getFlags()));
       break;
     }
-    case ISD::VSELECT:
+    case ISD::VSELECT: {
+      SDValue Cond = Operands[0];
+      EVT CondVT = Cond.getValueType();
+      const TargetLowering &TLI = getTargetLoweringInfo();
+      if (CondVT != MVT::i1 &&
+          TLI.getBooleanContents(N->getOperand(1).getValueType()) !=
+              TLI.getBooleanContents(CondVT)) {
+        EVT SetCCVT =
+            TLI.getSetCCResultType(getDataLayout(), *getContext(), CondVT);
+        Operands[0] =
+            getSetCC(dl, SetCCVT, Cond, getConstant(0, dl, CondVT), ISD::SETNE);
+      }
       Scalars.push_back(
           getNode(ISD::SELECT, dl, EltVT, Operands, N->getFlags()));
       break;
+    }
     case ISD::SHL:
     case ISD::SRA:
     case ISD::SRL:

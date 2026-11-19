@@ -1993,9 +1993,9 @@ CUDAKernelCallExpr::CUDAKernelCallExpr(Expr *Fn, CallExpr *Config,
                                        ArrayRef<Expr *> Args, QualType Ty,
                                        ExprValueKind VK, SourceLocation RP,
                                        FPOptionsOverride FPFeatures,
-                                       unsigned MinNumArgs)
+                                       unsigned MinNumArgs, ADLCallKind UsesADL)
     : CallExpr(CUDAKernelCallExprClass, Fn, /*PreArgs=*/Config, Args, Ty, VK,
-               RP, FPFeatures, MinNumArgs, NotADL) {}
+               RP, FPFeatures, MinNumArgs, UsesADL) {}
 
 CUDAKernelCallExpr::CUDAKernelCallExpr(unsigned NumArgs, bool HasFPFeatures,
                                        EmptyShell Empty)
@@ -2006,7 +2006,7 @@ CUDAKernelCallExpr *
 CUDAKernelCallExpr::Create(const ASTContext &Ctx, Expr *Fn, CallExpr *Config,
                            ArrayRef<Expr *> Args, QualType Ty, ExprValueKind VK,
                            SourceLocation RP, FPOptionsOverride FPFeatures,
-                           unsigned MinNumArgs) {
+                           unsigned MinNumArgs, ADLCallKind UsesADL) {
   // Allocate storage for the trailing objects of CallExpr.
   unsigned NumArgs = std::max<unsigned>(Args.size(), MinNumArgs);
   unsigned SizeOfTrailingObjects = CallExpr::sizeOfTrailingObjects(
@@ -2015,8 +2015,8 @@ CUDAKernelCallExpr::Create(const ASTContext &Ctx, Expr *Fn, CallExpr *Config,
       Ctx.Allocate(sizeToAllocateForCallExprSubclass<CUDAKernelCallExpr>(
                        SizeOfTrailingObjects),
                    alignof(CUDAKernelCallExpr));
-  return new (Mem)
-      CUDAKernelCallExpr(Fn, Config, Args, Ty, VK, RP, FPFeatures, MinNumArgs);
+  return new (Mem) CUDAKernelCallExpr(Fn, Config, Args, Ty, VK, RP, FPFeatures,
+                                      MinNumArgs, UsesADL);
 }
 
 CUDAKernelCallExpr *CUDAKernelCallExpr::CreateEmpty(const ASTContext &Ctx,

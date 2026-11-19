@@ -128,6 +128,10 @@ MipsRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
     return GPIsGlobal ? CSR_N32_NoGP_SaveList : CSR_N32_SaveList;
   }
 
+  // P32 ABI
+  if (Subtarget.isABI_P32())
+    return CSR_P32_SaveList;
+
   // O32 ABI
   if (Subtarget.isSingleFloat())
     return CSR_O32_SingleFloat_SaveList;
@@ -167,6 +171,10 @@ MipsRegisterInfo::getCallPreservedMask(const MachineFunction &MF,
 
     return CSR_N32_RegMask;
   }
+
+  // P32 ABI
+  if (Subtarget.isABI_P32())
+    return CSR_P32_RegMask;
 
   // O32 ABI
   if (Subtarget.isSingleFloat())
@@ -235,6 +243,10 @@ getReservedRegs(const MachineFunction &MF) const {
 
   for (MCPhysReg R : ReservedGPR64)
     Reserved.set(R);
+
+  // Reserve AT if ABI is P32.
+  if (Subtarget.isABI_P32())
+    Reserved.set(Mips::R1);
 
   // In the CHERI pure-capability ABI, $sp is just another temporary register.
   if (!Subtarget.isABI_CheriPureCap()) {
